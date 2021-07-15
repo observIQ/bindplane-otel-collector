@@ -1,0 +1,23 @@
+receivers:
+  nop:
+
+processors:
+  nop:
+
+exporters:
+  nop:
+
+extensions:
+  orphandetector:
+  orphandetector/2:
+    interval: 500ms
+    ppid: 1001
+    die_on_init_parent: true
+
+service:
+  extensions: [orphandetector]
+  pipelines:
+    logs:
+      receivers: [nop]
+      processors: [nop]
+      exporters: [nop]
