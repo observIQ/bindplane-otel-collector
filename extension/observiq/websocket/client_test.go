@@ -276,7 +276,7 @@ func TestWebsocketOutboundError(t *testing.T) {
 	require.Contains(t, err.Error(), "unknown write error")
 }
 
-// MockServer is a server used for testing
+// MockServer is a server used for testing.
 type MockServer struct {
 	Upgrader websocket.Upgrader
 	mock.Mock
@@ -286,28 +286,29 @@ type MockServer struct {
 	inbound    chan []byte
 }
 
-// ValidateRequest is a stub that is called when a request is received
+// ValidateRequest is a stub that is called when a request is received.
 func (s *MockServer) ValidateRequest(r *http.Request) error {
 	args := s.Called(r)
 	return args.Error(0)
 }
 
-// OpenedConnection is a stub that is called when a connection is opened
+// OpenedConnection is a stub that is called when a connection is opened.
 func (s *MockServer) OpenedConnection(conn *websocket.Conn) {
 	s.Called(conn)
 }
 
-// SendMessage is used to send a message to a connection
+// SendMessage is used to send a message to a connection.
 func (s *MockServer) SendMessage(message []byte) error {
 	s.inbound <- message
 	return nil
 }
 
-// ReceivedMessage is a stub that is called when a message is received
+// ReceivedMessage is a stub that is called when a message is received.
 func (s *MockServer) ReceivedMessage(message []byte) {
 	s.Called(message)
 }
 
+// HandleSend handles sending messages to a connected client.
 func (s *MockServer) HandleSend(ctx context.Context, conn *websocket.Conn) error {
 	for {
 		select {
@@ -322,6 +323,7 @@ func (s *MockServer) HandleSend(ctx context.Context, conn *websocket.Conn) error
 	}
 }
 
+// HandleReceive handles receiving messages from a connected client.
 func (s *MockServer) HandleReceive(ctx context.Context, conn *websocket.Conn) error {
 	for {
 		select {
@@ -337,7 +339,7 @@ func (s *MockServer) HandleReceive(ctx context.Context, conn *websocket.Conn) er
 	}
 }
 
-// HandleRequest converts an http request to a websocket connection and handles incoming traffic
+// HandleRequest converts an http request to a websocket connection and handles incoming traffic.
 func (s *MockServer) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	err := s.ValidateRequest(r)
 	if err != nil {
