@@ -1,11 +1,14 @@
 package observiq
 
 import (
+	"path"
 	"testing"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component/componenttest"
+	"go.opentelemetry.io/collector/config"
+	"go.opentelemetry.io/collector/config/configtest"
 )
 
 func TestCreateDefaultConfig(t *testing.T) {
@@ -19,24 +22,26 @@ func TestCreateDefaultConfig(t *testing.T) {
 	require.Equal(t, reconnectInterval, observiqConfig.ReconnectInterval)
 }
 
-func TestConfigUnmarshal(t *testing.T) {
-	configMap := map[string]interface{}{
-		"endpoint":           "endpoint-value",
-		"agent_name":         "name-value",
-		"agent_id":           "id-value",
-		"status_interval":    time.Second * 5,
-		"reconnect_interval": time.Minute * 30,
-		"template_id":        "template-value",
-	}
-
-	config := &Config{}
-	err := mapstructure.Decode(configMap, config)
+func TestLoadConfig(t *testing.T) {
+	factories, err := componenttest.NopFactories()
 	require.NoError(t, err)
 
-	require.Equal(t, "endpoint-value", config.Endpoint)
-	require.Equal(t, "name-value", config.AgentName)
-	require.Equal(t, "id-value", config.AgentID)
-	require.Equal(t, time.Second*5, config.StatusInterval)
-	require.Equal(t, time.Minute*30, config.ReconnectInterval)
-	require.Equal(t, "template-value", config.TemplateID)
+	factory := NewFactory()
+	factories.Extensions[typeStr] = factory
+	cfg, err := configtest.LoadConfigAndValidate(path.Join(".", "testdata", "config.yaml"), factories)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	require.Equal(t, len(cfg.Extensions), 2)
+
+	expected1 := factory.CreateDefaultConfig().(*Config)
+	config1 := cfg.Extensions[config.NewID(typeStr)]
+	require.Equal(t, expected1, config1)
+
+	config2 := cfg.Extensions[config.NewIDWithName(typeStr, "2")].(*Config)
+	expected2 := factory.CreateDefaultConfig().(*Config)
+	expected2.ExtensionSettings = config.NewExtensionSettings(config.NewIDWithName(typeStr, "2"))
+	expected2.StatusInterval = time.Second * 5
+	expected2.ReconnectInterval = time.Minute * 30
+	expected2.Endpoint = "ws://localhost"
+	require.Equal(t, expected2, config2)
 }

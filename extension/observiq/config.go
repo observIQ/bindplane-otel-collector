@@ -9,7 +9,7 @@ import (
 const (
 	typeStr           = "observiq_controller"
 	endpoint          = "wss://connections.app.observiq.com"
-	statusInterval    = time.Second * 5
+	statusInterval    = time.Minute
 	reconnectInterval = time.Minute * 30
 )
 

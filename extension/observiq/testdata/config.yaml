@@ -1,0 +1,23 @@
+receivers:
+  nop:
+
+processors:
+  nop:
+
+exporters:
+  nop:
+
+extensions:
+  observiq_controller:
+  observiq_controller/2:
+    status_interval: 5s
+    reconnect_interval: 30m
+    endpoint: "ws://localhost"
+
+service:
+  extensions: [observiq_controller]
+  pipelines:
+    logs:
+      receivers: [nop]
+      processors: [nop]
+      exporters: [nop]
