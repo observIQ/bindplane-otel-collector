@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestNewWebsocketFromConfig(t *testing.T) {
@@ -106,7 +107,7 @@ func TestWebsocketInboundMessage(t *testing.T) {
 		errChan <- client.HandleInbound(ctx, conn)
 	}()
 
-	err = server.SendMessage(websocket.TextMessage, []byte("test"))
+	err = server.SendMessage([]byte("test"))
 	require.NoError(t, err)
 
 	message := <-client.Inbound()
@@ -282,7 +283,7 @@ type MockServer struct {
 	address    string
 	port       int
 	httpServer *http.Server
-	conn       *websocket.Conn
+	inbound    chan []byte
 }
 
 // ValidateRequest is a stub that is called when a request is received
@@ -296,14 +297,44 @@ func (s *MockServer) OpenedConnection(conn *websocket.Conn) {
 	s.Called(conn)
 }
 
+// SendMessage is used to send a message to a connection
+func (s *MockServer) SendMessage(message []byte) error {
+	s.inbound <- message
+	return nil
+}
+
 // ReceivedMessage is a stub that is called when a message is received
 func (s *MockServer) ReceivedMessage(message []byte) {
 	s.Called(message)
 }
 
-// SendMessage is used to send a message to a connection
-func (s *MockServer) SendMessage(messageType int, message []byte) error {
-	return s.conn.WriteMessage(messageType, message)
+func (s *MockServer) HandleSend(ctx context.Context, conn *websocket.Conn) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case message := <-s.inbound:
+			err := conn.WriteMessage(websocket.TextMessage, message)
+			if err != nil {
+				return err
+			}
+		}
+	}
+}
+
+func (s *MockServer) HandleReceive(ctx context.Context, conn *websocket.Conn) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			_, message, err := conn.ReadMessage()
+			if err != nil {
+				return err
+			}
+			s.ReceivedMessage(message)
+		}
+	}
 }
 
 // HandleRequest converts an http request to a websocket connection and handles incoming traffic
@@ -318,19 +349,20 @@ func (s *MockServer) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.conn = conn
 	s.OpenedConnection(conn)
 	defer conn.Close()
 
-	for {
-		_, message, err := conn.ReadMessage()
-		if err != nil {
-			break
-		}
-		s.ReceivedMessage(message)
-	}
+	group, ctx := errgroup.WithContext(context.Background())
 
-	s.conn = nil
+	group.Go(func() error {
+		return s.HandleSend(ctx, conn)
+	})
+
+	group.Go(func() error {
+		return s.HandleReceive(ctx, conn)
+	})
+
+	_ = group.Wait()
 }
 
 // Start will initiate the server and begin listening for requests.
@@ -368,6 +400,7 @@ func NewMockServer(t *testing.T) *MockServer {
 		Upgrader: websocket.Upgrader{},
 		address:  "127.0.0.1",
 		port:     port,
+		inbound:  make(chan []byte, 10),
 	}
 }
 
