@@ -118,8 +118,8 @@ func (c *Client) read(conn *websocket.Conn) ([]byte, error) {
 	}
 
 	buffer := new(bytes.Buffer)
-	buffer.ReadFrom(reader)
-	return buffer.Bytes(), nil
+	_, err = buffer.ReadFrom(reader)
+	return buffer.Bytes(), err
 }
 
 // write will write a message to the supplied connection.

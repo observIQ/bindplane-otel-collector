@@ -101,10 +101,17 @@ func TestWebsocketInboundMessage(t *testing.T) {
 	require.NotNil(t, conn)
 	defer conn.Close()
 
-	go client.HandleInbound(ctx, conn)
-	server.SendMessage(websocket.TextMessage, []byte("test"))
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- client.HandleInbound(ctx, conn)
+	}()
+
+	err = server.SendMessage(websocket.TextMessage, []byte("test"))
+	require.NoError(t, err)
+
 	message := <-client.Inbound()
 	require.Equal(t, []byte("test"), message)
+	require.Equal(t, 0, len(errChan))
 }
 
 func TestWebsocketInboundCtx(t *testing.T) {
@@ -156,7 +163,7 @@ func TestWebsocketInboundError(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, conn)
 
-	errChan := make(chan error)
+	errChan := make(chan error, 1)
 	go func() {
 		errChan <- client.HandleInbound(ctx, conn)
 	}()
@@ -195,10 +202,15 @@ func TestWebsocketOutboundMessage(t *testing.T) {
 	require.NotNil(t, conn)
 	defer conn.Close()
 
-	go client.HandleOutbound(ctx, conn)
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- client.HandleOutbound(ctx, conn)
+	}()
+
 	client.Outbound() <- []byte("test")
 	message := <-messageChan
 	require.Equal(t, []byte("test"), message)
+	require.Equal(t, 0, len(errChan))
 }
 
 func TestWebsocketOutboundCtx(t *testing.T) {
@@ -251,7 +263,7 @@ func TestWebsocketOutboundError(t *testing.T) {
 	require.NotNil(t, conn)
 	conn.Close()
 
-	errChan := make(chan error)
+	errChan := make(chan error, 1)
 	go func() {
 		errChan <- client.HandleOutbound(ctx, conn)
 	}()
@@ -334,7 +346,7 @@ func (s *MockServer) Start() {
 	ready := make(chan struct{})
 	go func() {
 		ready <- struct{}{}
-		s.httpServer.ListenAndServe()
+		_ = s.httpServer.ListenAndServe()
 	}()
 	<-ready
 }
