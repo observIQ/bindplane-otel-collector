@@ -1,0 +1,21 @@
+version: 1.2.3
+title: Requires Name
+description: Log generator that requires a 'name' parameter
+parameters:
+  - name: name
+    label: Name
+    description: Name of the person to greet
+    type: string
+    required: true
+pipeline:
+  - type: generate_input
+    count: 1
+    entry:
+      severity: 13 # warn
+      labels:
+        some: context
+      record:
+        message: Hello, {{ .name }}!
+        more_details:
+          number: 1
+          awesome: true
