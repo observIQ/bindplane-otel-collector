@@ -1,4 +1,4 @@
-package observiqextension
+package observiq
 
 import (
 	"go.opentelemetry.io/collector/component"

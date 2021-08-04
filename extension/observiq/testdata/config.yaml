@@ -8,14 +8,14 @@ exporters:
   nop:
 
 extensions:
-  observiq_controller:
-  observiq_controller/2:
+  observiq_manager:
+  observiq_manager/2:
     status_interval: 5s
     reconnect_interval: 30m
     endpoint: "ws://localhost"
 
 service:
-  extensions: [observiq_controller]
+  extensions: [observiq_manager]
   pipelines:
     logs:
       receivers: [nop]

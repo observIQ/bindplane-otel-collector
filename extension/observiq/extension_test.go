@@ -1,4 +1,4 @@
-package observiqextension
+package observiq
 
 import (
 	"context"

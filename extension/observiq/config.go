@@ -1,4 +1,4 @@
-package observiqextension
+package observiq
 
 import (
 	"time"
@@ -7,10 +7,12 @@ import (
 )
 
 const (
-	typeStr           = "observiq_controller"
+	typeStr           = "observiq_manager"
 	endpoint          = "wss://connections.app.observiq.com"
 	statusInterval    = time.Minute
 	reconnectInterval = time.Minute * 30
+	maxConnectBackoff = time.Minute * 5
+	bufferSize        = 50
 )
 
 // Config is the configuration of an observiq extension
@@ -21,6 +23,8 @@ type Config struct {
 	SecretKey         string        `mapstructure:"secret_key"`
 	StatusInterval    time.Duration `mapstructure:"status_interval"`
 	ReconnectInterval time.Duration `mapstructure:"reconnect_interval"`
+	MaxConnectBackoff time.Duration `mapstructure:"max_connect_backoff"`
+	BufferSize        int           `mapstructure:"buffer_size"`
 	TemplateID        string        `mapstructure:"template_id"`
 
 	config.ExtensionSettings `mapstructure:",squash"`
@@ -33,5 +37,7 @@ func createDefaultConfig() config.Extension {
 		Endpoint:          endpoint,
 		StatusInterval:    statusInterval,
 		ReconnectInterval: reconnectInterval,
+		MaxConnectBackoff: maxConnectBackoff,
+		BufferSize:        bufferSize,
 	}
 }
