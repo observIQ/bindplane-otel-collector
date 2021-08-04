@@ -296,8 +296,16 @@ func (s *Server) Start() {
 	}
 	ready := make(chan struct{})
 	go func() {
+		addr := s.httpServer.Addr
+		if addr == "" {
+			addr = ":http"
+		}
+
+		ln, _ := net.Listen("tcp", addr)
+
 		ready <- struct{}{}
-		_ = s.httpServer.ListenAndServe()
+
+		_ = s.httpServer.Serve(ln)
 	}()
 	<-ready
 }
