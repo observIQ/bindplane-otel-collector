@@ -50,7 +50,7 @@ func TestPumpInbound(t *testing.T) {
 	pipeline := message.NewPipeline(10)
 	go func() { errChan <- PumpInbound(ctx, conn, pipeline) }()
 
-	sentMessage, err := message.NewMessage("test", &map[string]interface{}{})
+	sentMessage, err := message.New("test", &map[string]interface{}{})
 	require.NoError(t, err)
 
 	server.pipeline.Outbound() <- sentMessage
@@ -115,7 +115,7 @@ func TestPumpOutbound(t *testing.T) {
 	pipeline := message.NewPipeline(10)
 	go func() { errChan <- PumpOutbound(ctx, conn, pipeline) }()
 
-	sentMessage, err := message.NewMessage("test", &map[string]interface{}{})
+	sentMessage, err := message.New("test", &map[string]interface{}{})
 	require.NoError(t, err)
 	pipeline.Outbound() <- sentMessage
 
@@ -159,7 +159,7 @@ func TestPumpOutboundClosed(t *testing.T) {
 	go func() { errChan <- PumpOutbound(ctx, conn, pipeline) }()
 	Close(conn)
 
-	sentMessage, err := message.NewMessage("test", nil)
+	sentMessage, err := message.New("test", nil)
 	require.NoError(t, err)
 
 	pipeline.Outbound() <- sentMessage
@@ -184,7 +184,7 @@ func TestPump(t *testing.T) {
 	pipeline := message.NewPipeline(10)
 	go func() { errChan <- Pump(ctx, conn, pipeline) }()
 
-	testMessage, err := message.NewMessage("test", &map[string]interface{}{})
+	testMessage, err := message.New("test", &map[string]interface{}{})
 	require.NoError(t, err)
 
 	pipeline.Outbound() <- testMessage
@@ -218,7 +218,7 @@ func TestPumpUntilTimeout(t *testing.T) {
 	timeout := time.Millisecond * 100
 	go func() { errChan <- PumpWithTimeout(ctx, conn, pipeline, timeout) }()
 
-	testMessage, err := message.NewMessage("test", &map[string]interface{}{})
+	testMessage, err := message.New("test", &map[string]interface{}{})
 	require.NoError(t, err)
 
 	pipeline.Outbound() <- testMessage
@@ -246,7 +246,7 @@ func TestWriteBadMessage(t *testing.T) {
 	invalidContent := &map[string]interface{}{
 		"chan": make(chan int),
 	}
-	testMessage, err := message.NewMessage("test", invalidContent)
+	testMessage, err := message.New("test", invalidContent)
 	require.NoError(t, err)
 
 	err = write(testMessage, conn)

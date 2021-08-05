@@ -10,6 +10,7 @@ import (
 	"github.com/jpillora/backoff"
 	"github.com/observiq/observiq-collector/extension/observiq/message"
 	"github.com/observiq/observiq-collector/extension/observiq/status"
+	"github.com/observiq/observiq-collector/extension/observiq/task"
 	"github.com/observiq/observiq-collector/extension/observiq/websocket"
 	"github.com/observiq/observiq-collector/internal/version"
 	"go.opentelemetry.io/collector/component"
@@ -50,6 +51,7 @@ func (e *Extension) Start(ctx context.Context, host component.Host) error {
 	group, groupCtx := errgroup.WithContext(cancelCtx)
 	group.Go(func() error { return e.handleConnection(groupCtx, pipeline) })
 	group.Go(func() error { return e.handleStatus(groupCtx, pipeline) })
+	group.Go(func() error { return e.handleTasks(groupCtx, pipeline) })
 	e.group = group
 
 	return nil
@@ -106,10 +108,38 @@ func (e *Extension) handleStatus(ctx context.Context, pipeline *message.Pipeline
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			err := status.Pump(pipeline)
+			report, err := status.Get()
 			if err != nil {
-				e.logger.Error("Status report failed", zap.Error(err))
+				e.logger.Error("Failed to report status", zap.Error(err))
+				continue
 			}
+
+			pipeline.Outbound() <- report.ToMessage()
+		}
+	}
+}
+
+// handleTasks will handle executing tasks from the pipeline.
+func (e *Extension) handleTasks(ctx context.Context, pipeline *message.Pipeline) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case msg := <-pipeline.Inbound():
+			t, err := task.FromMessage(msg)
+			if err != nil {
+				e.logger.Error("Failed to read task", zap.Error(err))
+				continue
+			}
+
+			e.logger.Info("Executing task", zap.Any("task", msg.Content))
+			response, err := task.Execute(t)
+			if err != nil {
+				e.logger.Error("Failed to execute task", zap.Error(err))
+				continue
+			}
+
+			pipeline.Outbound() <- response.ToMessage()
 		}
 	}
 }

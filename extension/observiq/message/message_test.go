@@ -9,7 +9,7 @@ import (
 func TestNewMessageSuccess(t *testing.T) {
 	msgType := "testMsg"
 	msgContent := struct{}{}
-	msg, err := NewMessage(msgType, msgContent)
+	msg, err := New(msgType, msgContent)
 	require.NoError(t, err)
 	require.Equal(t, msgType, msg.Type)
 	require.Equal(t, map[string]interface{}{}, msg.Content)
@@ -18,7 +18,7 @@ func TestNewMessageSuccess(t *testing.T) {
 func TestNewMessageFailure(t *testing.T) {
 	msgType := "testMsg"
 	msgContent := make(chan int)
-	msg, err := NewMessage(msgType, msgContent)
+	msg, err := New(msgType, msgContent)
 	require.Error(t, err)
 	require.Nil(t, msg)
 }

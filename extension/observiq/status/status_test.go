@@ -7,11 +7,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPump(t *testing.T) {
-	pipeline := message.NewPipeline(10)
-	err := Pump(pipeline)
+func TestGet(t *testing.T) {
+	report, err := Get()
+	require.NoError(t, err)
+	require.Equal(t, report.ComponentID, "bpagent")
+}
+
+func TestReportToMessage(t *testing.T) {
+	report, err := Get()
 	require.NoError(t, err)
 
-	report := <-pipeline.Outbound()
-	require.Equal(t, "statusReport", report.Type)
+	msg := report.ToMessage()
+	require.Equal(t, msg.Type, message.StatusReport)
 }

@@ -1,8 +1,6 @@
 package status
 
 import (
-	"fmt"
-
 	"github.com/observiq/observiq-collector/extension/observiq/message"
 )
 
@@ -22,24 +20,17 @@ type Report struct {
 	Status        Status `json:"status" mapstructure:"status"`
 }
 
-// Pump handles pumping a status report into the supplied pipeline.
-func Pump(pipeline *message.Pipeline) error {
-	report := getReport()
-
-	reportMsg, err := message.NewMessage("statusReport", report)
-	if err != nil {
-		return fmt.Errorf("failed to create status report message: %w", err)
-	}
-
-	pipeline.Outbound() <- reportMsg
-	return nil
+// ToMessage converts a report into a message.
+func (r *Report) ToMessage() *message.Message {
+	msg, _ := message.New(message.StatusReport, r)
+	return msg
 }
 
-// getReport returns a status report for the collector.
-func getReport() Report {
+// Get returns the status of the collector.
+func Get() (Report, error) {
 	return Report{
 		ComponentType: "bpagent",
 		ComponentID:   "bpagent",
 		Status:        ACTIVE,
-	}
+	}, nil
 }
