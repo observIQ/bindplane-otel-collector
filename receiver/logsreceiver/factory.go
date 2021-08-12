@@ -55,7 +55,6 @@ func createLogsReceiver(
 	cfg config.Receiver,
 	nextConsumer consumer.Logs,
 ) (component.LogsReceiver, error) {
-
 	stanzaCfg := cfg.(*Config)
 
 	// TODO agent.Builder should accept generic []map[string]interface{}

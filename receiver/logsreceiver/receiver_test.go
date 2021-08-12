@@ -165,7 +165,6 @@ func TestHandleConsumeError(t *testing.T) {
 }
 
 func BenchmarkReadLine(b *testing.B) {
-
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
 		b.Errorf(err.Error())
@@ -210,7 +209,6 @@ func BenchmarkReadLine(b *testing.B) {
 }
 
 func BenchmarkParseAndMap(b *testing.B) {
-
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
 		b.Errorf(err.Error())

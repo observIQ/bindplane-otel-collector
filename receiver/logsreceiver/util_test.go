@@ -69,7 +69,6 @@ func (l *recallLogger) recall() []string {
 // for now, just validate body
 func expectLogs(sink *consumertest.LogsSink, expected []string) func() bool {
 	return func() bool {
-
 		if sink.LogRecordCount() != len(expected) {
 			return false
 		}

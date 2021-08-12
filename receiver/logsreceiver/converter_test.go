@@ -435,7 +435,6 @@ func TestConvertMetadata(t *testing.T) {
 }
 
 func TestConvertSimpleBody(t *testing.T) {
-
 	require.True(t, anyToBody(true).BoolVal())
 	require.False(t, anyToBody(false).BoolVal())
 
@@ -559,7 +558,6 @@ func TestConvertUnknownBody(t *testing.T) {
 }
 
 func TestConvertNestedMapBody(t *testing.T) {
-
 	unknownType := map[string]int{"0": 0, "1": 1}
 
 	structuredBody := map[string]interface{}{
@@ -677,7 +675,6 @@ func BenchmarkConverter(b *testing.B) {
 	for _, wc := range workerCounts {
 		b.Run(fmt.Sprintf("worker_count=%d", wc), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-
 				converter := NewConverter(
 					WithWorkerCount(wc),
 					WithMaxFlushCount(1_000),
