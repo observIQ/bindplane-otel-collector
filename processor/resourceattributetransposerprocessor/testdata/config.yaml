@@ -1,0 +1,21 @@
+receivers:
+  nop:
+
+processors:
+  resourceattributetransposer:
+  resourceattributetransposer/customname:
+    operations:
+      - from: "some.resource.level.attr"
+        to: "some.metricdatapoint.level.attr"
+      - from: "another.resource.attr"
+        to: "another.datapoint.attr"
+
+exporters:
+  nop:
+
+service:
+  pipelines:
+    metrics:
+      receivers: [nop]
+      processors: [resourceattributetransposer]
+      exporters: [nop]
