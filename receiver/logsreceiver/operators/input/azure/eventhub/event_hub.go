@@ -17,7 +17,7 @@ package eventhub
 import (
 	"context"
 
-	"github.com/observiq/observiq-otel-collector/receiver/operators/input/azure"
+	"github.com/observiq/observiq-otel-collector/receiver/logsreceiver/operators/input/azure"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 )
