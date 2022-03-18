@@ -50,13 +50,13 @@ import (
 	_ "github.com/open-telemetry/opentelemetry-log-collection/operator/builtin/output/stdout"
 
 	// register non-opentelemetry operators
-	_ "github.com/observiq/observiq-collector/receiver/operators/input/aws/cloudwatch"
-	_ "github.com/observiq/observiq-collector/receiver/operators/input/azure/eventhub"
-	_ "github.com/observiq/observiq-collector/receiver/operators/input/azure/loganalytics"
-	_ "github.com/observiq/observiq-collector/receiver/operators/input/goflow"
-	_ "github.com/observiq/observiq-collector/receiver/operators/input/http"
+	_ "github.com/observiq/observiq-otel-collector/receiver/operators/input/aws/cloudwatch"
+	_ "github.com/observiq/observiq-otel-collector/receiver/operators/input/azure/eventhub"
+	_ "github.com/observiq/observiq-otel-collector/receiver/operators/input/azure/loganalytics"
+	_ "github.com/observiq/observiq-otel-collector/receiver/operators/input/goflow"
+	_ "github.com/observiq/observiq-otel-collector/receiver/operators/input/http"
 
-	_ "github.com/observiq/observiq-collector/receiver/operators/parser/keyvalue"
+	_ "github.com/observiq/observiq-otel-collector/receiver/operators/parser/keyvalue"
 
-	_ "github.com/observiq/observiq-collector/receiver/operators/transformer/k8smetadata"
+	_ "github.com/observiq/observiq-otel-collector/receiver/operators/transformer/k8smetadata"
 )

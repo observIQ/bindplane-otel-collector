@@ -19,8 +19,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/observiq/observiq-collector/receiver/logsreceiver/severity"
-	"github.com/observiq/observiq-collector/receiver/logsreceiver/timestamp"
+	"github.com/observiq/observiq-otel-collector/receiver/logsreceiver/severity"
+	"github.com/observiq/observiq-otel-collector/receiver/logsreceiver/timestamp"
 	"go.opentelemetry.io/collector/model/pdata"
 )
 

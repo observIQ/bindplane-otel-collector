@@ -18,7 +18,7 @@ import (
 	"context"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/observiq/observiq-collector/receiver/operators/input/azure"
+	"github.com/observiq/observiq-otel-collector/receiver/operators/input/azure"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator"
 	"github.com/open-telemetry/opentelemetry-log-collection/operator/helper"
 )
