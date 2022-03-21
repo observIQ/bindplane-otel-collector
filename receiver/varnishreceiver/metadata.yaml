@@ -1,0 +1,117 @@
+name: varnishreceiver
+
+attributes:
+  cache_name:
+    description: The varnish cache name.
+  backend_connection_type:
+    value: kind
+    description: The backend connection types.
+    enum: [success, recycle, reuse, fail, unhealthy, busy, retry]
+  cache_operations:
+    value: operation
+    description: The cache operation types
+    enum: [hit, miss, hit_pass]
+  thread_operations:
+    value: operation
+    description: The thread operation types.
+    enum: [created, destroyed, failed]
+  session_type:
+    value: kind
+    description: The session connection types.
+    enum: [accepted, dropped, failed]
+  client_requests:
+    value: kind
+    description: The client request types.
+    enum: [received, dropped]
+
+metrics:
+  varnish.backend.connections.count:
+    enabled: true
+    description: The backend connection type count.
+    unit: "{connections}"
+    sum:
+      value_type: int
+      monotonic: true
+      aggregation: cumulative
+    attributes: [backend_connection_type]
+  varnish.cache.operations.count:
+    enabled: true
+    description: The cache operation type count.
+    unit: "{operations}"
+    sum:
+      value_type: int
+      monotonic: true
+      aggregation: cumulative
+    attributes: [cache_operations]
+  varnish.thread.operations.count:
+    enabled: true
+    description: The thread operation type count.
+    unit: "{operations}"
+    sum:
+      value_type: int
+      monotonic: true
+      aggregation: cumulative
+    attributes: [thread_operations]
+  varnish.session.count:
+    enabled: true
+    description: The session connection type count.
+    unit: "{connections}"
+    sum:
+      value_type: int
+      monotonic: true
+      aggregation: cumulative
+    attributes: [session_type]
+  varnish.object.nuked.count:
+    enabled: true
+    description: The objects that have been forcefully evicted from storage count.
+    unit: "{objects}"
+    sum:
+      value_type: int
+      monotonic: true
+      aggregation: cumulative
+    attributes: []
+  varnish.object.moved.count:
+    enabled: true
+    description: The moved operations done on the LRU list count.
+    unit: "{objects}"
+    sum:
+      value_type: int
+      monotonic: true
+      aggregation: cumulative
+    attributes: []
+  varnish.object.expired.count:
+    enabled: true
+    description: The expired objects from old age count.
+    unit: "{objects}"
+    sum:
+      value_type: int
+      monotonic: true
+      aggregation: cumulative
+    attributes: []
+  varnish.object.count:
+    enabled: true
+    description: The HTTP objects in the cache count.
+    unit: "{objects}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: []
+  varnish.client.requests.count:
+    enabled: true
+    description: The client request count.
+    unit: "{requests}"
+    sum:
+      value_type: int
+      monotonic: true
+      aggregation: cumulative
+    attributes: [client_requests]
+  varnish.backend.requests.count:
+    enabled: true
+    description: The backend requests count.
+    unit: "{requests}"
+    sum:
+      value_type: int
+      monotonic: true
+      aggregation: cumulative
+    attributes: []
