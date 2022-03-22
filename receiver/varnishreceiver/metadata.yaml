@@ -19,9 +19,9 @@ attributes:
     value: kind
     description: The session connection types.
     enum: [accepted, dropped, failed]
-  client_requests:
-    value: kind
-    description: The client request types.
+  state:
+    value: state
+    description: The client request states.
     enum: [received, dropped]
 
 metrics:
@@ -105,7 +105,7 @@ metrics:
       value_type: int
       monotonic: true
       aggregation: cumulative
-    attributes: [client_requests]
+    attributes: [state]
   varnish.backend.requests.count:
     enabled: true
     description: The backend requests count.

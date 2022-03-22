@@ -236,7 +236,7 @@ func (m *metricVarnishClientRequestsCount) init() {
 	m.data.Sum().DataPoints().EnsureCapacity(m.capacity)
 }
 
-func (m *metricVarnishClientRequestsCount) recordDataPoint(start pdata.Timestamp, ts pdata.Timestamp, val int64, clientRequestsAttributeValue string) {
+func (m *metricVarnishClientRequestsCount) recordDataPoint(start pdata.Timestamp, ts pdata.Timestamp, val int64, stateAttributeValue string) {
 	if !m.settings.Enabled {
 		return
 	}
@@ -244,7 +244,7 @@ func (m *metricVarnishClientRequestsCount) recordDataPoint(start pdata.Timestamp
 	dp.SetStartTimestamp(start)
 	dp.SetTimestamp(ts)
 	dp.SetIntVal(val)
-	dp.Attributes().Insert(A.ClientRequests, pdata.NewAttributeValueString(clientRequestsAttributeValue))
+	dp.Attributes().Insert(A.State, pdata.NewAttributeValueString(stateAttributeValue))
 }
 
 // updateCapacity saves max length of data point slices that will be used for the slice capacity.
@@ -660,8 +660,8 @@ func (mb *MetricsBuilder) RecordVarnishCacheOperationsCountDataPoint(ts pdata.Ti
 }
 
 // RecordVarnishClientRequestsCountDataPoint adds a data point to varnish.client.requests.count metric.
-func (mb *MetricsBuilder) RecordVarnishClientRequestsCountDataPoint(ts pdata.Timestamp, val int64, clientRequestsAttributeValue string) {
-	mb.metricVarnishClientRequestsCount.recordDataPoint(mb.startTime, ts, val, clientRequestsAttributeValue)
+func (mb *MetricsBuilder) RecordVarnishClientRequestsCountDataPoint(ts pdata.Timestamp, val int64, stateAttributeValue string) {
+	mb.metricVarnishClientRequestsCount.recordDataPoint(mb.startTime, ts, val, stateAttributeValue)
 }
 
 // RecordVarnishObjectCountDataPoint adds a data point to varnish.object.count metric.
@@ -721,10 +721,10 @@ var Attributes = struct {
 	CacheName string
 	// CacheOperations (The cache operation types)
 	CacheOperations string
-	// ClientRequests (The client request types.)
-	ClientRequests string
 	// SessionType (The session connection types.)
 	SessionType string
+	// State (The client request states.)
+	State string
 	// ThreadOperations (The thread operation types.)
 	ThreadOperations string
 }{
@@ -732,7 +732,7 @@ var Attributes = struct {
 	"cache_name",
 	"operation",
 	"kind",
-	"kind",
+	"state",
 	"operation",
 }
 
@@ -769,15 +769,6 @@ var AttributeCacheOperations = struct {
 	"hit_pass",
 }
 
-// AttributeClientRequests are the possible values that the attribute "client_requests" can have.
-var AttributeClientRequests = struct {
-	Received string
-	Dropped  string
-}{
-	"received",
-	"dropped",
-}
-
 // AttributeSessionType are the possible values that the attribute "session_type" can have.
 var AttributeSessionType = struct {
 	Accepted string
@@ -787,6 +778,15 @@ var AttributeSessionType = struct {
 	"accepted",
 	"dropped",
 	"failed",
+}
+
+// AttributeState are the possible values that the attribute "state" can have.
+var AttributeState = struct {
+	Received string
+	Dropped  string
+}{
+	"received",
+	"dropped",
 }
 
 // AttributeThreadOperations are the possible values that the attribute "thread_operations" can have.
