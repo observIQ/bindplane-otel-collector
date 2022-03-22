@@ -15,19 +15,12 @@
 package varnishreceiver // import "github.com/observiq/observiq-otel-collector/receiver/varnishreceiver"
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
 	"go.opentelemetry.io/collector/receiver/scraperhelper"
-	"go.uber.org/multierr"
 
 	"github.com/observiq/observiq-otel-collector/receiver/varnishreceiver/internal/metadata"
-)
-
-var (
-	errWorkingDirNotExist = errors.New(`"working_dir" does not exists %q`)
-	errExecDirNotExist    = errors.New(`"exec_dir" does not exists %q`)
 )
 
 // Config defines configuration for varnish metrics receiver.
@@ -40,17 +33,16 @@ type Config struct {
 
 // Validate validates the config.
 func (c *Config) Validate() error {
-	var err error
 	if c.WorkingDir != "" {
-		if _, pathErr := os.Stat(c.WorkingDir); pathErr != nil {
-			err = multierr.Append(err, fmt.Errorf(errWorkingDirNotExist.Error(), pathErr))
+		if _, err := os.Stat(c.WorkingDir); err != nil {
+			return fmt.Errorf(`"working_dir" does not exists: %w`, err)
 		}
 	}
 	if c.ExecDir != "" {
-		if _, pathErr := os.Stat(c.ExecDir); pathErr != nil {
-			err = multierr.Append(err, fmt.Errorf(errExecDirNotExist.Error(), pathErr))
+		if _, err := os.Stat(c.ExecDir); err != nil {
+			return fmt.Errorf(`"exec_dir" does not exists: %w`, err)
 		}
 	}
 
-	return err
+	return nil
 }

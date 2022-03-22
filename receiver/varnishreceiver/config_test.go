@@ -15,59 +15,51 @@
 package varnishreceiver // import "github.com/observiq/observiq-otel-collector/receiver/varnishreceiver"
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestValidate(t *testing.T) {
+	testDir := t.TempDir()
 	testCases := []struct {
-		desc        string
-		cfg         Config
-		expectedErr error
+		desc                string
+		cfg                 Config
+		expectedErrContains string
 	}{
 		{
-			desc:        "empty config",
-			cfg:         Config{},
-			expectedErr: nil,
+			desc:                "empty config",
+			cfg:                 Config{},
+			expectedErrContains: "",
 		},
 		{
 			desc: "missing exec dir",
 			cfg: Config{
 				ExecDir: "missing/exec",
 			},
-			expectedErr: fmt.Errorf(errExecDirNotExist.Error(), "stat missing/exec: no such file or directory"),
+			expectedErrContains: `"exec_dir" does not exists`,
 		},
 		{
 			desc: "missing working dir",
 			cfg: Config{
 				WorkingDir: "missing/working",
 			},
-			expectedErr: fmt.Errorf(errWorkingDirNotExist.Error(), "stat missing/working: no such file or directory"),
-		},
-		{
-			desc: "missing exec and working dir",
-			cfg: Config{
-				WorkingDir: "missing/working",
-				ExecDir:    "missing/exec",
-			},
-			expectedErr: fmt.Errorf("\"working_dir\" does not exists \"stat missing/working: no such file or directory\"; \"exec_dir\" does not exists \"stat missing/exec: no such file or directory\""),
+			expectedErrContains: `"working_dir" does not exists`,
 		},
 		{
 			desc: "valid exec and working dir",
 			cfg: Config{
-				WorkingDir: "config_test.go",
-				ExecDir:    "config_test.go",
+				WorkingDir: testDir,
+				ExecDir:    testDir,
 			},
-			expectedErr: nil,
+			expectedErrContains: "",
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			actualErr := tc.cfg.Validate()
-			if tc.expectedErr != nil {
-				require.EqualError(t, actualErr, tc.expectedErr.Error())
+			if tc.expectedErrContains != "" {
+				require.Contains(t, actualErr.Error(), tc.expectedErrContains)
 			} else {
 				require.NoError(t, actualErr)
 			}
