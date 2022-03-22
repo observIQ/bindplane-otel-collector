@@ -193,8 +193,8 @@ func validateScraperResult(t *testing.T, actualMetrics pdata.Metrics) {
 				attributeMappings[label] = dp.IntVal()
 			}
 			require.Equal(t, map[string]int64{
-				"varnish.client.requests.count method:map[kind:received]": int64(3),
-				"varnish.client.requests.count method:map[kind:dropped]":  int64(23),
+				"varnish.client.requests.count method:map[state:received]": int64(3),
+				"varnish.client.requests.count method:map[state:dropped]":  int64(23),
 			},
 				attributeMappings)
 		case "varnish.backend.requests.count":
