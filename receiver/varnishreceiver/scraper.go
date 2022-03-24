@@ -16,6 +16,8 @@ package varnishreceiver // import "github.com/observiq/observiq-otel-collector/r
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
@@ -26,15 +28,11 @@ import (
 )
 
 type varnishScraper struct {
-	client   client
-	config   *Config
-	settings component.TelemetrySettings
-	mb       *metadata.MetricsBuilder
-}
-
-func (v *varnishScraper) start(_ context.Context, host component.Host) error {
-	v.client = newVarnishClient(v.config, host, v.settings)
-	return nil
+	client    client
+	config    *Config
+	settings  component.TelemetrySettings
+	mb        *metadata.MetricsBuilder
+	cacheName string
 }
 
 func newVarnishScraper(settings component.TelemetrySettings, config *Config) *varnishScraper {
@@ -45,11 +43,31 @@ func newVarnishScraper(settings component.TelemetrySettings, config *Config) *va
 	}
 }
 
+func (v *varnishScraper) start(_ context.Context, host component.Host) error {
+	v.client = newVarnishClient(v.config, host, v.settings)
+	return v.setCacheName()
+}
+
+// setCacheName sets the cache name to the targeted varnish instance.
+func (v *varnishScraper) setCacheName() error {
+	if v.config.CacheDir == "" {
+		hostname, err := os.Hostname()
+		if err != nil {
+			return err
+		}
+		v.cacheName = hostname
+		return nil
+	}
+
+	v.cacheName = filepath.Base(v.config.CacheDir)
+	return nil
+}
+
 func (v *varnishScraper) scrape(context.Context) (pdata.Metrics, error) {
 	stats, err := v.client.GetStats()
 	if err != nil {
 		v.settings.Logger.Error("Failed to execute varnishstat",
-			zap.String("Working Directory:", v.config.WorkingDir),
+			zap.String("Cache Dir:", v.config.CacheDir),
 			zap.String("Executable Directory:", v.config.ExecDir),
 			zap.Error(err),
 		)
@@ -58,6 +76,8 @@ func (v *varnishScraper) scrape(context.Context) (pdata.Metrics, error) {
 
 	now := pdata.NewTimestampFromTime(time.Now())
 	md := v.mb.NewMetricData()
+
+	md.ResourceMetrics().At(0).Resource().Attributes().UpsertString(metadata.A.CacheName, v.cacheName)
 
 	v.recordVarnishBackendConnectionsCountDataPoint(now, stats)
 	v.recordVarnishCacheOperationsCountDataPoint(now, stats)

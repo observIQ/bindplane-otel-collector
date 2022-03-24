@@ -37,10 +37,11 @@ func TestValidConfig(t *testing.T) {
 		require.NoError(t, cfg.Validate())
 	})
 	t.Run("config with fields", func(t *testing.T) {
+		testDir := t.TempDir()
 		factory := NewFactory()
 		cfg := factory.CreateDefaultConfig().(*Config)
-		cfg.WorkingDir = "factory_test.go"
-		cfg.ExecDir = "factory_test.go"
+		cfg.CacheDir = testDir
+		cfg.ExecDir = testDir
 		require.NoError(t, cfg.Validate())
 	})
 }

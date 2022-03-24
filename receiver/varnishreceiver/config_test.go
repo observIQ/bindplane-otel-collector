@@ -25,6 +25,7 @@ func TestValidate(t *testing.T) {
 	testCases := []struct {
 		desc                string
 		cfg                 Config
+		expectedCacheDir    string
 		expectedErrContains string
 	}{
 		{
@@ -40,17 +41,17 @@ func TestValidate(t *testing.T) {
 			expectedErrContains: `"exec_dir" does not exists`,
 		},
 		{
-			desc: "missing working dir",
+			desc: "missing cache dir",
 			cfg: Config{
-				WorkingDir: "missing/working",
+				CacheDir: "missing/cache_dir",
 			},
-			expectedErrContains: `"working_dir" does not exists`,
+			expectedErrContains: `"cache_dir" does not exists`,
 		},
 		{
-			desc: "valid exec and working dir",
+			desc: "valid exec and cache_dir",
 			cfg: Config{
-				WorkingDir: testDir,
-				ExecDir:    testDir,
+				CacheDir: testDir,
+				ExecDir:  testDir,
 			},
 			expectedErrContains: "",
 		},

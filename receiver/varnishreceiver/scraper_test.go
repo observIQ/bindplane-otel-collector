@@ -78,7 +78,7 @@ func TestScrape(t *testing.T) {
 			{
 				Entry: zapcore.Entry{Level: zap.ErrorLevel, Message: "Failed to execute varnishstat"},
 				Context: []zapcore.Field{
-					zap.String("Working Directory:", cfg.WorkingDir),
+					zap.String("Cache Dir:", cfg.CacheDir),
 					zap.String("Executable Directory:", cfg.ExecDir),
 					zap.Error(errors.New("bad response")),
 				},
@@ -206,12 +206,51 @@ func validateScraperResult(t *testing.T, actualMetrics pdata.Metrics) {
 }
 
 func TestStart(t *testing.T) {
-	t.Run("start success", func(t *testing.T) {
+	t.Run("start with default hostname", func(t *testing.T) {
+		hostname, err := os.Hostname()
+		require.Nil(t, err)
+
 		f := NewFactory()
 		cfg := f.CreateDefaultConfig().(*Config)
 		scraper := newVarnishScraper(componenttest.NewNopTelemetrySettings(), cfg)
+		err = scraper.start(context.Background(), componenttest.NewNopHost())
+		require.NoError(t, err)
+		require.EqualValues(t, hostname, scraper.cacheName)
+	})
+	t.Run("start with specified cache dir", func(t *testing.T) {
+		f := NewFactory()
+		cfg := f.CreateDefaultConfig().(*Config)
+		cfg.CacheDir = "/path/cache_name"
+		scraper := newVarnishScraper(componenttest.NewNopTelemetrySettings(), cfg)
 		err := scraper.start(context.Background(), componenttest.NewNopHost())
 		require.NoError(t, err)
+		require.EqualValues(t, "cache_name", scraper.cacheName)
+	})
+}
+
+func TestSetDefaultCacheName(t *testing.T) {
+	t.Run("missing cache dir", func(t *testing.T) {
+		f := NewFactory()
+		cfg := f.CreateDefaultConfig().(*Config)
+		scraper := newVarnishScraper(componenttest.NewNopTelemetrySettings(), cfg)
+
+		hostname, err := os.Hostname()
+		require.NoError(t, err)
+
+		err = scraper.setCacheName()
+		require.NoError(t, err)
+		require.EqualValues(t, hostname, scraper.cacheName)
+	})
+
+	t.Run("found cache dir", func(t *testing.T) {
+		f := NewFactory()
+		cfg := f.CreateDefaultConfig().(*Config)
+		cfg.CacheDir = "/path/cache_name"
+		scraper := newVarnishScraper(componenttest.NewNopTelemetrySettings(), cfg)
+
+		err := scraper.setCacheName()
+		require.NoError(t, err)
+		require.EqualValues(t, "cache_name", scraper.cacheName)
 	})
 }
 

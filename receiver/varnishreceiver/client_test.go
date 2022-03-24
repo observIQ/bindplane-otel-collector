@@ -42,19 +42,29 @@ func TestBuildCommand(t *testing.T) {
 		argList []string
 	}{
 		{
-			desc:    "no working or exec dir",
-			config:  Config{},
+			desc: "without exec dir and with default host",
+			config: Config{
+				CacheDir: "defaultHostName",
+			},
 			command: "varnishstat",
-			argList: []string{"-j"},
+			argList: []string{"-j", "-n", "defaultHostName"},
 		},
 		{
-			desc: "with working and exec dir",
+			desc: "without exec dir and with cache dir",
 			config: Config{
-				WorkingDir: "/working/dir",
-				ExecDir:    "/exec/dir/varnishstat",
+				CacheDir: "/path/varnishinstance",
+			},
+			command: "varnishstat",
+			argList: []string{"-j", "-n", "/path/varnishinstance"},
+		},
+		{
+			desc: "with exec dir and cache dir",
+			config: Config{
+				CacheDir: "/path/varnishinstance",
+				ExecDir:  "/exec/dir/varnishstat",
 			},
 			command: "/exec/dir/varnishstat",
-			argList: []string{"-j", "-n", "/working/dir"},
+			argList: []string{"-j", "-n", "/path/varnishinstance"},
 		},
 	}
 	for _, tC := range testCases {
@@ -85,24 +95,25 @@ func getBytes(t *testing.T, filename string) ([]byte, error) {
 
 func TestGetStats(t *testing.T) {
 	mockExec := new(mockExecuter)
-	mockExec.On("Execute", "varnishstat", []string{"-j"}).Return(getBytes(t, "mock_response6_0.json"))
+	mockExec.On("Execute", "varnishstat", []string{"-j", "-n", "/path/varnishinstance"}).Return(getBytes(t, "mock_response6_0.json"))
 	myclient := varnishClient{
 		exec:   mockExec,
 		cfg:    createDefaultConfig().(*Config),
 		logger: zap.NewNop(),
 	}
+	myclient.cfg.CacheDir = "/path/varnishinstance"
 	stats, err := myclient.GetStats()
 	require.NoError(t, err)
 	require.NotNil(t, stats)
 
 	mockExecuter6_5 := new(mockExecuter)
-	mockExecuter6_5.On("Execute", "varnishstat", []string{"-j"}).Return(getBytes(t, "mock_response6_5.json"))
+	mockExecuter6_5.On("Execute", "varnishstat", []string{"-j", "-n", "/path/varnishinstance"}).Return(getBytes(t, "mock_response6_5.json"))
 	myclient6_5 := varnishClient{
 		exec:   mockExecuter6_5,
 		cfg:    createDefaultConfig().(*Config),
 		logger: zap.NewNop(),
 	}
-
+	myclient6_5.cfg.CacheDir = "/path/varnishinstance"
 	stats6_5, err := myclient6_5.GetStats()
 	require.NoError(t, err)
 	require.NotNil(t, stats)

@@ -27,15 +27,15 @@ import (
 type Config struct {
 	scraperhelper.ScraperControllerSettings `mapstructure:",squash"`
 	Metrics                                 metadata.MetricsSettings `mapstructure:"metrics"`
-	WorkingDir                              string                   `mapstructure:"working_dir"`
+	CacheDir                                string                   `mapstructure:"cache_dir"`
 	ExecDir                                 string                   `mapstructure:"exec_dir"`
 }
 
 // Validate validates the config.
 func (c *Config) Validate() error {
-	if c.WorkingDir != "" {
-		if _, err := os.Stat(c.WorkingDir); err != nil {
-			return fmt.Errorf(`"working_dir" does not exists: %w`, err)
+	if c.CacheDir != "" {
+		if _, err := os.Stat(c.CacheDir); err != nil {
+			return fmt.Errorf(`"cache_dir" does not exists: %w`, err)
 		}
 	}
 	if c.ExecDir != "" {
