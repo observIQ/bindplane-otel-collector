@@ -1,0 +1,10 @@
+title: test-plugin
+template: "receivers:"
+version: 0.0.0
+description: A valid test plugin
+parameters:
+- name: env
+  type: string
+  default: prod
+  supported: ["prod","dev"]
+  required: true

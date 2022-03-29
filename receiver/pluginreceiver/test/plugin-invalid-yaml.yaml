@@ -1,0 +1,4 @@
+title: invalid-plugin-yaml
+  template: "receivers:"
+  version: 0.0.0
+  description: A plugin with invalid yaml indentation
