@@ -56,8 +56,8 @@ func TestProcessorCapabilities(t *testing.T) {
 		consumertest.NewNop(),
 		createDefaultConfig().(*Config),
 	)
-	cap := p.Capabilities()
-	require.True(t, cap.MutatesData)
+	capabilities := p.Capabilities()
+	require.True(t, capabilities.MutatesData)
 }
 
 // TestConsumeMetricsNoop test that the default config is essentially a noop
