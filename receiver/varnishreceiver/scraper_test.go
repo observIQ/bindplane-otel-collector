@@ -8,7 +8,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
@@ -89,8 +89,8 @@ func TestScrape(t *testing.T) {
 }
 
 func validateScraperResult(t *testing.T, actualMetrics pdata.Metrics) {
-	require.Equal(t, actualMetrics.MetricCount(), 10)
-	require.Equal(t, actualMetrics.DataPointCount(), 23)
+	require.Equal(t, actualMetrics.MetricCount(), 11)
+	require.Equal(t, actualMetrics.DataPointCount(), 26)
 
 	ilms := actualMetrics.ResourceMetrics().At(0).InstrumentationLibraryMetrics()
 	require.Equal(t, 1, ilms.Len())
@@ -98,7 +98,7 @@ func validateScraperResult(t *testing.T, actualMetrics pdata.Metrics) {
 	for i := 0; i < ms.Len(); i++ {
 		m := ms.At(i)
 		switch m.Name() {
-		case "varnish.backend.connections.count":
+		case "varnish.backend.connection.count":
 			dps := m.Sum().DataPoints()
 			require.Equal(t, 7, dps.Len())
 			attributeMappings := map[string]int64{}
@@ -109,16 +109,16 @@ func validateScraperResult(t *testing.T, actualMetrics pdata.Metrics) {
 				attributeMappings[label] = dp.IntVal()
 			}
 			require.Equal(t, map[string]int64{
-				"varnish.backend.connections.count method:map[kind:busy]":      int64(9),
-				"varnish.backend.connections.count method:map[kind:fail]":      int64(10),
-				"varnish.backend.connections.count method:map[kind:recycle]":   int64(12),
-				"varnish.backend.connections.count method:map[kind:retry]":     int64(13),
-				"varnish.backend.connections.count method:map[kind:reuse]":     int64(11),
-				"varnish.backend.connections.count method:map[kind:success]":   int64(7),
-				"varnish.backend.connections.count method:map[kind:unhealthy]": int64(8),
+				"varnish.backend.connection.count method:map[kind:busy]":      int64(9),
+				"varnish.backend.connection.count method:map[kind:fail]":      int64(10),
+				"varnish.backend.connection.count method:map[kind:recycle]":   int64(12),
+				"varnish.backend.connection.count method:map[kind:retry]":     int64(13),
+				"varnish.backend.connection.count method:map[kind:reuse]":     int64(11),
+				"varnish.backend.connection.count method:map[kind:success]":   int64(7),
+				"varnish.backend.connection.count method:map[kind:unhealthy]": int64(8),
 			},
 				attributeMappings)
-		case "varnish.cache.operations.count":
+		case "varnish.cache.operation.count":
 			dps := m.Sum().DataPoints()
 			require.Equal(t, 3, dps.Len())
 			attributeMappings := map[string]int64{}
@@ -129,12 +129,12 @@ func validateScraperResult(t *testing.T, actualMetrics pdata.Metrics) {
 				attributeMappings[label] = dp.IntVal()
 			}
 			require.Equal(t, map[string]int64{
-				"varnish.cache.operations.count method:map[operation:hit]":      int64(4),
-				"varnish.cache.operations.count method:map[operation:hit_pass]": int64(5),
-				"varnish.cache.operations.count method:map[operation:miss]":     int64(6),
+				"varnish.cache.operation.count method:map[operation:hit]":      int64(4),
+				"varnish.cache.operation.count method:map[operation:hit_pass]": int64(5),
+				"varnish.cache.operation.count method:map[operation:miss]":     int64(6),
 			},
 				attributeMappings)
-		case "varnish.thread.operations.count":
+		case "varnish.thread.operation.count":
 			dps := m.Sum().DataPoints()
 			require.Equal(t, 3, dps.Len())
 			attributeMappings := map[string]int64{}
@@ -145,9 +145,9 @@ func validateScraperResult(t *testing.T, actualMetrics pdata.Metrics) {
 				attributeMappings[label] = dp.IntVal()
 			}
 			require.Equal(t, map[string]int64{
-				"varnish.thread.operations.count method:map[operation:created]":   int64(14),
-				"varnish.thread.operations.count method:map[operation:destroyed]": int64(15),
-				"varnish.thread.operations.count method:map[operation:failed]":    int64(16),
+				"varnish.thread.operation.count method:map[operation:created]":   int64(14),
+				"varnish.thread.operation.count method:map[operation:destroyed]": int64(15),
+				"varnish.thread.operation.count method:map[operation:failed]":    int64(16),
 			},
 				attributeMappings)
 		case "varnish.session.count":
@@ -166,15 +166,15 @@ func validateScraperResult(t *testing.T, actualMetrics pdata.Metrics) {
 				"varnish.session.count method:map[kind:failed]":   int64(2),
 			},
 				attributeMappings)
-		case "varnish.object.nuked.count":
+		case "varnish.object.nuked":
 			dps := m.Sum().DataPoints()
 			require.Equal(t, 1, dps.Len())
 			require.EqualValues(t, int64(20), dps.At(0).IntVal())
-		case "varnish.object.moved.count":
+		case "varnish.object.moved":
 			dps := m.Sum().DataPoints()
 			require.Equal(t, 1, dps.Len())
 			require.EqualValues(t, int64(21), dps.At(0).IntVal())
-		case "varnish.object.expired.count":
+		case "varnish.object.expired":
 			dps := m.Sum().DataPoints()
 			require.Equal(t, 1, dps.Len())
 			require.EqualValues(t, int64(19), dps.At(0).IntVal())
@@ -182,7 +182,7 @@ func validateScraperResult(t *testing.T, actualMetrics pdata.Metrics) {
 			dps := m.Sum().DataPoints()
 			require.Equal(t, 1, dps.Len())
 			require.EqualValues(t, int64(18), dps.At(0).IntVal())
-		case "varnish.client.requests.count":
+		case "varnish.client.request.count":
 			dps := m.Sum().DataPoints()
 			require.Equal(t, 2, dps.Len())
 			attributeMappings := map[string]int64{}
@@ -193,11 +193,27 @@ func validateScraperResult(t *testing.T, actualMetrics pdata.Metrics) {
 				attributeMappings[label] = dp.IntVal()
 			}
 			require.Equal(t, map[string]int64{
-				"varnish.client.requests.count method:map[state:received]": int64(3),
-				"varnish.client.requests.count method:map[state:dropped]":  int64(23),
+				"varnish.client.request.count method:map[state:received]": int64(3),
+				"varnish.client.request.count method:map[state:dropped]":  int64(23),
 			},
 				attributeMappings)
-		case "varnish.backend.requests.count":
+		case "varnish.client.request.error.count":
+			dps := m.Sum().DataPoints()
+			require.Equal(t, 3, dps.Len())
+			attributeMappings := map[string]int64{}
+			for j := 0; j < dps.Len(); j++ {
+				dp := dps.At(j)
+				method := dp.Attributes().AsRaw()
+				label := fmt.Sprintf("%s method:%s", m.Name(), method)
+				attributeMappings[label] = dp.IntVal()
+			}
+			require.Equal(t, map[string]int64{
+				"varnish.client.request.error.count method:map[status_code:400]": int64(24),
+				"varnish.client.request.error.count method:map[status_code:417]": int64(25),
+				"varnish.client.request.error.count method:map[status_code:500]": int64(26),
+			},
+				attributeMappings)
+		case "varnish.backend.request.count":
 			dps := m.Sum().DataPoints()
 			require.Equal(t, 1, dps.Len())
 			require.EqualValues(t, int64(22), dps.At(0).IntVal())

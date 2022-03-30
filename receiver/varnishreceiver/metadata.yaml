@@ -23,9 +23,12 @@ attributes:
     value: state
     description: The client request states.
     enum: [received, dropped]
+  http.status_code:
+    value: status_code
+    description: An HTTP status code.
 
 metrics:
-  varnish.backend.connections.count:
+  varnish.backend.connection.count:
     enabled: true
     description: The backend connection type count.
     unit: "{connections}"
@@ -34,7 +37,7 @@ metrics:
       monotonic: true
       aggregation: cumulative
     attributes: [backend_connection_type]
-  varnish.cache.operations.count:
+  varnish.cache.operation.count:
     enabled: true
     description: The cache operation type count.
     unit: "{operations}"
@@ -43,7 +46,7 @@ metrics:
       monotonic: true
       aggregation: cumulative
     attributes: [cache_operations]
-  varnish.thread.operations.count:
+  varnish.thread.operation.count:
     enabled: true
     description: The thread operation type count.
     unit: "{operations}"
@@ -61,7 +64,7 @@ metrics:
       monotonic: true
       aggregation: cumulative
     attributes: [session_type]
-  varnish.object.nuked.count:
+  varnish.object.nuked:
     enabled: true
     description: The objects that have been forcefully evicted from storage count.
     unit: "{objects}"
@@ -70,7 +73,7 @@ metrics:
       monotonic: true
       aggregation: cumulative
     attributes: []
-  varnish.object.moved.count:
+  varnish.object.moved:
     enabled: true
     description: The moved operations done on the LRU list count.
     unit: "{objects}"
@@ -79,7 +82,7 @@ metrics:
       monotonic: true
       aggregation: cumulative
     attributes: []
-  varnish.object.expired.count:
+  varnish.object.expired:
     enabled: true
     description: The expired objects from old age count.
     unit: "{objects}"
@@ -97,7 +100,7 @@ metrics:
       monotonic: false
       aggregation: cumulative
     attributes: []
-  varnish.client.requests.count:
+  varnish.client.request.count:
     enabled: true
     description: The client request count.
     unit: "{requests}"
@@ -106,7 +109,16 @@ metrics:
       monotonic: true
       aggregation: cumulative
     attributes: [state]
-  varnish.backend.requests.count:
+  varnish.client.request.error.count:
+    enabled: true
+    description: The client request errors received by status code.
+    unit: "{requests}"
+    sum:
+      value_type: int
+      monotonic: true
+      aggregation: cumulative
+    attributes: [http.status_code]
+  varnish.backend.request.count:
     enabled: true
     description: The backend requests count.
     unit: "{requests}"

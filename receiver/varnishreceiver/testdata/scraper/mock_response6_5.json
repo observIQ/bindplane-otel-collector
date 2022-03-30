@@ -139,6 +139,24 @@
             "flag": "c",
             "format": "i",
             "value": 23
+        },
+        "MAIN.client_req_400": {
+            "description": "Client requests received, subject to 400 errors",
+            "flag": "c",
+            "format": "i",
+            "value": 24
+        },
+        "MAIN.client_req_417": {
+            "description": "Client requests received, subject to 417 errors",
+            "flag": "c",
+            "format": "i",
+            "value": 25
+        },
+        "MAIN.client_resp_500": {
+            "description": "Delivery failed due to insufficient workspace.",
+            "flag": "c",
+            "format": "i",
+            "value": 26
         }
     }
 }
