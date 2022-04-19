@@ -20,7 +20,6 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
-	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
 const emitterTypeStr = "plugin_output"
@@ -62,10 +61,10 @@ func createLogEmitterFactory(consumer consumer.Logs) component.ExporterFactory {
 		return &Emitter{Logs: consumer}, nil
 	}
 
-	return exporterhelper.NewFactory(
+	return component.NewExporterFactory(
 		emitterTypeStr,
 		defaultEmitterConfig,
-		exporterhelper.WithLogs(createExporter),
+		component.WithLogsExporter(createExporter),
 	)
 }
 
@@ -76,10 +75,10 @@ func createMetricEmitterFactory(consumer consumer.Metrics) component.ExporterFac
 		return &Emitter{Metrics: consumer}, nil
 	}
 
-	return exporterhelper.NewFactory(
+	return component.NewExporterFactory(
 		emitterTypeStr,
 		defaultEmitterConfig,
-		exporterhelper.WithMetrics(createExporter),
+		component.WithMetricsExporter(createExporter),
 	)
 }
 
@@ -90,9 +89,9 @@ func createTraceEmitterFactory(consumer consumer.Traces) component.ExporterFacto
 		return &Emitter{Traces: consumer}, nil
 	}
 
-	return exporterhelper.NewFactory(
+	return component.NewExporterFactory(
 		emitterTypeStr,
 		defaultEmitterConfig,
-		exporterhelper.WithTraces(createExporter),
+		component.WithTracesExporter(createExporter),
 	)
 }

@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/receiver/receiverhelper"
 	"go.opentelemetry.io/collector/service"
 	"go.uber.org/zap"
 )
@@ -54,7 +53,7 @@ func TestReceiverGetFactoryFailure(t *testing.T) {
 }
 
 func TestReceiverCreateServiceFailure(t *testing.T) {
-	nopFactory := receiverhelper.NewFactory("nop", nil)
+	nopFactory := component.NewReceiverFactory("nop", nil)
 	ctx := context.Background()
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
@@ -83,7 +82,7 @@ func TestReceiverCreateServiceFailure(t *testing.T) {
 }
 
 func TestReceiverStartServiceFailure(t *testing.T) {
-	nopFactory := receiverhelper.NewFactory("nop", nil)
+	nopFactory := component.NewReceiverFactory("nop", nil)
 	ctx := context.Background()
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
@@ -116,7 +115,7 @@ func TestReceiverStartServiceFailure(t *testing.T) {
 }
 
 func TestReceiverStartServiceContext(t *testing.T) {
-	nopFactory := receiverhelper.NewFactory("nop", nil)
+	nopFactory := component.NewReceiverFactory("nop", nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -151,7 +150,7 @@ func TestReceiverStartServiceContext(t *testing.T) {
 }
 
 func TestReceiverStartSuccess(t *testing.T) {
-	nopFactory := receiverhelper.NewFactory("nop", nil)
+	nopFactory := component.NewReceiverFactory("nop", nil)
 	ctx := context.Background()
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)

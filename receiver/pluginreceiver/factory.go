@@ -22,7 +22,6 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
-	"go.opentelemetry.io/collector/receiver/receiverhelper"
 )
 
 const typeStr = "plugin"
@@ -44,12 +43,11 @@ func createDefaultConfig() config.Receiver {
 
 // NewFactory creates a factory for a plugin receiver
 func NewFactory() component.ReceiverFactory {
-	return receiverhelper.NewFactory(
-		typeStr,
+	return component.NewReceiverFactory(typeStr,
 		createDefaultConfig,
-		receiverhelper.WithLogs(createLogsReceiver),
-		receiverhelper.WithMetrics(createMetricsReceiver),
-		receiverhelper.WithTraces(createTracesReceiver),
+		component.WithLogsReceiver(createLogsReceiver),
+		component.WithMetricsReceiver(createMetricsReceiver),
+		component.WithTracesReceiver(createTracesReceiver),
 	)
 }
 

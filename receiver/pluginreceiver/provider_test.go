@@ -23,10 +23,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
-	"go.opentelemetry.io/collector/exporter/exporterhelper"
-	"go.opentelemetry.io/collector/extension/extensionhelper"
-	"go.opentelemetry.io/collector/processor/processorhelper"
-	"go.opentelemetry.io/collector/receiver/receiverhelper"
 )
 
 func TestConfigProviderWatch(t *testing.T) {
@@ -69,10 +65,10 @@ func TestConfigProviderGet(t *testing.T) {
 
 func TestGetRequiredFactories(t *testing.T) {
 	testType := config.Type("test")
-	emitterFactory := exporterhelper.NewFactory(testType, nil)
-	receiverFactory := receiverhelper.NewFactory(testType, nil)
-	processorFactory := processorhelper.NewFactory(testType, nil)
-	extensionFactory := extensionhelper.NewFactory(testType, nil, nil)
+	extensionFactory := component.NewExtensionFactory(testType, nil, nil)
+	receiverFactory := component.NewReceiverFactory(testType, nil)
+	processorFactory := component.NewProcessorFactory(testType, nil)
+	emitterFactory := component.NewExporterFactory(testType, nil)
 
 	host := &MockHost{}
 	host.On("GetFactory", component.KindReceiver, testType).Return(receiverFactory)
