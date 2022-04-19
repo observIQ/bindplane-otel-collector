@@ -1,7 +1,0 @@
-pipeline:
-- type: goflow_input
-  mode: netflow_v5
-  port: 2056
-- type: file_output
-  path: /testdata/out.log
-  
