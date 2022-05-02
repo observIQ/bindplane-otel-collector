@@ -219,6 +219,11 @@ func (c *ComponentMap) ToConfigMap() *config.Map {
 		"service": map[string]interface{}{
 			"extensions": c.Service.Extensions,
 			"pipelines":  pipelines,
+			"telemetry": map[string]interface{}{
+				"metrics": map[string]interface{}{
+					"level": "none",
+				},
+			},
 		},
 	}
 

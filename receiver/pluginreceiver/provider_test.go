@@ -234,6 +234,11 @@ func TestComponentsToConfigMap(t *testing.T) {
 					"exporters":  []string{"exporter"},
 				},
 			},
+			"telemetry": map[string]interface{}{
+				"metrics": map[string]interface{}{
+					"level": "none",
+				},
+			},
 		},
 	}
 
