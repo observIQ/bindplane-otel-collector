@@ -33,17 +33,45 @@ func TestValidateSuppliedPlugins(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, entry := range entries {
+		entryName := entry.Name()
 		t.Run(fmt.Sprintf("Loading %s", entry.Name()), func(t *testing.T) {
 			t.Parallel()
-			fullFilePath, err := filepath.Abs(filepath.Join(pluginDirPath, entry.Name()))
-			assert.NoError(t, err, "Failed to determine path of file %s", entry.Name())
+			fullFilePath, err := filepath.Abs(filepath.Join(pluginDirPath, entryName))
+			assert.NoError(t, err, "Failed to determine path of file %s", entryName)
 
 			// Load the plugin
 			plugin, err := LoadPlugin(fullFilePath)
-			assert.NoError(t, err, "Failed to load file %s", entry.Name())
+			assert.NoError(t, err, "Failed to load file %s", entryName)
 
 			_, err = plugin.RenderComponents(map[string]interface{}{})
-			assert.NoError(t, err, "Failed to render components for plugin %s", entry.Name())
+			assert.NoError(t, err, "Failed to render components for plugin %s", entryName)
+		})
+	}
+}
+
+// TestValidateSuppliedPluginsLoadSuppliedDefaults ensures each plugin can be loaded if the defaults
+// are supplied for configuration (e.g. no mismatched types for defaults, no unsupported values for defaults)
+func TestValidateSuppliedPluginsLoadSuppliedDefaults(t *testing.T) {
+	entries, err := os.ReadDir(pluginDirPath)
+	require.NoError(t, err)
+
+	for _, entry := range entries {
+		entryName := entry.Name()
+		t.Run(fmt.Sprintf("Loading %s", entryName), func(t *testing.T) {
+			t.Parallel()
+			fullFilePath, err := filepath.Abs(filepath.Join(pluginDirPath, entryName))
+			require.NoError(t, err, "Failed to determine path of file %s", entryName)
+
+			// Load the plugin
+			plugin, err := LoadPlugin(fullFilePath)
+			require.NoError(t, err, "Failed to load file %s", entryName)
+
+			parameterMap := plugin.ApplyDefaults(map[string]interface{}{})
+
+			require.NoError(t, plugin.checkDefined(parameterMap))
+			require.NoError(t, plugin.checkSupported(parameterMap))
+			require.NoError(t, plugin.checkType(parameterMap))
+			// We explicitly don't call checkRequired here, since parameters may not have specified defaults
 		})
 	}
 }
