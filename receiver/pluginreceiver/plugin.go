@@ -149,8 +149,15 @@ func (p *Plugin) checkType(values map[string]interface{}) error {
 				return fmt.Errorf("parameter %s must be a string", parameter.Name)
 			}
 		case stringArrayType:
-			if _, ok := value.([]string); !ok {
+			raw, ok := value.([]interface{})
+			if !ok {
 				return fmt.Errorf("parameter %s must be a []string", parameter.Name)
+			}
+
+			for _, v := range raw {
+				if _, ok := v.(string); !ok {
+					return fmt.Errorf("parameter %s: expected string, but got %v", parameter.Name, v)
+				}
 			}
 		case intType:
 			if _, ok := value.(int); !ok {

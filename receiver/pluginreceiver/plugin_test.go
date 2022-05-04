@@ -303,7 +303,7 @@ func TestCheckParameters(t *testing.T) {
 			expectedErr: errors.New("must be a string"),
 		},
 		{
-			name: "invalid []string type",
+			name: "invalid []string type (int)",
 			plugin: &Plugin{
 				Parameters: []Parameter{
 					{
@@ -316,6 +316,23 @@ func TestCheckParameters(t *testing.T) {
 				"param1": 5,
 			},
 			expectedErr: errors.New("must be a []string"),
+		},
+		{
+			name: "invalid []string type (slice with int)",
+			plugin: &Plugin{
+				Parameters: []Parameter{
+					{
+						Name: "param1",
+						Type: stringArrayType,
+					},
+				},
+			},
+			values: map[string]interface{}{
+				"param1": []interface{}{
+					5,
+				},
+			},
+			expectedErr: errors.New("parameter param1: expected string, but got"),
 		},
 		{
 			name: "invalid int type",
@@ -409,7 +426,7 @@ func TestCheckParameters(t *testing.T) {
 			},
 			values: map[string]interface{}{
 				"param1": "value1",
-				"param2": []string{"value2"},
+				"param2": []interface{}{"value2"},
 				"param3": 5,
 				"param4": true,
 			},
