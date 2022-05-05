@@ -27,6 +27,7 @@ import (
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/processor/batchprocessor"
+	"go.opentelemetry.io/collector/service/featuregate"
 )
 
 // gcpFactory is the factory used to create the underlying gcp exporter
@@ -37,6 +38,10 @@ const typeStr = "googlecloud"
 
 // NewFactory creates a factory for the googlecloud exporter
 func NewFactory() component.ExporterFactory {
+	// Hard code to use legacy config for now until we can fully test and understand new OTLPDirect behavior.
+	// Feature flag is in an init function so overridding must occur after inits are processed.
+	featuregate.GetRegistry().Apply(map[string]bool{"exporter.googlecloud.OTLPDirect": false})
+
 	return component.NewExporterFactory(
 		typeStr,
 		createDefaultConfig,

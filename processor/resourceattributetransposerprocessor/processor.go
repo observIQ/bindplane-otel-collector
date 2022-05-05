@@ -60,7 +60,7 @@ func (p resourceAttributeTransposerProcessor) ConsumeMetrics(ctx context.Context
 				continue
 			}
 
-			ilms := resMetric.InstrumentationLibraryMetrics()
+			ilms := resMetric.ScopeMetrics()
 			for j := 0; j < ilms.Len(); j++ {
 				ilm := ilms.At(j)
 				metrics := ilm.Metrics()
@@ -80,7 +80,7 @@ func (resourceAttributeTransposerProcessor) Shutdown(_ context.Context) error {
 }
 
 // setMetricAttr sets the attribute (attrName) to the given value for every datapoint in the metric
-func setMetricAttr(metric pdata.Metric, attrName string, value pdata.AttributeValue) {
+func setMetricAttr(metric pdata.Metric, attrName string, value pdata.Value) {
 	switch metric.DataType() {
 	case pdata.MetricDataTypeGauge:
 		dps := metric.Gauge().DataPoints()

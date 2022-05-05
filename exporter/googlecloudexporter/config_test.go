@@ -19,9 +19,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/config"
+	"go.opentelemetry.io/collector/service/featuregate"
 )
 
 func TestCreateDefaultConfig(t *testing.T) {
+	// Set feature gate so correct config is returned
+	featuregate.GetRegistry().Apply(map[string]bool{"exporter.googlecloud.OTLPDirect": false})
+
 	cfg := createDefaultConfig()
 	googleCfg, ok := cfg.(*Config)
 	require.True(t, ok)

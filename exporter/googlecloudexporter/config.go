@@ -40,7 +40,7 @@ type Config struct {
 	config.ExporterSettings `mapstructure:",squash"`
 	Location                string                                       `mapstructure:"location"`
 	Namespace               string                                       `mapstructure:"namespace"`
-	GCPConfig               *gcp.Config                                  `mapstructure:",squash"`
+	GCPConfig               *gcp.LegacyConfig                            `mapstructure:",squash"`
 	BatchConfig             *batchprocessor.Config                       `mapstructure:"batch"`
 	NormalizeConfig         *normalizesumsprocessor.Config               `mapstructure:"normalize"`
 	DetectorConfig          *resourcedetectionprocessor.Config           `mapstructure:"detector"`
@@ -77,9 +77,9 @@ func createDefaultConfig() config.Exporter {
 }
 
 // createDefaultGCPConfig creates a default GCP config
-func createDefaultGCPConfig() *gcp.Config {
+func createDefaultGCPConfig() *gcp.LegacyConfig {
 	gcpFactory := gcp.NewFactory()
-	gcpConfig := gcpFactory.CreateDefaultConfig().(*gcp.Config)
+	gcpConfig := gcpFactory.CreateDefaultConfig().(*gcp.LegacyConfig)
 	gcpConfig.RetrySettings.Enabled = false
 	gcpConfig.UserAgent = defaultUserAgent
 	gcpConfig.MetricConfig.Prefix = defaultMetricPrefix

@@ -66,9 +66,9 @@ func TestConsumeMetricsNoop(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewAttributeValueString("value"))
-	attrs.Insert("resourceattrib2", pdata.NewAttributeValueBool(false))
-	attrs.Insert("resourceattrib3", pdata.NewAttributeValueBytes([]byte("some bytes")))
+	attrs.Insert("resourceattrib1", pdata.NewValueString("value"))
+	attrs.Insert("resourceattrib2", pdata.NewValueBool(false))
+	attrs.Insert("resourceattrib3", pdata.NewValueBytes([]byte("some bytes")))
 
 	var metricsOut pdata.Metrics
 
@@ -94,12 +94,12 @@ func TestConsumeMetricsMoveExistingAttribs(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewAttributeValueString("value"))
-	attrs.Insert("resourceattrib2", pdata.NewAttributeValueBool(false))
-	attrs.Insert("resourceattrib3", pdata.NewAttributeValueBytes([]byte("some bytes")))
-	attrs.Insert("resourceattrib4", pdata.NewAttributeValueDouble(2.0))
-	attrs.Insert("resourceattrib5", pdata.NewAttributeValueInt(100))
-	attrs.Insert("resourceattrib6", pdata.NewAttributeValueEmpty())
+	attrs.Insert("resourceattrib1", pdata.NewValueString("value"))
+	attrs.Insert("resourceattrib2", pdata.NewValueBool(false))
+	attrs.Insert("resourceattrib3", pdata.NewValueBytes([]byte("some bytes")))
+	attrs.Insert("resourceattrib4", pdata.NewValueDouble(2.0))
+	attrs.Insert("resourceattrib5", pdata.NewValueInt(100))
+	attrs.Insert("resourceattrib6", pdata.NewValueEmpty())
 
 	var metricsOut pdata.Metrics
 
@@ -169,7 +169,7 @@ func TestConsumeMetricsMoveToMultipleMetrics(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewAttributeValueString("value"))
+	attrs.Insert("resourceattrib1", pdata.NewValueString("value"))
 
 	var metricsOut pdata.Metrics
 
@@ -219,8 +219,8 @@ func TestConsumeMetricsMixedExistence(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewAttributeValueString("value1"))
-	attrs.Insert("resourceattrib2", pdata.NewAttributeValueString("value2"))
+	attrs.Insert("resourceattrib1", pdata.NewValueString("value1"))
+	attrs.Insert("resourceattrib2", pdata.NewValueString("value2"))
 
 	var metricsOut pdata.Metrics
 
@@ -261,7 +261,7 @@ func TestConsumeMetricsSum(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewAttributeValueString("value1"))
+	attrs.Insert("resourceattrib1", pdata.NewValueString("value1"))
 
 	var metricsOut pdata.Metrics
 
@@ -302,7 +302,7 @@ func TestConsumeMetricsHistogram(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewAttributeValueString("value1"))
+	attrs.Insert("resourceattrib1", pdata.NewValueString("value1"))
 
 	var metricsOut pdata.Metrics
 
@@ -343,7 +343,7 @@ func TestConsumeMetricsSummary(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewAttributeValueString("value1"))
+	attrs.Insert("resourceattrib1", pdata.NewValueString("value1"))
 
 	var metricsOut pdata.Metrics
 
@@ -384,7 +384,7 @@ func TestConsumeMetricsNone(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewAttributeValueString("value1"))
+	attrs.Insert("resourceattrib1", pdata.NewValueString("value1"))
 
 	var metricsOut pdata.Metrics
 
@@ -421,8 +421,8 @@ func TestConsumeMetricsDoesNotOverwrite(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewAttributeValueString("value1"))
-	attrs.Insert("resourceattrib2", pdata.NewAttributeValueString("value2"))
+	attrs.Insert("resourceattrib1", pdata.NewValueString("value1"))
+	attrs.Insert("resourceattrib2", pdata.NewValueString("value2"))
 
 	var metricsOut pdata.Metrics
 
@@ -467,8 +467,8 @@ func TestConsumeMetricsDoesNotOverwrite2(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewAttributeValueString("value1"))
-	attrs.Insert("resourceattrib2", pdata.NewAttributeValueString("value2"))
+	attrs.Insert("resourceattrib1", pdata.NewValueString("value1"))
+	attrs.Insert("resourceattrib2", pdata.NewValueString("value2"))
 
 	var metricsOut pdata.Metrics
 
@@ -535,7 +535,7 @@ func (m *mockConsumer) Shutdown(ctx context.Context) error {
 }
 
 func getMetricSlice(m pdata.Metrics) pdata.MetricSlice {
-	return m.ResourceMetrics().At(0).InstrumentationLibraryMetrics().At(0).Metrics()
+	return m.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics()
 }
 
 func getMetric(m pdata.Metrics) pdata.Metric {
@@ -544,7 +544,7 @@ func getMetric(m pdata.Metrics) pdata.Metric {
 
 func createMetrics() pdata.Metrics {
 	metrics := pdata.NewMetrics()
-	metrics.ResourceMetrics().AppendEmpty().InstrumentationLibraryMetrics().AppendEmpty().Metrics().AppendEmpty()
+	metrics.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
 	return metrics
 }
 
