@@ -1,7 +1,7 @@
 # Google Cloud Exporter
 
 This exporter can be used to send metrics, traces, and logs to Google Cloud Monitoring. It is an extension of the official 
-[Google Cloud Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.50.0/exporter/googlecloudexporter), with additional processors built in to streamline configuration.
+[Google Cloud Exporter](https://github.com/observIQ/opentelemetry-collector-contrib/tree/bb60df1ad6e08d736c6f0372173c4a1f695b6c16/exporter/googlecloudexporter), with additional processors built in to streamline configuration.
 
 ## Configuration
 | Field               | Default               | Required | Description |
@@ -33,7 +33,7 @@ This exporter can be used to send metrics, traces, and logs to Google Cloud Moni
       target_key: namespace
 ```
 
-## Metri Processing Steps
+## Metric Processing Steps
 When metric data is received by the Google Cloud Exporter, it is processed in the following steps:
 
 1. **Resource Detection Processor**: Hostname is appended as an attribute on metrics.
