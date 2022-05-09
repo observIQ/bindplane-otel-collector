@@ -54,6 +54,7 @@ func NewFactory() component.ExporterFactory {
 // createMetricsExporter creates a metrics exporter based on this config.
 func createMetricsExporter(ctx context.Context, set component.ExporterCreateSettings, cfg config.Exporter) (component.MetricsExporter, error) {
 	exporterConfig := cfg.(*Config)
+	exporterConfig.setClientOptions()
 
 	gcpExporter, err := gcpFactory.CreateMetricsExporter(ctx, set, exporterConfig.GCPConfig)
 	if err != nil {
@@ -105,6 +106,7 @@ func createMetricsExporter(ctx context.Context, set component.ExporterCreateSett
 // createLogExporter creates a logs exporter based on this config.
 func createLogsExporter(ctx context.Context, set component.ExporterCreateSettings, cfg config.Exporter) (component.LogsExporter, error) {
 	exporterConfig := cfg.(*Config)
+	exporterConfig.setClientOptions()
 
 	gcpExporter, err := gcpFactory.CreateLogsExporter(ctx, set, exporterConfig.GCPConfig)
 	if err != nil {
@@ -152,6 +154,7 @@ func createLogsExporter(ctx context.Context, set component.ExporterCreateSetting
 // createTracesExporter creates a traces exporter based on this config.
 func createTracesExporter(ctx context.Context, set component.ExporterCreateSettings, cfg config.Exporter) (component.TracesExporter, error) {
 	exporterConfig := cfg.(*Config)
+	exporterConfig.setClientOptions()
 
 	gcpExporter, err := gcpFactory.CreateTracesExporter(ctx, set, exporterConfig.GCPConfig)
 	if err != nil {

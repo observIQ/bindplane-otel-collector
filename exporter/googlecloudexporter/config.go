@@ -26,6 +26,7 @@ import (
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/processor/batchprocessor"
 	"go.uber.org/multierr"
+	"google.golang.org/api/option"
 )
 
 const (
@@ -38,6 +39,8 @@ const (
 // Config is the config the google cloud exporter
 type Config struct {
 	config.ExporterSettings `mapstructure:",squash"`
+	Credentials             string                                       `mapstructure:"credentials"`
+	CredentialsFile         string                                       `mapstructure:"credentials_file"`
 	Location                string                                       `mapstructure:"location"`
 	Namespace               string                                       `mapstructure:"namespace"`
 	GCPConfig               *gcp.LegacyConfig                            `mapstructure:",squash"`
@@ -58,6 +61,22 @@ func (c *Config) Validate() error {
 	err = multierr.Append(err, c.AttributerConfig.Validate())
 	err = multierr.Append(err, c.TransposerConfig.Validate())
 	return err
+}
+
+// setClientOptions sets the client options used by the GCP config
+func (c *Config) setClientOptions() {
+	opts := []option.ClientOption{}
+
+	switch {
+	case c.Credentials != "":
+		opts = append(opts, option.WithCredentialsJSON([]byte(c.Credentials)))
+	case c.CredentialsFile != "":
+		opts = append(opts, option.WithCredentialsFile(c.CredentialsFile))
+	}
+
+	c.GCPConfig.GetClientOptions = func() []option.ClientOption {
+		return opts
+	}
 }
 
 // createDefaultConfig creates the default config for the exporter

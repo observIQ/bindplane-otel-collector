@@ -17,9 +17,11 @@ package googlecloudexporter
 import (
 	"testing"
 
+	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/service/featuregate"
+	"google.golang.org/api/option"
 )
 
 func TestCreateDefaultConfig(t *testing.T) {
@@ -34,4 +36,66 @@ func TestCreateDefaultConfig(t *testing.T) {
 	require.Equal(t, defaultMetricPrefix, googleCfg.GCPConfig.MetricConfig.Prefix)
 	require.Equal(t, defaultUserAgent, googleCfg.GCPConfig.UserAgent)
 	require.Nil(t, googleCfg.Validate())
+}
+
+func TestSetClientOptionsWithCredentials(t *testing.T) {
+	// Set feature gate so correct config is returned
+	featuregate.GetRegistry().Apply(map[string]bool{"exporter.googlecloud.OTLPDirect": false})
+
+	testCases := []struct {
+		name   string
+		config *Config
+		opts   []option.ClientOption
+	}{
+		{
+			name: "With no credentials",
+			config: &Config{
+				GCPConfig: &googlecloudexporter.LegacyConfig{},
+			},
+			opts: []option.ClientOption{},
+		},
+		{
+			name: "With credentials json",
+			config: &Config{
+				Credentials: "testjson",
+				GCPConfig:   &googlecloudexporter.LegacyConfig{},
+			},
+			opts: []option.ClientOption{
+				option.WithCredentialsJSON([]byte("testjson")),
+			},
+		},
+		{
+			name: "With credentials file",
+			config: &Config{
+				CredentialsFile: "testfile",
+				GCPConfig:       &googlecloudexporter.LegacyConfig{},
+			},
+			opts: []option.ClientOption{
+				option.WithCredentialsFile("testfile"),
+			},
+		},
+		{
+			name: "With both credentials json and credentials file",
+			config: &Config{
+				Credentials:     "testjson",
+				CredentialsFile: "testfile",
+				GCPConfig:       &googlecloudexporter.LegacyConfig{},
+			},
+			opts: []option.ClientOption{
+				option.WithCredentialsJSON([]byte("testjson")),
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Nil(t, tc.config.GCPConfig.GetClientOptions)
+
+			tc.config.setClientOptions()
+			require.NotNil(t, tc.config.GCPConfig.GetClientOptions)
+
+			opts := tc.config.GCPConfig.GetClientOptions()
+			require.Equal(t, tc.opts, opts)
+		})
+	}
 }

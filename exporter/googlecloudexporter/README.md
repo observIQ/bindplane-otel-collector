@@ -6,6 +6,8 @@ This exporter can be used to send metrics, traces, and logs to Google Cloud Moni
 ## Configuration
 | Field               | Default               | Required | Description |
 | ---                 | ---                   | ---      | ---         |
+| `credentials`       |                       | `false`  | The credentials JSON used to authenticate the GCP client. |
+| `credentials_file`  |                       | `false`  | The credentials file used to authenticate the GCP client. Ignored if `credentials` is set. |
 | `project`           |                       | `false`  | The GCP project used when exporting telemetry data. |
 | `endpoint`          |                       | `false`  | The endpoint used when exporting telemetry data. |
 | `location`          | `global`              | `false`  | The GCP location attribute attached to telemetry data. |
