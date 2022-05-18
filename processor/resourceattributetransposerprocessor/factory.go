@@ -33,6 +33,7 @@ func NewFactory() component.ProcessorFactory {
 		typeStr,
 		createDefaultConfig,
 		component.WithMetricsProcessor(createMetricsProcessor),
+		component.WithLogsProcessor(createLogsProcessor),
 	)
 }
 
@@ -50,5 +51,14 @@ func createMetricsProcessor(_ context.Context, params component.ProcessorCreateS
 		return nil, fmt.Errorf("config was not of correct type for the processor: %+v", cfg)
 	}
 
-	return newResourceAttributeTransposerProcessor(params.Logger, nextConsumer, processorCfg), nil
+	return newMetricsProcessor(params.Logger, nextConsumer, processorCfg), nil
+}
+
+func createLogsProcessor(_ context.Context, params component.ProcessorCreateSettings, cfg config.Processor, nextConsumer consumer.Logs) (component.LogsProcessor, error) {
+	processorCfg, ok := cfg.(*Config)
+	if !ok {
+		return nil, fmt.Errorf("config was not of correct type for the processor: %+v", cfg)
+	}
+
+	return newLogsProcessor(params.Logger, nextConsumer, processorCfg), nil
 }

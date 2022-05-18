@@ -1,14 +1,16 @@
 # Resource Attribute Transposer Processor
 
-This processor copies a resource level attribute to all individual metric data points associated with the resource.
+Supported pipelines: logs, metrics
+
+This processor copies a resource level attribute to all individual logs or metric data points associated with the resource.
 If they key already exists, no action is taken (the data points' attribute _**IS NOT**_ overwritten)
 
 ## Configuration
 
 The following options may be configured:
-- `operations` (default: []): A list of operations to apply to each resource metric.
+- `operations` (default: []): A list of operations to apply to each metric or log resource.
     - `operations[].from` (default: ""): The attribute to copy off of the resource
-    - `operations[].to` (default: ""): The destination attribute on each individual metric data point
+    - `operations[].to` (default: ""): The destination attribute on each individual metric data point or log
 
 ### Example configuration
 

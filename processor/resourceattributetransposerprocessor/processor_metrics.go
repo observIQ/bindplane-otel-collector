@@ -23,15 +23,15 @@ import (
 	"go.uber.org/zap"
 )
 
-type resourceAttributeTransposerProcessor struct {
+type metricsProcessor struct {
 	consumer consumer.Metrics
 	logger   *zap.Logger
 	config   *Config
 }
 
-// newResourceAttributeTransposerProcessor returns a new resourceToMetricsAttributesProcessor
-func newResourceAttributeTransposerProcessor(logger *zap.Logger, consumer consumer.Metrics, config *Config) *resourceAttributeTransposerProcessor {
-	return &resourceAttributeTransposerProcessor{
+// newMetricsProcessor returns a new resourceToMetricsAttributesProcessor
+func newMetricsProcessor(logger *zap.Logger, consumer consumer.Metrics, config *Config) *metricsProcessor {
+	return &metricsProcessor{
 		consumer: consumer,
 		logger:   logger,
 		config:   config,
@@ -39,17 +39,17 @@ func newResourceAttributeTransposerProcessor(logger *zap.Logger, consumer consum
 }
 
 // Start starts the processor. It's a noop.
-func (resourceAttributeTransposerProcessor) Start(_ context.Context, _ component.Host) error {
+func (metricsProcessor) Start(_ context.Context, _ component.Host) error {
 	return nil
 }
 
 // Capabilities returns the consumer's capabilities. Indicates that this processor mutates the incoming metrics.
-func (resourceAttributeTransposerProcessor) Capabilities() consumer.Capabilities {
+func (metricsProcessor) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: true}
 }
 
 // ConsumeMetrics processes the incoming pdata.Metrics.
-func (p resourceAttributeTransposerProcessor) ConsumeMetrics(ctx context.Context, md pdata.Metrics) error {
+func (p metricsProcessor) ConsumeMetrics(ctx context.Context, md pdata.Metrics) error {
 	resMetrics := md.ResourceMetrics()
 	for i := 0; i < resMetrics.Len(); i++ {
 		resMetric := resMetrics.At(i)
@@ -75,7 +75,7 @@ func (p resourceAttributeTransposerProcessor) ConsumeMetrics(ctx context.Context
 }
 
 // Shutdown stops the processor. It's a noop.
-func (resourceAttributeTransposerProcessor) Shutdown(_ context.Context) error {
+func (metricsProcessor) Shutdown(_ context.Context) error {
 	return nil
 }
 

@@ -35,14 +35,26 @@ func TestCreateDefaultConfig(t *testing.T) {
 	require.NoError(t, configtest.CheckConfigStruct(cfg))
 }
 
-func TestCreateMetricsExporter(t *testing.T) {
+func TestCreateMetricsProcessor(t *testing.T) {
 	cfg := createDefaultConfig()
 	p, err := createMetricsProcessor(context.Background(), componenttest.NewNopProcessorCreateSettings(), cfg, consumertest.NewNop())
 	require.NotNil(t, p)
 	require.NoError(t, err)
 }
 
-func TestCreateMetricsExporterNilConfig(t *testing.T) {
+func TestCreateMetricsProcessorNilConfig(t *testing.T) {
 	_, err := createMetricsProcessor(context.Background(), componenttest.NewNopProcessorCreateSettings(), nil, consumertest.NewNop())
+	require.Error(t, err)
+}
+
+func TestCreateLogsProcessor(t *testing.T) {
+	cfg := createDefaultConfig()
+	p, err := createLogsProcessor(context.Background(), componenttest.NewNopProcessorCreateSettings(), cfg, consumertest.NewNop())
+	require.NotNil(t, p)
+	require.NoError(t, err)
+}
+
+func TestCreateLogsProcessorNilConfig(t *testing.T) {
+	_, err := createLogsProcessor(context.Background(), componenttest.NewNopProcessorCreateSettings(), nil, consumertest.NewNop())
 	require.Error(t, err)
 }
