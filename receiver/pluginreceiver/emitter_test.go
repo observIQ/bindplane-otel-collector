@@ -22,11 +22,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
-	"go.opentelemetry.io/collector/model/pdata"
+	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/pdata/ptrace"
 )
 
 func TestCreateLogEmitterFactory(t *testing.T) {
-	logs := pdata.Logs{}
+	logs := plog.Logs{}
 	consumer := &MockConsumer{}
 	consumer.On("ConsumeLogs", mock.Anything, logs).Return(nil).Once()
 
@@ -44,7 +46,7 @@ func TestCreateLogEmitterFactory(t *testing.T) {
 }
 
 func TestCreateMetricEmitterFactory(t *testing.T) {
-	metrics := pdata.Metrics{}
+	metrics := pmetric.Metrics{}
 	consumer := &MockConsumer{}
 	consumer.On("ConsumeMetrics", mock.Anything, metrics).Return(nil).Once()
 
@@ -62,7 +64,7 @@ func TestCreateMetricEmitterFactory(t *testing.T) {
 }
 
 func TestCreateTraceEmitterFactory(t *testing.T) {
-	traces := pdata.Traces{}
+	traces := ptrace.Traces{}
 	consumer := &MockConsumer{}
 	consumer.On("ConsumeTraces", mock.Anything, traces).Return(nil).Once()
 
@@ -117,11 +119,11 @@ func (_m *MockConsumer) Capabilities() consumer.Capabilities {
 }
 
 // ConsumeLogs provides a mock function with given fields: ctx, ld
-func (_m *MockConsumer) ConsumeLogs(ctx context.Context, ld pdata.Logs) error {
+func (_m *MockConsumer) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 	ret := _m.Called(ctx, ld)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, pdata.Logs) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, plog.Logs) error); ok {
 		r0 = rf(ctx, ld)
 	} else {
 		r0 = ret.Error(0)
@@ -131,11 +133,11 @@ func (_m *MockConsumer) ConsumeLogs(ctx context.Context, ld pdata.Logs) error {
 }
 
 // ConsumeMetrics provides a mock function with given fields: ctx, md
-func (_m *MockConsumer) ConsumeMetrics(ctx context.Context, md pdata.Metrics) error {
+func (_m *MockConsumer) ConsumeMetrics(ctx context.Context, md pmetric.Metrics) error {
 	ret := _m.Called(ctx, md)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, pdata.Metrics) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, pmetric.Metrics) error); ok {
 		r0 = rf(ctx, md)
 	} else {
 		r0 = ret.Error(0)
@@ -145,11 +147,11 @@ func (_m *MockConsumer) ConsumeMetrics(ctx context.Context, md pdata.Metrics) er
 }
 
 // ConsumeTraces provides a mock function with given fields: ctx, td
-func (_m *MockConsumer) ConsumeTraces(ctx context.Context, td pdata.Traces) error {
+func (_m *MockConsumer) ConsumeTraces(ctx context.Context, td ptrace.Traces) error {
 	ret := _m.Called(ctx, td)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, pdata.Traces) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, ptrace.Traces) error); ok {
 		r0 = rf(ctx, td)
 	} else {
 		r0 = ret.Error(0)

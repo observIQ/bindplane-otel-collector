@@ -34,9 +34,12 @@ func TestWrapLogger(t *testing.T) {
 }
 
 func TestCreateService(t *testing.T) {
-	configProvider := createConfigProvider(nil)
+	renderedCfg := &RenderedConfig{}
+	configProvider, err := renderedCfg.GetConfigProvider()
+	require.NoError(t, err)
+
 	factories := component.Factories{}
 	logger := zap.NewNop()
-	_, err := createService(factories, configProvider, logger)
+	_, err = createService(factories, configProvider, logger)
 	require.NoError(t, err)
 }

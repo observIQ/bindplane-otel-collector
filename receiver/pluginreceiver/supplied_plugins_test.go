@@ -43,8 +43,8 @@ func TestValidateSuppliedPlugins(t *testing.T) {
 			plugin, err := LoadPlugin(fullFilePath)
 			assert.NoError(t, err, "Failed to load file %s", entryName)
 
-			_, err = plugin.RenderComponents(map[string]interface{}{})
-			assert.NoError(t, err, "Failed to render components for plugin %s", entryName)
+			_, err = plugin.Render(map[string]interface{}{})
+			assert.NoError(t, err, "Failed to render config for plugin %s", entryName)
 		})
 	}
 }

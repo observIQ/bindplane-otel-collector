@@ -20,7 +20,9 @@ import (
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
-	"go.opentelemetry.io/collector/model/pdata"
+	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/pdata/ptrace"
 )
 
 // exporter is a google cloud exporter wrapped with additional functionality
@@ -39,7 +41,7 @@ type exporter struct {
 }
 
 // ConsumeMetrics consumes metrics
-func (e *exporter) ConsumeMetrics(ctx context.Context, md pdata.Metrics) error {
+func (e *exporter) ConsumeMetrics(ctx context.Context, md pmetric.Metrics) error {
 	if e.metricsConsumer == nil {
 		return nil
 	}
@@ -47,7 +49,7 @@ func (e *exporter) ConsumeMetrics(ctx context.Context, md pdata.Metrics) error {
 }
 
 // ConsumeTraces consumes traces
-func (e *exporter) ConsumeTraces(ctx context.Context, td pdata.Traces) error {
+func (e *exporter) ConsumeTraces(ctx context.Context, td ptrace.Traces) error {
 	if e.tracesConsumer == nil {
 		return nil
 	}
@@ -55,7 +57,7 @@ func (e *exporter) ConsumeTraces(ctx context.Context, td pdata.Traces) error {
 }
 
 // ConsumeLogs consumes logs
-func (e *exporter) ConsumeLogs(ctx context.Context, ld pdata.Logs) error {
+func (e *exporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 	if e.logsConsumer == nil {
 		return nil
 	}

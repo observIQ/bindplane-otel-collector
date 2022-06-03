@@ -28,7 +28,7 @@ import (
 // as an internal service.
 type Receiver struct {
 	plugin         *Plugin
-	configProvider *ConfigProvider
+	renderedCfg    *RenderedConfig
 	emitterFactory component.ExporterFactory
 	logger         *zap.Logger
 	createService  createServiceFunc
@@ -39,12 +39,17 @@ type Receiver struct {
 func (r *Receiver) Start(ctx context.Context, host component.Host) error {
 	r.logger.Info("Starting plugin...", zap.String("plugin", r.plugin.Title), zap.String("plugin-version", r.plugin.Version))
 
-	factories, err := r.configProvider.GetRequiredFactories(host, r.emitterFactory)
+	factories, err := r.renderedCfg.GetRequiredFactories(host, r.emitterFactory)
 	if err != nil {
 		return fmt.Errorf("failed to get factories from factory provider: %w", err)
 	}
 
-	service, err := r.createService(*factories, r.configProvider, r.logger)
+	cfgProvider, err := r.renderedCfg.GetConfigProvider()
+	if err != nil {
+		return fmt.Errorf("failed to get config provider: %w", err)
+	}
+
+	service, err := r.createService(*factories, cfgProvider, r.logger)
 	if err != nil {
 		return fmt.Errorf("failed to create internal service: %w", err)
 	}

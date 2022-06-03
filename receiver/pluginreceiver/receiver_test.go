@@ -32,17 +32,17 @@ func TestReceiverGetFactoryFailure(t *testing.T) {
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nil)
 
-	components := ComponentMap{
+	renderedCfg := &RenderedConfig{
 		Receivers: map[string]interface{}{
 			"missing": nil,
 		},
 	}
-	configProvider := createConfigProvider(&components)
+
 	emitterFactory := createLogEmitterFactory(nil)
 
 	receiver := Receiver{
 		plugin:         &Plugin{},
-		configProvider: configProvider,
+		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
 	}
@@ -58,17 +58,17 @@ func TestReceiverCreateServiceFailure(t *testing.T) {
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
 
-	components := ComponentMap{
+	renderedCfg := &RenderedConfig{
 		Receivers: map[string]interface{}{
 			"nop": nil,
 		},
 	}
-	configProvider := createConfigProvider(&components)
+
 	emitterFactory := createLogEmitterFactory(nil)
 
 	receiver := Receiver{
 		plugin:         &Plugin{},
-		configProvider: configProvider,
+		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
 		createService: func(factories component.Factories, configProvider service.ConfigProvider, logger *zap.Logger) (Service, error) {
@@ -87,12 +87,12 @@ func TestReceiverStartServiceFailure(t *testing.T) {
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
 
-	components := ComponentMap{
+	renderedCfg := &RenderedConfig{
 		Receivers: map[string]interface{}{
 			"nop": nil,
 		},
 	}
-	configProvider := createConfigProvider(&components)
+
 	emitterFactory := createLogEmitterFactory(nil)
 
 	svc := &MockService{}
@@ -101,7 +101,7 @@ func TestReceiverStartServiceFailure(t *testing.T) {
 
 	receiver := Receiver{
 		plugin:         &Plugin{},
-		configProvider: configProvider,
+		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
 		createService: func(factories component.Factories, configProvider service.ConfigProvider, logger *zap.Logger) (Service, error) {
@@ -122,12 +122,12 @@ func TestReceiverStartServiceContext(t *testing.T) {
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
 
-	components := ComponentMap{
+	renderedCfg := &RenderedConfig{
 		Receivers: map[string]interface{}{
 			"nop": nil,
 		},
 	}
-	configProvider := createConfigProvider(&components)
+
 	emitterFactory := createLogEmitterFactory(nil)
 
 	svc := &MockService{}
@@ -136,7 +136,7 @@ func TestReceiverStartServiceContext(t *testing.T) {
 
 	receiver := Receiver{
 		plugin:         &Plugin{},
-		configProvider: configProvider,
+		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
 		createService: func(factories component.Factories, configProvider service.ConfigProvider, logger *zap.Logger) (Service, error) {
@@ -155,12 +155,12 @@ func TestReceiverStartSuccess(t *testing.T) {
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
 
-	components := ComponentMap{
+	renderedCfg := &RenderedConfig{
 		Receivers: map[string]interface{}{
 			"nop": nil,
 		},
 	}
-	configProvider := createConfigProvider(&components)
+
 	emitterFactory := createLogEmitterFactory(nil)
 
 	svc := &MockService{}
@@ -169,7 +169,7 @@ func TestReceiverStartSuccess(t *testing.T) {
 
 	receiver := Receiver{
 		plugin:         &Plugin{},
-		configProvider: configProvider,
+		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
 		createService: func(factories component.Factories, configProvider service.ConfigProvider, logger *zap.Logger) (Service, error) {

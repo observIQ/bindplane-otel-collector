@@ -24,7 +24,8 @@ import (
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumertest"
-	"go.opentelemetry.io/collector/model/pdata"
+	"go.opentelemetry.io/collector/pdata/pcommon"
+	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.uber.org/zap"
 )
 
@@ -66,15 +67,15 @@ func TestConsumeMetricsNoop(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewValueString("value"))
-	attrs.Insert("resourceattrib2", pdata.NewValueBool(false))
-	attrs.Insert("resourceattrib3", pdata.NewValueBytes([]byte("some bytes")))
+	attrs.Insert("resourceattrib1", pcommon.NewValueString("value"))
+	attrs.Insert("resourceattrib2", pcommon.NewValueBool(false))
+	attrs.Insert("resourceattrib3", pcommon.NewValueBytes([]byte("some bytes")))
 
-	var metricsOut pdata.Metrics
+	var metricsOut pmetric.Metrics
 
 	consumer := &mockMetricsConsumer{}
 	consumer.On("ConsumeMetrics", ctx, metrics).Run(func(args mock.Arguments) {
-		metricsOut = args[1].(pdata.Metrics)
+		metricsOut = args[1].(pmetric.Metrics)
 	}).Return(nil)
 
 	p := newMetricsProcessor(
@@ -94,18 +95,18 @@ func TestConsumeMetricsMoveExistingAttribs(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewValueString("value"))
-	attrs.Insert("resourceattrib2", pdata.NewValueBool(false))
-	attrs.Insert("resourceattrib3", pdata.NewValueBytes([]byte("some bytes")))
-	attrs.Insert("resourceattrib4", pdata.NewValueDouble(2.0))
-	attrs.Insert("resourceattrib5", pdata.NewValueInt(100))
-	attrs.Insert("resourceattrib6", pdata.NewValueEmpty())
+	attrs.Insert("resourceattrib1", pcommon.NewValueString("value"))
+	attrs.Insert("resourceattrib2", pcommon.NewValueBool(false))
+	attrs.Insert("resourceattrib3", pcommon.NewValueBytes([]byte("some bytes")))
+	attrs.Insert("resourceattrib4", pcommon.NewValueDouble(2.0))
+	attrs.Insert("resourceattrib5", pcommon.NewValueInt(100))
+	attrs.Insert("resourceattrib6", pcommon.NewValueEmpty())
 
-	var metricsOut pdata.Metrics
+	var metricsOut pmetric.Metrics
 
 	consumer := &mockMetricsConsumer{}
 	consumer.On("ConsumeMetrics", ctx, metrics).Run(func(args mock.Arguments) {
-		metricsOut = args[1].(pdata.Metrics)
+		metricsOut = args[1].(pmetric.Metrics)
 	}).Return(nil)
 
 	cfg := createDefaultConfig().(*Config)
@@ -147,7 +148,7 @@ func TestConsumeMetricsMoveExistingAttribs(t *testing.T) {
 	)
 
 	metric := getMetric(metrics)
-	metric.SetDataType(pdata.MetricDataTypeGauge)
+	metric.SetDataType(pmetric.MetricDataTypeGauge)
 	dp := metric.Gauge().DataPoints()
 	dp.AppendEmpty().SetDoubleVal(3.0)
 
@@ -169,13 +170,13 @@ func TestConsumeMetricsMoveToMultipleMetrics(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewValueString("value"))
+	attrs.Insert("resourceattrib1", pcommon.NewValueString("value"))
 
-	var metricsOut pdata.Metrics
+	var metricsOut pmetric.Metrics
 
 	consumer := &mockMetricsConsumer{}
 	consumer.On("ConsumeMetrics", ctx, metrics).Run(func(args mock.Arguments) {
-		metricsOut = args[1].(pdata.Metrics)
+		metricsOut = args[1].(pmetric.Metrics)
 	}).Return(nil)
 
 	cfg := createDefaultConfig().(*Config)
@@ -193,12 +194,12 @@ func TestConsumeMetricsMoveToMultipleMetrics(t *testing.T) {
 	)
 	metricsSlice := getMetricSlice(metrics)
 	metric1 := metricsSlice.At(0)
-	metric1.SetDataType(pdata.MetricDataTypeGauge)
+	metric1.SetDataType(pmetric.MetricDataTypeGauge)
 	dp1 := metric1.Gauge().DataPoints()
 	dp1.AppendEmpty().SetDoubleVal(3.0)
 
 	metric2 := metricsSlice.AppendEmpty()
-	metric2.SetDataType(pdata.MetricDataTypeGauge)
+	metric2.SetDataType(pmetric.MetricDataTypeGauge)
 	dp2 := metric2.Gauge().DataPoints()
 	dp2.AppendEmpty().SetDoubleVal(3.0)
 
@@ -219,14 +220,14 @@ func TestConsumeMetricsMixedExistence(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewValueString("value1"))
-	attrs.Insert("resourceattrib2", pdata.NewValueString("value2"))
+	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
+	attrs.Insert("resourceattrib2", pcommon.NewValueString("value2"))
 
-	var metricsOut pdata.Metrics
+	var metricsOut pmetric.Metrics
 
 	consumer := &mockMetricsConsumer{}
 	consumer.On("ConsumeMetrics", ctx, metrics).Run(func(args mock.Arguments) {
-		metricsOut = args[1].(pdata.Metrics)
+		metricsOut = args[1].(pmetric.Metrics)
 	}).Return(nil)
 
 	cfg := createDefaultConfig().(*Config)
@@ -244,7 +245,7 @@ func TestConsumeMetricsMixedExistence(t *testing.T) {
 	)
 
 	metric := getMetric(metrics)
-	metric.SetDataType(pdata.MetricDataTypeGauge)
+	metric.SetDataType(pmetric.MetricDataTypeGauge)
 	dp := metric.Gauge().DataPoints()
 	dp.AppendEmpty().SetDoubleVal(3.0)
 
@@ -261,13 +262,13 @@ func TestConsumeMetricsSum(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewValueString("value1"))
+	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
 
-	var metricsOut pdata.Metrics
+	var metricsOut pmetric.Metrics
 
 	consumer := &mockMetricsConsumer{}
 	consumer.On("ConsumeMetrics", ctx, metrics).Run(func(args mock.Arguments) {
-		metricsOut = args[1].(pdata.Metrics)
+		metricsOut = args[1].(pmetric.Metrics)
 	}).Return(nil)
 
 	cfg := createDefaultConfig().(*Config)
@@ -285,7 +286,7 @@ func TestConsumeMetricsSum(t *testing.T) {
 	)
 
 	metric := getMetric(metrics)
-	metric.SetDataType(pdata.MetricDataTypeSum)
+	metric.SetDataType(pmetric.MetricDataTypeSum)
 	dp := metric.Sum().DataPoints()
 	dp.AppendEmpty().SetDoubleVal(3.0)
 
@@ -302,13 +303,13 @@ func TestConsumeMetricsHistogram(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewValueString("value1"))
+	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
 
-	var metricsOut pdata.Metrics
+	var metricsOut pmetric.Metrics
 
 	consumer := &mockMetricsConsumer{}
 	consumer.On("ConsumeMetrics", ctx, metrics).Run(func(args mock.Arguments) {
-		metricsOut = args[1].(pdata.Metrics)
+		metricsOut = args[1].(pmetric.Metrics)
 	}).Return(nil)
 
 	cfg := createDefaultConfig().(*Config)
@@ -326,7 +327,7 @@ func TestConsumeMetricsHistogram(t *testing.T) {
 	)
 
 	metric := getMetric(metrics)
-	metric.SetDataType(pdata.MetricDataTypeHistogram)
+	metric.SetDataType(pmetric.MetricDataTypeHistogram)
 	dp := metric.Histogram().DataPoints()
 	dp.AppendEmpty()
 
@@ -343,13 +344,13 @@ func TestConsumeMetricsSummary(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewValueString("value1"))
+	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
 
-	var metricsOut pdata.Metrics
+	var metricsOut pmetric.Metrics
 
 	consumer := &mockMetricsConsumer{}
 	consumer.On("ConsumeMetrics", ctx, metrics).Run(func(args mock.Arguments) {
-		metricsOut = args[1].(pdata.Metrics)
+		metricsOut = args[1].(pmetric.Metrics)
 	}).Return(nil)
 
 	cfg := createDefaultConfig().(*Config)
@@ -367,7 +368,7 @@ func TestConsumeMetricsSummary(t *testing.T) {
 	)
 
 	metric := getMetric(metrics)
-	metric.SetDataType(pdata.MetricDataTypeSummary)
+	metric.SetDataType(pmetric.MetricDataTypeSummary)
 	dp := metric.Summary().DataPoints()
 	dp.AppendEmpty()
 
@@ -384,13 +385,13 @@ func TestConsumeMetricsNone(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewValueString("value1"))
+	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
 
-	var metricsOut pdata.Metrics
+	var metricsOut pmetric.Metrics
 
 	consumer := &mockMetricsConsumer{}
 	consumer.On("ConsumeMetrics", ctx, metrics).Run(func(args mock.Arguments) {
-		metricsOut = args[1].(pdata.Metrics)
+		metricsOut = args[1].(pmetric.Metrics)
 	}).Return(nil)
 
 	cfg := createDefaultConfig().(*Config)
@@ -408,7 +409,7 @@ func TestConsumeMetricsNone(t *testing.T) {
 	)
 
 	metric := getMetric(metrics)
-	metric.SetDataType(pdata.MetricDataTypeNone)
+	metric.SetDataType(pmetric.MetricDataTypeNone)
 
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
@@ -421,14 +422,14 @@ func TestConsumeMetricsDoesNotOverwrite(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewValueString("value1"))
-	attrs.Insert("resourceattrib2", pdata.NewValueString("value2"))
+	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
+	attrs.Insert("resourceattrib2", pcommon.NewValueString("value2"))
 
-	var metricsOut pdata.Metrics
+	var metricsOut pmetric.Metrics
 
 	consumer := &mockMetricsConsumer{}
 	consumer.On("ConsumeMetrics", ctx, metrics).Run(func(args mock.Arguments) {
-		metricsOut = args[1].(pdata.Metrics)
+		metricsOut = args[1].(pmetric.Metrics)
 	}).Return(nil)
 
 	cfg := createDefaultConfig().(*Config)
@@ -450,7 +451,7 @@ func TestConsumeMetricsDoesNotOverwrite(t *testing.T) {
 	)
 
 	metric := getMetric(metrics)
-	metric.SetDataType(pdata.MetricDataTypeGauge)
+	metric.SetDataType(pmetric.MetricDataTypeGauge)
 	dp := metric.Gauge().DataPoints()
 	dp.AppendEmpty().SetDoubleVal(3.0)
 
@@ -467,14 +468,14 @@ func TestConsumeMetricsDoesNotOverwrite2(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pdata.NewValueString("value1"))
-	attrs.Insert("resourceattrib2", pdata.NewValueString("value2"))
+	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
+	attrs.Insert("resourceattrib2", pcommon.NewValueString("value2"))
 
-	var metricsOut pdata.Metrics
+	var metricsOut pmetric.Metrics
 
 	consumer := &mockMetricsConsumer{}
 	consumer.On("ConsumeMetrics", ctx, metrics).Run(func(args mock.Arguments) {
-		metricsOut = args[1].(pdata.Metrics)
+		metricsOut = args[1].(pmetric.Metrics)
 	}).Return(nil)
 
 	cfg := createDefaultConfig().(*Config)
@@ -496,7 +497,7 @@ func TestConsumeMetricsDoesNotOverwrite2(t *testing.T) {
 	)
 
 	metric := getMetric(metrics)
-	metric.SetDataType(pdata.MetricDataTypeGauge)
+	metric.SetDataType(pmetric.MetricDataTypeGauge)
 	dps := metric.Gauge().DataPoints()
 	dp := dps.AppendEmpty()
 	dp.SetDoubleVal(3.0)
@@ -524,7 +525,7 @@ func (m *mockMetricsConsumer) Capabilities() consumer.Capabilities {
 	return args.Get(0).(consumer.Capabilities)
 }
 
-func (m *mockMetricsConsumer) ConsumeMetrics(ctx context.Context, md pdata.Metrics) error {
+func (m *mockMetricsConsumer) ConsumeMetrics(ctx context.Context, md pmetric.Metrics) error {
 	args := m.Called(ctx, md)
 	return args.Error(0)
 }
@@ -534,33 +535,33 @@ func (m *mockMetricsConsumer) Shutdown(ctx context.Context) error {
 	return args.Error(0)
 }
 
-func getMetricSlice(m pdata.Metrics) pdata.MetricSlice {
+func getMetricSlice(m pmetric.Metrics) pmetric.MetricSlice {
 	return m.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics()
 }
 
-func getMetric(m pdata.Metrics) pdata.Metric {
+func getMetric(m pmetric.Metrics) pmetric.Metric {
 	return getMetricSlice(m).At(0)
 }
 
-func createMetrics() pdata.Metrics {
-	metrics := pdata.NewMetrics()
+func createMetrics() pmetric.Metrics {
+	metrics := pmetric.NewMetrics()
 	metrics.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
 	return metrics
 }
 
-func getMetricAttrsFromMetrics(m pdata.Metrics) map[string]interface{} {
+func getMetricAttrsFromMetrics(m pmetric.Metrics) map[string]interface{} {
 	return getMetricAttrsFromMetric(getMetric(m))
 }
 
-func getMetricAttrsFromMetric(m pdata.Metric) map[string]interface{} {
+func getMetricAttrsFromMetric(m pmetric.Metric) map[string]interface{} {
 	switch m.DataType() {
-	case pdata.MetricDataTypeGauge:
+	case pmetric.MetricDataTypeGauge:
 		return m.Gauge().DataPoints().At(0).Attributes().AsRaw()
-	case pdata.MetricDataTypeSum:
+	case pmetric.MetricDataTypeSum:
 		return m.Sum().DataPoints().At(0).Attributes().AsRaw()
-	case pdata.MetricDataTypeHistogram:
+	case pmetric.MetricDataTypeHistogram:
 		return m.Histogram().DataPoints().At(0).Attributes().AsRaw()
-	case pdata.MetricDataTypeSummary:
+	case pmetric.MetricDataTypeSummary:
 		return m.Summary().DataPoints().At(0).Attributes().AsRaw()
 	}
 	return nil

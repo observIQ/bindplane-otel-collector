@@ -24,8 +24,8 @@ import (
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumertest"
-	"go.opentelemetry.io/collector/model/pdata"
 	"go.opentelemetry.io/collector/pdata/pcommon"
+	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 )
 
@@ -73,11 +73,11 @@ func TestConsumeLogs(t *testing.T) {
 	attrs.Insert("resourceattrib5", pcommon.NewValueInt(100))
 	attrs.Insert("resourceattrib6", pcommon.NewValueEmpty())
 
-	var logsOut pdata.Logs
+	var logsOut plog.Logs
 
 	consumer := &mockLogsConsumer{}
 	consumer.On("ConsumeLogs", ctx, logs).Run(func(args mock.Arguments) {
-		logsOut = args[1].(pdata.Logs)
+		logsOut = args[1].(plog.Logs)
 	}).Return(nil)
 
 	cfg := createDefaultConfig().(*Config)
@@ -138,11 +138,11 @@ func TestConsumeLogsMoveToMultipleMetrics(t *testing.T) {
 	attrs := logs.ResourceLogs().At(0).Resource().Attributes()
 	attrs.Insert("resourceattrib1", pcommon.NewValueString("value"))
 
-	var logsOut pdata.Logs
+	var logsOut plog.Logs
 
 	consumer := &mockLogsConsumer{}
 	consumer.On("ConsumeLogs", ctx, logs).Run(func(args mock.Arguments) {
-		logsOut = args[1].(pdata.Logs)
+		logsOut = args[1].(plog.Logs)
 	}).Return(nil)
 
 	cfg := createDefaultConfig().(*Config)
@@ -183,11 +183,11 @@ func TestConsumeLogsDoesNotOverwrite(t *testing.T) {
 	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
 	attrs.Insert("resourceattrib2", pcommon.NewValueString("value2"))
 
-	var logsOut pdata.Logs
+	var logsOut plog.Logs
 
 	consumer := &mockLogsConsumer{}
 	consumer.On("ConsumeLogs", ctx, logs).Run(func(args mock.Arguments) {
-		logsOut = args[1].(pdata.Logs)
+		logsOut = args[1].(plog.Logs)
 	}).Return(nil)
 
 	cfg := createDefaultConfig().(*Config)
@@ -225,11 +225,11 @@ func TestConsumeLogsDoesNotOverwrite2(t *testing.T) {
 	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
 	attrs.Insert("resourceattrib2", pcommon.NewValueString("value2"))
 
-	var logsOut pdata.Logs
+	var logsOut plog.Logs
 
 	consumer := &mockLogsConsumer{}
 	consumer.On("ConsumeLogs", ctx, logs).Run(func(args mock.Arguments) {
-		logsOut = args[1].(pdata.Logs)
+		logsOut = args[1].(plog.Logs)
 	}).Return(nil)
 
 	cfg := createDefaultConfig().(*Config)
@@ -260,8 +260,8 @@ func TestConsumeLogsDoesNotOverwrite2(t *testing.T) {
 	}, logsOut.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Attributes().AsRaw())
 }
 
-func createLogs() pdata.Logs {
-	logs := pdata.NewLogs()
+func createLogs() plog.Logs {
+	logs := plog.NewLogs()
 	logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
 	return logs
 }
@@ -280,7 +280,7 @@ func (m *mockLogsConsumer) Capabilities() consumer.Capabilities {
 	return args.Get(0).(consumer.Capabilities)
 }
 
-func (m *mockLogsConsumer) ConsumeLogs(ctx context.Context, md pdata.Logs) error {
+func (m *mockLogsConsumer) ConsumeLogs(ctx context.Context, md plog.Logs) error {
 	args := m.Called(ctx, md)
 	return args.Error(0)
 }

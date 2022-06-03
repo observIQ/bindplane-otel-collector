@@ -81,7 +81,7 @@ func TestRenderComponents(t *testing.T) {
 		plugin         *Plugin
 		values         map[string]interface{}
 		dataType       config.DataType
-		expectedResult *ComponentMap
+		expectedResult *RenderedConfig
 		expectedErr    error
 	}{
 		{
@@ -121,15 +121,15 @@ service:
 			values: map[string]interface{}{
 				"enabled": true,
 			},
-			expectedResult: &ComponentMap{
+			expectedResult: &RenderedConfig{
 				Receivers: map[string]interface{}{
 					"test": nil,
 				},
 				Exporters: map[string]interface{}{
 					emitterTypeStr: nil,
 				},
-				Service: ServiceMap{
-					Pipelines: map[string]PipelineMap{
+				Service: ServiceConfig{
+					Pipelines: map[string]PipelineConfig{
 						"metrics": {
 							Receivers: []string{"test"},
 							Exporters: []string{emitterTypeStr},
@@ -156,15 +156,15 @@ service:
 					},
 				},
 			},
-			expectedResult: &ComponentMap{
+			expectedResult: &RenderedConfig{
 				Receivers: map[string]interface{}{
 					"test": nil,
 				},
 				Exporters: map[string]interface{}{
 					emitterTypeStr: nil,
 				},
-				Service: ServiceMap{
-					Pipelines: map[string]PipelineMap{
+				Service: ServiceConfig{
+					Pipelines: map[string]PipelineConfig{
 						"metrics": {
 							Exporters: []string{emitterTypeStr},
 						},
@@ -176,7 +176,7 @@ service:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := tc.plugin.RenderComponents(tc.values)
+			result, err := tc.plugin.Render(tc.values)
 			switch tc.expectedErr {
 			case nil:
 				require.NoError(t, err)

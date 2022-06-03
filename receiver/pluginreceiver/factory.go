@@ -85,15 +85,14 @@ func createReceiver(cfg config.Receiver, set component.ReceiverCreateSettings, e
 		return nil, fmt.Errorf("invalid plugin parameter: %w", err)
 	}
 
-	components, err := plugin.RenderComponents(receiverConfig.Parameters)
+	renderedCfg, err := plugin.Render(receiverConfig.Parameters)
 	if err != nil {
-		return nil, fmt.Errorf("failed to render plugin components: %w", err)
+		return nil, fmt.Errorf("failed to render plugin: %w", err)
 	}
-	configProvider := createConfigProvider(components)
 
 	return &Receiver{
 		plugin:         plugin,
-		configProvider: configProvider,
+		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         set.Logger,
 		createService:  createService,

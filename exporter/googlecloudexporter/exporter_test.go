@@ -23,7 +23,9 @@ import (
 	"github.com/stretchr/testify/mock"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
-	"go.opentelemetry.io/collector/model/pdata"
+	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/pdata/ptrace"
 )
 
 func TestExporterCapabilities(t *testing.T) {
@@ -44,13 +46,13 @@ func TestExporterWithConsumers(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err := exporter.ConsumeLogs(ctx, pdata.NewLogs())
+	err := exporter.ConsumeLogs(ctx, plog.NewLogs())
 	assert.Nil(t, err)
 
-	err = exporter.ConsumeMetrics(ctx, pdata.NewMetrics())
+	err = exporter.ConsumeMetrics(ctx, pmetric.NewMetrics())
 	assert.Nil(t, err)
 
-	err = exporter.ConsumeTraces(ctx, pdata.NewTraces())
+	err = exporter.ConsumeTraces(ctx, ptrace.NewTraces())
 	assert.Nil(t, err)
 
 	consumer.AssertExpectations(t)
@@ -60,13 +62,13 @@ func TestExporterWithoutConsumers(t *testing.T) {
 	exporter := &exporter{}
 
 	ctx := context.Background()
-	err := exporter.ConsumeLogs(ctx, pdata.NewLogs())
+	err := exporter.ConsumeLogs(ctx, plog.NewLogs())
 	assert.Nil(t, err)
 
-	err = exporter.ConsumeMetrics(ctx, pdata.NewMetrics())
+	err = exporter.ConsumeMetrics(ctx, pmetric.NewMetrics())
 	assert.Nil(t, err)
 
-	err = exporter.ConsumeTraces(ctx, pdata.NewTraces())
+	err = exporter.ConsumeTraces(ctx, ptrace.NewTraces())
 	assert.Nil(t, err)
 }
 
@@ -338,11 +340,11 @@ func (_m *MockProcessor) Capabilities() consumer.Capabilities {
 }
 
 // ConsumeLogs provides a mock function with given fields: ctx, ld
-func (_m *MockProcessor) ConsumeLogs(ctx context.Context, ld pdata.Logs) error {
+func (_m *MockProcessor) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 	ret := _m.Called(ctx, ld)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, pdata.Logs) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, plog.Logs) error); ok {
 		r0 = rf(ctx, ld)
 	} else {
 		r0 = ret.Error(0)
@@ -352,11 +354,11 @@ func (_m *MockProcessor) ConsumeLogs(ctx context.Context, ld pdata.Logs) error {
 }
 
 // ConsumeMetrics provides a mock function with given fields: ctx, md
-func (_m *MockProcessor) ConsumeMetrics(ctx context.Context, md pdata.Metrics) error {
+func (_m *MockProcessor) ConsumeMetrics(ctx context.Context, md pmetric.Metrics) error {
 	ret := _m.Called(ctx, md)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, pdata.Metrics) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, pmetric.Metrics) error); ok {
 		r0 = rf(ctx, md)
 	} else {
 		r0 = ret.Error(0)
@@ -366,11 +368,11 @@ func (_m *MockProcessor) ConsumeMetrics(ctx context.Context, md pdata.Metrics) e
 }
 
 // ConsumeTraces provides a mock function with given fields: ctx, td
-func (_m *MockProcessor) ConsumeTraces(ctx context.Context, td pdata.Traces) error {
+func (_m *MockProcessor) ConsumeTraces(ctx context.Context, td ptrace.Traces) error {
 	ret := _m.Called(ctx, td)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, pdata.Traces) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, ptrace.Traces) error); ok {
 		r0 = rf(ctx, td)
 	} else {
 		r0 = ret.Error(0)
@@ -427,11 +429,11 @@ func (_m *MockExporter) Capabilities() consumer.Capabilities {
 }
 
 // ConsumeLogs provides a mock function with given fields: ctx, ld
-func (_m *MockExporter) ConsumeLogs(ctx context.Context, ld pdata.Logs) error {
+func (_m *MockExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 	ret := _m.Called(ctx, ld)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, pdata.Logs) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, plog.Logs) error); ok {
 		r0 = rf(ctx, ld)
 	} else {
 		r0 = ret.Error(0)
@@ -441,11 +443,11 @@ func (_m *MockExporter) ConsumeLogs(ctx context.Context, ld pdata.Logs) error {
 }
 
 // ConsumeMetrics provides a mock function with given fields: ctx, md
-func (_m *MockExporter) ConsumeMetrics(ctx context.Context, md pdata.Metrics) error {
+func (_m *MockExporter) ConsumeMetrics(ctx context.Context, md pmetric.Metrics) error {
 	ret := _m.Called(ctx, md)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, pdata.Metrics) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, pmetric.Metrics) error); ok {
 		r0 = rf(ctx, md)
 	} else {
 		r0 = ret.Error(0)
@@ -455,11 +457,11 @@ func (_m *MockExporter) ConsumeMetrics(ctx context.Context, md pdata.Metrics) er
 }
 
 // ConsumeTraces provides a mock function with given fields: ctx, td
-func (_m *MockExporter) ConsumeTraces(ctx context.Context, td pdata.Traces) error {
+func (_m *MockExporter) ConsumeTraces(ctx context.Context, td ptrace.Traces) error {
 	ret := _m.Called(ctx, td)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, pdata.Traces) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, ptrace.Traces) error); ok {
 		r0 = rf(ctx, td)
 	} else {
 		r0 = ret.Error(0)

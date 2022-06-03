@@ -19,7 +19,8 @@ import (
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
-	"go.opentelemetry.io/collector/model/pdata"
+	"go.opentelemetry.io/collector/pdata/pcommon"
+	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.uber.org/zap"
 )
 
@@ -49,7 +50,7 @@ func (metricsProcessor) Capabilities() consumer.Capabilities {
 }
 
 // ConsumeMetrics processes the incoming pdata.Metrics.
-func (p metricsProcessor) ConsumeMetrics(ctx context.Context, md pdata.Metrics) error {
+func (p metricsProcessor) ConsumeMetrics(ctx context.Context, md pmetric.Metrics) error {
 	resMetrics := md.ResourceMetrics()
 	for i := 0; i < resMetrics.Len(); i++ {
 		resMetric := resMetrics.At(i)
@@ -80,28 +81,28 @@ func (metricsProcessor) Shutdown(_ context.Context) error {
 }
 
 // setMetricAttr sets the attribute (attrName) to the given value for every datapoint in the metric
-func setMetricAttr(metric pdata.Metric, attrName string, value pdata.Value) {
+func setMetricAttr(metric pmetric.Metric, attrName string, value pcommon.Value) {
 	switch metric.DataType() {
-	case pdata.MetricDataTypeGauge:
+	case pmetric.MetricDataTypeGauge:
 		dps := metric.Gauge().DataPoints()
 		for i := 0; i < dps.Len(); i++ {
 			dp := dps.At(i)
 			dp.Attributes().Insert(attrName, value)
 		}
 
-	case pdata.MetricDataTypeHistogram:
+	case pmetric.MetricDataTypeHistogram:
 		dps := metric.Histogram().DataPoints()
 		for i := 0; i < dps.Len(); i++ {
 			dp := dps.At(i)
 			dp.Attributes().Insert(attrName, value)
 		}
-	case pdata.MetricDataTypeSum:
+	case pmetric.MetricDataTypeSum:
 		dps := metric.Sum().DataPoints()
 		for i := 0; i < dps.Len(); i++ {
 			dp := dps.At(i)
 			dp.Attributes().Insert(attrName, value)
 		}
-	case pdata.MetricDataTypeSummary:
+	case pmetric.MetricDataTypeSummary:
 		dps := metric.Summary().DataPoints()
 		for i := 0; i < dps.Len(); i++ {
 			dp := dps.At(i)

@@ -19,7 +19,7 @@ import (
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
-	"go.opentelemetry.io/collector/model/pdata"
+	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 )
 
@@ -48,7 +48,7 @@ func (logsProcessor) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: true}
 }
 
-func (p logsProcessor) ConsumeLogs(ctx context.Context, md pdata.Logs) error {
+func (p logsProcessor) ConsumeLogs(ctx context.Context, md plog.Logs) error {
 	resLogs := md.ResourceLogs()
 	for i := 0; i < resLogs.Len(); i++ {
 		resLog := resLogs.At(i)
