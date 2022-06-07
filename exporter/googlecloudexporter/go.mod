@@ -1,4 +1,4 @@
-module github.com/observiq/googlecloudexporter
+module github.com/observiq/observiq-otel-collector/exporter/googlecloudexporter
 
 go 1.17
 
