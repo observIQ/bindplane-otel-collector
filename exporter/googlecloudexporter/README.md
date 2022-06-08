@@ -1,7 +1,7 @@
 # Google Cloud Exporter
 
 This exporter can be used to send metrics, traces, and logs to Google Cloud Monitoring. It is an extension of the official 
-[Google Cloud Exporter](https://github.com/observIQ/opentelemetry-collector-contrib/tree/bb60df1ad6e08d736c6f0372173c4a1f695b6c16/exporter/googlecloudexporter), with additional processors built in to streamline configuration.
+[Google Cloud Exporter](https://github.com/observIQ/opentelemetry-collector-contrib/tree/5be4317b53b925df35b7845cac3cb174c2e007a0/exporter/googlecloudexporter), with additional processors built in to streamline configuration.
 
 ## Configuration
 | Field               | Default               | Required | Description |
@@ -17,10 +17,10 @@ This exporter can be used to send metrics, traces, and logs to Google Cloud Moni
 | `resource_mappings` | [See below](#resource-mapping-default)         | `false`  | Defines a mapping of resources from source to target. |
 | `retry_on_failure`  |                       | `false`  | Handle retries when sending data to Google Cloud fails. |
 | `sending_queue`     |                       | `false`  | Determines how telemetry data is buffered before exporting. |
-| `batch`             |                       | `false`  | The config of the exporter's [batch processor](https://github.com/open-telemetry/opentelemetry-collector/tree/v0.52.0/processor/batchprocessor). |
+| `batch`             |                       | `false`  | The config of the exporter's [batch processor](https://github.com/open-telemetry/opentelemetry-collector/tree/v0.53.0/processor/batchprocessor). |
 | `normalize`         |                       | `false`  | The config of the exporter's [normalize sums processor](https://github.com/GoogleCloudPlatform/opentelemetry-operations-collector/tree/master/processor/normalizesumsprocessor). |
-| `detector`          |                       | `false`  | The config of the exporter's [reseource detection processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.52.0/processor/resourcedetectionprocessor). |
-| `attributer`        |                       | `false`  | The config of the exporter's [resource processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.52.0/processor/resourceprocessor). |
+| `detector`          |                       | `false`  | The config of the exporter's [reseource detection processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.53.0/processor/resourcedetectionprocessor). |
+| `attributer`        |                       | `false`  | The config of the exporter's [resource processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.53.0/processor/resourceprocessor). |
 | `transposer`        |                       | `false`  | The config of the exporter's [resource transposer processor](https://github.com/observIQ/observiq-otel-collector/tree/main/processor/resourceattributetransposerprocessor). |
 
 ### Resource Mapping Default
