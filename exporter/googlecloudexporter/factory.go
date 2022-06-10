@@ -18,16 +18,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/opentelemetry-operations-collector/processor/normalizesumsprocessor"
-	"github.com/observiq/observiq-otel-collector/processor/resourceattributetransposerprocessor"
 	gcp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/processor/batchprocessor"
-	"go.opentelemetry.io/collector/service/featuregate"
 )
 
 // gcpFactory is the factory used to create the underlying gcp exporter
@@ -38,10 +34,6 @@ const typeStr = "googlecloud"
 
 // NewFactory creates a factory for the googlecloud exporter
 func NewFactory() component.ExporterFactory {
-	// Hard code to use legacy config for now until we can fully test and understand new OTLPDirect behavior.
-	// Feature flag is in an init function so overridding must occur after inits are processed.
-	featuregate.GetRegistry().Apply(map[string]bool{"exporter.googlecloud.OTLPDirect": false})
-
 	return component.NewExporterFactory(
 		typeStr,
 		createDefaultConfig,
@@ -61,21 +53,14 @@ func createMetricsExporter(ctx context.Context, set component.ExporterCreateSett
 		return nil, fmt.Errorf("failed to create metrics exporter: %w", err)
 	}
 
-	attributerConfig := addGenericAttributes(*exporterConfig.AttributerConfig, exporterConfig.Namespace, exporterConfig.Location)
 	processors := []component.MetricsProcessor{}
 	processorConfigs := []config.Processor{
 		exporterConfig.BatchConfig,
-		exporterConfig.NormalizeConfig,
-		exporterConfig.TransposerConfig,
-		attributerConfig,
-		exporterConfig.DetectorConfig,
+		exporterConfig.DetectConfig,
 	}
 
 	processorFactories := []component.ProcessorFactory{
 		batchprocessor.NewFactory(),
-		normalizesumsprocessor.NewFactory(),
-		resourceattributetransposerprocessor.NewFactory(),
-		resourceprocessor.NewFactory(),
 		resourcedetectionprocessor.NewFactory(),
 	}
 
@@ -113,17 +98,14 @@ func createLogsExporter(ctx context.Context, set component.ExporterCreateSetting
 		return nil, fmt.Errorf("failed to create logs exporter: %w", err)
 	}
 
-	attributerConfig := addGenericAttributes(*exporterConfig.AttributerConfig, exporterConfig.Namespace, exporterConfig.Location)
 	processors := []component.LogsProcessor{}
 	processorConfigs := []config.Processor{
 		exporterConfig.BatchConfig,
-		attributerConfig,
-		exporterConfig.DetectorConfig,
+		exporterConfig.DetectConfig,
 	}
 
 	processorFactories := []component.ProcessorFactory{
 		batchprocessor.NewFactory(),
-		resourceprocessor.NewFactory(),
 		resourcedetectionprocessor.NewFactory(),
 	}
 
@@ -161,17 +143,14 @@ func createTracesExporter(ctx context.Context, set component.ExporterCreateSetti
 		return nil, fmt.Errorf("failed to create traces exporter: %w", err)
 	}
 
-	attributerConfig := addGenericAttributes(*exporterConfig.AttributerConfig, exporterConfig.Namespace, exporterConfig.Location)
 	processors := []component.TracesProcessor{}
 	processorConfigs := []config.Processor{
 		exporterConfig.BatchConfig,
-		attributerConfig,
-		exporterConfig.DetectorConfig,
+		exporterConfig.DetectConfig,
 	}
 
 	processorFactories := []component.ProcessorFactory{
 		batchprocessor.NewFactory(),
-		resourceprocessor.NewFactory(),
 		resourcedetectionprocessor.NewFactory(),
 	}
 

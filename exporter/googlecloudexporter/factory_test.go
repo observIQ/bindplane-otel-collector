@@ -18,7 +18,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/mitchellh/mapstructure"
 	gcp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
@@ -132,57 +131,4 @@ func TestCreateExporterFailure(t *testing.T) {
 	_, err = factory.CreateTracesExporter(ctx, set, cfg)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to create traces exporter")
-}
-
-func TestCreateProcessorFailure(t *testing.T) {
-	mockExporter := &MockExporter{}
-	gcpFactory = component.NewExporterFactory(
-		typeStr,
-		gcpFactory.CreateDefaultConfig,
-		component.WithMetricsExporter(func(_ context.Context, _ component.ExporterCreateSettings, _ config.Exporter) (component.MetricsExporter, error) {
-			return mockExporter, nil
-		}),
-		component.WithLogsExporter(func(_ context.Context, _ component.ExporterCreateSettings, _ config.Exporter) (component.LogsExporter, error) {
-			return mockExporter, nil
-		}),
-		component.WithTracesExporter(func(_ context.Context, _ component.ExporterCreateSettings, _ config.Exporter) (component.TracesExporter, error) {
-			return mockExporter, nil
-		}),
-	)
-	defer func() {
-		gcpFactory = gcp.NewFactory()
-	}()
-
-	factory := NewFactory()
-	cfg := createDefaultConfig()
-
-	googleCfg, ok := cfg.(*Config)
-	require.True(t, ok)
-
-	invalidParams := map[string]interface{}{
-		"attributes": []map[string]interface{}{
-			{
-				"key":    "invalid",
-				"value":  "invalid",
-				"action": "invalid",
-			},
-		},
-	}
-	err := mapstructure.Decode(&invalidParams, googleCfg.AttributerConfig)
-	require.NoError(t, err)
-
-	ctx := context.Background()
-	set := componenttest.NewNopExporterCreateSettings()
-
-	_, err = factory.CreateMetricsExporter(ctx, set, cfg)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to create metrics processor")
-
-	_, err = factory.CreateLogsExporter(ctx, set, cfg)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to create logs processor")
-
-	_, err = factory.CreateTracesExporter(ctx, set, cfg)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to create traces processor")
 }

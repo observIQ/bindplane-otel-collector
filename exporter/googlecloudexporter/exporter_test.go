@@ -133,7 +133,7 @@ func TestExporterStart(t *testing.T) {
 			expectedError: errors.New("failed to start logs processor"),
 		},
 		{
-			name: "Failing metrics processor",
+			name: "Failing metrics exporter",
 			exporter: &exporter{
 				metricsProcessors: []component.MetricsProcessor{
 					createValidProcessor(),
@@ -144,7 +144,7 @@ func TestExporterStart(t *testing.T) {
 			expectedError: errors.New("failed to start metrics exporter"),
 		},
 		{
-			name: "Failing traces processor",
+			name: "Failing traces exporter",
 			exporter: &exporter{
 				tracesProcessors: []component.TracesProcessor{
 					createValidProcessor(),
@@ -155,7 +155,7 @@ func TestExporterStart(t *testing.T) {
 			expectedError: errors.New("failed to start traces exporter"),
 		},
 		{
-			name: "Failing logs processor",
+			name: "Failing logs exporter",
 			exporter: &exporter{
 				logsProcessors: []component.LogsProcessor{
 					createValidProcessor(),
@@ -243,7 +243,7 @@ func TestExporterShutdown(t *testing.T) {
 			expectedError: errors.New("failed to shutdown logs processor"),
 		},
 		{
-			name: "Failing metrics processor",
+			name: "Failing metrics exporter",
 			exporter: &exporter{
 				metricsProcessors: []component.MetricsProcessor{
 					createValidProcessor(),
@@ -254,7 +254,7 @@ func TestExporterShutdown(t *testing.T) {
 			expectedError: errors.New("failed to shutdown metrics exporter"),
 		},
 		{
-			name: "Failing traces processor",
+			name: "Failing traces exporter",
 			exporter: &exporter{
 				tracesProcessors: []component.TracesProcessor{
 					createValidProcessor(),
@@ -265,7 +265,7 @@ func TestExporterShutdown(t *testing.T) {
 			expectedError: errors.New("failed to shutdown traces exporter"),
 		},
 		{
-			name: "Failing logs processor",
+			name: "Failing logs exporter",
 			exporter: &exporter{
 				logsProcessors: []component.LogsProcessor{
 					createValidProcessor(),

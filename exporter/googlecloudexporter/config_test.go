@@ -20,14 +20,10 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/config"
-	"go.opentelemetry.io/collector/service/featuregate"
 	"google.golang.org/api/option"
 )
 
 func TestCreateDefaultConfig(t *testing.T) {
-	// Set feature gate so correct config is returned
-	featuregate.GetRegistry().Apply(map[string]bool{"exporter.googlecloud.OTLPDirect": false})
-
 	cfg := createDefaultConfig()
 	googleCfg, ok := cfg.(*Config)
 	require.True(t, ok)
@@ -39,9 +35,6 @@ func TestCreateDefaultConfig(t *testing.T) {
 }
 
 func TestSetClientOptionsWithCredentials(t *testing.T) {
-	// Set feature gate so correct config is returned
-	featuregate.GetRegistry().Apply(map[string]bool{"exporter.googlecloud.OTLPDirect": false})
-
 	testCases := []struct {
 		name   string
 		config *Config
@@ -50,7 +43,7 @@ func TestSetClientOptionsWithCredentials(t *testing.T) {
 		{
 			name: "With no credentials",
 			config: &Config{
-				GCPConfig: &googlecloudexporter.LegacyConfig{},
+				GCPConfig: &googlecloudexporter.Config{},
 			},
 			opts: []option.ClientOption{},
 		},
@@ -58,7 +51,7 @@ func TestSetClientOptionsWithCredentials(t *testing.T) {
 			name: "With credentials json",
 			config: &Config{
 				Credentials: "testjson",
-				GCPConfig:   &googlecloudexporter.LegacyConfig{},
+				GCPConfig:   &googlecloudexporter.Config{},
 			},
 			opts: []option.ClientOption{
 				option.WithCredentialsJSON([]byte("testjson")),
@@ -68,7 +61,7 @@ func TestSetClientOptionsWithCredentials(t *testing.T) {
 			name: "With credentials file",
 			config: &Config{
 				CredentialsFile: "testfile",
-				GCPConfig:       &googlecloudexporter.LegacyConfig{},
+				GCPConfig:       &googlecloudexporter.Config{},
 			},
 			opts: []option.ClientOption{
 				option.WithCredentialsFile("testfile"),
@@ -79,7 +72,7 @@ func TestSetClientOptionsWithCredentials(t *testing.T) {
 			config: &Config{
 				Credentials:     "testjson",
 				CredentialsFile: "testfile",
-				GCPConfig:       &googlecloudexporter.LegacyConfig{},
+				GCPConfig:       &googlecloudexporter.Config{},
 			},
 			opts: []option.ClientOption{
 				option.WithCredentialsJSON([]byte("testjson")),
@@ -89,12 +82,16 @@ func TestSetClientOptionsWithCredentials(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Nil(t, tc.config.GCPConfig.GetClientOptions)
+			require.Nil(t, tc.config.GCPConfig.MetricConfig.ClientConfig.GetClientOptions)
+			require.Nil(t, tc.config.GCPConfig.LogConfig.ClientConfig.GetClientOptions)
+			require.Nil(t, tc.config.GCPConfig.TraceConfig.ClientConfig.GetClientOptions)
 
 			tc.config.setClientOptions()
-			require.NotNil(t, tc.config.GCPConfig.GetClientOptions)
+			require.NotNil(t, tc.config.GCPConfig.MetricConfig.ClientConfig.GetClientOptions)
+			require.NotNil(t, tc.config.GCPConfig.LogConfig.ClientConfig.GetClientOptions)
+			require.NotNil(t, tc.config.GCPConfig.TraceConfig.ClientConfig.GetClientOptions)
 
-			opts := tc.config.GCPConfig.GetClientOptions()
+			opts := tc.config.GCPConfig.MetricConfig.ClientConfig.GetClientOptions()
 			require.Equal(t, tc.opts, opts)
 		})
 	}
