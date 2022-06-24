@@ -69,7 +69,7 @@ func TestConsumeMetricsNoop(t *testing.T) {
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
 	attrs.Insert("resourceattrib1", pcommon.NewValueString("value"))
 	attrs.Insert("resourceattrib2", pcommon.NewValueBool(false))
-	attrs.Insert("resourceattrib3", pcommon.NewValueBytes([]byte("some bytes")))
+	attrs.Insert("resourceattrib3", pcommon.NewValueBytes(pcommon.NewImmutableByteSlice([]byte("some bytes"))))
 
 	var metricsOut pmetric.Metrics
 
@@ -97,7 +97,7 @@ func TestConsumeMetricsMoveExistingAttribs(t *testing.T) {
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
 	attrs.Insert("resourceattrib1", pcommon.NewValueString("value"))
 	attrs.Insert("resourceattrib2", pcommon.NewValueBool(false))
-	attrs.Insert("resourceattrib3", pcommon.NewValueBytes([]byte("some bytes")))
+	attrs.Insert("resourceattrib3", pcommon.NewValueBytes(pcommon.NewImmutableByteSlice([]byte("some bytes"))))
 	attrs.Insert("resourceattrib4", pcommon.NewValueDouble(2.0))
 	attrs.Insert("resourceattrib5", pcommon.NewValueInt(100))
 	attrs.Insert("resourceattrib6", pcommon.NewValueEmpty())

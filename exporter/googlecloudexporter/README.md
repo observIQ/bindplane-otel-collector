@@ -16,7 +16,7 @@ This exporter can be used to send metrics, traces, and logs to Google Cloud Moni
 | `timeout`           | `12s`                 | `false`  | The timeout for API calls. |
 | `retry_on_failure`  |                       | `false`  | Handle retries when sending data to Google Cloud fails. |
 | `sending_queue`     |                       | `false`  | Determines how telemetry data is buffered before exporting. |
-| `batch`             |                       | `false`  | The config of the exporter's [batch processor](https://github.com/open-telemetry/opentelemetry-collector/tree/v0.53.0/processor/batchprocessor). |
+| `batch`             |                       | `false`  | The config of the exporter's [batch processor](https://github.com/open-telemetry/opentelemetry-collector/tree/v0.54.0/processor/batchprocessor). |
 | `detect`            |                       | `false`  | The config of the exporter's [reseource detection processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.53.0/processor/resourcedetectionprocessor). |
 
 ## Metric Processing Steps
