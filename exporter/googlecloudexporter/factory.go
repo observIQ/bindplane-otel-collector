@@ -29,17 +29,22 @@ import (
 // gcpFactory is the factory used to create the underlying gcp exporter
 var gcpFactory = gcp.NewFactory()
 
-// typeStr is the type of the google cloud exporter
-const typeStr = "googlecloud"
+const (
+	// typeStr is the type of the google cloud exporter
+	typeStr = "googlecloud"
+
+	// The stability level of the exporter. Matches the current exporter in contrib
+	stability = component.StabilityLevelBeta
+)
 
 // NewFactory creates a factory for the googlecloud exporter
 func NewFactory() component.ExporterFactory {
 	return component.NewExporterFactory(
 		typeStr,
 		createDefaultConfig,
-		component.WithMetricsExporter(createMetricsExporter),
-		component.WithLogsExporter(createLogsExporter),
-		component.WithTracesExporter(createTracesExporter),
+		component.WithMetricsExporterAndStabilityLevel(createMetricsExporter, stability),
+		component.WithLogsExporterAndStabilityLevel(createLogsExporter, stability),
+		component.WithTracesExporterAndStabilityLevel(createTracesExporter, stability),
 	)
 }
 

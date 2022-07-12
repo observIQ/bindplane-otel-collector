@@ -24,7 +24,11 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 )
 
-const typeStr = "plugin"
+const (
+	typeStr = "plugin"
+
+	stability = component.StabilityLevelBeta
+)
 
 // Config is the configuration of a plugin receiver
 type Config struct {
@@ -45,9 +49,9 @@ func createDefaultConfig() config.Receiver {
 func NewFactory() component.ReceiverFactory {
 	return component.NewReceiverFactory(typeStr,
 		createDefaultConfig,
-		component.WithLogsReceiver(createLogsReceiver),
-		component.WithMetricsReceiver(createMetricsReceiver),
-		component.WithTracesReceiver(createTracesReceiver),
+		component.WithLogsReceiverAndStabilityLevel(createLogsReceiver, stability),
+		component.WithMetricsReceiverAndStabilityLevel(createMetricsReceiver, stability),
+		component.WithTracesReceiverAndStabilityLevel(createTracesReceiver, stability),
 	)
 }
 

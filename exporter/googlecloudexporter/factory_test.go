@@ -31,9 +31,9 @@ func TestCreateMetricExporterSuccess(t *testing.T) {
 	gcpFactory = component.NewExporterFactory(
 		typeStr,
 		gcpFactory.CreateDefaultConfig,
-		component.WithMetricsExporter(func(_ context.Context, _ component.ExporterCreateSettings, _ config.Exporter) (component.MetricsExporter, error) {
+		component.WithMetricsExporterAndStabilityLevel(func(_ context.Context, _ component.ExporterCreateSettings, _ config.Exporter) (component.MetricsExporter, error) {
 			return mockExporter, nil
-		}),
+		}, stability),
 	)
 	defer func() {
 		gcpFactory = gcp.NewFactory()
@@ -58,9 +58,9 @@ func TestCreateLogsExporterSuccess(t *testing.T) {
 	gcpFactory = component.NewExporterFactory(
 		typeStr,
 		gcpFactory.CreateDefaultConfig,
-		component.WithLogsExporter(func(_ context.Context, _ component.ExporterCreateSettings, _ config.Exporter) (component.LogsExporter, error) {
+		component.WithLogsExporterAndStabilityLevel(func(_ context.Context, _ component.ExporterCreateSettings, _ config.Exporter) (component.LogsExporter, error) {
 			return mockExporter, nil
-		}),
+		}, stability),
 	)
 	defer func() {
 		gcpFactory = gcp.NewFactory()
@@ -85,9 +85,9 @@ func TestCreateTracesExporterSuccess(t *testing.T) {
 	gcpFactory = component.NewExporterFactory(
 		typeStr,
 		gcpFactory.CreateDefaultConfig,
-		component.WithTracesExporter(func(_ context.Context, _ component.ExporterCreateSettings, _ config.Exporter) (component.TracesExporter, error) {
+		component.WithTracesExporterAndStabilityLevel(func(_ context.Context, _ component.ExporterCreateSettings, _ config.Exporter) (component.TracesExporter, error) {
 			return mockExporter, nil
-		}),
+		}, component.StabilityLevelUndefined),
 	)
 	defer func() {
 		gcpFactory = gcp.NewFactory()

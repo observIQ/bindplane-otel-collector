@@ -25,6 +25,8 @@ import (
 
 const (
 	typeStr = "resourceattributetransposer"
+
+	stability = component.StabilityLevelStable
 )
 
 // NewFactory returns a new factory for the resourceattributetransposer processor.
@@ -32,8 +34,8 @@ func NewFactory() component.ProcessorFactory {
 	return component.NewProcessorFactory(
 		typeStr,
 		createDefaultConfig,
-		component.WithMetricsProcessor(createMetricsProcessor),
-		component.WithLogsProcessor(createLogsProcessor),
+		component.WithMetricsProcessorAndStabilityLevel(createMetricsProcessor, stability),
+		component.WithLogsProcessorAndStabilityLevel(createLogsProcessor, stability),
 	)
 }
 
