@@ -21,11 +21,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 )
 
 func TestExporterCapabilities(t *testing.T) {
@@ -290,6 +292,60 @@ func TestExporterShutdown(t *testing.T) {
 			assert.NoError(t, err)
 		})
 	}
+}
+
+func TestAppendMetricAttrs(t *testing.T) {
+	metrics := pmetric.NewMetrics()
+	metric1 := metrics.ResourceMetrics().AppendEmpty()
+	metric1.Resource().Attributes().InsertString(string(semconv.HostNameKey), "test-hostname")
+	metric2 := metrics.ResourceMetrics().AppendEmpty()
+
+	e := exporter{}
+	e.appendMetricHost(&metrics)
+
+	metric1Host, ok := metric1.Resource().Attributes().Get(string(semconv.HostNameKey))
+	require.True(t, ok)
+	require.Equal(t, "test-hostname", metric1Host.AsString())
+
+	metric2Host, ok := metric2.Resource().Attributes().Get(string(semconv.HostNameKey))
+	require.True(t, ok)
+	require.Equal(t, hostname, metric2Host.AsString())
+}
+
+func TestAppendLogAttrs(t *testing.T) {
+	logs := plog.NewLogs()
+	log1 := logs.ResourceLogs().AppendEmpty()
+	log1.Resource().Attributes().InsertString(string(semconv.HostNameKey), "test-hostname")
+	metric2 := logs.ResourceLogs().AppendEmpty()
+
+	e := exporter{}
+	e.appendLogHost(&logs)
+
+	log1Host, ok := log1.Resource().Attributes().Get(string(semconv.HostNameKey))
+	require.True(t, ok)
+	require.Equal(t, "test-hostname", log1Host.AsString())
+
+	log2Host, ok := metric2.Resource().Attributes().Get(string(semconv.HostNameKey))
+	require.True(t, ok)
+	require.Equal(t, hostname, log2Host.AsString())
+}
+
+func TestAppendTraceAttrs(t *testing.T) {
+	traces := ptrace.NewTraces()
+	trace1 := traces.ResourceSpans().AppendEmpty()
+	trace1.Resource().Attributes().InsertString(string(semconv.HostNameKey), "test-hostname")
+	trace2 := traces.ResourceSpans().AppendEmpty()
+
+	e := exporter{}
+	e.appendTraceHost(&traces)
+
+	trace1Host, ok := trace1.Resource().Attributes().Get(string(semconv.HostNameKey))
+	require.True(t, ok)
+	require.Equal(t, "test-hostname", trace1Host.AsString())
+
+	trace2Host, ok := trace2.Resource().Attributes().Get(string(semconv.HostNameKey))
+	require.True(t, ok)
+	require.Equal(t, hostname, trace2Host.AsString())
 }
 
 func createValidProcessor() *MockProcessor {

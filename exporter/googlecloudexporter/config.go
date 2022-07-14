@@ -18,7 +18,6 @@ import (
 	"os"
 
 	gcp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/processor/batchprocessor"
 	"go.uber.org/multierr"
@@ -33,11 +32,11 @@ const (
 // Config is the config the google cloud exporter
 type Config struct {
 	config.ExporterSettings `mapstructure:",squash"`
-	Credentials             string                             `mapstructure:"credentials"`
-	CredentialsFile         string                             `mapstructure:"credentials_file"`
-	GCPConfig               *gcp.Config                        `mapstructure:",squash"`
-	BatchConfig             *batchprocessor.Config             `mapstructure:"batch"`
-	DetectConfig            *resourcedetectionprocessor.Config `mapstructure:"detect"`
+	Credentials             string                 `mapstructure:"credentials"`
+	CredentialsFile         string                 `mapstructure:"credentials_file"`
+	AppendHost              bool                   `mapstructure:"append_host"`
+	GCPConfig               *gcp.Config            `mapstructure:",squash"`
+	BatchConfig             *batchprocessor.Config `mapstructure:"batch"`
 }
 
 // Validate validates the config
@@ -45,7 +44,6 @@ func (c *Config) Validate() error {
 	var err error
 	err = multierr.Append(err, c.GCPConfig.Validate())
 	err = multierr.Append(err, c.BatchConfig.Validate())
-	err = multierr.Append(err, c.DetectConfig.Validate())
 	return err
 }
 
@@ -76,7 +74,7 @@ func createDefaultConfig() config.Exporter {
 		ExporterSettings: config.NewExporterSettings(config.NewComponentID(typeStr)),
 		GCPConfig:        createDefaultGCPConfig(),
 		BatchConfig:      createDefaultBatchConfig(),
-		DetectConfig:     createDefaultDetectConfig(),
+		AppendHost:       true,
 	}
 }
 
@@ -95,14 +93,5 @@ func createDefaultGCPConfig() *gcp.Config {
 func createDefaultBatchConfig() *batchprocessor.Config {
 	factory := batchprocessor.NewFactory()
 	config := factory.CreateDefaultConfig().(*batchprocessor.Config)
-	return config
-}
-
-// createDefaultDetectConfig creates a default detect config
-func createDefaultDetectConfig() *resourcedetectionprocessor.Config {
-	factory := resourcedetectionprocessor.NewFactory()
-	config := factory.CreateDefaultConfig().(*resourcedetectionprocessor.Config)
-	config.Detectors = []string{"system"}
-	config.DetectorConfig.SystemConfig.HostnameSources = []string{"os"}
 	return config
 }

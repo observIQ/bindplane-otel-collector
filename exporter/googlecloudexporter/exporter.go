@@ -17,16 +17,23 @@ package googlecloudexporter
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
+
+// hostname is the name of the current host
+var hostname = getHostname()
 
 // exporter is a google cloud exporter wrapped with additional functionality
 type exporter struct {
+	appendHost bool
+
 	metricsProcessors []component.MetricsProcessor
 	metricsExporter   component.MetricsExporter
 	metricsConsumer   consumer.Metrics
@@ -42,25 +49,40 @@ type exporter struct {
 
 // ConsumeMetrics consumes metrics
 func (e *exporter) ConsumeMetrics(ctx context.Context, md pmetric.Metrics) error {
+	if e.appendHost {
+		e.appendMetricHost(&md)
+	}
+
 	if e.metricsConsumer == nil {
 		return nil
 	}
+
 	return e.metricsConsumer.ConsumeMetrics(ctx, md)
 }
 
 // ConsumeTraces consumes traces
 func (e *exporter) ConsumeTraces(ctx context.Context, td ptrace.Traces) error {
+	if e.appendHost {
+		e.appendTraceHost(&td)
+	}
+
 	if e.tracesConsumer == nil {
 		return nil
 	}
+
 	return e.tracesConsumer.ConsumeTraces(ctx, td)
 }
 
 // ConsumeLogs consumes logs
 func (e *exporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
+	if e.appendHost {
+		e.appendLogHost(&ld)
+	}
+
 	if e.logsConsumer == nil {
 		return nil
 	}
+
 	return e.logsConsumer.ConsumeLogs(ctx, ld)
 }
 
@@ -149,4 +171,48 @@ func (e *exporter) Shutdown(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// appendMetricHost appends hostname to metrics if not already present
+func (e *exporter) appendMetricHost(md *pmetric.Metrics) {
+	for i := 0; i < md.ResourceMetrics().Len(); i++ {
+		resourceAttrs := md.ResourceMetrics().At(i).Resource().Attributes()
+		_, hostNameExists := resourceAttrs.Get(string(semconv.HostNameKey))
+		_, hostIDExists := resourceAttrs.Get(string(semconv.HostIDKey))
+		if !hostNameExists && !hostIDExists {
+			resourceAttrs.InsertString(string(semconv.HostNameKey), hostname)
+		}
+	}
+}
+
+// appendLogHost appends hostname to logs if not already present
+func (e *exporter) appendLogHost(ld *plog.Logs) {
+	for i := 0; i < ld.ResourceLogs().Len(); i++ {
+		resourceAttrs := ld.ResourceLogs().At(i).Resource().Attributes()
+		_, hostNameExists := resourceAttrs.Get(string(semconv.HostNameKey))
+		_, hostIDExists := resourceAttrs.Get(string(semconv.HostIDKey))
+		if !hostNameExists && !hostIDExists {
+			resourceAttrs.InsertString(string(semconv.HostNameKey), hostname)
+		}
+	}
+}
+
+// appendTraceHost appends hostname to traces if not already present
+func (e *exporter) appendTraceHost(td *ptrace.Traces) {
+	for i := 0; i < td.ResourceSpans().Len(); i++ {
+		resourceAttrs := td.ResourceSpans().At(i).Resource().Attributes()
+		_, hostNameExists := resourceAttrs.Get(string(semconv.HostNameKey))
+		_, hostIDExists := resourceAttrs.Get(string(semconv.HostIDKey))
+		if !hostNameExists && !hostIDExists {
+			resourceAttrs.InsertString(string(semconv.HostNameKey), hostname)
+		}
+	}
+}
+
+// getHostname returns the current hostname or "unknown" if not found
+func getHostname() string {
+	if hostname, err := os.Hostname(); err == nil {
+		return hostname
+	}
+	return "unknown"
 }

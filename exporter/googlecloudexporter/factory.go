@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	gcp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
@@ -61,12 +60,10 @@ func createMetricsExporter(ctx context.Context, set component.ExporterCreateSett
 	processors := []component.MetricsProcessor{}
 	processorConfigs := []config.Processor{
 		exporterConfig.BatchConfig,
-		exporterConfig.DetectConfig,
 	}
 
 	processorFactories := []component.ProcessorFactory{
 		batchprocessor.NewFactory(),
-		resourcedetectionprocessor.NewFactory(),
 	}
 
 	processorSettings := component.ProcessorCreateSettings{
@@ -87,6 +84,7 @@ func createMetricsExporter(ctx context.Context, set component.ExporterCreateSett
 	}
 
 	return &exporter{
+		appendHost:        exporterConfig.AppendHost,
 		metricsProcessors: processors,
 		metricsExporter:   gcpExporter,
 		metricsConsumer:   consumer,
@@ -106,12 +104,10 @@ func createLogsExporter(ctx context.Context, set component.ExporterCreateSetting
 	processors := []component.LogsProcessor{}
 	processorConfigs := []config.Processor{
 		exporterConfig.BatchConfig,
-		exporterConfig.DetectConfig,
 	}
 
 	processorFactories := []component.ProcessorFactory{
 		batchprocessor.NewFactory(),
-		resourcedetectionprocessor.NewFactory(),
 	}
 
 	processorSettings := component.ProcessorCreateSettings{
@@ -132,6 +128,7 @@ func createLogsExporter(ctx context.Context, set component.ExporterCreateSetting
 	}
 
 	return &exporter{
+		appendHost:     exporterConfig.AppendHost,
 		logsProcessors: processors,
 		logsExporter:   gcpExporter,
 		logsConsumer:   consumer,
@@ -151,12 +148,10 @@ func createTracesExporter(ctx context.Context, set component.ExporterCreateSetti
 	processors := []component.TracesProcessor{}
 	processorConfigs := []config.Processor{
 		exporterConfig.BatchConfig,
-		exporterConfig.DetectConfig,
 	}
 
 	processorFactories := []component.ProcessorFactory{
 		batchprocessor.NewFactory(),
-		resourcedetectionprocessor.NewFactory(),
 	}
 
 	processorSettings := component.ProcessorCreateSettings{
@@ -177,6 +172,7 @@ func createTracesExporter(ctx context.Context, set component.ExporterCreateSetti
 	}
 
 	return &exporter{
+		appendHost:       exporterConfig.AppendHost,
 		tracesProcessors: processors,
 		tracesExporter:   gcpExporter,
 		tracesConsumer:   consumer,

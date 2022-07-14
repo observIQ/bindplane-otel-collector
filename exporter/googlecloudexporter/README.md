@@ -17,25 +17,25 @@ This exporter can be used to send metrics, traces, and logs to Google Cloud Moni
 | `retry_on_failure`  |                       | `false`  | Handle retries when sending data to Google Cloud fails. |
 | `sending_queue`     |                       | `false`  | Determines how telemetry data is buffered before exporting. |
 | `batch`             |                       | `false`  | The config of the exporter's [batch processor](https://github.com/open-telemetry/opentelemetry-collector/tree/v0.55.0/processor/batchprocessor). |
-| `detect`            |                       | `false`  | The config of the exporter's [reseource detection processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.53.0/processor/resourcedetectionprocessor). |
+| `append_host`       |                       | `true`   | Append the collector's hostname to incoming telemetry if not already present. |
 
 ## Metric Processing Steps
 When metric data is received by the Google Cloud Exporter, it is processed in the following steps:
 
-1. **Resource Detection Processor**: Hostname is appended as an attribute on metrics.
+1. **Hostname Detection**: Hostname is appended as an attribute on metrics if not already present.
 2. **Batch Processor**: Metrics are batched to decrease the number of requests.
 3. **Google Cloud Exporter**: Metrics are exported to GCP.
 
 ## Log Processing Steps
 When log data is received by the Google Cloud Exporter, it is processed in the following steps:
 
-1. **Resource Detection Processor**: Hostname is appended as an attribute on logs.
+1. **Hostname Detection**: Hostname is appended as an attribute on logs if not already present.
 2. **Batch Processor**: Logs are batched to decrease the number of requests.
 3. **Google Cloud Exporter**: Logs are exported to GCP.
 
 ## Trace Processing Steps
 When trace data is received by the Google Cloud Exporter, it is processed in the following steps:
 
-1. **Resource Detection Processor**: Hostname is appended as an attribute on traces.
+1. **Hostname Detection**: Hostname is appended as an attribute on traces if not already present.
 2. **Batch Processor**: Traces are batched to decrease the number of requests.
 3. **Google Cloud Exporter**: Traces are exported to GCP.
