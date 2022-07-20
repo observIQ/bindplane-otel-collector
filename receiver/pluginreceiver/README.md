@@ -66,7 +66,7 @@ The following keys are used when defining a parameter.
 | Key | Required | Description |
 | --- | --- | --- |
 | `name`      | `true`  | The name of the parameter. This is the key used when configuring the parameter within the receiver. |
-| `type`      | `true`  | The data type expected for this parameter. Supported values include `string`, `[]string`, `int`, `bool`. |
+| `type`      | `true`  | The data type expected for this parameter. Supported values include `string`, `[]string`, `int`, `bool`, `timezone`. |
 | `default`   | `false` | The default value of the parameter. If not supplied during configuration, the parameter will default to this value.   |
 | `required`  | `false` | Specifies if the parameter must be supplied during configuration. |
 | `supported` | `false` | Specifies a list of supported values that can be used for this parameter. |

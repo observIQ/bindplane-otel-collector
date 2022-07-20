@@ -172,6 +172,15 @@ func (p *Plugin) checkType(values map[string]interface{}) error {
 			if _, ok := value.(bool); !ok {
 				return fmt.Errorf("parameter %s must be a bool", parameter.Name)
 			}
+		case timezoneType:
+			raw, ok := value.(string)
+			if !ok {
+				return fmt.Errorf("parameter %s must be a string", parameter.Name)
+			}
+			if _, ok := tzlist[raw]; ok {
+				return nil
+			}
+			return fmt.Errorf("parameter %s must be a valid timezone", parameter.Name)
 		default:
 			return fmt.Errorf("unsupported parameter type: %s", parameter.Type)
 		}
@@ -222,4 +231,5 @@ const (
 	stringArrayType ParameterType = "[]string"
 	boolType        ParameterType = "bool"
 	intType         ParameterType = "int"
+	timezoneType    ParameterType = "timezone"
 )

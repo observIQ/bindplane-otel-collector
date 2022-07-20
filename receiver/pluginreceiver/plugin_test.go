@@ -396,6 +396,36 @@ func TestCheckParameters(t *testing.T) {
 			expectedErr: errors.New("supported value failure"),
 		},
 		{
+			name: "invalid non string timezone type",
+			plugin: &Plugin{
+				Parameters: []Parameter{
+					{
+						Name: "param1",
+						Type: timezoneType,
+					},
+				},
+			},
+			values: map[string]interface{}{
+				"param1": true,
+			},
+			expectedErr: errors.New("must be a string"),
+		},
+		{
+			name: "invalid string timezone type",
+			plugin: &Plugin{
+				Parameters: []Parameter{
+					{
+						Name: "param1",
+						Type: timezoneType,
+					},
+				},
+			},
+			values: map[string]interface{}{
+				"param1": "Eastern",
+			},
+			expectedErr: errors.New("must be a valid timezone"),
+		},
+		{
 			name: "valid parameters",
 			plugin: &Plugin{
 				Parameters: []Parameter{
@@ -422,6 +452,10 @@ func TestCheckParameters(t *testing.T) {
 						Type:      stringType,
 						Supported: []interface{}{"value5"},
 					},
+					{
+						Name: "param6",
+						Type: timezoneType,
+					},
 				},
 			},
 			values: map[string]interface{}{
@@ -429,6 +463,7 @@ func TestCheckParameters(t *testing.T) {
 				"param2": []interface{}{"value2"},
 				"param3": 5,
 				"param4": true,
+				"param6": "Pacific/Wallis",
 			},
 			expectedErr: nil,
 		},
