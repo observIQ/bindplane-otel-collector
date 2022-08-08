@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package googlecloudexporter provides a wrapper around the official googlecloudexporter component that exposes some quality of life improvements in configuration
 package googlecloudexporter
 
 import (

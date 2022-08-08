@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package resourceattributetransposerprocessor provides a processor that transposes resource attributes to datapoint attributes
 package resourceattributetransposerprocessor
 
 import "go.opentelemetry.io/collector/config"

@@ -1,6 +1,6 @@
 module github.com/observiq/observiq-otel-collector/exporter/googlecloudexporter
 
-go 1.17
+go 1.18
 
 require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter v0.57.2
