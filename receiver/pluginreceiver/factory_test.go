@@ -38,21 +38,21 @@ func TestCreateReceiver(t *testing.T) {
 		{
 			name: "missing plugin",
 			cfg: &Config{
-				Path: "./test/missing.yaml",
+				Path: "./testdata/missing.yaml",
 			},
 			expectedErr: errors.New("failed to load plugin"),
 		},
 		{
 			name: "invalid plugin yaml",
 			cfg: &Config{
-				Path: "./test/plugin-invalid-yaml.yaml",
+				Path: "./testdata/plugin-invalid-yaml.yaml",
 			},
 			expectedErr: errors.New("failed to load plugin"),
 		},
 		{
 			name: "invalid plugin parameter",
 			cfg: &Config{
-				Path: "./test/plugin-valid.yaml",
+				Path: "./testdata/plugin-valid.yaml",
 				Parameters: map[string]interface{}{
 					"env": 5,
 				},
@@ -62,7 +62,7 @@ func TestCreateReceiver(t *testing.T) {
 		{
 			name: "invalid plugin template",
 			cfg: &Config{
-				Path: "./test/plugin-invalid-template.yaml",
+				Path: "./testdata/plugin-invalid-template.yaml",
 				Parameters: map[string]interface{}{
 					"env": "prod",
 				},
@@ -72,7 +72,7 @@ func TestCreateReceiver(t *testing.T) {
 		{
 			name: "valid plugin",
 			cfg: &Config{
-				Path: "./test/plugin-valid.yaml",
+				Path: "./testdata/plugin-valid.yaml",
 				Parameters: map[string]interface{}{
 					"env": "prod",
 				},
@@ -106,7 +106,7 @@ func TestCreateLogsReceiver(t *testing.T) {
 	ctx := context.Background()
 	set := component.ReceiverCreateSettings{}
 	cfg := &Config{
-		Path: "./test/plugin-valid.yaml",
+		Path: "./testdata/plugin-valid.yaml",
 		Parameters: map[string]interface{}{
 			"env": "prod",
 		},
@@ -123,7 +123,7 @@ func TestCreateMetricsReceiver(t *testing.T) {
 	ctx := context.Background()
 	set := component.ReceiverCreateSettings{}
 	cfg := &Config{
-		Path: "./test/plugin-valid.yaml",
+		Path: "./testdata/plugin-valid.yaml",
 		Parameters: map[string]interface{}{
 			"env": "prod",
 		},
@@ -140,7 +140,7 @@ func TestCreateTracesReceiver(t *testing.T) {
 	ctx := context.Background()
 	set := component.ReceiverCreateSettings{}
 	cfg := &Config{
-		Path: "./test/plugin-valid.yaml",
+		Path: "./testdata/plugin-valid.yaml",
 		Parameters: map[string]interface{}{
 			"env": "prod",
 		},

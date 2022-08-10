@@ -31,7 +31,7 @@ func TestLoadPlugin(t *testing.T) {
 	}{
 		{
 			name: "valid plugin",
-			path: "./test/plugin-valid.yaml",
+			path: "./testdata/plugin-valid.yaml",
 			expectedResult: &Plugin{
 				Title:       "test-plugin",
 				Template:    "receivers:",
@@ -50,12 +50,12 @@ func TestLoadPlugin(t *testing.T) {
 		},
 		{
 			name:        "invalid plugin",
-			path:        "./test/plugin-invalid-yaml.yaml",
+			path:        "./testdata/plugin-invalid-yaml.yaml",
 			expectedErr: errors.New("failed to unmarshal plugin from yaml"),
 		},
 		{
 			name:        "missing file",
-			path:        "./test/missing.yaml",
+			path:        "./testdata/missing.yaml",
 			expectedErr: errors.New("failed to read file"),
 		},
 	}
@@ -135,6 +135,11 @@ service:
 							Exporters: []string{emitterTypeStr},
 						},
 					},
+					Telemetry: TelemetryConfig{
+						Metrics: MetricsConfig{
+							Level: "none",
+						},
+					},
 				},
 			},
 		},
@@ -167,6 +172,11 @@ service:
 					Pipelines: map[string]PipelineConfig{
 						"metrics": {
 							Exporters: []string{emitterTypeStr},
+						},
+					},
+					Telemetry: TelemetryConfig{
+						Metrics: MetricsConfig{
+							Level: "none",
 						},
 					},
 				},

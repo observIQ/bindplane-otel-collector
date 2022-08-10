@@ -39,6 +39,7 @@ type RenderedConfig struct {
 type ServiceConfig struct {
 	Extensions []string                  `yaml:"extensions,omitempty"`
 	Pipelines  map[string]PipelineConfig `yaml:"pipelines,omitempty"`
+	Telemetry  TelemetryConfig           `yaml:"telemetry,omitempty"`
 }
 
 // PipelineConfig is the config of a pipeline
@@ -46,6 +47,16 @@ type PipelineConfig struct {
 	Receivers  []string `yaml:"receivers,omitempty"`
 	Processors []string `yaml:"processors,omitempty"`
 	Exporters  []string `yaml:"exporters,omitempty"`
+}
+
+// TelemetryConfig is a representation of collector telemetry settings
+type TelemetryConfig struct {
+	Metrics MetricsConfig `yaml:"metrics,omitempty"`
+}
+
+// MetricsConfig exposes the level of the telemetry metrics
+type MetricsConfig struct {
+	Level string `yaml:"level,omitempty"`
 }
 
 // NewRenderedConfig creates a RenderedConfig with statically overwritten Exporters info
@@ -63,6 +74,9 @@ func NewRenderedConfig(yamlBytes []byte) (*RenderedConfig, error) {
 		pipeline.Exporters = []string{emitterTypeStr}
 		renderedCfg.Service.Pipelines[key] = pipeline
 	}
+
+	// Hardcode telemetry to none so the collector setup for the plugin doesn't record metrics
+	renderedCfg.Service.Telemetry.Metrics.Level = "none"
 
 	return &renderedCfg, nil
 }
