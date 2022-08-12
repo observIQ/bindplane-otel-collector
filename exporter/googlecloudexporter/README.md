@@ -1,14 +1,14 @@
 # Google Cloud Exporter
 
 This exporter can be used to send metrics, traces, and logs to Google Cloud Monitoring. It is an extension of the official 
-[Google Cloud Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.57.2/exporter/googlecloudexporter), with additional processors built in to streamline configuration.
+[Google Cloud Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.58.0/exporter/googlecloudexporter), with additional processors built in to streamline configuration.
 
 ## Configuration
 | Field               | Default               | Required | Description |
 | ---                 | ---                   | ---      | ---         |
-| `metric`            |                       | `false`  | The [metric](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.57.2/exporter/googlecloudexporter#configuration-reference) settings of the exporter. |
-| `trace`             |                       | `false`  | The [trace](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.57.2/exporter/googlecloudexporter#configuration-reference) settings of the exporter. |
-| `log`               |                       | `false`  | The [log](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.57.2/exporter/googlecloudexporter#configuration-reference) settings of the exporter. |
+| `metric`            |                       | `false`  | The [metric](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.58.0/exporter/googlecloudexporter#configuration-reference) settings of the exporter. |
+| `trace`             |                       | `false`  | The [trace](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.58.0/exporter/googlecloudexporter#configuration-reference) settings of the exporter. |
+| `log`               |                       | `false`  | The [log](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.58.0/exporter/googlecloudexporter#configuration-reference) settings of the exporter. |
 | `credentials`       |                       | `false`  | The credentials JSON used to authenticate the GCP client. |
 | `credentials_file`  |                       | `false`  | The credentials file used to authenticate the GCP client. Ignored if `credentials` is set. |
 | `project`           |                       | `false`  | The GCP project used when exporting telemetry data. |
@@ -16,7 +16,7 @@ This exporter can be used to send metrics, traces, and logs to Google Cloud Moni
 | `timeout`           | `12s`                 | `false`  | The timeout for API calls. |
 | `retry_on_failure`  |                       | `false`  | Handle retries when sending data to Google Cloud fails. |
 | `sending_queue`     |                       | `false`  | Determines how telemetry data is buffered before exporting. |
-| `batch`             |                       | `false`  | The config of the exporter's [batch processor](https://github.com/open-telemetry/opentelemetry-collector/tree/v0.57.2/processor/batchprocessor). |
+| `batch`             |                       | `false`  | The config of the exporter's [batch processor](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.58.0/processor/batchprocessor). |
 | `append_host`       |                       | `true`   | Append the collector's hostname to incoming telemetry if not already present. |
 
 ## Metric Processing Steps

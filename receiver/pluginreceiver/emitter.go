@@ -64,7 +64,7 @@ func createLogEmitterFactory(consumer consumer.Logs) component.ExporterFactory {
 	return component.NewExporterFactory(
 		emitterTypeStr,
 		defaultEmitterConfig,
-		component.WithLogsExporterAndStabilityLevel(createExporter, component.StabilityLevelUndefined),
+		component.WithLogsExporter(createExporter, component.StabilityLevelUndefined),
 	)
 }
 
@@ -78,7 +78,7 @@ func createMetricEmitterFactory(consumer consumer.Metrics) component.ExporterFac
 	return component.NewExporterFactory(
 		emitterTypeStr,
 		defaultEmitterConfig,
-		component.WithMetricsExporterAndStabilityLevel(createExporter, component.StabilityLevelUndefined),
+		component.WithMetricsExporter(createExporter, component.StabilityLevelUndefined),
 	)
 }
 
@@ -92,6 +92,6 @@ func createTraceEmitterFactory(consumer consumer.Traces) component.ExporterFacto
 	return component.NewExporterFactory(
 		emitterTypeStr,
 		defaultEmitterConfig,
-		component.WithTracesExporterAndStabilityLevel(createExporter, component.StabilityLevelUndefined),
+		component.WithTracesExporter(createExporter, component.StabilityLevelUndefined),
 	)
 }
