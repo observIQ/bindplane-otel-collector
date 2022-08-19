@@ -28,11 +28,11 @@ import (
 
 // RenderedConfig is the rendered config of a plugin
 type RenderedConfig struct {
-	Receivers  map[string]interface{} `yaml:"receivers,omitempty"`
-	Processors map[string]interface{} `yaml:"processors,omitempty"`
-	Exporters  map[string]interface{} `yaml:"exporters,omitempty"`
-	Extensions map[string]interface{} `yaml:"extensions,omitempty"`
-	Service    ServiceConfig          `yaml:"service,omitempty"`
+	Receivers  map[string]any `yaml:"receivers,omitempty"`
+	Processors map[string]any `yaml:"processors,omitempty"`
+	Exporters  map[string]any `yaml:"exporters,omitempty"`
+	Extensions map[string]any `yaml:"extensions,omitempty"`
+	Service    ServiceConfig  `yaml:"service,omitempty"`
 }
 
 // ServiceConfig is the config of a collector service
@@ -66,7 +66,7 @@ func NewRenderedConfig(yamlBytes []byte) (*RenderedConfig, error) {
 		return nil, fmt.Errorf("failed to unmarshal yaml bytes: %w", err)
 	}
 
-	renderedCfg.Exporters = map[string]interface{}{
+	renderedCfg.Exporters = map[string]any{
 		emitterTypeStr: nil,
 	}
 

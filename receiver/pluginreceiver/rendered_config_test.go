@@ -44,7 +44,7 @@ func TestGetRequiredFactories(t *testing.T) {
 		{
 			name: "missing receiver factory",
 			renderedCfg: &RenderedConfig{
-				Receivers: map[string]interface{}{
+				Receivers: map[string]any{
 					"missing": nil,
 				},
 			},
@@ -53,7 +53,7 @@ func TestGetRequiredFactories(t *testing.T) {
 		{
 			name: "missing processor factory",
 			renderedCfg: &RenderedConfig{
-				Processors: map[string]interface{}{
+				Processors: map[string]any{
 					"missing": nil,
 				},
 			},
@@ -62,7 +62,7 @@ func TestGetRequiredFactories(t *testing.T) {
 		{
 			name: "missing extension factory",
 			renderedCfg: &RenderedConfig{
-				Extensions: map[string]interface{}{
+				Extensions: map[string]any{
 					"missing": nil,
 				},
 			},
@@ -71,13 +71,13 @@ func TestGetRequiredFactories(t *testing.T) {
 		{
 			name: "all factories exist",
 			renderedCfg: &RenderedConfig{
-				Receivers: map[string]interface{}{
+				Receivers: map[string]any{
 					"test": nil,
 				},
-				Processors: map[string]interface{}{
+				Processors: map[string]any{
 					"test": nil,
 				},
-				Extensions: map[string]interface{}{
+				Extensions: map[string]any{
 					"test": nil,
 				},
 			},
@@ -99,15 +99,15 @@ func TestGetRequiredFactories(t *testing.T) {
 		{
 			name: "duplicate receivers defined",
 			renderedCfg: &RenderedConfig{
-				Receivers: map[string]interface{}{
+				Receivers: map[string]any{
 					"test":   nil,
 					"test/2": nil,
 				},
-				Processors: map[string]interface{}{
+				Processors: map[string]any{
 					"test":   nil,
 					"test/2": nil,
 				},
-				Extensions: map[string]interface{}{
+				Extensions: map[string]any{
 					"test":   nil,
 					"test/2": nil,
 				},

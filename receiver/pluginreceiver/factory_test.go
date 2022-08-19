@@ -53,7 +53,7 @@ func TestCreateReceiver(t *testing.T) {
 			name: "invalid plugin parameter",
 			cfg: &Config{
 				Path: "./testdata/plugin-valid.yaml",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"env": 5,
 				},
 			},
@@ -63,7 +63,7 @@ func TestCreateReceiver(t *testing.T) {
 			name: "invalid plugin template",
 			cfg: &Config{
 				Path: "./testdata/plugin-invalid-template.yaml",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"env": "prod",
 				},
 			},
@@ -73,7 +73,7 @@ func TestCreateReceiver(t *testing.T) {
 			name: "valid plugin",
 			cfg: &Config{
 				Path: "./testdata/plugin-valid.yaml",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"env": "prod",
 				},
 			},
@@ -107,7 +107,7 @@ func TestCreateLogsReceiver(t *testing.T) {
 	set := component.ReceiverCreateSettings{}
 	cfg := &Config{
 		Path: "./testdata/plugin-valid.yaml",
-		Parameters: map[string]interface{}{
+		Parameters: map[string]any{
 			"env": "prod",
 		},
 	}
@@ -124,7 +124,7 @@ func TestCreateMetricsReceiver(t *testing.T) {
 	set := component.ReceiverCreateSettings{}
 	cfg := &Config{
 		Path: "./testdata/plugin-valid.yaml",
-		Parameters: map[string]interface{}{
+		Parameters: map[string]any{
 			"env": "prod",
 		},
 	}
@@ -141,7 +141,7 @@ func TestCreateTracesReceiver(t *testing.T) {
 	set := component.ReceiverCreateSettings{}
 	cfg := &Config{
 		Path: "./testdata/plugin-valid.yaml",
-		Parameters: map[string]interface{}{
+		Parameters: map[string]any{
 			"env": "prod",
 		},
 	}
@@ -157,6 +157,6 @@ func TestCreateDefaultConfig(t *testing.T) {
 
 	pluginConfig, ok := config.(*Config)
 	require.True(t, ok)
-	require.Equal(t, make(map[string]interface{}), pluginConfig.Parameters)
+	require.Equal(t, make(map[string]any), pluginConfig.Parameters)
 	require.Empty(t, pluginConfig.Path)
 }

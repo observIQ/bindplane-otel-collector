@@ -43,7 +43,7 @@ func TestValidateSuppliedPlugins(t *testing.T) {
 			plugin, err := LoadPlugin(fullFilePath)
 			assert.NoError(t, err, "Failed to load file %s", entryName)
 
-			_, err = plugin.Render(map[string]interface{}{})
+			_, err = plugin.Render(map[string]any{})
 			assert.NoError(t, err, "Failed to render config for plugin %s", entryName)
 		})
 	}
@@ -66,7 +66,7 @@ func TestValidateSuppliedPluginsLoadSuppliedDefaults(t *testing.T) {
 			plugin, err := LoadPlugin(fullFilePath)
 			require.NoError(t, err, "Failed to load file %s", entryName)
 
-			parameterMap := plugin.ApplyDefaults(map[string]interface{}{})
+			parameterMap := plugin.ApplyDefaults(map[string]any{})
 
 			require.NoError(t, plugin.checkDefined(parameterMap))
 			require.NoError(t, plugin.checkSupported(parameterMap))

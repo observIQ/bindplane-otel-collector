@@ -155,7 +155,7 @@ func TestConsumeMetricsMoveExistingAttribs(t *testing.T) {
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
 
-	require.Equal(t, map[string]interface{}{
+	require.Equal(t, map[string]any{
 		"resourceattrib1": "value",
 		"resourceattrib2": false,
 		"resourceattrib3": []byte("some bytes"),
@@ -206,11 +206,11 @@ func TestConsumeMetricsMoveToMultipleMetrics(t *testing.T) {
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
 
-	require.Equal(t, map[string]interface{}{
+	require.Equal(t, map[string]any{
 		"resourceattrib1": "value",
 	}, getMetricAttrsFromMetric(getMetricSlice(metricsOut).At(0)))
 
-	require.Equal(t, map[string]interface{}{
+	require.Equal(t, map[string]any{
 		"resourceattrib1": "value",
 	}, getMetricAttrsFromMetric(getMetricSlice(metricsOut).At(1)))
 }
@@ -252,7 +252,7 @@ func TestConsumeMetricsMixedExistence(t *testing.T) {
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
 
-	require.Equal(t, map[string]interface{}{
+	require.Equal(t, map[string]any{
 		"resourceattrib1out": "value1",
 	}, getMetricAttrsFromMetrics(metricsOut))
 }
@@ -293,7 +293,7 @@ func TestConsumeMetricsSum(t *testing.T) {
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
 
-	require.Equal(t, map[string]interface{}{
+	require.Equal(t, map[string]any{
 		"resourceattrib1out": "value1",
 	}, getMetricAttrsFromMetrics(metricsOut))
 }
@@ -334,7 +334,7 @@ func TestConsumeMetricsHistogram(t *testing.T) {
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
 
-	require.Equal(t, map[string]interface{}{
+	require.Equal(t, map[string]any{
 		"resourceattrib1out": "value1",
 	}, getMetricAttrsFromMetrics(metricsOut))
 }
@@ -375,7 +375,7 @@ func TestConsumeMetricsSummary(t *testing.T) {
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
 
-	require.Equal(t, map[string]interface{}{
+	require.Equal(t, map[string]any{
 		"resourceattrib1out": "value1",
 	}, getMetricAttrsFromMetrics(metricsOut))
 }
@@ -414,7 +414,7 @@ func TestConsumeMetricsNone(t *testing.T) {
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
 
-	require.Equal(t, map[string]interface{}(nil), getMetricAttrsFromMetrics(metricsOut))
+	require.Equal(t, map[string]any(nil), getMetricAttrsFromMetrics(metricsOut))
 }
 
 func TestConsumeMetricsDoesNotOverwrite(t *testing.T) {
@@ -458,7 +458,7 @@ func TestConsumeMetricsDoesNotOverwrite(t *testing.T) {
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
 
-	require.Equal(t, map[string]interface{}{
+	require.Equal(t, map[string]any{
 		"out": "value1",
 	}, getMetricAttrsFromMetrics(metricsOut))
 }
@@ -506,7 +506,7 @@ func TestConsumeMetricsDoesNotOverwrite2(t *testing.T) {
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
 
-	require.Equal(t, map[string]interface{}{
+	require.Equal(t, map[string]any{
 		"out": "originalvalue",
 	}, getMetricAttrsFromMetrics(metricsOut))
 }
@@ -549,11 +549,11 @@ func createMetrics() pmetric.Metrics {
 	return metrics
 }
 
-func getMetricAttrsFromMetrics(m pmetric.Metrics) map[string]interface{} {
+func getMetricAttrsFromMetrics(m pmetric.Metrics) map[string]any {
 	return getMetricAttrsFromMetric(getMetric(m))
 }
 
-func getMetricAttrsFromMetric(m pmetric.Metric) map[string]interface{} {
+func getMetricAttrsFromMetric(m pmetric.Metric) map[string]any {
 	switch m.DataType() {
 	case pmetric.MetricDataTypeGauge:
 		return m.Gauge().DataPoints().At(0).Attributes().AsRaw()

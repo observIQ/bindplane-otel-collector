@@ -33,7 +33,7 @@ func TestReceiverGetFactoryFailure(t *testing.T) {
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nil)
 
 	renderedCfg := &RenderedConfig{
-		Receivers: map[string]interface{}{
+		Receivers: map[string]any{
 			"missing": nil,
 		},
 	}
@@ -59,7 +59,7 @@ func TestReceiverCreateServiceFailure(t *testing.T) {
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
 
 	renderedCfg := &RenderedConfig{
-		Receivers: map[string]interface{}{
+		Receivers: map[string]any{
 			"nop": nil,
 		},
 	}
@@ -88,7 +88,7 @@ func TestReceiverStartServiceFailure(t *testing.T) {
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
 
 	renderedCfg := &RenderedConfig{
-		Receivers: map[string]interface{}{
+		Receivers: map[string]any{
 			"nop": nil,
 		},
 	}
@@ -123,7 +123,7 @@ func TestReceiverStartServiceContext(t *testing.T) {
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
 
 	renderedCfg := &RenderedConfig{
-		Receivers: map[string]interface{}{
+		Receivers: map[string]any{
 			"nop": nil,
 		},
 	}
@@ -156,7 +156,7 @@ func TestReceiverStartSuccess(t *testing.T) {
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
 
 	renderedCfg := &RenderedConfig{
-		Receivers: map[string]interface{}{
+		Receivers: map[string]any{
 			"nop": nil,
 		},
 	}

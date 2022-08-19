@@ -33,15 +33,15 @@ const (
 // Config is the configuration of a plugin receiver
 type Config struct {
 	config.ReceiverSettings `mapstructure:",squash"`
-	Path                    string                 `mapstructure:"path"`
-	Parameters              map[string]interface{} `mapstructure:"parameters"`
+	Path                    string         `mapstructure:"path"`
+	Parameters              map[string]any `mapstructure:"parameters"`
 }
 
 // createDefaultConfig creates a default config for a plugin receiver
 func createDefaultConfig() config.Receiver {
 	return &Config{
 		ReceiverSettings: config.NewReceiverSettings(config.NewComponentID(typeStr)),
-		Parameters:       make(map[string]interface{}),
+		Parameters:       make(map[string]any),
 	}
 }
 

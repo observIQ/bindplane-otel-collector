@@ -50,7 +50,7 @@ func LoadPlugin(path string) (*Plugin, error) {
 }
 
 // Render renders the plugin's template as a config
-func (p *Plugin) Render(values map[string]interface{}) (*RenderedConfig, error) {
+func (p *Plugin) Render(values map[string]any) (*RenderedConfig, error) {
 	template, err := template.New(p.Title).Parse(p.Template)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create plugin template: %w", err)
@@ -73,8 +73,8 @@ func (p *Plugin) Render(values map[string]interface{}) (*RenderedConfig, error) 
 
 // ApplyDefaults returns a copy of the values map with parameter defaults applied.
 // If a value is already present in the map, it supercedes the default.
-func (p *Plugin) ApplyDefaults(values map[string]interface{}) map[string]interface{} {
-	result := make(map[string]interface{})
+func (p *Plugin) ApplyDefaults(values map[string]any) map[string]any {
+	result := make(map[string]any)
 
 	for _, parameter := range p.Parameters {
 		if parameter.Default == nil {
@@ -92,7 +92,7 @@ func (p *Plugin) ApplyDefaults(values map[string]interface{}) map[string]interfa
 }
 
 // CheckParameters checks the supplied values against the defined parameters of the plugin
-func (p *Plugin) CheckParameters(values map[string]interface{}) error {
+func (p *Plugin) CheckParameters(values map[string]any) error {
 	if err := p.checkDefined(values); err != nil {
 		return fmt.Errorf("definition failure: %w", err)
 	}
@@ -113,7 +113,7 @@ func (p *Plugin) CheckParameters(values map[string]interface{}) error {
 }
 
 // checkDefined checks if any of the supplied values are not defined by the plugin
-func (p *Plugin) checkDefined(values map[string]interface{}) error {
+func (p *Plugin) checkDefined(values map[string]any) error {
 	parameterMap := make(map[string]struct{})
 	for _, parameter := range p.Parameters {
 		parameterMap[parameter.Name] = struct{}{}
@@ -129,7 +129,7 @@ func (p *Plugin) checkDefined(values map[string]interface{}) error {
 }
 
 // checkRequired checks if required values are defined
-func (p *Plugin) checkRequired(values map[string]interface{}) error {
+func (p *Plugin) checkRequired(values map[string]any) error {
 	for _, parameter := range p.Parameters {
 		_, ok := values[parameter.Name]
 		if parameter.Required && !ok {
@@ -141,7 +141,7 @@ func (p *Plugin) checkRequired(values map[string]interface{}) error {
 }
 
 // checkType checks if the values match their parameter type
-func (p *Plugin) checkType(values map[string]interface{}) error {
+func (p *Plugin) checkType(values map[string]any) error {
 	for _, parameter := range p.Parameters {
 		value, ok := values[parameter.Name]
 		if !ok {
@@ -154,7 +154,7 @@ func (p *Plugin) checkType(values map[string]interface{}) error {
 				return fmt.Errorf("parameter %s must be a string", parameter.Name)
 			}
 		case stringArrayType:
-			raw, ok := value.([]interface{})
+			raw, ok := value.([]any)
 			if !ok {
 				return fmt.Errorf("parameter %s must be a []string", parameter.Name)
 			}
@@ -190,7 +190,7 @@ func (p *Plugin) checkType(values map[string]interface{}) error {
 }
 
 // checkSupported checks the values against the plugin's supported values
-func (p *Plugin) checkSupported(values map[string]interface{}) error {
+func (p *Plugin) checkSupported(values map[string]any) error {
 OUTER:
 	for _, parameter := range p.Parameters {
 		if parameter.Supported == nil {
@@ -218,8 +218,8 @@ OUTER:
 type Parameter struct {
 	Name      string        `yaml:"name,omitempty"`
 	Type      ParameterType `yaml:"type,omitempty"`
-	Default   interface{}   `yaml:"default,omitempty"`
-	Supported []interface{} `yaml:"supported,omitempty"`
+	Default   any           `yaml:"default,omitempty"`
+	Supported []any         `yaml:"supported,omitempty"`
 	Required  bool          `yaml:"required,omitempty"`
 }
 

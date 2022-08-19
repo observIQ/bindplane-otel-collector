@@ -121,7 +121,7 @@ func TestConsumeLogs(t *testing.T) {
 	err := p.ConsumeLogs(ctx, logs)
 	require.NoError(t, err)
 
-	require.Equal(t, map[string]interface{}{
+	require.Equal(t, map[string]any{
 		"resourceattrib1": "value",
 		"resourceattrib2": false,
 		"resourceattrib3": []byte("some bytes"),
@@ -164,11 +164,11 @@ func TestConsumeLogsMoveToMultipleMetrics(t *testing.T) {
 	err := p.ConsumeLogs(ctx, logs)
 	require.NoError(t, err)
 
-	require.Equal(t, map[string]interface{}{
+	require.Equal(t, map[string]any{
 		"resourceattrib1": "value",
 	}, logsOut.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Attributes().AsRaw())
 
-	require.Equal(t, map[string]interface{}{
+	require.Equal(t, map[string]any{
 		"resourceattrib1": "value",
 	}, logsOut.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(1).Attributes().AsRaw())
 }
@@ -211,7 +211,7 @@ func TestConsumeLogsDoesNotOverwrite(t *testing.T) {
 	err := p.ConsumeLogs(ctx, logs)
 	require.NoError(t, err)
 
-	require.Equal(t, map[string]interface{}{
+	require.Equal(t, map[string]any{
 		"out": "value1",
 	}, logsOut.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Attributes().AsRaw())
 }
@@ -255,7 +255,7 @@ func TestConsumeLogsDoesNotOverwrite2(t *testing.T) {
 	err := p.ConsumeLogs(ctx, logs)
 	require.NoError(t, err)
 
-	require.Equal(t, map[string]interface{}{
+	require.Equal(t, map[string]any{
 		"out": "originalvalue",
 	}, logsOut.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Attributes().AsRaw())
 }

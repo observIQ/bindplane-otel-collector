@@ -42,7 +42,7 @@ func TestLoadPlugin(t *testing.T) {
 						Name:      "env",
 						Type:      stringType,
 						Default:   "prod",
-						Supported: []interface{}{"prod", "dev"},
+						Supported: []any{"prod", "dev"},
 						Required:  true,
 					},
 				},
@@ -79,7 +79,7 @@ func TestRenderComponents(t *testing.T) {
 	testCases := []struct {
 		name           string
 		plugin         *Plugin
-		values         map[string]interface{}
+		values         map[string]any
 		dataType       config.DataType
 		expectedResult *RenderedConfig
 		expectedErr    error
@@ -118,14 +118,14 @@ service:
     metrics:
       receivers: [test]`,
 			},
-			values: map[string]interface{}{
+			values: map[string]any{
 				"enabled": true,
 			},
 			expectedResult: &RenderedConfig{
-				Receivers: map[string]interface{}{
+				Receivers: map[string]any{
 					"test": nil,
 				},
-				Exporters: map[string]interface{}{
+				Exporters: map[string]any{
 					emitterTypeStr: nil,
 				},
 				Service: ServiceConfig{
@@ -162,10 +162,10 @@ service:
 				},
 			},
 			expectedResult: &RenderedConfig{
-				Receivers: map[string]interface{}{
+				Receivers: map[string]any{
 					"test": nil,
 				},
-				Exporters: map[string]interface{}{
+				Exporters: map[string]any{
 					emitterTypeStr: nil,
 				},
 				Service: ServiceConfig{
@@ -203,18 +203,18 @@ func TestApplyDefaults(t *testing.T) {
 	testCases := []struct {
 		name           string
 		plugin         *Plugin
-		values         map[string]interface{}
-		expectedResult map[string]interface{}
+		values         map[string]any
+		expectedResult map[string]any
 	}{
 		{
 			name: "with no parameters",
 			plugin: &Plugin{
 				Parameters: nil,
 			},
-			values: map[string]interface{}{
+			values: map[string]any{
 				"param1": "value",
 			},
-			expectedResult: map[string]interface{}{
+			expectedResult: map[string]any{
 				"param1": "value",
 			},
 		},
@@ -230,10 +230,10 @@ func TestApplyDefaults(t *testing.T) {
 					},
 				},
 			},
-			values: map[string]interface{}{
+			values: map[string]any{
 				"param1": "value",
 			},
-			expectedResult: map[string]interface{}{
+			expectedResult: map[string]any{
 				"param1": "value",
 			},
 		},
@@ -251,10 +251,10 @@ func TestApplyDefaults(t *testing.T) {
 					},
 				},
 			},
-			values: map[string]interface{}{
+			values: map[string]any{
 				"param1": "value",
 			},
-			expectedResult: map[string]interface{}{
+			expectedResult: map[string]any{
 				"param1": "value",
 				"param2": "defaultValue2",
 			},
@@ -273,13 +273,13 @@ func TestCheckParameters(t *testing.T) {
 	testCases := []struct {
 		name        string
 		plugin      *Plugin
-		values      map[string]interface{}
+		values      map[string]any
 		expectedErr error
 	}{
 		{
 			name:   "undefined parameters",
 			plugin: &Plugin{},
-			values: map[string]interface{}{
+			values: map[string]any{
 				"param1": "value1",
 			},
 			expectedErr: errors.New("definition failure"),
@@ -294,7 +294,7 @@ func TestCheckParameters(t *testing.T) {
 					},
 				},
 			},
-			values:      map[string]interface{}{},
+			values:      map[string]any{},
 			expectedErr: errors.New("required failure"),
 		},
 		{
@@ -307,7 +307,7 @@ func TestCheckParameters(t *testing.T) {
 					},
 				},
 			},
-			values: map[string]interface{}{
+			values: map[string]any{
 				"param1": 5,
 			},
 			expectedErr: errors.New("must be a string"),
@@ -322,7 +322,7 @@ func TestCheckParameters(t *testing.T) {
 					},
 				},
 			},
-			values: map[string]interface{}{
+			values: map[string]any{
 				"param1": 5,
 			},
 			expectedErr: errors.New("must be a []string"),
@@ -337,8 +337,8 @@ func TestCheckParameters(t *testing.T) {
 					},
 				},
 			},
-			values: map[string]interface{}{
-				"param1": []interface{}{
+			values: map[string]any{
+				"param1": []any{
 					5,
 				},
 			},
@@ -354,7 +354,7 @@ func TestCheckParameters(t *testing.T) {
 					},
 				},
 			},
-			values: map[string]interface{}{
+			values: map[string]any{
 				"param1": "value1",
 			},
 			expectedErr: errors.New("must be an int"),
@@ -369,7 +369,7 @@ func TestCheckParameters(t *testing.T) {
 					},
 				},
 			},
-			values: map[string]interface{}{
+			values: map[string]any{
 				"param1": "value1",
 			},
 			expectedErr: errors.New("must be a bool"),
@@ -384,7 +384,7 @@ func TestCheckParameters(t *testing.T) {
 					},
 				},
 			},
-			values: map[string]interface{}{
+			values: map[string]any{
 				"param1": "value1",
 			},
 			expectedErr: errors.New("unsupported parameter type: invalidType"),
@@ -396,11 +396,11 @@ func TestCheckParameters(t *testing.T) {
 					{
 						Name:      "param1",
 						Type:      stringType,
-						Supported: []interface{}{"value2"},
+						Supported: []any{"value2"},
 					},
 				},
 			},
-			values: map[string]interface{}{
+			values: map[string]any{
 				"param1": "value1",
 			},
 			expectedErr: errors.New("supported value failure"),
@@ -415,7 +415,7 @@ func TestCheckParameters(t *testing.T) {
 					},
 				},
 			},
-			values: map[string]interface{}{
+			values: map[string]any{
 				"param1": true,
 			},
 			expectedErr: errors.New("must be a string"),
@@ -430,7 +430,7 @@ func TestCheckParameters(t *testing.T) {
 					},
 				},
 			},
-			values: map[string]interface{}{
+			values: map[string]any{
 				"param1": "Eastern",
 			},
 			expectedErr: errors.New("must be a valid timezone"),
@@ -443,7 +443,7 @@ func TestCheckParameters(t *testing.T) {
 						Name:      "param1",
 						Type:      stringType,
 						Required:  true,
-						Supported: []interface{}{"value1"},
+						Supported: []any{"value1"},
 					},
 					{
 						Name: "param2",
@@ -460,7 +460,7 @@ func TestCheckParameters(t *testing.T) {
 					{
 						Name:      "param5",
 						Type:      stringType,
-						Supported: []interface{}{"value5"},
+						Supported: []any{"value5"},
 					},
 					{
 						Name: "param6",
@@ -468,9 +468,9 @@ func TestCheckParameters(t *testing.T) {
 					},
 				},
 			},
-			values: map[string]interface{}{
+			values: map[string]any{
 				"param1": "value1",
-				"param2": []interface{}{"value2"},
+				"param2": []any{"value2"},
 				"param3": 5,
 				"param4": true,
 				"param6": "Pacific/Wallis",
