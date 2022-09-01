@@ -92,9 +92,11 @@ func (r *RenderedConfig) GetConfigProvider() (service.ConfigProvider, error) {
 	provider := yamlprovider.New()
 	converter := expandconverter.New()
 	settings := service.ConfigProviderSettings{
-		Locations:     []string{location},
-		MapProviders:  map[string]confmap.Provider{provider.Scheme(): provider},
-		MapConverters: []confmap.Converter{converter},
+		ResolverSettings: confmap.ResolverSettings{
+			URIs:       []string{location},
+			Providers:  map[string]confmap.Provider{provider.Scheme(): provider},
+			Converters: []confmap.Converter{converter},
+		},
 	}
 
 	return service.NewConfigProvider(settings)

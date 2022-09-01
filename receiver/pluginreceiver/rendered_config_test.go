@@ -14,6 +14,7 @@
 package pluginreceiver
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -25,7 +26,7 @@ import (
 
 func TestGetRequiredFactories(t *testing.T) {
 	testType := config.Type("test")
-	extensionFactory := component.NewExtensionFactory(testType, nil, nil)
+	extensionFactory := component.NewExtensionFactory(testType, nil, createExtension, component.StabilityLevelAlpha)
 	receiverFactory := component.NewReceiverFactory(testType, nil)
 	processorFactory := component.NewProcessorFactory(testType, nil)
 	emitterFactory := component.NewExporterFactory(testType, nil)
@@ -194,4 +195,12 @@ func (_m *MockHost) GetFactory(kind component.Kind, componentType config.Type) c
 // ReportFatalError provides a mock function with given fields: err
 func (_m *MockHost) ReportFatalError(err error) {
 	_m.Called(err)
+}
+
+func createExtension(
+	_ context.Context,
+	_ component.ExtensionCreateSettings,
+	_ config.Extension,
+) (component.Extension, error) {
+	return nil, nil
 }

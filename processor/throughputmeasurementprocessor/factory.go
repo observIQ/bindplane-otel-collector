@@ -61,7 +61,7 @@ func createDefaultConfig() config.Processor {
 }
 
 func createTracesProcessor(
-	_ context.Context,
+	ctx context.Context,
 	set component.ProcessorCreateSettings,
 	cfg config.Processor,
 	nextConsumer consumer.Traces,
@@ -69,11 +69,11 @@ func createTracesProcessor(
 	oCfg := cfg.(*Config)
 	tmp := newThroughputMeasurementProcessor(set.Logger, oCfg, cfg.ID().String())
 
-	return processorhelper.NewTracesProcessor(cfg, nextConsumer, tmp.processTraces, processorhelper.WithCapabilities(consumerCapabilities))
+	return processorhelper.NewTracesProcessor(ctx, set, cfg, nextConsumer, tmp.processTraces, processorhelper.WithCapabilities(consumerCapabilities))
 }
 
 func createLogsProcessor(
-	_ context.Context,
+	ctx context.Context,
 	set component.ProcessorCreateSettings,
 	cfg config.Processor,
 	nextConsumer consumer.Logs,
@@ -81,11 +81,11 @@ func createLogsProcessor(
 	oCfg := cfg.(*Config)
 	tmp := newThroughputMeasurementProcessor(set.Logger, oCfg, cfg.ID().String())
 
-	return processorhelper.NewLogsProcessor(cfg, nextConsumer, tmp.processLogs, processorhelper.WithCapabilities(consumerCapabilities))
+	return processorhelper.NewLogsProcessor(ctx, set, cfg, nextConsumer, tmp.processLogs, processorhelper.WithCapabilities(consumerCapabilities))
 }
 
 func createMetricsProcessor(
-	_ context.Context,
+	ctx context.Context,
 	set component.ProcessorCreateSettings,
 	cfg config.Processor,
 	nextConsumer consumer.Metrics,
@@ -93,5 +93,5 @@ func createMetricsProcessor(
 	oCfg := cfg.(*Config)
 	tmp := newThroughputMeasurementProcessor(set.Logger, oCfg, cfg.ID().String())
 
-	return processorhelper.NewMetricsProcessor(cfg, nextConsumer, tmp.processMetrics, processorhelper.WithCapabilities(consumerCapabilities))
+	return processorhelper.NewMetricsProcessor(ctx, set, cfg, nextConsumer, tmp.processMetrics, processorhelper.WithCapabilities(consumerCapabilities))
 }
