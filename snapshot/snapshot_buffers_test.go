@@ -197,7 +197,7 @@ func TestMetricBufferAdd(t *testing.T) {
 				// Seed buffer with one entry
 				initialBufferContents := pmetric.NewMetrics()
 				initialMetric := initialBufferContents.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
-				initialMetric.SetDataType(pmetric.MetricDataTypeGauge)
+				initialMetric.SetEmptyGauge()
 				initialMetric.Gauge().DataPoints().AppendEmpty()
 				metricBuffer.buffer = append(metricBuffer.buffer, initialBufferContents)
 
@@ -206,7 +206,7 @@ func TestMetricBufferAdd(t *testing.T) {
 				rm := toAdd.ResourceMetrics().AppendEmpty()
 				sm := rm.ScopeMetrics().AppendEmpty()
 				metric := sm.Metrics().AppendEmpty()
-				metric.SetDataType(pmetric.MetricDataTypeGauge)
+				metric.SetEmptyGauge()
 				metric.Gauge().DataPoints().AppendEmpty()
 				metric.Gauge().DataPoints().AppendEmpty()
 				metric.Gauge().DataPoints().AppendEmpty()
@@ -226,7 +226,7 @@ func TestMetricBufferAdd(t *testing.T) {
 				initialBufferContents := pmetric.NewMetrics()
 				initialBufferContents.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
 				initialMetric := initialBufferContents.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
-				initialMetric.SetDataType(pmetric.MetricDataTypeGauge)
+				initialMetric.SetEmptyGauge()
 				initialMetric.Gauge().DataPoints().AppendEmpty()
 				metricBuffer.buffer = append(metricBuffer.buffer, initialBufferContents)
 
@@ -235,7 +235,7 @@ func TestMetricBufferAdd(t *testing.T) {
 				rm := toAdd.ResourceMetrics().AppendEmpty()
 				sm := rm.ScopeMetrics().AppendEmpty()
 				metric := sm.Metrics().AppendEmpty()
-				metric.SetDataType(pmetric.MetricDataTypeGauge)
+				metric.SetEmptyGauge()
 				metric.Gauge().DataPoints().AppendEmpty()
 				metric.Gauge().DataPoints().AppendEmpty()
 				metric.Gauge().DataPoints().AppendEmpty()
@@ -254,13 +254,13 @@ func TestMetricBufferAdd(t *testing.T) {
 				// Seed buffer with several payloads
 				initialBufferContents := pmetric.NewMetrics()
 				initialMetric := initialBufferContents.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
-				initialMetric.SetDataType(pmetric.MetricDataTypeGauge)
+				initialMetric.SetEmptyGauge()
 				initialMetric.Gauge().DataPoints().AppendEmpty()
 				metricBuffer.buffer = append(metricBuffer.buffer, initialBufferContents)
 
 				secondBufferContents := pmetric.NewMetrics()
 				secondMetric := secondBufferContents.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
-				secondMetric.SetDataType(pmetric.MetricDataTypeGauge)
+				secondMetric.SetEmptyGauge()
 				secondMetric.Gauge().DataPoints().AppendEmpty()
 				metricBuffer.buffer = append(metricBuffer.buffer, secondBufferContents)
 
@@ -269,7 +269,7 @@ func TestMetricBufferAdd(t *testing.T) {
 				rm := toAdd.ResourceMetrics().AppendEmpty()
 				sm := rm.ScopeMetrics().AppendEmpty()
 				metric := sm.Metrics().AppendEmpty()
-				metric.SetDataType(pmetric.MetricDataTypeGauge)
+				metric.SetEmptyGauge()
 				metric.Gauge().DataPoints().AppendEmpty()
 				metric.Gauge().DataPoints().AppendEmpty()
 				metric.Gauge().DataPoints().AppendEmpty()
@@ -288,7 +288,7 @@ func TestMetricBufferAdd(t *testing.T) {
 				// Seed buffer with several payloads
 				initialBufferContents := pmetric.NewMetrics()
 				initialMetric := initialBufferContents.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
-				initialMetric.SetDataType(pmetric.MetricDataTypeGauge)
+				initialMetric.SetEmptyGauge()
 				initialMetric.Gauge().DataPoints().AppendEmpty()
 				initialMetric.Gauge().DataPoints().AppendEmpty()
 				initialMetric.Gauge().DataPoints().AppendEmpty()
@@ -299,7 +299,7 @@ func TestMetricBufferAdd(t *testing.T) {
 				rm := toAdd.ResourceMetrics().AppendEmpty()
 				sm := rm.ScopeMetrics().AppendEmpty()
 				metric := sm.Metrics().AppendEmpty()
-				metric.SetDataType(pmetric.MetricDataTypeGauge)
+				metric.SetEmptyGauge()
 				metric.Gauge().DataPoints().AppendEmpty()
 				metric.Gauge().DataPoints().AppendEmpty()
 
@@ -321,19 +321,19 @@ func TestMetricBufferConstructPayload(t *testing.T) {
 
 	payloadOne := pmetric.NewMetrics()
 	pOneMetric := payloadOne.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
-	pOneMetric.SetDataType(pmetric.MetricDataTypeGauge)
+	pOneMetric.SetEmptyGauge()
 	pOneMetric.Gauge().DataPoints().AppendEmpty()
 	metricBuffer.Add(payloadOne)
 
 	payloadTwo := pmetric.NewMetrics()
 	pTwoMetric := payloadTwo.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
-	pTwoMetric.SetDataType(pmetric.MetricDataTypeGauge)
+	pTwoMetric.SetEmptyGauge()
 	pTwoMetric.Gauge().DataPoints().AppendEmpty()
 	metricBuffer.Add(payloadTwo)
 
 	payloadThree := pmetric.NewMetrics()
 	pThreeMetric := payloadThree.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
-	pThreeMetric.SetDataType(pmetric.MetricDataTypeGauge)
+	pThreeMetric.SetEmptyGauge()
 	pThreeMetric.Gauge().DataPoints().AppendEmpty()
 	metricBuffer.Add(payloadThree)
 

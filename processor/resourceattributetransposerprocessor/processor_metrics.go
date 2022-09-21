@@ -87,26 +87,34 @@ func setMetricAttr(metric pmetric.Metric, attrName string, value pcommon.Value) 
 		dps := metric.Gauge().DataPoints()
 		for i := 0; i < dps.Len(); i++ {
 			dp := dps.At(i)
-			dp.Attributes().Insert(attrName, value)
+			if _, ok := dp.Attributes().Get(attrName); !ok {
+				value.CopyTo(dp.Attributes().PutEmpty(attrName))
+			}
 		}
 
 	case pmetric.MetricDataTypeHistogram:
 		dps := metric.Histogram().DataPoints()
 		for i := 0; i < dps.Len(); i++ {
 			dp := dps.At(i)
-			dp.Attributes().Insert(attrName, value)
+			if _, ok := dp.Attributes().Get(attrName); !ok {
+				value.CopyTo(dp.Attributes().PutEmpty(attrName))
+			}
 		}
 	case pmetric.MetricDataTypeSum:
 		dps := metric.Sum().DataPoints()
 		for i := 0; i < dps.Len(); i++ {
 			dp := dps.At(i)
-			dp.Attributes().Insert(attrName, value)
+			if _, ok := dp.Attributes().Get(attrName); !ok {
+				value.CopyTo(dp.Attributes().PutEmpty(attrName))
+			}
 		}
 	case pmetric.MetricDataTypeSummary:
 		dps := metric.Summary().DataPoints()
 		for i := 0; i < dps.Len(); i++ {
 			dp := dps.At(i)
-			dp.Attributes().Insert(attrName, value)
+			if _, ok := dp.Attributes().Get(attrName); !ok {
+				value.CopyTo(dp.Attributes().PutEmpty(attrName))
+			}
 		}
 	default:
 		// skip metric if None or unknown type
