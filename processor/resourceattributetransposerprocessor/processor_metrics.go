@@ -82,8 +82,8 @@ func (metricsProcessor) Shutdown(_ context.Context) error {
 
 // setMetricAttr sets the attribute (attrName) to the given value for every datapoint in the metric
 func setMetricAttr(metric pmetric.Metric, attrName string, value pcommon.Value) {
-	switch metric.DataType() {
-	case pmetric.MetricDataTypeGauge:
+	switch metric.Type() {
+	case pmetric.MetricTypeGauge:
 		dps := metric.Gauge().DataPoints()
 		for i := 0; i < dps.Len(); i++ {
 			dp := dps.At(i)
@@ -92,7 +92,7 @@ func setMetricAttr(metric pmetric.Metric, attrName string, value pcommon.Value) 
 			}
 		}
 
-	case pmetric.MetricDataTypeHistogram:
+	case pmetric.MetricTypeHistogram:
 		dps := metric.Histogram().DataPoints()
 		for i := 0; i < dps.Len(); i++ {
 			dp := dps.At(i)
@@ -100,7 +100,7 @@ func setMetricAttr(metric pmetric.Metric, attrName string, value pcommon.Value) 
 				value.CopyTo(dp.Attributes().PutEmpty(attrName))
 			}
 		}
-	case pmetric.MetricDataTypeSum:
+	case pmetric.MetricTypeSum:
 		dps := metric.Sum().DataPoints()
 		for i := 0; i < dps.Len(); i++ {
 			dp := dps.At(i)
@@ -108,7 +108,7 @@ func setMetricAttr(metric pmetric.Metric, attrName string, value pcommon.Value) 
 				value.CopyTo(dp.Attributes().PutEmpty(attrName))
 			}
 		}
-	case pmetric.MetricDataTypeSummary:
+	case pmetric.MetricTypeSummary:
 		dps := metric.Summary().DataPoints()
 		for i := 0; i < dps.Len(); i++ {
 			dp := dps.At(i)

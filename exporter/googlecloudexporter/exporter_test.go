@@ -297,7 +297,7 @@ func TestExporterShutdown(t *testing.T) {
 func TestAppendMetricAttrs(t *testing.T) {
 	metrics := pmetric.NewMetrics()
 	metric1 := metrics.ResourceMetrics().AppendEmpty()
-	metric1.Resource().Attributes().InsertString(string(semconv.HostNameKey), "test-hostname")
+	metric1.Resource().Attributes().PutString(string(semconv.HostNameKey), "test-hostname")
 	metric2 := metrics.ResourceMetrics().AppendEmpty()
 
 	e := exporter{}
@@ -315,7 +315,7 @@ func TestAppendMetricAttrs(t *testing.T) {
 func TestAppendLogAttrs(t *testing.T) {
 	logs := plog.NewLogs()
 	log1 := logs.ResourceLogs().AppendEmpty()
-	log1.Resource().Attributes().InsertString(string(semconv.HostNameKey), "test-hostname")
+	log1.Resource().Attributes().PutString(string(semconv.HostNameKey), "test-hostname")
 	metric2 := logs.ResourceLogs().AppendEmpty()
 
 	e := exporter{}
@@ -333,7 +333,7 @@ func TestAppendLogAttrs(t *testing.T) {
 func TestAppendTraceAttrs(t *testing.T) {
 	traces := ptrace.NewTraces()
 	trace1 := traces.ResourceSpans().AppendEmpty()
-	trace1.Resource().Attributes().InsertString(string(semconv.HostNameKey), "test-hostname")
+	trace1.Resource().Attributes().PutString(string(semconv.HostNameKey), "test-hostname")
 	trace2 := traces.ResourceSpans().AppendEmpty()
 
 	e := exporter{}

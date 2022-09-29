@@ -24,7 +24,6 @@ import (
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumertest"
-	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.uber.org/zap"
 )
@@ -67,9 +66,9 @@ func TestConsumeMetricsNoop(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pcommon.NewValueString("value"))
-	attrs.Insert("resourceattrib2", pcommon.NewValueBool(false))
-	attrs.Insert("resourceattrib3", pcommon.NewValueBytes(pcommon.NewImmutableByteSlice([]byte("some bytes"))))
+	attrs.PutString("resourceattrib1", "value")
+	attrs.PutBool("resourceattrib2", false)
+	attrs.PutEmptyBytes("resourceattrib3").Append([]byte("some bytes")...)
 
 	var metricsOut pmetric.Metrics
 
@@ -95,12 +94,12 @@ func TestConsumeMetricsMoveExistingAttribs(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pcommon.NewValueString("value"))
-	attrs.Insert("resourceattrib2", pcommon.NewValueBool(false))
-	attrs.Insert("resourceattrib3", pcommon.NewValueBytes(pcommon.NewImmutableByteSlice([]byte("some bytes"))))
-	attrs.Insert("resourceattrib4", pcommon.NewValueDouble(2.0))
-	attrs.Insert("resourceattrib5", pcommon.NewValueInt(100))
-	attrs.Insert("resourceattrib6", pcommon.NewValueEmpty())
+	attrs.PutString("resourceattrib1", "value")
+	attrs.PutBool("resourceattrib2", false)
+	attrs.PutEmptyBytes("resourceattrib3").Append([]byte("some bytes")...)
+	attrs.PutDouble("resourceattrib4", 2.0)
+	attrs.PutInt("resourceattrib5", 100)
+	attrs.PutEmpty("resourceattrib6")
 
 	var metricsOut pmetric.Metrics
 
@@ -148,7 +147,7 @@ func TestConsumeMetricsMoveExistingAttribs(t *testing.T) {
 	)
 
 	metric := getMetric(metrics)
-	metric.SetDataType(pmetric.MetricDataTypeGauge)
+	metric.SetEmptyGauge()
 	dp := metric.Gauge().DataPoints()
 	dp.AppendEmpty().SetDoubleVal(3.0)
 
@@ -170,7 +169,7 @@ func TestConsumeMetricsMoveToMultipleMetrics(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pcommon.NewValueString("value"))
+	attrs.PutString("resourceattrib1", "value")
 
 	var metricsOut pmetric.Metrics
 
@@ -194,12 +193,12 @@ func TestConsumeMetricsMoveToMultipleMetrics(t *testing.T) {
 	)
 	metricsSlice := getMetricSlice(metrics)
 	metric1 := metricsSlice.At(0)
-	metric1.SetDataType(pmetric.MetricDataTypeGauge)
+	metric1.SetEmptyGauge()
 	dp1 := metric1.Gauge().DataPoints()
 	dp1.AppendEmpty().SetDoubleVal(3.0)
 
 	metric2 := metricsSlice.AppendEmpty()
-	metric2.SetDataType(pmetric.MetricDataTypeGauge)
+	metric2.SetEmptyGauge()
 	dp2 := metric2.Gauge().DataPoints()
 	dp2.AppendEmpty().SetDoubleVal(3.0)
 
@@ -220,8 +219,8 @@ func TestConsumeMetricsMixedExistence(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
-	attrs.Insert("resourceattrib2", pcommon.NewValueString("value2"))
+	attrs.PutString("resourceattrib1", "value1")
+	attrs.PutString("resourceattrib2", "value2")
 
 	var metricsOut pmetric.Metrics
 
@@ -245,7 +244,7 @@ func TestConsumeMetricsMixedExistence(t *testing.T) {
 	)
 
 	metric := getMetric(metrics)
-	metric.SetDataType(pmetric.MetricDataTypeGauge)
+	metric.SetEmptyGauge()
 	dp := metric.Gauge().DataPoints()
 	dp.AppendEmpty().SetDoubleVal(3.0)
 
@@ -262,7 +261,7 @@ func TestConsumeMetricsSum(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
+	attrs.PutString("resourceattrib1", "value1")
 
 	var metricsOut pmetric.Metrics
 
@@ -286,7 +285,7 @@ func TestConsumeMetricsSum(t *testing.T) {
 	)
 
 	metric := getMetric(metrics)
-	metric.SetDataType(pmetric.MetricDataTypeSum)
+	metric.SetEmptySum()
 	dp := metric.Sum().DataPoints()
 	dp.AppendEmpty().SetDoubleVal(3.0)
 
@@ -303,7 +302,7 @@ func TestConsumeMetricsHistogram(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
+	attrs.PutString("resourceattrib1", "value1")
 
 	var metricsOut pmetric.Metrics
 
@@ -327,7 +326,7 @@ func TestConsumeMetricsHistogram(t *testing.T) {
 	)
 
 	metric := getMetric(metrics)
-	metric.SetDataType(pmetric.MetricDataTypeHistogram)
+	metric.SetEmptyHistogram()
 	dp := metric.Histogram().DataPoints()
 	dp.AppendEmpty()
 
@@ -344,7 +343,7 @@ func TestConsumeMetricsSummary(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
+	attrs.PutString("resourceattrib1", "value1")
 
 	var metricsOut pmetric.Metrics
 
@@ -368,7 +367,7 @@ func TestConsumeMetricsSummary(t *testing.T) {
 	)
 
 	metric := getMetric(metrics)
-	metric.SetDataType(pmetric.MetricDataTypeSummary)
+	metric.SetEmptySummary()
 	dp := metric.Summary().DataPoints()
 	dp.AppendEmpty()
 
@@ -385,7 +384,7 @@ func TestConsumeMetricsNone(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
+	attrs.PutString("resourceattrib1", "value1")
 
 	var metricsOut pmetric.Metrics
 
@@ -408,9 +407,6 @@ func TestConsumeMetricsNone(t *testing.T) {
 		cfg,
 	)
 
-	metric := getMetric(metrics)
-	metric.SetDataType(pmetric.MetricDataTypeNone)
-
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
 
@@ -422,8 +418,8 @@ func TestConsumeMetricsDoesNotOverwrite(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
-	attrs.Insert("resourceattrib2", pcommon.NewValueString("value2"))
+	attrs.PutString("resourceattrib1", "value1")
+	attrs.PutString("resourceattrib2", "value2")
 
 	var metricsOut pmetric.Metrics
 
@@ -451,7 +447,7 @@ func TestConsumeMetricsDoesNotOverwrite(t *testing.T) {
 	)
 
 	metric := getMetric(metrics)
-	metric.SetDataType(pmetric.MetricDataTypeGauge)
+	metric.SetEmptyGauge()
 	dp := metric.Gauge().DataPoints()
 	dp.AppendEmpty().SetDoubleVal(3.0)
 
@@ -468,8 +464,8 @@ func TestConsumeMetricsDoesNotOverwrite2(t *testing.T) {
 	metrics := createMetrics()
 
 	attrs := metrics.ResourceMetrics().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
-	attrs.Insert("resourceattrib2", pcommon.NewValueString("value2"))
+	attrs.PutString("resourceattrib1", "value1")
+	attrs.PutString("resourceattrib2", "value2")
 
 	var metricsOut pmetric.Metrics
 
@@ -497,11 +493,11 @@ func TestConsumeMetricsDoesNotOverwrite2(t *testing.T) {
 	)
 
 	metric := getMetric(metrics)
-	metric.SetDataType(pmetric.MetricDataTypeGauge)
+	metric.SetEmptyGauge()
 	dps := metric.Gauge().DataPoints()
 	dp := dps.AppendEmpty()
 	dp.SetDoubleVal(3.0)
-	dp.Attributes().InsertString("out", "originalvalue")
+	dp.Attributes().PutString("out", "originalvalue")
 
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
@@ -554,14 +550,14 @@ func getMetricAttrsFromMetrics(m pmetric.Metrics) map[string]any {
 }
 
 func getMetricAttrsFromMetric(m pmetric.Metric) map[string]any {
-	switch m.DataType() {
-	case pmetric.MetricDataTypeGauge:
+	switch m.Type() {
+	case pmetric.MetricTypeGauge:
 		return m.Gauge().DataPoints().At(0).Attributes().AsRaw()
-	case pmetric.MetricDataTypeSum:
+	case pmetric.MetricTypeSum:
 		return m.Sum().DataPoints().At(0).Attributes().AsRaw()
-	case pmetric.MetricDataTypeHistogram:
+	case pmetric.MetricTypeHistogram:
 		return m.Histogram().DataPoints().At(0).Attributes().AsRaw()
-	case pmetric.MetricDataTypeSummary:
+	case pmetric.MetricTypeSummary:
 		return m.Summary().DataPoints().At(0).Attributes().AsRaw()
 	}
 	return nil

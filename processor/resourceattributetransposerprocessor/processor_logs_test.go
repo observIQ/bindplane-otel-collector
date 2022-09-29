@@ -24,7 +24,6 @@ import (
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumertest"
-	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 )
@@ -66,12 +65,12 @@ func TestConsumeLogs(t *testing.T) {
 	logs := createLogs()
 
 	attrs := logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Attributes()
-	attrs.Insert("resourceattrib1", pcommon.NewValueString("value"))
-	attrs.Insert("resourceattrib2", pcommon.NewValueBool(false))
-	attrs.Insert("resourceattrib3", pcommon.NewValueBytes(pcommon.NewImmutableByteSlice([]byte("some bytes"))))
-	attrs.Insert("resourceattrib4", pcommon.NewValueDouble(2.0))
-	attrs.Insert("resourceattrib5", pcommon.NewValueInt(100))
-	attrs.Insert("resourceattrib6", pcommon.NewValueEmpty())
+	attrs.PutString("resourceattrib1", "value")
+	attrs.PutBool("resourceattrib2", false)
+	attrs.PutEmptyBytes("resourceattrib3").Append([]byte("some bytes")...)
+	attrs.PutDouble("resourceattrib4", 2.0)
+	attrs.PutInt("resourceattrib5", 100)
+	attrs.PutEmpty("resourceattrib6")
 
 	var logsOut plog.Logs
 
@@ -136,7 +135,7 @@ func TestConsumeLogsMoveToMultipleMetrics(t *testing.T) {
 	logs := createLogs()
 
 	attrs := logs.ResourceLogs().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pcommon.NewValueString("value"))
+	attrs.PutString("resourceattrib1", "value")
 
 	var logsOut plog.Logs
 
@@ -180,8 +179,8 @@ func TestConsumeLogsDoesNotOverwrite(t *testing.T) {
 	logs := createLogs()
 
 	attrs := logs.ResourceLogs().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
-	attrs.Insert("resourceattrib2", pcommon.NewValueString("value2"))
+	attrs.PutString("resourceattrib1", "value1")
+	attrs.PutString("resourceattrib2", "value2")
 
 	var logsOut plog.Logs
 
@@ -222,8 +221,8 @@ func TestConsumeLogsDoesNotOverwrite2(t *testing.T) {
 	logs := createLogs()
 
 	attrs := logs.ResourceLogs().At(0).Resource().Attributes()
-	attrs.Insert("resourceattrib1", pcommon.NewValueString("value1"))
-	attrs.Insert("resourceattrib2", pcommon.NewValueString("value2"))
+	attrs.PutString("resourceattrib1", "value1")
+	attrs.PutString("resourceattrib2", "value2")
 
 	var logsOut plog.Logs
 
@@ -250,7 +249,7 @@ func TestConsumeLogsDoesNotOverwrite2(t *testing.T) {
 		cfg,
 	)
 
-	logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Attributes().InsertString("out", "originalvalue")
+	logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Attributes().PutString("out", "originalvalue")
 
 	err := p.ConsumeLogs(ctx, logs)
 	require.NoError(t, err)
