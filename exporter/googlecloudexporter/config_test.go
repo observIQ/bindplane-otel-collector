@@ -31,6 +31,8 @@ func TestCreateDefaultConfig(t *testing.T) {
 	require.Equal(t, config.NewComponentID(typeStr), googleCfg.ID())
 	require.Equal(t, defaultMetricPrefix, googleCfg.GCPConfig.MetricConfig.Prefix)
 	require.Equal(t, defaultUserAgent, googleCfg.GCPConfig.UserAgent)
+	require.Len(t, googleCfg.GCPConfig.MetricConfig.ResourceFilters, 1)
+	require.Equal(t, googleCfg.GCPConfig.MetricConfig.ResourceFilters[0].Prefix, "")
 	require.Nil(t, googleCfg.Validate())
 }
 

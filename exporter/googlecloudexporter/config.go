@@ -17,6 +17,7 @@ package googlecloudexporter
 import (
 	"os"
 
+	"github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/collector"
 	gcp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/processor/batchprocessor"
@@ -86,6 +87,10 @@ func createDefaultGCPConfig() *gcp.Config {
 	config.UserAgent = defaultUserAgent
 	config.MetricConfig.Prefix = defaultMetricPrefix
 	config.LogConfig.DefaultLogName, _ = os.Hostname()
+
+	// Overwrites the default resource filter to match all resource attributes
+	defaultResourceFilter := collector.ResourceFilter{Prefix: ""}
+	config.MetricConfig.ResourceFilters = []collector.ResourceFilter{defaultResourceFilter}
 	return config
 }
 

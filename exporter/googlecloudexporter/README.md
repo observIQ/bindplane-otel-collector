@@ -39,3 +39,6 @@ When trace data is received by the Google Cloud Exporter, it is processed in the
 1. **Hostname Detection**: Hostname is appended as an attribute on traces if not already present.
 2. **Batch Processor**: Traces are batched to decrease the number of requests.
 3. **Google Cloud Exporter**: Traces are exported to GCP.
+
+## Metric Labels
+Unlike the official Google Cloud Exporter, this extension transforms all resource attributes into metric labels by default. Users may still use the `resource_filters` field in the metric config to overwrite this behavior.
