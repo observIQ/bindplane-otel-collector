@@ -2,12 +2,15 @@
 
 Supported pipelines: logs, metrics, traces
 
-This processor samples OTLP payloads and measures the protobuf size. These measurements are added to the following counter metrics that can be accessed via internal telemetry. Units for each counter is in Bytes.
+This processor samples OTLP payloads and measures the protobuf size as well as number of OTLP objects in that payload. These measurements are added to the following counter metrics that can be accessed via internal telemetry. Units for each `data_size` counter are in Bytes.
 
 Counters:
 - `log_data_size`
 - `metric_data_size`
 - `trace_data_size`
+- `log_count`
+- `metric_count`
+- `trace_count`
 
 **NOTE**: This processor can be expensive and time consuming to run, especially at high throughput rates. It is recommended to run only for short periods of time with a modest `sampling_ratio` value.
 

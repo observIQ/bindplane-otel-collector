@@ -25,6 +25,9 @@ func TestMetricViews(t *testing.T) {
 		"processor/throughputmeasurement/log_data_size",
 		"processor/throughputmeasurement/metric_data_size",
 		"processor/throughputmeasurement/trace_data_size",
+		"processor/throughputmeasurement/log_count",
+		"processor/throughputmeasurement/metric_count",
+		"processor/throughputmeasurement/trace_count",
 	}
 
 	views := metricViews()

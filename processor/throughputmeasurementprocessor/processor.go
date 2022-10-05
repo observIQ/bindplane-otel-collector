@@ -52,13 +52,18 @@ func (tmp *throughputMeasurementProcessor) processTraces(ctx context.Context, td
 	if tmp.enabled {
 		//#nosec G404 -- randomly generated number is not used for security purposes. It's ok if it's weak
 		if rand.Float64() <= tmp.samplingCutOffRatio {
-			err := stats.RecordWithTags(
+			// Record size
+			if err := stats.RecordWithTags(
 				ctx,
 				tmp.mutators,
 				traceDataSize.M(int64(tmp.tracesSizer.TracesSize(td))),
-			)
+			); err != nil {
 
-			if err != nil {
+				return td, err
+			}
+
+			// Record count
+			if err := stats.RecordWithTags(ctx, tmp.mutators, traceCount.M(int64(td.SpanCount()))); err != nil {
 				return td, err
 			}
 		}
@@ -71,13 +76,17 @@ func (tmp *throughputMeasurementProcessor) processLogs(ctx context.Context, ld p
 	if tmp.enabled {
 		//#nosec G404 -- randomly generated number is not used for security purposes. It's ok if it's weak
 		if rand.Float64() <= tmp.samplingCutOffRatio {
-			err := stats.RecordWithTags(
+			// Record size
+			if err := stats.RecordWithTags(
 				ctx,
 				tmp.mutators,
 				logDataSize.M(int64(tmp.logsSizer.LogsSize(ld))),
-			)
+			); err != nil {
+				return ld, err
+			}
 
-			if err != nil {
+			// Record count
+			if err := stats.RecordWithTags(ctx, tmp.mutators, logCount.M(int64(ld.LogRecordCount()))); err != nil {
 				return ld, err
 			}
 		}
@@ -90,13 +99,16 @@ func (tmp *throughputMeasurementProcessor) processMetrics(ctx context.Context, m
 	if tmp.enabled {
 		//#nosec G404 -- randomly generated number is not used for security purposes. It's ok if it's weak
 		if rand.Float64() <= tmp.samplingCutOffRatio {
-			err := stats.RecordWithTags(
+			if err := stats.RecordWithTags(
 				ctx,
 				tmp.mutators,
 				metricDataSize.M(int64(tmp.metricsSizer.MetricsSize(md))),
-			)
+			); err != nil {
+				return md, err
+			}
 
-			if err != nil {
+			// Record count
+			if err := stats.RecordWithTags(ctx, tmp.mutators, metricCount.M(int64(md.DataPointCount()))); err != nil {
 				return md, err
 			}
 		}

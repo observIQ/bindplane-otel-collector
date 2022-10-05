@@ -28,6 +28,9 @@ var (
 	logDataSize     = stats.Int64("log_data_size", "Size of the log package passed to the processor", stats.UnitBytes)
 	metricDataSize  = stats.Int64("metric_data_size", "Size of the metric package passed to the processor", stats.UnitBytes)
 	traceDataSize   = stats.Int64("trace_data_size", "Size of the trace package passed to the processor", stats.UnitBytes)
+	logCount        = stats.Int64("log_count", "Count of the number log records passed to the processor", stats.UnitDimensionless)
+	metricCount     = stats.Int64("metric_count", "Count of the number metric data points passed to the processor", stats.UnitDimensionless)
+	traceCount      = stats.Int64("trace_count", "Count of the number trace spans passed to the processor", stats.UnitDimensionless)
 )
 
 func metricViews() []*view.View {
@@ -52,6 +55,27 @@ func metricViews() []*view.View {
 			Name:        obsreport.BuildProcessorCustomMetricName(string(typeStr), traceDataSize.Name()),
 			Description: traceDataSize.Description(),
 			Measure:     traceDataSize,
+			TagKeys:     processorTagKeys,
+			Aggregation: view.Sum(),
+		},
+		{
+			Name:        obsreport.BuildProcessorCustomMetricName(string(typeStr), logCount.Name()),
+			Description: logCount.Description(),
+			Measure:     logCount,
+			TagKeys:     processorTagKeys,
+			Aggregation: view.Sum(),
+		},
+		{
+			Name:        obsreport.BuildProcessorCustomMetricName(string(typeStr), metricCount.Name()),
+			Description: metricCount.Description(),
+			Measure:     metricCount,
+			TagKeys:     processorTagKeys,
+			Aggregation: view.Sum(),
+		},
+		{
+			Name:        obsreport.BuildProcessorCustomMetricName(string(typeStr), traceCount.Name()),
+			Description: traceCount.Description(),
+			Measure:     traceCount,
 			TagKeys:     processorTagKeys,
 			Aggregation: view.Sum(),
 		},
