@@ -16,6 +16,8 @@ package pluginreceiver
 
 import (
 	"errors"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -186,7 +188,7 @@ service:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := tc.plugin.Render(tc.values)
+			result, err := tc.plugin.Render(tc.values, config.NewComponentID(config.LogsDataType))
 			switch tc.expectedErr {
 			case nil:
 				require.NoError(t, err)
@@ -485,6 +487,42 @@ func TestCheckParameters(t *testing.T) {
 			switch tc.expectedErr {
 			case nil:
 				require.NoError(t, err)
+			default:
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr.Error())
+			}
+		})
+	}
+}
+
+func Test_checkExtensions(t *testing.T) {
+	tmpDir := t.TempDir()
+	testCases := []struct {
+		name        string
+		extenstions map[string]any
+		pluginName  string
+		expectedErr error
+	}{
+		{
+			name:        "Valid Extensions",
+			extenstions: map[string]any{"file_storage": map[string]any{"directory": tmpDir}},
+			pluginName:  "plugin_one",
+		},
+		{
+			name:        "Invalid Extensions Decoding",
+			extenstions: map[string]any{"file_storage": "hello"},
+			expectedErr: errors.New("'' expected a map, got 'string'"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			p1 := strings.ReplaceAll(tc.pluginName, "/", "_")
+			err := checkExtensions(tc.extenstions, tc.pluginName)
+			switch tc.expectedErr {
+			case nil:
+				require.NoError(t, err)
+				require.Equal(t, map[string]any{"directory": filepath.Join(tmpDir, p1)}, tc.extenstions["file_storage"])
 			default:
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr.Error())

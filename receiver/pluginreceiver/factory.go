@@ -89,7 +89,7 @@ func createReceiver(cfg config.Receiver, set component.ReceiverCreateSettings, e
 		return nil, fmt.Errorf("invalid plugin parameter: %w", err)
 	}
 
-	renderedCfg, err := plugin.Render(receiverConfig.Parameters)
+	renderedCfg, err := plugin.Render(receiverConfig.Parameters, receiverConfig.ReceiverSettings.ID())
 	if err != nil {
 		return nil, fmt.Errorf("failed to render plugin: %w", err)
 	}

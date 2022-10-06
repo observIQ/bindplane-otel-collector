@@ -19,8 +19,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
+	"github.com/mitchellh/mapstructure"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage"
+	"go.opentelemetry.io/collector/config"
 	"gopkg.in/yaml.v2"
 )
 
@@ -50,7 +54,7 @@ func LoadPlugin(path string) (*Plugin, error) {
 }
 
 // Render renders the plugin's template as a config
-func (p *Plugin) Render(values map[string]any) (*RenderedConfig, error) {
+func (p *Plugin) Render(values map[string]any, pluginID config.ComponentID) (*RenderedConfig, error) {
 	template, err := template.New(p.Title).Parse(p.Template)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create plugin template: %w", err)
@@ -66,6 +70,11 @@ func (p *Plugin) Render(values map[string]any) (*RenderedConfig, error) {
 	renderedCfg, err := NewRenderedConfig(writer.Bytes())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rendered config: %w", err)
+	}
+
+	err = checkExtensions(renderedCfg.Extensions, pluginID.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create unique storage id: %w", err)
 	}
 
 	return renderedCfg, nil
@@ -89,6 +98,35 @@ func (p *Plugin) ApplyDefaults(values map[string]any) map[string]any {
 	}
 
 	return result
+}
+
+func checkExtensions(extensions map[string]any, pluginID string) error {
+	for i, ext := range extensions {
+		c, _ := config.NewComponentIDFromString(i)
+		if c.Type() == "file_storage" {
+			var cfg filestorage.Config
+			err := mapstructure.Decode(ext, &cfg)
+			if err != nil {
+				return err
+			}
+
+			name := strings.ReplaceAll(pluginID, "/", "_")
+			cfg.Directory = filepath.Join(cfg.Directory, name)
+			extensions[i] = map[string]any{"directory": cfg.Directory}
+			err = os.MkdirAll(os.Expand(cfg.Directory, func(s string) string {
+				// Allow escaping with $$
+				if s == "$" {
+					return "$"
+				}
+				return os.Getenv(s)
+			}), 0750)
+			if err != nil {
+				return err
+			}
+
+		}
+	}
+	return nil
 }
 
 // CheckParameters checks the supplied values against the defined parameters of the plugin
