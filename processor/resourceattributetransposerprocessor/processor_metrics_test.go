@@ -149,7 +149,7 @@ func TestConsumeMetricsMoveExistingAttribs(t *testing.T) {
 	metric := getMetric(metrics)
 	metric.SetEmptyGauge()
 	dp := metric.Gauge().DataPoints()
-	dp.AppendEmpty().SetDoubleVal(3.0)
+	dp.AppendEmpty().SetDoubleValue(3.0)
 
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
@@ -195,12 +195,12 @@ func TestConsumeMetricsMoveToMultipleMetrics(t *testing.T) {
 	metric1 := metricsSlice.At(0)
 	metric1.SetEmptyGauge()
 	dp1 := metric1.Gauge().DataPoints()
-	dp1.AppendEmpty().SetDoubleVal(3.0)
+	dp1.AppendEmpty().SetDoubleValue(3.0)
 
 	metric2 := metricsSlice.AppendEmpty()
 	metric2.SetEmptyGauge()
 	dp2 := metric2.Gauge().DataPoints()
-	dp2.AppendEmpty().SetDoubleVal(3.0)
+	dp2.AppendEmpty().SetDoubleValue(3.0)
 
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
@@ -246,7 +246,7 @@ func TestConsumeMetricsMixedExistence(t *testing.T) {
 	metric := getMetric(metrics)
 	metric.SetEmptyGauge()
 	dp := metric.Gauge().DataPoints()
-	dp.AppendEmpty().SetDoubleVal(3.0)
+	dp.AppendEmpty().SetDoubleValue(3.0)
 
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
@@ -287,7 +287,7 @@ func TestConsumeMetricsSum(t *testing.T) {
 	metric := getMetric(metrics)
 	metric.SetEmptySum()
 	dp := metric.Sum().DataPoints()
-	dp.AppendEmpty().SetDoubleVal(3.0)
+	dp.AppendEmpty().SetDoubleValue(3.0)
 
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
@@ -449,7 +449,7 @@ func TestConsumeMetricsDoesNotOverwrite(t *testing.T) {
 	metric := getMetric(metrics)
 	metric.SetEmptyGauge()
 	dp := metric.Gauge().DataPoints()
-	dp.AppendEmpty().SetDoubleVal(3.0)
+	dp.AppendEmpty().SetDoubleValue(3.0)
 
 	err := p.ConsumeMetrics(ctx, metrics)
 	require.NoError(t, err)
@@ -496,7 +496,7 @@ func TestConsumeMetricsDoesNotOverwrite2(t *testing.T) {
 	metric.SetEmptyGauge()
 	dps := metric.Gauge().DataPoints()
 	dp := dps.AppendEmpty()
-	dp.SetDoubleVal(3.0)
+	dp.SetDoubleValue(3.0)
 	dp.Attributes().PutString("out", "originalvalue")
 
 	err := p.ConsumeMetrics(ctx, metrics)
