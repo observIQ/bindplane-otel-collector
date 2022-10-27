@@ -254,11 +254,12 @@ OUTER:
 
 // Parameter is the parameter of plugin
 type Parameter struct {
-	Name      string        `yaml:"name,omitempty"`
-	Type      ParameterType `yaml:"type,omitempty"`
-	Default   any           `yaml:"default,omitempty"`
-	Supported []any         `yaml:"supported,omitempty"`
-	Required  bool          `yaml:"required,omitempty"`
+	Name        string        `yaml:"name,omitempty"`
+	Type        ParameterType `yaml:"type,omitempty"`
+	Default     any           `yaml:"default,omitempty"`
+	Supported   []any         `yaml:"supported,omitempty"`
+	Description *string       `yaml:"description,omitempty"`
+	Required    bool          `yaml:"required,omitempty"`
 }
 
 // ParameterType is the type of a parameter
