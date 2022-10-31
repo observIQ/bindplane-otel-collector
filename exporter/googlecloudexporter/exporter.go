@@ -180,7 +180,7 @@ func (e *exporter) appendMetricHost(md *pmetric.Metrics) {
 		_, hostNameExists := resourceAttrs.Get(string(semconv.HostNameKey))
 		_, hostIDExists := resourceAttrs.Get(string(semconv.HostIDKey))
 		if !hostNameExists && !hostIDExists {
-			resourceAttrs.PutString(string(semconv.HostNameKey), hostname)
+			resourceAttrs.PutStr(string(semconv.HostNameKey), hostname)
 		}
 	}
 }
@@ -192,7 +192,7 @@ func (e *exporter) appendLogHost(ld *plog.Logs) {
 		_, hostNameExists := resourceAttrs.Get(string(semconv.HostNameKey))
 		_, hostIDExists := resourceAttrs.Get(string(semconv.HostIDKey))
 		if !hostNameExists && !hostIDExists {
-			resourceAttrs.PutString(string(semconv.HostNameKey), hostname)
+			resourceAttrs.PutStr(string(semconv.HostNameKey), hostname)
 		}
 	}
 }
@@ -204,7 +204,7 @@ func (e *exporter) appendTraceHost(td *ptrace.Traces) {
 		_, hostNameExists := resourceAttrs.Get(string(semconv.HostNameKey))
 		_, hostIDExists := resourceAttrs.Get(string(semconv.HostIDKey))
 		if !hostNameExists && !hostIDExists {
-			resourceAttrs.PutString(string(semconv.HostNameKey), hostname)
+			resourceAttrs.PutStr(string(semconv.HostNameKey), hostname)
 		}
 	}
 }

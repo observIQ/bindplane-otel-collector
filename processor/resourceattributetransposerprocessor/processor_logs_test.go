@@ -65,7 +65,7 @@ func TestConsumeLogs(t *testing.T) {
 	logs := createLogs()
 
 	attrs := logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Attributes()
-	attrs.PutString("resourceattrib1", "value")
+	attrs.PutStr("resourceattrib1", "value")
 	attrs.PutBool("resourceattrib2", false)
 	attrs.PutEmptyBytes("resourceattrib3").Append([]byte("some bytes")...)
 	attrs.PutDouble("resourceattrib4", 2.0)
@@ -135,7 +135,7 @@ func TestConsumeLogsMoveToMultipleMetrics(t *testing.T) {
 	logs := createLogs()
 
 	attrs := logs.ResourceLogs().At(0).Resource().Attributes()
-	attrs.PutString("resourceattrib1", "value")
+	attrs.PutStr("resourceattrib1", "value")
 
 	var logsOut plog.Logs
 
@@ -179,8 +179,8 @@ func TestConsumeLogsDoesNotOverwrite(t *testing.T) {
 	logs := createLogs()
 
 	attrs := logs.ResourceLogs().At(0).Resource().Attributes()
-	attrs.PutString("resourceattrib1", "value1")
-	attrs.PutString("resourceattrib2", "value2")
+	attrs.PutStr("resourceattrib1", "value1")
+	attrs.PutStr("resourceattrib2", "value2")
 
 	var logsOut plog.Logs
 
@@ -221,8 +221,8 @@ func TestConsumeLogsDoesNotOverwrite2(t *testing.T) {
 	logs := createLogs()
 
 	attrs := logs.ResourceLogs().At(0).Resource().Attributes()
-	attrs.PutString("resourceattrib1", "value1")
-	attrs.PutString("resourceattrib2", "value2")
+	attrs.PutStr("resourceattrib1", "value1")
+	attrs.PutStr("resourceattrib2", "value2")
 
 	var logsOut plog.Logs
 
@@ -249,7 +249,7 @@ func TestConsumeLogsDoesNotOverwrite2(t *testing.T) {
 		cfg,
 	)
 
-	logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Attributes().PutString("out", "originalvalue")
+	logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Attributes().PutStr("out", "originalvalue")
 
 	err := p.ConsumeLogs(ctx, logs)
 	require.NoError(t, err)
