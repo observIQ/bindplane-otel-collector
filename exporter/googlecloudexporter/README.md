@@ -11,7 +11,7 @@ This exporter can be used to send metrics, traces, and logs to Google Cloud Moni
 | `log`               |                       | `false`  | The [log](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.58.0/exporter/googlecloudexporter#configuration-reference) settings of the exporter. |
 | `credentials`       |                       | `false`  | The credentials JSON used to authenticate the GCP client. |
 | `credentials_file`  |                       | `false`  | The credentials file used to authenticate the GCP client. Ignored if `credentials` is set. |
-| `project`           |                       | `false`  | The GCP project used when exporting telemetry data. |
+| `project`           |                       | `false`  | The GCP project used when exporting telemetry data. If not set, the exporter will attempt to extract the value from the specified credentials. |
 | `user_agent`        | `observIQ-otel-agent` | `false`  | Overrides the user agent used when making requests. |
 | `timeout`           | `12s`                 | `false`  | The timeout for API calls. |
 | `retry_on_failure`  |                       | `false`  | Handle retries when sending data to Google Cloud fails. |

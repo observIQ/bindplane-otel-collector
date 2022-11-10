@@ -15,7 +15,11 @@
 package googlecloudexporter
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/collector"
 	gcp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
@@ -67,6 +71,51 @@ func (c *Config) getClientOptions() []option.ClientOption {
 	}
 
 	return opts
+}
+
+// setProject sets the project id from credentials if not already set
+func (c *Config) setProject() error {
+	if c.GCPConfig.Config.ProjectID != "" {
+		return nil
+	}
+
+	switch {
+	case c.Credentials != "":
+		return c.updateProjectFromJSON([]byte(c.Credentials))
+	case c.CredentialsFile != "":
+		return c.updateProjectFromFile(c.CredentialsFile)
+	default:
+		return nil
+	}
+}
+
+func (c *Config) updateProjectFromJSON(jsonBytes []byte) error {
+	jsonMap := make(map[string]interface{})
+	if err := json.Unmarshal(jsonBytes, &jsonMap); err != nil {
+		return fmt.Errorf("failed to unmarshal credentials: %w", err)
+	}
+
+	value, ok := jsonMap["project_id"]
+	if !ok {
+		return errors.New("project id does not exist")
+	}
+
+	strValue, ok := value.(string)
+	if !ok {
+		return errors.New("project id is not a string")
+	}
+
+	c.GCPConfig.ProjectID = strValue
+	return nil
+}
+
+func (c *Config) updateProjectFromFile(fileName string) error {
+	jsonBytes, err := os.ReadFile(filepath.Clean(fileName))
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+
+	return c.updateProjectFromJSON(jsonBytes)
 }
 
 // createDefaultConfig creates the default config for the exporter

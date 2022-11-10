@@ -17,6 +17,7 @@ package googlecloudexporter
 import (
 	"testing"
 
+	"github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/collector"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/config"
@@ -95,6 +96,71 @@ func TestSetClientOptionsWithCredentials(t *testing.T) {
 
 			opts := tc.config.GCPConfig.MetricConfig.ClientConfig.GetClientOptions()
 			require.Equal(t, tc.opts, opts)
+		})
+	}
+}
+
+func TestSetProject(t *testing.T) {
+	testCases := []struct {
+		name            string
+		config          *Config
+		expectedProject string
+		expectedErr     string
+	}{
+		{
+			name: "With project already set",
+			config: &Config{
+				GCPConfig: &googlecloudexporter.Config{
+					Config: collector.Config{
+						ProjectID: "test",
+					},
+				},
+			},
+			expectedProject: "test",
+		},
+		{
+			name: "With project in json credentials",
+			config: &Config{
+				Credentials: `{"project_id":"test"}`,
+				GCPConfig:   &googlecloudexporter.Config{},
+			},
+			expectedProject: "test",
+		},
+		{
+			name: "With missing json key",
+			config: &Config{
+				Credentials: `{"test":"value"}`,
+				GCPConfig:   &googlecloudexporter.Config{},
+			},
+			expectedErr: "project id does not exist",
+		},
+		{
+			name: "With invalid json",
+			config: &Config{
+				Credentials: `{`,
+				GCPConfig:   &googlecloudexporter.Config{},
+			},
+			expectedErr: "failed to unmarshal credentials",
+		},
+		{
+			name: "With invalid string",
+			config: &Config{
+				Credentials: `{"project_id":100}`,
+				GCPConfig:   &googlecloudexporter.Config{},
+			},
+			expectedErr: "project id is not a string",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.config.setProject()
+			if tc.expectedErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr)
+			}
+
+			require.Equal(t, tc.expectedProject, tc.config.GCPConfig.ProjectID)
 		})
 	}
 }

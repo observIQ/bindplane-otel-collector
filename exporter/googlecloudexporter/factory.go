@@ -24,6 +24,7 @@ import (
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/processor/batchprocessor"
+	"go.uber.org/zap"
 )
 
 // gcpFactory is the factory used to create the underlying gcp exporter
@@ -52,6 +53,10 @@ func NewFactory() component.ExporterFactory {
 func createMetricsExporter(ctx context.Context, set component.ExporterCreateSettings, cfg config.Exporter) (component.MetricsExporter, error) {
 	exporterConfig := cfg.(*Config)
 	exporterConfig.setClientOptions()
+
+	if err := exporterConfig.setProject(); err != nil {
+		set.Logger.Error("Failed to set project automatically", zap.Error(err))
+	}
 
 	gcpExporter, err := gcpFactory.CreateMetricsExporter(ctx, set, exporterConfig.GCPConfig)
 	if err != nil {
@@ -97,6 +102,10 @@ func createLogsExporter(ctx context.Context, set component.ExporterCreateSetting
 	exporterConfig := cfg.(*Config)
 	exporterConfig.setClientOptions()
 
+	if err := exporterConfig.setProject(); err != nil {
+		set.Logger.Error("Failed to set project automatically", zap.Error(err))
+	}
+
 	gcpExporter, err := gcpFactory.CreateLogsExporter(ctx, set, exporterConfig.GCPConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logs exporter: %w", err)
@@ -140,6 +149,10 @@ func createLogsExporter(ctx context.Context, set component.ExporterCreateSetting
 func createTracesExporter(ctx context.Context, set component.ExporterCreateSettings, cfg config.Exporter) (component.TracesExporter, error) {
 	exporterConfig := cfg.(*Config)
 	exporterConfig.setClientOptions()
+
+	if err := exporterConfig.setProject(); err != nil {
+		set.Logger.Error("Failed to set project automatically", zap.Error(err))
+	}
 
 	gcpExporter, err := gcpFactory.CreateTracesExporter(ctx, set, exporterConfig.GCPConfig)
 	if err != nil {
