@@ -16,7 +16,6 @@ package throughputmeasurementprocessor
 
 import (
 	"context"
-	"sync"
 
 	"go.opencensus.io/stats/view"
 	"go.opentelemetry.io/collector/component"
@@ -35,14 +34,15 @@ var (
 	consumerCapabilities = consumer.Capabilities{MutatesData: false}
 )
 
-var once sync.Once
+// RegisterMetricViews unregisters old metric views if they exist and registers new ones
+func RegisterMetricViews() error {
+	views := metricViews()
+	view.Unregister(views...)
+	return view.Register(views...)
+}
 
 // NewFactory creates a new ProcessorFactory with default configuration
 func NewFactory() component.ProcessorFactory {
-	once.Do(func() {
-		_ = view.Register(metricViews()...)
-	})
-
 	return component.NewProcessorFactory(
 		typeStr,
 		createDefaultConfig,
