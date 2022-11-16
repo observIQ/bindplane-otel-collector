@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
-	"go.opentelemetry.io/collector/config"
 )
 
 func TestCreateMetricExporterSuccess(t *testing.T) {
@@ -31,7 +30,7 @@ func TestCreateMetricExporterSuccess(t *testing.T) {
 	gcpFactory = component.NewExporterFactory(
 		typeStr,
 		gcpFactory.CreateDefaultConfig,
-		component.WithMetricsExporter(func(_ context.Context, _ component.ExporterCreateSettings, _ config.Exporter) (component.MetricsExporter, error) {
+		component.WithMetricsExporter(func(_ context.Context, _ component.ExporterCreateSettings, _ component.ExporterConfig) (component.MetricsExporter, error) {
 			return mockExporter, nil
 		}, stability),
 	)
@@ -58,7 +57,7 @@ func TestCreateLogsExporterSuccess(t *testing.T) {
 	gcpFactory = component.NewExporterFactory(
 		typeStr,
 		gcpFactory.CreateDefaultConfig,
-		component.WithLogsExporter(func(_ context.Context, _ component.ExporterCreateSettings, _ config.Exporter) (component.LogsExporter, error) {
+		component.WithLogsExporter(func(_ context.Context, _ component.ExporterCreateSettings, _ component.ExporterConfig) (component.LogsExporter, error) {
 			return mockExporter, nil
 		}, stability),
 	)
@@ -85,7 +84,7 @@ func TestCreateTracesExporterSuccess(t *testing.T) {
 	gcpFactory = component.NewExporterFactory(
 		typeStr,
 		gcpFactory.CreateDefaultConfig,
-		component.WithTracesExporter(func(_ context.Context, _ component.ExporterCreateSettings, _ config.Exporter) (component.TracesExporter, error) {
+		component.WithTracesExporter(func(_ context.Context, _ component.ExporterCreateSettings, _ component.ExporterConfig) (component.TracesExporter, error) {
 			return mockExporter, nil
 		}, component.StabilityLevelUndefined),
 	)

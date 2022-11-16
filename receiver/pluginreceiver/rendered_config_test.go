@@ -21,11 +21,10 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 )
 
 func TestGetRequiredFactories(t *testing.T) {
-	testType := config.Type("test")
+	testType := component.Type("test")
 	extensionFactory := component.NewExtensionFactory(testType, nil, createExtension, component.StabilityLevelAlpha)
 	receiverFactory := component.NewReceiverFactory(testType, nil)
 	processorFactory := component.NewProcessorFactory(testType, nil)
@@ -83,16 +82,16 @@ func TestGetRequiredFactories(t *testing.T) {
 				},
 			},
 			expectedResult: &component.Factories{
-				Receivers: map[config.Type]component.ReceiverFactory{
+				Receivers: map[component.Type]component.ReceiverFactory{
 					testType: receiverFactory,
 				},
-				Processors: map[config.Type]component.ProcessorFactory{
+				Processors: map[component.Type]component.ProcessorFactory{
 					testType: processorFactory,
 				},
-				Exporters: map[config.Type]component.ExporterFactory{
+				Exporters: map[component.Type]component.ExporterFactory{
 					emitterFactory.Type(): emitterFactory,
 				},
-				Extensions: map[config.Type]component.ExtensionFactory{
+				Extensions: map[component.Type]component.ExtensionFactory{
 					testType: extensionFactory,
 				},
 			},
@@ -114,16 +113,16 @@ func TestGetRequiredFactories(t *testing.T) {
 				},
 			},
 			expectedResult: &component.Factories{
-				Receivers: map[config.Type]component.ReceiverFactory{
+				Receivers: map[component.Type]component.ReceiverFactory{
 					testType: receiverFactory,
 				},
-				Processors: map[config.Type]component.ProcessorFactory{
+				Processors: map[component.Type]component.ProcessorFactory{
 					testType: processorFactory,
 				},
-				Exporters: map[config.Type]component.ExporterFactory{
+				Exporters: map[component.Type]component.ExporterFactory{
 					emitterFactory.Type(): emitterFactory,
 				},
-				Extensions: map[config.Type]component.ExtensionFactory{
+				Extensions: map[component.Type]component.ExtensionFactory{
 					testType: extensionFactory,
 				},
 			},
@@ -151,38 +150,38 @@ type MockHost struct {
 }
 
 // GetExporters provides a mock function with given fields:
-func (_m *MockHost) GetExporters() map[config.Type]map[config.ComponentID]component.Exporter {
+func (_m *MockHost) GetExporters() map[component.Type]map[component.ID]component.Exporter {
 	ret := _m.Called()
-	var r0 map[config.Type]map[config.ComponentID]component.Exporter
-	if rf, ok := ret.Get(0).(func() map[config.Type]map[config.ComponentID]component.Exporter); ok {
+	var r0 map[component.Type]map[component.ID]component.Exporter
+	if rf, ok := ret.Get(0).(func() map[component.Type]map[component.ID]component.Exporter); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[config.Type]map[config.ComponentID]component.Exporter)
+			r0 = ret.Get(0).(map[component.Type]map[component.ID]component.Exporter)
 		}
 	}
 	return r0
 }
 
 // GetExtensions provides a mock function with given fields:
-func (_m *MockHost) GetExtensions() map[config.ComponentID]component.Extension {
+func (_m *MockHost) GetExtensions() map[component.ID]component.Extension {
 	ret := _m.Called()
-	var r0 map[config.ComponentID]component.Extension
-	if rf, ok := ret.Get(0).(func() map[config.ComponentID]component.Extension); ok {
+	var r0 map[component.ID]component.Extension
+	if rf, ok := ret.Get(0).(func() map[component.ID]component.Extension); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[config.ComponentID]component.Extension)
+			r0 = ret.Get(0).(map[component.ID]component.Extension)
 		}
 	}
 	return r0
 }
 
 // GetFactory provides a mock function with given fields: kind, componentType
-func (_m *MockHost) GetFactory(kind component.Kind, componentType config.Type) component.Factory {
+func (_m *MockHost) GetFactory(kind component.Kind, componentType component.Type) component.Factory {
 	ret := _m.Called(kind, componentType)
 	var r0 component.Factory
-	if rf, ok := ret.Get(0).(func(component.Kind, config.Type) component.Factory); ok {
+	if rf, ok := ret.Get(0).(func(component.Kind, component.Type) component.Factory); ok {
 		r0 = rf(kind, componentType)
 	} else {
 		if ret.Get(0) != nil {
@@ -200,7 +199,7 @@ func (_m *MockHost) ReportFatalError(err error) {
 func createExtension(
 	_ context.Context,
 	_ component.ExtensionCreateSettings,
-	_ config.Extension,
+	_ component.ExtensionConfig,
 ) (component.Extension, error) {
 	return nil, nil
 }

@@ -27,7 +27,7 @@ import (
 func TestCreateReceiver(t *testing.T) {
 	testCases := []struct {
 		name        string
-		cfg         config.Receiver
+		cfg         component.ReceiverConfig
 		expectedErr error
 	}{
 		{

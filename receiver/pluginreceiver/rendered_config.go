@@ -119,7 +119,7 @@ func (r *RenderedConfig) GetRequiredFactories(host component.Host, emitterFactor
 		return nil, fmt.Errorf("failed to get extension factories: %w", err)
 	}
 
-	exporterFactories := map[config.Type]component.ExporterFactory{
+	exporterFactories := map[component.Type]component.ExporterFactory{
 		emitterFactory.Type(): emitterFactory,
 	}
 
@@ -132,8 +132,8 @@ func (r *RenderedConfig) GetRequiredFactories(host component.Host, emitterFactor
 }
 
 // getReceiverFactories returns the receiver factories required for the rendered config
-func (r *RenderedConfig) getReceiverFactories(host component.Host) (map[config.Type]component.ReceiverFactory, error) {
-	factories := map[config.Type]component.ReceiverFactory{}
+func (r *RenderedConfig) getReceiverFactories(host component.Host) (map[component.Type]component.ReceiverFactory, error) {
+	factories := map[component.Type]component.ReceiverFactory{}
 	for receiverID := range r.Receivers {
 		receiverType := parseComponentType(receiverID)
 		if _, ok := factories[receiverType]; ok {
@@ -153,8 +153,8 @@ func (r *RenderedConfig) getReceiverFactories(host component.Host) (map[config.T
 }
 
 // getProcessorFactories returns the processor factories required for the rendered config
-func (r *RenderedConfig) getProcessorFactories(host component.Host) (map[config.Type]component.ProcessorFactory, error) {
-	factories := map[config.Type]component.ProcessorFactory{}
+func (r *RenderedConfig) getProcessorFactories(host component.Host) (map[component.Type]component.ProcessorFactory, error) {
+	factories := map[component.Type]component.ProcessorFactory{}
 	for processorID := range r.Processors {
 		processorType := parseComponentType(processorID)
 		if _, ok := factories[processorType]; ok {
@@ -174,8 +174,8 @@ func (r *RenderedConfig) getProcessorFactories(host component.Host) (map[config.
 }
 
 // getExtensionFactories returns the extension factories required for the rendered config
-func (r *RenderedConfig) getExtensionFactories(host component.Host) (map[config.Type]component.ExtensionFactory, error) {
-	factories := map[config.Type]component.ExtensionFactory{}
+func (r *RenderedConfig) getExtensionFactories(host component.Host) (map[component.Type]component.ExtensionFactory, error) {
+	factories := map[component.Type]component.ExtensionFactory{}
 	for extensionID := range r.Extensions {
 		extensionType := parseComponentType(extensionID)
 		if _, ok := factories[extensionType]; ok {
@@ -195,7 +195,7 @@ func (r *RenderedConfig) getExtensionFactories(host component.Host) (map[config.
 }
 
 // parseComponentType parses a component type from a string
-func parseComponentType(value string) config.Type {
+func parseComponentType(value string) component.Type {
 	componentID, _ := config.NewComponentIDFromString(value)
 	return componentID.Type()
 }

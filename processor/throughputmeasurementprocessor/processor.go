@@ -42,9 +42,9 @@ func newThroughputMeasurementProcessor(logger *zap.Logger, cfg *Config, processo
 		enabled:             cfg.Enabled,
 		samplingCutOffRatio: cfg.SamplingRatio,
 		mutators:            []tag.Mutator{tag.Upsert(processorTagKey, processorID, tag.WithTTL(tag.TTLNoPropagation))},
-		tracesSizer:         ptrace.NewProtoMarshaler().(ptrace.Sizer),
-		metricsSizer:        pmetric.NewProtoMarshaler().(pmetric.Sizer),
-		logsSizer:           plog.NewProtoMarshaler().(plog.Sizer),
+		tracesSizer:         &ptrace.ProtoMarshaler{},
+		metricsSizer:        &pmetric.ProtoMarshaler{},
+		logsSizer:           &plog.ProtoMarshaler{},
 	}
 }
 

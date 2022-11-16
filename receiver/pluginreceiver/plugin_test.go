@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
 )
 
@@ -188,7 +189,7 @@ service:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := tc.plugin.Render(tc.values, config.NewComponentID(config.LogsDataType))
+			result, err := tc.plugin.Render(tc.values, component.NewID(component.DataTypeLogs))
 			switch tc.expectedErr {
 			case nil:
 				require.NoError(t, err)

@@ -21,7 +21,6 @@ import (
 
 	gcp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/processor/batchprocessor"
 	"go.uber.org/zap"
@@ -50,7 +49,7 @@ func NewFactory() component.ExporterFactory {
 }
 
 // createMetricsExporter creates a metrics exporter based on this config.
-func createMetricsExporter(ctx context.Context, set component.ExporterCreateSettings, cfg config.Exporter) (component.MetricsExporter, error) {
+func createMetricsExporter(ctx context.Context, set component.ExporterCreateSettings, cfg component.ExporterConfig) (component.MetricsExporter, error) {
 	exporterConfig := cfg.(*Config)
 	exporterConfig.setClientOptions()
 
@@ -64,7 +63,7 @@ func createMetricsExporter(ctx context.Context, set component.ExporterCreateSett
 	}
 
 	processors := []component.MetricsProcessor{}
-	processorConfigs := []config.Processor{
+	processorConfigs := []component.ProcessorConfig{
 		exporterConfig.BatchConfig,
 	}
 
@@ -98,7 +97,7 @@ func createMetricsExporter(ctx context.Context, set component.ExporterCreateSett
 }
 
 // createLogExporter creates a logs exporter based on this config.
-func createLogsExporter(ctx context.Context, set component.ExporterCreateSettings, cfg config.Exporter) (component.LogsExporter, error) {
+func createLogsExporter(ctx context.Context, set component.ExporterCreateSettings, cfg component.ExporterConfig) (component.LogsExporter, error) {
 	exporterConfig := cfg.(*Config)
 	exporterConfig.setClientOptions()
 
@@ -112,7 +111,7 @@ func createLogsExporter(ctx context.Context, set component.ExporterCreateSetting
 	}
 
 	processors := []component.LogsProcessor{}
-	processorConfigs := []config.Processor{
+	processorConfigs := []component.ProcessorConfig{
 		exporterConfig.BatchConfig,
 	}
 
@@ -146,7 +145,7 @@ func createLogsExporter(ctx context.Context, set component.ExporterCreateSetting
 }
 
 // createTracesExporter creates a traces exporter based on this config.
-func createTracesExporter(ctx context.Context, set component.ExporterCreateSettings, cfg config.Exporter) (component.TracesExporter, error) {
+func createTracesExporter(ctx context.Context, set component.ExporterCreateSettings, cfg component.ExporterConfig) (component.TracesExporter, error) {
 	exporterConfig := cfg.(*Config)
 	exporterConfig.setClientOptions()
 
@@ -160,7 +159,7 @@ func createTracesExporter(ctx context.Context, set component.ExporterCreateSetti
 	}
 
 	processors := []component.TracesProcessor{}
-	processorConfigs := []config.Processor{
+	processorConfigs := []component.ProcessorConfig{
 		exporterConfig.BatchConfig,
 	}
 

@@ -24,6 +24,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
 	"gopkg.in/yaml.v2"
 )
@@ -54,7 +55,7 @@ func LoadPlugin(path string) (*Plugin, error) {
 }
 
 // Render renders the plugin's template as a config
-func (p *Plugin) Render(values map[string]any, pluginID config.ComponentID) (*RenderedConfig, error) {
+func (p *Plugin) Render(values map[string]any, pluginID component.ID) (*RenderedConfig, error) {
 	template, err := template.New(p.Title).Parse(p.Template)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create plugin template: %w", err)

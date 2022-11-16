@@ -167,7 +167,7 @@ func TestLogsBufferConstructPayload(t *testing.T) {
 	payload, err := logBuffer.ConstructPayload()
 	require.NoError(t, err)
 
-	unmarshaler := plog.NewProtoUnmarshaler()
+	unmarshaler := &plog.ProtoUnmarshaler{}
 	actual, err := unmarshaler.UnmarshalLogs(payload)
 	require.NoError(t, err)
 	require.Equal(t, 3, actual.LogRecordCount())
@@ -340,7 +340,7 @@ func TestMetricBufferConstructPayload(t *testing.T) {
 	payload, err := metricBuffer.ConstructPayload()
 	require.NoError(t, err)
 
-	unmarshaler := pmetric.NewProtoUnmarshaler()
+	unmarshaler := &pmetric.ProtoUnmarshaler{}
 	actual, err := unmarshaler.UnmarshalMetrics(payload)
 	require.NoError(t, err)
 	require.Equal(t, 3, actual.DataPointCount())
@@ -489,7 +489,7 @@ func TestTraceBufferConstructPayload(t *testing.T) {
 	payload, err := traceBuffer.ConstructPayload()
 	require.NoError(t, err)
 
-	unmarshaler := ptrace.NewProtoUnmarshaler()
+	unmarshaler := &ptrace.ProtoUnmarshaler{}
 	actual, err := unmarshaler.UnmarshalTraces(payload)
 	require.NoError(t, err)
 	require.Equal(t, 3, actual.SpanCount())

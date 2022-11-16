@@ -38,9 +38,9 @@ type Config struct {
 }
 
 // createDefaultConfig creates a default config for a plugin receiver
-func createDefaultConfig() config.Receiver {
+func createDefaultConfig() component.ReceiverConfig {
 	return &Config{
-		ReceiverSettings: config.NewReceiverSettings(config.NewComponentID(typeStr)),
+		ReceiverSettings: config.NewReceiverSettings(component.NewID(typeStr)),
 		Parameters:       make(map[string]any),
 	}
 }
@@ -56,25 +56,25 @@ func NewFactory() component.ReceiverFactory {
 }
 
 // createLogsReceiver creates a plugin receiver with a logs consumer
-func createLogsReceiver(_ context.Context, set component.ReceiverCreateSettings, cfg config.Receiver, consumer consumer.Logs) (component.LogsReceiver, error) {
+func createLogsReceiver(_ context.Context, set component.ReceiverCreateSettings, cfg component.ReceiverConfig, consumer consumer.Logs) (component.LogsReceiver, error) {
 	emitterFactory := createLogEmitterFactory(consumer)
 	return createReceiver(cfg, set, emitterFactory)
 }
 
 // createMetricsReceiver creates a plugin receiver with a metrics consumer
-func createMetricsReceiver(_ context.Context, set component.ReceiverCreateSettings, cfg config.Receiver, consumer consumer.Metrics) (component.MetricsReceiver, error) {
+func createMetricsReceiver(_ context.Context, set component.ReceiverCreateSettings, cfg component.ReceiverConfig, consumer consumer.Metrics) (component.MetricsReceiver, error) {
 	emitterFactory := createMetricEmitterFactory(consumer)
 	return createReceiver(cfg, set, emitterFactory)
 }
 
 // createTracesReceiver creates a plugin receiver with a traces consumer
-func createTracesReceiver(_ context.Context, set component.ReceiverCreateSettings, cfg config.Receiver, consumer consumer.Traces) (component.TracesReceiver, error) {
+func createTracesReceiver(_ context.Context, set component.ReceiverCreateSettings, cfg component.ReceiverConfig, consumer consumer.Traces) (component.TracesReceiver, error) {
 	emitterFactory := createTraceEmitterFactory(consumer)
 	return createReceiver(cfg, set, emitterFactory)
 }
 
 // createReceiver creates a plugin receiver with the supplied emitter
-func createReceiver(cfg config.Receiver, set component.ReceiverCreateSettings, emitterFactory component.ExporterFactory) (*Receiver, error) {
+func createReceiver(cfg component.ReceiverConfig, set component.ReceiverCreateSettings, emitterFactory component.ExporterFactory) (*Receiver, error) {
 	receiverConfig, ok := cfg.(*Config)
 	if !ok {
 		return nil, errors.New("config is not a plugin receiver config")

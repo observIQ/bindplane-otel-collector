@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
 )
 
@@ -26,7 +27,7 @@ func TestNewFactory(t *testing.T) {
 	require.Equal(t, typeStr, string(factory.Type()))
 
 	expectedCfg := &Config{
-		ProcessorSettings: config.NewProcessorSettings(config.NewComponentID(typeStr)),
+		ProcessorSettings: config.NewProcessorSettings(component.NewID(typeStr)),
 		Enabled:           true,
 		SamplingRatio:     0.5,
 	}

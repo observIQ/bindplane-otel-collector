@@ -48,8 +48,8 @@ func (e *Emitter) Capabilities() consumer.Capabilities {
 }
 
 // defaultEmitterConfig returns a default config for the plugin's emitter
-func defaultEmitterConfig() config.Exporter {
-	componentID := config.NewComponentID(emitterTypeStr)
+func defaultEmitterConfig() component.ExporterConfig {
+	componentID := component.NewID(emitterTypeStr)
 	defaultConfig := config.NewExporterSettings(componentID)
 	return &defaultConfig
 }
@@ -57,7 +57,7 @@ func defaultEmitterConfig() config.Exporter {
 // createLogEmitterFactory creates a log emitter factory.
 // The resulting factory will create an exporter that can emit logs from an internal pipeline to an external consumer.
 func createLogEmitterFactory(consumer consumer.Logs) component.ExporterFactory {
-	createExporter := func(_ context.Context, set component.ExporterCreateSettings, cfg config.Exporter) (component.LogsExporter, error) {
+	createExporter := func(_ context.Context, set component.ExporterCreateSettings, cfg component.ExporterConfig) (component.LogsExporter, error) {
 		return &Emitter{Logs: consumer}, nil
 	}
 
@@ -71,7 +71,7 @@ func createLogEmitterFactory(consumer consumer.Logs) component.ExporterFactory {
 // createLogEmitterFactory creates a metric emitter factory.
 // The resulting factory will create an exporter that can emit metrics from an internal pipeline to an external consumer.
 func createMetricEmitterFactory(consumer consumer.Metrics) component.ExporterFactory {
-	createExporter := func(_ context.Context, set component.ExporterCreateSettings, cfg config.Exporter) (component.MetricsExporter, error) {
+	createExporter := func(_ context.Context, set component.ExporterCreateSettings, cfg component.ExporterConfig) (component.MetricsExporter, error) {
 		return &Emitter{Metrics: consumer}, nil
 	}
 
@@ -85,7 +85,7 @@ func createMetricEmitterFactory(consumer consumer.Metrics) component.ExporterFac
 // createLogEmitterFactory creates a trace emitter factory.
 // The resulting factory will create an exporter that can emit traces from an internal pipeline to an external consumer.
 func createTraceEmitterFactory(consumer consumer.Traces) component.ExporterFactory {
-	createExporter := func(_ context.Context, set component.ExporterCreateSettings, cfg config.Exporter) (component.TracesExporter, error) {
+	createExporter := func(_ context.Context, set component.ExporterCreateSettings, cfg component.ExporterConfig) (component.TracesExporter, error) {
 		return &Emitter{Traces: consumer}, nil
 	}
 

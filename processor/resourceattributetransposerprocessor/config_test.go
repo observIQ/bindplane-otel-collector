@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/service/servicetest"
@@ -38,10 +39,10 @@ func TestConfig(t *testing.T) {
 
 	// Loaded config should be equal to default config
 	defaultCfg := factory.CreateDefaultConfig()
-	r0 := cfg.Processors[config.NewComponentID(typeStr)]
+	r0 := cfg.Processors[component.NewID(typeStr)]
 	require.Equal(t, r0, defaultCfg)
 
-	customComponentID := config.NewComponentIDWithName(typeStr, "customname")
+	customComponentID := component.NewIDWithName(typeStr, "customname")
 	r1 := cfg.Processors[customComponentID].(*Config)
 	require.Equal(t, &Config{
 		ProcessorSettings: config.NewProcessorSettings(customComponentID),
