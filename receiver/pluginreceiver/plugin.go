@@ -25,7 +25,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 	"gopkg.in/yaml.v2"
 )
 
@@ -103,7 +102,11 @@ func (p *Plugin) ApplyDefaults(values map[string]any) map[string]any {
 
 func checkExtensions(extensions map[string]any, pluginID string) error {
 	for i, ext := range extensions {
-		c, _ := config.NewComponentIDFromString(i)
+		c := component.ID{}
+		if err := c.UnmarshalText([]byte(i)); err != nil {
+			return fmt.Errorf("failed to parse component ID: %w", err)
+		}
+
 		if c.Type() == "file_storage" {
 			var cfg filestorage.Config
 			err := mapstructure.Decode(ext, &cfg)

@@ -22,7 +22,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 )
 
 func TestLoadPlugin(t *testing.T) {
@@ -83,7 +82,7 @@ func TestRenderComponents(t *testing.T) {
 		name           string
 		plugin         *Plugin
 		values         map[string]any
-		dataType       config.DataType
+		dataType       component.DataType
 		expectedResult *RenderedConfig
 		expectedErr    error
 	}{

@@ -36,7 +36,6 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 )
 
 const pluginDirPath = "../../plugins"
@@ -69,7 +68,8 @@ func TestValidateSuppliedPlugins(t *testing.T) {
 			plugin, err := LoadPlugin(fullFilePath)
 			require.NoError(t, err, "Failed to load file %s", entryName)
 
-			cfg, err := config.NewComponentIDFromString("test")
+			cfg := component.ID{}
+			err = cfg.UnmarshalText([]byte("test"))
 			require.NoError(t, err)
 
 			// Render the config
@@ -78,7 +78,8 @@ func TestValidateSuppliedPlugins(t *testing.T) {
 
 			// Check receivers and filter out checking those that are not supported by the OS
 			for id := range renderedCfg.Receivers {
-				componentID, err := config.NewComponentIDFromString(id)
+				componentID := component.ID{}
+				err = componentID.UnmarshalText([]byte(id))
 				require.NoError(t, err, "Failed to parse component ID %s for plugin %s", id, entryName)
 
 				switch componentID.Type() {

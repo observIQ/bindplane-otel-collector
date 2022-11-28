@@ -18,7 +18,6 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/confmap"
 	"go.opentelemetry.io/collector/confmap/converter/expandconverter"
 	"go.opentelemetry.io/collector/confmap/provider/yamlprovider"
@@ -135,7 +134,10 @@ func (r *RenderedConfig) GetRequiredFactories(host component.Host, emitterFactor
 func (r *RenderedConfig) getReceiverFactories(host component.Host) (map[component.Type]component.ReceiverFactory, error) {
 	factories := map[component.Type]component.ReceiverFactory{}
 	for receiverID := range r.Receivers {
-		receiverType := parseComponentType(receiverID)
+		receiverType, err := parseComponentType(receiverID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse receiverID '%s': %w", receiverID, err)
+		}
 		if _, ok := factories[receiverType]; ok {
 			continue
 		}
@@ -156,7 +158,10 @@ func (r *RenderedConfig) getReceiverFactories(host component.Host) (map[componen
 func (r *RenderedConfig) getProcessorFactories(host component.Host) (map[component.Type]component.ProcessorFactory, error) {
 	factories := map[component.Type]component.ProcessorFactory{}
 	for processorID := range r.Processors {
-		processorType := parseComponentType(processorID)
+		processorType, err := parseComponentType(processorID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse processorID '%s': %w", processorID, err)
+		}
 		if _, ok := factories[processorType]; ok {
 			continue
 		}
@@ -177,7 +182,10 @@ func (r *RenderedConfig) getProcessorFactories(host component.Host) (map[compone
 func (r *RenderedConfig) getExtensionFactories(host component.Host) (map[component.Type]component.ExtensionFactory, error) {
 	factories := map[component.Type]component.ExtensionFactory{}
 	for extensionID := range r.Extensions {
-		extensionType := parseComponentType(extensionID)
+		extensionType, err := parseComponentType(extensionID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse extensionID '%s': %w", extensionID, err)
+		}
 		if _, ok := factories[extensionType]; ok {
 			continue
 		}
@@ -195,7 +203,10 @@ func (r *RenderedConfig) getExtensionFactories(host component.Host) (map[compone
 }
 
 // parseComponentType parses a component type from a string
-func parseComponentType(value string) component.Type {
-	componentID, _ := config.NewComponentIDFromString(value)
-	return componentID.Type()
+func parseComponentType(value string) (component.Type, error) {
+	id := component.ID{}
+	if err := id.UnmarshalText([]byte(value)); err != nil {
+		return "", err
+	}
+	return id.Type(), nil
 }
