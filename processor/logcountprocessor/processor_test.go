@@ -25,6 +25,7 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/receiver"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
@@ -53,7 +54,7 @@ func TestConsumeLogs(t *testing.T) {
 	require.NoError(t, err)
 
 	receiverFactory := routereceiver.NewFactory()
-	receiver, err := receiverFactory.CreateMetricsReceiver(context.Background(), component.ReceiverCreateSettings{}, receiverFactory.CreateDefaultConfig(), metricConsumer)
+	receiver, err := receiverFactory.CreateMetricsReceiver(context.Background(), receiver.CreateSettings{}, receiverFactory.CreateDefaultConfig(), metricConsumer)
 	require.NoError(t, err)
 
 	err = processor.Start(context.Background(), nil)

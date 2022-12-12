@@ -19,6 +19,7 @@ import (
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/receiver"
 )
 
 const (
@@ -30,32 +31,32 @@ const (
 )
 
 // NewFactory creates a new factory for the receiver.
-func NewFactory() component.ReceiverFactory {
+func NewFactory() receiver.Factory {
 	return component.NewReceiverFactory(
 		typeStr,
 		createDefaultConfig,
-		component.WithMetricsReceiver(createMetricsReceiver, stability),
-		component.WithLogsReceiver(createLogsReceiver, stability),
-		component.WithTracesReceiver(createTracesReceiver, stability),
+		receiver.WithMetrics(createMetricsReceiver, stability),
+		receiver.WithLogs(createLogsReceiver, stability),
+		receiver.WithTraces(createTracesReceiver, stability),
 	)
 }
 
 // createMetricsReceiver creates a metric receiver.
-func createMetricsReceiver(_ context.Context, _ component.ReceiverCreateSettings, cfg component.ReceiverConfig, consumer consumer.Metrics) (component.MetricsReceiver, error) {
+func createMetricsReceiver(_ context.Context, _ receiver.CreateSettings, cfg component.Config, consumer consumer.Metrics) (receiver.Metrics, error) {
 	receiver := createOrGetRoute(cfg.ID().Name())
 	receiver.registerMetricConsumer(consumer)
 	return receiver, nil
 }
 
 // createLogsReceiver creates a log receiver.
-func createLogsReceiver(_ context.Context, _ component.ReceiverCreateSettings, cfg component.ReceiverConfig, consumer consumer.Logs) (component.LogsReceiver, error) {
+func createLogsReceiver(_ context.Context, _ receiver.CreateSettings, cfg component.Config, consumer consumer.Logs) (receiver.Logs, error) {
 	receiver := createOrGetRoute(cfg.ID().Name())
 	receiver.registerLogConsumer(consumer)
 	return receiver, nil
 }
 
 // createTracesReceiver creates a trace receiver.
-func createTracesReceiver(_ context.Context, _ component.ReceiverCreateSettings, cfg component.ReceiverConfig, consumer consumer.Traces) (component.TracesReceiver, error) {
+func createTracesReceiver(_ context.Context, _ receiver.CreateSettings, cfg component.Config, consumer consumer.Traces) (receiver.Traces, error) {
 	receiver := createOrGetRoute(cfg.ID().Name())
 	receiver.registerTraceConsumer(consumer)
 	return receiver, nil

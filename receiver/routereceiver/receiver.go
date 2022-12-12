@@ -28,7 +28,7 @@ import (
 
 var (
 	// routes is a map of registered routes.
-	routes = map[string]*receiver{}
+	routes = map[string]*routeReceiver{}
 
 	// mux is a mutex for accessing receivers.
 	mux sync.RWMutex
@@ -46,8 +46,8 @@ var (
 	errRouteNotDefined = errors.New("route not defined")
 )
 
-// receiver is a struct that receives routed telemetry.
-type receiver struct {
+// routeReceiver is a struct that receives routed telemetry.
+type routeReceiver struct {
 	name           string
 	metricConsumer consumer.Metrics
 	logConsumer    consumer.Logs
@@ -55,33 +55,33 @@ type receiver struct {
 }
 
 // Start starts the receiver.
-func (r *receiver) Start(_ context.Context, _ component.Host) error {
+func (r *routeReceiver) Start(_ context.Context, _ component.Host) error {
 	return nil
 }
 
 // Shutdown stops the receiver.
-func (r *receiver) Shutdown(_ context.Context) error {
+func (r *routeReceiver) Shutdown(_ context.Context) error {
 	removeRoute(r.name)
 	return nil
 }
 
 // registerMetricConsumer registers a metric consumer.
-func (r *receiver) registerMetricConsumer(consumer consumer.Metrics) {
+func (r *routeReceiver) registerMetricConsumer(consumer consumer.Metrics) {
 	r.metricConsumer = consumer
 }
 
 // registerLogConsumer registers a log consumer.
-func (r *receiver) registerLogConsumer(consumer consumer.Logs) {
+func (r *routeReceiver) registerLogConsumer(consumer consumer.Logs) {
 	r.logConsumer = consumer
 }
 
 // registerTraceConsumer registers a trace consumer.
-func (r *receiver) registerTraceConsumer(consumer consumer.Traces) {
+func (r *routeReceiver) registerTraceConsumer(consumer consumer.Traces) {
 	r.traceConsumer = consumer
 }
 
 // consumeMetrics consumes incoming metrics.
-func (r *receiver) consumeMetrics(ctx context.Context, md pmetric.Metrics) error {
+func (r *routeReceiver) consumeMetrics(ctx context.Context, md pmetric.Metrics) error {
 	if r.metricConsumer == nil {
 		return errMetricPipelineNotDefined
 	}
@@ -90,7 +90,7 @@ func (r *receiver) consumeMetrics(ctx context.Context, md pmetric.Metrics) error
 }
 
 // consumeLogs consumes incoming logs.
-func (r *receiver) consumeLogs(ctx context.Context, ld plog.Logs) error {
+func (r *routeReceiver) consumeLogs(ctx context.Context, ld plog.Logs) error {
 	if r.logConsumer == nil {
 		return errLogPipelineNotDefined
 	}
@@ -99,7 +99,7 @@ func (r *receiver) consumeLogs(ctx context.Context, ld plog.Logs) error {
 }
 
 // consumeTraces consumes incoming traces.
-func (r *receiver) consumeTraces(ctx context.Context, td ptrace.Traces) error {
+func (r *routeReceiver) consumeTraces(ctx context.Context, td ptrace.Traces) error {
 	if r.traceConsumer == nil {
 		return errTracePipelineNotDefined
 	}
@@ -108,8 +108,8 @@ func (r *receiver) consumeTraces(ctx context.Context, td ptrace.Traces) error {
 }
 
 // newReceiver creates a new route receiver.
-func newReceiver(name string) *receiver {
-	return &receiver{
+func newReceiver(name string) *routeReceiver {
+	return &routeReceiver{
 		name: name,
 	}
 }
@@ -145,7 +145,7 @@ func RouteTraces(ctx context.Context, name string, td ptrace.Traces) error {
 }
 
 // createOrGetRoute creates a new route or returns an existing route.
-func createOrGetRoute(name string) *receiver {
+func createOrGetRoute(name string) *routeReceiver {
 	mux.Lock()
 	defer mux.Unlock()
 
@@ -160,7 +160,7 @@ func createOrGetRoute(name string) *receiver {
 }
 
 // getRoute returns a route by name.
-func getRoute(name string) (*receiver, bool) {
+func getRoute(name string) (*routeReceiver, bool) {
 	mux.RLock()
 	defer mux.RUnlock()
 

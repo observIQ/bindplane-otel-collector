@@ -20,6 +20,7 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/exporter"
 )
 
 const emitterTypeStr = "plugin_output"
@@ -48,7 +49,7 @@ func (e *Emitter) Capabilities() consumer.Capabilities {
 }
 
 // defaultEmitterConfig returns a default config for the plugin's emitter
-func defaultEmitterConfig() component.ExporterConfig {
+func defaultEmitterConfig() component.Config {
 	componentID := component.NewID(emitterTypeStr)
 	defaultConfig := config.NewExporterSettings(componentID)
 	return &defaultConfig
@@ -56,42 +57,42 @@ func defaultEmitterConfig() component.ExporterConfig {
 
 // createLogEmitterFactory creates a log emitter factory.
 // The resulting factory will create an exporter that can emit logs from an internal pipeline to an external consumer.
-func createLogEmitterFactory(consumer consumer.Logs) component.ExporterFactory {
-	createExporter := func(_ context.Context, set component.ExporterCreateSettings, cfg component.ExporterConfig) (component.LogsExporter, error) {
+func createLogEmitterFactory(consumer consumer.Logs) exporter.Factory {
+	createExporter := func(_ context.Context, set component.ExporterCreateSettings, cfg component.Config) (exporter.Logs, error) {
 		return &Emitter{Logs: consumer}, nil
 	}
 
 	return component.NewExporterFactory(
 		emitterTypeStr,
 		defaultEmitterConfig,
-		component.WithLogsExporter(createExporter, component.StabilityLevelUndefined),
+		exporter.WithLogs(createExporter, component.StabilityLevelUndefined),
 	)
 }
 
 // createLogEmitterFactory creates a metric emitter factory.
 // The resulting factory will create an exporter that can emit metrics from an internal pipeline to an external consumer.
-func createMetricEmitterFactory(consumer consumer.Metrics) component.ExporterFactory {
-	createExporter := func(_ context.Context, set component.ExporterCreateSettings, cfg component.ExporterConfig) (component.MetricsExporter, error) {
+func createMetricEmitterFactory(consumer consumer.Metrics) exporter.Factory {
+	createExporter := func(_ context.Context, set component.ExporterCreateSettings, cfg component.Config) (exporter.Metrics, error) {
 		return &Emitter{Metrics: consumer}, nil
 	}
 
 	return component.NewExporterFactory(
 		emitterTypeStr,
 		defaultEmitterConfig,
-		component.WithMetricsExporter(createExporter, component.StabilityLevelUndefined),
+		exporter.WithMetrics(createExporter, component.StabilityLevelUndefined),
 	)
 }
 
 // createLogEmitterFactory creates a trace emitter factory.
 // The resulting factory will create an exporter that can emit traces from an internal pipeline to an external consumer.
-func createTraceEmitterFactory(consumer consumer.Traces) component.ExporterFactory {
-	createExporter := func(_ context.Context, set component.ExporterCreateSettings, cfg component.ExporterConfig) (component.TracesExporter, error) {
+func createTraceEmitterFactory(consumer consumer.Traces) exporter.Factory {
+	createExporter := func(_ context.Context, set component.ExporterCreateSettings, cfg component.Config) (exporter.Traces, error) {
 		return &Emitter{Traces: consumer}, nil
 	}
 
 	return component.NewExporterFactory(
 		emitterTypeStr,
 		defaultEmitterConfig,
-		component.WithTracesExporter(createExporter, component.StabilityLevelUndefined),
+		exporter.WithTraces(createExporter, component.StabilityLevelUndefined),
 	)
 }

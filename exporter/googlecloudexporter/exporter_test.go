@@ -31,7 +31,7 @@ import (
 )
 
 func TestExporterCapabilities(t *testing.T) {
-	exporter := &exporter{}
+	exporter := &googlecloudExporter{}
 	capabilities := exporter.Capabilities()
 	assert.True(t, capabilities.MutatesData)
 }
@@ -41,7 +41,7 @@ func TestExporterWithConsumers(t *testing.T) {
 	consumer.On("ConsumeLogs", mock.Anything, mock.Anything).Return(nil).Once()
 	consumer.On("ConsumeMetrics", mock.Anything, mock.Anything).Return(nil).Once()
 	consumer.On("ConsumeTraces", mock.Anything, mock.Anything).Return(nil).Once()
-	exporter := &exporter{
+	exporter := &googlecloudExporter{
 		metricsConsumer: consumer,
 		logsConsumer:    consumer,
 		tracesConsumer:  consumer,
@@ -61,7 +61,7 @@ func TestExporterWithConsumers(t *testing.T) {
 }
 
 func TestExporterWithoutConsumers(t *testing.T) {
-	exporter := &exporter{}
+	exporter := &googlecloudExporter{}
 
 	ctx := context.Background()
 	err := exporter.ConsumeLogs(ctx, plog.NewLogs())
@@ -77,33 +77,33 @@ func TestExporterWithoutConsumers(t *testing.T) {
 func TestExporterStart(t *testing.T) {
 	testCases := []struct {
 		name          string
-		exporter      *exporter
+		exporter      *googlecloudExporter
 		expectedError error
 	}{
 		{
 			name: "Successful metrics",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				metricsProcessors: []component.MetricsProcessor{createValidProcessor()},
 				metricsExporter:   createValidExporter(),
 			},
 		},
 		{
 			name: "Successful traces",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				tracesProcessors: []component.TracesProcessor{createValidProcessor()},
 				tracesExporter:   createValidExporter(),
 			},
 		},
 		{
 			name: "Successful logs",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				logsProcessors: []component.LogsProcessor{createValidProcessor()},
 				logsExporter:   createValidExporter(),
 			},
 		},
 		{
 			name: "Failing metrics processor",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				metricsProcessors: []component.MetricsProcessor{
 					createValidProcessor(),
 					createFailingProcessor(),
@@ -114,7 +114,7 @@ func TestExporterStart(t *testing.T) {
 		},
 		{
 			name: "Failing traces processor",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				tracesProcessors: []component.TracesProcessor{
 					createValidProcessor(),
 					createFailingProcessor(),
@@ -125,7 +125,7 @@ func TestExporterStart(t *testing.T) {
 		},
 		{
 			name: "Failing logs processor",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				logsProcessors: []component.LogsProcessor{
 					createValidProcessor(),
 					createFailingProcessor(),
@@ -136,7 +136,7 @@ func TestExporterStart(t *testing.T) {
 		},
 		{
 			name: "Failing metrics exporter",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				metricsProcessors: []component.MetricsProcessor{
 					createValidProcessor(),
 					createValidProcessor(),
@@ -147,7 +147,7 @@ func TestExporterStart(t *testing.T) {
 		},
 		{
 			name: "Failing traces exporter",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				tracesProcessors: []component.TracesProcessor{
 					createValidProcessor(),
 					createValidProcessor(),
@@ -158,7 +158,7 @@ func TestExporterStart(t *testing.T) {
 		},
 		{
 			name: "Failing logs exporter",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				logsProcessors: []component.LogsProcessor{
 					createValidProcessor(),
 					createValidProcessor(),
@@ -187,33 +187,33 @@ func TestExporterStart(t *testing.T) {
 func TestExporterShutdown(t *testing.T) {
 	testCases := []struct {
 		name          string
-		exporter      *exporter
+		exporter      *googlecloudExporter
 		expectedError error
 	}{
 		{
 			name: "Successful metrics",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				metricsProcessors: []component.MetricsProcessor{createValidProcessor()},
 				metricsExporter:   createValidExporter(),
 			},
 		},
 		{
 			name: "Successful traces",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				tracesProcessors: []component.TracesProcessor{createValidProcessor()},
 				tracesExporter:   createValidExporter(),
 			},
 		},
 		{
 			name: "Successful logs",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				logsProcessors: []component.LogsProcessor{createValidProcessor()},
 				logsExporter:   createValidExporter(),
 			},
 		},
 		{
 			name: "Failing metrics processor",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				metricsProcessors: []component.MetricsProcessor{
 					createValidProcessor(),
 					createFailingProcessor(),
@@ -224,7 +224,7 @@ func TestExporterShutdown(t *testing.T) {
 		},
 		{
 			name: "Failing traces processor",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				tracesProcessors: []component.TracesProcessor{
 					createValidProcessor(),
 					createFailingProcessor(),
@@ -235,7 +235,7 @@ func TestExporterShutdown(t *testing.T) {
 		},
 		{
 			name: "Failing logs processor",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				logsProcessors: []component.LogsProcessor{
 					createValidProcessor(),
 					createFailingProcessor(),
@@ -246,7 +246,7 @@ func TestExporterShutdown(t *testing.T) {
 		},
 		{
 			name: "Failing metrics exporter",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				metricsProcessors: []component.MetricsProcessor{
 					createValidProcessor(),
 					createValidProcessor(),
@@ -257,7 +257,7 @@ func TestExporterShutdown(t *testing.T) {
 		},
 		{
 			name: "Failing traces exporter",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				tracesProcessors: []component.TracesProcessor{
 					createValidProcessor(),
 					createValidProcessor(),
@@ -268,7 +268,7 @@ func TestExporterShutdown(t *testing.T) {
 		},
 		{
 			name: "Failing logs exporter",
-			exporter: &exporter{
+			exporter: &googlecloudExporter{
 				logsProcessors: []component.LogsProcessor{
 					createValidProcessor(),
 					createValidProcessor(),
@@ -300,7 +300,7 @@ func TestAppendMetricAttrs(t *testing.T) {
 	metric1.Resource().Attributes().PutStr(string(semconv.HostNameKey), "test-hostname")
 	metric2 := metrics.ResourceMetrics().AppendEmpty()
 
-	e := exporter{}
+	e := googlecloudExporter{}
 	e.appendMetricHost(&metrics)
 
 	metric1Host, ok := metric1.Resource().Attributes().Get(string(semconv.HostNameKey))
@@ -318,7 +318,7 @@ func TestAppendLogAttrs(t *testing.T) {
 	log1.Resource().Attributes().PutStr(string(semconv.HostNameKey), "test-hostname")
 	metric2 := logs.ResourceLogs().AppendEmpty()
 
-	e := exporter{}
+	e := googlecloudExporter{}
 	e.appendLogHost(&logs)
 
 	log1Host, ok := log1.Resource().Attributes().Get(string(semconv.HostNameKey))
@@ -336,7 +336,7 @@ func TestAppendTraceAttrs(t *testing.T) {
 	trace1.Resource().Attributes().PutStr(string(semconv.HostNameKey), "test-hostname")
 	trace2 := traces.ResourceSpans().AppendEmpty()
 
-	e := exporter{}
+	e := googlecloudExporter{}
 	e.appendTraceHost(&traces)
 
 	trace1Host, ok := trace1.Resource().Attributes().Get(string(semconv.HostNameKey))

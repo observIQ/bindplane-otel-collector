@@ -21,6 +21,9 @@ import (
 	"go.opentelemetry.io/collector/confmap"
 	"go.opentelemetry.io/collector/confmap/converter/expandconverter"
 	"go.opentelemetry.io/collector/confmap/provider/yamlprovider"
+	"go.opentelemetry.io/collector/exporter"
+	"go.opentelemetry.io/collector/extension"
+	"go.opentelemetry.io/collector/receiver"
 	"go.opentelemetry.io/collector/service"
 	"gopkg.in/yaml.v2"
 )
@@ -102,7 +105,7 @@ func (r *RenderedConfig) GetConfigProvider() (service.ConfigProvider, error) {
 }
 
 // GetRequiredFactories finds and returns the factories required for the rendered config
-func (r *RenderedConfig) GetRequiredFactories(host component.Host, emitterFactory component.ExporterFactory) (*component.Factories, error) {
+func (r *RenderedConfig) GetRequiredFactories(host component.Host, emitterFactory exporter.Factory) (*component.Factories, error) {
 	receiverFactories, err := r.getReceiverFactories(host)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get receiver factories: %w", err)
@@ -118,7 +121,7 @@ func (r *RenderedConfig) GetRequiredFactories(host component.Host, emitterFactor
 		return nil, fmt.Errorf("failed to get extension factories: %w", err)
 	}
 
-	exporterFactories := map[component.Type]component.ExporterFactory{
+	exporterFactories := map[component.Type]exporter.Factory{
 		emitterFactory.Type(): emitterFactory,
 	}
 
@@ -131,8 +134,8 @@ func (r *RenderedConfig) GetRequiredFactories(host component.Host, emitterFactor
 }
 
 // getReceiverFactories returns the receiver factories required for the rendered config
-func (r *RenderedConfig) getReceiverFactories(host component.Host) (map[component.Type]component.ReceiverFactory, error) {
-	factories := map[component.Type]component.ReceiverFactory{}
+func (r *RenderedConfig) getReceiverFactories(host component.Host) (map[component.Type]receiver.Factory, error) {
+	factories := map[component.Type]receiver.Factory{}
 	for receiverID := range r.Receivers {
 		receiverType, err := parseComponentType(receiverID)
 		if err != nil {
@@ -143,7 +146,7 @@ func (r *RenderedConfig) getReceiverFactories(host component.Host) (map[componen
 		}
 
 		factory := host.GetFactory(component.KindReceiver, receiverType)
-		receiverFactory, ok := factory.(component.ReceiverFactory)
+		receiverFactory, ok := factory.(receiver.Factory)
 		if !ok {
 			return nil, fmt.Errorf("receiver factory %s is missing from host", receiverType)
 		}
@@ -179,8 +182,8 @@ func (r *RenderedConfig) getProcessorFactories(host component.Host) (map[compone
 }
 
 // getExtensionFactories returns the extension factories required for the rendered config
-func (r *RenderedConfig) getExtensionFactories(host component.Host) (map[component.Type]component.ExtensionFactory, error) {
-	factories := map[component.Type]component.ExtensionFactory{}
+func (r *RenderedConfig) getExtensionFactories(host component.Host) (map[component.Type]extension.Factory, error) {
+	factories := map[component.Type]extension.Factory{}
 	for extensionID := range r.Extensions {
 		extensionType, err := parseComponentType(extensionID)
 		if err != nil {
@@ -191,7 +194,7 @@ func (r *RenderedConfig) getExtensionFactories(host component.Host) (map[compone
 		}
 
 		factory := host.GetFactory(component.KindExtension, extensionType)
-		extensionFactory, ok := factory.(component.ExtensionFactory)
+		extensionFactory, ok := factory.(extension.Factory)
 		if !ok {
 			return nil, fmt.Errorf("extension factory %s is missing from host", extensionType)
 		}

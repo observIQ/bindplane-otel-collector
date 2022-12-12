@@ -22,12 +22,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
+	"go.opentelemetry.io/collector/receiver"
 )
 
 func TestCreateReceiver(t *testing.T) {
 	testCases := []struct {
 		name        string
-		cfg         component.ReceiverConfig
+		cfg         component.Config
 		expectedErr error
 	}{
 		{
@@ -83,7 +84,7 @@ func TestCreateReceiver(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			set := component.ReceiverCreateSettings{}
+			set := receiver.CreateSettings{}
 			consumer := &MockConsumer{}
 			emitterFactory := createLogEmitterFactory(consumer)
 			receiver, err := createReceiver(tc.cfg, set, emitterFactory)
@@ -104,7 +105,7 @@ func TestCreateLogsReceiver(t *testing.T) {
 	factory := NewFactory()
 	consumer := &MockConsumer{}
 	ctx := context.Background()
-	set := component.ReceiverCreateSettings{}
+	set := receiver.CreateSettings{}
 	cfg := &Config{
 		Path: "./testdata/plugin-valid.yaml",
 		Parameters: map[string]any{
@@ -121,7 +122,7 @@ func TestCreateMetricsReceiver(t *testing.T) {
 	factory := NewFactory()
 	consumer := &MockConsumer{}
 	ctx := context.Background()
-	set := component.ReceiverCreateSettings{}
+	set := receiver.CreateSettings{}
 	cfg := &Config{
 		Path: "./testdata/plugin-valid.yaml",
 		Parameters: map[string]any{
@@ -138,7 +139,7 @@ func TestCreateTracesReceiver(t *testing.T) {
 	factory := NewFactory()
 	consumer := &MockConsumer{}
 	ctx := context.Background()
-	set := component.ReceiverCreateSettings{}
+	set := receiver.CreateSettings{}
 	cfg := &Config{
 		Path: "./testdata/plugin-valid.yaml",
 		Parameters: map[string]any{

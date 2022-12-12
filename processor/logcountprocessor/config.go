@@ -74,7 +74,7 @@ func (c *Config) createAttrExprs() (map[string]*Expression, error) {
 }
 
 // createDefaultConfig returns the default config for the processor.
-func createDefaultConfig() component.ProcessorConfig {
+func createDefaultConfig() component.Config {
 	return &Config{
 		ProcessorSettings: config.NewProcessorSettings(component.NewID(typeStr)),
 		MetricName:        defaultMetricName,

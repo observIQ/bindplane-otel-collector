@@ -22,6 +22,8 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/exporter"
+	"go.opentelemetry.io/collector/receiver"
 )
 
 const (
@@ -38,7 +40,7 @@ type Config struct {
 }
 
 // createDefaultConfig creates a default config for a plugin receiver
-func createDefaultConfig() component.ReceiverConfig {
+func createDefaultConfig() component.Config {
 	return &Config{
 		ReceiverSettings: config.NewReceiverSettings(component.NewID(typeStr)),
 		Parameters:       make(map[string]any),
@@ -46,35 +48,35 @@ func createDefaultConfig() component.ReceiverConfig {
 }
 
 // NewFactory creates a factory for a plugin receiver
-func NewFactory() component.ReceiverFactory {
+func NewFactory() receiver.Factory {
 	return component.NewReceiverFactory(typeStr,
 		createDefaultConfig,
-		component.WithLogsReceiver(createLogsReceiver, stability),
-		component.WithMetricsReceiver(createMetricsReceiver, stability),
-		component.WithTracesReceiver(createTracesReceiver, stability),
+		receiver.WithLogs(createLogsReceiver, stability),
+		receiver.WithMetrics(createMetricsReceiver, stability),
+		receiver.WithTraces(createTracesReceiver, stability),
 	)
 }
 
 // createLogsReceiver creates a plugin receiver with a logs consumer
-func createLogsReceiver(_ context.Context, set component.ReceiverCreateSettings, cfg component.ReceiverConfig, consumer consumer.Logs) (component.LogsReceiver, error) {
+func createLogsReceiver(_ context.Context, set receiver.CreateSettings, cfg component.Config, consumer consumer.Logs) (receiver.Logs, error) {
 	emitterFactory := createLogEmitterFactory(consumer)
 	return createReceiver(cfg, set, emitterFactory)
 }
 
 // createMetricsReceiver creates a plugin receiver with a metrics consumer
-func createMetricsReceiver(_ context.Context, set component.ReceiverCreateSettings, cfg component.ReceiverConfig, consumer consumer.Metrics) (component.MetricsReceiver, error) {
+func createMetricsReceiver(_ context.Context, set receiver.CreateSettings, cfg component.Config, consumer consumer.Metrics) (receiver.Metrics, error) {
 	emitterFactory := createMetricEmitterFactory(consumer)
 	return createReceiver(cfg, set, emitterFactory)
 }
 
 // createTracesReceiver creates a plugin receiver with a traces consumer
-func createTracesReceiver(_ context.Context, set component.ReceiverCreateSettings, cfg component.ReceiverConfig, consumer consumer.Traces) (component.TracesReceiver, error) {
+func createTracesReceiver(_ context.Context, set receiver.CreateSettings, cfg component.Config, consumer consumer.Traces) (receiver.Traces, error) {
 	emitterFactory := createTraceEmitterFactory(consumer)
 	return createReceiver(cfg, set, emitterFactory)
 }
 
 // createReceiver creates a plugin receiver with the supplied emitter
-func createReceiver(cfg component.ReceiverConfig, set component.ReceiverCreateSettings, emitterFactory component.ExporterFactory) (*Receiver, error) {
+func createReceiver(cfg component.Config, set receiver.CreateSettings, emitterFactory exporter.Factory) (*Receiver, error) {
 	receiverConfig, ok := cfg.(*Config)
 	if !ok {
 		return nil, errors.New("config is not a plugin receiver config")

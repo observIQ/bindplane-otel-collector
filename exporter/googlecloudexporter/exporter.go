@@ -21,6 +21,7 @@ import (
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
@@ -30,25 +31,25 @@ import (
 // hostname is the name of the current host
 var hostname = getHostname()
 
-// exporter is a google cloud exporter wrapped with additional functionality
-type exporter struct {
+// googlecloudExporter is a google cloud googlecloudExporter wrapped with additional functionality
+type googlecloudExporter struct {
 	appendHost bool
 
 	metricsProcessors []component.MetricsProcessor
-	metricsExporter   component.MetricsExporter
+	metricsExporter   exporter.Metrics
 	metricsConsumer   consumer.Metrics
 
 	logsProcessors []component.LogsProcessor
-	logsExporter   component.LogsExporter
+	logsExporter   exporter.Logs
 	logsConsumer   consumer.Logs
 
 	tracesProcessors []component.TracesProcessor
-	tracesExporter   component.TracesExporter
+	tracesExporter   exporter.Traces
 	tracesConsumer   consumer.Traces
 }
 
 // ConsumeMetrics consumes metrics
-func (e *exporter) ConsumeMetrics(ctx context.Context, md pmetric.Metrics) error {
+func (e *googlecloudExporter) ConsumeMetrics(ctx context.Context, md pmetric.Metrics) error {
 	if e.appendHost {
 		e.appendMetricHost(&md)
 	}
@@ -61,7 +62,7 @@ func (e *exporter) ConsumeMetrics(ctx context.Context, md pmetric.Metrics) error
 }
 
 // ConsumeTraces consumes traces
-func (e *exporter) ConsumeTraces(ctx context.Context, td ptrace.Traces) error {
+func (e *googlecloudExporter) ConsumeTraces(ctx context.Context, td ptrace.Traces) error {
 	if e.appendHost {
 		e.appendTraceHost(&td)
 	}
@@ -74,7 +75,7 @@ func (e *exporter) ConsumeTraces(ctx context.Context, td ptrace.Traces) error {
 }
 
 // ConsumeLogs consumes logs
-func (e *exporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
+func (e *googlecloudExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 	if e.appendHost {
 		e.appendLogHost(&ld)
 	}
@@ -87,12 +88,12 @@ func (e *exporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 }
 
 // Capabilities returns the capabilities of the exporter
-func (e *exporter) Capabilities() consumer.Capabilities {
+func (e *googlecloudExporter) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: true}
 }
 
 // Start starts the exporter
-func (e *exporter) Start(ctx context.Context, host component.Host) error {
+func (e *googlecloudExporter) Start(ctx context.Context, host component.Host) error {
 	if e.tracesExporter != nil {
 		if err := e.tracesExporter.Start(ctx, host); err != nil {
 			return fmt.Errorf("failed to start traces exporter: %w", err)
@@ -133,7 +134,7 @@ func (e *exporter) Start(ctx context.Context, host component.Host) error {
 }
 
 // Shutdown will shutdown the exporter
-func (e *exporter) Shutdown(ctx context.Context) error {
+func (e *googlecloudExporter) Shutdown(ctx context.Context) error {
 	for i := len(e.tracesProcessors) - 1; i >= 0; i-- {
 		if err := e.tracesProcessors[i].Shutdown(ctx); err != nil {
 			return fmt.Errorf("failed to shutdown traces processor: %w", err)
@@ -174,7 +175,7 @@ func (e *exporter) Shutdown(ctx context.Context) error {
 }
 
 // appendMetricHost appends hostname to metrics if not already present
-func (e *exporter) appendMetricHost(md *pmetric.Metrics) {
+func (e *googlecloudExporter) appendMetricHost(md *pmetric.Metrics) {
 	for i := 0; i < md.ResourceMetrics().Len(); i++ {
 		resourceAttrs := md.ResourceMetrics().At(i).Resource().Attributes()
 		_, hostNameExists := resourceAttrs.Get(string(semconv.HostNameKey))
@@ -186,7 +187,7 @@ func (e *exporter) appendMetricHost(md *pmetric.Metrics) {
 }
 
 // appendLogHost appends hostname to logs if not already present
-func (e *exporter) appendLogHost(ld *plog.Logs) {
+func (e *googlecloudExporter) appendLogHost(ld *plog.Logs) {
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		resourceAttrs := ld.ResourceLogs().At(i).Resource().Attributes()
 		_, hostNameExists := resourceAttrs.Get(string(semconv.HostNameKey))
@@ -198,7 +199,7 @@ func (e *exporter) appendLogHost(ld *plog.Logs) {
 }
 
 // appendTraceHost appends hostname to traces if not already present
-func (e *exporter) appendTraceHost(td *ptrace.Traces) {
+func (e *googlecloudExporter) appendTraceHost(td *ptrace.Traces) {
 	for i := 0; i < td.ResourceSpans().Len(); i++ {
 		resourceAttrs := td.ResourceSpans().At(i).Resource().Attributes()
 		_, hostNameExists := resourceAttrs.Get(string(semconv.HostNameKey))

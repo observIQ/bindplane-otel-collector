@@ -40,7 +40,7 @@ func NewFactory() component.ProcessorFactory {
 }
 
 // createLogsProcessor creates a log processor.
-func createLogsProcessor(_ context.Context, params component.ProcessorCreateSettings, cfg component.ProcessorConfig, consumer consumer.Logs) (component.LogsProcessor, error) {
+func createLogsProcessor(_ context.Context, params component.ProcessorCreateSettings, cfg component.Config, consumer consumer.Logs) (component.LogsProcessor, error) {
 	processorCfg, ok := cfg.(*Config)
 	if !ok {
 		return nil, fmt.Errorf("invalid config type: %+v", cfg)

@@ -21,6 +21,9 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/exporter"
+	"go.opentelemetry.io/collector/extension"
+	"go.opentelemetry.io/collector/receiver"
 )
 
 func TestGetRequiredFactories(t *testing.T) {
@@ -82,16 +85,16 @@ func TestGetRequiredFactories(t *testing.T) {
 				},
 			},
 			expectedResult: &component.Factories{
-				Receivers: map[component.Type]component.ReceiverFactory{
+				Receivers: map[component.Type]receiver.Factory{
 					testType: receiverFactory,
 				},
 				Processors: map[component.Type]component.ProcessorFactory{
 					testType: processorFactory,
 				},
-				Exporters: map[component.Type]component.ExporterFactory{
+				Exporters: map[component.Type]exporter.Factory{
 					emitterFactory.Type(): emitterFactory,
 				},
-				Extensions: map[component.Type]component.ExtensionFactory{
+				Extensions: map[component.Type]extension.Factory{
 					testType: extensionFactory,
 				},
 			},
@@ -113,16 +116,16 @@ func TestGetRequiredFactories(t *testing.T) {
 				},
 			},
 			expectedResult: &component.Factories{
-				Receivers: map[component.Type]component.ReceiverFactory{
+				Receivers: map[component.Type]receiver.Factory{
 					testType: receiverFactory,
 				},
 				Processors: map[component.Type]component.ProcessorFactory{
 					testType: processorFactory,
 				},
-				Exporters: map[component.Type]component.ExporterFactory{
+				Exporters: map[component.Type]exporter.Factory{
 					emitterFactory.Type(): emitterFactory,
 				},
-				Extensions: map[component.Type]component.ExtensionFactory{
+				Extensions: map[component.Type]extension.Factory{
 					testType: extensionFactory,
 				},
 			},
@@ -150,14 +153,14 @@ type MockHost struct {
 }
 
 // GetExporters provides a mock function with given fields:
-func (_m *MockHost) GetExporters() map[component.Type]map[component.ID]component.Exporter {
+func (_m *MockHost) GetExporters() map[component.Type]map[component.ID]component.Component {
 	ret := _m.Called()
-	var r0 map[component.Type]map[component.ID]component.Exporter
-	if rf, ok := ret.Get(0).(func() map[component.Type]map[component.ID]component.Exporter); ok {
+	var r0 map[component.Type]map[component.ID]component.Component
+	if rf, ok := ret.Get(0).(func() map[component.Type]map[component.ID]component.Component); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[component.Type]map[component.ID]component.Exporter)
+			r0 = ret.Get(0).(map[component.Type]map[component.ID]component.Component)
 		}
 	}
 	return r0

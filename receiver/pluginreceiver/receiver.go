@@ -20,7 +20,8 @@ import (
 	"time"
 
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/service"
+	"go.opentelemetry.io/collector/exporter"
+	"go.opentelemetry.io/collector/otelcol"
 	"go.uber.org/zap"
 )
 
@@ -29,7 +30,7 @@ import (
 type Receiver struct {
 	plugin         *Plugin
 	renderedCfg    *RenderedConfig
-	emitterFactory component.ExporterFactory
+	emitterFactory exporter.Factory
 	logger         *zap.Logger
 	createService  createServiceFunc
 	service        Service
@@ -90,7 +91,7 @@ func startService(ctx context.Context, svc Service) error {
 		case err := <-errChan:
 			return err
 		case <-ticker.C:
-			if svc.GetState() == service.Running {
+			if svc.GetState() == otelcol.StateRunning {
 				return nil
 			}
 		}

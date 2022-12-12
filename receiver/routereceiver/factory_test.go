@@ -20,6 +20,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/receiver"
 )
 
 func TestNewFactory(t *testing.T) {
@@ -34,21 +35,21 @@ func TestNewFactory(t *testing.T) {
 
 func TestCreateMetricsReceiver(t *testing.T) {
 	f := NewFactory()
-	r, err := f.CreateMetricsReceiver(context.Background(), component.ReceiverCreateSettings{}, createDefaultConfig(), nil)
+	r, err := f.CreateMetricsReceiver(context.Background(), receiver.CreateSettings{}, createDefaultConfig(), nil)
 	require.NoError(t, err)
-	require.IsType(t, &receiver{}, r)
+	require.IsType(t, &routeReceiver{}, r)
 }
 
 func TestCreateLogsReceiver(t *testing.T) {
 	f := NewFactory()
-	r, err := f.CreateLogsReceiver(context.Background(), component.ReceiverCreateSettings{}, createDefaultConfig(), nil)
+	r, err := f.CreateLogsReceiver(context.Background(), receiver.CreateSettings{}, createDefaultConfig(), nil)
 	require.NoError(t, err)
-	require.IsType(t, &receiver{}, r)
+	require.IsType(t, &routeReceiver{}, r)
 }
 
 func TestCreateTracesReceiver(t *testing.T) {
 	f := NewFactory()
-	r, err := f.CreateTracesReceiver(context.Background(), component.ReceiverCreateSettings{}, createDefaultConfig(), nil)
+	r, err := f.CreateTracesReceiver(context.Background(), receiver.CreateSettings{}, createDefaultConfig(), nil)
 	require.NoError(t, err)
-	require.IsType(t, &receiver{}, r)
+	require.IsType(t, &routeReceiver{}, r)
 }

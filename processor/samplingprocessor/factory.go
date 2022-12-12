@@ -47,7 +47,7 @@ func NewFactory() component.ProcessorFactory {
 	)
 }
 
-func createDefaultConfig() component.ProcessorConfig {
+func createDefaultConfig() component.Config {
 	return &Config{
 		ProcessorSettings: config.NewProcessorSettings(component.NewID(typeStr)),
 		DropRatio:         0.5,
@@ -57,7 +57,7 @@ func createDefaultConfig() component.ProcessorConfig {
 func createTracesProcessor(
 	ctx context.Context,
 	set component.ProcessorCreateSettings,
-	cfg component.ProcessorConfig,
+	cfg component.Config,
 	nextConsumer consumer.Traces,
 ) (component.TracesProcessor, error) {
 	oCfg := cfg.(*Config)
@@ -69,7 +69,7 @@ func createTracesProcessor(
 func createLogsProcessor(
 	ctx context.Context,
 	set component.ProcessorCreateSettings,
-	cfg component.ProcessorConfig,
+	cfg component.Config,
 	nextConsumer consumer.Logs,
 ) (component.LogsProcessor, error) {
 	oCfg := cfg.(*Config)
@@ -81,7 +81,7 @@ func createLogsProcessor(
 func createMetricsProcessor(
 	ctx context.Context,
 	set component.ProcessorCreateSettings,
-	cfg component.ProcessorConfig,
+	cfg component.Config,
 	nextConsumer consumer.Metrics,
 ) (component.MetricsProcessor, error) {
 	oCfg := cfg.(*Config)

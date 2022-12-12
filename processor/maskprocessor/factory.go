@@ -52,7 +52,7 @@ func NewFactory() component.ProcessorFactory {
 }
 
 // createDefaultConfig creates a default config for the mask processor.
-func createDefaultConfig() component.ProcessorConfig {
+func createDefaultConfig() component.Config {
 	return &Config{
 		ProcessorSettings: config.NewProcessorSettings(component.NewID(typeStr)),
 		Rules:             defaultRules,
@@ -63,7 +63,7 @@ func createDefaultConfig() component.ProcessorConfig {
 func createTracesProcessor(
 	ctx context.Context,
 	set component.ProcessorCreateSettings,
-	cfg component.ProcessorConfig,
+	cfg component.Config,
 	nextConsumer consumer.Traces,
 ) (component.TracesProcessor, error) {
 	maskCfg, ok := cfg.(*Config)
@@ -86,7 +86,7 @@ func createTracesProcessor(
 func createLogsProcessor(
 	ctx context.Context,
 	set component.ProcessorCreateSettings,
-	cfg component.ProcessorConfig,
+	cfg component.Config,
 	nextConsumer consumer.Logs,
 ) (component.LogsProcessor, error) {
 	maskCfg, ok := cfg.(*Config)
@@ -109,7 +109,7 @@ func createLogsProcessor(
 func createMetricsProcessor(
 	ctx context.Context,
 	set component.ProcessorCreateSettings,
-	cfg component.ProcessorConfig,
+	cfg component.Config,
 	nextConsumer consumer.Metrics,
 ) (component.MetricsProcessor, error) {
 	maskCfg, ok := cfg.(*Config)

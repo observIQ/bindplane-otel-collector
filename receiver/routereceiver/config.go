@@ -26,7 +26,7 @@ type Config struct {
 }
 
 // createDefaultConfig returns the default config for the route receiver.
-func createDefaultConfig() component.ReceiverConfig {
+func createDefaultConfig() component.Config {
 	return &Config{
 		ReceiverSettings: config.NewReceiverSettings(component.NewID(typeStr)),
 	}

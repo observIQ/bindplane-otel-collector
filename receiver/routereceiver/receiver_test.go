@@ -19,11 +19,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
+	"go.opentelemetry.io/collector/receiver/receivertest"
 )
 
 func TestReceiverMetrics(t *testing.T) {
@@ -59,7 +59,7 @@ func TestReceiverMetrics(t *testing.T) {
 			factory := NewFactory()
 			cfg := factory.CreateDefaultConfig().(*Config)
 			cfg.SetIDName(tc.receiverName)
-			set := componenttest.NewNopReceiverCreateSettings()
+			set := receivertest.NewNopCreateSettings()
 			receiver, err := factory.CreateMetricsReceiver(context.Background(), set, cfg, tc.consumer)
 			require.NoError(t, err)
 
@@ -109,7 +109,7 @@ func TestReceiverLogs(t *testing.T) {
 			factory := NewFactory()
 			cfg := factory.CreateDefaultConfig().(*Config)
 			cfg.SetIDName(tc.receiverName)
-			set := componenttest.NewNopReceiverCreateSettings()
+			set := receivertest.NewNopCreateSettings()
 			receiver, err := factory.CreateLogsReceiver(context.Background(), set, cfg, tc.consumer)
 			require.NoError(t, err)
 
@@ -159,7 +159,7 @@ func TestReceiverTraces(t *testing.T) {
 			factory := NewFactory()
 			cfg := factory.CreateDefaultConfig().(*Config)
 			cfg.SetIDName(tc.receiverName)
-			set := componenttest.NewNopReceiverCreateSettings()
+			set := receivertest.NewNopCreateSettings()
 			receiver, err := factory.CreateTracesReceiver(context.Background(), set, cfg, tc.consumer)
 			require.NoError(t, err)
 

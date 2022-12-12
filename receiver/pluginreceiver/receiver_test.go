@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/otelcol"
 	"go.opentelemetry.io/collector/service"
 	"go.uber.org/zap"
 )
@@ -97,7 +98,7 @@ func TestReceiverStartServiceFailure(t *testing.T) {
 
 	svc := &MockService{}
 	svc.On("Run", mock.Anything).Return(errors.New("failure"))
-	svc.On("GetState").Return(service.Starting)
+	svc.On("GetState").Return(otelcol.StateStarting)
 
 	receiver := Receiver{
 		plugin:         &Plugin{},
@@ -132,7 +133,7 @@ func TestReceiverStartServiceContext(t *testing.T) {
 
 	svc := &MockService{}
 	svc.On("Run", mock.Anything).Return(nil)
-	svc.On("GetState").Return(service.Starting)
+	svc.On("GetState").Return(otelcol.StateStarting)
 
 	receiver := Receiver{
 		plugin:         &Plugin{},
@@ -165,7 +166,7 @@ func TestReceiverStartSuccess(t *testing.T) {
 
 	svc := &MockService{}
 	svc.On("Run", mock.Anything).WaitUntil(time.After(time.Second)).Return(errors.New("unexpected timeout"))
-	svc.On("GetState").Return(service.Running)
+	svc.On("GetState").Return(otelcol.StateRunning)
 
 	receiver := Receiver{
 		plugin:         &Plugin{},

@@ -22,6 +22,7 @@ import (
 	gcp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/processor/batchprocessor"
 	"go.uber.org/zap"
 )
@@ -38,18 +39,18 @@ const (
 )
 
 // NewFactory creates a factory for the googlecloud exporter
-func NewFactory() component.ExporterFactory {
+func NewFactory() exporter.Factory {
 	return component.NewExporterFactory(
 		typeStr,
 		createDefaultConfig,
-		component.WithMetricsExporter(createMetricsExporter, stability),
-		component.WithLogsExporter(createLogsExporter, stability),
-		component.WithTracesExporter(createTracesExporter, stability),
+		exporter.WithMetrics(createMetricsExporter, stability),
+		exporter.WithLogs(createLogsExporter, stability),
+		exporter.WithTraces(createTracesExporter, stability),
 	)
 }
 
 // createMetricsExporter creates a metrics exporter based on this config.
-func createMetricsExporter(ctx context.Context, set component.ExporterCreateSettings, cfg component.ExporterConfig) (component.MetricsExporter, error) {
+func createMetricsExporter(ctx context.Context, set component.ExporterCreateSettings, cfg component.Config) (exporter.Metrics, error) {
 	exporterConfig := cfg.(*Config)
 	exporterConfig.setClientOptions()
 
@@ -88,7 +89,7 @@ func createMetricsExporter(ctx context.Context, set component.ExporterCreateSett
 		consumer = processor
 	}
 
-	return &exporter{
+	return &googlecloudExporter{
 		appendHost:        exporterConfig.AppendHost,
 		metricsProcessors: processors,
 		metricsExporter:   gcpExporter,
@@ -97,7 +98,7 @@ func createMetricsExporter(ctx context.Context, set component.ExporterCreateSett
 }
 
 // createLogExporter creates a logs exporter based on this config.
-func createLogsExporter(ctx context.Context, set component.ExporterCreateSettings, cfg component.ExporterConfig) (component.LogsExporter, error) {
+func createLogsExporter(ctx context.Context, set component.ExporterCreateSettings, cfg component.Config) (exporter.Logs, error) {
 	exporterConfig := cfg.(*Config)
 	exporterConfig.setClientOptions()
 
@@ -136,7 +137,7 @@ func createLogsExporter(ctx context.Context, set component.ExporterCreateSetting
 		consumer = processor
 	}
 
-	return &exporter{
+	return &googlecloudExporter{
 		appendHost:     exporterConfig.AppendHost,
 		logsProcessors: processors,
 		logsExporter:   gcpExporter,
@@ -145,7 +146,7 @@ func createLogsExporter(ctx context.Context, set component.ExporterCreateSetting
 }
 
 // createTracesExporter creates a traces exporter based on this config.
-func createTracesExporter(ctx context.Context, set component.ExporterCreateSettings, cfg component.ExporterConfig) (component.TracesExporter, error) {
+func createTracesExporter(ctx context.Context, set component.ExporterCreateSettings, cfg component.Config) (exporter.Traces, error) {
 	exporterConfig := cfg.(*Config)
 	exporterConfig.setClientOptions()
 
@@ -184,7 +185,7 @@ func createTracesExporter(ctx context.Context, set component.ExporterCreateSetti
 		consumer = processor
 	}
 
-	return &exporter{
+	return &googlecloudExporter{
 		appendHost:       exporterConfig.AppendHost,
 		tracesProcessors: processors,
 		tracesExporter:   gcpExporter,
