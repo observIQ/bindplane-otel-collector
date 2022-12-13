@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/observiq/observiq-otel-collector/internal/expr"
 	"github.com/observiq/observiq-otel-collector/receiver/routereceiver"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -30,26 +31,26 @@ import (
 
 // processor is a processor that counts logs.
 type processor struct {
-	config    *Config
-	matchExpr *Expression
-	attrExprs map[string]*Expression
-	counter   *LogCounter
-	consumer  consumer.Logs
-	logger    *zap.Logger
-	cancel    context.CancelFunc
-	wg        sync.WaitGroup
-	mux       sync.Mutex
+	config   *Config
+	match    *expr.Expression
+	attrs    *expr.ExpressionMap
+	counter  *LogCounter
+	consumer consumer.Logs
+	logger   *zap.Logger
+	cancel   context.CancelFunc
+	wg       sync.WaitGroup
+	mux      sync.Mutex
 }
 
 // newProcessor returns a new processor.
-func newProcessor(config *Config, consumer consumer.Logs, matchExpr *Expression, attrExprs map[string]*Expression, logger *zap.Logger) *processor {
+func newProcessor(config *Config, consumer consumer.Logs, match *expr.Expression, attrs *expr.ExpressionMap, logger *zap.Logger) *processor {
 	return &processor{
-		config:    config,
-		matchExpr: matchExpr,
-		attrExprs: attrExprs,
-		counter:   NewLogCounter(),
-		consumer:  consumer,
-		logger:    logger,
+		config:   config,
+		match:    match,
+		attrs:    attrs,
+		counter:  NewLogCounter(),
+		consumer: consumer,
+		logger:   logger,
 	}
 }
 
@@ -81,12 +82,14 @@ func (p *processor) ConsumeLogs(ctx context.Context, pl plog.Logs) error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	records := convertToRecords(pl)
-	for _, record := range records {
-		if p.matchRecord(record) {
-			resource := p.extractResource(record)
-			attrs := p.extractAttributes(record)
-			p.counter.Add(resource, attrs)
+	resourceGroups := expr.ConvertToResourceGroups(pl)
+	for _, group := range resourceGroups {
+		resource := group.Resource
+		for _, record := range group.Records {
+			if p.match.MatchRecord(record) {
+				attrs := p.attrs.Extract(record)
+				p.counter.Add(resource, attrs)
+			}
 		}
 	}
 
@@ -124,41 +127,6 @@ func (p *processor) sendMetrics(ctx context.Context) {
 	if err := routereceiver.RouteMetrics(ctx, p.config.Route, metrics); err != nil {
 		p.logger.Error("Failed to send metrics", zap.Error(err))
 	}
-}
-
-// matchRecord returns true if the record matches the configured expression.
-func (p *processor) matchRecord(record Record) bool {
-	matches, err := p.matchExpr.Match(record)
-	if err != nil {
-		p.logger.Debug("Failed to evaluate match expression", zap.Error(err))
-		return false
-	}
-
-	return matches
-}
-
-// extractAttributes extracts attributes from the record.
-func (p *processor) extractAttributes(record Record) map[string]any {
-	attrs := map[string]any{}
-	for key, expression := range p.attrExprs {
-		value, err := expression.Evaluate(record)
-		if err != nil {
-			p.logger.Debug("Failed to evaluate attribute expression", zap.Error(err))
-			continue
-		}
-		attrs[key] = value
-	}
-	return attrs
-}
-
-// extractResource extracts the resource from the record.
-func (p *processor) extractResource(record Record) map[string]any {
-	value, ok := record[resourceField].(map[string]any)
-	if !ok {
-		return map[string]any{}
-	}
-
-	return value
 }
 
 // createMetrics creates metrics from the counter.

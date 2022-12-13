@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package logcountprocessor
+package metricextractprocessor
 
 import (
 	"context"
@@ -25,7 +25,7 @@ import (
 
 const (
 	// typeStr is the value of the "type" key in configuration.
-	typeStr = "logcount"
+	typeStr = "metricextract"
 
 	// stability is the current state of the processor.
 	stability = component.StabilityLevelAlpha
@@ -41,7 +41,7 @@ func NewFactory() component.ProcessorFactory {
 }
 
 // createLogsProcessor creates a log processor.
-func createLogsProcessor(_ context.Context, params component.ProcessorCreateSettings, cfg component.Config, consumer consumer.Logs) (component.LogsProcessor, error) {
+func createLogsProcessor(_ context.Context, params component.ProcessorCreateSettings, cfg component.ProcessorConfig, consumer consumer.Logs) (component.LogsProcessor, error) {
 	processorCfg, ok := cfg.(*Config)
 	if !ok {
 		return nil, fmt.Errorf("invalid config type: %+v", cfg)
@@ -57,5 +57,10 @@ func createLogsProcessor(_ context.Context, params component.ProcessorCreateSett
 		return nil, fmt.Errorf("invalid attribute expression: %w", err)
 	}
 
-	return newProcessor(processorCfg, consumer, match, attrs, params.Logger), nil
+	value, err := expr.CreateValueExpression(processorCfg.Extract)
+	if err != nil {
+		return nil, fmt.Errorf("invalid extract expression: %w", err)
+	}
+
+	return newProcessor(processorCfg, consumer, match, value, attrs, params.Logger), nil
 }

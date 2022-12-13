@@ -1,4 +1,4 @@
-module github.com/observiq/observiq-otel-collector/processor/logcountprocessor
+module github.com/observiq/observiq-otel-collector/processor/metricextractprocessor
 
 go 1.18
 
@@ -14,7 +14,6 @@ require (
 )
 
 require (
-	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.opentelemetry.io/collector/confmap v0.67.0 // indirect
@@ -23,7 +22,7 @@ require (
 )
 
 require (
-	github.com/antonmedv/expr v1.9.0 // indirect
+	github.com/antonmedv/expr v1.9.0 // indirect; indirect // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

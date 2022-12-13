@@ -29,29 +29,3 @@ func TestCreateDefaultProcessorConfig(t *testing.T) {
 	require.Equal(t, defaultMetricUnit, cfg.MetricUnit)
 	require.Equal(t, component.NewID(typeStr), cfg.ProcessorSettings.ID())
 }
-
-func TestCreateMatchExpr(t *testing.T) {
-	cfg := createDefaultConfig().(*Config)
-	cfg.Match = "true"
-	expr, err := cfg.createMatchExpr()
-	require.NoError(t, err)
-	require.NotNil(t, expr)
-
-	cfg.Match = "++"
-	expr, err = cfg.createMatchExpr()
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to create match expression")
-}
-
-func TestCreateAttrExprs(t *testing.T) {
-	cfg := createDefaultConfig().(*Config)
-	cfg.Attributes = map[string]string{"a": "true"}
-	expr, err := cfg.createAttrExprs()
-	require.NoError(t, err)
-	require.NotNil(t, expr)
-
-	cfg.Attributes = map[string]string{"a": "++"}
-	expr, err = cfg.createAttrExprs()
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to create attribute expression for a")
-}

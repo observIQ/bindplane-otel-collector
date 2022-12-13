@@ -110,48 +110,6 @@ func TestConsumeLogsWithoutReceiver(t *testing.T) {
 	require.Contains(t, logger.buffer.String(), "route not defined")
 }
 
-func TestFailedMatchRecord(t *testing.T) {
-	logger := NewTestLogger()
-
-	processorCfg := createDefaultConfig().(*Config)
-	processorCfg.Match = `body.message == "test1"`
-	processorFactory := NewFactory()
-	processorSettings := component.ProcessorCreateSettings{TelemetrySettings: component.TelemetrySettings{Logger: logger.Logger}}
-	p, err := processorFactory.CreateLogsProcessor(context.Background(), processorSettings, processorCfg, &LogConsumer{})
-	require.NoError(t, err)
-
-	logCountProcessor := p.(*processor)
-	match := logCountProcessor.matchRecord(Record{})
-	require.False(t, match)
-	require.Contains(t, logger.buffer.String(), "Failed to evaluate match expression")
-}
-
-func TestFailedExtractAttributes(t *testing.T) {
-	logger := NewTestLogger()
-
-	processorCfg := createDefaultConfig().(*Config)
-	processorCfg.Attributes = map[string]string{
-		"dimension1": `body`,
-		"dimension2": `resource["service.name"]`,
-	}
-	processorFactory := NewFactory()
-	processorSettings := component.ProcessorCreateSettings{TelemetrySettings: component.TelemetrySettings{Logger: logger.Logger}}
-	p, err := processorFactory.CreateLogsProcessor(context.Background(), processorSettings, processorCfg, &LogConsumer{})
-	require.NoError(t, err)
-
-	logCountProcessor := p.(*processor)
-	attributes := logCountProcessor.extractAttributes(Record{bodyField: "message"})
-	require.Equal(t, map[string]any{"dimension1": "message"}, attributes)
-	require.Contains(t, logger.buffer.String(), "Failed to evaluate attribute expression")
-	require.Contains(t, logger.buffer.String(), "cannot fetch service.name")
-}
-
-func TestFailedExtractResource(t *testing.T) {
-	processor := &processor{}
-	resource := processor.extractResource(Record{})
-	require.Empty(t, resource)
-}
-
 type LogConsumer struct {
 	logChan chan plog.Logs
 }

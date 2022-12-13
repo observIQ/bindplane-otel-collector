@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package logcountprocessor
+package metricextractprocessor
 
 import (
 	"context"
@@ -34,7 +34,7 @@ func TestNewProcessorFactory(t *testing.T) {
 func TestCreateLogsProcessor(t *testing.T) {
 	var testCases = []struct {
 		name        string
-		cfg         component.Config
+		cfg         component.ProcessorConfig
 		expectedErr string
 	}{
 		{
@@ -42,6 +42,8 @@ func TestCreateLogsProcessor(t *testing.T) {
 			cfg: &Config{
 				ProcessorSettings: config.ProcessorSettings{},
 				Match:             "true",
+				Extract:           "message",
+				MetricType:        gaugeDoubleType,
 			},
 		},
 		{
@@ -49,17 +51,31 @@ func TestCreateLogsProcessor(t *testing.T) {
 			cfg: &Config{
 				ProcessorSettings: config.ProcessorSettings{},
 				Match:             "++",
+				Extract:           "message",
+				MetricType:        gaugeDoubleType,
 			},
 			expectedErr: "invalid match expression",
 		},
 		{
-			name: "invalid attribute",
+			name: "invalid attributes",
 			cfg: &Config{
 				ProcessorSettings: config.ProcessorSettings{},
 				Match:             "true",
+				Extract:           "message",
+				MetricType:        gaugeDoubleType,
 				Attributes:        map[string]string{"a": "++"},
 			},
 			expectedErr: "invalid attribute expression",
+		},
+		{
+			name: "invalid extract",
+			cfg: &Config{
+				ProcessorSettings: config.ProcessorSettings{},
+				Match:             "true",
+				Extract:           "++",
+				MetricType:        gaugeDoubleType,
+			},
+			expectedErr: "invalid extract expression",
 		},
 		{
 			name:        "invalid config type",
@@ -74,7 +90,7 @@ func TestCreateLogsProcessor(t *testing.T) {
 			p, err := f.CreateLogsProcessor(context.Background(), component.ProcessorCreateSettings{}, tc.cfg, nil)
 			if tc.expectedErr == "" {
 				require.NoError(t, err)
-				require.IsType(t, &processor{}, p)
+				require.IsType(t, &extractProcessor{}, p)
 			} else {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr)
