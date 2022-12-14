@@ -1,0 +1,4 @@
+<EnqGetLockTableResponse xmlns="urn:SAPControl">
+ <lock>
+ </lock>
+</EnqGetLockTableResponse>

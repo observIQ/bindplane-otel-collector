@@ -1,0 +1,141 @@
+name: sapnetweaverreceiver
+
+resource_attributes:
+  sapnetweaver.instance:
+    type: string
+    description: The SAP Netweaver instance.
+  sapnetweaver.node:
+    type: string
+    description: The SAP Netweaver node.
+
+attributes:
+  control_state:
+    type: string
+    value: state
+    description: The control state color
+    enum:
+    - grey
+    - green
+    - yellow
+    - red
+
+metrics:
+  sapnetweaver.work_processes.active.count:
+    description: The number of active work processes.
+    unit: "{work processes}"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.host.cpu_utilization:
+    description: CPU Utilization Percentage.
+    unit: "%"
+    gauge:
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.host.memory.virtual.overhead:
+    description: Virtualization System Memory Overhead.
+    unit: "bytes"
+    gauge:
+      value_type: int
+    attributes: []
+    enabled: true
+  sapnetweaver.host.memory.virtual.swap:
+    description: Virtualization System Swap Memory.
+    unit: "bytes"
+    gauge:
+      value_type: int
+    attributes: []
+    enabled: true
+  sapnetweaver.sessions.http.count:
+    description: The number of HTTP Sessions.
+    unit: "{sessions}"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.sessions.security.count:
+    description: The number of Security Sessions.
+    unit: "{sessions}"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.sessions.web.count:
+    description: The number of Web Sessions.
+    unit: "{sessions}"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.sessions.browser.count:
+    description: The number of Browser Sessions.
+    unit: "{sessions}"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.sessions.ejb.count:
+    description: The number of EJB Sessions.
+    unit: "{sessions}"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.icm_availability:
+    description: ICM Availability (color value from alert tree).
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+    attributes: [control_state]
+    enabled: true
+  sapnetweaver.host.spool_list.used:
+    description: Host Spool List Used.
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.locks.enqueue.count:
+    description: Count of Enqueued Locks.
+    unit: "{locks}"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+    attributes: []
+    enabled: true
+  sapnetweaver.short_dumps.rate:
+    description: The rate of Short Dumps.
+    unit: "{dumps/min}"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+

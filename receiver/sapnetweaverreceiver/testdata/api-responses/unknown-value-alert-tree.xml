@@ -1,0 +1,63 @@
+<GetAlertTreeResponse xmlns="urn:SAPControl">
+ <tree>
+  <item>
+   <name>Shortdumps Frequency</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ /min</description>
+  </item>
+  <item>
+   <name>Total Number of Work Processes</name>
+   <ActualValue>SAPControl-GRAY</ActualValue>
+   <description>$</description>
+  </item>
+  <item>
+   <name>ICM</name>
+    <ActualValue>SAPControl-CYAN</ActualValue>
+  </item>
+  <item>
+   <name>HostspoolListUsed</name>
+   <ActualValue>SAPControl-GRAY</ActualValue>
+   <description>$</description>
+  </item>
+  <item>
+   <name>Memory Swapped Out</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ MB</description>
+  </item>
+  <item>
+   <name>CPU_Utilization</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ %</description>
+  </item>
+  <item>
+   <name>Memory Overhead</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ MB</description>
+  </item>
+  <item>
+   <name>CurrentHttpSessions</name>
+   <ActualValue>SAPControl-GRAY</ActualValue>
+   <description>$</description>
+  </item>
+  <item>
+   <name>CurrentSecuritySessions</name>
+   <ActualValue>SAPControl-GRAY</ActualValue>
+   <description>$</description>
+  </item>
+  <item>
+   <name>Web Sessions</name>
+   <ActualValue>SAPControl-GRAY</ActualValue>
+   <description>$</description>
+  </item>
+  <item>
+   <name>Browser Sessions</name>
+   <ActualValue>SAPControl-GRAY</ActualValue>
+   <description>$</description>
+  </item>
+  <item>
+   <name>EJB Sessions</name>
+   <ActualValue>SAPControl-GRAY</ActualValue>
+   <description>$</description>
+  </item>
+ </tree>
+</GetAlertTreeResponse>

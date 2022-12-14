@@ -1,0 +1,12 @@
+<GetInstancePropertiesResponse xmlns="urn:SAPControl">
+ <properties>
+  <item>
+   <property>SAPLOCALHOST</property>
+   <value></value>
+  </item>
+  <item>
+   <property>INSTANCE_NAME</property>
+   <value></value>
+  </item>
+ </properties>
+</GetInstancePropertiesResponse>
