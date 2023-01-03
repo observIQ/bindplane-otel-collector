@@ -1,6 +1,6 @@
 module github.com/observiq/observiq-otel-collector/receiver/sapnetweaverreceiver
 
-go 1.19
+go 1.18
 
 require (
 	github.com/hooklift/gowsdl v0.5.0
