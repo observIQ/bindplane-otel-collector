@@ -28,7 +28,7 @@ import (
 func TestCreateMetricExporterSuccess(t *testing.T) {
 	mockExporter := &MockExporter{}
 
-	gcpFactory = component.NewExporterFactory(
+	gcpFactory = exporter.NewFactory(
 		typeStr,
 		gcpFactory.CreateDefaultConfig,
 		exporter.WithMetrics(func(_ context.Context, _ component.ExporterCreateSettings, _ component.Config) (exporter.Metrics, error) {
@@ -55,7 +55,7 @@ func TestCreateMetricExporterSuccess(t *testing.T) {
 func TestCreateLogsExporterSuccess(t *testing.T) {
 	mockExporter := &MockExporter{}
 
-	gcpFactory = component.NewExporterFactory(
+	gcpFactory = exporter.NewFactory(
 		typeStr,
 		gcpFactory.CreateDefaultConfig,
 		exporter.WithLogs(func(_ context.Context, _ component.ExporterCreateSettings, _ component.Config) (exporter.Logs, error) {
@@ -82,7 +82,7 @@ func TestCreateLogsExporterSuccess(t *testing.T) {
 func TestCreateTracesExporterSuccess(t *testing.T) {
 	mockExporter := &MockExporter{}
 
-	gcpFactory = component.NewExporterFactory(
+	gcpFactory = exporter.NewFactory(
 		typeStr,
 		gcpFactory.CreateDefaultConfig,
 		exporter.WithTraces(func(_ context.Context, _ component.ExporterCreateSettings, _ component.Config) (exporter.Traces, error) {
@@ -107,7 +107,7 @@ func TestCreateTracesExporterSuccess(t *testing.T) {
 }
 
 func TestCreateExporterFailure(t *testing.T) {
-	gcpFactory = component.NewExporterFactory(
+	gcpFactory = exporter.NewFactory(
 		typeStr,
 		gcpFactory.CreateDefaultConfig,
 	)

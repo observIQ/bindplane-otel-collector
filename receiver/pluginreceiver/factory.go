@@ -49,7 +49,7 @@ func createDefaultConfig() component.Config {
 
 // NewFactory creates a factory for a plugin receiver
 func NewFactory() receiver.Factory {
-	return component.NewReceiverFactory(typeStr,
+	return receiver.NewFactory(typeStr,
 		createDefaultConfig,
 		receiver.WithLogs(createLogsReceiver, stability),
 		receiver.WithMetrics(createMetricsReceiver, stability),
@@ -91,7 +91,7 @@ func createReceiver(cfg component.Config, set receiver.CreateSettings, emitterFa
 		return nil, fmt.Errorf("invalid plugin parameter: %w", err)
 	}
 
-	renderedCfg, err := plugin.Render(receiverConfig.Parameters, receiverConfig.ReceiverSettings.ID())
+	renderedCfg, err := plugin.Render(receiverConfig.Parameters, set.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to render plugin: %w", err)
 	}

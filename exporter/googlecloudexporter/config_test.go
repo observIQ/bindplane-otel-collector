@@ -20,7 +20,6 @@ import (
 	"github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/collector"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/component"
 	"google.golang.org/api/option"
 )
 
@@ -29,7 +28,6 @@ func TestCreateDefaultConfig(t *testing.T) {
 	googleCfg, ok := cfg.(*Config)
 	require.True(t, ok)
 
-	require.Equal(t, component.NewID(typeStr), googleCfg.ID())
 	require.Equal(t, defaultMetricPrefix, googleCfg.GCPConfig.MetricConfig.Prefix)
 	require.Equal(t, defaultUserAgent, googleCfg.GCPConfig.UserAgent)
 	require.Len(t, googleCfg.GCPConfig.MetricConfig.ResourceFilters, 1)

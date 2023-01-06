@@ -32,7 +32,7 @@ const (
 
 // NewFactory creates a new factory for the receiver.
 func NewFactory() receiver.Factory {
-	return component.NewReceiverFactory(
+	return receiver.NewFactory(
 		typeStr,
 		createDefaultConfig,
 		receiver.WithMetrics(createMetricsReceiver, stability),
@@ -42,22 +42,22 @@ func NewFactory() receiver.Factory {
 }
 
 // createMetricsReceiver creates a metric receiver.
-func createMetricsReceiver(_ context.Context, _ receiver.CreateSettings, cfg component.Config, consumer consumer.Metrics) (receiver.Metrics, error) {
-	receiver := createOrGetRoute(cfg.ID().Name())
+func createMetricsReceiver(_ context.Context, set receiver.CreateSettings, _ component.Config, consumer consumer.Metrics) (receiver.Metrics, error) {
+	receiver := createOrGetRoute(set.ID.Name())
 	receiver.registerMetricConsumer(consumer)
 	return receiver, nil
 }
 
 // createLogsReceiver creates a log receiver.
-func createLogsReceiver(_ context.Context, _ receiver.CreateSettings, cfg component.Config, consumer consumer.Logs) (receiver.Logs, error) {
-	receiver := createOrGetRoute(cfg.ID().Name())
+func createLogsReceiver(_ context.Context, set receiver.CreateSettings, _ component.Config, consumer consumer.Logs) (receiver.Logs, error) {
+	receiver := createOrGetRoute(set.ID.Name())
 	receiver.registerLogConsumer(consumer)
 	return receiver, nil
 }
 
 // createTracesReceiver creates a trace receiver.
-func createTracesReceiver(_ context.Context, _ receiver.CreateSettings, cfg component.Config, consumer consumer.Traces) (receiver.Traces, error) {
-	receiver := createOrGetRoute(cfg.ID().Name())
+func createTracesReceiver(_ context.Context, set receiver.CreateSettings, _ component.Config, consumer consumer.Traces) (receiver.Traces, error) {
+	receiver := createOrGetRoute(set.ID.Name())
 	receiver.registerTraceConsumer(consumer)
 	return receiver, nil
 }

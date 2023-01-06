@@ -40,7 +40,7 @@ const (
 
 // NewFactory creates a factory for the googlecloud exporter
 func NewFactory() exporter.Factory {
-	return component.NewExporterFactory(
+	return exporter.NewFactory(
 		typeStr,
 		createDefaultConfig,
 		exporter.WithMetrics(createMetricsExporter, stability),
@@ -64,7 +64,7 @@ func createMetricsExporter(ctx context.Context, set component.ExporterCreateSett
 	}
 
 	processors := []component.MetricsProcessor{}
-	processorConfigs := []component.ProcessorConfig{
+	processorConfigs := []component.Config{
 		exporterConfig.BatchConfig,
 	}
 
@@ -79,11 +79,10 @@ func createMetricsExporter(ctx context.Context, set component.ExporterCreateSett
 
 	var consumer consumer.Metrics = gcpExporter
 	for i, processorConfig := range processorConfigs {
-		processorConfig.SetIDName(exporterConfig.ID().String())
 		factory := processorFactories[i]
 		processor, err := factory.CreateMetricsProcessor(ctx, processorSettings, processorConfig, consumer)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create metrics processor %s: %w", processorConfig.ID().String(), err)
+			return nil, fmt.Errorf("failed to create metrics processor %s: %w", set.ID.String(), err)
 		}
 		processors = append(processors, processor)
 		consumer = processor
@@ -112,7 +111,7 @@ func createLogsExporter(ctx context.Context, set component.ExporterCreateSetting
 	}
 
 	processors := []component.LogsProcessor{}
-	processorConfigs := []component.ProcessorConfig{
+	processorConfigs := []component.Config{
 		exporterConfig.BatchConfig,
 	}
 
@@ -127,11 +126,10 @@ func createLogsExporter(ctx context.Context, set component.ExporterCreateSetting
 
 	var consumer consumer.Logs = gcpExporter
 	for i, processorConfig := range processorConfigs {
-		processorConfig.SetIDName(exporterConfig.ID().String())
 		factory := processorFactories[i]
 		processor, err := factory.CreateLogsProcessor(ctx, processorSettings, processorConfig, consumer)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create logs processor %s: %w", processorConfig.ID().String(), err)
+			return nil, fmt.Errorf("failed to create logs processor %s: %w", set.ID.String(), err)
 		}
 		processors = append(processors, processor)
 		consumer = processor
@@ -160,7 +158,7 @@ func createTracesExporter(ctx context.Context, set component.ExporterCreateSetti
 	}
 
 	processors := []component.TracesProcessor{}
-	processorConfigs := []component.ProcessorConfig{
+	processorConfigs := []component.Config{
 		exporterConfig.BatchConfig,
 	}
 
@@ -175,11 +173,10 @@ func createTracesExporter(ctx context.Context, set component.ExporterCreateSetti
 
 	var consumer consumer.Traces = gcpExporter
 	for i, processorConfig := range processorConfigs {
-		processorConfig.SetIDName(exporterConfig.ID().String())
 		factory := processorFactories[i]
 		processor, err := factory.CreateTracesProcessor(ctx, processorSettings, processorConfig, consumer)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create traces processor %s: %w", processorConfig.ID().String(), err)
+			return nil, fmt.Errorf("failed to create traces processor %s: %w", set.ID.String(), err)
 		}
 		processors = append(processors, processor)
 		consumer = processor

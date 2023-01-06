@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/otelcol"
-	"go.opentelemetry.io/collector/service"
+	"go.opentelemetry.io/collector/receiver"
 	"go.uber.org/zap"
 )
 
@@ -54,7 +54,7 @@ func TestReceiverGetFactoryFailure(t *testing.T) {
 }
 
 func TestReceiverCreateServiceFailure(t *testing.T) {
-	nopFactory := component.NewReceiverFactory("nop", nil)
+	nopFactory := receiver.NewFactory("nop", nil)
 	ctx := context.Background()
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
@@ -72,7 +72,7 @@ func TestReceiverCreateServiceFailure(t *testing.T) {
 		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
-		createService: func(factories component.Factories, configProvider service.ConfigProvider, logger *zap.Logger) (Service, error) {
+		createService: func(factories component.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
 			return nil, errors.New("failure")
 		},
 	}
@@ -83,7 +83,7 @@ func TestReceiverCreateServiceFailure(t *testing.T) {
 }
 
 func TestReceiverStartServiceFailure(t *testing.T) {
-	nopFactory := component.NewReceiverFactory("nop", nil)
+	nopFactory := receiver.NewFactory("nop", nil)
 	ctx := context.Background()
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
@@ -105,7 +105,7 @@ func TestReceiverStartServiceFailure(t *testing.T) {
 		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
-		createService: func(factories component.Factories, configProvider service.ConfigProvider, logger *zap.Logger) (Service, error) {
+		createService: func(factories component.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
 			return svc, nil
 		},
 	}
@@ -116,7 +116,7 @@ func TestReceiverStartServiceFailure(t *testing.T) {
 }
 
 func TestReceiverStartServiceContext(t *testing.T) {
-	nopFactory := component.NewReceiverFactory("nop", nil)
+	nopFactory := receiver.NewFactory("nop", nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -140,7 +140,7 @@ func TestReceiverStartServiceContext(t *testing.T) {
 		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
-		createService: func(factories component.Factories, configProvider service.ConfigProvider, logger *zap.Logger) (Service, error) {
+		createService: func(factories component.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
 			return svc, nil
 		},
 	}
@@ -151,7 +151,7 @@ func TestReceiverStartServiceContext(t *testing.T) {
 }
 
 func TestReceiverStartSuccess(t *testing.T) {
-	nopFactory := component.NewReceiverFactory("nop", nil)
+	nopFactory := receiver.NewFactory("nop", nil)
 	ctx := context.Background()
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
@@ -173,7 +173,7 @@ func TestReceiverStartSuccess(t *testing.T) {
 		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
-		createService: func(factories component.Factories, configProvider service.ConfigProvider, logger *zap.Logger) (Service, error) {
+		createService: func(factories component.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
 			return svc, nil
 		},
 	}
@@ -202,14 +202,14 @@ type MockService struct {
 }
 
 // GetState provides a mock function with given fields:
-func (_m *MockService) GetState() service.State {
+func (_m *MockService) GetState() otelcol.State {
 	ret := _m.Called()
 
-	var r0 service.State
-	if rf, ok := ret.Get(0).(func() service.State); ok {
+	var r0 otelcol.State
+	if rf, ok := ret.Get(0).(func() otelcol.State); ok {
 		r0 = rf()
 	} else {
-		r0 = ret.Get(0).(service.State)
+		r0 = ret.Get(0).(otelcol.State)
 	}
 
 	return r0

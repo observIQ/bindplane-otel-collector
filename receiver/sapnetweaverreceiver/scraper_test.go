@@ -28,6 +28,7 @@ import (
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configtls"
+	"go.opentelemetry.io/collector/receiver/receivertest"
 	"go.uber.org/multierr"
 
 	"github.com/observiq/observiq-otel-collector/receiver/sapnetweaverreceiver/internal/mocks"
@@ -120,7 +121,7 @@ func TestScraperScrape(t *testing.T) {
 	testClient, err := newSoapClient(cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
 	require.NoError(t, err)
 
-	scraper := newSapNetweaverScraper(componenttest.NewNopReceiverCreateSettings(), createDefaultConfig().(*Config))
+	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), createDefaultConfig().(*Config))
 	scraper.service = &mockService
 	scraper.client = testClient
 
@@ -241,7 +242,7 @@ func TestScraperScrapeHyphenResponse(t *testing.T) {
 	testClient, err := newSoapClient(cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
 	require.NoError(t, err)
 
-	scraper := newSapNetweaverScraper(componenttest.NewNopReceiverCreateSettings(), createDefaultConfig().(*Config))
+	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), createDefaultConfig().(*Config))
 	scraper.service = &mockService
 	scraper.client = testClient
 
@@ -301,7 +302,7 @@ func TestScraperScrapeUnknownResponse(t *testing.T) {
 	testClient, err := newSoapClient(cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
 	require.NoError(t, err)
 
-	scraper := newSapNetweaverScraper(componenttest.NewNopReceiverCreateSettings(), createDefaultConfig().(*Config))
+	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), createDefaultConfig().(*Config))
 	scraper.service = &mockService
 	scraper.client = testClient
 
@@ -344,7 +345,7 @@ func TestScraperScrapeAPIError(t *testing.T) {
 	testClient, err := newSoapClient(cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
 	require.NoError(t, err)
 
-	scraper := newSapNetweaverScraper(componenttest.NewNopReceiverCreateSettings(), createDefaultConfig().(*Config))
+	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), createDefaultConfig().(*Config))
 	scraper.service = &mockService
 	scraper.client = testClient
 
@@ -377,7 +378,7 @@ func TestScraperScrapeEmptyXML(t *testing.T) {
 	testClient, err := newSoapClient(cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
 	require.NoError(t, err)
 
-	scraper := newSapNetweaverScraper(componenttest.NewNopReceiverCreateSettings(), createDefaultConfig().(*Config))
+	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), createDefaultConfig().(*Config))
 	scraper.service = &mockService
 	scraper.client = testClient
 

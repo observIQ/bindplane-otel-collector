@@ -154,7 +154,6 @@ func TestCreateTracesReceiver(t *testing.T) {
 
 func TestCreateDefaultConfig(t *testing.T) {
 	config := createDefaultConfig()
-	require.Equal(t, typeStr, config.ID().String())
 
 	pluginConfig, ok := config.(*Config)
 	require.True(t, ok)

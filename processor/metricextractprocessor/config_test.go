@@ -18,7 +18,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/component"
 )
 
 func TestCreateDefaultProcessorConfig(t *testing.T) {
@@ -26,7 +25,6 @@ func TestCreateDefaultProcessorConfig(t *testing.T) {
 	require.Equal(t, defaultMatch, cfg.Match)
 	require.Equal(t, defaultMetricName, cfg.MetricName)
 	require.Equal(t, defaultMetricUnit, cfg.MetricUnit)
-	require.Equal(t, component.NewID(typeStr), cfg.ProcessorSettings.ID())
 }
 
 func TestConfigValidate(t *testing.T) {

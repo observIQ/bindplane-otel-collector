@@ -23,8 +23,8 @@ import (
 	"go.opentelemetry.io/collector/confmap/provider/yamlprovider"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/extension"
+	"go.opentelemetry.io/collector/otelcol"
 	"go.opentelemetry.io/collector/receiver"
-	"go.opentelemetry.io/collector/service"
 	"gopkg.in/yaml.v2"
 )
 
@@ -84,7 +84,7 @@ func NewRenderedConfig(yamlBytes []byte) (*RenderedConfig, error) {
 }
 
 // GetConfigProvider returns a config provider for the rendered config
-func (r *RenderedConfig) GetConfigProvider() (service.ConfigProvider, error) {
+func (r *RenderedConfig) GetConfigProvider() (otelcol.ConfigProvider, error) {
 	bytes, err := yaml.Marshal(r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal config as bytes: %w", err)
@@ -93,7 +93,7 @@ func (r *RenderedConfig) GetConfigProvider() (service.ConfigProvider, error) {
 	location := fmt.Sprintf("yaml:%s", bytes)
 	provider := yamlprovider.New()
 	converter := expandconverter.New()
-	settings := service.ConfigProviderSettings{
+	settings := otelcol.ConfigProviderSettings{
 		ResolverSettings: confmap.ResolverSettings{
 			URIs:       []string{location},
 			Providers:  map[string]confmap.Provider{provider.Scheme(): provider},
@@ -101,7 +101,7 @@ func (r *RenderedConfig) GetConfigProvider() (service.ConfigProvider, error) {
 		},
 	}
 
-	return service.NewConfigProvider(settings)
+	return otelcol.NewConfigProvider(settings)
 }
 
 // GetRequiredFactories finds and returns the factories required for the rendered config

@@ -28,10 +28,10 @@ import (
 
 func TestGetRequiredFactories(t *testing.T) {
 	testType := component.Type("test")
-	extensionFactory := component.NewExtensionFactory(testType, nil, createExtension, component.StabilityLevelAlpha)
-	receiverFactory := component.NewReceiverFactory(testType, nil)
+	extensionFactory := extension.NewFactory(testType, nil, createExtension, component.StabilityLevelAlpha)
+	receiverFactory := receiver.NewFactory(testType, nil)
 	processorFactory := component.NewProcessorFactory(testType, nil)
-	emitterFactory := component.NewExporterFactory(testType, nil)
+	emitterFactory := exporter.NewFactory(testType, nil)
 	host := &MockHost{}
 	host.On("GetFactory", component.KindReceiver, testType).Return(receiverFactory)
 	host.On("GetFactory", component.KindProcessor, testType).Return(processorFactory)
@@ -202,7 +202,7 @@ func (_m *MockHost) ReportFatalError(err error) {
 func createExtension(
 	_ context.Context,
 	_ component.ExtensionCreateSettings,
-	_ component.ExtensionConfig,
+	_ component.Config,
 ) (component.Extension, error) {
 	return nil, nil
 }
