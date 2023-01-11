@@ -25,6 +25,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/processor"
 	"go.uber.org/zap"
 )
 
@@ -327,7 +328,7 @@ func TestProcessorExtractMetrics(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			factory := NewFactory()
-			p, err := factory.CreateLogsProcessor(context.Background(), component.ProcessorCreateSettings{TelemetrySettings: component.TelemetrySettings{Logger: zap.NewNop()}}, tc.cfg, nil)
+			p, err := factory.CreateLogsProcessor(context.Background(), processor.CreateSettings{TelemetrySettings: component.TelemetrySettings{Logger: zap.NewNop()}}, tc.cfg, nil)
 			require.NoError(t, err)
 
 			processor := p.(*extractProcessor)

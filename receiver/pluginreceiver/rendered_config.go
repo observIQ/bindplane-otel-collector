@@ -24,6 +24,7 @@ import (
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/extension"
 	"go.opentelemetry.io/collector/otelcol"
+	"go.opentelemetry.io/collector/processor"
 	"go.opentelemetry.io/collector/receiver"
 	"gopkg.in/yaml.v2"
 )
@@ -105,7 +106,7 @@ func (r *RenderedConfig) GetConfigProvider() (otelcol.ConfigProvider, error) {
 }
 
 // GetRequiredFactories finds and returns the factories required for the rendered config
-func (r *RenderedConfig) GetRequiredFactories(host component.Host, emitterFactory exporter.Factory) (*component.Factories, error) {
+func (r *RenderedConfig) GetRequiredFactories(host component.Host, emitterFactory exporter.Factory) (*otelcol.Factories, error) {
 	receiverFactories, err := r.getReceiverFactories(host)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get receiver factories: %w", err)
@@ -125,7 +126,7 @@ func (r *RenderedConfig) GetRequiredFactories(host component.Host, emitterFactor
 		emitterFactory.Type(): emitterFactory,
 	}
 
-	return &component.Factories{
+	return &otelcol.Factories{
 		Receivers:  receiverFactories,
 		Processors: processorFactories,
 		Exporters:  exporterFactories,
@@ -158,8 +159,8 @@ func (r *RenderedConfig) getReceiverFactories(host component.Host) (map[componen
 }
 
 // getProcessorFactories returns the processor factories required for the rendered config
-func (r *RenderedConfig) getProcessorFactories(host component.Host) (map[component.Type]component.ProcessorFactory, error) {
-	factories := map[component.Type]component.ProcessorFactory{}
+func (r *RenderedConfig) getProcessorFactories(host component.Host) (map[component.Type]processor.Factory, error) {
+	factories := map[component.Type]processor.Factory{}
 	for processorID := range r.Processors {
 		processorType, err := parseComponentType(processorID)
 		if err != nil {
@@ -170,7 +171,7 @@ func (r *RenderedConfig) getProcessorFactories(host component.Host) (map[compone
 		}
 
 		factory := host.GetFactory(component.KindProcessor, processorType)
-		processorFactory, ok := factory.(component.ProcessorFactory)
+		processorFactory, ok := factory.(processor.Factory)
 		if !ok {
 			return nil, fmt.Errorf("processor factory %s is missing from host", processorType)
 		}

@@ -19,7 +19,6 @@ import (
 
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"
@@ -34,7 +33,7 @@ const (
 )
 
 // NewFactory creates a factory for SAP Netweaver receiver.
-func NewFactory() component.ReceiverFactory {
+func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
 		typeStr,
 		createDefaultConfig,
@@ -44,7 +43,6 @@ func NewFactory() component.ReceiverFactory {
 func createDefaultConfig() component.Config {
 	return &Config{
 		ScraperControllerSettings: scraperhelper.ScraperControllerSettings{
-			ReceiverSettings:   config.NewReceiverSettings(component.NewID(typeStr)),
 			CollectionInterval: 60 * time.Second,
 		},
 		HTTPClientSettings: confighttp.HTTPClientSettings{
@@ -59,10 +57,10 @@ var errConfigNotNetweaver = errors.New("config was not an sapnetweaver receiver 
 
 func createMetricsReceiver(
 	_ context.Context,
-	params component.ReceiverCreateSettings,
+	params receiver.CreateSettings,
 	rConf component.Config,
 	consumer consumer.Metrics,
-) (component.MetricsReceiver, error) {
+) (receiver.Metrics, error) {
 	cfg, ok := rConf.(*Config)
 	if !ok {
 		return nil, errConfigNotNetweaver

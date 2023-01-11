@@ -17,17 +17,13 @@ package routereceiver
 
 import (
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 )
 
 // Config is the config of the route receiver.
 type Config struct {
-	config.ReceiverSettings `mapstructure:",squash"`
 }
 
 // createDefaultConfig returns the default config for the route receiver.
 func createDefaultConfig() component.Config {
-	return &Config{
-		ReceiverSettings: config.NewReceiverSettings(component.NewID(typeStr)),
-	}
+	return &Config{}
 }

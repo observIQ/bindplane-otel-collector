@@ -19,8 +19,8 @@ import (
 	"errors"
 
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/processor"
 	"go.opentelemetry.io/collector/processor/processorhelper"
 )
 
@@ -41,31 +41,30 @@ var (
 )
 
 // NewFactory creates a new ProcessorFactory with default configuration
-func NewFactory() component.ProcessorFactory {
-	return component.NewProcessorFactory(
+func NewFactory() processor.Factory {
+	return processor.NewFactory(
 		typeStr,
 		createDefaultConfig,
-		component.WithTracesProcessor(createTracesProcessor, stability),
-		component.WithLogsProcessor(createLogsProcessor, stability),
-		component.WithMetricsProcessor(createMetricsProcessor, stability),
+		processor.WithTraces(createTracesProcessor, stability),
+		processor.WithLogs(createLogsProcessor, stability),
+		processor.WithMetrics(createMetricsProcessor, stability),
 	)
 }
 
 // createDefaultConfig creates a default config for the mask processor.
 func createDefaultConfig() component.Config {
 	return &Config{
-		ProcessorSettings: config.NewProcessorSettings(component.NewID(typeStr)),
-		Rules:             defaultRules,
+		Rules: defaultRules,
 	}
 }
 
 // createTracesProcessor creates a mask processor for traces.
 func createTracesProcessor(
 	ctx context.Context,
-	set component.ProcessorCreateSettings,
+	set processor.CreateSettings,
 	cfg component.Config,
 	nextConsumer consumer.Traces,
-) (component.TracesProcessor, error) {
+) (processor.Traces, error) {
 	maskCfg, ok := cfg.(*Config)
 	if !ok {
 		return nil, errInvalidConfigType
@@ -85,10 +84,10 @@ func createTracesProcessor(
 // createLogsProcessor creates a mask processor for logs.
 func createLogsProcessor(
 	ctx context.Context,
-	set component.ProcessorCreateSettings,
+	set processor.CreateSettings,
 	cfg component.Config,
 	nextConsumer consumer.Logs,
-) (component.LogsProcessor, error) {
+) (processor.Logs, error) {
 	maskCfg, ok := cfg.(*Config)
 	if !ok {
 		return nil, errInvalidConfigType
@@ -108,10 +107,10 @@ func createLogsProcessor(
 // createMetricsProcessor creates a mask processor for metrics.
 func createMetricsProcessor(
 	ctx context.Context,
-	set component.ProcessorCreateSettings,
+	set processor.CreateSettings,
 	cfg component.Config,
 	nextConsumer consumer.Metrics,
-) (component.MetricsProcessor, error) {
+) (processor.Metrics, error) {
 	maskCfg, ok := cfg.(*Config)
 	if !ok {
 		return nil, errInvalidConfigType

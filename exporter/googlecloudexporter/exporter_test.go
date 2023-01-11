@@ -27,6 +27,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
+	"go.opentelemetry.io/collector/processor"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 )
 
@@ -83,28 +84,28 @@ func TestExporterStart(t *testing.T) {
 		{
 			name: "Successful metrics",
 			exporter: &googlecloudExporter{
-				metricsProcessors: []component.MetricsProcessor{createValidProcessor()},
+				metricsProcessors: []processor.Metrics{createValidProcessor()},
 				metricsExporter:   createValidExporter(),
 			},
 		},
 		{
 			name: "Successful traces",
 			exporter: &googlecloudExporter{
-				tracesProcessors: []component.TracesProcessor{createValidProcessor()},
+				tracesProcessors: []processor.Traces{createValidProcessor()},
 				tracesExporter:   createValidExporter(),
 			},
 		},
 		{
 			name: "Successful logs",
 			exporter: &googlecloudExporter{
-				logsProcessors: []component.LogsProcessor{createValidProcessor()},
+				logsProcessors: []processor.Logs{createValidProcessor()},
 				logsExporter:   createValidExporter(),
 			},
 		},
 		{
 			name: "Failing metrics processor",
 			exporter: &googlecloudExporter{
-				metricsProcessors: []component.MetricsProcessor{
+				metricsProcessors: []processor.Metrics{
 					createValidProcessor(),
 					createFailingProcessor(),
 				},
@@ -115,7 +116,7 @@ func TestExporterStart(t *testing.T) {
 		{
 			name: "Failing traces processor",
 			exporter: &googlecloudExporter{
-				tracesProcessors: []component.TracesProcessor{
+				tracesProcessors: []processor.Traces{
 					createValidProcessor(),
 					createFailingProcessor(),
 				},
@@ -126,7 +127,7 @@ func TestExporterStart(t *testing.T) {
 		{
 			name: "Failing logs processor",
 			exporter: &googlecloudExporter{
-				logsProcessors: []component.LogsProcessor{
+				logsProcessors: []processor.Logs{
 					createValidProcessor(),
 					createFailingProcessor(),
 				},
@@ -137,7 +138,7 @@ func TestExporterStart(t *testing.T) {
 		{
 			name: "Failing metrics exporter",
 			exporter: &googlecloudExporter{
-				metricsProcessors: []component.MetricsProcessor{
+				metricsProcessors: []processor.Metrics{
 					createValidProcessor(),
 					createValidProcessor(),
 				},
@@ -148,7 +149,7 @@ func TestExporterStart(t *testing.T) {
 		{
 			name: "Failing traces exporter",
 			exporter: &googlecloudExporter{
-				tracesProcessors: []component.TracesProcessor{
+				tracesProcessors: []processor.Traces{
 					createValidProcessor(),
 					createValidProcessor(),
 				},
@@ -159,7 +160,7 @@ func TestExporterStart(t *testing.T) {
 		{
 			name: "Failing logs exporter",
 			exporter: &googlecloudExporter{
-				logsProcessors: []component.LogsProcessor{
+				logsProcessors: []processor.Logs{
 					createValidProcessor(),
 					createValidProcessor(),
 				},
@@ -193,28 +194,28 @@ func TestExporterShutdown(t *testing.T) {
 		{
 			name: "Successful metrics",
 			exporter: &googlecloudExporter{
-				metricsProcessors: []component.MetricsProcessor{createValidProcessor()},
+				metricsProcessors: []processor.Metrics{createValidProcessor()},
 				metricsExporter:   createValidExporter(),
 			},
 		},
 		{
 			name: "Successful traces",
 			exporter: &googlecloudExporter{
-				tracesProcessors: []component.TracesProcessor{createValidProcessor()},
+				tracesProcessors: []processor.Traces{createValidProcessor()},
 				tracesExporter:   createValidExporter(),
 			},
 		},
 		{
 			name: "Successful logs",
 			exporter: &googlecloudExporter{
-				logsProcessors: []component.LogsProcessor{createValidProcessor()},
+				logsProcessors: []processor.Logs{createValidProcessor()},
 				logsExporter:   createValidExporter(),
 			},
 		},
 		{
 			name: "Failing metrics processor",
 			exporter: &googlecloudExporter{
-				metricsProcessors: []component.MetricsProcessor{
+				metricsProcessors: []processor.Metrics{
 					createValidProcessor(),
 					createFailingProcessor(),
 				},
@@ -225,7 +226,7 @@ func TestExporterShutdown(t *testing.T) {
 		{
 			name: "Failing traces processor",
 			exporter: &googlecloudExporter{
-				tracesProcessors: []component.TracesProcessor{
+				tracesProcessors: []processor.Traces{
 					createValidProcessor(),
 					createFailingProcessor(),
 				},
@@ -236,7 +237,7 @@ func TestExporterShutdown(t *testing.T) {
 		{
 			name: "Failing logs processor",
 			exporter: &googlecloudExporter{
-				logsProcessors: []component.LogsProcessor{
+				logsProcessors: []processor.Logs{
 					createValidProcessor(),
 					createFailingProcessor(),
 				},
@@ -247,7 +248,7 @@ func TestExporterShutdown(t *testing.T) {
 		{
 			name: "Failing metrics exporter",
 			exporter: &googlecloudExporter{
-				metricsProcessors: []component.MetricsProcessor{
+				metricsProcessors: []processor.Metrics{
 					createValidProcessor(),
 					createValidProcessor(),
 				},
@@ -258,7 +259,7 @@ func TestExporterShutdown(t *testing.T) {
 		{
 			name: "Failing traces exporter",
 			exporter: &googlecloudExporter{
-				tracesProcessors: []component.TracesProcessor{
+				tracesProcessors: []processor.Traces{
 					createValidProcessor(),
 					createValidProcessor(),
 				},
@@ -269,7 +270,7 @@ func TestExporterShutdown(t *testing.T) {
 		{
 			name: "Failing logs exporter",
 			exporter: &googlecloudExporter{
-				logsProcessors: []component.LogsProcessor{
+				logsProcessors: []processor.Logs{
 					createValidProcessor(),
 					createValidProcessor(),
 				},

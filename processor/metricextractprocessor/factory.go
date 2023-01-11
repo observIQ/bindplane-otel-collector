@@ -21,6 +21,7 @@ import (
 	"github.com/observiq/observiq-otel-collector/internal/expr"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/processor"
 )
 
 const (
@@ -32,16 +33,16 @@ const (
 )
 
 // NewFactory creates a new factory for the processor.
-func NewFactory() component.ProcessorFactory {
-	return component.NewProcessorFactory(
+func NewFactory() processor.Factory {
+	return processor.NewFactory(
 		typeStr,
 		createDefaultConfig,
-		component.WithLogsProcessor(createLogsProcessor, stability),
+		processor.WithLogs(createLogsProcessor, stability),
 	)
 }
 
 // createLogsProcessor creates a log processor.
-func createLogsProcessor(_ context.Context, params component.ProcessorCreateSettings, cfg component.Config, consumer consumer.Logs) (component.LogsProcessor, error) {
+func createLogsProcessor(_ context.Context, params processor.CreateSettings, cfg component.Config, consumer consumer.Logs) (processor.Logs, error) {
 	processorCfg, ok := cfg.(*Config)
 	if !ok {
 		return nil, fmt.Errorf("invalid config type: %+v", cfg)

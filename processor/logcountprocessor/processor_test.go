@@ -25,6 +25,7 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/processor"
 	"go.opentelemetry.io/collector/receiver"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -32,7 +33,7 @@ import (
 )
 
 func TestProcessorCapabilities(t *testing.T) {
-	p := &processor{}
+	p := &logCountProcessor{}
 	require.Equal(t, consumer.Capabilities{MutatesData: false}, p.Capabilities())
 }
 
@@ -49,7 +50,7 @@ func TestConsumeLogs(t *testing.T) {
 	}
 
 	processorFactory := NewFactory()
-	processorSettings := component.ProcessorCreateSettings{TelemetrySettings: component.TelemetrySettings{Logger: zap.NewNop()}}
+	processorSettings := processor.CreateSettings{TelemetrySettings: component.TelemetrySettings{Logger: zap.NewNop()}}
 	processor, err := processorFactory.CreateLogsProcessor(context.Background(), processorSettings, processorCfg, logConsumer)
 	require.NoError(t, err)
 
@@ -99,11 +100,11 @@ func TestConsumeLogsWithoutReceiver(t *testing.T) {
 	logger := NewTestLogger()
 	processorCfg := createDefaultConfig().(*Config)
 	processorFactory := NewFactory()
-	processorSettings := component.ProcessorCreateSettings{TelemetrySettings: component.TelemetrySettings{Logger: logger.Logger}}
+	processorSettings := processor.CreateSettings{TelemetrySettings: component.TelemetrySettings{Logger: logger.Logger}}
 	p, err := processorFactory.CreateLogsProcessor(context.Background(), processorSettings, processorCfg, &LogConsumer{})
 	require.NoError(t, err)
 
-	logCountProcessor := p.(*processor)
+	logCountProcessor := p.(*logCountProcessor)
 	logCountProcessor.counter.Add(map[string]any{"resource": "test1"}, map[string]any{"attribute": "test2"})
 	logCountProcessor.sendMetrics(context.Background())
 	require.Contains(t, logger.buffer.String(), "Failed to send metrics")

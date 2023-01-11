@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
+	"go.opentelemetry.io/collector/processor"
 )
 
 func TestNewProcessorFactory(t *testing.T) {
@@ -40,24 +40,21 @@ func TestCreateLogsProcessor(t *testing.T) {
 		{
 			name: "valid config",
 			cfg: &Config{
-				ProcessorSettings: config.ProcessorSettings{},
-				Match:             "true",
+				Match: "true",
 			},
 		},
 		{
 			name: "invalid match",
 			cfg: &Config{
-				ProcessorSettings: config.ProcessorSettings{},
-				Match:             "++",
+				Match: "++",
 			},
 			expectedErr: "invalid match expression",
 		},
 		{
 			name: "invalid attribute",
 			cfg: &Config{
-				ProcessorSettings: config.ProcessorSettings{},
-				Match:             "true",
-				Attributes:        map[string]string{"a": "++"},
+				Match:      "true",
+				Attributes: map[string]string{"a": "++"},
 			},
 			expectedErr: "invalid attribute expression",
 		},
@@ -71,10 +68,10 @@ func TestCreateLogsProcessor(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			f := NewFactory()
-			p, err := f.CreateLogsProcessor(context.Background(), component.ProcessorCreateSettings{}, tc.cfg, nil)
+			p, err := f.CreateLogsProcessor(context.Background(), processor.CreateSettings{}, tc.cfg, nil)
 			if tc.expectedErr == "" {
 				require.NoError(t, err)
-				require.IsType(t, &processor{}, p)
+				require.IsType(t, &logCountProcessor{}, p)
 			} else {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr)

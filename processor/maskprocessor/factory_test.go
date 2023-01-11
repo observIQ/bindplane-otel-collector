@@ -19,10 +19,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/component/componenttest"
-	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer/consumertest"
+	"go.opentelemetry.io/collector/processor/processortest"
 )
 
 func TestNewFactory(t *testing.T) {
@@ -30,8 +28,7 @@ func TestNewFactory(t *testing.T) {
 	require.Equal(t, typeStr, string(factory.Type()))
 
 	expectedCfg := &Config{
-		ProcessorSettings: config.NewProcessorSettings(component.NewID(typeStr)),
-		Rules:             defaultRules,
+		Rules: defaultRules,
 	}
 
 	cfg, ok := factory.CreateDefaultConfig().(*Config)
@@ -40,37 +37,37 @@ func TestNewFactory(t *testing.T) {
 }
 
 func TestCreateLogsProcessorNilConfig(t *testing.T) {
-	_, err := createLogsProcessor(context.Background(), componenttest.NewNopProcessorCreateSettings(), nil, consumertest.NewNop())
+	_, err := createLogsProcessor(context.Background(), processortest.NewNopCreateSettings(), nil, consumertest.NewNop())
 	require.Error(t, err)
 }
 
 func TestCreateMetricsProcessorNilConfig(t *testing.T) {
-	_, err := createMetricsProcessor(context.Background(), componenttest.NewNopProcessorCreateSettings(), nil, consumertest.NewNop())
+	_, err := createMetricsProcessor(context.Background(), processortest.NewNopCreateSettings(), nil, consumertest.NewNop())
 	require.Error(t, err)
 }
 
 func TestCreateTracesProcessorNilConfig(t *testing.T) {
-	_, err := createTracesProcessor(context.Background(), componenttest.NewNopProcessorCreateSettings(), nil, consumertest.NewNop())
+	_, err := createTracesProcessor(context.Background(), processortest.NewNopCreateSettings(), nil, consumertest.NewNop())
 	require.Error(t, err)
 }
 
 func TestCreateLogsProcessor(t *testing.T) {
 	cfg := createDefaultConfig()
-	p, err := createLogsProcessor(context.Background(), componenttest.NewNopProcessorCreateSettings(), cfg, consumertest.NewNop())
+	p, err := createLogsProcessor(context.Background(), processortest.NewNopCreateSettings(), cfg, consumertest.NewNop())
 	require.NotNil(t, p)
 	require.NoError(t, err)
 }
 
 func TestCreateMetricsProcessor(t *testing.T) {
 	cfg := createDefaultConfig()
-	p, err := createMetricsProcessor(context.Background(), componenttest.NewNopProcessorCreateSettings(), cfg, consumertest.NewNop())
+	p, err := createMetricsProcessor(context.Background(), processortest.NewNopCreateSettings(), cfg, consumertest.NewNop())
 	require.NotNil(t, p)
 	require.NoError(t, err)
 }
 
 func TestCreateTracesProcessor(t *testing.T) {
 	cfg := createDefaultConfig()
-	p, err := createTracesProcessor(context.Background(), componenttest.NewNopProcessorCreateSettings(), cfg, consumertest.NewNop())
+	p, err := createTracesProcessor(context.Background(), processortest.NewNopCreateSettings(), cfg, consumertest.NewNop())
 	require.NotNil(t, p)
 	require.NoError(t, err)
 }

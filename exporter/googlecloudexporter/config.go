@@ -24,7 +24,6 @@ import (
 	"github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/collector"
 	gcp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/processor/batchprocessor"
 	"go.uber.org/multierr"
 	"google.golang.org/api/option"
@@ -37,12 +36,11 @@ const (
 
 // Config is the config the google cloud exporter
 type Config struct {
-	config.ExporterSettings `mapstructure:",squash"`
-	Credentials             string                 `mapstructure:"credentials"`
-	CredentialsFile         string                 `mapstructure:"credentials_file"`
-	AppendHost              bool                   `mapstructure:"append_host"`
-	GCPConfig               *gcp.Config            `mapstructure:",squash"`
-	BatchConfig             *batchprocessor.Config `mapstructure:"batch"`
+	Credentials     string                 `mapstructure:"credentials"`
+	CredentialsFile string                 `mapstructure:"credentials_file"`
+	AppendHost      bool                   `mapstructure:"append_host"`
+	GCPConfig       *gcp.Config            `mapstructure:",squash"`
+	BatchConfig     *batchprocessor.Config `mapstructure:"batch"`
 }
 
 // Validate validates the config
@@ -122,10 +120,9 @@ func (c *Config) updateProjectFromFile(fileName string) error {
 // createDefaultConfig creates the default config for the exporter
 func createDefaultConfig() component.Config {
 	return &Config{
-		ExporterSettings: config.NewExporterSettings(component.NewID(typeStr)),
-		GCPConfig:        createDefaultGCPConfig(),
-		BatchConfig:      createDefaultBatchConfig(),
-		AppendHost:       true,
+		GCPConfig:   createDefaultGCPConfig(),
+		BatchConfig: createDefaultBatchConfig(),
+		AppendHost:  true,
 	}
 }
 

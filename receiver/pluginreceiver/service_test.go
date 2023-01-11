@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/otelcol"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -38,7 +38,7 @@ func TestCreateService(t *testing.T) {
 	configProvider, err := renderedCfg.GetConfigProvider()
 	require.NoError(t, err)
 
-	factories := component.Factories{}
+	factories := otelcol.Factories{}
 	logger := zap.NewNop()
 	_, err = createService(factories, configProvider, logger)
 	require.NoError(t, err)

@@ -29,8 +29,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// processor is a processor that counts logs.
-type processor struct {
+// logCountProcessor is a processor that counts logs.
+type logCountProcessor struct {
 	config   *Config
 	match    *expr.Expression
 	attrs    *expr.ExpressionMap
@@ -43,8 +43,8 @@ type processor struct {
 }
 
 // newProcessor returns a new processor.
-func newProcessor(config *Config, consumer consumer.Logs, match *expr.Expression, attrs *expr.ExpressionMap, logger *zap.Logger) *processor {
-	return &processor{
+func newProcessor(config *Config, consumer consumer.Logs, match *expr.Expression, attrs *expr.ExpressionMap, logger *zap.Logger) *logCountProcessor {
+	return &logCountProcessor{
 		config:   config,
 		match:    match,
 		attrs:    attrs,
@@ -55,7 +55,7 @@ func newProcessor(config *Config, consumer consumer.Logs, match *expr.Expression
 }
 
 // Start starts the processor.
-func (p *processor) Start(_ context.Context, _ component.Host) error {
+func (p *logCountProcessor) Start(_ context.Context, _ component.Host) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
 
@@ -66,19 +66,19 @@ func (p *processor) Start(_ context.Context, _ component.Host) error {
 }
 
 // Capabilities returns the consumer's capabilities.
-func (p *processor) Capabilities() consumer.Capabilities {
+func (p *logCountProcessor) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: false}
 }
 
 // Shutdown stops the processor.
-func (p *processor) Shutdown(_ context.Context) error {
+func (p *logCountProcessor) Shutdown(_ context.Context) error {
 	p.cancel()
 	p.wg.Wait()
 	return nil
 }
 
 // ConsumeLogs processes the logs.
-func (p *processor) ConsumeLogs(ctx context.Context, pl plog.Logs) error {
+func (p *logCountProcessor) ConsumeLogs(ctx context.Context, pl plog.Logs) error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
@@ -97,7 +97,7 @@ func (p *processor) ConsumeLogs(ctx context.Context, pl plog.Logs) error {
 }
 
 // handleMetricInterval sends metrics at the configured interval.
-func (p *processor) handleMetricInterval(ctx context.Context) {
+func (p *logCountProcessor) handleMetricInterval(ctx context.Context) {
 	ticker := time.NewTicker(p.config.Interval)
 	defer ticker.Stop()
 
@@ -113,7 +113,7 @@ func (p *processor) handleMetricInterval(ctx context.Context) {
 }
 
 // sendMetrics sends metrics to the consumer.
-func (p *processor) sendMetrics(ctx context.Context) {
+func (p *logCountProcessor) sendMetrics(ctx context.Context) {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
@@ -130,7 +130,7 @@ func (p *processor) sendMetrics(ctx context.Context) {
 }
 
 // createMetrics creates metrics from the counter.
-func (p *processor) createMetrics() pmetric.Metrics {
+func (p *logCountProcessor) createMetrics() pmetric.Metrics {
 	metrics := pmetric.NewMetrics()
 	for _, resource := range p.counter.resources {
 		resourceMetrics := metrics.ResourceMetrics().AppendEmpty()

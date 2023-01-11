@@ -17,7 +17,6 @@ package pluginreceiver
 import (
 	"context"
 
-	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/otelcol"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -31,7 +30,7 @@ type Service interface {
 }
 
 // createService creates a default Service for running an open telemetry pipeline
-func createService(factories component.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
+func createService(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
 	settings := otelcol.CollectorSettings{
 		Factories:               factories,
 		DisableGracefulShutdown: true,
@@ -52,4 +51,4 @@ func createServiceLoggerOpts(baseLogger *zap.Logger) []zap.Option {
 }
 
 // createServiceFunc is a function used to create a service
-type createServiceFunc = func(factories component.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error)
+type createServiceFunc = func(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error)

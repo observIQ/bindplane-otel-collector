@@ -23,6 +23,7 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter"
+	"go.opentelemetry.io/collector/processor"
 	"go.opentelemetry.io/collector/processor/batchprocessor"
 	"go.uber.org/zap"
 )
@@ -50,7 +51,7 @@ func NewFactory() exporter.Factory {
 }
 
 // createMetricsExporter creates a metrics exporter based on this config.
-func createMetricsExporter(ctx context.Context, set component.ExporterCreateSettings, cfg component.Config) (exporter.Metrics, error) {
+func createMetricsExporter(ctx context.Context, set exporter.CreateSettings, cfg component.Config) (exporter.Metrics, error) {
 	exporterConfig := cfg.(*Config)
 	exporterConfig.setClientOptions()
 
@@ -63,16 +64,16 @@ func createMetricsExporter(ctx context.Context, set component.ExporterCreateSett
 		return nil, fmt.Errorf("failed to create metrics exporter: %w", err)
 	}
 
-	processors := []component.MetricsProcessor{}
+	processors := []processor.Metrics{}
 	processorConfigs := []component.Config{
 		exporterConfig.BatchConfig,
 	}
 
-	processorFactories := []component.ProcessorFactory{
+	processorFactories := []processor.Factory{
 		batchprocessor.NewFactory(),
 	}
 
-	processorSettings := component.ProcessorCreateSettings{
+	processorSettings := processor.CreateSettings{
 		TelemetrySettings: set.TelemetrySettings,
 		BuildInfo:         set.BuildInfo,
 	}
@@ -97,7 +98,7 @@ func createMetricsExporter(ctx context.Context, set component.ExporterCreateSett
 }
 
 // createLogExporter creates a logs exporter based on this config.
-func createLogsExporter(ctx context.Context, set component.ExporterCreateSettings, cfg component.Config) (exporter.Logs, error) {
+func createLogsExporter(ctx context.Context, set exporter.CreateSettings, cfg component.Config) (exporter.Logs, error) {
 	exporterConfig := cfg.(*Config)
 	exporterConfig.setClientOptions()
 
@@ -110,16 +111,16 @@ func createLogsExporter(ctx context.Context, set component.ExporterCreateSetting
 		return nil, fmt.Errorf("failed to create logs exporter: %w", err)
 	}
 
-	processors := []component.LogsProcessor{}
+	processors := []processor.Logs{}
 	processorConfigs := []component.Config{
 		exporterConfig.BatchConfig,
 	}
 
-	processorFactories := []component.ProcessorFactory{
+	processorFactories := []processor.Factory{
 		batchprocessor.NewFactory(),
 	}
 
-	processorSettings := component.ProcessorCreateSettings{
+	processorSettings := processor.CreateSettings{
 		TelemetrySettings: set.TelemetrySettings,
 		BuildInfo:         set.BuildInfo,
 	}
@@ -144,7 +145,7 @@ func createLogsExporter(ctx context.Context, set component.ExporterCreateSetting
 }
 
 // createTracesExporter creates a traces exporter based on this config.
-func createTracesExporter(ctx context.Context, set component.ExporterCreateSettings, cfg component.Config) (exporter.Traces, error) {
+func createTracesExporter(ctx context.Context, set exporter.CreateSettings, cfg component.Config) (exporter.Traces, error) {
 	exporterConfig := cfg.(*Config)
 	exporterConfig.setClientOptions()
 
@@ -157,16 +158,16 @@ func createTracesExporter(ctx context.Context, set component.ExporterCreateSetti
 		return nil, fmt.Errorf("failed to create traces exporter: %w", err)
 	}
 
-	processors := []component.TracesProcessor{}
+	processors := []processor.Traces{}
 	processorConfigs := []component.Config{
 		exporterConfig.BatchConfig,
 	}
 
-	processorFactories := []component.ProcessorFactory{
+	processorFactories := []processor.Factory{
 		batchprocessor.NewFactory(),
 	}
 
-	processorSettings := component.ProcessorCreateSettings{
+	processorSettings := processor.CreateSettings{
 		TelemetrySettings: set.TelemetrySettings,
 		BuildInfo:         set.BuildInfo,
 	}

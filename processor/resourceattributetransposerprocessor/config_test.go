@@ -20,13 +20,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/component/componenttest"
-	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/otelcol/otelcoltest"
 )
 
 func TestConfig(t *testing.T) {
-	factories, err := componenttest.NopFactories()
+	factories, err := otelcoltest.NopFactories()
 	require.NoError(t, err)
 
 	factory := NewFactory()
@@ -45,7 +43,6 @@ func TestConfig(t *testing.T) {
 	customComponentID := component.NewIDWithName(typeStr, "customname")
 	r1 := cfg.Processors[customComponentID].(*Config)
 	require.Equal(t, &Config{
-		ProcessorSettings: config.NewProcessorSettings(customComponentID),
 		Operations: []CopyResourceConfig{
 			{
 				From: "some.resource.level.attr",

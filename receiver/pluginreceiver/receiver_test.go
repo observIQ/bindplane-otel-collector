@@ -22,7 +22,6 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/otelcol"
 	"go.opentelemetry.io/collector/receiver"
 	"go.uber.org/zap"
@@ -72,7 +71,7 @@ func TestReceiverCreateServiceFailure(t *testing.T) {
 		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
-		createService: func(factories component.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
+		createService: func(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
 			return nil, errors.New("failure")
 		},
 	}
@@ -105,7 +104,7 @@ func TestReceiverStartServiceFailure(t *testing.T) {
 		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
-		createService: func(factories component.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
+		createService: func(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
 			return svc, nil
 		},
 	}
@@ -140,7 +139,7 @@ func TestReceiverStartServiceContext(t *testing.T) {
 		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
-		createService: func(factories component.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
+		createService: func(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
 			return svc, nil
 		},
 	}
@@ -173,7 +172,7 @@ func TestReceiverStartSuccess(t *testing.T) {
 		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
-		createService: func(factories component.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
+		createService: func(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
 			return svc, nil
 		},
 	}

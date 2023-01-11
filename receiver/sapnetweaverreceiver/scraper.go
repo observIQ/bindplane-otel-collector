@@ -25,6 +25,7 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/receiver"
 	"go.opentelemetry.io/collector/receiver/scrapererror"
 
 	"github.com/observiq/observiq-otel-collector/receiver/sapnetweaverreceiver/internal/metadata"
@@ -42,7 +43,7 @@ type sapNetweaverScraper struct {
 }
 
 func newSapNetweaverScraper(
-	settings component.ReceiverCreateSettings,
+	settings receiver.CreateSettings,
 	cfg *Config,
 ) *sapNetweaverScraper {
 	a := &sapNetweaverScraper{

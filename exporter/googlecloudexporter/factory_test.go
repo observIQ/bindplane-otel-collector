@@ -31,7 +31,7 @@ func TestCreateMetricExporterSuccess(t *testing.T) {
 	gcpFactory = exporter.NewFactory(
 		typeStr,
 		gcpFactory.CreateDefaultConfig,
-		exporter.WithMetrics(func(_ context.Context, _ component.ExporterCreateSettings, _ component.Config) (exporter.Metrics, error) {
+		exporter.WithMetrics(func(_ context.Context, _ exporter.CreateSettings, _ component.Config) (exporter.Metrics, error) {
 			return mockExporter, nil
 		}, stability),
 	)
@@ -58,7 +58,7 @@ func TestCreateLogsExporterSuccess(t *testing.T) {
 	gcpFactory = exporter.NewFactory(
 		typeStr,
 		gcpFactory.CreateDefaultConfig,
-		exporter.WithLogs(func(_ context.Context, _ component.ExporterCreateSettings, _ component.Config) (exporter.Logs, error) {
+		exporter.WithLogs(func(_ context.Context, _ exporter.CreateSettings, _ component.Config) (exporter.Logs, error) {
 			return mockExporter, nil
 		}, stability),
 	)
@@ -85,7 +85,7 @@ func TestCreateTracesExporterSuccess(t *testing.T) {
 	gcpFactory = exporter.NewFactory(
 		typeStr,
 		gcpFactory.CreateDefaultConfig,
-		exporter.WithTraces(func(_ context.Context, _ component.ExporterCreateSettings, _ component.Config) (exporter.Traces, error) {
+		exporter.WithTraces(func(_ context.Context, _ exporter.CreateSettings, _ component.Config) (exporter.Traces, error) {
 			return mockExporter, nil
 		}, component.StabilityLevelUndefined),
 	)

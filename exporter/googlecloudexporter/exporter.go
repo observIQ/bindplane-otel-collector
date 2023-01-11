@@ -25,6 +25,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
+	"go.opentelemetry.io/collector/processor"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 
@@ -35,15 +36,15 @@ var hostname = getHostname()
 type googlecloudExporter struct {
 	appendHost bool
 
-	metricsProcessors []component.MetricsProcessor
+	metricsProcessors []processor.Metrics
 	metricsExporter   exporter.Metrics
 	metricsConsumer   consumer.Metrics
 
-	logsProcessors []component.LogsProcessor
+	logsProcessors []processor.Logs
 	logsExporter   exporter.Logs
 	logsConsumer   consumer.Logs
 
-	tracesProcessors []component.TracesProcessor
+	tracesProcessors []processor.Traces
 	tracesExporter   exporter.Traces
 	tracesConsumer   consumer.Traces
 }

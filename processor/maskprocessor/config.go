@@ -19,16 +19,12 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-
-	"go.opentelemetry.io/collector/config"
 )
 
 var errNoRules = errors.New("no rules defined")
 
 // Config is the configuration for the processor.
 type Config struct {
-	config.ProcessorSettings `mapstructure:",squash"`
-
 	// Rules are the rules used to mask values.
 	Rules map[string]string `mapstructure:"rules"`
 

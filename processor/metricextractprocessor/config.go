@@ -21,7 +21,6 @@ import (
 
 	"github.com/observiq/observiq-otel-collector/internal/expr"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 )
 
 const (
@@ -60,14 +59,13 @@ var (
 
 // Config is the config of the processor.
 type Config struct {
-	config.ProcessorSettings `mapstructure:",squash"`
-	Route                    string            `mapstructure:"route"`
-	Match                    string            `mapstructure:"match"`
-	Extract                  string            `mapstructure:"extract"`
-	MetricName               string            `mapstructure:"metric_name"`
-	MetricUnit               string            `mapstructure:"metric_unit"`
-	MetricType               string            `mapstructure:"metric_type"`
-	Attributes               map[string]string `mapstructure:"attributes"`
+	Route      string            `mapstructure:"route"`
+	Match      string            `mapstructure:"match"`
+	Extract    string            `mapstructure:"extract"`
+	MetricName string            `mapstructure:"metric_name"`
+	MetricUnit string            `mapstructure:"metric_unit"`
+	MetricType string            `mapstructure:"metric_type"`
+	Attributes map[string]string `mapstructure:"attributes"`
 }
 
 // Validate validates the config.
@@ -102,10 +100,9 @@ func (c Config) Validate() error {
 // createDefaultConfig returns the default config for the processor.
 func createDefaultConfig() component.Config {
 	return &Config{
-		ProcessorSettings: config.NewProcessorSettings(component.NewID(typeStr)),
-		MetricName:        defaultMetricName,
-		MetricUnit:        defaultMetricUnit,
-		MetricType:        defaultMetricType,
-		Match:             defaultMatch,
+		MetricName: defaultMetricName,
+		MetricUnit: defaultMetricUnit,
+		MetricType: defaultMetricType,
+		Match:      defaultMatch,
 	}
 }

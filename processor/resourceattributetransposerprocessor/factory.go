@@ -19,8 +19,8 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/processor"
 )
 
 const (
@@ -30,24 +30,22 @@ const (
 )
 
 // NewFactory returns a new factory for the resourceattributetransposer processor.
-func NewFactory() component.ProcessorFactory {
-	return component.NewProcessorFactory(
+func NewFactory() processor.Factory {
+	return processor.NewFactory(
 		typeStr,
 		createDefaultConfig,
-		component.WithMetricsProcessor(createMetricsProcessor, stability),
-		component.WithLogsProcessor(createLogsProcessor, stability),
+		processor.WithMetrics(createMetricsProcessor, stability),
+		processor.WithLogs(createLogsProcessor, stability),
 	)
 }
 
 // createDefaultConfig returns the default config for the resourceattributetransposer processor.
 func createDefaultConfig() component.Config {
-	return &Config{
-		ProcessorSettings: config.NewProcessorSettings(component.NewID(typeStr)),
-	}
+	return &Config{}
 }
 
 // createMetricsProcessor creates the resourceattributetransposer processor.
-func createMetricsProcessor(_ context.Context, params component.ProcessorCreateSettings, cfg component.Config, nextConsumer consumer.Metrics) (component.MetricsProcessor, error) {
+func createMetricsProcessor(_ context.Context, params processor.CreateSettings, cfg component.Config, nextConsumer consumer.Metrics) (processor.Metrics, error) {
 	processorCfg, ok := cfg.(*Config)
 	if !ok {
 		return nil, fmt.Errorf("config was not of correct type for the processor: %+v", cfg)
@@ -56,7 +54,7 @@ func createMetricsProcessor(_ context.Context, params component.ProcessorCreateS
 	return newMetricsProcessor(params.Logger, nextConsumer, processorCfg), nil
 }
 
-func createLogsProcessor(_ context.Context, params component.ProcessorCreateSettings, cfg component.Config, nextConsumer consumer.Logs) (component.LogsProcessor, error) {
+func createLogsProcessor(_ context.Context, params processor.CreateSettings, cfg component.Config, nextConsumer consumer.Logs) (processor.Logs, error) {
 	processorCfg, ok := cfg.(*Config)
 	if !ok {
 		return nil, fmt.Errorf("config was not of correct type for the processor: %+v", cfg)

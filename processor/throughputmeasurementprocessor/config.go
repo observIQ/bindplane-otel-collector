@@ -17,16 +17,12 @@ package throughputmeasurementprocessor
 
 import (
 	"errors"
-
-	"go.opentelemetry.io/collector/config"
 )
 
 var errInvalidSamplingRatio = errors.New("sampling_ratio must be between 0.0 and 1.0")
 
 // Config is the configuration for the processor
 type Config struct {
-	config.ProcessorSettings `mapstructure:",squash"`
-
 	// Enable controls whether measurements are taken or not.
 	Enabled bool `mapstructure:"enabled"`
 

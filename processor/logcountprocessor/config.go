@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 )
 
 const (
@@ -38,22 +37,20 @@ const (
 
 // Config is the config of the processor.
 type Config struct {
-	config.ProcessorSettings `mapstructure:",squash"`
-	Route                    string            `mapstructure:"route"`
-	MetricName               string            `mapstructure:"metric_name"`
-	MetricUnit               string            `mapstructure:"metric_unit"`
-	Interval                 time.Duration     `mapstructure:"interval"`
-	Match                    string            `mapstructure:"match"`
-	Attributes               map[string]string `mapstructure:"attributes"`
+	Route      string            `mapstructure:"route"`
+	MetricName string            `mapstructure:"metric_name"`
+	MetricUnit string            `mapstructure:"metric_unit"`
+	Interval   time.Duration     `mapstructure:"interval"`
+	Match      string            `mapstructure:"match"`
+	Attributes map[string]string `mapstructure:"attributes"`
 }
 
 // createDefaultConfig returns the default config for the processor.
 func createDefaultConfig() component.Config {
 	return &Config{
-		ProcessorSettings: config.NewProcessorSettings(component.NewID(typeStr)),
-		MetricName:        defaultMetricName,
-		MetricUnit:        defaultMetricUnit,
-		Interval:          defaultInterval,
-		Match:             defaultMatch,
+		MetricName: defaultMetricName,
+		MetricUnit: defaultMetricUnit,
+		Interval:   defaultInterval,
+		Match:      defaultMatch,
 	}
 }

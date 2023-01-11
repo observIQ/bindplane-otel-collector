@@ -17,16 +17,12 @@ package samplingprocessor
 
 import (
 	"errors"
-
-	"go.opentelemetry.io/collector/config"
 )
 
 var errInvalidDropRatio = errors.New("drop_ratio must be between 0.0 and 1.0")
 
 // Config is the configuration for the processor
 type Config struct {
-	config.ProcessorSettings `mapstructure:",squash"`
-
 	// DropRatio is the ratio of payloads that are dropped. Values between 0.0 and 1.0 are valid.
 	DropRatio float64 `mapstructure:"drop_ratio"`
 }

@@ -21,7 +21,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/receiver"
 )
 
@@ -33,7 +32,7 @@ func TestCreateReceiver(t *testing.T) {
 	}{
 		{
 			name:        "invalid config type",
-			cfg:         &config.ReceiverSettings{},
+			cfg:         &receiver.CreateSettings{},
 			expectedErr: errors.New("config is not a plugin receiver config"),
 		},
 		{

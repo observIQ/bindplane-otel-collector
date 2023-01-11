@@ -23,6 +23,8 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/extension"
+	"go.opentelemetry.io/collector/otelcol"
+	"go.opentelemetry.io/collector/processor"
 	"go.opentelemetry.io/collector/receiver"
 )
 
@@ -30,7 +32,7 @@ func TestGetRequiredFactories(t *testing.T) {
 	testType := component.Type("test")
 	extensionFactory := extension.NewFactory(testType, nil, createExtension, component.StabilityLevelAlpha)
 	receiverFactory := receiver.NewFactory(testType, nil)
-	processorFactory := component.NewProcessorFactory(testType, nil)
+	processorFactory := processor.NewFactory(testType, nil)
 	emitterFactory := exporter.NewFactory(testType, nil)
 	host := &MockHost{}
 	host.On("GetFactory", component.KindReceiver, testType).Return(receiverFactory)
@@ -41,7 +43,7 @@ func TestGetRequiredFactories(t *testing.T) {
 	testCases := []struct {
 		name           string
 		renderedCfg    *RenderedConfig
-		expectedResult *component.Factories
+		expectedResult *otelcol.Factories
 		expectedErr    error
 	}{
 		{
@@ -84,11 +86,11 @@ func TestGetRequiredFactories(t *testing.T) {
 					"test": nil,
 				},
 			},
-			expectedResult: &component.Factories{
+			expectedResult: &otelcol.Factories{
 				Receivers: map[component.Type]receiver.Factory{
 					testType: receiverFactory,
 				},
-				Processors: map[component.Type]component.ProcessorFactory{
+				Processors: map[component.Type]processor.Factory{
 					testType: processorFactory,
 				},
 				Exporters: map[component.Type]exporter.Factory{
@@ -115,11 +117,11 @@ func TestGetRequiredFactories(t *testing.T) {
 					"test/2": nil,
 				},
 			},
-			expectedResult: &component.Factories{
+			expectedResult: &otelcol.Factories{
 				Receivers: map[component.Type]receiver.Factory{
 					testType: receiverFactory,
 				},
-				Processors: map[component.Type]component.ProcessorFactory{
+				Processors: map[component.Type]processor.Factory{
 					testType: processorFactory,
 				},
 				Exporters: map[component.Type]exporter.Factory{
@@ -167,14 +169,14 @@ func (_m *MockHost) GetExporters() map[component.Type]map[component.ID]component
 }
 
 // GetExtensions provides a mock function with given fields:
-func (_m *MockHost) GetExtensions() map[component.ID]component.Extension {
+func (_m *MockHost) GetExtensions() map[component.ID]extension.Extension {
 	ret := _m.Called()
-	var r0 map[component.ID]component.Extension
-	if rf, ok := ret.Get(0).(func() map[component.ID]component.Extension); ok {
+	var r0 map[component.ID]extension.Extension
+	if rf, ok := ret.Get(0).(func() map[component.ID]extension.Extension); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[component.ID]component.Extension)
+			r0 = ret.Get(0).(map[component.ID]extension.Extension)
 		}
 	}
 	return r0
@@ -201,8 +203,8 @@ func (_m *MockHost) ReportFatalError(err error) {
 
 func createExtension(
 	_ context.Context,
-	_ component.ExtensionCreateSettings,
+	_ extension.CreateSettings,
 	_ component.Config,
-) (component.Extension, error) {
+) (extension.Extension, error) {
 	return nil, nil
 }

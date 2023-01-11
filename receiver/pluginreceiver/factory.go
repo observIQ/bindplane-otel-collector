@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/receiver"
@@ -34,16 +33,14 @@ const (
 
 // Config is the configuration of a plugin receiver
 type Config struct {
-	config.ReceiverSettings `mapstructure:",squash"`
-	Path                    string         `mapstructure:"path"`
-	Parameters              map[string]any `mapstructure:"parameters"`
+	Path       string         `mapstructure:"path"`
+	Parameters map[string]any `mapstructure:"parameters"`
 }
 
 // createDefaultConfig creates a default config for a plugin receiver
 func createDefaultConfig() component.Config {
 	return &Config{
-		ReceiverSettings: config.NewReceiverSettings(component.NewID(typeStr)),
-		Parameters:       make(map[string]any),
+		Parameters: make(map[string]any),
 	}
 }
 
