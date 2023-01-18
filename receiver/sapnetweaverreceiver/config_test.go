@@ -19,7 +19,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/confmap/confmaptest"
@@ -39,41 +38,41 @@ func TestValidate(t *testing.T) {
 			desc:        "Missing username and password and invalid hostname",
 			endpoint:    "localhost:50013",
 			errExpected: true,
-			errText:     multierr.Combine(errors.New(ErrNoUsername), errors.New(ErrNoPwd), errors.New(ErrInvalidHostname)).Error(),
+			errText:     multierr.Combine(ErrNoUsername, ErrNoPwd, ErrInvalidHostname).Error(),
 		},
 		{
 			desc:        "Missing username and password",
 			endpoint:    "http://localhost:50013",
 			errExpected: true,
-			errText:     multierr.Combine(errors.New(ErrNoUsername), errors.New(ErrNoPwd)).Error(),
+			errText:     multierr.Combine(ErrNoUsername, ErrNoPwd).Error(),
 		},
 		{
 			desc:        "Missing username and invalid hostname, no protocol",
 			endpoint:    "localhost:50013",
 			password:    "password",
 			errExpected: true,
-			errText:     multierr.Combine(errors.New(ErrNoUsername), errors.New(ErrInvalidHostname)).Error(),
+			errText:     multierr.Combine(ErrNoUsername, ErrInvalidHostname).Error(),
 		},
 		{
 			desc:        "Missing password and invalid hostname, no protocol",
 			endpoint:    "localhost:50013",
 			username:    "root",
 			errExpected: true,
-			errText:     multierr.Combine(errors.New(ErrNoPwd), errors.New(ErrInvalidHostname)).Error(),
+			errText:     multierr.Combine(ErrNoPwd, ErrInvalidHostname).Error(),
 		},
 		{
 			desc:        "Missing username",
 			endpoint:    "http://localhost:50013",
 			password:    "password",
 			errExpected: true,
-			errText:     multierr.Combine(errors.New(ErrNoUsername)).Error(),
+			errText:     multierr.Combine(ErrNoUsername).Error(),
 		},
 		{
 			desc:        "Missing password",
 			endpoint:    "http://localhost:50013",
 			username:    "root",
 			errExpected: true,
-			errText:     multierr.Combine(errors.New(ErrNoPwd)).Error(),
+			errText:     multierr.Combine(ErrNoPwd).Error(),
 		},
 		{
 			desc:        "custom_host",

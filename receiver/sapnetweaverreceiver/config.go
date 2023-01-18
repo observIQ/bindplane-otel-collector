@@ -15,10 +15,10 @@
 package sapnetweaverreceiver // import "github.com/observiq/observiq-otel-collector/receiver/sapnetweaverreceiver"
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 
-	"github.com/pkg/errors"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/receiver/scraperhelper"
@@ -28,11 +28,11 @@ import (
 )
 
 // Errors for missing required config parameters.
-const (
-	ErrNoUsername      = "invalid config: missing username"
-	ErrNoPwd           = "invalid config: missing password"
-	ErrInvalidHostname = "invalid config: invalid hostname"
-	ErrInvalidEndpoint = "invalid config: invalid endpoint"
+var (
+	ErrNoUsername      = errors.New("invalid config: missing username")
+	ErrNoPwd           = errors.New("invalid config: missing password")
+	ErrInvalidHostname = errors.New("invalid config: invalid hostname")
+	ErrInvalidEndpoint = errors.New("invalid config: invalid endpoint")
 )
 
 var (
@@ -59,20 +59,20 @@ type Config struct {
 func (cfg *Config) Validate() error {
 	var errs error
 	if cfg.Username == "" {
-		errs = multierr.Append(errs, errors.New(ErrNoUsername))
+		errs = multierr.Append(errs, ErrNoUsername)
 	}
 
 	if cfg.Password == "" {
-		errs = multierr.Append(errs, errors.New(ErrNoPwd))
+		errs = multierr.Append(errs, ErrNoPwd)
 	}
 
 	u, err := url.Parse(cfg.Endpoint)
 	if err != nil {
-		errs = multierr.Append(errs, errors.Wrap(err, ErrInvalidEndpoint))
+		errs = multierr.Append(errs, ErrInvalidEndpoint)
 	}
 
 	if u.Hostname() == "" {
-		errs = multierr.Append(errs, errors.New(ErrInvalidHostname))
+		errs = multierr.Append(errs, ErrInvalidHostname)
 	}
 
 	return errs

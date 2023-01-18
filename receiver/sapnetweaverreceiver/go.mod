@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	github.com/hooklift/gowsdl v0.5.0
-	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.1
 	go.opentelemetry.io/collector v0.69.0
 	go.opentelemetry.io/collector/component v0.69.0
