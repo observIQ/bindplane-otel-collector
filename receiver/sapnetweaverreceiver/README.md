@@ -19,7 +19,7 @@ More information on how to setup a SAP NetWeaver Stack for each operating system
 ## Configuration
 | Field               | Type               | Default                                                                                   | Description                                                                                                                                                  |
 |---------------------|--------------------|-------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| metrics             | map             | (default: see `DefaultMetricsSettings` [here](./internal/metadata/generated_metrics.go) | Allows enabling and disabling [specific metrics](./documentation.md#metrics) from being collected in this receiver.                                                                        |
+| metrics             | map             | (default: see `DefaultMetricsSettings` [here](./internal/metadata/generated_metrics.go)) | Allows enabling and disabling [specific metrics](./documentation.md#metrics) from being collected in this receiver.                                                                        |
 | endpoint            | string             | `http://localhost:50013`                                                                  | The name of the metric created.                                                                                                                              |
 | username            | string             | `(no default)`                                                                            | Specifies the username used to authenticate using basic auth.                                                                                                |
 | password            | string             | `(no default)`                                                                            | Specifies the password used to authenticate using basic auth.                                                                                                |
@@ -35,16 +35,44 @@ receivers:
     password: password
     collection_interval: 60s
 processors:
-    batch:
+  batch:
 exporters:
-    googlecloud:
+  googlecloud:
+    project: my-gcp-project
 
 service:
-    pipelines:
-        metrics:
-            receivers: [sapnetweaver]
-            processors: [batch]
-            exporters: [googlecloud]
+  pipelines:
+    metrics:
+      receivers: [sapnetweaver]
+      processors: [batch]
+      exporters: [googlecloud]
+```
+
+### Example Configuration With TLS
+```yaml
+receivers:
+  sapnetweaver:
+    metrics:
+    endpoint: https://sapnetweaver.example.com:50014
+    username: root
+    password: password
+    collection_interval: 60s
+    tls:
+      ca_file: "certs/ca.crt"
+      key_file: "certs/server.key"
+      cert_file: "certs/server.crt"
+processors:
+  batch:
+exporters:
+  googlecloud:
+    project: my-gcp-project
+
+service:
+  pipelines:
+    metrics:
+      receivers: [sapnetweaver]
+      processors: [batch]
+      exporters: [googlecloud]
 ```
 
 The full list of settings exposed for this receiver are documented [here](./config.go) with detailed sample configurations [here](./testdata/config.yaml).
