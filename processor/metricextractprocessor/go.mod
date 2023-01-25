@@ -22,7 +22,7 @@ require (
 )
 
 require (
-	github.com/antonmedv/expr v1.9.0 // indirect; indirect // indirect
+	github.com/antonmedv/expr v1.10.4 // indirect; indirect // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

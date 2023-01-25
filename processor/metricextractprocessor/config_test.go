@@ -67,7 +67,7 @@ func TestConfigValidate(t *testing.T) {
 		{
 			name: "invalid match",
 			config: &Config{
-				Match:      "invalid",
+				Match:      "++",
 				Extract:    "message",
 				MetricName: "metric",
 				MetricUnit: "unit",
