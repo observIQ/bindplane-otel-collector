@@ -297,7 +297,6 @@ func TestScraperScrape(t *testing.T) {
 				require.Equal(t, 1, dps.Len())
 				require.Equal(t, int64(3), dps.At(0).IntValue())
 			default:
-				panic("unexpected metric: " + m.Name())
 				t.FailNow()
 			}
 		}

@@ -264,7 +264,7 @@ The number of active work processes.
 
 ## Resource Attributes
 
-| Name | Description | Values | Enabled |
-| ---- | ----------- | ------ | ------- |
-| sapnetweaver.instance | The SAP Netweaver instance. | Any Str | false |
-| sapnetweaver.node | The SAP Netweaver node. | Any Str | false |
+| Name | Description | Values |
+| ---- | ----------- | ------ |
+| sapnetweaver.instance | The SAP Netweaver instance. | Any Str |
+| sapnetweaver.node | The SAP Netweaver node. | Any Str |

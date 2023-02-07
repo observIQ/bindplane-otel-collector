@@ -18,7 +18,12 @@ import (
 type MetricSettings struct {
 	Enabled bool `mapstructure:"enabled"`
 
-	enabledSetByUser bool
+	enabledProvidedByUser bool
+}
+
+// IsEnabledProvidedByUser returns true if `enabled` option is explicitly set in user settings to any value.
+func (ms *MetricSettings) IsEnabledProvidedByUser() bool {
+	return ms.enabledProvidedByUser
 }
 
 func (ms *MetricSettings) Unmarshal(parser *confmap.Conf) error {
@@ -29,7 +34,7 @@ func (ms *MetricSettings) Unmarshal(parser *confmap.Conf) error {
 	if err != nil {
 		return err
 	}
-	ms.enabledSetByUser = parser.IsSet("enabled")
+	ms.enabledProvidedByUser = parser.IsSet("enabled")
 	return nil
 }
 
@@ -154,42 +159,6 @@ func DefaultMetricsSettings() MetricsSettings {
 		},
 		SapnetweaverWorkProcessesCount: MetricSettings{
 			Enabled: true,
-		},
-	}
-}
-
-// ResourceAttributeSettings provides common settings for a particular metric.
-type ResourceAttributeSettings struct {
-	Enabled bool `mapstructure:"enabled"`
-
-	enabledProvidedByUser bool
-}
-
-func (ras *ResourceAttributeSettings) Unmarshal(parser *confmap.Conf) error {
-	if parser == nil {
-		return nil
-	}
-	err := parser.Unmarshal(ras, confmap.WithErrorUnused())
-	if err != nil {
-		return err
-	}
-	ras.enabledProvidedByUser = parser.IsSet("enabled")
-	return nil
-}
-
-// ResourceAttributesSettings provides settings for sapnetweaverreceiver metrics.
-type ResourceAttributesSettings struct {
-	SapnetweaverInstance ResourceAttributeSettings `mapstructure:"sapnetweaver.instance"`
-	SapnetweaverNode     ResourceAttributeSettings `mapstructure:"sapnetweaver.node"`
-}
-
-func DefaultResourceAttributesSettings() ResourceAttributesSettings {
-	return ResourceAttributesSettings{
-		SapnetweaverInstance: ResourceAttributeSettings{
-			Enabled: false,
-		},
-		SapnetweaverNode: ResourceAttributeSettings{
-			Enabled: false,
 		},
 	}
 }
@@ -1739,7 +1708,6 @@ type MetricsBuilder struct {
 	resourceCapacity                             int                 // maximum observed number of resource attributes.
 	metricsBuffer                                pmetric.Metrics     // accumulates metrics data before emitting.
 	buildInfo                                    component.BuildInfo // contains version information
-	resourceAttributesSettings                   ResourceAttributesSettings
 	metricSapnetweaverAbapUpdateErrorCount       metricSapnetweaverAbapUpdateErrorCount
 	metricSapnetweaverCacheEvictions             metricSapnetweaverCacheEvictions
 	metricSapnetweaverCacheHits                  metricSapnetweaverCacheHits
@@ -1781,22 +1749,11 @@ func WithStartTime(startTime pcommon.Timestamp) metricBuilderOption {
 	}
 }
 
-// WithResourceAttributesSettings sets ResourceAttributeSettings on the metrics builder.
-func WithResourceAttributesSettings(ras ResourceAttributesSettings) metricBuilderOption {
-	return func(mb *MetricsBuilder) {
-		mb.resourceAttributesSettings = ras
-	}
-}
-
 func NewMetricsBuilder(ms MetricsSettings, settings receiver.CreateSettings, options ...metricBuilderOption) *MetricsBuilder {
-	if !ms.SapnetweaverWorkProcessesCount.enabledSetByUser {
-		settings.Logger.Warn("[WARNING] Please set `enabled` field explicitly for `sapnetweaver.work_processes.count`: This metric will be disabled by default soon.")
-	}
 	mb := &MetricsBuilder{
 		startTime:                                    pcommon.NewTimestampFromTime(time.Now()),
 		metricsBuffer:                                pmetric.NewMetrics(),
 		buildInfo:                                    settings.BuildInfo,
-		resourceAttributesSettings:                   DefaultResourceAttributesSettings(),
 		metricSapnetweaverAbapUpdateErrorCount:       newMetricSapnetweaverAbapUpdateErrorCount(ms.SapnetweaverAbapUpdateErrorCount),
 		metricSapnetweaverCacheEvictions:             newMetricSapnetweaverCacheEvictions(ms.SapnetweaverCacheEvictions),
 		metricSapnetweaverCacheHits:                  newMetricSapnetweaverCacheHits(ms.SapnetweaverCacheHits),
@@ -1844,30 +1801,26 @@ func (mb *MetricsBuilder) updateCapacity(rm pmetric.ResourceMetrics) {
 }
 
 // ResourceMetricsOption applies changes to provided resource metrics.
-type ResourceMetricsOption func(ResourceAttributesSettings, pmetric.ResourceMetrics)
+type ResourceMetricsOption func(pmetric.ResourceMetrics)
 
 // WithSapnetweaverInstance sets provided value as "sapnetweaver.instance" attribute for current resource.
 func WithSapnetweaverInstance(val string) ResourceMetricsOption {
-	return func(ras ResourceAttributesSettings, rm pmetric.ResourceMetrics) {
-		if ras.SapnetweaverInstance.Enabled {
-			rm.Resource().Attributes().PutStr("sapnetweaver.instance", val)
-		}
+	return func(rm pmetric.ResourceMetrics) {
+		rm.Resource().Attributes().PutStr("sapnetweaver.instance", val)
 	}
 }
 
 // WithSapnetweaverNode sets provided value as "sapnetweaver.node" attribute for current resource.
 func WithSapnetweaverNode(val string) ResourceMetricsOption {
-	return func(ras ResourceAttributesSettings, rm pmetric.ResourceMetrics) {
-		if ras.SapnetweaverNode.Enabled {
-			rm.Resource().Attributes().PutStr("sapnetweaver.node", val)
-		}
+	return func(rm pmetric.ResourceMetrics) {
+		rm.Resource().Attributes().PutStr("sapnetweaver.node", val)
 	}
 }
 
 // WithStartTimeOverride overrides start time for all the resource metrics data points.
 // This option should be only used if different start time has to be set on metrics coming from different resources.
 func WithStartTimeOverride(start pcommon.Timestamp) ResourceMetricsOption {
-	return func(ras ResourceAttributesSettings, rm pmetric.ResourceMetrics) {
+	return func(rm pmetric.ResourceMetrics) {
 		var dps pmetric.NumberDataPointSlice
 		metrics := rm.ScopeMetrics().At(0).Metrics()
 		for i := 0; i < metrics.Len(); i++ {
@@ -1925,9 +1878,8 @@ func (mb *MetricsBuilder) EmitForResource(rmo ...ResourceMetricsOption) {
 	mb.metricSapnetweaverSystemAvailability.emit(ils.Metrics())
 	mb.metricSapnetweaverSystemUtilization.emit(ils.Metrics())
 	mb.metricSapnetweaverWorkProcessesCount.emit(ils.Metrics())
-
 	for _, op := range rmo {
-		op(mb.resourceAttributesSettings, rm)
+		op(rm)
 	}
 	if ils.Metrics().Len() > 0 {
 		mb.updateCapacity(rm)

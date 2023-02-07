@@ -38,8 +38,6 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-    warnings:
-      if_enabled_not_set: This metric will be disabled by default soon.
   sapnetweaver.host.cpu.utilization:
     description: The CPU utilization percentage.
     unit: "%"

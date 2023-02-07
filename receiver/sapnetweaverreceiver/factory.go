@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package sapnetweaverreceiver // import "github.com/observiq/observiq-otel-collector/receiver/sapnetweaverreceiver"
+
 import (
 	"context"
 	"errors"
