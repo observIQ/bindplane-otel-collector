@@ -12,29 +12,6 @@ type MockWebService struct {
 	mock.Mock
 }
 
-// EnqGetLockTable provides a mock function with given fields:
-func (_m *MockWebService) EnqGetLockTable() (*models.EnqGetLockTableResponse, error) {
-	ret := _m.Called()
-
-	var r0 *models.EnqGetLockTableResponse
-	if rf, ok := ret.Get(0).(func() *models.EnqGetLockTableResponse); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*models.EnqGetLockTableResponse)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetAlertTree provides a mock function with given fields:
 func (_m *MockWebService) GetAlertTree() (*models.GetAlertTreeResponse, error) {
 	ret := _m.Called()
@@ -68,6 +45,29 @@ func (_m *MockWebService) GetInstanceProperties() (*models.GetInstanceProperties
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*models.GetInstancePropertiesResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// EnqGetLockTable provides a mock function with given fields:
+func (_m *MockWebService) EnqGetLockTable() (*models.EnqGetLockTableResponse, error) {
+	ret := _m.Called()
+
+	var r0 *models.EnqGetLockTableResponse
+	if rf, ok := ret.Get(0).(func() *models.EnqGetLockTableResponse); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*models.EnqGetLockTableResponse)
 		}
 	}
 

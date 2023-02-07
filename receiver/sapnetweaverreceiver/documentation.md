@@ -2,44 +2,269 @@
 
 # sapnetweaverreceiver
 
-## Metrics
+## Default Metrics
 
-These are the metrics available for this scraper.
-
-| Name | Description | Unit | Type | Attributes |
-| ---- | ----------- | ---- | ---- | ---------- |
-| **sapnetweaver.host.cpu_utilization** | CPU Utilization Percentage. | % | Gauge(Int) | <ul> </ul> |
-| **sapnetweaver.host.memory.virtual.overhead** | Virtualization System Memory Overhead. | bytes | Gauge(Int) | <ul> </ul> |
-| **sapnetweaver.host.memory.virtual.swap** | Virtualization System Swap Memory. | bytes | Gauge(Int) | <ul> </ul> |
-| **sapnetweaver.host.spool_list.used** | Host Spool List Used. |  | Sum(Int) | <ul> </ul> |
-| **sapnetweaver.icm_availability** | ICM Availability (color value from alert tree). |  | Sum(Int) | <ul> <li>control_state</li> </ul> |
-| **sapnetweaver.locks.enqueue.count** | Count of Enqueued Locks. | {locks} | Sum(Int) | <ul> </ul> |
-| **sapnetweaver.sessions.browser.count** | The number of Browser Sessions. | {sessions} | Sum(Int) | <ul> </ul> |
-| **sapnetweaver.sessions.ejb.count** | The number of EJB Sessions. | {sessions} | Sum(Int) | <ul> </ul> |
-| **sapnetweaver.sessions.http.count** | The number of HTTP Sessions. | {sessions} | Sum(Int) | <ul> </ul> |
-| **sapnetweaver.sessions.security.count** | The number of Security Sessions. | {sessions} | Sum(Int) | <ul> </ul> |
-| **sapnetweaver.sessions.web.count** | The number of Web Sessions. | {sessions} | Sum(Int) | <ul> </ul> |
-| **sapnetweaver.short_dumps.rate** | The rate of Short Dumps. | {dumps/min} | Sum(Int) | <ul> </ul> |
-| **sapnetweaver.work_processes.active.count** | The number of active work processes. | {work processes} | Sum(Int) | <ul> </ul> |
-
-**Highlighted metrics** are emitted by default. Other metrics are optional and not emitted by default.
-Any metric can be enabled or disabled with the following scraper configuration:
+The following metrics are emitted by default. Each of them can be disabled by applying the following configuration:
 
 ```yaml
 metrics:
   <metric_name>:
-    enabled: <true|false>
+    enabled: false
 ```
 
-## Resource attributes
+### sapnetweaver.abap.update.error.count
 
-| Name | Description | Type |
-| ---- | ----------- | ---- |
-| sapnetweaver.instance | The SAP Netweaver instance. | Str |
-| sapnetweaver.node | The SAP Netweaver node. | Str |
+The amount of ABAP errors in update.
 
-## Metric attributes
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+|  | Sum | Int | Cumulative | false |
+
+#### Attributes
 
 | Name | Description | Values |
 | ---- | ----------- | ------ |
-| control_state (state) | The control state color | grey, green, yellow, red |
+| state | The control state color | Str: ``grey``, ``green``, ``yellow``, ``red`` |
+
+### sapnetweaver.cache.evictions
+
+The number of evicted entries.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| {entries} | Sum | Int | Cumulative | false |
+
+### sapnetweaver.cache.hits
+
+The cache hit percentage.
+
+| Unit | Metric Type | Value Type |
+| ---- | ----------- | ---------- |
+| % | Gauge | Int |
+
+### sapnetweaver.connection.error.count
+
+The amount of connection errors.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+|  | Sum | Int | Cumulative | false |
+
+### sapnetweaver.host.cpu.utilization
+
+The CPU utilization percentage.
+
+| Unit | Metric Type | Value Type |
+| ---- | ----------- | ---------- |
+| % | Gauge | Int |
+
+### sapnetweaver.host.memory.virtual.overhead
+
+Virtualization System Memory Overhead.
+
+| Unit | Metric Type | Value Type |
+| ---- | ----------- | ---------- |
+| bytes | Gauge | Int |
+
+### sapnetweaver.host.memory.virtual.swap
+
+Virtualization System Swap Memory.
+
+| Unit | Metric Type | Value Type |
+| ---- | ----------- | ---------- |
+| bytes | Gauge | Int |
+
+### sapnetweaver.host.spool_list.utilization
+
+The host spool list used percentage.
+
+| Unit | Metric Type | Value Type |
+| ---- | ----------- | ---------- |
+| % | Gauge | Int |
+
+### sapnetweaver.icm_availability
+
+ICM Availability (color value from alert tree).
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+|  | Sum | Int | Cumulative | false |
+
+#### Attributes
+
+| Name | Description | Values |
+| ---- | ----------- | ------ |
+| state | The control state color | Str: ``grey``, ``green``, ``yellow``, ``red`` |
+
+### sapnetweaver.job.aborted
+
+The amount of aborted jobs.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+|  | Sum | Int | Cumulative | false |
+
+### sapnetweaver.locks.enqueue.count
+
+Count of Enqueued Locks.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| {locks} | Sum | Int | Cumulative | false |
+
+### sapnetweaver.memory.configured
+
+The amount of configured memory.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| By | Sum | Int | Cumulative | false |
+
+### sapnetweaver.memory.free
+
+The amount of free memory.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| By | Sum | Int | Cumulative | false |
+
+### sapnetweaver.memory.swap_space.utilization
+
+The swap space utilization percentage.
+
+| Unit | Metric Type | Value Type |
+| ---- | ----------- | ---------- |
+| % | Gauge | Int |
+
+### sapnetweaver.queue.count
+
+The queue length.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| {entries} | Sum | Int | Cumulative | false |
+
+### sapnetweaver.queue_peak.count
+
+The peak queue length.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| {entries} | Sum | Int | Cumulative | false |
+
+### sapnetweaver.request.count
+
+The amount of requests made.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+|  | Sum | Int | Cumulative | false |
+
+### sapnetweaver.request.timeout.count
+
+The amount of timed out requests.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+|  | Sum | Int | Cumulative | false |
+
+### sapnetweaver.response.duration
+
+The response time duration.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| ms | Sum | Int | Cumulative | false |
+
+#### Attributes
+
+| Name | Description | Values |
+| ---- | ----------- | ------ |
+| response_type | The response type | Str: ``transaction``, ``dialog``, ``dialogRFC``, ``http`` |
+
+### sapnetweaver.session.count
+
+The amount of of sessions created.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+|  | Sum | Int | Cumulative | false |
+
+### sapnetweaver.sessions.browser.count
+
+The number of Browser Sessions.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| {sessions} | Sum | Int | Cumulative | false |
+
+### sapnetweaver.sessions.ejb.count
+
+The number of EJB Sessions.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| {sessions} | Sum | Int | Cumulative | false |
+
+### sapnetweaver.sessions.http.count
+
+The number of HTTP Sessions.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| {sessions} | Sum | Int | Cumulative | false |
+
+### sapnetweaver.sessions.security.count
+
+The number of Security Sessions.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| {sessions} | Sum | Int | Cumulative | false |
+
+### sapnetweaver.sessions.web.count
+
+The number of Web Sessions.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| {sessions} | Sum | Int | Cumulative | false |
+
+### sapnetweaver.short_dumps.rate
+
+The rate of Short Dumps.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| {dumps/min} | Sum | Int | Cumulative | false |
+
+### sapnetweaver.system.availability
+
+The system availability percentage.
+
+| Unit | Metric Type | Value Type |
+| ---- | ----------- | ---------- |
+| % | Gauge | Int |
+
+### sapnetweaver.system.utilization
+
+The system utilization percentage.
+
+| Unit | Metric Type | Value Type |
+| ---- | ----------- | ---------- |
+| % | Gauge | Int |
+
+### sapnetweaver.work_processes.count
+
+The number of active work processes.
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| {work processes} | Sum | Int | Cumulative | false |
+
+## Resource Attributes
+
+| Name | Description | Values | Enabled |
+| ---- | ----------- | ------ | ------- |
+| sapnetweaver.instance | The SAP Netweaver instance. | Any Str | false |
+| sapnetweaver.node | The SAP Netweaver node. | Any Str | false |

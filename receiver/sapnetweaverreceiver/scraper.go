@@ -49,7 +49,7 @@ func newSapNetweaverScraper(
 	a := &sapNetweaverScraper{
 		settings: settings.TelemetrySettings,
 		cfg:      cfg,
-		mb:       metadata.NewMetricsBuilder(cfg.Metrics, settings.BuildInfo),
+		mb:       metadata.NewMetricsBuilder(cfg.Metrics, settings),
 	}
 
 	return a
@@ -115,26 +115,53 @@ func (s *sapNetweaverScraper) collectAlertTree(_ context.Context, now pcommon.Ti
 		return
 	}
 
+	toggleSwapSpaceFlag := false
 	for _, node := range alertTree.AlertNode {
 		value := strings.Split(node.Description, " ")
 		alertTreeResponse[node.Name] = value[0]
-		if node.Name == "ICM" {
+		if node.Name == "ICM" || node.Name == "AbapErrorInUpdate" {
 			alertTreeResponse[node.Name] = string(node.ActualValue)
+		}
+
+		// There are multiple "Percentage_Used" fields with no unique column identifiers.
+		// The wanted "Percentage_Used" comes ~2 rows after the Swap_Space.
+		if node.Name == "Swap_Space" {
+			toggleSwapSpaceFlag = true
+		}
+		if toggleSwapSpaceFlag && node.Name == "Percentage_Used" {
+			alertTreeResponse["Swap_Space_Percentage_Used"] = value[0]
+			toggleSwapSpaceFlag = false
 		}
 	}
 
+	s.recordSapnetweaverWorkProcessesActiveCount(now, alertTreeResponse, errs)
 	s.recordSapnetweaverHostCPUUtilizationDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverSystemAvailabilityDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverSystemUtilizationDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverMemorySwapSpaceUtilizationDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverMemoryConfiguredDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverMemoryFreeDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverSessionCountDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverQueueCountDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverQueuePeakCountDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverJobAbortedDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverAbapUpdateErrorCountDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverResponseDurationDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverRequestCountDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverRequestTimeoutCountDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverConnectionErrorCountDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverCacheEvictionsDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverCacheHitsDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverIcmAvailabilityDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverHostSpoolListUtilizationDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverShortDumpsCountDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverHostMemoryVirtualOverheadDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverHostMemoryVirtualSwapDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverSessionsHTTPCountDataPoint(now, alertTreeResponse, errs)
 	s.recordCurrentSecuritySessions(now, alertTreeResponse, errs)
-	s.recordSapnetweaverWorkProcessesActiveCount(now, alertTreeResponse, errs)
 	s.recordSapnetweaverSessionsWebCountDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverSessionsBrowserCountDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverSessionsEjbCountDataPoint(now, alertTreeResponse, errs)
-	s.recordSapnetweaverIcmAvailabilityDataPoint(now, alertTreeResponse, errs)
-	s.recordSapnetweaverHostSpoolListUsedDataPoint(now, alertTreeResponse, errs)
-	s.recordSapnetweaverShortDumpsCountDataPoint(now, alertTreeResponse, errs)
 }
 
 func (s *sapNetweaverScraper) collectEnqGetLockTable(_ context.Context, now pcommon.Timestamp, errs *scrapererror.ScrapeErrors) {

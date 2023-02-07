@@ -12,22 +12,126 @@
   </item>
   <item>
    <name>ICM</name>
-    <ActualValue>SAPControl-CYAN</ActualValue>
+    <ActualValue>SAPControl-GREEN</ActualValue>
   </item>
   <item>
    <name>HostspoolListUsed</name>
    <ActualValue>SAPControl-GRAY</ActualValue>
-   <description>$</description>
-  </item>
-  <item>
-   <name>Memory Swapped Out</name>
-   <ActualValue>SAPControl-GREEN</ActualValue>
-   <description>$ MB</description>
+   <description>$ %</description>
   </item>
   <item>
    <name>CPU_Utilization</name>
    <ActualValue>SAPControl-GREEN</ActualValue>
    <description>$ %</description>
+  </item>
+  <item>
+   <name>Availability</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ %</description>
+  </item>
+  <item>
+   <name>System Utilization</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ %</description>
+  </item>
+  <item>
+   <name>Percentage_Used</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>100 %</description>
+  </item>
+  <item>
+   <name>Swap_Space</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>7 %</description>
+  </item>
+  <item>
+   <name>Percentage_Used</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ %</description>
+  </item>
+  <item>
+   <name>Configured Memory</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ MB</description>
+  </item>
+  <item>
+   <name>Free Memory</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ MB</description>
+  </item>
+  <item>
+   <name>Number of Sessions</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$</description>
+  </item>
+  <item>
+   <name>QueueLen</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ entr</description>
+  </item>
+  <item>
+   <name>PeakQueueLen</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ entr</description>
+  </item>
+  <item>
+   <name>AbortedJobs</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$</description>
+  </item>
+  <item>
+   <name>AbapErrorInUpdate</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+  </item>
+  <item>
+   <name>ResponseTimeDialog</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ msec</description>
+  </item>
+  <item>
+   <name>ResponseTimeDialogRFC</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ msec</description>
+  </item>
+  <item>
+   <name>ResponseTime(StandardTran.)</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ msec</description>
+  </item>
+  <item>
+   <name>ResponseTimeHTTP</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ msec</description>
+  </item>
+  <item>
+   <name>StatNoOfRequests</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$</description>
+  </item>
+  <item>
+   <name>StatNoOfTimeouts</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$</description>
+  </item>
+  <item>
+   <name>StatNoOfConnectionErrors</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$</description>
+  </item>
+  <item>
+   <name>CacheHits</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ perc</description>
+  </item>
+  <item>
+   <name>EvictedEntries</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ entr</description>
+  </item>
+  <item>
+   <name>Memory Swapped Out</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>$ MB</description>
   </item>
   <item>
    <name>Memory Overhead</name>

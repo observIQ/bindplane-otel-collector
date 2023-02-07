@@ -9,9 +9,17 @@ resource_attributes:
     description: The SAP Netweaver node.
 
 attributes:
+  response_type:
+    type: string
+    description: The response type
+    enum:
+    - transaction
+    - dialog
+    - dialogRFC
+    - http
   control_state:
     type: string
-    value: state
+    name_override: "state"
     description: The control state color
     enum:
     - grey
@@ -20,7 +28,7 @@ attributes:
     - red
 
 metrics:
-  sapnetweaver.work_processes.active.count:
+  sapnetweaver.work_processes.count:
     description: The number of active work processes.
     unit: "{work processes}"
     sum:
@@ -30,8 +38,10 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  sapnetweaver.host.cpu_utilization:
-    description: CPU Utilization Percentage.
+    warnings:
+      if_enabled_not_set: This metric will be disabled by default soon.
+  sapnetweaver.host.cpu.utilization:
+    description: The CPU utilization percentage.
     unit: "%"
     gauge:
       value_type: int
@@ -102,6 +112,158 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
+  sapnetweaver.locks.enqueue.count:
+    description: Count of Enqueued Locks.
+    unit: "{locks}"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+    attributes: []
+    enabled: true
+  sapnetweaver.system.availability:
+    description: The system availability percentage.
+    unit: "%"
+    gauge:
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.system.utilization:
+    description: The system utilization percentage.
+    unit: "%"
+    gauge:
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.memory.swap_space.utilization:
+    description: The swap space utilization percentage.
+    unit: "%"
+    gauge:
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.memory.configured:
+    description: The amount of configured memory.
+    unit: "By"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+    attributes: []
+    enabled: true
+  sapnetweaver.memory.free:
+    description: The amount of free memory.
+    unit: "By"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+    attributes: []
+    enabled: true
+  sapnetweaver.session.count:
+    description: The amount of of sessions created.
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.queue.count:
+    description: The queue length.
+    unit: "{entries}"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.queue_peak.count:
+    unit: "{entries}"
+    description: The peak queue length.
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.job.aborted:
+    description: The amount of aborted jobs.
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.abap.update.error.count:
+    description: The amount of ABAP errors in update.
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+    attributes: [control_state]
+    enabled: true
+  sapnetweaver.response.duration:
+    description: The response time duration.
+    unit: "ms"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: [response_type]
+    enabled: true
+  sapnetweaver.request.count:
+    description: The amount of requests made.
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.request.timeout.count:
+    description: The amount of timed out requests.
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.connection.error.count:
+    description: The amount of connection errors.
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.cache.hits:
+    description: The cache hit percentage.
+    unit: "%"
+    gauge:
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.cache.evictions:
+    description: The number of evicted entries.
+    unit: "{entries}"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
   sapnetweaver.icm_availability:
     description: ICM Availability (color value from alert tree).
     sum:
@@ -110,22 +272,12 @@ metrics:
       value_type: int
     attributes: [control_state]
     enabled: true
-  sapnetweaver.host.spool_list.used:
-    description: Host Spool List Used.
-    sum:
-      monotonic: false
-      aggregation: cumulative
+  sapnetweaver.host.spool_list.utilization:
+    description: The host spool list used percentage.
+    unit: "%"
+    gauge:
       value_type: int
       input_type: string
-    attributes: []
-    enabled: true
-  sapnetweaver.locks.enqueue.count:
-    description: Count of Enqueued Locks.
-    unit: "{locks}"
-    sum:
-      monotonic: false
-      aggregation: cumulative
-      value_type: int
     attributes: []
     enabled: true
   sapnetweaver.short_dumps.rate:
@@ -138,4 +290,3 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-

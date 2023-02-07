@@ -17,47 +17,151 @@
   <item>
    <name>HostspoolListUsed</name>
    <ActualValue>SAPControl-GRAY</ActualValue>
-   <description>3</description>
-  </item>
-  <item>
-   <name>Memory Swapped Out</name>
-   <ActualValue>SAPControl-GREEN</ActualValue>
-   <description>4 MB</description>
+   <description>3 %</description>
   </item>
   <item>
    <name>CPU_Utilization</name>
    <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>4 %</description>
+  </item>
+  <item>
+   <name>Availability</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
    <description>5 %</description>
+  </item>
+  <item>
+   <name>System Utilization</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>6 %</description>
+  </item>
+  <item>
+   <name>Percentage_Used</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>100 %</description>
+  </item>
+  <item>
+   <name>Swap_Space</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>7 %</description>
+  </item>
+  <item>
+   <name>Percentage_Used</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>7 %</description>
+  </item>
+  <item>
+   <name>Configured Memory</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>8 MB</description>
+  </item>
+  <item>
+   <name>Free Memory</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>9 MB</description>
+  </item>
+  <item>
+   <name>Number of Sessions</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>10</description>
+  </item>
+  <item>
+   <name>QueueLen</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>11 entr</description>
+  </item>
+  <item>
+   <name>PeakQueueLen</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>12 entr</description>
+  </item>
+  <item>
+   <name>AbortedJobs</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>13</description>
+  </item>
+  <item>
+   <name>AbapErrorInUpdate</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+  </item>
+  <item>
+   <name>ResponseTimeDialog</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>15 msec</description>
+  </item>
+  <item>
+   <name>ResponseTimeDialogRFC</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>16 msec</description>
+  </item>
+  <item>
+   <name>ResponseTime(StandardTran.)</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>17 msec</description>
+  </item>
+  <item>
+   <name>ResponseTimeHTTP</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>18 msec</description>
+  </item>
+  <item>
+   <name>StatNoOfRequests</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>19</description>
+  </item>
+  <item>
+   <name>StatNoOfTimeouts</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>20</description>
+  </item>
+  <item>
+   <name>StatNoOfConnectionErrors</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>21</description>
+  </item>
+  <item>
+   <name>CacheHits</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>22 perc</description>
+  </item>
+  <item>
+   <name>EvictedEntries</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>23 entr</description>
+  </item>
+  <item>
+   <name>Memory Swapped Out</name>
+   <ActualValue>SAPControl-GREEN</ActualValue>
+   <description>24 MB</description>
   </item>
   <item>
    <name>Memory Overhead</name>
    <ActualValue>SAPControl-GREEN</ActualValue>
-   <description>6 MB</description>
+   <description>25 MB</description>
   </item>
   <item>
    <name>CurrentHttpSessions</name>
    <ActualValue>SAPControl-GRAY</ActualValue>
-   <description>7</description>
+   <description>26</description>
   </item>
   <item>
    <name>CurrentSecuritySessions</name>
    <ActualValue>SAPControl-GRAY</ActualValue>
-   <description>8</description>
+   <description>27</description>
   </item>
   <item>
    <name>Web Sessions</name>
    <ActualValue>SAPControl-GRAY</ActualValue>
-   <description>9</description>
+   <description>28</description>
   </item>
   <item>
    <name>Browser Sessions</name>
    <ActualValue>SAPControl-GRAY</ActualValue>
-   <description>10</description>
+   <description>29</description>
   </item>
   <item>
    <name>EJB Sessions</name>
    <ActualValue>SAPControl-GRAY</ActualValue>
-   <description>11</description>
+   <description>30</description>
   </item>
  </tree>
 </GetAlertTreeResponse>

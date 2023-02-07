@@ -36,17 +36,6 @@ func newWebService(client *soap.Client) webService {
 	}
 }
 
-func (s *netweaverWebService) EnqGetLockTable() (*models.EnqGetLockTableResponse, error) {
-	request := &models.EnqGetLockTable{}
-	response := &models.EnqGetLockTableResponse{}
-	err := s.client.Call("''", request, response)
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
-}
-
 func (s *netweaverWebService) GetAlertTree() (*models.GetAlertTreeResponse, error) {
 	request := &models.GetAlertTree{}
 	response := &models.GetAlertTreeResponse{}
@@ -61,6 +50,17 @@ func (s *netweaverWebService) GetAlertTree() (*models.GetAlertTreeResponse, erro
 func (s *netweaverWebService) GetInstanceProperties() (*models.GetInstancePropertiesResponse, error) {
 	request := &models.GetInstanceProperties{}
 	response := &models.GetInstancePropertiesResponse{}
+	err := s.client.Call("''", request, response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (s *netweaverWebService) EnqGetLockTable() (*models.EnqGetLockTableResponse, error) {
+	request := &models.EnqGetLockTable{}
+	response := &models.EnqGetLockTableResponse{}
 	err := s.client.Call("''", request, response)
 	if err != nil {
 		return nil, err
