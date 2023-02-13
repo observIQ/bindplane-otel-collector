@@ -1,0 +1,53 @@
+{
+    "resourceMetrics": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "key1",
+                        "value": {
+                            "stringValue": "value1"
+                        }
+                    },
+                    {
+                        "key": "key2",
+                        "value": {
+                            "stringValue": "value2"
+                        }
+                    }
+                ]
+            },
+            "scopeMetrics": [
+                {
+                    "scope": {},
+                    "metrics": [
+                        {
+                            "name": "test.metric",
+                            "unit": "testunit",
+                            "histogram": {
+                                "dataPoints": [
+                                    {
+                                        "attributes": [
+                                            {
+                                                "key": "thing",
+                                                "value": {
+                                                    "stringValue": "key"
+                                                }
+                                            }
+                                        ],
+                                        "timeUnixNano": "1675793410735231000",
+                                        "count": "1",
+                                        "sum": 10,
+                                        "min": 10,
+                                        "max": 10
+                                    }
+                                ],
+                                "aggregationTemporality": 2
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

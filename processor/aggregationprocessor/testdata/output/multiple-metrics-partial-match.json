@@ -1,0 +1,48 @@
+{
+    "resourceMetrics": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "key1",
+                        "value": {
+                            "stringValue": "value1"
+                        }
+                    },
+                    {
+                        "key": "key2",
+                        "value": {
+                            "stringValue": "value2"
+                        }
+                    }
+                ]
+            },
+            "scopeMetrics": [
+                {
+                    "metrics": [
+                        {
+                            "gauge": {
+                                "dataPoints": [
+                                    {
+                                        "asDouble": 100,
+                                        "attributes": [
+                                            {
+                                                "key": "host",
+                                                "value": {
+                                                    "stringValue": "MyToaster"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            "name": "test2.temperature",
+                            "unit": "centigrade"
+                        }
+                    ],
+                    "scope": {}
+                }
+            ]
+        }
+    ]
+}

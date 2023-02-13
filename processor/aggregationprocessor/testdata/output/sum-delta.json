@@ -1,0 +1,56 @@
+{
+    "resourceMetrics": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "key1",
+                        "value": {
+                            "stringValue": "value1"
+                        }
+                    },
+                    {
+                        "key": "key2",
+                        "value": {
+                            "stringValue": "value2"
+                        }
+                    }
+                ]
+            },
+            "scopeMetrics": [
+                {
+                    "metrics": [
+                        {
+                            "name": "test.metric",
+                            "sum": {
+                                "aggregationTemporality": 1,
+                                "dataPoints": [
+                                    {
+                                        "asDouble": 1,
+                                        "attributes": [
+                                            {
+                                                "key": "attr1",
+                                                "value": {
+                                                    "stringValue": "val1"
+                                                }
+                                            },
+                                            {
+                                                "key": "attr2",
+                                                "value": {
+                                                    "stringValue": "val2"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ],
+                                "isMonotonic": true
+                            },
+                            "unit": "testunit"
+                        }
+                    ],
+                    "scope": {}
+                }
+            ]
+        }
+    ]
+}

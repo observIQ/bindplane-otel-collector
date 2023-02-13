@@ -1,0 +1,80 @@
+{
+    "resourceMetrics": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "region",
+                        "value": {
+                            "stringValue": "us-east"
+                        }
+                    }
+                ]
+            },
+            "scopeMetrics": [
+                {
+                    "scope": {},
+                    "metrics": [
+                        {
+                            "name": "test.water_volume",
+                            "unit": "cm3",
+                            "gauge": {
+                                "dataPoints": [
+                                    {
+                                        "attributes": [
+                                            {
+                                                "key": "host",
+                                                "value": {
+                                                    "stringValue": "MyCoffeePot"
+                                                }
+                                            }
+                                        ],
+                                        "asDouble": 200
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "region",
+                        "value": {
+                            "stringValue": "us-west"
+                        }
+                    }
+                ]
+            },
+            "scopeMetrics": [
+                {
+                    "scope": {},
+                    "metrics": [
+                        {
+                            "name": "test.water_volume",
+                            "unit": "cm3",
+                            "gauge": {
+                                "dataPoints": [
+                                    {
+                                        "attributes": [
+                                            {
+                                                "key": "host",
+                                                "value": {
+                                                    "stringValue": "MyCoffeePot"
+                                                }
+                                            }
+                                        ],
+                                        "asDouble": 500
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
