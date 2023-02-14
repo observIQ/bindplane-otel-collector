@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/observiq-otel-collector/internal/expr"
+	"github.com/observiq/observiq-otel-collector/expr"
 	"github.com/observiq/observiq-otel-collector/receiver/routereceiver"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"

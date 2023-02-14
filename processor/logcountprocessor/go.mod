@@ -3,7 +3,7 @@ module github.com/observiq/observiq-otel-collector/processor/logcountprocessor
 go 1.18
 
 require (
-	github.com/observiq/observiq-otel-collector/internal/expr v1.18.0
+	github.com/observiq/observiq-otel-collector/expr v1.18.0
 	github.com/observiq/observiq-otel-collector/receiver/routereceiver v1.18.0
 	github.com/stretchr/testify v1.8.1
 	go.opentelemetry.io/collector v0.71.0
@@ -48,4 +48,4 @@ require (
 
 replace github.com/observiq/observiq-otel-collector/receiver/routereceiver => ../../receiver/routereceiver
 
-replace github.com/observiq/observiq-otel-collector/internal/expr => ../../internal/expr
+replace github.com/observiq/observiq-otel-collector/expr => ../../expr

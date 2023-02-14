@@ -19,7 +19,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/observiq/observiq-otel-collector/internal/expr"
+	"github.com/observiq/observiq-otel-collector/expr"
 	"go.opentelemetry.io/collector/component"
 )
 
