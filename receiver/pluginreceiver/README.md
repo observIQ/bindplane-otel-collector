@@ -75,7 +75,7 @@ The following keys are used when defining a parameter.
 
 **Warning**: Parameters must adhere to their definition. Invalid parameters will return an error during configuration.
 
-**Note**: The value given for the timezone parameter type must be a standard UTC timezone, shown in this [timezone list](./timezone.md).
+**Note**: The value given for the timezone parameter type must be a standard UTC timezone, shown in this [timezone list](../../docs/timezone.md).
 
 ### Template
 The plugin template is a templated OpenTelemetry config. When the receiver starts, it uses the plugin's parameters and standard go [templating](https://pkg.go.dev/text/template) to render an internal OpenTelemetry collector.
