@@ -1,7 +1,6 @@
 aggregation:
   interval: 3m
   include: '^test\.thing$$'
-  aggregations:
-    - type: last
+  aggregations: [last]
 
 aggregation/defaults:

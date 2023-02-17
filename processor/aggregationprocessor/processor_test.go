@@ -113,19 +113,10 @@ func TestAggregationProcessor(t *testing.T) {
 			p, err := newAggregationProcessor(zaptest.NewLogger(t), &Config{
 				Interval: 0,
 				Include:  `^test\..*$`,
-				Aggregations: []AggregateConfig{
-					{
-						Type:       aggregate.MinType,
-						MetricName: "$0.min",
-					},
-					{
-						Type:       aggregate.MaxType,
-						MetricName: "$0.max",
-					},
-					{
-						Type:       aggregate.AvgType,
-						MetricName: "$0.avg",
-					},
+				Aggregations: []aggregate.AggregationType{
+					aggregate.MinType,
+					aggregate.MaxType,
+					aggregate.AvgType,
 				},
 			}, consumer)
 			require.NoError(t, err)
@@ -182,19 +173,10 @@ func TestAggregationProcessorMultipleMetrics(t *testing.T) {
 	p, err := newAggregationProcessor(zaptest.NewLogger(t), &Config{
 		Interval: 0,
 		Include:  `^test\..*$`,
-		Aggregations: []AggregateConfig{
-			{
-				Type:       aggregate.MinType,
-				MetricName: "$0.min",
-			},
-			{
-				Type:       aggregate.MaxType,
-				MetricName: "$0.max",
-			},
-			{
-				Type:       aggregate.AvgType,
-				MetricName: "$0.avg",
-			},
+		Aggregations: []aggregate.AggregationType{
+			aggregate.MinType,
+			aggregate.MaxType,
+			aggregate.AvgType,
 		},
 	}, consumer)
 	require.NoError(t, err)
@@ -231,7 +213,7 @@ func TestAggregationProcessor_StartShutdown(t *testing.T) {
 		p, err := newAggregationProcessor(zaptest.NewLogger(t), &Config{
 			Interval:     10 * time.Second,
 			Include:      `^test\..*$`,
-			Aggregations: []AggregateConfig{},
+			Aggregations: []aggregate.AggregationType{},
 		}, &consumertest.MetricsSink{})
 		require.NoError(t, err)
 		require.NoError(t, p.Start(context.Background(), componenttest.NewNopHost()))
@@ -242,7 +224,7 @@ func TestAggregationProcessor_StartShutdown(t *testing.T) {
 		p, err := newAggregationProcessor(zaptest.NewLogger(t), &Config{
 			Interval:     10 * time.Second,
 			Include:      `^test\..*$`,
-			Aggregations: []AggregateConfig{},
+			Aggregations: []aggregate.AggregationType{},
 		}, &consumertest.MetricsSink{})
 		require.NoError(t, err)
 		require.NoError(t, p.Shutdown(context.Background()))
@@ -252,7 +234,7 @@ func TestAggregationProcessor_StartShutdown(t *testing.T) {
 		p, err := newAggregationProcessor(zaptest.NewLogger(t), &Config{
 			Interval:     10 * time.Second,
 			Include:      `^test\..*$`,
-			Aggregations: []AggregateConfig{},
+			Aggregations: []aggregate.AggregationType{},
 		}, &consumertest.MetricsSink{})
 		require.NoError(t, err)
 
@@ -272,19 +254,10 @@ func TestAggregationProcessor_Flush(t *testing.T) {
 	p, err := newAggregationProcessor(zaptest.NewLogger(t), &Config{
 		Interval: 500 * time.Millisecond,
 		Include:  `^test\..*$`,
-		Aggregations: []AggregateConfig{
-			{
-				Type:       aggregate.MinType,
-				MetricName: "$0.min",
-			},
-			{
-				Type:       aggregate.MaxType,
-				MetricName: "$0.max",
-			},
-			{
-				Type:       aggregate.AvgType,
-				MetricName: "$0.avg",
-			},
+		Aggregations: []aggregate.AggregationType{
+			aggregate.MinType,
+			aggregate.MaxType,
+			aggregate.AvgType,
 		},
 	}, consumer)
 	require.NoError(t, err)
@@ -316,8 +289,6 @@ func TestAggregationProcessor_Flush(t *testing.T) {
 
 	require.NoError(t, p.Shutdown(context.Background()))
 }
-
-// TODO: Two separate metric payloads with the same datapoint attributes, but different values
 
 func readMetrics(t *testing.T, path string) pmetric.Metrics {
 	t.Helper()

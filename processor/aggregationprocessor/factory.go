@@ -42,7 +42,7 @@ func NewFactory() processor.Factory {
 func createDefaultConfig() component.Config {
 	return &Config{
 		Interval: 1 * time.Minute,
-		Include:  "^.*$",
+		Include:  ".*",
 	}
 }
 

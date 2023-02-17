@@ -39,5 +39,5 @@ type metricMetadata struct {
 
 type datapointMetadata struct {
 	attributes pcommon.Map
-	aggregates map[AggregateConfig]aggregate.Aggregate
+	aggregates map[aggregate.AggregationType]aggregate.Aggregate
 }

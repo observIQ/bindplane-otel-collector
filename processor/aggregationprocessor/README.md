@@ -13,17 +13,15 @@ This processor aggregates metrics over a configurable interval, allowing for met
 3. If the metric name does not match the `include` regex, the metric passes through the processor.
 4. If the metric matches, but is not a gauge or cumulative sum, the metric passes through the processor.
 5. If the metric name does match, and the metric is a gauge or cumulative sum, the metric is added to an aggregate based on its attributes. The metric does not continue down the pipeline.
-6. After the configured `interval` has passed, all aggregate metrics are emitted. Aggregate metrics are emitted with a name based on the configured `metric_name` for the aggregation.
+6. After the configured `interval` has passed, all aggregate metrics are emitted. Aggregate metrics are emitted with "${metric_name}.${aggregation}" e.g. if you take the average of the metric `system.cpu.utilization`, the aggregated metric would be `system.cpu.utilization.avg`.
 7. All aggregations are cleared, and will not be emitted on the next interval, unless another matching metric enters the pipeline.
 
 ## Configuration
-| Field                        | Type           | Default  | Description                                                                                                                      |
-|------------------------------|----------------|----------|----------------------------------------------------------------------------------------------------------------------------------|
-| `interval`                   | duration       | `1m`     | The interval on which to emit aggregate metrics.                                                                                 |
-| `include`                    | regex          | `"^.*$"` | A regex that specifies which metrics to consider for aggregation. The default regex matches all metrics.                         |
-| `aggregations`               | []map          | `[{type: min, metric_name: "$$0.min"}, {type: max, metric_name: "$$0.max"}, {type: avg, metric_name: "$$0.avg"}]`| A list of aggregations to perform on each metric.                                                                                |
-| `aggregations[].type`        | aggregate type |          | The type of the aggregation. Valid values are: `min`, `max`, `avg`, `first`, `last`.                                             |
-| `aggregations[].metric_name` | string         | `"$$0"` | The name of the metric emitted for this aggregation. By default, the portion of the name matched by the `include` regex is used. |                                                        |
+| Field          | Type     | Default                | Description                                                                                              |
+|----------------|----------|------------------------|----------------------------------------------------------------------------------------------------------|
+| `interval`     | duration | `1m`                   | The interval on which to emit aggregate metrics.                                                         |
+| `include`      | regexp   | `".*"`                 | A regex that specifies which metrics to consider for aggregation. The default regex matches all metrics. |
+| `aggregations` | []string | `["min", "max, "avg"]` | A list of aggregations to perform on each. Valid values are: `min`, `max`, `avg`, `first`, `last`.       |
 
 ### Example configuration
 
@@ -50,8 +48,7 @@ processors:
   aggregation:
     interval: 1m
     include: '^.*$$'
-    aggregations:
-      - type: last
+    aggregations: ["last"]
   metricextract:
     route: extract
     extract: attributes.number
@@ -75,7 +72,7 @@ service:
       exporters: [googlecloud]
 ```
 
-This configuration extracts metrics from a log file, and passes them through the aggregation processor. The aggregation processor will hold the last data point it receives, then emit it after a one minute interval, sending the metric to Google Cloud Monitoring. This limits the throughput to 1 metric per minute.
+This configuration extracts metrics from a log file, and passes them through the aggregation processor. The aggregation processor will hold the last data point it receives, then emit it after a one minute interval as `log.count.last`, sending the metric to Google Cloud Monitoring. This limits the throughput to 1 metric per minute.
 
 #### Sample CPU utilization at a higher rate
 
@@ -97,13 +94,7 @@ processors:
   aggregation:
     interval: 1m
     include: '^.*$$'
-    aggregations:
-      - type: max
-        metric_name: "$${0}.max"
-      - type: min
-        metric_name: "$${0}.min"
-      - type: avg
-        metric_name: "$${0}.avg"
+    aggregations: ["avg", "min", "max"]
 
 exporters:
   googlecloud:

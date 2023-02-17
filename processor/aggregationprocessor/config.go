@@ -24,6 +24,8 @@ import (
 	"github.com/observiq/observiq-otel-collector/processor/aggregationprocessor/internal/aggregate"
 )
 
+const metricNameKey = "metric_name"
+
 // Config is the configuration for the processor
 type Config struct {
 	Interval time.Duration `mapstructure:"interval"`
@@ -31,33 +33,7 @@ type Config struct {
 	// Otherwise, the metric is passed through.
 	Include string `mapstructure:"include"`
 	// List of aggregations for the metric
-	Aggregations []AggregateConfig `mapstructure:"aggregations"`
-}
-
-// AggregateConfig is a config that specifies which aggregations to perform for each incoming metric
-type AggregateConfig struct {
-	// Type of aggregation
-	Type aggregate.AggregationType `mapstructure:"type"`
-	// MetricName is the name for the re-emitted metric. Defaults to `$0` (this is what is matched by the regex)
-	MetricName string `mapstructure:"metric_name"`
-}
-
-// Validate validate the config, returning an error explaining why it isn't if the config is invalid.
-func (a AggregateConfig) Validate() error {
-	if !a.Type.Valid() {
-		return fmt.Errorf("invalid aggregate type for `type`: %s", a.Type)
-	}
-
-	return nil
-}
-
-// MetricNameString returns the configured name for the emitted metric, or "$0" if none was specified.
-func (a AggregateConfig) MetricNameString() string {
-	if a.MetricName != "" {
-		return a.MetricName
-	}
-
-	return "$0"
+	Aggregations []aggregate.AggregationType `mapstructure:"aggregations"`
 }
 
 // Validate validates the processor configuration
@@ -79,32 +55,28 @@ func (cfg Config) Validate() error {
 		return errors.New("at least one aggregation must be specified")
 	}
 
+	seenTypes := map[aggregate.AggregationType]struct{}{}
 	for _, a := range cfg.Aggregations {
-		if err := a.Validate(); err != nil {
-			return err
+		if !a.Valid() {
+			return fmt.Errorf("invalid aggregate type for `type`: %s", a)
 		}
+		if _, seen := seenTypes[a]; seen {
+			return fmt.Errorf("each aggregation type can only be specified once (%s specified more than once)", a)
+		}
+		seenTypes[a] = struct{}{}
 	}
 
 	return nil
 }
 
-// AggregationConfigs gets the default aggregation configs if none were specified, otherwise the specified aggregation configs
-func (cfg Config) AggregationConfigs() []AggregateConfig {
+// AggregationTypes gets the default aggregation configs if none were specified, otherwise the specified aggregation configs
+func (cfg Config) AggregationTypes() []aggregate.AggregationType {
 	if cfg.Aggregations == nil {
-		// fallback to defaults
-		return []AggregateConfig{
-			{
-				Type:       aggregate.MinType,
-				MetricName: "$0.min",
-			},
-			{
-				Type:       aggregate.MaxType,
-				MetricName: "$0.max",
-			},
-			{
-				Type:       aggregate.AvgType,
-				MetricName: "$0.avg",
-			},
+		// fallback to default
+		return []aggregate.AggregationType{
+			aggregate.MinType,
+			aggregate.MaxType,
+			aggregate.AvgType,
 		}
 	}
 

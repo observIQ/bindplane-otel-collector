@@ -19,7 +19,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/observiq/observiq-otel-collector/processor/aggregationprocessor/internal/aggregate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,10 +44,8 @@ func TestLoadConfig(t *testing.T) {
 			expected: &Config{
 				Interval: 3 * time.Minute,
 				Include:  `^test\.thing$$`,
-				Aggregations: []AggregateConfig{
-					{
-						Type: aggregate.LastType,
-					},
+				Aggregations: []aggregate.AggregationType{
+					aggregate.LastType,
 				},
 			},
 		},
@@ -64,9 +61,7 @@ func TestLoadConfig(t *testing.T) {
 			require.NoError(t, component.UnmarshalConfig(sub, cfg))
 
 			assert.NoError(t, component.ValidateConfig(cfg))
-			if diff := cmp.Diff(tc.expected, cfg); diff != "" {
-				t.Errorf("Config mismatch (-expected +actual):\n%s", diff)
-			}
+			require.Equal(t, tc.expected, cfg)
 		})
 	}
 }
@@ -82,22 +77,12 @@ func TestConfig_Validate(t *testing.T) {
 			input: Config{
 				Interval: 5 * time.Second,
 				Include:  "^.*$",
-				Aggregations: []AggregateConfig{
-					{
-						Type: aggregate.AvgType,
-					},
-					{
-						Type: aggregate.MinType,
-					},
-					{
-						Type: aggregate.MaxType,
-					},
-					{
-						Type: aggregate.LastType,
-					},
-					{
-						Type: aggregate.FirstType,
-					},
+				Aggregations: []aggregate.AggregationType{
+					aggregate.AvgType,
+					aggregate.MinType,
+					aggregate.MaxType,
+					aggregate.LastType,
+					aggregate.FirstType,
 				},
 			},
 		},
@@ -106,7 +91,7 @@ func TestConfig_Validate(t *testing.T) {
 			input: Config{
 				Interval:     5 * time.Second,
 				Include:      "^.*$",
-				Aggregations: []AggregateConfig{},
+				Aggregations: []aggregate.AggregationType{},
 			},
 			expectedErr: "at least one aggregation must be specified",
 		},
@@ -122,10 +107,8 @@ func TestConfig_Validate(t *testing.T) {
 			input: Config{
 				Interval: 5 * time.Second,
 				Include:  "^(",
-				Aggregations: []AggregateConfig{
-					{
-						Type: aggregate.AvgType,
-					},
+				Aggregations: []aggregate.AggregationType{
+					aggregate.AvgType,
 				},
 			},
 			expectedErr: "`include` regex must be valid",
@@ -135,10 +118,8 @@ func TestConfig_Validate(t *testing.T) {
 			input: Config{
 				Interval: -5 * time.Second,
 				Include:  "^.*$",
-				Aggregations: []AggregateConfig{
-					{
-						Type: aggregate.AvgType,
-					},
+				Aggregations: []aggregate.AggregationType{
+					aggregate.AvgType,
 				},
 			},
 			expectedErr: "aggregation interval must be positive",
@@ -148,13 +129,23 @@ func TestConfig_Validate(t *testing.T) {
 			input: Config{
 				Interval: 5 * time.Second,
 				Include:  "^.*$",
-				Aggregations: []AggregateConfig{
-					{
-						Type: aggregate.AggregationType("invalid"),
-					},
+				Aggregations: []aggregate.AggregationType{
+					aggregate.AggregationType("invalid"),
 				},
 			},
 			expectedErr: "invalid aggregate type for `type`: invalid",
+		},
+		{
+			name: "Config with duplicate aggregations",
+			input: Config{
+				Interval: 5 * time.Second,
+				Include:  "^.*$",
+				Aggregations: []aggregate.AggregationType{
+					aggregate.AvgType,
+					aggregate.AvgType,
+				},
+			},
+			expectedErr: "each aggregation type can only be specified once (avg specified more than once)",
 		},
 	}
 
@@ -168,24 +159,6 @@ func TestConfig_Validate(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestAggregateConfig_MetricNameString(t *testing.T) {
-	t.Run("metric name is not specified", func(t *testing.T) {
-		metricName := AggregateConfig{
-			Type:       aggregate.AvgType,
-			MetricName: "",
-		}.MetricNameString()
-		require.Equal(t, "$0", metricName)
-	})
-
-	t.Run("metric name is specified", func(t *testing.T) {
-		metricName := AggregateConfig{
-			Type:       aggregate.AvgType,
-			MetricName: "test.metric",
-		}.MetricNameString()
-		require.Equal(t, "test.metric", metricName)
-	})
 }
 
 func TestValidStruct(t *testing.T) {
