@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package aggregationprocessor
+package metricstatsprocessor
 
 import (
 	"context"
@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/observiq-otel-collector/processor/aggregationprocessor/internal/aggregate"
+	"github.com/observiq/observiq-otel-collector/processor/metricstatsprocessor/internal/stats"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/pmetrictest"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
@@ -33,14 +33,14 @@ import (
 
 const processorStartUnixMilli = 1675866200681
 
-func TestAggregationProcessor(t *testing.T) {
+func TestMetricstatsProcessor(t *testing.T) {
 	testCases := []struct {
 		name     string
 		filePath string
 		// expectOutput = true means that some part of the input will pass through
 		expectOutput bool
-		// noAggregate = true means flushing has no output.
-		noAggregate bool
+		// noCalculation = true means flushing has no output.
+		noCalculation bool
 	}{
 		{
 			name:     "gauge",
@@ -51,22 +51,22 @@ func TestAggregationProcessor(t *testing.T) {
 			filePath: "gauge-integer.json",
 		},
 		{
-			name:         "empty datapoint",
-			filePath:     "empty-datapoint.json",
-			expectOutput: true,
-			noAggregate:  true,
+			name:          "empty datapoint",
+			filePath:      "empty-datapoint.json",
+			expectOutput:  true,
+			noCalculation: true,
 		},
 		{
-			name:         "histogram",
-			filePath:     "histogram.json",
-			expectOutput: true,
-			noAggregate:  true,
+			name:          "histogram",
+			filePath:      "histogram.json",
+			expectOutput:  true,
+			noCalculation: true,
 		},
 		{
-			name:         "metric name doesn't match regex",
-			filePath:     "metric-name-doesnt-match.json",
-			expectOutput: true,
-			noAggregate:  true,
+			name:          "metric name doesn't match regex",
+			filePath:      "metric-name-doesnt-match.json",
+			expectOutput:  true,
+			noCalculation: true,
 		},
 		{
 			name:     "multiple datapoints",
@@ -90,10 +90,10 @@ func TestAggregationProcessor(t *testing.T) {
 			filePath: "multiple-resources.json",
 		},
 		{
-			name:         "sum with delta aggregation temporality",
-			filePath:     "sum-delta.json",
-			expectOutput: true,
-			noAggregate:  true,
+			name:          "sum with delta aggregation temporality",
+			filePath:      "sum-delta.json",
+			expectOutput:  true,
+			noCalculation: true,
 		},
 		{
 			name:     "monotonic sum",
@@ -107,21 +107,21 @@ func TestAggregationProcessor(t *testing.T) {
 
 	for _, tc := range testCases {
 		now := time.UnixMilli(processorStartUnixMilli)
-		aggPeriodStart := pcommon.NewTimestampFromTime(now.Add(-1 * time.Minute))
+		calcPeriodStart := pcommon.NewTimestampFromTime(now.Add(-1 * time.Minute))
 		t.Run(tc.name, func(t *testing.T) {
 			consumer := &consumertest.MetricsSink{}
-			p, err := newAggregationProcessor(zaptest.NewLogger(t), &Config{
+			p, err := newStatsProcessor(zaptest.NewLogger(t), &Config{
 				Interval: 0,
 				Include:  `^test\..*$`,
-				Aggregations: []aggregate.AggregationType{
-					aggregate.MinType,
-					aggregate.MaxType,
-					aggregate.AvgType,
+				Stats: []stats.StatType{
+					stats.MinType,
+					stats.MaxType,
+					stats.AvgType,
 				},
 			}, consumer)
 			require.NoError(t, err)
 
-			p.aggregationPeriodStart = aggPeriodStart
+			p.calcPeriodStart = calcPeriodStart
 			p.now = func() time.Time {
 				return now
 			}
@@ -133,8 +133,8 @@ func TestAggregationProcessor(t *testing.T) {
 				metrics := consumer.AllMetrics()
 				require.NotEmpty(t, metrics, "No metrics were output, but we expected some to be.")
 
-				expectedAggregate := readMetrics(t, filepath.Join("testdata", "output", tc.filePath))
-				require.NoError(t, pmetrictest.CompareMetrics(expectedAggregate, metrics[0],
+				expectedCalculation := readMetrics(t, filepath.Join("testdata", "output", tc.filePath))
+				require.NoError(t, pmetrictest.CompareMetrics(expectedCalculation, metrics[0],
 					pmetrictest.IgnoreResourceMetricsOrder(),
 					pmetrictest.IgnoreScopeMetricsOrder(),
 					pmetrictest.IgnoreMetricsOrder(),
@@ -148,14 +148,14 @@ func TestAggregationProcessor(t *testing.T) {
 
 			p.flush()
 
-			if tc.noAggregate {
-				require.Empty(t, consumer.AllMetrics(), "Aggregate metrics were output, but we didn't expect any to be.")
+			if tc.noCalculation {
+				require.Empty(t, consumer.AllMetrics(), "Calculated metrics were output, but we didn't expect any to be.")
 			} else {
 				metrics := consumer.AllMetrics()
-				require.NotEmpty(t, metrics, "No aggregate metrics were output, but we expected some to be.")
+				require.NotEmpty(t, metrics, "No calculated metrics were output, but we expected some to be.")
 
-				expectedAggregate := readMetrics(t, filepath.Join("testdata", "aggregate", tc.filePath))
-				require.NoError(t, pmetrictest.CompareMetrics(expectedAggregate, metrics[0],
+				expectedCalculation := readMetrics(t, filepath.Join("testdata", "calculated", tc.filePath))
+				require.NoError(t, pmetrictest.CompareMetrics(expectedCalculation, metrics[0],
 					pmetrictest.IgnoreResourceMetricsOrder(),
 					pmetrictest.IgnoreScopeMetricsOrder(),
 					pmetrictest.IgnoreMetricsOrder(),
@@ -166,22 +166,22 @@ func TestAggregationProcessor(t *testing.T) {
 	}
 }
 
-func TestAggregationProcessorMultipleMetrics(t *testing.T) {
+func TestMetricstatsProcessorMultipleMetrics(t *testing.T) {
 	now := time.UnixMilli(processorStartUnixMilli)
-	aggPeriodStart := pcommon.NewTimestampFromTime(now.Add(-1 * time.Minute))
+	calcPeriodStart := pcommon.NewTimestampFromTime(now.Add(-1 * time.Minute))
 	consumer := &consumertest.MetricsSink{}
-	p, err := newAggregationProcessor(zaptest.NewLogger(t), &Config{
+	p, err := newStatsProcessor(zaptest.NewLogger(t), &Config{
 		Interval: 0,
 		Include:  `^test\..*$`,
-		Aggregations: []aggregate.AggregationType{
-			aggregate.MinType,
-			aggregate.MaxType,
-			aggregate.AvgType,
+		Stats: []stats.StatType{
+			stats.MinType,
+			stats.MaxType,
+			stats.AvgType,
 		},
 	}, consumer)
 	require.NoError(t, err)
 
-	p.aggregationPeriodStart = aggPeriodStart
+	p.calcPeriodStart = calcPeriodStart
 	p.now = func() time.Time {
 		return now
 	}
@@ -197,10 +197,10 @@ func TestAggregationProcessorMultipleMetrics(t *testing.T) {
 	p.flush()
 
 	require.Len(t, consumer.AllMetrics(), 1)
-	aggregateMetric := consumer.AllMetrics()[0]
+	calculatedMetric := consumer.AllMetrics()[0]
 
-	expectedAggregate := readMetrics(t, filepath.Join("testdata", "aggregate", "multiple-metrics-consumed.json"))
-	require.NoError(t, pmetrictest.CompareMetrics(expectedAggregate, aggregateMetric,
+	expectedCalculation := readMetrics(t, filepath.Join("testdata", "calculated", "multiple-metrics-consumed.json"))
+	require.NoError(t, pmetrictest.CompareMetrics(expectedCalculation, calculatedMetric,
 		pmetrictest.IgnoreResourceMetricsOrder(),
 		pmetrictest.IgnoreScopeMetricsOrder(),
 		pmetrictest.IgnoreMetricsOrder(),
@@ -208,12 +208,12 @@ func TestAggregationProcessorMultipleMetrics(t *testing.T) {
 	))
 }
 
-func TestAggregationProcessor_StartShutdown(t *testing.T) {
+func TestMetricstatsProcessor_StartShutdown(t *testing.T) {
 	t.Run("start then stop", func(t *testing.T) {
-		p, err := newAggregationProcessor(zaptest.NewLogger(t), &Config{
-			Interval:     10 * time.Second,
-			Include:      `^test\..*$`,
-			Aggregations: []aggregate.AggregationType{},
+		p, err := newStatsProcessor(zaptest.NewLogger(t), &Config{
+			Interval: 10 * time.Second,
+			Include:  `^test\..*$`,
+			Stats:    []stats.StatType{},
 		}, &consumertest.MetricsSink{})
 		require.NoError(t, err)
 		require.NoError(t, p.Start(context.Background(), componenttest.NewNopHost()))
@@ -221,20 +221,20 @@ func TestAggregationProcessor_StartShutdown(t *testing.T) {
 	})
 
 	t.Run("shutdown without start", func(t *testing.T) {
-		p, err := newAggregationProcessor(zaptest.NewLogger(t), &Config{
-			Interval:     10 * time.Second,
-			Include:      `^test\..*$`,
-			Aggregations: []aggregate.AggregationType{},
+		p, err := newStatsProcessor(zaptest.NewLogger(t), &Config{
+			Interval: 10 * time.Second,
+			Include:  `^test\..*$`,
+			Stats:    []stats.StatType{},
 		}, &consumertest.MetricsSink{})
 		require.NoError(t, err)
 		require.NoError(t, p.Shutdown(context.Background()))
 	})
 
 	t.Run("shutdown, context times out", func(t *testing.T) {
-		p, err := newAggregationProcessor(zaptest.NewLogger(t), &Config{
-			Interval:     10 * time.Second,
-			Include:      `^test\..*$`,
-			Aggregations: []aggregate.AggregationType{},
+		p, err := newStatsProcessor(zaptest.NewLogger(t), &Config{
+			Interval: 10 * time.Second,
+			Include:  `^test\..*$`,
+			Stats:    []stats.StatType{},
 		}, &consumertest.MetricsSink{})
 		require.NoError(t, err)
 
@@ -246,23 +246,23 @@ func TestAggregationProcessor_StartShutdown(t *testing.T) {
 	})
 }
 
-func TestAggregationProcessor_Flush(t *testing.T) {
+func TestMetricstatsProcessor_Flush(t *testing.T) {
 	now := time.UnixMilli(processorStartUnixMilli)
-	aggPeriodStart := pcommon.NewTimestampFromTime(now.Add(-1 * time.Minute))
+	calcPeriodStart := pcommon.NewTimestampFromTime(now.Add(-1 * time.Minute))
 
 	consumer := &consumertest.MetricsSink{}
-	p, err := newAggregationProcessor(zaptest.NewLogger(t), &Config{
+	p, err := newStatsProcessor(zaptest.NewLogger(t), &Config{
 		Interval: 500 * time.Millisecond,
 		Include:  `^test\..*$`,
-		Aggregations: []aggregate.AggregationType{
-			aggregate.MinType,
-			aggregate.MaxType,
-			aggregate.AvgType,
+		Stats: []stats.StatType{
+			stats.MinType,
+			stats.MaxType,
+			stats.AvgType,
 		},
 	}, consumer)
 	require.NoError(t, err)
 
-	p.aggregationPeriodStart = aggPeriodStart
+	p.calcPeriodStart = calcPeriodStart
 	p.now = func() time.Time {
 		return now
 	}
@@ -279,8 +279,8 @@ func TestAggregationProcessor_Flush(t *testing.T) {
 	}, 5*time.Second, 100*time.Millisecond)
 
 	metrics := consumer.AllMetrics()
-	expectedAggregate := readMetrics(t, filepath.Join("testdata", "aggregate", "gauge.json"))
-	require.NoError(t, pmetrictest.CompareMetrics(expectedAggregate, metrics[0],
+	expectedCalculation := readMetrics(t, filepath.Join("testdata", "calculated", "gauge.json"))
+	require.NoError(t, pmetrictest.CompareMetrics(expectedCalculation, metrics[0],
 		pmetrictest.IgnoreResourceMetricsOrder(),
 		pmetrictest.IgnoreScopeMetricsOrder(),
 		pmetrictest.IgnoreMetricsOrder(),

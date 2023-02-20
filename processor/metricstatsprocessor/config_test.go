@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package aggregationprocessor
+package metricstatsprocessor
 
 import (
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/observiq/observiq-otel-collector/processor/aggregationprocessor/internal/aggregate"
+	"github.com/observiq/observiq-otel-collector/processor/metricstatsprocessor/internal/stats"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
@@ -44,8 +44,8 @@ func TestLoadConfig(t *testing.T) {
 			expected: &Config{
 				Interval: 3 * time.Minute,
 				Include:  `^test\.thing$$`,
-				Aggregations: []aggregate.AggregationType{
-					aggregate.LastType,
+				Stats: []stats.StatType{
+					stats.LastType,
 				},
 			},
 		},
@@ -73,30 +73,30 @@ func TestConfig_Validate(t *testing.T) {
 		expectedErr string
 	}{
 		{
-			name: "Config with all aggregations",
+			name: "Config with all stat types",
 			input: Config{
 				Interval: 5 * time.Second,
 				Include:  "^.*$",
-				Aggregations: []aggregate.AggregationType{
-					aggregate.AvgType,
-					aggregate.MinType,
-					aggregate.MaxType,
-					aggregate.LastType,
-					aggregate.FirstType,
+				Stats: []stats.StatType{
+					stats.AvgType,
+					stats.MinType,
+					stats.MaxType,
+					stats.LastType,
+					stats.FirstType,
 				},
 			},
 		},
 		{
-			name: "Config with no aggregations",
+			name: "Config with no stat types",
 			input: Config{
-				Interval:     5 * time.Second,
-				Include:      "^.*$",
-				Aggregations: []aggregate.AggregationType{},
+				Interval: 5 * time.Second,
+				Include:  "^.*$",
+				Stats:    []stats.StatType{},
 			},
-			expectedErr: "at least one aggregation must be specified",
+			expectedErr: "at least one statistic must be specified in `stats`",
 		},
 		{
-			name: "Config with default aggregations",
+			name: "Config with default stat types",
 			input: Config{
 				Interval: 5 * time.Second,
 				Include:  "^.*$",
@@ -107,8 +107,8 @@ func TestConfig_Validate(t *testing.T) {
 			input: Config{
 				Interval: 5 * time.Second,
 				Include:  "^(",
-				Aggregations: []aggregate.AggregationType{
-					aggregate.AvgType,
+				Stats: []stats.StatType{
+					stats.AvgType,
 				},
 			},
 			expectedErr: "`include` regex must be valid",
@@ -118,34 +118,34 @@ func TestConfig_Validate(t *testing.T) {
 			input: Config{
 				Interval: -5 * time.Second,
 				Include:  "^.*$",
-				Aggregations: []aggregate.AggregationType{
-					aggregate.AvgType,
+				Stats: []stats.StatType{
+					stats.AvgType,
 				},
 			},
-			expectedErr: "aggregation interval must be positive",
+			expectedErr: "interval must be positive",
 		},
 		{
-			name: "Config with invalid aggregation type",
+			name: "Config with invalid stat type",
 			input: Config{
 				Interval: 5 * time.Second,
 				Include:  "^.*$",
-				Aggregations: []aggregate.AggregationType{
-					aggregate.AggregationType("invalid"),
+				Stats: []stats.StatType{
+					stats.StatType("invalid"),
 				},
 			},
-			expectedErr: "invalid aggregate type for `type`: invalid",
+			expectedErr: "invalid statistic type for `type`: invalid",
 		},
 		{
-			name: "Config with duplicate aggregations",
+			name: "Config with duplicate stat types",
 			input: Config{
 				Interval: 5 * time.Second,
 				Include:  "^.*$",
-				Aggregations: []aggregate.AggregationType{
-					aggregate.AvgType,
-					aggregate.AvgType,
+				Stats: []stats.StatType{
+					stats.AvgType,
+					stats.AvgType,
 				},
 			},
-			expectedErr: "each aggregation type can only be specified once (avg specified more than once)",
+			expectedErr: "each statistic type can only be specified once (avg specified more than once)",
 		},
 	}
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package aggregate
+package stats
 
 import (
 	"errors"
@@ -21,33 +21,33 @@ import (
 	"go.opentelemetry.io/collector/pdata/pmetric"
 )
 
-type firstAggregate struct {
+type firstStatistic struct {
 	firstValInt    int64
 	firstValDouble float64
 	firstTimestamp time.Time
 	isInt          bool
 }
 
-func newFirstAggregate(initialVal pmetric.NumberDataPoint) (Aggregate, error) {
+func newFirstStatistic(initialVal pmetric.NumberDataPoint) (Statistic, error) {
 	switch initialVal.ValueType() {
 	case pmetric.NumberDataPointValueTypeInt:
-		return &firstAggregate{
+		return &firstStatistic{
 			firstValInt:    initialVal.IntValue(),
 			isInt:          true,
 			firstTimestamp: initialVal.Timestamp().AsTime(),
 		}, nil
 	case pmetric.NumberDataPointValueTypeDouble:
-		return &firstAggregate{
+		return &firstStatistic{
 			firstValDouble: initialVal.DoubleValue(),
 			isInt:          false,
 			firstTimestamp: initialVal.Timestamp().AsTime(),
 		}, nil
 	}
 
-	return nil, errors.New("cannot create first aggregation from empty datapoint")
+	return nil, errors.New("cannot create first statistic from empty datapoint")
 }
 
-func (m *firstAggregate) AddDatapoint(ndp pmetric.NumberDataPoint) {
+func (m *firstStatistic) AddDatapoint(ndp pmetric.NumberDataPoint) {
 	if ndp.Timestamp() == 0 {
 		// Ignore uninitialized timestamp
 		return
@@ -64,7 +64,7 @@ func (m *firstAggregate) AddDatapoint(ndp pmetric.NumberDataPoint) {
 	}
 }
 
-func (m *firstAggregate) SetDatapointValue(dp pmetric.NumberDataPoint) {
+func (m *firstStatistic) SetDatapointValue(dp pmetric.NumberDataPoint) {
 	if m.isInt {
 		dp.SetIntValue(m.firstValInt)
 	} else {

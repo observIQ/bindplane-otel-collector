@@ -1,6 +1,0 @@
-aggregation:
-  interval: 3m
-  include: '^test\.thing$$'
-  aggregations: [last]
-
-aggregation/defaults:

@@ -1,4 +1,4 @@
-module github.com/observiq/observiq-otel-collector/processor/aggregationprocessor
+module github.com/observiq/observiq-otel-collector/processor/metricstatsprocessor
 
 go 1.18
 

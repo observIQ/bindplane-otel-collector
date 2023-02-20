@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package aggregationprocessor provides a processor that samples pdata base level objects.
-package aggregationprocessor
+// Package metricstatsprocessor provides a processor that samples pdata base level objects.
+package metricstatsprocessor
 
 import (
 	"errors"
@@ -21,10 +21,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/observiq/observiq-otel-collector/processor/aggregationprocessor/internal/aggregate"
+	"github.com/observiq/observiq-otel-collector/processor/metricstatsprocessor/internal/stats"
 )
-
-const metricNameKey = "metric_name"
 
 // Config is the configuration for the processor
 type Config struct {
@@ -32,8 +30,8 @@ type Config struct {
 	// Include is a regex that must match the metric name for it to be sampled.
 	// Otherwise, the metric is passed through.
 	Include string `mapstructure:"include"`
-	// List of aggregations for the metric
-	Aggregations []aggregate.AggregationType `mapstructure:"aggregations"`
+	// List of stats to calculate for each metric
+	Stats []stats.StatType `mapstructure:"stats"`
 }
 
 // Validate validates the processor configuration
@@ -43,25 +41,25 @@ func (cfg Config) Validate() error {
 	}
 
 	if cfg.Interval <= 0 {
-		return errors.New("aggregation interval must be positive")
+		return errors.New("interval must be positive")
 	}
 
-	// don't check aggregations if using defaults
-	if cfg.Aggregations == nil {
+	// don't check stats if using defaults
+	if cfg.Stats == nil {
 		return nil
 	}
 
-	if len(cfg.Aggregations) == 0 {
-		return errors.New("at least one aggregation must be specified")
+	if len(cfg.Stats) == 0 {
+		return errors.New("at least one statistic must be specified in `stats`")
 	}
 
-	seenTypes := map[aggregate.AggregationType]struct{}{}
-	for _, a := range cfg.Aggregations {
+	seenTypes := map[stats.StatType]struct{}{}
+	for _, a := range cfg.Stats {
 		if !a.Valid() {
-			return fmt.Errorf("invalid aggregate type for `type`: %s", a)
+			return fmt.Errorf("invalid statistic type for `type`: %s", a)
 		}
 		if _, seen := seenTypes[a]; seen {
-			return fmt.Errorf("each aggregation type can only be specified once (%s specified more than once)", a)
+			return fmt.Errorf("each statistic type can only be specified once (%s specified more than once)", a)
 		}
 		seenTypes[a] = struct{}{}
 	}
@@ -69,16 +67,16 @@ func (cfg Config) Validate() error {
 	return nil
 }
 
-// AggregationTypes gets the default aggregation configs if none were specified, otherwise the specified aggregation configs
-func (cfg Config) AggregationTypes() []aggregate.AggregationType {
-	if cfg.Aggregations == nil {
+// StatTypes gets the default stats to calculate if none were specified, otherwise the configured stat types
+func (cfg Config) StatTypes() []stats.StatType {
+	if cfg.Stats == nil {
 		// fallback to default
-		return []aggregate.AggregationType{
-			aggregate.MinType,
-			aggregate.MaxType,
-			aggregate.AvgType,
+		return []stats.StatType{
+			stats.MinType,
+			stats.MaxType,
+			stats.AvgType,
 		}
 	}
 
-	return cfg.Aggregations
+	return cfg.Stats
 }

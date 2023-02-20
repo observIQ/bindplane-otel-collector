@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package aggregate
+package stats
 
 import (
 	"errors"
@@ -20,47 +20,47 @@ import (
 	"go.opentelemetry.io/collector/pdata/pmetric"
 )
 
-type minAggregation struct {
-	minDouble float64
-	minInt    int64
+type maxStatistic struct {
+	maxDouble float64
+	maxInt    int64
 	isInt     bool
 }
 
-func newMinAggregate(initialVal pmetric.NumberDataPoint) (Aggregate, error) {
+func newMaxStatistic(initialVal pmetric.NumberDataPoint) (Statistic, error) {
 	switch initialVal.ValueType() {
 	case pmetric.NumberDataPointValueTypeInt:
-		return &minAggregation{
-			minInt: initialVal.IntValue(),
+		return &maxStatistic{
+			maxInt: initialVal.IntValue(),
 			isInt:  true,
 		}, nil
 	case pmetric.NumberDataPointValueTypeDouble:
-		return &minAggregation{
-			minDouble: initialVal.DoubleValue(),
+		return &maxStatistic{
+			maxDouble: initialVal.DoubleValue(),
 			isInt:     false,
 		}, nil
 	}
 
-	return nil, errors.New("cannot create min aggregation from empty datapoint")
+	return nil, errors.New("cannot create max statistic from empty datapoint")
 }
 
-func (m *minAggregation) AddDatapoint(ndp pmetric.NumberDataPoint) {
+func (m *maxStatistic) AddDatapoint(ndp pmetric.NumberDataPoint) {
 	if m.isInt {
 		i := getDatapointValueInt(ndp)
-		if i < m.minInt {
-			m.minInt = i
+		if i > m.maxInt {
+			m.maxInt = i
 		}
 	} else {
 		f := getDatapointValueDouble(ndp)
-		if f < m.minDouble {
-			m.minDouble = f
+		if f > m.maxDouble {
+			m.maxDouble = f
 		}
 	}
 }
 
-func (m *minAggregation) SetDatapointValue(dp pmetric.NumberDataPoint) {
+func (m *maxStatistic) SetDatapointValue(dp pmetric.NumberDataPoint) {
 	if m.isInt {
-		dp.SetIntValue(m.minInt)
+		dp.SetIntValue(m.maxInt)
 	} else {
-		dp.SetDoubleValue(m.minDouble)
+		dp.SetDoubleValue(m.maxDouble)
 	}
 }

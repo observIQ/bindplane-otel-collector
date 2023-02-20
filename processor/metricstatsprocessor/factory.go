@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package aggregationprocessor
+package metricstatsprocessor
 
 import (
 	"context"
@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	typeStr = "aggregation"
+	typeStr = "metricstats"
 
 	stability = component.StabilityLevelAlpha
 )
@@ -54,12 +54,12 @@ func createMetricsProcessor(
 ) (processor.Metrics, error) {
 	oCfg, ok := cfg.(*Config)
 	if !ok {
-		return nil, fmt.Errorf("cannot create aggregation processor with invalid config type: %t", cfg)
+		return nil, fmt.Errorf("cannot create metricstats processor with invalid config type: %t", cfg)
 	}
 
-	sp, err := newAggregationProcessor(set.Logger, oCfg, nextConsumer)
+	sp, err := newStatsProcessor(set.Logger, oCfg, nextConsumer)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create aggregation processor: %w", err)
+		return nil, fmt.Errorf("failed to create metricstats processor: %w", err)
 	}
 
 	return sp, nil

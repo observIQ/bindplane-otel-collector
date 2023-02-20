@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package aggregationprocessor
+package metricstatsprocessor
 
 import (
 	"context"
@@ -71,7 +71,7 @@ func TestNewFactory(t *testing.T) {
 			consumertest.NewNop(),
 		)
 
-		require.ErrorContains(t, err, "cannot create aggregation processor with invalid config type:")
+		require.ErrorContains(t, err, "cannot create metricstats processor with invalid config type:")
 	})
 
 	t.Run("metrics processor fails to create with bad regex", func(t *testing.T) {
@@ -87,7 +87,7 @@ func TestNewFactory(t *testing.T) {
 			consumertest.NewNop(),
 		)
 
-		require.ErrorContains(t, err, "failed to create aggregation processor:")
+		require.ErrorContains(t, err, "failed to create metricstats processor:")
 	})
 
 }

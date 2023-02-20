@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package aggregate
+package stats
 
 import (
 	"errors"
@@ -20,33 +20,33 @@ import (
 	"go.opentelemetry.io/collector/pdata/pmetric"
 )
 
-type avgAggregate struct {
+type avgStatistic struct {
 	totalInt    int64
 	totalDouble float64
 	isInt       bool
 	count       int64
 }
 
-func newAvgAggregate(initialVal pmetric.NumberDataPoint) (Aggregate, error) {
+func newAvgStatistic(initialVal pmetric.NumberDataPoint) (Statistic, error) {
 	switch initialVal.ValueType() {
 	case pmetric.NumberDataPointValueTypeInt:
-		return &avgAggregate{
+		return &avgStatistic{
 			totalInt: initialVal.IntValue(),
 			isInt:    true,
 			count:    1,
 		}, nil
 	case pmetric.NumberDataPointValueTypeDouble:
-		return &avgAggregate{
+		return &avgStatistic{
 			totalDouble: initialVal.DoubleValue(),
 			isInt:       false,
 			count:       1,
 		}, nil
 	}
 
-	return nil, errors.New("cannot create avg aggregation from empty datapoint")
+	return nil, errors.New("cannot create avg statistic from empty datapoint")
 }
 
-func (m *avgAggregate) AddDatapoint(ndp pmetric.NumberDataPoint) {
+func (m *avgStatistic) AddDatapoint(ndp pmetric.NumberDataPoint) {
 	if m.isInt {
 		i := getDatapointValueInt(ndp)
 		m.totalInt += i
@@ -58,7 +58,7 @@ func (m *avgAggregate) AddDatapoint(ndp pmetric.NumberDataPoint) {
 	m.count++
 }
 
-func (m *avgAggregate) SetDatapointValue(dp pmetric.NumberDataPoint) {
+func (m *avgStatistic) SetDatapointValue(dp pmetric.NumberDataPoint) {
 	if m.isInt {
 		dp.SetIntValue(m.totalInt / m.count)
 	} else {
