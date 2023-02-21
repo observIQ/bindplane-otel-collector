@@ -26,6 +26,7 @@ func TestCreateDefaultProcessorConfig(t *testing.T) {
 	require.Equal(t, defaultInterval, cfg.Interval)
 	require.Equal(t, defaultLogCountAttribute, cfg.LogCountAttribute)
 	require.Equal(t, defaultTimezone, cfg.Timezone)
+	require.Equal(t, []string{}, cfg.ExcludeFields)
 }
 
 func TestValidateConfig(t *testing.T) {
@@ -40,6 +41,7 @@ func TestValidateConfig(t *testing.T) {
 				LogCountAttribute: "",
 				Interval:          defaultInterval,
 				Timezone:          defaultTimezone,
+				ExcludeFields:     []string{},
 			},
 			expectedErr: errInvalidLogCountAttribute,
 		},
@@ -49,6 +51,7 @@ func TestValidateConfig(t *testing.T) {
 				LogCountAttribute: defaultLogCountAttribute,
 				Interval:          -1,
 				Timezone:          defaultTimezone,
+				ExcludeFields:     []string{},
 			},
 			expectedErr: errInvalidInterval,
 		},
@@ -58,8 +61,39 @@ func TestValidateConfig(t *testing.T) {
 				LogCountAttribute: defaultLogCountAttribute,
 				Interval:          defaultInterval,
 				Timezone:          "not a timezone",
+				ExcludeFields:     []string{},
 			},
 			expectedErr: errors.New("timezone is invalid"),
+		},
+		{
+			desc: "invalid exclude entire body",
+			cfg: &Config{
+				LogCountAttribute: defaultLogCountAttribute,
+				Interval:          defaultInterval,
+				Timezone:          defaultTimezone,
+				ExcludeFields:     []string{bodyField},
+			},
+			expectedErr: errCannotExcludeBody,
+		},
+		{
+			desc: "invalid exclude field body",
+			cfg: &Config{
+				LogCountAttribute: defaultLogCountAttribute,
+				Interval:          defaultInterval,
+				Timezone:          defaultTimezone,
+				ExcludeFields:     []string{"not.value"},
+			},
+			expectedErr: errors.New("an excludefield must start with"),
+		},
+		{
+			desc: "invalid duplice exclude field",
+			cfg: &Config{
+				LogCountAttribute: defaultLogCountAttribute,
+				Interval:          defaultInterval,
+				Timezone:          defaultTimezone,
+				ExcludeFields:     []string{"body.thing", "body.thing"},
+			},
+			expectedErr: errors.New("duplicate exclude_field"),
 		},
 		{
 			desc: "valid config",
@@ -67,6 +101,7 @@ func TestValidateConfig(t *testing.T) {
 				LogCountAttribute: defaultLogCountAttribute,
 				Interval:          defaultInterval,
 				Timezone:          defaultTimezone,
+				ExcludeFields:     []string{"body.thing", "attributes.otherthing"},
 			},
 			expectedErr: nil,
 		},

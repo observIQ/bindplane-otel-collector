@@ -30,6 +30,7 @@ import (
 type logDedupProcessor struct {
 	emitInterval time.Duration
 	aggregator   *logAggregator
+	remover      *fieldRemover
 	consumer     consumer.Logs
 	logger       *zap.Logger
 	cancel       context.CancelFunc
@@ -47,6 +48,7 @@ func newProcessor(cfg *Config, consumer consumer.Logs, logger *zap.Logger) (*log
 	return &logDedupProcessor{
 		emitInterval: cfg.Interval,
 		aggregator:   newLogAggregator(cfg.LogCountAttribute, timezone),
+		remover:      newFieldRemover(cfg.ExcludeFields),
 		consumer:     consumer,
 		logger:       logger,
 	}, nil
@@ -100,6 +102,10 @@ func (p *logDedupProcessor) ConsumeLogs(_ context.Context, pl plog.Logs) error {
 			logs := scope.LogRecords()
 			for k := 0; k < logs.Len(); k++ {
 				logRecord := logs.At(k)
+				// Remove excluded fields if any
+				p.remover.RemoveFields(logRecord)
+
+				// Add the log to the aggregator
 				p.aggregator.Add(resourceAttrs, logRecord)
 			}
 		}

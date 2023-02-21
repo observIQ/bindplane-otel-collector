@@ -17,6 +17,7 @@ package logdeduplicationprocessor
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -78,6 +79,7 @@ func Test_newProcessor(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, tc.expected.emitInterval, actual.emitInterval)
 				require.NotNil(t, actual.aggregator)
+				require.NotNil(t, actual.remover)
 				require.Equal(t, tc.expected.consumer, actual.consumer)
 				require.Equal(t, tc.expected.logger, actual.logger)
 			}
@@ -85,12 +87,10 @@ func Test_newProcessor(t *testing.T) {
 	}
 }
 
-func TestProcessorCapabilities(t *testing.T) {
-	p := &logDedupProcessor{}
-	require.Equal(t, consumer.Capabilities{MutatesData: true}, p.Capabilities())
-}
+func TestProcessorShutdownCtxError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
 
-func TestProcessorConsume(t *testing.T) {
 	logsSink := &consumertest.LogsSink{}
 	logger := zap.NewNop()
 	cfg := &Config{
@@ -106,12 +106,41 @@ func TestProcessorConsume(t *testing.T) {
 	err = p.Start(context.Background(), componenttest.NewNopHost())
 	require.NoError(t, err)
 
+	err = p.Shutdown(ctx)
+	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestProcessorCapabilities(t *testing.T) {
+	p := &logDedupProcessor{}
+	require.Equal(t, consumer.Capabilities{MutatesData: true}, p.Capabilities())
+}
+
+func TestProcessorConsume(t *testing.T) {
+	logsSink := &consumertest.LogsSink{}
+	logger := zap.NewNop()
+	cfg := &Config{
+		LogCountAttribute: defaultLogCountAttribute,
+		Interval:          1 * time.Second,
+		Timezone:          defaultTimezone,
+		ExcludeFields: []string{
+			fmt.Sprintf("%s.remove_me", attributeField),
+		},
+	}
+
+	// Create a processor
+	p, err := newProcessor(cfg, logsSink, logger)
+	require.NoError(t, err)
+
+	err = p.Start(context.Background(), componenttest.NewNopHost())
+	require.NoError(t, err)
+
 	// Create plog payload
 	logRecord1 := generateTestLogRecord(t, "Body of the log")
 	logRecord2 := generateTestLogRecord(t, "Body of the log")
 
-	//Differ by timestamp
+	//Differ by timestamp and attribute to be removed
 	logRecord1.SetTimestamp(pcommon.NewTimestampFromTime(time.Now().Add(time.Minute)))
+	logRecord2.Attributes().PutBool("remove_me", false)
 
 	logs := plog.NewLogs()
 	rl := logs.ResourceLogs().AppendEmpty()
