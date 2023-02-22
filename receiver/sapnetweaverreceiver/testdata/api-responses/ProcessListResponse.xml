@@ -1,0 +1,28 @@
+<GetProcessListResponse xmlns="urn:SAPControl">
+ <process>
+  <item>
+   <name>disp+work</name>
+   <description>Dispatcher</description>
+   <dispstatus>SAPControl-YELLOW</dispstatus>
+   <textstatus>Server in state STARTING</textstatus>
+  </item>
+  <item>
+   <name>igswd_mt</name>
+   <description>IGS Watchdog</description>
+   <dispstatus>SAPControl-GREEN</dispstatus>
+   <textstatus>Running</textstatus>
+  </item>
+  <item>
+   <name>gwrd</name>
+   <description>Gateway</description>
+   <dispstatus>SAPControl-GREEN</dispstatus>
+   <textstatus>Running</textstatus>
+  </item>
+  <item>
+   <name>icman</name>
+   <description>ICM</description>
+   <dispstatus>SAPControl-GREEN</dispstatus>
+   <textstatus>Running</textstatus>
+  </item>
+ </process>
+</GetProcessListResponse>

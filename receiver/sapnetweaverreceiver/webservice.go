@@ -23,7 +23,11 @@ import (
 type webService interface {
 	GetInstanceProperties() (*models.GetInstancePropertiesResponse, error)
 	GetAlertTree() (*models.GetAlertTreeResponse, error)
-	EnqGetLockTable() (*models.EnqGetLockTableResponse, error)
+	GetQueueStatistic() (*models.GetQueueStatisticResponse, error)
+	GetSystemInstanceList() (*models.GetSystemInstanceListResponse, error)
+	GetProcessList() (*models.GetProcessListResponse, error)
+	EnqGetStatistic() (*models.EnqGetStatisticResponse, error)
+	ABAPGetSystemWPTable() (*models.ABAPGetSystemWPTableResponse, error)
 }
 
 type netweaverWebService struct {
@@ -34,6 +38,28 @@ func newWebService(client *soap.Client) webService {
 	return &netweaverWebService{
 		client: client,
 	}
+}
+
+func (s *netweaverWebService) GetQueueStatistic() (*models.GetQueueStatisticResponse, error) {
+	request := &models.GetQueueStatistic{}
+	response := &models.GetQueueStatisticResponse{}
+	err := s.client.Call("''", request, response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (s *netweaverWebService) EnqGetStatistic() (*models.EnqGetStatisticResponse, error) {
+	request := &models.EnqGetStatistic{}
+	response := &models.EnqGetStatisticResponse{}
+	err := s.client.Call("''", request, response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
 
 func (s *netweaverWebService) GetAlertTree() (*models.GetAlertTreeResponse, error) {
@@ -54,13 +80,43 @@ func (s *netweaverWebService) GetInstanceProperties() (*models.GetInstanceProper
 	if err != nil {
 		return nil, err
 	}
+	return response, nil
+}
+
+func (s *netweaverWebService) GetSystemInstanceList() (*models.GetSystemInstanceListResponse, error) {
+	request := &models.GetSystemInstanceList{}
+	response := &models.GetSystemInstanceListResponse{}
+	err := s.client.Call("''", request, response)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
+func (s *netweaverWebService) GetProcessList() (*models.GetProcessListResponse, error) {
+	request := &models.GetProcessList{}
+	response := &models.GetProcessListResponse{}
+	err := s.client.Call("''", request, response)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
+func (s *netweaverWebService) ABAPGetSystemWPTable() (*models.ABAPGetSystemWPTableResponse, error) {
+	request := &models.ABAPGetSystemWPTable{}
+	response := &models.ABAPGetSystemWPTableResponse{}
+	err := s.client.Call("''", request, response)
+	if err != nil {
+		return nil, err
+	}
 
 	return response, nil
 }
 
-func (s *netweaverWebService) EnqGetLockTable() (*models.EnqGetLockTableResponse, error) {
-	request := &models.EnqGetLockTable{}
-	response := &models.EnqGetLockTableResponse{}
+func (s *netweaverWebService) GetRequestLogFile() (*models.GetRequestLogFileResponse, error) {
+	request := &models.GetRequestLogFile{}
+	response := &models.GetRequestLogFileResponse{}
 	err := s.client.Call("''", request, response)
 	if err != nil {
 		return nil, err

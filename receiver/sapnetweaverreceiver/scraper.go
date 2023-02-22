@@ -93,7 +93,7 @@ func (s *sapNetweaverScraper) scrape(ctx context.Context) (pmetric.Metrics, erro
 	errs := &scrapererror.ScrapeErrors{}
 	err := s.GetCurrentInstance()
 	if err != nil {
-		errs.AddPartial(1, fmt.Errorf("failed to get current instance details: %w", err))
+		errs.AddPartial(1, fmt.Errorf("failed to collect GetInstanceProperties metrics: %w", err))
 	}
 
 	s.collectMetrics(ctx, errs)
@@ -102,12 +102,73 @@ func (s *sapNetweaverScraper) scrape(ctx context.Context) (pmetric.Metrics, erro
 
 func (s *sapNetweaverScraper) collectMetrics(ctx context.Context, errs *scrapererror.ScrapeErrors) {
 	now := pcommon.NewTimestampFromTime(time.Now())
-	s.collectAlertTree(ctx, now, errs)
-	s.collectEnqGetLockTable(ctx, now, errs)
+	s.collectGetAlertTree(ctx, now, errs)
+	s.collectABAPGetSystemWPTable(ctx, now, errs)
+	s.collectEnqGetStatistic(ctx, now, errs)
+	s.collectGetQueueStatistic(ctx, now, errs)
+	s.collectGetProcessList(ctx, now, errs)
+	s.collectGetSystemInstanceList(ctx, now, errs)
+
 	s.mb.EmitForResource(metadata.WithSapnetweaverInstance(s.instance), metadata.WithSapnetweaverNode(s.hostname))
 }
 
-func (s *sapNetweaverScraper) collectAlertTree(_ context.Context, now pcommon.Timestamp, errs *scrapererror.ScrapeErrors) {
+// collectABAPGetSystemWPTable collects metrics from the ABAPGetSystemWPTable method
+func (s *sapNetweaverScraper) collectABAPGetSystemWPTable(_ context.Context, now pcommon.Timestamp, errs *scrapererror.ScrapeErrors) {
+	abapGetSystemWPTable, err := s.service.ABAPGetSystemWPTable()
+	if err != nil {
+		errs.AddPartial(1, fmt.Errorf("failed to collect ABAPGetSystemWPTable metrics: %w", err))
+		return
+	}
+
+	s.recordSapnetweaverWorkProcessActiveCountDataPoint(now, abapGetSystemWPTable, errs)
+}
+
+// collectEnqGetStatistic collects metrics from the EnqGetStatistic method
+func (s *sapNetweaverScraper) collectEnqGetStatistic(_ context.Context, now pcommon.Timestamp, errs *scrapererror.ScrapeErrors) {
+	enqGetStatistic, err := s.service.EnqGetStatistic()
+	if err != nil {
+		errs.AddPartial(1, fmt.Errorf("failed to collect EnqGetStatistic metrics: %w", err))
+		return
+	}
+
+	s.recordSapnetweaverLocksDataPoints(now, enqGetStatistic, errs)
+}
+
+// collectGetQueueStatistic collects metrics from the GetQueueStatistic method
+func (s *sapNetweaverScraper) collectGetQueueStatistic(_ context.Context, now pcommon.Timestamp, errs *scrapererror.ScrapeErrors) {
+	getQueueStatistic, err := s.service.GetQueueStatistic()
+	if err != nil {
+		errs.AddPartial(1, fmt.Errorf("failed to collect GetQueueStatistic metrics: %w", err))
+		return
+	}
+
+	s.recordSapnetweaverQueueDataPoints(now, getQueueStatistic, errs)
+}
+
+// collectGetProcessList collects metrics from the GetProcessList method
+func (s *sapNetweaverScraper) collectGetProcessList(_ context.Context, now pcommon.Timestamp, errs *scrapererror.ScrapeErrors) {
+	getProcessList, err := s.service.GetProcessList()
+	if err != nil {
+		errs.AddPartial(1, fmt.Errorf("failed to collect GetProcessList metrics: %w", err))
+		return
+	}
+
+	s.recordSapnetweaverProcessAvailabilityDataPoint(now, getProcessList, errs)
+}
+
+// collectGetSystemInstanceList collects metrics from the GetSystemInstanceList method
+func (s *sapNetweaverScraper) collectGetSystemInstanceList(_ context.Context, now pcommon.Timestamp, errs *scrapererror.ScrapeErrors) {
+	getSystemInstanceList, err := s.service.GetSystemInstanceList()
+	if err != nil {
+		errs.AddPartial(1, fmt.Errorf("failed to collect GetSystemInstanceList metrics: %w", err))
+		return
+	}
+
+	s.recordSapnetweaverSystemInstanceAvailabilityDataPoint(now, getSystemInstanceList, errs)
+}
+
+// collectGetAlertTree collects metrics from the GetAlertTree method
+func (s *sapNetweaverScraper) collectGetAlertTree(_ context.Context, now pcommon.Timestamp, errs *scrapererror.ScrapeErrors) {
 	alertTreeResponse := map[string]string{}
 	alertTree, err := s.service.GetAlertTree()
 	if err != nil {
@@ -134,25 +195,24 @@ func (s *sapNetweaverScraper) collectAlertTree(_ context.Context, now pcommon.Ti
 		}
 	}
 
-	s.recordSapnetweaverWorkProcessesActiveCount(now, alertTreeResponse, errs)
-	s.recordSapnetweaverHostCPUUtilizationDataPoint(now, alertTreeResponse, errs)
-	s.recordSapnetweaverSystemAvailabilityDataPoint(now, alertTreeResponse, errs)
-	s.recordSapnetweaverSystemUtilizationDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverDatabaseDialogRequestTimeDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverCPUUtilizationDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverCPUSystemUtilizationDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverSpoolRequestErrorCountDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverWorkProcessJobAbortedCountDataPoint(now, alertTreeResponse, errs)
+
 	s.recordSapnetweaverMemorySwapSpaceUtilizationDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverMemoryConfiguredDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverMemoryFreeDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverSessionCountDataPoint(now, alertTreeResponse, errs)
-	s.recordSapnetweaverQueueCountDataPoint(now, alertTreeResponse, errs)
-	s.recordSapnetweaverQueuePeakCountDataPoint(now, alertTreeResponse, errs)
-	s.recordSapnetweaverJobAbortedDataPoint(now, alertTreeResponse, errs)
-	s.recordSapnetweaverAbapUpdateErrorCountDataPoint(now, alertTreeResponse, errs)
+	s.recordSapnetweaverAbapUpdateStatusDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverResponseDurationDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverRequestCountDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverRequestTimeoutCountDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverConnectionErrorCountDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverCacheEvictionsDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverCacheHitsDataPoint(now, alertTreeResponse, errs)
-	s.recordSapnetweaverIcmAvailabilityDataPoint(now, alertTreeResponse, errs)
+
 	s.recordSapnetweaverHostSpoolListUtilizationDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverShortDumpsCountDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverHostMemoryVirtualOverheadDataPoint(now, alertTreeResponse, errs)
@@ -162,14 +222,4 @@ func (s *sapNetweaverScraper) collectAlertTree(_ context.Context, now pcommon.Ti
 	s.recordSapnetweaverSessionsWebCountDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverSessionsBrowserCountDataPoint(now, alertTreeResponse, errs)
 	s.recordSapnetweaverSessionsEjbCountDataPoint(now, alertTreeResponse, errs)
-}
-
-func (s *sapNetweaverScraper) collectEnqGetLockTable(_ context.Context, now pcommon.Timestamp, errs *scrapererror.ScrapeErrors) {
-	lockTable, err := s.service.EnqGetLockTable()
-	if err != nil {
-		errs.AddPartial(1, fmt.Errorf("failed to collect Enq Lock Table metrics: %w", err))
-		return
-	}
-
-	s.mb.RecordSapnetweaverLocksEnqueueCountDataPoint(now, int64(len(lockTable.EnqLock)))
 }

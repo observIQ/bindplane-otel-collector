@@ -12,6 +12,52 @@ type MockWebService struct {
 	mock.Mock
 }
 
+// ABAPGetSystemWPTable provides a mock function with given fields:
+func (_m *MockWebService) ABAPGetSystemWPTable() (*models.ABAPGetSystemWPTableResponse, error) {
+	ret := _m.Called()
+
+	var r0 *models.ABAPGetSystemWPTableResponse
+	if rf, ok := ret.Get(0).(func() *models.ABAPGetSystemWPTableResponse); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*models.ABAPGetSystemWPTableResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// EnqGetStatistic provides a mock function with given fields:
+func (_m *MockWebService) EnqGetStatistic() (*models.EnqGetStatisticResponse, error) {
+	ret := _m.Called()
+
+	var r0 *models.EnqGetStatisticResponse
+	if rf, ok := ret.Get(0).(func() *models.EnqGetStatisticResponse); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*models.EnqGetStatisticResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetAlertTree provides a mock function with given fields:
 func (_m *MockWebService) GetAlertTree() (*models.GetAlertTreeResponse, error) {
 	ret := _m.Called()
@@ -58,16 +104,16 @@ func (_m *MockWebService) GetInstanceProperties() (*models.GetInstanceProperties
 	return r0, r1
 }
 
-// EnqGetLockTable provides a mock function with given fields:
-func (_m *MockWebService) EnqGetLockTable() (*models.EnqGetLockTableResponse, error) {
+// GetProcessList provides a mock function with given fields:
+func (_m *MockWebService) GetProcessList() (*models.GetProcessListResponse, error) {
 	ret := _m.Called()
 
-	var r0 *models.EnqGetLockTableResponse
-	if rf, ok := ret.Get(0).(func() *models.EnqGetLockTableResponse); ok {
+	var r0 *models.GetProcessListResponse
+	if rf, ok := ret.Get(0).(func() *models.GetProcessListResponse); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*models.EnqGetLockTableResponse)
+			r0 = ret.Get(0).(*models.GetProcessListResponse)
 		}
 	}
 
@@ -81,13 +127,59 @@ func (_m *MockWebService) EnqGetLockTable() (*models.EnqGetLockTableResponse, er
 	return r0, r1
 }
 
-type mockConstructorTestingTnewMockWebService interface {
+// GetQueueStatistic provides a mock function with given fields:
+func (_m *MockWebService) GetQueueStatistic() (*models.GetQueueStatisticResponse, error) {
+	ret := _m.Called()
+
+	var r0 *models.GetQueueStatisticResponse
+	if rf, ok := ret.Get(0).(func() *models.GetQueueStatisticResponse); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*models.GetQueueStatisticResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetSystemInstanceList provides a mock function with given fields:
+func (_m *MockWebService) GetSystemInstanceList() (*models.GetSystemInstanceListResponse, error) {
+	ret := _m.Called()
+
+	var r0 *models.GetSystemInstanceListResponse
+	if rf, ok := ret.Get(0).(func() *models.GetSystemInstanceListResponse); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*models.GetSystemInstanceListResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+type mockConstructorTestingTnewWebService interface {
 	mock.TestingT
 	Cleanup(func())
 }
 
-// NewMockWebService creates a new instance of MockWebService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
-func NewMockWebService(t mockConstructorTestingTnewMockWebService) *MockWebService {
+// newWebService creates a new instance of webService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+func newWebService(t mockConstructorTestingTnewWebService) *MockWebService {
 	mock := &MockWebService{}
 	mock.Mock.Test(t)
 

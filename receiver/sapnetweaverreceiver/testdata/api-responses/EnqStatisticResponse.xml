@@ -1,0 +1,9 @@
+<EnqStatistic xmlns="urn:SAPControl">
+ <locks-now>1</locks-now>
+ <locks-high>2</locks-high>
+ <locks-max>3</locks-max>
+ <enqueue-errors>4</enqueue-errors>
+ <dequeue-errors>5</dequeue-errors>
+ <lock-time>6.0</lock-time>
+ <lock-wait-time>7.0</lock-wait-time>
+</EnqStatistic>
