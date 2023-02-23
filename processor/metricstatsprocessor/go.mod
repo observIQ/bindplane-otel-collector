@@ -1,6 +1,6 @@
 module github.com/observiq/observiq-otel-collector/processor/metricstatsprocessor
 
-go 1.18
+go 1.19
 
 require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.70.0

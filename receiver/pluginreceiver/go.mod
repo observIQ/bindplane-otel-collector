@@ -1,6 +1,6 @@
 module github.com/observiq/observiq-otel-collector/receiver/pluginreceiver
 
-go 1.18
+go 1.19
 
 require (
 	github.com/mitchellh/mapstructure v1.5.0

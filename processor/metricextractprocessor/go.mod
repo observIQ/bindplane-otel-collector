@@ -1,6 +1,6 @@
 module github.com/observiq/observiq-otel-collector/processor/metricextractprocessor
 
-go 1.18
+go 1.19
 
 require (
 	github.com/observiq/observiq-otel-collector/expr v1.19.0
