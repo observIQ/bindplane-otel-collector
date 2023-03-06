@@ -16,12 +16,14 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/tcplogreceiver v0.72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/udplogreceiver v0.72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.72.0
-	github.com/stretchr/testify v1.8.1
-	go.opentelemetry.io/collector v0.72.0
-	go.opentelemetry.io/collector/component v0.72.0
-	go.opentelemetry.io/collector/confmap v0.72.0
-	go.opentelemetry.io/collector/consumer v0.72.0
-	go.opentelemetry.io/collector/pdata v1.0.0-rc6
+	github.com/stretchr/testify v1.8.2
+	go.opentelemetry.io/collector v0.72.1-0.20230303235035-7318c14f1a2b
+	go.opentelemetry.io/collector/component v0.72.1-0.20230303235035-7318c14f1a2b
+	go.opentelemetry.io/collector/confmap v0.72.1-0.20230303235035-7318c14f1a2b
+	go.opentelemetry.io/collector/consumer v0.72.1-0.20230303235035-7318c14f1a2b
+	go.opentelemetry.io/collector/exporter v0.0.0-20230303211526-ec5d71fec2da
+	go.opentelemetry.io/collector/pdata v1.0.0-rc6.0.20230303235035-7318c14f1a2b
+	go.opentelemetry.io/collector/receiver v0.0.0-20230302200458-4071a47d0ee3
 	go.uber.org/zap v1.24.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -43,7 +45,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.72.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/prometheus v0.72.0 // indirect
 	github.com/ovh/go-ovh v1.3.0 // indirect
-	go.opentelemetry.io/collector/featuregate v0.72.0 // indirect
+	go.opentelemetry.io/collector/featuregate v0.72.1-0.20230303235035-7318c14f1a2b // indirect
 )
 
 require (
@@ -65,7 +67,7 @@ require (
 	github.com/SAP/go-hdb v1.0.9 // indirect
 	github.com/alecthomas/participle/v2 v2.0.0-beta.5 // indirect
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
-	github.com/antonmedv/expr v1.12.0 // indirect
+	github.com/antonmedv/expr v1.12.1 // indirect
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/aws/aws-sdk-go v1.44.205 // indirect
@@ -147,7 +149,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.15.15 // indirect
+	github.com/klauspost/compress v1.16.0 // indirect
 	github.com/knadh/koanf v1.5.0 // indirect
 	github.com/kolo/xmlrpc v0.0.0-20220921171641-a4b6fa1dd06b // indirect
 	github.com/leodido/ragel-machinery v0.0.0-20181214104525-299bdde78165 // indirect
@@ -241,3 +243,7 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
+
+// Pulls in automatic header parsing from OTel (required for supplied_plugins_test.go).
+// Should be removed for OTel v0.73.0+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.72.0 => github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.72.1-0.20230306143518-d4352eab1f68
