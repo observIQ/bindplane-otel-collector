@@ -1,0 +1,5 @@
+Communication Table is empty Tue Feb 28 13:25:56 2023 (UTC)
+
+
+    q - quit
+    m - menue

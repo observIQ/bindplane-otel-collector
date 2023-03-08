@@ -12,6 +12,38 @@ metrics:
     enabled: false
 ```
 
+### sapnetweaver.abap.rfc.count
+
+The number of ABAP RFC connections by session type.
+
+Collected from executable dpmon -pf=/sapmnt/<SID>/profile c (RFC Connections option)
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| {connections} | Sum | Int | Cumulative | false |
+
+#### Attributes
+
+| Name | Description | Values |
+| ---- | ----------- | ------ |
+| session_type | The ABAP Session type. | Any Str |
+
+### sapnetweaver.abap.session.count
+
+The number of ABAP sessions by session type.
+
+Collected from executable dpmon -pf=/sapmnt/<SID>/profile v (session table option)
+
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
+| ---- | ----------- | ---------- | ----------------------- | --------- |
+| {sessions} | Sum | Int | Cumulative | false |
+
+#### Attributes
+
+| Name | Description | Values |
+| ---- | ----------- | ------ |
+| session_type | The ABAP Session type. | Any Str |
+
 ### sapnetweaver.abap.update.status
 
 The status of the ABAP update process.
@@ -50,22 +82,19 @@ Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > IC
 
 ### sapnetweaver.certificate.validity
 
-The SAP certificate validity date; 0 means expired, 1 means active.
+The number of seconds until the SAP certificate expires.
 
 Collected using sapgenpse get_my_name -p /usr/sap/<SID>/<INST>/*.pse -n validity.
 
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
 | ---- | ----------- | ---------- | ----------------------- | --------- |
-|  | Sum | Int | Cumulative | false |
+| s | Sum | Int | Cumulative | false |
 
 #### Attributes
 
 | Name | Description | Values |
 | ---- | ----------- | ------ |
-| certificate_name | The SAP Certificate name. | Any Str |
-| validity_date | The date which the validity expires. | Any Str |
-| SID | The SAP SID name. | Any Str |
-| instance | The SAP instance name. | Any Str |
+| certificate_path | The SAP Certificate file path location. | Any Str |
 
 ### sapnetweaver.connection.error.count
 
@@ -468,5 +497,6 @@ Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Ba
 
 | Name | Description | Values | Enabled |
 | ---- | ----------- | ------ | ------- |
-| sapnetweaver.instance | The SAP Netweaver instance. | Any Str | false |
-| sapnetweaver.node | The SAP Netweaver node. | Any Str | false |
+| sapnetweaver.SID | The SAP Netweaver SID. | Any Str | true |
+| sapnetweaver.instance | The SAP Netweaver instance. | Any Str | true |
+| sapnetweaver.node | The SAP Netweaver node. | Any Str | true |

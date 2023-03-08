@@ -280,6 +280,61 @@ func (s *sapNetweaverScraper) recordSapnetweaverWorkProcessActiveCountDataPoint(
 	s.mb.RecordSapnetweaverWorkProcessActiveCountDataPoint(now, int64(similarityCount), systemWPTableResponse.Workprocess.Item[len(systemWPTableResponse.Workprocess.Item)-1].Instance, systemWPTableResponse.Workprocess.Item[len(systemWPTableResponse.Workprocess.Item)-1].Typ, systemWPTableResponse.Workprocess.Item[len(systemWPTableResponse.Workprocess.Item)-1].Status)
 }
 
+// recordSapnetweaverAbapRfcCountDataPoint
+func (s *sapNetweaverScraper) recordSapnetweaverAbapRfcCountDataPoint(now pcommon.Timestamp, rfcTable string) {
+	rfcConnectionTable := parseRfcConnectionsTable(rfcTable)
+	for rfcType, count := range rfcConnectionTable {
+		s.mb.RecordSapnetweaverAbapRfcCountDataPoint(now, count, rfcType)
+	}
+}
+
+func parseRfcConnectionsTable(rfcTable string) map[string]int64 {
+	rfcTypes := map[string]int64{}
+	if strings.Contains(rfcTable, "Communication Table is empty") {
+		return rfcTypes
+	}
+
+	for _, line := range strings.Split(rfcTable, "\n") {
+		// select content between | and |, but not the header with  --- header fields, i.e. type
+		if strings.Contains(line, "|") && !strings.Contains(line, "---") && !strings.Contains(line, "type") {
+			fields := strings.Split(line, "|")
+			if len(fields) >= 3 {
+				// add string type to map count
+				typeField := strings.TrimSpace(fields[2])
+				rfcTypes[typeField]++
+			}
+		}
+	}
+
+	return rfcTypes
+}
+
+// recordSapnetweaverAbapSessionCountDataPoint
+func (s *sapNetweaverScraper) recordSapnetweaverAbapSessionCountDataPoint(now pcommon.Timestamp, sessionTable string) {
+	sessionsTable := parseSessionTable(sessionTable)
+	for sessionType, count := range sessionsTable {
+		s.mb.RecordSapnetweaverAbapSessionCountDataPoint(now, count, sessionType)
+	}
+}
+
+func parseSessionTable(sessionTable string) map[string]int64 {
+	sessionTypes := map[string]int64{}
+
+	for _, line := range strings.Split(sessionTable, "\n") {
+		// select content between | and |, but not the header with  --- header fields, i.e. type
+		if strings.Contains(line, "|") && !strings.Contains(line, "---") && !strings.Contains(line, "Type") {
+			fields := strings.Split(line, "|")
+			if len(fields) >= 2 {
+				// add string type to map count
+				typeField := strings.TrimSpace(fields[1])
+				sessionTypes[typeField]++
+			}
+		}
+	}
+
+	return sessionTypes
+}
+
 // recordSapnetweaverQueueCountDataPoint
 func (s *sapNetweaverScraper) recordSapnetweaverQueueDataPoints(now pcommon.Timestamp, queueStatistic *models.GetQueueStatisticResponse, errs *scrapererror.ScrapeErrors) {
 	if queueStatistic.Queue == nil {
@@ -328,6 +383,20 @@ func (s *sapNetweaverScraper) recordSapnetweaverLocksDataPoints(now pcommon.Time
 		s.mb.RecordSapnetweaverLocksEnqueueMaxCountDataPoint(now, int64(*enqStatisticsResponse.LocksMax))
 	} else {
 		metricName := "LocksMax"
+		err := formatErrorMsg(metricName, "", errValueNotFound)
+		errs.AddPartial(1, err)
+	}
+	if enqStatisticsResponse.DequeueErrors != nil {
+		s.mb.RecordSapnetweaverLocksDequeueErrorsCountDataPoint(now, int64(*enqStatisticsResponse.DequeueErrors))
+	} else {
+		metricName := "DequeueErrors"
+		err := formatErrorMsg(metricName, "", errValueNotFound)
+		errs.AddPartial(1, err)
+	}
+	if enqStatisticsResponse.EnqueueErrors != nil {
+		s.mb.RecordSapnetweaverLocksEnqueueErrorsCountDataPoint(now, int64(*enqStatisticsResponse.EnqueueErrors))
+	} else {
+		metricName := "EnqueueErrors"
 		err := formatErrorMsg(metricName, "", errValueNotFound)
 		errs.AddPartial(1, err)
 	}

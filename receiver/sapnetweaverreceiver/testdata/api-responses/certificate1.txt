@@ -1,0 +1,5 @@
+No SSO for USER "root"
+  with PSE file "/usr/sap/EPP/D00/sec/SAPSSLA.pse"
+
+Validity  -  NotBefore:   Mon Sep 26 07:58:05 2011 (110926125805Z)
+             NotAfter :   Thu Dec 31 19:00:01 2037 (380101000001Z)

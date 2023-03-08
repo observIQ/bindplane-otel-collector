@@ -160,25 +160,6 @@ type SystemWorkProcess struct {
 	Table    string `xml:"Table" json:"Table"`
 }
 
-// GetRequestLogFileResponse is an xml response struct
-type GetRequestLogFileResponse struct {
-	XMLName xml.Name  `xml:"urn:SAPControl GetRequestLogFileResponse"`
-	Content []*string `xml:"content" json:"content"`
-}
-
-// OSExecuteResponse is an xml response struct
-type OSExecuteResponse struct {
-	XMLName  xml.Name       `xml:"urn:SAPControl OSExecuteResponse"`
-	Exitcode int32          `xml:"exitcode" json:"exitcode"`
-	Pid      int32          `xml:"pid" json:"pid"`
-	Lines    *ArrayOfString `xml:"lines" json:"lines"`
-}
-
-// ArrayOfString is an xml response struct
-type ArrayOfString struct {
-	Item []string `xml:"item" json:"item"`
-}
-
 // EnqGetStatisticResponse is an xml response struct
 type EnqGetStatisticResponse struct {
 	XMLName       xml.Name `xml:"urn:SAPControl EnqStatistic"`
