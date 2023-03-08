@@ -53,17 +53,3 @@ type ABAPGetSystemWPTable struct {
 	XMLName    xml.Name `xml:"urn:SAPControl ABAPGetSystemWPTable"`
 	Activeonly bool     `xml:"activeonly" json:"activeonly"`
 }
-
-// GetRequestLogFile is an xml request struct used to return a response struct
-type GetRequestLogFile struct {
-	XMLName xml.Name `xml:"urn:SAPControl GetRequestLogFile"`
-}
-
-// OSExecute is an xml request struct used to return a response struct
-type OSExecute struct {
-	XMLName      xml.Name `xml:"urn:SAPControl OSExecute"`
-	Command      string   `xml:"command" json:"command"`
-	Async        int32    `xml:"async" json:"async"`
-	Timeout      int32    `xml:"timeout" json:"timeout"`
-	Protocolfile string   `xml:"protocolfile" json:"protocolfile"`
-}

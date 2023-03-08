@@ -1,159 +1,183 @@
 default:
-all_metrics:
-  sapnetweaver.abap.update.status:
-    enabled: true
-  sapnetweaver.cache.evictions:
-    enabled: true
-  sapnetweaver.cache.hits:
-    enabled: true
-  sapnetweaver.certificate.validity:
-    enabled: true
-  sapnetweaver.connection.error.count:
-    enabled: true
-  sapnetweaver.cpu.system.utilization:
-    enabled: true
-  sapnetweaver.cpu.utilization:
-    enabled: true
-  sapnetweaver.database.dialog.request.time:
-    enabled: true
-  sapnetweaver.host.memory.virtual.overhead:
-    enabled: true
-  sapnetweaver.host.memory.virtual.swap:
-    enabled: true
-  sapnetweaver.host.spool_list.utilization:
-    enabled: true
-  sapnetweaver.locks.dequeue.errors.count:
-    enabled: true
-  sapnetweaver.locks.enqueue.current.count:
-    enabled: true
-  sapnetweaver.locks.enqueue.errors.count:
-    enabled: true
-  sapnetweaver.locks.enqueue.high.count:
-    enabled: true
-  sapnetweaver.locks.enqueue.lock_time:
-    enabled: true
-  sapnetweaver.locks.enqueue.lock_wait_time:
-    enabled: true
-  sapnetweaver.locks.enqueue.max.count:
-    enabled: true
-  sapnetweaver.memory.configured:
-    enabled: true
-  sapnetweaver.memory.free:
-    enabled: true
-  sapnetweaver.memory.swap_space.utilization:
-    enabled: true
-  sapnetweaver.process_availability:
-    enabled: true
-  sapnetweaver.queue.count:
-    enabled: true
-  sapnetweaver.queue_max.count:
-    enabled: true
-  sapnetweaver.queue_peak.count:
-    enabled: true
-  sapnetweaver.request.count:
-    enabled: true
-  sapnetweaver.request.timeout.count:
-    enabled: true
-  sapnetweaver.response.duration:
-    enabled: true
-  sapnetweaver.session.count:
-    enabled: true
-  sapnetweaver.sessions.browser.count:
-    enabled: true
-  sapnetweaver.sessions.ejb.count:
-    enabled: true
-  sapnetweaver.sessions.http.count:
-    enabled: true
-  sapnetweaver.sessions.security.count:
-    enabled: true
-  sapnetweaver.sessions.web.count:
-    enabled: true
-  sapnetweaver.short_dumps.rate:
-    enabled: true
-  sapnetweaver.spool.request.error.count:
-    enabled: true
-  sapnetweaver.system.instance_availability:
-    enabled: true
-  sapnetweaver.work_process.active.count:
-    enabled: true
-  sapnetweaver.work_process.job.aborted.count:
-    enabled: true
-no_metrics:
-  sapnetweaver.abap.update.status:
-    enabled: false
-  sapnetweaver.cache.evictions:
-    enabled: false
-  sapnetweaver.cache.hits:
-    enabled: false
-  sapnetweaver.certificate.validity:
-    enabled: false
-  sapnetweaver.connection.error.count:
-    enabled: false
-  sapnetweaver.cpu.system.utilization:
-    enabled: false
-  sapnetweaver.cpu.utilization:
-    enabled: false
-  sapnetweaver.database.dialog.request.time:
-    enabled: false
-  sapnetweaver.host.memory.virtual.overhead:
-    enabled: false
-  sapnetweaver.host.memory.virtual.swap:
-    enabled: false
-  sapnetweaver.host.spool_list.utilization:
-    enabled: false
-  sapnetweaver.locks.dequeue.errors.count:
-    enabled: false
-  sapnetweaver.locks.enqueue.current.count:
-    enabled: false
-  sapnetweaver.locks.enqueue.errors.count:
-    enabled: false
-  sapnetweaver.locks.enqueue.high.count:
-    enabled: false
-  sapnetweaver.locks.enqueue.lock_time:
-    enabled: false
-  sapnetweaver.locks.enqueue.lock_wait_time:
-    enabled: false
-  sapnetweaver.locks.enqueue.max.count:
-    enabled: false
-  sapnetweaver.memory.configured:
-    enabled: false
-  sapnetweaver.memory.free:
-    enabled: false
-  sapnetweaver.memory.swap_space.utilization:
-    enabled: false
-  sapnetweaver.process_availability:
-    enabled: false
-  sapnetweaver.queue.count:
-    enabled: false
-  sapnetweaver.queue_max.count:
-    enabled: false
-  sapnetweaver.queue_peak.count:
-    enabled: false
-  sapnetweaver.request.count:
-    enabled: false
-  sapnetweaver.request.timeout.count:
-    enabled: false
-  sapnetweaver.response.duration:
-    enabled: false
-  sapnetweaver.session.count:
-    enabled: false
-  sapnetweaver.sessions.browser.count:
-    enabled: false
-  sapnetweaver.sessions.ejb.count:
-    enabled: false
-  sapnetweaver.sessions.http.count:
-    enabled: false
-  sapnetweaver.sessions.security.count:
-    enabled: false
-  sapnetweaver.sessions.web.count:
-    enabled: false
-  sapnetweaver.short_dumps.rate:
-    enabled: false
-  sapnetweaver.spool.request.error.count:
-    enabled: false
-  sapnetweaver.system.instance_availability:
-    enabled: false
-  sapnetweaver.work_process.active.count:
-    enabled: false
-  sapnetweaver.work_process.job.aborted.count:
-    enabled: false
+all_set:
+  metrics:
+    sapnetweaver.abap.rfc.count:
+      enabled: true
+    sapnetweaver.abap.session.count:
+      enabled: true
+    sapnetweaver.abap.update.status:
+      enabled: true
+    sapnetweaver.cache.evictions:
+      enabled: true
+    sapnetweaver.cache.hits:
+      enabled: true
+    sapnetweaver.certificate.validity:
+      enabled: true
+    sapnetweaver.connection.error.count:
+      enabled: true
+    sapnetweaver.cpu.system.utilization:
+      enabled: true
+    sapnetweaver.cpu.utilization:
+      enabled: true
+    sapnetweaver.database.dialog.request.time:
+      enabled: true
+    sapnetweaver.host.memory.virtual.overhead:
+      enabled: true
+    sapnetweaver.host.memory.virtual.swap:
+      enabled: true
+    sapnetweaver.host.spool_list.utilization:
+      enabled: true
+    sapnetweaver.locks.dequeue.errors.count:
+      enabled: true
+    sapnetweaver.locks.enqueue.current.count:
+      enabled: true
+    sapnetweaver.locks.enqueue.errors.count:
+      enabled: true
+    sapnetweaver.locks.enqueue.high.count:
+      enabled: true
+    sapnetweaver.locks.enqueue.lock_time:
+      enabled: true
+    sapnetweaver.locks.enqueue.lock_wait_time:
+      enabled: true
+    sapnetweaver.locks.enqueue.max.count:
+      enabled: true
+    sapnetweaver.memory.configured:
+      enabled: true
+    sapnetweaver.memory.free:
+      enabled: true
+    sapnetweaver.memory.swap_space.utilization:
+      enabled: true
+    sapnetweaver.process_availability:
+      enabled: true
+    sapnetweaver.queue.count:
+      enabled: true
+    sapnetweaver.queue_max.count:
+      enabled: true
+    sapnetweaver.queue_peak.count:
+      enabled: true
+    sapnetweaver.request.count:
+      enabled: true
+    sapnetweaver.request.timeout.count:
+      enabled: true
+    sapnetweaver.response.duration:
+      enabled: true
+    sapnetweaver.session.count:
+      enabled: true
+    sapnetweaver.sessions.browser.count:
+      enabled: true
+    sapnetweaver.sessions.ejb.count:
+      enabled: true
+    sapnetweaver.sessions.http.count:
+      enabled: true
+    sapnetweaver.sessions.security.count:
+      enabled: true
+    sapnetweaver.sessions.web.count:
+      enabled: true
+    sapnetweaver.short_dumps.rate:
+      enabled: true
+    sapnetweaver.spool.request.error.count:
+      enabled: true
+    sapnetweaver.system.instance_availability:
+      enabled: true
+    sapnetweaver.work_process.active.count:
+      enabled: true
+    sapnetweaver.work_process.job.aborted.count:
+      enabled: true
+  resource_attributes:
+    sapnetweaver.SID:
+      enabled: true
+    sapnetweaver.instance:
+      enabled: true
+    sapnetweaver.node:
+      enabled: true
+none_set:
+  metrics:
+    sapnetweaver.abap.rfc.count:
+      enabled: false
+    sapnetweaver.abap.session.count:
+      enabled: false
+    sapnetweaver.abap.update.status:
+      enabled: false
+    sapnetweaver.cache.evictions:
+      enabled: false
+    sapnetweaver.cache.hits:
+      enabled: false
+    sapnetweaver.certificate.validity:
+      enabled: false
+    sapnetweaver.connection.error.count:
+      enabled: false
+    sapnetweaver.cpu.system.utilization:
+      enabled: false
+    sapnetweaver.cpu.utilization:
+      enabled: false
+    sapnetweaver.database.dialog.request.time:
+      enabled: false
+    sapnetweaver.host.memory.virtual.overhead:
+      enabled: false
+    sapnetweaver.host.memory.virtual.swap:
+      enabled: false
+    sapnetweaver.host.spool_list.utilization:
+      enabled: false
+    sapnetweaver.locks.dequeue.errors.count:
+      enabled: false
+    sapnetweaver.locks.enqueue.current.count:
+      enabled: false
+    sapnetweaver.locks.enqueue.errors.count:
+      enabled: false
+    sapnetweaver.locks.enqueue.high.count:
+      enabled: false
+    sapnetweaver.locks.enqueue.lock_time:
+      enabled: false
+    sapnetweaver.locks.enqueue.lock_wait_time:
+      enabled: false
+    sapnetweaver.locks.enqueue.max.count:
+      enabled: false
+    sapnetweaver.memory.configured:
+      enabled: false
+    sapnetweaver.memory.free:
+      enabled: false
+    sapnetweaver.memory.swap_space.utilization:
+      enabled: false
+    sapnetweaver.process_availability:
+      enabled: false
+    sapnetweaver.queue.count:
+      enabled: false
+    sapnetweaver.queue_max.count:
+      enabled: false
+    sapnetweaver.queue_peak.count:
+      enabled: false
+    sapnetweaver.request.count:
+      enabled: false
+    sapnetweaver.request.timeout.count:
+      enabled: false
+    sapnetweaver.response.duration:
+      enabled: false
+    sapnetweaver.session.count:
+      enabled: false
+    sapnetweaver.sessions.browser.count:
+      enabled: false
+    sapnetweaver.sessions.ejb.count:
+      enabled: false
+    sapnetweaver.sessions.http.count:
+      enabled: false
+    sapnetweaver.sessions.security.count:
+      enabled: false
+    sapnetweaver.sessions.web.count:
+      enabled: false
+    sapnetweaver.short_dumps.rate:
+      enabled: false
+    sapnetweaver.spool.request.error.count:
+      enabled: false
+    sapnetweaver.system.instance_availability:
+      enabled: false
+    sapnetweaver.work_process.active.count:
+      enabled: false
+    sapnetweaver.work_process.job.aborted.count:
+      enabled: false
+  resource_attributes:
+    sapnetweaver.SID:
+      enabled: false
+    sapnetweaver.instance:
+      enabled: false
+    sapnetweaver.node:
+      enabled: false

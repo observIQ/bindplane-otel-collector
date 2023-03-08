@@ -35,6 +35,8 @@ func (ms *MetricSettings) Unmarshal(parser *confmap.Conf) error {
 
 // MetricsSettings provides settings for sapnetweaverreceiver metrics.
 type MetricsSettings struct {
+	SapnetweaverAbapRfcCount               MetricSettings `mapstructure:"sapnetweaver.abap.rfc.count"`
+	SapnetweaverAbapSessionCount           MetricSettings `mapstructure:"sapnetweaver.abap.session.count"`
 	SapnetweaverAbapUpdateStatus           MetricSettings `mapstructure:"sapnetweaver.abap.update.status"`
 	SapnetweaverCacheEvictions             MetricSettings `mapstructure:"sapnetweaver.cache.evictions"`
 	SapnetweaverCacheHits                  MetricSettings `mapstructure:"sapnetweaver.cache.hits"`
@@ -78,6 +80,12 @@ type MetricsSettings struct {
 
 func DefaultMetricsSettings() MetricsSettings {
 	return MetricsSettings{
+		SapnetweaverAbapRfcCount: MetricSettings{
+			Enabled: true,
+		},
+		SapnetweaverAbapSessionCount: MetricSettings{
+			Enabled: true,
+		},
 		SapnetweaverAbapUpdateStatus: MetricSettings{
 			Enabled: true,
 		},
@@ -201,35 +209,25 @@ func DefaultMetricsSettings() MetricsSettings {
 // ResourceAttributeSettings provides common settings for a particular metric.
 type ResourceAttributeSettings struct {
 	Enabled bool `mapstructure:"enabled"`
-
-	enabledProvidedByUser bool
-}
-
-func (ras *ResourceAttributeSettings) Unmarshal(parser *confmap.Conf) error {
-	if parser == nil {
-		return nil
-	}
-	err := parser.Unmarshal(ras, confmap.WithErrorUnused())
-	if err != nil {
-		return err
-	}
-	ras.enabledProvidedByUser = parser.IsSet("enabled")
-	return nil
 }
 
 // ResourceAttributesSettings provides settings for sapnetweaverreceiver metrics.
 type ResourceAttributesSettings struct {
+	SapnetweaverSID      ResourceAttributeSettings `mapstructure:"sapnetweaver.SID"`
 	SapnetweaverInstance ResourceAttributeSettings `mapstructure:"sapnetweaver.instance"`
 	SapnetweaverNode     ResourceAttributeSettings `mapstructure:"sapnetweaver.node"`
 }
 
 func DefaultResourceAttributesSettings() ResourceAttributesSettings {
 	return ResourceAttributesSettings{
+		SapnetweaverSID: ResourceAttributeSettings{
+			Enabled: true,
+		},
 		SapnetweaverInstance: ResourceAttributeSettings{
-			Enabled: false,
+			Enabled: true,
 		},
 		SapnetweaverNode: ResourceAttributeSettings{
-			Enabled: false,
+			Enabled: true,
 		},
 	}
 }
@@ -300,6 +298,112 @@ var MapAttributeResponseType = map[string]AttributeResponseType{
 	"dialog":      AttributeResponseTypeDialog,
 	"dialogRFC":   AttributeResponseTypeDialogRFC,
 	"http":        AttributeResponseTypeHttp,
+}
+
+type metricSapnetweaverAbapRfcCount struct {
+	data     pmetric.Metric // data buffer for generated metric.
+	settings MetricSettings // metric settings provided by user.
+	capacity int            // max observed number of data points added to the metric.
+}
+
+// init fills sapnetweaver.abap.rfc.count metric with initial data.
+func (m *metricSapnetweaverAbapRfcCount) init() {
+	m.data.SetName("sapnetweaver.abap.rfc.count")
+	m.data.SetDescription("The number of ABAP RFC connections by session type.")
+	m.data.SetUnit("{connections}")
+	m.data.SetEmptySum()
+	m.data.Sum().SetIsMonotonic(false)
+	m.data.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
+	m.data.Sum().DataPoints().EnsureCapacity(m.capacity)
+}
+
+func (m *metricSapnetweaverAbapRfcCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64, sessionTypeAttributeValue string) {
+	if !m.settings.Enabled {
+		return
+	}
+	dp := m.data.Sum().DataPoints().AppendEmpty()
+	dp.SetStartTimestamp(start)
+	dp.SetTimestamp(ts)
+	dp.SetIntValue(val)
+	dp.Attributes().PutStr("session_type", sessionTypeAttributeValue)
+}
+
+// updateCapacity saves max length of data point slices that will be used for the slice capacity.
+func (m *metricSapnetweaverAbapRfcCount) updateCapacity() {
+	if m.data.Sum().DataPoints().Len() > m.capacity {
+		m.capacity = m.data.Sum().DataPoints().Len()
+	}
+}
+
+// emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
+func (m *metricSapnetweaverAbapRfcCount) emit(metrics pmetric.MetricSlice) {
+	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+		m.updateCapacity()
+		m.data.MoveTo(metrics.AppendEmpty())
+		m.init()
+	}
+}
+
+func newMetricSapnetweaverAbapRfcCount(settings MetricSettings) metricSapnetweaverAbapRfcCount {
+	m := metricSapnetweaverAbapRfcCount{settings: settings}
+	if settings.Enabled {
+		m.data = pmetric.NewMetric()
+		m.init()
+	}
+	return m
+}
+
+type metricSapnetweaverAbapSessionCount struct {
+	data     pmetric.Metric // data buffer for generated metric.
+	settings MetricSettings // metric settings provided by user.
+	capacity int            // max observed number of data points added to the metric.
+}
+
+// init fills sapnetweaver.abap.session.count metric with initial data.
+func (m *metricSapnetweaverAbapSessionCount) init() {
+	m.data.SetName("sapnetweaver.abap.session.count")
+	m.data.SetDescription("The number of ABAP sessions by session type.")
+	m.data.SetUnit("{sessions}")
+	m.data.SetEmptySum()
+	m.data.Sum().SetIsMonotonic(false)
+	m.data.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
+	m.data.Sum().DataPoints().EnsureCapacity(m.capacity)
+}
+
+func (m *metricSapnetweaverAbapSessionCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64, sessionTypeAttributeValue string) {
+	if !m.settings.Enabled {
+		return
+	}
+	dp := m.data.Sum().DataPoints().AppendEmpty()
+	dp.SetStartTimestamp(start)
+	dp.SetTimestamp(ts)
+	dp.SetIntValue(val)
+	dp.Attributes().PutStr("session_type", sessionTypeAttributeValue)
+}
+
+// updateCapacity saves max length of data point slices that will be used for the slice capacity.
+func (m *metricSapnetweaverAbapSessionCount) updateCapacity() {
+	if m.data.Sum().DataPoints().Len() > m.capacity {
+		m.capacity = m.data.Sum().DataPoints().Len()
+	}
+}
+
+// emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
+func (m *metricSapnetweaverAbapSessionCount) emit(metrics pmetric.MetricSlice) {
+	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+		m.updateCapacity()
+		m.data.MoveTo(metrics.AppendEmpty())
+		m.init()
+	}
+}
+
+func newMetricSapnetweaverAbapSessionCount(settings MetricSettings) metricSapnetweaverAbapSessionCount {
+	m := metricSapnetweaverAbapSessionCount{settings: settings}
+	if settings.Enabled {
+		m.data = pmetric.NewMetric()
+		m.init()
+	}
+	return m
 }
 
 type metricSapnetweaverAbapUpdateStatus struct {
@@ -464,15 +568,15 @@ type metricSapnetweaverCertificateValidity struct {
 // init fills sapnetweaver.certificate.validity metric with initial data.
 func (m *metricSapnetweaverCertificateValidity) init() {
 	m.data.SetName("sapnetweaver.certificate.validity")
-	m.data.SetDescription("The SAP certificate validity date; 0 means expired, 1 means active.")
-	m.data.SetUnit("")
+	m.data.SetDescription("The number of seconds until the SAP certificate expires.")
+	m.data.SetUnit("s")
 	m.data.SetEmptySum()
 	m.data.Sum().SetIsMonotonic(false)
 	m.data.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
 	m.data.Sum().DataPoints().EnsureCapacity(m.capacity)
 }
 
-func (m *metricSapnetweaverCertificateValidity) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64, certificateNameAttributeValue string, validityDateAttributeValue string, sIDAttributeValue string, instanceAttributeValue string) {
+func (m *metricSapnetweaverCertificateValidity) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64, certificatePathAttributeValue string) {
 	if !m.settings.Enabled {
 		return
 	}
@@ -480,10 +584,7 @@ func (m *metricSapnetweaverCertificateValidity) recordDataPoint(start pcommon.Ti
 	dp.SetStartTimestamp(start)
 	dp.SetTimestamp(ts)
 	dp.SetIntValue(val)
-	dp.Attributes().PutStr("certificate_name", certificateNameAttributeValue)
-	dp.Attributes().PutStr("validity_date", validityDateAttributeValue)
-	dp.Attributes().PutStr("SID", sIDAttributeValue)
-	dp.Attributes().PutStr("instance", instanceAttributeValue)
+	dp.Attributes().PutStr("certificate_path", certificatePathAttributeValue)
 }
 
 // updateCapacity saves max length of data point slices that will be used for the slice capacity.
@@ -2305,6 +2406,12 @@ func newMetricSapnetweaverWorkProcessJobAbortedCount(settings MetricSettings) me
 	return m
 }
 
+// MetricsBuilderConfig is a structural subset of an otherwise 1-1 copy of metadata.yaml
+type MetricsBuilderConfig struct {
+	Metrics            MetricsSettings            `mapstructure:"metrics"`
+	ResourceAttributes ResourceAttributesSettings `mapstructure:"resource_attributes"`
+}
+
 // MetricsBuilder provides an interface for scrapers to report metrics while taking care of all the transformations
 // required to produce metric representation defined in metadata and user settings.
 type MetricsBuilder struct {
@@ -2314,6 +2421,8 @@ type MetricsBuilder struct {
 	metricsBuffer                                pmetric.Metrics     // accumulates metrics data before emitting.
 	buildInfo                                    component.BuildInfo // contains version information
 	resourceAttributesSettings                   ResourceAttributesSettings
+	metricSapnetweaverAbapRfcCount               metricSapnetweaverAbapRfcCount
+	metricSapnetweaverAbapSessionCount           metricSapnetweaverAbapSessionCount
 	metricSapnetweaverAbapUpdateStatus           metricSapnetweaverAbapUpdateStatus
 	metricSapnetweaverCacheEvictions             metricSapnetweaverCacheEvictions
 	metricSapnetweaverCacheHits                  metricSapnetweaverCacheHits
@@ -2365,58 +2474,67 @@ func WithStartTime(startTime pcommon.Timestamp) metricBuilderOption {
 	}
 }
 
-// WithResourceAttributesSettings sets ResourceAttributeSettings on the metrics builder.
-func WithResourceAttributesSettings(ras ResourceAttributesSettings) metricBuilderOption {
-	return func(mb *MetricsBuilder) {
-		mb.resourceAttributesSettings = ras
+func DefaultMetricsBuilderConfig() MetricsBuilderConfig {
+	return MetricsBuilderConfig{
+		Metrics:            DefaultMetricsSettings(),
+		ResourceAttributes: DefaultResourceAttributesSettings(),
 	}
 }
 
-func NewMetricsBuilder(ms MetricsSettings, settings receiver.CreateSettings, options ...metricBuilderOption) *MetricsBuilder {
+func NewMetricsBuilderConfig(ms MetricsSettings, ras ResourceAttributesSettings) MetricsBuilderConfig {
+	return MetricsBuilderConfig{
+		Metrics:            ms,
+		ResourceAttributes: ras,
+	}
+}
+
+func NewMetricsBuilder(mbc MetricsBuilderConfig, settings receiver.CreateSettings, options ...metricBuilderOption) *MetricsBuilder {
 	mb := &MetricsBuilder{
 		startTime:                                    pcommon.NewTimestampFromTime(time.Now()),
 		metricsBuffer:                                pmetric.NewMetrics(),
 		buildInfo:                                    settings.BuildInfo,
-		resourceAttributesSettings:                   DefaultResourceAttributesSettings(),
-		metricSapnetweaverAbapUpdateStatus:           newMetricSapnetweaverAbapUpdateStatus(ms.SapnetweaverAbapUpdateStatus),
-		metricSapnetweaverCacheEvictions:             newMetricSapnetweaverCacheEvictions(ms.SapnetweaverCacheEvictions),
-		metricSapnetweaverCacheHits:                  newMetricSapnetweaverCacheHits(ms.SapnetweaverCacheHits),
-		metricSapnetweaverCertificateValidity:        newMetricSapnetweaverCertificateValidity(ms.SapnetweaverCertificateValidity),
-		metricSapnetweaverConnectionErrorCount:       newMetricSapnetweaverConnectionErrorCount(ms.SapnetweaverConnectionErrorCount),
-		metricSapnetweaverCPUSystemUtilization:       newMetricSapnetweaverCPUSystemUtilization(ms.SapnetweaverCPUSystemUtilization),
-		metricSapnetweaverCPUUtilization:             newMetricSapnetweaverCPUUtilization(ms.SapnetweaverCPUUtilization),
-		metricSapnetweaverDatabaseDialogRequestTime:  newMetricSapnetweaverDatabaseDialogRequestTime(ms.SapnetweaverDatabaseDialogRequestTime),
-		metricSapnetweaverHostMemoryVirtualOverhead:  newMetricSapnetweaverHostMemoryVirtualOverhead(ms.SapnetweaverHostMemoryVirtualOverhead),
-		metricSapnetweaverHostMemoryVirtualSwap:      newMetricSapnetweaverHostMemoryVirtualSwap(ms.SapnetweaverHostMemoryVirtualSwap),
-		metricSapnetweaverHostSpoolListUtilization:   newMetricSapnetweaverHostSpoolListUtilization(ms.SapnetweaverHostSpoolListUtilization),
-		metricSapnetweaverLocksDequeueErrorsCount:    newMetricSapnetweaverLocksDequeueErrorsCount(ms.SapnetweaverLocksDequeueErrorsCount),
-		metricSapnetweaverLocksEnqueueCurrentCount:   newMetricSapnetweaverLocksEnqueueCurrentCount(ms.SapnetweaverLocksEnqueueCurrentCount),
-		metricSapnetweaverLocksEnqueueErrorsCount:    newMetricSapnetweaverLocksEnqueueErrorsCount(ms.SapnetweaverLocksEnqueueErrorsCount),
-		metricSapnetweaverLocksEnqueueHighCount:      newMetricSapnetweaverLocksEnqueueHighCount(ms.SapnetweaverLocksEnqueueHighCount),
-		metricSapnetweaverLocksEnqueueLockTime:       newMetricSapnetweaverLocksEnqueueLockTime(ms.SapnetweaverLocksEnqueueLockTime),
-		metricSapnetweaverLocksEnqueueLockWaitTime:   newMetricSapnetweaverLocksEnqueueLockWaitTime(ms.SapnetweaverLocksEnqueueLockWaitTime),
-		metricSapnetweaverLocksEnqueueMaxCount:       newMetricSapnetweaverLocksEnqueueMaxCount(ms.SapnetweaverLocksEnqueueMaxCount),
-		metricSapnetweaverMemoryConfigured:           newMetricSapnetweaverMemoryConfigured(ms.SapnetweaverMemoryConfigured),
-		metricSapnetweaverMemoryFree:                 newMetricSapnetweaverMemoryFree(ms.SapnetweaverMemoryFree),
-		metricSapnetweaverMemorySwapSpaceUtilization: newMetricSapnetweaverMemorySwapSpaceUtilization(ms.SapnetweaverMemorySwapSpaceUtilization),
-		metricSapnetweaverProcessAvailability:        newMetricSapnetweaverProcessAvailability(ms.SapnetweaverProcessAvailability),
-		metricSapnetweaverQueueCount:                 newMetricSapnetweaverQueueCount(ms.SapnetweaverQueueCount),
-		metricSapnetweaverQueueMaxCount:              newMetricSapnetweaverQueueMaxCount(ms.SapnetweaverQueueMaxCount),
-		metricSapnetweaverQueuePeakCount:             newMetricSapnetweaverQueuePeakCount(ms.SapnetweaverQueuePeakCount),
-		metricSapnetweaverRequestCount:               newMetricSapnetweaverRequestCount(ms.SapnetweaverRequestCount),
-		metricSapnetweaverRequestTimeoutCount:        newMetricSapnetweaverRequestTimeoutCount(ms.SapnetweaverRequestTimeoutCount),
-		metricSapnetweaverResponseDuration:           newMetricSapnetweaverResponseDuration(ms.SapnetweaverResponseDuration),
-		metricSapnetweaverSessionCount:               newMetricSapnetweaverSessionCount(ms.SapnetweaverSessionCount),
-		metricSapnetweaverSessionsBrowserCount:       newMetricSapnetweaverSessionsBrowserCount(ms.SapnetweaverSessionsBrowserCount),
-		metricSapnetweaverSessionsEjbCount:           newMetricSapnetweaverSessionsEjbCount(ms.SapnetweaverSessionsEjbCount),
-		metricSapnetweaverSessionsHTTPCount:          newMetricSapnetweaverSessionsHTTPCount(ms.SapnetweaverSessionsHTTPCount),
-		metricSapnetweaverSessionsSecurityCount:      newMetricSapnetweaverSessionsSecurityCount(ms.SapnetweaverSessionsSecurityCount),
-		metricSapnetweaverSessionsWebCount:           newMetricSapnetweaverSessionsWebCount(ms.SapnetweaverSessionsWebCount),
-		metricSapnetweaverShortDumpsRate:             newMetricSapnetweaverShortDumpsRate(ms.SapnetweaverShortDumpsRate),
-		metricSapnetweaverSpoolRequestErrorCount:     newMetricSapnetweaverSpoolRequestErrorCount(ms.SapnetweaverSpoolRequestErrorCount),
-		metricSapnetweaverSystemInstanceAvailability: newMetricSapnetweaverSystemInstanceAvailability(ms.SapnetweaverSystemInstanceAvailability),
-		metricSapnetweaverWorkProcessActiveCount:     newMetricSapnetweaverWorkProcessActiveCount(ms.SapnetweaverWorkProcessActiveCount),
-		metricSapnetweaverWorkProcessJobAbortedCount: newMetricSapnetweaverWorkProcessJobAbortedCount(ms.SapnetweaverWorkProcessJobAbortedCount),
+		resourceAttributesSettings:                   mbc.ResourceAttributes,
+		metricSapnetweaverAbapRfcCount:               newMetricSapnetweaverAbapRfcCount(mbc.Metrics.SapnetweaverAbapRfcCount),
+		metricSapnetweaverAbapSessionCount:           newMetricSapnetweaverAbapSessionCount(mbc.Metrics.SapnetweaverAbapSessionCount),
+		metricSapnetweaverAbapUpdateStatus:           newMetricSapnetweaverAbapUpdateStatus(mbc.Metrics.SapnetweaverAbapUpdateStatus),
+		metricSapnetweaverCacheEvictions:             newMetricSapnetweaverCacheEvictions(mbc.Metrics.SapnetweaverCacheEvictions),
+		metricSapnetweaverCacheHits:                  newMetricSapnetweaverCacheHits(mbc.Metrics.SapnetweaverCacheHits),
+		metricSapnetweaverCertificateValidity:        newMetricSapnetweaverCertificateValidity(mbc.Metrics.SapnetweaverCertificateValidity),
+		metricSapnetweaverConnectionErrorCount:       newMetricSapnetweaverConnectionErrorCount(mbc.Metrics.SapnetweaverConnectionErrorCount),
+		metricSapnetweaverCPUSystemUtilization:       newMetricSapnetweaverCPUSystemUtilization(mbc.Metrics.SapnetweaverCPUSystemUtilization),
+		metricSapnetweaverCPUUtilization:             newMetricSapnetweaverCPUUtilization(mbc.Metrics.SapnetweaverCPUUtilization),
+		metricSapnetweaverDatabaseDialogRequestTime:  newMetricSapnetweaverDatabaseDialogRequestTime(mbc.Metrics.SapnetweaverDatabaseDialogRequestTime),
+		metricSapnetweaverHostMemoryVirtualOverhead:  newMetricSapnetweaverHostMemoryVirtualOverhead(mbc.Metrics.SapnetweaverHostMemoryVirtualOverhead),
+		metricSapnetweaverHostMemoryVirtualSwap:      newMetricSapnetweaverHostMemoryVirtualSwap(mbc.Metrics.SapnetweaverHostMemoryVirtualSwap),
+		metricSapnetweaverHostSpoolListUtilization:   newMetricSapnetweaverHostSpoolListUtilization(mbc.Metrics.SapnetweaverHostSpoolListUtilization),
+		metricSapnetweaverLocksDequeueErrorsCount:    newMetricSapnetweaverLocksDequeueErrorsCount(mbc.Metrics.SapnetweaverLocksDequeueErrorsCount),
+		metricSapnetweaverLocksEnqueueCurrentCount:   newMetricSapnetweaverLocksEnqueueCurrentCount(mbc.Metrics.SapnetweaverLocksEnqueueCurrentCount),
+		metricSapnetweaverLocksEnqueueErrorsCount:    newMetricSapnetweaverLocksEnqueueErrorsCount(mbc.Metrics.SapnetweaverLocksEnqueueErrorsCount),
+		metricSapnetweaverLocksEnqueueHighCount:      newMetricSapnetweaverLocksEnqueueHighCount(mbc.Metrics.SapnetweaverLocksEnqueueHighCount),
+		metricSapnetweaverLocksEnqueueLockTime:       newMetricSapnetweaverLocksEnqueueLockTime(mbc.Metrics.SapnetweaverLocksEnqueueLockTime),
+		metricSapnetweaverLocksEnqueueLockWaitTime:   newMetricSapnetweaverLocksEnqueueLockWaitTime(mbc.Metrics.SapnetweaverLocksEnqueueLockWaitTime),
+		metricSapnetweaverLocksEnqueueMaxCount:       newMetricSapnetweaverLocksEnqueueMaxCount(mbc.Metrics.SapnetweaverLocksEnqueueMaxCount),
+		metricSapnetweaverMemoryConfigured:           newMetricSapnetweaverMemoryConfigured(mbc.Metrics.SapnetweaverMemoryConfigured),
+		metricSapnetweaverMemoryFree:                 newMetricSapnetweaverMemoryFree(mbc.Metrics.SapnetweaverMemoryFree),
+		metricSapnetweaverMemorySwapSpaceUtilization: newMetricSapnetweaverMemorySwapSpaceUtilization(mbc.Metrics.SapnetweaverMemorySwapSpaceUtilization),
+		metricSapnetweaverProcessAvailability:        newMetricSapnetweaverProcessAvailability(mbc.Metrics.SapnetweaverProcessAvailability),
+		metricSapnetweaverQueueCount:                 newMetricSapnetweaverQueueCount(mbc.Metrics.SapnetweaverQueueCount),
+		metricSapnetweaverQueueMaxCount:              newMetricSapnetweaverQueueMaxCount(mbc.Metrics.SapnetweaverQueueMaxCount),
+		metricSapnetweaverQueuePeakCount:             newMetricSapnetweaverQueuePeakCount(mbc.Metrics.SapnetweaverQueuePeakCount),
+		metricSapnetweaverRequestCount:               newMetricSapnetweaverRequestCount(mbc.Metrics.SapnetweaverRequestCount),
+		metricSapnetweaverRequestTimeoutCount:        newMetricSapnetweaverRequestTimeoutCount(mbc.Metrics.SapnetweaverRequestTimeoutCount),
+		metricSapnetweaverResponseDuration:           newMetricSapnetweaverResponseDuration(mbc.Metrics.SapnetweaverResponseDuration),
+		metricSapnetweaverSessionCount:               newMetricSapnetweaverSessionCount(mbc.Metrics.SapnetweaverSessionCount),
+		metricSapnetweaverSessionsBrowserCount:       newMetricSapnetweaverSessionsBrowserCount(mbc.Metrics.SapnetweaverSessionsBrowserCount),
+		metricSapnetweaverSessionsEjbCount:           newMetricSapnetweaverSessionsEjbCount(mbc.Metrics.SapnetweaverSessionsEjbCount),
+		metricSapnetweaverSessionsHTTPCount:          newMetricSapnetweaverSessionsHTTPCount(mbc.Metrics.SapnetweaverSessionsHTTPCount),
+		metricSapnetweaverSessionsSecurityCount:      newMetricSapnetweaverSessionsSecurityCount(mbc.Metrics.SapnetweaverSessionsSecurityCount),
+		metricSapnetweaverSessionsWebCount:           newMetricSapnetweaverSessionsWebCount(mbc.Metrics.SapnetweaverSessionsWebCount),
+		metricSapnetweaverShortDumpsRate:             newMetricSapnetweaverShortDumpsRate(mbc.Metrics.SapnetweaverShortDumpsRate),
+		metricSapnetweaverSpoolRequestErrorCount:     newMetricSapnetweaverSpoolRequestErrorCount(mbc.Metrics.SapnetweaverSpoolRequestErrorCount),
+		metricSapnetweaverSystemInstanceAvailability: newMetricSapnetweaverSystemInstanceAvailability(mbc.Metrics.SapnetweaverSystemInstanceAvailability),
+		metricSapnetweaverWorkProcessActiveCount:     newMetricSapnetweaverWorkProcessActiveCount(mbc.Metrics.SapnetweaverWorkProcessActiveCount),
+		metricSapnetweaverWorkProcessJobAbortedCount: newMetricSapnetweaverWorkProcessJobAbortedCount(mbc.Metrics.SapnetweaverWorkProcessJobAbortedCount),
 	}
 	for _, op := range options {
 		op(mb)
@@ -2436,6 +2554,15 @@ func (mb *MetricsBuilder) updateCapacity(rm pmetric.ResourceMetrics) {
 
 // ResourceMetricsOption applies changes to provided resource metrics.
 type ResourceMetricsOption func(ResourceAttributesSettings, pmetric.ResourceMetrics)
+
+// WithSapnetweaverSID sets provided value as "sapnetweaver.SID" attribute for current resource.
+func WithSapnetweaverSID(val string) ResourceMetricsOption {
+	return func(ras ResourceAttributesSettings, rm pmetric.ResourceMetrics) {
+		if ras.SapnetweaverSID.Enabled {
+			rm.Resource().Attributes().PutStr("sapnetweaver.SID", val)
+		}
+	}
+}
 
 // WithSapnetweaverInstance sets provided value as "sapnetweaver.instance" attribute for current resource.
 func WithSapnetweaverInstance(val string) ResourceMetricsOption {
@@ -2487,6 +2614,8 @@ func (mb *MetricsBuilder) EmitForResource(rmo ...ResourceMetricsOption) {
 	ils.Scope().SetName("otelcol/sapnetweaverreceiver")
 	ils.Scope().SetVersion(mb.buildInfo.Version)
 	ils.Metrics().EnsureCapacity(mb.metricsCapacity)
+	mb.metricSapnetweaverAbapRfcCount.emit(ils.Metrics())
+	mb.metricSapnetweaverAbapSessionCount.emit(ils.Metrics())
 	mb.metricSapnetweaverAbapUpdateStatus.emit(ils.Metrics())
 	mb.metricSapnetweaverCacheEvictions.emit(ils.Metrics())
 	mb.metricSapnetweaverCacheHits.emit(ils.Metrics())
@@ -2546,6 +2675,16 @@ func (mb *MetricsBuilder) Emit(rmo ...ResourceMetricsOption) pmetric.Metrics {
 	return metrics
 }
 
+// RecordSapnetweaverAbapRfcCountDataPoint adds a data point to sapnetweaver.abap.rfc.count metric.
+func (mb *MetricsBuilder) RecordSapnetweaverAbapRfcCountDataPoint(ts pcommon.Timestamp, val int64, sessionTypeAttributeValue string) {
+	mb.metricSapnetweaverAbapRfcCount.recordDataPoint(mb.startTime, ts, val, sessionTypeAttributeValue)
+}
+
+// RecordSapnetweaverAbapSessionCountDataPoint adds a data point to sapnetweaver.abap.session.count metric.
+func (mb *MetricsBuilder) RecordSapnetweaverAbapSessionCountDataPoint(ts pcommon.Timestamp, val int64, sessionTypeAttributeValue string) {
+	mb.metricSapnetweaverAbapSessionCount.recordDataPoint(mb.startTime, ts, val, sessionTypeAttributeValue)
+}
+
 // RecordSapnetweaverAbapUpdateStatusDataPoint adds a data point to sapnetweaver.abap.update.status metric.
 func (mb *MetricsBuilder) RecordSapnetweaverAbapUpdateStatusDataPoint(ts pcommon.Timestamp, val int64, controlStateAttributeValue AttributeControlState) {
 	mb.metricSapnetweaverAbapUpdateStatus.recordDataPoint(mb.startTime, ts, val, controlStateAttributeValue.String())
@@ -2572,13 +2711,8 @@ func (mb *MetricsBuilder) RecordSapnetweaverCacheHitsDataPoint(ts pcommon.Timest
 }
 
 // RecordSapnetweaverCertificateValidityDataPoint adds a data point to sapnetweaver.certificate.validity metric.
-func (mb *MetricsBuilder) RecordSapnetweaverCertificateValidityDataPoint(ts pcommon.Timestamp, inputVal string, certificateNameAttributeValue string, validityDateAttributeValue string, sIDAttributeValue string, instanceAttributeValue string) error {
-	val, err := strconv.ParseInt(inputVal, 10, 64)
-	if err != nil {
-		return fmt.Errorf("failed to parse int64 for SapnetweaverCertificateValidity, value was %s: %w", inputVal, err)
-	}
-	mb.metricSapnetweaverCertificateValidity.recordDataPoint(mb.startTime, ts, val, certificateNameAttributeValue, validityDateAttributeValue, sIDAttributeValue, instanceAttributeValue)
-	return nil
+func (mb *MetricsBuilder) RecordSapnetweaverCertificateValidityDataPoint(ts pcommon.Timestamp, val int64, certificatePathAttributeValue string) {
+	mb.metricSapnetweaverCertificateValidity.recordDataPoint(mb.startTime, ts, val, certificatePathAttributeValue)
 }
 
 // RecordSapnetweaverConnectionErrorCountDataPoint adds a data point to sapnetweaver.connection.error.count metric.

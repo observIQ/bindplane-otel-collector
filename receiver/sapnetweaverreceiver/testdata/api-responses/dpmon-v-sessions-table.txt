@@ -1,0 +1,13 @@
+Session Table    Tue Feb 28 13:26:19 2023 (UTC)
+=============
+
+|Logon-Type  |Sess-Key        |Cli|User        |Terminal            |Time    |WP |Program                                 |Prio|Tasks|Application-Info                                  |Tcode     |
+|------------|----------------|---|------------|--------------------|--------|---|----------------------------------------|----|-----|--------------------------------------------------|----------|
+|RFC_UI      |T3_U19766_M6    |001|DDIC        |SLENOO543731A       |17:31:24|0  |SAPLSMTR_NAVIGATION                     |high|     |                                                  |SMEN      |
+|RFC_UI      |T3_U19766_M7    |002|DDIC        |SLENOO543731A       |17:31:34|0  |SAPLSMTR_NAVIGATION                     |high|     |                                                  |SMEN      |
+|BATCH       |T3_U19766_M8    |003|DDIC        |SLENOO543731A       |17:31:44|0  |SAPLSMTR_NAVIGATION                     |high|     |                                                  |SMEN      |
+|HTTP        |T3_U19766_M9    |004|DDIC        |SLENOO543731A       |17:31:54|0  |SAPLSMTR_NAVIGATION                     |high|     |                                                  |SMEN      |
+
+    q - quit
+    m - menue
+ 

@@ -8,5 +8,9 @@
    <property>INSTANCE_NAME</property>
    <value>sap-inst</value>
   </item>
+  <item>
+   <property>SAPSYSTEMNAME</property>
+   <value>EPP</value>
+  </item>
  </properties>
 </GetInstancePropertiesResponse>

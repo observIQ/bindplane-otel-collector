@@ -128,6 +128,11 @@ func TestScraperScrape(t *testing.T) {
 	err = xml.Unmarshal(InstancePropertiesData, &InstancePropertiesResponse)
 	require.NoError(t, err)
 
+	certificate1 := processFile(string(loadAPIResponseData(t, "api-responses", "certificate1.txt")))
+	certificate2 := processFile(string(loadAPIResponseData(t, "api-responses", "certificate2.txt")))
+	rfcConnections := string(loadAPIResponseData(t, "api-responses", "dpmon-c-rfc-connections.txt"))
+	sessionsTable := string(loadAPIResponseData(t, "api-responses", "dpmon-v-sessions-table.txt"))
+
 	mockService := mocks.MockWebService{}
 	mockService.On("GetAlertTree").Return(alertTreeResponse, nil)
 	mockService.On("ABAPGetSystemWPTable").Return(abapSystemWpTableResponse, nil)
@@ -136,16 +141,24 @@ func TestScraperScrape(t *testing.T) {
 	mockService.On("GetQueueStatistic").Return(queueStatisticResponse, nil)
 	mockService.On("GetSystemInstanceList").Return(systemInstanceListResponse, nil)
 	mockService.On("GetInstanceProperties").Return(InstancePropertiesResponse, nil)
+	mockService.On("FindFile", "-L", "/usr/sap", "-name", "*.pse").Return([]string{"/usr/sap/EPP/D00/sec/SAPSSLA.pse", "/usr/sap/EPP/D00/sec/SAPSSLC.pse"}, nil)
+	mockService.On("CertExecute", "/usr/sap/hostctrl/exe/sapgenpse get_my_name -p /usr/sap/EPP/D00/sec/SAPSSLA.pse -n validity").Return(certificate1, nil)
+	mockService.On("CertExecute", "/usr/sap/hostctrl/exe/sapgenpse get_my_name -p /usr/sap/EPP/D00/sec/SAPSSLC.pse -n validity").Return(certificate2, nil)
+	mockService.On("FindFile", "-L", "/usr/sap", "-name", "*.pse").Return([]string{""}, nil)
+	mockService.On("FindFile", "-L", "/usr/sap", "-name", "dpmon", "-path", "*/exe/dpmon").Return([]string{"/usr/sap/EPP/D00/exe/dpmon"}, nil)
+	mockService.On("DpmonExecute", "echo q | /usr/sap/EPP/D00/exe/dpmon pf=/sapmnt/EPP/profile/EPP_D00_sap-app-1 c").Return(rfcConnections, nil)
+	mockService.On("DpmonExecute", "echo q | /usr/sap/EPP/D00/exe/dpmon pf=/sapmnt/EPP/profile/EPP_D00_sap-app-1 v").Return(sessionsTable, nil)
 
 	cfg := createDefaultConfig().(*Config)
 	cfg.Endpoint = defaultEndpoint
 	cfg.Username = "root"
 	cfg.Password = "password"
+	cfg.Profile = "/sapmnt/EPP/profile/EPP_D00_sap-app-1"
 
 	testClient, err := newSoapClient(cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
 	require.NoError(t, err)
 
-	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), createDefaultConfig().(*Config))
+	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), cfg)
 	scraper.service = &mockService
 	scraper.client = testClient
 
@@ -156,7 +169,7 @@ func TestScraperScrape(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, pmetrictest.CompareMetrics(expected, actualMetrics, pmetrictest.IgnoreMetricDataPointsOrder(),
-		pmetrictest.IgnoreStartTimestamp(), pmetrictest.IgnoreTimestamp()))
+		pmetrictest.IgnoreStartTimestamp(), pmetrictest.IgnoreTimestamp(), pmetrictest.IgnoreMetricValues()))
 
 }
 
@@ -169,16 +182,21 @@ func TestScraperScrapeEmpty(t *testing.T) {
 	mockService.On("GetQueueStatistic").Return(&models.GetQueueStatisticResponse{}, nil)
 	mockService.On("GetSystemInstanceList").Return(&models.GetSystemInstanceListResponse{}, nil)
 	mockService.On("GetInstanceProperties").Return(&models.GetInstancePropertiesResponse{}, nil)
+	mockService.On("FindFile", "-L", "/usr/sap", "-name", "*.pse").Return([]string{""}, nil)
+	mockService.On("FindFile", "-L", "/usr/sap", "-name", "dpmon", "-path", "*/exe/dpmon").Return([]string{"/usr/sap/EPP/D00/exe/dpmon"}, nil)
+	mockService.On("DpmonExecute", "echo q | /usr/sap/EPP/D00/exe/dpmon pf=/sapmnt/EPP/profile/EPP_D00_sap-app-1 c").Return("", nil)
+	mockService.On("DpmonExecute", "echo q | /usr/sap/EPP/D00/exe/dpmon pf=/sapmnt/EPP/profile/EPP_D00_sap-app-1 v").Return("", nil)
 
 	cfg := createDefaultConfig().(*Config)
 	cfg.Endpoint = defaultEndpoint
 	cfg.Username = "root"
 	cfg.Password = "password"
+	cfg.Profile = "/sapmnt/EPP/profile/EPP_D00_sap-app-1"
 
 	testClient, err := newSoapClient(cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
 	require.NoError(t, err)
 
-	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), createDefaultConfig().(*Config))
+	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), cfg)
 	scraper.service = &mockService
 	scraper.client = testClient
 
@@ -218,6 +236,8 @@ func TestScraperScrapeEmpty(t *testing.T) {
 		errors.New("failed to collect metric LocksNow: value not found"),
 		errors.New("failed to collect metric LocksHigh: value not found"),
 		errors.New("failed to collect metric LocksMax: value not found"),
+		errors.New("failed to collect metric DequeueErrors: value not found"),
+		errors.New("failed to collect metric EnqueueErrors: value not found"),
 		errors.New("failed to collect metric LockTime: value not found"),
 		errors.New("failed to collect metric LockWaitTime: value not found"),
 		errors.New("failed to collect metric Queue count, peak and max: value not found"),
@@ -230,7 +250,6 @@ func TestScraperScrapeEmpty(t *testing.T) {
 
 	require.NoError(t, pmetrictest.CompareMetrics(expected, actualMetrics, pmetrictest.IgnoreMetricDataPointsOrder(),
 		pmetrictest.IgnoreStartTimestamp(), pmetrictest.IgnoreTimestamp()))
-
 }
 
 func TestScraperScrapeAPIError(t *testing.T) {
@@ -242,16 +261,19 @@ func TestScraperScrapeAPIError(t *testing.T) {
 	mockService.On("GetQueueStatistic").Return(nil, errors.New("unexpected error"))
 	mockService.On("GetSystemInstanceList").Return(nil, errors.New("unexpected error"))
 	mockService.On("GetInstanceProperties").Return(nil, errors.New("unexpected error"))
+	mockService.On("FindFile", "-L", "/usr/sap", "-name", "*.pse").Return([]string{}, errors.New("unexpected error"))
+	mockService.On("FindFile", "-L", "/usr/sap", "-name", "dpmon", "-path", "*/exe/dpmon").Return([]string{}, errors.New("unexpected error"))
 
 	cfg := createDefaultConfig().(*Config)
 	cfg.Endpoint = defaultEndpoint
 	cfg.Username = "root"
 	cfg.Password = "password"
+	cfg.Profile = "/sapmnt/EPP/profile/EPP_D00_sap-app-1"
 
 	testClient, err := newSoapClient(cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
 	require.NoError(t, err)
 
-	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), createDefaultConfig().(*Config))
+	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), cfg)
 	scraper.service = &mockService
 	scraper.client = testClient
 
@@ -270,7 +292,41 @@ func TestScraperScrapeAPIError(t *testing.T) {
 		errors.New("failed to collect GetQueueStatistic metrics: unexpected error"),
 		errors.New("failed to collect GetProcessList metrics: unexpected error"),
 		errors.New("failed to collect GetSystemInstanceList metrics: unexpected error"),
+		errors.New("failed to find certificate files: unexpected error"),
+		errors.New("failed find dpmon executable: unexpected error"),
 	), err.Error())
+}
+
+func TestParseDpmonRFCConnections(t *testing.T) {
+	t.Run("empty rfc table that contains Communication Table is empty", func(t *testing.T) {
+		rfcConnectionsEmpty := string(loadAPIResponseData(t, "api-responses", "dpmon-c-rfc-connections-empty.txt"))
+		rfcConnectionMap := parseRfcConnectionsTable(rfcConnectionsEmpty)
+		require.Empty(t, rfcConnectionMap)
+	})
+
+	t.Run("rfc table with values", func(t *testing.T) {
+		rfcConnections := string(loadAPIResponseData(t, "api-responses", "dpmon-c-rfc-connections.txt"))
+		rfcConnectionMap := parseRfcConnectionsTable(rfcConnections)
+
+		require.EqualValues(t, int64(2), rfcConnectionMap["HTTP"])
+		require.EqualValues(t, int64(2), rfcConnectionMap["CPIC"])
+	})
+}
+
+func TestParseSessions(t *testing.T) {
+	t.Run("empty table", func(t *testing.T) {
+		sessionsTableEmpty := string(loadAPIResponseData(t, "api-responses", "dpmon-v-sessions-table-empty.txt"))
+		sessionsTableMap := parseSessionTable(sessionsTableEmpty)
+		require.Empty(t, sessionsTableMap)
+	})
+
+	t.Run("session table with values", func(t *testing.T) {
+		sessionsTable := string(loadAPIResponseData(t, "api-responses", "dpmon-v-sessions-table.txt"))
+		sessionsTableMap := parseSessionTable(sessionsTable)
+		require.EqualValues(t, int64(2), sessionsTableMap["RFC_UI"])
+		require.EqualValues(t, int64(1), sessionsTableMap["HTTP"])
+		require.EqualValues(t, int64(1), sessionsTableMap["BATCH"])
+	})
 }
 
 func TestParseResponseTypes(t *testing.T) {

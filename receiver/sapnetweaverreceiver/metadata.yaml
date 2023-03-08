@@ -4,20 +4,20 @@ resource_attributes:
   sapnetweaver.instance:
     type: string
     description: The SAP Netweaver instance.
+    enabled: true
   sapnetweaver.node:
     type: string
     description: The SAP Netweaver node.
+    enabled: true
+  sapnetweaver.SID:
+    type: string
+    description: The SAP Netweaver SID.
+    enabled: true
 
 attributes:
-  certificate_name:
+  certificate_path:
     type: string
-    description: The SAP Certificate name.
-  validity_date:
-    type: string
-    description: The date which the validity expires.
-  SID:
-    type: string
-    description: The SAP SID name.
+    description: The SAP Certificate file path location.
   process_name:
     type: string
     description: The name value from GetProcessList.
@@ -59,10 +59,12 @@ attributes:
   instance:
     type: string
     description: The SAP instance name.
+  session_type:
+    type: string
+    description: The ABAP Session type.
 
 
 metrics:
-  # 1 & 2: Application Server Availability & Central Service Availability
   sapnetweaver.system.instance_availability:
     description: The availability status of each system instance.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetSystemInstanceList."
@@ -72,7 +74,6 @@ metrics:
       value_type: int
     attributes: [hostname, instance_number, feature, control_state]
     enabled: true
-  #  3: Active Services
   sapnetweaver.process_availability:
       description: The processes availability directly started by the sapstartsrv Web service.
       extended_documentation: "Collected from SAPControl Web Service Interface > GetProcessList."
@@ -82,8 +83,6 @@ metrics:
         value_type: int
       attributes: [process_name, process_description, control_state]
       enabled: true
-  # 4: Long running background jobs & Failed jobs with name: NOT IMPLEMENTED YET
-  # 5 System Logs - DB related 
   sapnetweaver.database.dialog.request.time:
     description: The average time for processing logical database requests calls to the SAP database interface.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Dialog > DBRequestTime.
@@ -95,9 +94,6 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-# 6: ICM Response Time: NOT IMPLEMENTED YET
-# 7: Message Server Response Time: NOT IMPLEMENTED YET
-# 8: CPU Utilization - SAP Application Servers
   sapnetweaver.cpu.utilization:
     description: The CPU utilization percentage.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems> CPU > CPU_Utilization.
@@ -116,7 +112,6 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-# 9: Memory and Swap utilization - SAP Application Servers
   sapnetweaver.memory.swap_space.utilization:
     description: The swap space utilization percentage.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems >  Swap_Space > Percentage_Used.
@@ -162,8 +157,6 @@ metrics:
       value_type: int
     attributes: []
     enabled: true
-# 10: ICM logs - cumulative count of errors: NOT IMPLEMENTED YET/ NOT SURE IF WE WILL IMPLEMENT
-# 11: Active Work Processes
   sapnetweaver.work_process.active.count:
     description: The number of free ABAP work processes in the system.
     extended_documentation: "Collected from SAPControl Web Service Interface > ABAPGetSystemWPTable."
@@ -174,19 +167,26 @@ metrics:
       value_type: int
     attributes: [instance, wp_type, wp_status]
     enabled: true
-# 12 & 13: MTLS Certificate validity & Certificates - validity - count of active, expired, expiring in 1 week
   sapnetweaver.certificate.validity:
-    description: The SAP certificate validity date; 0 means expired, 1 means active.
+    description: The number of seconds until the SAP certificate expires.
     extended_documentation: "Collected using sapgenpse get_my_name -p /usr/sap/<SID>/<INST>/*.pse -n validity."
+    unit: "s"
     sum:
       monotonic: false
       aggregation: cumulative
       value_type: int
-      input_type: string
-    attributes: [certificate_name, validity_date, SID, instance]
+    attributes: [certificate_path]
     enabled: true
-# 14: Count of sessions by type RFC: NOT IMPLEMENTED YET
-# 15: Current and Peak utilization of ABAP Queues
+  sapnetweaver.abap.rfc.count:
+    description: The number of ABAP RFC connections by session type.
+    extended_documentation: "Collected from executable dpmon -pf=/sapmnt/<SID>/profile c (RFC Connections option)"
+    unit: "{connections}"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+    attributes: [session_type]
+    enabled: true
   sapnetweaver.queue.count:
     description: The queue length.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
@@ -214,12 +214,6 @@ metrics:
       value_type: int
     attributes: [wp_type]
     enabled: true
-# 16: License expiry: NOT IMPLEMENTED YET
-# 17: Inbound/Outbound queue: WILL NOT IMPLEMENT
-# 18: HTTP Session monitoring: WILL NOT IMPLEMENT
-# 19: TRFC failures for one data: WILL NOT IMPLEMENT
-# 20: Logon groups: WILL NOT IMPLEMENT
-# 21: Failed SPOOL Requests
   sapnetweaver.spool.request.error.count:
       description: The number of spool work processes that have encountered errors.
       extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Spool > SpoolService > ErrorsInWpSPO.
@@ -230,10 +224,16 @@ metrics:
         input_type: string
       attributes: []
       enabled: true
-# 22: User Sessions by Session Type: NOT IMPLEMENTED YET
-# 23: Service Availability: Redundant if we know ICM is running.
-# 24: SAP Workload: Business Transaction Analysis: WILL NOT IMPLEMENT
-# 25: Enqueue Locks - long running application locks(longer than 1 day)
+  sapnetweaver.abap.session.count:
+    description: The number of ABAP sessions by session type.
+    extended_documentation: "Collected from executable dpmon -pf=/sapmnt/<SID>/profile v (session table option)"
+    unit: "{sessions}"
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+    attributes: [session_type]
+    enabled: true
   sapnetweaver.locks.enqueue.current.count:
     description: The current number of enqueued locks.
     extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
@@ -302,9 +302,6 @@ metrics:
       value_type: int
     attributes: []
     enabled: true
-# 26: Update request, deactived Updates, Cancelled updates: WILL NOT IMPLEMENT
-# 27: RFC check - Cyclic checks: WILL NOT IMPLEMENT
-# 28: Dumps count and name. Name still needs to be found.
   sapnetweaver.short_dumps.rate:
     description: The rate of Short Dumps.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Abap > Shortdumps Frequency.
@@ -327,7 +324,6 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  # 32 Security session count
   sapnetweaver.sessions.security.count:
     description: The number of Security Sessions.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Web Container > CurrentSecuritySessions.
@@ -339,7 +335,6 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  # 33 Browser sessions count
   sapnetweaver.sessions.browser.count:
     description: The number of Browser Sessions.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Sessions AS Java > Browser Sessions.
@@ -351,7 +346,6 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  # 34 Web sessions count
   sapnetweaver.sessions.web.count:
     description: The number of Web Sessions.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Sessions AS Java > Web Sessions.
@@ -363,7 +357,6 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  # 35 EJB session count
   sapnetweaver.sessions.ejb.count:
     description: The number of EJB Sessions.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Sessions AS Java > EJB Sessions.
@@ -375,9 +368,6 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  # 36 Total Number of Work Processes: ALREADY IMPLEMENTED (Can take create metric by creating a SUM)
-  # 37 Availability. Not what they wanted
-  # 38 Number of Sessions
   sapnetweaver.session.count:
     description: The amount of of sessions created.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3ServiceS > ITS > Number of Sessions.
@@ -389,7 +379,6 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  # 39 AbortedJob
   sapnetweaver.work_process.job.aborted.count:
     description: The individual aborted jobs on an application server.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Background > AbortedJobs.
@@ -401,7 +390,6 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  # 40 AbapErrorInUpdate
   sapnetweaver.abap.update.status:
     description: The status of the ABAP update process.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Update > Update > AbapErrorInUpdate.
@@ -411,7 +399,6 @@ metrics:
       value_type: int
     attributes: [control_state]
     enabled: true
-  # 41, 42, 43 & 44: ResponseTimeDialog, ResponseTimeDialogRFC, ResponseTime(StandardTran.), ResponseTimeHTTP
   sapnetweaver.response.duration:
     description: The response time duration.
     unit: "ms"
@@ -422,7 +409,6 @@ metrics:
       input_type: string
     attributes: [response_type]
     enabled: true
-  # 45 StatNoOfRequests
   sapnetweaver.request.count:
     description: The amount of requests made.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General >  StatNoOfRequests.
@@ -434,7 +420,6 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  # 46 StatNoOfTimeouts
   sapnetweaver.request.timeout.count:
     description: The amount of timed out requests.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General >  StatNoOfTimeouts.
@@ -446,7 +431,6 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  # 47 StatNoOfConnectionErrors
   sapnetweaver.connection.error.count:
     description: The amount of connection errors.
     unit: "{connections}"
@@ -458,7 +442,6 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  # 48 CacheHits
   sapnetweaver.cache.hits:
     description: The cache hit percentage.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > Server Cache > CacheHits.
@@ -468,7 +451,6 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  # 49 EvictedEntries
   sapnetweaver.cache.evictions:
     description: The number of evicted entries.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > Server Cache > EvictedEntries.
@@ -480,8 +462,6 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  # 50 ICM: No longer necessary: Response time will tell us if it is available # 6 (ICM Response Time)
-  # 51 HostspoolListUsed  
   sapnetweaver.host.spool_list.utilization:
     description: The host spool list used percentage.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Spool > SpoolService > HostspoolListUsed.
