@@ -174,14 +174,50 @@ func TestScraperScrape(t *testing.T) {
 }
 
 func TestScraperScrapeEmpty(t *testing.T) {
+
+	alertTreeResponseDataEmpty := loadAPIResponseData(t, "api-responses", "AlertTreeEmptyResponse.xml")
+	var alertTreeResponse *models.GetAlertTreeResponse
+	err := xml.Unmarshal(alertTreeResponseDataEmpty, &alertTreeResponse)
+	require.NoError(t, err)
+
+	abapSystemWpTabledataEmpty := loadAPIResponseData(t, "api-responses", "ABAPSystemWPTableEmptyResponse.xml")
+	var abapSystemWpTableResponse *models.ABAPGetSystemWPTableResponse
+	err = xml.Unmarshal(abapSystemWpTabledataEmpty, &abapSystemWpTableResponse)
+	require.NoError(t, err)
+
+	enqStatisticDataEmpty := loadAPIResponseData(t, "api-responses", "EnqStatisticEmptyResponse.xml")
+	var enqStatisticResponse *models.EnqGetStatisticResponse
+	err = xml.Unmarshal(enqStatisticDataEmpty, &enqStatisticResponse)
+	require.NoError(t, err)
+
+	processListDataEmpty := loadAPIResponseData(t, "api-responses", "ProcessListEmptyResponse.xml")
+	var processListResponse *models.GetProcessListResponse
+	err = xml.Unmarshal(processListDataEmpty, &processListResponse)
+	require.NoError(t, err)
+
+	queueStatisticDataEmpty := loadAPIResponseData(t, "api-responses", "QueueStatisticEmptyResponse.xml")
+	var queueStatisticResponse *models.GetQueueStatisticResponse
+	err = xml.Unmarshal(queueStatisticDataEmpty, &queueStatisticResponse)
+	require.NoError(t, err)
+
+	systemInstanceListDataEmpty := loadAPIResponseData(t, "api-responses", "SystemInstanceListEmptyResponse.xml")
+	var systemInstanceListResponse *models.GetSystemInstanceListResponse
+	err = xml.Unmarshal(systemInstanceListDataEmpty, &systemInstanceListResponse)
+	require.NoError(t, err)
+
+	InstancePropertiesDataEmpty := loadAPIResponseData(t, "api-responses", "InstancePropertiesEmptyResponse.xml")
+	var InstancePropertiesResponse *models.GetInstancePropertiesResponse
+	err = xml.Unmarshal(InstancePropertiesDataEmpty, &InstancePropertiesResponse)
+	require.NoError(t, err)
+
 	mockService := mocks.MockWebService{}
-	mockService.On("GetAlertTree").Return(&models.GetAlertTreeResponse{}, nil)
-	mockService.On("ABAPGetSystemWPTable").Return(&models.ABAPGetSystemWPTableResponse{}, nil)
-	mockService.On("EnqGetStatistic").Return(&models.EnqGetStatisticResponse{}, nil)
-	mockService.On("GetProcessList").Return(&models.GetProcessListResponse{}, nil)
-	mockService.On("GetQueueStatistic").Return(&models.GetQueueStatisticResponse{}, nil)
-	mockService.On("GetSystemInstanceList").Return(&models.GetSystemInstanceListResponse{}, nil)
-	mockService.On("GetInstanceProperties").Return(&models.GetInstancePropertiesResponse{}, nil)
+	mockService.On("GetAlertTree").Return(alertTreeResponse, nil)
+	mockService.On("ABAPGetSystemWPTable").Return(abapSystemWpTableResponse, nil)
+	mockService.On("EnqGetStatistic").Return(enqStatisticResponse, nil)
+	mockService.On("GetProcessList").Return(processListResponse, nil)
+	mockService.On("GetQueueStatistic").Return(queueStatisticResponse, nil)
+	mockService.On("GetSystemInstanceList").Return(systemInstanceListResponse, nil)
+	mockService.On("GetInstanceProperties").Return(InstancePropertiesResponse, nil)
 	mockService.On("FindFile", "-L", "/usr/sap", "-name", "*.pse").Return([]string{""}, nil)
 	mockService.On("FindFile", "-L", "/usr/sap", "-name", "dpmon", "-path", "*/exe/dpmon").Return([]string{"/usr/sap/EPP/D00/exe/dpmon"}, nil)
 	mockService.On("DpmonExecute", "echo q | /usr/sap/EPP/D00/exe/dpmon pf=/sapmnt/EPP/profile/EPP_D00_sap-app-1 c").Return("", nil)
