@@ -16,7 +16,7 @@ require (
 )
 
 require (
-	github.com/antonmedv/expr v1.12.1
+	github.com/antonmedv/expr v1.12.5
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
