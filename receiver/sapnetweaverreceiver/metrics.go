@@ -41,7 +41,7 @@ var (
 
 func (s *sapNetweaverScraper) recordSapnetweaverSystemInstanceAvailabilityDataPoint(now pcommon.Timestamp, systemInstanceListResponse *models.GetSystemInstanceListResponse, errs *scrapererror.ScrapeErrors) {
 	metricName := "Service Availability"
-	if systemInstanceListResponse.Instance == nil {
+	if systemInstanceListResponse.Instance.Item == nil {
 		err := formatErrorMsg(metricName, "", errValueNotFound)
 		errs.AddPartial(1, err)
 		return
@@ -72,7 +72,7 @@ func (s *sapNetweaverScraper) recordSapnetweaverSystemInstanceAvailabilityDataPo
 
 func (s *sapNetweaverScraper) recordSapnetweaverProcessAvailabilityDataPoint(now pcommon.Timestamp, processListResponse *models.GetProcessListResponse, errs *scrapererror.ScrapeErrors) {
 	metricName := "Process Availability"
-	if processListResponse.Process == nil {
+	if processListResponse.Process.Item == nil {
 		err := formatErrorMsg(metricName, "", errValueNotFound)
 		errs.AddPartial(1, err)
 		return
@@ -245,7 +245,8 @@ func (s *sapNetweaverScraper) recordSapnetweaverHostMemoryVirtualOverheadDataPoi
 // recordSapnetweaverWorkProcessActiveCountDataPoint
 func (s *sapNetweaverScraper) recordSapnetweaverWorkProcessActiveCountDataPoint(now pcommon.Timestamp, systemWPTableResponse *models.ABAPGetSystemWPTableResponse, errs *scrapererror.ScrapeErrors) {
 	metricName := "Active Work Processes"
-	if systemWPTableResponse.Workprocess == nil {
+
+	if systemWPTableResponse.Workprocess.Item == nil {
 		err := formatErrorMsg(metricName, "", errValueNotFound)
 		errs.AddPartial(1, err)
 		return
@@ -337,7 +338,7 @@ func parseSessionTable(sessionTable string) map[string]int64 {
 
 // recordSapnetweaverQueueCountDataPoint
 func (s *sapNetweaverScraper) recordSapnetweaverQueueDataPoints(now pcommon.Timestamp, queueStatistic *models.GetQueueStatisticResponse, errs *scrapererror.ScrapeErrors) {
-	if queueStatistic.Queue == nil {
+	if queueStatistic.Queue.Item == nil {
 		err := formatErrorMsg("Queue count, peak and max", "", errValueNotFound)
 		errs.AddPartial(1, err)
 		return

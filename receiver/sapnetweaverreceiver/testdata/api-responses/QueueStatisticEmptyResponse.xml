@@ -1,0 +1,4 @@
+<GetQueueStatisticResponse xmlns="urn:SAPControl">
+ <queue>
+ </queue>
+</GetQueueStatisticResponse>

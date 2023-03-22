@@ -1,0 +1,4 @@
+<GetSystemInstanceListResponse xmlns="urn:SAPControl">
+ <instance>
+ </instance>
+</GetSystemInstanceListResponse>
