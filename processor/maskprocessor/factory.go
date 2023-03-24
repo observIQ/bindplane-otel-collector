@@ -32,12 +32,6 @@ const (
 var (
 	consumerCapabilities = consumer.Capabilities{MutatesData: true}
 	errInvalidConfigType = errors.New("config is not of type maskprocessor.Config")
-	defaultRules         = map[string]string{
-		"email":       `\b[a-z0-9._%\+\-—|]+@[a-z0-9.\-—|]+\.[a-z|]{2,6}\b`,
-		"ssn":         `\b\d{3}[- ]\d{2}[- ]\d{4}\b`,
-		"credit_card": `\b(?:(?:(?:\d{4}[- ]?){3}\d{4}|\d{15,16}))\b`,
-		"phone":       `\b((\+|\b)[1l][\-\. ])?\(?\b[\dOlZSB]{3,5}([\-\. ]|\) ?)[\dOlZSB]{3}[\-\. ][\dOlZSB]{4}\b`,
-	}
 )
 
 // NewFactory creates a new ProcessorFactory with default configuration
@@ -53,9 +47,7 @@ func NewFactory() processor.Factory {
 
 // createDefaultConfig creates a default config for the mask processor.
 func createDefaultConfig() component.Config {
-	return &Config{
-		Rules: defaultRules,
-	}
+	return &Config{}
 }
 
 // createTracesProcessor creates a mask processor for traces.

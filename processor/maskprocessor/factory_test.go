@@ -27,10 +27,7 @@ func TestNewFactory(t *testing.T) {
 	factory := NewFactory()
 	require.Equal(t, typeStr, string(factory.Type()))
 
-	expectedCfg := &Config{
-		Rules: defaultRules,
-	}
-
+	expectedCfg := &Config{}
 	cfg, ok := factory.CreateDefaultConfig().(*Config)
 	require.True(t, ok)
 	require.Equal(t, expectedCfg, cfg)

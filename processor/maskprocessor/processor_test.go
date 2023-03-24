@@ -16,8 +16,11 @@ package maskprocessor
 
 import (
 	"context"
+	"errors"
+	"regexp"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
@@ -160,4 +163,90 @@ func TestFailedStart(t *testing.T) {
 	err := processor.start(context.Background(), nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "does not compile as valid regex")
+}
+
+func TestCreateRules(t *testing.T) {
+	testCases := []struct {
+		desc          string
+		exprs         map[string]string
+		expectedRules map[string]*regexp.Regexp
+		expectedErr   error
+	}{
+		{
+			desc: "Valid rule",
+			exprs: map[string]string{
+				"test": "test",
+			},
+			expectedRules: map[string]*regexp.Regexp{
+				"[masked_test]": regexp.MustCompile("test"),
+			},
+		},
+		{
+			desc: "Invalid rule",
+			exprs: map[string]string{
+				"invalid": `\k`,
+			},
+			expectedErr: errors.New("rule 'invalid' does not compile"),
+		},
+		{
+			desc:          "No rules",
+			exprs:         map[string]string{},
+			expectedRules: defaultRules,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			p := &maskProcessor{
+				cfg: &Config{
+					Rules: tc.exprs,
+				},
+			}
+			rules, err := p.createRules()
+
+			switch tc.expectedErr {
+			case nil:
+				require.NoError(t, err)
+				require.Equal(t, tc.expectedRules, rules)
+			default:
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr.Error())
+			}
+		})
+	}
+}
+
+func TestCompileRules(t *testing.T) {
+	testCases := []struct {
+		desc          string
+		exprs         map[string]string
+		expectedRules map[string]*regexp.Regexp
+		expectedErr   error
+	}{
+		{
+			desc: "Valid rule",
+			exprs: map[string]string{
+				"test": "test",
+			},
+			expectedRules: map[string]*regexp.Regexp{
+				"[masked_test]": regexp.MustCompile("test"),
+			},
+			expectedErr: nil,
+		},
+		{
+			desc: "Invalid rule",
+			exprs: map[string]string{
+				"invalid": `\K`,
+			},
+			expectedErr: errors.New("rule 'invalid' does not compile as valid regex"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			rules, err := compileRules(tc.exprs)
+			assert.Equal(t, tc.expectedRules, rules)
+			assert.Equal(t, tc.expectedErr, err)
+		})
+	}
 }
