@@ -16,7 +16,6 @@ package maskprocessor
 
 import (
 	"errors"
-	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,13 +28,6 @@ func TestConfigValidate(t *testing.T) {
 		expectedErr error
 	}{
 		{
-			desc: "Default rules",
-			cfg: Config{
-				Rules: defaultRules,
-			},
-			expectedErr: nil,
-		},
-		{
 			desc: "Invalid rule",
 			cfg: Config{
 				Rules: map[string]string{
@@ -47,7 +39,7 @@ func TestConfigValidate(t *testing.T) {
 		{
 			desc:        "No rules",
 			cfg:         Config{},
-			expectedErr: errNoRules,
+			expectedErr: nil,
 		},
 	}
 
@@ -55,45 +47,6 @@ func TestConfigValidate(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			actualErr := tc.cfg.Validate()
 			assert.Equal(t, tc.expectedErr, actualErr)
-		})
-	}
-}
-
-func TestCompileRules(t *testing.T) {
-	testCases := []struct {
-		desc          string
-		cfg           Config
-		expectedRules map[string]*regexp.Regexp
-		expectedErr   error
-	}{
-		{
-			desc: "Valid rule",
-			cfg: Config{
-				Rules: map[string]string{
-					"test": "test",
-				},
-			},
-			expectedRules: map[string]*regexp.Regexp{
-				"[masked_test]": regexp.MustCompile("test"),
-			},
-			expectedErr: nil,
-		},
-		{
-			desc: "Invalid rule",
-			cfg: Config{
-				Rules: map[string]string{
-					"invalid": `\K`,
-				},
-			},
-			expectedErr: errors.New("rule 'invalid' does not compile as valid regex"),
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.desc, func(t *testing.T) {
-			rules, err := tc.cfg.CompileRules()
-			assert.Equal(t, tc.expectedRules, rules)
-			assert.Equal(t, tc.expectedErr, err)
 		})
 	}
 }

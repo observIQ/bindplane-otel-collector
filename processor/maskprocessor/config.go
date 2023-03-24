@@ -15,14 +15,6 @@
 // Package maskprocessor provides a processor that masks data.
 package maskprocessor
 
-import (
-	"errors"
-	"fmt"
-	"regexp"
-)
-
-var errNoRules = errors.New("no rules defined")
-
 // Config is the configuration for the processor.
 type Config struct {
 	// Rules are the rules used to mask values.
@@ -32,28 +24,10 @@ type Config struct {
 	Exclude []string `mapstructure:"exclude"`
 }
 
-// CompileRules compiles the rules defined in the config.
-func (cfg Config) CompileRules() (map[string]*regexp.Regexp, error) {
-	rules := make(map[string]*regexp.Regexp)
-	for key, expr := range cfg.Rules {
-		rule, err := regexp.Compile(expr)
-		if err != nil {
-			return nil, fmt.Errorf("rule '%s' does not compile as valid regex", key)
-		}
-
-		mask := fmt.Sprintf("[masked_%s]", key)
-		rules[mask] = rule
-	}
-	return rules, nil
-}
-
 // Validate validates the processor configuration.
 func (cfg Config) Validate() error {
-	if len(cfg.Rules) == 0 {
-		return errNoRules
-	}
-
-	if _, err := cfg.CompileRules(); err != nil {
+	if len(cfg.Rules) > 0 {
+		_, err := compileRules(cfg.Rules)
 		return err
 	}
 
