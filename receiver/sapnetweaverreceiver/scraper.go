@@ -186,7 +186,7 @@ func (s *sapNetweaverScraper) collectGetAlertTree(_ context.Context, now pcommon
 	for _, node := range alertTree.AlertNode {
 		value := strings.Split(node.Description, " ")
 		alertTreeResponse[node.Name] = value[0]
-		if node.Name == "ICM" || node.Name == "AbapErrorInUpdate" {
+		if node.Name == "ICM" || node.Name == "AbapErrorInUpdate" || node.Name == "AbortedJobs" {
 			alertTreeResponse[node.Name] = string(node.ActualValue)
 		}
 

@@ -99,17 +99,28 @@ func (s *sapNetweaverScraper) recordSapnetweaverProcessAvailabilityDataPoint(now
 
 func (s *sapNetweaverScraper) recordSapnetweaverWorkProcessJobAbortedCountDataPoint(now pcommon.Timestamp, alertTreeResponse map[string]string, errs *scrapererror.ScrapeErrors) {
 	metricName := "AbortedJobs"
-	val, err := parseResponse(metricName, "", alertTreeResponse)
-	if err != nil {
-		errs.AddPartial(1, err)
+	val, ok := alertTreeResponse[metricName]
+	if !ok {
+		errs.AddPartial(1, fmt.Errorf(collectMetricError, metricName, errValueNotFound))
 		return
 	}
 
-	err = s.mb.RecordSapnetweaverWorkProcessJobAbortedCountDataPoint(now, val)
-	if err != nil {
-		errs.AddPartial(1, err)
-		return
+	var gray, green, yellow, red int64
+	switch models.StateColor(models.StateColor(val)) {
+	case models.StateColorGray:
+		gray = 1
+	case models.StateColorGreen:
+		green = 1
+	case models.StateColorYellow:
+		yellow = 1
+	case models.StateColorRed:
+		red = 1
 	}
+
+	s.mb.RecordSapnetweaverWorkProcessJobAbortedStatusDataPoint(now, gray, metadata.AttributeControlStateGray)
+	s.mb.RecordSapnetweaverWorkProcessJobAbortedStatusDataPoint(now, green, metadata.AttributeControlStateGreen)
+	s.mb.RecordSapnetweaverWorkProcessJobAbortedStatusDataPoint(now, yellow, metadata.AttributeControlStateYellow)
+	s.mb.RecordSapnetweaverWorkProcessJobAbortedStatusDataPoint(now, red, metadata.AttributeControlStateRed)
 }
 
 // recordSapnetweaverDatabaseDialogRequestTimeDataPoint records the database dialog request time
@@ -644,7 +655,7 @@ func (s *sapNetweaverScraper) recordSapnetweaverRequestTimeoutCountDataPoint(now
 }
 
 func (s *sapNetweaverScraper) recordSapnetweaverConnectionErrorCountDataPoint(now pcommon.Timestamp, alertTreeResponse map[string]string, errs *scrapererror.ScrapeErrors) {
-	metricName := "StatNoOfConnectionErrors"
+	metricName := "StatNoOfConnectErrors"
 	val, err := parseResponse(metricName, "", alertTreeResponse)
 	if err != nil {
 		errs.AddPartial(1, err)

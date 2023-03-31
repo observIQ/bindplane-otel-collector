@@ -100,7 +100,7 @@ Collected using sapgenpse get_my_name -p /usr/sap/<SID>/<INST>/*.pse -n validity
 
 The amount of connection errors.
 
-Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General > StatNoOfConnectionErrors.
+Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General > StatNoOfConnectErrors.
 
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
 | ---- | ----------- | ---------- | ----------------------- | --------- |
@@ -368,7 +368,7 @@ The response time duration.
 
 ### sapnetweaver.session.count
 
-The amount of of sessions created.
+The amount of sessions created.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > R3ServiceS > ITS > Number of Sessions.
 
@@ -483,15 +483,21 @@ Collected from SAPControl Web Service Interface > ABAPGetSystemWPTable.
 | wp_type | The work processor type. | Any Str |
 | wp_status | The work processor status. | Any Str |
 
-### sapnetweaver.work_process.job.aborted.count
+### sapnetweaver.work_process.job.aborted.status
 
-The individual aborted jobs on an application server.
+The status of aborted jobs on an application server.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Background > AbortedJobs.
 
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
 | ---- | ----------- | ---------- | ----------------------- | --------- |
-| {aborted_jobs} | Sum | Int | Cumulative | false |
+|  | Sum | Int | Cumulative | false |
+
+#### Attributes
+
+| Name | Description | Values |
+| ---- | ----------- | ------ |
+| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` |
 
 ## Resource Attributes
 
