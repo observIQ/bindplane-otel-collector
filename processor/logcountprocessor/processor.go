@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/observiq/observiq-otel-collector/counter"
 	"github.com/observiq/observiq-otel-collector/expr"
 	"github.com/observiq/observiq-otel-collector/receiver/routereceiver"
 	"go.opentelemetry.io/collector/component"
@@ -34,7 +35,7 @@ type logCountProcessor struct {
 	config   *Config
 	match    *expr.Expression
 	attrs    *expr.ExpressionMap
-	counter  *LogCounter
+	counter  *counter.TelemetryCounter
 	consumer consumer.Logs
 	logger   *zap.Logger
 	cancel   context.CancelFunc
@@ -48,7 +49,7 @@ func newProcessor(config *Config, consumer consumer.Logs, match *expr.Expression
 		config:   config,
 		match:    match,
 		attrs:    attrs,
-		counter:  NewLogCounter(),
+		counter:  counter.NewTelemetryCounter(),
 		consumer: consumer,
 		logger:   logger,
 	}
@@ -132,16 +133,16 @@ func (p *logCountProcessor) sendMetrics(ctx context.Context) {
 // createMetrics creates metrics from the counter.
 func (p *logCountProcessor) createMetrics() pmetric.Metrics {
 	metrics := pmetric.NewMetrics()
-	for _, resource := range p.counter.resources {
+	for _, resource := range p.counter.Resources() {
 		resourceMetrics := metrics.ResourceMetrics().AppendEmpty()
-		err := resourceMetrics.Resource().Attributes().FromRaw(resource.values)
+		err := resourceMetrics.Resource().Attributes().FromRaw(resource.Values())
 		if err != nil {
 			p.logger.Error("Failed to set resource attributes", zap.Error(err))
 		}
 
 		scopeMetrics := resourceMetrics.ScopeMetrics().AppendEmpty()
 		scopeMetrics.Scope().SetName(typeStr)
-		for _, attributes := range resource.attributes {
+		for _, attributes := range resource.Attributes() {
 			metrics := scopeMetrics.Metrics().AppendEmpty()
 			metrics.SetName(p.config.MetricName)
 			metrics.SetUnit(p.config.MetricUnit)
@@ -149,8 +150,8 @@ func (p *logCountProcessor) createMetrics() pmetric.Metrics {
 
 			gauge := metrics.Gauge().DataPoints().AppendEmpty()
 			gauge.SetTimestamp(pcommon.NewTimestampFromTime(time.Now()))
-			gauge.SetIntValue(int64(attributes.count))
-			err = gauge.Attributes().FromRaw(attributes.values)
+			gauge.SetIntValue(int64(attributes.Count()))
+			err = gauge.Attributes().FromRaw(attributes.Values())
 			if err != nil {
 				p.logger.Error("Failed to set metric attributes", zap.Error(err))
 			}
