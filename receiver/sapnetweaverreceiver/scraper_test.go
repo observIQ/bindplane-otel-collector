@@ -256,7 +256,7 @@ func TestScraperScrapeEmpty(t *testing.T) {
 		errors.New("failed to collect metric ResponseTimeHTTP with attribute http: value not found"),
 		errors.New("failed to collect metric StatNoOfRequests: value not found"),
 		errors.New("failed to collect metric StatNoOfTimeouts: value not found"),
-		errors.New("failed to collect metric StatNoOfConnectionErrors: value not found"),
+		errors.New("failed to collect metric StatNoOfConnectErrors: value not found"),
 		errors.New("failed to collect metric EvictedEntries: value not found"),
 		errors.New("failed to collect metric CacheHits: value not found"),
 		errors.New("failed to collect metric HostspoolListUsed: value not found"),

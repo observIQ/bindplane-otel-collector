@@ -81,7 +81,7 @@ all_set:
       enabled: true
     sapnetweaver.work_process.active.count:
       enabled: true
-    sapnetweaver.work_process.job.aborted.count:
+    sapnetweaver.work_process.job.aborted.status:
       enabled: true
   resource_attributes:
     sapnetweaver.SID:
@@ -172,7 +172,7 @@ none_set:
       enabled: false
     sapnetweaver.work_process.active.count:
       enabled: false
-    sapnetweaver.work_process.job.aborted.count:
+    sapnetweaver.work_process.job.aborted.status:
       enabled: false
   resource_attributes:
     sapnetweaver.SID:

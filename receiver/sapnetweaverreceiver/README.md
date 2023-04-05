@@ -84,6 +84,6 @@ The following metrics are available with ICM version 7.81+:
 - sapnetweaver.job.aborted: GetAlertTree name = AbortedJobs
 - sapnetweaver.request.count: GetAlertTree name = StatNoOfRequests
 - sapnetweaver.request.timeout.count: GetAlertTree name = StatNoOfTimeouts
-- sapnetweaver.connection.error.count: GetAlertTree name = StatNoOfConnectionErrors
+- sapnetweaver.connection.error.count: GetAlertTree name = StatNoOfConnectErrors
 
 Details about the metrics produced by this receiver can be found in [metadata.yaml](./metadata.yaml)

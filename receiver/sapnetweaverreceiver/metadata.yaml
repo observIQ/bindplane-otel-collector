@@ -369,7 +369,7 @@ metrics:
     attributes: []
     enabled: true
   sapnetweaver.session.count:
-    description: The amount of of sessions created.
+    description: The amount of sessions created.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3ServiceS > ITS > Number of Sessions.
     unit: "{sessions}"
     sum:
@@ -379,16 +379,14 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  sapnetweaver.work_process.job.aborted.count:
-    description: The individual aborted jobs on an application server.
+  sapnetweaver.work_process.job.aborted.status:
+    description: The status of aborted jobs on an application server.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Background > AbortedJobs.
-    unit: "{aborted_jobs}"
     sum:
       monotonic: false
       aggregation: cumulative
       value_type: int
-      input_type: string
-    attributes: []
+    attributes: [control_state]
     enabled: true
   sapnetweaver.abap.update.status:
     description: The status of the ABAP update process.
@@ -434,7 +432,7 @@ metrics:
   sapnetweaver.connection.error.count:
     description: The amount of connection errors.
     unit: "{connections}"
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General > StatNoOfConnectionErrors.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General > StatNoOfConnectErrors.
     sum:
       monotonic: false
       aggregation: cumulative

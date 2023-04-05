@@ -77,7 +77,6 @@
   <item>
    <name>AbortedJobs</name>
    <ActualValue>SAPControl-GREEN</ActualValue>
-   <description>13</description>
   </item>
   <item>
    <name>AbapErrorInUpdate</name>
@@ -114,7 +113,7 @@
    <description>20</description>
   </item>
   <item>
-   <name>StatNoOfConnectionErrors</name>
+   <name>StatNoOfConnectErrors</name>
    <ActualValue>SAPControl-GREEN</ActualValue>
    <description>21</description>
   </item>
