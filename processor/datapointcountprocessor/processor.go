@@ -120,23 +120,21 @@ func (p *metricCountProcessor) handleMetricInterval(ctx context.Context) {
 
 // sendMetrics sends metrics to the consumer.
 func (p *metricCountProcessor) sendMetrics(ctx context.Context) {
-	p.mux.Lock()
-	defer p.mux.Unlock()
-
 	metrics := p.createMetrics()
 	if metrics.ResourceMetrics().Len() == 0 {
 		return
 	}
-
-	p.counter.Reset()
 
 	if err := routereceiver.RouteMetrics(ctx, p.config.Route, metrics); err != nil {
 		p.logger.Error("Failed to send metrics", zap.Error(err))
 	}
 }
 
-// createMetrics creates metrics from the counter.
+// createMetrics creates metrics from the counter. The counter is reset after the metrics are created.
 func (p *metricCountProcessor) createMetrics() pmetric.Metrics {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
 	metrics := pmetric.NewMetrics()
 	for _, resource := range p.counter.Resources() {
 		resourceMetrics := metrics.ResourceMetrics().AppendEmpty()
@@ -163,6 +161,8 @@ func (p *metricCountProcessor) createMetrics() pmetric.Metrics {
 
 		}
 	}
+
+	p.counter.Reset()
 
 	return metrics
 }
