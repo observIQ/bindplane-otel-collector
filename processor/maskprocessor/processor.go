@@ -38,6 +38,7 @@ var defaultRules = map[string]*regexp.Regexp{
 	"ssn":         regexp.MustCompile(`\b\d{3}[- ]\d{2}[- ]\d{4}\b`),
 	"credit_card": regexp.MustCompile(`\b(?:(?:(?:\d{4}[- ]?){3}\d{4}|\d{15,16}))\b`),
 	"phone":       regexp.MustCompile(`\b((\+|\b)[1l][\-\. ])?\(?\b[\dOlZSB]{3,5}([\-\. ]|\) ?)[\dOlZSB]{3}[\-\. ][\dOlZSB]{4}\b`),
+	"ipv4":        regexp.MustCompile(`(?:[0-9]{1,3}\.){3}[0-9]{1,3}`),
 }
 
 // maskProcessor is the processor used to mask data.
