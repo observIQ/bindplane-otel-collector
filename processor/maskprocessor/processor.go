@@ -38,7 +38,7 @@ var defaultRules = map[string]*regexp.Regexp{
 	"ssn":         regexp.MustCompile(`\b\d{3}[- ]\d{2}[- ]\d{4}\b`),
 	"credit_card": regexp.MustCompile(`\b(?:(?:(?:\d{4}[- ]?){3}\d{4}|\d{15,16}))\b`),
 	"phone":       regexp.MustCompile(`\b((\+|\b)[1l][\-\. ])?\(?\b[\dOlZSB]{3,5}([\-\. ]|\) ?)[\dOlZSB]{3}[\-\. ][\dOlZSB]{4}\b`),
-	"ipv4":        regexp.MustCompile(`(?:[0-9]{1,3}\.){3}[0-9]{1,3}`),
+	"ipv4":        regexp.MustCompile(`\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b`),
 }
 
 // maskProcessor is the processor used to mask data.
@@ -222,11 +222,17 @@ func (p *maskProcessor) createMaskFunc(field string) func(k string, v pcommon.Va
 
 // createRules creates a map of rules for the processor.
 func (p *maskProcessor) createRules() (map[string]*regexp.Regexp, error) {
-	if len(p.cfg.Rules) == 0 {
-		return defaultRules, nil
+	rules := defaultRules
+	if len(p.cfg.Rules) > 0 {
+		var err error
+		rules, err = compileRules(p.cfg.Rules)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return compileRules(p.cfg.Rules)
+	formattedRules := formatRuleMaskName(rules)
+	return formattedRules, nil
 }
 
 // compileRules compiles rules from the provided map of expressions.
@@ -238,8 +244,17 @@ func compileRules(exprs map[string]string) (map[string]*regexp.Regexp, error) {
 			return nil, fmt.Errorf("rule '%s' does not compile as valid regex", key)
 		}
 
-		mask := fmt.Sprintf("[masked_%s]", key)
-		rules[mask] = rule
+		rules[key] = rule
 	}
 	return rules, nil
+}
+
+func formatRuleMaskName(rules map[string]*regexp.Regexp) map[string]*regexp.Regexp {
+	formattedRules := make(map[string]*regexp.Regexp, len(rules))
+	for ruleName, rule := range rules {
+		maskedName := fmt.Sprintf("[masked_%s]", ruleName)
+		formattedRules[maskedName] = rule
+	}
+
+	return formattedRules
 }
