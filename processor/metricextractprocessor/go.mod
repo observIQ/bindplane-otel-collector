@@ -3,8 +3,8 @@ module github.com/observiq/observiq-otel-collector/processor/metricextractproces
 go 1.19
 
 require (
-	github.com/observiq/observiq-otel-collector/expr v1.22.0
-	github.com/observiq/observiq-otel-collector/receiver/routereceiver v1.22.0
+	github.com/observiq/observiq-otel-collector/expr v1.23.0
+	github.com/observiq/observiq-otel-collector/receiver/routereceiver v1.23.0
 	github.com/stretchr/testify v1.8.2
 	go.opentelemetry.io/collector v0.75.0
 	go.opentelemetry.io/collector/component v0.75.0
