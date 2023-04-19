@@ -16,11 +16,11 @@ This processor is used to detect and mask sensitive data.
 ## Configuration
 | Field        | Type     | Default | Description |
 | ---          | ---      | ---     | ---         |
-| rules        | map      | `email`: `\b[a-z0-9._%\+\-—\|]+@[a-z0-9.\-—\|]+\.[a-z\|]{2,6}\b`<br /><br />`ssn`: `\b\d{3}[- ]\d{2}[- ]\d{4}\b`<br /><br />`credit_card`: `\b(?:(?:(?:\d{4}[- ]?){3}\d{4}\|\d{15,16}))\b`<br /><br />`phone`: `\b((\+\|\b)[1l][\-\. ])?\(?\b[\dOlZSB]{3,5}([\-\. ]\|\) ?)[\dOlZSB]{3}[\-\. ][\dOlZSB]{4}\b`|     | A series of key value pairs that define the masking rules of the processor. The key is the name of the rule. The value is the regex to mask. The regex engine used is [standard golang](https://pkg.go.dev/regexp/syntax). |
+| rules        | map      | `email`: `\b[a-z0-9._%\+\-—\|]+@[a-z0-9.\-—\|]+\.[a-z\|]{2,6}\b`<br /><br />`ssn`: `\b\d{3}[- ]\d{2}[- ]\d{4}\b`<br /><br />`credit_card`: `\b(?:(?:(?:\d{4}[- ]?){3}\d{4}\|\d{15,16}))\b`<br /><br />`phone`: `\b((\+\|\b)[1l][\-\. ])?\(?\b[\dOlZSB]{3,5}([\-\. ]\|\) ?)[\dOlZSB]{3}[\-\. ][\dOlZSB]{4}\b`<br /><br />`ipv4`: `\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b`|     | A series of key value pairs that define the masking rules of the processor. The key is the name of the rule. The value is the regex to mask. The regex engine used is [standard golang](https://pkg.go.dev/regexp/syntax). |
 | exclude      | []string | `[]`    | A list of json dot notation fields that will be excluded from masking. The prefixes `resource`, `attributes`, and `body` can be used to indicate the root of the field. |
 
 ### Example Config
-The following config is an example configuration of the mask processor using default values. This configuration will receive logs through an otlp receiver. The mask processor will then search and mask any logs that match the predefined email, ssn, credit_card, or phone rules. The logs will then be sent to the logging exporter.
+The following config is an example configuration of the mask processor using default values. This configuration will receive logs through an otlp receiver. The mask processor will then search and mask any logs that match the predefined email, ssn, credit_card, phone, or ipv4 rules. The logs will then be sent to the logging exporter.
 ```yaml
 receivers:
     otlp:

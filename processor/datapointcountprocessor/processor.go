@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package logcountprocessor
+package datapointcountprocessor
 
 import (
 	"context"
@@ -25,18 +25,17 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
-	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.uber.org/zap"
 )
 
-// logCountProcessor is a processor that counts logs.
-type logCountProcessor struct {
+// metricCountProcessor is a processor that counts logs.
+type metricCountProcessor struct {
 	config   *Config
 	match    *expr.Expression
 	attrs    *expr.ExpressionMap
 	counter  *counter.TelemetryCounter
-	consumer consumer.Logs
+	consumer consumer.Metrics
 	logger   *zap.Logger
 	cancel   context.CancelFunc
 	wg       sync.WaitGroup
@@ -44,8 +43,8 @@ type logCountProcessor struct {
 }
 
 // newProcessor returns a new processor.
-func newProcessor(config *Config, consumer consumer.Logs, match *expr.Expression, attrs *expr.ExpressionMap, logger *zap.Logger) *logCountProcessor {
-	return &logCountProcessor{
+func newProcessor(config *Config, consumer consumer.Metrics, match *expr.Expression, attrs *expr.ExpressionMap, logger *zap.Logger) *metricCountProcessor {
+	return &metricCountProcessor{
 		config:   config,
 		match:    match,
 		attrs:    attrs,
@@ -56,7 +55,7 @@ func newProcessor(config *Config, consumer consumer.Logs, match *expr.Expression
 }
 
 // Start starts the processor.
-func (p *logCountProcessor) Start(_ context.Context, _ component.Host) error {
+func (p *metricCountProcessor) Start(_ context.Context, _ component.Host) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
 
@@ -67,38 +66,44 @@ func (p *logCountProcessor) Start(_ context.Context, _ component.Host) error {
 }
 
 // Capabilities returns the consumer's capabilities.
-func (p *logCountProcessor) Capabilities() consumer.Capabilities {
+func (p *metricCountProcessor) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: false}
 }
 
 // Shutdown stops the processor.
-func (p *logCountProcessor) Shutdown(_ context.Context) error {
+func (p *metricCountProcessor) Shutdown(_ context.Context) error {
 	p.cancel()
 	p.wg.Wait()
 	return nil
 }
 
-// ConsumeLogs processes the logs.
-func (p *logCountProcessor) ConsumeLogs(ctx context.Context, pl plog.Logs) error {
+// ConsumeMetrics processes the metrics.
+func (p *metricCountProcessor) ConsumeMetrics(ctx context.Context, m pmetric.Metrics) error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	resourceGroups := expr.ConvertToResourceGroups(pl)
+	resourceGroups := expr.ConvertToDatapointResourceGroup(m)
 	for _, group := range resourceGroups {
 		resource := group.Resource
-		for _, record := range group.Records {
-			if p.match.MatchRecord(record) {
-				attrs := p.attrs.Extract(record)
+		for _, dp := range group.Datapoints {
+			match, err := p.match.Match(dp)
+			if err != nil {
+				p.logger.Error("Error while matching datapoint", zap.Error(err))
+				continue
+			}
+
+			if match {
+				attrs := p.attrs.Extract(dp)
 				p.counter.Add(resource, attrs)
 			}
 		}
 	}
 
-	return p.consumer.ConsumeLogs(ctx, pl)
+	return p.consumer.ConsumeMetrics(ctx, m)
 }
 
 // handleMetricInterval sends metrics at the configured interval.
-func (p *logCountProcessor) handleMetricInterval(ctx context.Context) {
+func (p *metricCountProcessor) handleMetricInterval(ctx context.Context) {
 	ticker := time.NewTicker(p.config.Interval)
 	defer ticker.Stop()
 
@@ -114,24 +119,22 @@ func (p *logCountProcessor) handleMetricInterval(ctx context.Context) {
 }
 
 // sendMetrics sends metrics to the consumer.
-func (p *logCountProcessor) sendMetrics(ctx context.Context) {
-	p.mux.Lock()
-	defer p.mux.Unlock()
-
+func (p *metricCountProcessor) sendMetrics(ctx context.Context) {
 	metrics := p.createMetrics()
 	if metrics.ResourceMetrics().Len() == 0 {
 		return
 	}
-
-	p.counter.Reset()
 
 	if err := routereceiver.RouteMetrics(ctx, p.config.Route, metrics); err != nil {
 		p.logger.Error("Failed to send metrics", zap.Error(err))
 	}
 }
 
-// createMetrics creates metrics from the counter.
-func (p *logCountProcessor) createMetrics() pmetric.Metrics {
+// createMetrics creates metrics from the counter. The counter is reset after the metrics are created.
+func (p *metricCountProcessor) createMetrics() pmetric.Metrics {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+
 	metrics := pmetric.NewMetrics()
 	for _, resource := range p.counter.Resources() {
 		resourceMetrics := metrics.ResourceMetrics().AppendEmpty()
@@ -158,6 +161,8 @@ func (p *logCountProcessor) createMetrics() pmetric.Metrics {
 
 		}
 	}
+
+	p.counter.Reset()
 
 	return metrics
 }

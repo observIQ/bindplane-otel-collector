@@ -191,7 +191,7 @@ func TestCreateRules(t *testing.T) {
 		{
 			desc:          "No rules",
 			exprs:         map[string]string{},
-			expectedRules: defaultRules,
+			expectedRules: formatRuleMaskName(defaultRules),
 		},
 	}
 
@@ -229,7 +229,7 @@ func TestCompileRules(t *testing.T) {
 				"test": "test",
 			},
 			expectedRules: map[string]*regexp.Regexp{
-				"[masked_test]": regexp.MustCompile("test"),
+				"test": regexp.MustCompile("test"),
 			},
 			expectedErr: nil,
 		},

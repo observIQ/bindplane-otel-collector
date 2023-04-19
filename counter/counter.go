@@ -12,35 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package logcountprocessor
+// Package counter contains structs used to count telemetry grouped by resource and attributes.
+package counter
 
 import "encoding/json"
 
-// LogCounter tracks the number of times a set of resource and attribute dimensions have been seen.
-type LogCounter struct {
+// TelemetryCounter tracks the number of times a set of resource and attribute dimensions have been seen.
+type TelemetryCounter struct {
 	resources map[string]*ResourceCounter
 }
 
-// NewLogCounter creates a new LogCounter.
-func NewLogCounter() *LogCounter {
-	return &LogCounter{
+// NewTelemetryCounter creates a new TelemetryCounter.
+func NewTelemetryCounter() *TelemetryCounter {
+	return &TelemetryCounter{
 		resources: make(map[string]*ResourceCounter),
 	}
 }
 
 // Add increments the counter with the supplied dimensions.
-func (l *LogCounter) Add(resource, attributes map[string]any) {
+func (t *TelemetryCounter) Add(resource, attributes map[string]any) {
 	key := getDimensionKey(resource)
-	if _, ok := l.resources[key]; !ok {
-		l.resources[key] = NewResourceCounter(resource)
+	if _, ok := t.resources[key]; !ok {
+		t.resources[key] = NewResourceCounter(resource)
 	}
 
-	l.resources[key].Add(attributes)
+	t.resources[key].Add(attributes)
+}
+
+// Resources returns a map of resource ID to a counter for that resource.
+func (t TelemetryCounter) Resources() map[string]*ResourceCounter {
+	return t.resources
 }
 
 // Reset resets the counter.
-func (l *LogCounter) Reset() {
-	l.resources = make(map[string]*ResourceCounter)
+func (t *TelemetryCounter) Reset() {
+	t.resources = make(map[string]*ResourceCounter)
 }
 
 // ResourceCounter dimensions the counter by resource.
@@ -67,6 +73,16 @@ func (r *ResourceCounter) Add(attributes map[string]any) {
 	r.attributes[key].Add()
 }
 
+// Attributes returns a map of attribute set ID to a counter for that attribute set.
+func (r ResourceCounter) Attributes() map[string]*AttributeCounter {
+	return r.attributes
+}
+
+// Values returns the raw map value of the resource that this counter counts.
+func (r ResourceCounter) Values() map[string]any {
+	return r.values
+}
+
 // AttributeCounter dimensions the counter by attributes.
 type AttributeCounter struct {
 	values map[string]any
@@ -83,6 +99,16 @@ func NewAttributeCounter(values map[string]any) *AttributeCounter {
 // Add increments the counter.
 func (a *AttributeCounter) Add() {
 	a.count++
+}
+
+// Count returns the number of counts for this attribute counter.
+func (a AttributeCounter) Count() int {
+	return a.count
+}
+
+// Values returns the attribute map that this counter tracks.
+func (a AttributeCounter) Values() map[string]any {
+	return a.values
 }
 
 // getDimensionKey returns a unique key for the dimension.

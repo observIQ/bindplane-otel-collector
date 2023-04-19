@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package logcountprocessor
+package spancountprocessor
 
 import (
 	"context"
@@ -25,18 +25,18 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
-	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/pdata/ptrace"
 	"go.uber.org/zap"
 )
 
-// logCountProcessor is a processor that counts logs.
-type logCountProcessor struct {
+// spanCountProcessor is a processor that counts spans.
+type spanCountProcessor struct {
 	config   *Config
 	match    *expr.Expression
 	attrs    *expr.ExpressionMap
 	counter  *counter.TelemetryCounter
-	consumer consumer.Logs
+	consumer consumer.Traces
 	logger   *zap.Logger
 	cancel   context.CancelFunc
 	wg       sync.WaitGroup
@@ -44,8 +44,8 @@ type logCountProcessor struct {
 }
 
 // newProcessor returns a new processor.
-func newProcessor(config *Config, consumer consumer.Logs, match *expr.Expression, attrs *expr.ExpressionMap, logger *zap.Logger) *logCountProcessor {
-	return &logCountProcessor{
+func newProcessor(config *Config, consumer consumer.Traces, match *expr.Expression, attrs *expr.ExpressionMap, logger *zap.Logger) *spanCountProcessor {
+	return &spanCountProcessor{
 		config:   config,
 		match:    match,
 		attrs:    attrs,
@@ -56,7 +56,7 @@ func newProcessor(config *Config, consumer consumer.Logs, match *expr.Expression
 }
 
 // Start starts the processor.
-func (p *logCountProcessor) Start(_ context.Context, _ component.Host) error {
+func (p *spanCountProcessor) Start(_ context.Context, _ component.Host) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
 
@@ -67,38 +67,44 @@ func (p *logCountProcessor) Start(_ context.Context, _ component.Host) error {
 }
 
 // Capabilities returns the consumer's capabilities.
-func (p *logCountProcessor) Capabilities() consumer.Capabilities {
+func (p *spanCountProcessor) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: false}
 }
 
 // Shutdown stops the processor.
-func (p *logCountProcessor) Shutdown(_ context.Context) error {
+func (p *spanCountProcessor) Shutdown(_ context.Context) error {
 	p.cancel()
 	p.wg.Wait()
 	return nil
 }
 
-// ConsumeLogs processes the logs.
-func (p *logCountProcessor) ConsumeLogs(ctx context.Context, pl plog.Logs) error {
+// ConsumeMetrics processes the metrics.
+func (p *spanCountProcessor) ConsumeTraces(ctx context.Context, m ptrace.Traces) error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	resourceGroups := expr.ConvertToResourceGroups(pl)
+	resourceGroups := expr.ConvertToSpanResourceGroups(m)
 	for _, group := range resourceGroups {
 		resource := group.Resource
-		for _, record := range group.Records {
-			if p.match.MatchRecord(record) {
-				attrs := p.attrs.Extract(record)
+		for _, span := range group.Spans {
+			match, err := p.match.Match(span)
+			if err != nil {
+				p.logger.Error("Error while matching span", zap.Error(err))
+				continue
+			}
+
+			if match {
+				attrs := p.attrs.Extract(span)
 				p.counter.Add(resource, attrs)
 			}
 		}
 	}
 
-	return p.consumer.ConsumeLogs(ctx, pl)
+	return p.consumer.ConsumeTraces(ctx, m)
 }
 
 // handleMetricInterval sends metrics at the configured interval.
-func (p *logCountProcessor) handleMetricInterval(ctx context.Context) {
+func (p *spanCountProcessor) handleMetricInterval(ctx context.Context) {
 	ticker := time.NewTicker(p.config.Interval)
 	defer ticker.Stop()
 
@@ -114,7 +120,7 @@ func (p *logCountProcessor) handleMetricInterval(ctx context.Context) {
 }
 
 // sendMetrics sends metrics to the consumer.
-func (p *logCountProcessor) sendMetrics(ctx context.Context) {
+func (p *spanCountProcessor) sendMetrics(ctx context.Context) {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
@@ -131,7 +137,7 @@ func (p *logCountProcessor) sendMetrics(ctx context.Context) {
 }
 
 // createMetrics creates metrics from the counter.
-func (p *logCountProcessor) createMetrics() pmetric.Metrics {
+func (p *spanCountProcessor) createMetrics() pmetric.Metrics {
 	metrics := pmetric.NewMetrics()
 	for _, resource := range p.counter.Resources() {
 		resourceMetrics := metrics.ResourceMetrics().AppendEmpty()

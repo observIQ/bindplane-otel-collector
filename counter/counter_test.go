@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package logcountprocessor
+package counter
 
 import (
 	"testing"
@@ -21,7 +21,7 @@ import (
 )
 
 func TestLogCounter(t *testing.T) {
-	counter := NewLogCounter()
+	counter := NewTelemetryCounter()
 	resourceMap1 := map[string]any{"resource1": "value1"}
 	resourceMap2 := map[string]any{"resource2": "value2"}
 	attrMap1 := map[string]any{"attr1": "value1"}
