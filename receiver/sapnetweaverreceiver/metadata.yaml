@@ -1,4 +1,4 @@
-name: sapnetweaverreceiver
+type: sapnetweaverreceiver
 
 resource_attributes:
   sapnetweaver.instance:
