@@ -1,0 +1,395 @@
+{
+  "resourceLogs": [
+    {
+      "resource": {
+        "attributes": [
+          { "key": "m365.audit", "value": { "stringValue": "sharepoint" } },
+          {
+            "key": "m365.organization.id",
+            "value": { "stringValue": "testTenantID" }
+          }
+        ]
+      },
+      "scopeLogs": [
+        {
+          "scope": {},
+          "logRecords": [
+            {
+              "timeUnixNano": "1684141227000000000",
+              "observedTimeUnixNano": "1684949062412991000",
+              "body": {
+                "stringValue": "{\"CreationTime\":\"2023-05-15T09:00:27\",\"Workload\":\"test\",\"UserId\":\"test\",\"UserType\":8,\"Id\":\"test\",\"Operation\":\"test\",\"ResultStatus\":\"test\",\"Site\":\"test\",\"SourceFileName\":\"test\",\"MailboxGuid\":\"test\",\"Actor\":[{\"ID\":\"test\",\"Type\":5},{\"ID\":\"test2\",\"Type\":3}],\"SharePointMetaData\":{\"From\":\"test\"},\"ExchangeMetaData\":{\"MessageID\":\"test\"},\"PolicyDetails\":[{\"PolicyId\":\"test\",\"PolicyName\":\"test\"},{\"PolicyId\":\"test2\",\"PolicyName\":\"test2\"}],\"AlertId\":\"test\",\"Name\":\"test\",\"ActorUserId\":\"test\",\"FileId\":50,\"AttachmentData\":[{\"FileName\":\"test\"}],\"URL\":\"test\",\"FileData\":{\"DocumentId\":\"test\",\"FileVerdict\":-3},\"SourceWorkload\":2,\"InvestigationId\":\"test\",\"Status\":\"test\",\"AppName\":\"test\",\"EntityId\":\"test\",\"EntityName\":\"test\",\"RequestSource\":2,\"FormId\":\"test\",\"LabelId\":\"test\",\"MessageId\":\"test\",\"ExchangeDetails\":{\"NetworkMessageId\":\"test\"},\"JobId\":\"test\",\"TaskId\":\"test\",\"Invitation\":{\"ShareId\":\"test\"},\"ApplicationId\":\"test\",\"Username\":\"test\",\"OrganizationName\":\"test\",\"ActorAppId\":\"test\",\"ItemID\":\"test\",\"ProjectId\":\"test\",\"RoadmapId\":\"test\",\"RoadmapItemId\":\"test\"}"
+              },
+              "attributes": [
+                { "key": "id", "value": { "stringValue": "test" } },
+                { "key": "operation", "value": { "stringValue": "test" } },
+                { "key": "user.id", "value": { "stringValue": "test" } },
+                {
+                  "key": "user.type",
+                  "value": { "stringValue": "SystemPolicy" }
+                },
+                { "key": "workload", "value": { "stringValue": "test" } },
+                { "key": "result", "value": { "stringValue": "test" } },
+                {
+                  "key": "sharepoint.site.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "exchange.mailbox.id",
+                  "value": { "stringValue": "test" }
+                },
+                { "key": "yammer.user.id", "value": { "stringValue": "test" } },
+                {
+                  "key": "investigation.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "investigation.status",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "dynamics365.entity.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "dynamics365.entity.name",
+                  "value": { "stringValue": "test" }
+                },
+                { "key": "forms.form.id", "value": { "stringValue": "test" } },
+                { "key": "mip.label.id", "value": { "stringValue": "test" } },
+                { "key": "todo.app.id", "value": { "stringValue": "test" } },
+                { "key": "todo.item.id", "value": { "stringValue": "test" } },
+                { "key": "web.project.id", "value": { "stringValue": "test" } },
+                { "key": "web.roadmap.id", "value": { "stringValue": "test" } },
+                {
+                  "key": "web.roadmap.item.id",
+                  "value": { "stringValue": "test" }
+                },
+                { "key": "yammer.file.id", "value": { "stringValue": "50" } },
+                {
+                  "key": "dlp.sharepoint.user",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "dlp.exchange.message.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "quarantine.request_source",
+                  "value": { "stringValue": "URLlink" }
+                },
+                {
+                  "key": "defender.file.source_workload",
+                  "value": { "stringValue": "Microsoft Teams" }
+                },
+                {
+                  "key": "communication_compliance.exchange.network.message.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "system_sync.data.share.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "defender.file.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "defender.file.verdict",
+                  "value": { "stringValue": "Pending" }
+                },
+                {
+                  "key": "security.alert.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "security.alert.name",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "compliance_connector.job.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "compliance_connector.task.id",
+                  "value": { "stringValue": "test" }
+                },
+                { "key": "viva.username", "value": { "stringValue": "test" } },
+                {
+                  "key": "viva.organization.name",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "azure.actors",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "actor.id",
+                                "value": { "stringValue": "test" }
+                              },
+                              {
+                                "key": "actor.type",
+                                "value": { "stringValue": "UPN" }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "actor.id",
+                                "value": { "stringValue": "test2" }
+                              },
+                              {
+                                "key": "actor.type",
+                                "value": { "stringValue": "PUID" }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "dlp.policy_details",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "policy.id",
+                                "value": { "stringValue": "test" }
+                              },
+                              {
+                                "key": "policy.name",
+                                "value": { "stringValue": "test" }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "policy.id",
+                                "value": { "stringValue": "test2" }
+                              },
+                              {
+                                "key": "policy.name",
+                                "value": { "stringValue": "test2" }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "defender.email.attachments",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "file.name",
+                                "value": { "stringValue": "test" }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "traceId": "",
+              "spanId": ""
+            },
+            {
+              "timeUnixNano": "1684141227000000000",
+              "observedTimeUnixNano": "1684949062412991000",
+              "body": {
+                "stringValue": "{\"CreationTime\":\"2023-05-15T09:00:27\",\"Workload\":\"test\",\"UserId\":\"test\",\"UserType\":8,\"Id\":\"test\",\"Operation\":\"test\",\"ResultStatus\":\"test\",\"Site\":\"test\",\"SourceFileName\":\"test\",\"MailboxGuid\":\"test\",\"Actor\":[{\"ID\":\"test\",\"Type\":5}],\"PolicyDetails\":[{\"PolicyId\":\"test\",\"PolicyName\":\"test\"}],\"AlertId\":\"test\",\"Name\":\"test\",\"ActorUserId\":\"test\",\"FileId\":50,\"AttachmentData\":[{\"FileName\":\"test\"},{\"FileName\":\"test2\"}],\"URL\":\"test\",\"FileData\":{\"DocumentId\":\"test\",\"FileVerdict\":-3},\"SourceWorkload\":2,\"InvestigationId\":\"test\",\"RequestSource\":2,\"FormId\":\"test\",\"LabelId\":\"test\",\"MessageId\":\"test\",\"ExchangeDetails\":{\"NetworkMessageId\":\"test\"},\"JobId\":\"test\",\"TaskId\":\"test\",\"Invitation\":{\"ShareId\":\"test\"},\"ignore\":\"ignore\"}"
+              },
+              "attributes": [
+                { "key": "id", "value": { "stringValue": "test" } },
+                { "key": "operation", "value": { "stringValue": "test" } },
+                { "key": "user.id", "value": { "stringValue": "test" } },
+                {
+                  "key": "user.type",
+                  "value": { "stringValue": "SystemPolicy" }
+                },
+                { "key": "workload", "value": { "stringValue": "test" } },
+                { "key": "result", "value": { "stringValue": "test" } },
+                {
+                  "key": "sharepoint.site.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "exchange.mailbox.id",
+                  "value": { "stringValue": "test" }
+                },
+                { "key": "yammer.user.id", "value": { "stringValue": "test" } },
+                {
+                  "key": "investigation.id",
+                  "value": { "stringValue": "test" }
+                },
+                { "key": "forms.form.id", "value": { "stringValue": "test" } },
+                { "key": "mip.label.id", "value": { "stringValue": "test" } },
+                { "key": "yammer.file.id", "value": { "stringValue": "50" } },
+                {
+                  "key": "quarantine.request_source",
+                  "value": { "stringValue": "URLlink" }
+                },
+                {
+                  "key": "defender.file.source_workload",
+                  "value": { "stringValue": "Microsoft Teams" }
+                },
+                {
+                  "key": "communication_compliance.exchange.network.message.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "system_sync.data.share.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "defender.file.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "defender.file.verdict",
+                  "value": { "stringValue": "Pending" }
+                },
+                {
+                  "key": "security.alert.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "security.alert.name",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "compliance_connector.job.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "compliance_connector.task.id",
+                  "value": { "stringValue": "test" }
+                },
+                {
+                  "key": "azure.actors",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "actor.id",
+                                "value": { "stringValue": "test" }
+                              },
+                              {
+                                "key": "actor.type",
+                                "value": { "stringValue": "UPN" }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "dlp.policy_details",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "policy.id",
+                                "value": { "stringValue": "test" }
+                              },
+                              {
+                                "key": "policy.name",
+                                "value": { "stringValue": "test" }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "defender.email.attachments",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "file.name",
+                                "value": { "stringValue": "test" }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "kvlistValue": {
+                            "values": [
+                              {
+                                "key": "file.name",
+                                "value": { "stringValue": "test2" }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "traceId": "",
+              "spanId": ""
+            },
+            {
+              "timeUnixNano": "1684141227000000000",
+              "observedTimeUnixNano": "1684949062412991000",
+              "body": {
+                "stringValue": "{\"CreationTime\":\"2023-05-15T09:00:27\",\"Workload\":\"test\",\"UserId\":\"test\",\"UserType\":8,\"Id\":\"test\",\"Operation\":\"test\",\"ResultStatus\":\"test\"}"
+              },
+              "attributes": [
+                { "key": "id", "value": { "stringValue": "test" } },
+                { "key": "operation", "value": { "stringValue": "test" } },
+                { "key": "user.id", "value": { "stringValue": "test" } },
+                {
+                  "key": "user.type",
+                  "value": { "stringValue": "SystemPolicy" }
+                },
+                { "key": "workload", "value": { "stringValue": "test" } },
+                { "key": "result", "value": { "stringValue": "test" } }
+              ],
+              "traceId": "",
+              "spanId": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
