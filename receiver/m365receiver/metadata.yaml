@@ -1,8 +1,9 @@
-type: m365receiver
+type: m365
 
 status:
-  stability: development
-  pipelines: [metrics]
+  class: receiver
+  stability:
+    alpha: [metrics, logs]
 
 attributes:
   teamsDevices:
@@ -29,7 +30,14 @@ attributes:
     name_override: state
     description: The types of Outlook quota states.
     type: string
-    enum: [under_limit, warning, send_prohibited, send_receive_prohibited, indeterminate]
+    enum:
+      [
+        under_limit,
+        warning,
+        send_prohibited,
+        send_receive_prohibited,
+        indeterminate,
+      ]
 
 metrics:
   m365.sharepoint.files.count:

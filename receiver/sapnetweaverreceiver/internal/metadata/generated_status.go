@@ -7,7 +7,6 @@ import (
 )
 
 const (
-	Type             = "m365"
+	Type             = "sapnetweaver"
 	MetricsStability = component.StabilityLevelAlpha
-	LogsStability    = component.StabilityLevelAlpha
 )

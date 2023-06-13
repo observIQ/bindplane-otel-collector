@@ -6,128 +6,10 @@ import (
 	"time"
 
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/confmap"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/receiver"
 )
-
-// MetricSettings provides common settings for a particular metric.
-type MetricSettings struct {
-	Enabled bool `mapstructure:"enabled"`
-
-	enabledSetByUser bool
-}
-
-func (ms *MetricSettings) Unmarshal(parser *confmap.Conf) error {
-	if parser == nil {
-		return nil
-	}
-	err := parser.Unmarshal(ms, confmap.WithErrorUnused())
-	if err != nil {
-		return err
-	}
-	ms.enabledSetByUser = parser.IsSet("enabled")
-	return nil
-}
-
-// MetricsSettings provides settings for m365receiver metrics.
-type MetricsSettings struct {
-	M365OnedriveFilesActiveCount    MetricSettings `mapstructure:"m365.onedrive.files.active.count"`
-	M365OnedriveFilesCount          MetricSettings `mapstructure:"m365.onedrive.files.count"`
-	M365OnedriveUserActivityCount   MetricSettings `mapstructure:"m365.onedrive.user_activity.count"`
-	M365OutlookAppUserCount         MetricSettings `mapstructure:"m365.outlook.app.user.count"`
-	M365OutlookEmailActivityCount   MetricSettings `mapstructure:"m365.outlook.email_activity.count"`
-	M365OutlookMailboxesActiveCount MetricSettings `mapstructure:"m365.outlook.mailboxes.active.count"`
-	M365OutlookQuotaStatusCount     MetricSettings `mapstructure:"m365.outlook.quota_status.count"`
-	M365OutlookStorageUsed          MetricSettings `mapstructure:"m365.outlook.storage.used"`
-	M365SharepointFilesActiveCount  MetricSettings `mapstructure:"m365.sharepoint.files.active.count"`
-	M365SharepointFilesCount        MetricSettings `mapstructure:"m365.sharepoint.files.count"`
-	M365SharepointPagesUniqueCount  MetricSettings `mapstructure:"m365.sharepoint.pages.unique.count"`
-	M365SharepointPagesViewedCount  MetricSettings `mapstructure:"m365.sharepoint.pages.viewed.count"`
-	M365SharepointSiteStorageUsed   MetricSettings `mapstructure:"m365.sharepoint.site.storage.used"`
-	M365SharepointSitesActiveCount  MetricSettings `mapstructure:"m365.sharepoint.sites.active.count"`
-	M365TeamsCallsCount             MetricSettings `mapstructure:"m365.teams.calls.count"`
-	M365TeamsDeviceUsageUsers       MetricSettings `mapstructure:"m365.teams.device_usage.users"`
-	M365TeamsMeetingsCount          MetricSettings `mapstructure:"m365.teams.meetings.count"`
-	M365TeamsMessagesPrivateCount   MetricSettings `mapstructure:"m365.teams.messages.private.count"`
-	M365TeamsMessagesTeamCount      MetricSettings `mapstructure:"m365.teams.messages.team.count"`
-}
-
-func DefaultMetricsSettings() MetricsSettings {
-	return MetricsSettings{
-		M365OnedriveFilesActiveCount: MetricSettings{
-			Enabled: true,
-		},
-		M365OnedriveFilesCount: MetricSettings{
-			Enabled: true,
-		},
-		M365OnedriveUserActivityCount: MetricSettings{
-			Enabled: true,
-		},
-		M365OutlookAppUserCount: MetricSettings{
-			Enabled: true,
-		},
-		M365OutlookEmailActivityCount: MetricSettings{
-			Enabled: true,
-		},
-		M365OutlookMailboxesActiveCount: MetricSettings{
-			Enabled: true,
-		},
-		M365OutlookQuotaStatusCount: MetricSettings{
-			Enabled: true,
-		},
-		M365OutlookStorageUsed: MetricSettings{
-			Enabled: true,
-		},
-		M365SharepointFilesActiveCount: MetricSettings{
-			Enabled: true,
-		},
-		M365SharepointFilesCount: MetricSettings{
-			Enabled: true,
-		},
-		M365SharepointPagesUniqueCount: MetricSettings{
-			Enabled: true,
-		},
-		M365SharepointPagesViewedCount: MetricSettings{
-			Enabled: true,
-		},
-		M365SharepointSiteStorageUsed: MetricSettings{
-			Enabled: true,
-		},
-		M365SharepointSitesActiveCount: MetricSettings{
-			Enabled: true,
-		},
-		M365TeamsCallsCount: MetricSettings{
-			Enabled: true,
-		},
-		M365TeamsDeviceUsageUsers: MetricSettings{
-			Enabled: true,
-		},
-		M365TeamsMeetingsCount: MetricSettings{
-			Enabled: true,
-		},
-		M365TeamsMessagesPrivateCount: MetricSettings{
-			Enabled: true,
-		},
-		M365TeamsMessagesTeamCount: MetricSettings{
-			Enabled: true,
-		},
-	}
-}
-
-// ResourceAttributeSettings provides common settings for a particular metric.
-type ResourceAttributeSettings struct {
-	Enabled bool `mapstructure:"enabled"`
-}
-
-// ResourceAttributesSettings provides settings for m365receiver metrics.
-type ResourceAttributesSettings struct {
-}
-
-func DefaultResourceAttributesSettings() ResourceAttributesSettings {
-	return ResourceAttributesSettings{}
-}
 
 // AttributeOnedriveActivity specifies the a value onedriveActivity attribute.
 type AttributeOnedriveActivity int
@@ -329,7 +211,7 @@ var MapAttributeTeamsDevices = map[string]AttributeTeamsDevices{
 
 type metricM365OnedriveFilesActiveCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -344,7 +226,7 @@ func (m *metricM365OnedriveFilesActiveCount) init() {
 }
 
 func (m *metricM365OnedriveFilesActiveCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -362,16 +244,16 @@ func (m *metricM365OnedriveFilesActiveCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365OnedriveFilesActiveCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365OnedriveFilesActiveCount(settings MetricSettings) metricM365OnedriveFilesActiveCount {
-	m := metricM365OnedriveFilesActiveCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365OnedriveFilesActiveCount(cfg MetricConfig) metricM365OnedriveFilesActiveCount {
+	m := metricM365OnedriveFilesActiveCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -380,7 +262,7 @@ func newMetricM365OnedriveFilesActiveCount(settings MetricSettings) metricM365On
 
 type metricM365OnedriveFilesCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -395,7 +277,7 @@ func (m *metricM365OnedriveFilesCount) init() {
 }
 
 func (m *metricM365OnedriveFilesCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -413,16 +295,16 @@ func (m *metricM365OnedriveFilesCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365OnedriveFilesCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365OnedriveFilesCount(settings MetricSettings) metricM365OnedriveFilesCount {
-	m := metricM365OnedriveFilesCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365OnedriveFilesCount(cfg MetricConfig) metricM365OnedriveFilesCount {
+	m := metricM365OnedriveFilesCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -431,7 +313,7 @@ func newMetricM365OnedriveFilesCount(settings MetricSettings) metricM365Onedrive
 
 type metricM365OnedriveUserActivityCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -447,7 +329,7 @@ func (m *metricM365OnedriveUserActivityCount) init() {
 }
 
 func (m *metricM365OnedriveUserActivityCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64, onedriveActivityAttributeValue string) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -466,16 +348,16 @@ func (m *metricM365OnedriveUserActivityCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365OnedriveUserActivityCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365OnedriveUserActivityCount(settings MetricSettings) metricM365OnedriveUserActivityCount {
-	m := metricM365OnedriveUserActivityCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365OnedriveUserActivityCount(cfg MetricConfig) metricM365OnedriveUserActivityCount {
+	m := metricM365OnedriveUserActivityCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -484,7 +366,7 @@ func newMetricM365OnedriveUserActivityCount(settings MetricSettings) metricM365O
 
 type metricM365OutlookAppUserCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -500,7 +382,7 @@ func (m *metricM365OutlookAppUserCount) init() {
 }
 
 func (m *metricM365OutlookAppUserCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64, outlookAppsAttributeValue string) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -519,16 +401,16 @@ func (m *metricM365OutlookAppUserCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365OutlookAppUserCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365OutlookAppUserCount(settings MetricSettings) metricM365OutlookAppUserCount {
-	m := metricM365OutlookAppUserCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365OutlookAppUserCount(cfg MetricConfig) metricM365OutlookAppUserCount {
+	m := metricM365OutlookAppUserCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -537,7 +419,7 @@ func newMetricM365OutlookAppUserCount(settings MetricSettings) metricM365Outlook
 
 type metricM365OutlookEmailActivityCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -553,7 +435,7 @@ func (m *metricM365OutlookEmailActivityCount) init() {
 }
 
 func (m *metricM365OutlookEmailActivityCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64, outlookActivityAttributeValue string) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -572,16 +454,16 @@ func (m *metricM365OutlookEmailActivityCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365OutlookEmailActivityCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365OutlookEmailActivityCount(settings MetricSettings) metricM365OutlookEmailActivityCount {
-	m := metricM365OutlookEmailActivityCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365OutlookEmailActivityCount(cfg MetricConfig) metricM365OutlookEmailActivityCount {
+	m := metricM365OutlookEmailActivityCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -590,7 +472,7 @@ func newMetricM365OutlookEmailActivityCount(settings MetricSettings) metricM365O
 
 type metricM365OutlookMailboxesActiveCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -605,7 +487,7 @@ func (m *metricM365OutlookMailboxesActiveCount) init() {
 }
 
 func (m *metricM365OutlookMailboxesActiveCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -623,16 +505,16 @@ func (m *metricM365OutlookMailboxesActiveCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365OutlookMailboxesActiveCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365OutlookMailboxesActiveCount(settings MetricSettings) metricM365OutlookMailboxesActiveCount {
-	m := metricM365OutlookMailboxesActiveCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365OutlookMailboxesActiveCount(cfg MetricConfig) metricM365OutlookMailboxesActiveCount {
+	m := metricM365OutlookMailboxesActiveCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -641,7 +523,7 @@ func newMetricM365OutlookMailboxesActiveCount(settings MetricSettings) metricM36
 
 type metricM365OutlookQuotaStatusCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -657,7 +539,7 @@ func (m *metricM365OutlookQuotaStatusCount) init() {
 }
 
 func (m *metricM365OutlookQuotaStatusCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64, outlookQuotasAttributeValue string) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -676,16 +558,16 @@ func (m *metricM365OutlookQuotaStatusCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365OutlookQuotaStatusCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365OutlookQuotaStatusCount(settings MetricSettings) metricM365OutlookQuotaStatusCount {
-	m := metricM365OutlookQuotaStatusCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365OutlookQuotaStatusCount(cfg MetricConfig) metricM365OutlookQuotaStatusCount {
+	m := metricM365OutlookQuotaStatusCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -694,7 +576,7 @@ func newMetricM365OutlookQuotaStatusCount(settings MetricSettings) metricM365Out
 
 type metricM365OutlookStorageUsed struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -709,7 +591,7 @@ func (m *metricM365OutlookStorageUsed) init() {
 }
 
 func (m *metricM365OutlookStorageUsed) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -727,16 +609,16 @@ func (m *metricM365OutlookStorageUsed) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365OutlookStorageUsed) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365OutlookStorageUsed(settings MetricSettings) metricM365OutlookStorageUsed {
-	m := metricM365OutlookStorageUsed{settings: settings}
-	if settings.Enabled {
+func newMetricM365OutlookStorageUsed(cfg MetricConfig) metricM365OutlookStorageUsed {
+	m := metricM365OutlookStorageUsed{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -745,7 +627,7 @@ func newMetricM365OutlookStorageUsed(settings MetricSettings) metricM365OutlookS
 
 type metricM365SharepointFilesActiveCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -760,7 +642,7 @@ func (m *metricM365SharepointFilesActiveCount) init() {
 }
 
 func (m *metricM365SharepointFilesActiveCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -778,16 +660,16 @@ func (m *metricM365SharepointFilesActiveCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365SharepointFilesActiveCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365SharepointFilesActiveCount(settings MetricSettings) metricM365SharepointFilesActiveCount {
-	m := metricM365SharepointFilesActiveCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365SharepointFilesActiveCount(cfg MetricConfig) metricM365SharepointFilesActiveCount {
+	m := metricM365SharepointFilesActiveCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -796,7 +678,7 @@ func newMetricM365SharepointFilesActiveCount(settings MetricSettings) metricM365
 
 type metricM365SharepointFilesCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -811,7 +693,7 @@ func (m *metricM365SharepointFilesCount) init() {
 }
 
 func (m *metricM365SharepointFilesCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -829,16 +711,16 @@ func (m *metricM365SharepointFilesCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365SharepointFilesCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365SharepointFilesCount(settings MetricSettings) metricM365SharepointFilesCount {
-	m := metricM365SharepointFilesCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365SharepointFilesCount(cfg MetricConfig) metricM365SharepointFilesCount {
+	m := metricM365SharepointFilesCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -847,7 +729,7 @@ func newMetricM365SharepointFilesCount(settings MetricSettings) metricM365Sharep
 
 type metricM365SharepointPagesUniqueCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -862,7 +744,7 @@ func (m *metricM365SharepointPagesUniqueCount) init() {
 }
 
 func (m *metricM365SharepointPagesUniqueCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -880,16 +762,16 @@ func (m *metricM365SharepointPagesUniqueCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365SharepointPagesUniqueCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365SharepointPagesUniqueCount(settings MetricSettings) metricM365SharepointPagesUniqueCount {
-	m := metricM365SharepointPagesUniqueCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365SharepointPagesUniqueCount(cfg MetricConfig) metricM365SharepointPagesUniqueCount {
+	m := metricM365SharepointPagesUniqueCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -898,7 +780,7 @@ func newMetricM365SharepointPagesUniqueCount(settings MetricSettings) metricM365
 
 type metricM365SharepointPagesViewedCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -913,7 +795,7 @@ func (m *metricM365SharepointPagesViewedCount) init() {
 }
 
 func (m *metricM365SharepointPagesViewedCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -931,16 +813,16 @@ func (m *metricM365SharepointPagesViewedCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365SharepointPagesViewedCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365SharepointPagesViewedCount(settings MetricSettings) metricM365SharepointPagesViewedCount {
-	m := metricM365SharepointPagesViewedCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365SharepointPagesViewedCount(cfg MetricConfig) metricM365SharepointPagesViewedCount {
+	m := metricM365SharepointPagesViewedCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -949,7 +831,7 @@ func newMetricM365SharepointPagesViewedCount(settings MetricSettings) metricM365
 
 type metricM365SharepointSiteStorageUsed struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -964,7 +846,7 @@ func (m *metricM365SharepointSiteStorageUsed) init() {
 }
 
 func (m *metricM365SharepointSiteStorageUsed) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -982,16 +864,16 @@ func (m *metricM365SharepointSiteStorageUsed) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365SharepointSiteStorageUsed) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365SharepointSiteStorageUsed(settings MetricSettings) metricM365SharepointSiteStorageUsed {
-	m := metricM365SharepointSiteStorageUsed{settings: settings}
-	if settings.Enabled {
+func newMetricM365SharepointSiteStorageUsed(cfg MetricConfig) metricM365SharepointSiteStorageUsed {
+	m := metricM365SharepointSiteStorageUsed{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -1000,7 +882,7 @@ func newMetricM365SharepointSiteStorageUsed(settings MetricSettings) metricM365S
 
 type metricM365SharepointSitesActiveCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -1015,7 +897,7 @@ func (m *metricM365SharepointSitesActiveCount) init() {
 }
 
 func (m *metricM365SharepointSitesActiveCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -1033,16 +915,16 @@ func (m *metricM365SharepointSitesActiveCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365SharepointSitesActiveCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365SharepointSitesActiveCount(settings MetricSettings) metricM365SharepointSitesActiveCount {
-	m := metricM365SharepointSitesActiveCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365SharepointSitesActiveCount(cfg MetricConfig) metricM365SharepointSitesActiveCount {
+	m := metricM365SharepointSitesActiveCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -1051,7 +933,7 @@ func newMetricM365SharepointSitesActiveCount(settings MetricSettings) metricM365
 
 type metricM365TeamsCallsCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -1066,7 +948,7 @@ func (m *metricM365TeamsCallsCount) init() {
 }
 
 func (m *metricM365TeamsCallsCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -1084,16 +966,16 @@ func (m *metricM365TeamsCallsCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365TeamsCallsCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365TeamsCallsCount(settings MetricSettings) metricM365TeamsCallsCount {
-	m := metricM365TeamsCallsCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365TeamsCallsCount(cfg MetricConfig) metricM365TeamsCallsCount {
+	m := metricM365TeamsCallsCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -1102,7 +984,7 @@ func newMetricM365TeamsCallsCount(settings MetricSettings) metricM365TeamsCallsC
 
 type metricM365TeamsDeviceUsageUsers struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -1118,7 +1000,7 @@ func (m *metricM365TeamsDeviceUsageUsers) init() {
 }
 
 func (m *metricM365TeamsDeviceUsageUsers) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64, teamsDevicesAttributeValue string) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -1137,16 +1019,16 @@ func (m *metricM365TeamsDeviceUsageUsers) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365TeamsDeviceUsageUsers) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365TeamsDeviceUsageUsers(settings MetricSettings) metricM365TeamsDeviceUsageUsers {
-	m := metricM365TeamsDeviceUsageUsers{settings: settings}
-	if settings.Enabled {
+func newMetricM365TeamsDeviceUsageUsers(cfg MetricConfig) metricM365TeamsDeviceUsageUsers {
+	m := metricM365TeamsDeviceUsageUsers{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -1155,7 +1037,7 @@ func newMetricM365TeamsDeviceUsageUsers(settings MetricSettings) metricM365Teams
 
 type metricM365TeamsMeetingsCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -1170,7 +1052,7 @@ func (m *metricM365TeamsMeetingsCount) init() {
 }
 
 func (m *metricM365TeamsMeetingsCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -1188,16 +1070,16 @@ func (m *metricM365TeamsMeetingsCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365TeamsMeetingsCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365TeamsMeetingsCount(settings MetricSettings) metricM365TeamsMeetingsCount {
-	m := metricM365TeamsMeetingsCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365TeamsMeetingsCount(cfg MetricConfig) metricM365TeamsMeetingsCount {
+	m := metricM365TeamsMeetingsCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -1206,7 +1088,7 @@ func newMetricM365TeamsMeetingsCount(settings MetricSettings) metricM365TeamsMee
 
 type metricM365TeamsMessagesPrivateCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -1221,7 +1103,7 @@ func (m *metricM365TeamsMessagesPrivateCount) init() {
 }
 
 func (m *metricM365TeamsMessagesPrivateCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -1239,16 +1121,16 @@ func (m *metricM365TeamsMessagesPrivateCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365TeamsMessagesPrivateCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365TeamsMessagesPrivateCount(settings MetricSettings) metricM365TeamsMessagesPrivateCount {
-	m := metricM365TeamsMessagesPrivateCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365TeamsMessagesPrivateCount(cfg MetricConfig) metricM365TeamsMessagesPrivateCount {
+	m := metricM365TeamsMessagesPrivateCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
@@ -1257,7 +1139,7 @@ func newMetricM365TeamsMessagesPrivateCount(settings MetricSettings) metricM365T
 
 type metricM365TeamsMessagesTeamCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
-	settings MetricSettings // metric settings provided by user.
+	config   MetricConfig   // metric config provided by user.
 	capacity int            // max observed number of data points added to the metric.
 }
 
@@ -1272,7 +1154,7 @@ func (m *metricM365TeamsMessagesTeamCount) init() {
 }
 
 func (m *metricM365TeamsMessagesTeamCount) recordDataPoint(start pcommon.Timestamp, ts pcommon.Timestamp, val int64) {
-	if !m.settings.Enabled {
+	if !m.config.Enabled {
 		return
 	}
 	dp := m.data.Sum().DataPoints().AppendEmpty()
@@ -1290,37 +1172,30 @@ func (m *metricM365TeamsMessagesTeamCount) updateCapacity() {
 
 // emit appends recorded metric data to a metrics slice and prepares it for recording another set of data points.
 func (m *metricM365TeamsMessagesTeamCount) emit(metrics pmetric.MetricSlice) {
-	if m.settings.Enabled && m.data.Sum().DataPoints().Len() > 0 {
+	if m.config.Enabled && m.data.Sum().DataPoints().Len() > 0 {
 		m.updateCapacity()
 		m.data.MoveTo(metrics.AppendEmpty())
 		m.init()
 	}
 }
 
-func newMetricM365TeamsMessagesTeamCount(settings MetricSettings) metricM365TeamsMessagesTeamCount {
-	m := metricM365TeamsMessagesTeamCount{settings: settings}
-	if settings.Enabled {
+func newMetricM365TeamsMessagesTeamCount(cfg MetricConfig) metricM365TeamsMessagesTeamCount {
+	m := metricM365TeamsMessagesTeamCount{config: cfg}
+	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
 	}
 	return m
 }
 
-// MetricsBuilderConfig is a structural subset of an otherwise 1-1 copy of metadata.yaml
-type MetricsBuilderConfig struct {
-	Metrics            MetricsSettings            `mapstructure:"metrics"`
-	ResourceAttributes ResourceAttributesSettings `mapstructure:"resource_attributes"`
-}
-
 // MetricsBuilder provides an interface for scrapers to report metrics while taking care of all the transformations
-// required to produce metric representation defined in metadata and user settings.
+// required to produce metric representation defined in metadata and user config.
 type MetricsBuilder struct {
 	startTime                             pcommon.Timestamp   // start time that will be applied to all recorded data points.
 	metricsCapacity                       int                 // maximum observed number of metrics per resource.
 	resourceCapacity                      int                 // maximum observed number of resource attributes.
 	metricsBuffer                         pmetric.Metrics     // accumulates metrics data before emitting.
 	buildInfo                             component.BuildInfo // contains version information
-	resourceAttributesSettings            ResourceAttributesSettings
 	metricM365OnedriveFilesActiveCount    metricM365OnedriveFilesActiveCount
 	metricM365OnedriveFilesCount          metricM365OnedriveFilesCount
 	metricM365OnedriveUserActivityCount   metricM365OnedriveUserActivityCount
@@ -1352,26 +1227,11 @@ func WithStartTime(startTime pcommon.Timestamp) metricBuilderOption {
 	}
 }
 
-func DefaultMetricsBuilderConfig() MetricsBuilderConfig {
-	return MetricsBuilderConfig{
-		Metrics:            DefaultMetricsSettings(),
-		ResourceAttributes: DefaultResourceAttributesSettings(),
-	}
-}
-
-func NewMetricsBuilderConfig(ms MetricsSettings, ras ResourceAttributesSettings) MetricsBuilderConfig {
-	return MetricsBuilderConfig{
-		Metrics:            ms,
-		ResourceAttributes: ras,
-	}
-}
-
 func NewMetricsBuilder(mbc MetricsBuilderConfig, settings receiver.CreateSettings, options ...metricBuilderOption) *MetricsBuilder {
 	mb := &MetricsBuilder{
 		startTime:                             pcommon.NewTimestampFromTime(time.Now()),
 		metricsBuffer:                         pmetric.NewMetrics(),
 		buildInfo:                             settings.BuildInfo,
-		resourceAttributesSettings:            mbc.ResourceAttributes,
 		metricM365OnedriveFilesActiveCount:    newMetricM365OnedriveFilesActiveCount(mbc.Metrics.M365OnedriveFilesActiveCount),
 		metricM365OnedriveFilesCount:          newMetricM365OnedriveFilesCount(mbc.Metrics.M365OnedriveFilesCount),
 		metricM365OnedriveUserActivityCount:   newMetricM365OnedriveUserActivityCount(mbc.Metrics.M365OnedriveUserActivityCount),
@@ -1409,12 +1269,12 @@ func (mb *MetricsBuilder) updateCapacity(rm pmetric.ResourceMetrics) {
 }
 
 // ResourceMetricsOption applies changes to provided resource metrics.
-type ResourceMetricsOption func(ResourceAttributesSettings, pmetric.ResourceMetrics)
+type ResourceMetricsOption func(pmetric.ResourceMetrics)
 
 // WithStartTimeOverride overrides start time for all the resource metrics data points.
 // This option should be only used if different start time has to be set on metrics coming from different resources.
 func WithStartTimeOverride(start pcommon.Timestamp) ResourceMetricsOption {
-	return func(ras ResourceAttributesSettings, rm pmetric.ResourceMetrics) {
+	return func(rm pmetric.ResourceMetrics) {
 		var dps pmetric.NumberDataPointSlice
 		metrics := rm.ScopeMetrics().At(0).Metrics()
 		for i := 0; i < metrics.Len(); i++ {
@@ -1464,7 +1324,7 @@ func (mb *MetricsBuilder) EmitForResource(rmo ...ResourceMetricsOption) {
 	mb.metricM365TeamsMessagesTeamCount.emit(ils.Metrics())
 
 	for _, op := range rmo {
-		op(mb.resourceAttributesSettings, rm)
+		op(rm)
 	}
 	if ils.Metrics().Len() > 0 {
 		mb.updateCapacity(rm)
@@ -1474,7 +1334,7 @@ func (mb *MetricsBuilder) EmitForResource(rmo ...ResourceMetricsOption) {
 
 // Emit returns all the metrics accumulated by the metrics builder and updates the internal state to be ready for
 // recording another set of metrics. This function will be responsible for applying all the transformations required to
-// produce metric representation defined in metadata and user settings, e.g. delta or cumulative.
+// produce metric representation defined in metadata and user config, e.g. delta or cumulative.
 func (mb *MetricsBuilder) Emit(rmo ...ResourceMetricsOption) pmetric.Metrics {
 	mb.EmitForResource(rmo...)
 	metrics := mb.metricsBuffer

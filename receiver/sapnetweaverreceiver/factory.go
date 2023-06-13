@@ -28,17 +28,12 @@ import (
 	"github.com/observiq/observiq-otel-collector/receiver/sapnetweaverreceiver/internal/metadata"
 )
 
-const (
-	typeStr   = "sapnetweaver"
-	stability = component.StabilityLevelAlpha
-)
-
 // NewFactory creates a factory for SAP Netweaver receiver.
 func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
-		typeStr,
+		metadata.Type,
 		createDefaultConfig,
-		receiver.WithMetrics(createMetricsReceiver, stability))
+		receiver.WithMetrics(createMetricsReceiver, metadata.MetricsStability))
 }
 
 func createDefaultConfig() component.Config {
@@ -68,7 +63,7 @@ func createMetricsReceiver(
 	}
 
 	ns := newSapNetweaverScraper(params, cfg)
-	scraper, err := scraperhelper.NewScraper(typeStr, ns.scrape, scraperhelper.WithStart(ns.start))
+	scraper, err := scraperhelper.NewScraper(metadata.Type, ns.scrape, scraperhelper.WithStart(ns.start))
 	if err != nil {
 		return nil, err
 	}

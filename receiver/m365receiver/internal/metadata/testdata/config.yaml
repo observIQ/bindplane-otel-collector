@@ -39,7 +39,6 @@ all_set:
       enabled: true
     m365.teams.messages.team.count:
       enabled: true
-  resource_attributes:
 none_set:
   metrics:
     m365.onedrive.files.active.count:
@@ -80,4 +79,3 @@ none_set:
       enabled: false
     m365.teams.messages.team.count:
       enabled: false
-  resource_attributes:

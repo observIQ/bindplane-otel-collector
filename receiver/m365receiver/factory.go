@@ -27,17 +27,13 @@ import (
 	"github.com/observiq/observiq-otel-collector/receiver/m365receiver/internal/metadata"
 )
 
-const (
-	typeStr = "m365"
-)
-
 // NewFactory creates a factory for Microsoft Office 365 receiver.
 func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
-		typeStr,
+		metadata.Type,
 		createDefaultConfig,
-		receiver.WithMetrics(createMetricsReceiver, metadata.Stability),
-		receiver.WithLogs(createLogsReceiver, metadata.Stability),
+		receiver.WithMetrics(createMetricsReceiver, metadata.MetricsStability),
+		receiver.WithLogs(createLogsReceiver, metadata.LogsStability),
 	)
 }
 
@@ -71,7 +67,7 @@ func createMetricsReceiver(
 
 	//create receiver
 	ns := newM365Scraper(params, cfg)
-	scraper, err := scraperhelper.NewScraper(typeStr, ns.scrape, scraperhelper.WithStart(ns.start), scraperhelper.WithShutdown(ns.shutdown))
+	scraper, err := scraperhelper.NewScraper(metadata.Type, ns.scrape, scraperhelper.WithStart(ns.start), scraperhelper.WithShutdown(ns.shutdown))
 	if err != nil {
 		return nil, err
 	}

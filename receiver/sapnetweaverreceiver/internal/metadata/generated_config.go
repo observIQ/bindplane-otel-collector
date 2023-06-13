@@ -23,7 +23,7 @@ func (ms *MetricConfig) Unmarshal(parser *confmap.Conf) error {
 	return nil
 }
 
-// MetricsConfig provides config for sapnetweaverreceiver metrics.
+// MetricsConfig provides config for sapnetweaver metrics.
 type MetricsConfig struct {
 	SapnetweaverAbapRfcCount                MetricConfig `mapstructure:"sapnetweaver.abap.rfc.count"`
 	SapnetweaverAbapSessionCount            MetricConfig `mapstructure:"sapnetweaver.abap.session.count"`
@@ -201,7 +201,7 @@ type ResourceAttributeConfig struct {
 	Enabled bool `mapstructure:"enabled"`
 }
 
-// ResourceAttributesConfig provides config for sapnetweaverreceiver resource attributes.
+// ResourceAttributesConfig provides config for sapnetweaver resource attributes.
 type ResourceAttributesConfig struct {
 	SapnetweaverSID      ResourceAttributeConfig `mapstructure:"sapnetweaver.SID"`
 	SapnetweaverInstance ResourceAttributeConfig `mapstructure:"sapnetweaver.instance"`
@@ -222,7 +222,7 @@ func DefaultResourceAttributesConfig() ResourceAttributesConfig {
 	}
 }
 
-// MetricsBuilderConfig is a configuration for sapnetweaverreceiver metrics builder.
+// MetricsBuilderConfig is a configuration for sapnetweaver metrics builder.
 type MetricsBuilderConfig struct {
 	Metrics            MetricsConfig            `mapstructure:"metrics"`
 	ResourceAttributes ResourceAttributesConfig `mapstructure:"resource_attributes"`
