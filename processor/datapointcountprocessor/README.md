@@ -6,19 +6,25 @@ This processor is used to convert the number of datapoints received during an in
 
 ## How It Works
 1. The user configures the datapoint count processor in their metrics pipeline and a route receiver in their target metrics pipeline.
-2. If any incoming metrics match the `match` expression, they are counted and dimensioned by their `attributes`. Regardless of match, all metrics are sent to the next component in the metrics pipeline.
+2. If any incoming metrics match the `ottl_match` expression, they are counted and dimensioned by their `ottl_attributes`. Regardless of match, all metrics are sent to the next component in the metrics pipeline.
 3. After each configured interval, the observed metric counts are converted into gauge metrics. These metrics are sent to the configured route receiver.
 
 
 ## Configuration
-| Field        | Type     | Default | Description |
-| ---          | ---      | ---     | ---         |
-| match        | string   | `true`  | A boolean [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) used to match which datapoints to count. By default, all datapoints are counted. |
-| route        | string   | ` `      | The name of the [route receiver](../../receiver/routereceiver/README.md) to send metrics to. |
-| interval     | duration | `1m`    | The interval at which count metrics are created. The counter will reset after each interval. |
-| metric_name  | string   | `datapoint.count` | The name of the metric created. |
-| metric_unit  | string   | `{datapoints}`    | The unit of the metric created. |
-| attributes   | map      | `{}`        | The mapped attributes of the metric created. Each key is an attribute name. Each value is an [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) that extracts data from the datapoint. |
+| Field           | Type     | Default           | Description                                                                                                                                                                                                                                                               |
+|-----------------|----------|-------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ottl_match      | string   | `true`            | An [OTTL] expression used to match which datapoints to count. All paths in the [datapoint context] are available to reference. All [converters] are available to use.                                                                                                     |
+| match           | string   | ``                | **DEPRECATED** use `ottl_match` instead. A boolean [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) used to match which datapoints to count. By default, all datapoints are counted.                                               |
+| route           | string   | ` `               | The name of the [route receiver](../../receiver/routereceiver/README.md) to send metrics to.                                                                                                                                                                              |
+| interval        | duration | `1m`              | The interval at which count metrics are created. The counter will reset after each interval.                                                                                                                                                                              |
+| metric_name     | string   | `datapoint.count` | The name of the metric created.                                                                                                                                                                                                                                           |
+| metric_unit     | string   | `{datapoints}`    | The unit of the metric created.                                                                                                                                                                                                                                           |
+| ottl_attributes | map      | `{}`              | The mapped attributes of the metric created. Each key is an attribute name. Each value is an [OTTL] expression. All paths in the [datapoint context] are available to reference. All [converters] are available to use.                                                   |
+| attributes      | map      | `{}`              | **DEPRECATED** use `ottl_attributes` instead. The mapped attributes of the metric created. Each key is an attribute name. Each value is an [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) that extracts data from the datapoint. |
+
+[OTTL]: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.79.0/pkg/ottl#readme
+[converters]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.79.0/pkg/ottl/ottlfuncs/README.md#converters
+[datapoint context]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.79.0/pkg/ottl/contexts/ottldatapoint/README.md
 
 ### Example Config
 The following config is an example configuration of the log count processor using default values. In this example, host metrics are scraped, sent to the processor to be counted, and then consumed by the logging exporter. After each minute, the datapoint counts are converted to metrics and sent to the route receiver in the metrics pipeline, which then forwards to the Google Cloud exporter.
@@ -52,7 +58,12 @@ service:
             exporters: [googlecloud]
 ```
 
+
 ## Expression Language
+**DEPRECATED**
+The expression language has been deprecated in favor of [OTTL]. Use the `ottl_match` and `ottl_attributes` options instead of `match` and `attributes` for OTTL based expressions.
+
+--- 
 In order to match or extract values from metrics, the following `keys` are reserved and can be used to traverse the metrics data model.
 
 | Key               | Description                                                             |
@@ -74,7 +85,7 @@ The following configuration adds a match expression that will only match process
 ```yaml
 processors:
     datapointcount:
-        match: metric_name startsWith "process."
+        ottl_match: IsMatch(metric.name, "^process\.")
 ```
 
 ### Extract metric attributes
@@ -82,6 +93,8 @@ The following configuration extracts the metric name for each datapoint. This va
 ```yaml
 processors:
     datapointcount:
-        attributes:
-            metric: metric_name
+        ottl_attributes:
+            metric: metric.name
 ```
+
+

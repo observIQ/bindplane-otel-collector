@@ -6,19 +6,25 @@ This processor is used to convert the number of spans received during an interva
 
 ## How It Works
 1. The user configures the span count processor in their traces pipeline and a route receiver in their target metrics pipeline.
-2. If any incoming spans match the `match` expression, they are counted and dimensioned by their `attributes`. Regardless of match, all spans are sent to the next component in the traces pipeline.
+2. If any incoming spans match the `ottl_match` expression, they are counted and dimensioned by their `ottl_attributes`. Regardless of match, all spans are sent to the next component in the traces pipeline.
 3. After each configured interval, the observed metric counts are converted into gauge metrics. These metrics are sent to the configured route receiver.
 
 
 ## Configuration
-| Field        | Type     | Default | Description |
-| ---          | ---      | ---     | ---         |
-| match        | string   | `true`  | A boolean [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) used to match which spans to count. By default, all spans are counted. |
-| route        | string   | ` `      | The name of the [route receiver](../../receiver/routereceiver/README.md) to send metrics to. |
-| interval     | duration | `1m`    | The interval at which count metrics are created. The counter will reset after each interval. |
-| metric_name  | string   | `span.count` | The name of the metric created. |
-| metric_unit  | string   | `{spans}`    | The unit of the metric created. |
-| attributes   | map      | `{}`        | The mapped attributes of the metric created. Each key is an attribute name. Each value is an [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) that extracts data from the span. |
+| Field           | Type     | Default      | Description                                                                                                                                                                                                                                                          |
+|-----------------|----------|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ottl_match      | string   | `true`       | An [OTTL] expression used to match which datapoints to count. All paths in the [span context] are available to reference. All [converters] are available to use.                                                                                                     |
+| match           | string   | ``           | **DEPRECATED** use `ottl_match` instead. A boolean [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) used to match which spans to count. By default, all spans are counted.                                                    |
+| route           | string   | ` `          | The name of the [route receiver](../../receiver/routereceiver/README.md) to send metrics to.                                                                                                                                                                         |
+| interval        | duration | `1m`         | The interval at which count metrics are created. The counter will reset after each interval.                                                                                                                                                                         |
+| metric_name     | string   | `span.count` | The name of the metric created.                                                                                                                                                                                                                                      |
+| metric_unit     | string   | `{spans}`    | The unit of the metric created.                                                                                                                                                                                                                                      |
+| ottl_attributes | map      | `{}`         | The mapped attributes of the metric created. Each key is an attribute name. Each value is an [OTTL] expression. All paths in the [span context] are available to reference. All [converters] are available to use.                                                   |
+| attributes      | map      | `{}`         | **DEPRECATED** use `ottl_attributes` instead. The mapped attributes of the metric created. Each key is an attribute name. Each value is an [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) that extracts data from the span. |
+
+[OTTL]: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.79.0/pkg/ottl#readme
+[converters]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.79.0/pkg/ottl/ottlfuncs/README.md#converters
+[span context]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.79.0/pkg/ottl/contexts/ottlspan/README.md
 
 ### Example Config
 The following config is an example configuration of the span count processor using default values. In this example, spans are collected from a file, sent to the processor to be counted, and then consumed by the logging exporter. After each minute, the span counts are converted to metrics and sent to the route receiver in the metrics pipeline, which then forwards to the Google Cloud exporter.
@@ -47,6 +53,10 @@ service:
 ```
 
 ## Expression Language
+**DEPRECATED**
+The expression language has been deprecated in favor of [OTTL]. Use the `ottl_match` and `ottl_attributes` options instead of `match` and `attributes` for OTTL based expressions.
+
+---
 In order to match or extract values from spans, the following `keys` are reserved and can be used to traverse the spans data model.
 
 | Key                    | Description                                                                                                                       |
@@ -69,7 +79,7 @@ The following configuration adds a match expression that will count only spans w
 ```yaml
 processors:
     spancount:
-        match: span_duration_ms > 1000
+        ottl_match: end_time_unix_nano - start_time_unix_nano > 1000000000
 ```
 
 ### Extract metric attributes
@@ -77,7 +87,7 @@ The following configuration extracts the status code and kind values from traces
 ```yaml
 processors:
     spancount:
-        attributes:
-            status_code: trace_status_code
-            kind: trace_kind
+        ottl_attributes:
+            status_code: status.code
+            kind: kind
 ```

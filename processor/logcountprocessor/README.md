@@ -6,19 +6,25 @@ This processor is used to convert the number of logs received during an interval
 
 ## How It Works
 1. The user configures the log count processor in their logs pipeline and a route receiver in their desired metrics pipeline.
-2. If any incoming logs match the `match` expression, they are counted and dimensioned by their `attributes`. Regardless of match, all logs are sent to the next component in the logs pipeline.
+2. If any incoming logs match the `ottl_match` expression, they are counted and dimensioned by their `ottl_attributes`. Regardless of match, all logs are sent to the next component in the logs pipeline.
 3. After each configured interval, the observed log counts are converted into gauge metrics. These metrics are sent to the configured route receiver.
 
 
 ## Configuration
-| Field        | Type     | Default | Description |
-| ---          | ---      | ---     | ---         |
-| match        | string   | `true`  | A boolean [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) used to match which logs to count. By default, all logs are counted. |
-| route        | string   | ` `      | The name of the [route receiver](../../receiver/routereceiver/README.md) to send metrics to. |
-| interval     | duration | `1m`    | The interval at which metrics are created. The counter will reset after each interval. |
-| metric_name  | string   | `log.count` | The name of the metric created. |
-| metric_unit  | string   | `{logs}`    | The unit of the metric created. |
-| attributes   | map      | `{}`        | The mapped attributes of the metric created. Each key is an attribute name. Each value is an [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) that extracts data from the log. |
+| Field           | Type     | Default     | Description                                                                                                                                                                                                                                                         |
+|-----------------|----------|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ottl_match      | string   | `true`      | An [OTTL] expression used to match which datapoints to count. All paths in the [log context] are available to reference. All [converters] are available to use.                                                                                                     |
+| match           | string   | ``          | **DEPRECATED** use `ottl_match` instead. A boolean [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) used to match which logs to count. By default, all logs are counted.                                                     |
+| route           | string   | ` `         | The name of the [route receiver](../../receiver/routereceiver/README.md) to send metrics to.                                                                                                                                                                        |
+| interval        | duration | `1m`        | The interval at which metrics are created. The counter will reset after each interval.                                                                                                                                                                              |
+| metric_name     | string   | `log.count` | The name of the metric created.                                                                                                                                                                                                                                     |
+| metric_unit     | string   | `{logs}`    | The unit of the metric created.                                                                                                                                                                                                                                     |
+| ottl_attributes | map      | `{}`        | The mapped attributes of the metric created. Each key is an attribute name. Each value is an [OTTL] expression. All paths in the [span context] are available to reference. All [converters] are available to use.                                                  |
+| attributes      | map      | `{}`        | **DEPRECATED** use `ottl_attributes` instead. The mapped attributes of the metric created. Each key is an attribute name. Each value is an [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) that extracts data from the log. |
+
+[OTTL]: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.79.0/pkg/ottl#readme
+[converters]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.79.0/pkg/ottl/ottlfuncs/README.md#converters
+[log context]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.79.0/pkg/ottl/contexts/ottllog/README.md
 
 ### Example Config
 The following config is an example configuration of the log count processor using default values. In this example, logs are collected from a file, sent to the processor to be counted, and then consumed by the logging exporter. After each minute, the log counts are converted to metrics and sent to the route receiver in the metrics pipeline, which then forwards to the Google Cloud exporter.
@@ -48,14 +54,18 @@ service:
 ```
 
 ## Expression Language
+**DEPRECATED**
+The expression language has been deprecated in favor of [OTTL]. Use the `ottl_match` and `ottl_attributes` options instead of `match` and `attributes` for OTTL based expressions.
+
+---
 In order to match or extract values from logs, the following `keys` are reserved and can be used to traverse the logs data model.
 
-| Key               | Description |
-| ---               | ---   |
-| `body`            | Used to access the body of the log. |
-| `attributes`      | Used to access the attributes of the log. |
-| `resource`        | Used to access the resource of the log. |
-| `severity_enum`   | Used to access the severity enum of the log. |
+| Key               | Description                                    |
+|-------------------|------------------------------------------------|
+| `body`            | Used to access the body of the log.            |
+| `attributes`      | Used to access the attributes of the log.      |
+| `resource`        | Used to access the resource of the log.        |
+| `severity_enum`   | Used to access the severity enum of the log.   |
 | `severity_number` | Used to access the severity number of the log. |
 
 In order to access embedded values, use JSON dot notation. For example, `body.example.field` can be used to access a field two levels deep on the log body. 
@@ -70,7 +80,7 @@ The following configuration adds a match expression that will count only logs wi
 ```yaml
 processors:
     logcount:
-        match: attributes.status startsWith "4"
+        ottl_match: IsMatch(attributes["status"], "^4")
 ```
 
 ### Extract metric attributes
@@ -78,7 +88,7 @@ The following configuration extracts the status and endpoint values from the bod
 ```yaml
 processors:
     logcount:
-        attributes:
-            status_code: body.status
-            endpoint: body.endpoint
+        ottl_attributes:
+            status_code: body["status"]
+            endpoint: body["endpoint"]
 ```

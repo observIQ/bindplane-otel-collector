@@ -41,12 +41,132 @@ func TestConsumeLogs(t *testing.T) {
 	logConsumer := &LogConsumer{logChan: make(chan plog.Logs, 1)}
 	metricConsumer := &MetricConsumer{metricChan: make(chan pmetric.Metrics, 1)}
 
+	matchExpr := `body.message == "test1" and resource["service.name"] == "test2"`
 	processorCfg := createDefaultConfig().(*Config)
 	processorCfg.Interval = time.Millisecond * 100
-	processorCfg.Match = `body.message == "test1" and resource["service.name"] == "test2"`
+	processorCfg.Match = &matchExpr
 	processorCfg.Attributes = map[string]string{
 		"dimension1": `body.message`,
 		"dimension2": `resource["service.name"]`,
+	}
+
+	processorFactory := NewFactory()
+	processorSettings := processor.CreateSettings{TelemetrySettings: component.TelemetrySettings{Logger: zap.NewNop()}}
+	processor, err := processorFactory.CreateLogsProcessor(context.Background(), processorSettings, processorCfg, logConsumer)
+	require.NoError(t, err)
+
+	receiverFactory := routereceiver.NewFactory()
+	receiver, err := receiverFactory.CreateMetricsReceiver(context.Background(), receiver.CreateSettings{}, receiverFactory.CreateDefaultConfig(), metricConsumer)
+	require.NoError(t, err)
+
+	err = processor.Start(context.Background(), nil)
+	require.NoError(t, err)
+	defer processor.Shutdown(context.Background())
+
+	err = receiver.Start(context.Background(), nil)
+	require.NoError(t, err)
+	defer receiver.Shutdown(context.Background())
+
+	logs := plog.NewLogs()
+	resourceLogs := logs.ResourceLogs().AppendEmpty()
+	resourceLogs.Resource().Attributes().FromRaw(map[string]any{"service.name": "test2"})
+	logRecord := resourceLogs.ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+	logRecord.Body().SetEmptyMap().FromRaw(map[string]any{"message": "test1"})
+
+	go func() {
+		processor.ConsumeLogs(context.Background(), logs)
+	}()
+
+	consumedLogs := <-logConsumer.logChan
+	require.Equal(t, logs, consumedLogs)
+
+	consumedMetrics := <-metricConsumer.metricChan
+	require.Equal(t, 1, consumedMetrics.ResourceMetrics().Len())
+
+	resourceMetrics := consumedMetrics.ResourceMetrics().At(0)
+	require.Equal(t, map[string]any{"service.name": "test2"}, resourceMetrics.Resource().Attributes().AsRaw())
+
+	metricRecords := resourceMetrics.ScopeMetrics().At(0).Metrics()
+	require.Equal(t, 1, metricRecords.Len())
+
+	dataPoints := metricRecords.At(0).Gauge().DataPoints()
+	require.Equal(t, 1, dataPoints.Len())
+
+	metric := dataPoints.At(0)
+	require.Equal(t, int64(1), metric.IntValue())
+	require.Equal(t, map[string]any{"dimension1": "test1", "dimension2": "test2"}, metric.Attributes().AsRaw())
+}
+
+func TestConsumeLogsAttrsOnly(t *testing.T) {
+	logConsumer := &LogConsumer{logChan: make(chan plog.Logs, 1)}
+	metricConsumer := &MetricConsumer{metricChan: make(chan pmetric.Metrics, 1)}
+
+	processorCfg := createDefaultConfig().(*Config)
+	processorCfg.Interval = time.Millisecond * 100
+	processorCfg.Attributes = map[string]string{
+		"dimension1": `body.message`,
+		"dimension2": `resource["service.name"]`,
+	}
+
+	processorFactory := NewFactory()
+	processorSettings := processor.CreateSettings{TelemetrySettings: component.TelemetrySettings{Logger: zap.NewNop()}}
+	processor, err := processorFactory.CreateLogsProcessor(context.Background(), processorSettings, processorCfg, logConsumer)
+	require.NoError(t, err)
+
+	receiverFactory := routereceiver.NewFactory()
+	receiver, err := receiverFactory.CreateMetricsReceiver(context.Background(), receiver.CreateSettings{}, receiverFactory.CreateDefaultConfig(), metricConsumer)
+	require.NoError(t, err)
+
+	err = processor.Start(context.Background(), nil)
+	require.NoError(t, err)
+	defer processor.Shutdown(context.Background())
+
+	err = receiver.Start(context.Background(), nil)
+	require.NoError(t, err)
+	defer receiver.Shutdown(context.Background())
+
+	logs := plog.NewLogs()
+	resourceLogs := logs.ResourceLogs().AppendEmpty()
+	resourceLogs.Resource().Attributes().FromRaw(map[string]any{"service.name": "test2"})
+	logRecord := resourceLogs.ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+	logRecord.Body().SetEmptyMap().FromRaw(map[string]any{"message": "test1"})
+
+	go func() {
+		processor.ConsumeLogs(context.Background(), logs)
+	}()
+
+	consumedLogs := <-logConsumer.logChan
+	require.Equal(t, logs, consumedLogs)
+
+	consumedMetrics := <-metricConsumer.metricChan
+	require.Equal(t, 1, consumedMetrics.ResourceMetrics().Len())
+
+	resourceMetrics := consumedMetrics.ResourceMetrics().At(0)
+	require.Equal(t, map[string]any{"service.name": "test2"}, resourceMetrics.Resource().Attributes().AsRaw())
+
+	metricRecords := resourceMetrics.ScopeMetrics().At(0).Metrics()
+	require.Equal(t, 1, metricRecords.Len())
+
+	dataPoints := metricRecords.At(0).Gauge().DataPoints()
+	require.Equal(t, 1, dataPoints.Len())
+
+	metric := dataPoints.At(0)
+	require.Equal(t, int64(1), metric.IntValue())
+	require.Equal(t, map[string]any{"dimension1": "test1", "dimension2": "test2"}, metric.Attributes().AsRaw())
+}
+
+func TestConsumeLogsOTTL(t *testing.T) {
+	logConsumer := &LogConsumer{logChan: make(chan plog.Logs, 1)}
+	metricConsumer := &MetricConsumer{metricChan: make(chan pmetric.Metrics, 1)}
+
+	ottlMatchExpr := `body["message"] == "test1" and resource.attributes["service.name"] == "test2"`
+
+	processorCfg := createDefaultConfig().(*Config)
+	processorCfg.Interval = time.Millisecond * 100
+	processorCfg.OTTLMatch = &ottlMatchExpr
+	processorCfg.OTTLAttributes = map[string]string{
+		"dimension1": `body["message"]`,
+		"dimension2": `resource.attributes["service.name"]`,
 	}
 
 	processorFactory := NewFactory()

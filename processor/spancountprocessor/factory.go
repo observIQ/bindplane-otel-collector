@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/observiq/observiq-otel-collector/expr"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottlspan"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/processor"
@@ -48,15 +49,37 @@ func createTracesProcessor(_ context.Context, params processor.CreateSettings, c
 		return nil, fmt.Errorf("invalid config type: %+v", cfg)
 	}
 
-	match, err := expr.CreateBoolExpression(processorCfg.Match)
+	if processorCfg.isOTTL() {
+		return createOTTLTracesProcessor(processorCfg, params, consumer)
+	}
+
+	return createExprTracesProcessor(processorCfg, params, consumer)
+}
+
+func createExprTracesProcessor(cfg *Config, params processor.CreateSettings, consumer consumer.Traces) (processor.Traces, error) {
+	match, err := expr.CreateBoolExpression(cfg.exprMatchExpression())
 	if err != nil {
 		return nil, fmt.Errorf("invalid match expression: %w", err)
 	}
 
-	attrs, err := expr.CreateExpressionMap(processorCfg.Attributes)
+	attrs, err := expr.CreateExpressionMap(cfg.Attributes)
 	if err != nil {
 		return nil, fmt.Errorf("invalid attribute expression: %w", err)
 	}
 
-	return newProcessor(processorCfg, consumer, match, attrs, params.Logger), nil
+	return newExprProcessor(cfg, consumer, match, attrs, params.Logger), nil
+}
+
+func createOTTLTracesProcessor(cfg *Config, params processor.CreateSettings, consumer consumer.Traces) (processor.Traces, error) {
+	match, err := expr.NewOTTLSpanCondition(cfg.ottlMatchExpression(), params.TelemetrySettings)
+	if err != nil {
+		return nil, fmt.Errorf("invalid match expression: %w", err)
+	}
+
+	attrs, err := expr.MakeOTTLAttributeMap[ottlspan.TransformContext](cfg.OTTLAttributes, params.TelemetrySettings, expr.NewOTTLSpanExpression)
+	if err != nil {
+		return nil, fmt.Errorf("invalid attribute expression: %w", err)
+	}
+
+	return newOTTLProcessor(cfg, consumer, match, attrs, params.Logger), nil
 }

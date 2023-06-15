@@ -22,6 +22,7 @@ import (
 	"github.com/observiq/observiq-otel-collector/counter"
 	"github.com/observiq/observiq-otel-collector/expr"
 	"github.com/observiq/observiq-otel-collector/receiver/routereceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottlspan"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -32,19 +33,21 @@ import (
 
 // spanCountProcessor is a processor that counts spans.
 type spanCountProcessor struct {
-	config   *Config
-	match    *expr.Expression
-	attrs    *expr.ExpressionMap
-	counter  *counter.TelemetryCounter
-	consumer consumer.Traces
-	logger   *zap.Logger
-	cancel   context.CancelFunc
-	wg       sync.WaitGroup
-	mux      sync.Mutex
+	config    *Config
+	match     *expr.Expression
+	attrs     *expr.ExpressionMap
+	OTTLmatch *expr.OTTLCondition[ottlspan.TransformContext]
+	OTTLattrs *expr.OTTLAttributeMap[ottlspan.TransformContext]
+	counter   *counter.TelemetryCounter
+	consumer  consumer.Traces
+	logger    *zap.Logger
+	cancel    context.CancelFunc
+	wg        sync.WaitGroup
+	mux       sync.Mutex
 }
 
 // newProcessor returns a new processor.
-func newProcessor(config *Config, consumer consumer.Traces, match *expr.Expression, attrs *expr.ExpressionMap, logger *zap.Logger) *spanCountProcessor {
+func newExprProcessor(config *Config, consumer consumer.Traces, match *expr.Expression, attrs *expr.ExpressionMap, logger *zap.Logger) *spanCountProcessor {
 	return &spanCountProcessor{
 		config:   config,
 		match:    match,
@@ -53,6 +56,27 @@ func newProcessor(config *Config, consumer consumer.Traces, match *expr.Expressi
 		consumer: consumer,
 		logger:   logger,
 	}
+}
+
+// newProcessor returns a new processor.
+func newOTTLProcessor(
+	config *Config,
+	consumer consumer.Traces,
+	match *expr.OTTLCondition[ottlspan.TransformContext],
+	attrs *expr.OTTLAttributeMap[ottlspan.TransformContext],
+	logger *zap.Logger) *spanCountProcessor {
+	return &spanCountProcessor{
+		config:    config,
+		OTTLmatch: match,
+		OTTLattrs: attrs,
+		counter:   counter.NewTelemetryCounter(),
+		consumer:  consumer,
+		logger:    logger,
+	}
+}
+
+func (p *spanCountProcessor) isOTTL() bool {
+	return p.OTTLmatch != nil
 }
 
 // Start starts the processor.
@@ -79,11 +103,50 @@ func (p *spanCountProcessor) Shutdown(_ context.Context) error {
 }
 
 // ConsumeMetrics processes the metrics.
-func (p *spanCountProcessor) ConsumeTraces(ctx context.Context, m ptrace.Traces) error {
+func (p *spanCountProcessor) ConsumeTraces(ctx context.Context, t ptrace.Traces) error {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	resourceGroups := expr.ConvertToSpanResourceGroups(m)
+	if p.isOTTL() {
+		p.consumeTracesOTTL(ctx, t)
+	} else {
+		p.consumeTracesExpr(t)
+	}
+
+	return p.consumer.ConsumeTraces(ctx, t)
+}
+
+// consumeTracesOTTL processes the traces using configured OTTL expressions
+func (p *spanCountProcessor) consumeTracesOTTL(ctx context.Context, t ptrace.Traces) {
+	resourceSpans := t.ResourceSpans()
+	for i := 0; i < resourceSpans.Len(); i++ {
+		resourceSpan := resourceSpans.At(i)
+		resource := resourceSpan.Resource()
+		scopeSpans := resourceSpan.ScopeSpans()
+		for j := 0; j < scopeSpans.Len(); j++ {
+			scopeSpan := scopeSpans.At(j)
+			spans := scopeSpan.Spans()
+			for k := 0; k < spans.Len(); k++ {
+				span := spans.At(k)
+				spanCtx := ottlspan.NewTransformContext(span, scopeSpan.Scope(), resource)
+				match, err := p.OTTLmatch.Match(ctx, spanCtx)
+				if err != nil {
+					p.logger.Error("Error while matching OTTL span", zap.Error(err))
+					continue
+				}
+
+				if match {
+					attrs := p.OTTLattrs.ExtractAttributes(ctx, spanCtx)
+					p.counter.Add(resource.Attributes().AsRaw(), attrs)
+				}
+			}
+		}
+	}
+}
+
+// consumeTracesExpr processes the traces using configured Expr expressions
+func (p *spanCountProcessor) consumeTracesExpr(t ptrace.Traces) {
+	resourceGroups := expr.ConvertToSpanResourceGroups(t)
 	for _, group := range resourceGroups {
 		resource := group.Resource
 		for _, span := range group.Spans {
@@ -99,8 +162,6 @@ func (p *spanCountProcessor) ConsumeTraces(ctx context.Context, m ptrace.Traces)
 			}
 		}
 	}
-
-	return p.consumer.ConsumeTraces(ctx, m)
 }
 
 // handleMetricInterval sends metrics at the configured interval.
