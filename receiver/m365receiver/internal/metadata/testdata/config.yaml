@@ -1,0 +1,81 @@
+default:
+all_set:
+  metrics:
+    m365.onedrive.files.active.count:
+      enabled: true
+    m365.onedrive.files.count:
+      enabled: true
+    m365.onedrive.user_activity.count:
+      enabled: true
+    m365.outlook.app.user.count:
+      enabled: true
+    m365.outlook.email_activity.count:
+      enabled: true
+    m365.outlook.mailboxes.active.count:
+      enabled: true
+    m365.outlook.quota_status.count:
+      enabled: true
+    m365.outlook.storage.used:
+      enabled: true
+    m365.sharepoint.files.active.count:
+      enabled: true
+    m365.sharepoint.files.count:
+      enabled: true
+    m365.sharepoint.pages.unique.count:
+      enabled: true
+    m365.sharepoint.pages.viewed.count:
+      enabled: true
+    m365.sharepoint.site.storage.used:
+      enabled: true
+    m365.sharepoint.sites.active.count:
+      enabled: true
+    m365.teams.calls.count:
+      enabled: true
+    m365.teams.device_usage.users:
+      enabled: true
+    m365.teams.meetings.count:
+      enabled: true
+    m365.teams.messages.private.count:
+      enabled: true
+    m365.teams.messages.team.count:
+      enabled: true
+none_set:
+  metrics:
+    m365.onedrive.files.active.count:
+      enabled: false
+    m365.onedrive.files.count:
+      enabled: false
+    m365.onedrive.user_activity.count:
+      enabled: false
+    m365.outlook.app.user.count:
+      enabled: false
+    m365.outlook.email_activity.count:
+      enabled: false
+    m365.outlook.mailboxes.active.count:
+      enabled: false
+    m365.outlook.quota_status.count:
+      enabled: false
+    m365.outlook.storage.used:
+      enabled: false
+    m365.sharepoint.files.active.count:
+      enabled: false
+    m365.sharepoint.files.count:
+      enabled: false
+    m365.sharepoint.pages.unique.count:
+      enabled: false
+    m365.sharepoint.pages.viewed.count:
+      enabled: false
+    m365.sharepoint.site.storage.used:
+      enabled: false
+    m365.sharepoint.sites.active.count:
+      enabled: false
+    m365.teams.calls.count:
+      enabled: false
+    m365.teams.device_usage.users:
+      enabled: false
+    m365.teams.meetings.count:
+      enabled: false
+    m365.teams.messages.private.count:
+      enabled: false
+    m365.teams.messages.team.count:
+      enabled: false

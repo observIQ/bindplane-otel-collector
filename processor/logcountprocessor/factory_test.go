@@ -40,20 +40,20 @@ func TestCreateLogsProcessor(t *testing.T) {
 		{
 			name: "valid config",
 			cfg: &Config{
-				Match: "true",
+				Match: strp("true"),
 			},
 		},
 		{
 			name: "invalid match",
 			cfg: &Config{
-				Match: "++",
+				Match: strp("++"),
 			},
 			expectedErr: "invalid match expression",
 		},
 		{
 			name: "invalid attribute",
 			cfg: &Config{
-				Match:      "true",
+				Match:      strp("true"),
 				Attributes: map[string]string{"a": "++"},
 			},
 			expectedErr: "invalid attribute expression",
@@ -78,4 +78,8 @@ func TestCreateLogsProcessor(t *testing.T) {
 			}
 		})
 	}
+}
+
+func strp(s string) *string {
+	return &s
 }

@@ -1,0 +1,213 @@
+type: m365
+
+status:
+  class: receiver
+  stability:
+    alpha: [metrics, logs]
+
+attributes:
+  teamsDevices:
+    name_override: device
+    description: The device types.
+    type: string
+    enum: [Android, iOS, Mac, Windows, Chrome OS, Linux, Web]
+  onedriveActivity:
+    name_override: activity
+    description: The OneDrive user activity types.
+    type: string
+    enum: [view_edit, synced, internal_share, external_share]
+  outlookActivity:
+    name_override: activity
+    description: The Outlook user activity types.
+    type: string
+    enum: [read, sent, received]
+  outlookApps:
+    name_override: app
+    description: The number of users of Outlook apps.
+    type: string
+    enum: [pop3, imap4, smtp, windows, mac, web, mobile, other_mobile]
+  outlookQuotas:
+    name_override: state
+    description: The types of Outlook quota states.
+    type: string
+    enum:
+      [
+        under_limit,
+        warning,
+        send_prohibited,
+        send_receive_prohibited,
+        indeterminate,
+      ]
+
+metrics:
+  m365.sharepoint.files.count:
+    enabled: true
+    description: The number of total files across all sites in the last 7 days.
+    unit: "{files}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: []
+  m365.sharepoint.files.active.count:
+    enabled: true
+    description: The number of active files across all sites in the last 7 days.
+    unit: "{files}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: []
+  m365.sharepoint.sites.active.count:
+    enabled: true
+    description: The number of active sites across SharePoint in the last 7 days.
+    unit: "{sites}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: []
+  m365.sharepoint.pages.viewed.count:
+    enabled: true
+    description: The number of unique pages viewed across all sites in the last 7 days.
+    unit: "{pages}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: []
+  m365.sharepoint.pages.unique.count:
+    enabled: true
+    description: The number of unique views of pages across all sites in the last 7 days.
+    unit: "{views}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: []
+  m365.sharepoint.site.storage.used:
+    enabled: true
+    description: The amount of storage used by all sites across SharePoint in the last 7 days.
+    unit: By
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: []
+  m365.teams.device_usage.users:
+    enabled: true
+    description: The number of unique users by device/platform that have used Teams in the last 7 days.
+    unit: "{users}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: [teamsDevices]
+  m365.teams.calls.count:
+    enabled: true
+    description: The number of MS Teams calls from users in the organization in the last 7 days.
+    unit: "{calls}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: []
+  m365.teams.meetings.count:
+    enabled: true
+    description: The number of MS Teams meetings for users in the organization in the last 7 days.
+    unit: "{meetings}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: []
+  m365.teams.messages.team.count:
+    enabled: true
+    description: The number of MS Teams team-messages sent by users in the organization in the last 7 days.
+    unit: "{messages}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: []
+  m365.teams.messages.private.count:
+    enabled: true
+    description: The number of MS Teams private-messages sent by users in the organization in the last 7 days.
+    unit: "{messages}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: []
+  m365.onedrive.files.count:
+    enabled: true
+    description: The number of total files across the OneDrive for the last 7 days.
+    unit: "{files}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: []
+  m365.onedrive.files.active.count:
+    enabled: true
+    description: The number of active files across the OneDrive in the last 7 days.
+    unit: "{files}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: []
+  m365.onedrive.user_activity.count:
+    enabled: true
+    description: The number of users who have interacted with a OneDrive file, by action, in the last 7 days.
+    unit: "{users}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: [onedriveActivity]
+  m365.outlook.mailboxes.active.count:
+    enabled: true
+    description: The number of mailboxes that have been active each day in the organization for the last 7 days.
+    unit: "{mailboxes}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: []
+  m365.outlook.email_activity.count:
+    enabled: true
+    description: The number of email actions by members over the period of time in the organization Outlook.
+    unit: "{emails}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: [outlookActivity]
+  m365.outlook.storage.used:
+    enabled: true
+    description: The amount of storage used in Outlook by the organization in the last 7 days.
+    unit: By
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: []
+  m365.outlook.app.user.count:
+    enabled: true
+    description: The number of unique users per app over the period of time in the organization Outlook in the last 7 days.
+    unit: "{users}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: [outlookApps]
+  m365.outlook.quota_status.count:
+    enabled: true
+    description: The number of mailboxes in the various quota statuses over the period of time in the org in the last 7 days.
+    unit: "{mailboxes}"
+    sum:
+      value_type: int
+      monotonic: false
+      aggregation: cumulative
+    attributes: [outlookQuotas]

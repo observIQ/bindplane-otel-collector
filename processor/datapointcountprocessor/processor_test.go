@@ -43,10 +43,139 @@ func TestConsumeMetrics(t *testing.T) {
 
 	processorCfg := createDefaultConfig().(*Config)
 	processorCfg.Interval = time.Millisecond * 100
-	processorCfg.Match = `datapoint_value == 60 and resource["service.name"] == "test2"`
+	processorCfg.Match = strp(`datapoint_value == 60 and resource["service.name"] == "test2"`)
 	processorCfg.Attributes = map[string]string{
 		"dimension1": `datapoint_value`,
 		"dimension2": `resource["service.name"]`,
+	}
+
+	processorFactory := NewFactory()
+	processorSettings := processor.CreateSettings{TelemetrySettings: component.TelemetrySettings{Logger: zaptest.NewLogger(t)}}
+	processor, err := processorFactory.CreateMetricsProcessor(context.Background(), processorSettings, processorCfg, nextMetricConsumer)
+	require.NoError(t, err)
+
+	receiverFactory := routereceiver.NewFactory()
+	receiver, err := receiverFactory.CreateMetricsReceiver(context.Background(), receiver.CreateSettings{}, receiverFactory.CreateDefaultConfig(), countMetricConsumer)
+	require.NoError(t, err)
+
+	err = processor.Start(context.Background(), nil)
+	require.NoError(t, err)
+	defer processor.Shutdown(context.Background())
+
+	err = receiver.Start(context.Background(), nil)
+	require.NoError(t, err)
+	defer receiver.Shutdown(context.Background())
+
+	metrics := pmetric.NewMetrics()
+	resourceLogs := metrics.ResourceMetrics().AppendEmpty()
+	resourceLogs.Resource().Attributes().FromRaw(map[string]any{"service.name": "test2"})
+	metric := resourceLogs.ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
+	dps := metric.SetEmptyGauge().DataPoints()
+	dp := dps.AppendEmpty()
+	dp.SetDoubleValue(60)
+	dp.Attributes().FromRaw(map[string]any{"dimension1": "test1", "dimension2": "test2"})
+
+	processor.ConsumeMetrics(context.Background(), metrics)
+
+	passedMetrics := nextMetricConsumer.AllMetrics()[0]
+	require.Equal(t, metrics, passedMetrics)
+
+	require.Eventually(t, func() bool {
+		return len(countMetricConsumer.AllMetrics()) > 0
+	}, 5*time.Second, 200*time.Millisecond)
+
+	countMetrics := countMetricConsumer.AllMetrics()[0]
+	require.Equal(t, 1, countMetrics.ResourceMetrics().Len())
+
+	countResourceMetrics := countMetrics.ResourceMetrics().At(0)
+	require.Equal(t, map[string]any{"service.name": "test2"}, countResourceMetrics.Resource().Attributes().AsRaw())
+
+	countMetricSlice := countResourceMetrics.ScopeMetrics().At(0).Metrics()
+	require.Equal(t, 1, countMetricSlice.Len())
+
+	countDatapoints := countMetricSlice.At(0).Gauge().DataPoints()
+	require.Equal(t, 1, countDatapoints.Len())
+
+	countDP := countDatapoints.At(0)
+	require.Equal(t, int64(1), countDP.IntValue())
+	require.Equal(t, map[string]any{"dimension1": float64(60), "dimension2": "test2"}, countDP.Attributes().AsRaw())
+}
+
+func TestConsumeMetricsAttrsOnly(t *testing.T) {
+	countMetricConsumer := &consumertest.MetricsSink{}
+	nextMetricConsumer := &consumertest.MetricsSink{}
+
+	processorCfg := createDefaultConfig().(*Config)
+	processorCfg.Interval = time.Millisecond * 100
+	processorCfg.Attributes = map[string]string{
+		"dimension1": `datapoint_value`,
+		"dimension2": `resource["service.name"]`,
+	}
+
+	processorFactory := NewFactory()
+	processorSettings := processor.CreateSettings{TelemetrySettings: component.TelemetrySettings{Logger: zaptest.NewLogger(t)}}
+	processor, err := processorFactory.CreateMetricsProcessor(context.Background(), processorSettings, processorCfg, nextMetricConsumer)
+	require.NoError(t, err)
+
+	receiverFactory := routereceiver.NewFactory()
+	receiver, err := receiverFactory.CreateMetricsReceiver(context.Background(), receiver.CreateSettings{}, receiverFactory.CreateDefaultConfig(), countMetricConsumer)
+	require.NoError(t, err)
+
+	err = processor.Start(context.Background(), nil)
+	require.NoError(t, err)
+	defer processor.Shutdown(context.Background())
+
+	err = receiver.Start(context.Background(), nil)
+	require.NoError(t, err)
+	defer receiver.Shutdown(context.Background())
+
+	metrics := pmetric.NewMetrics()
+	resourceLogs := metrics.ResourceMetrics().AppendEmpty()
+	resourceLogs.Resource().Attributes().FromRaw(map[string]any{"service.name": "test2"})
+	metric := resourceLogs.ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
+	dps := metric.SetEmptyGauge().DataPoints()
+	dp := dps.AppendEmpty()
+	dp.SetDoubleValue(60)
+	dp.Attributes().FromRaw(map[string]any{"dimension1": "test1", "dimension2": "test2"})
+
+	processor.ConsumeMetrics(context.Background(), metrics)
+
+	passedMetrics := nextMetricConsumer.AllMetrics()[0]
+	require.Equal(t, metrics, passedMetrics)
+
+	require.Eventually(t, func() bool {
+		return len(countMetricConsumer.AllMetrics()) > 0
+	}, 5*time.Second, 200*time.Millisecond)
+
+	countMetrics := countMetricConsumer.AllMetrics()[0]
+	require.Equal(t, 1, countMetrics.ResourceMetrics().Len())
+
+	countResourceMetrics := countMetrics.ResourceMetrics().At(0)
+	require.Equal(t, map[string]any{"service.name": "test2"}, countResourceMetrics.Resource().Attributes().AsRaw())
+
+	countMetricSlice := countResourceMetrics.ScopeMetrics().At(0).Metrics()
+	require.Equal(t, 1, countMetricSlice.Len())
+
+	countDatapoints := countMetricSlice.At(0).Gauge().DataPoints()
+	require.Equal(t, 1, countDatapoints.Len())
+
+	countDP := countDatapoints.At(0)
+	require.Equal(t, int64(1), countDP.IntValue())
+	require.Equal(t, map[string]any{"dimension1": float64(60), "dimension2": "test2"}, countDP.Attributes().AsRaw())
+}
+
+func TestConsumeMetricsOTTL(t *testing.T) {
+	countMetricConsumer := &consumertest.MetricsSink{}
+	nextMetricConsumer := &consumertest.MetricsSink{}
+
+	ottlMatchExpression := `value_double == 60 and resource.attributes["service.name"] == "test2"`
+
+	processorCfg := createDefaultConfig().(*Config)
+	processorCfg.Interval = time.Millisecond * 100
+	processorCfg.OTTLMatch = &ottlMatchExpression
+	processorCfg.OTTLAttributes = map[string]string{
+		"dimension1": `value_double`,
+		"dimension2": `resource.attributes["service.name"]`,
 	}
 
 	processorFactory := NewFactory()

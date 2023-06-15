@@ -1,4 +1,9 @@
-type: sapnetweaverreceiver
+type: sapnetweaver
+
+status:
+  class: receiver
+  stability:
+    alpha: [metrics]
 
 resource_attributes:
   sapnetweaver.instance:
@@ -28,19 +33,19 @@ attributes:
     type: string
     description: The response type.
     enum:
-    - transaction
-    - dialog
-    - dialogRFC
-    - http
+      - transaction
+      - dialog
+      - dialogRFC
+      - http
   control_state:
     type: string
     name_override: "state"
     description: The control state color.
     enum:
-    - gray
-    - green
-    - yellow
-    - red
+      - gray
+      - green
+      - yellow
+      - red
   wp_type:
     type: string
     description: The work processor type.
@@ -63,7 +68,6 @@ attributes:
     type: string
     description: The ABAP Session type.
 
-
 metrics:
   sapnetweaver.system.instance_availability:
     description: The availability status of each system instance.
@@ -75,14 +79,14 @@ metrics:
     attributes: [hostname, instance_number, feature, control_state]
     enabled: true
   sapnetweaver.process_availability:
-      description: The processes availability directly started by the sapstartsrv Web service.
-      extended_documentation: "Collected from SAPControl Web Service Interface > GetProcessList."
-      sum:
-        monotonic: false
-        aggregation: cumulative
-        value_type: int
-      attributes: [process_name, process_description, control_state]
-      enabled: true
+    description: The processes availability directly started by the sapstartsrv Web service.
+    extended_documentation: "Collected from SAPControl Web Service Interface > GetProcessList."
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+    attributes: [process_name, process_description, control_state]
+    enabled: true
   sapnetweaver.database.dialog.request.time:
     description: The average time for processing logical database requests calls to the SAP database interface.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Dialog > DBRequestTime.
@@ -215,15 +219,15 @@ metrics:
     attributes: [wp_type]
     enabled: true
   sapnetweaver.spool.request.error.count:
-      description: The number of spool work processes that have encountered errors.
-      extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Spool > SpoolService > ErrorsInWpSPO.
-      sum:
-        monotonic: false
-        aggregation: cumulative
-        value_type: int
-        input_type: string
-      attributes: []
-      enabled: true
+    description: The number of spool work processes that have encountered errors.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Spool > SpoolService > ErrorsInWpSPO.
+    sum:
+      monotonic: false
+      aggregation: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
   sapnetweaver.abap.session.count:
     description: The number of ABAP sessions by session type.
     extended_documentation: "Collected from executable dpmon -pf=/sapmnt/<SID>/profile v (session table option)"
