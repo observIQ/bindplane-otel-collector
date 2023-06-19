@@ -323,7 +323,7 @@ func (m *m365Scraper) scrape(ctx context.Context) (pmetric.Metrics, error) {
 		}
 	}
 
-	return m.mb.Emit(), nil
+	return m.mb.Emit(metadata.WithM365TenantID(m.cfg.TenantID)), nil
 }
 
 func (m *m365Scraper) getStats(ctx context.Context) error {

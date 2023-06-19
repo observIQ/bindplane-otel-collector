@@ -1196,6 +1196,7 @@ type MetricsBuilder struct {
 	resourceCapacity                      int                 // maximum observed number of resource attributes.
 	metricsBuffer                         pmetric.Metrics     // accumulates metrics data before emitting.
 	buildInfo                             component.BuildInfo // contains version information
+	resourceAttributesConfig              ResourceAttributesConfig
 	metricM365OnedriveFilesActiveCount    metricM365OnedriveFilesActiveCount
 	metricM365OnedriveFilesCount          metricM365OnedriveFilesCount
 	metricM365OnedriveUserActivityCount   metricM365OnedriveUserActivityCount
@@ -1232,6 +1233,7 @@ func NewMetricsBuilder(mbc MetricsBuilderConfig, settings receiver.CreateSetting
 		startTime:                             pcommon.NewTimestampFromTime(time.Now()),
 		metricsBuffer:                         pmetric.NewMetrics(),
 		buildInfo:                             settings.BuildInfo,
+		resourceAttributesConfig:              mbc.ResourceAttributes,
 		metricM365OnedriveFilesActiveCount:    newMetricM365OnedriveFilesActiveCount(mbc.Metrics.M365OnedriveFilesActiveCount),
 		metricM365OnedriveFilesCount:          newMetricM365OnedriveFilesCount(mbc.Metrics.M365OnedriveFilesCount),
 		metricM365OnedriveUserActivityCount:   newMetricM365OnedriveUserActivityCount(mbc.Metrics.M365OnedriveUserActivityCount),
@@ -1269,12 +1271,21 @@ func (mb *MetricsBuilder) updateCapacity(rm pmetric.ResourceMetrics) {
 }
 
 // ResourceMetricsOption applies changes to provided resource metrics.
-type ResourceMetricsOption func(pmetric.ResourceMetrics)
+type ResourceMetricsOption func(ResourceAttributesConfig, pmetric.ResourceMetrics)
+
+// WithM365TenantID sets provided value as "m365.tenant.id" attribute for current resource.
+func WithM365TenantID(val string) ResourceMetricsOption {
+	return func(rac ResourceAttributesConfig, rm pmetric.ResourceMetrics) {
+		if rac.M365TenantID.Enabled {
+			rm.Resource().Attributes().PutStr("m365.tenant.id", val)
+		}
+	}
+}
 
 // WithStartTimeOverride overrides start time for all the resource metrics data points.
 // This option should be only used if different start time has to be set on metrics coming from different resources.
 func WithStartTimeOverride(start pcommon.Timestamp) ResourceMetricsOption {
-	return func(rm pmetric.ResourceMetrics) {
+	return func(_ ResourceAttributesConfig, rm pmetric.ResourceMetrics) {
 		var dps pmetric.NumberDataPointSlice
 		metrics := rm.ScopeMetrics().At(0).Metrics()
 		for i := 0; i < metrics.Len(); i++ {
@@ -1324,7 +1335,7 @@ func (mb *MetricsBuilder) EmitForResource(rmo ...ResourceMetricsOption) {
 	mb.metricM365TeamsMessagesTeamCount.emit(ils.Metrics())
 
 	for _, op := range rmo {
-		op(rm)
+		op(mb.resourceAttributesConfig, rm)
 	}
 	if ils.Metrics().Len() > 0 {
 		mb.updateCapacity(rm)

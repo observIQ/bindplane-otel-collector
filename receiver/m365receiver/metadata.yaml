@@ -5,6 +5,12 @@ status:
   stability:
     alpha: [metrics, logs]
 
+resource_attributes:
+  m365.tenant.id:
+    type: string
+    description: The Office 365 tenant.
+    enabled: true
+
 attributes:
   teamsDevices:
     name_override: device
