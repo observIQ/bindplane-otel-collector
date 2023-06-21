@@ -48,20 +48,47 @@ func createLogsProcessor(_ context.Context, params processor.CreateSettings, cfg
 		return nil, fmt.Errorf("invalid config type: %+v", cfg)
 	}
 
-	match, err := expr.CreateBoolExpression(processorCfg.Match)
+	if processorCfg.isOTTL() {
+		return createOTTLProcessor(params, processorCfg, consumer)
+	}
+
+	return createExprProcessor(params, processorCfg, consumer)
+}
+
+func createExprProcessor(params processor.CreateSettings, cfg *Config, consumer consumer.Logs) (processor.Logs, error) {
+	match, err := expr.CreateBoolExpression(cfg.exprMatchExpression())
 	if err != nil {
 		return nil, fmt.Errorf("invalid match expression: %w", err)
 	}
 
-	attrs, err := expr.CreateExpressionMap(processorCfg.Attributes)
+	attrs, err := expr.CreateExpressionMap(cfg.Attributes)
 	if err != nil {
 		return nil, fmt.Errorf("invalid attribute expression: %w", err)
 	}
 
-	value, err := expr.CreateValueExpression(processorCfg.Extract)
+	value, err := expr.CreateValueExpression(cfg.Extract)
 	if err != nil {
 		return nil, fmt.Errorf("invalid extract expression: %w", err)
 	}
 
-	return newProcessor(processorCfg, consumer, match, value, attrs, params.Logger), nil
+	return newExprExtractProcessor(cfg, consumer, match, value, attrs, params.Logger), nil
+}
+
+func createOTTLProcessor(params processor.CreateSettings, cfg *Config, consumer consumer.Logs) (processor.Logs, error) {
+	match, err := expr.NewOTTLLogRecordCondition(cfg.ottlMatchExpression(), params.TelemetrySettings)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ottl_match: %w", err)
+	}
+
+	value, err := expr.NewOTTLLogRecordExpression(cfg.OTTLExtract, params.TelemetrySettings)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ottl_extract: %w", err)
+	}
+
+	attrs, err := expr.MakeOTTLAttributeMap(cfg.OTTLAttributes, params.TelemetrySettings, expr.NewOTTLLogRecordExpression)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ottl_attributes: %w", err)
+	}
+
+	return newOTTLExtractProcessor(cfg, consumer, match, value, attrs, params.Logger), nil
 }

@@ -21,6 +21,7 @@ import (
 
 	"github.com/observiq/observiq-otel-collector/expr"
 	"go.opentelemetry.io/collector/component"
+	"go.uber.org/zap"
 )
 
 const (
@@ -30,8 +31,11 @@ const (
 	// defaultMetricUnit is the default metric unit.
 	defaultMetricUnit = "{units}"
 
-	// defaultMatch is the default match expression.
-	defaultMatch = "true"
+	// defaultOTTLMatch is the default OTTL match expression.
+	defaultOTTLMatch = "true"
+
+	// defaultExprMatch is the default expr match expression.
+	defaultExprMatch = "true"
 
 	// defaultMetricType is the default metric type.
 	defaultMetricType = gaugeDoubleType
@@ -50,8 +54,11 @@ const (
 )
 
 var (
-	// errExtractMissing is the error message for a missing extract expression.
-	errExtractMissing = errors.New("extract expression is required")
+	// errExprExtractMissing is the error message for a missing expr extract expression.
+	errExprExtractMissing = errors.New("extract expression is required")
+
+	// errExtractMissing is the error message for a missing ottl extract expression.
+	errOTTLExtractMissing = errors.New("ottl_extract expression is required")
 
 	// errMetricTypeInvalid is the error message for an invalid metric type.
 	errMetricTypeInvalid = errors.New("invalid metric type")
@@ -59,22 +66,46 @@ var (
 
 // Config is the config of the processor.
 type Config struct {
-	Route      string            `mapstructure:"route"`
-	Match      string            `mapstructure:"match"`
-	Extract    string            `mapstructure:"extract"`
-	MetricName string            `mapstructure:"metric_name"`
-	MetricUnit string            `mapstructure:"metric_unit"`
-	MetricType string            `mapstructure:"metric_type"`
-	Attributes map[string]string `mapstructure:"attributes"`
+	Route          string            `mapstructure:"route"`
+	Match          *string           `mapstructure:"match"`
+	OTTLMatch      *string           `mapstructure:"ottl_match"`
+	Extract        string            `mapstructure:"extract"`
+	OTTLExtract    string            `mapstructure:"ottl_extract"`
+	MetricName     string            `mapstructure:"metric_name"`
+	MetricUnit     string            `mapstructure:"metric_unit"`
+	MetricType     string            `mapstructure:"metric_type"`
+	Attributes     map[string]string `mapstructure:"attributes"`
+	OTTLAttributes map[string]string `mapstructure:"ottl_attributes"`
 }
 
 // Validate validates the config.
 func (c Config) Validate() error {
-	if c.Extract == "" {
-		return errExtractMissing
+	usesExprFields := c.Extract != "" || c.Match != nil || c.Attributes != nil
+	usesOTTLFields := c.OTTLExtract != "" || c.OTTLMatch != nil || c.OTTLAttributes != nil
+
+	if usesExprFields && usesOTTLFields {
+		return errors.New("cannot use ottl fields (ottl_match, ottl_extract, ottl_attributes) and expr fields (match, extract, attributes)")
 	}
 
-	_, err := expr.CreateBoolExpression(c.Match)
+	switch c.MetricType {
+	case gaugeDoubleType, gaugeIntType, counterDoubleType, counterIntType: // OK
+	default:
+		return errMetricTypeInvalid
+	}
+
+	if c.isOTTL() {
+		return c.validateOTTL()
+	}
+
+	return c.validateExpr()
+}
+
+func (c Config) validateExpr() error {
+	if c.Extract == "" {
+		return errExprExtractMissing
+	}
+
+	_, err := expr.CreateBoolExpression(c.exprMatchExpression())
 	if err != nil {
 		return fmt.Errorf("invalid match: %w", err)
 	}
@@ -88,13 +119,56 @@ func (c Config) Validate() error {
 	if err != nil {
 		return fmt.Errorf("invalid attributes: %w", err)
 	}
+	return nil
+}
 
-	switch c.MetricType {
-	case gaugeDoubleType, gaugeIntType, counterDoubleType, counterIntType:
-		return nil
-	default:
-		return errMetricTypeInvalid
+func (c Config) validateOTTL() error {
+	if c.OTTLExtract == "" {
+		return errOTTLExtractMissing
 	}
+
+	_, err := expr.NewOTTLLogRecordCondition(c.ottlMatchExpression(), component.TelemetrySettings{
+		Logger: zap.NewNop(),
+	})
+	if err != nil {
+		return fmt.Errorf("invalid ottl_match: %w", err)
+	}
+
+	_, err = expr.NewOTTLLogRecordExpression(c.OTTLExtract, component.TelemetrySettings{
+		Logger: zap.NewNop(),
+	})
+	if err != nil {
+		return fmt.Errorf("invalid ottl_extract: %w", err)
+	}
+
+	_, err = expr.MakeOTTLAttributeMap(c.OTTLAttributes, component.TelemetrySettings{
+		Logger: zap.NewNop(),
+	}, expr.NewOTTLLogRecordExpression)
+	if err != nil {
+		return fmt.Errorf("invalid ottl_attributes: %w", err)
+	}
+
+	return nil
+}
+
+func (c Config) exprMatchExpression() string {
+	if c.Match != nil {
+		return *c.Match
+	}
+
+	return defaultExprMatch
+}
+
+func (c Config) ottlMatchExpression() string {
+	if c.OTTLMatch != nil {
+		return *c.OTTLMatch
+	}
+	return defaultOTTLMatch
+}
+
+func (c Config) isOTTL() bool {
+	// Use OTTL if none of the expr fields are set.
+	return c.Match == nil && c.Attributes == nil && c.Extract == ""
 }
 
 // createDefaultConfig returns the default config for the processor.
@@ -103,6 +177,5 @@ func createDefaultConfig() component.Config {
 		MetricName: defaultMetricName,
 		MetricUnit: defaultMetricUnit,
 		MetricType: defaultMetricType,
-		Match:      defaultMatch,
 	}
 }
