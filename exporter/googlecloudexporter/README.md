@@ -6,9 +6,9 @@ This exporter can be used to send metrics, traces, and logs to Google Cloud Moni
 ## Configuration
 | Field               | Default               | Required | Description |
 | ---                 | ---                   | ---      | ---         |
-| `metric`            |                       | `false`  | The [metric](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.80.0/exporter/googlecloudexporter#configuration-reference) settings of the exporter. |
-| `trace`             |                       | `false`  | The [trace](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.80.0/exporter/googlecloudexporter#configuration-reference) settings of the exporter. |
-| `log`               |                       | `false`  | The [log](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.80.0/exporter/googlecloudexporter#configuration-reference) settings of the exporter. |
+| `metric`            |                       | `false`  | The [metric](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/9fe4230817a192049f6c539f6c5d9ea31ce05f99/exporter/googlecloudexporter#configuration-reference) settings of the exporter. |
+| `trace`             |                       | `false`  | The [trace](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/9fe4230817a192049f6c539f6c5d9ea31ce05f99/exporter/googlecloudexporter#configuration-reference) settings of the exporter. |
+| `log`               |                       | `false`  | The [log](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/9fe4230817a192049f6c539f6c5d9ea31ce05f99/exporter/googlecloudexporter#configuration-reference) settings of the exporter. |
 | `credentials`       |                       | `false`  | The credentials JSON used to authenticate the GCP client. |
 | `credentials_file`  |                       | `false`  | The credentials file used to authenticate the GCP client. Ignored if `credentials` is set. |
 | `project`           |                       | `false`  | The GCP project used when exporting telemetry data. If not set, the exporter will attempt to extract the value from the specified credentials. |
