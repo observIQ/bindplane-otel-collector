@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	defaultUserAgent = "observIQ-otel-collector"
+	defaultUserAgent = "StanzaLogAgent"
 )
 
 // Config is the config the google managed prometheus exporter
@@ -107,17 +107,19 @@ func (c *Config) updateProjectFromFile(fileName string) error {
 }
 
 // createDefaultConfig creates the default config for the exporter
-func createDefaultConfig() component.Config {
-	return &Config{
-		GMPConfig: createDefaultGCPConfig(),
+func createDefaultConfig(collectorVersion string) func() component.Config {
+	return func() component.Config {
+		return &Config{
+			GMPConfig: createDefaultGCPConfig(collectorVersion),
+		}
 	}
 }
 
 // createDefaultGCPConfig creates a default GCP config
-func createDefaultGCPConfig() *gmp.Config {
+func createDefaultGCPConfig(collectorVersion string) *gmp.Config {
 	factory := gmp.NewFactory()
 	config := factory.CreateDefaultConfig().(*gmp.Config)
-	config.UserAgent = defaultUserAgent
+	config.UserAgent = fmt.Sprintf("%s/%s", defaultUserAgent, collectorVersion)
 
 	return config
 }

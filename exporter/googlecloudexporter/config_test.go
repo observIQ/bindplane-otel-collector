@@ -15,6 +15,7 @@
 package googlecloudexporter
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/collector"
@@ -24,12 +25,16 @@ import (
 )
 
 func TestCreateDefaultConfig(t *testing.T) {
-	cfg := createDefaultConfig()
+	collectorVersion := "v1.2.3"
+
+	cfg := createDefaultConfig(collectorVersion)()
 	googleCfg, ok := cfg.(*Config)
 	require.True(t, ok)
 
+	expectedUserAgent := fmt.Sprintf("%s/%s", defaultUserAgent, collectorVersion)
+
 	require.Equal(t, defaultMetricPrefix, googleCfg.GCPConfig.MetricConfig.Prefix)
-	require.Equal(t, defaultUserAgent, googleCfg.GCPConfig.UserAgent)
+	require.Equal(t, expectedUserAgent, googleCfg.GCPConfig.UserAgent)
 	require.Len(t, googleCfg.GCPConfig.MetricConfig.ResourceFilters, 1)
 	require.Equal(t, googleCfg.GCPConfig.MetricConfig.ResourceFilters[0].Prefix, "")
 	require.Nil(t, googleCfg.Validate())

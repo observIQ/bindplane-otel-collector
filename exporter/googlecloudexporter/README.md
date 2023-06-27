@@ -12,7 +12,7 @@ This exporter can be used to send metrics, traces, and logs to Google Cloud Moni
 | `credentials`       |                       | `false`  | The credentials JSON used to authenticate the GCP client. |
 | `credentials_file`  |                       | `false`  | The credentials file used to authenticate the GCP client. Ignored if `credentials` is set. |
 | `project`           |                       | `false`  | The GCP project used when exporting telemetry data. If not set, the exporter will attempt to extract the value from the specified credentials. |
-| `user_agent`        | `observIQ-otel-agent` | `false`  | Overrides the user agent used when making requests. |
+| `user_agent`        | `StanzaLogAgent` | `false`  | Overrides the user agent used when making requests. |
 | `timeout`           | `12s`                 | `false`  | The timeout for API calls. |
 | `retry_on_failure`  |                       | `false`  | Handle retries when sending data to Google Cloud fails. |
 | `sending_queue`     |                       | `false`  | Determines how telemetry data is buffered before exporting. |

@@ -40,10 +40,10 @@ const (
 )
 
 // NewFactory creates a factory for the googlecloud exporter
-func NewFactory() exporter.Factory {
+func NewFactory(collectorVersion string) exporter.Factory {
 	return exporter.NewFactory(
 		typeStr,
-		createDefaultConfig,
+		createDefaultConfig(collectorVersion),
 		exporter.WithMetrics(createMetricsExporter, stability),
 		exporter.WithLogs(createLogsExporter, stability),
 		exporter.WithTraces(createTracesExporter, stability),
