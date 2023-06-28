@@ -108,13 +108,33 @@ func DefaultMetricsConfig() MetricsConfig {
 	}
 }
 
+// ResourceAttributeConfig provides common config for a particular resource attribute.
+type ResourceAttributeConfig struct {
+	Enabled bool `mapstructure:"enabled"`
+}
+
+// ResourceAttributesConfig provides config for m365 resource attributes.
+type ResourceAttributesConfig struct {
+	M365TenantID ResourceAttributeConfig `mapstructure:"m365.tenant.id"`
+}
+
+func DefaultResourceAttributesConfig() ResourceAttributesConfig {
+	return ResourceAttributesConfig{
+		M365TenantID: ResourceAttributeConfig{
+			Enabled: true,
+		},
+	}
+}
+
 // MetricsBuilderConfig is a configuration for m365 metrics builder.
 type MetricsBuilderConfig struct {
-	Metrics MetricsConfig `mapstructure:"metrics"`
+	Metrics            MetricsConfig            `mapstructure:"metrics"`
+	ResourceAttributes ResourceAttributesConfig `mapstructure:"resource_attributes"`
 }
 
 func DefaultMetricsBuilderConfig() MetricsBuilderConfig {
 	return MetricsBuilderConfig{
-		Metrics: DefaultMetricsConfig(),
+		Metrics:            DefaultMetricsConfig(),
+		ResourceAttributes: DefaultResourceAttributesConfig(),
 	}
 }

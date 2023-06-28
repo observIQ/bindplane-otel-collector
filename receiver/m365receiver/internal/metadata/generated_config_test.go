@@ -46,6 +46,9 @@ func TestMetricsBuilderConfig(t *testing.T) {
 					M365TeamsMessagesPrivateCount:   MetricConfig{Enabled: true},
 					M365TeamsMessagesTeamCount:      MetricConfig{Enabled: true},
 				},
+				ResourceAttributes: ResourceAttributesConfig{
+					M365TenantID: ResourceAttributeConfig{Enabled: true},
+				},
 			},
 		},
 		{
@@ -72,13 +75,16 @@ func TestMetricsBuilderConfig(t *testing.T) {
 					M365TeamsMessagesPrivateCount:   MetricConfig{Enabled: false},
 					M365TeamsMessagesTeamCount:      MetricConfig{Enabled: false},
 				},
+				ResourceAttributes: ResourceAttributesConfig{
+					M365TenantID: ResourceAttributeConfig{Enabled: false},
+				},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := loadMetricsBuilderConfig(t, tt.name)
-			if diff := cmp.Diff(tt.want, cfg, cmpopts.IgnoreUnexported(MetricConfig{})); diff != "" {
+			if diff := cmp.Diff(tt.want, cfg, cmpopts.IgnoreUnexported(MetricConfig{}, ResourceAttributeConfig{})); diff != "" {
 				t.Errorf("Config mismatch (-expected +actual):\n%s", diff)
 			}
 		})

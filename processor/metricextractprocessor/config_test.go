@@ -22,7 +22,6 @@ import (
 
 func TestCreateDefaultProcessorConfig(t *testing.T) {
 	cfg := createDefaultConfig().(*Config)
-	require.Equal(t, defaultMatch, cfg.Match)
 	require.Equal(t, defaultMetricName, cfg.MetricName)
 	require.Equal(t, defaultMetricUnit, cfg.MetricUnit)
 }
@@ -34,9 +33,9 @@ func TestConfigValidate(t *testing.T) {
 		expectedErr string
 	}{
 		{
-			name: "valid config",
+			name: "valid config (expr)",
 			config: &Config{
-				Match:      "true",
+				Match:      strp("true"),
 				Extract:    "message",
 				MetricName: "metric",
 				MetricUnit: "unit",
@@ -44,9 +43,19 @@ func TestConfigValidate(t *testing.T) {
 			},
 		},
 		{
+			name: "valid config (ottl)",
+			config: &Config{
+				OTTLMatch:   strp("true"),
+				OTTLExtract: `body["message"]`,
+				MetricName:  "metric",
+				MetricUnit:  "unit",
+				MetricType:  gaugeDoubleType,
+			},
+		},
+		{
 			name: "invalid metric type",
 			config: &Config{
-				Match:      "true",
+				Match:      strp("true"),
 				Extract:    "message",
 				MetricName: "metric",
 				MetricUnit: "unit",
@@ -55,19 +64,29 @@ func TestConfigValidate(t *testing.T) {
 			expectedErr: errMetricTypeInvalid.Error(),
 		},
 		{
-			name: "missing extract",
+			name: "missing extract (expr)",
 			config: &Config{
-				Match:      "true",
+				Match:      strp("true"),
 				MetricName: "metric",
 				MetricUnit: "unit",
 				MetricType: gaugeDoubleType,
 			},
-			expectedErr: errExtractMissing.Error(),
+			expectedErr: errExprExtractMissing.Error(),
 		},
 		{
-			name: "invalid match",
+			name: "missing extract (ottl)",
 			config: &Config{
-				Match:      "++",
+				OTTLMatch:  strp("true"),
+				MetricName: "metric",
+				MetricUnit: "unit",
+				MetricType: gaugeDoubleType,
+			},
+			expectedErr: errOTTLExtractMissing.Error(),
+		},
+		{
+			name: "invalid match (expr)",
+			config: &Config{
+				Match:      strp("++"),
 				Extract:    "message",
 				MetricName: "metric",
 				MetricUnit: "unit",
@@ -76,9 +95,20 @@ func TestConfigValidate(t *testing.T) {
 			expectedErr: "invalid match",
 		},
 		{
-			name: "invalid extract",
+			name: "invalid match (ottl)",
 			config: &Config{
-				Match:      "true",
+				OTTLMatch:   strp("++"),
+				OTTLExtract: "message",
+				MetricName:  "metric",
+				MetricUnit:  "unit",
+				MetricType:  gaugeDoubleType,
+			},
+			expectedErr: "invalid ottl_match",
+		},
+		{
+			name: "invalid extract (expr)",
+			config: &Config{
+				Match:      strp("true"),
 				Extract:    "++",
 				MetricName: "metric",
 				MetricUnit: "unit",
@@ -87,9 +117,20 @@ func TestConfigValidate(t *testing.T) {
 			expectedErr: "invalid extract",
 		},
 		{
-			name: "invalid attribute",
+			name: "invalid extract (ottl)",
 			config: &Config{
-				Match:      "true",
+				OTTLMatch:   strp("true"),
+				OTTLExtract: "++",
+				MetricName:  "metric",
+				MetricUnit:  "unit",
+				MetricType:  gaugeDoubleType,
+			},
+			expectedErr: "invalid ottl_extract",
+		},
+		{
+			name: "invalid attribute (expr)",
+			config: &Config{
+				Match:      strp("true"),
 				Extract:    "message",
 				MetricName: "metric",
 				MetricUnit: "unit",
@@ -99,6 +140,31 @@ func TestConfigValidate(t *testing.T) {
 				},
 			},
 			expectedErr: "invalid attributes",
+		},
+		{
+			name: "invalid attribute (ottl)",
+			config: &Config{
+				OTTLMatch:   strp("true"),
+				OTTLExtract: `body["message"]`,
+				MetricName:  "metric",
+				MetricUnit:  "unit",
+				MetricType:  gaugeDoubleType,
+				OTTLAttributes: map[string]string{
+					"invalid": "++",
+				},
+			},
+			expectedErr: "invalid ottl_attributes",
+		},
+		{
+			name: "mixed ottl and expr config",
+			config: &Config{
+				OTTLMatch:  strp("true"),
+				Extract:    "message",
+				MetricName: "metric",
+				MetricUnit: "unit",
+				MetricType: gaugeDoubleType,
+			},
+			expectedErr: "cannot use ottl fields (ottl_match, ottl_extract, ottl_attributes) and expr fields (match, extract, attributes)",
 		},
 	}
 
@@ -113,4 +179,8 @@ func TestConfigValidate(t *testing.T) {
 			require.Contains(t, err.Error(), tc.expectedErr)
 		})
 	}
+}
+
+func strp(s string) *string {
+	return &s
 }

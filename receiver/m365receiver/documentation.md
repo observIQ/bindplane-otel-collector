@@ -193,3 +193,9 @@ The number of MS Teams team-messages sent by users in the organization in the la
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
 | ---- | ----------- | ---------- | ----------------------- | --------- |
 | {messages} | Sum | Int | Cumulative | false |
+
+## Resource Attributes
+
+| Name | Description | Values | Enabled |
+| ---- | ----------- | ------ | ------- |
+| m365.tenant.id | The Office 365 tenant. | Any Str | true |

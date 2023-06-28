@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/processor"
+	"go.opentelemetry.io/collector/processor/processortest"
 )
 
 func TestNewProcessorFactory(t *testing.T) {
@@ -40,7 +40,7 @@ func TestCreateLogsProcessor(t *testing.T) {
 		{
 			name: "valid config",
 			cfg: &Config{
-				Match:      "true",
+				Match:      strp("true"),
 				Extract:    "message",
 				MetricType: gaugeDoubleType,
 			},
@@ -48,16 +48,25 @@ func TestCreateLogsProcessor(t *testing.T) {
 		{
 			name: "invalid match",
 			cfg: &Config{
-				Match:      "++",
+				Match:      strp("++"),
 				Extract:    "message",
 				MetricType: gaugeDoubleType,
 			},
 			expectedErr: "invalid match expression",
 		},
 		{
+			name: "invalid ottl match",
+			cfg: &Config{
+				OTTLMatch:   strp("++"),
+				OTTLExtract: `body["message"]`,
+				MetricType:  gaugeDoubleType,
+			},
+			expectedErr: "invalid ottl_match",
+		},
+		{
 			name: "invalid attributes",
 			cfg: &Config{
-				Match:      "true",
+				Match:      strp("true"),
 				Extract:    "message",
 				MetricType: gaugeDoubleType,
 				Attributes: map[string]string{"a": "++"},
@@ -65,13 +74,32 @@ func TestCreateLogsProcessor(t *testing.T) {
 			expectedErr: "invalid attribute expression",
 		},
 		{
+			name: "invalid ottl attributes",
+			cfg: &Config{
+				OTTLMatch:      strp("true"),
+				OTTLExtract:    `body["message"]`,
+				MetricType:     gaugeDoubleType,
+				OTTLAttributes: map[string]string{"a": "++"},
+			},
+			expectedErr: "invalid ottl_attributes",
+		},
+		{
 			name: "invalid extract",
 			cfg: &Config{
-				Match:      "true",
+				Match:      strp("true"),
 				Extract:    "++",
 				MetricType: gaugeDoubleType,
 			},
 			expectedErr: "invalid extract expression",
+		},
+		{
+			name: "invalid ottl extract",
+			cfg: &Config{
+				OTTLMatch:   strp("true"),
+				OTTLExtract: "++",
+				MetricType:  gaugeDoubleType,
+			},
+			expectedErr: "invalid ottl_extract",
 		},
 		{
 			name:        "invalid config type",
@@ -83,10 +111,10 @@ func TestCreateLogsProcessor(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			f := NewFactory()
-			p, err := f.CreateLogsProcessor(context.Background(), processor.CreateSettings{}, tc.cfg, nil)
+			p, err := f.CreateLogsProcessor(context.Background(), processortest.NewNopCreateSettings(), tc.cfg, nil)
 			if tc.expectedErr == "" {
 				require.NoError(t, err)
-				require.IsType(t, &extractProcessor{}, p)
+				require.IsType(t, &exprExtractProcessor{}, p)
 			} else {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr)

@@ -130,7 +130,7 @@ func TestMetricsBuilder(t *testing.T) {
 			allMetricsCount++
 			mb.RecordM365TeamsMessagesTeamCountDataPoint(ts, 1)
 
-			metrics := mb.Emit()
+			metrics := mb.Emit(WithM365TenantID("attr-val"))
 
 			if test.configSet == testSetNone {
 				assert.Equal(t, 0, metrics.ResourceMetrics().Len())
@@ -141,8 +141,15 @@ func TestMetricsBuilder(t *testing.T) {
 			rm := metrics.ResourceMetrics().At(0)
 			attrCount := 0
 			enabledAttrCount := 0
+			attrVal, ok := rm.Resource().Attributes().Get("m365.tenant.id")
+			attrCount++
+			assert.Equal(t, mb.resourceAttributesConfig.M365TenantID.Enabled, ok)
+			if mb.resourceAttributesConfig.M365TenantID.Enabled {
+				enabledAttrCount++
+				assert.EqualValues(t, "attr-val", attrVal.Str())
+			}
 			assert.Equal(t, enabledAttrCount, rm.Resource().Attributes().Len())
-			assert.Equal(t, attrCount, 0)
+			assert.Equal(t, attrCount, 1)
 
 			assert.Equal(t, 1, rm.ScopeMetrics().Len())
 			ms := rm.ScopeMetrics().At(0).Metrics()

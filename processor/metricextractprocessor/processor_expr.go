@@ -29,8 +29,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// extractProcessor is a processor that extracts metrics from logs.
-type extractProcessor struct {
+// exprExtractProcessor is a processor that extracts metrics from logs.
+type exprExtractProcessor struct {
 	config   *Config
 	match    *expr.Expression
 	value    *expr.Expression
@@ -39,9 +39,9 @@ type extractProcessor struct {
 	logger   *zap.Logger
 }
 
-// newProcessor returns a new processor.
-func newProcessor(config *Config, consumer consumer.Logs, match, value *expr.Expression, attrs *expr.ExpressionMap, logger *zap.Logger) *extractProcessor {
-	return &extractProcessor{
+// newExprExtractProcessor returns a new processor for expr expressions.
+func newExprExtractProcessor(config *Config, consumer consumer.Logs, match, value *expr.Expression, attrs *expr.ExpressionMap, logger *zap.Logger) *exprExtractProcessor {
+	return &exprExtractProcessor{
 		config:   config,
 		match:    match,
 		value:    value,
@@ -52,22 +52,22 @@ func newProcessor(config *Config, consumer consumer.Logs, match, value *expr.Exp
 }
 
 // Start starts the processor.
-func (e *extractProcessor) Start(_ context.Context, _ component.Host) error {
+func (e *exprExtractProcessor) Start(_ context.Context, _ component.Host) error {
 	return nil
 }
 
 // Capabilities returns the consumer's capabilities.
-func (e *extractProcessor) Capabilities() consumer.Capabilities {
+func (e *exprExtractProcessor) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: false}
 }
 
 // Shutdown stops the processor.
-func (e *extractProcessor) Shutdown(_ context.Context) error {
+func (e *exprExtractProcessor) Shutdown(_ context.Context) error {
 	return nil
 }
 
 // ConsumeLogs processes the logs.
-func (e *extractProcessor) ConsumeLogs(ctx context.Context, pl plog.Logs) error {
+func (e *exprExtractProcessor) ConsumeLogs(ctx context.Context, pl plog.Logs) error {
 	metrics := e.extractMetrics(pl)
 	if metrics.ResourceMetrics().Len() != 0 {
 		e.sendMetrics(ctx, metrics)
@@ -77,7 +77,7 @@ func (e *extractProcessor) ConsumeLogs(ctx context.Context, pl plog.Logs) error 
 }
 
 // extractMetrics extracts metrics from logs.
-func (e *extractProcessor) extractMetrics(pl plog.Logs) pmetric.Metrics {
+func (e *exprExtractProcessor) extractMetrics(pl plog.Logs) pmetric.Metrics {
 	recordGroups := expr.ConvertToResourceGroups(pl)
 
 	metrics := pmetric.NewMetrics()
@@ -115,7 +115,7 @@ func (e *extractProcessor) extractMetrics(pl plog.Logs) pmetric.Metrics {
 }
 
 // extractDataPoints extracts data points from the records.
-func (e *extractProcessor) extractDataPoints(records []expr.Record) pmetric.NumberDataPointSlice {
+func (e *exprExtractProcessor) extractDataPoints(records []expr.Record) pmetric.NumberDataPointSlice {
 	dataPoints := pmetric.NewNumberDataPointSlice()
 
 	for _, record := range records {
@@ -136,7 +136,7 @@ func (e *extractProcessor) extractDataPoints(records []expr.Record) pmetric.Numb
 }
 
 // extractDataPoint extracts a data point from the record.
-func (e *extractProcessor) extractDataPoint(record expr.Record) (pmetric.NumberDataPoint, error) {
+func (e *exprExtractProcessor) extractDataPoint(record expr.Record) (pmetric.NumberDataPoint, error) {
 	switch e.config.MetricType {
 	case gaugeDoubleType, counterDoubleType:
 		return e.extractFloatDataPoint(record)
@@ -148,7 +148,7 @@ func (e *extractProcessor) extractDataPoint(record expr.Record) (pmetric.NumberD
 }
 
 // extractIntDataPoint extracts an int data point from the record.
-func (e *extractProcessor) extractIntDataPoint(record expr.Record) (pmetric.NumberDataPoint, error) {
+func (e *exprExtractProcessor) extractIntDataPoint(record expr.Record) (pmetric.NumberDataPoint, error) {
 	value, err := e.value.ExtractInt(record)
 	if err != nil {
 		return pmetric.NumberDataPoint{}, err
@@ -165,7 +165,7 @@ func (e *extractProcessor) extractIntDataPoint(record expr.Record) (pmetric.Numb
 }
 
 // extractFloatDataPoint extracts a float data point from the record.
-func (e *extractProcessor) extractFloatDataPoint(record expr.Record) (pmetric.NumberDataPoint, error) {
+func (e *exprExtractProcessor) extractFloatDataPoint(record expr.Record) (pmetric.NumberDataPoint, error) {
 	value, err := e.value.ExtractFloat(record)
 	if err != nil {
 		return pmetric.NumberDataPoint{}, err
@@ -190,7 +190,7 @@ func extractTimestamp(record expr.Record) time.Time {
 }
 
 // sendMetrics sends metrics to the configured route.
-func (e *extractProcessor) sendMetrics(ctx context.Context, metrics pmetric.Metrics) {
+func (e *exprExtractProcessor) sendMetrics(ctx context.Context, metrics pmetric.Metrics) {
 	err := routereceiver.RouteMetrics(ctx, e.config.Route, metrics)
 	if err != nil {
 		e.logger.Error("Failed to send metrics", zap.Error(err))

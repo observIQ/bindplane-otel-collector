@@ -31,7 +31,7 @@ import (
 
 const (
 	defaultMetricPrefix = "workload.googleapis.com"
-	defaultUserAgent    = "observIQ-otel-collector"
+	defaultUserAgent    = "StanzaLogAgent"
 )
 
 // Config is the config the google cloud exporter
@@ -118,20 +118,22 @@ func (c *Config) updateProjectFromFile(fileName string) error {
 }
 
 // createDefaultConfig creates the default config for the exporter
-func createDefaultConfig() component.Config {
-	return &Config{
-		GCPConfig:   createDefaultGCPConfig(),
-		BatchConfig: createDefaultBatchConfig(),
-		AppendHost:  true,
+func createDefaultConfig(collectorVersion string) func() component.Config {
+	return func() component.Config {
+		return &Config{
+			GCPConfig:   createDefaultGCPConfig(collectorVersion),
+			BatchConfig: createDefaultBatchConfig(),
+			AppendHost:  true,
+		}
 	}
 }
 
 // createDefaultGCPConfig creates a default GCP config
-func createDefaultGCPConfig() *gcp.Config {
+func createDefaultGCPConfig(collectorVersion string) *gcp.Config {
 	factory := gcp.NewFactory()
 	config := factory.CreateDefaultConfig().(*gcp.Config)
 	config.RetrySettings.Enabled = false
-	config.UserAgent = defaultUserAgent
+	config.UserAgent = fmt.Sprintf("%s/%s", defaultUserAgent, collectorVersion)
 	config.MetricConfig.Prefix = defaultMetricPrefix
 	config.LogConfig.DefaultLogName, _ = os.Hostname()
 

@@ -15,6 +15,7 @@
 package googlemanagedprometheusexporter
 
 import (
+	"fmt"
 	"testing"
 
 	gmp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter"
@@ -23,11 +24,15 @@ import (
 )
 
 func TestCreateDefaultConfig(t *testing.T) {
-	cfg := createDefaultConfig()
+	collectorVersion := "v1.2.3"
+
+	cfg := createDefaultConfig(collectorVersion)()
 	googleCfg, ok := cfg.(*Config)
 	require.True(t, ok)
 
-	require.Equal(t, defaultUserAgent, googleCfg.GMPConfig.UserAgent)
+	expectedUserAgent := fmt.Sprintf("%s/%s", defaultUserAgent, collectorVersion)
+
+	require.Equal(t, expectedUserAgent, googleCfg.GMPConfig.UserAgent)
 	require.Nil(t, googleCfg.Validate())
 }
 
