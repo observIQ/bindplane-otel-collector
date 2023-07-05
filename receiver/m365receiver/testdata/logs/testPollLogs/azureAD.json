@@ -16,9 +16,233 @@
           "logRecords": [
             {
               "timeUnixNano": "1684141227000000000",
-              "observedTimeUnixNano": "1684949062412991000",
+              "observedTimeUnixNano": "1687897395040471000",
               "body": {
-                "stringValue": "{\"CreationTime\":\"2023-05-15T09:00:27\",\"Workload\":\"test\",\"UserId\":\"test\",\"UserType\":8,\"Id\":\"test\",\"Operation\":\"test\",\"ResultStatus\":\"test\",\"Site\":\"test\",\"SourceFileName\":\"test\",\"MailboxGuid\":\"test\",\"Actor\":[{\"ID\":\"test\",\"Type\":5},{\"ID\":\"test2\",\"Type\":3}],\"SharePointMetaData\":{\"From\":\"test\"},\"ExchangeMetaData\":{\"MessageID\":\"test\"},\"PolicyDetails\":[{\"PolicyId\":\"test\",\"PolicyName\":\"test\"},{\"PolicyId\":\"test2\",\"PolicyName\":\"test2\"}],\"AlertId\":\"test\",\"Name\":\"test\",\"ActorUserId\":\"test\",\"FileId\":50,\"AttachmentData\":[{\"FileName\":\"test\"}],\"URL\":\"test\",\"FileData\":{\"DocumentId\":\"test\",\"FileVerdict\":-3},\"SourceWorkload\":2,\"InvestigationId\":\"test\",\"Status\":\"test\",\"AppName\":\"test\",\"EntityId\":\"test\",\"EntityName\":\"test\",\"RequestSource\":2,\"FormId\":\"test\",\"LabelId\":\"test\",\"MessageId\":\"test\",\"ExchangeDetails\":{\"NetworkMessageId\":\"test\"},\"JobId\":\"test\",\"TaskId\":\"test\",\"Invitation\":{\"ShareId\":\"test\"},\"ApplicationId\":\"test\",\"Username\":\"test\",\"OrganizationName\":\"test\",\"ActorAppId\":\"test\",\"ItemID\":\"test\",\"ProjectId\":\"test\",\"RoadmapId\":\"test\",\"RoadmapItemId\":\"test\"}"
+                "kvlistValue": {
+                  "values": [
+                    {
+                      "key": "ExchangeMetaData",
+                      "value": {
+                        "kvlistValue": {
+                          "values": [
+                            {
+                              "key": "MessageID",
+                              "value": { "stringValue": "test" }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    { "key": "Name", "value": { "stringValue": "test" } },
+                    { "key": "EntityName", "value": { "stringValue": "test" } },
+                    {
+                      "key": "ExchangeDetails",
+                      "value": {
+                        "kvlistValue": {
+                          "values": [
+                            {
+                              "key": "NetworkMessageId",
+                              "value": { "stringValue": "test" }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "key": "ApplicationId",
+                      "value": { "stringValue": "test" }
+                    },
+                    {
+                      "key": "CreationTime",
+                      "value": { "stringValue": "2023-05-15T09:00:27" }
+                    },
+                    {
+                      "key": "Actor",
+                      "value": {
+                        "arrayValue": {
+                          "values": [
+                            {
+                              "kvlistValue": {
+                                "values": [
+                                  {
+                                    "key": "Type",
+                                    "value": { "doubleValue": 5 }
+                                  },
+                                  {
+                                    "key": "ID",
+                                    "value": { "stringValue": "test" }
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "kvlistValue": {
+                                "values": [
+                                  {
+                                    "key": "ID",
+                                    "value": { "stringValue": "test2" }
+                                  },
+                                  {
+                                    "key": "Type",
+                                    "value": { "doubleValue": 3 }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "key": "SharePointMetaData",
+                      "value": {
+                        "kvlistValue": {
+                          "values": [
+                            {
+                              "key": "From",
+                              "value": { "stringValue": "test" }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    { "key": "RoadmapId", "value": { "stringValue": "test" } },
+                    { "key": "FileId", "value": { "doubleValue": 50 } },
+                    {
+                      "key": "Invitation",
+                      "value": {
+                        "kvlistValue": {
+                          "values": [
+                            {
+                              "key": "ShareId",
+                              "value": { "stringValue": "test" }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "key": "RoadmapItemId",
+                      "value": { "stringValue": "test" }
+                    },
+                    { "key": "EntityId", "value": { "stringValue": "test" } },
+                    { "key": "LabelId", "value": { "stringValue": "test" } },
+                    { "key": "Username", "value": { "stringValue": "test" } },
+                    { "key": "AlertId", "value": { "stringValue": "test" } },
+                    {
+                      "key": "AttachmentData",
+                      "value": {
+                        "arrayValue": {
+                          "values": [
+                            {
+                              "kvlistValue": {
+                                "values": [
+                                  {
+                                    "key": "FileName",
+                                    "value": { "stringValue": "test" }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "key": "FileData",
+                      "value": {
+                        "kvlistValue": {
+                          "values": [
+                            {
+                              "key": "DocumentId",
+                              "value": { "stringValue": "test" }
+                            },
+                            {
+                              "key": "FileVerdict",
+                              "value": { "doubleValue": -3 }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    { "key": "ActorAppId", "value": { "stringValue": "test" } },
+                    {
+                      "key": "ActorUserId",
+                      "value": { "stringValue": "test" }
+                    },
+                    { "key": "URL", "value": { "stringValue": "test" } },
+                    { "key": "MessageId", "value": { "stringValue": "test" } },
+                    { "key": "UserType", "value": { "doubleValue": 8 } },
+                    {
+                      "key": "SourceFileName",
+                      "value": { "stringValue": "test" }
+                    },
+                    {
+                      "key": "InvestigationId",
+                      "value": { "stringValue": "test" }
+                    },
+                    { "key": "Status", "value": { "stringValue": "test" } },
+                    { "key": "Site", "value": { "stringValue": "test" } },
+                    { "key": "SourceWorkload", "value": { "doubleValue": 2 } },
+                    { "key": "AppName", "value": { "stringValue": "test" } },
+                    { "key": "RequestSource", "value": { "doubleValue": 2 } },
+                    { "key": "TaskId", "value": { "stringValue": "test" } },
+                    { "key": "Workload", "value": { "stringValue": "test" } },
+                    { "key": "Id", "value": { "stringValue": "test" } },
+                    {
+                      "key": "ResultStatus",
+                      "value": { "stringValue": "test" }
+                    },
+                    {
+                      "key": "OrganizationName",
+                      "value": { "stringValue": "test" }
+                    },
+                    { "key": "ItemID", "value": { "stringValue": "test" } },
+                    { "key": "ProjectId", "value": { "stringValue": "test" } },
+                    {
+                      "key": "PolicyDetails",
+                      "value": {
+                        "arrayValue": {
+                          "values": [
+                            {
+                              "kvlistValue": {
+                                "values": [
+                                  {
+                                    "key": "PolicyId",
+                                    "value": { "stringValue": "test" }
+                                  },
+                                  {
+                                    "key": "PolicyName",
+                                    "value": { "stringValue": "test" }
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "kvlistValue": {
+                                "values": [
+                                  {
+                                    "key": "PolicyId",
+                                    "value": { "stringValue": "test2" }
+                                  },
+                                  {
+                                    "key": "PolicyName",
+                                    "value": { "stringValue": "test2" }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    { "key": "FormId", "value": { "stringValue": "test" } },
+                    { "key": "JobId", "value": { "stringValue": "test" } },
+                    { "key": "UserId", "value": { "stringValue": "test" } },
+                    { "key": "Operation", "value": { "stringValue": "test" } },
+                    { "key": "MailboxGuid", "value": { "stringValue": "test" } }
+                  ]
+                }
               },
               "attributes": [
                 { "key": "id", "value": { "stringValue": "test" } },
@@ -218,9 +442,172 @@
             },
             {
               "timeUnixNano": "1684141227000000000",
-              "observedTimeUnixNano": "1684949062412991000",
+              "observedTimeUnixNano": "1687897395040471000",
               "body": {
-                "stringValue": "{\"CreationTime\":\"2023-05-15T09:00:27\",\"Workload\":\"test\",\"UserId\":\"test\",\"UserType\":8,\"Id\":\"test\",\"Operation\":\"test\",\"ResultStatus\":\"test\",\"Site\":\"test\",\"SourceFileName\":\"test\",\"MailboxGuid\":\"test\",\"Actor\":[{\"ID\":\"test\",\"Type\":5}],\"PolicyDetails\":[{\"PolicyId\":\"test\",\"PolicyName\":\"test\"}],\"AlertId\":\"test\",\"Name\":\"test\",\"ActorUserId\":\"test\",\"FileId\":50,\"AttachmentData\":[{\"FileName\":\"test\"},{\"FileName\":\"test2\"}],\"URL\":\"test\",\"FileData\":{\"DocumentId\":\"test\",\"FileVerdict\":-3},\"SourceWorkload\":2,\"InvestigationId\":\"test\",\"RequestSource\":2,\"FormId\":\"test\",\"LabelId\":\"test\",\"MessageId\":\"test\",\"ExchangeDetails\":{\"NetworkMessageId\":\"test\"},\"JobId\":\"test\",\"TaskId\":\"test\",\"Invitation\":{\"ShareId\":\"test\"},\"ignore\":\"ignore\"}"
+                "kvlistValue": {
+                  "values": [
+                    {
+                      "key": "ResultStatus",
+                      "value": { "stringValue": "test" }
+                    },
+                    { "key": "RequestSource", "value": { "doubleValue": 2 } },
+                    { "key": "UserId", "value": { "stringValue": "test" } },
+                    {
+                      "key": "AttachmentData",
+                      "value": {
+                        "arrayValue": {
+                          "values": [
+                            {
+                              "kvlistValue": {
+                                "values": [
+                                  {
+                                    "key": "FileName",
+                                    "value": { "stringValue": "test" }
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "kvlistValue": {
+                                "values": [
+                                  {
+                                    "key": "FileName",
+                                    "value": { "stringValue": "test2" }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    { "key": "JobId", "value": { "stringValue": "test" } },
+                    {
+                      "key": "Invitation",
+                      "value": {
+                        "kvlistValue": {
+                          "values": [
+                            {
+                              "key": "ShareId",
+                              "value": { "stringValue": "test" }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "key": "CreationTime",
+                      "value": { "stringValue": "2023-05-15T09:00:27" }
+                    },
+                    { "key": "Workload", "value": { "stringValue": "test" } },
+                    {
+                      "key": "MailboxGuid",
+                      "value": { "stringValue": "test" }
+                    },
+                    { "key": "FileId", "value": { "doubleValue": 50 } },
+                    { "key": "MessageId", "value": { "stringValue": "test" } },
+                    { "key": "Id", "value": { "stringValue": "test" } },
+                    { "key": "Operation", "value": { "stringValue": "test" } },
+                    {
+                      "key": "SourceFileName",
+                      "value": { "stringValue": "test" }
+                    },
+                    {
+                      "key": "PolicyDetails",
+                      "value": {
+                        "arrayValue": {
+                          "values": [
+                            {
+                              "kvlistValue": {
+                                "values": [
+                                  {
+                                    "key": "PolicyId",
+                                    "value": { "stringValue": "test" }
+                                  },
+                                  {
+                                    "key": "PolicyName",
+                                    "value": { "stringValue": "test" }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    { "key": "AlertId", "value": { "stringValue": "test" } },
+                    { "key": "FormId", "value": { "stringValue": "test" } },
+                    {
+                      "key": "ExchangeDetails",
+                      "value": {
+                        "kvlistValue": {
+                          "values": [
+                            {
+                              "key": "NetworkMessageId",
+                              "value": { "stringValue": "test" }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    { "key": "TaskId", "value": { "stringValue": "test" } },
+                    { "key": "UserType", "value": { "doubleValue": 8 } },
+                    {
+                      "key": "Actor",
+                      "value": {
+                        "arrayValue": {
+                          "values": [
+                            {
+                              "kvlistValue": {
+                                "values": [
+                                  {
+                                    "key": "Type",
+                                    "value": { "doubleValue": 5 }
+                                  },
+                                  {
+                                    "key": "ID",
+                                    "value": { "stringValue": "test" }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    { "key": "Name", "value": { "stringValue": "test" } },
+                    {
+                      "key": "FileData",
+                      "value": {
+                        "kvlistValue": {
+                          "values": [
+                            {
+                              "key": "DocumentId",
+                              "value": { "stringValue": "test" }
+                            },
+                            {
+                              "key": "FileVerdict",
+                              "value": { "doubleValue": -3 }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    { "key": "SourceWorkload", "value": { "doubleValue": 2 } },
+                    {
+                      "key": "InvestigationId",
+                      "value": { "stringValue": "test" }
+                    },
+                    { "key": "ignore", "value": { "stringValue": "ignore" } },
+                    {
+                      "key": "ActorUserId",
+                      "value": { "stringValue": "test" }
+                    },
+                    { "key": "URL", "value": { "stringValue": "test" } },
+                    { "key": "LabelId", "value": { "stringValue": "test" } },
+                    { "key": "Site", "value": { "stringValue": "test" } }
+                  ]
+                }
               },
               "attributes": [
                 { "key": "id", "value": { "stringValue": "test" } },
@@ -369,9 +756,25 @@
             },
             {
               "timeUnixNano": "1684141227000000000",
-              "observedTimeUnixNano": "1684949062412991000",
+              "observedTimeUnixNano": "1687897395040471000",
               "body": {
-                "stringValue": "{\"CreationTime\":\"2023-05-15T09:00:27\",\"Workload\":\"test\",\"UserId\":\"test\",\"UserType\":8,\"Id\":\"test\",\"Operation\":\"test\",\"ResultStatus\":\"test\"}"
+                "kvlistValue": {
+                  "values": [
+                    { "key": "Id", "value": { "stringValue": "test" } },
+                    { "key": "Operation", "value": { "stringValue": "test" } },
+                    {
+                      "key": "ResultStatus",
+                      "value": { "stringValue": "test" }
+                    },
+                    {
+                      "key": "CreationTime",
+                      "value": { "stringValue": "2023-05-15T09:00:27" }
+                    },
+                    { "key": "Workload", "value": { "stringValue": "test" } },
+                    { "key": "UserId", "value": { "stringValue": "test" } },
+                    { "key": "UserType", "value": { "doubleValue": 8 } }
+                  ]
+                }
               },
               "attributes": [
                 { "key": "id", "value": { "stringValue": "test" } },
