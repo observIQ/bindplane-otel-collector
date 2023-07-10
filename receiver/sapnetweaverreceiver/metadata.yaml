@@ -72,6 +72,7 @@ metrics:
   sapnetweaver.system.instance_availability:
     description: The availability status of each system instance.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetSystemInstanceList."
+    unit: 1
     sum:
       monotonic: false
       aggregation: cumulative
@@ -81,6 +82,7 @@ metrics:
   sapnetweaver.process_availability:
     description: The processes availability directly started by the sapstartsrv Web service.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetProcessList."
+    unit: 1
     sum:
       monotonic: false
       aggregation: cumulative
@@ -194,6 +196,7 @@ metrics:
   sapnetweaver.queue.count:
     description: The queue length.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
+    unit: 1
     sum:
       monotonic: false
       aggregation: cumulative
@@ -203,6 +206,7 @@ metrics:
   sapnetweaver.queue_peak.count:
     description: The peak queue length.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
+    unit: 1
     sum:
       monotonic: false
       aggregation: cumulative
@@ -212,6 +216,7 @@ metrics:
   sapnetweaver.queue_max.count:
     description: The max queue length.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
+    unit: 1
     sum:
       monotonic: false
       aggregation: cumulative
@@ -221,6 +226,7 @@ metrics:
   sapnetweaver.spool.request.error.count:
     description: The number of spool work processes that have encountered errors.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Spool > SpoolService > ErrorsInWpSPO.
+    unit: "{errors}"
     sum:
       monotonic: false
       aggregation: cumulative
@@ -291,6 +297,7 @@ metrics:
   sapnetweaver.locks.enqueue.errors.count:
     description: The enqueued locks error count.
     extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
+    unit: "{errors}"
     sum:
       monotonic: false
       aggregation: cumulative
@@ -300,6 +307,7 @@ metrics:
   sapnetweaver.locks.dequeue.errors.count:
     description: The dequeued locks error count.
     extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
+    unit: "{errors}"
     sum:
       monotonic: false
       aggregation: cumulative
@@ -386,6 +394,7 @@ metrics:
   sapnetweaver.work_process.job.aborted.status:
     description: The status of aborted jobs on an application server.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Background > AbortedJobs.
+    unit: 1
     sum:
       monotonic: false
       aggregation: cumulative
@@ -395,6 +404,7 @@ metrics:
   sapnetweaver.abap.update.status:
     description: The status of the ABAP update process.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Update > Update > AbapErrorInUpdate.
+    unit: 1
     sum:
       monotonic: false
       aggregation: cumulative

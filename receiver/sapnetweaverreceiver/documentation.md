@@ -52,7 +52,7 @@ Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Up
 
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
 | ---- | ----------- | ---------- | ----------------------- | --------- |
-|  | Sum | Int | Cumulative | false |
+| 1 | Sum | Int | Cumulative | false |
 
 #### Attributes
 
@@ -174,7 +174,7 @@ Collected from SAPControl Web Service Interface > EnqGetStatistic.
 
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
 | ---- | ----------- | ---------- | ----------------------- | --------- |
-|  | Sum | Int | Cumulative | false |
+| {errors} | Sum | Int | Cumulative | false |
 
 ### sapnetweaver.locks.enqueue.current.count
 
@@ -194,7 +194,7 @@ Collected from SAPControl Web Service Interface > EnqGetStatistic.
 
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
 | ---- | ----------- | ---------- | ----------------------- | --------- |
-|  | Sum | Int | Cumulative | false |
+| {errors} | Sum | Int | Cumulative | false |
 
 ### sapnetweaver.locks.enqueue.high.count
 
@@ -274,7 +274,7 @@ Collected from SAPControl Web Service Interface > GetProcessList.
 
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
 | ---- | ----------- | ---------- | ----------------------- | --------- |
-|  | Sum | Int | Cumulative | false |
+| 1 | Sum | Int | Cumulative | false |
 
 #### Attributes
 
@@ -292,7 +292,7 @@ Collected from SAPControl Web Service Interface > GetQueueStatistic.
 
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
 | ---- | ----------- | ---------- | ----------------------- | --------- |
-|  | Sum | Int | Cumulative | false |
+| 1 | Sum | Int | Cumulative | false |
 
 #### Attributes
 
@@ -308,7 +308,7 @@ Collected from SAPControl Web Service Interface > GetQueueStatistic.
 
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
 | ---- | ----------- | ---------- | ----------------------- | --------- |
-|  | Sum | Int | Cumulative | false |
+| 1 | Sum | Int | Cumulative | false |
 
 #### Attributes
 
@@ -324,7 +324,7 @@ Collected from SAPControl Web Service Interface > GetQueueStatistic.
 
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
 | ---- | ----------- | ---------- | ----------------------- | --------- |
-|  | Sum | Int | Cumulative | false |
+| 1 | Sum | Int | Cumulative | false |
 
 #### Attributes
 
@@ -444,7 +444,7 @@ Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Sp
 
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
 | ---- | ----------- | ---------- | ----------------------- | --------- |
-|  | Sum | Int | Cumulative | false |
+| {errors} | Sum | Int | Cumulative | false |
 
 ### sapnetweaver.system.instance_availability
 
@@ -454,7 +454,7 @@ Collected from SAPControl Web Service Interface > GetSystemInstanceList.
 
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
 | ---- | ----------- | ---------- | ----------------------- | --------- |
-|  | Sum | Int | Cumulative | false |
+| 1 | Sum | Int | Cumulative | false |
 
 #### Attributes
 
@@ -491,7 +491,7 @@ Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Ba
 
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
 | ---- | ----------- | ---------- | ----------------------- | --------- |
-|  | Sum | Int | Cumulative | false |
+| 1 | Sum | Int | Cumulative | false |
 
 #### Attributes
 

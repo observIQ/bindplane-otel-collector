@@ -22,9 +22,9 @@ This processor is used to convert the number of spans received during an interva
 | ottl_attributes | map      | `{}`         | The mapped attributes of the metric created. Each key is an attribute name. Each value is an [OTTL] expression. All paths in the [span context] are available to reference. All [converters] are available to use.                                                   |
 | attributes      | map      | `{}`         | **DEPRECATED** use `ottl_attributes` instead. The mapped attributes of the metric created. Each key is an attribute name. Each value is an [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) that extracts data from the span. |
 
-[OTTL]: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.80.0/pkg/ottl#readme
-[converters]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.80.0/pkg/ottl/ottlfuncs/README.md#converters
-[span context]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.80.0/pkg/ottl/contexts/ottlspan/README.md
+[OTTL]: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.81.0/pkg/ottl#readme
+[converters]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.81.0/pkg/ottl/ottlfuncs/README.md#converters
+[span context]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.81.0/pkg/ottl/contexts/ottlspan/README.md
 
 ### Example Config
 The following config is an example configuration of the span count processor using default values. In this example, spans are collected from a file, sent to the processor to be counted, and then consumed by the logging exporter. After each minute, the span counts are converted to metrics and sent to the route receiver in the metrics pipeline, which then forwards to the Google Cloud exporter.
