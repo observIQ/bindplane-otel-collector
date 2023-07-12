@@ -246,8 +246,17 @@ func (l *m365LogsReceiver) transformLogs(now pcommon.Timestamp, audit *auditMeta
 	for _, log := range data {
 		logRecord := scopeLogs.LogRecords().AppendEmpty()
 
-		// log body
-		logRecord.Body().SetStr(log.body)
+		// parses body string and sets that as log body, but uses string if parsing fails
+		parsedBody := map[string]any{}
+		if err := json.Unmarshal([]byte(log.body), &parsedBody); err != nil {
+			l.logger.Warn("unable to unmarshal log body", zap.Error(err))
+			logRecord.Body().SetStr(log.body)
+		} else {
+			if err := logRecord.Body().SetEmptyMap().FromRaw(parsedBody); err != nil {
+				l.logger.Warn("failed to set body to parsed value", zap.Error(err))
+				logRecord.Body().SetStr(log.body)
+			}
+		}
 
 		// timestamp
 		ts, err := time.Parse(layout, log.log.CreationTime)

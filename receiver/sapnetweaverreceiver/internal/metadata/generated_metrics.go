@@ -197,7 +197,7 @@ type metricSapnetweaverAbapUpdateStatus struct {
 func (m *metricSapnetweaverAbapUpdateStatus) init() {
 	m.data.SetName("sapnetweaver.abap.update.status")
 	m.data.SetDescription("The status of the ABAP update process.")
-	m.data.SetUnit("")
+	m.data.SetUnit("1")
 	m.data.SetEmptySum()
 	m.data.Sum().SetIsMonotonic(false)
 	m.data.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
@@ -750,7 +750,7 @@ type metricSapnetweaverLocksDequeueErrorsCount struct {
 func (m *metricSapnetweaverLocksDequeueErrorsCount) init() {
 	m.data.SetName("sapnetweaver.locks.dequeue.errors.count")
 	m.data.SetDescription("The dequeued locks error count.")
-	m.data.SetUnit("")
+	m.data.SetUnit("{errors}")
 	m.data.SetEmptySum()
 	m.data.Sum().SetIsMonotonic(false)
 	m.data.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
@@ -852,7 +852,7 @@ type metricSapnetweaverLocksEnqueueErrorsCount struct {
 func (m *metricSapnetweaverLocksEnqueueErrorsCount) init() {
 	m.data.SetName("sapnetweaver.locks.enqueue.errors.count")
 	m.data.SetDescription("The enqueued locks error count.")
-	m.data.SetUnit("")
+	m.data.SetUnit("{errors}")
 	m.data.SetEmptySum()
 	m.data.Sum().SetIsMonotonic(false)
 	m.data.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
@@ -1258,7 +1258,7 @@ type metricSapnetweaverProcessAvailability struct {
 func (m *metricSapnetweaverProcessAvailability) init() {
 	m.data.SetName("sapnetweaver.process_availability")
 	m.data.SetDescription("The processes availability directly started by the sapstartsrv Web service.")
-	m.data.SetUnit("")
+	m.data.SetUnit("1")
 	m.data.SetEmptySum()
 	m.data.Sum().SetIsMonotonic(false)
 	m.data.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
@@ -1313,7 +1313,7 @@ type metricSapnetweaverQueueCount struct {
 func (m *metricSapnetweaverQueueCount) init() {
 	m.data.SetName("sapnetweaver.queue.count")
 	m.data.SetDescription("The queue length.")
-	m.data.SetUnit("")
+	m.data.SetUnit("1")
 	m.data.SetEmptySum()
 	m.data.Sum().SetIsMonotonic(false)
 	m.data.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
@@ -1366,7 +1366,7 @@ type metricSapnetweaverQueueMaxCount struct {
 func (m *metricSapnetweaverQueueMaxCount) init() {
 	m.data.SetName("sapnetweaver.queue_max.count")
 	m.data.SetDescription("The max queue length.")
-	m.data.SetUnit("")
+	m.data.SetUnit("1")
 	m.data.SetEmptySum()
 	m.data.Sum().SetIsMonotonic(false)
 	m.data.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
@@ -1419,7 +1419,7 @@ type metricSapnetweaverQueuePeakCount struct {
 func (m *metricSapnetweaverQueuePeakCount) init() {
 	m.data.SetName("sapnetweaver.queue_peak.count")
 	m.data.SetDescription("The peak queue length.")
-	m.data.SetUnit("")
+	m.data.SetUnit("1")
 	m.data.SetEmptySum()
 	m.data.Sum().SetIsMonotonic(false)
 	m.data.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
@@ -1984,7 +1984,7 @@ type metricSapnetweaverSpoolRequestErrorCount struct {
 func (m *metricSapnetweaverSpoolRequestErrorCount) init() {
 	m.data.SetName("sapnetweaver.spool.request.error.count")
 	m.data.SetDescription("The number of spool work processes that have encountered errors.")
-	m.data.SetUnit("")
+	m.data.SetUnit("{errors}")
 	m.data.SetEmptySum()
 	m.data.Sum().SetIsMonotonic(false)
 	m.data.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
@@ -2035,7 +2035,7 @@ type metricSapnetweaverSystemInstanceAvailability struct {
 func (m *metricSapnetweaverSystemInstanceAvailability) init() {
 	m.data.SetName("sapnetweaver.system.instance_availability")
 	m.data.SetDescription("The availability status of each system instance.")
-	m.data.SetUnit("")
+	m.data.SetUnit("1")
 	m.data.SetEmptySum()
 	m.data.Sum().SetIsMonotonic(false)
 	m.data.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
@@ -2146,7 +2146,7 @@ type metricSapnetweaverWorkProcessJobAbortedStatus struct {
 func (m *metricSapnetweaverWorkProcessJobAbortedStatus) init() {
 	m.data.SetName("sapnetweaver.work_process.job.aborted.status")
 	m.data.SetDescription("The status of aborted jobs on an application server.")
-	m.data.SetUnit("")
+	m.data.SetUnit("1")
 	m.data.SetEmptySum()
 	m.data.Sum().SetIsMonotonic(false)
 	m.data.Sum().SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
