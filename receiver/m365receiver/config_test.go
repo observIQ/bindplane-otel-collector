@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package m365receiver // import "github.com/observiq/observiq-otel-collector/receiver/m365receiver"
+package m365receiver // import "github.com/observiq/bindplane-agent/receiver/m365receiver"
 
 import (
 	"testing"

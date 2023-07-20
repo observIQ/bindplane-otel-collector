@@ -1,4 +1,4 @@
-module github.com/observiq/observiq-otel-collector/processor/throughputmeasurementprocessor
+module github.com/observiq/bindplane-agent/processor/throughputmeasurementprocessor
 
 go 1.19
 

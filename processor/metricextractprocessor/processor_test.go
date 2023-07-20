@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/observiq-otel-collector/receiver/routereceiver"
+	"github.com/observiq/bindplane-agent/receiver/routereceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/plogtest"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/pmetrictest"
 	"github.com/stretchr/testify/require"

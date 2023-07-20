@@ -14,4 +14,4 @@
 
 //go:generate mdatagen metadata.yaml
 
-package m365receiver //import "github.com/observiq/observiq-otel-collector/receiver/m365receiver"
+package m365receiver //import "github.com/observiq/bindplane-agent/receiver/m365receiver"

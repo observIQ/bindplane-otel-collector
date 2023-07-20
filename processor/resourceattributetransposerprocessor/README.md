@@ -2,9 +2,9 @@
 This processor copies a resource level attribute to all individual logs or metric data points associated with the resource.
 If they key already exists, no action is taken (the attribute _**IS NOT**_ overwritten)
 
-## Minimum collector versions
-- Introduced: [v0.0.12](https://github.com/observIQ/observiq-otel-collector/releases/tag/v0.0.12)
-- Introduced support for logging pipelines: [v1.0.0](https://github.com/observIQ/observiq-otel-collector/releases/tag/v1.0.0)
+## Minimum agent versions
+- Introduced: [v0.0.12](https://github.com/observIQ/bindplane-agent/releases/tag/v0.0.12)
+- Introduced support for logging pipelines: [v1.0.0](https://github.com/observIQ/bindplane-agent/releases/tag/v1.0.0)
 
 ## Supported pipelines
 - Logs

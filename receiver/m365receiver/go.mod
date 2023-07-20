@@ -1,4 +1,4 @@
-module github.com/observiq/observiq-otel-collector/receiver/m365receiver
+module github.com/observiq/bindplane-agent/receiver/m365receiver
 
 go 1.19
 

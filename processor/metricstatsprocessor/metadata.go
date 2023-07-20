@@ -15,7 +15,7 @@
 package metricstatsprocessor
 
 import (
-	"github.com/observiq/observiq-otel-collector/processor/metricstatsprocessor/internal/stats"
+	"github.com/observiq/bindplane-agent/processor/metricstatsprocessor/internal/stats"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 )

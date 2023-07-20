@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package models contain request and response structures used for the SAPControl Web Service Interface
-package models // import "github.com/observiq/observiq-otel-collector/receiver/sapnetweaverreceiver/internal/models"
+package models // import "github.com/observiq/bindplane-agent/receiver/sapnetweaverreceiver/internal/models"
 
 import "encoding/xml"
 

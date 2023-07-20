@@ -1,4 +1,4 @@
-module github.com/observiq/observiq-otel-collector/receiver/pluginreceiver
+module github.com/observiq/bindplane-agent/receiver/pluginreceiver
 
 go 1.19
 

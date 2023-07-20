@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	models "github.com/observiq/observiq-otel-collector/receiver/sapnetweaverreceiver/internal/models"
+	models "github.com/observiq/bindplane-agent/receiver/sapnetweaverreceiver/internal/models"
 	mock "github.com/stretchr/testify/mock"
 )
 

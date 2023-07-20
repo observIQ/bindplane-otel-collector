@@ -21,7 +21,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/observiq/observiq-otel-collector/processor/metricstatsprocessor/internal/stats"
+	"github.com/observiq/bindplane-agent/processor/metricstatsprocessor/internal/stats"
 )
 
 // Config is the configuration for the processor

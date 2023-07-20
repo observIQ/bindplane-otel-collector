@@ -17,7 +17,7 @@ This exporter can be used to send metrics, traces, and logs to Google Cloud Moni
 | `retry_on_failure`  |                       | `false`  | Handle retries when sending data to Google Cloud fails. |
 | `sending_queue`     |                       | `false`  | Determines how telemetry data is buffered before exporting. |
 | `batch`             |                       | `false`  | The config of the exporter's [batch processor](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.81.0/processor/batchprocessor). |
-| `append_host`       |                       | `true`   | Append the collector's hostname to incoming telemetry if not already present. |
+| `append_host`       |                       | `true`   | Append the agent's hostname to incoming telemetry if not already present. |
 
 ## Metric Processing Steps
 When metric data is received by the Google Cloud Exporter, it is processed in the following steps:

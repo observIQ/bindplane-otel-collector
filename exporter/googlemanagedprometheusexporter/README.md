@@ -25,10 +25,10 @@ This exporter can be used to send metrics to Google Cloud Managed Service for Pr
 | `sending_queue`    | object  |                       | `false`  | Determines how telemetry data is buffered before exporting. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.81.0/exporter/exporterhelper/README.md) for more information. |
 
 ## Example configuration
-This configuration scrapes the collector's self metrics, using a credentials file to authenticate.
+This configuration scrapes the agent's self metrics, using a credentials file to authenticate.
 ```yaml
 receivers:
-  # Scrape the collector's self metrics with the prometheus receiver
+  # Scrape the agent's self metrics with the prometheus receiver
   prometheus:
     config:
       scrape_configs:

@@ -1,4 +1,4 @@
-module github.com/observiq/observiq-otel-collector/expr
+module github.com/observiq/bindplane-agent/expr
 
 go 1.19
 

@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/observiq/observiq-otel-collector/expr"
+	"github.com/observiq/bindplane-agent/expr"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/processor"

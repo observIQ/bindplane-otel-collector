@@ -1,4 +1,4 @@
-module github.com/observiq/observiq-otel-collector/processor/samplingprocessor
+module github.com/observiq/bindplane-agent/processor/samplingprocessor
 
 go 1.19
 

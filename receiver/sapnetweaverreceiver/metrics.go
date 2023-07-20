@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package sapnetweaverreceiver // import "github.com/observiq/observiq-otel-collector/receiver/sapnetweaverreceiver"
+package sapnetweaverreceiver // import "github.com/observiq/bindplane-agent/receiver/sapnetweaverreceiver"
 
 import (
 	"errors"
@@ -23,8 +23,8 @@ import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/receiver/scrapererror"
 
-	"github.com/observiq/observiq-otel-collector/receiver/sapnetweaverreceiver/internal/metadata"
-	"github.com/observiq/observiq-otel-collector/receiver/sapnetweaverreceiver/internal/models"
+	"github.com/observiq/bindplane-agent/receiver/sapnetweaverreceiver/internal/metadata"
+	"github.com/observiq/bindplane-agent/receiver/sapnetweaverreceiver/internal/models"
 )
 
 const (

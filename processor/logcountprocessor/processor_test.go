@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/observiq-otel-collector/receiver/routereceiver"
+	"github.com/observiq/bindplane-agent/receiver/routereceiver"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"

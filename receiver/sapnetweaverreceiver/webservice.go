@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package sapnetweaverreceiver // import "github.com/observiq/observiq-otel-collector/receiver/sapnetweaverreceiver"
+package sapnetweaverreceiver // import "github.com/observiq/bindplane-agent/receiver/sapnetweaverreceiver"
 
 import (
 	"bytes"
@@ -21,7 +21,7 @@ import (
 
 	"github.com/hooklift/gowsdl/soap"
 
-	"github.com/observiq/observiq-otel-collector/receiver/sapnetweaverreceiver/internal/models"
+	"github.com/observiq/bindplane-agent/receiver/sapnetweaverreceiver/internal/models"
 )
 
 type webService interface {

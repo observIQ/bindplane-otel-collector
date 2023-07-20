@@ -1,4 +1,4 @@
-module github.com/observiq/observiq-otel-collector/processor/maskprocessor
+module github.com/observiq/bindplane-agent/processor/maskprocessor
 
 go 1.19
 

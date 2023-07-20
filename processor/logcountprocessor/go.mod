@@ -1,11 +1,11 @@
-module github.com/observiq/observiq-otel-collector/processor/logcountprocessor
+module github.com/observiq/bindplane-agent/processor/logcountprocessor
 
 go 1.19
 
 require (
-	github.com/observiq/observiq-otel-collector/counter v1.30.0
-	github.com/observiq/observiq-otel-collector/expr v1.30.0
-	github.com/observiq/observiq-otel-collector/receiver/routereceiver v1.30.0
+	github.com/observiq/bindplane-agent/counter v1.30.0
+	github.com/observiq/bindplane-agent/expr v1.30.0
+	github.com/observiq/bindplane-agent/receiver/routereceiver v1.30.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.81.0
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/collector/component v0.81.0
@@ -58,8 +58,8 @@ require (
 	google.golang.org/protobuf v1.31.0 // indirect
 )
 
-replace github.com/observiq/observiq-otel-collector/receiver/routereceiver => ../../receiver/routereceiver
+replace github.com/observiq/bindplane-agent/receiver/routereceiver => ../../receiver/routereceiver
 
-replace github.com/observiq/observiq-otel-collector/expr => ../../expr
+replace github.com/observiq/bindplane-agent/expr => ../../expr
 
-replace github.com/observiq/observiq-otel-collector/counter => ../../counter
+replace github.com/observiq/bindplane-agent/counter => ../../counter

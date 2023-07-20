@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/observiq/observiq-otel-collector/expr"
-	"github.com/observiq/observiq-otel-collector/receiver/routereceiver"
+	"github.com/observiq/bindplane-agent/expr"
+	"github.com/observiq/bindplane-agent/receiver/routereceiver"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"

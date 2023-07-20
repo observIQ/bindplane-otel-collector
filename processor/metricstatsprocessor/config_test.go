@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/observiq-otel-collector/processor/metricstatsprocessor/internal/stats"
+	"github.com/observiq/bindplane-agent/processor/metricstatsprocessor/internal/stats"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"

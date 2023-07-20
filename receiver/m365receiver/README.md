@@ -10,8 +10,8 @@ Due to the nature of the APIs being used to collect data from Microsoft 365, the
 - When an instance of Microsoft 365 is going to have logs collected for the very first time, it can take several hours for logs to be made available by the API. After completing the required step (described in further detail [here](#configuring-microsoft-365)), wait 60 minutes before attempting to collect logs. It takes 60 minutes for activation to be completed, during which Microsoft will make it seem like logs are still disabled. Once logs are completely activated, it can still take up to 12 hours before any logs are available for consumption. During this time, logs can be "collected" but the API won't have any logs available. After this initial waiting period logs will begin to appear "regularly". Microsoft gives no guarantee on when logs will be made available in the API after they've occurred, but it's been observed to take around 3 hours in the worst case. This may change though depending on the tenant being monitored. For more info please see Microsoft's [documentation](https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference#working-with-the-office-365-management-activity-api).
 - As part of [configuring Microsoft 365](#configuring-microsoft-365) a client secret will need to be generated in Azure Active Directory. When this is done, a date for when the secret expires will need to be selected. The user is responsible for tracking expiration of secrets and generating new secrets as needed. 
 
-## Minimum Collector Versions
-- Introduced: [v1.27.0](https://github.com/observIQ/observiq-otel-collector/releases/tag/v1.27.0)
+## Minimum Agent Versions
+- Introduced: [v1.27.0](https://github.com/observIQ/bindplane-agent/releases/tag/v1.27.0)
 
 ## Supported Pipelines
 - Metrics
@@ -39,7 +39,7 @@ Due to the nature of the APIs being used to collect data from Microsoft 365, the
 | logs.sharepoint | bool | `true` | Indicates whether or not logs should be collected from the SharePoint audit/content blob. Can be omitted to indicate true. |  
 | logs.azureAD | bool | `true` | Indicates whether or not logs should be collected from the Azure Active Directory audit/content blob. Can be omitted to indicate true. | 
 | logs.dlp | bool | `true` | Indicates whether or not logs should be collected from the Data Loss Prevention audit/content blob. Can be omitted to indicate true. | 
-| storage | component | `(no default)` | The component ID of a storage extension which can be used when polling for `logs` . The storage extension prevents duplication of data after a collector restart by remembering which data were previously collected. No storage is used when omitted.                         
+| storage | component | `(no default)` | The component ID of a storage extension which can be used when polling for `logs` . The storage extension prevents duplication of data after a agent restart by remembering which data were previously collected. No storage is used when omitted.                         
 
 ## Example Configurations
 

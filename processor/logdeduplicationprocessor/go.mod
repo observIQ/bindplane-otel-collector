@@ -1,4 +1,4 @@
-module github.com/observiq/observiq-otel-collector/processor/logdeduplicationprocessor
+module github.com/observiq/bindplane-agent/processor/logdeduplicationprocessor
 
 go 1.19
 
