@@ -3,9 +3,9 @@ module github.com/observiq/bindplane-agent/processor/spancountprocessor
 go 1.19
 
 require (
-	github.com/observiq/bindplane-agent/counter v1.30.0
-	github.com/observiq/bindplane-agent/expr v1.30.0
-	github.com/observiq/bindplane-agent/receiver/routereceiver v1.30.0
+	github.com/observiq/bindplane-agent/counter v1.31.0
+	github.com/observiq/bindplane-agent/expr v1.31.0
+	github.com/observiq/bindplane-agent/receiver/routereceiver v1.31.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.81.0
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/collector/component v0.81.0
