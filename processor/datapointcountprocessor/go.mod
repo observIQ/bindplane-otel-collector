@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-agent/processor/datapointcountprocessor
 
-go 1.19
+go 1.20
 
 require (
 	github.com/observiq/bindplane-agent/counter v1.33.0
