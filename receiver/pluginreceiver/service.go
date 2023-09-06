@@ -51,4 +51,4 @@ func createServiceLoggerOpts(baseLogger *zap.Logger) []zap.Option {
 }
 
 // createServiceFunc is a function used to create a service
-type createServiceFunc = func(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error)
+type createServiceFunc func(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error)

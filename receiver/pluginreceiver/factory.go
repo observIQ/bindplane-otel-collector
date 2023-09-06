@@ -99,5 +99,6 @@ func createReceiver(cfg component.Config, set receiver.CreateSettings, emitterFa
 		emitterFactory: emitterFactory,
 		logger:         set.Logger,
 		createService:  createService,
+		doneChan:       make(chan struct{}),
 	}, nil
 }

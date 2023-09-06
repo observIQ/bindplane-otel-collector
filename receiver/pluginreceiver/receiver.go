@@ -34,6 +34,8 @@ type Receiver struct {
 	logger         *zap.Logger
 	createService  createServiceFunc
 	service        Service
+
+	doneChan chan struct{}
 }
 
 // Start starts the receiver's internal service
@@ -56,7 +58,7 @@ func (r *Receiver) Start(ctx context.Context, host component.Host) error {
 	}
 	r.service = service
 
-	if err := startService(ctx, service); err != nil {
+	if err := r.startService(ctx, service); err != nil {
 		return fmt.Errorf("failed to start internal service: %w", err)
 	}
 
@@ -64,21 +66,29 @@ func (r *Receiver) Start(ctx context.Context, host component.Host) error {
 }
 
 // Shutdown stops the receiver's internal service
-func (r *Receiver) Shutdown(_ context.Context) error {
+func (r *Receiver) Shutdown(ctx context.Context) error {
 	if r.service != nil {
 		r.service.Shutdown()
+
+		// Wait for service to actually shutdown, since shutdown is asynchronous
+		select {
+		case <-ctx.Done():
+			r.logger.Warn("Context done before service properly shut down.", zap.Error(ctx.Err()))
+		case <-r.doneChan:
+		}
 	}
 
 	return nil
 }
 
 // startService starts the provided service
-func startService(ctx context.Context, svc Service) error {
+func (r *Receiver) startService(ctx context.Context, svc Service) error {
 	errChan := make(chan error)
 	go func() {
 		if err := svc.Run(ctx); err != nil {
 			errChan <- err
 		}
+		close(r.doneChan)
 	}()
 
 	ticker := time.NewTicker(time.Millisecond * 250)
