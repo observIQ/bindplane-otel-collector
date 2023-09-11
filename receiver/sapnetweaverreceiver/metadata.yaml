@@ -75,7 +75,7 @@ metrics:
     unit: 1
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: [hostname, instance_number, feature, control_state]
     enabled: true
@@ -85,7 +85,7 @@ metrics:
     unit: 1
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: [process_name, process_description, control_state]
     enabled: true
@@ -95,7 +95,7 @@ metrics:
     unit: "ms"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
       input_type: string
     attributes: []
@@ -141,7 +141,7 @@ metrics:
     unit: "By"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: []
     enabled: true
@@ -151,7 +151,7 @@ metrics:
     unit: "By"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: []
     enabled: true
@@ -169,7 +169,7 @@ metrics:
     unit: "{work_processes}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: [instance, wp_type, wp_status]
     enabled: true
@@ -179,7 +179,7 @@ metrics:
     unit: "s"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: [certificate_path]
     enabled: true
@@ -189,7 +189,7 @@ metrics:
     unit: "{connections}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: [session_type]
     enabled: true
@@ -199,7 +199,7 @@ metrics:
     unit: 1
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: [wp_type]
     enabled: true
@@ -209,7 +209,7 @@ metrics:
     unit: 1
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: [wp_type]
     enabled: true
@@ -219,7 +219,7 @@ metrics:
     unit: 1
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: [wp_type]
     enabled: true
@@ -229,7 +229,7 @@ metrics:
     unit: "{errors}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
       input_type: string
     attributes: []
@@ -240,7 +240,7 @@ metrics:
     unit: "{sessions}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: [session_type]
     enabled: true
@@ -250,7 +250,7 @@ metrics:
     unit: "{locks}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: []
     enabled: true
@@ -260,7 +260,7 @@ metrics:
     unit: "{locks}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: []
     enabled: true
@@ -270,7 +270,7 @@ metrics:
     unit: "{locks}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: []
     enabled: true
@@ -280,7 +280,7 @@ metrics:
     unit: "ms"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: []
     enabled: true
@@ -290,7 +290,7 @@ metrics:
     unit: "ms"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: []
     enabled: true
@@ -300,7 +300,7 @@ metrics:
     unit: "{errors}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: []
     enabled: true
@@ -310,7 +310,7 @@ metrics:
     unit: "{errors}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: []
     enabled: true
@@ -320,7 +320,7 @@ metrics:
     unit: "{dumps}/min"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
       input_type: string
     attributes: []
@@ -331,7 +331,7 @@ metrics:
     unit: "{sessions}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
       input_type: string
     attributes: []
@@ -342,7 +342,7 @@ metrics:
     unit: "{sessions}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
       input_type: string
     attributes: []
@@ -353,7 +353,7 @@ metrics:
     unit: "{sessions}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
       input_type: string
     attributes: []
@@ -364,7 +364,7 @@ metrics:
     unit: "{sessions}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
       input_type: string
     attributes: []
@@ -375,7 +375,7 @@ metrics:
     unit: "{sessions}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
       input_type: string
     attributes: []
@@ -386,7 +386,7 @@ metrics:
     unit: "{sessions}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
       input_type: string
     attributes: []
@@ -397,7 +397,7 @@ metrics:
     unit: 1
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: [control_state]
     enabled: true
@@ -407,7 +407,7 @@ metrics:
     unit: 1
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
     attributes: [control_state]
     enabled: true
@@ -416,7 +416,7 @@ metrics:
     unit: "ms"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
       input_type: string
     attributes: [response_type]
@@ -427,7 +427,7 @@ metrics:
     unit: "{requests}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
       input_type: string
     attributes: []
@@ -438,7 +438,7 @@ metrics:
     unit: "{timeouts}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
       input_type: string
     attributes: []
@@ -449,7 +449,7 @@ metrics:
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General > StatNoOfConnectErrors.
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
       input_type: string
     attributes: []
@@ -469,7 +469,7 @@ metrics:
     unit: "{entries}"
     sum:
       monotonic: false
-      aggregation: cumulative
+      aggregation_temporality: cumulative
       value_type: int
       input_type: string
     attributes: []

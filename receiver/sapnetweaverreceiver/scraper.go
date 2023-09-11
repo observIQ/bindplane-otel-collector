@@ -41,6 +41,7 @@ type sapNetweaverScraper struct {
 	instance string
 	hostname string
 	SID      string
+	rb       *metadata.ResourceBuilder
 	mb       *metadata.MetricsBuilder
 }
 
@@ -51,6 +52,7 @@ func newSapNetweaverScraper(
 	a := &sapNetweaverScraper{
 		settings: settings.TelemetrySettings,
 		cfg:      cfg,
+		rb:       metadata.NewResourceBuilder(cfg.MetricsBuilderConfig.ResourceAttributes),
 		mb:       metadata.NewMetricsBuilder(cfg.MetricsBuilderConfig, settings),
 	}
 
@@ -115,7 +117,10 @@ func (s *sapNetweaverScraper) collectMetrics(ctx context.Context, errs *scrapere
 	s.collectCertificateValidity(ctx, now, errs)
 	s.collectDpmonMetrics(ctx, now, errs)
 
-	s.mb.EmitForResource(metadata.WithSapnetweaverInstance(s.instance), metadata.WithSapnetweaverNode(s.hostname), metadata.WithSapnetweaverSID(s.SID))
+	s.rb.SetSapnetweaverInstance(s.instance)
+	s.rb.SetSapnetweaverNode(s.hostname)
+	s.rb.SetSapnetweaverSID(s.SID)
+	s.mb.EmitForResource(metadata.WithResource(s.rb.Emit()))
 }
 
 // collectABAPGetSystemWPTable collects metrics from the ABAPGetSystemWPTable method
