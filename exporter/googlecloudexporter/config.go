@@ -132,7 +132,6 @@ func createDefaultConfig(collectorVersion string) func() component.Config {
 func createDefaultGCPConfig(collectorVersion string) *gcp.Config {
 	factory := gcp.NewFactory()
 	config := factory.CreateDefaultConfig().(*gcp.Config)
-	config.RetrySettings.Enabled = false
 	config.UserAgent = fmt.Sprintf("%s/%s", defaultUserAgent, collectorVersion)
 	config.MetricConfig.Prefix = defaultMetricPrefix
 	config.LogConfig.DefaultLogName, _ = os.Hostname()
