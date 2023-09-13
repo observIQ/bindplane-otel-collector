@@ -56,15 +56,15 @@ func TestMetricsBuilder(t *testing.T) {
 
 			defaultMetricsCount++
 			allMetricsCount++
-			mb.RecordSapnetweaverAbapRfcCountDataPoint(ts, 1, "attr-val")
+			mb.RecordSapnetweaverAbapRfcCountDataPoint(ts, 1, "session_type-val")
 
 			defaultMetricsCount++
 			allMetricsCount++
-			mb.RecordSapnetweaverAbapSessionCountDataPoint(ts, 1, "attr-val")
+			mb.RecordSapnetweaverAbapSessionCountDataPoint(ts, 1, "session_type-val")
 
 			defaultMetricsCount++
 			allMetricsCount++
-			mb.RecordSapnetweaverAbapUpdateStatusDataPoint(ts, 1, AttributeControlState(1))
+			mb.RecordSapnetweaverAbapUpdateStatusDataPoint(ts, 1, AttributeControlStateGray)
 
 			defaultMetricsCount++
 			allMetricsCount++
@@ -76,7 +76,7 @@ func TestMetricsBuilder(t *testing.T) {
 
 			defaultMetricsCount++
 			allMetricsCount++
-			mb.RecordSapnetweaverCertificateValidityDataPoint(ts, 1, "attr-val")
+			mb.RecordSapnetweaverCertificateValidityDataPoint(ts, 1, "certificate_path-val")
 
 			defaultMetricsCount++
 			allMetricsCount++
@@ -148,19 +148,19 @@ func TestMetricsBuilder(t *testing.T) {
 
 			defaultMetricsCount++
 			allMetricsCount++
-			mb.RecordSapnetweaverProcessAvailabilityDataPoint(ts, 1, "attr-val", "attr-val", AttributeControlState(1))
+			mb.RecordSapnetweaverProcessAvailabilityDataPoint(ts, 1, "process_name-val", "process_description-val", AttributeControlStateGray)
 
 			defaultMetricsCount++
 			allMetricsCount++
-			mb.RecordSapnetweaverQueueCountDataPoint(ts, 1, "attr-val")
+			mb.RecordSapnetweaverQueueCountDataPoint(ts, 1, "wp_type-val")
 
 			defaultMetricsCount++
 			allMetricsCount++
-			mb.RecordSapnetweaverQueueMaxCountDataPoint(ts, 1, "attr-val")
+			mb.RecordSapnetweaverQueueMaxCountDataPoint(ts, 1, "wp_type-val")
 
 			defaultMetricsCount++
 			allMetricsCount++
-			mb.RecordSapnetweaverQueuePeakCountDataPoint(ts, 1, "attr-val")
+			mb.RecordSapnetweaverQueuePeakCountDataPoint(ts, 1, "wp_type-val")
 
 			defaultMetricsCount++
 			allMetricsCount++
@@ -172,7 +172,7 @@ func TestMetricsBuilder(t *testing.T) {
 
 			defaultMetricsCount++
 			allMetricsCount++
-			mb.RecordSapnetweaverResponseDurationDataPoint(ts, "1", AttributeResponseType(1))
+			mb.RecordSapnetweaverResponseDurationDataPoint(ts, "1", AttributeResponseTypeTransaction)
 
 			defaultMetricsCount++
 			allMetricsCount++
@@ -208,17 +208,22 @@ func TestMetricsBuilder(t *testing.T) {
 
 			defaultMetricsCount++
 			allMetricsCount++
-			mb.RecordSapnetweaverSystemInstanceAvailabilityDataPoint(ts, 1, "attr-val", 1, "attr-val", AttributeControlState(1))
+			mb.RecordSapnetweaverSystemInstanceAvailabilityDataPoint(ts, 1, "hostname-val", 15, "feature-val", AttributeControlStateGray)
 
 			defaultMetricsCount++
 			allMetricsCount++
-			mb.RecordSapnetweaverWorkProcessActiveCountDataPoint(ts, 1, "attr-val", "attr-val", "attr-val")
+			mb.RecordSapnetweaverWorkProcessActiveCountDataPoint(ts, 1, "instance-val", "wp_type-val", "wp_status-val")
 
 			defaultMetricsCount++
 			allMetricsCount++
-			mb.RecordSapnetweaverWorkProcessJobAbortedStatusDataPoint(ts, 1, AttributeControlState(1))
+			mb.RecordSapnetweaverWorkProcessJobAbortedStatusDataPoint(ts, 1, AttributeControlStateGray)
 
-			metrics := mb.Emit(WithSapnetweaverSID("attr-val"), WithSapnetweaverInstance("attr-val"), WithSapnetweaverNode("attr-val"))
+			rb := mb.NewResourceBuilder()
+			rb.SetSapnetweaverSID("sapnetweaver.SID-val")
+			rb.SetSapnetweaverInstance("sapnetweaver.instance-val")
+			rb.SetSapnetweaverNode("sapnetweaver.node-val")
+			res := rb.Emit()
+			metrics := mb.Emit(WithResource(res))
 
 			if test.configSet == testSetNone {
 				assert.Equal(t, 0, metrics.ResourceMetrics().Len())
@@ -227,32 +232,7 @@ func TestMetricsBuilder(t *testing.T) {
 
 			assert.Equal(t, 1, metrics.ResourceMetrics().Len())
 			rm := metrics.ResourceMetrics().At(0)
-			attrCount := 0
-			enabledAttrCount := 0
-			attrVal, ok := rm.Resource().Attributes().Get("sapnetweaver.SID")
-			attrCount++
-			assert.Equal(t, mb.resourceAttributesConfig.SapnetweaverSID.Enabled, ok)
-			if mb.resourceAttributesConfig.SapnetweaverSID.Enabled {
-				enabledAttrCount++
-				assert.EqualValues(t, "attr-val", attrVal.Str())
-			}
-			attrVal, ok = rm.Resource().Attributes().Get("sapnetweaver.instance")
-			attrCount++
-			assert.Equal(t, mb.resourceAttributesConfig.SapnetweaverInstance.Enabled, ok)
-			if mb.resourceAttributesConfig.SapnetweaverInstance.Enabled {
-				enabledAttrCount++
-				assert.EqualValues(t, "attr-val", attrVal.Str())
-			}
-			attrVal, ok = rm.Resource().Attributes().Get("sapnetweaver.node")
-			attrCount++
-			assert.Equal(t, mb.resourceAttributesConfig.SapnetweaverNode.Enabled, ok)
-			if mb.resourceAttributesConfig.SapnetweaverNode.Enabled {
-				enabledAttrCount++
-				assert.EqualValues(t, "attr-val", attrVal.Str())
-			}
-			assert.Equal(t, enabledAttrCount, rm.Resource().Attributes().Len())
-			assert.Equal(t, attrCount, 3)
-
+			assert.Equal(t, res, rm.Resource())
 			assert.Equal(t, 1, rm.ScopeMetrics().Len())
 			ms := rm.ScopeMetrics().At(0).Metrics()
 			if test.configSet == testSetDefault {
@@ -280,7 +260,7 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("session_type")
 					assert.True(t, ok)
-					assert.EqualValues(t, "attr-val", attrVal.Str())
+					assert.EqualValues(t, "session_type-val", attrVal.Str())
 				case "sapnetweaver.abap.session.count":
 					assert.False(t, validatedMetrics["sapnetweaver.abap.session.count"], "Found a duplicate in the metrics slice: sapnetweaver.abap.session.count")
 					validatedMetrics["sapnetweaver.abap.session.count"] = true
@@ -297,7 +277,7 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("session_type")
 					assert.True(t, ok)
-					assert.EqualValues(t, "attr-val", attrVal.Str())
+					assert.EqualValues(t, "session_type-val", attrVal.Str())
 				case "sapnetweaver.abap.update.status":
 					assert.False(t, validatedMetrics["sapnetweaver.abap.update.status"], "Found a duplicate in the metrics slice: sapnetweaver.abap.update.status")
 					validatedMetrics["sapnetweaver.abap.update.status"] = true
@@ -314,7 +294,7 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("state")
 					assert.True(t, ok)
-					assert.Equal(t, "gray", attrVal.Str())
+					assert.EqualValues(t, "gray", attrVal.Str())
 				case "sapnetweaver.cache.evictions":
 					assert.False(t, validatedMetrics["sapnetweaver.cache.evictions"], "Found a duplicate in the metrics slice: sapnetweaver.cache.evictions")
 					validatedMetrics["sapnetweaver.cache.evictions"] = true
@@ -357,7 +337,7 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("certificate_path")
 					assert.True(t, ok)
-					assert.EqualValues(t, "attr-val", attrVal.Str())
+					assert.EqualValues(t, "certificate_path-val", attrVal.Str())
 				case "sapnetweaver.connection.error.count":
 					assert.False(t, validatedMetrics["sapnetweaver.connection.error.count"], "Found a duplicate in the metrics slice: sapnetweaver.connection.error.count")
 					validatedMetrics["sapnetweaver.connection.error.count"] = true
@@ -600,13 +580,13 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("process_name")
 					assert.True(t, ok)
-					assert.EqualValues(t, "attr-val", attrVal.Str())
+					assert.EqualValues(t, "process_name-val", attrVal.Str())
 					attrVal, ok = dp.Attributes().Get("process_description")
 					assert.True(t, ok)
-					assert.EqualValues(t, "attr-val", attrVal.Str())
+					assert.EqualValues(t, "process_description-val", attrVal.Str())
 					attrVal, ok = dp.Attributes().Get("state")
 					assert.True(t, ok)
-					assert.Equal(t, "gray", attrVal.Str())
+					assert.EqualValues(t, "gray", attrVal.Str())
 				case "sapnetweaver.queue.count":
 					assert.False(t, validatedMetrics["sapnetweaver.queue.count"], "Found a duplicate in the metrics slice: sapnetweaver.queue.count")
 					validatedMetrics["sapnetweaver.queue.count"] = true
@@ -623,7 +603,7 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("wp_type")
 					assert.True(t, ok)
-					assert.EqualValues(t, "attr-val", attrVal.Str())
+					assert.EqualValues(t, "wp_type-val", attrVal.Str())
 				case "sapnetweaver.queue_max.count":
 					assert.False(t, validatedMetrics["sapnetweaver.queue_max.count"], "Found a duplicate in the metrics slice: sapnetweaver.queue_max.count")
 					validatedMetrics["sapnetweaver.queue_max.count"] = true
@@ -640,7 +620,7 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("wp_type")
 					assert.True(t, ok)
-					assert.EqualValues(t, "attr-val", attrVal.Str())
+					assert.EqualValues(t, "wp_type-val", attrVal.Str())
 				case "sapnetweaver.queue_peak.count":
 					assert.False(t, validatedMetrics["sapnetweaver.queue_peak.count"], "Found a duplicate in the metrics slice: sapnetweaver.queue_peak.count")
 					validatedMetrics["sapnetweaver.queue_peak.count"] = true
@@ -657,7 +637,7 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("wp_type")
 					assert.True(t, ok)
-					assert.EqualValues(t, "attr-val", attrVal.Str())
+					assert.EqualValues(t, "wp_type-val", attrVal.Str())
 				case "sapnetweaver.request.count":
 					assert.False(t, validatedMetrics["sapnetweaver.request.count"], "Found a duplicate in the metrics slice: sapnetweaver.request.count")
 					validatedMetrics["sapnetweaver.request.count"] = true
@@ -702,7 +682,7 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("response_type")
 					assert.True(t, ok)
-					assert.Equal(t, "transaction", attrVal.Str())
+					assert.EqualValues(t, "transaction", attrVal.Str())
 				case "sapnetweaver.session.count":
 					assert.False(t, validatedMetrics["sapnetweaver.session.count"], "Found a duplicate in the metrics slice: sapnetweaver.session.count")
 					validatedMetrics["sapnetweaver.session.count"] = true
@@ -831,16 +811,16 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("hostname")
 					assert.True(t, ok)
-					assert.EqualValues(t, "attr-val", attrVal.Str())
+					assert.EqualValues(t, "hostname-val", attrVal.Str())
 					attrVal, ok = dp.Attributes().Get("instance_number")
 					assert.True(t, ok)
-					assert.EqualValues(t, 1, attrVal.Int())
+					assert.EqualValues(t, 15, attrVal.Int())
 					attrVal, ok = dp.Attributes().Get("feature")
 					assert.True(t, ok)
-					assert.EqualValues(t, "attr-val", attrVal.Str())
+					assert.EqualValues(t, "feature-val", attrVal.Str())
 					attrVal, ok = dp.Attributes().Get("state")
 					assert.True(t, ok)
-					assert.Equal(t, "gray", attrVal.Str())
+					assert.EqualValues(t, "gray", attrVal.Str())
 				case "sapnetweaver.work_process.active.count":
 					assert.False(t, validatedMetrics["sapnetweaver.work_process.active.count"], "Found a duplicate in the metrics slice: sapnetweaver.work_process.active.count")
 					validatedMetrics["sapnetweaver.work_process.active.count"] = true
@@ -857,13 +837,13 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("instance")
 					assert.True(t, ok)
-					assert.EqualValues(t, "attr-val", attrVal.Str())
+					assert.EqualValues(t, "instance-val", attrVal.Str())
 					attrVal, ok = dp.Attributes().Get("wp_type")
 					assert.True(t, ok)
-					assert.EqualValues(t, "attr-val", attrVal.Str())
+					assert.EqualValues(t, "wp_type-val", attrVal.Str())
 					attrVal, ok = dp.Attributes().Get("wp_status")
 					assert.True(t, ok)
-					assert.EqualValues(t, "attr-val", attrVal.Str())
+					assert.EqualValues(t, "wp_status-val", attrVal.Str())
 				case "sapnetweaver.work_process.job.aborted.status":
 					assert.False(t, validatedMetrics["sapnetweaver.work_process.job.aborted.status"], "Found a duplicate in the metrics slice: sapnetweaver.work_process.job.aborted.status")
 					validatedMetrics["sapnetweaver.work_process.job.aborted.status"] = true
@@ -880,7 +860,7 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("state")
 					assert.True(t, ok)
-					assert.Equal(t, "gray", attrVal.Str())
+					assert.EqualValues(t, "gray", attrVal.Str())
 				}
 			}
 		})

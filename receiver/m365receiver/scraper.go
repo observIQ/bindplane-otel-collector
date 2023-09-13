@@ -256,6 +256,7 @@ type m365Scraper struct {
 	logger   *zap.Logger
 	cfg      *Config
 	client   mClient
+	rb       *metadata.ResourceBuilder
 	mb       *metadata.MetricsBuilder
 	root     string
 }
@@ -268,6 +269,7 @@ func newM365Scraper(
 		settings: settings.TelemetrySettings,
 		logger:   settings.Logger,
 		cfg:      cfg,
+		rb:       metadata.NewResourceBuilder(cfg.MetricsBuilderConfig.ResourceAttributes),
 		mb:       metadata.NewMetricsBuilder(cfg.MetricsBuilderConfig, settings),
 		root:     "https://graph.microsoft.com/v1.0/reports/",
 	}
@@ -323,7 +325,8 @@ func (m *m365Scraper) scrape(ctx context.Context) (pmetric.Metrics, error) {
 		}
 	}
 
-	return m.mb.Emit(metadata.WithM365TenantID(m.cfg.TenantID)), nil
+	m.rb.SetM365TenantID(m.cfg.TenantID)
+	return m.mb.Emit(metadata.WithResource(m.rb.Emit())), nil
 }
 
 func (m *m365Scraper) getStats(ctx context.Context) error {
