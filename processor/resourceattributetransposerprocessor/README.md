@@ -1,6 +1,6 @@
 # Resource Attribute Transposer Processor
 This processor copies a resource level attribute to all individual logs or metric data points associated with the resource.
-If they key already exists, no action is taken (the attribute _**IS NOT**_ overwritten)
+If the key already exists, no action is taken (the attribute _**IS NOT**_ overwritten)
 
 ## Minimum agent versions
 - Introduced: [v0.0.12](https://github.com/observIQ/bindplane-agent/releases/tag/v0.0.12)
