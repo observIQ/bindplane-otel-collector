@@ -103,11 +103,19 @@ func TestProcessorShutdownCtxError(t *testing.T) {
 	p, err := newProcessor(cfg, logsSink, logger)
 	require.NoError(t, err)
 
-	err = p.Start(context.Background(), componenttest.NewNopHost())
-	require.NoError(t, err)
+	// We don't call p.Start as it can create a non-deterministic situation in Shutdown where we may not exit due to ctx error
+
+	// Create empty cancel func as this is called during shutdown
+	p.cancel = func() {}
+
+	// Add one to wait group to ensure shutdown blocks and the ctx error will trigger
+	p.wg.Add(1)
 
 	err = p.Shutdown(ctx)
 	require.ErrorIs(t, err, context.Canceled)
+
+	// Call done to ensure goroutine spawned in Shutdown doesn't leak
+	p.wg.Done()
 }
 
 func TestProcessorCapabilities(t *testing.T) {
