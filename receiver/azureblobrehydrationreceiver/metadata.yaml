@@ -1,0 +1,6 @@
+type: azureblobrehydration
+
+status:
+  class: receiver
+  stability:
+    alpha: [metrics, logs, traces]
