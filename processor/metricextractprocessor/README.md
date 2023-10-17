@@ -24,9 +24,9 @@ This processor is used to extract metrics from logs.
 | ottl_attributes | map    | `{}`               | The mapped attributes of the metric created. Each key is an attribute name. Each value is an [OTTL] expression. All paths in the [log context] are available to reference. All [converters] are available to use.                                                   |
 | attributes      | map    | `{}`               | **DEPRECATED** use `ottl_attributes` instead. The mapped attributes of the metric created. Each key is an attribute name. Each value is an [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) that extracts data from the log. |
 
-[OTTL]: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.86.0/pkg/ottl#readme
-[converters]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.86.0/pkg/ottl/ottlfuncs/README.md#converters
-[log context]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.86.0/pkg/ottl/contexts/ottllog/README.md
+[OTTL]: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.87.0/pkg/ottl#readme
+[converters]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.87.0/pkg/ottl/ottlfuncs/README.md#converters
+[log context]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.87.0/pkg/ottl/contexts/ottllog/README.md
 
 ### Example Config
 The following config is an example configuration of the metric extract processor using default values. In this example, logs are collected from a file, sent to the processor to have a `byte.count` metric extracted, and then consumed by the logging exporter. The metrics created are sent to the Google Cloud exporter.

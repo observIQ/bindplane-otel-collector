@@ -18,7 +18,7 @@ import (
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
-	"go.opentelemetry.io/collector/obsreport"
+	"go.opentelemetry.io/collector/processor/processorhelper"
 )
 
 const tagProcessorKey = "processor"
@@ -38,42 +38,42 @@ func metricViews() []*view.View {
 
 	return []*view.View{
 		{
-			Name:        obsreport.BuildProcessorCustomMetricName(string(typeStr), logDataSize.Name()),
+			Name:        processorhelper.BuildCustomMetricName(string(typeStr), logDataSize.Name()),
 			Description: logDataSize.Description(),
 			Measure:     logDataSize,
 			TagKeys:     processorTagKeys,
 			Aggregation: view.Sum(),
 		},
 		{
-			Name:        obsreport.BuildProcessorCustomMetricName(string(typeStr), metricDataSize.Name()),
+			Name:        processorhelper.BuildCustomMetricName(string(typeStr), metricDataSize.Name()),
 			Description: metricDataSize.Description(),
 			Measure:     metricDataSize,
 			TagKeys:     processorTagKeys,
 			Aggregation: view.Sum(),
 		},
 		{
-			Name:        obsreport.BuildProcessorCustomMetricName(string(typeStr), traceDataSize.Name()),
+			Name:        processorhelper.BuildCustomMetricName(string(typeStr), traceDataSize.Name()),
 			Description: traceDataSize.Description(),
 			Measure:     traceDataSize,
 			TagKeys:     processorTagKeys,
 			Aggregation: view.Sum(),
 		},
 		{
-			Name:        obsreport.BuildProcessorCustomMetricName(string(typeStr), logCount.Name()),
+			Name:        processorhelper.BuildCustomMetricName(string(typeStr), logCount.Name()),
 			Description: logCount.Description(),
 			Measure:     logCount,
 			TagKeys:     processorTagKeys,
 			Aggregation: view.Sum(),
 		},
 		{
-			Name:        obsreport.BuildProcessorCustomMetricName(string(typeStr), metricCount.Name()),
+			Name:        processorhelper.BuildCustomMetricName(string(typeStr), metricCount.Name()),
 			Description: metricCount.Description(),
 			Measure:     metricCount,
 			TagKeys:     processorTagKeys,
 			Aggregation: view.Sum(),
 		},
 		{
-			Name:        obsreport.BuildProcessorCustomMetricName(string(typeStr), traceCount.Name()),
+			Name:        processorhelper.BuildCustomMetricName(string(typeStr), traceCount.Name()),
 			Description: traceCount.Description(),
 			Measure:     traceCount,
 			TagKeys:     processorTagKeys,
