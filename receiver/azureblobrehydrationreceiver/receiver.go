@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-agent/receiver/azureblobrehydrationreceiver/internal/azureblob"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/adapter"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/extension/experimental/storage"
@@ -140,8 +139,9 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 
 // Start starts the rehydration receiver
 func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) error {
+
 	if r.cfg.StorageID != nil {
-		storageClient, err := adapter.GetStorageClient(ctx, host, r.cfg.StorageID, r.id)
+		storageClient, err := getStorageClient(ctx, host, r.cfg.StorageID, r.id, r.supportedTelemetry)
 		if err != nil {
 			return fmt.Errorf("getStorageClient: %w", err)
 		}
@@ -156,12 +156,16 @@ func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) er
 // Shutdown shuts down the rehydration receiver
 func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 	r.cancelFunc(errors.New("shutdown"))
+	var err error
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		err = ctx.Err()
 	case <-r.doneChan:
-		return nil
 	}
+
+	err = errors.Join(err, r.storageClient.Close(ctx))
+
+	return err
 }
 
 // scrape scrapes the Azure api on interval
@@ -385,4 +389,23 @@ func gzipDecompress(contents []byte) ([]byte, error) {
 	}
 
 	return result, nil
+}
+
+// getStorageClient gets the storage client for this receiver, taking into account the component ID and data type.
+func getStorageClient(ctx context.Context, host component.Host, storageID *component.ID, componentID component.ID, componentType component.DataType) (storage.Client, error) {
+	if storageID == nil {
+		return storage.NewNopClient(), nil
+	}
+
+	extension, ok := host.GetExtensions()[*storageID]
+	if !ok {
+		return nil, fmt.Errorf("storage extension '%s' not found", storageID)
+	}
+
+	storageExtension, ok := extension.(storage.Extension)
+	if !ok {
+		return nil, fmt.Errorf("non-storage extension '%s' found", storageID)
+	}
+
+	return storageExtension.GetClient(ctx, component.KindReceiver, componentID, string(componentType))
 }
