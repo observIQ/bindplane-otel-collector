@@ -3,9 +3,9 @@ module github.com/observiq/bindplane-agent/processor/datapointcountprocessor
 go 1.20
 
 require (
-	github.com/observiq/bindplane-agent/counter v1.39.0
-	github.com/observiq/bindplane-agent/expr v1.39.0
-	github.com/observiq/bindplane-agent/receiver/routereceiver v1.39.0
+	github.com/observiq/bindplane-agent/counter v1.39.1
+	github.com/observiq/bindplane-agent/expr v1.39.1
+	github.com/observiq/bindplane-agent/receiver/routereceiver v1.39.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.88.0
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/collector/component v0.88.0
