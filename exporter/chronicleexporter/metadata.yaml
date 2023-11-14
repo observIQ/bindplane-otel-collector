@@ -1,0 +1,7 @@
+type: chronicle
+
+status:
+  class: exporter
+  stability:
+    alpha: [logs]
+  distributions: [observiq]
