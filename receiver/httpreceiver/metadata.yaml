@@ -1,0 +1,7 @@
+type: http
+
+status:
+  class: receiver
+  stability:
+    alpha: [logs]
+  distributions: [observiq]

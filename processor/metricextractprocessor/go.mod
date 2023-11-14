@@ -3,8 +3,8 @@ module github.com/observiq/bindplane-agent/processor/metricextractprocessor
 go 1.20
 
 require (
-	github.com/observiq/bindplane-agent/expr v1.38.1
-	github.com/observiq/bindplane-agent/receiver/routereceiver v1.38.1
+	github.com/observiq/bindplane-agent/expr v1.39.0
+	github.com/observiq/bindplane-agent/receiver/routereceiver v1.39.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.88.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.88.0
 	github.com/stretchr/testify v1.8.4
@@ -21,7 +21,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
-	github.com/google/uuid v1.3.1 // indirect
+	github.com/google/uuid v1.4.0 // indirect
 	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/knadh/koanf/v2 v2.0.1 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.88.0 // indirect
@@ -52,7 +52,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.19.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/sys v0.14.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
