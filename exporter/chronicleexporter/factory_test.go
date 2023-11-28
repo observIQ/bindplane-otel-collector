@@ -26,6 +26,7 @@ func Test_createDefaultConfig(t *testing.T) {
 		TimeoutSettings: exporterhelper.NewDefaultTimeoutSettings(),
 		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
 		RetrySettings:   exporterhelper.NewDefaultRetrySettings(),
+		OverrideLogType: true,
 	}
 
 	actual := createDefaultConfig()

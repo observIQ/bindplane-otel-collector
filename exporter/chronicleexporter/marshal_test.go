@@ -17,6 +17,7 @@ package chronicleexporter
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -70,12 +71,13 @@ func mockLogRecordWithNestedBody(body map[string]any) plog.LogRecord {
 
 func TestMarshalRawLogs(t *testing.T) {
 	tests := []struct {
-		name         string
-		logRecords   []plog.LogRecord
-		expectedJSON string
-		logType      string
-		rawLogField  string
-		errExpected  error
+		name            string
+		logRecords      []plog.LogRecord
+		expectedJSON    string
+		logType         string
+		rawLogField     string
+		errExpected     error
+		overrideLogType bool
 	}{
 		{
 			name: "Single log record",
@@ -117,7 +119,7 @@ func TestMarshalRawLogs(t *testing.T) {
 		{
 			name:         "Empty log record",
 			logRecords:   []plog.LogRecord{},
-			expectedJSON: `{"customer_id":"test_customer_id","entries":[],"log_type":"test_log_type"}`,
+			expectedJSON: ``, // No payload of logs expected
 			logType:      "test_log_type",
 			rawLogField:  "body",
 		},
@@ -126,7 +128,7 @@ func TestMarshalRawLogs(t *testing.T) {
 			logRecords: []plog.LogRecord{
 				mockLogRecord(t, "Test body", map[string]any{"key1": "value1"}),
 			},
-			expectedJSON: `{"customer_id":"test_customer_id","entries":[],"log_type":"test_log_type"}`,
+			expectedJSON: ``, // No payload of logs expected
 			logType:      "test_log_type",
 			rawLogField:  `attributes["missing"]`,
 			// No error expected because the record will be dropped.
@@ -174,11 +176,41 @@ func TestMarshalRawLogs(t *testing.T) {
 			logType:      "test_log_type",
 			rawLogField:  "", // No rawLogField specified
 		},
+		{
+			name: "Log type override",
+			logRecords: []plog.LogRecord{
+				mockLogRecord(t, "Override log", map[string]any{"log_type": "windows_event.security"}),
+			},
+			expectedJSON:    `{"customer_id":"test_customer_id","entries":[{"log_text":"Override log","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"WINEVTLOG"}`,
+			logType:         "default_log_type",
+			rawLogField:     "body",
+			overrideLogType: true,
+		},
+		{
+			name: "Unsupported log type",
+			logRecords: []plog.LogRecord{
+				mockLogRecord(t, "Unsupported log type", map[string]any{"log_type": "unsupported_type"}),
+			},
+			expectedJSON:    `{"customer_id":"test_customer_id","entries":[{"log_text":"Unsupported log type","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"default_log_type"}`,
+			logType:         "default_log_type",
+			rawLogField:     "body",
+			overrideLogType: true,
+		},
+		{
+			name: "Missing log type attribute",
+			logRecords: []plog.LogRecord{
+				mockLogRecord(t, "Missing log type attribute", map[string]any{"key1": "value1"}),
+			},
+			expectedJSON:    `{"customer_id":"test_customer_id","entries":[{"log_text":"Missing log type attribute","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"default_log_type"}`,
+			logType:         "default_log_type",
+			rawLogField:     "body",
+			overrideLogType: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &Config{LogType: tt.logType, RawLogField: tt.rawLogField, CustomerID: "test_customer_id"}
+			cfg := &Config{LogType: tt.logType, RawLogField: tt.rawLogField, CustomerID: "test_customer_id", OverrideLogType: tt.overrideLogType}
 			ce := &chronicleExporter{
 				cfg:       cfg,
 				logger:    zap.NewNop(),
@@ -186,7 +218,7 @@ func TestMarshalRawLogs(t *testing.T) {
 			}
 
 			logs := mockLogs(tt.logRecords...)
-			result, err := ce.marshaler.MarshalRawLogs(context.Background(), logs)
+			payloads, err := ce.marshaler.MarshalRawLogs(context.Background(), logs)
 			if tt.errExpected != nil {
 				require.Error(t, err, "MarshalRawLogs should return an error")
 				return
@@ -194,15 +226,22 @@ func TestMarshalRawLogs(t *testing.T) {
 
 			require.NoError(t, err, "MarshalRawLogs should not return an error")
 
-			var resultJSON map[string]interface{}
-			err = json.Unmarshal(result, &resultJSON)
-			require.NoError(t, err, "Unmarshalling result should not produce an error")
+			// Merge payloads into a single JSON array for comparison
+			results := make([]map[string]interface{}, 0, len(payloads))
+			for _, p := range payloads {
+				var resultJSON map[string]interface{}
+				data, err := json.Marshal(p)
+				require.NoError(t, err, "Marshalling result should not produce an error")
+				err = json.Unmarshal(data, &resultJSON)
+				require.NoError(t, err, "Unmarshalling result should not produce an error")
+				results = append(results, resultJSON)
+			}
 
-			var expectedJSON map[string]interface{}
-			err = json.Unmarshal([]byte(tt.expectedJSON), &expectedJSON)
+			var expectedJSON []map[string]interface{}
+			err = json.Unmarshal([]byte(fmt.Sprintf("[%s]", tt.expectedJSON)), &expectedJSON)
 			require.NoError(t, err, "Unmarshalling expected JSON should not produce an error")
 
-			assert.Equal(t, tt.expectedJSON, string(result), "Marshalled JSON should match expected JSON")
+			assert.Equal(t, expectedJSON, results, "Marshalled JSON should match expected JSON")
 		})
 	}
 }

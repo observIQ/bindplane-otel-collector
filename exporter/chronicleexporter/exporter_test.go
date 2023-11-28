@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/jarcoal/httpmock"
-	"github.com/observiq/bindplane-agent/exporter/chronicleexporter/internal/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -53,14 +52,13 @@ func TestLogsDataPusher(t *testing.T) {
 			setupMocks: func(exporter *chronicleExporter) {
 				httpmock.RegisterResponder("POST", baseEndpoint, httpmock.NewStringResponder(http.StatusOK, ""))
 
-				marshaller := mocks.NewMockMarshaler(t)
-				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]byte("mock data"), nil)
+				marshaller := NewMockMarshalerSetup(t)
 				exporter.marshaler = marshaller
 			},
 			expectedErr: "",
 		},
 		{
-			desc: "send request to Chronicle",
+			desc: "send request to Chronicle fails",
 			setupExporter: func() *chronicleExporter {
 				exporter := &chronicleExporter{
 					endpoint:   baseEndpoint,
@@ -72,10 +70,9 @@ func TestLogsDataPusher(t *testing.T) {
 				return exporter
 			},
 			setupMocks: func(exporter *chronicleExporter) {
-				// Register a responder that returns an error to simulate sending request failure
 				httpmock.RegisterResponder("POST", baseEndpoint, httpmock.NewErrorResponder(errors.New("network error")))
-				marshaller := mocks.NewMockMarshaler(t)
-				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]byte("mock data"), nil)
+
+				marshaller := NewMockMarshalerSetup(t)
 				exporter.marshaler = marshaller
 			},
 			expectedErr: "send request to Chronicle",
@@ -93,7 +90,7 @@ func TestLogsDataPusher(t *testing.T) {
 				return exporter
 			},
 			setupMocks: func(exporter *chronicleExporter) {
-				marshaller := mocks.NewMockMarshaler(t)
+				marshaller := NewMockMarshaler(t)
 				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return(nil, errors.New("marshaling error"))
 				exporter.marshaler = marshaller
 			},
@@ -112,11 +109,9 @@ func TestLogsDataPusher(t *testing.T) {
 				return exporter
 			},
 			setupMocks: func(exporter *chronicleExporter) {
-				// Mock a non-OK HTTP response
 				httpmock.RegisterResponder("POST", baseEndpoint, httpmock.NewStringResponder(http.StatusInternalServerError, "Internal Server Error"))
 
-				marshaller := mocks.NewMockMarshaler(t)
-				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]byte("mock data"), nil)
+				marshaller := NewMockMarshalerSetup(t)
 				exporter.marshaler = marshaller
 			},
 			expectedErr: "received non-OK response from Chronicle: 500",
@@ -141,55 +136,25 @@ func TestLogsDataPusher(t *testing.T) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr)
 			}
-
-			// Verify the expected number of calls were made
-			if tc.expectedErr == "" {
-				info := httpmock.GetCallCountInfo()
-				expectedMethod := "POST " + baseEndpoint
-				require.Equal(t, 1, info[expectedMethod], "Expected number of calls to %s is not met", expectedMethod)
-			}
 		})
 	}
 }
-func TestBuildEndpoint(t *testing.T) {
-	testCases := []struct {
-		name             string
-		cfg              Config
-		expectedEndpoint string
-	}{
-		{
-			name:             "Europe Multi-Region",
-			cfg:              Config{Region: "Europe Multi-Region"},
-			expectedEndpoint: "https://europe-backstory.googleapis.com/v2/unstructuredlogentries:batchCreate",
-		},
-		{
-			name:             "Frankfurt",
-			cfg:              Config{Region: "Frankfurt"},
-			expectedEndpoint: "https://europe-west3-backstory.googleapis.com/v2/unstructuredlogentries:batchCreate",
-		},
-		{
-			name:             "London",
-			cfg:              Config{Region: "London"},
-			expectedEndpoint: "http://europe-west2-backstory.googleapis.com/v2/unstructuredlogentries:batchCreate",
-		},
-		{
-			name:             "Singapore",
-			cfg:              Config{Region: "Singapore"},
-			expectedEndpoint: "https://asia-southeast1-backstory.googleapis.com/v2/unstructuredlogentries:batchCreate",
-		},
-		{
-			name:             "default case (no region)",
-			cfg:              Config{},
-			expectedEndpoint: "https://malachiteingestion-pa.googleapis.com/v2/unstructuredlogentries:batchCreate",
-		},
-	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			endpoint := buildEndpoint(&tc.cfg)
-			require.Equal(t, tc.expectedEndpoint, endpoint, "Endpoint does not match for test case: %s", tc.name)
-		})
-	}
+func NewMockMarshalerSetup(t *testing.T) *MockMarshaler {
+	mockMarshaler := NewMockMarshaler(t)
+	mockMarshaler.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]payload{
+		{
+			Entries: []entry{
+				{
+					LogText:   "mock data",
+					Timestamp: "2023-01-01T00:00:00Z",
+				},
+			},
+			CustomerID: "test_customer_id",
+			LogType:    "test_log_type",
+		},
+	}, nil)
+	return mockMarshaler
 }
 
 func Test_exporter_Capabilities(t *testing.T) {

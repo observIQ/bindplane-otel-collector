@@ -32,7 +32,7 @@ type Service interface {
 // createService creates a default Service for running an open telemetry pipeline
 func createService(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
 	settings := otelcol.CollectorSettings{
-		Factories:               factories,
+		Factories:               func() (otelcol.Factories, error) { return factories, nil },
 		DisableGracefulShutdown: true,
 		ConfigProvider:          configProvider,
 		LoggingOptions:          createServiceLoggerOpts(logger),

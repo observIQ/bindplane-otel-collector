@@ -17,6 +17,8 @@ package chronicleexporter
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -50,7 +52,7 @@ func newExporter(cfg *Config, params exporter.CreateSettings) (*chronicleExporte
 
 	switch {
 	case cfg.Creds != "":
-		creds, err = google.CredentialsFromJSON(context.Background(), []byte(cfg.CredsFilePath), scope)
+		creds, err = google.CredentialsFromJSON(context.Background(), []byte(cfg.Creds), scope)
 		if err != nil {
 			return nil, fmt.Errorf("obtain credentials from JSON: %w", err)
 		}
@@ -58,6 +60,10 @@ func newExporter(cfg *Config, params exporter.CreateSettings) (*chronicleExporte
 		credsData, err := os.ReadFile(cfg.CredsFilePath)
 		if err != nil {
 			return nil, fmt.Errorf("read credentials file: %w", err)
+		}
+
+		if len(credsData) == 0 {
+			return nil, errors.New("credentials file is empty")
 		}
 
 		creds, err = google.CredentialsFromJSON(context.Background(), credsData, scope)
@@ -97,12 +103,24 @@ func (ce *chronicleExporter) Capabilities() consumer.Capabilities {
 }
 
 func (ce *chronicleExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
-	udmData, err := ce.marshaler.MarshalRawLogs(ctx, ld)
+	payloads, err := ce.marshaler.MarshalRawLogs(ctx, ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
 	}
 
-	return ce.uploadToChronicle(ctx, udmData)
+	for _, payload := range payloads {
+		data, err := json.Marshal(payload)
+		if err != nil {
+			ce.logger.Warn("Failed to marshal payload", zap.Error(err))
+			continue
+		}
+
+		if err := ce.uploadToChronicle(ctx, data); err != nil {
+			return fmt.Errorf("upload to Chronicle: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (ce *chronicleExporter) uploadToChronicle(ctx context.Context, data []byte) error {
@@ -124,7 +142,7 @@ func (ce *chronicleExporter) uploadToChronicle(ctx context.Context, data []byte)
 		if err != nil {
 			ce.logger.Warn("Failed to read response body", zap.Error(err))
 		} else {
-			ce.logger.Warn("Received non-OK response from Chronicle", zap.String("status", resp.Status), zap.ByteString("body", respBody))
+			ce.logger.Warn("Received non-OK response from Chronicle", zap.String("status", resp.Status), zap.ByteString("response", respBody))
 		}
 		return fmt.Errorf("received non-OK response from Chronicle: %s", resp.Status)
 	}

@@ -243,7 +243,8 @@ func (l *m365LogsReceiver) transformLogs(now pcommon.Timestamp, audit *auditMeta
 	ra.PutStr("m365.audit", audit.name)
 	ra.PutStr("m365.organization.id", l.cfg.TenantID)
 
-	for _, log := range data {
+	for _, logData := range data {
+		log := logData
 		logRecord := scopeLogs.LogRecords().AppendEmpty()
 
 		// parses body string and sets that as log body, but uses string if parsing fails

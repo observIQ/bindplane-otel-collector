@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,16 +28,33 @@ import (
 	"go.uber.org/zap"
 )
 
-// marshaler is an interface for marshalling logs.
-//
-//go:generate mockery --name logMarshaler --output ./internal/mocks --with-expecter --filename mock_marshaler.go --structname MockMarshaler
-type logMarshaler interface {
-	MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]byte, error)
+const logTypeField = `attributes["log_type"]`
+
+var supportedLogTypes = map[string]string{
+	"windows_event.security":    "WINEVTLOG",
+	"windows_event.custom":      "WINEVTLOG",
+	"windows_event.application": "WINEVTLOG",
+	"windows_event.system":      "WINEVTLOG",
 }
 
 type marshaler struct {
 	cfg          Config
 	teleSettings component.TelemetrySettings
+}
+
+type payload struct {
+	Entries    []entry `json:"entries"`
+	CustomerID string  `json:"customer_id"`
+	LogType    string  `json:"log_type"`
+}
+
+type entry struct {
+	LogText   string `json:"log_text"`
+	Timestamp string `json:"ts_rfc3339"`
+}
+
+type logMarshaler interface {
+	MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]payload, error)
 }
 
 func newMarshaler(cfg Config, teleSettings component.TelemetrySettings) *marshaler {
@@ -47,31 +64,17 @@ func newMarshaler(cfg Config, teleSettings component.TelemetrySettings) *marshal
 	}
 }
 
-func (m *marshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]byte, error) {
+func (m *marshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]payload, error) {
 	rawLogs, err := m.extractRawLogs(ctx, ld)
 	if err != nil {
 		return nil, fmt.Errorf("extract raw logs: %w", err)
 	}
 
-	rawLogData := map[string]any{
-		"entries":  rawLogs,
-		"log_type": m.cfg.LogType,
-	}
-
-	if m.cfg.CustomerID != "" {
-		rawLogData["customer_id"] = m.cfg.CustomerID
-	}
-
-	return json.Marshal(rawLogData)
+	return m.constructPayloads(rawLogs), nil
 }
 
-type entry struct {
-	LogText   string `json:"log_text"`
-	Timestamp string `json:"ts_rfc3339"`
-}
-
-func (m *marshaler) extractRawLogs(ctx context.Context, ld plog.Logs) ([]entry, error) {
-	entries := []entry{}
+func (m *marshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (map[string][]entry, error) {
+	entries := make(map[string][]entry)
 
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		resourceLog := ld.ResourceLogs().At(i)
@@ -79,34 +82,26 @@ func (m *marshaler) extractRawLogs(ctx context.Context, ld plog.Logs) ([]entry, 
 			scopeLog := resourceLog.ScopeLogs().At(j)
 			for k := 0; k < scopeLog.LogRecords().Len(); k++ {
 				logRecord := scopeLog.LogRecords().At(k)
-
-				var rawLog string
-				var err error
-				if m.cfg.RawLogField == "" {
-					body := logRecord.Body().Str()
-					entireLogRecord := map[string]any{
-						"body":                body,
-						"attributes":          logRecord.Attributes().AsRaw(),
-						"resource_attributes": resourceLog.Resource().Attributes().AsRaw(),
-					}
-
-					bytesLogRecord, err := json.Marshal(entireLogRecord)
-					if err != nil {
-						return nil, fmt.Errorf("marshal log record: %w", err)
-					}
-
-					rawLog = string(bytesLogRecord)
-				} else {
-					rawLog, err = m.getRawField(ctx, logRecord, scopeLog.Scope(), resourceLog.Resource())
-					if err != nil {
-						m.teleSettings.Logger.Error("Error getting raw field", zap.Error(err))
-						continue
-					}
+				rawLog, logType, err := m.processLogRecord(ctx, logRecord, scopeLog.Scope(), resourceLog.Resource())
+				if err != nil {
+					m.teleSettings.Logger.Error("Error processing log record", zap.Error(err))
+					continue
 				}
 
-				entries = append(entries, entry{
+				if rawLog == "" {
+					continue
+				}
+
+				var timestamp time.Time
+				if logRecord.Timestamp() != 0 {
+					timestamp = logRecord.Timestamp().AsTime()
+				} else {
+					timestamp = logRecord.ObservedTimestamp().AsTime()
+				}
+
+				entries[logType] = append(entries[logType], entry{
 					LogText:   rawLog,
-					Timestamp: logRecord.Timestamp().AsTime().Format(time.RFC3339Nano),
+					Timestamp: timestamp.Format(time.RFC3339Nano),
 				})
 			}
 		}
@@ -115,8 +110,55 @@ func (m *marshaler) extractRawLogs(ctx context.Context, ld plog.Logs) ([]entry, 
 	return entries, nil
 }
 
-func (m *marshaler) getRawField(ctx context.Context, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
-	lrExpr, err := expr.NewOTTLLogRecordExpression(m.cfg.RawLogField, m.teleSettings)
+func (m *marshaler) processLogRecord(ctx context.Context, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, string, error) {
+	rawLog, err := m.getRawLog(ctx, logRecord, scope, resource)
+	if err != nil {
+		return "", "", err
+	}
+
+	logType, err := m.getLogType(ctx, logRecord, scope, resource)
+	if err != nil {
+		return "", "", err
+	}
+
+	return rawLog, logType, nil
+}
+
+func (m *marshaler) getRawLog(ctx context.Context, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
+	if m.cfg.RawLogField == "" {
+		entireLogRecord := map[string]any{
+			"body":                logRecord.Body().Str(),
+			"attributes":          logRecord.Attributes().AsRaw(),
+			"resource_attributes": resource.Attributes().AsRaw(),
+		}
+
+		bytesLogRecord, err := json.Marshal(entireLogRecord)
+		if err != nil {
+			return "", fmt.Errorf("marshal log record: %w", err)
+		}
+
+		return string(bytesLogRecord), nil
+	}
+	return m.getRawField(ctx, m.cfg.RawLogField, logRecord, scope, resource)
+}
+
+func (m *marshaler) getLogType(ctx context.Context, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
+	if m.cfg.OverrideLogType {
+		logType, err := m.getRawField(ctx, logTypeField, logRecord, scope, resource)
+		if err != nil || logType == "" {
+			return m.cfg.LogType, err
+		}
+
+		if chronicleLogType, ok := supportedLogTypes[logType]; ok {
+			return chronicleLogType, nil
+		}
+	}
+
+	return m.cfg.LogType, nil
+}
+
+func (m *marshaler) getRawField(ctx context.Context, field string, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
+	lrExpr, err := expr.NewOTTLLogRecordExpression(field, m.teleSettings)
 	if err != nil {
 		return "", fmt.Errorf("raw_log_field is invalid: %s", err)
 	}
@@ -128,19 +170,33 @@ func (m *marshaler) getRawField(ctx context.Context, logRecord plog.LogRecord, s
 	}
 
 	if lrExprResult == nil {
-		return "", fmt.Errorf("log record expression result is nil")
+		return "", nil
 	}
 
-	switch lrExprResult.(type) {
+	switch result := lrExprResult.(type) {
 	case string:
-		return lrExprResult.(string), nil
+		return result, nil
 	case pcommon.Map:
-		bytes, err := json.Marshal(lrExprResult.(pcommon.Map).AsRaw())
+		bytes, err := json.Marshal(result.AsRaw())
 		if err != nil {
 			return "", fmt.Errorf("marshal log record expression result: %w", err)
 		}
 		return string(bytes), nil
+	default:
+		return "", fmt.Errorf("unsupported log record expression result type: %T", lrExprResult)
 	}
+}
 
-	return "", fmt.Errorf("unsupported log record expression result type: %T", lrExprResult)
+func (m *marshaler) constructPayloads(rawLogs map[string][]entry) []payload {
+	payloads := make([]payload, 0, len(rawLogs))
+	for logType, entries := range rawLogs {
+		if len(entries) > 0 {
+			payloads = append(payloads, payload{
+				Entries:    entries,
+				CustomerID: m.cfg.CustomerID,
+				LogType:    logType,
+			})
+		}
+	}
+	return payloads
 }
