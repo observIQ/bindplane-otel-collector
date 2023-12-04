@@ -136,7 +136,9 @@ func (l *m365LogsReceiver) Start(ctx context.Context, host component.Host) error
 
 func (l *m365LogsReceiver) Shutdown(ctx context.Context) error {
 	l.logger.Debug("shutting down logs receiver")
-	l.cancel()
+	if l.cancel != nil {
+		l.cancel()
+	}
 	l.wg.Wait()
 	return l.checkpoint(ctx)
 }
@@ -285,6 +287,9 @@ func (l *m365LogsReceiver) transformLogs(now pcommon.Timestamp, audit *auditMeta
 
 // sets the checkpoint
 func (l *m365LogsReceiver) checkpoint(ctx context.Context) error {
+	if l.record == nil {
+		return nil
+	}
 	bytes, err := json.Marshal(l.record)
 	if err != nil {
 		return fmt.Errorf("unable to write checkpoint: %w", err)
