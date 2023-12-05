@@ -28,7 +28,8 @@ The exporter can be configured using the following fields:
 | `log_type`          | string |         | `true`   | The type of log that will be sent.                                                                                                                                    |
 | `raw_log_field`     | string |         | `false`  | The field name for raw logs.                                                                                                                                          |
 | `customer_id`       | string |         | `false`  | The customer ID used for sending logs.                                                                                                                                |
-| `override_log_type` | bool   | `false` | `false`  | Whether or not to override the `log_type` in the config with `attributes["log_type"]`                                                                                 |
+| `override_log_type` | bool   | `true`  | `false`  | Whether or not to override the `log_type` in the config with `attributes["log_type"]`                                                                                 |
+| `namespace`         | string |         | `false`  | User-configured environment namespace to identify the data domain the logs originated from.                                                                           |
 
 ### Regions
 
