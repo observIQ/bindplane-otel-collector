@@ -63,6 +63,9 @@ type Config struct {
 
 	// CustomerID is the customer ID that will be used to send logs to Chronicle.
 	CustomerID string `mapstructure:"customer_id"`
+
+	// Namespace is the namespace that will be used to send logs to Chronicle.
+	Namespace string `mapstructure:"namespace"`
 }
 
 // Validate checks if the configuration is valid.

@@ -1,14 +1,14 @@
 # Google Managed Prometheus Exporter
 
 This exporter can be used to send metrics to Google Cloud Managed Service for Prometheus. It is an extension of the official 
-[Google Managed Prometheus Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.89.0/exporter/googlemanagedprometheusexporter), with additional configuration options.
+[Google Managed Prometheus Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.91.0/exporter/googlemanagedprometheusexporter), with additional configuration options.
 
 ## Supported pipelines
 - Metrics
 
 ## How It Works
 1. The user configures this exporter in a pipeline
-2. If the pipeline does not use the prometheus receiver with the gcp detector, set resource attributes in the pipeline [as described in the upstream documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.89.0/exporter/googlemanagedprometheusexporter#resource-attribute-handling).
+2. If the pipeline does not use the prometheus receiver with the gcp detector, set resource attributes in the pipeline [as described in the upstream documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.91.0/exporter/googlemanagedprometheusexporter#resource-attribute-handling).
 3. Metrics are sent to Google Cloud.
 
 ## Configuration
@@ -21,7 +21,7 @@ This exporter can be used to send metrics to Google Cloud Managed Service for Pr
 | `project`          | string  |                  | `false`  | The GCP project used when exporting telemetry data. If not set, the exporter will attempt to extract the value from the specified credentials.                                                                                              |
 | `use_insecure`     | boolean | `false`          | `false`  | Uses gRPC communication if true. Only has an effect if the endpoint is set.                                                                                                                                                                 |
 | `user_agent`       | string  | `StanzaLogAgent` | `false`  | Overrides the user agent used when making requests.                                                                                                                                                                                         |
-| `sending_queue`    | object  |                  | `false`  | Determines how telemetry data is buffered before exporting. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.89.0/exporter/exporterhelper/README.md) for more information. |
+| `sending_queue`    | object  |                  | `false`  | Determines how telemetry data is buffered before exporting. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.91.0/exporter/exporterhelper/README.md) for more information. |
 
 ## Example configuration
 This configuration scrapes the agent's self metrics, using a credentials file to authenticate.

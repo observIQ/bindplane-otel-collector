@@ -295,7 +295,10 @@ func (m *m365Scraper) start(ctx context.Context, host component.Host) error {
 }
 
 func (m *m365Scraper) shutdown(_ context.Context) error {
-	return m.client.shutdown()
+	if m.client != nil {
+		return m.client.shutdown()
+	}
+	return nil
 }
 
 // retrieves data, builds metrics & emits them

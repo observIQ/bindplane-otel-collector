@@ -77,31 +77,15 @@ func (r *httpLogsReceiver) startListening(host component.Host) error {
 	r.wg.Add(1)
 	go func() {
 		defer r.wg.Done()
+		r.logger.Debug("starting to serve",
+			zap.String("address", r.serverSettings.Endpoint),
+		)
 
-		if r.serverSettings.TLSSetting != nil {
-			r.logger.Debug("starting ServeTLS",
-				zap.String("address", r.serverSettings.Endpoint),
-				zap.String("cert_file", r.serverSettings.TLSSetting.CertFile),
-				zap.String("key_file", r.serverSettings.TLSSetting.KeyFile),
-			)
-
-			err := r.server.ServeTLS(listener, r.serverSettings.TLSSetting.CertFile, r.serverSettings.TLSSetting.KeyFile)
-			r.logger.Debug("ServeTLS done")
-			if err != http.ErrServerClosed {
-				r.logger.Error("ServeTLS failed", zap.Error(err))
-				host.ReportFatalError(err)
-			}
-		} else {
-			r.logger.Debug("starting to serve",
-				zap.String("address", r.serverSettings.Endpoint),
-			)
-
-			err := r.server.Serve(listener)
-			r.logger.Debug("Serve done")
-			if err != http.ErrServerClosed {
-				r.logger.Error("Serve failed", zap.Error(err))
-				host.ReportFatalError(err)
-			}
+		err := r.server.Serve(listener)
+		r.logger.Debug("Serve done")
+		if err != http.ErrServerClosed {
+			r.logger.Error("Serve failed", zap.Error(err))
+			host.ReportFatalError(err)
 		}
 	}()
 

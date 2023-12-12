@@ -35,6 +35,7 @@ var supportedLogTypes = map[string]string{
 	"windows_event.custom":      "WINEVTLOG",
 	"windows_event.application": "WINEVTLOG",
 	"windows_event.system":      "WINEVTLOG",
+	"sql_server":                "MICROSOFT_SQL",
 }
 
 type marshaler struct {
@@ -46,6 +47,7 @@ type payload struct {
 	Entries    []entry `json:"entries"`
 	CustomerID string  `json:"customer_id"`
 	LogType    string  `json:"log_type"`
+	Namespace  string  `json:"namespace,omitempty"`
 }
 
 type entry struct {
@@ -191,11 +193,17 @@ func (m *marshaler) constructPayloads(rawLogs map[string][]entry) []payload {
 	payloads := make([]payload, 0, len(rawLogs))
 	for logType, entries := range rawLogs {
 		if len(entries) > 0 {
-			payloads = append(payloads, payload{
+			p := payload{
 				Entries:    entries,
 				CustomerID: m.cfg.CustomerID,
 				LogType:    logType,
-			})
+			}
+
+			if m.cfg.Namespace != "" {
+				p.Namespace = m.cfg.Namespace
+			}
+
+			payloads = append(payloads, p)
 		}
 	}
 	return payloads
