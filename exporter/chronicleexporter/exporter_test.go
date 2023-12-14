@@ -28,7 +28,7 @@ import (
 
 func TestLogsDataPusher(t *testing.T) {
 	// Set up configuration, logger, and context
-	cfg := Config{Region: "United States Multi-Region"}
+	cfg := Config{}
 	ctx := context.Background()
 
 	testCases := []struct {

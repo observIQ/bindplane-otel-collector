@@ -27,6 +27,7 @@ func Test_createDefaultConfig(t *testing.T) {
 		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
 		RetrySettings:   exporterhelper.NewDefaultRetrySettings(),
 		OverrideLogType: true,
+		Endpoint:        "https://malachiteingestion-pa.googleapis.com",
 	}
 
 	actual := createDefaultConfig()

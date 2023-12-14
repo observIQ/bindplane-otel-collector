@@ -24,19 +24,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// Alternative regional endpoints for Chronicle.
-// https://cloud.google.com/chronicle/docs/reference/search-api#regional_endpoints
-var regions = map[string]string{
-	"Europe Multi-Region":        "https://europe-backstory.googleapis.com",
-	"Frankfurt":                  "https://europe-west3-backstory.googleapis.com",
-	"London":                     "http://europe-west2-backstory.googleapis.com",
-	"Singapore":                  "https://asia-southeast1-backstory.googleapis.com",
-	"Sydney":                     "https://australia-southeast1-backstory.googleapis.com",
-	"Tel Aviv":                   "https://me-west1-backstory.googleapis.com",
-	"United States Multi-Region": "https://united-states-backstory.googleapis.com",
-	"Zurich":                     "https://europe-west6-backstory.googleapis.com",
-}
-
 // Config defines configuration for the Chronicle exporter.
 type Config struct {
 	exporterhelper.TimeoutSettings `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct.
@@ -44,7 +31,7 @@ type Config struct {
 	exporterhelper.RetrySettings   `mapstructure:"retry_on_failure"`
 
 	// Endpoint is the URL where Chronicle data will be sent.
-	Region string `mapstructure:"region"`
+	Endpoint string `mapstructure:"endpoint"`
 
 	// CredsFilePath is the file path to the Google credentials JSON file.
 	CredsFilePath string `mapstructure:"creds_file_path"`
@@ -76,12 +63,6 @@ func (cfg *Config) Validate() error {
 
 	if cfg.LogType == "" {
 		return errors.New("log_type is required")
-	}
-
-	if cfg.Region != "" {
-		if _, ok := regions[cfg.Region]; !ok {
-			return errors.New("region is invalid")
-		}
 	}
 
 	if cfg.RawLogField != "" {

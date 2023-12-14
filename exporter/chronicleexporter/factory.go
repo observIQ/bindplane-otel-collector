@@ -39,6 +39,7 @@ func createDefaultConfig() component.Config {
 		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
 		RetrySettings:   exporterhelper.NewDefaultRetrySettings(),
 		OverrideLogType: true,
+		Endpoint:        baseEndpoint,
 	}
 }
 

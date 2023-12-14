@@ -14,26 +14,22 @@ This exporter facilitates the sending of logs to Chronicle, which is a security 
 
 1. The exporter uses the configured credentials to authenticate with the Google Cloud services.
 2. It marshals logs into the format expected by Chronicle.
-3. It sends the logs to the appropriate regional Chronicle endpoint.
+3. It sends the logs to the appropriate Chronicle endpoint.
 
 ## Configuration
 
 The exporter can be configured using the following fields:
 
-| Field               | Type   | Default | Required | Description                                                                                                                                                           |
-| ------------------- | ------ | ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `region`            | string |         | `false`  | The region where the data will be sent, it must be one of the predefined regions. if no region is specfied defaults to `https://malachiteingestion-pa.googleapis.com` |
-| `creds_file_path`   | string |         | `true`   | The file path to the Google credentials JSON file.                                                                                                                    |
-| `creds`             | string |         | `true`   | The Google credentials JSON.                                                                                                                                          |
-| `log_type`          | string |         | `true`   | The type of log that will be sent.                                                                                                                                    |
-| `raw_log_field`     | string |         | `false`  | The field name for raw logs.                                                                                                                                          |
-| `customer_id`       | string |         | `false`  | The customer ID used for sending logs.                                                                                                                                |
-| `override_log_type` | bool   | `true`  | `false`  | Whether or not to override the `log_type` in the config with `attributes["log_type"]`                                                                                 |
-| `namespace`         | string |         | `false`  | User-configured environment namespace to identify the data domain the logs originated from.                                                                           |
-
-### Regions
-
-Predefined regions include multiple global locations such as `Europe Multi-Region`, `Frankfurt`, `London`, `Singapore`, `Sydney`, `Tel Aviv`, `United States Multi-Region`, and `Zurich`. Each region has a specific endpoint URL.
+| Field               | Type   | Default                                        | Required | Description                                                                                 |
+| ------------------- | ------ | ---------------------------------------------- | -------- | ------------------------------------------------------------------------------------------- |
+| `endpoint`          | string | `https://malachiteingestion-pa.googleapis.com` | `false`  | The Endpoint for sending to chronicle.                                                      |
+| `creds_file_path`   | string |                                                | `true`   | The file path to the Google credentials JSON file.                                          |
+| `creds`             | string |                                                | `true`   | The Google credentials JSON.                                                                |
+| `log_type`          | string |                                                | `true`   | The type of log that will be sent.                                                          |
+| `raw_log_field`     | string |                                                | `false`  | The field name for raw logs.                                                                |
+| `customer_id`       | string |                                                | `false`  | The customer ID used for sending logs.                                                      |
+| `override_log_type` | bool   | `true`                                         | `false`  | Whether or not to override the `log_type` in the config with `attributes["log_type"]`       |
+| `namespace`         | string |                                                | `false`  | User-configured environment namespace to identify the data domain the logs originated from. |
 
 ### Log Type
 
@@ -41,31 +37,28 @@ If the `attributes["log_type"]` field is present in the log, and maps to a known
 
 ## Credentials
 
-This exporter requires a Google Cloud service account with access to the Chronicle API. The service account must have access to the following endpoint(s):
-
-The base endpoint is `https://malachiteingestion-pa.googleapis.com`
-
-Alternatively, if a `region` is specified:
-
-| Region                       | Endpoint                                                            |
-| ---------------------------- | ------------------------------------------------------------------- |
-| `Europe Multi-Region`        | `https://malachiteingestion-pa-europe.googleapis.com`               |
-| `Frankfurt`                  | `https://malachiteingestion-pa-europe-west3.googleapis.com`         |
-| `London`                     | `https://malachiteingestion-pa-europe-west2.googleapis.com`         |
-| `Singapore`                  | `https://malachiteingestion-pa-asia-southeast1.googleapis.com`      |
-| `Sydney`                     | `https://malachiteingestion-pa-australia-southeast1.googleapis.com` |
-| `Tel Aviv`                   | `https://malachiteingestion-pa-europe-west4.googleapis.com`         |
-| `United States Multi-Region` | `https://malachiteingestion-pa.googleapis.com`                      |
-| `Zurich`                     | `https://malachiteingestion-pa-europe-west6.googleapis.com`         |
+This exporter requires a Google Cloud service account with access to the Chronicle API. The service account must have access to the endpoint specfied in the config.
+Besides the default endpoint, there are also regional endpoints that can be used [here](https://cloud.google.com/chronicle/docs/reference/ingestion-api#regional_endpoints).
 
 For additional information on accessing Chronicle, see the [Chronicle documentation](https://cloud.google.com/chronicle/docs/reference/ingestion-api#getting_api_authentication_credentials).
 
 ## Example Configuration
 
+### Basic Configuration
+
 ```yaml
 chronicle:
-  region: "Europe Multi-Region"
   creds_file_path: "/path/to/google/creds.json"
-  log_type: "threat_detection"
+  log_type: "ABSOLUTE"
+  customer_id: "customer-123"
+```
+
+### Basic Configuration with Regional Endpoint
+
+```yaml
+chronicle:
+  endpoint: https://malachiteingestion-pa.googleapis.com
+  creds_file_path: "/path/to/google/creds.json"
+  log_type: "ONEPASSWORD"
   customer_id: "customer-123"
 ```

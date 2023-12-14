@@ -92,10 +92,7 @@ func newExporter(cfg *Config, params exporter.CreateSettings) (*chronicleExporte
 // buildEndpoint builds the endpoint to send logs to based on the region. there is a default endpoint `https://malachiteingestion-pa.googleapis.com`
 // but there are also regional endpoints that can be used instead. the regional endpoints are listed here: https://cloud.google.com/chronicle/docs/reference/search-api#regional_endpoints
 func buildEndpoint(cfg *Config) string {
-	if cfg.Region != "" && regions[cfg.Region] != "" {
-		return fmt.Sprintf("%s%s", regions[cfg.Region], apiTarget)
-	}
-	return fmt.Sprintf("%s%s", baseEndpoint, apiTarget)
+	return fmt.Sprintf("%s%s", cfg.Endpoint, apiTarget)
 }
 
 func (ce *chronicleExporter) Capabilities() consumer.Capabilities {
