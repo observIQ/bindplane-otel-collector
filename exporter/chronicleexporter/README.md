@@ -1,5 +1,7 @@
 # Chronicle Exporter
 
+**Currently only v2 of the ingestion API is supported**
+
 This exporter facilitates the sending of logs to Chronicle, which is a security analytics platform provided by Google. It is designed to integrate with OpenTelemetry collectors to export telemetry data such as logs to a Chronicle account.
 
 ## Minimum Collector Versions
