@@ -16,6 +16,7 @@ package chronicleexporter
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -121,9 +122,29 @@ func (ce *chronicleExporter) logsDataPusher(ctx context.Context, ld plog.Logs) e
 }
 
 func (ce *chronicleExporter) uploadToChronicle(ctx context.Context, data []byte) error {
-	request, err := http.NewRequestWithContext(ctx, "POST", ce.endpoint, bytes.NewBuffer(data))
+	var body io.Reader
+
+	if ce.cfg.Compression == gzipCompression {
+		var b bytes.Buffer
+		gz := gzip.NewWriter(&b)
+		if _, err := gz.Write(data); err != nil {
+			return fmt.Errorf("gzip write: %w", err)
+		}
+		if err := gz.Close(); err != nil {
+			return fmt.Errorf("gzip close: %w", err)
+		}
+		body = &b
+	} else {
+		body = bytes.NewBuffer(data)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, "POST", ce.endpoint, body)
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
+	}
+
+	if ce.cfg.Compression == gzipCompression {
+		request.Header.Set("Content-Encoding", "gzip")
 	}
 
 	request.Header.Set("Content-Type", "application/json")

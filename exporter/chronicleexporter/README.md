@@ -32,6 +32,7 @@ The exporter can be configured using the following fields:
 | `customer_id`       | string |                                                | `false`  | The customer ID used for sending logs.                                                      |
 | `override_log_type` | bool   | `true`                                         | `false`  | Whether or not to override the `log_type` in the config with `attributes["log_type"]`       |
 | `namespace`         | string |                                                | `false`  | User-configured environment namespace to identify the data domain the logs originated from. |
+| `compression`       | string | `none`                                         | `false`  | The compression type to use when sending logs. valid values are `none` and `gzip`           |
 
 ### Log Type
 

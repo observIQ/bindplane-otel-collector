@@ -40,6 +40,7 @@ func createDefaultConfig() component.Config {
 		RetrySettings:   exporterhelper.NewDefaultRetrySettings(),
 		OverrideLogType: true,
 		Endpoint:        baseEndpoint,
+		Compression:     noCompression,
 	}
 }
 

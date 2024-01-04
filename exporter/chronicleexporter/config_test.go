@@ -32,13 +32,15 @@ func TestConfigValidate(t *testing.T) {
 				CredsFilePath: "/path/to/creds_file",
 				Creds:         "creds_example",
 				LogType:       "log_type_example",
+				Compression:   noCompression,
 			},
 			expectedErr: "can only specify creds_file_path or creds",
 		},
 		{
 			desc: "LogType is empty",
 			config: &Config{
-				Creds: "creds_example",
+				Creds:       "creds_example",
+				Compression: noCompression,
 			},
 			expectedErr: "log_type is required",
 		},
@@ -46,8 +48,9 @@ func TestConfigValidate(t *testing.T) {
 		{
 			desc: "Valid config with creds",
 			config: &Config{
-				Creds:   "creds_example",
-				LogType: "log_type_example",
+				Creds:       "creds_example",
+				LogType:     "log_type_example",
+				Compression: noCompression,
 			},
 			expectedErr: "",
 		},
@@ -56,6 +59,7 @@ func TestConfigValidate(t *testing.T) {
 			config: &Config{
 				CredsFilePath: "/path/to/creds_file",
 				LogType:       "log_type_example",
+				Compression:   noCompression,
 			},
 			expectedErr: "",
 		},
@@ -65,8 +69,18 @@ func TestConfigValidate(t *testing.T) {
 				CredsFilePath: "/path/to/creds_file",
 				LogType:       "log_type_example",
 				RawLogField:   `body["field"]`,
+				Compression:   noCompression,
 			},
 			expectedErr: "",
+		},
+		{
+			desc: "Invalid compression type",
+			config: &Config{
+				CredsFilePath: "/path/to/creds_file",
+				LogType:       "log_type_example",
+				Compression:   "invalid",
+			},
+			expectedErr: "invalid compression type",
 		},
 	}
 

@@ -28,6 +28,7 @@ func Test_createDefaultConfig(t *testing.T) {
 		RetrySettings:   exporterhelper.NewDefaultRetrySettings(),
 		OverrideLogType: true,
 		Endpoint:        "https://malachiteingestion-pa.googleapis.com",
+		Compression:     "none",
 	}
 
 	actual := createDefaultConfig()

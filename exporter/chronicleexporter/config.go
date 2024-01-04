@@ -24,6 +24,14 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	// gzipCompression is the gzip compression type.
+	gzipCompression = "gzip"
+
+	// noCompression is the no compression type.
+	noCompression = "none"
+)
+
 // Config defines configuration for the Chronicle exporter.
 type Config struct {
 	exporterhelper.TimeoutSettings `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct.
@@ -53,6 +61,9 @@ type Config struct {
 
 	// Namespace is the namespace that will be used to send logs to Chronicle.
 	Namespace string `mapstructure:"namespace"`
+
+	// Compression is the compression type that will be used to send logs to Chronicle.
+	Compression string `mapstructure:"compression"`
 }
 
 // Validate checks if the configuration is valid.
@@ -72,6 +83,10 @@ func (cfg *Config) Validate() error {
 		if err != nil {
 			return fmt.Errorf("raw_log_field is invalid: %s", err)
 		}
+	}
+
+	if cfg.Compression != gzipCompression && cfg.Compression != noCompression {
+		return fmt.Errorf("invalid compression type: %s", cfg.Compression)
 	}
 
 	return nil
