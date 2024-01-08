@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/jarcoal/httpmock v1.3.1
-	github.com/observiq/bindplane-agent/expr v1.42.0
+	github.com/observiq/bindplane-agent/expr v1.43.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.91.0
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/collector/component v0.91.0
