@@ -31,55 +31,56 @@ func TestConfigValidate(t *testing.T) {
 			config: &Config{
 				CredsFilePath: "/path/to/creds_file",
 				Creds:         "creds_example",
-				Region:        "United States Multi-Region",
 				LogType:       "log_type_example",
+				Compression:   noCompression,
 			},
 			expectedErr: "can only specify creds_file_path or creds",
 		},
 		{
 			desc: "LogType is empty",
 			config: &Config{
-				Region: "United States Multi-Region",
-				Creds:  "creds_example",
+				Creds:       "creds_example",
+				Compression: noCompression,
 			},
 			expectedErr: "log_type is required",
 		},
-		{
-			desc: "Region is invalid",
-			config: &Config{
-				Region:  "Invalid Region",
-				Creds:   "creds_example",
-				LogType: "log_type_example",
-			},
-			expectedErr: "region is invalid",
-		},
+
 		{
 			desc: "Valid config with creds",
 			config: &Config{
-				Region:  "United States Multi-Region",
-				Creds:   "creds_example",
-				LogType: "log_type_example",
+				Creds:       "creds_example",
+				LogType:     "log_type_example",
+				Compression: noCompression,
 			},
 			expectedErr: "",
 		},
 		{
 			desc: "Valid config with creds_file_path",
 			config: &Config{
-				Region:        "United States Multi-Region",
 				CredsFilePath: "/path/to/creds_file",
 				LogType:       "log_type_example",
+				Compression:   noCompression,
 			},
 			expectedErr: "",
 		},
 		{
 			desc: "Valid config with raw log field",
 			config: &Config{
-				Region:        "United States Multi-Region",
 				CredsFilePath: "/path/to/creds_file",
 				LogType:       "log_type_example",
 				RawLogField:   `body["field"]`,
+				Compression:   noCompression,
 			},
 			expectedErr: "",
+		},
+		{
+			desc: "Invalid compression type",
+			config: &Config{
+				CredsFilePath: "/path/to/creds_file",
+				LogType:       "log_type_example",
+				Compression:   "invalid",
+			},
+			expectedErr: "invalid compression type",
 		},
 	}
 

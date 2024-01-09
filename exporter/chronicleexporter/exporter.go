@@ -16,6 +16,7 @@ package chronicleexporter
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -92,10 +93,7 @@ func newExporter(cfg *Config, params exporter.CreateSettings) (*chronicleExporte
 // buildEndpoint builds the endpoint to send logs to based on the region. there is a default endpoint `https://malachiteingestion-pa.googleapis.com`
 // but there are also regional endpoints that can be used instead. the regional endpoints are listed here: https://cloud.google.com/chronicle/docs/reference/search-api#regional_endpoints
 func buildEndpoint(cfg *Config) string {
-	if cfg.Region != "" && regions[cfg.Region] != "" {
-		return fmt.Sprintf("%s%s", regions[cfg.Region], apiTarget)
-	}
-	return fmt.Sprintf("%s%s", baseEndpoint, apiTarget)
+	return fmt.Sprintf("%s%s", cfg.Endpoint, apiTarget)
 }
 
 func (ce *chronicleExporter) Capabilities() consumer.Capabilities {
@@ -124,9 +122,29 @@ func (ce *chronicleExporter) logsDataPusher(ctx context.Context, ld plog.Logs) e
 }
 
 func (ce *chronicleExporter) uploadToChronicle(ctx context.Context, data []byte) error {
-	request, err := http.NewRequestWithContext(ctx, "POST", ce.endpoint, bytes.NewBuffer(data))
+	var body io.Reader
+
+	if ce.cfg.Compression == gzipCompression {
+		var b bytes.Buffer
+		gz := gzip.NewWriter(&b)
+		if _, err := gz.Write(data); err != nil {
+			return fmt.Errorf("gzip write: %w", err)
+		}
+		if err := gz.Close(); err != nil {
+			return fmt.Errorf("gzip close: %w", err)
+		}
+		body = &b
+	} else {
+		body = bytes.NewBuffer(data)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, "POST", ce.endpoint, body)
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
+	}
+
+	if ce.cfg.Compression == gzipCompression {
+		request.Header.Set("Content-Encoding", "gzip")
 	}
 
 	request.Header.Set("Content-Type", "application/json")

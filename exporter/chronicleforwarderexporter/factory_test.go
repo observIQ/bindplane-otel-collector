@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package chronicleexporter // import "github.com/observiq/bindplane-agent/exporter/azureblobexporter"
+package chronicleforwarderexporter // import "github.com/observiq/bindplane-agent/exporter/azureblobexporter"
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/config/confignet"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
@@ -26,9 +27,13 @@ func Test_createDefaultConfig(t *testing.T) {
 		TimeoutSettings: exporterhelper.NewDefaultTimeoutSettings(),
 		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
 		RetrySettings:   exporterhelper.NewDefaultRetrySettings(),
-		OverrideLogType: true,
-		Endpoint:        "https://malachiteingestion-pa.googleapis.com",
-		Compression:     "none",
+		ExportType:      exportTypeSyslog,
+		Syslog: SyslogConfig{
+			NetAddr: confignet.NetAddr{
+				Endpoint:  "127.0.0.1:10514",
+				Transport: "tcp",
+			},
+		},
 	}
 
 	actual := createDefaultConfig()

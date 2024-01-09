@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package chronicleexporter
+package chronicleforwarderexporter
 
 import (
 	"context"
 	"errors"
 
-	"github.com/observiq/bindplane-agent/exporter/chronicleexporter/internal/metadata"
+	"github.com/observiq/bindplane-agent/exporter/chronicleforwarderexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config/confignet"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
@@ -38,9 +39,13 @@ func createDefaultConfig() component.Config {
 		TimeoutSettings: exporterhelper.NewDefaultTimeoutSettings(),
 		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
 		RetrySettings:   exporterhelper.NewDefaultRetrySettings(),
-		OverrideLogType: true,
-		Endpoint:        baseEndpoint,
-		Compression:     noCompression,
+		ExportType:      exportTypeSyslog,
+		Syslog: SyslogConfig{
+			NetAddr: confignet.NetAddr{
+				Endpoint:  "127.0.0.1:10514",
+				Transport: "tcp",
+			},
+		},
 	}
 }
 
@@ -50,12 +55,12 @@ func createLogsExporter(
 	params exporter.CreateSettings,
 	cfg component.Config,
 ) (exporter.Logs, error) {
-	chronicleCfg, ok := cfg.(*Config)
+	forwarderCfg, ok := cfg.(*Config)
 	if !ok {
 		return nil, errors.New("invalid config type")
 	}
 
-	exp, err := newExporter(chronicleCfg, params)
+	exp, err := newExporter(forwarderCfg, params)
 	if err != nil {
 		return nil, err
 	}
@@ -63,11 +68,11 @@ func createLogsExporter(
 	return exporterhelper.NewLogsExporter(
 		ctx,
 		params,
-		chronicleCfg,
+		forwarderCfg,
 		exp.logsDataPusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
-		exporterhelper.WithTimeout(chronicleCfg.TimeoutSettings),
-		exporterhelper.WithQueue(chronicleCfg.QueueSettings),
-		exporterhelper.WithRetry(chronicleCfg.RetrySettings),
+		exporterhelper.WithTimeout(forwarderCfg.TimeoutSettings),
+		exporterhelper.WithQueue(forwarderCfg.QueueSettings),
+		exporterhelper.WithRetry(forwarderCfg.RetrySettings),
 	)
 }
