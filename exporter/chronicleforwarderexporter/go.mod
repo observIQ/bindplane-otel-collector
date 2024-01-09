@@ -16,6 +16,7 @@ require (
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	go.opentelemetry.io/collector/config/configopaque v0.91.0 // indirect
 )
 
