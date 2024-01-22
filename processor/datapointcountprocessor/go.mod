@@ -11,7 +11,7 @@ require (
 	go.opentelemetry.io/collector/component v0.92.0
 	go.opentelemetry.io/collector/consumer v0.92.0
 	go.opentelemetry.io/collector/pdata v1.0.1
-	go.opentelemetry.io/collector/processor v0.88.0
+	go.opentelemetry.io/collector/processor v0.92.0
 	go.opentelemetry.io/collector/receiver v0.92.0
 	go.uber.org/zap v1.26.0
 )
