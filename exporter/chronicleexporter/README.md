@@ -38,6 +38,14 @@ The exporter can be configured using the following fields:
 
 If the `attributes["log_type"]` field is present in the log, and maps to a known Chronicle `log_type` the exporter will use the value of that field as the log type. If the `attributes["log_type"]` field is not present, the exporter will use the value of the `log_type` configuration field as the log type.
 
+currently supported log types are:
+
+- windows_event.security
+- windows_event.custom
+- windows_event.application
+- windows_event.system
+- sql_server
+
 ## Credentials
 
 This exporter requires a Google Cloud service account with access to the Chronicle API. The service account must have access to the endpoint specfied in the config.
