@@ -16,14 +16,19 @@ package chronicleforwarderexporter
 
 import (
 	"context"
+	"crypto/tls"
+	"errors"
 	"log"
 	"net"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/observiq/bindplane-agent/exporter/chronicleforwarderexporter/internal/mocks"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/config/confignet"
+	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/exporter"
 )
 
@@ -135,4 +140,133 @@ func handleSyslogConnection(t *testing.T, conn net.Conn, logReceived chan bool) 
 
 	logReceived <- true
 	conn.Close()
+}
+
+func TestOpenWriter(t *testing.T) {
+	tests := []struct {
+		name          string
+		setupMock     func(*mocks.MockForwarderClient)
+		expectedError bool
+		cfg           Config
+	}{
+		{
+			name: "Successful File Open",
+			setupMock: func(mockClient *mocks.MockForwarderClient) {
+				mockClient.On("OpenFile", "testfile.log").Return(&os.File{}, nil)
+			},
+			expectedError: false,
+			cfg: Config{
+				ExportType: exportTypeFile,
+				File: File{
+					Path: "testfile.log",
+				},
+			},
+		},
+		{
+			name: "File Open Error",
+			setupMock: func(mockClient *mocks.MockForwarderClient) {
+				mockClient.On("OpenFile", "invalidfile.log").Return(nil, errors.New("error opening file"))
+			},
+			expectedError: true,
+			cfg: Config{
+				ExportType: exportTypeFile,
+				File: File{
+					Path: "invalidfile.log",
+				},
+			},
+		},
+		{
+			name: "Successful Syslog Open",
+			setupMock: func(mockClient *mocks.MockForwarderClient) {
+				mockClient.On("Dial", "tcp", "localhost:1234").Return(&net.TCPConn{}, nil)
+			},
+			expectedError: false,
+			cfg: Config{
+				ExportType: exportTypeSyslog,
+				Syslog: SyslogConfig{
+					NetAddr: confignet.NetAddr{
+						Endpoint:  "localhost:1234",
+						Transport: "tcp",
+					},
+				},
+			},
+		},
+		{
+			name: "Syslog Open Error",
+			setupMock: func(mockClient *mocks.MockForwarderClient) {
+				mockClient.On("Dial", "tcp", "invalidendpoint").Return(nil, errors.New("error opening syslog"))
+			},
+			expectedError: true,
+			cfg: Config{
+				ExportType: exportTypeSyslog,
+				Syslog: SyslogConfig{
+					NetAddr: confignet.NetAddr{
+						Endpoint:  "invalidendpoint",
+						Transport: "tcp",
+					},
+				},
+			},
+		},
+		{
+			name: "Successful TLS Dial",
+			setupMock: func(mockClient *mocks.MockForwarderClient) {
+				mockClient.On("DialWithTLS", "tcp", "localhost:1234", mock.Anything).Return(&tls.Conn{}, nil)
+			},
+			cfg: Config{
+				ExportType: exportTypeSyslog,
+				Syslog: SyslogConfig{
+					NetAddr: confignet.NetAddr{
+						Endpoint:  "localhost:1234",
+						Transport: "tcp",
+					},
+					TLSSetting: &configtls.TLSClientSetting{Insecure: true},
+				},
+			},
+			expectedError: false,
+		},
+		{
+			name: "Failed TLS Dial",
+			setupMock: func(mockClient *mocks.MockForwarderClient) {
+				mockClient.On("DialWithTLS", "tcp", "localhost:1234", mock.Anything).Return(nil, errors.New("TLS dial error"))
+			},
+			cfg: Config{
+				ExportType: exportTypeSyslog,
+				Syslog: SyslogConfig{
+					NetAddr: confignet.NetAddr{
+						Endpoint:  "localhost:1234",
+						Transport: "tcp",
+					},
+					TLSSetting: &configtls.TLSClientSetting{Insecure: true},
+				},
+			},
+			expectedError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a mock client
+			mockClient := mocks.NewMockForwarderClient(t)
+			tc.setupMock(mockClient)
+
+			// Create an instance of chronicleForwarderExporter with the mock client
+			exporter := &chronicleForwarderExporter{
+				chronicleForwarderClient: mockClient,
+				cfg:                      &tc.cfg,
+			}
+
+			// Call openWriter
+			_, err := exporter.openWriter()
+
+			// Assert the outcome
+			if tc.expectedError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			// Assert mock interactions
+			mockClient.AssertExpectations(t)
+		})
+	}
 }

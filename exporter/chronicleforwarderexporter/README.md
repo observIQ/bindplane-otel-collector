@@ -27,6 +27,10 @@ The Chronicle Forwarder Exporter is designed for forwarding logs to a Chronicle 
 | syslog.tls.cert_file | string |                   | `false`  | Configure the receiver to use TLS.                |
 | file.path            | string |                   | `false`  | The path to the file for storing logs.            |
 
+## Raw Log Field
+
+The raw log field is the field name that the exporter will use to send raw logs to Chronicle. It is an OTTL expression that can be used to reference any field in the log record. If the field is not present in the log record, the exporter will not send the log to the Chronicle Forwarder. The log record context can be viewed here: [Log Record Context](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/contexts/ottllog/README.md).
+
 ## Example Configurations
 
 ### Syslog Configuration Example
@@ -34,9 +38,9 @@ The Chronicle Forwarder Exporter is designed for forwarding logs to a Chronicle 
 ```yaml
 chronicleforwarder:
   export_type: "syslog"
+  raw_log_field: body
   syslog:
-    host: "syslog.example.com"
-    port: 10514
+    endpoint: "syslog.example.com:10514"
     network: "tcp"
 ```
 
@@ -45,6 +49,7 @@ chronicleforwarder:
 ```yaml
 chronicleforwarder:
   export_type: "file"
+  raw_log_field: attributes["message"]
   file:
     path: "/path/to/logfile"
 ```

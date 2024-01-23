@@ -4,16 +4,16 @@ go 1.20
 
 require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/collector v0.45.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter v0.91.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter v0.92.0
 	github.com/stretchr/testify v1.8.4
-	go.opentelemetry.io/collector/component v0.91.0
-	go.opentelemetry.io/collector/consumer v0.91.0
-	go.opentelemetry.io/collector/exporter v0.91.0
-	go.opentelemetry.io/collector/pdata v1.0.0
-	go.opentelemetry.io/collector/processor v0.91.0
-	go.opentelemetry.io/collector/processor/batchprocessor v0.91.0
+	go.opentelemetry.io/collector/component v0.92.0
+	go.opentelemetry.io/collector/consumer v0.92.0
+	go.opentelemetry.io/collector/exporter v0.92.0
+	go.opentelemetry.io/collector/pdata v1.0.1
+	go.opentelemetry.io/collector/processor v0.92.0
+	go.opentelemetry.io/collector/processor/batchprocessor v0.92.0
 	go.uber.org/multierr v1.11.0
-	google.golang.org/api v0.154.0
+	google.golang.org/api v0.156.0
 )
 
 require (
@@ -45,19 +45,19 @@ require (
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/zap v1.26.0
-	golang.org/x/net v0.19.0 // indirect
-	golang.org/x/oauth2 v0.15.0 // indirect
-	golang.org/x/sync v0.5.0 // indirect
+	golang.org/x/net v0.20.0 // indirect
+	golang.org/x/oauth2 v0.16.0 // indirect
+	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20231120223509-83a465c0220f // indirect
-	google.golang.org/grpc v1.59.0 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/appengine v1.6.8 // indirect
+	google.golang.org/genproto v0.0.0-20231212172506-995d672761c0 // indirect
+	google.golang.org/grpc v1.60.1 // indirect
+	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
-	cloud.google.com/go v0.110.10 // indirect
+	cloud.google.com/go v0.111.0 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	cloud.google.com/go/longrunning v0.5.4 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.45.0 // indirect
@@ -73,18 +73,19 @@ require (
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tidwall/tinylru v1.1.0 // indirect
 	github.com/tidwall/wal v1.1.7 // indirect
-	go.opentelemetry.io/collector v0.91.0 // indirect
-	go.opentelemetry.io/collector/config/configtelemetry v0.91.0 // indirect
-	go.opentelemetry.io/collector/confmap v0.91.0 // indirect
-	go.opentelemetry.io/collector/extension v0.91.0 // indirect
-	go.opentelemetry.io/collector/featuregate v1.0.0 // indirect
-	go.opentelemetry.io/collector/receiver v0.91.0 // indirect
-	go.opentelemetry.io/collector/semconv v0.91.0 // indirect
+	go.opentelemetry.io/collector v0.92.0 // indirect
+	go.opentelemetry.io/collector/config/configretry v0.92.0 // indirect
+	go.opentelemetry.io/collector/config/configtelemetry v0.92.0 // indirect
+	go.opentelemetry.io/collector/confmap v0.92.0 // indirect
+	go.opentelemetry.io/collector/extension v0.92.0 // indirect
+	go.opentelemetry.io/collector/featuregate v1.0.1 // indirect
+	go.opentelemetry.io/collector/receiver v0.92.0 // indirect
+	go.opentelemetry.io/collector/semconv v0.92.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.46.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.46.1 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/crypto v0.18.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20231120223509-83a465c0220f // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231127180814-3a041ad873d4 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20231212172506-995d672761c0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240102182953-50ed04b92917 // indirect
 )
