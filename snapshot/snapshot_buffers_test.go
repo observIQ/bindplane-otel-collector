@@ -486,7 +486,7 @@ func TestTraceBufferConstructPayload(t *testing.T) {
 	payloadThree.ResourceSpans().AppendEmpty().ScopeSpans().AppendEmpty().Spans().AppendEmpty()
 	traceBuffer.Add(payloadThree)
 
-	payload, err := traceBuffer.ConstructPayload()
+	payload, err := traceBuffer.ConstructPayload(nil, nil)
 	require.NoError(t, err)
 
 	unmarshaler := &ptrace.ProtoUnmarshaler{}

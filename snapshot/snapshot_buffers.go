@@ -258,7 +258,7 @@ func (l *TraceBuffer) Add(td ptrace.Traces) {
 }
 
 // ConstructPayload condenses the buffer and serializes to protobuf
-func (l *TraceBuffer) ConstructPayload() ([]byte, error) {
+func (l *TraceBuffer) ConstructPayload(searchQuery *string, minimumTimestamp *time.Time) ([]byte, error) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	traceMarshaler := &ptrace.ProtoMarshaler{}
@@ -271,7 +271,10 @@ func (l *TraceBuffer) ConstructPayload() ([]byte, error) {
 	// update the buffer to retain the current traces which were moved to the new payload
 	l.buffer = []ptrace.Traces{payloadTraces}
 
-	payload, err := traceMarshaler.MarshalTraces(payloadTraces)
+	// Filter the payload
+	filteredPayload := filterTraces(payloadTraces, searchQuery, minimumTimestamp)
+
+	payload, err := traceMarshaler.MarshalTraces(filteredPayload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct payload: %w", err)
 	}

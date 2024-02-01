@@ -29,11 +29,11 @@ var filteredLogsDir = filepath.Join("testdata", "logs", "after")
 
 func TestFilterLogs(t *testing.T) {
 	testCases := []struct {
-		name            string
-		fileIn          string
-		query           *string
-		minTimestamp    *time.Time
-		expectedFileOut string
+		name             string
+		fileIn           string
+		query            *string
+		minimumTimestamp *time.Time
+		expectedFileOut  string
 	}{
 		{
 			name:            "Query matches resource attribute",
@@ -77,11 +77,11 @@ func TestFilterLogs(t *testing.T) {
 			expectedFileOut: filepath.Join(filteredLogsDir, "filters-get.yaml"),
 		},
 		{
-			name:            "Filters GET before timestamp",
-			fileIn:          filepath.Join(unfilteredLogsDir, "w3c-logs.yaml"),
-			query:           asPtr("GET"),
-			minTimestamp:    asPtr(time.Unix(0, 1706632434906304000)),
-			expectedFileOut: filepath.Join(filteredLogsDir, "filters-get-timestamp.yaml"),
+			name:             "Filters GET before timestamp",
+			fileIn:           filepath.Join(unfilteredLogsDir, "w3c-logs.yaml"),
+			query:            asPtr("GET"),
+			minimumTimestamp: asPtr(time.Unix(0, 1706632434906304000)),
+			expectedFileOut:  filepath.Join(filteredLogsDir, "filters-get-timestamp.yaml"),
 		},
 	}
 
@@ -90,7 +90,7 @@ func TestFilterLogs(t *testing.T) {
 			logsIn, err := golden.ReadLogs(tc.fileIn)
 			require.NoError(t, err)
 
-			logsOut := filterLogs(logsIn, tc.query, tc.minTimestamp)
+			logsOut := filterLogs(logsIn, tc.query, tc.minimumTimestamp)
 
 			expectedLogsOut, err := golden.ReadLogs(tc.expectedFileOut)
 			require.NoError(t, err)

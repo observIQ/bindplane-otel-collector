@@ -70,7 +70,7 @@ func filterResourceLogs(resourceLog plog.ResourceLogs, searchQuery *string, mini
 	return filteredResourceLogs
 }
 
-// filterScopeLogs filters out logs that do not match the query and minTimestamp, returning a new plog.ScopeLogs without the filtered records.
+// filterScopeLogs filters out logs that do not match the query and minimumTimestamp, returning a new plog.ScopeLogs without the filtered records.
 // queryMatchesResource indicates if the query string matches the resource associated with this ScopeLogs.
 func filterScopeLogs(scopeLogs plog.ScopeLogs, queryMatchesResource bool, searchQuery *string, minimumTimestamp *time.Time) plog.ScopeLogs {
 	filteredLogRecords := plog.NewScopeLogs()

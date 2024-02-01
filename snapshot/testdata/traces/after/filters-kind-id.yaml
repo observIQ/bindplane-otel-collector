@@ -1,0 +1,108 @@
+resourceSpans:
+  - resource:
+      attributes:
+        - key: host.arch
+          value:
+            stringValue: arm64
+        - key: host.name
+          value:
+            stringValue: Sams-M1-Pro.local
+        - key: service.name
+          value:
+            stringValue: bindplane
+        - key: service.version
+          value:
+            stringValue: unknown
+    scopeSpans:
+      - scope: {}
+        spans:
+          - attributes:
+              - key: http.method
+                value:
+                  stringValue: POST
+              - key: http.scheme
+                value:
+                  stringValue: http
+              - key: net.host.name
+                value:
+                  stringValue: bindplane
+              - key: net.host.port
+                value:
+                  intValue: "3001"
+              - key: net.sock.peer.addr
+                value:
+                  stringValue: 127.0.0.1
+              - key: net.sock.peer.port
+                value:
+                  intValue: "50141"
+              - key: user_agent.original
+                value:
+                  stringValue: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:123.0) Gecko/20100101 Firefox/123.0
+              - key: http.client_ip
+                value:
+                  stringValue: 127.0.0.1
+              - key: http.target
+                value:
+                  stringValue: /v1/graphql
+              - key: net.protocol.version
+                value:
+                  stringValue: "1.1"
+              - key: http.route
+                value:
+                  stringValue: /v1/graphql
+              - key: http.status_code
+                value:
+                  intValue: "200"
+            endTimeUnixNano: "1706791445376694750"
+            kind: 2
+            name: /v1/graphql
+            parentSpanId: ""
+            spanId: 723c3f6eb4457b5c
+            startTimeUnixNano: "1706791445332980000"
+            status: {}
+            traceId: a3fbd5dc5db5e1734cb54419ca540b66
+          - attributes:
+              - key: http.method
+                value:
+                  stringValue: POST
+              - key: http.scheme
+                value:
+                  stringValue: http
+              - key: net.host.name
+                value:
+                  stringValue: bindplane
+              - key: net.host.port
+                value:
+                  intValue: "3001"
+              - key: net.sock.peer.addr
+                value:
+                  stringValue: 127.0.0.1
+              - key: net.sock.peer.port
+                value:
+                  intValue: "50140"
+              - key: user_agent.original
+                value:
+                  stringValue: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:123.0) Gecko/20100101 Firefox/123.0
+              - key: http.client_ip
+                value:
+                  stringValue: 127.0.0.1
+              - key: http.target
+                value:
+                  stringValue: /v1/graphql
+              - key: net.protocol.version
+                value:
+                  stringValue: "1.1"
+              - key: http.route
+                value:
+                  stringValue: /v1/graphql
+              - key: http.status_code
+                value:
+                  intValue: "200"
+            endTimeUnixNano: "1706791445376708291"
+            kind: 2
+            name: /v1/graphql
+            parentSpanId: ""
+            spanId: 3e7909bbebcae0ba
+            startTimeUnixNano: "1706791445332972000"
+            status: {}
+            traceId: d70c2b5eea8977bb8a0712f8c2a1fcb4
