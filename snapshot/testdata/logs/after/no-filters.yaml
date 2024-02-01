@@ -1,0 +1,505 @@
+resourceLogs:
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Brandons-Legit-Windows-PC-Not-From-Mac-I-Swear
+        - key: os.type
+          value:
+            stringValue: windows
+    schemaUrl: https://opentelemetry.io/schemas/1.6.1
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: w3c
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+            body:
+              kvlistValue:
+                values:
+                  - key: sc-status
+                    value:
+                      stringValue: "501"
+                  - key: s-sitename
+                    value:
+                      stringValue: red-server
+                  - key: s-computername
+                    value:
+                      stringValue: your-host
+                  - key: s-ip
+                    value:
+                      stringValue: 128.68.153.13
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.909660
+                  - key: cs-method
+                    value:
+                      stringValue: DELETE
+            observedTimeUnixNano: "1706632435103211000"
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: w3c
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+            body:
+              stringValue: This is a string body
+            observedTimeUnixNano: "1706632435103211000"
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: w3c
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+              - key: unique-attribute
+                value:
+                  stringValue: unique-value
+            body:
+              kvlistValue:
+                values:
+                  - key: s-ip
+                    value:
+                      stringValue: 19.25.92.158
+                  - key: cs-method
+                    value:
+                      stringValue: DELETE
+                  - key: sc-status
+                    value:
+                      stringValue: "500"
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.920213
+                  - key: s-sitename
+                    value:
+                      stringValue: blue-server
+                  - key: s-computername
+                    value:
+                      stringValue: my-host
+            observedTimeUnixNano: "1706632435103340000"
+            spanId: ""
+            traceId: ""
+        scope: {}
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Brandons-MBP
+        - key: os.type
+          value:
+            stringValue: darwin
+    schemaUrl: https://opentelemetry.io/schemas/1.6.1
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: w3c
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+            body:
+              kvlistValue:
+                values:
+                  - key: s-ip
+                    value:
+                      stringValue: 209.117.47.210
+                  - key: cs-method
+                    value:
+                      stringValue: POST
+                  - key: sc-status
+                    value:
+                      stringValue: "200"
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.760240
+                  - key: s-sitename
+                    value:
+                      stringValue: stage-server
+                  - key: s-computername
+                    value:
+                      stringValue: my-host
+            observedTimeUnixNano: "1706632434903385000"
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+              - key: log_type
+                value:
+                  stringValue: w3c
+            body:
+              kvlistValue:
+                values:
+                  - key: sc-status
+                    value:
+                      stringValue: "400"
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.771780
+                  - key: s-sitename
+                    value:
+                      stringValue: blue-server
+                  - key: s-computername
+                    value:
+                      stringValue: my-host
+                  - key: s-ip
+                    value:
+                      stringValue: 128.68.153.13
+                  - key: cs-method
+                    value:
+                      stringValue: POST
+            observedTimeUnixNano: "1706632434904438000"
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+              - key: log_type
+                value:
+                  stringValue: w3c
+            body:
+              kvlistValue:
+                values:
+                  - key: sc-status
+                    value:
+                      stringValue: "101"
+                  - key: s-sitename
+                    value:
+                      stringValue: production-server
+                  - key: s-computername
+                    value:
+                      stringValue: your-host
+                  - key: s-ip
+                    value:
+                      stringValue: 99.160.143.72
+                  - key: cs-method
+                    value:
+                      stringValue: GET
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.782933
+            observedTimeUnixNano: "1706632434904726000"
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: w3c
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+            body:
+              kvlistValue:
+                values:
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.793415
+                  - key: s-sitename
+                    value:
+                      stringValue: dev-server
+                  - key: s-computername
+                    value:
+                      stringValue: ice-box
+                  - key: s-ip
+                    value:
+                      stringValue: 129.90.224.41
+                  - key: cs-method
+                    value:
+                      stringValue: GET
+                  - key: sc-status
+                    value:
+                      stringValue: "409"
+            observedTimeUnixNano: "1706632434904962000"
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: w3c
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+            body:
+              kvlistValue:
+                values:
+                  - key: s-sitename
+                    value:
+                      stringValue: red-server
+                  - key: s-computername
+                    value:
+                      stringValue: your-host
+                  - key: s-ip
+                    value:
+                      stringValue: 99.160.143.72
+                  - key: cs-method
+                    value:
+                      stringValue: GET
+                  - key: sc-status
+                    value:
+                      stringValue: "101"
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.803941
+            observedTimeUnixNano: "1706632434905371000"
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: w3c
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+            body:
+              kvlistValue:
+                values:
+                  - key: s-sitename
+                    value:
+                      stringValue: stage-server
+                  - key: s-computername
+                    value:
+                      stringValue: my-host
+                  - key: s-ip
+                    value:
+                      stringValue: 87.222.90.184
+                  - key: cs-method
+                    value:
+                      stringValue: GET
+                  - key: sc-status
+                    value:
+                      stringValue: "501"
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.814813
+            observedTimeUnixNano: "1706632434905657000"
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: w3c
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+            body:
+              kvlistValue:
+                values:
+                  - key: s-computername
+                    value:
+                      stringValue: my-host
+                  - key: s-ip
+                    value:
+                      stringValue: 21.36.93.8
+                  - key: cs-method
+                    value:
+                      stringValue: DELETE
+                  - key: sc-status
+                    value:
+                      stringValue: "400"
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.825889
+                  - key: s-sitename
+                    value:
+                      stringValue: stage-server
+            observedTimeUnixNano: "1706632434905918000"
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: w3c
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+            body:
+              kvlistValue:
+                values:
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.838153
+                  - key: s-sitename
+                    value:
+                      stringValue: blue-server
+                  - key: s-computername
+                    value:
+                      stringValue: ice-box
+                  - key: s-ip
+                    value:
+                      stringValue: 154.205.58.188
+                  - key: cs-method
+                    value:
+                      stringValue: PUT
+                  - key: sc-status
+                    value:
+                      stringValue: "409"
+            observedTimeUnixNano: "1706632434906183000"
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: w3c
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+            body:
+              kvlistValue:
+                values:
+                  - key: s-sitename
+                    value:
+                      stringValue: dev-server
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.850696
+                  - key: s-computername
+                    value:
+                      stringValue: your-host
+                  - key: s-ip
+                    value:
+                      stringValue: 19.25.92.158
+                  - key: cs-method
+                    value:
+                      stringValue: GET
+                  - key: sc-status
+                    value:
+                      stringValue: "409"
+            observedTimeUnixNano: "1706632434906304000"
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: w3c
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+            body:
+              kvlistValue:
+                values:
+                  - key: s-ip
+                    value:
+                      stringValue: 99.160.143.72
+                  - key: cs-method
+                    value:
+                      stringValue: PUT
+                  - key: sc-status
+                    value:
+                      stringValue: "409"
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.861951
+                  - key: s-sitename
+                    value:
+                      stringValue: dev-server
+                  - key: s-computername
+                    value:
+                      stringValue: my-host
+            observedTimeUnixNano: "1706632434906407000"
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: w3c
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+            body:
+              kvlistValue:
+                values:
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.874685
+                  - key: cs-method
+                    value:
+                      stringValue: DELETE
+                  - key: sc-status
+                    value:
+                      stringValue: "404"
+                  - key: s-sitename
+                    value:
+                      stringValue: production-server
+                  - key: s-computername
+                    value:
+                      stringValue: your-host
+                  - key: s-ip
+                    value:
+                      stringValue: 127.0.0.1
+            observedTimeUnixNano: "1706632434906539000"
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+              - key: log_type
+                value:
+                  stringValue: w3c
+            body:
+              kvlistValue:
+                values:
+                  - key: s-computername
+                    value:
+                      stringValue: your-host
+                  - key: s-ip
+                    value:
+                      stringValue: 21.36.93.8
+                  - key: cs-method
+                    value:
+                      stringValue: POST
+                  - key: sc-status
+                    value:
+                      stringValue: "101"
+                  - key: s-sitename
+                    value:
+                      stringValue: red-server
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.885779
+            observedTimeUnixNano: "1706632434906584000"
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: w3c
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+            body:
+              kvlistValue:
+                values:
+                  - key: s-sitename
+                    value:
+                      stringValue: stage-server
+                  - key: s-computername
+                    value:
+                      stringValue: ice-box
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.897564
+                  - key: s-ip
+                    value:
+                      stringValue: 19.25.92.158
+                  - key: cs-method
+                    value:
+                      stringValue: POST
+                  - key: sc-status
+                    value:
+                      stringValue: "409"
+            observedTimeUnixNano: "1706632434906598000"
+            spanId: ""
+            traceId: ""
+        scope: {}

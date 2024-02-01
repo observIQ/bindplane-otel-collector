@@ -17,6 +17,7 @@ package snapshot
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
@@ -86,7 +87,7 @@ func (l *LogBuffer) Add(ld plog.Logs) {
 }
 
 // ConstructPayload condenses the buffer and serializes to protobuf
-func (l *LogBuffer) ConstructPayload() ([]byte, error) {
+func (l *LogBuffer) ConstructPayload(searchQuery *string, minimumTimestamp *time.Time) ([]byte, error) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	logsMarshaler := &plog.ProtoMarshaler{}
@@ -99,7 +100,10 @@ func (l *LogBuffer) ConstructPayload() ([]byte, error) {
 	// update the buffer to retain the current logs which were moved to the new payload
 	l.buffer = []plog.Logs{payloadLogs}
 
-	payload, err := logsMarshaler.MarshalLogs(payloadLogs)
+	// Filter the payload
+	filteredPayload := filterLogs(payloadLogs, searchQuery, minimumTimestamp)
+
+	payload, err := logsMarshaler.MarshalLogs(filteredPayload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct payload: %w", err)
 	}

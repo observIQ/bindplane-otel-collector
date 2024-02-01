@@ -164,7 +164,7 @@ func TestLogsBufferConstructPayload(t *testing.T) {
 	payloadThree.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
 	logBuffer.Add(payloadThree)
 
-	payload, err := logBuffer.ConstructPayload()
+	payload, err := logBuffer.ConstructPayload(nil, nil)
 	require.NoError(t, err)
 
 	unmarshaler := &plog.ProtoUnmarshaler{}

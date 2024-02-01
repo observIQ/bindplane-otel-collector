@@ -1,0 +1,46 @@
+resourceLogs:
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Brandons-Legit-Windows-PC-Not-From-Mac-I-Swear
+        - key: os.type
+          value:
+            stringValue: windows
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: w3c
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+              - key: unique-attribute
+                value:
+                  stringValue: unique-value
+            body:
+              kvlistValue:
+                values:
+                  - key: s-ip
+                    value:
+                      stringValue: 19.25.92.158
+                  - key: cs-method
+                    value:
+                      stringValue: DELETE
+                  - key: sc-status
+                    value:
+                      stringValue: "500"
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.920213
+                  - key: s-sitename
+                    value:
+                      stringValue: blue-server
+                  - key: s-computername
+                    value:
+                      stringValue: my-host
+            observedTimeUnixNano: "1706632435103340000"
+            spanId: ""
+            traceId: ""
+        scope: {}
