@@ -174,7 +174,7 @@ func (l *MetricBuffer) Add(md pmetric.Metrics) {
 }
 
 // ConstructPayload condenses the buffer and serializes to protobuf
-func (l *MetricBuffer) ConstructPayload() ([]byte, error) {
+func (l *MetricBuffer) ConstructPayload(searchQuery *string, minimumTimestamp *time.Time) ([]byte, error) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	metricMarshaler := &pmetric.ProtoMarshaler{}
@@ -187,7 +187,10 @@ func (l *MetricBuffer) ConstructPayload() ([]byte, error) {
 	// update the buffer to retain the current metrics which were moved to the new payload
 	l.buffer = []pmetric.Metrics{payloadMetrics}
 
-	payload, err := metricMarshaler.MarshalMetrics(payloadMetrics)
+	// filter the payload
+	fitleredPayload := filterMetrics(payloadMetrics, searchQuery, minimumTimestamp)
+
+	payload, err := metricMarshaler.MarshalMetrics(fitleredPayload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct payload: %w", err)
 	}

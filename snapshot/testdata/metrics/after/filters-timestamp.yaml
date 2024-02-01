@@ -1,0 +1,36 @@
+resourceMetrics:
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Brandons-MBP
+        - key: os.type
+          value:
+            stringValue: darwin
+    scopeMetrics:
+      - metrics:
+          - description: Filesystem bytes used.
+            name: system.filesystem.usage
+            sum:
+              dataPoints:
+                - asInt: "220672"
+                  attributes:
+                    - key: device
+                      value:
+                        stringValue: devfs
+                    - key: mode
+                      value:
+                        stringValue: rw
+                    - key: mountpoint
+                      value:
+                        stringValue: /dev
+                    - key: state
+                      value:
+                        stringValue: used
+                    - key: type
+                      value:
+                        stringValue: devfs
+                  startTimeUnixNano: "1000000"
+                  timeUnixNano: "3000000"
+            unit: By
+        scope: {}

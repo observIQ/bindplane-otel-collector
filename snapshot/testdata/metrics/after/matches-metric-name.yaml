@@ -1,0 +1,27 @@
+resourceMetrics:
+  - resource:
+      attributes:
+        - key: extra-resource-attr-key
+          value:
+            stringValue: extra-resource-attr-value
+        - key: host.name
+          value:
+            stringValue: Brandons-Awesome-Linux-Machine
+        - key: os.type
+          value:
+            stringValue: linux
+    scopeMetrics:
+      - metrics:
+          - description: Average CPU Load over 1 minute.
+            gauge:
+              dataPoints:
+                - asDouble: 3.71484375
+                  attributes:
+                    - key: cool-attribute-key
+                      value:
+                        stringValue: cool-attribute-value
+                  startTimeUnixNano: "1000000"
+                  timeUnixNano: "2000000"
+            name: system.cpu.load_average.1m
+            unit: '{thread}'
+        scope: {}

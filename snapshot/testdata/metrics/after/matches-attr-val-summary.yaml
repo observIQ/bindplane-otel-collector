@@ -1,0 +1,12 @@
+resourceMetrics:
+  - resource: {}
+    scopeMetrics:
+      - metrics:
+          - summary:
+              dataPoints:
+                - attributes:
+                    - key: dev-machine
+                      value:
+                        stringValue: dev-2
+                  count: "4"
+        scope: {}

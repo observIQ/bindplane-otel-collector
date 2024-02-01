@@ -1,0 +1,39 @@
+resourceMetrics:
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Brandons-MBP
+        - key: os.type
+          value:
+            stringValue: darwin
+    scopeMetrics:
+      - metrics:
+          - description: Filesystem bytes used.
+            name: system.filesystem.usage
+            sum:
+              dataPoints:
+                - asInt: "8717185024"
+                  attributes:
+                    - key: device
+                      value:
+                        stringValue: /dev/disk4s1
+                    - key: extra-sum-attr-key
+                      value:
+                        stringValue: extra-sum-attr-value
+                    - key: mode
+                      value:
+                        stringValue: rw
+                    - key: mountpoint
+                      value:
+                        stringValue: /Volumes/transfer
+                    - key: state
+                      value:
+                        stringValue: free
+                    - key: type
+                      value:
+                        stringValue: hfs
+                  startTimeUnixNano: "1000000"
+                  timeUnixNano: "2000000"
+            unit: By
+        scope: {}

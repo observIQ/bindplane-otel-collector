@@ -337,7 +337,7 @@ func TestMetricBufferConstructPayload(t *testing.T) {
 	pThreeMetric.Gauge().DataPoints().AppendEmpty()
 	metricBuffer.Add(payloadThree)
 
-	payload, err := metricBuffer.ConstructPayload()
+	payload, err := metricBuffer.ConstructPayload(nil, nil)
 	require.NoError(t, err)
 
 	unmarshaler := &pmetric.ProtoUnmarshaler{}
