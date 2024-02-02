@@ -222,7 +222,7 @@ func datapointMatches(dp datapoint, queryMatchesResource, queryMatchesName bool,
 }
 
 func datapointMatchesTimestamp(dp datapoint, minimumTimestamp time.Time) bool {
-	return dp.Timestamp() >= pcommon.NewTimestampFromTime(minimumTimestamp)
+	return dp.Timestamp() > pcommon.NewTimestampFromTime(minimumTimestamp)
 }
 
 func datapointMatchesQuery(dp datapoint, searchQuery string) bool {

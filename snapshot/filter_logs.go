@@ -105,7 +105,7 @@ func logMatches(l plog.LogRecord, queryMatchesResource bool, searchQuery *string
 
 // logMatchesTimestamp determines if the log came after the provided timestamp
 func logMatchesTimestamp(l plog.LogRecord, minimumTimestamp time.Time) bool {
-	return l.ObservedTimestamp() >= pcommon.NewTimestampFromTime(minimumTimestamp)
+	return l.ObservedTimestamp() > pcommon.NewTimestampFromTime(minimumTimestamp)
 }
 
 // logMatchesQuery determines if the given log record matches the given query string

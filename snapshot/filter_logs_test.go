@@ -80,7 +80,7 @@ func TestFilterLogs(t *testing.T) {
 			name:             "Filters GET before timestamp",
 			fileIn:           filepath.Join(unfilteredLogsDir, "w3c-logs.yaml"),
 			query:            asPtr("GET"),
-			minimumTimestamp: asPtr(time.Unix(0, 1706632434906304000)),
+			minimumTimestamp: asPtr(time.Unix(0, 1706632434906303999)),
 			expectedFileOut:  filepath.Join(filteredLogsDir, "filters-get-timestamp.yaml"),
 		},
 	}

@@ -84,7 +84,7 @@ func TestFilterMetrics(t *testing.T) {
 			// note when regenning goldens. golden.WriteMetrics
 			// completely obliterates timestamps, so the regenerated golden will have the wrong timestamp.
 			// You'll have to manually fix that.
-			minimumTimestamp: asPtr(time.Unix(0, 3000000)),
+			minimumTimestamp: asPtr(time.Unix(0, 2999999)),
 			expectedFileOut:  filepath.Join(filteredMetricsDir, "filters-timestamp.yaml"),
 		},
 		{

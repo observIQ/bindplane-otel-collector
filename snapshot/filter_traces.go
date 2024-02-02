@@ -106,7 +106,7 @@ func spanMatches(s ptrace.Span, queryMatchesResource bool, searchQuery *string, 
 
 // spanMatchesTimestamp determines if the span came after the provided timestamp
 func spanMatchesTimestamp(s ptrace.Span, minTime time.Time) bool {
-	return s.EndTimestamp() >= pcommon.NewTimestampFromTime(minTime)
+	return s.EndTimestamp() > pcommon.NewTimestampFromTime(minTime)
 }
 
 // spanMatchesQuery determines if the given span matches the given query string
