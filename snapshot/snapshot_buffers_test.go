@@ -164,7 +164,7 @@ func TestLogsBufferConstructPayload(t *testing.T) {
 	payloadThree.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
 	logBuffer.Add(payloadThree)
 
-	payload, err := logBuffer.ConstructPayload()
+	payload, err := logBuffer.ConstructPayload(nil, nil)
 	require.NoError(t, err)
 
 	unmarshaler := &plog.ProtoUnmarshaler{}
@@ -337,7 +337,7 @@ func TestMetricBufferConstructPayload(t *testing.T) {
 	pThreeMetric.Gauge().DataPoints().AppendEmpty()
 	metricBuffer.Add(payloadThree)
 
-	payload, err := metricBuffer.ConstructPayload()
+	payload, err := metricBuffer.ConstructPayload(nil, nil)
 	require.NoError(t, err)
 
 	unmarshaler := &pmetric.ProtoUnmarshaler{}
@@ -486,7 +486,7 @@ func TestTraceBufferConstructPayload(t *testing.T) {
 	payloadThree.ResourceSpans().AppendEmpty().ScopeSpans().AppendEmpty().Spans().AppendEmpty()
 	traceBuffer.Add(payloadThree)
 
-	payload, err := traceBuffer.ConstructPayload()
+	payload, err := traceBuffer.ConstructPayload(nil, nil)
 	require.NoError(t, err)
 
 	unmarshaler := &ptrace.ProtoUnmarshaler{}

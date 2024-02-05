@@ -1,0 +1,274 @@
+resourceSpans:
+  - resource:
+      attributes:
+        - key: host.arch
+          value:
+            stringValue: arm64
+        - key: host.name
+          value:
+            stringValue: Sams-M1-Pro.local
+        - key: service.name
+          value:
+            stringValue: bindplane
+        - key: service.version
+          value:
+            stringValue: unknown
+    scopeSpans:
+      - scope: {}
+        spans:
+          - endTimeUnixNano: "1706791445371594459"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: aa50d71d28f47370
+            spanId: 1e9c016ee3394bea
+            startTimeUnixNano: "1706791445370893000"
+            status: {}
+            traceId: a3fbd5dc5db5e1734cb54419ca540b66
+          - endTimeUnixNano: "1706791445371622334"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 96cebc89a09695f9
+            spanId: 5aceab5faac84e72
+            startTimeUnixNano: "1706791445370905000"
+            status: {}
+            traceId: d70c2b5eea8977bb8a0712f8c2a1fcb4
+          - endTimeUnixNano: "1706791445372256000"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 7a0d816f78afc130
+            spanId: ac1591195af28043
+            startTimeUnixNano: "1706791445371916000"
+            status: {}
+            traceId: a3fbd5dc5db5e1734cb54419ca540b66
+          - endTimeUnixNano: "1706791445372286291"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 9362c54ca8d2781f
+            spanId: fd5ad671cccf90ac
+            startTimeUnixNano: "1706791445371921000"
+            status: {}
+            traceId: d70c2b5eea8977bb8a0712f8c2a1fcb4
+          - endTimeUnixNano: "1706791445372639250"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 6a0757daee65f85d
+            spanId: 5caae46954be319e
+            startTimeUnixNano: "1706791445372258000"
+            status: {}
+            traceId: a3fbd5dc5db5e1734cb54419ca540b66
+          - endTimeUnixNano: "1706791445372674042"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 547d3cefd8be11ba
+            spanId: ac718a9ec3ef8ce8
+            startTimeUnixNano: "1706791445372289000"
+            status: {}
+            traceId: d70c2b5eea8977bb8a0712f8c2a1fcb4
+          - endTimeUnixNano: "1706791445373310333"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 623a6ef09a05d78e
+            spanId: 31427ef8f1cdb87e
+            startTimeUnixNano: "1706791445372919000"
+            status: {}
+            traceId: d70c2b5eea8977bb8a0712f8c2a1fcb4
+          - endTimeUnixNano: "1706791445373318125"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 8c1b5f014af598db
+            spanId: 81d1379f833e45e4
+            startTimeUnixNano: "1706791445372895000"
+            status: {}
+            traceId: a3fbd5dc5db5e1734cb54419ca540b66
+          - endTimeUnixNano: "1706791445373742542"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 6482ba65fc5d6aea
+            spanId: 1073bab272ed8d99
+            startTimeUnixNano: "1706791445373405000"
+            status: {}
+            traceId: a3fbd5dc5db5e1734cb54419ca540b66
+          - endTimeUnixNano: "1706791445373756125"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: b765ba46b31ea2b7
+            spanId: 92b6c441dbaf26e7
+            startTimeUnixNano: "1706791445373395000"
+            status: {}
+            traceId: d70c2b5eea8977bb8a0712f8c2a1fcb4
+          - endTimeUnixNano: "1706791445374105625"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 8fd1f88bb661dbbf
+            spanId: ee6eba613911c7f7
+            startTimeUnixNano: "1706791445373745000"
+            status: {}
+            traceId: a3fbd5dc5db5e1734cb54419ca540b66
+          - endTimeUnixNano: "1706791445374128916"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 48e733575bb79f9a
+            spanId: 93e5965556047830
+            startTimeUnixNano: "1706791445373758000"
+            status: {}
+            traceId: d70c2b5eea8977bb8a0712f8c2a1fcb4
+          - endTimeUnixNano: "1706791445375291042"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 8b48d61bb3bd84b5
+            spanId: 58eb2369bc29028b
+            startTimeUnixNano: "1706791445374349000"
+            status: {}
+            traceId: a3fbd5dc5db5e1734cb54419ca540b66
+          - endTimeUnixNano: "1706791445375293083"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 0389a1ce82df8073
+            spanId: 1324f3c06efff713
+            startTimeUnixNano: "1706791445374369000"
+            status: {}
+            traceId: d70c2b5eea8977bb8a0712f8c2a1fcb4
+          - endTimeUnixNano: "1706791445376190083"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: a5f8b395ad89fb20
+            spanId: aa9bc90319da6537
+            startTimeUnixNano: "1706791445375734000"
+            status: {}
+            traceId: a3fbd5dc5db5e1734cb54419ca540b66
+          - endTimeUnixNano: "1706791445376214125"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 3e9b9f81e55ccd89
+            spanId: eff5bf5ccd3ab227
+            startTimeUnixNano: "1706791445375749000"
+            status: {}
+            traceId: d70c2b5eea8977bb8a0712f8c2a1fcb4
+          - endTimeUnixNano: "1706791445916456958"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: f58f50240bd0ebcb
+            spanId: cce7e1ec6abeb8dc
+            startTimeUnixNano: "1706791445914332000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445919379208"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: bc09affd2efa24ae
+            spanId: cc9471536eccd5db
+            startTimeUnixNano: "1706791445917392000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445921637667"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 343173155818d664
+            spanId: c85313d8e38e60c0
+            startTimeUnixNano: "1706791445920299000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445923695125"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 0cc1b95036e397be
+            spanId: ea20cd55767a0599
+            startTimeUnixNano: "1706791445922423000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445925565458"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 38ff7d679d77bdbd
+            spanId: 48c2cef07ce74c65
+            startTimeUnixNano: "1706791445924467000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445927501542"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 88ff93a450488c13
+            spanId: 6b63f670942e88f2
+            startTimeUnixNano: "1706791445926216000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445929422500"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: f667fcb4d9278ef3
+            spanId: fc0c17bdf1248a4b
+            startTimeUnixNano: "1706791445928344000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445931226000"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: c3b8a5e5232d4f97
+            spanId: b4fdd461cf7cff72
+            startTimeUnixNano: "1706791445930124000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445933525458"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: a502177e675181ba
+            spanId: d8578a54be7b449a
+            startTimeUnixNano: "1706791445932312000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445935876667"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: b1f35deb03b68692
+            spanId: 83a7c9b53a487359
+            startTimeUnixNano: "1706791445934726000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445961896542"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: a894c9beda2d173a
+            spanId: a87163b208c61459
+            startTimeUnixNano: "1706791445937922000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445973109084"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 5236aa938eb9341c
+            spanId: 804ce3fb1b57be5d
+            startTimeUnixNano: "1706791445962593000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445979799208"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 078ab0ab7eb707b2
+            spanId: f06908731ed62890
+            startTimeUnixNano: "1706791445975818000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445989071125"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 1f3d24377d56ef1a
+            spanId: 484272979ab6993a
+            startTimeUnixNano: "1706791445981428000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445998161958"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 624db3b2e1cc7f20
+            spanId: e936bad42c7c2620
+            startTimeUnixNano: "1706791445997305000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445999158708"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 494fbd3596fa4bb7
+            spanId: f2f75b973ffbece4
+            startTimeUnixNano: "1706791445998570000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31

@@ -1,0 +1,16 @@
+resourceMetrics:
+  - resource: {}
+    scopeMetrics:
+      - metrics:
+          - exponentialHistogram:
+              dataPoints:
+                - attributes:
+                    - key: prod-machine
+                      value:
+                        stringValue: prod-1
+                  count: "4"
+                  max: 100
+                  min: 0
+                  negative: {}
+                  positive: {}
+        scope: {}

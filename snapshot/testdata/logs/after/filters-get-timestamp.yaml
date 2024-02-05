@@ -1,0 +1,43 @@
+resourceLogs:
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Brandons-MBP
+        - key: os.type
+          value:
+            stringValue: darwin
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: w3c
+              - key: log.file.name
+                value:
+                  stringValue: example.log
+            body:
+              kvlistValue:
+                values:
+                  - key: s-sitename
+                    value:
+                      stringValue: dev-server
+                  - key: timestamp
+                    value:
+                      stringValue: 30-01-2024 16:33:54.850696
+                  - key: s-computername
+                    value:
+                      stringValue: your-host
+                  - key: s-ip
+                    value:
+                      stringValue: 19.25.92.158
+                  - key: cs-method
+                    value:
+                      stringValue: GET
+                  - key: sc-status
+                    value:
+                      stringValue: "409"
+            observedTimeUnixNano: "1706632434906304000"
+            spanId: ""
+            traceId: ""
+        scope: {}
