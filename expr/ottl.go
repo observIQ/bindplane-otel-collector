@@ -75,22 +75,14 @@ func NewOTTLLogRecordStatement(statementStr string, set component.TelemetrySetti
 // We include all the converter functions here (functions that do not edit telemetry),
 // as well as two custom functions, noop and value.
 func functions[T any]() map[string]ottl.Factory[T] {
-	return ottl.CreateFactoryMap[T](
-		ottlfuncs.NewConcatFactory[T](),
-		ottlfuncs.NewConvertCaseFactory[T](),
-		ottlfuncs.NewIntFactory[T](),
-		ottlfuncs.NewIsMatchFactory[T](),
-		ottlfuncs.NewLogFactory[T](),
-		ottlfuncs.NewParseJSONFactory[T](),
-		ottlfuncs.NewSpanIDFactory[T](),
-		ottlfuncs.NewSplitFactory[T](),
-		ottlfuncs.NewSubstringFactory[T](),
-		ottlfuncs.NewTraceIDFactory[T](),
-		ottlfuncs.NewUUIDFactory[T](),
+	noopFactory := newNoopFactory[T]()
+	valueFactory := newValueFactory[T]()
 
-		newNoopFactory[T](),
-		newValueFactory[T](),
-	)
+	factories := ottlfuncs.StandardConverters[T]()
+	factories[noopFactory.Name()] = noopFactory
+	factories[valueFactory.Name()] = valueFactory
+
+	return factories
 }
 
 // newNoopFactory returns a factory for the noop function, which does nothing.
