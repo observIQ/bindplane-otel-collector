@@ -8,8 +8,11 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+var (
+	Type = component.MustNewType("sapnetweaver")
+)
+
 const (
-	Type             = "sapnetweaver"
 	MetricsStability = component.StabilityLevelAlpha
 )
 

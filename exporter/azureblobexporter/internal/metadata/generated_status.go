@@ -8,8 +8,11 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+var (
+	Type = component.MustNewType("azureblob")
+)
+
 const (
-	Type             = "azureblob"
 	TracesStability  = component.StabilityLevelAlpha
 	MetricsStability = component.StabilityLevelAlpha
 	LogsStability    = component.StabilityLevelAlpha

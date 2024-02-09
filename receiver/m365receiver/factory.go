@@ -67,7 +67,7 @@ func createMetricsReceiver(
 
 	//create receiver
 	ns := newM365Scraper(params, cfg)
-	scraper, err := scraperhelper.NewScraper(metadata.Type, ns.scrape, scraperhelper.WithStart(ns.start), scraperhelper.WithShutdown(ns.shutdown))
+	scraper, err := scraperhelper.NewScraper(metadata.Type.String(), ns.scrape, scraperhelper.WithStart(ns.start), scraperhelper.WithShutdown(ns.shutdown))
 	if err != nil {
 		return nil, err
 	}

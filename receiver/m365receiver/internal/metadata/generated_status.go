@@ -8,8 +8,11 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+var (
+	Type = component.MustNewType("m365")
+)
+
 const (
-	Type             = "m365"
 	MetricsStability = component.StabilityLevelAlpha
 	LogsStability    = component.StabilityLevelAlpha
 )

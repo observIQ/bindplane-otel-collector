@@ -21,6 +21,7 @@ import (
 	"github.com/observiq/bindplane-agent/expr"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confignet"
+	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.uber.org/zap"
@@ -38,7 +39,7 @@ const (
 type Config struct {
 	exporterhelper.TimeoutSettings `mapstructure:",squash"`
 	exporterhelper.QueueSettings   `mapstructure:"sending_queue"`
-	exporterhelper.RetrySettings   `mapstructure:"retry_on_failure"`
+	configretry.BackOffConfig      `mapstructure:"retry_on_failure"`
 
 	// ExportType is the type of export to use.
 	ExportType string `mapstructure:"export_type"`

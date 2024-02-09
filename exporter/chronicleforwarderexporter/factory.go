@@ -21,6 +21,7 @@ import (
 	"github.com/observiq/bindplane-agent/exporter/chronicleforwarderexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confignet"
+	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
@@ -38,7 +39,7 @@ func createDefaultConfig() component.Config {
 	return &Config{
 		TimeoutSettings: exporterhelper.NewDefaultTimeoutSettings(),
 		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
-		RetrySettings:   exporterhelper.NewDefaultRetrySettings(),
+		BackOffConfig:   configretry.NewDefaultBackOffConfig(),
 		ExportType:      exportTypeSyslog,
 		Syslog: SyslogConfig{
 			NetAddr: confignet.NetAddr{
@@ -73,6 +74,6 @@ func createLogsExporter(
 		exporterhelper.WithCapabilities(exp.Capabilities()),
 		exporterhelper.WithTimeout(forwarderCfg.TimeoutSettings),
 		exporterhelper.WithQueue(forwarderCfg.QueueSettings),
-		exporterhelper.WithRetry(forwarderCfg.RetrySettings),
+		exporterhelper.WithRetry(forwarderCfg.BackOffConfig),
 	)
 }
