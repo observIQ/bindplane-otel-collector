@@ -71,7 +71,7 @@ func TestReceiverCreateServiceFailure(t *testing.T) {
 		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
-		createService: func(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
+		createService: func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
 			return nil, errors.New("failure")
 		},
 		doneChan: make(chan struct{}),
@@ -105,7 +105,7 @@ func TestReceiverStartServiceFailure(t *testing.T) {
 		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
-		createService: func(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
+		createService: func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
 			return svc, nil
 		},
 		doneChan: make(chan struct{}),
@@ -141,7 +141,7 @@ func TestReceiverStartServiceContext(t *testing.T) {
 		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
-		createService: func(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
+		createService: func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
 			return svc, nil
 		},
 		doneChan: make(chan struct{}),
@@ -175,7 +175,7 @@ func TestReceiverStartSuccess(t *testing.T) {
 		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
-		createService: func(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
+		createService: func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
 			return svc, nil
 		},
 		doneChan: make(chan struct{}),
@@ -202,11 +202,11 @@ func TestReceiverShutdown(t *testing.T) {
 	blockChan := make(chan struct{})
 
 	svc := &MockService{}
-	svc.On("Run", mock.Anything).Run(func(args mock.Arguments) {
+	svc.On("Run", mock.Anything).Run(func(_ mock.Arguments) {
 		<-blockChan
 	}).Return(nil)
 	svc.On("GetState").Return(otelcol.StateRunning)
-	svc.On("Shutdown").Run(func(args mock.Arguments) {
+	svc.On("Shutdown").Run(func(_ mock.Arguments) {
 		close(blockChan)
 	}).Return()
 
@@ -215,7 +215,7 @@ func TestReceiverShutdown(t *testing.T) {
 		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
-		createService: func(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
+		createService: func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
 			return svc, nil
 		},
 		doneChan: make(chan struct{}),
@@ -248,7 +248,7 @@ func TestReceiverShutdownCancelledContext(t *testing.T) {
 	})
 
 	svc := &MockService{}
-	svc.On("Run", mock.Anything).Run(func(args mock.Arguments) {
+	svc.On("Run", mock.Anything).Run(func(_ mock.Arguments) {
 		<-blockChan
 	}).Return(nil)
 	svc.On("GetState").Return(otelcol.StateRunning)
@@ -259,7 +259,7 @@ func TestReceiverShutdownCancelledContext(t *testing.T) {
 		renderedCfg:    renderedCfg,
 		emitterFactory: emitterFactory,
 		logger:         zap.NewNop(),
-		createService: func(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
+		createService: func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
 			return svc, nil
 		},
 		doneChan: make(chan struct{}),

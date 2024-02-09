@@ -50,7 +50,7 @@ func Test_exporter_metricsDataPusher(t *testing.T) {
 	}{
 		{
 			desc: "marshal error",
-			mockGen: func(t *testing.T, input pmetric.Metrics, expectBuff []byte) (blobClient, marshaler) {
+			mockGen: func(t *testing.T, input pmetric.Metrics, _ []byte) (blobClient, marshaler) {
 				mockBlobClient := mocks.NewMockBlobClient(t)
 				mockMarshaler := mocks.NewMockMarshaler(t)
 
@@ -129,7 +129,7 @@ func Test_exporter_logsDataPusher(t *testing.T) {
 	}{
 		{
 			desc: "marshal error",
-			mockGen: func(t *testing.T, input plog.Logs, expectBuff []byte) (blobClient, marshaler) {
+			mockGen: func(t *testing.T, input plog.Logs, _ []byte) (blobClient, marshaler) {
 				mockBlobClient := mocks.NewMockBlobClient(t)
 				mockMarshaler := mocks.NewMockMarshaler(t)
 
@@ -208,7 +208,7 @@ func Test_exporter_traceDataPusher(t *testing.T) {
 	}{
 		{
 			desc: "marshal error",
-			mockGen: func(t *testing.T, input ptrace.Traces, expectBuff []byte) (blobClient, marshaler) {
+			mockGen: func(t *testing.T, input ptrace.Traces, _ []byte) (blobClient, marshaler) {
 				mockBlobClient := mocks.NewMockBlobClient(t)
 				mockMarshaler := mocks.NewMockMarshaler(t)
 
