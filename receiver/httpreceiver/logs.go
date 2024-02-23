@@ -100,6 +100,10 @@ func (r *httpLogsReceiver) Shutdown(ctx context.Context) error {
 // shutdownLIstener tells the server to stop serving and waits for it to stop
 func (r *httpLogsReceiver) shutdownListener(ctx context.Context) error {
 	r.logger.Debug("shutting down server")
+	if r.server == nil {
+		// Nothing to shut down
+		return nil
+	}
 
 	if err := r.server.Shutdown(ctx); err != nil {
 		return err
