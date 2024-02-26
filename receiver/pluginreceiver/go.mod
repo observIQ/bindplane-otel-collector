@@ -30,7 +30,7 @@ require (
 	go.opentelemetry.io/collector/pdata v1.2.0
 	go.opentelemetry.io/collector/processor v0.95.0
 	go.opentelemetry.io/collector/receiver v0.95.0
-	go.uber.org/zap v1.26.0
+	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 

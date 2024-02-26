@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.21.6
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.2.1
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.3.0
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/collector/component v0.95.0
 	go.opentelemetry.io/collector/consumer v0.95.0
@@ -14,12 +14,12 @@ require (
 	go.opentelemetry.io/collector/receiver v0.95.0
 	go.opentelemetry.io/otel/metric v1.23.1
 	go.opentelemetry.io/otel/trace v1.23.1
-	go.uber.org/zap v1.26.0
+	go.uber.org/zap v1.27.0
 )
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.9.1 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/internal v1.5.1 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.9.2 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.5.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
