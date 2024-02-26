@@ -85,7 +85,7 @@ func (r *httpLogsReceiver) startListening(host component.Host) error {
 		r.logger.Debug("Serve done")
 		if err != http.ErrServerClosed {
 			r.logger.Error("Serve failed", zap.Error(err))
-			host.ReportFatalError(err)
+			r.telemetrySettings.ReportStatus(component.NewFatalErrorEvent(err))
 		}
 	}()
 
