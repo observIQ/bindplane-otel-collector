@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
@@ -25,7 +26,7 @@ func Test_createDefaultConfig(t *testing.T) {
 	expectedCfg := &Config{
 		TimeoutSettings: exporterhelper.NewDefaultTimeoutSettings(),
 		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
-		RetrySettings:   exporterhelper.NewDefaultRetrySettings(),
+		BackOffConfig:   configretry.NewDefaultBackOffConfig(),
 		OverrideLogType: true,
 		Endpoint:        "https://malachiteingestion-pa.googleapis.com",
 		Compression:     "none",

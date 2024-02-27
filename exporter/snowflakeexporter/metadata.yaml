@@ -1,0 +1,7 @@
+type: snowflake
+
+status:
+  class: exporter
+  stability:
+    alpha: [traces, metrics, logs]
+  distributions: [observiq]

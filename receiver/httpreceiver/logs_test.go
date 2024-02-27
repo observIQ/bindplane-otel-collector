@@ -16,6 +16,7 @@ package httpreceiver
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -333,6 +334,17 @@ func TestServeHTTP(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestShutdownNoServer(t *testing.T) {
+	// test that shutdown without a start does not error or panic
+	recv := newReceiver(t, &Config{
+		HTTPServerSettings: confighttp.HTTPServerSettings{
+			Endpoint: "localhost:12345",
+		},
+	}, consumertest.NewNop())
+
+	require.NoError(t, recv.Shutdown(context.Background()))
 }
 
 func newReceiver(t *testing.T, cfg *Config, c consumer.Logs) *httpLogsReceiver {

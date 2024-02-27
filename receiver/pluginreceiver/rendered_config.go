@@ -93,7 +93,7 @@ func (r *RenderedConfig) GetConfigProvider() (otelcol.ConfigProvider, error) {
 
 	location := fmt.Sprintf("yaml:%s", bytes)
 	provider := yamlprovider.New()
-	converter := expandconverter.New()
+	converter := expandconverter.New(confmap.ConverterSettings{})
 	settings := otelcol.ConfigProviderSettings{
 		ResolverSettings: confmap.ResolverSettings{
 			URIs:       []string{location},

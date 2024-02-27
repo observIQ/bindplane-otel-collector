@@ -20,6 +20,7 @@ import (
 
 	"github.com/observiq/bindplane-agent/exporter/azureblobexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
@@ -39,7 +40,7 @@ func createDefaultConfig() component.Config {
 	return &Config{
 		TimeoutSettings: exporterhelper.NewDefaultTimeoutSettings(),
 		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
-		RetrySettings:   exporterhelper.NewDefaultRetrySettings(),
+		BackOffConfig:   configretry.NewDefaultBackOffConfig(),
 		Partition:       minutePartition,
 		Compression:     noCompression,
 	}
@@ -62,7 +63,7 @@ func createMetricsExporter(ctx context.Context, params exporter.CreateSettings, 
 		exporterhelper.WithCapabilities(exp.Capabilities()),
 		exporterhelper.WithTimeout(cfg.TimeoutSettings),
 		exporterhelper.WithQueue(cfg.QueueSettings),
-		exporterhelper.WithRetry(cfg.RetrySettings),
+		exporterhelper.WithRetry(cfg.BackOffConfig),
 	)
 }
 
@@ -83,7 +84,7 @@ func createLogsExporter(ctx context.Context, params exporter.CreateSettings, con
 		exporterhelper.WithCapabilities(exp.Capabilities()),
 		exporterhelper.WithTimeout(cfg.TimeoutSettings),
 		exporterhelper.WithQueue(cfg.QueueSettings),
-		exporterhelper.WithRetry(cfg.RetrySettings),
+		exporterhelper.WithRetry(cfg.BackOffConfig),
 	)
 }
 
@@ -104,6 +105,6 @@ func createTracesExporter(ctx context.Context, params exporter.CreateSettings, c
 		exporterhelper.WithCapabilities(exp.Capabilities()),
 		exporterhelper.WithTimeout(cfg.TimeoutSettings),
 		exporterhelper.WithQueue(cfg.QueueSettings),
-		exporterhelper.WithRetry(cfg.RetrySettings),
+		exporterhelper.WithRetry(cfg.BackOffConfig),
 	)
 }
