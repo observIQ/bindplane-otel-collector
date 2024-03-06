@@ -1,0 +1,24 @@
+resourceLogs:
+  - resource:
+      attributes:
+        - key: res_key1
+          value:
+            stringValue: ""
+        - key: res_key2
+          value:
+            stringValue: ""
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: attr_key1
+                value:
+                  stringValue: ""
+              - key: attr_key2
+                value:
+                  stringValue: ""
+            body:
+              stringValue: ""
+            spanId: ""
+            timeUnixNano: "11651379494838206464"
+            traceId: ""
+        scope: {}

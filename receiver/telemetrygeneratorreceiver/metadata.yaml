@@ -1,0 +1,7 @@
+type: telemetrygeneratorreceiver
+
+status:
+  class: receiver
+  stability:
+    alpha: [metrics, logs, traces]
+  distributions: [observiq]
