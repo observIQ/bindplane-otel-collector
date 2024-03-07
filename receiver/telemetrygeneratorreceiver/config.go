@@ -19,8 +19,11 @@ import (
 	"errors"
 	"fmt"
 
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/pdata/ptrace"
 )
 
 // Config is the configuration for the telemetry generator receiver
@@ -70,16 +73,23 @@ func (g *GeneratorConfig) Validate() error {
 		return validateHostMetricsGeneratorConfig(g)
 	case generatorTypeWindowsEvents:
 		return validateWindowsEventsGeneratorConfig(g)
-
+	case generatorTypeOTLP:
+		return validateOTLPGenerator(g)
 	default:
 		return fmt.Errorf("invalid generator type: %s", g.Type)
 	}
 }
 
 func validateLogGeneratorConfig(g *GeneratorConfig) error {
+
 	err := pcommon.NewMap().FromRaw(g.Attributes)
 	if err != nil {
 		return fmt.Errorf("error in attributes config: %s", err)
+	}
+
+	err = pcommon.NewMap().FromRaw(g.ResourceAttributes)
+	if err != nil {
+		return fmt.Errorf("error in resource_attributes config: %s", err)
 	}
 
 	// severity and body validation
@@ -101,6 +111,71 @@ func validateLogGeneratorConfig(g *GeneratorConfig) error {
 		if sn.String() == "" {
 			return fmt.Errorf("invalid severity: %d", severityVal)
 		}
+	}
+	return nil
+}
+
+func validateOTLPGenerator(cfg *GeneratorConfig) error {
+
+	telemetryType, ok := cfg.AdditionalConfig["telemetry_type"]
+	if !ok {
+		return errors.New("telemetry_type must be set")
+	}
+
+	// validate the telemetry type
+	telemetryTypeStr, ok := telemetryType.(string)
+	if !ok {
+		return fmt.Errorf("invalid telemetry type: %v", telemetryType)
+	}
+	dataType := component.DataType(telemetryTypeStr)
+	switch dataType {
+	case component.DataTypeLogs, component.DataTypeMetrics, component.DataTypeTraces:
+	default:
+		return fmt.Errorf("invalid telemetry type: %s", telemetryType)
+	}
+
+	// validate the otlp json
+	otlpJSON, ok := cfg.AdditionalConfig["otlp_json"]
+	if !ok {
+		return errors.New("otlp_json must be set")
+	}
+
+	otlpJSONStr, ok := otlpJSON.(string)
+	if !ok {
+		return fmt.Errorf("otlp_json must be a string, got: %v", otlpJSON)
+	}
+
+	jsonBytes := []byte(otlpJSONStr)
+
+	switch dataType {
+	case component.DataTypeLogs:
+		marshaler := plog.JSONUnmarshaler{}
+		logs, err := marshaler.UnmarshalLogs(jsonBytes)
+		if err != nil {
+			return fmt.Errorf("error unmarshalling logs from otlp_json: %w", err)
+		}
+		if logs.LogRecordCount() == 0 {
+			return errors.New("no log records found in otlp_json")
+		}
+	case component.DataTypeMetrics:
+		marshaler := pmetric.JSONUnmarshaler{}
+		metrics, err := marshaler.UnmarshalMetrics(jsonBytes)
+		if err != nil {
+			return fmt.Errorf("error unmarshalling metrics from otlp_json: %w", err)
+		}
+		if metrics.DataPointCount() == 0 {
+			return errors.New("no metric data points found in otlp_json")
+		}
+	case component.DataTypeTraces:
+		marshaler := ptrace.JSONUnmarshaler{}
+		traces, err := marshaler.UnmarshalTraces(jsonBytes)
+		if err != nil {
+			return fmt.Errorf("error unmarshalling traces from otlp_json: %w", err)
+		}
+		if traces.SpanCount() == 0 {
+			return errors.New("no trace spans found in otlp_json")
+		}
+
 	}
 	return nil
 }

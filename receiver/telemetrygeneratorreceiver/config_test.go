@@ -202,6 +202,213 @@ func TestValidate(t *testing.T) {
 				},
 			},
 		},
+		{
+			desc:        "invalid attributes",
+			payloads:    1,
+			errExpected: true,
+			errText:     "error in attributes config: <Invalid value type struct {}>",
+			generators: []GeneratorConfig{
+				{
+					Type: "logs",
+					Attributes: map[string]any{
+						"attr_key1": struct{}{},
+					},
+				},
+			},
+		},
+		{
+			desc:        "invalid resource_attributes",
+			payloads:    1,
+			errExpected: true,
+			errText:     "error in resource_attributes config: <Invalid value type struct {}>",
+			generators: []GeneratorConfig{
+				{
+					Type: "logs",
+					ResourceAttributes: map[string]any{
+						"attr_key1": struct{}{},
+					},
+				},
+			},
+		},
+		{
+			desc:        "otlp - no type",
+			payloads:    10,
+			errExpected: true,
+			errText:     "telemetry_type must be set",
+			generators: []GeneratorConfig{
+				{
+					Type: "otlp",
+					AdditionalConfig: map[string]any{
+						"otlp_json": "json",
+					},
+				},
+			},
+		},
+		{
+			desc:        "otlp - telemetry_type not string",
+			payloads:    10,
+			errExpected: true,
+			errText:     "invalid telemetry type: 1",
+			generators: []GeneratorConfig{
+				{
+					Type: "otlp",
+					AdditionalConfig: map[string]any{
+						"otlp_json":      "json",
+						"telemetry_type": 1,
+					},
+				},
+			},
+		},
+		{
+			desc:        "otlp - bad telemetry_type ",
+			payloads:    10,
+			errExpected: true,
+			errText:     "invalid telemetry type: bad",
+			generators: []GeneratorConfig{
+				{
+					Type: "otlp",
+					AdditionalConfig: map[string]any{
+						"otlp_json":      "json",
+						"telemetry_type": "bad",
+					},
+				},
+			},
+		},
+		{
+			desc:        "otlp - no otlp_json",
+			payloads:    10,
+			errExpected: true,
+			errText:     "otlp_json must be set",
+			generators: []GeneratorConfig{
+				{
+					Type: "otlp",
+					AdditionalConfig: map[string]any{
+						"telemetry_type": "logs",
+					},
+				},
+			},
+		},
+		{
+			desc:        "otlp - otlp_json not string",
+			payloads:    10,
+			errExpected: true,
+			errText:     "otlp_json must be a string, got: 1",
+			generators: []GeneratorConfig{
+				{
+					Type: "otlp",
+					AdditionalConfig: map[string]any{
+						"telemetry_type": "logs",
+						"otlp_json":      1,
+					},
+				},
+			},
+		},
+		{
+			desc:        "otlp - malformed otlp_json logs",
+			payloads:    10,
+			errExpected: true,
+			errText:     "error unmarshalling logs from otlp_json: skipThreeBytes: expect ull, error found in #2 byte of ...|not json|..., bigger context ...|not json|...",
+			generators: []GeneratorConfig{
+				{
+					Type: "otlp",
+					AdditionalConfig: map[string]any{
+						"telemetry_type": "logs",
+						"otlp_json":      "not json",
+					},
+				},
+			},
+		},
+		{
+			desc:        "otlp - malformed otlp_json metrics",
+			payloads:    10,
+			errExpected: true,
+			errText:     "error unmarshalling metrics from otlp_json: ReadObjectCB: expect \" after {, but found n, error found in #2 byte of ...|{not json}|..., bigger context ...|{not json}|...",
+			generators: []GeneratorConfig{
+				{
+					Type: "otlp",
+					AdditionalConfig: map[string]any{
+						"telemetry_type": "metrics",
+						"otlp_json":      "{not json}",
+					},
+				},
+			},
+		},
+		{
+			desc:        "otlp - malformed otlp_json traces",
+			payloads:    10,
+			errExpected: true,
+			errText:     "error unmarshalling traces from otlp_json: ReadObjectCB: expect { or n, but found ?, error found in #1 byte of ...|?(not json)|..., bigger context ...|?(not json)|...",
+			generators: []GeneratorConfig{
+				{
+					Type: "otlp",
+					AdditionalConfig: map[string]any{
+						"telemetry_type": "traces",
+						"otlp_json":      "?(not json)",
+					},
+				},
+			},
+		},
+		{
+			desc:        "otlp - otlp_json logs, telemetry_type traces",
+			payloads:    10,
+			errExpected: true,
+			errText:     "no trace spans found in otlp_json",
+			generators: []GeneratorConfig{
+				{
+					Type: "otlp",
+					AdditionalConfig: map[string]any{
+						"telemetry_type": "traces",
+						"otlp_json":      `{"resourceLogs":[{"resource":{"attributes":[{"key":"host.name","value":{"stringValue":"Sams-M1-Pro.local"}},{"key":"os.type","value":{"stringValue":"darwin"}}]},"scopeLogs":[{"scope":{},"logRecords":[{"timeUnixNano":"1709677536097000000","observedTimeUnixNano":"1709677536223996000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.097 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"tid","value":{"stringValue":"8334"}},{"key":"role","value":{"stringValue":""}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.097 EST"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536111000000","observedTimeUnixNano":"1709677536224110000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.111 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.111 EST"}},{"key":"role","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"user","value":{"stringValue":""}},{"key":"duration","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536113000000","observedTimeUnixNano":"1709677536224164000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.113 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"duration","value":{"stringValue":""}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.113 EST"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"role","value":{"stringValue":""}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536126000000","observedTimeUnixNano":"1709677536224300000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.126 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"role","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.126 EST"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"user","value":{"stringValue":""}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536149000000","observedTimeUnixNano":"1709677536224359000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.149 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.149 EST"}},{"key":"role","value":{"stringValue":""}},{"key":"user","value":{"stringValue":""}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"tid","value":{"stringValue":"8334"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536151000000","observedTimeUnixNano":"1709677536224466000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.151 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"role","value":{"stringValue":""}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"duration","value":{"stringValue":""}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.151 EST"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536154000000","observedTimeUnixNano":"1709677536224517000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.154 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"role","value":{"stringValue":""}},{"key":"duration","value":{"stringValue":""}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.154 EST"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536157000000","observedTimeUnixNano":"1709677536224635000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.157 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"duration","value":{"stringValue":""}},{"key":"user","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.157 EST"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"role","value":{"stringValue":""}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536159000000","observedTimeUnixNano":"1709677536224688000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.159 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"tid","value":{"stringValue":"8334"}},{"key":"role","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.159 EST"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"user","value":{"stringValue":""}},{"key":"log_type","value":{"stringValue":"postgresql.general"}}],"traceId":"","spanId":""}]}]},{"resource":{"attributes":[{"key":"host.name","value":{"stringValue":"Sams-M1-Pro.local"}},{"key":"os.type","value":{"stringValue":"darwin"}}]},"scopeLogs":[{"scope":{},"logRecords":[{"timeUnixNano":"1709677536097000000","observedTimeUnixNano":"1709677536223996000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.097 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"tid","value":{"stringValue":"8334"}},{"key":"role","value":{"stringValue":""}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.097 EST"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536111000000","observedTimeUnixNano":"1709677536224110000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.111 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.111 EST"}},{"key":"role","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"user","value":{"stringValue":""}},{"key":"duration","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536113000000","observedTimeUnixNano":"1709677536224164000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.113 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"duration","value":{"stringValue":""}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.113 EST"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"role","value":{"stringValue":""}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536126000000","observedTimeUnixNano":"1709677536224300000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.126 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"role","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.126 EST"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"user","value":{"stringValue":""}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536149000000","observedTimeUnixNano":"1709677536224359000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.149 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.149 EST"}},{"key":"role","value":{"stringValue":""}},{"key":"user","value":{"stringValue":""}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"tid","value":{"stringValue":"8334"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536151000000","observedTimeUnixNano":"1709677536224466000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.151 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"role","value":{"stringValue":""}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"duration","value":{"stringValue":""}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.151 EST"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536154000000","observedTimeUnixNano":"1709677536224517000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.154 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"role","value":{"stringValue":""}},{"key":"duration","value":{"stringValue":""}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.154 EST"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536157000000","observedTimeUnixNano":"1709677536224635000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.157 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"duration","value":{"stringValue":""}},{"key":"user","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.157 EST"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"role","value":{"stringValue":""}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536159000000","observedTimeUnixNano":"1709677536224688000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.159 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"tid","value":{"stringValue":"8334"}},{"key":"role","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.159 EST"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"user","value":{"stringValue":""}},{"key":"log_type","value":{"stringValue":"postgresql.general"}}],"traceId":"","spanId":""}]}]}]}`,
+					},
+				},
+			},
+		},
+		{
+			desc:        "otlp - telemetry_type metrics, otlp_json logs",
+			payloads:    10,
+			errExpected: true,
+			errText:     "no metric data points found in otlp_json",
+			generators: []GeneratorConfig{
+				{
+					Type: "otlp",
+					AdditionalConfig: map[string]any{
+						"telemetry_type": "metrics",
+						"otlp_json":      `{"resourceLogs":[{"resource":{"attributes":[{"key":"host.name","value":{"stringValue":"Sams-M1-Pro.local"}},{"key":"os.type","value":{"stringValue":"darwin"}}]},"scopeLogs":[{"scope":{},"logRecords":[{"timeUnixNano":"1709677536097000000","observedTimeUnixNano":"1709677536223996000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.097 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"tid","value":{"stringValue":"8334"}},{"key":"role","value":{"stringValue":""}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.097 EST"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536111000000","observedTimeUnixNano":"1709677536224110000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.111 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.111 EST"}},{"key":"role","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"user","value":{"stringValue":""}},{"key":"duration","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536113000000","observedTimeUnixNano":"1709677536224164000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.113 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"duration","value":{"stringValue":""}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.113 EST"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"role","value":{"stringValue":""}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536126000000","observedTimeUnixNano":"1709677536224300000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.126 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"role","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.126 EST"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"user","value":{"stringValue":""}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536149000000","observedTimeUnixNano":"1709677536224359000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.149 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.149 EST"}},{"key":"role","value":{"stringValue":""}},{"key":"user","value":{"stringValue":""}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"tid","value":{"stringValue":"8334"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536151000000","observedTimeUnixNano":"1709677536224466000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.151 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"role","value":{"stringValue":""}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"duration","value":{"stringValue":""}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.151 EST"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536154000000","observedTimeUnixNano":"1709677536224517000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.154 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"role","value":{"stringValue":""}},{"key":"duration","value":{"stringValue":""}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.154 EST"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536157000000","observedTimeUnixNano":"1709677536224635000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.157 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"duration","value":{"stringValue":""}},{"key":"user","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.157 EST"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"role","value":{"stringValue":""}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536159000000","observedTimeUnixNano":"1709677536224688000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.159 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"tid","value":{"stringValue":"8334"}},{"key":"role","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.159 EST"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"user","value":{"stringValue":""}},{"key":"log_type","value":{"stringValue":"postgresql.general"}}],"traceId":"","spanId":""}]}]},{"resource":{"attributes":[{"key":"host.name","value":{"stringValue":"Sams-M1-Pro.local"}},{"key":"os.type","value":{"stringValue":"darwin"}}]},"scopeLogs":[{"scope":{},"logRecords":[{"timeUnixNano":"1709677536097000000","observedTimeUnixNano":"1709677536223996000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.097 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"tid","value":{"stringValue":"8334"}},{"key":"role","value":{"stringValue":""}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.097 EST"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536111000000","observedTimeUnixNano":"1709677536224110000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.111 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.111 EST"}},{"key":"role","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"user","value":{"stringValue":""}},{"key":"duration","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536113000000","observedTimeUnixNano":"1709677536224164000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.113 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"duration","value":{"stringValue":""}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.113 EST"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"role","value":{"stringValue":""}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536126000000","observedTimeUnixNano":"1709677536224300000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.126 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"role","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.126 EST"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"user","value":{"stringValue":""}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536149000000","observedTimeUnixNano":"1709677536224359000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.149 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.149 EST"}},{"key":"role","value":{"stringValue":""}},{"key":"user","value":{"stringValue":""}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"tid","value":{"stringValue":"8334"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536151000000","observedTimeUnixNano":"1709677536224466000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.151 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"role","value":{"stringValue":""}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"duration","value":{"stringValue":""}},{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.151 EST"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536154000000","observedTimeUnixNano":"1709677536224517000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.154 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"role","value":{"stringValue":""}},{"key":"duration","value":{"stringValue":""}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.154 EST"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"user","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log_type","value":{"stringValue":"postgresql.general"}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536157000000","observedTimeUnixNano":"1709677536224635000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.157 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"log_type","value":{"stringValue":"postgresql.general"}},{"key":"duration","value":{"stringValue":""}},{"key":"user","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.157 EST"}},{"key":"tid","value":{"stringValue":"8334"}},{"key":"role","value":{"stringValue":""}}],"traceId":"","spanId":""},{"timeUnixNano":"1709677536159000000","observedTimeUnixNano":"1709677536224688000","severityNumber":9,"severityText":"LOG","body":{"stringValue":"2024-03-05 17:25:36.159 EST [8334] LOG:  statement: COMMIT"},"attributes":[{"key":"tid","value":{"stringValue":"8334"}},{"key":"role","value":{"stringValue":""}},{"key":"level","value":{"stringValue":"LOG"}},{"key":"message","value":{"stringValue":"statement: COMMIT"}},{"key":"duration","value":{"stringValue":""}},{"key":"statement","value":{"stringValue":"COMMIT"}},{"key":"sql_command","value":{"stringValue":"COMMIT"}},{"key":"timestamp","value":{"stringValue":"2024-03-05 17:25:36.159 EST"}},{"key":"log.file.name","value":{"stringValue":"postgresql-2024-03-05_172300.log"}},{"key":"user","value":{"stringValue":""}},{"key":"log_type","value":{"stringValue":"postgresql.general"}}],"traceId":"","spanId":""}]}]}]}`,
+					},
+				},
+			},
+		},
+
+		{
+			desc:        "otlp - telemetry_type traces, otlp_json metrics",
+			payloads:    10,
+			errExpected: true,
+			errText:     "no trace spans found in otlp_json",
+			generators: []GeneratorConfig{
+				{
+					Type: "otlp",
+					AdditionalConfig: map[string]any{
+						"telemetry_type": "traces",
+						"otlp_json":      `{"resourceMetrics":[{"resource":{},"scopeMetrics":[{"scope":{},"metrics":[{"summary":{"dataPoints":[{"attributes":[{"key":"prod-machine","value":{"stringValue":"prod-1"}}],"count":"4","sum":111}]}}]}]}]}`,
+					},
+				},
+			},
+		},
+		{
+			desc:        "otlp - telemetry_type logs, otlp_json metrics",
+			payloads:    10,
+			errExpected: true,
+			errText:     "no log records found in otlp_json",
+			generators: []GeneratorConfig{
+				{
+					Type: "otlp",
+					AdditionalConfig: map[string]any{
+						"telemetry_type": "logs",
+						"otlp_json":      `{"resourceMetrics":[{"resource":{},"scopeMetrics":[{"scope":{},"metrics":[{"summary":{"dataPoints":[{"attributes":[{"key":"prod-machine","value":{"stringValue":"prod-1"}}],"count":"4","sum":111}]}}]}]}]}`,
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {

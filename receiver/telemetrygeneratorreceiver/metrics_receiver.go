@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.uber.org/zap"
 )
 
@@ -41,7 +42,15 @@ func newMetricsReceiver(ctx context.Context, logger *zap.Logger, cfg *Config, ne
 	return mr
 }
 
-// TODO implement produce for metrics
+// produce generates metrics from each generator and sends them to the next consumer
 func (r *metricsGeneratorReceiver) produce() error {
-	return nil
+	metrics := pmetric.NewMetrics()
+	for _, g := range r.generators {
+		m := g.generateMetrics()
+		for i := 0; i < m.ResourceMetrics().Len(); i++ {
+			src := m.ResourceMetrics().At(i)
+			src.CopyTo(metrics.ResourceMetrics().AppendEmpty())
+		}
+	}
+	return r.nextConsumer.ConsumeMetrics(r.ctx, metrics)
 }

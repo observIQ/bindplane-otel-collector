@@ -1,0 +1,240 @@
+resourceSpans:
+  - resource:
+      attributes:
+        - key: host.arch
+          value:
+            stringValue: arm64
+        - key: host.name
+          value:
+            stringValue: Sams-M1-Pro.local
+        - key: service.name
+          value:
+            stringValue: bindplane
+        - key: service.version
+          value:
+            stringValue: unknown
+    scopeSpans:
+      - scope: {}
+        spans:
+          - endTimeUnixNano: "1706791445927702458"
+            kind: 1
+            name: pgstore/addTransitiveUpdates
+            parentSpanId: b6e1d82a58e8fd61
+            spanId: 5a055056ad7713e5
+            startTimeUnixNano: "1706791445927700000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445927704250"
+            kind: 1
+            name: pgstore/notify
+            parentSpanId: 38ff7d679d77bdbd
+            spanId: b6e1d82a58e8fd61
+            startTimeUnixNano: "1706791445927698000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445973101000"
+            kind: 1
+            name: pgstore/scanPostgresResource
+            parentSpanId: 804ce3fb1b57be5d
+            spanId: 3eadb90414f2cf22
+            startTimeUnixNano: "1706791445971633000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445973109084"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 5236aa938eb9341c
+            spanId: 804ce3fb1b57be5d
+            startTimeUnixNano: "1706791445962593000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445973110334"
+            kind: 1
+            name: pgstore/pgResource
+            parentSpanId: ca3b8e53681a9e8d
+            spanId: 5236aa938eb9341c
+            startTimeUnixNano: "1706791445962592000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445973258875"
+            kind: 1
+            name: pgstore/pgEditConfiguration
+            parentSpanId: a894c9beda2d173a
+            spanId: ca3b8e53681a9e8d
+            startTimeUnixNano: "1706791445962589000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445973576917"
+            kind: 1
+            name: pgstore/addTransitiveUpdates
+            parentSpanId: 94557eef510d0814
+            spanId: c3ea8f993f9009ba
+            startTimeUnixNano: "1706791445973575000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445973579333"
+            kind: 1
+            name: pgstore/notify
+            parentSpanId: a894c9beda2d173a
+            spanId: 94557eef510d0814
+            startTimeUnixNano: "1706791445973572000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445975115042"
+            kind: 1
+            name: pgstore/releaseAdvisoryLock
+            parentSpanId: a894c9beda2d173a
+            spanId: 8906c43abedb6bd9
+            startTimeUnixNano: "1706791445973581000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445975119416"
+            kind: 1
+            name: pgstore/UpdateRollout
+            parentSpanId: 9d5a7e824fa7ba3b
+            spanId: a894c9beda2d173a
+            startTimeUnixNano: "1706791445937536000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445975734417"
+            kind: 1
+            name: pgstore/acquireAdvisoryLock
+            parentSpanId: 078ab0ab7eb707b2
+            spanId: f141ff98614cfc0c
+            startTimeUnixNano: "1706791445975133000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445979767041"
+            kind: 1
+            name: pgstore/scanPostgresResource
+            parentSpanId: f06908731ed62890
+            spanId: e185a7e1c60473b8
+            startTimeUnixNano: "1706791445976351000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445979799208"
+            kind: 1
+            name: pgstore/pgResourceInternal
+            parentSpanId: 078ab0ab7eb707b2
+            spanId: f06908731ed62890
+            startTimeUnixNano: "1706791445975818000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445999459839"
+            kind: 1
+            name: pgstore/UpdateAllRollouts
+            parentSpanId: ""
+            spanId: aeb2a416b8796cba
+            startTimeUnixNano: "1706791445908223000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+      - scope: {}
+        spans:
+          - attributes:
+              - key: http.method
+                value:
+                  stringValue: POST
+              - key: http.scheme
+                value:
+                  stringValue: http
+              - key: net.host.name
+                value:
+                  stringValue: bindplane
+              - key: net.host.port
+                value:
+                  intValue: "3001"
+              - key: net.sock.peer.addr
+                value:
+                  stringValue: 127.0.0.1
+              - key: net.sock.peer.port
+                value:
+                  intValue: "50141"
+              - key: user_agent.original
+                value:
+                  stringValue: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:123.0) Gecko/20100101 Firefox/123.0
+              - key: http.client_ip
+                value:
+                  stringValue: 127.0.0.1
+              - key: http.target
+                value:
+                  stringValue: /v1/graphql
+              - key: net.protocol.version
+                value:
+                  stringValue: "1.1"
+              - key: http.route
+                value:
+                  stringValue: /v1/graphql
+              - key: http.status_code
+                value:
+                  intValue: "200"
+            endTimeUnixNano: "1706791445376694750"
+            kind: 2
+            name: /v1/graphql
+            parentSpanId: ""
+            spanId: 723c3f6eb4457b5c
+            startTimeUnixNano: "1706791445332980000"
+            status: {}
+            traceId: a3fbd5dc5db5e1734cb54419ca540b66
+          - attributes:
+              - key: http.method
+                value:
+                  stringValue: POST
+              - key: http.scheme
+                value:
+                  stringValue: http
+              - key: net.host.name
+                value:
+                  stringValue: bindplane
+              - key: net.host.port
+                value:
+                  intValue: "3001"
+              - key: net.sock.peer.addr
+                value:
+                  stringValue: 127.0.0.1
+              - key: net.sock.peer.port
+                value:
+                  intValue: "50140"
+              - key: user_agent.original
+                value:
+                  stringValue: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:123.0) Gecko/20100101 Firefox/123.0
+              - key: http.client_ip
+                value:
+                  stringValue: 127.0.0.1
+              - key: http.target
+                value:
+                  stringValue: /v1/graphql
+              - key: net.protocol.version
+                value:
+                  stringValue: "1.1"
+              - key: http.route
+                value:
+                  stringValue: /v1/graphql
+              - key: http.status_code
+                value:
+                  intValue: "200"
+            endTimeUnixNano: "1706791445376708291"
+            kind: 2
+            name: /v1/graphql
+            parentSpanId: ""
+            spanId: 3e7909bbebcae0ba
+            startTimeUnixNano: "1706791445332972000"
+            status: {}
+            traceId: d70c2b5eea8977bb8a0712f8c2a1fcb4
+      - scope: {}
+        spans:
+          - endTimeUnixNano: "1706791445913878000"
+            kind: 1
+            name: pgindex/Suggestions
+            parentSpanId: 9d5a7e824fa7ba3b
+            spanId: 4c2049c4cd14c987
+            startTimeUnixNano: "1706791445912675000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
+          - endTimeUnixNano: "1706791445997017791"
+            kind: 1
+            name: pgindex/Suggestions
+            parentSpanId: 96ae55c03e5146b3
+            spanId: aa69c45bc0970c2f
+            startTimeUnixNano: "1706791445996229000"
+            status: {}
+            traceId: c7f3bb6aa9e7a7dce92d85d1566f2c31
