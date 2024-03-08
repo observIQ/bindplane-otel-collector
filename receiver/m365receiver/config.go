@@ -31,7 +31,7 @@ var clientSecretRegEx = regexp.MustCompile("^[a-zA-Z0-9-_.~]{1,40}$")
 // Config defines configuration for Microsoft Office 365 receiver.
 type Config struct {
 	scraperhelper.ScraperControllerSettings `mapstructure:",squash"`
-	confighttp.HTTPClientSettings           `mapstructure:",squash"`
+	confighttp.ClientConfig                 `mapstructure:",squash"`
 	MetricsBuilderConfig                    metadata.MetricsBuilderConfig `mapstructure:",squash"`
 	TenantID                                string                        `mapstructure:"tenant_id"`
 	ClientID                                string                        `mapstructure:"client_id"`

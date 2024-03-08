@@ -47,7 +47,7 @@ func TestScraperStart(t *testing.T) {
 			desc: "Bad Config",
 			scraper: &sapNetweaverScraper{
 				cfg: &Config{
-					HTTPClientSettings: confighttp.HTTPClientSettings{
+					ClientConfig: confighttp.ClientConfig{
 						Endpoint: defaultEndpoint,
 						TLSSetting: configtls.TLSClientSetting{
 							TLSSetting: configtls.TLSSetting{
@@ -66,7 +66,7 @@ func TestScraperStart(t *testing.T) {
 				cfg: &Config{
 					Username: "root",
 					Password: "password",
-					HTTPClientSettings: confighttp.HTTPClientSettings{
+					ClientConfig: confighttp.ClientConfig{
 						TLSSetting: configtls.TLSClientSetting{},
 						Endpoint:   defaultEndpoint,
 					},

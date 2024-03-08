@@ -59,6 +59,7 @@ type rehydrationReceiver struct {
 	endingTime   time.Time
 
 	doneChan   chan struct{}
+	started    bool
 	ctx        context.Context
 	cancelFunc context.CancelCauseFunc
 }
@@ -149,6 +150,7 @@ func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) er
 		r.storageClient = storageClient
 	}
 
+	r.started = true
 	go r.scrape()
 	return nil
 }
@@ -157,10 +159,14 @@ func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) er
 func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 	r.cancelFunc(errors.New("shutdown"))
 	var err error
-	select {
-	case <-ctx.Done():
-		err = ctx.Err()
-	case <-r.doneChan:
+
+	// If we have called started then close and wait for goroutine to finish
+	if r.started {
+		select {
+		case <-ctx.Done():
+			err = ctx.Err()
+		case <-r.doneChan:
+		}
 	}
 
 	err = errors.Join(err, r.storageClient.Close(ctx))

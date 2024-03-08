@@ -101,7 +101,7 @@ func TestLogDataPushingNetwork(t *testing.T) {
 	cfg := &Config{
 		ExportType: exportTypeSyslog,
 		Syslog: SyslogConfig{
-			NetAddr: confignet.NetAddr{
+			AddrConfig: confignet.AddrConfig{
 				Endpoint:  ln.Addr().String(),
 				Transport: "tcp",
 			},
@@ -184,7 +184,7 @@ func TestOpenWriter(t *testing.T) {
 			cfg: Config{
 				ExportType: exportTypeSyslog,
 				Syslog: SyslogConfig{
-					NetAddr: confignet.NetAddr{
+					AddrConfig: confignet.AddrConfig{
 						Endpoint:  "localhost:1234",
 						Transport: "tcp",
 					},
@@ -200,7 +200,7 @@ func TestOpenWriter(t *testing.T) {
 			cfg: Config{
 				ExportType: exportTypeSyslog,
 				Syslog: SyslogConfig{
-					NetAddr: confignet.NetAddr{
+					AddrConfig: confignet.AddrConfig{
 						Endpoint:  "invalidendpoint",
 						Transport: "tcp",
 					},
@@ -215,7 +215,7 @@ func TestOpenWriter(t *testing.T) {
 			cfg: Config{
 				ExportType: exportTypeSyslog,
 				Syslog: SyslogConfig{
-					NetAddr: confignet.NetAddr{
+					AddrConfig: confignet.AddrConfig{
 						Endpoint:  "localhost:1234",
 						Transport: "tcp",
 					},
@@ -232,7 +232,7 @@ func TestOpenWriter(t *testing.T) {
 			cfg: Config{
 				ExportType: exportTypeSyslog,
 				Syslog: SyslogConfig{
-					NetAddr: confignet.NetAddr{
+					AddrConfig: confignet.AddrConfig{
 						Endpoint:  "localhost:1234",
 						Transport: "tcp",
 					},

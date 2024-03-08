@@ -38,7 +38,7 @@ func TestNewSoapClient(t *testing.T) {
 		{
 			desc: "Invalid HTTP config",
 			cfg: &Config{
-				HTTPClientSettings: confighttp.HTTPClientSettings{
+				ClientConfig: confighttp.ClientConfig{
 					Endpoint: defaultEndpoint,
 					TLSSetting: configtls.TLSClientSetting{
 						TLSSetting: configtls.TLSSetting{
@@ -57,7 +57,7 @@ func TestNewSoapClient(t *testing.T) {
 			cfg: &Config{
 				Username: "root",
 				Password: "password",
-				HTTPClientSettings: confighttp.HTTPClientSettings{
+				ClientConfig: confighttp.ClientConfig{
 					TLSSetting: configtls.TLSClientSetting{},
 					Endpoint:   defaultEndpoint,
 				},

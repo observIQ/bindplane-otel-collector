@@ -32,7 +32,7 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: Config{
 				ExportType: exportTypeSyslog,
 				Syslog: SyslogConfig{
-					NetAddr: confignet.NetAddr{
+					AddrConfig: confignet.AddrConfig{
 						Endpoint:  "localhost:514",
 						Transport: "tcp",
 					},
@@ -45,7 +45,7 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: Config{
 				ExportType: exportTypeSyslog,
 				Syslog: SyslogConfig{
-					NetAddr: confignet.NetAddr{
+					AddrConfig: confignet.AddrConfig{
 						Endpoint:  "",
 						Transport: "tcp",
 					},

@@ -56,7 +56,7 @@ type Config struct {
 
 // SyslogConfig defines configuration for the Chronicle forwarder connection.
 type SyslogConfig struct {
-	confignet.NetAddr `mapstructure:",squash"`
+	confignet.AddrConfig `mapstructure:",squash"`
 
 	// TLSSetting struct exposes TLS client configuration.
 	TLSSetting *configtls.TLSClientSetting `mapstructure:"tls"`
@@ -70,7 +70,7 @@ type File struct {
 
 // validate validates the Syslog configuration.
 func (s *SyslogConfig) validate() error {
-	if s.NetAddr.Endpoint == "" {
+	if s.AddrConfig.Endpoint == "" {
 		return errors.New("incomplete syslog configuration: endpoint is required")
 	}
 	return nil

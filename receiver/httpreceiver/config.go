@@ -25,8 +25,8 @@ import (
 
 // Config defines the configuration for an HTTP receiver
 type Config struct {
-	Path                          string `mapstructure:"path"`
-	confighttp.HTTPServerSettings `mapstructure:",squash"`
+	Path                    string `mapstructure:"path"`
+	confighttp.ServerConfig `mapstructure:",squash"`
 }
 
 var (

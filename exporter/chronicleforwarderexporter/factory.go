@@ -42,7 +42,7 @@ func createDefaultConfig() component.Config {
 		BackOffConfig:   configretry.NewDefaultBackOffConfig(),
 		ExportType:      exportTypeSyslog,
 		Syslog: SyslogConfig{
-			NetAddr: confignet.NetAddr{
+			AddrConfig: confignet.AddrConfig{
 				Endpoint:  "127.0.0.1:10514",
 				Transport: "tcp",
 			},

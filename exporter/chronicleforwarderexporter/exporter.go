@@ -123,13 +123,13 @@ func (ce *chronicleForwarderExporter) openSyslogWriter() (io.WriteCloser, error)
 		if err != nil {
 			return nil, fmt.Errorf("load TLS config: %w", err)
 		}
-		conn, err = ce.DialWithTLS(ce.cfg.Syslog.NetAddr.Transport, ce.cfg.Syslog.NetAddr.Endpoint, tlsConfig)
+		conn, err = ce.DialWithTLS(ce.cfg.Syslog.AddrConfig.Transport, ce.cfg.Syslog.AddrConfig.Endpoint, tlsConfig)
 
 		if err != nil {
 			return nil, fmt.Errorf("dial with tls: %w", err)
 		}
 	} else {
-		conn, err = ce.Dial(ce.cfg.Syslog.NetAddr.Transport, ce.cfg.Syslog.NetAddr.Endpoint)
+		conn, err = ce.Dial(ce.cfg.Syslog.AddrConfig.Transport, ce.cfg.Syslog.AddrConfig.Endpoint)
 
 		if err != nil {
 			return nil, fmt.Errorf("dial: %w", err)
