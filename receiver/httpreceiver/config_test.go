@@ -32,7 +32,7 @@ func TestValidate(t *testing.T) {
 		{
 			desc: "pass simple",
 			config: Config{
-				HTTPServerSettings: confighttp.HTTPServerSettings{
+				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
 				},
 			},
@@ -41,7 +41,7 @@ func TestValidate(t *testing.T) {
 			desc: "pass complex",
 			config: Config{
 				Path: "/api/v2/logs",
-				HTTPServerSettings: confighttp.HTTPServerSettings{
+				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
 					TLSSetting: &configtls.TLSServerSetting{
 						TLSSetting: configtls.TLSSetting{
@@ -57,7 +57,7 @@ func TestValidate(t *testing.T) {
 			expectedErr: errNoEndpoint,
 			config: Config{
 				Path: "/api/v2/logs",
-				HTTPServerSettings: confighttp.HTTPServerSettings{
+				ServerConfig: confighttp.ServerConfig{
 					TLSSetting: &configtls.TLSServerSetting{
 						TLSSetting: configtls.TLSSetting{
 							CertFile: "some_cert_file",
@@ -72,7 +72,7 @@ func TestValidate(t *testing.T) {
 			expectedErr: errBadEndpoint,
 			config: Config{
 				Path: "/api/v2/logs",
-				HTTPServerSettings: confighttp.HTTPServerSettings{
+				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost12345",
 					TLSSetting: &configtls.TLSServerSetting{
 						TLSSetting: configtls.TLSSetting{
@@ -88,7 +88,7 @@ func TestValidate(t *testing.T) {
 			expectedErr: errNoCert,
 			config: Config{
 				Path: "/api/v2/logs",
-				HTTPServerSettings: confighttp.HTTPServerSettings{
+				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
 					TLSSetting: &configtls.TLSServerSetting{
 						TLSSetting: configtls.TLSSetting{
@@ -103,7 +103,7 @@ func TestValidate(t *testing.T) {
 			expectedErr: errNoKey,
 			config: Config{
 				Path: "/api/v2/logs",
-				HTTPServerSettings: confighttp.HTTPServerSettings{
+				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
 					TLSSetting: &configtls.TLSServerSetting{
 						TLSSetting: configtls.TLSSetting{
@@ -118,7 +118,7 @@ func TestValidate(t *testing.T) {
 			expectedErr: errBadPath,
 			config: Config{
 				Path: "/api , /v2//",
-				HTTPServerSettings: confighttp.HTTPServerSettings{
+				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
 				},
 			},

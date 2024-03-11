@@ -1,0 +1,779 @@
+resourceLogs:
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Sams-M1-Pro.local
+        - key: os.type
+          value:
+            stringValue: darwin
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: role
+                value:
+                  stringValue: ""
+              - key: user
+                value:
+                  stringValue: ""
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.097 EST
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: statement
+                value:
+                  stringValue: COMMIT
+            body:
+              stringValue: '2024-03-05 17:25:36.097 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536223996000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445937459839"
+            traceId: ""
+          - attributes:
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.111 EST
+              - key: role
+                value:
+                  stringValue: ""
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: user
+                value:
+                  stringValue: ""
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: statement
+                value:
+                  stringValue: COMMIT
+            body:
+              stringValue: '2024-03-05 17:25:36.111 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224110000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445951459839"
+            traceId: ""
+          - attributes:
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+              - key: user
+                value:
+                  stringValue: ""
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.113 EST
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: statement
+                value:
+                  stringValue: COMMIT
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: role
+                value:
+                  stringValue: ""
+            body:
+              stringValue: '2024-03-05 17:25:36.113 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224164000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445953459839"
+            traceId: ""
+          - attributes:
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: role
+                value:
+                  stringValue: ""
+              - key: statement
+                value:
+                  stringValue: COMMIT
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.126 EST
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: user
+                value:
+                  stringValue: ""
+            body:
+              stringValue: '2024-03-05 17:25:36.126 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224300000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445966459839"
+            traceId: ""
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.149 EST
+              - key: role
+                value:
+                  stringValue: ""
+              - key: user
+                value:
+                  stringValue: ""
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: statement
+                value:
+                  stringValue: COMMIT
+              - key: tid
+                value:
+                  stringValue: "8334"
+            body:
+              stringValue: '2024-03-05 17:25:36.149 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224359000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445989459839"
+            traceId: ""
+          - attributes:
+              - key: role
+                value:
+                  stringValue: ""
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: statement
+                value:
+                  stringValue: COMMIT
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: user
+                value:
+                  stringValue: ""
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.151 EST
+            body:
+              stringValue: '2024-03-05 17:25:36.151 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224466000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445991459839"
+            traceId: ""
+          - attributes:
+              - key: role
+                value:
+                  stringValue: ""
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.154 EST
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: user
+                value:
+                  stringValue: ""
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: statement
+                value:
+                  stringValue: COMMIT
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+            body:
+              stringValue: '2024-03-05 17:25:36.154 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224517000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445994459839"
+            traceId: ""
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: user
+                value:
+                  stringValue: ""
+              - key: statement
+                value:
+                  stringValue: COMMIT
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.157 EST
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: role
+                value:
+                  stringValue: ""
+            body:
+              stringValue: '2024-03-05 17:25:36.157 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224635000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445997459839"
+            traceId: ""
+          - attributes:
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: role
+                value:
+                  stringValue: ""
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: statement
+                value:
+                  stringValue: COMMIT
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.159 EST
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: user
+                value:
+                  stringValue: ""
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+            body:
+              stringValue: '2024-03-05 17:25:36.159 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224688000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445999459839"
+            traceId: ""
+        scope: {}
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Sams-M1-Pro.local
+        - key: os.type
+          value:
+            stringValue: darwin
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: role
+                value:
+                  stringValue: ""
+              - key: user
+                value:
+                  stringValue: ""
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.097 EST
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: statement
+                value:
+                  stringValue: COMMIT
+            body:
+              stringValue: '2024-03-05 17:25:36.097 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536223996000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445937459839"
+            traceId: ""
+          - attributes:
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.111 EST
+              - key: role
+                value:
+                  stringValue: ""
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: user
+                value:
+                  stringValue: ""
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: statement
+                value:
+                  stringValue: COMMIT
+            body:
+              stringValue: '2024-03-05 17:25:36.111 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224110000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445951459839"
+            traceId: ""
+          - attributes:
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+              - key: user
+                value:
+                  stringValue: ""
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.113 EST
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: statement
+                value:
+                  stringValue: COMMIT
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: role
+                value:
+                  stringValue: ""
+            body:
+              stringValue: '2024-03-05 17:25:36.113 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224164000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445953459839"
+            traceId: ""
+          - attributes:
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: role
+                value:
+                  stringValue: ""
+              - key: statement
+                value:
+                  stringValue: COMMIT
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.126 EST
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: user
+                value:
+                  stringValue: ""
+            body:
+              stringValue: '2024-03-05 17:25:36.126 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224300000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445966459839"
+            traceId: ""
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.149 EST
+              - key: role
+                value:
+                  stringValue: ""
+              - key: user
+                value:
+                  stringValue: ""
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: statement
+                value:
+                  stringValue: COMMIT
+              - key: tid
+                value:
+                  stringValue: "8334"
+            body:
+              stringValue: '2024-03-05 17:25:36.149 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224359000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445989459839"
+            traceId: ""
+          - attributes:
+              - key: role
+                value:
+                  stringValue: ""
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: statement
+                value:
+                  stringValue: COMMIT
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: user
+                value:
+                  stringValue: ""
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.151 EST
+            body:
+              stringValue: '2024-03-05 17:25:36.151 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224466000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445991459839"
+            traceId: ""
+          - attributes:
+              - key: role
+                value:
+                  stringValue: ""
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.154 EST
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: user
+                value:
+                  stringValue: ""
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: statement
+                value:
+                  stringValue: COMMIT
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+            body:
+              stringValue: '2024-03-05 17:25:36.154 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224517000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445994459839"
+            traceId: ""
+          - attributes:
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: user
+                value:
+                  stringValue: ""
+              - key: statement
+                value:
+                  stringValue: COMMIT
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.157 EST
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: role
+                value:
+                  stringValue: ""
+            body:
+              stringValue: '2024-03-05 17:25:36.157 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224635000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445997459839"
+            traceId: ""
+          - attributes:
+              - key: tid
+                value:
+                  stringValue: "8334"
+              - key: role
+                value:
+                  stringValue: ""
+              - key: level
+                value:
+                  stringValue: LOG
+              - key: message
+                value:
+                  stringValue: 'statement: COMMIT'
+              - key: duration
+                value:
+                  stringValue: ""
+              - key: statement
+                value:
+                  stringValue: COMMIT
+              - key: sql_command
+                value:
+                  stringValue: COMMIT
+              - key: timestamp
+                value:
+                  stringValue: 2024-03-05 17:25:36.159 EST
+              - key: log.file.name
+                value:
+                  stringValue: postgresql-2024-03-05_172300.log
+              - key: user
+                value:
+                  stringValue: ""
+              - key: log_type
+                value:
+                  stringValue: postgresql.general
+            body:
+              stringValue: '2024-03-05 17:25:36.159 EST [8334] LOG:  statement: COMMIT'
+            observedTimeUnixNano: "1709677536224688000"
+            severityNumber: 9
+            severityText: LOG
+            spanId: ""
+            timeUnixNano: "1706791445999459839"
+            traceId: ""
+        scope: {}

@@ -1,0 +1,763 @@
+resourceLogs:
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Sams-M1-Pro.local
+        - key: os.type
+          value:
+            stringValue: darwin
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: logger
+                    value:
+                      stringValue: opamp
+                  - key: message
+                    value:
+                      stringValue: agent running with the correct config
+                  - key: bindplane.agent.id
+                    value:
+                      stringValue: 01HQRTG9AFXV1VCV1TS0Z0942T
+                  - key: bindplane.configuration.name
+                    value:
+                      stringValue: test-new:31
+                  - key: level
+                    value:
+                      stringValue: debug
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:42.569-0500
+            observedTimeUnixNano: "1709677842727442000"
+            severityNumber: 5
+            severityText: debug
+            spanId: ""
+            timeUnixNano: "1706791445193459839"
+            traceId: ""
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: logger
+                    value:
+                      stringValue: opamp
+                  - key: message
+                    value:
+                      stringValue: sending response to the agent
+                  - key: span_id
+                    value:
+                      stringValue: "0000000000000000"
+                  - key: trace_id
+                    value:
+                      stringValue: "00000000000000000000000000000000"
+                  - key: bindplane.agent.id
+                    value:
+                      stringValue: 01HQRTG9AFXV1VCV1TS0Z0942T
+                  - key: components
+                    value:
+                      arrayValue: {}
+                  - key: level
+                    value:
+                      stringValue: debug
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:42.581-0500
+            observedTimeUnixNano: "1709677842746558000"
+            severityNumber: 5
+            severityText: debug
+            spanId: ""
+            timeUnixNano: "1706791445205459839"
+            traceId: ""
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: message
+                    value:
+                      stringValue: OnMessage release
+                  - key: span_id
+                    value:
+                      stringValue: "0000000000000000"
+                  - key: trace_id
+                    value:
+                      stringValue: "00000000000000000000000000000000"
+                  - key: bindplane.agent.id
+                    value:
+                      stringValue: 01HQRTG9AFXV1VCV1TS0Z0942T
+                  - key: level
+                    value:
+                      stringValue: debug
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:42.581-0500
+                  - key: logger
+                    value:
+                      stringValue: opamp
+            observedTimeUnixNano: "1709677842746572000"
+            severityNumber: 5
+            severityText: debug
+            spanId: ""
+            timeUnixNano: "1706791445205459839"
+            traceId: ""
+        scope: {}
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Sams-M1-Pro.local
+        - key: os.type
+          value:
+            stringValue: darwin
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: logger
+                    value:
+                      stringValue: opamp
+                  - key: message
+                    value:
+                      stringValue: agent running with the correct config
+                  - key: bindplane.agent.id
+                    value:
+                      stringValue: 01HQRTG9AFXV1VCV1TS0Z0942T
+                  - key: bindplane.configuration.name
+                    value:
+                      stringValue: test-new:31
+                  - key: level
+                    value:
+                      stringValue: debug
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:42.569-0500
+            observedTimeUnixNano: "1709677842727442000"
+            severityNumber: 5
+            severityText: debug
+            spanId: ""
+            timeUnixNano: "1706791445193459839"
+            traceId: ""
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: logger
+                    value:
+                      stringValue: opamp
+                  - key: message
+                    value:
+                      stringValue: sending response to the agent
+                  - key: span_id
+                    value:
+                      stringValue: "0000000000000000"
+                  - key: trace_id
+                    value:
+                      stringValue: "00000000000000000000000000000000"
+                  - key: bindplane.agent.id
+                    value:
+                      stringValue: 01HQRTG9AFXV1VCV1TS0Z0942T
+                  - key: components
+                    value:
+                      arrayValue: {}
+                  - key: level
+                    value:
+                      stringValue: debug
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:42.581-0500
+            observedTimeUnixNano: "1709677842746558000"
+            severityNumber: 5
+            severityText: debug
+            spanId: ""
+            timeUnixNano: "1706791445205459839"
+            traceId: ""
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: message
+                    value:
+                      stringValue: OnMessage release
+                  - key: span_id
+                    value:
+                      stringValue: "0000000000000000"
+                  - key: trace_id
+                    value:
+                      stringValue: "00000000000000000000000000000000"
+                  - key: bindplane.agent.id
+                    value:
+                      stringValue: 01HQRTG9AFXV1VCV1TS0Z0942T
+                  - key: level
+                    value:
+                      stringValue: debug
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:42.581-0500
+                  - key: logger
+                    value:
+                      stringValue: opamp
+            observedTimeUnixNano: "1709677842746572000"
+            severityNumber: 5
+            severityText: debug
+            spanId: ""
+            timeUnixNano: "1706791445205459839"
+            traceId: ""
+        scope: {}
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Sams-M1-Pro.local
+        - key: os.type
+          value:
+            stringValue: darwin
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: latency
+                    value:
+                      doubleValue: 0.029674834
+                  - key: status
+                    value:
+                      doubleValue: 200
+                  - key: path
+                    value:
+                      stringValue: /v1/graphql
+                  - key: level
+                    value:
+                      stringValue: info
+                  - key: message
+                    value:
+                      stringValue: /v1/graphql
+                  - key: ip
+                    value:
+                      stringValue: 127.0.0.1
+                  - key: user-agent
+                    value:
+                      stringValue: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:124.0) Gecko/20100101 Firefox/124.0
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:42.785-0500
+                  - key: method
+                    value:
+                      stringValue: POST
+                  - key: query
+                    value:
+                      stringValue: ""
+            observedTimeUnixNano: "1709677842925856000"
+            severityNumber: 9
+            severityText: info
+            spanId: ""
+            timeUnixNano: "1706791445409459839"
+            traceId: ""
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:42.878-0500
+                  - key: message
+                    value:
+                      stringValue: Rollout complete
+                  - key: bindplane.configuration.name
+                    value:
+                      stringValue: test-new:31
+                  - key: duration
+                    value:
+                      doubleValue: 1.313709
+                  - key: level
+                    value:
+                      stringValue: info
+            observedTimeUnixNano: "1709677842926280000"
+            severityNumber: 9
+            severityText: info
+            spanId: ""
+            timeUnixNano: "1706791445502459839"
+            traceId: ""
+        scope: {}
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Sams-M1-Pro.local
+        - key: os.type
+          value:
+            stringValue: darwin
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: latency
+                    value:
+                      doubleValue: 0.029674834
+                  - key: status
+                    value:
+                      doubleValue: 200
+                  - key: path
+                    value:
+                      stringValue: /v1/graphql
+                  - key: level
+                    value:
+                      stringValue: info
+                  - key: message
+                    value:
+                      stringValue: /v1/graphql
+                  - key: ip
+                    value:
+                      stringValue: 127.0.0.1
+                  - key: user-agent
+                    value:
+                      stringValue: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:124.0) Gecko/20100101 Firefox/124.0
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:42.785-0500
+                  - key: method
+                    value:
+                      stringValue: POST
+                  - key: query
+                    value:
+                      stringValue: ""
+            observedTimeUnixNano: "1709677842925856000"
+            severityNumber: 9
+            severityText: info
+            spanId: ""
+            timeUnixNano: "1706791445409459839"
+            traceId: ""
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:42.878-0500
+                  - key: message
+                    value:
+                      stringValue: Rollout complete
+                  - key: bindplane.configuration.name
+                    value:
+                      stringValue: test-new:31
+                  - key: duration
+                    value:
+                      doubleValue: 1.313709
+                  - key: level
+                    value:
+                      stringValue: info
+            observedTimeUnixNano: "1709677842926280000"
+            severityNumber: 9
+            severityText: info
+            spanId: ""
+            timeUnixNano: "1706791445502459839"
+            traceId: ""
+        scope: {}
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Sams-M1-Pro.local
+        - key: os.type
+          value:
+            stringValue: darwin
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: user-agent
+                    value:
+                      stringValue: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:124.0) Gecko/20100101 Firefox/124.0
+                  - key: message
+                    value:
+                      stringValue: /v1/graphql
+                  - key: latency
+                    value:
+                      doubleValue: 0.026624375
+                  - key: ip
+                    value:
+                      stringValue: 127.0.0.1
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:43.112-0500
+                  - key: method
+                    value:
+                      stringValue: POST
+                  - key: query
+                    value:
+                      stringValue: ""
+                  - key: level
+                    value:
+                      stringValue: info
+                  - key: status
+                    value:
+                      doubleValue: 200
+                  - key: path
+                    value:
+                      stringValue: /v1/graphql
+            observedTimeUnixNano: "1709677843135879000"
+            severityNumber: 9
+            severityText: info
+            spanId: ""
+            timeUnixNano: "1706791445736459839"
+            traceId: ""
+        scope: {}
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Sams-M1-Pro.local
+        - key: os.type
+          value:
+            stringValue: darwin
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: user-agent
+                    value:
+                      stringValue: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:124.0) Gecko/20100101 Firefox/124.0
+                  - key: message
+                    value:
+                      stringValue: /v1/graphql
+                  - key: latency
+                    value:
+                      doubleValue: 0.026624375
+                  - key: ip
+                    value:
+                      stringValue: 127.0.0.1
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:43.112-0500
+                  - key: method
+                    value:
+                      stringValue: POST
+                  - key: query
+                    value:
+                      stringValue: ""
+                  - key: level
+                    value:
+                      stringValue: info
+                  - key: status
+                    value:
+                      doubleValue: 200
+                  - key: path
+                    value:
+                      stringValue: /v1/graphql
+            observedTimeUnixNano: "1709677843135879000"
+            severityNumber: 9
+            severityText: info
+            spanId: ""
+            timeUnixNano: "1706791445736459839"
+            traceId: ""
+        scope: {}
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Sams-M1-Pro.local
+        - key: os.type
+          value:
+            stringValue: darwin
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: path
+                    value:
+                      stringValue: /v1/graphql
+                  - key: latency
+                    value:
+                      doubleValue: 0.016023542
+                  - key: query
+                    value:
+                      stringValue: ""
+                  - key: ip
+                    value:
+                      stringValue: 127.0.0.1
+                  - key: user-agent
+                    value:
+                      stringValue: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:124.0) Gecko/20100101 Firefox/124.0
+                  - key: level
+                    value:
+                      stringValue: info
+                  - key: method
+                    value:
+                      stringValue: POST
+                  - key: status
+                    value:
+                      doubleValue: 200
+                  - key: message
+                    value:
+                      stringValue: /v1/graphql
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:43.239-0500
+            observedTimeUnixNano: "1709677843334008000"
+            severityNumber: 9
+            severityText: info
+            spanId: ""
+            timeUnixNano: "1706791445863459839"
+            traceId: ""
+        scope: {}
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Sams-M1-Pro.local
+        - key: os.type
+          value:
+            stringValue: darwin
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: path
+                    value:
+                      stringValue: /v1/graphql
+                  - key: latency
+                    value:
+                      doubleValue: 0.016023542
+                  - key: query
+                    value:
+                      stringValue: ""
+                  - key: ip
+                    value:
+                      stringValue: 127.0.0.1
+                  - key: user-agent
+                    value:
+                      stringValue: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:124.0) Gecko/20100101 Firefox/124.0
+                  - key: level
+                    value:
+                      stringValue: info
+                  - key: method
+                    value:
+                      stringValue: POST
+                  - key: status
+                    value:
+                      doubleValue: 200
+                  - key: message
+                    value:
+                      stringValue: /v1/graphql
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:43.239-0500
+            observedTimeUnixNano: "1709677843334008000"
+            severityNumber: 9
+            severityText: info
+            spanId: ""
+            timeUnixNano: "1706791445863459839"
+            traceId: ""
+        scope: {}
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Sams-M1-Pro.local
+        - key: os.type
+          value:
+            stringValue: darwin
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: path
+                    value:
+                      stringValue: /v1/agents/01HQRTG9AFXV1VCV1TS0Z0942T/health/v1/metrics
+                  - key: user-agent
+                    value:
+                      stringValue: observIQ's opentelemetry-collector distribution/v1.45.0 (darwin/arm64)
+                  - key: latency
+                    value:
+                      doubleValue: 0.000155209
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:43.375-0500
+                  - key: message
+                    value:
+                      stringValue: /v1/agents/01HQRTG9AFXV1VCV1TS0Z0942T/health/v1/metrics
+                  - key: status
+                    value:
+                      doubleValue: 200
+                  - key: level
+                    value:
+                      stringValue: info
+                  - key: method
+                    value:
+                      stringValue: POST
+                  - key: query
+                    value:
+                      stringValue: ""
+                  - key: ip
+                    value:
+                      stringValue: 127.0.0.1
+            observedTimeUnixNano: "1709677843525540000"
+            severityNumber: 9
+            severityText: info
+            spanId: ""
+            timeUnixNano: "1706791445999459839"
+            traceId: ""
+        scope: {}
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: Sams-M1-Pro.local
+        - key: os.type
+          value:
+            stringValue: darwin
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: log.file.name
+                value:
+                  stringValue: bindplane.log
+              - key: log_type
+                value:
+                  stringValue: bindplane-op
+            body:
+              kvlistValue:
+                values:
+                  - key: path
+                    value:
+                      stringValue: /v1/agents/01HQRTG9AFXV1VCV1TS0Z0942T/health/v1/metrics
+                  - key: user-agent
+                    value:
+                      stringValue: observIQ's opentelemetry-collector distribution/v1.45.0 (darwin/arm64)
+                  - key: latency
+                    value:
+                      doubleValue: 0.000155209
+                  - key: timestamp
+                    value:
+                      stringValue: 2024-03-05T17:30:43.375-0500
+                  - key: message
+                    value:
+                      stringValue: /v1/agents/01HQRTG9AFXV1VCV1TS0Z0942T/health/v1/metrics
+                  - key: status
+                    value:
+                      doubleValue: 200
+                  - key: level
+                    value:
+                      stringValue: info
+                  - key: method
+                    value:
+                      stringValue: POST
+                  - key: query
+                    value:
+                      stringValue: ""
+                  - key: ip
+                    value:
+                      stringValue: 127.0.0.1
+            observedTimeUnixNano: "1709677843525540000"
+            severityNumber: 9
+            severityText: info
+            spanId: ""
+            timeUnixNano: "1706791445999459839"
+            traceId: ""
+        scope: {}

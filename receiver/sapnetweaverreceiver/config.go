@@ -46,7 +46,7 @@ var (
 type Config struct {
 	scraperhelper.ScraperControllerSettings `mapstructure:",squash"`
 	configtls.TLSClientSetting              `mapstructure:"tls,omitempty"`
-	confighttp.HTTPClientSettings           `mapstructure:"tls,omitempty,squash"`
+	confighttp.ClientConfig                 `mapstructure:"tls,omitempty,squash"`
 	// Metrics defines which metrics to enable for the scraper
 	MetricsBuilderConfig metadata.MetricsBuilderConfig `mapstructure:",squash"`
 	// Endpoint string `mapstructure:"endpoint"`

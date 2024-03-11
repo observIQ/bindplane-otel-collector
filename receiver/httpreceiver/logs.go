@@ -36,7 +36,7 @@ import (
 
 type httpLogsReceiver struct {
 	path              string
-	serverSettings    *confighttp.HTTPServerSettings
+	serverSettings    *confighttp.ServerConfig
 	telemetrySettings component.TelemetrySettings
 	server            *http.Server
 	consumer          consumer.Logs
@@ -48,7 +48,7 @@ type httpLogsReceiver struct {
 func newHTTPLogsReceiver(params receiver.CreateSettings, cfg *Config, consumer consumer.Logs) (*httpLogsReceiver, error) {
 	return &httpLogsReceiver{
 		path:              cfg.Path,
-		serverSettings:    &cfg.HTTPServerSettings,
+		serverSettings:    &cfg.ServerConfig,
 		telemetrySettings: params.TelemetrySettings,
 		consumer:          consumer,
 		logger:            params.Logger,

@@ -1,0 +1,14 @@
+resourceMetrics:
+  - resource: {}
+    scopeMetrics:
+      - metrics:
+          - summary:
+              dataPoints:
+                - attributes:
+                    - key: prod-machine
+                      value:
+                        stringValue: prod-1
+                  count: "4"
+                  sum: 111
+                  timeUnixNano: "1706791445999459839"
+        scope: {}

@@ -90,7 +90,7 @@ func TestPayloadToLogRecord(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			r := newReceiver(t, &Config{
 				Path: "",
-				HTTPServerSettings: confighttp.HTTPServerSettings{
+				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
 					TLSSetting: &configtls.TLSServerSetting{},
 				},
@@ -149,7 +149,7 @@ func TestServeHTTP(t *testing.T) {
 			desc: "simple",
 			cfg: &Config{
 				Path: "",
-				HTTPServerSettings: confighttp.HTTPServerSettings{
+				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
 					TLSSetting: &configtls.TLSServerSetting{},
 				},
@@ -171,7 +171,7 @@ func TestServeHTTP(t *testing.T) {
 			desc: "with path",
 			cfg: &Config{
 				Path: "/logs",
-				HTTPServerSettings: confighttp.HTTPServerSettings{
+				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
 					TLSSetting: &configtls.TLSServerSetting{},
 				},
@@ -195,7 +195,7 @@ func TestServeHTTP(t *testing.T) {
 			desc: "bad path",
 			cfg: &Config{
 				Path: "/logs",
-				HTTPServerSettings: confighttp.HTTPServerSettings{
+				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
 					TLSSetting: &configtls.TLSServerSetting{},
 				},
@@ -219,7 +219,7 @@ func TestServeHTTP(t *testing.T) {
 			desc: "bad json, parse fails",
 			cfg: &Config{
 				Path: "/logs",
-				HTTPServerSettings: confighttp.HTTPServerSettings{
+				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
 					TLSSetting: &configtls.TLSServerSetting{},
 				},
@@ -243,7 +243,7 @@ func TestServeHTTP(t *testing.T) {
 			desc: "consumer fails",
 			cfg: &Config{
 				Path: "/logs",
-				HTTPServerSettings: confighttp.HTTPServerSettings{
+				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
 					TLSSetting: &configtls.TLSServerSetting{},
 				},
@@ -267,7 +267,7 @@ func TestServeHTTP(t *testing.T) {
 			desc: "connectivity test",
 			cfg: &Config{
 				Path: "/logs",
-				HTTPServerSettings: confighttp.HTTPServerSettings{
+				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
 					TLSSetting: &configtls.TLSServerSetting{},
 				},
@@ -291,7 +291,7 @@ func TestServeHTTP(t *testing.T) {
 			desc: "simple; json object",
 			cfg: &Config{
 				Path: "",
-				HTTPServerSettings: confighttp.HTTPServerSettings{
+				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
 					TLSSetting: &configtls.TLSServerSetting{},
 				},
@@ -339,7 +339,7 @@ func TestServeHTTP(t *testing.T) {
 func TestShutdownNoServer(t *testing.T) {
 	// test that shutdown without a start does not error or panic
 	recv := newReceiver(t, &Config{
-		HTTPServerSettings: confighttp.HTTPServerSettings{
+		ServerConfig: confighttp.ServerConfig{
 			Endpoint: "localhost:12345",
 		},
 	}, consumertest.NewNop())
