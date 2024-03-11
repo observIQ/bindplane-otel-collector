@@ -6,7 +6,7 @@ toolchain go1.21.6
 
 require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.96.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/collector/component v0.96.0
 	go.opentelemetry.io/collector/pdata v1.3.0
 )
@@ -55,7 +55,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/net v0.21.0 // indirect
-	golang.org/x/sys v0.17.0 // indirect; indirectgopkg.in/natefinch/lumberjack.v2
+	golang.org/x/sys v0.18.0 // indirect; indirectgopkg.in/natefinch/lumberjack.v2
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/grpc v1.62.0 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect

@@ -5,8 +5,8 @@ go 1.21
 toolchain go1.21.6
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.3.0
-	github.com/stretchr/testify v1.8.4
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.3.1
+	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/collector/component v0.96.0
 	go.opentelemetry.io/collector/confmap v0.96.0
 	go.opentelemetry.io/collector/consumer v0.96.0
@@ -42,7 +42,7 @@ require (
 	github.com/prometheus/client_model v0.6.0 // indirect
 	github.com/prometheus/common v0.48.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
-	github.com/stretchr/objx v0.5.0 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	go.opentelemetry.io/collector/config/configtelemetry v0.96.0 // indirect
 	go.opentelemetry.io/otel v1.24.0 // indirect
 	go.opentelemetry.io/otel/exporters/prometheus v0.46.0 // indirect
@@ -50,7 +50,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.24.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/net v0.21.0 // indirect
-	golang.org/x/sys v0.17.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80 // indirect
 	google.golang.org/grpc v1.62.0 // indirect
