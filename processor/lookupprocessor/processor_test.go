@@ -15,9 +15,11 @@
 package lookupprocessor
 
 import (
+	"context"
 	"encoding/csv"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -407,6 +409,16 @@ func TestAddLookupValues(t *testing.T) {
 	}
 
 	require.Equal(t, expectedMap, sourceMap.AsRaw())
+}
+
+func TestShutdownBeforeStart(t *testing.T) {
+	processor := lookupProcessor{
+		wg:     &sync.WaitGroup{},
+		logger: zap.NewNop(),
+	}
+	require.NotPanics(t, func() {
+		processor.shutdown(context.Background())
+	})
 }
 
 // createTestCSVFile is a helper function to create a CSV file from a map

@@ -38,6 +38,21 @@ func TestProcessorCapabilities(t *testing.T) {
 	require.Equal(t, consumer.Capabilities{MutatesData: false}, p.Capabilities())
 }
 
+func TestShutdownBeforeStart(t *testing.T) {
+	nextTracesConsumer := &consumertest.TracesSink{}
+
+	processorCfg := createDefaultConfig().(*Config)
+	processorCfg.Interval = time.Millisecond * 100
+
+	processorFactory := NewFactory()
+	processorSettings := processor.CreateSettings{TelemetrySettings: component.TelemetrySettings{Logger: zaptest.NewLogger(t)}}
+	processor, err := processorFactory.CreateTracesProcessor(context.Background(), processorSettings, processorCfg, nextTracesConsumer)
+	require.NoError(t, err)
+	require.NotPanics(t, func() {
+		processor.Shutdown(context.Background())
+	})
+}
+
 func TestConsumeTraces(t *testing.T) {
 	countMetricConsumer := &consumertest.MetricsSink{}
 	nextTracesConsumer := &consumertest.TracesSink{}

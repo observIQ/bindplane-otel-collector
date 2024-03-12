@@ -123,6 +123,26 @@ func TestProcessorCapabilities(t *testing.T) {
 	require.Equal(t, consumer.Capabilities{MutatesData: true}, p.Capabilities())
 }
 
+func TestShutdownBeforeStart(t *testing.T) {
+	logsSink := &consumertest.LogsSink{}
+	logger := zap.NewNop()
+	cfg := &Config{
+		LogCountAttribute: defaultLogCountAttribute,
+		Interval:          1 * time.Second,
+		Timezone:          defaultTimezone,
+		ExcludeFields: []string{
+			fmt.Sprintf("%s.remove_me", attributeField),
+		},
+	}
+
+	// Create a processor
+	p, err := newProcessor(cfg, logsSink, logger)
+	require.NoError(t, err)
+	require.NotPanics(t, func() {
+		p.Shutdown(context.Background())
+	})
+}
+
 func TestProcessorConsume(t *testing.T) {
 	logsSink := &consumertest.LogsSink{}
 	logger := zap.NewNop()

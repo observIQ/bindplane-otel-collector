@@ -96,7 +96,9 @@ func (p *logCountProcessor) Capabilities() consumer.Capabilities {
 
 // Shutdown stops the processor.
 func (p *logCountProcessor) Shutdown(_ context.Context) error {
-	p.cancel()
+	if p.cancel != nil {
+		p.cancel()
+	}
 	p.wg.Wait()
 	return nil
 }
