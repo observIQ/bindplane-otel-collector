@@ -174,6 +174,10 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 	return err
 }
 
+// emptyPollLimit is the number of consecutive empty polling cycles that can
+// occur before we stop polling.
+const emptyPollLimit = 3
+
 // scrape scrapes the Azure api on interval
 func (r *rehydrationReceiver) scrape() {
 	defer close(r.doneChan)
@@ -186,22 +190,31 @@ func (r *rehydrationReceiver) scrape() {
 	checkpoint := r.loadCheckpoint(r.ctx)
 
 	// Call once before the loop to ensure we do a collection before the first ticker
-	r.rehydrateBlobs(checkpoint, marker)
+	numBlobsRehydrated := r.rehydrateBlobs(checkpoint, marker)
+	emptyBlobCounter := checkBlobCount(numBlobsRehydrated, 0)
 
 	for {
 		select {
 		case <-r.ctx.Done():
 			return
 		case <-ticker.C:
-			r.rehydrateBlobs(checkpoint, marker)
+			// Polling for blobs has egress charges so we want to stop polling
+			// after we stop finding blobs.
+			if emptyBlobCounter == emptyPollLimit {
+				return
+			}
+
+			numBlobsRehydrated := r.rehydrateBlobs(checkpoint, marker)
+			emptyBlobCounter = checkBlobCount(numBlobsRehydrated, emptyBlobCounter)
 		}
 	}
 }
 
 // rehydrateBlobs pulls blob paths from the UI and if they are within the specified
 // time range then the blobs will be downloaded and rehydrated.
-// The passed in checkpoint and marker will be updated and should be used in the next iteration
-func (r *rehydrationReceiver) rehydrateBlobs(checkpoint *rehydrationCheckpoint, marker *string) {
+// The passed in checkpoint and marker will be updated and should be used in the next iteration.
+// The count of blobs processed will be returned
+func (r *rehydrationReceiver) rehydrateBlobs(checkpoint *rehydrationCheckpoint, marker *string) (numBlobsRehydrated int) {
 	var prefix *string
 	if r.cfg.RootFolder != "" {
 		prefix = &r.cfg.RootFolder
@@ -236,6 +249,8 @@ func (r *rehydrationReceiver) rehydrateBlobs(checkpoint *rehydrationCheckpoint, 
 				r.logger.Error("Error consuming blob", zap.String("blob", blob.Name), zap.Error(err))
 				continue
 			}
+
+			numBlobsRehydrated++
 
 			// Update and save the checkpoint with the most recently processed blob
 			checkpoint.UpdateCheckpoint(*blobTime, blob.Name)
@@ -414,4 +429,18 @@ func getStorageClient(ctx context.Context, host component.Host, storageID *compo
 	}
 
 	return storageExtension.GetClient(ctx, component.KindReceiver, componentID, string(componentType))
+}
+
+// checkBlobCount checks the number of blobs rehydrated and the current state of the
+// empty counter. If zero blobs were rehydrated increment the counter.
+// If there were blobs rehydrated reset the counter as we want to track consecutive zero sized polls.
+func checkBlobCount(numBlobsRehydrated, emptyBlobsCounter int) int {
+	switch {
+	case emptyBlobsCounter == emptyPollLimit: // If we are at the limit return the limit
+		return emptyPollLimit
+	case numBlobsRehydrated == 0: // If no blobs were rehydrated then increment the empty blobs counter
+		return emptyBlobsCounter + 1
+	default: // Default case is numBlobsRehydrated > 0 so reset emptyBlobsCounter to 0
+		return 0
+	}
 }
