@@ -7,7 +7,6 @@
 //      http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -80,21 +79,6 @@ func TestValidate(t *testing.T) {
 					AdditionalConfig: map[string]any{
 						"log_attr1": "log_val1",
 						"log_attr2": "log_val2",
-					},
-				},
-				{
-					Type: "host_metrics",
-					Attributes: map[string]any{
-						"metric_attr1": "metric_val1",
-						"metric_attr2": "metric_val2",
-					},
-					ResourceAttributes: map[string]any{
-						"metric_attr1": "metric_val1",
-						"metric_attr2": "metric_val2",
-					},
-					AdditionalConfig: map[string]any{
-						"metric_attr1": "metric_val1",
-						"metric_attr2": "metric_val2",
 					},
 				},
 				{
@@ -405,6 +389,343 @@ func TestValidate(t *testing.T) {
 					AdditionalConfig: map[string]any{
 						"telemetry_type": "logs",
 						"otlp_json":      `{"resourceMetrics":[{"resource":{},"scopeMetrics":[{"scope":{},"metrics":[{"summary":{"dataPoints":[{"attributes":[{"key":"prod-machine","value":{"stringValue":"prod-1"}}],"count":"4","sum":111}]}}]}]}]}`,
+					},
+				},
+			},
+		},
+		{
+			desc:        "metrics - valid config",
+			payloads:    1,
+			errExpected: false,
+			generators: []GeneratorConfig{
+				{
+					Type: "metrics",
+					AdditionalConfig: map[string]any{
+						"metrics": []any{
+							map[string]any{
+								"name":      "system.memory.usage",
+								"value_min": 100000,
+								"value_max": 1000000000,
+								"type":      "Sum",
+								"unit":      "By",
+								"attributes": map[string]any{
+									"state": "buffered",
+								},
+							},
+							map[string]any{
+								"name":      "system.memory.usage",
+								"value_min": 100000,
+								"value_max": 1000000000,
+								"type":      "Sum",
+								"unit":      "By",
+								"attributes": map[string]any{
+									"state": "slab_reclaimed",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			desc:        "metrics - invalid attributes",
+			payloads:    1,
+			errExpected: true,
+			errText:     "error in attributes config: <Invalid value type struct {}>",
+			generators: []GeneratorConfig{
+				{
+					Type: "metrics",
+					Attributes: map[string]any{
+						"attr_key1": struct{}{},
+					},
+				},
+			},
+		},
+		{
+			desc:        "metrics - invalid resource attributes",
+			payloads:    1,
+			errExpected: true,
+			errText:     "error in resource_attributes config: <Invalid value type struct {}>",
+			generators: []GeneratorConfig{
+				{
+					Type: "metrics",
+					ResourceAttributes: map[string]any{
+						"attr_key1": struct{}{},
+					},
+				},
+			},
+		},
+		{
+			desc:        "metrics - no metrics",
+			payloads:    1,
+			errExpected: true,
+			errText:     "metrics must be set",
+			generators: []GeneratorConfig{
+				{
+					Type: "metrics",
+				},
+			},
+		},
+		{
+			desc:        "metrics - metrics not array",
+			payloads:    1,
+			errExpected: true,
+			errText:     "metrics must be an array of maps",
+			generators: []GeneratorConfig{
+				{
+					Type: "metrics",
+					AdditionalConfig: map[string]any{
+						"metrics": map[string]any{
+							"name":      "system.memory.usage",
+							"value_min": 100000,
+							"value_max": 1000000000,
+							"type":      "Sum",
+							"unit":      "By",
+							"attributes": map[string]any{
+								"state": "slab_reclaimed",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			desc:        "metrics - metric not map",
+			payloads:    1,
+			errExpected: true,
+			errText:     "each metric must be a map",
+			generators: []GeneratorConfig{
+				{
+					Type: "metrics",
+					AdditionalConfig: map[string]any{
+						"metrics": []any{
+							1,
+						},
+					},
+				},
+			},
+		},
+		{
+			desc:        "metrics - missing name",
+			payloads:    1,
+			errExpected: true,
+			errText:     "each metric must have a name",
+			generators: []GeneratorConfig{
+				{
+					Type: "metrics",
+					AdditionalConfig: map[string]any{
+						"metrics": []any{
+							map[string]any{
+								"value_min": 100000,
+								"value_max": 1000000000,
+								"type":      "Sum",
+								"unit":      "By",
+								"attributes": map[string]any{
+									"state": "buffered",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			desc:        "metrics - missing type",
+			payloads:    1,
+			errExpected: true,
+			errText:     "metric system.memory.usage missing type",
+			generators: []GeneratorConfig{
+				{
+					Type: "metrics",
+					AdditionalConfig: map[string]any{
+						"metrics": []any{
+							map[string]any{
+								"name":      "system.memory.usage",
+								"value_min": 100000,
+								"value_max": 1000000000,
+								"unit":      "By",
+								"attributes": map[string]any{
+									"state": "buffered",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			desc:        "metrics - invalid type",
+			payloads:    1,
+			errExpected: true,
+			errText:     "error decoding metric: 1 error(s) decoding:\n\n* 'type' expected type 'string', got unconvertible type 'int', value: '1'",
+			generators: []GeneratorConfig{
+				{
+					Type: "metrics",
+					AdditionalConfig: map[string]any{
+						"metrics": []any{
+							map[string]any{
+								"name":      "system.memory.usage",
+								"value_min": 100000,
+								"value_max": 1000000000,
+								"type":      1,
+								"unit":      "By",
+								"attributes": map[string]any{
+									"state": "slab_reclaimed",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			desc:        "metrics - unknown type",
+			payloads:    1,
+			errExpected: true,
+			errText:     "metric system.memory.usage has invalid metric type: Foo",
+			generators: []GeneratorConfig{
+				{
+					Type: "metrics",
+					AdditionalConfig: map[string]any{
+						"metrics": []any{
+							map[string]any{
+								"name":      "system.memory.usage",
+								"value_min": 100000,
+								"value_max": 1000000000,
+								"type":      "Foo",
+								"unit":      "By",
+								"attributes": map[string]any{
+									"state": "slab_reclaimed",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			desc:        "metrics - invalid value_min",
+			payloads:    1,
+			errExpected: true,
+			errText:     "error decoding metric: 1 error(s) decoding:\n\n* 'value_min' expected type 'int64', got unconvertible type 'string', value: 'foo'",
+			generators: []GeneratorConfig{
+				{
+					Type: "metrics",
+					AdditionalConfig: map[string]any{
+						"metrics": []any{
+							map[string]any{
+								"name":      "system.memory.usage",
+								"value_max": 1000000000,
+								"value_min": "foo",
+								"type":      "Sum",
+								"unit":      "By",
+								"attributes": map[string]any{
+									"state": "slab_reclaimed",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			desc:        "metrics - invalid value_max",
+			payloads:    1,
+			errExpected: true,
+			errText:     "error decoding metric: 1 error(s) decoding:\n\n* 'value_max' expected type 'int64', got unconvertible type 'string', value: 'foo'",
+			generators: []GeneratorConfig{
+				{
+					Type: "metrics",
+					AdditionalConfig: map[string]any{
+						"metrics": []any{
+							map[string]any{
+								"name":      "system.memory.usage",
+								"value_min": 100000,
+								"value_max": "foo",
+								"type":      "Sum",
+								"unit":      "By",
+								"attributes": map[string]any{
+									"state": "slab_reclaimed",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			desc:        "metrics - missing unit",
+			payloads:    1,
+			errExpected: true,
+			errText:     "metric system.memory.usage missing unit",
+			generators: []GeneratorConfig{
+				{
+					Type: "metrics",
+					AdditionalConfig: map[string]any{
+						"metrics": []any{
+							map[string]any{
+								"name":      "system.memory.usage",
+								"value_min": 100000,
+								"value_max": 1000000000,
+								"type":      "Sum",
+								"attributes": map[string]any{
+									"state": "slab_reclaimed",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			desc:        "metrics - invalid attributes",
+			payloads:    1,
+			errExpected: true,
+			errText:     "error in attributes config for metric system.memory.usage: <Invalid value type struct {}>",
+			generators: []GeneratorConfig{
+				{
+					Type: "metrics",
+					AdditionalConfig: map[string]any{
+						"metrics": []any{
+							map[string]any{
+								"name":      "system.memory.usage",
+								"value_min": 100000,
+								"value_max": 1000000000,
+								"type":      "Sum",
+								"unit":      "By",
+								"attributes": map[string]any{
+									"state": struct{}{},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			desc:        "host metrics - invalid attributes",
+			payloads:    1,
+			errExpected: true,
+			errText:     "error in resource_attributes config: <Invalid value type struct {}>",
+			generators: []GeneratorConfig{
+				{
+					Type: "host_metrics",
+					ResourceAttributes: map[string]any{
+						"state": struct{}{},
+					},
+				},
+			},
+		},
+		{
+			desc:        "host metrics - valid config",
+			payloads:    1,
+			errExpected: false,
+			generators: []GeneratorConfig{
+				{
+					Type: "host_metrics",
+					ResourceAttributes: map[string]any{
+						"host.name": "2ed77de7e4c1",
+						"os.type":   "linux",
 					},
 				},
 			},

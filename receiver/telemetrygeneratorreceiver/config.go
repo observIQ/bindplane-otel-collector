@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/mitchellh/mapstructure"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -69,6 +70,8 @@ func (g *GeneratorConfig) Validate() error {
 	switch g.Type {
 	case generatorTypeLogs:
 		return validateLogGeneratorConfig(g)
+	case generatorTypeMetrics:
+		return validateMetricsGeneratorConfig(g)
 	case generatorTypeHostMetrics:
 		return validateHostMetricsGeneratorConfig(g)
 	case generatorTypeWindowsEvents:
@@ -180,7 +183,74 @@ func validateOTLPGenerator(cfg *GeneratorConfig) error {
 	return nil
 }
 
-func validateHostMetricsGeneratorConfig(_ *GeneratorConfig) error {
+func validateMetricsGeneratorConfig(g *GeneratorConfig) error {
+	err := pcommon.NewMap().FromRaw(g.Attributes)
+	if err != nil {
+		return fmt.Errorf("error in attributes config: %w", err)
+	}
+
+	err = pcommon.NewMap().FromRaw(g.ResourceAttributes)
+	if err != nil {
+		return fmt.Errorf("error in resource_attributes config: %w", err)
+	}
+
+	// validate individual metrics
+	metrics, ok := g.AdditionalConfig["metrics"]
+	if !ok {
+		return errors.New("metrics must be set")
+	}
+
+	// check that the metricsArray is a valid array of maps[string]any
+	// Because of the way the config is unmarshaled, we have to use the `[]any` type
+	// and then cast to the correct type
+	metricsArray, ok := metrics.([]any)
+	if !ok {
+		return errors.New("metrics must be an array of maps")
+	}
+	for _, m := range metricsArray {
+		var metric metric
+		mapMetric, ok := m.(map[string]any)
+		if !ok {
+			return errors.New("each metric must be a map")
+		}
+
+		err := mapstructure.Decode(mapMetric, &metric)
+		if err != nil {
+			return fmt.Errorf("error decoding metric: %w", err)
+		}
+		if metric.Name == "" {
+			return errors.New("each metric must have a name")
+		}
+
+		// validate the metric type
+		switch metric.Type {
+		case "Gauge", "Sum":
+		case "":
+			return fmt.Errorf("metric %s missing type", metric.Name)
+		default:
+			return fmt.Errorf("metric %s has invalid metric type: %s", metric.Name, metric.Type)
+		}
+
+		// validate the unit
+		if metric.Unit == "" {
+			return fmt.Errorf("metric %s missing unit", metric.Name)
+		}
+
+		// attributes are optional
+		err = pcommon.NewMap().FromRaw(metric.Attributes)
+		if err != nil {
+			return fmt.Errorf("error in attributes config for metric %s: %w", metric.Name, err)
+		}
+
+	}
+	return nil
+}
+
+func validateHostMetricsGeneratorConfig(g *GeneratorConfig) error {
+	err := pcommon.NewMap().FromRaw(g.ResourceAttributes)
+	if err != nil {
+		return fmt.Errorf("error in resource_attributes config: %w", err)
+	}
 	return nil
 }
 
