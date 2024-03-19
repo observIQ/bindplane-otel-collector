@@ -18,7 +18,7 @@ This receiver is used to generate synthetic telemetry for testing and configurat
 ### Common Generator Configuration
 | Field                | Type      | Default          | Required | Description  |
 |----------------------|-----------|------------------|----------|--------------|
-| type                 |  string   |                  | `true`   | The type of generator to use. Currently `logs`, `otlp`, `metrics`, and `host_metrics` are supported.  |
+| type                 |  string   |                  | `true`   | The type of generator to use. Currently `logs`, `otlp`, `metrics`, `host_metrics`, and `windows_events` are supported.  |
 | resource_attributes  |  map      |                  | `false`  | A map of resource attributes to be included in the generated telemetry. Values can be `any`.   |
 | attributes           |  map      |                  | `false`  | A map of attributes to be included in the generated telemetry. Values can be `any`.  |
 | additional_config    |  map      |                  | `false`  | A map of additional configuration options to be included in the generated telemetry. Values can be `any`.|
@@ -58,7 +58,7 @@ telemetrygeneratorreceiver:
 
 ### OTLP Replay Generator
 
-The OTLP Replay Generator replays JSON-formatted telemetry from the variable `otlp_json`. It adjusts the timestamps of the telemetry relative the current time, with the most recent record moved to the current time, and the previous records the same relative duration in the past. The `otlp_json` variable should be valid OTLP, such as the JSON created by `plog.JSONMarshaler`,`ptrace.JSONMarshaler`, or `pmetric.JSONMarshaler`. The `otlp_json` variable is set in the `additional_config` section of the generator configuration.
+The OTLP Replay Generator replays JSON-formatted telemetry from the variable `otlp_json`. It adjusts the timestamps of the telemetry relative the current time, with the most recent record moved to the current time, and the previous records the same relative duration in the past. The `otlp_json` variable should be valid OTLP, such as the JSON created by `plog.JSONMarshaler`,`ptrace.JSONMarshaler`, or `pmetric.JSONMarshaler`. The `otlp_json` variable is set in the `additional_config` section of the generator configuration. The `attributes` and `resource_attributes` fields are ignored.
 
 #### additional_config:
 
@@ -154,4 +154,15 @@ telemetrygeneratorreceiver:
           resource_attributes:
             host.name: 2ed77de7e4c1
             os.type: linux   
+```       
+### Windows Events Generator
+
+The Windows Events Generator replays a sample of recorded Windows Event Log data. It has no additional configuration, and will ignore `resource_attributes` and `attributes` fields.
+
+#### Example Configuration
+```yaml
+telemetrygeneratorreceiver:
+    payloads_per_second: 1
+    generators:
+        - type: windows_events          
 ```       

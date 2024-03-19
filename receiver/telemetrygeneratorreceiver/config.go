@@ -255,5 +255,7 @@ func validateHostMetricsGeneratorConfig(g *GeneratorConfig) error {
 }
 
 func validateWindowsEventsGeneratorConfig(_ *GeneratorConfig) error {
+	// windows events generator doesn't have any additional config
+	// it's default config is validated in tests
 	return nil
 }

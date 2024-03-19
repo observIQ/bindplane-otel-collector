@@ -18,24 +18,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
-func TestWindowsEventsGenerator(t *testing.T) {
-
-	test := []struct {
-		name         string
-		cfg          GeneratorConfig
-		expectedFile string
-	}{
-		// TODO tests
-	}
-
-	for _, tc := range test {
-		t.Run(tc.name, func(t *testing.T) {
-			g := newWindowsEventsGenerator(tc.cfg, zap.NewNop())
-			logs := g.generateLogs()
-			require.Equal(t, 0, logs.LogRecordCount())
-		})
-	}
+func TestWindowsEventsDefaultConfig(t *testing.T) {
+	err := defaultWindowsEventsConfig.Validate()
+	require.NoError(t, err)
 }

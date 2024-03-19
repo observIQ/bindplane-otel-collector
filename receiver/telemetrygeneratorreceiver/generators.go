@@ -64,7 +64,7 @@ func newLogsGenerators(cfg *Config, logger *zap.Logger) []logGenerator {
 		case generatorTypeLogs:
 			generators = append(generators, newLogsGenerator(gen, logger))
 		case generatorTypeWindowsEvents:
-			generators = append(generators, newWindowsEventsGenerator(gen, logger))
+			generators = append(generators, newWindowsEventsGenerator(logger))
 		case generatorTypeOTLP:
 			generators = append(generators, newOtlpGenerator(gen, logger))
 
