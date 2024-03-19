@@ -86,8 +86,19 @@ func newExporter(cfg *Config, params exporter.CreateSettings) (*chronicleExporte
 		cfg:        cfg,
 		logger:     params.Logger,
 		httpClient: httpClient,
-		marshaler:  newMarshaler(*cfg, params.TelemetrySettings),
+		marshaler:  newMarshaler(*cfg, params.TelemetrySettings, buildLabels(cfg)),
 	}, nil
+}
+
+func buildLabels(cfg *Config) []label {
+	labels := make([]label, 0, len(cfg.IngestionLabels))
+	for k, v := range cfg.IngestionLabels {
+		labels = append(labels, label{
+			Key:   k,
+			Value: v,
+		})
+	}
+	return labels
 }
 
 // buildEndpoint builds the endpoint to send logs to based on the region. there is a default endpoint `https://malachiteingestion-pa.googleapis.com`
@@ -155,8 +166,8 @@ func (ce *chronicleExporter) uploadToChronicle(ctx context.Context, data []byte)
 	}
 	defer resp.Body.Close()
 
+	respBody, err := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		respBody, err := io.ReadAll(resp.Body)
 		if err != nil {
 			ce.logger.Warn("Failed to read response body", zap.Error(err))
 		} else {
@@ -165,5 +176,6 @@ func (ce *chronicleExporter) uploadToChronicle(ctx context.Context, data []byte)
 		return fmt.Errorf("received non-OK response from Chronicle: %s", resp.Status)
 	}
 
+	ce.logger.Debug("Received response from Chronicle", zap.String("status", resp.Status), zap.ByteString("response", respBody))
 	return nil
 }

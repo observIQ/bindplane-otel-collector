@@ -40,6 +40,7 @@ var supportedLogTypes = map[string]string{
 
 type marshaler struct {
 	cfg          Config
+	labels       []label
 	teleSettings component.TelemetrySettings
 }
 
@@ -48,6 +49,12 @@ type payload struct {
 	CustomerID string  `json:"customer_id"`
 	LogType    string  `json:"log_type"`
 	Namespace  string  `json:"namespace,omitempty"`
+	Labels     []label `json:"labels,omitempty"`
+}
+
+type label struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 type entry struct {
@@ -59,10 +66,11 @@ type logMarshaler interface {
 	MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]payload, error)
 }
 
-func newMarshaler(cfg Config, teleSettings component.TelemetrySettings) *marshaler {
+func newMarshaler(cfg Config, teleSettings component.TelemetrySettings, labels []label) *marshaler {
 	return &marshaler{
 		cfg:          cfg,
 		teleSettings: teleSettings,
+		labels:       labels,
 	}
 }
 
@@ -197,6 +205,10 @@ func (m *marshaler) constructPayloads(rawLogs map[string][]entry) []payload {
 				Entries:    entries,
 				CustomerID: m.cfg.CustomerID,
 				LogType:    logType,
+			}
+
+			if len(m.labels) > 0 {
+				p.Labels = m.labels
 			}
 
 			if m.cfg.Namespace != "" {

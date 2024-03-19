@@ -38,9 +38,9 @@ func mockLogRecord(t *testing.T, body string, attributes map[string]any) plog.Lo
 	lr.Attributes().EnsureCapacity(len(attributes))
 	lr.SetTimestamp(pcommon.NewTimestampFromTime(testTime))
 	for k, v := range attributes {
-		switch v.(type) {
+		switch attribute := v.(type) {
 		case string:
-			lr.Attributes().PutStr(k, v.(string))
+			lr.Attributes().PutStr(k, attribute)
 		case map[string]any:
 			lr.Attributes().FromRaw(attributes)
 		default:
@@ -223,6 +223,104 @@ func TestMarshalRawLogs(t *testing.T) {
 				require.Error(t, err, "MarshalRawLogs should return an error")
 				return
 			}
+
+			require.NoError(t, err, "MarshalRawLogs should not return an error")
+
+			// Merge payloads into a single JSON array for comparison
+			results := make([]map[string]interface{}, 0, len(payloads))
+			for _, p := range payloads {
+				var resultJSON map[string]interface{}
+				data, err := json.Marshal(p)
+				require.NoError(t, err, "Marshalling result should not produce an error")
+				err = json.Unmarshal(data, &resultJSON)
+				require.NoError(t, err, "Unmarshalling result should not produce an error")
+				results = append(results, resultJSON)
+			}
+
+			var expectedJSON []map[string]interface{}
+			err = json.Unmarshal([]byte(fmt.Sprintf("[%s]", tt.expectedJSON)), &expectedJSON)
+			require.NoError(t, err, "Unmarshalling expected JSON should not produce an error")
+
+			assert.Equal(t, expectedJSON, results, "Marshalled JSON should match expected JSON")
+		})
+	}
+}
+
+func TestMarshalRawLogsWithLabels(t *testing.T) {
+	tests := []struct {
+		name            string
+		logRecords      []plog.LogRecord
+		expectedJSON    string
+		logType         string
+		rawLogField     string
+		labels          []label
+		overrideLogType bool
+	}{
+		{
+			name: "Single log record with labels",
+			logRecords: []plog.LogRecord{
+				mockLogRecord(t, "Test body", map[string]any{"key1": "value1"}),
+			},
+			expectedJSON: `{"customer_id":"test_customer_id","entries":[{"log_text":"Test body","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"test_log_type","labels":[{"key":"env","value":"prod"},{"key":"region","value":"us-west"}]}`,
+			logType:      "test_log_type",
+			rawLogField:  "body",
+			labels: []label{
+				{"env", "prod"},
+				{"region", "us-west"},
+			},
+		},
+		{
+			name: "Log Record with Multiple Labels",
+			logRecords: []plog.LogRecord{
+				mockLogRecord(t, "Log with multiple labels", map[string]any{"key1": "value1"}),
+			},
+			expectedJSON: `{"customer_id":"test_customer_id","entries":[{"log_text":"Log with multiple labels","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"test_log_type","labels":[{"key":"env","value":"dev"},{"key":"service","value":"webapp"}]}`,
+			logType:      "test_log_type",
+			rawLogField:  "body",
+			labels: []label{
+				{"env", "dev"},
+				{"service", "webapp"},
+			},
+		},
+		{
+			name: "Log Record with Empty Label Value",
+			logRecords: []plog.LogRecord{
+				mockLogRecord(t, "Log with empty label value", map[string]any{}),
+			},
+			expectedJSON: `{"customer_id":"test_customer_id","entries":[{"log_text":"Log with empty label value","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"test_log_type","labels":[{"key":"emptyLabel","value":""}]}`,
+			logType:      "test_log_type",
+			rawLogField:  "body",
+			labels: []label{
+				{"emptyLabel", ""},
+			},
+		},
+		{
+			name: "No Labels Provided",
+			logRecords: []plog.LogRecord{
+				mockLogRecord(t, "No labels", map[string]any{"key": "value"}),
+			},
+			expectedJSON: `{"customer_id":"test_customer_id","entries":[{"log_text":"No labels","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"test_log_type"}`,
+			logType:      "test_log_type",
+			rawLogField:  "body",
+			labels:       []label{},
+		}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{
+				LogType:         tt.logType,
+				RawLogField:     tt.rawLogField,
+				CustomerID:      "test_customer_id",
+				OverrideLogType: tt.overrideLogType,
+			}
+			ce := &chronicleExporter{
+				cfg:       cfg,
+				logger:    zap.NewNop(),
+				marshaler: newMarshaler(*cfg, component.TelemetrySettings{Logger: zap.NewNop()}, tt.labels),
+			}
+
+			logs := mockLogs(tt.logRecords...)
+			payloads, err := ce.marshaler.MarshalRawLogs(context.Background(), logs)
 
 			require.NoError(t, err, "MarshalRawLogs should not return an error")
 

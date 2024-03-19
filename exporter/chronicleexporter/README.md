@@ -22,17 +22,18 @@ This exporter facilitates the sending of logs to Chronicle, which is a security 
 
 The exporter can be configured using the following fields:
 
-| Field               | Type   | Default                                        | Required | Description                                                                                 |
-| ------------------- | ------ | ---------------------------------------------- | -------- | ------------------------------------------------------------------------------------------- |
-| `endpoint`          | string | `https://malachiteingestion-pa.googleapis.com` | `false`  | The Endpoint for sending to chronicle.                                                      |
-| `creds_file_path`   | string |                                                | `true`   | The file path to the Google credentials JSON file.                                          |
-| `creds`             | string |                                                | `true`   | The Google credentials JSON.                                                                |
-| `log_type`          | string |                                                | `true`   | The type of log that will be sent.                                                          |
-| `raw_log_field`     | string |                                                | `false`  | The field name for raw logs.                                                                |
-| `customer_id`       | string |                                                | `false`  | The customer ID used for sending logs.                                                      |
-| `override_log_type` | bool   | `true`                                         | `false`  | Whether or not to override the `log_type` in the config with `attributes["log_type"]`       |
-| `namespace`         | string |                                                | `false`  | User-configured environment namespace to identify the data domain the logs originated from. |
-| `compression`       | string | `none`                                         | `false`  | The compression type to use when sending logs. valid values are `none` and `gzip`           |
+| Field               | Type              | Default                                        | Required | Description                                                                                 |
+| ------------------- | ----------------- | ---------------------------------------------- | -------- | ------------------------------------------------------------------------------------------- |
+| `endpoint`          | string            | `https://malachiteingestion-pa.googleapis.com` | `false`  | The Endpoint for sending to chronicle.                                                      |
+| `creds_file_path`   | string            |                                                | `true`   | The file path to the Google credentials JSON file.                                          |
+| `creds`             | string            |                                                | `true`   | The Google credentials JSON.                                                                |
+| `log_type`          | string            |                                                | `true`   | The type of log that will be sent.                                                          |
+| `raw_log_field`     | string            |                                                | `false`  | The field name for raw logs.                                                                |
+| `customer_id`       | string            |                                                | `false`  | The customer ID used for sending logs.                                                      |
+| `override_log_type` | bool              | `true`                                         | `false`  | Whether or not to override the `log_type` in the config with `attributes["log_type"]`       |
+| `namespace`         | string            |                                                | `false`  | User-configured environment namespace to identify the data domain the logs originated from. |
+| `compression`       | string            | `none`                                         | `false`  | The compression type to use when sending logs. valid values are `none` and `gzip`           |
+| `ingestion_labels`  | map[string]string |                                                | `false`  | Key-value pairs of labels to be applied to the logs when sent to chronicle.                 |
 
 ### Log Type
 
@@ -72,4 +73,16 @@ chronicle:
   creds_file_path: "/path/to/google/creds.json"
   log_type: "ONEPASSWORD"
   customer_id: "customer-123"
+```
+
+### Configuration with Ingestion Labels
+
+```yaml
+chronicle:
+  creds_file_path: "/path/to/google/creds.json"
+  log_type: ""
+  customer_id: "customer-123"
+  ingestion_labels: 
+    env: dev
+    zone: USA
 ```
