@@ -28,6 +28,9 @@ const (
 	// generatorTypeLogs is the generator type for logs
 	generatorTypeLogs generatorType = "logs"
 
+	// generatorTypeMetrics is the generator type for generic metrics
+	generatorTypeMetrics generatorType = "metrics"
+
 	// generatorTypeHostMetrics is the generator type for host metrics
 	generatorTypeHostMetrics generatorType = "host_metrics"
 
@@ -61,7 +64,7 @@ func newLogsGenerators(cfg *Config, logger *zap.Logger) []logGenerator {
 		case generatorTypeLogs:
 			generators = append(generators, newLogsGenerator(gen, logger))
 		case generatorTypeWindowsEvents:
-			generators = append(generators, newWindowsEventsGenerator(gen, logger))
+			generators = append(generators, newWindowsEventsGenerator(logger))
 		case generatorTypeOTLP:
 			generators = append(generators, newOtlpGenerator(gen, logger))
 
@@ -75,6 +78,8 @@ func newMetricsGenerators(cfg *Config, logger *zap.Logger) []metricGenerator {
 	var generators []metricGenerator
 	for _, gen := range cfg.Generators {
 		switch gen.Type {
+		case generatorTypeMetrics:
+			generators = append(generators, newMetricsGenerator(gen, logger))
 		case generatorTypeHostMetrics:
 			generators = append(generators, newHostMetricsGenerator(gen, logger))
 		case generatorTypeOTLP:

@@ -19,6 +19,7 @@ import (
 	"compress/gzip"
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -100,6 +101,27 @@ func Test_fullRehydration(t *testing.T) {
 		Container:    "container",
 		DeleteOnRead: false,
 	}
+
+	t.Run("empty blob polling", func(t *testing.T) {
+		var listCounter atomic.Int32
+
+		// Setup mocks
+		mockClient := setNewAzureBlobClient(t)
+		mockClient.EXPECT().ListBlobs(mock.Anything, cfg.Container, (*string)(nil), (*string)(nil)).Times(3).Return([]*azureblob.BlobInfo{}, nil, nil).
+			Run(func(_ mock.Arguments) {
+				listCounter.Add(1)
+			})
+
+		// Create new receiver
+		testConsumer := &consumertest.MetricsSink{}
+		r, err := newMetricsReceiver(id, testLogger, cfg, testConsumer)
+		require.NoError(t, err)
+
+		checkFunc := func() bool {
+			return listCounter.Load() == 3
+		}
+		runRehydrationValidateTest(t, r, checkFunc)
+	})
 
 	t.Run("metrics", func(t *testing.T) {
 		// Test data

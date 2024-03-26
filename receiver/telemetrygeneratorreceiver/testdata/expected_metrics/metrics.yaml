@@ -1,0 +1,399 @@
+resourceMetrics:
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: 2ed77de7e4c1
+        - key: os.type
+          value:
+            stringValue: linux
+    scopeMetrics:
+      - metrics:
+          - gauge:
+              dataPoints:
+                - asDouble: 0
+                  attributes:
+                    - key: state
+                      value:
+                        stringValue: slab_unreclaimable
+            name: system.memory.utilization
+            unit: "1"
+          - gauge:
+              dataPoints:
+                - asDouble: 0
+                  attributes:
+                    - key: state
+                      value:
+                        stringValue: cached
+            name: system.memory.utilization
+            unit: "1"
+          - gauge:
+              dataPoints:
+                - asDouble: 0
+                  attributes:
+                    - key: state
+                      value:
+                        stringValue: slab_reclaimable
+            name: system.memory.utilization
+            unit: "1"
+          - gauge:
+              dataPoints:
+                - asDouble: 0
+                  attributes:
+                    - key: state
+                      value:
+                        stringValue: buffered
+            name: system.memory.utilization
+            unit: "1"
+          - name: system.memory.usage
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: state
+                      value:
+                        stringValue: buffered
+            unit: By
+          - name: system.memory.usage
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: state
+                      value:
+                        stringValue: slab_reclaimable
+            unit: By
+          - name: system.memory.usage
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: state
+                      value:
+                        stringValue: slab_unreclaimable
+            unit: By
+          - name: system.memory.usage
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: state
+                      value:
+                        stringValue: cached
+            unit: By
+          - gauge:
+              dataPoints:
+                - asDouble: 0
+            name: system.cpu.load_average.1m
+            unit: '{thread}'
+          - name: system.filesystem.usage
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: device
+                      value:
+                        stringValue: /dev/vda1
+                    - key: mode
+                      value:
+                        stringValue: rw
+                    - key: mountpoint
+                      value:
+                        stringValue: /etc/hosts
+                    - key: state
+                      value:
+                        stringValue: reserved
+                    - key: type
+                      value:
+                        stringValue: ext4
+            unit: By
+          - name: system.filesystem.usage
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: device
+                      value:
+                        stringValue: /dev/vda1
+                    - key: mode
+                      value:
+                        stringValue: rw
+                    - key: mountpoint
+                      value:
+                        stringValue: /etc/hosts
+                    - key: state
+                      value:
+                        stringValue: free
+                    - key: type
+                      value:
+                        stringValue: ext4
+            unit: By
+          - gauge:
+              dataPoints:
+                - asDouble: 0
+                  attributes:
+                    - key: device
+                      value:
+                        stringValue: /dev/vda1
+                    - key: mode
+                      value:
+                        stringValue: rw
+                    - key: mountpoint
+                      value:
+                        stringValue: /etc/hosts
+                    - key: state
+                      value:
+                        stringValue: free
+                    - key: type
+                      value:
+                        stringValue: ext4
+            name: system.filesystem.utilization
+            unit: "1"
+          - gauge:
+              dataPoints:
+                - asDouble: 0
+                  attributes:
+                    - key: device
+                      value:
+                        stringValue: /dev/vda1
+                    - key: mode
+                      value:
+                        stringValue: rw
+                    - key: mountpoint
+                      value:
+                        stringValue: /etc/hosts
+                    - key: state
+                      value:
+                        stringValue: free
+                    - key: type
+                      value:
+                        stringValue: ext4
+            name: system.filesystem.utilization
+            unit: "1"
+          - name: system.network.packets
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: device
+                      value:
+                        stringValue: eth0
+                    - key: direction
+                      value:
+                        stringValue: receive
+            unit: '{packets}'
+          - name: system.network.packets
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: device
+                      value:
+                        stringValue: eth0
+                    - key: direction
+                      value:
+                        stringValue: send
+            unit: '{packets}'
+          - name: system.network.io
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: device
+                      value:
+                        stringValue: eth0
+                    - key: direction
+                      value:
+                        stringValue: send
+            unit: By
+          - name: system.network.io
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: device
+                      value:
+                        stringValue: eth0
+                    - key: direction
+                      value:
+                        stringValue: receive
+            unit: By
+          - name: system.network.errors
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: device
+                      value:
+                        stringValue: eth0
+                    - key: direction
+                      value:
+                        stringValue: receive
+            unit: '{errors}'
+          - name: system.network.errors
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: device
+                      value:
+                        stringValue: eth0
+                    - key: direction
+                      value:
+                        stringValue: transmit
+            unit: '{errors}'
+          - name: system.network.dropped
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: device
+                      value:
+                        stringValue: eth0
+                    - key: direction
+                      value:
+                        stringValue: transmit
+            unit: '{packets}'
+          - name: system.network.dropped
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: device
+                      value:
+                        stringValue: eth0
+                    - key: direction
+                      value:
+                        stringValue: receive
+            unit: '{packets}'
+          - name: system.network.conntrack.max
+            sum:
+              dataPoints:
+                - asInt: "0"
+            unit: '{entries}'
+          - name: system.network.conntrack.count
+            sum:
+              dataPoints:
+                - asInt: "0"
+            unit: '{entries}'
+          - name: system.network.connections
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: protocol
+                      value:
+                        stringValue: tcp
+                    - key: state
+                      value:
+                        stringValue: ESTABLISHED
+            unit: '{connections}'
+          - name: system.network.connections
+            sum:
+              dataPoints:
+                - asInt: "0"
+                  attributes:
+                    - key: protocol
+                      value:
+                        stringValue: tcp
+                    - key: state
+                      value:
+                        stringValue: LISTEN
+            unit: '{connections}'
+          - name: system.cpu.time
+            sum:
+              dataPoints:
+                - asDouble: 0
+                  attributes:
+                    - key: cpu
+                      value:
+                        stringValue: cpu0
+                    - key: state
+                      value:
+                        stringValue: user
+            unit: s
+          - name: system.cpu.time
+            sum:
+              dataPoints:
+                - asDouble: 0
+                  attributes:
+                    - key: cpu
+                      value:
+                        stringValue: cpu0
+                    - key: state
+                      value:
+                        stringValue: system
+            unit: s
+          - name: system.cpu.time
+            sum:
+              dataPoints:
+                - asDouble: 0
+                  attributes:
+                    - key: cpu
+                      value:
+                        stringValue: cpu0
+                    - key: state
+                      value:
+                        stringValue: idle
+            unit: s
+          - name: system.cpu.time
+            sum:
+              dataPoints:
+                - asDouble: 0
+                  attributes:
+                    - key: cpu
+                      value:
+                        stringValue: cpu0
+                    - key: state
+                      value:
+                        stringValue: interrupt
+            unit: s
+          - name: system.cpu.time
+            sum:
+              dataPoints:
+                - asDouble: 0
+                  attributes:
+                    - key: cpu
+                      value:
+                        stringValue: cpu0
+                    - key: state
+                      value:
+                        stringValue: nice
+            unit: s
+          - name: system.cpu.time
+            sum:
+              dataPoints:
+                - asDouble: 0
+                  attributes:
+                    - key: cpu
+                      value:
+                        stringValue: cpu0
+                    - key: state
+                      value:
+                        stringValue: softirq
+            unit: s
+          - name: system.cpu.time
+            sum:
+              dataPoints:
+                - asDouble: 0
+                  attributes:
+                    - key: cpu
+                      value:
+                        stringValue: cpu0
+                    - key: state
+                      value:
+                        stringValue: steal
+            unit: s
+          - name: system.cpu.time
+            sum:
+              dataPoints:
+                - asDouble: 0
+                  attributes:
+                    - key: cpu
+                      value:
+                        stringValue: cpu0
+                    - key: state
+                      value:
+                        stringValue: wait
+            unit: s
+        scope: {}

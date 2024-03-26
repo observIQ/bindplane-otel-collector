@@ -61,7 +61,9 @@ func (p *lookupProcessor) start(_ context.Context, _ component.Host) error {
 
 // shutdown stops the processor
 func (p *lookupProcessor) shutdown(context.Context) error {
-	p.cancel()
+	if p.cancel != nil {
+		p.cancel()
+	}
 	p.wg.Wait()
 	return nil
 }

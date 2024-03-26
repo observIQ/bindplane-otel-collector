@@ -18,24 +18,26 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
-func TestHostMetricsGenerator(t *testing.T) {
+func TestHostMetricsDefaultConfig(t *testing.T) {
 
-	test := []struct {
-		name         string
-		cfg          GeneratorConfig
-		expectedFile string
-	}{
-		// TODO tests
+	// validate the default config
+	cfg := GeneratorConfig{
+
+		// type is intentionally "metrics" because that's what the host_metrics generator is
+		// using under the hood. This is to ensure that the default configuration is valid,
+		// since it's not validated at runtime.
+		Type: "metrics",
+		ResourceAttributes: map[string]any{
+			"host.name": "2ed77de7e4c1",
+			"os.type":   "linux",
+		},
 	}
 
-	for _, tc := range test {
-		t.Run(tc.name, func(t *testing.T) {
-			g := newHostMetricsGenerator(tc.cfg, zap.NewNop())
-			metrics := g.generateMetrics()
-			require.Equal(t, 0, metrics.MetricCount())
-		})
-	}
+	cfg, err := fillHostMetricsConfig(cfg)
+	require.NoError(t, err)
+
+	err = cfg.Validate()
+	require.NoError(t, err)
 }

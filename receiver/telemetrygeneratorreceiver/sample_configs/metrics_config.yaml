@@ -1,0 +1,615 @@
+telemetrygeneratorreceiver:
+    payloads_per_second: 1
+    generators:
+        - type: metrics
+          resource_attributes:
+            host.name: 2ed77de7e4c1
+            os.type: linux          
+          additional_config:
+            metrics: 
+# memory metrics            
+              - name:	system.memory.utilization
+                value_min: 0
+                value_max: 100
+                type:	Gauge
+                unit:	"1"
+                attributes:
+                  state: slab_unreclaimable
+              - name:	system.memory.utilization
+                value_min: 0
+                value_max: 100
+                type:	Gauge
+                unit:	"1"
+                attributes:
+                  state: cached
+              - name:	system.memory.utilization
+                value_min: 0
+                value_max: 100
+                type:	Gauge
+                unit:	"1"
+                attributes:
+                  state: slab_reclaimable        
+              - name:	system.memory.utilization
+                value_min: 0
+                value_max: 100
+                type:	Gauge
+                unit:	"1"
+                attributes:
+                  state: buffered    
+              - name:	system.memory.usage
+                value_min: 100000
+                value_max: 1000000000
+                type:	Sum
+                unit:	By
+                attributes:
+                  state: buffered
+              - name:	system.memory.usage
+                value_min: 100000
+                value_max: 1000000000
+                type:	Sum
+                unit:	By
+                attributes:
+                  state: slab_reclaimable        
+              - name:	system.memory.usage
+                value_min: 100000
+                value_max: 1000000000
+                type:	Sum
+                unit:	By
+                attributes:
+                  state: slab_unreclaimable
+              - name:	system.memory.usage
+                value_min: 100000
+                value_max: 1000000000
+                type:	Sum
+                unit:	By
+                attributes:
+                  state: cached
+# load metrics                  
+              - name:	system.cpu.load_average.1m
+                value_min: 0
+                value_max: 1
+                type: Gauge
+                unit:	"{thread}"   
+# file system metrics                                          
+              - name: system.filesystem.usage
+                value_min: 0
+                value_max: 15616700416
+                type: Sum
+                unit: By
+                attributes:
+                  device: "/dev/vda1"
+                  mode: rw
+                  mountpoint: "/etc/hosts"
+                  state: reserved
+                  type: ext4             
+              - name: system.filesystem.usage
+                value_min: 0
+                value_max: 15616700416
+                type: Sum
+                unit: By
+                attributes:
+                  device: "/dev/vda1"
+                  mode: rw
+                  mountpoint: "/etc/hosts"
+                  state: free
+                  type: ext4
+              - name: system.filesystem.utilization
+                value_min: 0
+                value_max: 1
+                type: Gauge
+                unit: "1"
+                attributes:
+                  device: "/dev/vda1"
+                  mode: rw
+                  mountpoint: "/etc/hosts"
+                  state: free
+                  type: ext4
+              - name: system.filesystem.utilization
+                value_min: 0
+                value_max: 1
+                type: Gauge
+                unit: "1"
+                attributes:
+                  device: "/dev/vda1"
+                  mode: rw
+                  mountpoint: "/etc/hosts"
+                  state: free
+                  type: ext4
+# network metrics                  
+              - name: system.network.packets
+                value_min: 0
+                value_max: 1000000
+                type: Sum
+                unit: "{packets}"
+                attributes:
+                  device: eth0
+                  direction: receive                  
+              - name: system.network.packets
+                value_min: 0
+                value_max: 1000000
+                type: Sum
+                unit: "{packets}"
+                attributes:
+                  device: eth0
+                  direction: send                  
+              - name: system.network.io
+                value_min: 0
+                value_max: 100000000
+                type: Sum
+                unit: By
+                attributes:
+                  device: eth0
+                  direction: send                  
+              - name: system.network.io
+                value_min: 0
+                value_max: 100000000
+                type: Sum
+                unit: By
+                attributes:
+                  device: eth0
+                  direction: receive                  
+              - name: system.network.errors
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: "{errors}"
+                attributes:
+                  device: eth0
+                  direction: receive                  
+              - name: system.network.errors
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: "{errors}"
+                attributes:
+                  device: eth0
+                  direction: transmit                  
+              - name: system.network.dropped
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: "{packets}"
+                attributes:
+                  device: eth0
+                  direction: transmit                  
+              - name: system.network.dropped
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: "{packets}"
+                attributes:
+                  device: eth0
+                  direction: receive                  
+              - name: system.network.conntrack.max
+                value_min: 65536
+                value_max: 65536
+                type: Sum
+                unit: "{entries}"                                           
+              - name: system.network.conntrack.count
+                value_min: 8
+                value_max: 64
+                type: Sum
+                unit: "{entries}"                               
+              - name: system.network.connections
+                value_min: 0
+                value_max: 64
+                type: Sum
+                unit: "{connections}"
+                attributes:
+                  protocol: tcp
+                  state: ESTABLISHED            
+              - name: system.network.connections
+                value_min: 0
+                value_max: 64
+                type: Sum
+                unit: "{connections}"
+                attributes:
+                  protocol: tcp
+                  state: LISTEN            
+# paging metrics                               
+              - name:	system.paging.utilization
+                value_min: 0
+                value_max: 1
+                type: Gauge
+                unit: "1"
+                attributes:
+                  device: "/swap"
+                  state: free
+              - name:	system.paging.utilization
+                value_min: 0
+                value_max: 1
+                type: Gauge
+                unit: "1"
+                attributes:
+                  device: "/swap"
+                  state: used
+              - name:	system.paging.usage
+                value_min: 0
+                value_max: 1000000000000
+                type: Sum
+                unit: By
+                attributes:
+                  device: "/swap"
+                  state: free
+              - name:	system.paging.usage
+                value_min: 0
+                value_max: 1000000000000
+                type: Sum
+                unit: By
+                attributes:
+                  device: "/swap"
+                  state: used
+              - name:	system.paging.operations
+                value_min: 0
+                value_max: 1000000000000
+                type: Sum
+                unit: "{operations}"
+                attributes:
+                  direction: page_in
+                  type: minor
+              - name:	system.paging.operations
+                value_min: 0
+                value_max: 1000000000000
+                type: Sum
+                unit: "{operations}"
+                attributes:
+                  direction: page_out
+                  type: minor
+              - name:	system.paging.operations
+                value_min: 0
+                value_max: 10000000
+                type: Sum
+                unit: "{operations}"
+                attributes:
+                  direction: page_in
+                  type: major
+              - name:	system.paging.operations
+                value_min: 0
+                value_max: 10000000
+                type: Sum
+                unit: "{operations}"
+                attributes:
+                  direction: page_out
+                  type: major
+              - name:	system.paging.faults
+                value_min: 0
+                value_max: 1000000000000
+                type: Sum
+                unit: "{faults}"
+                attributes:
+                  type: major
+              - name:	system.paging.faults
+                value_min: 0
+                value_max: 1000000000000
+                type: Sum
+                unit: "{faults}"
+                attributes:
+                  type: major
+# process metrics
+              - name:	system.processes.created
+                value_min: 0
+                value_max: 100000
+                type: Sum
+                unit: "{processes}"
+              - name: system.processes.count
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: "{processes}"
+                attributes:
+                  status: unknown
+              - name: system.processes.count
+                value_min: 0
+                value_max: 100
+                type: Sum
+                unit: "{processes}"
+                attributes:
+                  status: sleeping
+              - name: system.processes.count
+                value_min: 0
+                value_max: 10
+                type: Sum
+                unit: "{processes}"
+                attributes:
+                  status: running
+# cpu metrics
+              - name: system.cpu.utilization
+                value_min: 0
+                value_max: 1
+                type: Gauge
+                unit: "1"
+                attributes:
+                  state: user
+                  cpu: cpu3
+              - name: system.cpu.utilization
+                value_min: 0
+                value_max: 1
+                type: Gauge
+                unit: "1"
+                attributes:
+                  state: system
+                  cpu: cpu3
+              - name: system.cpu.utilization
+                value_min: 0
+                value_max: 1
+                type: Gauge
+                unit: "1"
+                attributes:
+                  state: idle
+                  cpu: cpu3
+              - name: system.cpu.utilization
+                value_min: 0
+                value_max: 1
+                type: Gauge
+                unit: "1"
+                attributes:
+                  state: interrupt
+                  cpu: cpu3
+              - name: system.cpu.utilization
+                value_min: 0
+                value_max: 1
+                type: Gauge
+                unit: "1"
+                attributes:
+                  state: nice
+                  cpu: cpu3
+              - name: system.cpu.utilization
+                value_min: 0
+                value_max: 1
+                type: Gauge
+                unit: "1"
+                attributes:
+                  state: softirq
+                  cpu: cpu3
+              - name: system.cpu.utilization
+                value_min: 0
+                value_max: 1
+                type: Gauge
+                unit: "1"
+                attributes:
+                  state: steal
+                  cpu: cpu3
+              - name: system.cpu.utilization
+                value_min: 0
+                value_max: 1
+                type: Gauge
+                unit: "1"
+                attributes:
+                  state: wait
+                  cpu: cpu3
+              - name: system.cpu.time
+                value_min: 0
+                value_max: 10000
+                type: Sum
+                unit: s
+                attributes:
+                  state: user
+                  cpu: cpu3
+              - name: system.cpu.time
+                value_min: 0
+                value_max: 10000
+                type: Sum
+                unit: s
+                attributes:
+                  state: system
+                  cpu: cpu3
+              - name: system.cpu.time
+                value_min: 0
+                value_max: 10000
+                type: Sum
+                unit: s
+                attributes:
+                  state: idle
+                  cpu: cpu3
+              - name: system.cpu.time
+                value_min: 0
+                value_max: 10000
+                type: Sum
+                unit: s
+                attributes:
+                  state: interrupt
+                  cpu: cpu3
+              - name: system.cpu.time
+                value_min: 0
+                value_max: 10000
+                type: Sum
+                unit: s
+                attributes:
+                  state: nice
+                  cpu: cpu3
+              - name: system.cpu.time
+                value_min: 0
+                value_max: 10000
+                type: Sum
+                unit: s
+                attributes:
+                  state: softirq
+                  cpu: cpu3
+              - name: system.cpu.time
+                value_min: 0
+                value_max: 10000
+                type: Sum
+                unit: s
+                attributes:
+                  state: steal
+                  cpu: cpu3
+              - name: system.cpu.time
+                value_min: 0
+                value_max: 10000
+                type: Sum
+                unit: s
+                attributes:
+                  state: wait
+                  cpu: cpu3
+# disk metrics
+              - name: system.disk.weighted_io_time
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: s
+                attributes:
+                  device: loop0
+              - name: system.disk.weighted_io_time
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: s
+                attributes:
+                  device: vda
+              - name: system.disk.io_time
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: s
+                attributes:
+                  device: loop0
+              - name: system.disk.io_time
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: s
+                attributes:
+                  device: vda
+              - name: system.disk.io
+                value_min: 0
+                value_max: 1000000000
+                type: Sum
+                unit: By
+                attributes:
+                  device: loop0
+                  direction: read
+              - name: system.disk.io
+                value_min: 0
+                value_max: 1000000000
+                type: Sum
+                unit: By
+                attributes:
+                  direction: read
+                  device: vda
+              - name: system.disk.io
+                value_min: 0
+                value_max: 1000000000
+                type: Sum
+                unit: By
+                attributes:
+                  device: loop0
+                  direction: write
+              - name: system.disk.io
+                value_min: 0
+                value_max: 1000000000
+                type: Sum
+                unit: By
+                attributes:
+                  direction: write
+                  device: vda
+              - name: system.disk.pending_operations
+                value_min: 0
+                value_max: 10
+                type: Sum
+                unit: "{operations}"
+                attributes:
+                  device: loop0
+              - name: system.disk.pending_operations
+                value_min: 0
+                value_max: 10
+                type: Sum
+                unit: "{operations}"
+                attributes:
+                  device: vda
+              - name: system.disk.operations
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: "{operations}"
+                attributes:
+                  device: loop0
+                  direction: read
+              - name: system.disk.operations
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: "{operations}"
+                attributes:
+                  device: vda
+                  direction: read
+              - name: system.disk.operations
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: "{operations}"
+                attributes:
+                  device: loop0
+                  direction: write
+              - name: system.disk.operations
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: "{operations}"
+                attributes:
+                  device: vda
+                  direction: write
+              - name: system.disk.merged
+                value_min: 0
+                value_max: 100000
+                type: Sum
+                unit: "{operations}"
+                attributes:
+                  device: loop0
+                  direction: read
+              - name: system.disk.merged
+                value_min: 0
+                value_max: 100000
+                type: Sum
+                unit: "{operations}"
+                attributes:
+                  device: vda
+                  direction: read
+              - name: system.disk.merged
+                value_min: 0
+                value_max: 100000
+                type: Sum
+                unit: "{operations}"
+                attributes:
+                  device: loop0
+                  direction: write
+              - name: system.disk.merged
+                value_min: 0
+                value_max: 100000
+                type: Sum
+                unit: "{operations}"
+                attributes:
+                  device: vda
+                  direction: write
+              - name: system.disk.operation_time
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: s
+                attributes:
+                  device: loop0
+                  direction: read
+              - name: system.disk.operation_time
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: s
+                attributes:
+                  device: vda
+                  direction: read
+              - name: system.disk.operation_time
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: s
+                attributes:
+                  device: loop0
+                  direction: write
+              - name: system.disk.operation_time
+                value_min: 0
+                value_max: 1000
+                type: Sum
+                unit: s
+                attributes:
+                  device: vda
+                  direction: write
+

@@ -5,9 +5,9 @@ go 1.21
 toolchain go1.21.6
 
 require (
-	github.com/observiq/bindplane-agent/counter v1.46.0
-	github.com/observiq/bindplane-agent/expr v1.46.0
-	github.com/observiq/bindplane-agent/receiver/routereceiver v1.46.0
+	github.com/observiq/bindplane-agent/counter v1.47.0
+	github.com/observiq/bindplane-agent/expr v1.47.0
+	github.com/observiq/bindplane-agent/receiver/routereceiver v1.47.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.96.0
 	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/collector/component v0.96.0
@@ -53,7 +53,7 @@ require (
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80 // indirect
 	google.golang.org/grpc v1.62.0 // indirect
-	google.golang.org/protobuf v1.32.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 )
 
 replace github.com/observiq/bindplane-agent/receiver/routereceiver => ../../receiver/routereceiver

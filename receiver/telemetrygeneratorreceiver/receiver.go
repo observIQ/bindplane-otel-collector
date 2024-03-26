@@ -54,7 +54,9 @@ func newTelemetryGeneratorReceiver(ctx context.Context, logger *zap.Logger, cfg 
 
 // Shutdown shuts down the telemetry generator receiver
 func (r *telemetryGeneratorReceiver) Shutdown(ctx context.Context) error {
-	r.cancelFunc(errors.New("shutdown"))
+	if r.cancelFunc != nil {
+		r.cancelFunc(errors.New("shutdown"))
+	}
 	var err error
 	select {
 	case <-ctx.Done():
