@@ -6,7 +6,7 @@ toolchain go1.21.6
 
 require (
 	github.com/jarcoal/httpmock v1.3.1
-	github.com/observiq/bindplane-agent/expr v1.47.0
+	github.com/observiq/bindplane-agent/expr v1.47.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.96.0
 	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/collector/component v0.96.0
