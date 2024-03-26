@@ -1,0 +1,52 @@
+// Copyright 2021 Google LLC
+syntax = "proto3";
+
+package malachite.ingestion.v2;
+
+option go_package = "github.com/exporter/chronicleexporter/proto/api";
+
+import "source.proto";
+import "stats.proto";
+import "google/protobuf/timestamp.proto";
+
+
+message Event {
+  // The time in microseconds at which this event took place (as opposed to
+  // the time at which this event was ingested).
+  google.protobuf.Timestamp timestamp = 1;
+
+  // The time in microseconds at which the event was collected.
+  google.protobuf.Timestamp collection_time = 5;
+
+  // Payload carries event-specific information.
+  oneof payload {
+    // Stats about the collection agent.
+    AgentStatsEvent agent_stats = 24;
+  }
+
+  // Source info for this event, if not present batch source is effective.
+  EventSource source = 7;
+}
+
+// A batch of events.
+message EventBatch {
+  // Unique id (used to de-duplicate the batch).
+  bytes id = 1;
+
+  // Source info common to all events in this batch.
+  EventSource source = 2;
+
+  // Event type common to all events in this batch.
+  enum EventType {
+    UNSPECIFIED = 0;
+    AGENT_STATS = 25;
+  }
+  EventType type = 3;
+
+  // The actual events.
+  // A single batch should contain no more than 10,000 events.
+  repeated Event events = 4;
+
+  // Timestamp the collector started.
+  google.protobuf.Timestamp start_time = 5;
+}

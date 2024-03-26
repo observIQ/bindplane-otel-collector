@@ -1,0 +1,49 @@
+// Copyright 2021 Google LLC
+syntax = "proto3";
+
+package malachite.ingestion.v2;
+
+option go_package = "github.com/exporter/chronicleexporter/proto/api";
+
+import "google/api/annotations.proto";
+import "events.proto";
+import "chronicle_log.proto";
+
+
+service IngestionServiceV2 {
+
+  // Submit a batch of events.
+  rpc BatchCreateEvents(BatchCreateEventsRequest) returns (BatchCreateEventsResponse) {
+    option (google.api.http) = {
+      post: "/v2/events:batchCreate"
+      body: "*"
+    };
+  }
+
+  // Submit a batch of log entries.
+  rpc BatchCreateLogs(BatchCreateLogsRequest) returns (BatchCreateLogsResponse) {
+    option (google.api.http) = {
+      post: "/v2/logs:batchCreate"
+      body: "*"
+    };
+  }
+}
+
+message BatchCreateEventsRequest {
+  EventBatch batch = 1;
+}
+
+message BatchCreateEventsResponse {
+  // Intentionally empty response.
+}
+
+message BatchCreateLogsRequest {
+  LogEntryBatch batch = 1;
+}
+
+message BatchCreateLogsResponse {
+  // Intentionally empty response.
+}
+
+
+

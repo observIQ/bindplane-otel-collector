@@ -24,7 +24,7 @@ The exporter can be configured using the following fields:
 
 | Field               | Type              | Default                                        | Required | Description                                                                                 |
 | ------------------- | ----------------- | ---------------------------------------------- | -------- | ------------------------------------------------------------------------------------------- |
-| `endpoint`          | string            | `https://malachiteingestion-pa.googleapis.com` | `false`  | The Endpoint for sending to chronicle.                                                      |
+| `endpoint`          | string            | `malachiteingestion-pa.googleapis.com` | `false`  | The Endpoint for sending to chronicle.                                                      |
 | `creds_file_path`   | string            |                                                | `true`   | The file path to the Google credentials JSON file.                                          |
 | `creds`             | string            |                                                | `true`   | The Google credentials JSON.                                                                |
 | `log_type`          | string            |                                                | `true`   | The type of log that will be sent.                                                          |

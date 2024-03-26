@@ -23,12 +23,10 @@ import (
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/encoding/gzip"
 )
 
 const (
-	// gzipCompression is the gzip compression type.
-	gzipCompression = "gzip"
-
 	// noCompression is the no compression type.
 	noCompression = "none"
 )
@@ -89,7 +87,7 @@ func (cfg *Config) Validate() error {
 		}
 	}
 
-	if cfg.Compression != gzipCompression && cfg.Compression != noCompression {
+	if cfg.Compression != gzip.Name && cfg.Compression != noCompression {
 		return fmt.Errorf("invalid compression type: %s", cfg.Compression)
 	}
 

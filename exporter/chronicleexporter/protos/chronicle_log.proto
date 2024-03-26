@@ -1,0 +1,58 @@
+// Copyright 2021 Google LLC
+//
+syntax = "proto3";
+
+package malachite.ingestion.v2;
+
+option go_package = "github.com/exporter/chronicleexporter/proto/api";
+
+import "source.proto";
+
+import "google/protobuf/timestamp.proto";
+
+
+
+// NEXT TAG: 6
+message LogEntry {
+  // Raw data for the log entry.
+  bytes data = 1;
+
+  // Timestamp of the log entry if not self contained.
+  google.protobuf.Timestamp timestamp = 2;
+
+  // The time at which the log entry was collected.
+  google.protobuf.Timestamp collection_time = 3;
+
+  // Location for the log entry, given as the name of a file in the IANA time
+  // zone database. This is used to determine the offset from UTC for the log
+  // entry. If not supplied, times in the log entry are assumed to be UTC.
+  // Ex: "America/New_York"
+  // See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  string timezone = 5;
+
+  // Source info for this log entry, if not present batch source is effective.
+  // This allows logs within a batch to be from multiple sources.
+  EventSource source = 4;
+}
+
+// NEXT TAG: 10
+message LogEntryBatch {
+  // Unique id.
+  bytes id = 1;
+
+  // Source information.
+  EventSource source = 2;
+
+  // Log type in string.
+  string log_type = 9;
+
+  // Opaque hint to help parsing the log.
+  string hint = 4;
+
+  // Log entries in this batch.
+  repeated LogEntry entries = 5;
+
+  // Timestamp the collector started.
+  google.protobuf.Timestamp start_time = 6;
+
+}
