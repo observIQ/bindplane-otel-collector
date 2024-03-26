@@ -22,4 +22,5 @@ tests:
         "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/account%40project.iam.gserviceaccount.com",
         "universe_domain": "googleapis.com"
       }
+    customer_id: "123e4567-e89b-12d3-a456-426614174000" # fake customer id
   skip_lifecycle: true

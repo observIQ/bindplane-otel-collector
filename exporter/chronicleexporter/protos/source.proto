@@ -1,0 +1,36 @@
+// Copyright 2021 Google LLC
+syntax = "proto3";
+
+package malachite.ingestion.v2;
+
+option go_package = "github.com/exporter/chronicleexporter/proto/api";
+
+// Information about the source collection point.
+// In the future we can extend this message to include additional metadata
+// such as location, division, subnet, etc.
+message EventSource {
+  // Customer GUID.
+  bytes customer_id = 1;
+
+  // Collector GUID.
+  bytes collector_id = 2;
+
+  // Source file name.
+  string filename = 3;
+
+  // The user-configured environment namespace to identify the data domain the
+  // logs originated from. This namespace will be used as a tag to identify the
+  // appropriate data domain for indexing and enrichment functionality.
+  string namespace = 4;
+
+  // The user-configured custom metadata labels required by the customer
+  repeated Label labels = 5;
+}
+
+// Key value labels.
+message Label {
+  // The key.
+  string key = 1;
+  // The value.
+  string value = 2;
+}

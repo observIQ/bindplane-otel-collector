@@ -28,7 +28,7 @@ func Test_createDefaultConfig(t *testing.T) {
 		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
 		BackOffConfig:   configretry.NewDefaultBackOffConfig(),
 		OverrideLogType: true,
-		Endpoint:        "https://malachiteingestion-pa.googleapis.com",
+		Endpoint:        "malachiteingestion-pa.googleapis.com",
 		Compression:     "none",
 	}
 

@@ -20,15 +20,21 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/observiq/bindplane-agent/exporter/chronicleexporter/protos/api"
 	"github.com/observiq/bindplane-agent/expr"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottllog"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const logTypeField = `attributes["log_type"]`
+
+// This is a specific collector ID for Chronicle. It's used to identify bindplane agents in Chronicle.
+var collectorID = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1111")
 
 var supportedLogTypes = map[string]string{
 	"windows_event.security":    "WINEVTLOG",
@@ -38,43 +44,37 @@ var supportedLogTypes = map[string]string{
 	"sql_server":                "MICROSOFT_SQL",
 }
 
-type marshaler struct {
-	cfg          Config
-	labels       []label
-	teleSettings component.TelemetrySettings
-}
-
-type payload struct {
-	Entries    []entry `json:"entries"`
-	CustomerID string  `json:"customer_id"`
-	LogType    string  `json:"log_type"`
-	Namespace  string  `json:"namespace,omitempty"`
-	Labels     []label `json:"labels,omitempty"`
-}
-
-type label struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
-
-type entry struct {
-	LogText   string `json:"log_text"`
-	Timestamp string `json:"ts_rfc3339"`
-}
-
+//go:generate mockery --name logMarshaler --filename mock_log_marshaler.go --structname MockMarshaler --inpackage
 type logMarshaler interface {
-	MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]payload, error)
+	MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]*api.BatchCreateLogsRequest, error)
 }
 
-func newMarshaler(cfg Config, teleSettings component.TelemetrySettings, labels []label) *marshaler {
-	return &marshaler{
+type protoMarshaler struct {
+	cfg          Config
+	teleSettings component.TelemetrySettings
+	labels       []*api.Label
+	startTime    time.Time
+	customerID   []byte
+	collectorID  []byte
+}
+
+func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings, labels []*api.Label) (*protoMarshaler, error) {
+	CustomerID, err := uuid.Parse(cfg.CustomerID)
+	if err != nil {
+		return nil, fmt.Errorf("parse customer ID: %w", err)
+	}
+
+	return &protoMarshaler{
+		startTime:    time.Now(),
 		cfg:          cfg,
 		teleSettings: teleSettings,
 		labels:       labels,
-	}
+		customerID:   CustomerID[:],
+		collectorID:  collectorID[:],
+	}, nil
 }
 
-func (m *marshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]payload, error) {
+func (m *protoMarshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]*api.BatchCreateLogsRequest, error) {
 	rawLogs, err := m.extractRawLogs(ctx, ld)
 	if err != nil {
 		return nil, fmt.Errorf("extract raw logs: %w", err)
@@ -83,8 +83,8 @@ func (m *marshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]payload
 	return m.constructPayloads(rawLogs), nil
 }
 
-func (m *marshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (map[string][]entry, error) {
-	entries := make(map[string][]entry)
+func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (map[string][]*api.LogEntry, error) {
+	entries := make(map[string][]*api.LogEntry)
 
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		resourceLog := ld.ResourceLogs().At(i)
@@ -109,10 +109,12 @@ func (m *marshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (map[strin
 					timestamp = logRecord.ObservedTimestamp().AsTime()
 				}
 
-				entries[logType] = append(entries[logType], entry{
-					LogText:   rawLog,
-					Timestamp: timestamp.Format(time.RFC3339Nano),
-				})
+				entry := &api.LogEntry{
+					Timestamp:      timestamppb.New(timestamp),
+					CollectionTime: timestamppb.New(logRecord.ObservedTimestamp().AsTime()),
+					Data:           []byte(rawLog),
+				}
+				entries[logType] = append(entries[logType], entry)
 			}
 		}
 	}
@@ -120,7 +122,7 @@ func (m *marshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (map[strin
 	return entries, nil
 }
 
-func (m *marshaler) processLogRecord(ctx context.Context, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, string, error) {
+func (m *protoMarshaler) processLogRecord(ctx context.Context, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, string, error) {
 	rawLog, err := m.getRawLog(ctx, logRecord, scope, resource)
 	if err != nil {
 		return "", "", err
@@ -134,7 +136,7 @@ func (m *marshaler) processLogRecord(ctx context.Context, logRecord plog.LogReco
 	return rawLog, logType, nil
 }
 
-func (m *marshaler) getRawLog(ctx context.Context, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
+func (m *protoMarshaler) getRawLog(ctx context.Context, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
 	if m.cfg.RawLogField == "" {
 		entireLogRecord := map[string]any{
 			"body":                logRecord.Body().Str(),
@@ -152,7 +154,7 @@ func (m *marshaler) getRawLog(ctx context.Context, logRecord plog.LogRecord, sco
 	return m.getRawField(ctx, m.cfg.RawLogField, logRecord, scope, resource)
 }
 
-func (m *marshaler) getLogType(ctx context.Context, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
+func (m *protoMarshaler) getLogType(ctx context.Context, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
 	if m.cfg.OverrideLogType {
 		logType, err := m.getRawField(ctx, logTypeField, logRecord, scope, resource)
 		if err != nil || logType == "" {
@@ -167,7 +169,7 @@ func (m *marshaler) getLogType(ctx context.Context, logRecord plog.LogRecord, sc
 	return m.cfg.LogType, nil
 }
 
-func (m *marshaler) getRawField(ctx context.Context, field string, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
+func (m *protoMarshaler) getRawField(ctx context.Context, field string, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
 	lrExpr, err := expr.NewOTTLLogRecordExpression(field, m.teleSettings)
 	if err != nil {
 		return "", fmt.Errorf("raw_log_field is invalid: %s", err)
@@ -197,25 +199,23 @@ func (m *marshaler) getRawField(ctx context.Context, field string, logRecord plo
 	}
 }
 
-func (m *marshaler) constructPayloads(rawLogs map[string][]entry) []payload {
-	payloads := make([]payload, 0, len(rawLogs))
+func (m *protoMarshaler) constructPayloads(rawLogs map[string][]*api.LogEntry) []*api.BatchCreateLogsRequest {
+	payloads := make([]*api.BatchCreateLogsRequest, 0, len(rawLogs))
 	for logType, entries := range rawLogs {
 		if len(entries) > 0 {
-			p := payload{
-				Entries:    entries,
-				CustomerID: m.cfg.CustomerID,
-				LogType:    logType,
-			}
-
-			if len(m.labels) > 0 {
-				p.Labels = m.labels
-			}
-
-			if m.cfg.Namespace != "" {
-				p.Namespace = m.cfg.Namespace
-			}
-
-			payloads = append(payloads, p)
+			payloads = append(payloads, &api.BatchCreateLogsRequest{
+				Batch: &api.LogEntryBatch{
+					StartTime: timestamppb.New(m.startTime),
+					Entries:   entries,
+					LogType:   logType,
+					Source: &api.EventSource{
+						CollectorId: m.collectorID,
+						CustomerId:  m.customerID,
+						Labels:      m.labels,
+						Namespace:   m.cfg.Namespace,
+					},
+				},
+			})
 		}
 	}
 	return payloads

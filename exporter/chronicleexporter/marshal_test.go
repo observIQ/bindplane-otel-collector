@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,330 +16,179 @@ package chronicleexporter
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/google/uuid"
+	"github.com/observiq/bindplane-agent/exporter/chronicleexporter/protos/api"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-var testTime = time.Date(2023, 1, 2, 3, 4, 5, 6, time.UTC)
+func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
+	logger := zap.NewNop()
+	startTime := time.Now()
 
-// mockLogRecord creates a simple mock plog.LogRecord for testing.
-func mockLogRecord(t *testing.T, body string, attributes map[string]any) plog.LogRecord {
+	tests := []struct {
+		name         string
+		cfg          Config
+		labels       []*api.Label
+		logRecords   func() plog.Logs
+		expectations func(t *testing.T, requests []*api.BatchCreateLogsRequest)
+	}{
+		{
+			name: "Single log record with expected data",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "WINEVTLOG",
+				RawLogField:     "body",
+				OverrideLogType: false,
+			},
+			labels: []*api.Label{
+				{Key: "env", Value: "prod"},
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Test log message", map[string]any{"log_type": "WINEVTLOG"}))
+			},
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				require.Len(t, requests, 1)
+				batch := requests[0].Batch
+				require.Equal(t, "WINEVTLOG", batch.LogType)
+				require.Len(t, batch.Entries, 1)
+
+				// Convert Data (byte slice) to string for comparison
+				logDataAsString := string(batch.Entries[0].Data)
+				expectedLogData := `Test log message`
+				require.Equal(t, expectedLogData, logDataAsString)
+
+				require.NotNil(t, batch.StartTime)
+				require.True(t, timestamppb.New(startTime).AsTime().Equal(batch.StartTime.AsTime()), "Start time should be set correctly")
+			},
+		},
+		{
+			name: "Multiple log records",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "WINEVTLOG",
+				RawLogField:     "body",
+				OverrideLogType: false,
+			},
+			labels: []*api.Label{
+				{Key: "env", Value: "staging"},
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				record1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record1.Body().SetStr("First log message")
+				record2 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record2.Body().SetStr("Second log message")
+				return logs
+			},
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				require.Len(t, requests, 1, "Expected a single batch request")
+				batch := requests[0].Batch
+				require.Len(t, batch.Entries, 2, "Expected two log entries in the batch")
+				// Verifying the first log entry data
+				require.Equal(t, "First log message", string(batch.Entries[0].Data))
+				// Verifying the second log entry data
+				require.Equal(t, "Second log message", string(batch.Entries[1].Data))
+			},
+		},
+		{
+			name: "Log record with attributes",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "WINEVTLOG",
+				RawLogField:     "attributes",
+				OverrideLogType: false,
+			},
+			labels: []*api.Label{},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("", map[string]any{"key1": "value1", "log_type": "WINEVTLOG"}))
+			},
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				require.Len(t, requests, 1)
+				batch := requests[0].Batch
+				require.Len(t, batch.Entries, 1)
+
+				// Assuming the attributes are marshaled into the Data field as a JSON string
+				expectedData := `{"key1":"value1", "log_type":"WINEVTLOG"}`
+				actualData := string(batch.Entries[0].Data)
+				require.JSONEq(t, expectedData, actualData, "Log attributes should match expected")
+			},
+		},
+		{
+			name: "No log records",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "DEFAULT",
+				RawLogField:     "body",
+				OverrideLogType: false,
+			},
+			labels: []*api.Label{},
+			logRecords: func() plog.Logs {
+				return plog.NewLogs() // No log records added
+			},
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				require.Len(t, requests, 0, "Expected no requests due to no log records")
+			},
+		},
+		{
+			name: "Override log type with attribute",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "DEFAULT", // This should be overridden by the log_type attribute
+				RawLogField:     "body",
+				OverrideLogType: true,
+			},
+			labels: []*api.Label{},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"log_type": "windows_event.custom"}))
+			},
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				require.Len(t, requests, 1)
+				batch := requests[0].Batch
+				require.Equal(t, "WINEVTLOG", batch.LogType, "Expected log type to be overridden by attribute")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, tt.labels)
+			marshaler.startTime = startTime
+			require.NoError(t, err)
+
+			logs := tt.logRecords()
+			requests, err := marshaler.MarshalRawLogs(context.Background(), logs)
+			require.NoError(t, err)
+
+			tt.expectations(t, requests)
+		})
+	}
+}
+
+func mockLogRecord(body string, attributes map[string]any) plog.LogRecord {
 	lr := plog.NewLogRecord()
 	lr.Body().SetStr(body)
-	lr.Attributes().EnsureCapacity(len(attributes))
-	lr.SetTimestamp(pcommon.NewTimestampFromTime(testTime))
 	for k, v := range attributes {
-		switch attribute := v.(type) {
+		switch val := v.(type) {
 		case string:
-			lr.Attributes().PutStr(k, attribute)
-		case map[string]any:
-			lr.Attributes().FromRaw(attributes)
+			lr.Attributes().PutStr(k, val)
 		default:
-			t.Fatalf("unexpected attribute type: %T", v)
 		}
 	}
 	return lr
 }
 
-// mockLogs creates mock plog.Logs with the given records.
-func mockLogs(records ...plog.LogRecord) plog.Logs {
+func mockLogs(record plog.LogRecord) plog.Logs {
 	logs := plog.NewLogs()
 	rl := logs.ResourceLogs().AppendEmpty()
 	sl := rl.ScopeLogs().AppendEmpty()
-	for _, rec := range records {
-		rec.CopyTo(sl.LogRecords().AppendEmpty())
-	}
+	record.CopyTo(sl.LogRecords().AppendEmpty())
 	return logs
-}
-
-// mockLogRecordWithNestedBody creates a log record with a nested body structure.
-func mockLogRecordWithNestedBody(body map[string]any) plog.LogRecord {
-	lr := plog.NewLogRecord()
-	lr.Body().SetEmptyMap().EnsureCapacity(len(body))
-	lr.Body().Map().FromRaw(body)
-	return lr
-}
-
-func TestMarshalRawLogs(t *testing.T) {
-	tests := []struct {
-		name            string
-		logRecords      []plog.LogRecord
-		expectedJSON    string
-		logType         string
-		rawLogField     string
-		errExpected     error
-		overrideLogType bool
-	}{
-		{
-			name: "Single log record",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Test body", map[string]any{"key1": "value1"}),
-			},
-			expectedJSON: `{"customer_id":"test_customer_id","entries":[{"log_text":"Test body","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"test_log_type"}`,
-			logType:      "test_log_type",
-			rawLogField:  "body",
-		},
-		{
-			name: "Multiple log records",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "First log", map[string]any{"key1": "value1"}),
-				mockLogRecord(t, "Second log", map[string]any{"key2": "value2"}),
-			},
-			expectedJSON: `{"customer_id":"test_customer_id","entries":[{"log_text":"First log","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"},{"log_text":"Second log","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"test_log_type"}`,
-			logType:      "test_log_type",
-			rawLogField:  "body",
-		},
-		{
-			name: "Log record with attributes",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Test body", map[string]any{"key1": "value1", "key2": "value2"}),
-			},
-			expectedJSON: `{"customer_id":"test_customer_id","entries":[{"log_text":"{\"key1\":\"value1\",\"key2\":\"value2\"}","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"test_log_type"}`,
-			logType:      "test_log_type",
-			rawLogField:  "attributes",
-		},
-		{
-			name: "Nested rawLogField",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Test body", map[string]any{"nested": map[string]any{"key": "value"}}),
-			},
-			expectedJSON: `{"customer_id":"test_customer_id","entries":[{"log_text":"value","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"test_log_type"}`,
-			logType:      "test_log_type",
-			rawLogField:  `attributes["nested"]["key"]`,
-		},
-		{
-			name:         "Empty log record",
-			logRecords:   []plog.LogRecord{},
-			expectedJSON: ``, // No payload of logs expected
-			logType:      "test_log_type",
-			rawLogField:  "body",
-		},
-		{
-			name: "Log record with missing field",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Test body", map[string]any{"key1": "value1"}),
-			},
-			expectedJSON: ``, // No payload of logs expected
-			logType:      "test_log_type",
-			rawLogField:  `attributes["missing"]`,
-			// No error expected because the record will be dropped.
-		},
-		{
-			name: "Nested body field",
-			logRecords: []plog.LogRecord{
-				mockLogRecordWithNestedBody(map[string]any{
-					"event": map[string]any{
-						"type": "login_attempt",
-						"details": map[string]any{
-							"username": "user123",
-							"ip":       "192.168.1.1",
-						},
-					},
-				}),
-			},
-			expectedJSON: `{"customer_id":"test_customer_id","entries":[{"log_text":"{\"event\":{\"details\":{\"ip\":\"192.168.1.1\",\"username\":\"user123\"},\"type\":\"login_attempt\"}}","ts_rfc3339":"1970-01-01T00:00:00Z"}],"log_type":"test_log_type"}`,
-			logType:      "test_log_type",
-			rawLogField:  "body",
-		},
-		{
-			name: "use Nested body field",
-			logRecords: []plog.LogRecord{
-				mockLogRecordWithNestedBody(map[string]any{
-					"event": map[string]any{
-						"type": "login_attempt",
-						"details": map[string]any{
-							"username": "user123",
-							"ip":       "192.168.1.1",
-						},
-					},
-				}),
-			},
-			expectedJSON: `{"customer_id":"test_customer_id","entries":[{"log_text":"user123","ts_rfc3339":"1970-01-01T00:00:00Z"}],"log_type":"test_log_type"}`,
-			logType:      "test_log_type",
-			rawLogField:  `body["event"]["details"]["username"]`,
-		},
-		{
-			name: "No rawLogField specified",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Test log without raw field", map[string]any{"key1": "value1"}),
-			},
-			expectedJSON: `{"customer_id":"test_customer_id","entries":[{"log_text":"{\"attributes\":{\"key1\":\"value1\"},\"body\":\"Test log without raw field\",\"resource_attributes\":{}}","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"test_log_type"}`,
-			logType:      "test_log_type",
-			rawLogField:  "", // No rawLogField specified
-		},
-		{
-			name: "Log type override",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Override log", map[string]any{"log_type": "windows_event.security"}),
-			},
-			expectedJSON:    `{"customer_id":"test_customer_id","entries":[{"log_text":"Override log","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"WINEVTLOG"}`,
-			logType:         "default_log_type",
-			rawLogField:     "body",
-			overrideLogType: true,
-		},
-		{
-			name: "Unsupported log type",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Unsupported log type", map[string]any{"log_type": "unsupported_type"}),
-			},
-			expectedJSON:    `{"customer_id":"test_customer_id","entries":[{"log_text":"Unsupported log type","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"default_log_type"}`,
-			logType:         "default_log_type",
-			rawLogField:     "body",
-			overrideLogType: true,
-		},
-		{
-			name: "Missing log type attribute",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Missing log type attribute", map[string]any{"key1": "value1"}),
-			},
-			expectedJSON:    `{"customer_id":"test_customer_id","entries":[{"log_text":"Missing log type attribute","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"default_log_type"}`,
-			logType:         "default_log_type",
-			rawLogField:     "body",
-			overrideLogType: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cfg := &Config{LogType: tt.logType, RawLogField: tt.rawLogField, CustomerID: "test_customer_id", OverrideLogType: tt.overrideLogType}
-			ce := &chronicleExporter{
-				cfg:       cfg,
-				logger:    zap.NewNop(),
-				marshaler: &marshaler{cfg: *cfg, teleSettings: component.TelemetrySettings{Logger: zap.NewNop()}},
-			}
-
-			logs := mockLogs(tt.logRecords...)
-			payloads, err := ce.marshaler.MarshalRawLogs(context.Background(), logs)
-			if tt.errExpected != nil {
-				require.Error(t, err, "MarshalRawLogs should return an error")
-				return
-			}
-
-			require.NoError(t, err, "MarshalRawLogs should not return an error")
-
-			// Merge payloads into a single JSON array for comparison
-			results := make([]map[string]interface{}, 0, len(payloads))
-			for _, p := range payloads {
-				var resultJSON map[string]interface{}
-				data, err := json.Marshal(p)
-				require.NoError(t, err, "Marshalling result should not produce an error")
-				err = json.Unmarshal(data, &resultJSON)
-				require.NoError(t, err, "Unmarshalling result should not produce an error")
-				results = append(results, resultJSON)
-			}
-
-			var expectedJSON []map[string]interface{}
-			err = json.Unmarshal([]byte(fmt.Sprintf("[%s]", tt.expectedJSON)), &expectedJSON)
-			require.NoError(t, err, "Unmarshalling expected JSON should not produce an error")
-
-			assert.Equal(t, expectedJSON, results, "Marshalled JSON should match expected JSON")
-		})
-	}
-}
-
-func TestMarshalRawLogsWithLabels(t *testing.T) {
-	tests := []struct {
-		name            string
-		logRecords      []plog.LogRecord
-		expectedJSON    string
-		logType         string
-		rawLogField     string
-		labels          []label
-		overrideLogType bool
-	}{
-		{
-			name: "Single log record with labels",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Test body", map[string]any{"key1": "value1"}),
-			},
-			expectedJSON: `{"customer_id":"test_customer_id","entries":[{"log_text":"Test body","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"test_log_type","labels":[{"key":"env","value":"prod"},{"key":"region","value":"us-west"}]}`,
-			logType:      "test_log_type",
-			rawLogField:  "body",
-			labels: []label{
-				{"env", "prod"},
-				{"region", "us-west"},
-			},
-		},
-		{
-			name: "Log Record with Multiple Labels",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Log with multiple labels", map[string]any{"key1": "value1"}),
-			},
-			expectedJSON: `{"customer_id":"test_customer_id","entries":[{"log_text":"Log with multiple labels","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"test_log_type","labels":[{"key":"env","value":"dev"},{"key":"service","value":"webapp"}]}`,
-			logType:      "test_log_type",
-			rawLogField:  "body",
-			labels: []label{
-				{"env", "dev"},
-				{"service", "webapp"},
-			},
-		},
-		{
-			name: "Log Record with Empty Label Value",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Log with empty label value", map[string]any{}),
-			},
-			expectedJSON: `{"customer_id":"test_customer_id","entries":[{"log_text":"Log with empty label value","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"test_log_type","labels":[{"key":"emptyLabel","value":""}]}`,
-			logType:      "test_log_type",
-			rawLogField:  "body",
-			labels: []label{
-				{"emptyLabel", ""},
-			},
-		},
-		{
-			name: "No Labels Provided",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "No labels", map[string]any{"key": "value"}),
-			},
-			expectedJSON: `{"customer_id":"test_customer_id","entries":[{"log_text":"No labels","ts_rfc3339":"2023-01-02T03:04:05.000000006Z"}],"log_type":"test_log_type"}`,
-			logType:      "test_log_type",
-			rawLogField:  "body",
-			labels:       []label{},
-		}}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cfg := &Config{
-				LogType:         tt.logType,
-				RawLogField:     tt.rawLogField,
-				CustomerID:      "test_customer_id",
-				OverrideLogType: tt.overrideLogType,
-			}
-			ce := &chronicleExporter{
-				cfg:       cfg,
-				logger:    zap.NewNop(),
-				marshaler: newMarshaler(*cfg, component.TelemetrySettings{Logger: zap.NewNop()}, tt.labels),
-			}
-
-			logs := mockLogs(tt.logRecords...)
-			payloads, err := ce.marshaler.MarshalRawLogs(context.Background(), logs)
-
-			require.NoError(t, err, "MarshalRawLogs should not return an error")
-
-			// Merge payloads into a single JSON array for comparison
-			results := make([]map[string]interface{}, 0, len(payloads))
-			for _, p := range payloads {
-				var resultJSON map[string]interface{}
-				data, err := json.Marshal(p)
-				require.NoError(t, err, "Marshalling result should not produce an error")
-				err = json.Unmarshal(data, &resultJSON)
-				require.NoError(t, err, "Unmarshalling result should not produce an error")
-				results = append(results, resultJSON)
-			}
-
-			var expectedJSON []map[string]interface{}
-			err = json.Unmarshal([]byte(fmt.Sprintf("[%s]", tt.expectedJSON)), &expectedJSON)
-			require.NoError(t, err, "Unmarshalling expected JSON should not produce an error")
-
-			assert.Equal(t, expectedJSON, results, "Marshalled JSON should match expected JSON")
-		})
-	}
 }

@@ -1,0 +1,82 @@
+// Copyright 2021 Google LLC
+//
+// Whenever the proto fields are changed here the same change should be copied
+// to the Chronicle Server side proto definition
+syntax = "proto3";
+
+package malachite.ingestion.v2;
+
+option go_package = "github.com/exporter/chronicleexporter/proto/api";
+
+import "google/protobuf/timestamp.proto";
+// Stats about the collection agent.
+// NEXT TAG: 11
+message AgentStatsEvent {
+  // Timestamp when the collector started.
+  google.protobuf.Timestamp start_time = 1;
+
+  // Time the stats below were last reset. (Event timestamp is window_end)
+  // This corresponds to the last stats upload that was successful.
+  google.protobuf.Timestamp window_start_time = 2;
+
+  // Timestamp of the last successful batch upload.
+  google.protobuf.Timestamp last_successful_upload_time = 3;
+
+  // The unique id of the agent
+  bytes agent_id = 4;
+
+  // Stats about the receivers.
+  repeated ReceiverStats receiver_stats = 5;
+
+  // Stats about the processors.
+  repeated ProcessorStats processor_stats = 6;
+
+  // Stats about the exporters.
+  repeated ExporterStats exporter_stats = 7;
+
+  // CPU time spent on the process.
+  int64 process_cpu_seconds = 8;
+
+  // Memory in kilobytes occupied by the process.
+  int64 process_memory_rss = 9;
+
+  // Number of seconds from which the process is running.
+  int64 process_uptime = 10;
+}
+
+// Stats about the receiver.
+// NEXT TAG: 4
+message ReceiverStats {
+  // Name of the receiver.
+  string name = 1;
+  // Number of logs received.
+  int64 accepted_spans = 2;
+  // Number of logs dropped.
+  int64 refused_spans = 3;
+}
+
+// Stats about the processor.
+// NEXT TAG: 4
+message ProcessorStats {
+  // Name of the processor.
+  string name = 1;
+  // Number of logs processed.
+  int64 accepted_spans = 2;
+  // number of logs dropped.
+  int64 refused_spans = 3;
+}
+
+// Stats about the exporter.
+// NEXT TAG: 6
+message ExporterStats {
+  // Name of the exporter.
+  string name = 1;
+  // Number of logs sent.
+  int64 accepted_spans = 2;
+  // Number of logs dropped.
+  int64 refused_spans = 3;
+  // Capacity of the queue.
+  int64 queue_capacity = 4;
+  // Current size of the queue.
+  int64 queue_size = 5;
+}
