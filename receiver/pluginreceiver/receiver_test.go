@@ -66,15 +66,9 @@ func TestReceiverCreateServiceFailure(t *testing.T) {
 
 	emitterFactory := createLogEmitterFactory(nil)
 
-	receiver := Receiver{
-		plugin:         &Plugin{},
-		renderedCfg:    renderedCfg,
-		emitterFactory: emitterFactory,
-		logger:         zap.NewNop(),
-		createService: func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
-			return nil, errors.New("failure")
-		},
-		doneChan: make(chan struct{}),
+	receiver := NewReceiver(&Plugin{}, renderedCfg, emitterFactory, zap.NewNop())
+	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
+		return nil, errors.New("failure")
 	}
 
 	err := receiver.Start(ctx, host)
@@ -99,16 +93,9 @@ func TestReceiverStartServiceFailure(t *testing.T) {
 	svc := &MockService{}
 	svc.On("Run", mock.Anything).Return(errors.New("failure"))
 	svc.On("GetState").Return(otelcol.StateStarting)
-
-	receiver := Receiver{
-		plugin:         &Plugin{},
-		renderedCfg:    renderedCfg,
-		emitterFactory: emitterFactory,
-		logger:         zap.NewNop(),
-		createService: func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
-			return svc, nil
-		},
-		doneChan: make(chan struct{}),
+	receiver := NewReceiver(&Plugin{}, renderedCfg, emitterFactory, zap.NewNop())
+	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
+		return svc, nil
 	}
 
 	err := receiver.Start(ctx, host)
@@ -135,16 +122,9 @@ func TestReceiverStartServiceContext(t *testing.T) {
 	svc := &MockService{}
 	svc.On("Run", mock.Anything).Return(nil)
 	svc.On("GetState").Return(otelcol.StateStarting)
-
-	receiver := Receiver{
-		plugin:         &Plugin{},
-		renderedCfg:    renderedCfg,
-		emitterFactory: emitterFactory,
-		logger:         zap.NewNop(),
-		createService: func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
-			return svc, nil
-		},
-		doneChan: make(chan struct{}),
+	receiver := NewReceiver(&Plugin{}, renderedCfg, emitterFactory, zap.NewNop())
+	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
+		return svc, nil
 	}
 
 	err := receiver.Start(ctx, host)
@@ -170,15 +150,9 @@ func TestReceiverStartSuccess(t *testing.T) {
 	svc.On("Run", mock.Anything).WaitUntil(time.After(time.Second)).Return(errors.New("unexpected timeout"))
 	svc.On("GetState").Return(otelcol.StateRunning)
 
-	receiver := Receiver{
-		plugin:         &Plugin{},
-		renderedCfg:    renderedCfg,
-		emitterFactory: emitterFactory,
-		logger:         zap.NewNop(),
-		createService: func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
-			return svc, nil
-		},
-		doneChan: make(chan struct{}),
+	receiver := NewReceiver(&Plugin{}, renderedCfg, emitterFactory, zap.NewNop())
+	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
+		return svc, nil
 	}
 
 	err := receiver.Start(ctx, host)
@@ -210,15 +184,9 @@ func TestReceiverShutdown(t *testing.T) {
 		close(blockChan)
 	}).Return()
 
-	receiver := Receiver{
-		plugin:         &Plugin{},
-		renderedCfg:    renderedCfg,
-		emitterFactory: emitterFactory,
-		logger:         zap.NewNop(),
-		createService: func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
-			return svc, nil
-		},
-		doneChan: make(chan struct{}),
+	receiver := NewReceiver(&Plugin{}, renderedCfg, emitterFactory, zap.NewNop())
+	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
+		return svc, nil
 	}
 
 	err := receiver.Start(ctx, host)
@@ -254,15 +222,9 @@ func TestReceiverShutdownCancelledContext(t *testing.T) {
 	svc.On("GetState").Return(otelcol.StateRunning)
 	svc.On("Shutdown").Return()
 
-	receiver := Receiver{
-		plugin:         &Plugin{},
-		renderedCfg:    renderedCfg,
-		emitterFactory: emitterFactory,
-		logger:         zap.NewNop(),
-		createService: func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
-			return svc, nil
-		},
-		doneChan: make(chan struct{}),
+	receiver := NewReceiver(&Plugin{}, renderedCfg, emitterFactory, zap.NewNop())
+	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
+		return svc, nil
 	}
 
 	err := receiver.Start(ctx, host)
@@ -274,6 +236,43 @@ func TestReceiverShutdownCancelledContext(t *testing.T) {
 
 	err = receiver.Shutdown(ctx)
 	require.NoError(t, err)
+}
+
+func TestReceiverShutdownWithError(t *testing.T) {
+	nopFactory := receiver.NewFactory("nop", nil)
+	ctx := context.Background()
+	host := &MockHost{}
+	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
+
+	renderedCfg := &RenderedConfig{
+		Receivers: map[string]any{
+			"nop": nil,
+		},
+	}
+
+	emitterFactory := createLogEmitterFactory(nil)
+
+	blockChan := make(chan struct{})
+
+	svc := &MockService{}
+	svc.On("Run", mock.Anything).Run(func(_ mock.Arguments) {
+		<-blockChan
+	}).Return(errors.New("an error occurred"))
+	svc.On("GetState").Return(otelcol.StateRunning)
+	svc.On("Shutdown").Run(func(_ mock.Arguments) {
+		close(blockChan)
+	}).Return()
+
+	receiver := NewReceiver(&Plugin{}, renderedCfg, emitterFactory, zap.NewNop())
+	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
+		return svc, nil
+	}
+
+	err := receiver.Start(ctx, host)
+	require.NoError(t, err)
+
+	err = receiver.Shutdown(context.Background())
+	require.ErrorContains(t, err, "an error occurred")
 }
 
 // MockService is a mock type for the Service type

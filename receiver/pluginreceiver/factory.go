@@ -93,12 +93,5 @@ func createReceiver(cfg component.Config, set receiver.CreateSettings, emitterFa
 		return nil, fmt.Errorf("failed to render plugin: %w", err)
 	}
 
-	return &Receiver{
-		plugin:         plugin,
-		renderedCfg:    renderedCfg,
-		emitterFactory: emitterFactory,
-		logger:         set.Logger,
-		createService:  createService,
-		doneChan:       make(chan struct{}),
-	}, nil
+	return NewReceiver(plugin, renderedCfg, emitterFactory, set.Logger), nil
 }
