@@ -28,7 +28,7 @@ func TestConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	factory := NewFactory()
-	factories.Processors[typeStr] = factory
+	factories.Processors[componentType] = factory
 	cfg, err := otelcoltest.LoadConfigAndValidate(path.Join(".", "testdata", "config.yaml"), factories)
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
@@ -37,10 +37,10 @@ func TestConfig(t *testing.T) {
 
 	// Loaded config should be equal to default config
 	defaultCfg := factory.CreateDefaultConfig()
-	r0 := cfg.Processors[component.NewID(typeStr)]
+	r0 := cfg.Processors[component.NewID(componentType)]
 	require.Equal(t, r0, defaultCfg)
 
-	customComponentID := component.NewIDWithName(typeStr, "customname")
+	customComponentID := component.NewIDWithName(componentType, "customname")
 	r1 := cfg.Processors[customComponentID].(*Config)
 	require.Equal(t, &Config{
 		Operations: []CopyResourceConfig{

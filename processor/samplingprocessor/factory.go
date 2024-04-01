@@ -24,9 +24,10 @@ import (
 	"go.opentelemetry.io/collector/processor/processorhelper"
 )
 
-const (
-	typeStr = "sampling"
+// componentType is the value of the "type" key in configuration.
+var componentType = component.MustNewType("sampling")
 
+const (
 	stability = component.StabilityLevelAlpha
 )
 
@@ -39,7 +40,7 @@ var once sync.Once
 // NewFactory creates a new ProcessorFactory with default configuration
 func NewFactory() processor.Factory {
 	return processor.NewFactory(
-		typeStr,
+		componentType,
 		createDefaultConfig,
 		processor.WithTraces(createTracesProcessor, stability),
 		processor.WithLogs(createLogsProcessor, stability),

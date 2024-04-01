@@ -16,6 +16,7 @@ package telemetrygeneratorreceiver //import "github.com/observiq/bindplane-agent
 
 import (
 	"context"
+	"fmt"
 
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pmetric"
@@ -29,7 +30,7 @@ type metricsGeneratorReceiver struct {
 }
 
 // newMetricsReceiver creates a new metrics specific receiver.
-func newMetricsReceiver(ctx context.Context, logger *zap.Logger, cfg *Config, nextConsumer consumer.Metrics) *metricsGeneratorReceiver {
+func newMetricsReceiver(ctx context.Context, logger *zap.Logger, cfg *Config, nextConsumer consumer.Metrics) (*metricsGeneratorReceiver, error) {
 	mr := &metricsGeneratorReceiver{
 		nextConsumer: nextConsumer,
 	}
@@ -37,9 +38,13 @@ func newMetricsReceiver(ctx context.Context, logger *zap.Logger, cfg *Config, ne
 
 	mr.telemetryGeneratorReceiver = r
 
-	mr.generators = newMetricsGenerators(cfg, logger)
+	var err error
+	mr.generators, err = newMetricsGenerators(cfg, logger)
+	if err != nil {
+		return nil, fmt.Errorf("new metrics generators: %w", err)
+	}
 
-	return mr
+	return mr, nil
 }
 
 // produce generates metrics from each generator and sends them to the next consumer

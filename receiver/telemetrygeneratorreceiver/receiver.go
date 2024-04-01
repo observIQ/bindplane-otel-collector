@@ -39,24 +39,22 @@ type telemetryGeneratorReceiver struct {
 }
 
 // newTelemetryGeneratorReceiver creates a new telemetry generator receiver
-func newTelemetryGeneratorReceiver(ctx context.Context, logger *zap.Logger, cfg *Config, tp telemetryProducer) telemetryGeneratorReceiver {
-	ctx, cancel := context.WithCancelCause(ctx)
-
+func newTelemetryGeneratorReceiver(_ context.Context, logger *zap.Logger, cfg *Config, tp telemetryProducer) telemetryGeneratorReceiver {
 	return telemetryGeneratorReceiver{
-		logger:     logger,
-		cfg:        cfg,
-		doneChan:   make(chan struct{}),
-		ctx:        ctx,
-		cancelFunc: cancel,
-		producer:   tp,
+		logger:   logger,
+		cfg:      cfg,
+		doneChan: make(chan struct{}),
+		producer: tp,
 	}
 }
 
 // Shutdown shuts down the telemetry generator receiver
 func (r *telemetryGeneratorReceiver) Shutdown(ctx context.Context) error {
-	if r.cancelFunc != nil {
-		r.cancelFunc(errors.New("shutdown"))
+	if r.cancelFunc == nil {
+		return nil
 	}
+
+	r.cancelFunc(errors.New("shutdown"))
 	var err error
 	select {
 	case <-ctx.Done():
@@ -69,6 +67,7 @@ func (r *telemetryGeneratorReceiver) Shutdown(ctx context.Context) error {
 
 // Start starts the telemetryGeneratorReceiver receiver
 func (r *telemetryGeneratorReceiver) Start(_ context.Context, _ component.Host) error {
+	r.ctx, r.cancelFunc = context.WithCancelCause(context.Background())
 
 	go func() {
 		defer close(r.doneChan)

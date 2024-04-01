@@ -128,13 +128,13 @@ service:
 					"test": nil,
 				},
 				Exporters: map[string]any{
-					emitterTypeStr: nil,
+					emitterType.String(): nil,
 				},
 				Service: ServiceConfig{
 					Pipelines: map[string]PipelineConfig{
 						"metrics": {
 							Receivers: []string{"test"},
-							Exporters: []string{emitterTypeStr},
+							Exporters: []string{emitterType.String()},
 						},
 					},
 					Telemetry: TelemetryConfig{
@@ -168,12 +168,12 @@ service:
 					"test": nil,
 				},
 				Exporters: map[string]any{
-					emitterTypeStr: nil,
+					emitterType.String(): nil,
 				},
 				Service: ServiceConfig{
 					Pipelines: map[string]PipelineConfig{
 						"metrics": {
-							Exporters: []string{emitterTypeStr},
+							Exporters: []string{emitterType.String()},
 						},
 					},
 					Telemetry: TelemetryConfig{

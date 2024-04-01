@@ -23,16 +23,17 @@ import (
 	"go.opentelemetry.io/collector/processor"
 )
 
-const (
-	typeStr = "resourceattributetransposer"
+// componentType is the value of the "type" key in configuration.
+var componentType = component.MustNewType("resourceattributetransposer")
 
+const (
 	stability = component.StabilityLevelStable
 )
 
 // NewFactory returns a new factory for the resourceattributetransposer processor.
 func NewFactory() processor.Factory {
 	return processor.NewFactory(
-		typeStr,
+		componentType,
 		createDefaultConfig,
 		processor.WithMetrics(createMetricsProcessor, stability),
 		processor.WithLogs(createLogsProcessor, stability),

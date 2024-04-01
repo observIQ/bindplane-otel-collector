@@ -32,7 +32,7 @@ func TestCreateMetricExporterSuccess(t *testing.T) {
 	mockExporter := &MockExporter{}
 
 	gmpFactory = exporter.NewFactory(
-		typeStr,
+		componentType,
 		gmpFactory.CreateDefaultConfig,
 		exporter.WithMetrics(func(_ context.Context, _ exporter.CreateSettings, _ component.Config) (exporter.Metrics, error) {
 			return mockExporter, nil
@@ -59,7 +59,7 @@ func TestCreateMetricExporterSuccess(t *testing.T) {
 
 func TestCreateExporterFailure(t *testing.T) {
 	gmpFactory = exporter.NewFactory(
-		typeStr,
+		componentType,
 		gmpFactory.CreateDefaultConfig,
 	)
 	defer func() {

@@ -100,6 +100,9 @@ func (p *Plugin) ApplyDefaults(values map[string]any) map[string]any {
 	return result
 }
 
+// fileStorageType component type to identify  file storage component
+var fileStorageType = component.MustNewType("file_storage")
+
 func checkExtensions(extensions map[string]any, pluginID string) error {
 	for i, ext := range extensions {
 		c := component.ID{}
@@ -107,7 +110,7 @@ func checkExtensions(extensions map[string]any, pluginID string) error {
 			return fmt.Errorf("failed to parse component ID: %w", err)
 		}
 
-		if c.Type() == "file_storage" {
+		if c.Type() == fileStorageType {
 			var cfg filestorage.Config
 			err := mapstructure.Decode(ext, &cfg)
 			if err != nil {

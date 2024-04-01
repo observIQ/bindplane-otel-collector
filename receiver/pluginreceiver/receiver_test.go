@@ -22,6 +22,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/otelcol"
 	"go.opentelemetry.io/collector/receiver"
 	"go.uber.org/zap"
@@ -53,7 +54,8 @@ func TestReceiverGetFactoryFailure(t *testing.T) {
 }
 
 func TestReceiverCreateServiceFailure(t *testing.T) {
-	nopFactory := receiver.NewFactory("nop", nil)
+	nopType := component.MustNewType("nop")
+	nopFactory := receiver.NewFactory(nopType, nil)
 	ctx := context.Background()
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
@@ -77,7 +79,8 @@ func TestReceiverCreateServiceFailure(t *testing.T) {
 }
 
 func TestReceiverStartServiceFailure(t *testing.T) {
-	nopFactory := receiver.NewFactory("nop", nil)
+	nopType := component.MustNewType("nop")
+	nopFactory := receiver.NewFactory(nopType, nil)
 	ctx := context.Background()
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
@@ -104,7 +107,8 @@ func TestReceiverStartServiceFailure(t *testing.T) {
 }
 
 func TestReceiverStartServiceContext(t *testing.T) {
-	nopFactory := receiver.NewFactory("nop", nil)
+	nopType := component.MustNewType("nop")
+	nopFactory := receiver.NewFactory(nopType, nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -133,7 +137,8 @@ func TestReceiverStartServiceContext(t *testing.T) {
 }
 
 func TestReceiverStartSuccess(t *testing.T) {
-	nopFactory := receiver.NewFactory("nop", nil)
+	nopType := component.MustNewType("nop")
+	nopFactory := receiver.NewFactory(nopType, nil)
 	ctx := context.Background()
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
@@ -160,7 +165,8 @@ func TestReceiverStartSuccess(t *testing.T) {
 }
 
 func TestReceiverShutdown(t *testing.T) {
-	nopFactory := receiver.NewFactory("nop", nil)
+	nopType := component.MustNewType("nop")
+	nopFactory := receiver.NewFactory(nopType, nil)
 	ctx := context.Background()
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
@@ -197,7 +203,8 @@ func TestReceiverShutdown(t *testing.T) {
 }
 
 func TestReceiverShutdownCancelledContext(t *testing.T) {
-	nopFactory := receiver.NewFactory("nop", nil)
+	nopType := component.MustNewType("nop")
+	nopFactory := receiver.NewFactory(nopType, nil)
 	ctx := context.Background()
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)
@@ -239,7 +246,8 @@ func TestReceiverShutdownCancelledContext(t *testing.T) {
 }
 
 func TestReceiverShutdownWithError(t *testing.T) {
-	nopFactory := receiver.NewFactory("nop", nil)
+	nopType := component.MustNewType("nop")
+	nopFactory := receiver.NewFactory(nopType, nil)
 	ctx := context.Background()
 	host := &MockHost{}
 	host.On("GetFactory", mock.Anything, mock.Anything).Return(nopFactory)

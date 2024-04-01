@@ -25,9 +25,10 @@ import (
 	"go.opentelemetry.io/collector/receiver"
 )
 
-const (
-	typeStr = "plugin"
+// componentType is the value of the "type" key in configuration.
+var componentType = component.MustNewType("plugin")
 
+const (
 	stability = component.StabilityLevelBeta
 )
 
@@ -46,7 +47,7 @@ func createDefaultConfig() component.Config {
 
 // NewFactory creates a factory for a plugin receiver
 func NewFactory() receiver.Factory {
-	return receiver.NewFactory(typeStr,
+	return receiver.NewFactory(componentType,
 		createDefaultConfig,
 		receiver.WithLogs(createLogsReceiver, stability),
 		receiver.WithMetrics(createMetricsReceiver, stability),

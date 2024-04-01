@@ -15,6 +15,8 @@
 package telemetrygeneratorreceiver //import "github.com/observiq/bindplane-agent/receiver/telemetrygeneratorreceiver"
 
 import (
+	"fmt"
+
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
@@ -57,24 +59,33 @@ type traceGenerator interface {
 }
 
 // newLogsGenerators creates and returns a slice of logGenerator instances based on the provided configuration and logger.
-func newLogsGenerators(cfg *Config, logger *zap.Logger) []logGenerator {
+func newLogsGenerators(cfg *Config, logger *zap.Logger) ([]logGenerator, error) {
 	var generators []logGenerator
 	for _, gen := range cfg.Generators {
 		switch gen.Type {
 		case generatorTypeLogs:
 			generators = append(generators, newLogsGenerator(gen, logger))
 		case generatorTypeWindowsEvents:
-			generators = append(generators, newWindowsEventsGenerator(logger))
+			newGenerator, err := newWindowsEventsGenerator(logger)
+			if err != nil {
+				return nil, fmt.Errorf("new windows events Generator: %w", err)
+			}
+			generators = append(generators, newGenerator)
 		case generatorTypeOTLP:
-			generators = append(generators, newOtlpGenerator(gen, logger))
+			newGenerator, err := newOtlpGenerator(gen, logger)
+			if err != nil {
+				return nil, fmt.Errorf("new OTLP Generator: %w", err)
+			}
+
+			generators = append(generators, newGenerator)
 
 		}
 	}
-	return generators
+	return generators, nil
 }
 
 // newMetricsGenerators creates a slice of metricGenerator based on the provided configuration and logger.
-func newMetricsGenerators(cfg *Config, logger *zap.Logger) []metricGenerator {
+func newMetricsGenerators(cfg *Config, logger *zap.Logger) ([]metricGenerator, error) {
 	var generators []metricGenerator
 	for _, gen := range cfg.Generators {
 		switch gen.Type {
@@ -83,20 +94,30 @@ func newMetricsGenerators(cfg *Config, logger *zap.Logger) []metricGenerator {
 		case generatorTypeHostMetrics:
 			generators = append(generators, newHostMetricsGenerator(gen, logger))
 		case generatorTypeOTLP:
-			generators = append(generators, newOtlpGenerator(gen, logger))
+			newGenerator, err := newOtlpGenerator(gen, logger)
+			if err != nil {
+				return nil, fmt.Errorf("new OTLP Generator: %w", err)
+			}
+
+			generators = append(generators, newGenerator)
 		}
 
 	}
-	return generators
+	return generators, nil
 }
 
-func newTraceGenerators(cfg *Config, logger *zap.Logger) []traceGenerator {
+func newTraceGenerators(cfg *Config, logger *zap.Logger) ([]traceGenerator, error) {
 	var generators []traceGenerator
 	for _, gen := range cfg.Generators {
 		switch gen.Type {
 		case generatorTypeOTLP:
-			generators = append(generators, newOtlpGenerator(gen, logger))
+			newGenerator, err := newOtlpGenerator(gen, logger)
+			if err != nil {
+				return nil, fmt.Errorf("new OTLP Generator: %w", err)
+			}
+
+			generators = append(generators, newGenerator)
 		}
 	}
-	return generators
+	return generators, nil
 }

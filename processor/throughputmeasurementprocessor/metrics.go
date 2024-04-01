@@ -38,42 +38,42 @@ func metricViews() []*view.View {
 
 	return []*view.View{
 		{
-			Name:        processorhelper.BuildCustomMetricName(string(typeStr), logDataSize.Name()),
+			Name:        processorhelper.BuildCustomMetricName(componentType.String(), logDataSize.Name()),
 			Description: logDataSize.Description(),
 			Measure:     logDataSize,
 			TagKeys:     processorTagKeys,
 			Aggregation: view.Sum(),
 		},
 		{
-			Name:        processorhelper.BuildCustomMetricName(string(typeStr), metricDataSize.Name()),
+			Name:        processorhelper.BuildCustomMetricName(componentType.String(), metricDataSize.Name()),
 			Description: metricDataSize.Description(),
 			Measure:     metricDataSize,
 			TagKeys:     processorTagKeys,
 			Aggregation: view.Sum(),
 		},
 		{
-			Name:        processorhelper.BuildCustomMetricName(string(typeStr), traceDataSize.Name()),
+			Name:        processorhelper.BuildCustomMetricName(componentType.String(), traceDataSize.Name()),
 			Description: traceDataSize.Description(),
 			Measure:     traceDataSize,
 			TagKeys:     processorTagKeys,
 			Aggregation: view.Sum(),
 		},
 		{
-			Name:        processorhelper.BuildCustomMetricName(string(typeStr), logCount.Name()),
+			Name:        processorhelper.BuildCustomMetricName(componentType.String(), logCount.Name()),
 			Description: logCount.Description(),
 			Measure:     logCount,
 			TagKeys:     processorTagKeys,
 			Aggregation: view.Sum(),
 		},
 		{
-			Name:        processorhelper.BuildCustomMetricName(string(typeStr), metricCount.Name()),
+			Name:        processorhelper.BuildCustomMetricName(componentType.String(), metricCount.Name()),
 			Description: metricCount.Description(),
 			Measure:     metricCount,
 			TagKeys:     processorTagKeys,
 			Aggregation: view.Sum(),
 		},
 		{
-			Name:        processorhelper.BuildCustomMetricName(string(typeStr), traceCount.Name()),
+			Name:        processorhelper.BuildCustomMetricName(componentType.String(), traceCount.Name()),
 			Description: traceCount.Description(),
 			Measure:     traceCount,
 			TagKeys:     processorTagKeys,

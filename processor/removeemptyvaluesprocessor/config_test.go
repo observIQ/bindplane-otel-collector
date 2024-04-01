@@ -38,11 +38,11 @@ func TestLoadConfig(t *testing.T) {
 		expected component.Config
 	}{
 		{
-			id:       component.NewIDWithName(typeStr, "defaults"),
+			id:       component.NewIDWithName(componentType, "defaults"),
 			expected: createDefaultConfig(),
 		},
 		{
-			id: component.NewIDWithName(typeStr, "exclude_keys"),
+			id: component.NewIDWithName(componentType, "exclude_keys"),
 			expected: &Config{
 				RemoveNulls:      false,
 				RemoveEmptyLists: true,
@@ -67,7 +67,7 @@ func TestLoadConfig(t *testing.T) {
 			},
 		},
 		{
-			id: component.NewIDWithName(typeStr, "exclude_fields"),
+			id: component.NewIDWithName(componentType, "exclude_fields"),
 			expected: &Config{
 				RemoveNulls:       true,
 				EmptyStringValues: []string{},

@@ -130,7 +130,12 @@ func validateOTLPGenerator(cfg *GeneratorConfig) error {
 	if !ok {
 		return fmt.Errorf("invalid telemetry type: %v", telemetryType)
 	}
-	dataType := component.DataType(telemetryTypeStr)
+
+	dataType, err := component.NewType(telemetryTypeStr)
+	if err != nil {
+		return fmt.Errorf("invalid telemetry type: %w", err)
+	}
+
 	switch dataType {
 	case component.DataTypeLogs, component.DataTypeMetrics, component.DataTypeTraces:
 	default:

@@ -25,7 +25,7 @@ import (
 
 func TestNewFactory(t *testing.T) {
 	f := NewFactory()
-	require.Equal(t, component.NewID(typeStr).Type(), f.Type())
+	require.Equal(t, component.NewID(componentType).Type(), f.Type())
 	require.Equal(t, stability, f.MetricsReceiverStability())
 	require.NotNil(t, f.CreateDefaultConfig())
 	require.NotNil(t, f.CreateMetricsReceiver)

@@ -44,9 +44,9 @@ var (
 
 // Config defines configuration for SAP Netweaver metrics receiver.
 type Config struct {
-	scraperhelper.ScraperControllerSettings `mapstructure:",squash"`
-	configtls.TLSClientSetting              `mapstructure:"tls,omitempty"`
-	confighttp.ClientConfig                 `mapstructure:"tls,omitempty,squash"`
+	scraperhelper.ControllerConfig `mapstructure:",squash"`
+	configtls.TLSClientSetting     `mapstructure:"tls,omitempty"`
+	confighttp.ClientConfig        `mapstructure:"tls,omitempty,squash"`
 	// Metrics defines which metrics to enable for the scraper
 	MetricsBuilderConfig metadata.MetricsBuilderConfig `mapstructure:",squash"`
 	// Endpoint string `mapstructure:"endpoint"`

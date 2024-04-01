@@ -182,7 +182,7 @@ func TestProcessorExtractMetrics(t *testing.T) {
 				resourceMetrics.Resource().Attributes().FromRaw(map[string]any{"host": "test"})
 
 				scopeMetrics := resourceMetrics.ScopeMetrics().AppendEmpty()
-				scopeMetrics.Scope().SetName(typeStr)
+				scopeMetrics.Scope().SetName(componentType.String())
 
 				metric := scopeMetrics.Metrics().AppendEmpty()
 				metric.SetName("test.metric")
@@ -226,7 +226,7 @@ func TestProcessorExtractMetrics(t *testing.T) {
 				resourceMetrics.Resource().Attributes().FromRaw(map[string]any{"host": "test"})
 
 				scopeMetrics := resourceMetrics.ScopeMetrics().AppendEmpty()
-				scopeMetrics.Scope().SetName(typeStr)
+				scopeMetrics.Scope().SetName(componentType.String())
 
 				metric := scopeMetrics.Metrics().AppendEmpty()
 				metric.SetName("test.metric")
@@ -270,7 +270,7 @@ func TestProcessorExtractMetrics(t *testing.T) {
 				resourceMetrics.Resource().Attributes().FromRaw(map[string]any{"host": "test"})
 
 				scopeMetrics := resourceMetrics.ScopeMetrics().AppendEmpty()
-				scopeMetrics.Scope().SetName(typeStr)
+				scopeMetrics.Scope().SetName(componentType.String())
 
 				metric := scopeMetrics.Metrics().AppendEmpty()
 				metric.SetName("test.metric")
@@ -314,7 +314,7 @@ func TestProcessorExtractMetrics(t *testing.T) {
 				resourceMetrics.Resource().Attributes().FromRaw(map[string]any{"host": "test"})
 
 				scopeMetrics := resourceMetrics.ScopeMetrics().AppendEmpty()
-				scopeMetrics.Scope().SetName(typeStr)
+				scopeMetrics.Scope().SetName(componentType.String())
 
 				metric := scopeMetrics.Metrics().AppendEmpty()
 				metric.SetName("test.metric")
@@ -452,7 +452,7 @@ func TestProcessorExtractMetrics(t *testing.T) {
 				resourceMetrics.Resource().Attributes().FromRaw(map[string]any{"host": "test"})
 
 				scopeMetrics := resourceMetrics.ScopeMetrics().AppendEmpty()
-				scopeMetrics.Scope().SetName(typeStr)
+				scopeMetrics.Scope().SetName(componentType.String())
 
 				metric := scopeMetrics.Metrics().AppendEmpty()
 				metric.SetName("test.metric")
@@ -496,7 +496,7 @@ func TestProcessorExtractMetrics(t *testing.T) {
 				resourceMetrics.Resource().Attributes().FromRaw(map[string]any{"host": "test"})
 
 				scopeMetrics := resourceMetrics.ScopeMetrics().AppendEmpty()
-				scopeMetrics.Scope().SetName(typeStr)
+				scopeMetrics.Scope().SetName(componentType.String())
 
 				metric := scopeMetrics.Metrics().AppendEmpty()
 				metric.SetName("test.metric")
@@ -540,7 +540,7 @@ func TestProcessorExtractMetrics(t *testing.T) {
 				resourceMetrics.Resource().Attributes().FromRaw(map[string]any{"host": "test"})
 
 				scopeMetrics := resourceMetrics.ScopeMetrics().AppendEmpty()
-				scopeMetrics.Scope().SetName(typeStr)
+				scopeMetrics.Scope().SetName(componentType.String())
 
 				metric := scopeMetrics.Metrics().AppendEmpty()
 				metric.SetName("test.metric")
@@ -584,7 +584,7 @@ func TestProcessorExtractMetrics(t *testing.T) {
 				resourceMetrics.Resource().Attributes().FromRaw(map[string]any{"host": "test"})
 
 				scopeMetrics := resourceMetrics.ScopeMetrics().AppendEmpty()
-				scopeMetrics.Scope().SetName(typeStr)
+				scopeMetrics.Scope().SetName(componentType.String())
 
 				metric := scopeMetrics.Metrics().AppendEmpty()
 				metric.SetName("test.metric")
