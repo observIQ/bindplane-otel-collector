@@ -16,6 +16,7 @@ package telemetrygeneratorreceiver //import "github.com/observiq/bindplane-agent
 
 import (
 	"context"
+	"fmt"
 
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/ptrace"
@@ -29,7 +30,7 @@ type tracesGeneratorReceiver struct {
 }
 
 // newTracesReceiver creates a new traces specific receiver.
-func newTracesReceiver(ctx context.Context, logger *zap.Logger, cfg *Config, nextConsumer consumer.Traces) *tracesGeneratorReceiver {
+func newTracesReceiver(ctx context.Context, logger *zap.Logger, cfg *Config, nextConsumer consumer.Traces) (*tracesGeneratorReceiver, error) {
 	tr := &tracesGeneratorReceiver{
 		nextConsumer: nextConsumer,
 	}
@@ -37,9 +38,14 @@ func newTracesReceiver(ctx context.Context, logger *zap.Logger, cfg *Config, nex
 	r := newTelemetryGeneratorReceiver(ctx, logger, cfg, tr)
 
 	tr.telemetryGeneratorReceiver = r
-	tr.generators = newTraceGenerators(cfg, logger)
 
-	return tr
+	var err error
+	tr.generators, err = newTraceGenerators(cfg, logger)
+	if err != nil {
+		return nil, fmt.Errorf("new traces generators: %w", err)
+	}
+
+	return tr, nil
 }
 
 // produce generates traces from each generator and sends them to the next consumer

@@ -16,6 +16,7 @@ package telemetrygeneratorreceiver //import "github.com/observiq/bindplane-agent
 
 import (
 	"context"
+	"fmt"
 
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -29,7 +30,7 @@ type logsGeneratorReceiver struct {
 }
 
 // newLogsReceiver creates a new logs specific receiver.
-func newLogsReceiver(ctx context.Context, logger *zap.Logger, cfg *Config, nextConsumer consumer.Logs) *logsGeneratorReceiver {
+func newLogsReceiver(ctx context.Context, logger *zap.Logger, cfg *Config, nextConsumer consumer.Logs) (*logsGeneratorReceiver, error) {
 	lr := &logsGeneratorReceiver{
 		nextConsumer: nextConsumer,
 	}
@@ -37,9 +38,13 @@ func newLogsReceiver(ctx context.Context, logger *zap.Logger, cfg *Config, nextC
 
 	lr.telemetryGeneratorReceiver = r
 
-	lr.generators = newLogsGenerators(cfg, logger)
+	var err error
+	lr.generators, err = newLogsGenerators(cfg, logger)
+	if err != nil {
+		return nil, fmt.Errorf("new logs generators: %w", err)
+	}
 
-	return lr
+	return lr, nil
 }
 
 // generateTelemetry

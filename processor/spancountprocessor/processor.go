@@ -210,7 +210,7 @@ func (p *spanCountProcessor) createMetrics() pmetric.Metrics {
 		}
 
 		scopeMetrics := resourceMetrics.ScopeMetrics().AppendEmpty()
-		scopeMetrics.Scope().SetName(typeStr)
+		scopeMetrics.Scope().SetName(componentType.String())
 		for _, attributes := range resource.Attributes() {
 			metrics := scopeMetrics.Metrics().AppendEmpty()
 			metrics.SetName(p.config.MetricName)

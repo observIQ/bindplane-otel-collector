@@ -36,11 +36,11 @@ func TestLoadConfig(t *testing.T) {
 		expected component.Config
 	}{
 		{
-			id:       component.NewIDWithName(typeStr, "defaults"),
+			id:       component.NewIDWithName(componentType, "defaults"),
 			expected: createDefaultConfig(),
 		},
 		{
-			id: component.NewIDWithName(typeStr, ""),
+			id: component.NewIDWithName(componentType, ""),
 			expected: &Config{
 				Interval: 3 * time.Minute,
 				Include:  `^test\.thing$$`,

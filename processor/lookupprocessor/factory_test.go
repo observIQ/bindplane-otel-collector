@@ -27,7 +27,7 @@ import (
 
 func TestNewFactory(t *testing.T) {
 	factory := NewFactory()
-	require.Equal(t, typeStr, factory.Type().String())
+	require.Equal(t, componentType, factory.Type())
 	require.Equal(t, stability, factory.LogsProcessorStability())
 	require.Equal(t, stability, factory.MetricsProcessorStability())
 	require.Equal(t, stability, factory.TracesProcessorStability())
@@ -38,7 +38,7 @@ func TestNewFactory(t *testing.T) {
 		Field:   "ip",
 	}
 	settings := processor.CreateSettings{
-		ID: component.NewIDWithName(typeStr, "test"),
+		ID: component.NewIDWithName(componentType, "test"),
 		TelemetrySettings: component.TelemetrySettings{
 			Logger: zap.NewNop(),
 		},

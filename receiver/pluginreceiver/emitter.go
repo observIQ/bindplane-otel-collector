@@ -22,7 +22,7 @@ import (
 	"go.opentelemetry.io/collector/exporter"
 )
 
-const emitterTypeStr = "plugin_output"
+var emitterType = component.MustNewType("plugin_output")
 
 // Emitter is a struct used to emit data from an internal pipeline to an external consumer.
 // The emitter operates as a singleton exporter within an internal pipeline.
@@ -49,7 +49,7 @@ func (e *Emitter) Capabilities() consumer.Capabilities {
 
 // defaultEmitterConfig returns a default config for the plugin's emitter
 func defaultEmitterConfig() component.Config {
-	componentID := component.NewID(emitterTypeStr)
+	componentID := component.NewID(emitterType)
 	defaultConfig := &exporter.CreateSettings{
 		ID: componentID,
 	}
@@ -64,7 +64,7 @@ func createLogEmitterFactory(consumer consumer.Logs) exporter.Factory {
 	}
 
 	return exporter.NewFactory(
-		emitterTypeStr,
+		emitterType,
 		defaultEmitterConfig,
 		exporter.WithLogs(createExporter, component.StabilityLevelUndefined),
 	)
@@ -78,7 +78,7 @@ func createMetricEmitterFactory(consumer consumer.Metrics) exporter.Factory {
 	}
 
 	return exporter.NewFactory(
-		emitterTypeStr,
+		emitterType,
 		defaultEmitterConfig,
 		exporter.WithMetrics(createExporter, component.StabilityLevelUndefined),
 	)
@@ -92,7 +92,7 @@ func createTraceEmitterFactory(consumer consumer.Traces) exporter.Factory {
 	}
 
 	return exporter.NewFactory(
-		emitterTypeStr,
+		emitterType,
 		defaultEmitterConfig,
 		exporter.WithTraces(createExporter, component.StabilityLevelUndefined),
 	)

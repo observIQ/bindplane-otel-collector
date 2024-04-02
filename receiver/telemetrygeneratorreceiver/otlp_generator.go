@@ -15,6 +15,7 @@
 package telemetrygeneratorreceiver //import "github.com/observiq/bindplane-agent/receiver/telemetrygeneratorreceiver"
 
 import (
+	"fmt"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
@@ -43,7 +44,7 @@ type otlpGenerator struct {
 	tracesStart   time.Time
 }
 
-func newOtlpGenerator(cfg GeneratorConfig, logger *zap.Logger) *otlpGenerator {
+func newOtlpGenerator(cfg GeneratorConfig, logger *zap.Logger) (*otlpGenerator, error) {
 	lg := &otlpGenerator{
 		cfg:     cfg,
 		logger:  logger,
@@ -53,10 +54,14 @@ func newOtlpGenerator(cfg GeneratorConfig, logger *zap.Logger) *otlpGenerator {
 	}
 
 	// validation already proves this exists, is a string, and a component.DataType
-	lg.telemetryType = component.Type(lg.cfg.AdditionalConfig["telemetry_type"].(string))
+	telemetryType, err := component.NewType(lg.cfg.AdditionalConfig["telemetry_type"].(string))
+	if err != nil {
+		return nil, fmt.Errorf("invalid telemetry type: %w", err)
+	}
+
+	lg.telemetryType = telemetryType
 	jsonBytes := []byte(lg.cfg.AdditionalConfig["otlp_json"].(string))
 
-	var err error
 	switch lg.telemetryType {
 	case component.DataTypeLogs:
 		marshaler := plog.JSONUnmarshaler{}
@@ -84,7 +89,7 @@ func newOtlpGenerator(cfg GeneratorConfig, logger *zap.Logger) *otlpGenerator {
 		lg.adjustTraceTimes()
 	}
 
-	return lg
+	return lg, nil
 }
 
 // logRecordUpdater is a function that updates the timestamp of a log record

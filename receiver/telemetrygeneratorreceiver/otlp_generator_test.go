@@ -876,7 +876,8 @@ func TestOTLPGenerator_Traces(t *testing.T) {
 			err := tc.cfg.Validate()
 			require.NoError(t, err)
 
-			g := newOtlpGenerator(tc.cfg, zap.NewNop())
+			g, err := newOtlpGenerator(tc.cfg, zap.NewNop())
+			require.NoError(t, err)
 			traces := g.generateTraces()
 			// golden.WriteTraces(t, tc.expectedFile, traces)
 			expectedTraces, err := golden.ReadTraces(tc.expectedFile)
@@ -1008,7 +1009,8 @@ func TestOTLPGenerator_Metrics(t *testing.T) {
 			err := tc.cfg.Validate()
 			require.NoError(t, err)
 
-			g := newOtlpGenerator(tc.cfg, zap.NewNop())
+			g, err := newOtlpGenerator(tc.cfg, zap.NewNop())
+			require.NoError(t, err)
 			metrics := g.generateMetrics()
 
 			expectedMetrics, err := golden.ReadMetrics(tc.expectedFile)
@@ -1063,7 +1065,8 @@ func TestOTLPGenerator_Logs(t *testing.T) {
 			err := tc.cfg.Validate()
 			require.NoError(t, err)
 
-			g := newOtlpGenerator(tc.cfg, zap.NewNop())
+			g, err := newOtlpGenerator(tc.cfg, zap.NewNop())
+			require.NoError(t, err)
 			actualLogs := g.generateLogs()
 
 			expectedLogs, err := golden.ReadLogs(tc.expectedFile)

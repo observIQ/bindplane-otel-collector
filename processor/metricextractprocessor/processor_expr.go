@@ -95,7 +95,7 @@ func (e *exprExtractProcessor) extractMetrics(pl plog.Logs) pmetric.Metrics {
 		}
 
 		scopeMetrics := metricResource.ScopeMetrics().AppendEmpty()
-		scopeMetrics.Scope().SetName(typeStr)
+		scopeMetrics.Scope().SetName(componentType.String())
 
 		metric := scopeMetrics.Metrics().AppendEmpty()
 		metric.SetName(e.config.MetricName)

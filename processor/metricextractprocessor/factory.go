@@ -24,10 +24,10 @@ import (
 	"go.opentelemetry.io/collector/processor"
 )
 
-const (
-	// typeStr is the value of the "type" key in configuration.
-	typeStr = "metricextract"
+// componentType is the value of the "type" key in configuration.
+var componentType = component.MustNewType("metricextract")
 
+const (
 	// stability is the current state of the processor.
 	stability = component.StabilityLevelAlpha
 )
@@ -35,7 +35,7 @@ const (
 // NewFactory creates a new factory for the processor.
 func NewFactory() processor.Factory {
 	return processor.NewFactory(
-		typeStr,
+		componentType,
 		createDefaultConfig,
 		processor.WithLogs(createLogsProcessor, stability),
 	)

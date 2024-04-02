@@ -97,7 +97,7 @@ func (e *ottlExtractProcessor) extractMetrics(ctx context.Context, pl plog.Logs)
 		resource.Attributes().CopyTo(resourceMetrics.Resource().Attributes())
 
 		scopeMetrics := resourceMetrics.ScopeMetrics().AppendEmpty()
-		scopeMetrics.Scope().SetName(typeStr)
+		scopeMetrics.Scope().SetName(componentType.String())
 
 		metric := scopeMetrics.Metrics().AppendEmpty()
 		metric.SetName(e.config.MetricName)

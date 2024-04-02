@@ -35,7 +35,27 @@ type Receiver struct {
 	createService  createServiceFunc
 	service        Service
 
-	doneChan chan struct{}
+	// serviceErrChan gets the error from the service once it stops running.
+	// If there is no error, `nil` is placed on the channel.
+	// It will be closed after the collector service shuts down.
+	serviceErrChan chan error
+}
+
+// NewReceiver creates a new plugin receiver
+func NewReceiver(
+	plugin *Plugin,
+	renderedConfig *RenderedConfig,
+	emitterFactory exporter.Factory,
+	logger *zap.Logger,
+) *Receiver {
+	return &Receiver{
+		plugin:         plugin,
+		renderedCfg:    renderedConfig,
+		emitterFactory: emitterFactory,
+		logger:         logger,
+		createService:  createService,
+		serviceErrChan: make(chan error, 1),
+	}
 }
 
 // Start starts the receiver's internal service
@@ -74,7 +94,10 @@ func (r *Receiver) Shutdown(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			r.logger.Warn("Context done before service properly shut down.", zap.Error(ctx.Err()))
-		case <-r.doneChan:
+		case err := <-r.serviceErrChan:
+			if err != nil {
+				return fmt.Errorf("shutdown service: %w", err)
+			}
 		}
 	}
 
@@ -83,12 +106,9 @@ func (r *Receiver) Shutdown(ctx context.Context) error {
 
 // startService starts the provided service
 func (r *Receiver) startService(ctx context.Context, svc Service) error {
-	errChan := make(chan error)
 	go func() {
-		if err := svc.Run(ctx); err != nil {
-			errChan <- err
-		}
-		close(r.doneChan)
+		r.serviceErrChan <- svc.Run(ctx)
+		close(r.serviceErrChan)
 	}()
 
 	ticker := time.NewTicker(time.Millisecond * 250)
@@ -98,7 +118,7 @@ func (r *Receiver) startService(ctx context.Context, svc Service) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case err := <-errChan:
+		case err := <-r.serviceErrChan:
 			return err
 		case <-ticker.C:
 			if svc.GetState() == otelcol.StateRunning {

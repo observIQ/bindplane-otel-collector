@@ -22,10 +22,10 @@ import (
 	"go.opentelemetry.io/collector/receiver"
 )
 
-const (
-	// typeStr is the value of the "type" key in configuration.
-	typeStr = "route"
+// componentType is the value of the "type" key in configuration.
+var componentType = component.MustNewType("route")
 
+const (
 	// stability is the current state of the receiver.
 	stability = component.StabilityLevelAlpha
 )
@@ -33,7 +33,7 @@ const (
 // NewFactory creates a new factory for the receiver.
 func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
-		typeStr,
+		componentType,
 		createDefaultConfig,
 		receiver.WithMetrics(createMetricsReceiver, stability),
 		receiver.WithLogs(createLogsReceiver, stability),

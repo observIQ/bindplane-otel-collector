@@ -26,7 +26,7 @@ import (
 func TestType(t *testing.T) {
 	factory := NewFactory()
 	ft := factory.Type()
-	require.EqualValues(t, "m365", ft)
+	require.EqualValues(t, "m365", ft.String())
 }
 
 func TestCreateMetricsReceiver(t *testing.T) {

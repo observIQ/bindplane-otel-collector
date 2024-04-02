@@ -117,19 +117,21 @@ func (ce *chronicleForwarderExporter) openFileWriter() (io.WriteCloser, error) {
 func (ce *chronicleForwarderExporter) openSyslogWriter() (io.WriteCloser, error) {
 	var conn net.Conn
 	var err error
+	transportStr := string(ce.cfg.Syslog.AddrConfig.Transport)
+
 	if ce.cfg.Syslog.TLSSetting != nil {
 		var tlsConfig *tls.Config
 		tlsConfig, err = ce.cfg.Syslog.TLSSetting.LoadTLSConfig()
 		if err != nil {
 			return nil, fmt.Errorf("load TLS config: %w", err)
 		}
-		conn, err = ce.DialWithTLS(ce.cfg.Syslog.AddrConfig.Transport, ce.cfg.Syslog.AddrConfig.Endpoint, tlsConfig)
+		conn, err = ce.DialWithTLS(transportStr, ce.cfg.Syslog.AddrConfig.Endpoint, tlsConfig)
 
 		if err != nil {
 			return nil, fmt.Errorf("dial with tls: %w", err)
 		}
 	} else {
-		conn, err = ce.Dial(ce.cfg.Syslog.AddrConfig.Transport, ce.cfg.Syslog.AddrConfig.Endpoint)
+		conn, err = ce.Dial(transportStr, ce.cfg.Syslog.AddrConfig.Endpoint)
 
 		if err != nil {
 			return nil, fmt.Errorf("dial: %w", err)

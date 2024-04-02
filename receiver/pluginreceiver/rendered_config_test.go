@@ -29,7 +29,7 @@ import (
 )
 
 func TestGetRequiredFactories(t *testing.T) {
-	testType := component.Type("test")
+	testType := component.MustNewType("test")
 	extensionFactory := extension.NewFactory(testType, nil, createExtension, component.StabilityLevelAlpha)
 	receiverFactory := receiver.NewFactory(testType, nil)
 	processorFactory := processor.NewFactory(testType, nil)

@@ -1,4 +1,4 @@
-// Copyright  observIQ, Inc.
+// Copyright observIQ, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,23 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package samplingprocessor
+//go:generate mdatagen metadata.yaml
 
-import (
-	"testing"
-
-	"github.com/stretchr/testify/require"
-)
-
-func TestNewFactory(t *testing.T) {
-	factory := NewFactory()
-	require.Equal(t, componentType, factory.Type())
-
-	expectedCfg := &Config{
-		DropRatio: 0.5,
-	}
-
-	cfg, ok := factory.CreateDefaultConfig().(*Config)
-	require.True(t, ok)
-	require.Equal(t, expectedCfg, cfg)
-}
+package httpreceiver //import "github.com/observiq/bindplane-agent/receiver/httpreceiver"

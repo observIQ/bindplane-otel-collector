@@ -70,11 +70,11 @@ func NewRenderedConfig(yamlBytes []byte) (*RenderedConfig, error) {
 	}
 
 	renderedCfg.Exporters = map[string]any{
-		emitterTypeStr: nil,
+		emitterType.String(): nil,
 	}
 
 	for key, pipeline := range renderedCfg.Service.Pipelines {
-		pipeline.Exporters = []string{emitterTypeStr}
+		pipeline.Exporters = []string{emitterType.String()}
 		renderedCfg.Service.Pipelines[key] = pipeline
 	}
 
@@ -92,7 +92,7 @@ func (r *RenderedConfig) GetConfigProvider() (otelcol.ConfigProvider, error) {
 	}
 
 	location := fmt.Sprintf("yaml:%s", bytes)
-	provider := yamlprovider.New()
+	provider := yamlprovider.NewWithSettings(confmap.ProviderSettings{})
 	converter := expandconverter.New(confmap.ConverterSettings{})
 	settings := otelcol.ConfigProviderSettings{
 		ResolverSettings: confmap.ResolverSettings{
@@ -210,7 +210,7 @@ func (r *RenderedConfig) getExtensionFactories(host component.Host) (map[compone
 func parseComponentType(value string) (component.Type, error) {
 	id := component.ID{}
 	if err := id.UnmarshalText([]byte(value)); err != nil {
-		return "", err
+		return component.Type{}, err
 	}
 	return id.Type(), nil
 }

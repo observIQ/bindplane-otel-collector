@@ -428,7 +428,7 @@ func getStorageClient(ctx context.Context, host component.Host, storageID *compo
 		return nil, fmt.Errorf("non-storage extension '%s' found", storageID)
 	}
 
-	return storageExtension.GetClient(ctx, component.KindReceiver, componentID, string(componentType))
+	return storageExtension.GetClient(ctx, component.KindReceiver, componentID, componentType.String())
 }
 
 // checkBlobCount checks the number of blobs rehydrated and the current state of the

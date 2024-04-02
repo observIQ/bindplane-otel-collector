@@ -28,10 +28,10 @@ import (
 // gmpFactory is the factory used to create the underlying google managed prometheus exporter
 var gmpFactory = gmp.NewFactory()
 
-const (
-	// typeStr is the type of the google managed prometheus exporter
-	typeStr = "googlemanagedprometheus"
+// componentType is the type of the google managed prometheus exporter
+var componentType = component.MustNewType("googlemanagedprometheus")
 
+const (
 	// The stability level of the exporter. Matches the current exporter in contrib
 	stability = component.StabilityLevelBeta
 )
@@ -39,7 +39,7 @@ const (
 // NewFactory creates a factory for the googlecloud exporter
 func NewFactory(collectorVersion string) exporter.Factory {
 	return exporter.NewFactory(
-		typeStr,
+		componentType,
 		createDefaultConfig(collectorVersion),
 		exporter.WithMetrics(createMetricsExporter, stability),
 	)

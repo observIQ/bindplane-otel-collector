@@ -6,6 +6,7 @@ import (
 	context "context"
 
 	api "github.com/observiq/bindplane-agent/exporter/chronicleexporter/protos/api"
+
 	mock "github.com/stretchr/testify/mock"
 
 	plog "go.opentelemetry.io/collector/pdata/plog"

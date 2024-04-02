@@ -39,7 +39,7 @@ func NewFactory() receiver.Factory {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		ScraperControllerSettings: scraperhelper.ScraperControllerSettings{
+		ControllerConfig: scraperhelper.ControllerConfig{
 			CollectionInterval: 1 * time.Hour,
 		},
 		ClientConfig: confighttp.ClientConfig{
@@ -73,7 +73,7 @@ func createMetricsReceiver(
 	}
 
 	return scraperhelper.NewScraperControllerReceiver(
-		&cfg.ScraperControllerSettings,
+		&cfg.ControllerConfig,
 		params,
 		consumer,
 		scraperhelper.AddScraper(scraper),

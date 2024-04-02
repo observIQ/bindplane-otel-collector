@@ -36,7 +36,10 @@ import (
 
 func Test_newMetricsReceiver(t *testing.T) {
 	mockClient := setNewAzureBlobClient(t)
-	id := component.NewID("test")
+	testType, err := component.NewType("test")
+	require.NoError(t, err)
+
+	id := component.NewID(testType)
 	testLogger := zap.NewNop()
 	cfg := &Config{
 		StartingTime: "2023-10-02T17:00",
@@ -55,7 +58,10 @@ func Test_newMetricsReceiver(t *testing.T) {
 
 func Test_newLogsReceiver(t *testing.T) {
 	mockClient := setNewAzureBlobClient(t)
-	id := component.NewID("test")
+	testType, err := component.NewType("test")
+	require.NoError(t, err)
+
+	id := component.NewID(testType)
 	testLogger := zap.NewNop()
 	cfg := &Config{
 		StartingTime: "2023-10-02T17:00",
@@ -74,7 +80,10 @@ func Test_newLogsReceiver(t *testing.T) {
 
 func Test_newTracesReceiver(t *testing.T) {
 	mockClient := setNewAzureBlobClient(t)
-	id := component.NewID("test")
+	testType, err := component.NewType("test")
+	require.NoError(t, err)
+
+	id := component.NewID(testType)
 	testLogger := zap.NewNop()
 	cfg := &Config{
 		StartingTime: "2023-10-02T17:00",
@@ -92,7 +101,10 @@ func Test_newTracesReceiver(t *testing.T) {
 }
 
 func Test_fullRehydration(t *testing.T) {
-	id := component.NewID("test")
+	testType, err := component.NewType("test")
+	require.NoError(t, err)
+
+	id := component.NewID(testType)
 	testLogger := zap.NewNop()
 	cfg := &Config{
 		StartingTime: "2023-10-02T17:00",
@@ -398,21 +410,21 @@ func Test_parseBlobPath(t *testing.T) {
 			desc:         "Empty BlobName",
 			blobName:     "",
 			expectedTime: nil,
-			expectedType: "",
+			expectedType: component.Type{},
 			expectedErr:  errInvalidBlobPath,
 		},
 		{
 			desc:         "Malformed path",
 			blobName:     "year=2023/day=04/hour=12/minute=02/blobmetrics_12345.json",
 			expectedTime: nil,
-			expectedType: "",
+			expectedType: component.Type{},
 			expectedErr:  errInvalidBlobPath,
 		},
 		{
 			desc:         "Malformed timestamp",
 			blobName:     "year=2003/month=00/day=04/hour=12/minute=01/blobmetrics_12345.json",
 			expectedTime: nil,
-			expectedType: "",
+			expectedType: component.Type{},
 			expectedErr:  errors.New("parse blob time"),
 		},
 		{
