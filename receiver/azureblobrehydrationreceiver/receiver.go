@@ -220,8 +220,11 @@ func (r *rehydrationReceiver) rehydrateBlobs(checkpoint *rehydrationCheckpoint, 
 		prefix = &r.cfg.RootFolder
 	}
 
+	ctxTimeout, cancel := context.WithTimeout(r.ctx, r.cfg.PollTimeout)
+	defer cancel()
+
 	// get blobs from Azure
-	blobs, nextMarker, err := r.azureClient.ListBlobs(r.ctx, r.cfg.Container, prefix, marker)
+	blobs, nextMarker, err := r.azureClient.ListBlobs(ctxTimeout, r.cfg.Container, prefix, marker)
 	if err != nil {
 		r.logger.Error("Failed to list blobs", zap.Error(err))
 		return
