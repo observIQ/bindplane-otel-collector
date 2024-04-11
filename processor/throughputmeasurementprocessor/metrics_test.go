@@ -22,12 +22,12 @@ import (
 
 func TestMetricViews(t *testing.T) {
 	expectedViewNames := []string{
-		"processor/throughputmeasurement/log_data_size",
-		"processor/throughputmeasurement/metric_data_size",
-		"processor/throughputmeasurement/trace_data_size",
-		"processor/throughputmeasurement/log_count",
-		"processor/throughputmeasurement/metric_count",
-		"processor/throughputmeasurement/trace_count",
+		"processor_throughputmeasurement_log_data_size",
+		"processor_throughputmeasurement_metric_data_size",
+		"processor_throughputmeasurement_trace_data_size",
+		"processor_throughputmeasurement_log_count",
+		"processor_throughputmeasurement_metric_count",
+		"processor_throughputmeasurement_trace_count",
 	}
 
 	views := metricViews()

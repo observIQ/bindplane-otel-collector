@@ -92,7 +92,7 @@ func TestPayloadToLogRecord(t *testing.T) {
 				Path: "",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
-					TLSSetting: &configtls.TLSServerSetting{},
+					TLSSetting: &configtls.ServerConfig{},
 				},
 			}, &consumertest.LogsSink{})
 			var logs plog.Logs
@@ -151,7 +151,7 @@ func TestServeHTTP(t *testing.T) {
 				Path: "",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
-					TLSSetting: &configtls.TLSServerSetting{},
+					TLSSetting: &configtls.ServerConfig{},
 				},
 			},
 			request: &http.Request{
@@ -173,7 +173,7 @@ func TestServeHTTP(t *testing.T) {
 				Path: "/logs",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
-					TLSSetting: &configtls.TLSServerSetting{},
+					TLSSetting: &configtls.ServerConfig{},
 				},
 			},
 			request: &http.Request{
@@ -197,7 +197,7 @@ func TestServeHTTP(t *testing.T) {
 				Path: "/logs",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
-					TLSSetting: &configtls.TLSServerSetting{},
+					TLSSetting: &configtls.ServerConfig{},
 				},
 			},
 			request: &http.Request{
@@ -221,7 +221,7 @@ func TestServeHTTP(t *testing.T) {
 				Path: "/logs",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
-					TLSSetting: &configtls.TLSServerSetting{},
+					TLSSetting: &configtls.ServerConfig{},
 				},
 			},
 			request: &http.Request{
@@ -245,7 +245,7 @@ func TestServeHTTP(t *testing.T) {
 				Path: "/logs",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
-					TLSSetting: &configtls.TLSServerSetting{},
+					TLSSetting: &configtls.ServerConfig{},
 				},
 			},
 			request: &http.Request{
@@ -269,7 +269,7 @@ func TestServeHTTP(t *testing.T) {
 				Path: "/logs",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
-					TLSSetting: &configtls.TLSServerSetting{},
+					TLSSetting: &configtls.ServerConfig{},
 				},
 			},
 			request: &http.Request{
@@ -293,7 +293,7 @@ func TestServeHTTP(t *testing.T) {
 				Path: "",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint:   "localhost:12345",
-					TLSSetting: &configtls.TLSServerSetting{},
+					TLSSetting: &configtls.ServerConfig{},
 				},
 			},
 			request: &http.Request{

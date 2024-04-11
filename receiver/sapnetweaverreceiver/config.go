@@ -20,7 +20,6 @@ import (
 	"net/url"
 
 	"go.opentelemetry.io/collector/config/confighttp"
-	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/receiver/scraperhelper"
 	"go.uber.org/multierr"
 
@@ -45,7 +44,6 @@ var (
 // Config defines configuration for SAP Netweaver metrics receiver.
 type Config struct {
 	scraperhelper.ControllerConfig `mapstructure:",squash"`
-	configtls.TLSClientSetting     `mapstructure:"tls,omitempty"`
 	confighttp.ClientConfig        `mapstructure:"tls,omitempty,squash"`
 	// Metrics defines which metrics to enable for the scraper
 	MetricsBuilderConfig metadata.MetricsBuilderConfig `mapstructure:",squash"`

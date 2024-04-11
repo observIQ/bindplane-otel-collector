@@ -43,8 +43,8 @@ func TestValidate(t *testing.T) {
 				Path: "/api/v2/logs",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
-					TLSSetting: &configtls.TLSServerSetting{
-						TLSSetting: configtls.TLSSetting{
+					TLSSetting: &configtls.ServerConfig{
+						Config: configtls.Config{
 							CertFile: "some_cert_file",
 							KeyFile:  "some_key_file",
 						},
@@ -58,8 +58,8 @@ func TestValidate(t *testing.T) {
 			config: Config{
 				Path: "/api/v2/logs",
 				ServerConfig: confighttp.ServerConfig{
-					TLSSetting: &configtls.TLSServerSetting{
-						TLSSetting: configtls.TLSSetting{
+					TLSSetting: &configtls.ServerConfig{
+						Config: configtls.Config{
 							CertFile: "some_cert_file",
 							KeyFile:  "some_key_file",
 						},
@@ -74,8 +74,8 @@ func TestValidate(t *testing.T) {
 				Path: "/api/v2/logs",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost12345",
-					TLSSetting: &configtls.TLSServerSetting{
-						TLSSetting: configtls.TLSSetting{
+					TLSSetting: &configtls.ServerConfig{
+						Config: configtls.Config{
 							CertFile: "some_cert_file",
 							KeyFile:  "some_key_file",
 						},
@@ -90,8 +90,8 @@ func TestValidate(t *testing.T) {
 				Path: "/api/v2/logs",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
-					TLSSetting: &configtls.TLSServerSetting{
-						TLSSetting: configtls.TLSSetting{
+					TLSSetting: &configtls.ServerConfig{
+						Config: configtls.Config{
 							KeyFile: "some_key_file",
 						},
 					},
@@ -105,8 +105,8 @@ func TestValidate(t *testing.T) {
 				Path: "/api/v2/logs",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
-					TLSSetting: &configtls.TLSServerSetting{
-						TLSSetting: configtls.TLSSetting{
+					TLSSetting: &configtls.ServerConfig{
+						Config: configtls.Config{
 							CertFile: "some_cert_file",
 						},
 					},
