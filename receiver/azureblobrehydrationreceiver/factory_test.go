@@ -25,6 +25,7 @@ func Test_createDefaultConfig(t *testing.T) {
 	expectedCfg := &Config{
 		DeleteOnRead: false,
 		PollInterval: time.Minute,
+		PollTimeout:  time.Second * 30,
 	}
 
 	componentCfg := createDefaultConfig()

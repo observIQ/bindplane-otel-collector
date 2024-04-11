@@ -30,6 +30,7 @@ This is not a traditional receiver that continually produces data but rather reh
 | ending_time        |  string   |                  | `true `  | The UTC end time that represents the end of the time range to rehydrate from. Must be in the form `YYYY-MM-DDTHH:MM`.                                                                  |
 | delete_on_read     |  bool     | `false`          | `false ` | If `true` the blob will be deleted after being rehydrated.                                                                                                                             |
 | poll_interval      |  string   | `1m`             | `false ` | How often to read a new set of blobs. This value is mostly to control how often the blob API is called to ensure once rehydration is done the receiver isn't making too many API calls. |
+| poll_timeout       |  string   | `30s`            | `false ` | The timeout used when reading blobs from Azure. |
 | storage            |  string   |                  | `false ` | The component ID of a storage extension. The storage extension prevents duplication of data after a collector restart by remembering which blobs were previously rehydrated.           |
 
 ## Example Configuration

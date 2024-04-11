@@ -59,7 +59,7 @@ type SyslogConfig struct {
 	confignet.AddrConfig `mapstructure:",squash"`
 
 	// TLSSetting struct exposes TLS client configuration.
-	TLSSetting *configtls.TLSClientSetting `mapstructure:"tls"`
+	TLSSetting *configtls.ClientConfig `mapstructure:"tls"`
 }
 
 // File defines configuration for sending to.

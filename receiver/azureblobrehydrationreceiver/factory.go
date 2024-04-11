@@ -44,6 +44,7 @@ func createDefaultConfig() component.Config {
 	return &Config{
 		DeleteOnRead: false,
 		PollInterval: time.Minute,
+		PollTimeout:  time.Second * 30,
 	}
 }
 
