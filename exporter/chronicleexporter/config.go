@@ -17,6 +17,7 @@ package chronicleexporter
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/observiq/bindplane-agent/expr"
 	"go.opentelemetry.io/collector/component"
@@ -89,6 +90,10 @@ func (cfg *Config) Validate() error {
 
 	if cfg.Compression != gzip.Name && cfg.Compression != noCompression {
 		return fmt.Errorf("invalid compression type: %s", cfg.Compression)
+	}
+
+	if strings.HasPrefix(cfg.Endpoint, "http://") || strings.HasPrefix(cfg.Endpoint, "https://") {
+		return fmt.Errorf("endpoint should not contain a protocol: %s", cfg.Endpoint)
 	}
 
 	return nil

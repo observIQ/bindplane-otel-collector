@@ -33,12 +33,13 @@ import (
 
 const logTypeField = `attributes["log_type"]`
 
+const chronicleLogTypeField = `attributes["chronicle_log_type"]`
+
 // This is a specific collector ID for Chronicle. It's used to identify bindplane agents in Chronicle.
 var collectorID = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1111")
 
 var supportedLogTypes = map[string]string{
 	"windows_event.security":    "WINEVTLOG",
-	"windows_event.custom":      "WINEVTLOG",
 	"windows_event.application": "WINEVTLOG",
 	"windows_event.system":      "WINEVTLOG",
 	"sql_server":                "MICROSOFT_SQL",
@@ -155,10 +156,17 @@ func (m *protoMarshaler) getRawLog(ctx context.Context, logRecord plog.LogRecord
 }
 
 func (m *protoMarshaler) getLogType(ctx context.Context, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
+	logType, err := m.getRawField(ctx, chronicleLogTypeField, logRecord, scope, resource)
+	if err != nil {
+		return m.cfg.LogType, fmt.Errorf("get chronicle log type: %w", err)
+	} else if logType != "" {
+		return logType, nil
+	}
+
 	if m.cfg.OverrideLogType {
 		logType, err := m.getRawField(ctx, logTypeField, logRecord, scope, resource)
 		if err != nil || logType == "" {
-			return m.cfg.LogType, err
+			return m.cfg.LogType, fmt.Errorf("get log type: %w", err)
 		}
 
 		if chronicleLogType, ok := supportedLogTypes[logType]; ok {
