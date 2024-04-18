@@ -23,9 +23,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/observiq/bindplane-agent/internal/rehydration"
+	"github.com/observiq/bindplane-agent/internal/testutils"
 	"github.com/observiq/bindplane-agent/receiver/azureblobrehydrationreceiver/internal/azureblob"
 	blobmocks "github.com/observiq/bindplane-agent/receiver/azureblobrehydrationreceiver/internal/azureblob/mocks"
-	"github.com/observiq/bindplane-agent/receiver/azureblobrehydrationreceiver/internal/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
@@ -53,7 +54,7 @@ func Test_newMetricsReceiver(t *testing.T) {
 	require.Equal(t, id, r.id)
 	require.Equal(t, mockClient, r.azureClient)
 	require.Equal(t, component.DataTypeMetrics, r.supportedTelemetry)
-	require.IsType(t, &metricsConsumer{}, r.consumer)
+	require.IsType(t, &rehydration.MetricsConsumer{}, r.consumer)
 }
 
 func Test_newLogsReceiver(t *testing.T) {
@@ -75,7 +76,7 @@ func Test_newLogsReceiver(t *testing.T) {
 	require.Equal(t, id, r.id)
 	require.Equal(t, mockClient, r.azureClient)
 	require.Equal(t, component.DataTypeLogs, r.supportedTelemetry)
-	require.IsType(t, &logsConsumer{}, r.consumer)
+	require.IsType(t, &rehydration.LogsConsumer{}, r.consumer)
 }
 
 func Test_newTracesReceiver(t *testing.T) {
@@ -97,7 +98,7 @@ func Test_newTracesReceiver(t *testing.T) {
 	require.Equal(t, id, r.id)
 	require.Equal(t, mockClient, r.azureClient)
 	require.Equal(t, component.DataTypeTraces, r.supportedTelemetry)
-	require.IsType(t, &tracesConsumer{}, r.consumer)
+	require.IsType(t, &rehydration.TracesConsumer{}, r.consumer)
 }
 
 func Test_fullRehydration(t *testing.T) {
@@ -137,7 +138,7 @@ func Test_fullRehydration(t *testing.T) {
 
 	t.Run("metrics", func(t *testing.T) {
 		// Test data
-		metrics, jsonBytes := generateTestMetrics(t)
+		metrics, jsonBytes := testutils.GenerateTestMetrics(t)
 		expectedBuffSize := int64(len(jsonBytes))
 
 		returnedBlobInfo := []*azureblob.BlobInfo{
@@ -178,7 +179,7 @@ func Test_fullRehydration(t *testing.T) {
 
 	t.Run("traces", func(t *testing.T) {
 		// Test data
-		traces, jsonBytes := generateTestTraces(t)
+		traces, jsonBytes := testutils.GenerateTestTraces(t)
 		expectedBuffSize := int64(len(jsonBytes))
 
 		returnedBlobInfo := []*azureblob.BlobInfo{
@@ -219,7 +220,7 @@ func Test_fullRehydration(t *testing.T) {
 
 	t.Run("logs", func(t *testing.T) {
 		// Test data
-		logs, jsonBytes := generateTestLogs(t)
+		logs, jsonBytes := testutils.GenerateTestLogs(t)
 		expectedBuffSize := int64(len(jsonBytes))
 
 		returnedBlobInfo := []*azureblob.BlobInfo{
@@ -260,7 +261,7 @@ func Test_fullRehydration(t *testing.T) {
 
 	t.Run("gzip compression", func(t *testing.T) {
 		// Test data
-		logs, jsonBytes := generateTestLogs(t)
+		logs, jsonBytes := testutils.GenerateTestLogs(t)
 		compressedBytes := gzipCompressData(t, jsonBytes)
 		expectedBuffSize := int64(len(compressedBytes))
 
@@ -307,7 +308,7 @@ func Test_fullRehydration(t *testing.T) {
 		})
 
 		// Test data
-		logs, jsonBytes := generateTestLogs(t)
+		logs, jsonBytes := testutils.GenerateTestLogs(t)
 		expectedBuffSize := int64(len(jsonBytes))
 
 		returnedBlobInfo := []*azureblob.BlobInfo{
@@ -350,7 +351,7 @@ func Test_fullRehydration(t *testing.T) {
 	// This tests verifies all blobs supplied paths are not attempted to be rehydrated.
 	t.Run("Skip parsing out of range or invalid paths", func(t *testing.T) {
 		// Test data
-		logs, jsonBytes := generateTestLogs(t)
+		logs, jsonBytes := testutils.GenerateTestLogs(t)
 		expectedBuffSize := int64(len(jsonBytes))
 
 		returnedBlobInfo := []*azureblob.BlobInfo{
@@ -395,91 +396,6 @@ func Test_fullRehydration(t *testing.T) {
 	})
 }
 
-func Test_parseBlobPath(t *testing.T) {
-	expectedTimeMinute := time.Date(2023, time.January, 04, 12, 02, 0, 0, time.UTC)
-	expectedTimeHour := time.Date(2023, time.January, 04, 12, 00, 0, 0, time.UTC)
-
-	testcases := []struct {
-		desc         string
-		blobName     string
-		expectedTime *time.Time
-		expectedType component.DataType
-		expectedErr  error
-	}{
-		{
-			desc:         "Empty BlobName",
-			blobName:     "",
-			expectedTime: nil,
-			expectedType: component.Type{},
-			expectedErr:  errInvalidBlobPath,
-		},
-		{
-			desc:         "Malformed path",
-			blobName:     "year=2023/day=04/hour=12/minute=02/blobmetrics_12345.json",
-			expectedTime: nil,
-			expectedType: component.Type{},
-			expectedErr:  errInvalidBlobPath,
-		},
-		{
-			desc:         "Malformed timestamp",
-			blobName:     "year=2003/month=00/day=04/hour=12/minute=01/blobmetrics_12345.json",
-			expectedTime: nil,
-			expectedType: component.Type{},
-			expectedErr:  errors.New("parse blob time"),
-		},
-		{
-			desc:         "Prefix, minute, metrics",
-			blobName:     "prefix/year=2023/month=01/day=04/hour=12/minute=02/blobmetrics_12345.json",
-			expectedTime: &expectedTimeMinute,
-			expectedType: component.DataTypeMetrics,
-			expectedErr:  nil,
-		},
-		{
-			desc:         "No Prefix, minute, metrics",
-			blobName:     "year=2023/month=01/day=04/hour=12/minute=02/blobmetrics_12345.json",
-			expectedTime: &expectedTimeMinute,
-			expectedType: component.DataTypeMetrics,
-			expectedErr:  nil,
-		},
-		{
-			desc:         "No Prefix, minute, logs",
-			blobName:     "year=2023/month=01/day=04/hour=12/minute=02/bloblogs_12345.json",
-			expectedTime: &expectedTimeMinute,
-			expectedType: component.DataTypeLogs,
-			expectedErr:  nil,
-		},
-		{
-			desc:         "No Prefix, minute, traces",
-			blobName:     "year=2023/month=01/day=04/hour=12/minute=02/blobtraces_12345.json",
-			expectedTime: &expectedTimeMinute,
-			expectedType: component.DataTypeTraces,
-			expectedErr:  nil,
-		},
-		{
-			desc:         "No Prefix, hour, metrics",
-			blobName:     "year=2023/month=01/day=04/hour=12/blobmetrics_12345.json",
-			expectedTime: &expectedTimeHour,
-			expectedType: component.DataTypeMetrics,
-			expectedErr:  nil,
-		},
-	}
-
-	for _, tc := range testcases {
-		t.Run(tc.desc, func(t *testing.T) {
-			actualTime, actualType, err := parseBlobPath(tc.blobName)
-			if tc.expectedErr != nil {
-				require.ErrorContains(t, err, tc.expectedErr.Error())
-				require.Nil(t, tc.expectedTime)
-			} else {
-				require.NoError(t, err)
-				require.NotNil(t, actualTime)
-				require.True(t, tc.expectedTime.Equal(*actualTime))
-				require.Equal(t, tc.expectedType, actualType)
-			}
-		})
-	}
-}
-
 func Test_processBlob(t *testing.T) {
 	containerName := "container"
 
@@ -490,7 +406,7 @@ func Test_processBlob(t *testing.T) {
 	testcases := []struct {
 		desc        string
 		info        *azureblob.BlobInfo
-		mockSetup   func(*blobmocks.MockBlobClient, *mocks.MockBlobConsumer)
+		mockSetup   func(*blobmocks.MockBlobClient, *rehydration.MockConsumer)
 		expectedErr error
 	}{
 		{
@@ -499,7 +415,7 @@ func Test_processBlob(t *testing.T) {
 				Name: "blob.json",
 				Size: 10,
 			},
-			mockSetup: func(mockClient *blobmocks.MockBlobClient, _ *mocks.MockBlobConsumer) {
+			mockSetup: func(mockClient *blobmocks.MockBlobClient, _ *rehydration.MockConsumer) {
 				mockClient.EXPECT().DownloadBlob(mock.Anything, containerName, "blob.json", mock.Anything).Return(0, errors.New("bad"))
 			},
 			expectedErr: errors.New("download blob: bad"),
@@ -510,7 +426,7 @@ func Test_processBlob(t *testing.T) {
 				Name: "blob.nope",
 				Size: 10,
 			},
-			mockSetup: func(mockClient *blobmocks.MockBlobClient, _ *mocks.MockBlobConsumer) {
+			mockSetup: func(mockClient *blobmocks.MockBlobClient, _ *rehydration.MockConsumer) {
 				mockClient.EXPECT().DownloadBlob(mock.Anything, containerName, "blob.nope", mock.Anything).Return(0, nil)
 			},
 			expectedErr: errors.New("unsupported file type: .nope"),
@@ -521,7 +437,7 @@ func Test_processBlob(t *testing.T) {
 				Name: "blob.json.gz",
 				Size: int64(len(gzipData)),
 			},
-			mockSetup: func(mockClient *blobmocks.MockBlobClient, mockConsumer *mocks.MockBlobConsumer) {
+			mockSetup: func(mockClient *blobmocks.MockBlobClient, mockConsumer *rehydration.MockConsumer) {
 				mockClient.EXPECT().DownloadBlob(mock.Anything, containerName, "blob.json.gz", mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 					copy(buf, gzipData)
 					return int64(len(gzipData)), nil
@@ -537,7 +453,7 @@ func Test_processBlob(t *testing.T) {
 				Name: "blob.json",
 				Size: int64(len(jsonData)),
 			},
-			mockSetup: func(mockClient *blobmocks.MockBlobClient, mockConsumer *mocks.MockBlobConsumer) {
+			mockSetup: func(mockClient *blobmocks.MockBlobClient, mockConsumer *rehydration.MockConsumer) {
 				mockClient.EXPECT().DownloadBlob(mock.Anything, containerName, "blob.json", mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 					copy(buf, jsonData)
 					return int64(len(jsonData)), nil
@@ -553,7 +469,7 @@ func Test_processBlob(t *testing.T) {
 				Name: "blob.json",
 				Size: int64(len(jsonData)),
 			},
-			mockSetup: func(mockClient *blobmocks.MockBlobClient, mockConsumer *mocks.MockBlobConsumer) {
+			mockSetup: func(mockClient *blobmocks.MockBlobClient, mockConsumer *rehydration.MockConsumer) {
 				mockClient.EXPECT().DownloadBlob(mock.Anything, containerName, "blob.json", mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 					copy(buf, jsonData)
 					return int64(len(jsonData)), nil
@@ -568,7 +484,7 @@ func Test_processBlob(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.desc, func(t *testing.T) {
 			mockClient := blobmocks.NewMockBlobClient(t)
-			mockConsumer := mocks.NewMockBlobConsumer(t)
+			mockConsumer := rehydration.NewMockConsumer(t)
 
 			tc.mockSetup(mockClient, mockConsumer)
 

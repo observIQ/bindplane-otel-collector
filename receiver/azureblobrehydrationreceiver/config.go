@@ -19,11 +19,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/observiq/bindplane-agent/internal/rehydration"
 	"go.opentelemetry.io/collector/component"
 )
-
-// timeFormat is the format for the starting and end time
-const timeFormat = "2006-01-02T15:04"
 
 // Config is the configuration for the azure blob rehydration receiver
 type Config struct {
@@ -100,7 +98,7 @@ func validateTimestamp(timestamp string) (*time.Time, error) {
 		return nil, errors.New("missing value")
 	}
 
-	ts, err := time.Parse(timeFormat, timestamp)
+	ts, err := time.Parse(rehydration.TimeFormat, timestamp)
 	if err != nil {
 		return nil, errors.New("invalid timestamp format must be in the form YYYY-MM-DDTHH:MM")
 	}
