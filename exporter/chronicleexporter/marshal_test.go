@@ -176,7 +176,10 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, tt.labels)
+			customerID, err := uuid.Parse(tt.cfg.CustomerID)
+			require.NoError(t, err)
+
+			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, tt.labels, customerID[:])
 			marshaler.startTime = startTime
 			require.NoError(t, err)
 

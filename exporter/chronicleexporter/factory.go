@@ -18,11 +18,13 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/observiq/bindplane-agent/exporter/chronicleexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
+	semconv "go.opentelemetry.io/collector/semconv/v1.5.0"
 )
 
 // NewFactory creates a new Chronicle exporter factory.
@@ -36,12 +38,13 @@ func NewFactory() exporter.Factory {
 // createDefaultConfig creates the default configuration for the exporter.
 func createDefaultConfig() component.Config {
 	return &Config{
-		TimeoutSettings: exporterhelper.NewDefaultTimeoutSettings(),
-		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
-		BackOffConfig:   configretry.NewDefaultBackOffConfig(),
-		OverrideLogType: true,
-		Endpoint:        baseEndpoint,
-		Compression:     noCompression,
+		TimeoutSettings:     exporterhelper.NewDefaultTimeoutSettings(),
+		QueueSettings:       exporterhelper.NewDefaultQueueSettings(),
+		BackOffConfig:       configretry.NewDefaultBackOffConfig(),
+		OverrideLogType:     true,
+		Endpoint:            baseEndpoint,
+		Compression:         noCompression,
+		CollectAgentMetrics: true,
 	}
 }
 
@@ -56,7 +59,15 @@ func createLogsExporter(
 		return nil, errors.New("invalid config type")
 	}
 
-	exp, err := newExporter(chronicleCfg, params)
+	var cID string
+	sid, ok := params.Resource.Attributes().Get(semconv.AttributeServiceInstanceID)
+	if ok {
+		cID = sid.AsString()
+	} else {
+		cID = uuid.New().String()
+	}
+
+	exp, err := newExporter(chronicleCfg, params, cID, params.ID.String())
 	if err != nil {
 		return nil, err
 	}
@@ -70,5 +81,6 @@ func createLogsExporter(
 		exporterhelper.WithTimeout(chronicleCfg.TimeoutSettings),
 		exporterhelper.WithQueue(chronicleCfg.QueueSettings),
 		exporterhelper.WithRetry(chronicleCfg.BackOffConfig),
+		exporterhelper.WithShutdown(exp.Shutdown),
 	)
 }
