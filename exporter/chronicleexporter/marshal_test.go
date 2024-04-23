@@ -146,7 +146,7 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 			},
 			labels: []*api.Label{},
 			logRecords: func() plog.Logs {
-				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"log_type": "windows_event.custom"}))
+				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"log_type": "windows_event.application"}))
 			},
 			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
 				require.Len(t, requests, 1)
@@ -154,12 +154,32 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				require.Equal(t, "WINEVTLOG", batch.LogType, "Expected log type to be overridden by attribute")
 			},
 		},
+		{
+			name: "Override log type with chronicle attribute",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "DEFAULT", // This should be overridden by the chronicle_log_type attribute
+				RawLogField:     "body",
+				OverrideLogType: true,
+			},
+			labels: []*api.Label{},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"chronicle_log_type": "ASOC_ALERT"}))
+			},
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				require.Len(t, requests, 1)
+				batch := requests[0].Batch
+				require.Equal(t, "ASOC_ALERT", batch.LogType, "Expected log type to be overridden by attribute")
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			customerID, err := uuid.Parse(tt.cfg.CustomerID)
+			require.NoError(t, err)
 
-			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, tt.labels)
+			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, tt.labels, customerID[:])
 			marshaler.startTime = startTime
 			require.NoError(t, err)
 

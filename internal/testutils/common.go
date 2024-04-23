@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package azureblobrehydrationreceiver //import "github.com/observiq/bindplane-agent/receiver/azureblobrehydrationreceiver"
+// Package testutils contains utility functions used for testing other packges in the collector
+package testutils //import "github.com/observiq/bindplane-agent/internal/testutils"
 
 import (
+	"bytes"
+	"compress/gzip"
 	"testing"
 	"time"
 
@@ -27,8 +30,8 @@ import (
 
 // File contains test helper functions
 
-// generateTestMetrics generates test metrics and the marshaled json output bytes
-func generateTestMetrics(t *testing.T) (md pmetric.Metrics, jsonBytes []byte) {
+// GenerateTestMetrics generates test metrics and the marshaled json output bytes
+func GenerateTestMetrics(t *testing.T) (md pmetric.Metrics, jsonBytes []byte) {
 	t.Helper()
 
 	md = pmetric.NewMetrics()
@@ -50,8 +53,8 @@ func generateTestMetrics(t *testing.T) (md pmetric.Metrics, jsonBytes []byte) {
 	return md, jsonBytes
 }
 
-// generateTestLogs generates test logs and the marshaled json output bytes
-func generateTestLogs(t *testing.T) (ld plog.Logs, jsonBytes []byte) {
+// GenerateTestLogs generates test logs and the marshaled json output bytes
+func GenerateTestLogs(t *testing.T) (ld plog.Logs, jsonBytes []byte) {
 	t.Helper()
 
 	ld = plog.NewLogs()
@@ -71,8 +74,8 @@ func generateTestLogs(t *testing.T) (ld plog.Logs, jsonBytes []byte) {
 	return ld, jsonBytes
 }
 
-// generateTestTraces generates test traces and the marshaled json output bytes
-func generateTestTraces(t *testing.T) (td ptrace.Traces, jsonBytes []byte) {
+// GenerateTestTraces generates test traces and the marshaled json output bytes
+func GenerateTestTraces(t *testing.T) (td ptrace.Traces, jsonBytes []byte) {
 	t.Helper()
 
 	td = ptrace.NewTraces()
@@ -90,4 +93,20 @@ func generateTestTraces(t *testing.T) (td ptrace.Traces, jsonBytes []byte) {
 	require.NoError(t, err)
 
 	return td, jsonBytes
+}
+
+// GZipCompressData compresses data for testing
+func GZipCompressData(t *testing.T, input []byte) []byte {
+	t.Helper()
+
+	var buf bytes.Buffer
+	writer := gzip.NewWriter(&buf)
+
+	_, err := writer.Write(input)
+	require.NoError(t, err)
+
+	err = writer.Close()
+	require.NoError(t, err)
+
+	return buf.Bytes()
 }

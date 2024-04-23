@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,28 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package azureblobrehydrationreceiver //import "github.com/observiq/bindplane-agent/receiver/azureblobrehydrationreceiver"
+package awss3rehydrationreceiver // import "github.com/observiq/bindplane-agent/receiver/awss3rehydrationreceiver"
 
 import (
 	"errors"
 	"fmt"
-	"time"
+	"time" // timeFormat is the format for the starting and end time
 
 	"github.com/observiq/bindplane-agent/internal/rehydration"
 	"go.opentelemetry.io/collector/component"
 )
 
-// Config is the configuration for the azure blob rehydration receiver
+// Config the configuration for the rehydration receiver
 type Config struct {
-	// ConnectionString is the Azure Blob Storage connection key,
-	// which can be found in the Azure Blob Storage resource on the Azure Portal. (no default)
-	ConnectionString string `mapstructure:"connection_string"`
+	// Region AWS region
+	Region string `mapstructure:"region"`
 
-	// Container is the name of the storage container to pull from. (no default)
-	Container string `mapstructure:"container"`
+	// S3Bucket S3 Bucket to pull from
+	S3Bucket string `mapstructure:"s3_bucket"`
 
-	// RootFolder is the name of the root folder in path.
-	RootFolder string `mapstructure:"root_folder"`
+	// S3Prefix prefix of S3 key (root directory inside bucket)
+	S3Prefix string `mapstructure:"s3_prefix"`
 
 	// StartingTime the UTC timestamp to start rehydration from.
 	StartingTime string `mapstructure:"starting_time"`
@@ -44,6 +43,9 @@ type Config struct {
 	// DeleteOnRead indicates if a file should be deleted once it has been processed
 	// Default value of false
 	DeleteOnRead bool `mapstructure:"delete_on_read"`
+
+	// RoleArn the role ARN to be assumed
+	RoleArn string `mapstructure:"role_arn"`
 
 	// PollInterval is the interval at which the Azure API is scanned for blobs.
 	// Default value of 1m
@@ -56,14 +58,14 @@ type Config struct {
 	StorageID *component.ID `mapstructure:"storage"`
 }
 
-// Validate validates the config
+// Validate the configuration
 func (c *Config) Validate() error {
-	if c.ConnectionString == "" {
-		return errors.New("connection_string is required")
+	if c.Region == "" {
+		return errors.New("region is required")
 	}
 
-	if c.Container == "" {
-		return errors.New("container is required")
+	if c.S3Bucket == "" {
+		return errors.New("s3_bucket is required")
 	}
 
 	startingTs, err := validateTimestamp(c.StartingTime)

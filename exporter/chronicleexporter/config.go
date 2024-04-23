@@ -17,6 +17,7 @@ package chronicleexporter
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/observiq/bindplane-agent/expr"
 	"go.opentelemetry.io/collector/component"
@@ -66,6 +67,9 @@ type Config struct {
 
 	// IngestionLabels are the labels that will be attached to logs when sent to Chronicle.
 	IngestionLabels map[string]string `mapstructure:"ingestion_labels"`
+
+	// CollectAgentMetrics is a flag that determines whether or not to collect agent metrics.
+	CollectAgentMetrics bool `mapstructure:"collect_agent_metrics"`
 }
 
 // Validate checks if the configuration is valid.
@@ -89,6 +93,10 @@ func (cfg *Config) Validate() error {
 
 	if cfg.Compression != gzip.Name && cfg.Compression != noCompression {
 		return fmt.Errorf("invalid compression type: %s", cfg.Compression)
+	}
+
+	if strings.HasPrefix(cfg.Endpoint, "http://") || strings.HasPrefix(cfg.Endpoint, "https://") {
+		return fmt.Errorf("endpoint should not contain a protocol: %s", cfg.Endpoint)
 	}
 
 	return nil

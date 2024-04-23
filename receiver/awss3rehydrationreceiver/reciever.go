@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package azureblobrehydrationreceiver //import "github.com/observiq/bindplane-agent/receiver/azureblobrehydrationreceiver"
+package awss3rehydrationreceiver //import "github.com/observiq/bindplane-agent/receiver/awss3rehydrationreceiver"
 
 import (
 	"context"
@@ -22,21 +22,21 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-agent/internal/rehydration"
-	"github.com/observiq/bindplane-agent/receiver/azureblobrehydrationreceiver/internal/azureblob"
+	"github.com/observiq/bindplane-agent/receiver/awss3rehydrationreceiver/internal/aws"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.uber.org/zap"
 )
 
-// newAzureBlobClient is the function use to create new Azure Blob Clients.
+// newAWSS3Client is the function used to create new AWS S3 clients.
 // Meant to be overwritten for tests
-var newAzureBlobClient = azureblob.NewAzureBlobClient
+var newAWSS3Client = aws.NewAWSClient
 
 type rehydrationReceiver struct {
 	logger             *zap.Logger
 	id                 component.ID
 	cfg                *Config
-	azureClient        azureblob.BlobClient
+	awsClient          aws.S3Client
 	supportedTelemetry component.DataType
 	consumer           rehydration.Consumer
 	checkpointStore    rehydration.CheckpointStorer
@@ -91,9 +91,9 @@ func newTracesReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextCon
 
 // newRehydrationReceiver creates a new rehydration receiver
 func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*rehydrationReceiver, error) {
-	azureClient, err := newAzureBlobClient(cfg.ConnectionString)
+	awsClient, err := newAWSS3Client(cfg.Region, cfg.RoleArn)
 	if err != nil {
-		return nil, fmt.Errorf("new Azure client: %w", err)
+		return nil, fmt.Errorf("new aws s3 client: %w", err)
 	}
 
 	// We should not get an error for either of these time parsings as we check in config validate.
@@ -114,7 +114,7 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 		logger:          logger,
 		id:              id,
 		cfg:             cfg,
-		azureClient:     azureClient,
+		awsClient:       awsClient,
 		doneChan:        make(chan struct{}),
 		checkpointStore: rehydration.NewNopStorage(),
 		startingTime:    startingTime,
@@ -180,8 +180,8 @@ func (r *rehydrationReceiver) scrape() {
 	}
 
 	// Call once before the loop to ensure we do a collection before the first ticker
-	numBlobsRehydrated := r.rehydrateBlobs(checkpoint, marker)
-	emptyBlobCounter := checkBlobCount(numBlobsRehydrated, 0)
+	numBlobsRehydrated := r.rehydrate(checkpoint, marker)
+	emptyEntityCounter := checkEntityCount(numBlobsRehydrated, 0)
 
 	for {
 		select {
@@ -190,97 +190,94 @@ func (r *rehydrationReceiver) scrape() {
 		case <-ticker.C:
 			// Polling for blobs has egress charges so we want to stop polling
 			// after we stop finding blobs.
-			if emptyBlobCounter == emptyPollLimit {
+			if emptyEntityCounter == emptyPollLimit {
 				return
 			}
 
-			numBlobsRehydrated := r.rehydrateBlobs(checkpoint, marker)
-			emptyBlobCounter = checkBlobCount(numBlobsRehydrated, emptyBlobCounter)
+			numBlobsRehydrated := r.rehydrate(checkpoint, marker)
+			emptyEntityCounter = checkEntityCount(numBlobsRehydrated, emptyEntityCounter)
 		}
 	}
 }
 
-// rehydrateBlobs pulls blob paths from the UI and if they are within the specified
-// time range then the blobs will be downloaded and rehydrated.
-// The passed in checkpoint and marker will be updated and should be used in the next iteration.
-// The count of blobs processed will be returned
-func (r *rehydrationReceiver) rehydrateBlobs(checkpoint *rehydration.CheckPoint, marker *string) (numBlobsRehydrated int) {
-	var prefix *string
-	if r.cfg.RootFolder != "" {
-		prefix = &r.cfg.RootFolder
-	}
-
-	ctxTimeout, cancel := context.WithTimeout(r.ctx, r.cfg.PollTimeout)
+func (r *rehydrationReceiver) rehydrate(checkpoint *rehydration.CheckPoint, marker *string) (numEntitiesRehydrated int) {
+	rehydrateCtx, cancel := context.WithTimeout(r.ctx, r.cfg.PollTimeout)
 	defer cancel()
 
-	// get blobs from Azure
-	blobs, nextMarker, err := r.azureClient.ListBlobs(ctxTimeout, r.cfg.Container, prefix, marker)
+	var prefix *string
+	if r.cfg.S3Prefix != "" {
+		prefix = &r.cfg.S3Prefix
+	}
+
+	objects, nextMarker, err := r.awsClient.ListObjects(rehydrateCtx, r.cfg.S3Bucket, prefix, marker)
 	if err != nil {
-		r.logger.Error("Failed to list blobs", zap.Error(err))
+		r.logger.Error("Failed to list objects", zap.Error(err))
 		return
 	}
 
 	marker = nextMarker
 
-	// Go through each blob and parse it's path to determine if we should consume it or not
-	for _, blob := range blobs {
-		blobTime, telemetryType, err := rehydration.ParseEntityPath(blob.Name)
+	processedObjectNames := make([]string, 0, len(objects))
+
+	for _, object := range objects {
+		r.logger.Debug("Object", zap.String("name", object.Name))
+		objectTime, telemetryType, err := rehydration.ParseEntityPath(object.Name)
 		switch {
 		case errors.Is(err, rehydration.ErrInvalidEntityPath):
-			r.logger.Debug("Skipping Blob, non-matching blob path", zap.String("blob", blob.Name))
+			r.logger.Debug("Skipping Object, non-matching entity path", zap.String("object", object.Name))
 		case err != nil:
-			r.logger.Error("Error processing blob path", zap.String("blob", blob.Name), zap.Error(err))
-		case checkpoint.ShouldParse(*blobTime, blob.Name):
-			// if the blob is not in the specified time range or not of the telemetry type supported by this receiver
+			r.logger.Error("Error processing object path", zap.String("object", object.Name), zap.Error(err))
+		case checkpoint.ShouldParse(*objectTime, object.Name):
+			// if the object is not in the specified time range or not of the telemetry type supported by this receiver
 			// then skip consuming it.
-			if !rehydration.IsInTimeRange(*blobTime, r.startingTime, r.endingTime) || telemetryType != r.supportedTelemetry {
+			if !rehydration.IsInTimeRange(*objectTime, r.startingTime, r.endingTime) || telemetryType != r.supportedTelemetry {
 				continue
 			}
 
-			// Process and consume the blob at the given path
-			if err := r.processBlob(blob); err != nil {
-				r.logger.Error("Error consuming blob", zap.String("blob", blob.Name), zap.Error(err))
+			// Process and consume the object at the given path
+			if err := r.processObject(object); err != nil {
+				r.logger.Error("Error consuming object", zap.String("object", object.Name), zap.Error(err))
 				continue
 			}
 
-			numBlobsRehydrated++
-
-			// Update and save the checkpoint with the most recently processed blob
-			checkpoint.UpdateCheckpoint(*blobTime, blob.Name)
+			checkpoint.UpdateCheckpoint(*objectTime, object.Name)
 			if err := r.checkpointStore.SaveCheckpoint(r.ctx, r.checkpointKey(), checkpoint); err != nil {
 				r.logger.Error("Error while saving checkpoint", zap.Error(err))
 			}
 
-			// Delete blob if configured to do so
-			if r.cfg.DeleteOnRead {
-				if err := r.azureClient.DeleteBlob(r.ctx, r.cfg.Container, blob.Name); err != nil {
-					r.logger.Error("Error while attempting to delete blob", zap.String("blob", blob.Name), zap.Error(err))
-				}
-			}
+			// keep track of object names for number processed and deleting
+			processedObjectNames = append(processedObjectNames, object.Name)
+		}
+	}
+
+	numEntitiesRehydrated = len(processedObjectNames)
+
+	// Delete objects
+	if r.cfg.DeleteOnRead && len(processedObjectNames) > 0 {
+		if err := r.awsClient.DeleteObjects(r.ctx, r.cfg.S3Bucket, processedObjectNames); err != nil {
+			r.logger.Error("Error while attempting to delete objects", zap.Error(err))
 		}
 	}
 
 	return
 }
 
-// processBlob does the following:
-// 1. Downloads the blob
-// 2. Decompresses the blob if applicable
-// 3. Pass the blob to the consumer
-func (r *rehydrationReceiver) processBlob(blob *azureblob.BlobInfo) error {
-	// Allocate a buffer the size of the blob. If the buffer isn't big enough download errors.
-	blobBuffer := make([]byte, blob.Size)
+// processObject does the following:
+// 1. Downloads the object
+// 2. Decompresses the object if applicable
+// 3. Pass the object to the consumer
+func (r *rehydrationReceiver) processObject(object *aws.ObjectInfo) error {
+	objectBuffer := make([]byte, object.Size)
 
-	size, err := r.azureClient.DownloadBlob(r.ctx, r.cfg.Container, blob.Name, blobBuffer)
+	size, err := r.awsClient.DownloadObject(r.ctx, r.cfg.S3Bucket, object.Name, objectBuffer)
 	if err != nil {
-		return fmt.Errorf("download blob: %w", err)
+		return fmt.Errorf("download object: %w", err)
 	}
 
-	// Check file extension see if we need to decompress
-	ext := filepath.Ext(blob.Name)
+	ext := filepath.Ext(object.Name)
 	switch {
 	case ext == ".gz":
-		blobBuffer, err = rehydration.GzipDecompress(blobBuffer[:size])
+		objectBuffer, err = rehydration.GzipDecompress(objectBuffer[:size])
 		if err != nil {
 			return fmt.Errorf("gzip: %w", err)
 		}
@@ -290,30 +287,31 @@ func (r *rehydrationReceiver) processBlob(blob *azureblob.BlobInfo) error {
 		return fmt.Errorf("unsupported file type: %s", ext)
 	}
 
-	if err := r.consumer.Consume(r.ctx, blobBuffer); err != nil {
+	if err := r.consumer.Consume(r.ctx, objectBuffer); err != nil {
 		return fmt.Errorf("consume: %w", err)
 	}
+
 	return nil
 }
 
-// checkpointStorageKey the key used for storing the checkpoint
-const checkpointStorageKey = "azure_blob_checkpoint"
+// checkpointStorageKey is the key used for storing the checkpoint
+const checkpointStorageKey = "aws_s3_checkpoint"
 
 // checkpointKey returns the key used for storing the checkpoint
 func (r *rehydrationReceiver) checkpointKey() string {
 	return fmt.Sprintf("%s_%s_%s", checkpointStorageKey, r.id, r.supportedTelemetry.String())
 }
 
-// checkBlobCount checks the number of blobs rehydrated and the current state of the
-// empty counter. If zero blobs were rehydrated increment the counter.
-// If there were blobs rehydrated reset the counter as we want to track consecutive zero sized polls.
-func checkBlobCount(numBlobsRehydrated, emptyBlobsCounter int) int {
+// checkEntityCount checks the number of entities rehydrated and the current state of the
+// empty counter. If zero entities were rehydrated increment the counter.
+// If there were entities rehydrated reset the counter as we want to track consecutive zero sized polls.
+func checkEntityCount(numEntitiesRehydrated, emptyEntityCounter int) int {
 	switch {
-	case emptyBlobsCounter == emptyPollLimit: // If we are at the limit return the limit
+	case emptyEntityCounter == emptyPollLimit: // If we are at the limit return the limit
 		return emptyPollLimit
-	case numBlobsRehydrated == 0: // If no blobs were rehydrated then increment the empty blobs counter
-		return emptyBlobsCounter + 1
-	default: // Default case is numBlobsRehydrated > 0 so reset emptyBlobsCounter to 0
+	case numEntitiesRehydrated == 0: // If no entities were rehydrated then increment the empty entities counter
+		return emptyEntityCounter + 1
+	default: // Default case is numEntitiesRehydrated > 0 so reset emptyEntityCounter to 0
 		return 0
 	}
 }

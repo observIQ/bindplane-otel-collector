@@ -47,6 +47,7 @@ func TestLogsDataPusher(t *testing.T) {
 				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]*api.BatchCreateLogsRequest{{}}, nil)
 				return &chronicleExporter{
 					cfg:       &cfg,
+					metrics:   newExporterMetrics([]byte{}, []byte{}, "", cfg.Namespace),
 					logger:    zap.NewNop(),
 					client:    mockClient,
 					marshaler: marshaller,
@@ -65,6 +66,7 @@ func TestLogsDataPusher(t *testing.T) {
 				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]*api.BatchCreateLogsRequest{{}}, nil)
 				return &chronicleExporter{
 					cfg:       &cfg,
+					metrics:   newExporterMetrics([]byte{}, []byte{}, "", cfg.Namespace),
 					logger:    zap.NewNop(),
 					client:    mockClient,
 					marshaler: marshaller,
@@ -85,6 +87,7 @@ func TestLogsDataPusher(t *testing.T) {
 				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return(nil, errors.New("marshal error"))
 				return &chronicleExporter{
 					cfg:       &cfg,
+					metrics:   newExporterMetrics([]byte{}, []byte{}, "", cfg.Namespace),
 					logger:    zap.NewNop(),
 					client:    mockClient,
 					marshaler: marshaller,
@@ -104,6 +107,7 @@ func TestLogsDataPusher(t *testing.T) {
 				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]*api.BatchCreateLogsRequest{}, nil)
 				return &chronicleExporter{
 					cfg:       &cfg,
+					metrics:   newExporterMetrics([]byte{}, []byte{}, "", cfg.Namespace),
 					logger:    zap.NewNop(),
 					client:    mockClient,
 					marshaler: marshaller,

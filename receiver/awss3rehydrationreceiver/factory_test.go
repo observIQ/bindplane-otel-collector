@@ -12,27 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package chronicleexporter // import "github.com/observiq/bindplane-agent/exporter/chronicleexporter"
+package awss3rehydrationreceiver // import "github.com/observiq/bindplane-agent/receiver/awss3rehydrationreceiver"
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/config/configretry"
-	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
 func Test_createDefaultConfig(t *testing.T) {
 	expectedCfg := &Config{
-		TimeoutSettings:     exporterhelper.NewDefaultTimeoutSettings(),
-		QueueSettings:       exporterhelper.NewDefaultQueueSettings(),
-		BackOffConfig:       configretry.NewDefaultBackOffConfig(),
-		OverrideLogType:     true,
-		Endpoint:            "malachiteingestion-pa.googleapis.com",
-		Compression:         "none",
-		CollectAgentMetrics: true,
+		DeleteOnRead: false,
+		PollInterval: time.Minute,
+		PollTimeout:  time.Second * 30,
 	}
 
-	actual := createDefaultConfig()
-	require.Equal(t, expectedCfg, actual)
+	componentCfg := createDefaultConfig()
+	actualCfg, ok := componentCfg.(*Config)
+	require.True(t, ok)
+	require.Equal(t, expectedCfg, actualCfg)
 }
