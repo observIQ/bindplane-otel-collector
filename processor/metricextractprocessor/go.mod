@@ -5,8 +5,8 @@ go 1.21
 toolchain go1.21.6
 
 require (
-	github.com/observiq/bindplane-agent/expr v1.49.0
-	github.com/observiq/bindplane-agent/receiver/routereceiver v1.49.0
+	github.com/observiq/bindplane-agent/expr v1.50.0
+	github.com/observiq/bindplane-agent/receiver/routereceiver v1.50.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.98.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.98.0
 	github.com/stretchr/testify v1.9.0
