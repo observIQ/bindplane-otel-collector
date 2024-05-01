@@ -16,6 +16,7 @@
 package sapnetweaverreceiver // import "github.com/observiq/bindplane-agent/receiver/sapnetweaverreceiver"
 
 import (
+	"context"
 	"fmt"
 
 	"go.opentelemetry.io/collector/component"
@@ -23,8 +24,8 @@ import (
 	"github.com/hooklift/gowsdl/soap"
 )
 
-func newSoapClient(cfg *Config, host component.Host, settings component.TelemetrySettings) (*soap.Client, error) {
-	httpClient, err := cfg.ToClient(host, settings)
+func newSoapClient(ctx context.Context, cfg *Config, host component.Host, settings component.TelemetrySettings) (*soap.Client, error) {
+	httpClient, err := cfg.ToClient(ctx, host, settings)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP Client: %w", err)
 	}

@@ -256,7 +256,7 @@ func TestOpenWriter(t *testing.T) {
 			}
 
 			// Call openWriter
-			_, err := exporter.openWriter()
+			_, err := exporter.openWriter(context.Background())
 
 			// Assert the outcome
 			if tc.expectedError {
