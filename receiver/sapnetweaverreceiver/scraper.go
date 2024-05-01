@@ -59,8 +59,8 @@ func newSapNetweaverScraper(
 	return a
 }
 
-func (s *sapNetweaverScraper) start(_ context.Context, host component.Host) error {
-	soapClient, err := newSoapClient(s.cfg, host, s.settings)
+func (s *sapNetweaverScraper) start(ctx context.Context, host component.Host) error {
+	soapClient, err := newSoapClient(ctx, s.cfg, host, s.settings)
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}

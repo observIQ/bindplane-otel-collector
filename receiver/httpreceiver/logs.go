@@ -56,20 +56,20 @@ func newHTTPLogsReceiver(params receiver.CreateSettings, cfg *Config, consumer c
 }
 
 // Start calls startListening
-func (r *httpLogsReceiver) Start(_ context.Context, host component.Host) error {
-	return r.startListening(host)
+func (r *httpLogsReceiver) Start(ctx context.Context, host component.Host) error {
+	return r.startListening(ctx, host)
 }
 
 // startListening starts serve on the server using TLS depending on receiver configuration
-func (r *httpLogsReceiver) startListening(host component.Host) error {
+func (r *httpLogsReceiver) startListening(ctx context.Context, host component.Host) error {
 	r.logger.Debug("starting receiver HTTP server")
 	var err error
-	r.server, err = r.serverSettings.ToServer(host, r.telemetrySettings, r)
+	r.server, err = r.serverSettings.ToServer(ctx, host, r.telemetrySettings, r)
 	if err != nil {
 		return fmt.Errorf("to server: %w", err)
 	}
 
-	listener, err := r.serverSettings.ToListener()
+	listener, err := r.serverSettings.ToListener(ctx)
 	if err != nil {
 		return fmt.Errorf("to listener: %w", err)
 	}

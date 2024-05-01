@@ -98,7 +98,7 @@ func newM365Logs(cfg *Config, settings receiver.CreateSettings, consumer consume
 // creates the client for http requests, and initializes metadata struct
 func (l *m365LogsReceiver) Start(ctx context.Context, host component.Host) error {
 	// create default client
-	httpClient, err := l.cfg.ToClient(host, l.settings)
+	httpClient, err := l.cfg.ToClient(ctx, host, l.settings)
 	if err != nil {
 		l.logger.Error("error creating HTTP client", zap.Error(err))
 		return err

@@ -156,7 +156,7 @@ func TestScraperScrape(t *testing.T) {
 	cfg.Password = "password"
 	cfg.Profile = "/sapmnt/EPP/profile/EPP_D00_sap-app-1"
 
-	testClient, err := newSoapClient(cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
+	testClient, err := newSoapClient(context.Background(), cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
 	require.NoError(t, err)
 
 	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), cfg)
@@ -233,7 +233,7 @@ func TestScraperScrapeEmpty(t *testing.T) {
 	cfg.Password = "password"
 	cfg.Profile = "/sapmnt/EPP/profile/EPP_D00_sap-app-1"
 
-	testClient, err := newSoapClient(cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
+	testClient, err := newSoapClient(context.Background(), cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
 	require.NoError(t, err)
 
 	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), cfg)
@@ -310,7 +310,7 @@ func TestScraperScrapeAPIError(t *testing.T) {
 	cfg.Password = "password"
 	cfg.Profile = "/sapmnt/EPP/profile/EPP_D00_sap-app-1"
 
-	testClient, err := newSoapClient(cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
+	testClient, err := newSoapClient(context.Background(), cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
 	require.NoError(t, err)
 
 	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), cfg)

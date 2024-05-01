@@ -79,7 +79,7 @@ func (ce *chronicleForwarderExporter) Capabilities() consumer.Capabilities {
 
 func (ce *chronicleForwarderExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
 	// Open connection or file before sending each payload
-	writer, err := ce.openWriter()
+	writer, err := ce.openWriter(ctx)
 	if err != nil {
 		return fmt.Errorf("open writer: %w", err)
 	}
@@ -99,10 +99,10 @@ func (ce *chronicleForwarderExporter) logsDataPusher(ctx context.Context, ld plo
 	return nil
 }
 
-func (ce *chronicleForwarderExporter) openWriter() (io.WriteCloser, error) {
+func (ce *chronicleForwarderExporter) openWriter(ctx context.Context) (io.WriteCloser, error) {
 	switch ce.cfg.ExportType {
 	case exportTypeSyslog:
-		return ce.openSyslogWriter()
+		return ce.openSyslogWriter(ctx)
 	case exportTypeFile:
 		return ce.openFileWriter()
 	default:
@@ -114,14 +114,14 @@ func (ce *chronicleForwarderExporter) openFileWriter() (io.WriteCloser, error) {
 	return ce.OpenFile(ce.cfg.File.Path)
 }
 
-func (ce *chronicleForwarderExporter) openSyslogWriter() (io.WriteCloser, error) {
+func (ce *chronicleForwarderExporter) openSyslogWriter(ctx context.Context) (io.WriteCloser, error) {
 	var conn net.Conn
 	var err error
 	transportStr := string(ce.cfg.Syslog.AddrConfig.Transport)
 
 	if ce.cfg.Syslog.TLSSetting != nil {
 		var tlsConfig *tls.Config
-		tlsConfig, err = ce.cfg.Syslog.TLSSetting.LoadTLSConfig()
+		tlsConfig, err = ce.cfg.Syslog.TLSSetting.LoadTLSConfig(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("load TLS config: %w", err)
 		}
