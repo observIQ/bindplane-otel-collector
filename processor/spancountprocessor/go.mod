@@ -1,8 +1,6 @@
 module github.com/observiq/bindplane-agent/processor/spancountprocessor
 
-go 1.21.0
-
-toolchain go1.22.2
+go 1.21.9
 
 require (
 	github.com/observiq/bindplane-agent/counter v1.50.0

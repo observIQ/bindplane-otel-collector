@@ -1,8 +1,6 @@
 module github.com/observiq/bindplane-agent/processor/metricextractprocessor
 
-go 1.21.0
-
-toolchain go1.22.2
+go 1.21.9
 
 require (
 	github.com/observiq/bindplane-agent/expr v1.50.0
