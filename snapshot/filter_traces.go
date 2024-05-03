@@ -38,7 +38,7 @@ func filterTraces(traces ptrace.Traces, searchQuery *string, minimumTimestamp *t
 
 		// Don't append empty resource traces
 		if filteredResourceSpans.ScopeSpans().Len() != 0 {
-			filteredResourceSpans.CopyTo(filteredTraces.ResourceSpans().AppendEmpty())
+			filteredResourceSpans.MoveTo(filteredTraces.ResourceSpans().AppendEmpty())
 		}
 	}
 
@@ -64,7 +64,7 @@ func filterResourceSpans(resourceSpan ptrace.ResourceSpans, searchQuery *string,
 
 		// Don't append empty scope spans
 		if filteredScopeSpans.Spans().Len() != 0 {
-			filteredScopeSpans.CopyTo(filteredResourceSpans.ScopeSpans().AppendEmpty())
+			filteredScopeSpans.MoveTo(filteredResourceSpans.ScopeSpans().AppendEmpty())
 		}
 	}
 
