@@ -1,0 +1,9 @@
+type: bindplane
+
+status:
+  class: extension
+  stability:
+    alpha: [extension]
+
+tests:
+  config:
