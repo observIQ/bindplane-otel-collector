@@ -37,7 +37,7 @@ func filterLogs(logs plog.Logs, searchQuery *string, minimumTimestamp *time.Time
 
 		// Don't append empty resource logs
 		if filteredResourceLogs.ScopeLogs().Len() != 0 {
-			filteredResourceLogs.CopyTo(filteredLogs.ResourceLogs().AppendEmpty())
+			filteredResourceLogs.MoveTo(filteredLogs.ResourceLogs().AppendEmpty())
 		}
 	}
 
@@ -63,7 +63,7 @@ func filterResourceLogs(resourceLog plog.ResourceLogs, searchQuery *string, mini
 
 		// Don't append empty scope logs
 		if filteredScopeLogs.LogRecords().Len() != 0 {
-			filteredScopeLogs.CopyTo(filteredResourceLogs.ScopeLogs().AppendEmpty())
+			filteredScopeLogs.MoveTo(filteredResourceLogs.ScopeLogs().AppendEmpty())
 		}
 	}
 
