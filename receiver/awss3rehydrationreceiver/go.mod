@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.16.15
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.53.1
 	github.com/observiq/bindplane-agent/internal/rehydration v1.49.0
-	github.com/observiq/bindplane-agent/internal/testutils v1.51.0
+	github.com/observiq/bindplane-agent/internal/testutils v1.52.0
 	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/collector/component v0.100.0
 	go.opentelemetry.io/collector/confmap v0.100.0
