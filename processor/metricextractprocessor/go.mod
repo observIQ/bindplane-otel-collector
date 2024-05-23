@@ -5,14 +5,14 @@ go 1.21.9
 require (
 	github.com/observiq/bindplane-agent/expr v1.52.0
 	github.com/observiq/bindplane-agent/receiver/routereceiver v1.52.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.100.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.100.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.101.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.101.0
 	github.com/stretchr/testify v1.9.0
-	go.opentelemetry.io/collector/component v0.100.0
-	go.opentelemetry.io/collector/consumer v0.100.0
-	go.opentelemetry.io/collector/pdata v1.7.0
+	go.opentelemetry.io/collector/component v0.101.0
+	go.opentelemetry.io/collector/consumer v0.101.0
+	go.opentelemetry.io/collector/pdata v1.8.0
 	go.opentelemetry.io/collector/processor v0.98.0
-	go.opentelemetry.io/collector/receiver v0.100.0
+	go.opentelemetry.io/collector/receiver v0.101.0
 	go.uber.org/zap v1.27.0
 )
 
@@ -28,20 +28,20 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/knadh/koanf/v2 v2.1.1 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.100.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.100.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.101.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.101.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.19.0 // indirect
+	github.com/prometheus/client_golang v1.19.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.53.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
-	go.opentelemetry.io/collector/config/configtelemetry v0.100.0 // indirect
-	go.opentelemetry.io/collector/confmap v0.100.0 // indirect
-	go.opentelemetry.io/collector/pdata/testdata v0.100.0 // indirect
+	go.opentelemetry.io/collector/config/configtelemetry v0.101.0 // indirect
+	go.opentelemetry.io/collector/confmap v0.101.0 // indirect
+	go.opentelemetry.io/collector/pdata/testdata v0.101.0 // indirect
 	go.opentelemetry.io/otel/exporters/prometheus v0.48.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.26.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.26.0 // indirect
-	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc // indirect
+	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240401170217-c3f982113cda // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
@@ -61,9 +61,9 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/text v0.15.0 // indirect
 	google.golang.org/grpc v1.63.2 // indirect
-	google.golang.org/protobuf v1.34.0 // indirect
+	google.golang.org/protobuf v1.34.1 // indirect
 )
 
 replace github.com/observiq/bindplane-agent/receiver/routereceiver => ../../receiver/routereceiver
