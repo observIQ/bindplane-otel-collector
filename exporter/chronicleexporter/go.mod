@@ -5,7 +5,7 @@ go 1.21.9
 require (
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
-	github.com/observiq/bindplane-agent/expr v1.52.0
+	github.com/observiq/bindplane-agent/expr v1.53.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.101.0
 	github.com/shirou/gopsutil/v3 v3.24.4
 	github.com/stretchr/testify v1.9.0
