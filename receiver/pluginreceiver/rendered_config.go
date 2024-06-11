@@ -84,8 +84,8 @@ func NewRenderedConfig(yamlBytes []byte) (*RenderedConfig, error) {
 	return &renderedCfg, nil
 }
 
-// GetConfigProvider returns a config provider for the rendered config
-func (r *RenderedConfig) GetConfigProvider() (otelcol.ConfigProvider, error) {
+// GetConfigProviderSettings returns config provider settings for the rendered config
+func (r *RenderedConfig) GetConfigProviderSettings() (*otelcol.ConfigProviderSettings, error) {
 	bytes, err := yaml.Marshal(r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal config as bytes: %w", err)
@@ -100,7 +100,7 @@ func (r *RenderedConfig) GetConfigProvider() (otelcol.ConfigProvider, error) {
 		},
 	}
 
-	return otelcol.NewConfigProvider(settings)
+	return &settings, nil
 }
 
 // GetRequiredFactories finds and returns the factories required for the rendered config

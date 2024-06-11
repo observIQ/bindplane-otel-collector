@@ -30,11 +30,11 @@ type Service interface {
 }
 
 // createService creates a default Service for running an open telemetry pipeline
-func createService(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error) {
+func createService(factories otelcol.Factories, configProviderSettings otelcol.ConfigProviderSettings, logger *zap.Logger) (Service, error) {
 	settings := otelcol.CollectorSettings{
 		Factories:               func() (otelcol.Factories, error) { return factories, nil },
 		DisableGracefulShutdown: true,
-		ConfigProvider:          configProvider,
+		ConfigProviderSettings:  configProviderSettings,
 		LoggingOptions:          createServiceLoggerOpts(logger),
 	}
 
@@ -51,4 +51,4 @@ func createServiceLoggerOpts(baseLogger *zap.Logger) []zap.Option {
 }
 
 // createServiceFunc is a function used to create a service
-type createServiceFunc func(factories otelcol.Factories, configProvider otelcol.ConfigProvider, logger *zap.Logger) (Service, error)
+type createServiceFunc func(factories otelcol.Factories, configProviderSettings otelcol.ConfigProviderSettings, logger *zap.Logger) (Service, error)

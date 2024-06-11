@@ -69,7 +69,7 @@ func TestReceiverCreateServiceFailure(t *testing.T) {
 	emitterFactory := createLogEmitterFactory(nil)
 
 	receiver := NewReceiver(&Plugin{}, renderedCfg, emitterFactory, zap.NewNop())
-	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
+	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProviderSettings, _ *zap.Logger) (Service, error) {
 		return nil, errors.New("failure")
 	}
 
@@ -97,7 +97,7 @@ func TestReceiverStartServiceFailure(t *testing.T) {
 	svc.On("Run", mock.Anything).Return(errors.New("failure"))
 	svc.On("GetState").Return(otelcol.StateStarting)
 	receiver := NewReceiver(&Plugin{}, renderedCfg, emitterFactory, zap.NewNop())
-	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
+	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProviderSettings, _ *zap.Logger) (Service, error) {
 		return svc, nil
 	}
 
@@ -127,7 +127,7 @@ func TestReceiverStartServiceContext(t *testing.T) {
 	svc.On("Run", mock.Anything).Return(nil)
 	svc.On("GetState").Return(otelcol.StateStarting)
 	receiver := NewReceiver(&Plugin{}, renderedCfg, emitterFactory, zap.NewNop())
-	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
+	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProviderSettings, _ *zap.Logger) (Service, error) {
 		return svc, nil
 	}
 
@@ -156,7 +156,7 @@ func TestReceiverStartSuccess(t *testing.T) {
 	svc.On("GetState").Return(otelcol.StateRunning)
 
 	receiver := NewReceiver(&Plugin{}, renderedCfg, emitterFactory, zap.NewNop())
-	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
+	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProviderSettings, _ *zap.Logger) (Service, error) {
 		return svc, nil
 	}
 
@@ -191,7 +191,7 @@ func TestReceiverShutdown(t *testing.T) {
 	}).Return()
 
 	receiver := NewReceiver(&Plugin{}, renderedCfg, emitterFactory, zap.NewNop())
-	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
+	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProviderSettings, _ *zap.Logger) (Service, error) {
 		return svc, nil
 	}
 
@@ -230,7 +230,7 @@ func TestReceiverShutdownCancelledContext(t *testing.T) {
 	svc.On("Shutdown").Return()
 
 	receiver := NewReceiver(&Plugin{}, renderedCfg, emitterFactory, zap.NewNop())
-	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
+	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProviderSettings, _ *zap.Logger) (Service, error) {
 		return svc, nil
 	}
 
@@ -272,7 +272,7 @@ func TestReceiverShutdownWithError(t *testing.T) {
 	}).Return()
 
 	receiver := NewReceiver(&Plugin{}, renderedCfg, emitterFactory, zap.NewNop())
-	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProvider, _ *zap.Logger) (Service, error) {
+	receiver.createService = func(_ otelcol.Factories, _ otelcol.ConfigProviderSettings, _ *zap.Logger) (Service, error) {
 		return svc, nil
 	}
 
