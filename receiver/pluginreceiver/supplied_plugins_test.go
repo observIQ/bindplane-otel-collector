@@ -36,6 +36,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/otelcol"
 )
 
 const pluginDirPath = "../../plugins"
@@ -102,10 +103,13 @@ func TestValidateSuppliedPlugins(t *testing.T) {
 			factories, err := renderedCfg.GetRequiredFactories(host, emitterFactory)
 			require.NoError(t, err, "Failed to get factories for plugin %s", entryName)
 
-			cfgProvider, err := renderedCfg.GetConfigProvider()
+			cfgProviderSettings, err := renderedCfg.GetConfigProviderSettings()
 			require.NoError(t, err, "Failed to get config provider for plugin %s", entryName)
 
-			_, err = cfgProvider.Get(context.Background(), *factories)
+			configProvider, err := otelcol.NewConfigProvider(*cfgProviderSettings)
+			require.NoError(t, err)
+
+			_, err = configProvider.Get(context.Background(), *factories)
 			require.NoError(t, err, "Failed to validate config for plugin %s", entryName)
 
 		})

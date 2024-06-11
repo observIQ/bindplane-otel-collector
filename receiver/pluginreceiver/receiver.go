@@ -67,12 +67,12 @@ func (r *Receiver) Start(ctx context.Context, host component.Host) error {
 		return fmt.Errorf("failed to get factories from factory provider: %w", err)
 	}
 
-	cfgProvider, err := r.renderedCfg.GetConfigProvider()
+	cfgProviderSettings, err := r.renderedCfg.GetConfigProviderSettings()
 	if err != nil {
 		return fmt.Errorf("failed to get config provider: %w", err)
 	}
 
-	service, err := r.createService(*factories, cfgProvider, r.logger)
+	service, err := r.createService(*factories, *cfgProviderSettings, r.logger)
 	if err != nil {
 		return fmt.Errorf("failed to create internal service: %w", err)
 	}

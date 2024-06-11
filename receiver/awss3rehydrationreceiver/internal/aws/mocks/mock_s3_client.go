@@ -5,7 +5,8 @@ package mocks
 import (
 	context "context"
 
-	s3 "github.com/observiq/bindplane-agent/receiver/awss3rehydrationreceiver/internal/aws"
+	aws "github.com/observiq/bindplane-agent/receiver/awss3rehydrationreceiver/internal/aws"
+
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -130,24 +131,24 @@ func (_c *MockS3Client_DownloadObject_Call) RunAndReturn(run func(context.Contex
 }
 
 // ListObjects provides a mock function with given fields: ctx, bucket, prefix, continuationToken
-func (_m *MockS3Client) ListObjects(ctx context.Context, bucket string, prefix *string, continuationToken *string) ([]*s3.ObjectInfo, *string, error) {
+func (_m *MockS3Client) ListObjects(ctx context.Context, bucket string, prefix *string, continuationToken *string) ([]*aws.ObjectInfo, *string, error) {
 	ret := _m.Called(ctx, bucket, prefix, continuationToken)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListObjects")
 	}
 
-	var r0 []*s3.ObjectInfo
+	var r0 []*aws.ObjectInfo
 	var r1 *string
 	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, *string, *string) ([]*s3.ObjectInfo, *string, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, *string, *string) ([]*aws.ObjectInfo, *string, error)); ok {
 		return rf(ctx, bucket, prefix, continuationToken)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, *string, *string) []*s3.ObjectInfo); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, *string, *string) []*aws.ObjectInfo); ok {
 		r0 = rf(ctx, bucket, prefix, continuationToken)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*s3.ObjectInfo)
+			r0 = ret.Get(0).([]*aws.ObjectInfo)
 		}
 	}
 
@@ -189,12 +190,12 @@ func (_c *MockS3Client_ListObjects_Call) Run(run func(ctx context.Context, bucke
 	return _c
 }
 
-func (_c *MockS3Client_ListObjects_Call) Return(_a0 []*s3.ObjectInfo, _a1 *string, _a2 error) *MockS3Client_ListObjects_Call {
+func (_c *MockS3Client_ListObjects_Call) Return(_a0 []*aws.ObjectInfo, _a1 *string, _a2 error) *MockS3Client_ListObjects_Call {
 	_c.Call.Return(_a0, _a1, _a2)
 	return _c
 }
 
-func (_c *MockS3Client_ListObjects_Call) RunAndReturn(run func(context.Context, string, *string, *string) ([]*s3.ObjectInfo, *string, error)) *MockS3Client_ListObjects_Call {
+func (_c *MockS3Client_ListObjects_Call) RunAndReturn(run func(context.Context, string, *string, *string) ([]*aws.ObjectInfo, *string, error)) *MockS3Client_ListObjects_Call {
 	_c.Call.Return(run)
 	return _c
 }

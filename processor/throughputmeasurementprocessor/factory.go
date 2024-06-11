@@ -16,8 +16,8 @@ package throughputmeasurementprocessor
 
 import (
 	"context"
+	"fmt"
 
-	"go.opencensus.io/stats/view"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/processor"
@@ -34,13 +34,6 @@ const (
 var (
 	consumerCapabilities = consumer.Capabilities{MutatesData: false}
 )
-
-// RegisterMetricViews unregisters old metric views if they exist and registers new ones
-func RegisterMetricViews() error {
-	views := metricViews()
-	view.Unregister(views...)
-	return view.Register(views...)
-}
 
 // NewFactory creates a new ProcessorFactory with default configuration
 func NewFactory() processor.Factory {
@@ -67,7 +60,10 @@ func createTracesProcessor(
 	nextConsumer consumer.Traces,
 ) (processor.Traces, error) {
 	oCfg := cfg.(*Config)
-	tmp := newThroughputMeasurementProcessor(set.Logger, oCfg, set.ID.String())
+	tmp, err := newThroughputMeasurementProcessor(set.Logger, set.TelemetrySettings.MeterProvider, oCfg, set.ID.String())
+	if err != nil {
+		return nil, fmt.Errorf("create throughputmeasurementprocessor: %w", err)
+	}
 
 	return processorhelper.NewTracesProcessor(ctx, set, cfg, nextConsumer, tmp.processTraces, processorhelper.WithCapabilities(consumerCapabilities))
 }
@@ -79,7 +75,10 @@ func createLogsProcessor(
 	nextConsumer consumer.Logs,
 ) (processor.Logs, error) {
 	oCfg := cfg.(*Config)
-	tmp := newThroughputMeasurementProcessor(set.Logger, oCfg, set.ID.String())
+	tmp, err := newThroughputMeasurementProcessor(set.Logger, set.TelemetrySettings.MeterProvider, oCfg, set.ID.String())
+	if err != nil {
+		return nil, fmt.Errorf("create throughputmeasurementprocessor: %w", err)
+	}
 
 	return processorhelper.NewLogsProcessor(ctx, set, cfg, nextConsumer, tmp.processLogs, processorhelper.WithCapabilities(consumerCapabilities))
 }
@@ -91,7 +90,10 @@ func createMetricsProcessor(
 	nextConsumer consumer.Metrics,
 ) (processor.Metrics, error) {
 	oCfg := cfg.(*Config)
-	tmp := newThroughputMeasurementProcessor(set.Logger, oCfg, set.ID.String())
+	tmp, err := newThroughputMeasurementProcessor(set.Logger, set.TelemetrySettings.MeterProvider, oCfg, set.ID.String())
+	if err != nil {
+		return nil, fmt.Errorf("create throughputmeasurementprocessor: %w", err)
+	}
 
 	return processorhelper.NewMetricsProcessor(ctx, set, cfg, nextConsumer, tmp.processMetrics, processorhelper.WithCapabilities(consumerCapabilities))
 }

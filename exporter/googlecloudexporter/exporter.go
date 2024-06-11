@@ -175,37 +175,43 @@ func (e *googlecloudExporter) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// appendMetricHost appends hostname to metrics if not already present
+// appendMetricHost appends hostname to logs if host.name, host.id, or
+// k8s.pod.name not already present
 func (e *googlecloudExporter) appendMetricHost(md *pmetric.Metrics) {
 	for i := 0; i < md.ResourceMetrics().Len(); i++ {
 		resourceAttrs := md.ResourceMetrics().At(i).Resource().Attributes()
 		_, hostNameExists := resourceAttrs.Get(string(semconv.HostNameKey))
 		_, hostIDExists := resourceAttrs.Get(string(semconv.HostIDKey))
-		if !hostNameExists && !hostIDExists {
+		_, podNameExists := resourceAttrs.Get(string(semconv.K8SPodNameKey))
+		if !hostNameExists && !hostIDExists && !podNameExists {
 			resourceAttrs.PutStr(string(semconv.HostNameKey), hostname)
 		}
 	}
 }
 
-// appendLogHost appends hostname to logs if not already present
+// appendLogHost appends hostname to logs if host.name, host.id, or
+// k8s.pod.name not already present
 func (e *googlecloudExporter) appendLogHost(ld *plog.Logs) {
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		resourceAttrs := ld.ResourceLogs().At(i).Resource().Attributes()
 		_, hostNameExists := resourceAttrs.Get(string(semconv.HostNameKey))
 		_, hostIDExists := resourceAttrs.Get(string(semconv.HostIDKey))
-		if !hostNameExists && !hostIDExists {
+		_, podNameExists := resourceAttrs.Get(string(semconv.K8SPodNameKey))
+		if !hostNameExists && !hostIDExists && !podNameExists {
 			resourceAttrs.PutStr(string(semconv.HostNameKey), hostname)
 		}
 	}
 }
 
-// appendTraceHost appends hostname to traces if not already present
+// appendTraceHost appends hostname to logs if host.name, host.id, or
+// k8s.pod.name not already present
 func (e *googlecloudExporter) appendTraceHost(td *ptrace.Traces) {
 	for i := 0; i < td.ResourceSpans().Len(); i++ {
 		resourceAttrs := td.ResourceSpans().At(i).Resource().Attributes()
 		_, hostNameExists := resourceAttrs.Get(string(semconv.HostNameKey))
 		_, hostIDExists := resourceAttrs.Get(string(semconv.HostIDKey))
-		if !hostNameExists && !hostIDExists {
+		_, podNameExists := resourceAttrs.Get(string(semconv.K8SPodNameKey))
+		if !hostNameExists && !hostIDExists && !podNameExists {
 			resourceAttrs.PutStr(string(semconv.HostNameKey), hostname)
 		}
 	}
