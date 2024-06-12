@@ -1,0 +1,783 @@
+{
+  "session_id": "my-session-id",
+  "telemetry_type": "metrics",
+  "telemetry_payload": {
+    "resourceMetrics": [
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "host.name",
+              "value": { "stringValue": "Brandons-Awesome-Linux-Machine" }
+            },
+            { "key": "os.type", "value": { "stringValue": "linux" } },
+            {
+              "key": "extra-resource-attr-key",
+              "value": { "stringValue": "extra-resource-attr-value" }
+            }
+          ]
+        },
+        "scopeMetrics": [
+          {
+            "scope": {
+              "name": "otelcol/hostmetricsreceiver/load",
+              "version": "v1.43.0"
+            },
+            "metrics": [
+              {
+                "name": "system.cpu.load_average.1m",
+                "description": "Average CPU Load over 1 minute.",
+                "unit": "{thread}",
+                "gauge": {
+                  "dataPoints": [
+                    {
+                      "attributes": [
+                        {
+                          "key": "cool-attribute-key",
+                          "value": { "stringValue": "cool-attribute-value" }
+                        }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asDouble": 3.71484375
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "schemaUrl": "https://opentelemetry.io/schemas/1.9.0"
+      },
+      {
+        "resource": {
+          "attributes": [
+            { "key": "host.name", "value": { "stringValue": "Brandons-MBP" } },
+            { "key": "os.type", "value": { "stringValue": "darwin" } }
+          ]
+        },
+        "scopeMetrics": [
+          {
+            "scope": {
+              "name": "otelcol/hostmetricsreceiver/filesystem",
+              "version": "v1.43.0"
+            },
+            "metrics": [
+              {
+                "name": "system.filesystem.usage",
+                "description": "Filesystem bytes used.",
+                "unit": "By",
+                "sum": {
+                  "dataPoints": [
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk2s1" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": {
+                            "stringValue": "/System/Volumes/iSCPreboot"
+                          }
+                        },
+                        { "key": "state", "value": { "stringValue": "free" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "503869440"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk2s1" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": {
+                            "stringValue": "/System/Volumes/iSCPreboot"
+                          }
+                        },
+                        {
+                          "key": "state",
+                          "value": { "stringValue": "reserved" }
+                        },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "0"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk2s1" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": {
+                            "stringValue": "/System/Volumes/iSCPreboot"
+                          }
+                        },
+                        { "key": "state", "value": { "stringValue": "used" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "20418560"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk2s2" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/xarts" }
+                        },
+                        { "key": "state", "value": { "stringValue": "free" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "503869440"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk2s2" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/xarts" }
+                        },
+                        {
+                          "key": "state",
+                          "value": { "stringValue": "reserved" }
+                        },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "0"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk2s2" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/xarts" }
+                        },
+                        { "key": "state", "value": { "stringValue": "used" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "20418560"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk2s3" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/Hardware" }
+                        },
+                        { "key": "state", "value": { "stringValue": "free" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "503869440"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk2s3" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/Hardware" }
+                        },
+                        {
+                          "key": "state",
+                          "value": { "stringValue": "reserved" }
+                        },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "0"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk2s3" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/Hardware" }
+                        },
+                        { "key": "state", "value": { "stringValue": "used" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "20418560"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk3s1s1" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "ro" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/" }
+                        },
+                        { "key": "state", "value": { "stringValue": "free" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "342134198272"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk3s1s1" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "ro" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/" }
+                        },
+                        {
+                          "key": "state",
+                          "value": { "stringValue": "reserved" }
+                        },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "0"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk3s1s1" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "ro" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/" }
+                        },
+                        { "key": "state", "value": { "stringValue": "used" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "152250597376"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk3s2" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/Preboot" }
+                        },
+                        { "key": "state", "value": { "stringValue": "free" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "342134198272"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk3s2" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/Preboot" }
+                        },
+                        {
+                          "key": "state",
+                          "value": { "stringValue": "reserved" }
+                        },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "0"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk3s2" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/Preboot" }
+                        },
+                        { "key": "state", "value": { "stringValue": "used" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "152250597376"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk3s4" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/Update" }
+                        },
+                        { "key": "state", "value": { "stringValue": "free" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "342134198272"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk3s4" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/Update" }
+                        },
+                        {
+                          "key": "state",
+                          "value": { "stringValue": "reserved" }
+                        },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "0"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk3s4" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/Update" }
+                        },
+                        { "key": "state", "value": { "stringValue": "used" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "152250597376"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk3s5" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/Data" }
+                        },
+                        { "key": "state", "value": { "stringValue": "free" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "342134198272"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk3s5" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/Data" }
+                        },
+                        {
+                          "key": "state",
+                          "value": { "stringValue": "reserved" }
+                        },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "0"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk3s5" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/Data" }
+                        },
+                        { "key": "state", "value": { "stringValue": "used" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "152250597376"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk3s6" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/VM" }
+                        },
+                        { "key": "state", "value": { "stringValue": "free" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "342134198272"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk3s6" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/VM" }
+                        },
+                        {
+                          "key": "state",
+                          "value": { "stringValue": "reserved" }
+                        },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "0"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk3s6" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/System/Volumes/VM" }
+                        },
+                        { "key": "state", "value": { "stringValue": "used" } },
+                        { "key": "type", "value": { "stringValue": "apfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "152250597376"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "extra-sum-attr-key",
+                          "value": { "stringValue": "extra-sum-attr-value" }
+                        },
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk4s1" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/Volumes/transfer" }
+                        },
+                        { "key": "state", "value": { "stringValue": "free" } },
+                        { "key": "type", "value": { "stringValue": "hfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "8717185024"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk4s1" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/Volumes/transfer" }
+                        },
+                        {
+                          "key": "state",
+                          "value": { "stringValue": "reserved" }
+                        },
+                        { "key": "type", "value": { "stringValue": "hfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "0"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk4s1" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/Volumes/transfer" }
+                        },
+                        { "key": "state", "value": { "stringValue": "used" } },
+                        { "key": "type", "value": { "stringValue": "hfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "7409389568"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk4s2" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/Volumes/UEFI_NTFS" }
+                        },
+                        { "key": "state", "value": { "stringValue": "free" } },
+                        { "key": "type", "value": { "stringValue": "msdos" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "14336"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk4s2" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/Volumes/UEFI_NTFS" }
+                        },
+                        {
+                          "key": "state",
+                          "value": { "stringValue": "reserved" }
+                        },
+                        { "key": "type", "value": { "stringValue": "msdos" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "0"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "/dev/disk4s2" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/Volumes/UEFI_NTFS" }
+                        },
+                        { "key": "state", "value": { "stringValue": "used" } },
+                        { "key": "type", "value": { "stringValue": "msdos" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "493568"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "devfs" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/dev" }
+                        },
+                        { "key": "state", "value": { "stringValue": "free" } },
+                        { "key": "type", "value": { "stringValue": "devfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "0"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "devfs" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/dev" }
+                        },
+                        {
+                          "key": "state",
+                          "value": { "stringValue": "reserved" }
+                        },
+                        { "key": "type", "value": { "stringValue": "devfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "0"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "devfs" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": { "stringValue": "/dev" }
+                        },
+                        { "key": "state", "value": { "stringValue": "used" } },
+                        { "key": "type", "value": { "stringValue": "devfs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "3000000",
+                      "asInt": "220672"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "map auto_home" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": {
+                            "stringValue": "/System/Volumes/Data/home"
+                          }
+                        },
+                        { "key": "state", "value": { "stringValue": "free" } },
+                        { "key": "type", "value": { "stringValue": "autofs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "0"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "map auto_home" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": {
+                            "stringValue": "/System/Volumes/Data/home"
+                          }
+                        },
+                        {
+                          "key": "state",
+                          "value": { "stringValue": "reserved" }
+                        },
+                        { "key": "type", "value": { "stringValue": "autofs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "0"
+                    },
+                    {
+                      "attributes": [
+                        {
+                          "key": "device",
+                          "value": { "stringValue": "map auto_home" }
+                        },
+                        { "key": "mode", "value": { "stringValue": "rw" } },
+                        {
+                          "key": "mountpoint",
+                          "value": {
+                            "stringValue": "/System/Volumes/Data/home"
+                          }
+                        },
+                        { "key": "state", "value": { "stringValue": "used" } },
+                        { "key": "type", "value": { "stringValue": "autofs" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "0"
+                    }
+                  ],
+                  "aggregationTemporality": 2
+                }
+              }
+            ]
+          }
+        ],
+        "schemaUrl": "https://opentelemetry.io/schemas/1.9.0"
+      }
+    ]
+  }
+}

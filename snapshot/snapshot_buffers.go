@@ -87,10 +87,9 @@ func (l *LogBuffer) Add(ld plog.Logs) {
 }
 
 // ConstructPayload condenses the buffer and serializes to protobuf
-func (l *LogBuffer) ConstructPayload(searchQuery *string, minimumTimestamp *time.Time) ([]byte, error) {
+func (l *LogBuffer) ConstructPayload(logsMarshaler plog.Marshaler, searchQuery *string, minimumTimestamp *time.Time) ([]byte, error) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	logsMarshaler := &plog.ProtoMarshaler{}
 
 	payloadLogs := plog.NewLogs()
 	for _, ld := range l.buffer {
@@ -174,10 +173,9 @@ func (l *MetricBuffer) Add(md pmetric.Metrics) {
 }
 
 // ConstructPayload condenses the buffer and serializes to protobuf
-func (l *MetricBuffer) ConstructPayload(searchQuery *string, minimumTimestamp *time.Time) ([]byte, error) {
+func (l *MetricBuffer) ConstructPayload(metricMarshaler pmetric.Marshaler, searchQuery *string, minimumTimestamp *time.Time) ([]byte, error) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	metricMarshaler := &pmetric.ProtoMarshaler{}
 
 	payloadMetrics := pmetric.NewMetrics()
 	for _, md := range l.buffer {
@@ -261,10 +259,9 @@ func (l *TraceBuffer) Add(td ptrace.Traces) {
 }
 
 // ConstructPayload condenses the buffer and serializes to protobuf
-func (l *TraceBuffer) ConstructPayload(searchQuery *string, minimumTimestamp *time.Time) ([]byte, error) {
+func (l *TraceBuffer) ConstructPayload(traceMarshaler ptrace.Marshaler, searchQuery *string, minimumTimestamp *time.Time) ([]byte, error) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	traceMarshaler := &ptrace.ProtoMarshaler{}
 
 	payloadTraces := ptrace.NewTraces()
 	for _, md := range l.buffer {
