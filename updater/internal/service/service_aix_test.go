@@ -18,12 +18,9 @@
 package service
 
 import (
-	"os"
 	"os/exec"
-	"path/filepath"
 	"testing"
 
-	"github.com/observiq/bindplane-agent/updater/internal/path"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 )
@@ -31,7 +28,7 @@ import (
 // NOTE: These tests must run as root in order to pass
 func TestaixUnixServiceInstall(t *testing.T) {
 	t.Run("Test install + uninstall", func(t *testing.T) {
-		uninstallService(t, installedServicePath, "aix-service")
+		uninstallService(t, "aix-service", "aix_svc")
 
 		l := &aixUnixService{
 			serviceName:       "aix-service",
@@ -52,8 +49,8 @@ func TestaixUnixServiceInstall(t *testing.T) {
 		requireServiceLoadedStatus(t, false)
 	})
 
-	t.Run("Test stop + start", func(t *testing.T) {
-		uninstallService(t, installedServicePath, "aix-service")
+	t.Run("Test start + stop", func(t *testing.T) {
+		uninstallService(t, "aix-service", "aix_svc")
 
 		l := &aixUnixService{
 			serviceName:       "aix-service",
@@ -63,7 +60,6 @@ func TestaixUnixServiceInstall(t *testing.T) {
 
 		err := l.install()
 		require.NoError(t, err)
-		require.FileExists(t, installedServicePath)
 
 		// We want to check that the service was actually loaded
 		requireServiceLoadedStatus(t, true)
@@ -80,45 +76,13 @@ func TestaixUnixServiceInstall(t *testing.T) {
 
 		err = l.uninstall()
 		require.NoError(t, err)
-		require.NoFileExists(t, installedServicePath)
 
 		// Make sure the service is no longer listed
 		requireServiceLoadedStatus(t, false)
 	})
 
-	t.Run("Test invalid path for input file", func(t *testing.T) {
-		installedServicePath := "/usr/lib/systemd/system/aix-service.service"
-		uninstallService(t, installedServicePath, "aix-service")
-
-		l := &aixUnixService{
-			serviceName:       "aix-service",
-			serviceIdentifier: "aix_svc",
-			logger:            zaptest.NewLogger(t),
-		}
-
-		err := l.install()
-		require.ErrorContains(t, err, "failed to open input file")
-		requireServiceLoadedStatus(t, false)
-	})
-
-	t.Run("Test invalid path for output file for install", func(t *testing.T) {
-		installedServicePath := "/usr/lib/systemd/system/dir-does-not-exist/aix-service.service"
-		uninstallService(t, installedServicePath, "aix-service")
-
-		l := &aixUnixService{
-			serviceName:       "aix-service",
-			serviceIdentifier: "aix_svc",
-			logger:            zaptest.NewLogger(t),
-		}
-
-		err := l.install()
-		require.ErrorContains(t, err, "failed to open output file")
-		requireServiceLoadedStatus(t, false)
-	})
-
 	t.Run("Uninstall fails if not installed", func(t *testing.T) {
-		installedServicePath := "/usr/lib/systemd/system/aix-service.service"
-		uninstallService(t, installedServicePath, "aix-service")
+		uninstallService(t, "aix-service", "aix_svc")
 
 		l := &aixUnixService{
 			serviceName:       "aix-service",
@@ -127,13 +91,12 @@ func TestaixUnixServiceInstall(t *testing.T) {
 		}
 
 		err := l.uninstall()
-		require.ErrorContains(t, err, "failed to disable unit")
+		require.ErrorContains(t, err, "disabling service failed")
 		requireServiceLoadedStatus(t, false)
 	})
 
 	t.Run("Start fails if service not found", func(t *testing.T) {
-		installedServicePath := "/usr/lib/systemd/system/aix-service.service"
-		uninstallService(t, installedServicePath, "aix-service")
+		uninstallService(t, "aix-service", "aix_svc")
 
 		l := &aixUnixService{
 			serviceName:       "aix-service",
@@ -142,12 +105,11 @@ func TestaixUnixServiceInstall(t *testing.T) {
 		}
 
 		err := l.Start()
-		require.ErrorContains(t, err, "running systemctl failed")
+		require.ErrorContains(t, err, "running service failed")
 	})
 
 	t.Run("Stop fails if service not found", func(t *testing.T) {
-		installedServicePath := "/usr/lib/systemd/system/aix-service.service"
-		uninstallService(t, installedServicePath, "aix-service")
+		uninstallService(t, "aix-service", "aix_svc")
 
 		l := &aixUnixService{
 			serviceName:       "aix-service",
@@ -156,95 +118,14 @@ func TestaixUnixServiceInstall(t *testing.T) {
 		}
 
 		err := l.Stop()
-		require.ErrorContains(t, err, "running systemctl failed")
-	})
-
-	t.Run("Backup installed service succeeds", func(t *testing.T) {
-		installedServicePath := "/usr/lib/systemd/system/aix-service.service"
-		uninstallService(t, installedServicePath, "aix-service")
-
-		newServiceFile := filepath.Join("testdata", "aix-service.service")
-		serviceFileContents, err := os.ReadFile(newServiceFile)
-		require.NoError(t, err)
-
-		installDir := t.TempDir()
-		require.NoError(t, os.MkdirAll(path.BackupDir(installDir), 0775))
-
-		d := &aixUnixService{
-			serviceName:       "aix-service",
-			serviceIdentifier: "aix_svc",
-			logger:            zaptest.NewLogger(t),
-		}
-
-		err = d.install()
-		require.NoError(t, err)
-		require.FileExists(t, installedServicePath)
-
-		// We want to check that the service was actually loaded
-		requireServiceLoadedStatus(t, true)
-
-		err = d.Backup()
-		require.NoError(t, err)
-		require.FileExists(t, path.BackupServiceFile(installDir))
-
-		backupServiceContents, err := os.ReadFile(path.BackupServiceFile(installDir))
-
-		require.Equal(t, serviceFileContents, backupServiceContents)
-		require.NoError(t, d.uninstall())
-	})
-
-	t.Run("Backup installed service fails if not installed", func(t *testing.T) {
-		installedServicePath := "/usr/lib/systemd/system/aix-service.service"
-		uninstallService(t, installedServicePath, "aix-service")
-
-		newServiceFile := filepath.Join("testdata", "aix-service.service")
-
-		installDir := t.TempDir()
-		require.NoError(t, os.MkdirAll(path.BackupDir(installDir), 0775))
-
-		d := &aixUnixService{
-			serviceName:       "aix-service",
-			serviceIdentifier: "aix_svc",
-			logger:            zaptest.NewLogger(t),
-		}
-
-		err := d.Backup()
-		require.ErrorContains(t, err, "failed to copy service file")
-	})
-
-	t.Run("Backup installed service fails if output file already exists", func(t *testing.T) {
-		installedServicePath := "/usr/lib/systemd/system/aix-service.service"
-		uninstallService(t, installedServicePath, "aix-service")
-
-		newServiceFile := filepath.Join("testdata", "aix-service.service")
-
-		installDir := t.TempDir()
-		require.NoError(t, os.MkdirAll(path.BackupDir(installDir), 0775))
-
-		d := &aixUnixService{
-			serviceName:       "aix-service",
-			serviceIdentifier: "aix_svc",
-			logger:            zaptest.NewLogger(t),
-		}
-
-		err := d.install()
-		require.NoError(t, err)
-		require.FileExists(t, installedServicePath)
-
-		// We want to check that the service was actually loaded
-		requireServiceLoadedStatus(t, true)
-
-		// Write the backup file before creating it; Backup should
-		// not ever overwrite an existing file
-		os.WriteFile(path.BackupServiceFile(installDir), []byte("file exists"), 0600)
-
-		err = d.Backup()
-		require.ErrorContains(t, err, "failed to copy service file")
+		require.ErrorContains(t, err, "stopping service failed")
 	})
 }
 
 // uninstallService is a helper that uninstalls the service manually for test setup, in case it is somehow leftover.
-func uninstallService(t *testing.T, installedPath, serviceName string) {
+func uninstallService(t *testing.T, serviceName string, serviceIdentifier string) {
+	cmd := exec.Command("rmitab", serviceIdentifier)
+	cmd = exec.Command("rmssys", "-s", serviceName)
 }
 
 const exitCodeServiceNotFound = 1
