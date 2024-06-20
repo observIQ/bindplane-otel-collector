@@ -135,6 +135,7 @@ func (l aixUnixService) Update() error {
 	return nil
 }
 
+// No files, no backups
 func (l aixUnixService) Backup() error {
 	return nil
 }
