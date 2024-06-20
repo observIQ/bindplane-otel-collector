@@ -24,13 +24,18 @@ if command -v systemctl >/dev/null 2>&1; then
   SVC_PRE=systemctl
 elif command -v service >/dev/null 2>&1; then
   SVC_PRE=service
+elif command -v mkssys > /dev/null 2>&1; then
+  SVC_PRE=mkssys
 fi
 
 # Script Constants
+COLLECTOR_USER="bindplane-otel-collector"
 TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env var
 INSTALL_DIR="/opt/bindplane-otel-collector"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor.yaml"
 PREREQS="curl printf $SVC_PRE sed uname cut"
+MANAGEMENT_YML_PATH="/opt/bindplane-otel-collector/manager.yaml"
+PREREQS="curl printf $SVC_PRE sed uname cut tr tar sudo"
 SCRIPT_NAME="$0"
 INDENT_WIDTH='  '
 indent=""
@@ -40,35 +45,40 @@ error_mode=false
 # Default Supervisor Config Hash
 DEFAULT_SUPERVISOR_CFG_HASH="ac4e6001f1b19d371bba6a2797ba0a55d7ca73151ba6908040598ca275c0efca"
 
-# out_file_path is the full path to the downloaded package (e.g. "/tmp/bindplane-otel-collector_linux_amd64.deb")
+# Require bash for AIX to create a standardized environment
+if [ "$(uname -s)" != "AIX" ]; then
+  PREREQS="bash $PREREQS"
+fi
+
+# out_file_path is the full path to the downloaded package (e.g. "/tmp/bindplane-otel-collector_{os}_amd64.deb")
 out_file_path="unknown"
+os="unknown"
+os_arch="unknown"
 
 # Colors
-if [ "$non_interactive" = "false" ]; then
-  num_colors=$(tput colors 2>/dev/null)
-  if test -n "$num_colors" && test "$num_colors" -ge 8; then
-    bold="$(tput bold)"
-    underline="$(tput smul)"
-    # standout can be bold or reversed colors dependent on terminal
-    standout="$(tput smso)"
-    reset="$(tput sgr0)"
-    bg_black="$(tput setab 0)"
-    bg_blue="$(tput setab 4)"
-    bg_cyan="$(tput setab 6)"
-    bg_green="$(tput setab 2)"
-    bg_magenta="$(tput setab 5)"
-    bg_red="$(tput setab 1)"
-    bg_white="$(tput setab 7)"
-    bg_yellow="$(tput setab 3)"
-    fg_black="$(tput setaf 0)"
-    fg_blue="$(tput setaf 4)"
-    fg_cyan="$(tput setaf 6)"
-    fg_green="$(tput setaf 2)"
-    fg_magenta="$(tput setaf 5)"
-    fg_red="$(tput setaf 1)"
-    fg_white="$(tput setaf 7)"
-    fg_yellow="$(tput setaf 3)"
-  fi
+num_colors=$(tput colors 2>/dev/null)
+if [ "$non_interactive" = "false" ] && [ "$(uname -s)" != AIX ] && test -n "$num_colors" && test "$num_colors" -ge 8; then
+  bold="$(tput bold)"
+  underline="$(tput smul)"
+  # standout can be bold or reversed colors dependent on terminal
+  standout="$(tput smso)"
+  reset="$(tput sgr0)"
+  bg_black="$(tput setab 0)"
+  bg_blue="$(tput setab 4)"
+  bg_cyan="$(tput setab 6)"
+  bg_green="$(tput setab 2)"
+  bg_magenta="$(tput setab 5)"
+  bg_red="$(tput setab 1)"
+  bg_white="$(tput setab 7)"
+  bg_yellow="$(tput setab 3)"
+  fg_black="$(tput setaf 0)"
+  fg_blue="$(tput setaf 4)"
+  fg_cyan="$(tput setaf 6)"
+  fg_green="$(tput setaf 2)"
+  fg_magenta="$(tput setaf 5)"
+  fg_red="$(tput setaf 1)"
+  fg_white="$(tput setaf 7)"
+  fg_yellow="$(tput setaf 3)"
 fi
 
 if [ -z "$reset" ]; then
@@ -80,8 +90,8 @@ fi
 # Helper Functions
 printf() {
   if [ "$non_interactive" = "false" ] || [ "$error_mode" = "true" ]; then
-    if command -v sed >/dev/null; then
-      command printf -- "$@" | sed -r "$sed_ignore s/^/$indent/g" # Ignore sole reset characters if defined
+    if [ "$(uname -s)" != "AIX" ] && command -v sed >/dev/null; then
+      command printf -- "$@" | sed -n "$sed_ignore s/^/$indent/g"  # Ignore sole reset characters if defined
     else
       # Ignore $* suggestion as this breaks the output
       # shellcheck disable=SC2145
@@ -193,7 +203,7 @@ Usage:
       Example: '-l http://my.domain.org/bindplane-otel-collector' will download from there.
 
   $(fg_yellow '-b, --base-url')
-      Defines the base of the download URL as '{base_url}/v{version}/{PACKAGE_NAME}_v{version}_linux_{os_arch}.{package_type}'.
+      Defines the base of the download URL as '{base_url}/v{version}/{PACKAGE_NAME}_v{version}_{os}_{os_arch}.{package_type}'.
       If not provided, this will default to '$DOWNLOAD_BASE'.
       Example: '-b http://my.domain.org/bindplane-otel-collector/binaries' will be used as the base of the download URL.
 
@@ -330,10 +340,10 @@ setup_installation() {
 }
 
 set_file_name() {
-  if [ -z "$version" ]; then
-    package_file_name="${PACKAGE_NAME}_linux_${arch}.${package_type}"
+  if [ -z "$version" ] ; then
+    package_file_name="${PACKAGE_NAME}_${os}_${os_arch}.${package_type}"
   else
-    package_file_name="${PACKAGE_NAME}_v${version}_linux_${arch}.${package_type}"
+    package_file_name="${PACKAGE_NAME}_v${version}_${os}_${os_arch}.${package_type}"
   fi
   out_file_path="$TMP_DIR/$package_file_name"
 }
@@ -365,37 +375,47 @@ set_proxy() {
   fi
 }
 
-set_os_arch() {
-  os_arch=$(uname -m)
-  case "$os_arch" in
-  # arm64 strings. These are from https://stackoverflow.com/questions/45125516/possible-values-for-uname-m
-  aarch64 | arm64 | aarch64_be | armv8b | armv8l)
-    os_arch="arm64"
-    ;;
-  x86_64)
-    os_arch="amd64"
-    ;;
-  # experimental PowerPC arch support for collector
-  ppc64)
-    os_arch="ppc64"
-    ;;
-  ppc64le)
-    os_arch="ppc64le"
-    ;;
-  # armv6/32bit. These are what raspberry pi can return, which is the main reason we support 32-bit arm
-  arm | armv6l | armv7l)
-    os_arch="arm"
-    ;;
-  *)
-    error_exit "$LINENO" "Unsupported os arch: $os_arch"
-    ;;
+
+set_os_arch()
+{
+  case "$os_arch" in 
+    # arm64 strings. These are from https://stackoverflow.com/questions/45125516/possible-values-for-uname-m
+    aarch64|arm64|aarch64_be|armv8b|armv8l)
+      os_arch="arm64"
+      ;;
+    x86_64)
+      os_arch="amd64"
+      ;;
+    # experimental PowerPC arch support for collector
+    ppc64)
+      os_arch="ppc64"
+      ;;
+    ppc64le)
+      os_arch="ppc64le"
+      ;;
+    powerpc)
+      if [ "$(uname -s)" = "AIX" ] && command -v bootinfo > /dev/null && [ "$(bootinfo -y)" = "64" ]; then
+        os_arch="ppc64"
+      elif command -v bootinfo > /dev/null; then
+        error_exit "$LINENO" "Command 'bootinfo' not found, OS likely isn't AIX, but we expect it to be"
+      else
+        error_exit "$LINENO" "uname returned arch of 'powerpc', but OS is either not AIX or not 64 bit. 'uname -s': $(uname -s), 'bootinfo -y': $(bootinfo -y)"
+      fi
+      ;;
+    # armv6/32bit. These are what raspberry pi can return, which is the main reason we support 32-bit arm
+    arm|armv6l|armv7l)
+      os_arch="arm"
+      ;;
+    *)
+      error_exit "$LINENO" "Unsupported os arch: $os_arch"
+      ;;
   esac
 }
 
 # Set the package type before install
 set_package_type() {
   # if package_path is set get the file extension otherwise look at what's available on the system
-  if [ -n "$package_path" ]; then
+  if [ -n "$package_path" ] && [ "$(uname -s)" != "AIX" ]; then
     case "$package_path" in
     *.deb)
       package_type="deb"
@@ -408,12 +428,14 @@ set_package_type() {
       ;;
     esac
   else
-    if command -v dpkg >/dev/null 2>&1; then
-      package_type="deb"
-    elif command -v rpm >/dev/null 2>&1; then
-      package_type="rpm"
+    if command -v dpkg > /dev/null 2>&1; then
+        package_type="deb"
+    elif command -v mkssys > /dev/null 2>&1; then
+        package_type="mkssys"
+    elif command -v rpm > /dev/null 2>&1; then
+        package_type="rpm"
     else
-      error_exit "$LINENO" "Could not find dpkg or rpm on the system"
+        error_exit "$LINENO" "Could not find mkssys, dpkg or rpm on the system"
     fi
   fi
 
@@ -441,7 +463,7 @@ set_download_urls() {
       base_url=$DOWNLOAD_BASE
     fi
 
-    collector_download_url="$base_url/v$version/${PACKAGE_NAME}_v${version}_linux_${os_arch}.${package_type}"
+    collector_download_url="$base_url/v$version/${PACKAGE_NAME}_v${version}_${os}_${os_arch}.${package_type}"
   else
     collector_download_url="$url"
   fi
@@ -586,28 +608,38 @@ os_check() {
   info "Checking that the operating system is supported..."
   os_type=$(uname -s)
   case "$os_type" in
-  Linux)
-    succeeded
-    ;;
-  *)
-    failed
-    error_exit "$LINENO" "The operating system $(fg_yellow "$os_type") is not supported by this script."
-    ;;
+    Linux)
+      succeeded
+      ;;
+    AIX)
+      succeeded
+      ;;
+    *)
+      failed
+      error_exit "$LINENO" "The operating system $(fg_yellow "$os_type") is not supported by this script."
+      ;;
   esac
+
+  # Create lowercase os variable
+  os=$(echo "$os_type" | tr '[:upper:]' '[:lower:]')
 }
 
 # This will check if the system architecture is supported.
 os_arch_check() {
   info "Checking for valid operating system architecture..."
-  arch=$(uname -m)
-  case "$arch" in
-  x86_64 | aarch64 | ppc64 | ppc64le | arm64 | aarch64_be | armv8b | armv8l | arm | armv6l | armv7l)
-    succeeded
-    ;;
-  *)
-    failed
-    error_exit "$LINENO" "The operating system architecture $(fg_yellow "$arch") is not supported by this script."
-    ;;
+  if [ "$(uname -s)" = "AIX" ]; then
+    os_arch=$(uname -p)
+  else
+    os_arch=$(uname -m)
+  fi
+  case "$os_arch" in 
+    x86_64|aarch64|powerpc|ppc64|ppc64le|arm64|aarch64_be|armv8b|armv8l|arm|armv6l|armv7l)
+      succeeded
+      ;;
+    *)
+      failed
+      error_exit "$LINENO" "The operating system architecture $(fg_yellow "$os_arch") is not supported by this script."
+      ;;
   esac
 }
 
@@ -636,23 +668,40 @@ dependencies_check() {
 }
 
 # This will check to ensure either dpkg or rpm is installed on the system
-package_type_check() {
+package_type_check()
+{
   info "Checking for package manager..."
-  if command -v dpkg >/dev/null 2>&1; then
-    succeeded
-  elif command -v rpm >/dev/null 2>&1; then
-    succeeded
+  if command -v dpkg > /dev/null 2>&1; then
+      succeeded
+  # Check ALL of the AIX commands needed
+  elif command -v mkssys > /dev/null 2>&1 \
+    && command -v mkgroup > /dev/null 2>&1 \
+    && command -v useradd > /dev/null 2>&1 \
+    && command -v startsrc > /dev/null 2>&1 \
+    && command -v stopsrc > /dev/null 2>&1 \
+    && command -v lssrc > /dev/null 2>&1 \
+    && command -v mkitab > /dev/null 2>&1 \
+    && command -v rmitab > /dev/null 2>&1 \
+    && command -v lsitab > /dev/null 2>&1; then
+      succeeded
+  elif command -v rpm > /dev/null 2>&1; then
+      succeeded
   else
-    failed
-    error_exit "$LINENO" "Could not find dpkg or rpm on the system"
+      failed
+      if [ "$(uname -s)" = "AIX" ]; then
+        error_exit "$LINENO" "Could not find AIX installation tools on the system"
+      else
+        error_exit "$LINENO" "Could not find dpkg or rpm on the system"
+      fi
   fi
 }
 
 # latest_version gets the tag of the latest release, without the v prefix.
-latest_version() {
-  curl -sSL -H"Accept: application/vnd.github.v3+json" https://api.github.com/repos/observIQ/bindplane-otel-collector/releases/latest |
-    grep "\"tag_name\"" |
-    sed -r 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
+latest_version()
+{
+  curl -sSL -H"Accept: application/vnd.github.v3+json" https://api.github.com/repos/observIQ/bindplane-otel-collector/releases/latest | \
+    grep "\"tag_name\"" | \
+    cut -d: -f2 | tr -d '"' | tr -d ' ' | tr -d ',' | tr -d 'v'
 }
 
 # This will install the package by downloading the archived agent,
@@ -683,11 +732,12 @@ install_package() {
   info "Installing package..."
   # if target install directory doesn't exist and we're using dpkg ensure a clean state
   # by checking for the package and running purge if it exists.
-  if [ ! -d "$INSTALL_DIR" ] && [ "$package_type" = "deb" ]; then
-    dpkg -s "bindplane-otel-collector" >/dev/null 2>&1 && dpkg --purge "bindplane-otel-collector" >/dev/null 2>&1
+  if [ ! -d "/opt/bindplane-otel-collector" ] && [ "$package_type" = "deb" ]; then
+    info "Running dpkg --purge to ensure a clean state"
+    dpkg -s "bindplane-otel-collector" > /dev/null 2>&1 && dpkg --purge "bindplane-otel-collector" > /dev/null 2>&1
   fi
 
-  unpack_package || error_exit "$LINENO" "Failed to extract package"
+  install_package_file || error_exit "$LINENO" "Failed to extract package"
   succeeded
 
   create_supervisor_config "$SUPERVISOR_YML_PATH"
@@ -705,7 +755,7 @@ install_package() {
       systemctl enable --now bindplane-otel-collector >/dev/null 2>&1 || error_exit "$LINENO" "Failed to enable service"
       succeeded
     fi
-  else
+  elif [ "$SVC_PRE" = "service" ]; then
     case "$(service bindplane-otel-collector status)" in
     *running*)
       # The service is running.
@@ -721,24 +771,97 @@ install_package() {
       succeeded
       ;;
     esac
+  elif [ "$SVC_PRE" = "mkssys" ]; then
+    case "$(lssrc -s bindplane-otel-collector | grep collector)" in
+      *active*)
+        # The service is running.
+        # We'll want to restart.
+        info "Restarting service..."
+        # AIX does not support service "restart", so stop and start instead
+        stopsrc -s bindplane-otel-collector
+        # Start the service with the proper environment variables
+        startsrc -s bindplane-otel-collector -a start -e "$(cat /etc/bindplane-otel-collector.aix.env)"
+        succeeded
+        ;;
+      *inoperative*)
+        info "Starting service..."
+        # Start the service with the proper environment variables
+        startsrc -s bindplane-otel-collector -a start -e "$(cat /etc/bindplane-otel-collector.aix.env)"
+        succeeded
+        ;;
+      *)
+        info "Creating, enabling and starting service..."
+        # Add the service, removing it if it already exists in order
+        # to make sure we have the most recent version
+        if lssrc -s bindplane-otel-collector > /dev/null 2>&1; then
+          rmssys -s bindplane-otel-collector
+        else
+          mkssys -s bindplane-otel-collector -p /opt/bindplane-otel-collector/bindplane-otel-collector -u "$(id -u bindplane-otel-collector)" -S -n15 -f9 -a '--config config.yaml --manager manager.yaml --logging logging.yaml'
+        fi
+
+        # Install the service to start on boot
+        # Removing it if it exists, in order to have the most recent version
+        if lsitab oiqcollector > /dev/null 2>&1; then
+          rmitab oiqcollector
+        else
+          # shellcheck disable=SC2016
+          mkitab 'oiqcollector:23456789:respawn:startsrc -s bindplane-otel-collector -a start -e "$(cat /etc/bindplane-otel-collector.aix.env)"'
+        fi
+
+        # Start the service with the proper environment variables
+        startsrc -s bindplane-otel-collector -a start -e "$(cat /etc/bindplane-otel-collector.aix.env)"
+
+        succeeded
+        ;;
+    esac
+  else
+    # This is an error state that should never be reached
+    error_exit "$LINENO" "Found an invalid SVC_PRE value in install_package()"
   fi
 
   success "BDOT installation complete!"
   decrease_indent
 }
 
-unpack_package() {
+# Install on AIX manually from tar.gz file
+install_aix()
+{
+  # Create the bindplane-otel-collector user and group. Group must be first.
+  mkgroup "$COLLECTOR_USER" > /dev/null 2>&1
+  useradd -d /opt/bindplane-otel-collector -g "$COLLECTOR_USER" -s "$(which bash)" "$COLLECTOR_USER" > /dev/null 2>&1
+
+  # Create the install directory
+  mkdir -p /opt/bindplane-otel-collector > /dev/null 2>&1
+
+  # Extract 
+  zcat "$out_file_path" | tar -Uxvf - -C /opt/bindplane-otel-collector > /dev/null 2>&1
+
+  # Move files to appropriate locations
+  mv /opt/bindplane-otel-collector/opentelemetry-java-contrib-jmx-metrics.jar /opt/ > /dev/null 2>&1
+  mv /opt/bindplane-otel-collector/install/bindplane-otel-collector.aix.env /etc/ > /dev/null 2>&1
+
+  # Set ownership
+  chown -R "$COLLECTOR_USER":"$COLLECTOR_USER" /opt/bindplane-otel-collector > /dev/null 2>&1
+  chown "$COLLECTOR_USER":"$COLLECTOR_USER" /opt/opentelemetry-java-contrib-jmx-metrics.jar > /dev/null 2>&1
+  chown "$COLLECTOR_USER":"$COLLECTOR_USER" /etc/bindplane-otel-collector.aix.env > /dev/null 2>&1
+}
+
+install_package_file()
+{
   case "$package_type" in
-  deb)
-    dpkg --force-confold -i "$out_file_path" >/dev/null || error_exit "$LINENO" "Failed to unpack package"
-    ;;
-  rpm)
-    rpm -U "$out_file_path" >/dev/null || error_exit "$LINENO" "Failed to unpack package"
-    ;;
-  *)
-    error "Unrecognized package type"
-    return 1
-    ;;
+    deb)
+      dpkg --force-confold -i "$out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
+      ;;
+    mkssys)
+      install_aix
+      ;;
+    rpm)
+      rpm -U "$out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
+      ;;
+    *)
+      error "Unrecognized package type"
+      return 1
+      ;;
   esac
   return 0
 }
@@ -821,27 +944,42 @@ display_results() {
   decrease_indent
   decrease_indent
 
-  banner "$(fg_green Installation Complete!)"
-  return 0
+    banner "$(fg_green Installation Complete!)"
+    return 0
 }
 
-uninstall_package() {
+uninstall_aix()
+{
+  # Remove files
+  rm -rf /opt/bindplane-otel-collector > /dev/null 2>&1
+  rm -f /opt/opentelemetry-java-contrib-jmx-metrics.jar > /dev/null 2>&1
+  rm -f /etc/bindplane-otel-collector.aix.env > /dev/null 2>&1
+}
+
+uninstall_package()
+{
   case "$package_type" in
-  deb)
-    dpkg -r "bindplane-otel-collector" >/dev/null 2>&1
-    ;;
-  rpm)
-    rpm -e "bindplane-otel-collector" >/dev/null 2>&1
-    ;;
-  *)
-    error "Unrecognized package type"
-    return 1
-    ;;
+    deb)
+      dpkg -r "bindplane-otel-collector" > /dev/null 2>&1
+      ;;
+    mkssys)
+      uninstall_aix
+      ;;
+    rpm)
+      rpm -e "bindplane-otel-collector" > /dev/null 2>&1
+      ;;
+    *)
+      error "Unrecognized package type"
+      return 1
+      ;;
   esac
   return 0
 }
 
-uninstall() {
+uninstall()
+{
+  bindplane_banner
+
   set_package_type
   banner "Uninstalling BDOT"
   increase_indent
@@ -852,13 +990,13 @@ uninstall() {
 
   if [ "$SVC_PRE" = "systemctl" ]; then
     info "Stopping service..."
-    systemctl stop bindplane-otel-collector >/dev/null || error_exit "$LINENO" "Failed to stop service"
+    systemctl stop bindplane-otel-collector > /dev/null || error_exit "$LINENO" "Failed to stop service"
     succeeded
 
     info "Disabling service..."
-    systemctl disable bindplane-otel-collector >/dev/null 2>&1 || error_exit "$LINENO" "Failed to disable service"
+    systemctl disable bindplane-otel-collector > /dev/null 2>&1 || error_exit "$LINENO" "Failed to disable service"
     succeeded
-  else
+  elif [ "$SVC_PRE" = "service" ]; then
     info "Stopping service..."
     service bindplane-otel-collector stop
     succeeded
@@ -867,6 +1005,31 @@ uninstall() {
     chkconfig bindplane-otel-collector on
     # rm -f /etc/init.d/bindplane-otel-collector
     succeeded
+  elif [ "$SVC_PRE" = "mkssys" ]; then
+    # Using case here to bypass =~ missing in the POSIX standard
+    case "$(lssrc -s bindplane-otel-collector | grep collector)" in
+      *active*)
+        # The service is running. Stop it before removing it.
+        info "Stopping service..."
+        stopsrc -s bindplane-otel-collector
+        ;;
+    esac
+
+    # Remove the service
+    info "Disabling service..."
+    if lsitab oiqcollector > /dev/null 2>&1; then
+      # Removing start on boot for the service
+      rmitab oiqcollector
+    fi
+    if lssrc -s bindplane-otel-collector > /dev/null 2>&1; then
+      # Removing actual service entry
+      rmssys -s bindplane-otel-collector
+    fi
+
+    succeeded
+  else
+    # This is an error state that should never be reached
+    error_exit "Found an invalid SVC_PRE value in uninstall()"
   fi
 
   info "Removing any existing manager.yaml..."
@@ -879,6 +1042,19 @@ uninstall() {
   decrease_indent
 
   banner "$(fg_green Uninstallation Complete!)"
+}
+
+check_aix_name_length()
+{
+  aix_name_size="$(lsattr -El sys0 -a max_logname | cut -d" " -f 2)"
+  if [ "$aix_name_size" -lt 24 ]; then
+    error "$LINENO" "Current system will result in '3004-694 Error adding Name is too long.' when attempting to create group and user"
+    error "Current max: $aix_name_size"
+    error "Please raise your limit to 24 characters or greater by issuing these command:"
+    error "    chdev -lsys0 -a max_logname=<NUM>"
+    error "and then rebooting the system before attempting to run this script again"
+    error_exit "Reference: https://www.ibm.com/support/pages/aix-security-change-maximum-length-user-name-group-name-or-password"
+  fi
 }
 
 main() {
@@ -970,6 +1146,12 @@ main() {
   fi
 
   interactive_check
+
+  # AIX needs a special check
+  if [ "$os" = "aix" ]; then
+    check_aix_name_length
+  fi
+
   connection_check
   setup_installation
   install_package
