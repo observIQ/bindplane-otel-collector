@@ -80,7 +80,7 @@ func (l aixUnixService) Stop() error {
 	//#nosec G204 -- serviceName is not determined by user input
 	cmd := exec.Command("stopsrc", "-s", l.serviceName)
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("running service failed: %w", err)
+		return fmt.Errorf("stopping service failed: %w", err)
 	}
 
 	return nil
@@ -92,7 +92,7 @@ func (l aixUnixService) install() error {
 	//#nosec G204 -- serviceName is not determined by user input
 	cmd := exec.Command("mkssys", "-s", l.serviceName, "-p /opt/observiq-otel-collector/observiq-otel-collector -u $(id -u observiq-otel-collector) -S -n15 -f9 -a '--config config.yaml --manager manager.yaml --logging logging.yaml'")
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("enabling service file failed: %w", err)
+		return fmt.Errorf("creating service file failed: %w", err)
 	}
 	// mkitab 'oiqcollector:23456789:respawn:startsrc -s observiq-otel-collector -a start -e "$(cat /opt/observiq-otel-collector/observiq-otel-collector.env)"'
 	//#nosec G204 -- serviceName is not determined by user input
@@ -106,18 +106,21 @@ func (l aixUnixService) install() error {
 
 // uninstalls the service
 func (l aixUnixService) uninstall() error {
-	// stopsrc -s observiq-otel-collector
-	//#nosec G204 -- serviceName is not determined by user input
-	cmd := exec.Command("stopsrc", "-s", l.serviceName)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("running service failed: %w", err)
-	}
+	// Stop the service first
+	l.Stop()
 
 	// rmitab oiqcollector
 	//#nosec G204 -- serviceIdentifier is not determined by user input
 	cmd = exec.Command("rmitab", l.serviceIdentifier)
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("reloading service failed: %w", err)
+		return fmt.Errorf("disabling service failed: %w", err)
+	}
+
+	// rmssys -s observiq-otel-collector
+	//#nosec G204 -- serviceName is not determined by user input
+	cmd = exec.Command("rmssys", "-s", l.serviceName)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("removing service failed: %w", err)
 	}
 
 	return nil
