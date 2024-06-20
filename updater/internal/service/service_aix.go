@@ -111,7 +111,7 @@ func (l aixUnixService) uninstall() error {
 
 	// rmitab oiqcollector
 	//#nosec G204 -- serviceIdentifier is not determined by user input
-	cmd = exec.Command("rmitab", l.serviceIdentifier)
+	cmd := exec.Command("rmitab", l.serviceIdentifier)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("disabling service failed: %w", err)
 	}
