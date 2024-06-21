@@ -326,7 +326,11 @@ setup_installation() {
     set_proxy
     set_file_name
   else
-    out_file_path="$package_path"
+    if [ ! -f "$package_path" ]; then
+      error_exit "$LINENO" "--file specified, but '$package_path' does not exist"
+    else
+      out_file_path="$package_path"
+    fi
   fi
 
   set_opamp_endpoint
