@@ -117,7 +117,7 @@ archives:
         dst: "install"
         strip_parent: true
       - src: release_deps/bindplane-otel-collector.aix.env
-        dst: "install/bindplane-otel-collector.aix.env"
+        dst: "install"
         strip_parent: true
     format_overrides:
       - goos: windows
