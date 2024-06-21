@@ -830,8 +830,8 @@ install_aix()
   mkgroup "$COLLECTOR_USER" > /dev/null 2>&1
   useradd -d /opt/bindplane-otel-collector -g "$COLLECTOR_USER" -s "$(which bash)" "$COLLECTOR_USER" > /dev/null 2>&1
 
-  # Create the install directory
-  mkdir -p /opt/bindplane-otel-collector > /dev/null 2>&1
+  # Create the install & storage directories
+  mkdir -p /opt/bindplane-otel-collector/storage > /dev/null 2>&1
 
   # Extract 
   zcat "$out_file_path" | tar -Uxvf - -C /opt/bindplane-otel-collector > /dev/null 2>&1
