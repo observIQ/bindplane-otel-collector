@@ -64,10 +64,16 @@ reset: kill
 	rm -rf agent.log effective.yaml local/supervisor_storage/ builder/
 
 .PHONY: build-all
-build-all: build-linux build-darwin build-windows
+build-all: build-linux build-unix build-windows
 
 .PHONY: build-linux
 build-linux: build-linux-amd64 build-linux-arm64 build-linux-ppc64 build-linux-ppc64le
+
+.PHONY: build-unix
+build-unix: build-darwin build-aix
+
+.PHONY: build-aix
+build-aix: build-aix-ppc64
 
 .PHONY: build-darwin
 build-darwin: build-darwin-amd64 build-darwin-arm64
@@ -94,6 +100,10 @@ build-linux-arm64:
 .PHONY: build-linux-arm
 build-linux-arm:
 	GOOS=linux GOARCH=arm $(MAKE) collector
+
+.PHONY: build-aix-ppc64
+build-aix-ppc64:
+	GOOS=aix GOARCH=ppc64 $(MAKE) build-binaries -j2
 
 .PHONY: build-darwin-amd64
 build-darwin-amd64:
@@ -237,6 +247,7 @@ release-prep:
 	@cp service/com.bindplane.otel.collector.plist release_deps/com.bindplane.otel.collector.plist
 	@jq ".files[] | select(.service != null)" windows/wix.json >> release_deps/windows_service.json
 	@cp service/bindplane-otel-collector release_deps/bindplane-otel-collector
+	@cp service/bindplane-otel-collector.aix.env release_deps/bindplane-otel-collector.aix.env
 
 # Build and sign, skip release and ignore dirty git tree
 .PHONY: release-test
