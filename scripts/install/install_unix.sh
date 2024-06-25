@@ -953,7 +953,7 @@ display_results()
       info "Stop Command:       $(fg_cyan "sudo service observiq-otel-collector stop")$(reset)"
       info "Status Command:     $(fg_cyan "sudo service observiq-otel-collector status")$(reset)"
     elif [ "$SVC_PRE" = "mkssys" ]; then
-      info "Start Command:      $(fg_cyan "sudo startsrc -s observiq-otel-collector -a start -e "$(cat /opt/observiq-otel-collector/observiq-otel-collector.env)"")$(reset)"
+      info "Start Command:      $(fg_cyan "sudo startsrc -s observiq-otel-collector -a start -e \"\$(cat /opt/observiq-otel-collector/observiq-otel-collector.env)\"")$(reset)"
       info "Stop Command:       $(fg_cyan "sudo stopsrc -s observiq-otel-collector")$(reset)"
       info "Status Command:     $(fg_cyan "sudo lssrc -s observiq-otel-collector")$(reset)"
     fi
