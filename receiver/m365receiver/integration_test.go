@@ -69,6 +69,9 @@ func TestM365Integration(t *testing.T) {
 	require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, actualMetrics,
 		pmetrictest.IgnoreMetricValues(), pmetrictest.IgnoreMetricDataPointsOrder(),
 		pmetrictest.IgnoreStartTimestamp(), pmetrictest.IgnoreTimestamp()))
+
+	rcvr.shutdown(context.Background())
+	mockServer.Close()
 }
 
 func newIntMockServer() *httptest.Server {

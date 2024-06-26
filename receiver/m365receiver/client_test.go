@@ -53,6 +53,8 @@ func TestGetToken(t *testing.T) {
 	testClient.authEndpoint = m365Mock.URL + "/err"
 	err = testClient.GetToken(context.Background())
 	assert.EqualError(t, err, "the provided tenant_id is incorrect or does not exist")
+
+	m365Mock.Close()
 }
 
 func TestGetCSV(t *testing.T) {
@@ -76,6 +78,8 @@ func TestGetCSV(t *testing.T) {
 	testClient.token = "err"
 	_, err = testClient.GetCSV(context.Background(), m365Mock.URL+"/getSharePointSiteUsageFileCounts(period='D7')")
 	assert.EqualError(t, err, "access token invalid")
+
+	m365Mock.Close()
 }
 
 func TestStartSubscription(t *testing.T) {
@@ -90,6 +94,8 @@ func TestStartSubscription(t *testing.T) {
 	//sub already enabled
 	err = testClient.StartSubscription(context.Background(), m365Mock.URL+"/testSubStartedAlready")
 	require.NoError(t, err)
+
+	m365Mock.Close()
 }
 
 func TestGetJSON(t *testing.T) {
@@ -119,6 +125,8 @@ func TestGetJSON(t *testing.T) {
 	testClient.token = "bad"
 	testJSON, err = testClient.GetJSON(context.Background(), m365Mock.URL+"/testJSON", "", "")
 	require.EqualError(t, err, "authorization denied")
+
+	m365Mock.Close()
 }
 
 func TestFollowLinkErr(t *testing.T) {
@@ -128,6 +136,8 @@ func TestFollowLinkErr(t *testing.T) {
 
 	_, err := testClient.followLink(context.Background(), m365Mock.URL+"/testJSONredirect")
 	require.EqualError(t, err, "authorization denied")
+
+	m365Mock.Close()
 }
 
 //	Mock Servers

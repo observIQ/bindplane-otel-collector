@@ -181,3 +181,31 @@ none_set:
       enabled: false
     sapnetweaver.node:
       enabled: false
+filter_set_include:
+  resource_attributes:
+    sapnetweaver.SID:
+      enabled: true
+      metrics_include:
+        - regexp: ".*"
+    sapnetweaver.instance:
+      enabled: true
+      metrics_include:
+        - regexp: ".*"
+    sapnetweaver.node:
+      enabled: true
+      metrics_include:
+        - regexp: ".*"
+filter_set_exclude:
+  resource_attributes:
+    sapnetweaver.SID:
+      enabled: true
+      metrics_exclude:
+        - strict: "sapnetweaver.SID-val"
+    sapnetweaver.instance:
+      enabled: true
+      metrics_exclude:
+        - strict: "sapnetweaver.instance-val"
+    sapnetweaver.node:
+      enabled: true
+      metrics_exclude:
+        - strict: "sapnetweaver.node-val"

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/filter"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/receiver"
@@ -1196,6 +1197,8 @@ type MetricsBuilder struct {
 	metricsCapacity                       int                  // maximum observed number of metrics per resource.
 	metricsBuffer                         pmetric.Metrics      // accumulates metrics data before emitting.
 	buildInfo                             component.BuildInfo  // contains version information.
+	resourceAttributeIncludeFilter        map[string]filter.Filter
+	resourceAttributeExcludeFilter        map[string]filter.Filter
 	metricM365OnedriveFilesActiveCount    metricM365OnedriveFilesActiveCount
 	metricM365OnedriveFilesCount          metricM365OnedriveFilesCount
 	metricM365OnedriveUserActivityCount   metricM365OnedriveUserActivityCount
@@ -1227,7 +1230,7 @@ func WithStartTime(startTime pcommon.Timestamp) metricBuilderOption {
 	}
 }
 
-func NewMetricsBuilder(mbc MetricsBuilderConfig, settings receiver.CreateSettings, options ...metricBuilderOption) *MetricsBuilder {
+func NewMetricsBuilder(mbc MetricsBuilderConfig, settings receiver.Settings, options ...metricBuilderOption) *MetricsBuilder {
 	mb := &MetricsBuilder{
 		config:                                mbc,
 		startTime:                             pcommon.NewTimestampFromTime(time.Now()),
@@ -1252,7 +1255,16 @@ func NewMetricsBuilder(mbc MetricsBuilderConfig, settings receiver.CreateSetting
 		metricM365TeamsMeetingsCount:          newMetricM365TeamsMeetingsCount(mbc.Metrics.M365TeamsMeetingsCount),
 		metricM365TeamsMessagesPrivateCount:   newMetricM365TeamsMessagesPrivateCount(mbc.Metrics.M365TeamsMessagesPrivateCount),
 		metricM365TeamsMessagesTeamCount:      newMetricM365TeamsMessagesTeamCount(mbc.Metrics.M365TeamsMessagesTeamCount),
+		resourceAttributeIncludeFilter:        make(map[string]filter.Filter),
+		resourceAttributeExcludeFilter:        make(map[string]filter.Filter),
 	}
+	if mbc.ResourceAttributes.M365TenantID.MetricsInclude != nil {
+		mb.resourceAttributeIncludeFilter["m365.tenant.id"] = filter.CreateFilter(mbc.ResourceAttributes.M365TenantID.MetricsInclude)
+	}
+	if mbc.ResourceAttributes.M365TenantID.MetricsExclude != nil {
+		mb.resourceAttributeExcludeFilter["m365.tenant.id"] = filter.CreateFilter(mbc.ResourceAttributes.M365TenantID.MetricsExclude)
+	}
+
 	for _, op := range options {
 		op(mb)
 	}
@@ -1310,7 +1322,7 @@ func WithStartTimeOverride(start pcommon.Timestamp) ResourceMetricsOption {
 func (mb *MetricsBuilder) EmitForResource(rmo ...ResourceMetricsOption) {
 	rm := pmetric.NewResourceMetrics()
 	ils := rm.ScopeMetrics().AppendEmpty()
-	ils.Scope().SetName("otelcol/m365receiver")
+	ils.Scope().SetName("github.com/observiq/bindplane-agent/receiver/m365receiver")
 	ils.Scope().SetVersion(mb.buildInfo.Version)
 	ils.Metrics().EnsureCapacity(mb.metricsCapacity)
 	mb.metricM365OnedriveFilesActiveCount.emit(ils.Metrics())
@@ -1336,6 +1348,17 @@ func (mb *MetricsBuilder) EmitForResource(rmo ...ResourceMetricsOption) {
 	for _, op := range rmo {
 		op(rm)
 	}
+	for attr, filter := range mb.resourceAttributeIncludeFilter {
+		if val, ok := rm.Resource().Attributes().Get(attr); ok && !filter.Matches(val.AsString()) {
+			return
+		}
+	}
+	for attr, filter := range mb.resourceAttributeExcludeFilter {
+		if val, ok := rm.Resource().Attributes().Get(attr); ok && filter.Matches(val.AsString()) {
+			return
+		}
+	}
+
 	if ils.Metrics().Len() > 0 {
 		mb.updateCapacity(rm)
 		rm.MoveTo(mb.metricsBuffer.ResourceMetrics().AppendEmpty())

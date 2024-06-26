@@ -43,6 +43,7 @@ type chronicleExporter struct {
 	cfg                     *Config
 	logger                  *zap.Logger
 	client                  api.IngestionServiceV2Client
+	conn                    *grpc.ClientConn
 	marshaler               logMarshaler
 	metrics                 *exporterMetrics
 	collectorID, exporterID string
@@ -90,6 +91,7 @@ func newExporter(cfg *Config, params exporter.CreateSettings, collectorID, expor
 		logger:      params.Logger,
 		metrics:     newExporterMetrics(uuidCID[:], customerID[:], exporterID, cfg.Namespace),
 		client:      api.NewIngestionServiceV2Client(conn),
+		conn:        conn,
 		marshaler:   marshaller,
 		collectorID: collectorID,
 		exporterID:  exporterID,
@@ -204,5 +206,10 @@ func (ce *chronicleExporter) startHostMetricsCollection(ctx context.Context) {
 func (ce *chronicleExporter) Shutdown(context.Context) error {
 	ce.cancel()
 	ce.wg.Wait()
+	if ce.conn != nil {
+		if err := ce.conn.Close(); err != nil {
+			return fmt.Errorf("connection close: %s", err)
+		}
+	}
 	return nil
 }

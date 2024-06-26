@@ -85,3 +85,15 @@ none_set:
   resource_attributes:
     m365.tenant.id:
       enabled: false
+filter_set_include:
+  resource_attributes:
+    m365.tenant.id:
+      enabled: true
+      metrics_include:
+        - regexp: ".*"
+filter_set_exclude:
+  resource_attributes:
+    m365.tenant.id:
+      enabled: true
+      metrics_exclude:
+        - strict: "m365.tenant.id-val"

@@ -1,0 +1,1915 @@
+{
+  "session_id": "my-session-id",
+  "telemetry_type": "traces",
+  "telemetry_payload": {
+    "resourceSpans": [
+      {
+        "resource": {
+          "attributes": [
+            { "key": "host.arch", "value": { "stringValue": "arm64" } },
+            {
+              "key": "host.name",
+              "value": { "stringValue": "Sams-M1-Pro.local" }
+            },
+            { "key": "service.name", "value": { "stringValue": "bindplane" } },
+            { "key": "service.version", "value": { "stringValue": "unknown" } }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "5d85207073e1d06b",
+                "parentSpanId": "01f07757e7bb6612",
+                "name": "featuregatedstore/ProcessorType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445369534000",
+                "endTimeUnixNano": "1706791445370505958",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "39f855dc7dbd43ae",
+                "parentSpanId": "1e9c016ee3394bea",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445371218000",
+                "endTimeUnixNano": "1706791445371594000",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "1e9c016ee3394bea",
+                "parentSpanId": "aa50d71d28f47370",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445370893000",
+                "endTimeUnixNano": "1706791445371594459",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "aa50d71d28f47370",
+                "parentSpanId": "560da73813316270",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445370893000",
+                "endTimeUnixNano": "1706791445371595166",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "560da73813316270",
+                "parentSpanId": "0f3367e6b090ffed",
+                "name": "pgstore/SourceType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445370892000",
+                "endTimeUnixNano": "1706791445371594708",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "0f3367e6b090ffed",
+                "parentSpanId": "fd55f461239efdfc",
+                "name": "featuregatedstore/SourceType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445370892000",
+                "endTimeUnixNano": "1706791445371595959",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "34db33f306cd28d6",
+                "parentSpanId": "5aceab5faac84e72",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445371252000",
+                "endTimeUnixNano": "1706791445371621792",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "5aceab5faac84e72",
+                "parentSpanId": "96cebc89a09695f9",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445370905000",
+                "endTimeUnixNano": "1706791445371622334",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "96cebc89a09695f9",
+                "parentSpanId": "ed9b4f8caac8c99e",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445370904000",
+                "endTimeUnixNano": "1706791445371621958",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "ed9b4f8caac8c99e",
+                "parentSpanId": "ac5df0c7e93047f1",
+                "name": "pgstore/SourceType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445370904000",
+                "endTimeUnixNano": "1706791445371622458",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "ac5df0c7e93047f1",
+                "parentSpanId": "01f07757e7bb6612",
+                "name": "featuregatedstore/SourceType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445370903000",
+                "endTimeUnixNano": "1706791445371623000",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "439f48f98419cd32",
+                "parentSpanId": "ac1591195af28043",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372193000",
+                "endTimeUnixNano": "1706791445372255042",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "ac1591195af28043",
+                "parentSpanId": "7a0d816f78afc130",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445371916000",
+                "endTimeUnixNano": "1706791445372256000",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "7a0d816f78afc130",
+                "parentSpanId": "fa26c6c00e05b5eb",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445371915000",
+                "endTimeUnixNano": "1706791445372255708",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "fa26c6c00e05b5eb",
+                "parentSpanId": "fd55f461239efdfc",
+                "name": "pgstore/Destination",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445371914000",
+                "endTimeUnixNano": "1706791445372255500",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "bb03baad52e8e234",
+                "parentSpanId": "fd5ad671cccf90ac",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372232000",
+                "endTimeUnixNano": "1706791445372285833",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "fd5ad671cccf90ac",
+                "parentSpanId": "9362c54ca8d2781f",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445371921000",
+                "endTimeUnixNano": "1706791445372286291",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "9362c54ca8d2781f",
+                "parentSpanId": "84b85b95e4e3302c",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445371921000",
+                "endTimeUnixNano": "1706791445372286917",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "84b85b95e4e3302c",
+                "parentSpanId": "01f07757e7bb6612",
+                "name": "pgstore/Destination",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445371920000",
+                "endTimeUnixNano": "1706791445372286750",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "b064b57576599977",
+                "parentSpanId": "5caae46954be319e",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372515000",
+                "endTimeUnixNano": "1706791445372638125",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "5caae46954be319e",
+                "parentSpanId": "6a0757daee65f85d",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372258000",
+                "endTimeUnixNano": "1706791445372639250",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "6a0757daee65f85d",
+                "parentSpanId": "87ec389ec0a90e57",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372258000",
+                "endTimeUnixNano": "1706791445372639833",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "87ec389ec0a90e57",
+                "parentSpanId": "3d1d65aa7a6498e2",
+                "name": "pgstore/DestinationType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372257000",
+                "endTimeUnixNano": "1706791445372639375",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "3d1d65aa7a6498e2",
+                "parentSpanId": "fd55f461239efdfc",
+                "name": "featuregatedstore/DestinationType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372257000",
+                "endTimeUnixNano": "1706791445372640333",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "8759e7f478277358",
+                "parentSpanId": "ac718a9ec3ef8ce8",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372561000",
+                "endTimeUnixNano": "1706791445372673791",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "ac718a9ec3ef8ce8",
+                "parentSpanId": "547d3cefd8be11ba",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372289000",
+                "endTimeUnixNano": "1706791445372674042",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "547d3cefd8be11ba",
+                "parentSpanId": "cc75d9bcab91629f",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372289000",
+                "endTimeUnixNano": "1706791445372674709",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "cc75d9bcab91629f",
+                "parentSpanId": "98bca1b4ce950e6a",
+                "name": "pgstore/DestinationType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372288000",
+                "endTimeUnixNano": "1706791445372674208",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "98bca1b4ce950e6a",
+                "parentSpanId": "01f07757e7bb6612",
+                "name": "featuregatedstore/DestinationType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372288000",
+                "endTimeUnixNano": "1706791445372675000",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "4c5347222741d80a",
+                "parentSpanId": "31427ef8f1cdb87e",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373202000",
+                "endTimeUnixNano": "1706791445373307000",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "31427ef8f1cdb87e",
+                "parentSpanId": "623a6ef09a05d78e",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372919000",
+                "endTimeUnixNano": "1706791445373310333",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "623a6ef09a05d78e",
+                "parentSpanId": "eabea48cc976c26c",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372919000",
+                "endTimeUnixNano": "1706791445373310958",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "eabea48cc976c26c",
+                "parentSpanId": "59c6fbff32109911",
+                "name": "pgstore/ProcessorType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372918000",
+                "endTimeUnixNano": "1706791445373310584",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "59c6fbff32109911",
+                "parentSpanId": "01f07757e7bb6612",
+                "name": "featuregatedstore/ProcessorType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372918000",
+                "endTimeUnixNano": "1706791445373311500",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "af9f808e0386dcc1",
+                "parentSpanId": "81d1379f833e45e4",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373215000",
+                "endTimeUnixNano": "1706791445373317417",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "81d1379f833e45e4",
+                "parentSpanId": "8c1b5f014af598db",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372895000",
+                "endTimeUnixNano": "1706791445373318125",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "8c1b5f014af598db",
+                "parentSpanId": "ec1965c48fa74dd8",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372894000",
+                "endTimeUnixNano": "1706791445373317791",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "ec1965c48fa74dd8",
+                "parentSpanId": "2be401733ad05f07",
+                "name": "pgstore/ProcessorType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372894000",
+                "endTimeUnixNano": "1706791445373318500",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "2be401733ad05f07",
+                "parentSpanId": "fd55f461239efdfc",
+                "name": "featuregatedstore/ProcessorType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445372893000",
+                "endTimeUnixNano": "1706791445373318417",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "fe61a5e73fdfcd54",
+                "parentSpanId": "1073bab272ed8d99",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373681000",
+                "endTimeUnixNano": "1706791445373741542",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "1073bab272ed8d99",
+                "parentSpanId": "6482ba65fc5d6aea",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373405000",
+                "endTimeUnixNano": "1706791445373742542",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "6482ba65fc5d6aea",
+                "parentSpanId": "8a7b5c2c9a64b49b",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373404000",
+                "endTimeUnixNano": "1706791445373742291",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "8a7b5c2c9a64b49b",
+                "parentSpanId": "fd55f461239efdfc",
+                "name": "pgstore/Destination",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373404000",
+                "endTimeUnixNano": "1706791445373743042",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "73cf26fff96c6144",
+                "parentSpanId": "92b6c441dbaf26e7",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373702000",
+                "endTimeUnixNano": "1706791445373755459",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "92b6c441dbaf26e7",
+                "parentSpanId": "b765ba46b31ea2b7",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373395000",
+                "endTimeUnixNano": "1706791445373756125",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "b765ba46b31ea2b7",
+                "parentSpanId": "edfdd26910042116",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373394000",
+                "endTimeUnixNano": "1706791445373756125",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "edfdd26910042116",
+                "parentSpanId": "01f07757e7bb6612",
+                "name": "pgstore/Destination",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373393000",
+                "endTimeUnixNano": "1706791445373756042",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "9838adef042dc27f",
+                "parentSpanId": "ee6eba613911c7f7",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373993000",
+                "endTimeUnixNano": "1706791445374104125",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "ee6eba613911c7f7",
+                "parentSpanId": "8fd1f88bb661dbbf",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373745000",
+                "endTimeUnixNano": "1706791445374105625",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "8fd1f88bb661dbbf",
+                "parentSpanId": "4518fe3e7e061d28",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373744000",
+                "endTimeUnixNano": "1706791445374105292",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "4518fe3e7e061d28",
+                "parentSpanId": "dc8f0547997bbf7a",
+                "name": "pgstore/DestinationType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373744000",
+                "endTimeUnixNano": "1706791445374106000",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "dc8f0547997bbf7a",
+                "parentSpanId": "fd55f461239efdfc",
+                "name": "featuregatedstore/DestinationType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373743000",
+                "endTimeUnixNano": "1706791445374106125",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "b3a494cb25e7968e",
+                "parentSpanId": "93e5965556047830",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445374013000",
+                "endTimeUnixNano": "1706791445374128917",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "93e5965556047830",
+                "parentSpanId": "48e733575bb79f9a",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373758000",
+                "endTimeUnixNano": "1706791445374128916",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "48e733575bb79f9a",
+                "parentSpanId": "ab1f6cb09be6fd07",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373758000",
+                "endTimeUnixNano": "1706791445374129583",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "ab1f6cb09be6fd07",
+                "parentSpanId": "2a2838388f079090",
+                "name": "pgstore/DestinationType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373757000",
+                "endTimeUnixNano": "1706791445374129084",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "2a2838388f079090",
+                "parentSpanId": "01f07757e7bb6612",
+                "name": "featuregatedstore/DestinationType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445373757000",
+                "endTimeUnixNano": "1706791445374129917",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "3d367cddad3982cb",
+                "parentSpanId": "58eb2369bc29028b",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445374690000",
+                "endTimeUnixNano": "1706791445375289875",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "58eb2369bc29028b",
+                "parentSpanId": "8b48d61bb3bd84b5",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445374349000",
+                "endTimeUnixNano": "1706791445375291042",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "8b48d61bb3bd84b5",
+                "parentSpanId": "ea1323fc9fa7bbfb",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445374349000",
+                "endTimeUnixNano": "1706791445375291667",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "ea1323fc9fa7bbfb",
+                "parentSpanId": "883ad1808f1225df",
+                "name": "pgstore/ProcessorType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445374348000",
+                "endTimeUnixNano": "1706791445375291291",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "883ad1808f1225df",
+                "parentSpanId": "fd55f461239efdfc",
+                "name": "featuregatedstore/ProcessorType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445374348000",
+                "endTimeUnixNano": "1706791445375292333",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "8b340a6af31402a6",
+                "parentSpanId": "1324f3c06efff713",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445374683000",
+                "endTimeUnixNano": "1706791445375292458",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "1324f3c06efff713",
+                "parentSpanId": "0389a1ce82df8073",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445374369000",
+                "endTimeUnixNano": "1706791445375293083",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "0389a1ce82df8073",
+                "parentSpanId": "fbaba0d15c7fb273",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445374368000",
+                "endTimeUnixNano": "1706791445375292916",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "fbaba0d15c7fb273",
+                "parentSpanId": "2ec705763a482c63",
+                "name": "pgstore/ProcessorType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445374368000",
+                "endTimeUnixNano": "1706791445375293750",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "2ec705763a482c63",
+                "parentSpanId": "01f07757e7bb6612",
+                "name": "featuregatedstore/ProcessorType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445374367000",
+                "endTimeUnixNano": "1706791445375293708",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "d895d7bb7f1e1e22",
+                "parentSpanId": "aa9bc90319da6537",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445376038000",
+                "endTimeUnixNano": "1706791445376188917",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "aa9bc90319da6537",
+                "parentSpanId": "a5f8b395ad89fb20",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445375734000",
+                "endTimeUnixNano": "1706791445376190083",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "a5f8b395ad89fb20",
+                "parentSpanId": "cdff48ed0c3e72ae",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445375734000",
+                "endTimeUnixNano": "1706791445376190834",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "cdff48ed0c3e72ae",
+                "parentSpanId": "b67f47ab8ceb6c2c",
+                "name": "pgstore/ProcessorType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445375733000",
+                "endTimeUnixNano": "1706791445376190500",
+                "status": {}
+              },
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "b67f47ab8ceb6c2c",
+                "parentSpanId": "fd55f461239efdfc",
+                "name": "featuregatedstore/ProcessorType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445375733000",
+                "endTimeUnixNano": "1706791445376191584",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "d501cddc5c10bb68",
+                "parentSpanId": "eff5bf5ccd3ab227",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445376044000",
+                "endTimeUnixNano": "1706791445376214000",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "eff5bf5ccd3ab227",
+                "parentSpanId": "3e9b9f81e55ccd89",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445375749000",
+                "endTimeUnixNano": "1706791445376214125",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "3e9b9f81e55ccd89",
+                "parentSpanId": "220b7c5429a375d4",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445375748000",
+                "endTimeUnixNano": "1706791445376213958",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "220b7c5429a375d4",
+                "parentSpanId": "924c1623bafaba3b",
+                "name": "pgstore/ProcessorType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445375748000",
+                "endTimeUnixNano": "1706791445376214708",
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "924c1623bafaba3b",
+                "parentSpanId": "01f07757e7bb6612",
+                "name": "featuregatedstore/ProcessorType",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445375747000",
+                "endTimeUnixNano": "1706791445376214834",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "18a40a19cbb3e254",
+                "parentSpanId": "9e9edb4efbb989ef",
+                "name": "pgstore/getConfigurationIndex",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445912659000",
+                "endTimeUnixNano": "1706791445912660750",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "9e9edb4efbb989ef",
+                "parentSpanId": "9d5a7e824fa7ba3b",
+                "name": "pgstore/ConfigurationIndex",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445912658000",
+                "endTimeUnixNano": "1706791445912667166",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "b296ae6c001f640a",
+                "parentSpanId": "f58f50240bd0ebcb",
+                "name": "pgstore/acquireAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445913897000",
+                "endTimeUnixNano": "1706791445914167041",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "5f43117727ebc00e",
+                "parentSpanId": "cce7e1ec6abeb8dc",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445915074000",
+                "endTimeUnixNano": "1706791445916449917",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "cce7e1ec6abeb8dc",
+                "parentSpanId": "f58f50240bd0ebcb",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445914332000",
+                "endTimeUnixNano": "1706791445916456958",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "3536cf01c143e85f",
+                "parentSpanId": "cc9471536eccd5db",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445918350000",
+                "endTimeUnixNano": "1706791445919373083",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "cc9471536eccd5db",
+                "parentSpanId": "bc09affd2efa24ae",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445917392000",
+                "endTimeUnixNano": "1706791445919379208",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "bc09affd2efa24ae",
+                "parentSpanId": "09ef41113f7d7845",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445917390000",
+                "endTimeUnixNano": "1706791445919379917",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "09ef41113f7d7845",
+                "parentSpanId": "f58f50240bd0ebcb",
+                "name": "pgstore/pgEditConfiguration",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445917387000",
+                "endTimeUnixNano": "1706791445919490917",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "aa56c92fbc435074",
+                "parentSpanId": "5fc019ad71775af4",
+                "name": "pgstore/addTransitiveUpdates",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445919632000",
+                "endTimeUnixNano": "1706791445919633917",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "5fc019ad71775af4",
+                "parentSpanId": "f58f50240bd0ebcb",
+                "name": "pgstore/notify",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445919629000",
+                "endTimeUnixNano": "1706791445919634792",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "185ab719965503f6",
+                "parentSpanId": "f58f50240bd0ebcb",
+                "name": "pgstore/releaseAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445919637000",
+                "endTimeUnixNano": "1706791445919906375",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "f58f50240bd0ebcb",
+                "parentSpanId": "9d5a7e824fa7ba3b",
+                "name": "pgstore/UpdateRollout",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445913891000",
+                "endTimeUnixNano": "1706791445919909125",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "61c28a1ebe9a64e8",
+                "parentSpanId": "343173155818d664",
+                "name": "pgstore/acquireAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445919918000",
+                "endTimeUnixNano": "1706791445920184208",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "1db8a9899aca2909",
+                "parentSpanId": "c85313d8e38e60c0",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445920986000",
+                "endTimeUnixNano": "1706791445921631916",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "c85313d8e38e60c0",
+                "parentSpanId": "343173155818d664",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445920299000",
+                "endTimeUnixNano": "1706791445921637667",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "dee65f909bbc0d64",
+                "parentSpanId": "ea20cd55767a0599",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445923120000",
+                "endTimeUnixNano": "1706791445923689583",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "ea20cd55767a0599",
+                "parentSpanId": "0cc1b95036e397be",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445922423000",
+                "endTimeUnixNano": "1706791445923695125",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "0cc1b95036e397be",
+                "parentSpanId": "849c53c707b9f279",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445922422000",
+                "endTimeUnixNano": "1706791445923696417",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "849c53c707b9f279",
+                "parentSpanId": "343173155818d664",
+                "name": "pgstore/pgEditConfiguration",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445922419000",
+                "endTimeUnixNano": "1706791445923777000",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "dead9c5716ba621d",
+                "parentSpanId": "845f46aa58bbcb19",
+                "name": "pgstore/addTransitiveUpdates",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445923904000",
+                "endTimeUnixNano": "1706791445923905459",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "845f46aa58bbcb19",
+                "parentSpanId": "343173155818d664",
+                "name": "pgstore/notify",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445923902000",
+                "endTimeUnixNano": "1706791445923907417",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "17c792e43c54f830",
+                "parentSpanId": "343173155818d664",
+                "name": "pgstore/releaseAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445923908000",
+                "endTimeUnixNano": "1706791445924146459",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "343173155818d664",
+                "parentSpanId": "9d5a7e824fa7ba3b",
+                "name": "pgstore/UpdateRollout",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445919913000",
+                "endTimeUnixNano": "1706791445924148792",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "b6e7f0ae7967d288",
+                "parentSpanId": "38ff7d679d77bdbd",
+                "name": "pgstore/acquireAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445924159000",
+                "endTimeUnixNano": "1706791445924361000",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "83e3224e213642fa",
+                "parentSpanId": "48c2cef07ce74c65",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445925082000",
+                "endTimeUnixNano": "1706791445925556834",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "48c2cef07ce74c65",
+                "parentSpanId": "38ff7d679d77bdbd",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445924467000",
+                "endTimeUnixNano": "1706791445925565458",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "aa9d17b7b3c4ea09",
+                "parentSpanId": "6b63f670942e88f2",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445926821000",
+                "endTimeUnixNano": "1706791445927498625",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "6b63f670942e88f2",
+                "parentSpanId": "88ff93a450488c13",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445926216000",
+                "endTimeUnixNano": "1706791445927501542",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "88ff93a450488c13",
+                "parentSpanId": "1e96a9988bef1b05",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445926214000",
+                "endTimeUnixNano": "1706791445927501625",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "1e96a9988bef1b05",
+                "parentSpanId": "38ff7d679d77bdbd",
+                "name": "pgstore/pgEditConfiguration",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445926212000",
+                "endTimeUnixNano": "1706791445927556459",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "5a055056ad7713e5",
+                "parentSpanId": "b6e1d82a58e8fd61",
+                "name": "pgstore/addTransitiveUpdates",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445927700000",
+                "endTimeUnixNano": "1706791445927702458",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "b6e1d82a58e8fd61",
+                "parentSpanId": "38ff7d679d77bdbd",
+                "name": "pgstore/notify",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445927698000",
+                "endTimeUnixNano": "1706791445927704250",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "1a79a3b2c24f43db",
+                "parentSpanId": "38ff7d679d77bdbd",
+                "name": "pgstore/releaseAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445927705000",
+                "endTimeUnixNano": "1706791445928022709",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "38ff7d679d77bdbd",
+                "parentSpanId": "9d5a7e824fa7ba3b",
+                "name": "pgstore/UpdateRollout",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445924153000",
+                "endTimeUnixNano": "1706791445928025459",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "bd29d8d73527c437",
+                "parentSpanId": "f667fcb4d9278ef3",
+                "name": "pgstore/acquireAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445928036000",
+                "endTimeUnixNano": "1706791445928253125",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "850448ca72ab8c7e",
+                "parentSpanId": "fc0c17bdf1248a4b",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445928966000",
+                "endTimeUnixNano": "1706791445929417833",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "fc0c17bdf1248a4b",
+                "parentSpanId": "f667fcb4d9278ef3",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445928344000",
+                "endTimeUnixNano": "1706791445929422500",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "3db6d250c2670120",
+                "parentSpanId": "b4fdd461cf7cff72",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445930719000",
+                "endTimeUnixNano": "1706791445931223792",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "b4fdd461cf7cff72",
+                "parentSpanId": "c3b8a5e5232d4f97",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445930124000",
+                "endTimeUnixNano": "1706791445931226000",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "c3b8a5e5232d4f97",
+                "parentSpanId": "9058a7f1ddbdb478",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445930123000",
+                "endTimeUnixNano": "1706791445931227292",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "9058a7f1ddbdb478",
+                "parentSpanId": "f667fcb4d9278ef3",
+                "name": "pgstore/pgEditConfiguration",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445930120000",
+                "endTimeUnixNano": "1706791445931289667",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "64bdb41cf5cf5488",
+                "parentSpanId": "174ceb1bea9655e4",
+                "name": "pgstore/addTransitiveUpdates",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445931528000",
+                "endTimeUnixNano": "1706791445931530167",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "174ceb1bea9655e4",
+                "parentSpanId": "f667fcb4d9278ef3",
+                "name": "pgstore/notify",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445931525000",
+                "endTimeUnixNano": "1706791445931531541",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "a5d5cb6812b504eb",
+                "parentSpanId": "f667fcb4d9278ef3",
+                "name": "pgstore/releaseAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445931533000",
+                "endTimeUnixNano": "1706791445931859917",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "f667fcb4d9278ef3",
+                "parentSpanId": "9d5a7e824fa7ba3b",
+                "name": "pgstore/UpdateRollout",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445928032000",
+                "endTimeUnixNano": "1706791445931865666",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "742646f2a069a533",
+                "parentSpanId": "a502177e675181ba",
+                "name": "pgstore/acquireAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445931875000",
+                "endTimeUnixNano": "1706791445932189291",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "af80a97174fb9690",
+                "parentSpanId": "d8578a54be7b449a",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445933082000",
+                "endTimeUnixNano": "1706791445933524042",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "d8578a54be7b449a",
+                "parentSpanId": "a502177e675181ba",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445932312000",
+                "endTimeUnixNano": "1706791445933525458",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "35563160cfcceaed",
+                "parentSpanId": "83a7c9b53a487359",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445935438000",
+                "endTimeUnixNano": "1706791445935873208",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "83a7c9b53a487359",
+                "parentSpanId": "b1f35deb03b68692",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445934726000",
+                "endTimeUnixNano": "1706791445935876667",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "b1f35deb03b68692",
+                "parentSpanId": "d4cc9c9ef3675f58",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445934724000",
+                "endTimeUnixNano": "1706791445935877375",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "d4cc9c9ef3675f58",
+                "parentSpanId": "a502177e675181ba",
+                "name": "pgstore/pgEditConfiguration",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445934719000",
+                "endTimeUnixNano": "1706791445935973000",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "67dc50cbcf1a0507",
+                "parentSpanId": "dc67925deaac8e96",
+                "name": "pgstore/addTransitiveUpdates",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445936169000",
+                "endTimeUnixNano": "1706791445936170958",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "dc67925deaac8e96",
+                "parentSpanId": "a502177e675181ba",
+                "name": "pgstore/notify",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445936167000",
+                "endTimeUnixNano": "1706791445936172167",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "78bbc878254952f1",
+                "parentSpanId": "a502177e675181ba",
+                "name": "pgstore/releaseAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445936174000",
+                "endTimeUnixNano": "1706791445937520417",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "a502177e675181ba",
+                "parentSpanId": "9d5a7e824fa7ba3b",
+                "name": "pgstore/UpdateRollout",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445931870000",
+                "endTimeUnixNano": "1706791445937527333",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "942d1791aef3d492",
+                "parentSpanId": "a894c9beda2d173a",
+                "name": "pgstore/acquireAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445937543000",
+                "endTimeUnixNano": "1706791445937820041",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "0ccc6475795e4cc0",
+                "parentSpanId": "a87163b208c61459",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445960465000",
+                "endTimeUnixNano": "1706791445961888125",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "a87163b208c61459",
+                "parentSpanId": "a894c9beda2d173a",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445937922000",
+                "endTimeUnixNano": "1706791445961896542",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "3eadb90414f2cf22",
+                "parentSpanId": "804ce3fb1b57be5d",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445971633000",
+                "endTimeUnixNano": "1706791445973101000",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "804ce3fb1b57be5d",
+                "parentSpanId": "5236aa938eb9341c",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445962593000",
+                "endTimeUnixNano": "1706791445973109084",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "5236aa938eb9341c",
+                "parentSpanId": "ca3b8e53681a9e8d",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445962592000",
+                "endTimeUnixNano": "1706791445973110334",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "ca3b8e53681a9e8d",
+                "parentSpanId": "a894c9beda2d173a",
+                "name": "pgstore/pgEditConfiguration",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445962589000",
+                "endTimeUnixNano": "1706791445973258875",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "c3ea8f993f9009ba",
+                "parentSpanId": "94557eef510d0814",
+                "name": "pgstore/addTransitiveUpdates",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445973575000",
+                "endTimeUnixNano": "1706791445973576917",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "94557eef510d0814",
+                "parentSpanId": "a894c9beda2d173a",
+                "name": "pgstore/notify",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445973572000",
+                "endTimeUnixNano": "1706791445973579333",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "8906c43abedb6bd9",
+                "parentSpanId": "a894c9beda2d173a",
+                "name": "pgstore/releaseAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445973581000",
+                "endTimeUnixNano": "1706791445975115042",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "a894c9beda2d173a",
+                "parentSpanId": "9d5a7e824fa7ba3b",
+                "name": "pgstore/UpdateRollout",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445937536000",
+                "endTimeUnixNano": "1706791445975119416",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "f141ff98614cfc0c",
+                "parentSpanId": "078ab0ab7eb707b2",
+                "name": "pgstore/acquireAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445975133000",
+                "endTimeUnixNano": "1706791445975734417",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "e185a7e1c60473b8",
+                "parentSpanId": "f06908731ed62890",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445976351000",
+                "endTimeUnixNano": "1706791445979767041",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "f06908731ed62890",
+                "parentSpanId": "078ab0ab7eb707b2",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445975818000",
+                "endTimeUnixNano": "1706791445979799208",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "f0e946762f0f7fe4",
+                "parentSpanId": "484272979ab6993a",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445982071000",
+                "endTimeUnixNano": "1706791445989063500",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "484272979ab6993a",
+                "parentSpanId": "1f3d24377d56ef1a",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445981428000",
+                "endTimeUnixNano": "1706791445989071125",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "1f3d24377d56ef1a",
+                "parentSpanId": "f2caaa5dba4d7692",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445981427000",
+                "endTimeUnixNano": "1706791445989073000",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "f2caaa5dba4d7692",
+                "parentSpanId": "078ab0ab7eb707b2",
+                "name": "pgstore/pgEditConfiguration",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445981424000",
+                "endTimeUnixNano": "1706791445995086875",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "0f0e2864b0289733",
+                "parentSpanId": "d2cd0bbf6e7fd7b6",
+                "name": "pgstore/addTransitiveUpdates",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445995677000",
+                "endTimeUnixNano": "1706791445995678750",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "d2cd0bbf6e7fd7b6",
+                "parentSpanId": "078ab0ab7eb707b2",
+                "name": "pgstore/notify",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445995673000",
+                "endTimeUnixNano": "1706791445995680917",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "6a342964854bdad1",
+                "parentSpanId": "078ab0ab7eb707b2",
+                "name": "pgstore/releaseAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445995682000",
+                "endTimeUnixNano": "1706791445996202250",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "078ab0ab7eb707b2",
+                "parentSpanId": "9d5a7e824fa7ba3b",
+                "name": "pgstore/UpdateRollout",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445975127000",
+                "endTimeUnixNano": "1706791445996208000",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "9d5a7e824fa7ba3b",
+                "parentSpanId": "aeb2a416b8796cba",
+                "name": "pgstore/UpdateRollouts",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445912654000",
+                "endTimeUnixNano": "1706791445996209292",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "5920438aa93a6790",
+                "parentSpanId": "5f2c62ec22a5831f",
+                "name": "pgstore/getConfigurationIndex",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445996221000",
+                "endTimeUnixNano": "1706791445996222333",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "5f2c62ec22a5831f",
+                "parentSpanId": "96ae55c03e5146b3",
+                "name": "pgstore/ConfigurationIndex",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445996220000",
+                "endTimeUnixNano": "1706791445996223000",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "70d631526845aa24",
+                "parentSpanId": "624db3b2e1cc7f20",
+                "name": "pgstore/acquireAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445997026000",
+                "endTimeUnixNano": "1706791445997209625",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "758070ce974346be",
+                "parentSpanId": "e936bad42c7c2620",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445997877000",
+                "endTimeUnixNano": "1706791445998158167",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "e936bad42c7c2620",
+                "parentSpanId": "624db3b2e1cc7f20",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445997305000",
+                "endTimeUnixNano": "1706791445998161958",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "e87d48de1c7ee8c0",
+                "parentSpanId": "f2f75b973ffbece4",
+                "name": "pgstore/scanPostgresResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445998945000",
+                "endTimeUnixNano": "1706791445999155375",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "f2f75b973ffbece4",
+                "parentSpanId": "494fbd3596fa4bb7",
+                "name": "pgstore/pgResourceInternal",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445998570000",
+                "endTimeUnixNano": "1706791445999158708",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "494fbd3596fa4bb7",
+                "parentSpanId": "9b1bf4c6a7ee0b64",
+                "name": "pgstore/pgResource",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445998569000",
+                "endTimeUnixNano": "1706791445999159250",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "9b1bf4c6a7ee0b64",
+                "parentSpanId": "624db3b2e1cc7f20",
+                "name": "pgstore/pgEditConfiguration",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445998568000",
+                "endTimeUnixNano": "1706791445999195916",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "e46d93a1301ab208",
+                "parentSpanId": "bd51cf7f70c9e6ec",
+                "name": "pgstore/addTransitiveUpdates",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445999284000",
+                "endTimeUnixNano": "1706791445999284667",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "bd51cf7f70c9e6ec",
+                "parentSpanId": "624db3b2e1cc7f20",
+                "name": "pgstore/notify",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445999283000",
+                "endTimeUnixNano": "1706791445999285208",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "92acfcfbc5386ef6",
+                "parentSpanId": "624db3b2e1cc7f20",
+                "name": "pgstore/releaseAdvisoryLock",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445999286000",
+                "endTimeUnixNano": "1706791445999453875",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "624db3b2e1cc7f20",
+                "parentSpanId": "96ae55c03e5146b3",
+                "name": "pgstore/UpdateRollout",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445997022000",
+                "endTimeUnixNano": "1706791445999455625",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "96ae55c03e5146b3",
+                "parentSpanId": "aeb2a416b8796cba",
+                "name": "pgstore/UpdateRollouts",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445996218000",
+                "endTimeUnixNano": "1706791445999455959",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "aeb2a416b8796cba",
+                "parentSpanId": "",
+                "name": "pgstore/UpdateAllRollouts",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445908223000",
+                "endTimeUnixNano": "1706791445999459125",
+                "status": {}
+              }
+            ]
+          },
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "fd55f461239efdfc",
+                "parentSpanId": "723c3f6eb4457b5c",
+                "name": "graphql/GetConfiguration/response",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445359466000",
+                "endTimeUnixNano": "1706791445376564375",
+                "attributes": [
+                  {
+                    "key": "operation",
+                    "value": { "stringValue": "GetConfiguration" }
+                  }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "01f07757e7bb6612",
+                "parentSpanId": "3e7909bbebcae0ba",
+                "name": "graphql/GetConfiguration/response",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445359560000",
+                "endTimeUnixNano": "1706791445376589750",
+                "attributes": [
+                  {
+                    "key": "operation",
+                    "value": { "stringValue": "GetConfiguration" }
+                  }
+                ],
+                "status": {}
+              }
+            ]
+          },
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "a3fbd5dc5db5e1734cb54419ca540b66",
+                "spanId": "723c3f6eb4457b5c",
+                "parentSpanId": "",
+                "name": "/v1/graphql",
+                "kind": 2,
+                "startTimeUnixNano": "1706791445332980000",
+                "endTimeUnixNano": "1706791445376694750",
+                "attributes": [
+                  { "key": "http.method", "value": { "stringValue": "POST" } },
+                  { "key": "http.scheme", "value": { "stringValue": "http" } },
+                  {
+                    "key": "net.host.name",
+                    "value": { "stringValue": "bindplane" }
+                  },
+                  { "key": "net.host.port", "value": { "intValue": "3001" } },
+                  {
+                    "key": "net.sock.peer.addr",
+                    "value": { "stringValue": "127.0.0.1" }
+                  },
+                  {
+                    "key": "net.sock.peer.port",
+                    "value": { "intValue": "50141" }
+                  },
+                  {
+                    "key": "user_agent.original",
+                    "value": {
+                      "stringValue": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:123.0) Gecko/20100101 Firefox/123.0"
+                    }
+                  },
+                  {
+                    "key": "http.client_ip",
+                    "value": { "stringValue": "127.0.0.1" }
+                  },
+                  {
+                    "key": "http.target",
+                    "value": { "stringValue": "/v1/graphql" }
+                  },
+                  {
+                    "key": "net.protocol.version",
+                    "value": { "stringValue": "1.1" }
+                  },
+                  {
+                    "key": "http.route",
+                    "value": { "stringValue": "/v1/graphql" }
+                  },
+                  { "key": "http.status_code", "value": { "intValue": "200" } }
+                ],
+                "status": {}
+              },
+              {
+                "traceId": "d70c2b5eea8977bb8a0712f8c2a1fcb4",
+                "spanId": "3e7909bbebcae0ba",
+                "parentSpanId": "",
+                "name": "/v1/graphql",
+                "kind": 2,
+                "startTimeUnixNano": "1706791445332972000",
+                "endTimeUnixNano": "1706791445376708291",
+                "attributes": [
+                  { "key": "http.method", "value": { "stringValue": "POST" } },
+                  { "key": "http.scheme", "value": { "stringValue": "http" } },
+                  {
+                    "key": "net.host.name",
+                    "value": { "stringValue": "bindplane" }
+                  },
+                  { "key": "net.host.port", "value": { "intValue": "3001" } },
+                  {
+                    "key": "net.sock.peer.addr",
+                    "value": { "stringValue": "127.0.0.1" }
+                  },
+                  {
+                    "key": "net.sock.peer.port",
+                    "value": { "intValue": "50140" }
+                  },
+                  {
+                    "key": "user_agent.original",
+                    "value": {
+                      "stringValue": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:123.0) Gecko/20100101 Firefox/123.0"
+                    }
+                  },
+                  {
+                    "key": "http.client_ip",
+                    "value": { "stringValue": "127.0.0.1" }
+                  },
+                  {
+                    "key": "http.target",
+                    "value": { "stringValue": "/v1/graphql" }
+                  },
+                  {
+                    "key": "net.protocol.version",
+                    "value": { "stringValue": "1.1" }
+                  },
+                  {
+                    "key": "http.route",
+                    "value": { "stringValue": "/v1/graphql" }
+                  },
+                  { "key": "http.status_code", "value": { "intValue": "200" } }
+                ],
+                "status": {}
+              }
+            ]
+          },
+          {
+            "scope": {},
+            "spans": [
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "4c2049c4cd14c987",
+                "parentSpanId": "9d5a7e824fa7ba3b",
+                "name": "pgindex/Suggestions",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445912675000",
+                "endTimeUnixNano": "1706791445913878000",
+                "status": {}
+              },
+              {
+                "traceId": "c7f3bb6aa9e7a7dce92d85d1566f2c31",
+                "spanId": "aa69c45bc0970c2f",
+                "parentSpanId": "96ae55c03e5146b3",
+                "name": "pgindex/Suggestions",
+                "kind": 1,
+                "startTimeUnixNano": "1706791445996229000",
+                "endTimeUnixNano": "1706791445997017791",
+                "status": {}
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

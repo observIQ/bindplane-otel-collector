@@ -93,7 +93,7 @@ func TestLoadConfig(t *testing.T) {
 
 			sub, err := cm.Sub(tc.id.String())
 			require.NoError(t, err)
-			require.NoError(t, component.UnmarshalConfig(sub, cfg))
+			require.NoError(t, sub.Unmarshal(cfg))
 
 			assert.NoError(t, component.ValidateConfig(cfg))
 			require.Equal(t, tc.expected, cfg)
