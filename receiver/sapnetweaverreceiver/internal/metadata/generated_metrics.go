@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/filter"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/receiver"
@@ -2197,6 +2198,8 @@ type MetricsBuilder struct {
 	metricsCapacity                               int                  // maximum observed number of metrics per resource.
 	metricsBuffer                                 pmetric.Metrics      // accumulates metrics data before emitting.
 	buildInfo                                     component.BuildInfo  // contains version information.
+	resourceAttributeIncludeFilter                map[string]filter.Filter
+	resourceAttributeExcludeFilter                map[string]filter.Filter
 	metricSapnetweaverAbapRfcCount                metricSapnetweaverAbapRfcCount
 	metricSapnetweaverAbapSessionCount            metricSapnetweaverAbapSessionCount
 	metricSapnetweaverAbapUpdateStatus            metricSapnetweaverAbapUpdateStatus
@@ -2297,7 +2300,28 @@ func NewMetricsBuilder(mbc MetricsBuilderConfig, settings receiver.CreateSetting
 		metricSapnetweaverSystemInstanceAvailability:  newMetricSapnetweaverSystemInstanceAvailability(mbc.Metrics.SapnetweaverSystemInstanceAvailability),
 		metricSapnetweaverWorkProcessActiveCount:      newMetricSapnetweaverWorkProcessActiveCount(mbc.Metrics.SapnetweaverWorkProcessActiveCount),
 		metricSapnetweaverWorkProcessJobAbortedStatus: newMetricSapnetweaverWorkProcessJobAbortedStatus(mbc.Metrics.SapnetweaverWorkProcessJobAbortedStatus),
+		resourceAttributeIncludeFilter:                make(map[string]filter.Filter),
+		resourceAttributeExcludeFilter:                make(map[string]filter.Filter),
 	}
+	if mbc.ResourceAttributes.SapnetweaverSID.MetricsInclude != nil {
+		mb.resourceAttributeIncludeFilter["sapnetweaver.SID"] = filter.CreateFilter(mbc.ResourceAttributes.SapnetweaverSID.MetricsInclude)
+	}
+	if mbc.ResourceAttributes.SapnetweaverSID.MetricsExclude != nil {
+		mb.resourceAttributeExcludeFilter["sapnetweaver.SID"] = filter.CreateFilter(mbc.ResourceAttributes.SapnetweaverSID.MetricsExclude)
+	}
+	if mbc.ResourceAttributes.SapnetweaverInstance.MetricsInclude != nil {
+		mb.resourceAttributeIncludeFilter["sapnetweaver.instance"] = filter.CreateFilter(mbc.ResourceAttributes.SapnetweaverInstance.MetricsInclude)
+	}
+	if mbc.ResourceAttributes.SapnetweaverInstance.MetricsExclude != nil {
+		mb.resourceAttributeExcludeFilter["sapnetweaver.instance"] = filter.CreateFilter(mbc.ResourceAttributes.SapnetweaverInstance.MetricsExclude)
+	}
+	if mbc.ResourceAttributes.SapnetweaverNode.MetricsInclude != nil {
+		mb.resourceAttributeIncludeFilter["sapnetweaver.node"] = filter.CreateFilter(mbc.ResourceAttributes.SapnetweaverNode.MetricsInclude)
+	}
+	if mbc.ResourceAttributes.SapnetweaverNode.MetricsExclude != nil {
+		mb.resourceAttributeExcludeFilter["sapnetweaver.node"] = filter.CreateFilter(mbc.ResourceAttributes.SapnetweaverNode.MetricsExclude)
+	}
+
 	for _, op := range options {
 		op(mb)
 	}
@@ -2355,7 +2379,7 @@ func WithStartTimeOverride(start pcommon.Timestamp) ResourceMetricsOption {
 func (mb *MetricsBuilder) EmitForResource(rmo ...ResourceMetricsOption) {
 	rm := pmetric.NewResourceMetrics()
 	ils := rm.ScopeMetrics().AppendEmpty()
-	ils.Scope().SetName("otelcol/sapnetweaverreceiver")
+	ils.Scope().SetName("github.com/observiq/bindplane-agent/receiver/sapnetweaverreceiver")
 	ils.Scope().SetVersion(mb.buildInfo.Version)
 	ils.Metrics().EnsureCapacity(mb.metricsCapacity)
 	mb.metricSapnetweaverAbapRfcCount.emit(ils.Metrics())
@@ -2403,6 +2427,17 @@ func (mb *MetricsBuilder) EmitForResource(rmo ...ResourceMetricsOption) {
 	for _, op := range rmo {
 		op(rm)
 	}
+	for attr, filter := range mb.resourceAttributeIncludeFilter {
+		if val, ok := rm.Resource().Attributes().Get(attr); ok && !filter.Matches(val.AsString()) {
+			return
+		}
+	}
+	for attr, filter := range mb.resourceAttributeExcludeFilter {
+		if val, ok := rm.Resource().Attributes().Get(attr); ok && filter.Matches(val.AsString()) {
+			return
+		}
+	}
+
 	if ils.Metrics().Len() > 0 {
 		mb.updateCapacity(rm)
 		rm.MoveTo(mb.metricsBuffer.ResourceMetrics().AppendEmpty())

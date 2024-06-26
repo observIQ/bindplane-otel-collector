@@ -82,11 +82,17 @@ func TestInitDatabaseConn(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			db, mock := NewMock(t)
-			defer db.Close()
 
 			tc.setExpectations(mock, tc.role, tc.database)
 
 			s := &Snowflake{db: db, warehouse: "", database: tc.database}
+
+			t.Cleanup(func() {
+				// we call close but mock isn't expecting it, can't add to expectations bc close doesn't occur until the entire test is done
+				// just verify we have the error we're okay with
+				require.ErrorContains(t, s.Close(), "all expectations were already fulfilled, call to database Close was not expected")
+			})
+
 			err := s.InitDatabaseConn(tc.ctx, tc.role)
 
 			if tc.expectedErr == nil {
