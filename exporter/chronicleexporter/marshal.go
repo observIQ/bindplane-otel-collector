@@ -89,7 +89,7 @@ func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (map[
 			scopeLog := resourceLog.ScopeLogs().At(j)
 			for k := 0; k < scopeLog.LogRecords().Len(); k++ {
 				logRecord := scopeLog.LogRecords().At(k)
-				rawLog, logType, err := m.processLogRecord(ctx, logRecord, scopeLog.Scope(), resourceLog.Resource())
+				rawLog, logType, err := m.processLogRecord(ctx, logRecord, scopeLog, resourceLog)
 				if err != nil {
 					m.teleSettings.Logger.Error("Error processing log record", zap.Error(err))
 					continue
@@ -119,7 +119,7 @@ func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (map[
 	return entries, nil
 }
 
-func (m *protoMarshaler) processLogRecord(ctx context.Context, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, string, error) {
+func (m *protoMarshaler) processLogRecord(ctx context.Context, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, string, error) {
 	rawLog, err := m.getRawLog(ctx, logRecord, scope, resource)
 	if err != nil {
 		return "", "", err
@@ -133,12 +133,12 @@ func (m *protoMarshaler) processLogRecord(ctx context.Context, logRecord plog.Lo
 	return rawLog, logType, nil
 }
 
-func (m *protoMarshaler) getRawLog(ctx context.Context, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
+func (m *protoMarshaler) getRawLog(ctx context.Context, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, error) {
 	if m.cfg.RawLogField == "" {
 		entireLogRecord := map[string]any{
 			"body":                logRecord.Body().Str(),
 			"attributes":          logRecord.Attributes().AsRaw(),
-			"resource_attributes": resource.Attributes().AsRaw(),
+			"resource_attributes": resource.Resource().Attributes().AsRaw(),
 		}
 
 		bytesLogRecord, err := json.Marshal(entireLogRecord)
@@ -151,7 +151,7 @@ func (m *protoMarshaler) getRawLog(ctx context.Context, logRecord plog.LogRecord
 	return m.getRawField(ctx, m.cfg.RawLogField, logRecord, scope, resource)
 }
 
-func (m *protoMarshaler) getLogType(ctx context.Context, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
+func (m *protoMarshaler) getLogType(ctx context.Context, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, error) {
 	logType, err := m.getRawField(ctx, chronicleLogTypeField, logRecord, scope, resource)
 	if err != nil {
 		return m.cfg.LogType, fmt.Errorf("get chronicle log type: %w", err)
@@ -173,12 +173,12 @@ func (m *protoMarshaler) getLogType(ctx context.Context, logRecord plog.LogRecor
 	return m.cfg.LogType, nil
 }
 
-func (m *protoMarshaler) getRawField(ctx context.Context, field string, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
+func (m *protoMarshaler) getRawField(ctx context.Context, field string, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, error) {
 	lrExpr, err := expr.NewOTTLLogRecordExpression(field, m.teleSettings)
 	if err != nil {
 		return "", fmt.Errorf("raw_log_field is invalid: %s", err)
 	}
-	tCtx := ottllog.NewTransformContext(logRecord, scope, resource)
+	tCtx := ottllog.NewTransformContext(logRecord, scope.Scope(), resource.Resource(), scope, resource)
 
 	lrExprResult, err := lrExpr.Execute(ctx, tCtx)
 	if err != nil {
