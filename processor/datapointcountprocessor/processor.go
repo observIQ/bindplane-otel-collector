@@ -155,7 +155,7 @@ func (p *metricCountProcessor) consumeMetricsOTTL(ctx context.Context, m pmetric
 			for k := 0; k < metrics.Len(); k++ {
 				metric := metrics.At(k)
 				eachDatapoint(metric, func(dp any) {
-					tCtx := ottldatapoint.NewTransformContext(dp, metric, metrics, scopeMetric.Scope(), resource)
+					tCtx := ottldatapoint.NewTransformContext(dp, metric, metrics, scopeMetric.Scope(), resource, scopeMetric, resourceMetric)
 					match, err := p.OTTLmatch.Match(ctx, tCtx)
 					if err != nil {
 						p.logger.Error("Error while matching OTTL datapoint", zap.Error(err))

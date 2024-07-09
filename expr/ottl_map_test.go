@@ -21,6 +21,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottllog"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
+	"go.opentelemetry.io/collector/pdata/plog"
 )
 
 func TestExtractAttributes(t *testing.T) {
@@ -35,7 +36,13 @@ func TestExtractAttributes(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	tCtx := ottllog.NewTransformContext(testLogRecord(t), testScope(t), testResource(t))
+	logScope := plog.NewScopeLogs()
+	testScope(t).CopyTo(logScope.Scope())
+
+	logResource := plog.NewResourceLogs()
+	testResource(t).CopyTo(logResource.Resource())
+
+	tCtx := ottllog.NewTransformContext(testLogRecord(t), logScope.Scope(), logResource.Resource(), logScope, logResource)
 
 	mapOut := attrMap.ExtractAttributes(context.Background(), tCtx)
 

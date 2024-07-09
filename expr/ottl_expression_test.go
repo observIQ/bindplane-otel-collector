@@ -82,7 +82,13 @@ func TestLogExpression(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tCtx := ottllog.NewTransformContext(tc.log, tc.scope, tc.resource)
+			logScope := plog.NewScopeLogs()
+			tc.scope.CopyTo(logScope.Scope())
+
+			logResource := plog.NewResourceLogs()
+			tc.resource.CopyTo(logResource.Resource())
+
+			tCtx := ottllog.NewTransformContext(tc.log, tc.scope, tc.resource, logScope, logResource)
 
 			expr, err := NewOTTLLogRecordExpression(tc.expression, componenttest.NewNopTelemetrySettings())
 			require.NoError(t, err)
@@ -150,7 +156,13 @@ func TestDatapointExpression(t *testing.T) {
 			metric := tc.metricSlice.At(0)
 			dp := metric.Gauge().DataPoints().At(0)
 
-			tCtx := ottldatapoint.NewTransformContext(dp, metric, tc.metricSlice, tc.scope, tc.resource)
+			metricScope := pmetric.NewScopeMetrics()
+			tc.scope.CopyTo(metricScope.Scope())
+
+			metricResource := pmetric.NewResourceMetrics()
+			tc.resource.CopyTo(metricResource.Resource())
+
+			tCtx := ottldatapoint.NewTransformContext(dp, metric, tc.metricSlice, tc.scope, tc.resource, metricScope, metricResource)
 
 			expr, err := NewOTTLDatapointExpression(tc.expression, componenttest.NewNopTelemetrySettings())
 			require.NoError(t, err)
@@ -215,7 +227,13 @@ func TestSpanExpression(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tCtx := ottlspan.NewTransformContext(tc.span, tc.scope, tc.resource)
+			spanScope := ptrace.NewScopeSpans()
+			tc.scope.CopyTo(spanScope.Scope())
+
+			spanResource := ptrace.NewResourceSpans()
+			tc.resource.CopyTo(spanResource.Resource())
+
+			tCtx := ottlspan.NewTransformContext(tc.span, tc.scope, tc.resource, spanScope, spanResource)
 
 			expr, err := NewOTTLSpanExpression(tc.expression, componenttest.NewNopTelemetrySettings())
 			require.NoError(t, err)

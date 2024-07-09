@@ -20,6 +20,9 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/confmap"
 	"go.opentelemetry.io/collector/confmap/converter/expandconverter"
+	"go.opentelemetry.io/collector/confmap/provider/envprovider"
+	"go.opentelemetry.io/collector/confmap/provider/fileprovider"
+	"go.opentelemetry.io/collector/confmap/provider/httpsprovider"
 	"go.opentelemetry.io/collector/confmap/provider/yamlprovider"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/extension"
@@ -94,8 +97,13 @@ func (r *RenderedConfig) GetConfigProviderSettings() (*otelcol.ConfigProviderSet
 	location := fmt.Sprintf("yaml:%s", bytes)
 	settings := otelcol.ConfigProviderSettings{
 		ResolverSettings: confmap.ResolverSettings{
-			URIs:               []string{location},
-			ProviderFactories:  []confmap.ProviderFactory{yamlprovider.NewFactory()},
+			URIs: []string{location},
+			ProviderFactories: []confmap.ProviderFactory{
+				fileprovider.NewFactory(),
+				yamlprovider.NewFactory(),
+				httpsprovider.NewFactory(),
+				envprovider.NewFactory(),
+			},
 			ConverterFactories: []confmap.ConverterFactory{expandconverter.NewFactory()},
 		},
 	}

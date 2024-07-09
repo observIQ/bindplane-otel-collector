@@ -54,7 +54,7 @@ func (m *marshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]string,
 			scopeLog := resourceLog.ScopeLogs().At(j)
 			for k := 0; k < scopeLog.LogRecords().Len(); k++ {
 				logRecord := scopeLog.LogRecords().At(k)
-				rawLog, err := m.getRawLog(ctx, logRecord, scopeLog.Scope(), resourceLog.Resource())
+				rawLog, err := m.getRawLog(ctx, logRecord, scopeLog, resourceLog)
 				if err != nil {
 					m.teleSettings.Logger.Error("Error processing log record", zap.Error(err))
 					continue
@@ -73,12 +73,12 @@ func (m *marshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]string,
 	return rawLogs, nil
 }
 
-func (m *marshaler) getRawLog(ctx context.Context, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
+func (m *marshaler) getRawLog(ctx context.Context, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, error) {
 	if m.cfg.RawLogField == "" {
 		entireLogRecord := map[string]any{
 			"body":                logRecord.Body().AsRaw(),
 			"attributes":          logRecord.Attributes().AsRaw(),
-			"resource_attributes": resource.Attributes().AsRaw(),
+			"resource_attributes": resource.Resource().Attributes().AsRaw(),
 		}
 
 		bytesLogRecord, err := json.Marshal(entireLogRecord)
@@ -91,12 +91,12 @@ func (m *marshaler) getRawLog(ctx context.Context, logRecord plog.LogRecord, sco
 	return m.getRawField(ctx, m.cfg.RawLogField, logRecord, scope, resource)
 }
 
-func (m *marshaler) getRawField(ctx context.Context, field string, logRecord plog.LogRecord, scope pcommon.InstrumentationScope, resource pcommon.Resource) (string, error) {
+func (m *marshaler) getRawField(ctx context.Context, field string, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, error) {
 	lrExpr, err := expr.NewOTTLLogRecordExpression(field, m.teleSettings)
 	if err != nil {
 		return "", fmt.Errorf("raw_log_field is invalid: %s", err)
 	}
-	tCtx := ottllog.NewTransformContext(logRecord, scope, resource)
+	tCtx := ottllog.NewTransformContext(logRecord, scope.Scope(), resource.Resource(), scope, resource)
 
 	lrExprResult, err := lrExpr.Execute(ctx, tCtx)
 	if err != nil {
