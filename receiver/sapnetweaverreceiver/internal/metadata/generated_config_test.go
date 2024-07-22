@@ -25,12 +25,9 @@ func TestMetricsBuilderConfig(t *testing.T) {
 			name: "all_set",
 			want: MetricsBuilderConfig{
 				Metrics: MetricsConfig{
-					SapnetweaverAbapRfcCount:                MetricConfig{Enabled: true},
-					SapnetweaverAbapSessionCount:            MetricConfig{Enabled: true},
 					SapnetweaverAbapUpdateStatus:            MetricConfig{Enabled: true},
 					SapnetweaverCacheEvictions:              MetricConfig{Enabled: true},
 					SapnetweaverCacheHits:                   MetricConfig{Enabled: true},
-					SapnetweaverCertificateValidity:         MetricConfig{Enabled: true},
 					SapnetweaverConnectionErrorCount:        MetricConfig{Enabled: true},
 					SapnetweaverCPUSystemUtilization:        MetricConfig{Enabled: true},
 					SapnetweaverCPUUtilization:              MetricConfig{Enabled: true},
@@ -78,12 +75,9 @@ func TestMetricsBuilderConfig(t *testing.T) {
 			name: "none_set",
 			want: MetricsBuilderConfig{
 				Metrics: MetricsConfig{
-					SapnetweaverAbapRfcCount:                MetricConfig{Enabled: false},
-					SapnetweaverAbapSessionCount:            MetricConfig{Enabled: false},
 					SapnetweaverAbapUpdateStatus:            MetricConfig{Enabled: false},
 					SapnetweaverCacheEvictions:              MetricConfig{Enabled: false},
 					SapnetweaverCacheHits:                   MetricConfig{Enabled: false},
-					SapnetweaverCertificateValidity:         MetricConfig{Enabled: false},
 					SapnetweaverConnectionErrorCount:        MetricConfig{Enabled: false},
 					SapnetweaverCPUSystemUtilization:        MetricConfig{Enabled: false},
 					SapnetweaverCPUUtilization:              MetricConfig{Enabled: false},

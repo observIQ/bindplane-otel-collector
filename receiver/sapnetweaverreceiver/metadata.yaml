@@ -20,9 +20,6 @@ resource_attributes:
     enabled: true
 
 attributes:
-  certificate_path:
-    type: string
-    description: The SAP Certificate file path location.
   process_name:
     type: string
     description: The name value from GetProcessList.
@@ -64,15 +61,12 @@ attributes:
   instance:
     type: string
     description: The SAP instance name.
-  session_type:
-    type: string
-    description: The ABAP Session type.
 
 metrics:
   sapnetweaver.system.instance_availability:
     description: The availability status of each system instance.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetSystemInstanceList."
-    unit: 1
+    unit: "1"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
@@ -82,7 +76,7 @@ metrics:
   sapnetweaver.process_availability:
     description: The processes availability directly started by the sapstartsrv Web service.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetProcessList."
-    unit: 1
+    unit: "1"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
@@ -173,30 +167,10 @@ metrics:
       value_type: int
     attributes: [instance, wp_type, wp_status]
     enabled: true
-  sapnetweaver.certificate.validity:
-    description: The number of seconds until the SAP certificate expires.
-    extended_documentation: "Collected using sapgenpse get_my_name -p /usr/sap/<SID>/<INST>/*.pse -n validity."
-    unit: "s"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
-      value_type: int
-    attributes: [certificate_path]
-    enabled: true
-  sapnetweaver.abap.rfc.count:
-    description: The number of ABAP RFC connections by session type.
-    extended_documentation: "Collected from executable dpmon -pf=/sapmnt/<SID>/profile c (RFC Connections option)"
-    unit: "{connections}"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
-      value_type: int
-    attributes: [session_type]
-    enabled: true
   sapnetweaver.queue.count:
     description: The queue length.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
-    unit: 1
+    unit: "1"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
@@ -206,7 +180,7 @@ metrics:
   sapnetweaver.queue_peak.count:
     description: The peak queue length.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
-    unit: 1
+    unit: "1"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
@@ -216,7 +190,7 @@ metrics:
   sapnetweaver.queue_max.count:
     description: The max queue length.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
-    unit: 1
+    unit: "1"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
@@ -233,16 +207,6 @@ metrics:
       value_type: int
       input_type: string
     attributes: []
-    enabled: true
-  sapnetweaver.abap.session.count:
-    description: The number of ABAP sessions by session type.
-    extended_documentation: "Collected from executable dpmon -pf=/sapmnt/<SID>/profile v (session table option)"
-    unit: "{sessions}"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
-      value_type: int
-    attributes: [session_type]
     enabled: true
   sapnetweaver.locks.enqueue.current.count:
     description: The current number of enqueued locks.
@@ -394,7 +358,7 @@ metrics:
   sapnetweaver.work_process.job.aborted.status:
     description: The status of aborted jobs on an application server.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Background > AbortedJobs.
-    unit: 1
+    unit: "1"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
@@ -404,7 +368,7 @@ metrics:
   sapnetweaver.abap.update.status:
     description: The status of the ABAP update process.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Update > Update > AbapErrorInUpdate.
-    unit: 1
+    unit: "1"
     sum:
       monotonic: false
       aggregation_temporality: cumulative

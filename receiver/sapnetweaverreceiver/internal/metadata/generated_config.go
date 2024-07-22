@@ -28,12 +28,9 @@ func (ms *MetricConfig) Unmarshal(parser *confmap.Conf) error {
 
 // MetricsConfig provides config for sapnetweaver metrics.
 type MetricsConfig struct {
-	SapnetweaverAbapRfcCount                MetricConfig `mapstructure:"sapnetweaver.abap.rfc.count"`
-	SapnetweaverAbapSessionCount            MetricConfig `mapstructure:"sapnetweaver.abap.session.count"`
 	SapnetweaverAbapUpdateStatus            MetricConfig `mapstructure:"sapnetweaver.abap.update.status"`
 	SapnetweaverCacheEvictions              MetricConfig `mapstructure:"sapnetweaver.cache.evictions"`
 	SapnetweaverCacheHits                   MetricConfig `mapstructure:"sapnetweaver.cache.hits"`
-	SapnetweaverCertificateValidity         MetricConfig `mapstructure:"sapnetweaver.certificate.validity"`
 	SapnetweaverConnectionErrorCount        MetricConfig `mapstructure:"sapnetweaver.connection.error.count"`
 	SapnetweaverCPUSystemUtilization        MetricConfig `mapstructure:"sapnetweaver.cpu.system.utilization"`
 	SapnetweaverCPUUtilization              MetricConfig `mapstructure:"sapnetweaver.cpu.utilization"`
@@ -73,12 +70,6 @@ type MetricsConfig struct {
 
 func DefaultMetricsConfig() MetricsConfig {
 	return MetricsConfig{
-		SapnetweaverAbapRfcCount: MetricConfig{
-			Enabled: true,
-		},
-		SapnetweaverAbapSessionCount: MetricConfig{
-			Enabled: true,
-		},
 		SapnetweaverAbapUpdateStatus: MetricConfig{
 			Enabled: true,
 		},
@@ -86,9 +77,6 @@ func DefaultMetricsConfig() MetricsConfig {
 			Enabled: true,
 		},
 		SapnetweaverCacheHits: MetricConfig{
-			Enabled: true,
-		},
-		SapnetweaverCertificateValidity: MetricConfig{
 			Enabled: true,
 		},
 		SapnetweaverConnectionErrorCount: MetricConfig{

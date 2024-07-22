@@ -70,14 +70,6 @@ func TestMetricsBuilder(t *testing.T) {
 
 			defaultMetricsCount++
 			allMetricsCount++
-			mb.RecordSapnetweaverAbapRfcCountDataPoint(ts, 1, "session_type-val")
-
-			defaultMetricsCount++
-			allMetricsCount++
-			mb.RecordSapnetweaverAbapSessionCountDataPoint(ts, 1, "session_type-val")
-
-			defaultMetricsCount++
-			allMetricsCount++
 			mb.RecordSapnetweaverAbapUpdateStatusDataPoint(ts, 1, AttributeControlStateGray)
 
 			defaultMetricsCount++
@@ -87,10 +79,6 @@ func TestMetricsBuilder(t *testing.T) {
 			defaultMetricsCount++
 			allMetricsCount++
 			mb.RecordSapnetweaverCacheHitsDataPoint(ts, "1")
-
-			defaultMetricsCount++
-			allMetricsCount++
-			mb.RecordSapnetweaverCertificateValidityDataPoint(ts, 1, "certificate_path-val")
 
 			defaultMetricsCount++
 			allMetricsCount++
@@ -258,40 +246,6 @@ func TestMetricsBuilder(t *testing.T) {
 			validatedMetrics := make(map[string]bool)
 			for i := 0; i < ms.Len(); i++ {
 				switch ms.At(i).Name() {
-				case "sapnetweaver.abap.rfc.count":
-					assert.False(t, validatedMetrics["sapnetweaver.abap.rfc.count"], "Found a duplicate in the metrics slice: sapnetweaver.abap.rfc.count")
-					validatedMetrics["sapnetweaver.abap.rfc.count"] = true
-					assert.Equal(t, pmetric.MetricTypeSum, ms.At(i).Type())
-					assert.Equal(t, 1, ms.At(i).Sum().DataPoints().Len())
-					assert.Equal(t, "The number of ABAP RFC connections by session type.", ms.At(i).Description())
-					assert.Equal(t, "{connections}", ms.At(i).Unit())
-					assert.Equal(t, false, ms.At(i).Sum().IsMonotonic())
-					assert.Equal(t, pmetric.AggregationTemporalityCumulative, ms.At(i).Sum().AggregationTemporality())
-					dp := ms.At(i).Sum().DataPoints().At(0)
-					assert.Equal(t, start, dp.StartTimestamp())
-					assert.Equal(t, ts, dp.Timestamp())
-					assert.Equal(t, pmetric.NumberDataPointValueTypeInt, dp.ValueType())
-					assert.Equal(t, int64(1), dp.IntValue())
-					attrVal, ok := dp.Attributes().Get("session_type")
-					assert.True(t, ok)
-					assert.EqualValues(t, "session_type-val", attrVal.Str())
-				case "sapnetweaver.abap.session.count":
-					assert.False(t, validatedMetrics["sapnetweaver.abap.session.count"], "Found a duplicate in the metrics slice: sapnetweaver.abap.session.count")
-					validatedMetrics["sapnetweaver.abap.session.count"] = true
-					assert.Equal(t, pmetric.MetricTypeSum, ms.At(i).Type())
-					assert.Equal(t, 1, ms.At(i).Sum().DataPoints().Len())
-					assert.Equal(t, "The number of ABAP sessions by session type.", ms.At(i).Description())
-					assert.Equal(t, "{sessions}", ms.At(i).Unit())
-					assert.Equal(t, false, ms.At(i).Sum().IsMonotonic())
-					assert.Equal(t, pmetric.AggregationTemporalityCumulative, ms.At(i).Sum().AggregationTemporality())
-					dp := ms.At(i).Sum().DataPoints().At(0)
-					assert.Equal(t, start, dp.StartTimestamp())
-					assert.Equal(t, ts, dp.Timestamp())
-					assert.Equal(t, pmetric.NumberDataPointValueTypeInt, dp.ValueType())
-					assert.Equal(t, int64(1), dp.IntValue())
-					attrVal, ok := dp.Attributes().Get("session_type")
-					assert.True(t, ok)
-					assert.EqualValues(t, "session_type-val", attrVal.Str())
 				case "sapnetweaver.abap.update.status":
 					assert.False(t, validatedMetrics["sapnetweaver.abap.update.status"], "Found a duplicate in the metrics slice: sapnetweaver.abap.update.status")
 					validatedMetrics["sapnetweaver.abap.update.status"] = true
@@ -335,23 +289,6 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, ts, dp.Timestamp())
 					assert.Equal(t, pmetric.NumberDataPointValueTypeInt, dp.ValueType())
 					assert.Equal(t, int64(1), dp.IntValue())
-				case "sapnetweaver.certificate.validity":
-					assert.False(t, validatedMetrics["sapnetweaver.certificate.validity"], "Found a duplicate in the metrics slice: sapnetweaver.certificate.validity")
-					validatedMetrics["sapnetweaver.certificate.validity"] = true
-					assert.Equal(t, pmetric.MetricTypeSum, ms.At(i).Type())
-					assert.Equal(t, 1, ms.At(i).Sum().DataPoints().Len())
-					assert.Equal(t, "The number of seconds until the SAP certificate expires.", ms.At(i).Description())
-					assert.Equal(t, "s", ms.At(i).Unit())
-					assert.Equal(t, false, ms.At(i).Sum().IsMonotonic())
-					assert.Equal(t, pmetric.AggregationTemporalityCumulative, ms.At(i).Sum().AggregationTemporality())
-					dp := ms.At(i).Sum().DataPoints().At(0)
-					assert.Equal(t, start, dp.StartTimestamp())
-					assert.Equal(t, ts, dp.Timestamp())
-					assert.Equal(t, pmetric.NumberDataPointValueTypeInt, dp.ValueType())
-					assert.Equal(t, int64(1), dp.IntValue())
-					attrVal, ok := dp.Attributes().Get("certificate_path")
-					assert.True(t, ok)
-					assert.EqualValues(t, "certificate_path-val", attrVal.Str())
 				case "sapnetweaver.connection.error.count":
 					assert.False(t, validatedMetrics["sapnetweaver.connection.error.count"], "Found a duplicate in the metrics slice: sapnetweaver.connection.error.count")
 					validatedMetrics["sapnetweaver.connection.error.count"] = true
