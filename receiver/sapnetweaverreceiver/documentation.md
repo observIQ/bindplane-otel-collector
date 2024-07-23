@@ -12,38 +12,6 @@ metrics:
     enabled: false
 ```
 
-### sapnetweaver.abap.rfc.count
-
-The number of ABAP RFC connections by session type.
-
-Collected from executable dpmon -pf=/sapmnt/<SID>/profile c (RFC Connections option)
-
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {connections} | Sum | Int | Cumulative | false |
-
-#### Attributes
-
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| session_type | The ABAP Session type. | Any Str |
-
-### sapnetweaver.abap.session.count
-
-The number of ABAP sessions by session type.
-
-Collected from executable dpmon -pf=/sapmnt/<SID>/profile v (session table option)
-
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {sessions} | Sum | Int | Cumulative | false |
-
-#### Attributes
-
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| session_type | The ABAP Session type. | Any Str |
-
 ### sapnetweaver.abap.update.status
 
 The status of the ABAP update process.
@@ -79,22 +47,6 @@ Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > IC
 | Unit | Metric Type | Value Type |
 | ---- | ----------- | ---------- |
 | % | Gauge | Int |
-
-### sapnetweaver.certificate.validity
-
-The number of seconds until the SAP certificate expires.
-
-Collected using sapgenpse get_my_name -p /usr/sap/<SID>/<INST>/*.pse -n validity.
-
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| s | Sum | Int | Cumulative | false |
-
-#### Attributes
-
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| certificate_path | The SAP Certificate file path location. | Any Str |
 
 ### sapnetweaver.connection.error.count
 

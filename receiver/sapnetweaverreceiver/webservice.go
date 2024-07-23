@@ -15,10 +15,6 @@
 package sapnetweaverreceiver // import "github.com/observiq/bindplane-agent/receiver/sapnetweaverreceiver"
 
 import (
-	"bytes"
-	"os/exec"
-	"strings"
-
 	"github.com/hooklift/gowsdl/soap"
 
 	"github.com/observiq/bindplane-agent/receiver/sapnetweaverreceiver/internal/models"
@@ -32,9 +28,6 @@ type webService interface {
 	GetProcessList() (*models.GetProcessListResponse, error)
 	EnqGetStatistic() (*models.EnqGetStatisticResponse, error)
 	ABAPGetSystemWPTable() (*models.ABAPGetSystemWPTableResponse, error)
-	FindFile(args ...string) ([]string, error)
-	DpmonExecute(paths string) (string, error)
-	CertExecute(command string) ([]string, error)
 }
 
 type netweaverWebService struct {
@@ -119,44 +112,4 @@ func (s *netweaverWebService) ABAPGetSystemWPTable() (*models.ABAPGetSystemWPTab
 	}
 
 	return response, nil
-}
-
-func (s *netweaverWebService) FindFile(args ...string) ([]string, error) {
-	resp, err := exec.Command("/usr/bin/find", args...).Output()
-	if err != nil {
-		return []string{}, err
-	}
-
-	return processFile(string(resp)), nil
-}
-
-func (s *netweaverWebService) DpmonExecute(paths string) (string, error) {
-	cmd := exec.Command("bash", "-c", paths)
-
-	var output bytes.Buffer
-	cmd.Stdout = &output
-
-	if err := cmd.Run(); err != nil {
-		return "", err
-	}
-
-	return output.String(), nil
-}
-
-func (s *netweaverWebService) CertExecute(command string) ([]string, error) {
-	cmd := exec.Command("bash", "-c", command)
-
-	var output bytes.Buffer
-	cmd.Stdout = &output
-	cmd.Stderr = &output
-
-	if err := cmd.Run(); err != nil {
-		return []string{}, err
-	}
-
-	return processFile(output.String()), nil
-}
-
-func processFile(output string) []string {
-	return strings.Split(string(output), "\n")
 }

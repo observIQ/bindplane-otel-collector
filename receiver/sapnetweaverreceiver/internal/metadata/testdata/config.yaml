@@ -1,17 +1,11 @@
 default:
 all_set:
   metrics:
-    sapnetweaver.abap.rfc.count:
-      enabled: true
-    sapnetweaver.abap.session.count:
-      enabled: true
     sapnetweaver.abap.update.status:
       enabled: true
     sapnetweaver.cache.evictions:
       enabled: true
     sapnetweaver.cache.hits:
-      enabled: true
-    sapnetweaver.certificate.validity:
       enabled: true
     sapnetweaver.connection.error.count:
       enabled: true
@@ -92,17 +86,11 @@ all_set:
       enabled: true
 none_set:
   metrics:
-    sapnetweaver.abap.rfc.count:
-      enabled: false
-    sapnetweaver.abap.session.count:
-      enabled: false
     sapnetweaver.abap.update.status:
       enabled: false
     sapnetweaver.cache.evictions:
       enabled: false
     sapnetweaver.cache.hits:
-      enabled: false
-    sapnetweaver.certificate.validity:
       enabled: false
     sapnetweaver.connection.error.count:
       enabled: false

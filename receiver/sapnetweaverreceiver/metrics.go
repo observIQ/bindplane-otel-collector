@@ -292,14 +292,6 @@ func (s *sapNetweaverScraper) recordSapnetweaverWorkProcessActiveCountDataPoint(
 	s.mb.RecordSapnetweaverWorkProcessActiveCountDataPoint(now, int64(similarityCount), systemWPTableResponse.Workprocess.Item[len(systemWPTableResponse.Workprocess.Item)-1].Instance, systemWPTableResponse.Workprocess.Item[len(systemWPTableResponse.Workprocess.Item)-1].Typ, systemWPTableResponse.Workprocess.Item[len(systemWPTableResponse.Workprocess.Item)-1].Status)
 }
 
-// recordSapnetweaverAbapRfcCountDataPoint
-func (s *sapNetweaverScraper) recordSapnetweaverAbapRfcCountDataPoint(now pcommon.Timestamp, rfcTable string) {
-	rfcConnectionTable := parseRfcConnectionsTable(rfcTable)
-	for rfcType, count := range rfcConnectionTable {
-		s.mb.RecordSapnetweaverAbapRfcCountDataPoint(now, count, rfcType)
-	}
-}
-
 func parseRfcConnectionsTable(rfcTable string) map[string]int64 {
 	rfcTypes := map[string]int64{}
 	if strings.Contains(rfcTable, "Communication Table is empty") {
@@ -319,14 +311,6 @@ func parseRfcConnectionsTable(rfcTable string) map[string]int64 {
 	}
 
 	return rfcTypes
-}
-
-// recordSapnetweaverAbapSessionCountDataPoint
-func (s *sapNetweaverScraper) recordSapnetweaverAbapSessionCountDataPoint(now pcommon.Timestamp, sessionTable string) {
-	sessionsTable := parseSessionTable(sessionTable)
-	for sessionType, count := range sessionsTable {
-		s.mb.RecordSapnetweaverAbapSessionCountDataPoint(now, count, sessionType)
-	}
 }
 
 func parseSessionTable(sessionTable string) map[string]int64 {

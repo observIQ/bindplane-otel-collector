@@ -129,11 +129,6 @@ func TestScraperScrape(t *testing.T) {
 	err = xml.Unmarshal(InstancePropertiesData, &InstancePropertiesResponse)
 	require.NoError(t, err)
 
-	certificate1 := processFile(string(loadAPIResponseData(t, "api-responses", "certificate1.txt")))
-	certificate2 := processFile(string(loadAPIResponseData(t, "api-responses", "certificate2.txt")))
-	rfcConnections := string(loadAPIResponseData(t, "api-responses", "dpmon-c-rfc-connections.txt"))
-	sessionsTable := string(loadAPIResponseData(t, "api-responses", "dpmon-v-sessions-table.txt"))
-
 	mockService := mocks.MockWebService{}
 	mockService.On("GetAlertTree").Return(alertTreeResponse, nil)
 	mockService.On("ABAPGetSystemWPTable").Return(abapSystemWpTableResponse, nil)
@@ -142,13 +137,6 @@ func TestScraperScrape(t *testing.T) {
 	mockService.On("GetQueueStatistic").Return(queueStatisticResponse, nil)
 	mockService.On("GetSystemInstanceList").Return(systemInstanceListResponse, nil)
 	mockService.On("GetInstanceProperties").Return(InstancePropertiesResponse, nil)
-	mockService.On("FindFile", "-L", "/usr/sap", "-name", "*.pse").Return([]string{"/usr/sap/EPP/D00/sec/SAPSSLA.pse", "/usr/sap/EPP/D00/sec/SAPSSLC.pse"}, nil)
-	mockService.On("CertExecute", "/usr/sap/hostctrl/exe/sapgenpse get_my_name -p /usr/sap/EPP/D00/sec/SAPSSLA.pse -n validity").Return(certificate1, nil)
-	mockService.On("CertExecute", "/usr/sap/hostctrl/exe/sapgenpse get_my_name -p /usr/sap/EPP/D00/sec/SAPSSLC.pse -n validity").Return(certificate2, nil)
-	mockService.On("FindFile", "-L", "/usr/sap", "-name", "*.pse").Return([]string{""}, nil)
-	mockService.On("FindFile", "-L", "/usr/sap", "-name", "dpmon", "-path", "*/exe/dpmon").Return([]string{"/usr/sap/EPP/D00/exe/dpmon"}, nil)
-	mockService.On("DpmonExecute", "echo q | /usr/sap/EPP/D00/exe/dpmon pf=/sapmnt/EPP/profile/EPP_D00_sap-app-1 c").Return(rfcConnections, nil)
-	mockService.On("DpmonExecute", "echo q | /usr/sap/EPP/D00/exe/dpmon pf=/sapmnt/EPP/profile/EPP_D00_sap-app-1 v").Return(sessionsTable, nil)
 
 	cfg := createDefaultConfig().(*Config)
 	cfg.Endpoint = defaultEndpoint
@@ -301,8 +289,6 @@ func TestScraperScrapeAPIError(t *testing.T) {
 	mockService.On("GetQueueStatistic").Return(nil, errors.New("unexpected error"))
 	mockService.On("GetSystemInstanceList").Return(nil, errors.New("unexpected error"))
 	mockService.On("GetInstanceProperties").Return(nil, errors.New("unexpected error"))
-	mockService.On("FindFile", "-L", "/usr/sap", "-name", "*.pse").Return([]string{}, errors.New("unexpected error"))
-	mockService.On("FindFile", "-L", "/usr/sap", "-name", "dpmon", "-path", "*/exe/dpmon").Return([]string{}, errors.New("unexpected error"))
 
 	cfg := createDefaultConfig().(*Config)
 	cfg.Endpoint = defaultEndpoint
@@ -332,8 +318,6 @@ func TestScraperScrapeAPIError(t *testing.T) {
 		errors.New("failed to collect GetQueueStatistic metrics: unexpected error"),
 		errors.New("failed to collect GetProcessList metrics: unexpected error"),
 		errors.New("failed to collect GetSystemInstanceList metrics: unexpected error"),
-		errors.New("failed to find certificate files: unexpected error"),
-		errors.New("failed find dpmon executable: unexpected error"),
 	), err.Error())
 }
 
