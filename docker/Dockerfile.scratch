@@ -21,7 +21,6 @@ COPY release_deps/VERSION.txt /etc/otel/VERSION.txt
 
 COPY release_deps/plugins /etc/otel/plugins
 COPY config/logging.stdout.yaml /etc/otel/logging.yaml
-COPY release_deps/config.yaml /etc/otel/config.yaml
 
 # Scratch images contain nothing by default. The built image
 # will contain only what was copied into it. This means it
