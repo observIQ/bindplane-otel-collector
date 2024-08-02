@@ -26,8 +26,8 @@ release_deps
 collector*.yaml
 manager*.yaml
 logging*.yaml
-config.yaml
-storage
 
-# For those of us switching between V1 and V2 branches
+#Supervisor & Builder Files
 builder
+agent*.log
+effective*.yaml

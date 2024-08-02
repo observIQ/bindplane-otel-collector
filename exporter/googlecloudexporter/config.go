@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 
 	"github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/collector"
+	"github.com/observiq/bindplane-agent/internal/version"
 	gcp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/processor/batchprocessor"
@@ -118,7 +119,8 @@ func (c *Config) updateProjectFromFile(fileName string) error {
 }
 
 // createDefaultConfig creates the default config for the exporter
-func createDefaultConfig(collectorVersion string) func() component.Config {
+func createDefaultConfig() func() component.Config {
+	collectorVersion := version.Version()
 	return func() component.Config {
 		return &Config{
 			GCPConfig:   createDefaultGCPConfig(collectorVersion),

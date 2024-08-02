@@ -1,0 +1,18 @@
+server:
+  endpoint: ws://localhost:3001/v1/opamp
+  headers:
+    Authorization: "Secret-Key <your-secret-key>"
+    X-Bindplane-Attribute: "custom.key=custom-value"
+  tls:
+    insecure: true
+    insecure_skip_verify: true
+
+capabilities:
+  accepts_remote_config: true
+  reports_remote_config: true
+
+agent:
+  executable: ./dist/collector_
+
+storage:
+  directory: "./local/storage"
