@@ -42,10 +42,8 @@ func TestCreateMetricExporterSuccess(t *testing.T) {
 		gmpFactory = gmp.NewFactory()
 	}()
 
-	collectorVersion := "v1.2.3"
-
-	factory := NewFactory(collectorVersion)
-	cfg := createDefaultConfig(collectorVersion)()
+	factory := NewFactory()
+	cfg := createDefaultConfig()()
 	ctx := context.Background()
 	set := exportertest.NewNopSettings()
 
@@ -66,10 +64,8 @@ func TestCreateExporterFailure(t *testing.T) {
 		gmpFactory = gmp.NewFactory()
 	}()
 
-	collectorVersion := "v1.2.3"
-
-	factory := NewFactory(collectorVersion)
-	cfg := createDefaultConfig(collectorVersion)()
+	factory := NewFactory()
+	cfg := createDefaultConfig()()
 	ctx := context.Background()
 	set := exportertest.NewNopSettings()
 

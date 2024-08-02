@@ -11,13 +11,14 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: "1.21"
+          check-latest: true
       - name: Cache Tools
         id: tool-cache
         uses: actions/cache@v3
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./Makefile') }}
+          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
       - name: Install Tools
         if: steps.tool-cache.outputs.cache-hit != 'true'
         run: make install-tools
@@ -39,7 +40,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./Makefile') }}
+          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
       - name: Install Tools
         if: steps.tool-cache.outputs.cache-hit != 'true'
         run: make install-tools
@@ -63,7 +64,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./Makefile') }}
+          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
       - name: Install Tools
         if: steps.tool-cache.outputs.cache-hit != 'true'
         run: make install-tools
@@ -87,7 +88,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./Makefile') }}
+          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
       - name: Install Tools
         if: steps.tool-cache.outputs.cache-hit != 'true'
         run: make install-tools
@@ -111,7 +112,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./Makefile') }}
+          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
       - name: Install Tools
         if: steps.tool-cache.outputs.cache-hit != 'true'
         run: make install-tools
@@ -135,7 +136,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./Makefile') }}
+          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
       - name: Install Tools
         if: steps.tool-cache.outputs.cache-hit != 'true'
         run: make install-tools

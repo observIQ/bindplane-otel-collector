@@ -1,11 +1,11 @@
 # All source code and documents, used when checking for misspellings
 ALLDOC := $(shell find . \( -name "*.md" -o -name "*.yaml" \) \
                                 -type f | sort)
-ALL_MODULES := $(shell find . -type f -name "go.mod" -exec dirname {} \; | sort )
+ALL_MODULES := $(shell find . -path ./builder -prune -o -type f -name "go.mod" -exec dirname {} \; | sort )
 ALL_MDATAGEN_MODULES := $(shell find . -type f -name "metadata.yaml" -exec dirname {} \; | sort )
 
 # All source code files
-ALL_SRC := $(shell find . -name '*.go' -o -name '*.sh' -o -name 'Dockerfile*' -type f | sort)
+ALL_SRC := $(shell find . -path ./builder -prune -o -name '*.go' -o -name '*.sh' -o -name 'Dockerfile*' -type f | sort)
 
 OUTDIR=./dist
 GOOS ?= $(shell go env GOOS)
@@ -29,15 +29,43 @@ VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG))
 # Build binaries for current GOOS/GOARCH by default
 .DEFAULT_GOAL := build-binaries
 
-# Builds just the agent for current GOOS/GOARCH pair
+# Builds the agent for current GOOS/GOARCH pair
 .PHONY: agent
 agent:
-	go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)" -tags bindplane -o $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) ./cmd/collector
+	builder --config="./manifests/observIQ/manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)"
+	mkdir -p $(OUTDIR); cp ./builder/observiq-otel-collector $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
 
-# Builds just the updater for current GOOS/GOARCH pair
+# Builds a custom distro for the current GOOS/GOARCH pair using the manifest specified
+# MANIFEST = path to the manifest file for the distro to be built
+# Usage: make distro MANIFEST="./manifests/custom/my_distro_manifest.yaml"
+.PHONY: distro
+distro:
+	builder --config="$(MANIFEST)"
+
+# Builds the updater for current GOOS/GOARCH pair && sets flags
 .PHONY: updater
 updater:
-	cd ./updater/; go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
+	cd ./updater/; go build -ldflags "-s -w\
+		-X 'github.com/observiq/bindplane-otel-collector/updater/internal/version.version=$(VERSION)'\
+		-X 'github.com/observiq/bindplane-agent/updater/internal/version.gitHash=$(shell git rev-parse HEAD)'\
+		-X 'github.com/observiq/bindplane-agent/updater/internal/version.date=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")'"\
+		-o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
+
+# Runs the supervisor invoking the agent build in /dist
+.PHONY: run-supervisor
+run-supervisor:
+	opampsupervisor --config ./local/supervisor-config.yaml
+
+# Ensures the supervisor and agent are stopped
+.PHONY: kill
+kill:
+	pkill -9 opampsupervisor || true
+	pkill -9 observiq-agent-distro || true
+
+# Stops processes and cleans up
+.PHONY: reset
+reset: kill
+	rm -rf agent.log effective.yaml local/storage/* builder/
 
 # Builds the updater + agent for current GOOS/GOARCH pair
 .PHONY: build-binaries
@@ -94,13 +122,15 @@ install-tools:
 	cd $(TOOLS_MOD_DIR) && go install github.com/google/addlicense
 	cd $(TOOLS_MOD_DIR) && go install github.com/mgechev/revive
 	cd $(TOOLS_MOD_DIR) && go install go.opentelemetry.io/collector/cmd/mdatagen
+	cd $(TOOLS_MOD_DIR) && go install go.opentelemetry.io/collector/cmd/builder
+	cd $(TOOLS_MOD_DIR) && go install github.com/open-telemetry/opentelemetry-collector-contrib/cmd/opampsupervisor
 	cd $(TOOLS_MOD_DIR) && go install github.com/securego/gosec/v2/cmd/gosec
-# update cosign in release.yml when updating this version
-# update cosign in docs/verify-signature.md when updating this version
-	go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
 	cd $(TOOLS_MOD_DIR) && go install github.com/uw-labs/lichen
 	cd $(TOOLS_MOD_DIR) && go install github.com/vektra/mockery/v2
 	cd $(TOOLS_MOD_DIR) && go install golang.org/x/tools/cmd/goimports
+# update cosign in release.yml when updating this version
+# update cosign in docs/verify-signature.md when updating this version
+	go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
 
 .PHONY: lint
 lint:
@@ -149,18 +179,12 @@ tidy:
 
 .PHONY: gosec
 gosec:
-	gosec \
-	  -exclude-dir=updater \
-	  -exclude-dir=receiver/sapnetweaverreceiver \
-	  -exclude-dir=extension/bindplaneextension \
-	  -exclude-dir=processor/snapshotprocessor \
-	  -exclude-dir=internal/tools \
-	  ./...
-# exclude the testdata dir; it contains a go program for testing.
+	cd exporter; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
+	cd processor; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
+	cd internal; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
+	cd extension; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
+	cd receiver; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
 	cd updater; gosec -exclude-dir internal/service/testdata ./...
-	cd extension/bindplaneextension; gosec ./...
-	cd processor/snapshotprocessor; gosec ./...
-	cd receiver/sapnetweaverreceiver; gosec ./...
 
 # This target performs all checks that CI will do (excluding the build itself)
 .PHONY: ci-checks
@@ -218,7 +242,6 @@ release-prep:
 	@echo 'v$(CURR_VERSION)' > release_deps/VERSION.txt
 	./buildscripts/download-dependencies.sh release_deps
 	@cp -r ./plugins release_deps/
-	@cp config/example.yaml release_deps/config.yaml
 	@cp config/logging.yaml release_deps/logging.yaml
 	@cp service/com.observiq.collector.plist release_deps/com.observiq.collector.plist
 	@jq ".files[] | select(.service != null)" windows/wix.json >> release_deps/windows_service.json
@@ -235,8 +258,6 @@ release-test:
 
 .PHONY: for-all
 for-all:
-	@echo "running $${CMD} in root"
-	@$${CMD}
 	@set -e; for dir in $(ALL_MODULES); do \
 	  (cd "$${dir}" && \
 	  	echo "running $${CMD} in $${dir}" && \

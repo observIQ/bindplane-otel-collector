@@ -63,16 +63,10 @@ COPY release_deps/plugins /etc/otel/plugins
 
 COPY config/logging.stdout.yaml /etc/otel/logging.yaml
 
-# Default config allows the agent to run without an injected config, which is required
-# when connecting to an OpAMP platform.
-COPY release_deps/config.yaml /etc/otel/config.yaml
-
 RUN chown otel:otel \
-    /etc/otel/config.yaml \
     /etc/otel/logging.yaml
 
 RUN chmod 0600 \
-    /etc/otel/config.yaml \
     /etc/otel/logging.yaml
 
 USER otel

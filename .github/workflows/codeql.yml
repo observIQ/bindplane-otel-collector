@@ -40,7 +40,8 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: "1.21"
+          check-latest: true
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
