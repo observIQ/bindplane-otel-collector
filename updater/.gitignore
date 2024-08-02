@@ -1,4 +1,0 @@
-# logging.yaml and manager.yaml are ignored in the base module, but
-# they are important in this module for test data.
-!logging.yaml
-!manager.yaml

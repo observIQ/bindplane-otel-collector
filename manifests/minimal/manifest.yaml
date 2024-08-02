@@ -1,0 +1,57 @@
+dist:
+  module: github.com/observiq/bindplane-otel-collector-ocb
+  name: bindplane-distro
+  description: Bindplane's minimal distro for the OpenTelemetry Collector
+  output_path: ./dist
+conf_resolver:
+  default_uri_scheme: "env"
+extensions:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.125.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.125.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.125.0
+  - gomod: github.com/observiq/bindplane-otel-collector/extension/bindplaneextension v1.76.4
+    path: "./extension/bindplaneextension"
+exporters:
+  - gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.125.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.125.0
+  - gomod: go.opentelemetry.io/collector/exporter/nopexporter v0.125.0
+processors:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor v0.125.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.125.0
+  - gomod: github.com/observiq/bindplane-otel-collector/processor/snapshotprocessor v1.76.4
+    path: "./processor/snapshotprocessor"
+  - gomod: github.com/observiq/bindplane-otel-collector/processor/throughputmeasurementprocessor v1.76.4
+    path: "./processor/throughputmeasurementprocessor"
+  - gomod: github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.76.4
+    path: "./processor/topologyprocessor"
+receivers:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.125.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.125.0
+  - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.125.0
+connectors:
+  - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.125.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.125.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/failoverconnector v0.125.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.125.0
+providers:
+  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.31.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.31.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/httpprovider v1.31.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/httpsprovider v1.31.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.31.0
+# When adding a replace, add a comment before it to document why it's needed and when it can be removed
+replaces:
+  # See https://github.com/google/gnostic/issues/262
+  - github.com/googleapis/gnostic v0.5.6 => github.com/googleapis/gnostic v0.5.5
+  # See https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/12322#issuecomment-1185029670
+  - github.com/docker/go-connections v0.4.1-0.20210727194412-58542c764a11 => github.com/docker/go-connections v0.4.0
+  # see https://github.com/mattn/go-ieproxy/issues/45
+  - github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
+  # see https://github.com/openshift/api/pull/1515
+  - github.com/openshift/api => github.com/openshift/api v0.0.0-20230726162818-81f778f3b3ec
+  # replace used by bindplaneextension
+  - github.com/observiq/bindplane-otel-collector/processor/topologyprocessor => ../processor/topologyprocessor
+  # replace statements for internal imports
+  - github.com/observiq/bindplane-otel-collector/internal/measurements => ../internal/measurements
+  - github.com/observiq/bindplane-otel-collector/internal/report => ../internal/report
+  - github.com/observiq/bindplane-otel-collector/internal/topology => ../internal/topology

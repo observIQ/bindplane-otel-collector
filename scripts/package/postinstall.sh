@@ -13,31 +13,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 set -e
 
 # Read's optional package overrides. Users should deploy the override
 # file before installing BDOT for the first time. The override should
 # not be modified unless uninstalling and re-installing.
-[ -f /etc/default/observiq-otel-collector ] && . /etc/default/observiq-otel-collector
-[ -f /etc/sysconfig/observiq-otel-collector ] && . /etc/sysconfig/observiq-otel-collector
+[ -f /etc/default/bindplane-otel-collector ] && . /etc/default/bindplane-otel-collector
+[ -f /etc/sysconfig/bindplane-otel-collector ] && . /etc/sysconfig/bindplane-otel-collector
 
-: "${BDOT_CONFIG_HOME:=/opt/observiq-otel-collector}"
+: "${BDOT_CONFIG_HOME:=/opt/bindplane-otel-collector}"
 
 install() {
-    mkdir -p "${BDOT_CONFIG_HOME}"
-    chmod 0755 "${BDOT_CONFIG_HOME}"
-    chown observiq-otel-collector:observiq-otel-collector "${BDOT_CONFIG_HOME}"
-    rm -f "${BDOT_CONFIG_HOME}/observiq-otel-collector" || true
-    cp -r --preserve \
-      /usr/share/observiq-otel-collector/stage/observiq-otel-collector/* \
-      "${BDOT_CONFIG_HOME}"
+  mkdir -p "${BDOT_CONFIG_HOME}"
+  chmod 0755 "${BDOT_CONFIG_HOME}"
+  chown bindplane-otel-collector:bindplane-otel-collector "${BDOT_CONFIG_HOME}"
+  rm -f "${BDOT_CONFIG_HOME}/bindplane-otel-collector" || true
+  cp -r --preserve \
+    /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector/* \
+    "${BDOT_CONFIG_HOME}"
 
-    rm -rf /usr/share/observiq-otel-collector
+  rm -rf /usr/share/bindplane-otel-collector
 }
 
 install_service() {
-  if command -v systemctl > /dev/null 2>&1; then
+  if command -v systemctl >/dev/null 2>&1; then
     install_systemd_service
   else
     install_initd_service
@@ -45,7 +44,7 @@ install_service() {
 }
 
 install_systemd_service() {
-  config_file="/usr/lib/systemd/system/observiq-otel-collector.service"
+  config_file="/usr/lib/systemd/system/bindplane-otel-collector.service"
 
   if [ ! -f "$config_file" ]; then
     echo "Installing systemd service to $config_file"
@@ -55,7 +54,7 @@ install_systemd_service() {
 
   mkdir -p "$(dirname "$config_file")"
 
-  cat << EOF > "$config_file"
+  cat <<EOF >"$config_file"
 [Unit]
 Description=observIQ's distribution of the OpenTelemetry collector
 After=network.target
@@ -64,12 +63,12 @@ StartLimitBurst=5
 [Service]
 Type=simple
 User=root
-Group=observiq-otel-collector
+Group=bindplane-otel-collector
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
 Environment=OIQ_OTEL_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
 WorkingDirectory=${BDOT_CONFIG_HOME}
-ExecStart=${BDOT_CONFIG_HOME}/observiq-otel-collector --config config.yaml
+ExecStart=${BDOT_CONFIG_HOME}/bindplane-otel-collector --config config.yaml
 LimitNOFILE=65000
 SuccessExitStatus=0
 TimeoutSec=20
@@ -86,7 +85,7 @@ EOF
 }
 
 install_initd_service() {
-  config_file="/etc/init.d/observiq-otel-collector"
+  config_file="/etc/init.d/bindplane-otel-collector"
 
   if [ ! -f "$config_file" ]; then
     echo "Installing init.d service to $config_file"
@@ -96,22 +95,22 @@ install_initd_service() {
 
   mkdir -p "$(dirname "$config_file")"
 
-  cat << EOF > "$config_file"
+  cat <<EOF >"$config_file"
 #!/bin/sh
 # observIQ OTEL daemon
 # chkconfig: 2345 99 05
 # description: observIQ's distribution of the OpenTelemetry collector
-# processname: observiq-otel-collector
-# pidfile: /var/run/observiq-otel-collector.pid
+# processname: bindplane-otel-collector
+# pidfile: /var/run/bindplane-otel-collector.pid
 
 ### BEGIN INIT INFO
-# Provides: observiq-otel-collector
+# Provides: bindplane-otel-collector
 # Required-Start:
 # Required-Stop:
 # Should-Start:
 # Default-Start: 3 5
 # Default-Stop: 0 1 2 6  
-# Description: Start the observiq-otel-collector service
+# Description: Start the bindplane-otel-collector service
 ### END INIT INFO
 
 # Source function library.
@@ -161,7 +160,7 @@ fi
 # with force-reload (in case signalling is not supported) are
 # considered a success.
 
-BINARY=observiq-otel-collector
+BINARY=bindplane-otel-collector
 PROGRAM=${BDOT_CONFIG_HOME}/"\$BINARY"
 START_CMD="nohup ${BDOT_CONFIG_HOME}/\$BINARY > /dev/null 2>&1 &"
 LOCKFILE=/var/lock/"\$BINARY"
@@ -359,17 +358,17 @@ EOF
 
 manage_systemd_service() {
   # Ensure sysv script isn't present, and if it is remove it
-  if [ -f /etc/init.d/observiq-otel-collector ]; then
-    rm -f /etc/init.d/observiq-otel-collector
+  if [ -f /etc/init.d/bindplane-otel-collector ]; then
+    rm -f /etc/init.d/bindplane-otel-collector
   fi
 
   systemctl daemon-reload
 
   echo "configured systemd service"
 
-  cat << EOF
+  cat <<EOF
 
-The "observiq-otel-collector" service has been configured!
+The "bindplane-otel-collector" service has been configured!
 
 The collector's config file can be found here: 
   ${BDOT_CONFIG_HOME}/config.yaml
@@ -380,33 +379,34 @@ To view logs from the collector, run:
 For more information on configuring the collector, see the docs:
   https://github.com/observIQ/bindplane-otel-collector/tree/main#observiq-opentelemetry-collector
 
-To stop the observiq-otel-collector service, run:
-  sudo systemctl stop observiq-otel-collector
+To stop the bindplane-otel-collector service, run:
+  sudo systemctl stop bindplane-otel-collector
 
-To start the observiq-otel-collector service, run:
-  sudo systemctl start observiq-otel-collector
+To start the bindplane-otel-collector service, run:
+  sudo systemctl start bindplane-otel-collector
 
-To restart the observiq-otel-collector service, run:
-  sudo systemctl restart observiq-otel-collector
+To restart the bindplane-otel-collector service, run:
+  sudo systemctl restart bindplane-otel-collector
 
 To enable the service on startup, run:
-  sudo systemctl enable observiq-otel-collector
+  sudo systemctl enable bindplane-otel-collector
 
 If you have any other questions please contact us at support@observiq.com
 EOF
 }
 
 manage_sysv_service() {
-  chmod 755 /etc/init.d/observiq-otel-collector
+  chmod 755 /etc/init.d/bindplane-otel-collector
+  chmod 644 /etc/sysconfig/bindplane-otel-collector
   echo "configured sysv service"
 }
 
 init_type() {
   # Determine if we need service or systemctl for prereqs
-  if command -v systemctl > /dev/null 2>&1; then
+  if command -v systemctl >/dev/null 2>&1; then
     command printf "systemd"
     return
-  elif command -v service > /dev/null 2>&1; then
+  elif command -v service >/dev/null 2>&1; then
     command printf "service"
     return
   fi
@@ -418,32 +418,53 @@ init_type() {
 manage_service() {
   service_type="$(init_type)"
   case "$service_type" in
-    systemd)
-      manage_systemd_service
-      ;;
-    service)
-      manage_sysv_service
-      ;;
-    *)
-      echo "could not detect init system, skipping service configuration"
+  systemd)
+    manage_systemd_service
+    ;;
+  service)
+    manage_sysv_service
+    ;;
+  *)
+    echo "could not detect init system, skipping service configuration"
+    ;;
   esac
 }
 
 finish_permissions() {
   # Goreleaser does not set plugin file permissions, so do them here
-  # We also change the owner of the binary to observiq-otel-collector
-  chown -R observiq-otel-collector:observiq-otel-collector ${BDOT_CONFIG_HOME}/observiq-otel-collector ${BDOT_CONFIG_HOME}/plugins/*
-  chmod 0640 ${BDOT_CONFIG_HOME}/plugins/*
+  # We also change the owner of the binary to bindplane-otel-collector
+  chown -R bindplane-otel-collector:bindplane-otel-collector /opt/bindplane-otel-collector/bindplane-otel-collector /opt/bindplane-otel-collector/opampsupervisor /opt/bindplane-otel-collector/plugins/*
+  chmod 0640 /opt/bindplane-otel-collector/plugins/*
 
-  # Initialize the log file to ensure it is owned by observiq-otel-collector.
+  # Initialize the log file to ensure it is owned by bindplane-otel-collector.
   # This prevents the service (running as root) from assigning ownership to
-  # the root user. By doing so, we allow the user to switch to observiq-otel-collector
+  # the root user. By doing so, we allow the user to switch to bindplane-otel-collector
   # user for 'non root' installs.
-  touch ${BDOT_CONFIG_HOME}/log/collector.log
-  chown observiq-otel-collector:observiq-otel-collector ${BDOT_CONFIG_HOME}/log/collector.log
+  mkdir -p /opt/bindplane-otel-collector/supervisor_storage
+  touch /opt/bindplane-otel-collector/supervisor_storage/agent.log
+  chown bindplane-otel-collector:bindplane-otel-collector /opt/bindplane-otel-collector/supervisor_storage/agent.log
 }
 
-install
-install_service
-finish_permissions
-manage_service
+install() {
+  finish_permissions
+  manage_service
+}
+
+# upgrade should perform the same actions as install
+upgrade() {
+  install
+}
+
+action="$1"
+
+case "$action" in
+"0" | "install")
+  install
+  ;;
+"1" | "upgrade")
+  upgrade
+  ;;
+*)
+  install
+  ;;
+esac

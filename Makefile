@@ -1,11 +1,11 @@
 # All source code and documents, used when checking for misspellings
 ALLDOC := $(shell find . \( -name "*.md" -o -name "*.yaml" \) \
                                 -type f | sort)
-ALL_MODULES := $(shell find . -type f -name "go.mod" -exec dirname {} \; | sort )
+ALL_MODULES := $(shell find . -path ./builder -prune -o -type f -name "go.mod" -exec dirname {} \; | sort )
 ALL_MDATAGEN_MODULES := $(shell find . -type f -name "metadata.yaml" -exec dirname {} \; | sort )
 
 # All source code files
-ALL_SRC := $(shell find . -name '*.go' -o -name '*.sh' -o -name 'Dockerfile*' -type f | sort)
+ALL_SRC := $(shell find . -path ./builder -prune -o -name '*.go' -o -name '*.sh' -o -name 'Dockerfile*' -type f | sort)
 
 OUTDIR=./dist
 GOOS ?= $(shell go env GOOS)
@@ -32,21 +32,36 @@ version:
 	@printf $(VERSION)
 
 # Build binaries for current GOOS/GOARCH by default
-.DEFAULT_GOAL := build-binaries
+.DEFAULT_GOAL := collector
 
-# Builds just the agent for current GOOS/GOARCH pair
-.PHONY: agent
-agent:
-	go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)" -tags bindplane -o $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) ./cmd/collector
+# Builds the collector for current GOOS/GOARCH pair
+.PHONY: collector
+collector:
+	CGO_ENABLED=0 builder --config="./manifests/observIQ/manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)"
+	mkdir -p $(OUTDIR); cp ./builder/bindplane-otel-collector $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
 
-# Builds just the updater for current GOOS/GOARCH pair
-.PHONY: updater
-updater:
-	cd ./updater/; go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
+# Builds a custom distro for the current GOOS/GOARCH pair using the manifest specified
+# MANIFEST = path to the manifest file for the distro to be built
+# Usage: make distro MANIFEST="./manifests/custom/my_distro_manifest.yaml"
+.PHONY: distro
+distro:
+	builder --config="$(MANIFEST)"
 
-# Builds the updater + agent for current GOOS/GOARCH pair
-.PHONY: build-binaries
-build-binaries: agent updater
+# Runs the supervisor invoking the collector build in /dist
+.PHONY: run-supervisor
+run-supervisor:
+	opampsupervisor --config ./local/supervisor.yaml
+
+# Ensures the supervisor and collector are stopped
+.PHONY: kill
+kill:
+	pkill -9 opampsupervisor || true
+	pkill -9 collector_$(GOOS)_$(GOARCH) || true
+
+# Stops processes and cleans up
+.PHONY: reset
+reset: kill
+	rm -rf agent.log effective.yaml local/storage/* builder/
 
 .PHONY: build-all
 build-all: build-linux build-darwin build-windows
@@ -62,35 +77,35 @@ build-windows: build-windows-amd64
 
 .PHONY: build-linux-ppc64
 build-linux-ppc64:
-	GOOS=linux GOARCH=ppc64 $(MAKE) build-binaries -j2
+	GOOS=linux GOARCH=ppc64 $(MAKE) collector
 
 .PHONY: build-linux-ppc64le
 build-linux-ppc64le:
-	GOOS=linux GOARCH=ppc64le $(MAKE) build-binaries -j2
+	GOOS=linux GOARCH=ppc64le $(MAKE) collector
 
 .PHONY: build-linux-amd64
 build-linux-amd64:
-	GOOS=linux GOARCH=amd64 $(MAKE) build-binaries -j2
+	GOOS=linux GOARCH=amd64 $(MAKE) collector
 
 .PHONY: build-linux-arm64
 build-linux-arm64:
-	GOOS=linux GOARCH=arm64 $(MAKE) build-binaries -j2
+	GOOS=linux GOARCH=arm64 $(MAKE) collector
 
 .PHONY: build-linux-arm
 build-linux-arm:
-	GOOS=linux GOARCH=arm $(MAKE) build-binaries -j2
+	GOOS=linux GOARCH=arm $(MAKE) collector
 
 .PHONY: build-darwin-amd64
 build-darwin-amd64:
-	GOOS=darwin GOARCH=amd64 $(MAKE) build-binaries -j2
+	GOOS=darwin GOARCH=amd64 $(MAKE) collector
 
 .PHONY: build-darwin-arm64
 build-darwin-arm64:
-	GOOS=darwin GOARCH=arm64 $(MAKE) build-binaries -j2
+	GOOS=darwin GOARCH=arm64 $(MAKE) collector
 
 .PHONY: build-windows-amd64
 build-windows-amd64:
-	GOOS=windows GOARCH=amd64 $(MAKE) build-binaries -j2
+	GOOS=windows GOARCH=amd64 $(MAKE) collector
 
 # tool-related commands
 .PHONY: install-tools
@@ -99,13 +114,20 @@ install-tools:
 	cd $(TOOLS_MOD_DIR) && go install github.com/google/addlicense
 	cd $(TOOLS_MOD_DIR) && go install github.com/mgechev/revive
 	cd $(TOOLS_MOD_DIR) && go install go.opentelemetry.io/collector/cmd/mdatagen
+	cd $(TOOLS_MOD_DIR) && go install go.opentelemetry.io/collector/cmd/builder
+	cd $(TOOLS_MOD_DIR) && go install github.com/open-telemetry/opentelemetry-collector-contrib/cmd/opampsupervisor
 	cd $(TOOLS_MOD_DIR) && go install github.com/securego/gosec/v2/cmd/gosec
-# update cosign in release.yml when updating this version
-# update cosign in docs/verify-signature.md when updating this version
-	go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
 	cd $(TOOLS_MOD_DIR) && go install github.com/uw-labs/lichen
 	cd $(TOOLS_MOD_DIR) && go install github.com/vektra/mockery/v2
 	cd $(TOOLS_MOD_DIR) && go install golang.org/x/tools/cmd/goimports
+# update cosign in release.yml when updating this version
+# update cosign in docs/verify-signature.md when updating this version
+	go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
+
+# install builder cmd for better CI
+.PHONY: install-builder
+install-builder:
+	cd $(TOOLS_MOD_DIR) && go install go.opentelemetry.io/collector/cmd/builder
 
 .PHONY: lint
 lint:
@@ -132,10 +154,6 @@ test-with-cover:
 	$(MAKE) for-all CMD="go test -coverprofile=cover.out ./..."
 	$(MAKE) for-all CMD="go tool cover -html=cover.out -o cover.html"
 
-.PHONY: test-updater-integration
-test-updater-integration:
-	cd updater; go test $(INTEGRATION_TEST_ARGS) -race ./...
-
 .PHONY: bench
 bench:
 	$(MAKE) for-all CMD="go test -benchmem -run=^$$ -bench ^* ./..."
@@ -154,19 +172,11 @@ tidy:
 
 .PHONY: gosec
 gosec:
-	gosec \
-	  -exclude-dir=updater \
-	  -exclude-dir=receiver/sapnetweaverreceiver \
-	  -exclude-dir=extension/bindplaneextension \
-	  -exclude-dir=processor/snapshotprocessor \
-	  -exclude-dir=internal/tools \
-	  -exclude-dir=exporter/chronicleexporter/internal/metadata \
-	  ./...
-# exclude the testdata dir; it contains a go program for testing.
-	cd updater; gosec -exclude-dir internal/service/testdata ./...
-	cd extension/bindplaneextension; gosec ./...
-	cd processor/snapshotprocessor; gosec ./...
-	cd receiver/sapnetweaverreceiver; gosec ./...
+	cd exporter; $(MAKE) -f "../Makefile" for-all CMD="gosec --exclude-dir=internal/metadata ./..."
+	cd processor; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
+	cd internal; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
+	cd extension; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
+	cd receiver; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
 
 # This target performs all checks that CI will do (excluding the build itself)
 .PHONY: ci-checks
@@ -221,19 +231,20 @@ update-modules:
 release-prep:
 	@rm -rf release_deps
 	@mkdir release_deps
-	@echo 'v$(CURR_VERSION)' > release_deps/VERSION.txt
-	./buildscripts/download-dependencies.sh release_deps
+	@echo '$(CURR_VERSION)' > release_deps/VERSION.txt
+	bash ./buildscripts/download-dependencies.sh release_deps
 	@cp -r ./plugins release_deps/
-	@cp config/example.yaml release_deps/config.yaml
-	@cp config/logging.yaml release_deps/logging.yaml
-	@cp service/com.observiq.collector.plist release_deps/com.observiq.collector.plist
+	@cp service/com.bindplane.otel.collector.plist release_deps/com.bindplane.otel.collector.plist
 	@jq ".files[] | select(.service != null)" windows/wix.json >> release_deps/windows_service.json
+	@cp service/bindplane-otel-collector.service release_deps/bindplane-otel-collector.service
+	@cp service/bindplane-otel-collector release_deps/bindplane-otel-collector
+	@cp -r ./service/sysconfig release_deps/
 
 # Build and sign, skip release and ignore dirty git tree
 .PHONY: release-test
 release-test:
 # If there is no MSI in the root dir, we'll create a dummy one so that goreleaser can complete successfully
-	if [ ! -e "./observiq-otel-collector.msi" ]; then touch ./observiq-otel-collector.msi; fi
+	if [ ! -e "./bindplane-otel-collector.msi" ]; then touch ./bindplane-otel-collector.msi; fi
 	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
 
 build-single:
@@ -242,15 +253,13 @@ build-single:
 
 .PHONY: for-all
 for-all:
-	@echo "running $${CMD} in root"
-	@$${CMD}
 	@set -e; for dir in $(ALL_MODULES); do \
 	  (cd "$${dir}" && \
 	  	echo "running $${CMD} in $${dir}" && \
 	 	$${CMD} ); \
 	done
 
-# Release a new version of the agent. This will also tag all submodules
+# Release a new version of the collector. This will also tag all submodules
 .PHONY: release
 release:
 	@if [ -z "$(version)" ]; then \
@@ -282,7 +291,7 @@ clean:
 
 .PHONY: scan-licenses
 scan-licenses:
-	lichen --config=./license.yaml $$(find dist/collector_* dist/updater_*)
+	lichen --config=./license.yaml $$(find dist/collector_*)
 
 .PHONY: generate
 generate:

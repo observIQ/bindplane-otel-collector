@@ -16,15 +16,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: 1.23.6
           cache-dependency-path: |
-            go.sum
             **/go.sum
       - name: Run Tests
         run: make test
-      - name: Run Updater Integration Tests (non-linux)
-        if: matrix.os != 'ubuntu-latest-4-cores'
-        run: make test-updater-integration
-      - name: Run Updater Integration Tests (linux)
-        if: matrix.os == 'ubuntu-latest-4-cores'
-        run: sudo make test-updater-integration

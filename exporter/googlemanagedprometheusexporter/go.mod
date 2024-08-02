@@ -3,6 +3,7 @@ module github.com/observiq/bindplane-otel-collector/exporter/googlemanagedpromet
 go 1.24.4
 
 require (
+	github.com/observiq/bindplane-otel-collector/internal/version v1.80.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.129.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v1.35.0
@@ -97,3 +98,6 @@ require (
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+// Needed until 'version' package changes are included in a release
+replace github.com/observiq/bindplane-otel-collector/internal/version => ../../internal/version
