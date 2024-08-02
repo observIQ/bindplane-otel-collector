@@ -6,16 +6,50 @@ on:
   workflow_dispatch:
 
 jobs:
+  setup-tools:
+    runs-on: "ubuntu-20.04"
+    steps:
+      - name: Checkout Sources
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+          check-latest: true
+      - name: Cache Tools
+        id: tool-cache
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/go/bin
+          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
+      - name: Install Tools
+        if: steps.tool-cache.outputs.cache-hit != 'true'
+        run: make install-tools
+
   build_linux:
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest-4-cores
+    needs:
+      - setup-tools
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: "1.22"
+          check-latest: true
+          cache-dependency-path: |
+            **/go.sum
+      - name: Cache Tools
+        id: tool-cache
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/go/bin
+          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
+      - name: Install Tools
+        if: steps.tool-cache.outputs.cache-hit != 'true'
+        run: make install-tools
           cache-dependency-path: |
             go.sum
             **/go.sum
@@ -25,9 +59,12 @@ jobs:
         run: |
           go install github.com/uw-labs/lichen@v0.1.7
           lichen --config=./license.yaml $(find dist/collector_* dist/updater_*)
+
   build_darwin:
     if: github.actor != 'dependabot[bot]'
     runs-on: macos-14
+    needs:
+      - setup-tools
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
@@ -36,14 +73,23 @@ jobs:
         with:
           go-version-file: go.mod
           cache-dependency-path: |
-            go.sum
             **/go.sum
+      - name: Cache Tools
+        id: tool-cache
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/go/bin
+          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
+      - name: Install Tools
+        if: steps.tool-cache.outputs.cache-hit != 'true'
+        run: make install-tools
       - name: Build
         run: make build-darwin
       - name: Scan Third Party Dependency Licenses
         run: |
           go install github.com/uw-labs/lichen@v0.1.7
           lichen --config=./license.yaml $(find dist/collector_* dist/updater_*)
+
   build_windows:
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest-4-cores
@@ -55,8 +101,16 @@ jobs:
         with:
           go-version-file: go.mod
           cache-dependency-path: |
-            go.sum
             **/go.sum
+      - name: Cache Tools
+        id: tool-cache
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/go/bin
+          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
+      - name: Install Tools
+        if: steps.tool-cache.outputs.cache-hit != 'true'
+        run: make install-tools
       - name: Build
         run: make build-windows
       - name: Scan Third Party Dependency Licenses

@@ -1,7 +1,0 @@
-output: file
-level: info
-file:
-  filename: "log/collector.log"
-  maxbackups: 5
-  maxsize: 1
-  maxage: 7

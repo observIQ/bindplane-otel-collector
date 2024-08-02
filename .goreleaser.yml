@@ -5,14 +5,18 @@ project_name: observiq-otel-collector
 before:
   hooks:
     - make release-prep CURR_VERSION={{ .Version }}
+    - make build-all OUTDIR="tmp"
+
+after:
+  hooks:
+    - cmd: rm -rf tmp
 
 # https://goreleaser.com/customization/build/
 builds:
+  # https://goreleaser.com/customization/builds/#import-pre-built-binaries
   - id: collector
+    builder: prebuilt
     binary: observiq-otel-collector
-    main: ./cmd/collector
-    env:
-      - CGO_ENABLED=0
     mod_timestamp: "{{ .CommitTimestamp }}"
     tags:
       - bindplane
@@ -39,18 +43,11 @@ builds:
         goarch: ppc64
       - goos: darwin
         goarch: ppc64le
-    ldflags:
-      - -s -w
-      - -X github.com/observiq/bindplane-otel-collector/internal/version.version=v{{ .Version }}
-      - -X github.com/observiq/bindplane-otel-collector/internal/version.gitHash={{ .FullCommit }}
-      - -X github.com/observiq/bindplane-otel-collector/internal/version.date={{ .Date }}
-    no_unique_dist_dir: false
+    prebuilt:
+      path: tmp/collector_{{ .Os }}_{{ .Arch }}{{ .Ext }}
   - id: updater
+    builder: prebuilt
     binary: updater
-    dir: ./updater/
-    main: ./cmd/updater
-    env:
-      - CGO_ENABLED=0
     mod_timestamp: "{{ .CommitTimestamp }}"
     goos:
       - windows
@@ -75,12 +72,36 @@ builds:
         goarch: ppc64
       - goos: darwin
         goarch: ppc64le
-    ldflags:
-      - -s -w
-      - -X github.com/observiq/bindplane-otel-collector/updater/internal/version.version=v{{ .Version }}
-      - -X github.com/observiq/bindplane-otel-collector/updater/internal/version.gitHash={{ .FullCommit }}
-      - -X github.com/observiq/bindplane-otel-collector/updater/internal/version.date={{ .Date }}
-    no_unique_dist_dir: false
+    prebuilt:
+      path: tmp/updater_{{ .Os }}_{{ .Arch }}{{ .Ext }}
+  - id: supervisor
+    builder: prebuilt
+    binary: opampsupervisor
+    goos:
+      - windows
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+      - arm
+      - ppc64
+      - ppc64le
+    ignore:
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+      - goos: windows
+        goarch: ppc64
+      - goos: windows
+        goarch: ppc64le
+      - goos: darwin
+        goarch: ppc64
+      - goos: darwin
+        goarch: ppc64le
+    prebuilt:
+      path: release_deps/supervisor_bin/opampsupervisor_{{ .Os }}_{{ .Arch }}{{ .Ext }}
 
 # https://goreleaser.com/customization/archive/
 archives:
@@ -89,9 +110,6 @@ archives:
     files:
       - LICENSE
       - src: release_deps/opentelemetry-java-contrib-jmx-metrics.jar
-        dst: "."
-        strip_parent: true
-      - src: release_deps/config.yaml
         dst: "."
         strip_parent: true
       - src: release_deps/logging.yaml
@@ -142,13 +160,6 @@ nfpms:
           mode: 0755
           owner: observiq-otel-collector
           group: observiq-otel-collector
-      - src: release_deps/config.yaml
-        dst: /opt/observiq-otel-collector/config.yaml
-        file_info:
-          mode: 0640
-          owner: observiq-otel-collector
-          group: observiq-otel-collector
-        type: config|noreplace
       - src: release_deps/logging.yaml
         dst: /opt/observiq-otel-collector/logging.yaml
         file_info:
@@ -246,7 +257,6 @@ dockers:
     extra_files:
       - release_deps/VERSION.txt
       - release_deps/plugins
-      - release_deps/config.yaml
       - config/logging.stdout.yaml
       - LICENSE
   - id: scratch-arm64
@@ -269,7 +279,6 @@ dockers:
     extra_files:
       - release_deps/VERSION.txt
       - release_deps/plugins
-      - release_deps/config.yaml
       - config/logging.stdout.yaml
       - LICENSE
   - id: ubuntu-amd64
@@ -314,7 +323,6 @@ dockers:
     extra_files:
       - release_deps/VERSION.txt
       - release_deps/plugins
-      - release_deps/config.yaml
       - config/logging.stdout.yaml
       - LICENSE
       - release_deps/opentelemetry-java-contrib-jmx-metrics.jar
@@ -360,7 +368,6 @@ dockers:
     extra_files:
       - release_deps/VERSION.txt
       - release_deps/plugins
-      - release_deps/config.yaml
       - config/logging.stdout.yaml
       - LICENSE
       - release_deps/opentelemetry-java-contrib-jmx-metrics.jar
@@ -389,7 +396,6 @@ dockers:
     extra_files:
       - release_deps/VERSION.txt
       - release_deps/plugins
-      - release_deps/config.yaml
       - config/logging.stdout.yaml
       - LICENSE
       - release_deps/opentelemetry-java-contrib-jmx-metrics.jar
@@ -417,7 +423,6 @@ dockers:
     extra_files:
       - release_deps/VERSION.txt
       - release_deps/plugins
-      - release_deps/config.yaml
       - config/logging.stdout.yaml
       - LICENSE
       - release_deps/opentelemetry-java-contrib-jmx-metrics.jar
