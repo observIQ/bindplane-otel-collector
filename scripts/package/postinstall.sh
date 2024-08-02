@@ -371,10 +371,10 @@ manage_systemd_service() {
 The "bindplane-otel-collector" service has been configured!
 
 The collector's config file can be found here: 
-  ${BDOT_CONFIG_HOME}/config.yaml
+  ${BDOT_CONFIG_HOME}/supervisor_storage/effective.yaml
 
 To view logs from the collector, run:
-  sudo tail -F ${BDOT_CONFIG_HOME}/log/collector.log
+  sudo tail -F ${BDOT_CONFIG_HOME}/supervisor_storage/agent.log
 
 For more information on configuring the collector, see the docs:
   https://github.com/observIQ/bindplane-otel-collector/tree/main#observiq-opentelemetry-collector
