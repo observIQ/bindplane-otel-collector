@@ -6,7 +6,7 @@ Clone this repository, and run `make install-tools`
 
 ## Building
 
-To create a build for your current machine, run `make agent`
+To create a build for your current machine, run `make collector`
 
 To build for a specific architecture, see the [Makefile](../Makefile)
 

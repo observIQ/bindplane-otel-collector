@@ -15,13 +15,11 @@ RUN mkdir \
     && chmod 0750 /etc/otel/storage
 
 RUN mkdir /licenses
-COPY LICENSE /licenses/observiq-otel-collector.license
+COPY LICENSE /licenses/bindplane-otel-collector.license
 
 COPY release_deps/VERSION.txt /etc/otel/VERSION.txt
 
 COPY release_deps/plugins /etc/otel/plugins
-COPY config/logging.stdout.yaml /etc/otel/logging.yaml
-COPY release_deps/config.yaml /etc/otel/config.yaml
 
 # Scratch images contain nothing by default. The built image
 # will contain only what was copied into it. This means it
@@ -37,11 +35,12 @@ COPY --from=stage --chown=otel:otel /licenses /licenses
 COPY --from=stage --chown=otel:otel /etc/otel /etc/otel
 COPY --from=stage --chown=otel:otel /etc/otel/storage /etc/otel/storage
 
-COPY observiq-otel-collector /collector/observiq-otel-collector
+COPY bindplane-otel-collector /collector/bindplane-otel-collector
+COPY opampsupervisor /collector/opampsupervisor
 
 ENV OIQ_OTEL_COLLECTOR_HOME=/etc/otel
 ENV OIQ_OTEL_COLLECTOR_STORAGE=/etc/otel/storage
 
 USER otel
 WORKDIR /etc/otel
-ENTRYPOINT ["/collector/observiq-otel-collector"]
+ENTRYPOINT [ "/collector/opampsupervisor", "--config", "/etc/otel/supervisor.yaml" ]

@@ -14,7 +14,6 @@ windows/*.zip
 windows/**/wix.dynamic.json
 windows/**/wix
 windows/config.yaml
-windows/logging.yaml
 windows/LICENSE
 windows/plugins
 opentelemetry-java-contrib-jmx-metrics.jar
@@ -32,8 +31,13 @@ storage
 # Don't ignore the mdatagen generated config files
 !**/internal/metadata/testdata/config.yaml
 
-# For those of us switching between V1 and V2 branches
+#Supervisor & Builder Files
 builder
+agent*.log
+effective*.yaml
+
+# Backup files
+*.bak
 
 # Ignore generated credentials from google-github-actions/auth
 gha-creds-*.json

@@ -22,6 +22,7 @@
          <DialogRef Id="CustomExitDialog" />
          <DialogRef Id="ConfigureManagementDlg" />
          <DialogRef Id="EndpointRequiredDlg" />
+         <DialogRef Id="SecretKeyRequiredDlg" />
 
          <!--   Make sure to include custom dialogs in the installer database via a DialogRef command,
                especially if they are not included explicitly in the publish chain below -->
@@ -51,7 +52,9 @@
          <Publish Dialog="InstallDirDlg" Control="ChangeFolder" Event="SpawnDialog" Value="BrowseDlg" Order="2">1</Publish>
       
          <Publish Dialog="ConfigureManagementDlg" Control="Next" Event="SpawnDialog" Value="EndpointRequiredDlg" Order="1">ENABLEMANAGEMENT AND NOT OPAMPENDPOINT</Publish>
-         <Publish Dialog="ConfigureManagementDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="2">NOT ENABLEMANAGEMENT OR OPAMPENDPOINT</Publish>
+         <!-- Show this dialogue if endpoint is already configured and secretkey isn't -->
+         <Publish Dialog="ConfigureManagementDlg" Control="Next" Event="SpawnDialog" Value="SecretKeyRequiredDlg" Order="2">ENABLEMANAGEMENT AND OPAMPENDPOINT AND NOT OPAMPSECRETKEY</Publish>
+         <Publish Dialog="ConfigureManagementDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="3">NOT ENABLEMANAGEMENT OR (OPAMPENDPOINT AND OPAMPSECRETKEY)</Publish>
          <Publish Dialog="ConfigureManagementDlg" Control="Back" Event="NewDialog" Value="InstallDirDlg">1</Publish>
 
          <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="ConfigureManagementDlg"><![CDATA[(VersionNT >= 603 OR VersionNT64 >= 603) AND NOT Installed AND NOT WIX_UPGRADE_DETECTED]]></Publish>
@@ -78,5 +81,6 @@
       <UIRef Id="WixUI_Common" />
       <UIRef Id="CustomExitDialogUI" />
       <UIRef Id="EndpointRequiredUI" />
+      <UIRef Id="SecretKeyRequiredUI" />
    </Fragment>
 </Wix>
