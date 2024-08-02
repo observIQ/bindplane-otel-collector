@@ -18,15 +18,16 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/observiq/bindplane-agent/internal/version"
 	gmp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/api/option"
 )
 
 func TestCreateDefaultConfig(t *testing.T) {
-	collectorVersion := "v1.2.3"
+	collectorVersion := version.Version()
 
-	cfg := createDefaultConfig(collectorVersion)()
+	cfg := createDefaultConfig()()
 	googleCfg, ok := cfg.(*Config)
 	require.True(t, ok)
 

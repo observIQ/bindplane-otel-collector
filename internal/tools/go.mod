@@ -6,9 +6,11 @@ require (
 	github.com/client9/misspell v0.3.4
 	github.com/google/addlicense v1.1.1
 	github.com/mgechev/revive v1.7.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/cmd/opampsupervisor v0.106.1
 	github.com/securego/gosec/v2 v2.18.2
 	github.com/uw-labs/lichen v0.1.7
 	github.com/vektra/mockery/v2 v2.53.0
+	go.opentelemetry.io/collector/cmd/builder v0.114.0
 	go.opentelemetry.io/collector/cmd/mdatagen v0.121.0
 	golang.org/x/tools v0.30.0
 )
@@ -18,9 +20,11 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.0.2 // indirect
 	github.com/ccojocar/zxcvbn-go v1.0.2 // indirect
+	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect
 	github.com/chigopher/pathlib v0.19.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
@@ -30,6 +34,7 @@ require (
 	github.com/google/pprof v0.0.0-20231023181126-ff6d637d2a7b // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gookit/color v1.5.4 // indirect
+	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
@@ -40,7 +45,12 @@ require (
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/knadh/koanf/maps v0.1.1 // indirect
+	github.com/knadh/koanf/parsers/yaml v0.1.0 // indirect
 	github.com/knadh/koanf/providers/confmap v0.1.0 // indirect
+	github.com/knadh/koanf/providers/env v1.0.0 // indirect
+	github.com/knadh/koanf/providers/file v1.1.2 // indirect
+	github.com/knadh/koanf/providers/fs v0.1.0 // indirect
+	github.com/knadh/koanf/providers/rawbytes v0.1.0 // indirect
 	github.com/knadh/koanf/v2 v2.1.2 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/magiconair/properties v1.8.9 // indirect
@@ -56,9 +66,10 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/open-telemetry/opamp-go v0.15.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/rs/zerolog v1.33.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
@@ -70,15 +81,19 @@ require (
 	github.com/spf13/cobra v1.9.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/spf13/viper v1.19.0 // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/urfave/cli/v2 v2.25.7 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.opentelemetry.io/collector/component v1.27.0 // indirect
+	go.opentelemetry.io/collector/config/configopaque v1.12.0 // indirect
+	go.opentelemetry.io/collector/config/configtls v1.12.0 // indirect
 	go.opentelemetry.io/collector/confmap v1.27.0 // indirect
 	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.27.0 // indirect
 	go.opentelemetry.io/collector/filter v0.121.0 // indirect
 	go.opentelemetry.io/collector/pdata v1.27.0 // indirect
+	go.opentelemetry.io/collector/semconv v0.121.0 // indirect
 	go.opentelemetry.io/otel v1.34.0 // indirect
 	go.opentelemetry.io/otel/metric v1.34.0 // indirect
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
