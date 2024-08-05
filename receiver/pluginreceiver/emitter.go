@@ -50,7 +50,7 @@ func (e *Emitter) Capabilities() consumer.Capabilities {
 // defaultEmitterConfig returns a default config for the plugin's emitter
 func defaultEmitterConfig() component.Config {
 	componentID := component.NewID(emitterType)
-	defaultConfig := &exporter.CreateSettings{
+	defaultConfig := &exporter.Settings{
 		ID: componentID,
 	}
 	return defaultConfig
@@ -59,7 +59,7 @@ func defaultEmitterConfig() component.Config {
 // createLogEmitterFactory creates a log emitter factory.
 // The resulting factory will create an exporter that can emit logs from an internal pipeline to an external consumer.
 func createLogEmitterFactory(consumer consumer.Logs) exporter.Factory {
-	createExporter := func(_ context.Context, _ exporter.CreateSettings, _ component.Config) (exporter.Logs, error) {
+	createExporter := func(_ context.Context, _ exporter.Settings, _ component.Config) (exporter.Logs, error) {
 		return &Emitter{Logs: consumer}, nil
 	}
 
@@ -73,7 +73,7 @@ func createLogEmitterFactory(consumer consumer.Logs) exporter.Factory {
 // createLogEmitterFactory creates a metric emitter factory.
 // The resulting factory will create an exporter that can emit metrics from an internal pipeline to an external consumer.
 func createMetricEmitterFactory(consumer consumer.Metrics) exporter.Factory {
-	createExporter := func(_ context.Context, _ exporter.CreateSettings, _ component.Config) (exporter.Metrics, error) {
+	createExporter := func(_ context.Context, _ exporter.Settings, _ component.Config) (exporter.Metrics, error) {
 		return &Emitter{Metrics: consumer}, nil
 	}
 
@@ -87,7 +87,7 @@ func createMetricEmitterFactory(consumer consumer.Metrics) exporter.Factory {
 // createLogEmitterFactory creates a trace emitter factory.
 // The resulting factory will create an exporter that can emit traces from an internal pipeline to an external consumer.
 func createTraceEmitterFactory(consumer consumer.Traces) exporter.Factory {
-	createExporter := func(_ context.Context, _ exporter.CreateSettings, _ component.Config) (exporter.Traces, error) {
+	createExporter := func(_ context.Context, _ exporter.Settings, _ component.Config) (exporter.Traces, error) {
 		return &Emitter{Traces: consumer}, nil
 	}
 

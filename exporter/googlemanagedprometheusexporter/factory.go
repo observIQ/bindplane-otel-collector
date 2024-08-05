@@ -46,7 +46,7 @@ func NewFactory(collectorVersion string) exporter.Factory {
 }
 
 // createMetricsExporter creates a metrics exporter based on this config.
-func createMetricsExporter(ctx context.Context, set exporter.CreateSettings, cfg component.Config) (exporter.Metrics, error) {
+func createMetricsExporter(ctx context.Context, set exporter.Settings, cfg component.Config) (exporter.Metrics, error) {
 	exporterConfig := cfg.(*Config)
 	exporterConfig.setClientOptions()
 

@@ -68,7 +68,7 @@ func TestCreateMetricsProcessor(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			f := NewFactory()
-			p, err := f.CreateTracesProcessor(context.Background(), processor.CreateSettings{}, tc.cfg, nil)
+			p, err := f.CreateTracesProcessor(context.Background(), processor.Settings{}, tc.cfg, nil)
 			if tc.expectedErr == "" {
 				require.NoError(t, err)
 				require.IsType(t, &spanCountProcessor{}, p)

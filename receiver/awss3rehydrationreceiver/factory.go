@@ -49,7 +49,7 @@ func createDefaultConfig() component.Config {
 }
 
 // createMetricsReceiver creates a metrics receiver
-func createMetricsReceiver(_ context.Context, params receiver.CreateSettings, conf component.Config, con consumer.Metrics) (receiver.Metrics, error) {
+func createMetricsReceiver(_ context.Context, params receiver.Settings, conf component.Config, con consumer.Metrics) (receiver.Metrics, error) {
 	cfg, ok := conf.(*Config)
 	if !ok {
 		return nil, errImproperCfgType
@@ -59,7 +59,7 @@ func createMetricsReceiver(_ context.Context, params receiver.CreateSettings, co
 }
 
 // createLogsReceiver creates a logs receiver
-func createLogsReceiver(_ context.Context, params receiver.CreateSettings, conf component.Config, con consumer.Logs) (receiver.Logs, error) {
+func createLogsReceiver(_ context.Context, params receiver.Settings, conf component.Config, con consumer.Logs) (receiver.Logs, error) {
 	cfg, ok := conf.(*Config)
 	if !ok {
 		return nil, errImproperCfgType
@@ -69,7 +69,7 @@ func createLogsReceiver(_ context.Context, params receiver.CreateSettings, conf 
 }
 
 // createTracesReceiver creates a traces receiver
-func createTracesReceiver(_ context.Context, params receiver.CreateSettings, conf component.Config, con consumer.Traces) (receiver.Traces, error) {
+func createTracesReceiver(_ context.Context, params receiver.Settings, conf component.Config, con consumer.Traces) (receiver.Traces, error) {
 	cfg, ok := conf.(*Config)
 	if !ok {
 		return nil, errImproperCfgType

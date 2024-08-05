@@ -102,7 +102,7 @@ type logsExporter struct {
 func newLogsExporter(
 	_ context.Context,
 	cfg *Config,
-	params exporter.CreateSettings,
+	params exporter.Settings,
 	newDatabase func(dsn, wh, db string) (database.Database, error),
 ) (*logsExporter, error) {
 	db, err := newDatabase(cfg.dsn, cfg.Warehouse, cfg.Database)

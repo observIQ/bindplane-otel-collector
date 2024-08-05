@@ -76,7 +76,7 @@ func TestNewMetricsExporter(t *testing.T) {
 			exp, err := newMetricsExporter(
 				tc.ctx,
 				tc.c,
-				exportertest.NewNopCreateSettings(),
+				exportertest.NewNopSettings(),
 				tc.newDatabase,
 			)
 
@@ -229,7 +229,7 @@ func TestMetricsStart(t *testing.T) {
 			metricsExp, err := newMetricsExporter(
 				tc.ctx,
 				c,
-				exportertest.NewNopCreateSettings(),
+				exportertest.NewNopSettings(),
 				func(_, _, _ string) (database.Database, error) { return nil, nil },
 			)
 			require.NoError(t, err)

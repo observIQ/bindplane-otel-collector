@@ -43,7 +43,7 @@ type metricsExporter struct {
 func newMetricsExporter(
 	_ context.Context,
 	cfg *Config,
-	params exporter.CreateSettings,
+	params exporter.Settings,
 	newDatabase func(dsn, wh, db string) (database.Database, error),
 ) (*metricsExporter, error) {
 	db, err := newDatabase(cfg.dsn, cfg.Warehouse, cfg.Database)

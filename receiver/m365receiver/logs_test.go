@@ -40,7 +40,7 @@ func TestStartPolling(t *testing.T) {
 	cfg.Logs.PollInterval = 1 * time.Second
 
 	sink := &consumertest.LogsSink{}
-	l := newM365Logs(cfg, receivertest.NewNopCreateSettings(), sink)
+	l := newM365Logs(cfg, receivertest.NewNopSettings(), sink)
 	client := &mockLogsClient{}
 	l.client = client
 	file := filepath.Join("testdata", "logs", "testPollLogs", "input.json")
@@ -66,7 +66,7 @@ func TestPollLogs(t *testing.T) {
 	cfg.Logs.PollInterval = 1 * time.Second
 
 	sink := &consumertest.LogsSink{}
-	rcv := newM365Logs(cfg, receivertest.NewNopCreateSettings(), sink)
+	rcv := newM365Logs(cfg, receivertest.NewNopSettings(), sink)
 	client := &mockLogsClient{}
 	rcv.client = client
 	file := filepath.Join("testdata", "logs", "testPollLogs", "input.json")
@@ -112,7 +112,7 @@ func TestPollErrHandle(t *testing.T) {
 		enabled: true,
 	}
 	wg := &sync.WaitGroup{}
-	rcv := newM365Logs(cfg, receivertest.NewNopCreateSettings(), sink)
+	rcv := newM365Logs(cfg, receivertest.NewNopSettings(), sink)
 	rcv.client = client
 
 	// unable to fix token

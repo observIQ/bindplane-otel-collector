@@ -68,7 +68,7 @@ func TestCreateLogsProcessor(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			f := NewFactory()
-			p, err := f.CreateLogsProcessor(context.Background(), processor.CreateSettings{}, tc.cfg, nil)
+			p, err := f.CreateLogsProcessor(context.Background(), processor.Settings{}, tc.cfg, nil)
 			if tc.expectedErr == "" {
 				require.NoError(t, err)
 				require.IsType(t, &logCountProcessor{}, p)

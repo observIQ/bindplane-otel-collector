@@ -35,21 +35,21 @@ func TestNewFactory(t *testing.T) {
 
 func TestCreateMetricsReceiver(t *testing.T) {
 	f := NewFactory()
-	r, err := f.CreateMetricsReceiver(context.Background(), receiver.CreateSettings{}, createDefaultConfig(), nil)
+	r, err := f.CreateMetricsReceiver(context.Background(), receiver.Settings{}, createDefaultConfig(), nil)
 	require.NoError(t, err)
 	require.IsType(t, &routeReceiver{}, r)
 }
 
 func TestCreateLogsReceiver(t *testing.T) {
 	f := NewFactory()
-	r, err := f.CreateLogsReceiver(context.Background(), receiver.CreateSettings{}, createDefaultConfig(), nil)
+	r, err := f.CreateLogsReceiver(context.Background(), receiver.Settings{}, createDefaultConfig(), nil)
 	require.NoError(t, err)
 	require.IsType(t, &routeReceiver{}, r)
 }
 
 func TestCreateTracesReceiver(t *testing.T) {
 	f := NewFactory()
-	r, err := f.CreateTracesReceiver(context.Background(), receiver.CreateSettings{}, createDefaultConfig(), nil)
+	r, err := f.CreateTracesReceiver(context.Background(), receiver.Settings{}, createDefaultConfig(), nil)
 	require.NoError(t, err)
 	require.IsType(t, &routeReceiver{}, r)
 }

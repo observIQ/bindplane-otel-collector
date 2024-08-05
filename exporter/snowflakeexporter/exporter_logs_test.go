@@ -77,7 +77,7 @@ func TestNewLogsExporter(t *testing.T) {
 			exp, err := newLogsExporter(
 				tc.ctx,
 				tc.c,
-				exportertest.NewNopCreateSettings(),
+				exportertest.NewNopSettings(),
 				tc.newDatabase,
 			)
 
@@ -168,7 +168,7 @@ func TestLogsStart(t *testing.T) {
 			logsExp, err := newLogsExporter(
 				tc.ctx,
 				c,
-				exportertest.NewNopCreateSettings(),
+				exportertest.NewNopSettings(),
 				func(_, _, _ string) (database.Database, error) { return nil, nil },
 			)
 			require.NoError(t, err)
@@ -246,7 +246,7 @@ func TestLogsDataPusher(t *testing.T) {
 			logsExp, err := newLogsExporter(
 				tc.ctx,
 				c,
-				exportertest.NewNopCreateSettings(),
+				exportertest.NewNopSettings(),
 				func(_, _, _ string) (database.Database, error) { return nil, nil },
 			)
 			require.NoError(t, err)

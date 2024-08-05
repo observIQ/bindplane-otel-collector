@@ -45,7 +45,7 @@ type sapNetweaverScraper struct {
 }
 
 func newSapNetweaverScraper(
-	settings receiver.CreateSettings,
+	settings receiver.Settings,
 	cfg *Config,
 ) *sapNetweaverScraper {
 	a := &sapNetweaverScraper{

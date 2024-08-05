@@ -46,7 +46,7 @@ func createDefaultConfig() component.Config {
 }
 
 // createMetricsProcessor creates the resourceattributetransposer processor.
-func createMetricsProcessor(_ context.Context, params processor.CreateSettings, cfg component.Config, nextConsumer consumer.Metrics) (processor.Metrics, error) {
+func createMetricsProcessor(_ context.Context, params processor.Settings, cfg component.Config, nextConsumer consumer.Metrics) (processor.Metrics, error) {
 	processorCfg, ok := cfg.(*Config)
 	if !ok {
 		return nil, fmt.Errorf("config was not of correct type for the processor: %+v", cfg)
@@ -55,7 +55,7 @@ func createMetricsProcessor(_ context.Context, params processor.CreateSettings, 
 	return newMetricsProcessor(params.Logger, nextConsumer, processorCfg), nil
 }
 
-func createLogsProcessor(_ context.Context, params processor.CreateSettings, cfg component.Config, nextConsumer consumer.Logs) (processor.Logs, error) {
+func createLogsProcessor(_ context.Context, params processor.Settings, cfg component.Config, nextConsumer consumer.Logs) (processor.Logs, error) {
 	processorCfg, ok := cfg.(*Config)
 	if !ok {
 		return nil, fmt.Errorf("config was not of correct type for the processor: %+v", cfg)
