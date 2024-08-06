@@ -147,7 +147,7 @@ func TestScraperScrape(t *testing.T) {
 	testClient, err := newSoapClient(context.Background(), cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
 	require.NoError(t, err)
 
-	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), cfg)
+	scraper := newSapNetweaverScraper(receivertest.NewNopSettings(), cfg)
 	scraper.service = &mockService
 	scraper.client = testClient
 
@@ -224,7 +224,7 @@ func TestScraperScrapeEmpty(t *testing.T) {
 	testClient, err := newSoapClient(context.Background(), cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
 	require.NoError(t, err)
 
-	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), cfg)
+	scraper := newSapNetweaverScraper(receivertest.NewNopSettings(), cfg)
 	scraper.service = &mockService
 	scraper.client = testClient
 
@@ -299,7 +299,7 @@ func TestScraperScrapeAPIError(t *testing.T) {
 	testClient, err := newSoapClient(context.Background(), cfg, componenttest.NewNopHost(), componenttest.NewNopTelemetrySettings())
 	require.NoError(t, err)
 
-	scraper := newSapNetweaverScraper(receivertest.NewNopCreateSettings(), cfg)
+	scraper := newSapNetweaverScraper(receivertest.NewNopSettings(), cfg)
 	scraper.service = &mockService
 	scraper.client = testClient
 

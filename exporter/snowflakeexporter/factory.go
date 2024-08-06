@@ -63,7 +63,7 @@ func createDefaultConfig() component.Config {
 // createLogsExporter creates a new log exporter based on the config
 func createLogsExporter(
 	ctx context.Context,
-	params exporter.CreateSettings,
+	params exporter.Settings,
 	cfg component.Config,
 ) (exporter.Logs, error) {
 	c, ok := cfg.(*Config)
@@ -93,7 +93,7 @@ func createLogsExporter(
 // createMetricsExporter creates a new metric exporter based on the config
 func createMetricsExporter(
 	ctx context.Context,
-	params exporter.CreateSettings,
+	params exporter.Settings,
 	cfg component.Config,
 ) (exporter.Metrics, error) {
 	c, ok := cfg.(*Config)
@@ -123,7 +123,7 @@ func createMetricsExporter(
 // createTracesExporter creates a new trace exporter based on the config
 func createTracesExporter(
 	ctx context.Context,
-	params exporter.CreateSettings,
+	params exporter.Settings,
 	cfg component.Config,
 ) (exporter.Traces, error) {
 	c, ok := cfg.(*Config)

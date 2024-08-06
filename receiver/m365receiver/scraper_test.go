@@ -36,7 +36,7 @@ func TestBadToken(t *testing.T) {
 	mc := &mockClient{}
 	root := "https://graph.microsoft.com/v1.0/reports/"
 	scraper := newM365Scraper(
-		receivertest.NewNopCreateSettings(),
+		receivertest.NewNopSettings(),
 		&Config{MetricsBuilderConfig: metadata.DefaultMetricsBuilderConfig()},
 	)
 	scraper.client = mc
@@ -92,7 +92,7 @@ func TestPartialMetrics(t *testing.T) {
 	mc.On("GetCSV", mock.Anything, root+"getMailboxUsageQuotaStatusMailboxCounts(period='D7')").Return([]string{}, nil)
 
 	scraper := newM365Scraper(
-		receivertest.NewNopCreateSettings(),
+		receivertest.NewNopSettings(),
 		&Config{MetricsBuilderConfig: metadata.DefaultMetricsBuilderConfig()},
 	)
 
@@ -167,7 +167,7 @@ func TestScraper(t *testing.T) {
 	}, nil)
 
 	scraper := newM365Scraper(
-		receivertest.NewNopCreateSettings(),
+		receivertest.NewNopSettings(),
 		&Config{MetricsBuilderConfig: metadata.DefaultMetricsBuilderConfig()},
 	)
 

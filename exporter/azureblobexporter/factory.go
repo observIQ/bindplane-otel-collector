@@ -46,7 +46,7 @@ func createDefaultConfig() component.Config {
 	}
 }
 
-func createMetricsExporter(ctx context.Context, params exporter.CreateSettings, config component.Config) (exporter.Metrics, error) {
+func createMetricsExporter(ctx context.Context, params exporter.Settings, config component.Config) (exporter.Metrics, error) {
 	cfg, ok := config.(*Config)
 	if !ok {
 		return nil, errors.New("not an Azure Blob config")
@@ -67,7 +67,7 @@ func createMetricsExporter(ctx context.Context, params exporter.CreateSettings, 
 	)
 }
 
-func createLogsExporter(ctx context.Context, params exporter.CreateSettings, config component.Config) (exporter.Logs, error) {
+func createLogsExporter(ctx context.Context, params exporter.Settings, config component.Config) (exporter.Logs, error) {
 	cfg, ok := config.(*Config)
 	if !ok {
 		return nil, errors.New("not an Azure Blob config")
@@ -88,7 +88,7 @@ func createLogsExporter(ctx context.Context, params exporter.CreateSettings, con
 	)
 }
 
-func createTracesExporter(ctx context.Context, params exporter.CreateSettings, config component.Config) (exporter.Traces, error) {
+func createTracesExporter(ctx context.Context, params exporter.Settings, config component.Config) (exporter.Traces, error) {
 	cfg, ok := config.(*Config)
 	if !ok {
 		return nil, errors.New("not an Azure Blob config")

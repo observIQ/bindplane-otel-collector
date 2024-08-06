@@ -45,7 +45,7 @@ type httpLogsReceiver struct {
 }
 
 // newHTTPLogsReceiver returns a newly configured httpLogsReceiver
-func newHTTPLogsReceiver(params receiver.CreateSettings, cfg *Config, consumer consumer.Logs) (*httpLogsReceiver, error) {
+func newHTTPLogsReceiver(params receiver.Settings, cfg *Config, consumer consumer.Logs) (*httpLogsReceiver, error) {
 	return &httpLogsReceiver{
 		path:              cfg.Path,
 		serverSettings:    &cfg.ServerConfig,

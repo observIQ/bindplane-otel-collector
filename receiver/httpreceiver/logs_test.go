@@ -348,7 +348,7 @@ func TestShutdownNoServer(t *testing.T) {
 }
 
 func newReceiver(t *testing.T, cfg *Config, c consumer.Logs) *httpLogsReceiver {
-	s := receivertest.NewNopCreateSettings()
+	s := receivertest.NewNopSettings()
 	s.Logger = zaptest.NewLogger(t)
 	r, err := newHTTPLogsReceiver(s, cfg, c)
 	require.NoError(t, err)

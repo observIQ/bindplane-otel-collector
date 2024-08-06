@@ -37,7 +37,7 @@ func TestNewFactory(t *testing.T) {
 		Context: "body",
 		Field:   "ip",
 	}
-	settings := processor.CreateSettings{
+	settings := processor.Settings{
 		ID: component.NewIDWithName(componentType, "test"),
 		TelemetrySettings: component.TelemetrySettings{
 			Logger: zap.NewNop(),

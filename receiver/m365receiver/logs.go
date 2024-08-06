@@ -73,7 +73,7 @@ type auditMetaData struct {
 	enabled bool
 }
 
-func newM365Logs(cfg *Config, settings receiver.CreateSettings, consumer consumer.Logs) *m365LogsReceiver {
+func newM365Logs(cfg *Config, settings receiver.Settings, consumer consumer.Logs) *m365LogsReceiver {
 	return &m365LogsReceiver{
 		settings:      settings.TelemetrySettings,
 		logger:        settings.Logger,

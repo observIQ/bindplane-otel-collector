@@ -43,7 +43,7 @@ func NewFactory() processor.Factory {
 }
 
 // createLogsProcessor creates a log processor.
-func createLogsProcessor(_ context.Context, params processor.CreateSettings, cfg component.Config, consumer consumer.Logs) (processor.Logs, error) {
+func createLogsProcessor(_ context.Context, params processor.Settings, cfg component.Config, consumer consumer.Logs) (processor.Logs, error) {
 	processorCfg, ok := cfg.(*Config)
 	if !ok {
 		return nil, fmt.Errorf("invalid config type: %+v", cfg)
@@ -56,7 +56,7 @@ func createLogsProcessor(_ context.Context, params processor.CreateSettings, cfg
 	return createExprLogsProcessor(processorCfg, params, consumer)
 }
 
-func createExprLogsProcessor(cfg *Config, params processor.CreateSettings, consumer consumer.Logs) (processor.Logs, error) {
+func createExprLogsProcessor(cfg *Config, params processor.Settings, consumer consumer.Logs) (processor.Logs, error) {
 	match, err := expr.CreateBoolExpression(cfg.exprMatchExpression())
 	if err != nil {
 		return nil, fmt.Errorf("invalid match expression: %w", err)
@@ -70,7 +70,7 @@ func createExprLogsProcessor(cfg *Config, params processor.CreateSettings, consu
 	return newExprProcessor(cfg, consumer, match, attrs, params.Logger), nil
 }
 
-func createOTTLLogsProcessor(cfg *Config, params processor.CreateSettings, consumer consumer.Logs) (processor.Logs, error) {
+func createOTTLLogsProcessor(cfg *Config, params processor.Settings, consumer consumer.Logs) (processor.Logs, error) {
 	match, err := expr.NewOTTLLogRecordCondition(cfg.ottlMatchExpression(), params.TelemetrySettings)
 	if err != nil {
 		return nil, fmt.Errorf("invalid match expression: %w", err)

@@ -51,7 +51,7 @@ func createDefaultConfig() component.Config {
 // createLogsExporter creates a new log exporter based on this config.
 func createLogsExporter(
 	ctx context.Context,
-	params exporter.CreateSettings,
+	params exporter.Settings,
 	cfg component.Config,
 ) (exporter.Logs, error) {
 	chronicleCfg, ok := cfg.(*Config)

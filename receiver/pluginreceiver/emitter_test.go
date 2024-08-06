@@ -34,7 +34,7 @@ func TestCreateLogEmitterFactory(t *testing.T) {
 
 	factory := createLogEmitterFactory(consumer)
 	ctx := context.Background()
-	set := exporter.CreateSettings{}
+	set := exporter.Settings{}
 	cfg := defaultEmitterConfig()
 
 	exporter, err := factory.CreateLogsExporter(ctx, set, cfg)
@@ -52,7 +52,7 @@ func TestCreateMetricEmitterFactory(t *testing.T) {
 
 	factory := createMetricEmitterFactory(consumer)
 	ctx := context.Background()
-	set := exporter.CreateSettings{}
+	set := exporter.Settings{}
 	cfg := defaultEmitterConfig()
 
 	exporter, err := factory.CreateMetricsExporter(ctx, set, cfg)
@@ -70,7 +70,7 @@ func TestCreateTraceEmitterFactory(t *testing.T) {
 
 	factory := createTraceEmitterFactory(consumer)
 	ctx := context.Background()
-	set := exporter.CreateSettings{}
+	set := exporter.Settings{}
 	cfg := defaultEmitterConfig()
 
 	exporter, err := factory.CreateTracesExporter(ctx, set, cfg)

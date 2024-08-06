@@ -43,7 +43,7 @@ func NewFactory() processor.Factory {
 }
 
 // createMetricsProcessor creates a log processor.
-func createMetricsProcessor(_ context.Context, params processor.CreateSettings, cfg component.Config, consumer consumer.Metrics) (processor.Metrics, error) {
+func createMetricsProcessor(_ context.Context, params processor.Settings, cfg component.Config, consumer consumer.Metrics) (processor.Metrics, error) {
 	processorCfg, ok := cfg.(*Config)
 	if !ok {
 		return nil, fmt.Errorf("invalid config type: %+v", cfg)
@@ -56,7 +56,7 @@ func createMetricsProcessor(_ context.Context, params processor.CreateSettings, 
 	return createExprMetricsProcessor(processorCfg, params, consumer)
 }
 
-func createExprMetricsProcessor(cfg *Config, params processor.CreateSettings, consumer consumer.Metrics) (processor.Metrics, error) {
+func createExprMetricsProcessor(cfg *Config, params processor.Settings, consumer consumer.Metrics) (processor.Metrics, error) {
 	match, err := expr.CreateBoolExpression(cfg.exprMatchExpression())
 	if err != nil {
 		return nil, fmt.Errorf("invalid match expression: %w", err)
@@ -70,7 +70,7 @@ func createExprMetricsProcessor(cfg *Config, params processor.CreateSettings, co
 	return newExprProcessor(cfg, consumer, match, attrs, params.Logger), nil
 }
 
-func createOTTLMetricsProcessor(cfg *Config, params processor.CreateSettings, consumer consumer.Metrics) (processor.Metrics, error) {
+func createOTTLMetricsProcessor(cfg *Config, params processor.Settings, consumer consumer.Metrics) (processor.Metrics, error) {
 	match, err := expr.NewOTTLDatapointCondition(cfg.ottlMatchExpression(), params.TelemetrySettings)
 	if err != nil {
 		return nil, fmt.Errorf("invalid match expression: %w", err)

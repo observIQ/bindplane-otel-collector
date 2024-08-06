@@ -51,7 +51,7 @@ func TestLogDataPushingFile(t *testing.T) {
 			Path: f.Name(),
 		},
 	}
-	exporter, _ := newExporter(cfg, exporter.CreateSettings{})
+	exporter, _ := newExporter(cfg, exporter.Settings{})
 
 	// Mock log data
 	ld := mockLogs(mockLogRecord(t, "test", map[string]any{"test": "test"}))
@@ -107,7 +107,7 @@ func TestLogDataPushingNetwork(t *testing.T) {
 			},
 		},
 	}
-	exporter, _ := newExporter(cfg, exporter.CreateSettings{})
+	exporter, _ := newExporter(cfg, exporter.Settings{})
 
 	// Mock log data
 	ld := mockLogs(mockLogRecord(t, "test", map[string]any{"test": "test"}))

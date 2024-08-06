@@ -38,7 +38,7 @@ type azureBlobExporter struct {
 }
 
 // newExporter creates a new Azure Blob exporter
-func newExporter(cfg *Config, params exporter.CreateSettings) (*azureBlobExporter, error) {
+func newExporter(cfg *Config, params exporter.Settings) (*azureBlobExporter, error) {
 	blobClient, err := newAzureBlobClient(cfg.ConnectionString)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create blob client: %w", err)

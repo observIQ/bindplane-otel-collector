@@ -32,7 +32,7 @@ func TestCreateReceiver(t *testing.T) {
 	}{
 		{
 			name:        "invalid config type",
-			cfg:         &receiver.CreateSettings{},
+			cfg:         &receiver.Settings{},
 			expectedErr: errors.New("config is not a plugin receiver config"),
 		},
 		{
@@ -83,7 +83,7 @@ func TestCreateReceiver(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			set := receiver.CreateSettings{}
+			set := receiver.Settings{}
 			consumer := &MockConsumer{}
 			emitterFactory := createLogEmitterFactory(consumer)
 			receiver, err := createReceiver(tc.cfg, set, emitterFactory)
@@ -104,7 +104,7 @@ func TestCreateLogsReceiver(t *testing.T) {
 	factory := NewFactory()
 	consumer := &MockConsumer{}
 	ctx := context.Background()
-	set := receiver.CreateSettings{}
+	set := receiver.Settings{}
 	cfg := &Config{
 		Path: "./testdata/plugin-valid.yaml",
 		Parameters: map[string]any{
@@ -121,7 +121,7 @@ func TestCreateMetricsReceiver(t *testing.T) {
 	factory := NewFactory()
 	consumer := &MockConsumer{}
 	ctx := context.Background()
-	set := receiver.CreateSettings{}
+	set := receiver.Settings{}
 	cfg := &Config{
 		Path: "./testdata/plugin-valid.yaml",
 		Parameters: map[string]any{
@@ -138,7 +138,7 @@ func TestCreateTracesReceiver(t *testing.T) {
 	factory := NewFactory()
 	consumer := &MockConsumer{}
 	ctx := context.Background()
-	set := receiver.CreateSettings{}
+	set := receiver.Settings{}
 	cfg := &Config{
 		Path: "./testdata/plugin-valid.yaml",
 		Parameters: map[string]any{

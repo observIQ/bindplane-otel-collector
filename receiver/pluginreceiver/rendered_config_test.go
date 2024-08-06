@@ -203,7 +203,7 @@ func (_m *MockHost) ReportFatalError(err error) {
 
 func createExtension(
 	_ context.Context,
-	_ extension.CreateSettings,
+	_ extension.Settings,
 	_ component.Config,
 ) (extension.Extension, error) {
 	return nil, nil

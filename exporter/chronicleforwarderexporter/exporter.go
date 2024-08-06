@@ -64,7 +64,7 @@ func (fc *forwarderClient) OpenFile(name string) (*os.File, error) {
 	return os.OpenFile(cleanPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 }
 
-func newExporter(cfg *Config, params exporter.CreateSettings) (*chronicleForwarderExporter, error) {
+func newExporter(cfg *Config, params exporter.Settings) (*chronicleForwarderExporter, error) {
 	return &chronicleForwarderExporter{
 		cfg:                      cfg,
 		logger:                   params.Logger,

@@ -52,7 +52,7 @@ type chronicleExporter struct {
 	cancel context.CancelFunc
 }
 
-func newExporter(cfg *Config, params exporter.CreateSettings, collectorID, exporterID string) (*chronicleExporter, error) {
+func newExporter(cfg *Config, params exporter.Settings, collectorID, exporterID string) (*chronicleExporter, error) {
 	creds, err := loadGoogleCredentials(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("load Google credentials: %w", err)

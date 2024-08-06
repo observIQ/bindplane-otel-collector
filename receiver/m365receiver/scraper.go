@@ -262,7 +262,7 @@ type m365Scraper struct {
 }
 
 func newM365Scraper(
-	settings receiver.CreateSettings,
+	settings receiver.Settings,
 	cfg *Config,
 ) *m365Scraper {
 	m := &m365Scraper{

@@ -37,7 +37,7 @@ func TestNewFactory(t *testing.T) {
 }
 
 func TestCreateOrGetProcessorProcessor(t *testing.T) {
-	p1Settings := processortest.NewNopCreateSettings()
+	p1Settings := processortest.NewNopSettings()
 	p1Settings.ID = component.MustNewIDWithName(componentType.String(), "proc1")
 
 	p1 := createOrGetProcessor(p1Settings, createDefaultConfig().(*Config))
@@ -46,7 +46,7 @@ func TestCreateOrGetProcessorProcessor(t *testing.T) {
 	// p1 and p1Copy should be the same pointer
 	require.True(t, p1 == p1Copy, "p1 and p1Copy are not the same pointer")
 
-	p2Settings := processortest.NewNopCreateSettings()
+	p2Settings := processortest.NewNopSettings()
 	p2Settings.ID = component.MustNewIDWithName(componentType.String(), "proc2")
 
 	p2 := createOrGetProcessor(p2Settings, createDefaultConfig().(*Config))

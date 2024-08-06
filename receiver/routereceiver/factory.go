@@ -42,21 +42,21 @@ func NewFactory() receiver.Factory {
 }
 
 // createMetricsReceiver creates a metric receiver.
-func createMetricsReceiver(_ context.Context, set receiver.CreateSettings, _ component.Config, consumer consumer.Metrics) (receiver.Metrics, error) {
+func createMetricsReceiver(_ context.Context, set receiver.Settings, _ component.Config, consumer consumer.Metrics) (receiver.Metrics, error) {
 	receiver := createOrGetRoute(set.ID.Name())
 	receiver.registerMetricConsumer(consumer)
 	return receiver, nil
 }
 
 // createLogsReceiver creates a log receiver.
-func createLogsReceiver(_ context.Context, set receiver.CreateSettings, _ component.Config, consumer consumer.Logs) (receiver.Logs, error) {
+func createLogsReceiver(_ context.Context, set receiver.Settings, _ component.Config, consumer consumer.Logs) (receiver.Logs, error) {
 	receiver := createOrGetRoute(set.ID.Name())
 	receiver.registerLogConsumer(consumer)
 	return receiver, nil
 }
 
 // createTracesReceiver creates a trace receiver.
-func createTracesReceiver(_ context.Context, set receiver.CreateSettings, _ component.Config, consumer consumer.Traces) (receiver.Traces, error) {
+func createTracesReceiver(_ context.Context, set receiver.Settings, _ component.Config, consumer consumer.Traces) (receiver.Traces, error) {
 	receiver := createOrGetRoute(set.ID.Name())
 	receiver.registerTraceConsumer(consumer)
 	return receiver, nil
