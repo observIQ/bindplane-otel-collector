@@ -22,7 +22,6 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
-	"go.opentelemetry.io/collector/processor/processorhelper"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
@@ -46,7 +45,7 @@ func newThroughputMeasurementProcessor(logger *zap.Logger, mp metric.MeterProvid
 	meter := mp.Meter("github.com/observiq/bindplane-agent/processor/throughputmeasurementprocessor")
 
 	logSize, err := meter.Int64Counter(
-		processorhelper.BuildCustomMetricName(componentType.String(), "log_data_size"),
+		metricName("log_data_size"),
 		metric.WithDescription("Size of the log package passed to the processor"),
 		metric.WithUnit("By"),
 	)
@@ -55,7 +54,7 @@ func newThroughputMeasurementProcessor(logger *zap.Logger, mp metric.MeterProvid
 	}
 
 	metricSize, err := meter.Int64Counter(
-		processorhelper.BuildCustomMetricName(componentType.String(), "metric_data_size"),
+		metricName("metric_data_size"),
 		metric.WithDescription("Size of the metric package passed to the processor"),
 		metric.WithUnit("By"),
 	)
@@ -64,7 +63,7 @@ func newThroughputMeasurementProcessor(logger *zap.Logger, mp metric.MeterProvid
 	}
 
 	traceSize, err := meter.Int64Counter(
-		processorhelper.BuildCustomMetricName(componentType.String(), "trace_data_size"),
+		metricName("trace_data_size"),
 		metric.WithDescription("Size of the trace package passed to the processor"),
 		metric.WithUnit("By"),
 	)
@@ -73,7 +72,7 @@ func newThroughputMeasurementProcessor(logger *zap.Logger, mp metric.MeterProvid
 	}
 
 	logCount, err := meter.Int64Counter(
-		processorhelper.BuildCustomMetricName(componentType.String(), "log_count"),
+		metricName("log_count"),
 		metric.WithDescription("Count of the number log records passed to the processor"),
 		metric.WithUnit("{logs}"),
 	)
@@ -82,7 +81,7 @@ func newThroughputMeasurementProcessor(logger *zap.Logger, mp metric.MeterProvid
 	}
 
 	datapointCount, err := meter.Int64Counter(
-		processorhelper.BuildCustomMetricName(componentType.String(), "metric_count"),
+		metricName("metric_count"),
 		metric.WithDescription("Count of the number datapoints passed to the processor"),
 		metric.WithUnit("{datapoints}"),
 	)
@@ -91,7 +90,7 @@ func newThroughputMeasurementProcessor(logger *zap.Logger, mp metric.MeterProvid
 	}
 
 	spanCount, err := meter.Int64Counter(
-		processorhelper.BuildCustomMetricName(componentType.String(), "trace_count"),
+		metricName("trace_count"),
 		metric.WithDescription("Count of the number spans passed to the processor"),
 		metric.WithUnit("{spans}"),
 	)
@@ -150,4 +149,8 @@ func (tmp *throughputMeasurementProcessor) processMetrics(ctx context.Context, m
 	}
 
 	return md, nil
+}
+
+func metricName(metric string) string {
+	return fmt.Sprintf("otelcol_processor_throughputmeasurement_%s", metric)
 }

@@ -65,7 +65,7 @@ func TestProcessor_Logs(t *testing.T) {
 	for _, sm := range rm.ScopeMetrics {
 		for _, metric := range sm.Metrics {
 			switch metric.Name {
-			case "processor_throughputmeasurement_log_data_size":
+			case "otelcol_processor_throughputmeasurement_log_data_size":
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
@@ -75,7 +75,7 @@ func TestProcessor_Logs(t *testing.T) {
 
 				logSize = sum.DataPoints[0].Value
 
-			case "processor_throughputmeasurement_log_count":
+			case "otelcol_processor_throughputmeasurement_log_count":
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
@@ -128,7 +128,7 @@ func TestProcessor_Metrics(t *testing.T) {
 	for _, sm := range rm.ScopeMetrics {
 		for _, metric := range sm.Metrics {
 			switch metric.Name {
-			case "processor_throughputmeasurement_metric_data_size":
+			case "otelcol_processor_throughputmeasurement_metric_data_size":
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
@@ -138,7 +138,7 @@ func TestProcessor_Metrics(t *testing.T) {
 
 				metricSize = sum.DataPoints[0].Value
 
-			case "processor_throughputmeasurement_metric_count":
+			case "otelcol_processor_throughputmeasurement_metric_count":
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
@@ -191,7 +191,7 @@ func TestProcessor_Traces(t *testing.T) {
 	for _, sm := range rm.ScopeMetrics {
 		for _, metric := range sm.Metrics {
 			switch metric.Name {
-			case "processor_throughputmeasurement_trace_data_size":
+			case "otelcol_processor_throughputmeasurement_trace_data_size":
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
@@ -201,7 +201,7 @@ func TestProcessor_Traces(t *testing.T) {
 
 				traceSize = sum.DataPoints[0].Value
 
-			case "processor_throughputmeasurement_trace_count":
+			case "otelcol_processor_throughputmeasurement_trace_count":
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
@@ -261,7 +261,7 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 	for _, sm := range rm.ScopeMetrics {
 		for _, metric := range sm.Metrics {
 			switch metric.Name {
-			case "processor_throughputmeasurement_log_data_size":
+			case "otelcol_processor_throughputmeasurement_log_data_size":
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
@@ -271,7 +271,7 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 
 				logSize = sum.DataPoints[0].Value
 
-			case "processor_throughputmeasurement_log_count":
+			case "otelcol_processor_throughputmeasurement_log_count":
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
@@ -335,7 +335,7 @@ func TestProcessor_Logs_TwoInstancesDifferentID(t *testing.T) {
 	for _, sm := range rm.ScopeMetrics {
 		for _, metric := range sm.Metrics {
 			switch metric.Name {
-			case "processor_throughputmeasurement_log_data_size":
+			case "otelcol_processor_throughputmeasurement_log_data_size":
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 2, len(sum.DataPoints))
 
@@ -353,7 +353,7 @@ func TestProcessor_Logs_TwoInstancesDifferentID(t *testing.T) {
 					}
 				}
 
-			case "processor_throughputmeasurement_log_count":
+			case "otelcol_processor_throughputmeasurement_log_count":
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 2, len(sum.DataPoints))
 
