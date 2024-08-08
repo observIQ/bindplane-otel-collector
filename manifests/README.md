@@ -12,3 +12,9 @@ make distro MANIFEST="./manifests/minimal/manifest.yaml"
 
 - [observIQ](./observIQ/README.md) -- All components available in this repo, OpenTelemetry-Collector, and OpenTelemetry-Collector-Contrib.
 - [minimal](./minimal/README.md) -- The minimal components needed to run the collector with the supervisor and connect to BindPlane OP.
+
+## Custom Manifests
+
+You can create your own manifests as you see fit using the tools in this project. The [minimal manifest](./minimal/README.md) describes the minimal components needed for an agent to communicate with BindPlane. As long as those components are included your custom built agent can be managed using BindPlane.
+
+Once your manifest is specified, follow the directions above for building an OCB agent using it.
