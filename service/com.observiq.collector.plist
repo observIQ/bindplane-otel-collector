@@ -13,13 +13,9 @@
     </dict>
     <key>ProgramArguments</key>
     <array>
-        <string>[INSTALLDIR]observiq-otel-collector</string>
+        <string>[INSTALLDIR]opampsupervisor</string>
         <string>--config</string>
-        <string>[INSTALLDIR]config.yaml</string>
-        <string>--logging</string>
-        <string>[INSTALLDIR]logging.yaml</string>
-        <string>--manager</string>
-        <string>[INSTALLDIR]manager.yaml</string>
+        <string>[INSTALLDIR]supervisor-config.yaml</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
