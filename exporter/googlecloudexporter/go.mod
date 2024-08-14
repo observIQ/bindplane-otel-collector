@@ -107,4 +107,4 @@ require (
 )
 
 // Needed until 'version' package changes are included in a release
-replace github.com/observiq/bindplane-agent/internal/version v1.56.0 => github.com/observiq/bindplane-agent/internal/version v0.0.0-20240717172323-a1d3e6ed4aab
+replace github.com/observiq/bindplane-agent/internal/version => ../../internal/version

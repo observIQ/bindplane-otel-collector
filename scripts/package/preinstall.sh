@@ -13,21 +13,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 set -e
 
-username="observiq-otel-collector"
+install() {
+    username="observiq-otel-collector"
 
-if getent group "$username" > /dev/null 2>&1; then
-    echo "Group ${username} already exists."
-else
-    groupadd "$username"
-fi
+    if getent group "$username" >/dev/null 2>&1; then
+        echo "Group ${username} already exists."
+    else
+        groupadd "$username"
+    fi
 
-if id "$username" > /dev/null 2>&1; then
-    echo "User ${username} already exists"
-    exit 0
-else
-    useradd --shell /sbin/nologin --system "$username" -g "$username"
-fi
+    if id "$username" >/dev/null 2>&1; then
+        echo "User ${username} already exists"
+        exit 0
+    else
+        useradd --shell /sbin/nologin --system "$username" -g "$username"
+    fi
+}
 
+# Upgrade should perform the same steps as install
+upgrade() {
+    install
+}
+
+action="$1"
+
+case "$action" in
+"0" | "install")
+    install
+    ;;
+"1" | "upgrade")
+    upgrade
+    ;;
+*)
+    install
+    ;;
+esac

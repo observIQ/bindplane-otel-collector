@@ -37,10 +37,11 @@ COPY --from=stage --chown=otel:otel /etc/otel /etc/otel
 COPY --from=stage --chown=otel:otel /etc/otel/storage /etc/otel/storage
 
 COPY observiq-otel-collector /collector/observiq-otel-collector
+COPY opampsupervisor /collector/opampsupervisor
 
 ENV OIQ_OTEL_COLLECTOR_HOME=/etc/otel
 ENV OIQ_OTEL_COLLECTOR_STORAGE=/etc/otel/storage
 
 USER otel
 WORKDIR /etc/otel
-ENTRYPOINT ["/collector/observiq-otel-collector"]
+ENTRYPOINT [ "/collector/opampsupervisor", "--config", "/etc/otel/supervisor.yaml" ]
