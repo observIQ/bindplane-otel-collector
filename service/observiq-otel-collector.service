@@ -11,7 +11,7 @@ Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
 Environment=OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
 WorkingDirectory=/opt/observiq-otel-collector
-ExecStart=/opt/observiq-otel-collector/observiq-otel-collector --config config.yaml
+ExecStart=/opt/observiq-otel-collector/opampsupervisor --config supervisor.yaml
 SuccessExitStatus=0
 TimeoutSec=20
 StandardOutput=journal
