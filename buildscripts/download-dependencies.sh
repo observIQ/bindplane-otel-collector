@@ -35,7 +35,7 @@ SUPERVISOR_REPO="https://github.com/open-telemetry/opentelemetry-collector-contr
 PLATFORMS=("linux/amd64" "linux/arm64" "linux/arm" "linux/ppc64" "linux/ppc64le" "darwin/amd64" "darwin/arm64" "windows/amd64")
 
 mkdir "$DOWNLOAD_DIR/supervisor_bin"
-$(cd $DOWNLOAD_DIR && git clone "$SUPERVISOR_REPO")
+$(cd $DOWNLOAD_DIR && git clone --depth 1 "$SUPERVISOR_REPO")
 cd "$DOWNLOAD_DIR/opentelemetry-collector-contrib/cmd/opampsupervisor"
 go get github.com/open-telemetry/opentelemetry-collector-contrib/cmd/opampsupervisor/supervisor
 for PLATFORM in "${PLATFORMS[@]}"; do

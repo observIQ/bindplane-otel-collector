@@ -57,6 +57,8 @@ COPY LICENSE /licenses/observiq-otel-collector.license
 COPY release_deps/VERSION.txt /etc/otel/VERSION.txt
 
 COPY observiq-otel-collector /collector/observiq-otel-collector
+COPY opampsupervisor /collector/opampsupervisor
+
 COPY release_deps/opentelemetry-java-contrib-jmx-metrics.jar /opt/opentelemetry-java-contrib-jmx-metrics.jar
 COPY release_deps/plugins /etc/otel/plugins
 
@@ -71,6 +73,4 @@ RUN chmod 0600 \
 USER otel
 WORKDIR /etc/otel
 
-# User should mount /etc/otel/config.yaml at runtime using docker volumes / k8s configmap unless
-# connecting to an OpAMP platform.
-ENTRYPOINT [ "/collector/observiq-otel-collector" ]
+ENTRYPOINT [ "/collector/opampsupervisor", "--config", "/etc/otel/supervisor.yaml" ]
