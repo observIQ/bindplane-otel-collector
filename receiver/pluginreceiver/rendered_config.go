@@ -105,6 +105,7 @@ func (r *RenderedConfig) GetConfigProviderSettings() (*otelcol.ConfigProviderSet
 				envprovider.NewFactory(),
 			},
 			ConverterFactories: []confmap.ConverterFactory{expandconverter.NewFactory()},
+			DefaultScheme:      "env",
 		},
 	}
 
