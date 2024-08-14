@@ -54,7 +54,7 @@ updater:
 # Runs the supervisor invoking the agent build in /dist
 .PHONY: run-supervisor
 run-supervisor:
-	opampsupervisor --config ./local/supervisor-config.yaml
+	opampsupervisor --config ./local/supervisor.yaml
 
 # Ensures the supervisor and agent are stopped
 .PHONY: kill

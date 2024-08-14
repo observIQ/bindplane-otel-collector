@@ -5,7 +5,7 @@
 # shellcheck disable=SC2148,SC2034
 
 # Environment variables
-BINARY=observiq-otel-collector
+BINARY=opampsupervisor
 PROGRAM=/opt/observiq-otel-collector/"$BINARY"
 START_CMD="nohup /opt/observiq-otel-collector/$BINARY > /dev/null 2>&1 &"
 LOCKFILE=/var/lock/"$BINARY"

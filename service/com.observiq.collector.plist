@@ -15,7 +15,7 @@
     <array>
         <string>[INSTALLDIR]opampsupervisor</string>
         <string>--config</string>
-        <string>[INSTALLDIR]supervisor-config.yaml</string>
+        <string>[INSTALLDIR]supervisor.yaml</string>
     </array>
     <key>RunAtLoad</key>
     <true/>

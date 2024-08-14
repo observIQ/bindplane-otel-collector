@@ -23,7 +23,7 @@ DOWNLOAD_BASE="https://github.com/observIQ/bindplane-otel-collector/releases/dow
 PREREQS="printf sed uname tr find grep"
 TMP_DIR="${TMPDIR:-"/tmp/"}observiq-otel-collector" # Allow this to be overriden by cannonical TMPDIR env var
 INSTALL_DIR="/opt/observiq-otel-collector"
-SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor-config.yaml"
+SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor.yaml"
 SCRIPT_NAME="$0"
 INDENT_WIDTH='  '
 indent=""
@@ -537,7 +537,7 @@ install_package() {
     succeeded
   fi
 
-  # If an endpoint was specified, we need to write the supervisor-config.yaml
+  # If an endpoint was specified, we need to write the supervisor.yaml
   if [ -n "$OPAMP_ENDPOINT" ]; then
     create_supervisor_config "$SUPERVISOR_YML_PATH"
   fi
