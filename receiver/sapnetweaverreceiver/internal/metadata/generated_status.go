@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	Type = component.MustNewType("sapnetweaver")
+	Type      = component.MustNewType("sapnetweaver")
+	ScopeName = "github.com/observiq/bindplane-agent/receiver/sapnetweaverreceiver"
 )
 
 const (

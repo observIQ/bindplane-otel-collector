@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	Type = component.MustNewType("azureblob")
+	Type      = component.MustNewType("azureblob")
+	ScopeName = "github.com/observiq/bindplane-agent/exporter/azureblobexporter"
 )
 
 const (
