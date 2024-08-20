@@ -5,7 +5,7 @@ go 1.21.9
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/jmoiron/sqlx v1.4.0
-	github.com/snowflakedb/gosnowflake v1.10.1
+	github.com/snowflakedb/gosnowflake v1.11.0
 	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/collector/component v0.107.0
 	go.opentelemetry.io/collector/config/configretry v1.13.0
