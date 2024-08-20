@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	Type = component.MustNewType("snowflake")
+	Type      = component.MustNewType("snowflake")
+	ScopeName = "github.com/observiq/bindplane-agent/exporter/snowflakeexporter"
 )
 
 const (

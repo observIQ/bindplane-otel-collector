@@ -19,7 +19,6 @@ import (
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/confmap"
-	"go.opentelemetry.io/collector/confmap/converter/expandconverter"
 	"go.opentelemetry.io/collector/confmap/provider/envprovider"
 	"go.opentelemetry.io/collector/confmap/provider/fileprovider"
 	"go.opentelemetry.io/collector/confmap/provider/httpsprovider"
@@ -104,26 +103,38 @@ func (r *RenderedConfig) GetConfigProviderSettings() (*otelcol.ConfigProviderSet
 				httpsprovider.NewFactory(),
 				envprovider.NewFactory(),
 			},
-			ConverterFactories: []confmap.ConverterFactory{expandconverter.NewFactory()},
+			ConverterFactories: []confmap.ConverterFactory{},
+			DefaultScheme:      "env",
 		},
 	}
 
 	return &settings, nil
 }
 
+// host is an interface that the component.Host passed to GetRequiredFactories must implement
+type host interface {
+	component.Host
+	GetFactory(component.Kind, component.Type) component.Factory
+}
+
 // GetRequiredFactories finds and returns the factories required for the rendered config
-func (r *RenderedConfig) GetRequiredFactories(host component.Host, emitterFactory exporter.Factory) (*otelcol.Factories, error) {
-	receiverFactories, err := r.getReceiverFactories(host)
+func (r *RenderedConfig) GetRequiredFactories(h component.Host, emitterFactory exporter.Factory) (*otelcol.Factories, error) {
+	rcHost, ok := h.(host)
+	if !ok {
+		return nil, fmt.Errorf("the RenderedConfig is not compatible with the provided component.host")
+	}
+
+	receiverFactories, err := r.getReceiverFactories(rcHost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get receiver factories: %w", err)
 	}
 
-	processorFactories, err := r.getProcessorFactories(host)
+	processorFactories, err := r.getProcessorFactories(rcHost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get processor factories: %w", err)
 	}
 
-	extensionFactories, err := r.getExtensionFactories(host)
+	extensionFactories, err := r.getExtensionFactories(rcHost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get extension factories: %w", err)
 	}
@@ -141,7 +152,7 @@ func (r *RenderedConfig) GetRequiredFactories(host component.Host, emitterFactor
 }
 
 // getReceiverFactories returns the receiver factories required for the rendered config
-func (r *RenderedConfig) getReceiverFactories(host component.Host) (map[component.Type]receiver.Factory, error) {
+func (r *RenderedConfig) getReceiverFactories(host host) (map[component.Type]receiver.Factory, error) {
 	factories := map[component.Type]receiver.Factory{}
 	for receiverID := range r.Receivers {
 		receiverType, err := parseComponentType(receiverID)
@@ -165,7 +176,7 @@ func (r *RenderedConfig) getReceiverFactories(host component.Host) (map[componen
 }
 
 // getProcessorFactories returns the processor factories required for the rendered config
-func (r *RenderedConfig) getProcessorFactories(host component.Host) (map[component.Type]processor.Factory, error) {
+func (r *RenderedConfig) getProcessorFactories(host host) (map[component.Type]processor.Factory, error) {
 	factories := map[component.Type]processor.Factory{}
 	for processorID := range r.Processors {
 		processorType, err := parseComponentType(processorID)
@@ -189,7 +200,7 @@ func (r *RenderedConfig) getProcessorFactories(host component.Host) (map[compone
 }
 
 // getExtensionFactories returns the extension factories required for the rendered config
-func (r *RenderedConfig) getExtensionFactories(host component.Host) (map[component.Type]extension.Factory, error) {
+func (r *RenderedConfig) getExtensionFactories(host host) (map[component.Type]extension.Factory, error) {
 	factories := map[component.Type]extension.Factory{}
 	for extensionID := range r.Extensions {
 		extensionType, err := parseComponentType(extensionID)
