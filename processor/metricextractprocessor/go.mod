@@ -3,8 +3,8 @@ module github.com/observiq/bindplane-agent/processor/metricextractprocessor
 go 1.21.9
 
 require (
-	github.com/observiq/bindplane-agent/expr v1.58.3
-	github.com/observiq/bindplane-agent/receiver/routereceiver v1.58.3
+	github.com/observiq/bindplane-agent/expr v1.59.0
+	github.com/observiq/bindplane-agent/receiver/routereceiver v1.59.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.107.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.107.0
 	github.com/stretchr/testify v1.9.0
