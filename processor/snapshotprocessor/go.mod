@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-agent/processor/snapshotprocessor
 go 1.21.9
 
 require (
-	github.com/observiq/bindplane-agent/internal/report v1.58.0
+	github.com/observiq/bindplane-agent/internal/report v1.58.3
 	github.com/open-telemetry/opamp-go v0.15.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.107.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.107.0
