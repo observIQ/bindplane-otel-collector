@@ -58,15 +58,13 @@ if [ -z "$CONTRIB_TARGET_VERSION" ]; then
 fi
 
 PDATA_TARGET_VERSION=$3
-
 if [ -z "$PDATA_TARGET_VERSION" ]; then
     echo "Must specify a target pdata version"
     exit 1
 fi
 
 LOCAL_MODULES=$(find . -type f -name "go.mod" -exec dirname {} \; | sort)
-for local_mod in $LOCAL_MODULES
-do
+for local_mod in $LOCAL_MODULES; do
     # Run in a subshell so that the CD doesn't change this shell's current directory
     (
         echo "Updating deps in $local_mod"
