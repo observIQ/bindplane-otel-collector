@@ -64,7 +64,6 @@ if [ -z "$CONTRIB_TARGET_VERSION" ]; then
 fi
 
 PDATA_TARGET_VERSION=$3
-
 if [ -z "$PDATA_TARGET_VERSION" ]; then
     echo "Must specify a target pdata version"
     exit 1
