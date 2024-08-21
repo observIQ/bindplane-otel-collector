@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 TARGET_VERSION=$1
 if [ -z "$TARGET_VERSION" ]; then
     echo "Must specify a target version"
@@ -26,7 +25,7 @@ if [ -z "$CONTRIB_TARGET_VERSION" ]; then
     exit 1
 fi
 
-read -r -d '' DOC_FILES << EOF
+read -r -d '' DOC_FILES <<EOF
 docs/processors.md
 docs/extensions.md
 docs/connectors.md
@@ -40,8 +39,7 @@ exporter/googlecloudexporter/README.md
 exporter/googlemanagedprometheusexporter/README.md
 EOF
 
-for doc in $DOC_FILES
-do
+for doc in $DOC_FILES; do
     echo "$doc"
     # Point contrib links to new version
     sed -i '' -Ee \
