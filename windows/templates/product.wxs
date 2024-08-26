@@ -201,12 +201,26 @@
         https://stackoverflow.com/questions/17674255/why-does-windows-start-command-not-work-with-spaces-in-arguments-and-path
       -->
 
-      <CustomAction Id="CustomExecCreateManagerYaml_set"
-              Property="CustomExecCreateManagerYaml"
-              Value="&quot;[CMDEXE]&quot; /C CALL &quot;[INSTALLDIR]install\generate-manager-yaml.bat&quot; &quot;[INSTALLDIR]&quot; &quot;[OPAMPENDPOINT]&quot; &quot;[OPAMPSECRETKEY]&quot; &quot;[OPAMPLABELS]&quot; &quot;[CLEAN]&quot;"
+      <CustomAction Id="CustomExecCreateSupervisorYaml_set"
+              Property="CustomExecCreateSupervisorYaml"
+              Value="&quot;[CMDEXE]&quot; /C CALL &quot;[INSTALLDIR]install\generate-supervisor-yaml.bat&quot; &quot;[INSTALLDIR]&quot; &quot;[OPAMPENDPOINT]&quot; &quot;[OPAMPSECRETKEY]&quot; &quot;[OPAMPLABELS]&quot;"
               Execute="immediate"/>
 
-      <CustomAction Id="CustomExecCreateManagerYaml" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="check" />
+      <CustomAction Id="CustomExecCreateSupervisorYaml" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="check" />
+
+      <CustomAction Id="CustomExecRemoveSupervisorYaml_set"
+              Property="CustomExecRemoveSupervisorYaml"
+              Value="&quot;[CMDEXE]&quot; /C del &quot;[INSTALLDIR]supervisor.yaml&quot;"
+              Execute="immediate"/>
+
+      <CustomAction Id="CustomExecRemoveSupervisorYaml" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="ignore" />
+
+      <CustomAction Id="CustomExecRemoveSupervisorStorage_set"
+            Property="CustomExecRemoveSupervisorStorage"
+            Value="&quot;[CMDEXE]&quot; \C del -r &quot;[INSTALLDIR]supervisor_storage&quot;"
+            Execute="immediate"/>
+
+      <CustomAction Id="CustomExecRemoveSupervisorStorage" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="ignore" />
 
       <InstallExecuteSequence>
          {{range $i, $h := .Hooks}}
@@ -225,12 +239,28 @@
             This should filter out older versions of Windows where some custom actions get stuck. 
             Link to windows versions for reference https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values-->
 
-        <!-- Schedule the action that creates the manager.yaml file on initial install -->
-        <Custom Action="CustomExecCreateManagerYaml_set" After="InstallInitialize" >
+        <!-- Schedule the action that creates the supervisor.yaml file on initial install -->
+        <Custom Action="CustomExecCreateSupervisorYaml_set" After="InstallInitialize" >
             <![CDATA[(VersionNT >= 603 OR VersionNT64 >= 603) AND NOT Installed AND NOT REMOVE AND ENABLEMANAGEMENT AND NOT WIX_UPGRADE_DETECTED]]>
         </Custom>
-        <Custom Action="CustomExecCreateManagerYaml" After="InstallFiles" >
+        <Custom Action="CustomExecCreateSupervisorYaml" After="InstallFiles" >
             <![CDATA[(VersionNT >= 603 OR VersionNT64 >= 603) AND NOT Installed AND NOT REMOVE AND ENABLEMANAGEMENT AND NOT WIX_UPGRADE_DETECTED]]>
+        </Custom>
+        
+        <!-- Schedule the action that removes the supervisor.yaml file on final uninstall -->
+        <Custom Action="CustomExecRemoveSupervisorYaml_set" After="InstallInitialize" >
+            <![CDATA[(VersionNT >= 603 OR VersionNT64 >= 603) and REMOVE="ALL" and not UPGRADINGPRODUCTCODE]]>
+        </Custom>
+        <Custom Action="CustomExecRemoveSupervisorYaml" Before="RemoveFiles" >
+            <![CDATA[(VersionNT >= 603 OR VersionNT64 >= 603) and REMOVE="ALL" and not UPGRADINGPRODUCTCODE]]>
+        </Custom>
+
+        <!-- Schedule the action that removes the supervisor_storage dir on final uninstall -->
+        <Custom Action="CustomExecRemoveSupervisorStorage_set" After="InstallInitialize" >
+            <![CDATA[(VersionNT >= 603 OR VersionNT64 >= 603) and REMOVE="ALL" and not UPGRADINGPRODUCTCODE]]>
+        </Custom>
+        <Custom Action="CustomExecRemoveSupervisorStorage" Before="RemoveFiles" >
+            <![CDATA[(VersionNT >= 603 OR VersionNT64 >= 603) and REMOVE="ALL" and not UPGRADINGPRODUCTCODE]]>
         </Custom>
       </InstallExecuteSequence>
 
