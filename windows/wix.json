@@ -9,25 +9,20 @@
   "upgrade-code": "D67CCA1A-6708-4096-8BDE-5069739FB861",
   "files": [
     {
-      "path": "observiq-otel-collector.exe",
+      "path": "opampsupervisor.exe",
       "service": {
         "name": "observiq-otel-collector",
         "start": "delayed",
         "display-name": "observIQ Distro for OpenTelemetry Collector",
         "description": "observIQ's distribution of the OpenTelemetry collector.",
-        "arguments": "--config &quot;[INSTALLDIR]config.yaml&quot; --logging &quot;[INSTALLDIR]logging.yaml&quot; --manager &quot;[INSTALLDIR]manager.yaml&quot;"
+        "arguments": "--config &quot;[INSTALLDIR]supervisor.yaml&quot;"
       }
     },
     {
+      "path": "observiq-otel-collector.exe"
+    },
+    {
       "path": "updater.exe"
-    },
-    {
-      "path": "config.yaml",
-      "never_overwrite": true
-    },
-    {
-      "path": "logging.yaml",
-      "never_overwrite": true
     },
     {
       "path": "opentelemetry-java-contrib-jmx-metrics.jar"
@@ -45,6 +40,9 @@
     },
     {
       "name": "storage"
+    },
+    {
+      "name": "supervisor_storage"
     },
     {
       "name": "install"

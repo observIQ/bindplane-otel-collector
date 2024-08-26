@@ -24,7 +24,7 @@
                     <Condition Action="hide"><![CDATA[NOT (ENABLEMANAGEMENT)]]></Condition>
                 </Control>
 
-                <Control Id="SecretKeyLabel" Type="Text" X="20" Y="145" Width="290" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Secret Key" Hidden="yes" >
+                <Control Id="SecretKeyLabel" Type="Text" X="20" Y="145" Width="290" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Secret Key (Required)" Hidden="yes" >
                     <Condition Action="show"><![CDATA[ENABLEMANAGEMENT]]></Condition>
                     <Condition Action="hide"><![CDATA[NOT (ENABLEMANAGEMENT)]]></Condition>
                 </Control> 
