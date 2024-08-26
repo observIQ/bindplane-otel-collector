@@ -15,18 +15,21 @@ jobs:
         with:
           go-version: "1.21"
           check-latest: true
+      # Needed until supervisor binary is released
+      - name: Build Supervisor Binary
+        run: make release-prep
       - name: Build Windows Binaries
         run: make build-binaries
       - name: Copy Windows Collector Binary
         run: cp dist/collector_windows_amd64.exe windows/observiq-otel-collector.exe
       - name: Copy Windows Updater Binary
         run: cp dist/updater_windows_amd64.exe windows/updater.exe
+      - name: Copy Supervisor Binary
+        run: cp release_deps/supervisor_bin/opampsupervisor_windows_amd64.exe windows/opampsupervisor.exe
       - name: Copy Plugins to MSI Build Directory
         run: cp -r release_deps/plugins windows/
       - name: Copy Example Config
         run: cp config/example.yaml windows/config.yaml
-      - name: Copy Logging Config
-        run: cp config/logging.yaml windows/logging.yaml
       - name: Copy JMX Receiver Jar
         run: cp release_deps/opentelemetry-java-contrib-jmx-metrics.jar windows/opentelemetry-java-contrib-jmx-metrics.jar
       - name: Copy LICENSE
