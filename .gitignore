@@ -14,7 +14,6 @@ windows/*.zip
 windows/**/wix.dynamic.json
 windows/**/wix
 windows/config.yaml
-windows/logging.yaml
 windows/LICENSE
 windows/plugins
 opentelemetry-java-contrib-jmx-metrics.jar
