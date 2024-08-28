@@ -518,10 +518,10 @@ install_package() {
   info "Copying artifacts to install directory..."
   increase_indent
 
-  # This find command gets a list of all artifacts paths except logging.yaml, or opentelemetry-java-contrib-jmx-metrics.jar
+  # This find command gets a list of all artifacts paths except opentelemetry-java-contrib-jmx-metrics.jar
   FILES=$(
     cd "$TMP_DIR/artifacts"
-    find "." -type f -not \( -name logging.yaml -or -name opentelemetry-java-contrib-jmx-metrics.jar \)
+    find "." -type f -not \( -name opentelemetry-java-contrib-jmx-metrics.jar \)
   )
   # Move files to install dir
   for f in $FILES; do
@@ -530,12 +530,6 @@ install_package() {
   done
   decrease_indent
   succeeded
-
-  if [ ! -f "$INSTALL_DIR/logging.yaml" ]; then
-    info "Copying default logging.yaml..."
-    cp "$TMP_DIR/artifacts/logging.yaml" "$INSTALL_DIR/logging.yaml" || error_exit "$LINENO" "Failed to copy default logging.yaml to install dir"
-    succeeded
-  fi
 
   # If an endpoint was specified, we need to write the supervisor.yaml
   if [ -n "$OPAMP_ENDPOINT" ]; then

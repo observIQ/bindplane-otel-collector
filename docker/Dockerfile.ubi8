@@ -62,14 +62,6 @@ COPY opampsupervisor /collector/opampsupervisor
 COPY release_deps/opentelemetry-java-contrib-jmx-metrics.jar /opt/opentelemetry-java-contrib-jmx-metrics.jar
 COPY release_deps/plugins /etc/otel/plugins
 
-COPY config/logging.stdout.yaml /etc/otel/logging.yaml
-
-RUN chown otel:otel \
-    /etc/otel/logging.yaml
-
-RUN chmod 0600 \
-    /etc/otel/logging.yaml
-
 USER otel
 WORKDIR /etc/otel
 
