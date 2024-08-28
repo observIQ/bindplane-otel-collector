@@ -1,9 +1,0 @@
-# File logging configuration assumes OIQ_OTEL_COLLECTOR_HOME
-# is set in the agent's environment. 
-output: file
-level: info
-file:
-  filename: "${OIQ_OTEL_COLLECTOR_HOME}/log/collector.log"
-  maxbackups: 5
-  maxsize: 1
-  maxage: 7
