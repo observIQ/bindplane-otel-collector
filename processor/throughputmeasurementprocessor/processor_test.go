@@ -69,7 +69,7 @@ func TestProcessor_Logs(t *testing.T) {
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
-				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key(processorAttributeName))
+				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
 				require.Equal(t, processorID, processorAttr.AsString())
 
@@ -79,7 +79,7 @@ func TestProcessor_Logs(t *testing.T) {
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
-				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key(processorAttributeName))
+				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
 				require.Equal(t, processorID, processorAttr.AsString())
 
@@ -132,7 +132,7 @@ func TestProcessor_Metrics(t *testing.T) {
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
-				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key(processorAttributeName))
+				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
 				require.Equal(t, processorID, processorAttr.AsString())
 
@@ -142,7 +142,7 @@ func TestProcessor_Metrics(t *testing.T) {
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
-				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key(processorAttributeName))
+				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
 				require.Equal(t, processorID, processorAttr.AsString())
 
@@ -195,7 +195,7 @@ func TestProcessor_Traces(t *testing.T) {
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
-				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key(processorAttributeName))
+				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
 				require.Equal(t, processorID, processorAttr.AsString())
 
@@ -205,7 +205,7 @@ func TestProcessor_Traces(t *testing.T) {
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
-				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key(processorAttributeName))
+				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
 				require.Equal(t, processorID, processorAttr.AsString())
 
@@ -265,7 +265,7 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
-				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key(processorAttributeName))
+				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
 				require.Equal(t, processorID, processorAttr.AsString())
 
@@ -275,7 +275,7 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 				sum := metric.Data.(metricdata.Sum[int64])
 				require.Equal(t, 1, len(sum.DataPoints))
 
-				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key(processorAttributeName))
+				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
 				require.Equal(t, processorID, processorAttr.AsString())
 
@@ -340,7 +340,7 @@ func TestProcessor_Logs_TwoInstancesDifferentID(t *testing.T) {
 				require.Equal(t, 2, len(sum.DataPoints))
 
 				for _, dp := range sum.DataPoints {
-					processorAttr, ok := dp.Attributes.Value(attribute.Key(processorAttributeName))
+					processorAttr, ok := dp.Attributes.Value(attribute.Key("processor"))
 					require.True(t, ok, "processor attribute was not found")
 
 					switch processorAttr.AsString() {
@@ -358,7 +358,7 @@ func TestProcessor_Logs_TwoInstancesDifferentID(t *testing.T) {
 				require.Equal(t, 2, len(sum.DataPoints))
 
 				for _, dp := range sum.DataPoints {
-					processorAttr, ok := dp.Attributes.Value(attribute.Key(processorAttributeName))
+					processorAttr, ok := dp.Attributes.Value(attribute.Key("processor"))
 					require.True(t, ok, "processor attribute was not found")
 
 					switch processorAttr.AsString() {

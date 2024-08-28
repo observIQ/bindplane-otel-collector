@@ -19,108 +19,59 @@ import (
 	"fmt"
 	"math/rand"
 
+	"github.com/observiq/bindplane-agent/internal/measurements"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 )
 
-const processorAttributeName = "processor"
-
 type throughputMeasurementProcessor struct {
-	logger                              *zap.Logger
-	enabled                             bool
-	samplingCutOffRatio                 float64
-	attrSet                             attribute.Set
-	logSize, metricSize, traceSize      metric.Int64Counter
-	logCount, datapointCount, spanCount metric.Int64Counter
-	tracesSizer                         ptrace.Sizer
-	metricsSizer                        pmetric.Sizer
-	logsSizer                           plog.Sizer
+	logger              *zap.Logger
+	enabled             bool
+	measurements        *measurements.ThroughputMeasurements
+	samplingCutOffRatio float64
+	processorID         string
+	bindplane           component.ID
 }
 
 func newThroughputMeasurementProcessor(logger *zap.Logger, mp metric.MeterProvider, cfg *Config, processorID string) (*throughputMeasurementProcessor, error) {
-	meter := mp.Meter("github.com/observiq/bindplane-agent/processor/throughputmeasurementprocessor")
-
-	logSize, err := meter.Int64Counter(
-		metricName("log_data_size"),
-		metric.WithDescription("Size of the log package passed to the processor"),
-		metric.WithUnit("By"),
-	)
+	measurements, err := measurements.NewThroughputMeasurements(mp, processorID, cfg.ExtraLabels)
 	if err != nil {
-		return nil, fmt.Errorf("create log_data_size counter: %w", err)
-	}
-
-	metricSize, err := meter.Int64Counter(
-		metricName("metric_data_size"),
-		metric.WithDescription("Size of the metric package passed to the processor"),
-		metric.WithUnit("By"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("create metric_data_size counter: %w", err)
-	}
-
-	traceSize, err := meter.Int64Counter(
-		metricName("trace_data_size"),
-		metric.WithDescription("Size of the trace package passed to the processor"),
-		metric.WithUnit("By"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("create trace_data_size counter: %w", err)
-	}
-
-	logCount, err := meter.Int64Counter(
-		metricName("log_count"),
-		metric.WithDescription("Count of the number log records passed to the processor"),
-		metric.WithUnit("{logs}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("create log_count counter: %w", err)
-	}
-
-	datapointCount, err := meter.Int64Counter(
-		metricName("metric_count"),
-		metric.WithDescription("Count of the number datapoints passed to the processor"),
-		metric.WithUnit("{datapoints}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("create metric_count counter: %w", err)
-	}
-
-	spanCount, err := meter.Int64Counter(
-		metricName("trace_count"),
-		metric.WithDescription("Count of the number spans passed to the processor"),
-		metric.WithUnit("{spans}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("create trace_count counter: %w", err)
+		return nil, fmt.Errorf("create throughput measurements: %w", err)
 	}
 
 	return &throughputMeasurementProcessor{
 		logger:              logger,
 		enabled:             cfg.Enabled,
+		measurements:        measurements,
 		samplingCutOffRatio: cfg.SamplingRatio,
-		logSize:             logSize,
-		metricSize:          metricSize,
-		traceSize:           traceSize,
-		logCount:            logCount,
-		datapointCount:      datapointCount,
-		spanCount:           spanCount,
-		attrSet:             attribute.NewSet(attribute.String(processorAttributeName, processorID)),
-		tracesSizer:         &ptrace.ProtoMarshaler{},
-		metricsSizer:        &pmetric.ProtoMarshaler{},
-		logsSizer:           &plog.ProtoMarshaler{},
+		processorID:         processorID,
+		bindplane:           cfg.BindplaneExtension,
 	}, nil
+}
+
+func (tmp *throughputMeasurementProcessor) start(_ context.Context, host component.Host) error {
+
+	registry, err := GetThroughputRegistry(host, tmp.bindplane)
+	if err != nil {
+		return fmt.Errorf("get throughput registry: %w", err)
+	}
+
+	if registry != nil {
+		registry.RegisterThroughputMeasurements(tmp.processorID, tmp.measurements)
+	}
+
+	return nil
 }
 
 func (tmp *throughputMeasurementProcessor) processTraces(ctx context.Context, td ptrace.Traces) (ptrace.Traces, error) {
 	if tmp.enabled {
 		//#nosec G404 -- randomly generated number is not used for security purposes. It's ok if it's weak
 		if rand.Float64() <= tmp.samplingCutOffRatio {
-			tmp.traceSize.Add(ctx, int64(tmp.tracesSizer.TracesSize(td)), metric.WithAttributeSet(tmp.attrSet))
-			tmp.spanCount.Add(ctx, int64(td.SpanCount()), metric.WithAttributeSet(tmp.attrSet))
+			tmp.measurements.AddTraces(ctx, td)
 		}
 	}
 
@@ -131,8 +82,7 @@ func (tmp *throughputMeasurementProcessor) processLogs(ctx context.Context, ld p
 	if tmp.enabled {
 		//#nosec G404 -- randomly generated number is not used for security purposes. It's ok if it's weak
 		if rand.Float64() <= tmp.samplingCutOffRatio {
-			tmp.logSize.Add(ctx, int64(tmp.logsSizer.LogsSize(ld)), metric.WithAttributeSet(tmp.attrSet))
-			tmp.logCount.Add(ctx, int64(ld.LogRecordCount()), metric.WithAttributeSet(tmp.attrSet))
+			tmp.measurements.AddLogs(ctx, ld)
 		}
 	}
 
@@ -143,14 +93,9 @@ func (tmp *throughputMeasurementProcessor) processMetrics(ctx context.Context, m
 	if tmp.enabled {
 		//#nosec G404 -- randomly generated number is not used for security purposes. It's ok if it's weak
 		if rand.Float64() <= tmp.samplingCutOffRatio {
-			tmp.metricSize.Add(ctx, int64(tmp.metricsSizer.MetricsSize(md)), metric.WithAttributeSet(tmp.attrSet))
-			tmp.datapointCount.Add(ctx, int64(md.DataPointCount()), metric.WithAttributeSet(tmp.attrSet))
+			tmp.measurements.AddMetrics(ctx, md)
 		}
 	}
 
 	return md, nil
-}
-
-func metricName(metric string) string {
-	return fmt.Sprintf("otelcol_processor_throughputmeasurement_%s", metric)
 }

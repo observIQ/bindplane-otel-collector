@@ -65,7 +65,11 @@ func createTracesProcessor(
 		return nil, fmt.Errorf("create throughputmeasurementprocessor: %w", err)
 	}
 
-	return processorhelper.NewTracesProcessor(ctx, set, cfg, nextConsumer, tmp.processTraces, processorhelper.WithCapabilities(consumerCapabilities))
+	return processorhelper.NewTracesProcessor(
+		ctx, set, cfg, nextConsumer, tmp.processTraces,
+		processorhelper.WithCapabilities(consumerCapabilities),
+		processorhelper.WithStart(tmp.start),
+	)
 }
 
 func createLogsProcessor(
@@ -80,7 +84,11 @@ func createLogsProcessor(
 		return nil, fmt.Errorf("create throughputmeasurementprocessor: %w", err)
 	}
 
-	return processorhelper.NewLogsProcessor(ctx, set, cfg, nextConsumer, tmp.processLogs, processorhelper.WithCapabilities(consumerCapabilities))
+	return processorhelper.NewLogsProcessor(
+		ctx, set, cfg, nextConsumer, tmp.processLogs,
+		processorhelper.WithCapabilities(consumerCapabilities),
+		processorhelper.WithStart(tmp.start),
+	)
 }
 
 func createMetricsProcessor(
@@ -95,5 +103,9 @@ func createMetricsProcessor(
 		return nil, fmt.Errorf("create throughputmeasurementprocessor: %w", err)
 	}
 
-	return processorhelper.NewMetricsProcessor(ctx, set, cfg, nextConsumer, tmp.processMetrics, processorhelper.WithCapabilities(consumerCapabilities))
+	return processorhelper.NewMetricsProcessor(
+		ctx, set, cfg, nextConsumer, tmp.processMetrics,
+		processorhelper.WithCapabilities(consumerCapabilities),
+		processorhelper.WithStart(tmp.start),
+	)
 }
