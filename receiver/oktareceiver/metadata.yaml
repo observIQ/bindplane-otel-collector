@@ -1,0 +1,7 @@
+type: okta
+
+status:
+  class: receiver
+  stability:
+    alpha: [logs]
+  distributions: [observiq]
