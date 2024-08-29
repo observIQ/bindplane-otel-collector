@@ -215,6 +215,12 @@ Usage:
   $(fg_yellow '-q, --quiet')
     Use quiet (non-interactive) mode to run the script in headless environments
 
+  $(fg_yellow '-i, --clean-install')
+    Do a clean install of the agent regardless of if a supervisor.yaml config file is already present.
+
+  $(fg_yellow '-u --dirty-install')
+    Do a dirty install by not generating a supervisor.yaml. Useful when one already exists and treats the install as an update.
+
 EOF
   )
   info "$USAGE"
@@ -387,6 +393,8 @@ setup_installation() {
   set_opamp_labels
   set_opamp_secret_key
 
+  ask_clean_install
+
   success "Configuration complete!"
   decrease_indent
 }
@@ -465,6 +473,36 @@ set_opamp_secret_key() {
 
   if [ -n "$OPAMP_SECRET_KEY" ] && [ -z "$OPAMP_ENDPOINT" ]; then
     error_exit "$LINENO" "An endpoint must be specified when providing a secret key"
+  fi
+}
+
+# If an existing supervisor.yaml is present, ask whether we should do a clean install.
+# Want to avoid inadvertanly overwriting endpoint or secret_key values.
+ask_clean_install() {
+  if [ "$clean_install" = "true" ] || [ "$clean_install" = "false" ]; then
+    # install type already set, so just return
+    return
+  fi
+
+  if [ -f "$SUPERVISOR_YML_PATH" ]; then
+    command printf "${indent}An installation already exists. Would you like to do a clean install? $(prompt n)"
+    read -r clean_install_response
+    clean_install_response=$(echo "$clean_install_response" | tr '[:upper:]' '[:lower:]')
+    case $clean_install_response in
+    y | yes)
+      increase_indent
+      success "Doing clean install!"
+      decrease_indent
+      clean_install="true"
+      ;;
+    *)
+      warn "Doing upgrade instead of clean install"
+      clean_install="false"
+      ;;
+    esac
+  else
+    warn "Previous supervisor config not found, doing clean install"
+    clean_install="true"
   fi
 }
 
@@ -568,36 +606,40 @@ install_package() {
 
 create_supervisor_config() {
   supervisor_yml_path="$1"
-  if [ ! -f "$supervisor_yml_path" ]; then
-    info "Creating supervisor config..."
 
-    # Note here: We create the file and change permissions of the file here BEFORE writing info to it.
-    # We do this because the file contains the secret key.
-    # We do not want the file readable by anyone other than root.
-    command printf '' >>"$supervisor_yml_path"
-    chmod 0600 "$supervisor_yml_path"
-
-    command printf 'server:\n' >"$supervisor_yml_path"
-    command printf '  endpoint: "%s"\n' "$OPAMP_ENDPOINT" >>"$supervisor_yml_path"
-    command printf '  headers:\n' >>"$supervisor_yml_path"
-    [ -n "$OPAMP_SECRET_KEY" ] && command printf '    Authorization: "Secret-Key %s"\n' "$OPAMP_SECRET_KEY" >>"$supervisor_yml_path"
-    # [ -n "$OPAMP_LABELS" ] && command printf '    X-Bindplane-Attribute: "%s"\n' "$OPAMP_LABELS" >> "$supervisor_yml_path"
-    command printf '  tls:\n' >>"$supervisor_yml_path"
-    command printf '    insecure: true\n' >>"$supervisor_yml_path"
-    command printf '    insecure_skip_verify: true\n' >>"$supervisor_yml_path"
-    command printf 'capabilities:\n' >>"$supervisor_yml_path"
-    command printf '  accepts_remote_config: true\n' >>"$supervisor_yml_path"
-    command printf '  reports_remote_config: true\n' >>"$supervisor_yml_path"
-    command printf 'agent:\n' >>"$supervisor_yml_path"
-    # TODO(dakota): Add logging config option when supervisor suppports it
-    command printf '  executable: "%s"\n' "$INSTALL_DIR/observiq-otel-collector" >>"$supervisor_yml_path"
-    command printf '  description:\n' >>"$supervisor_yml_path"
-    command printf '    non_identifying_attributes:\n' >>"$supervisor_yml_path"
-    [ -n "$OPAMP_LABELS" ] && command printf '      service.labels: "%s"\n' "$OPAMP_LABELS" >>"$supervisor_yml_path"
-    command printf 'storage:\n' >>"$supervisor_yml_path"
-    command printf '  directory: "%s"\n' "$INSTALL_DIR/supervisor_storage" >>"$supervisor_yml_path"
-    succeeded
+  # Return if we're not doing a clean install
+  if [ "$clean_install" = "false" ]; then
+    return
   fi
+
+  info "Creating supervisor config..."
+
+  # Note here: We create the file and change permissions of the file here BEFORE writing info to it.
+  # We do this because the file contains the secret key.
+  # We do not want the file readable by anyone other than root.
+  command printf '' >>"$supervisor_yml_path"
+  chmod 0600 "$supervisor_yml_path"
+
+  command printf 'server:\n' >"$supervisor_yml_path"
+  command printf '  endpoint: "%s"\n' "$OPAMP_ENDPOINT" >>"$supervisor_yml_path"
+  command printf '  headers:\n' >>"$supervisor_yml_path"
+  [ -n "$OPAMP_SECRET_KEY" ] && command printf '    Authorization: "Secret-Key %s"\n' "$OPAMP_SECRET_KEY" >>"$supervisor_yml_path"
+  # [ -n "$OPAMP_LABELS" ] && command printf '    X-Bindplane-Attribute: "%s"\n' "$OPAMP_LABELS" >> "$supervisor_yml_path"
+  command printf '  tls:\n' >>"$supervisor_yml_path"
+  command printf '    insecure: true\n' >>"$supervisor_yml_path"
+  command printf '    insecure_skip_verify: true\n' >>"$supervisor_yml_path"
+  command printf 'capabilities:\n' >>"$supervisor_yml_path"
+  command printf '  accepts_remote_config: true\n' >>"$supervisor_yml_path"
+  command printf '  reports_remote_config: true\n' >>"$supervisor_yml_path"
+  command printf 'agent:\n' >>"$supervisor_yml_path"
+  # TODO(dakota): Add logging config option when supervisor suppports it
+  command printf '  executable: "%s"\n' "$INSTALL_DIR/observiq-otel-collector" >>"$supervisor_yml_path"
+  command printf '  description:\n' >>"$supervisor_yml_path"
+  command printf '    non_identifying_attributes:\n' >>"$supervisor_yml_path"
+  [ -n "$OPAMP_LABELS" ] && command printf '      service.labels: "%s"\n' "$OPAMP_LABELS" >>"$supervisor_yml_path"
+  command printf 'storage:\n' >>"$supervisor_yml_path"
+  command printf '  directory: "%s"\n' "$INSTALL_DIR/supervisor_storage" >>"$supervisor_yml_path"
+  succeeded
 }
 
 # This will display the results of an installation
@@ -709,6 +751,14 @@ main() {
       -b | --base-url)
         base_url=$2
         shift 2
+        ;;
+      -i | --clean-install)
+        clean_install="true"
+        shift 1
+        ;;
+      -u | --dirty-install)
+        clean_install="false"
+        shift 1
         ;;
       --)
         shift
