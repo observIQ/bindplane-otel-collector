@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-agent/receiver/awss3rehydrationreceiver
 
-go 1.21.9
+go 1.22.6
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.26.1

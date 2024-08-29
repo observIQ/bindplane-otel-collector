@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-agent/processor/lookupprocessor
 
-go 1.21.9
+go 1.22.6
 
 require (
 	github.com/stretchr/testify v1.9.0

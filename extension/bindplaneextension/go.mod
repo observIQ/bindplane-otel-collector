@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-agent/extension/bindplaneextension
 
-go 1.21.9
+go 1.22.6
 
 require (
 	github.com/golang/snappy v0.0.4

@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-agent/receiver/httpreceiver
 
-go 1.21.9
+go 1.22.6
 
 require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.107.0
