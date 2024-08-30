@@ -24,7 +24,10 @@ import (
 	"github.com/observiq/bindplane-agent/exporter/chronicleexporter/protos/api/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestLogsDataPusher(t *testing.T) {
@@ -38,6 +41,7 @@ func TestLogsDataPusher(t *testing.T) {
 		setupExporter func() *chronicleExporter
 		setupMocks    func(*mocks.MockIngestionServiceV2Client)
 		expectedErr   string
+		permanentErr  bool
 	}{
 		{
 			desc: "successful push to Chronicle",
@@ -59,7 +63,7 @@ func TestLogsDataPusher(t *testing.T) {
 			expectedErr: "",
 		},
 		{
-			desc: "upload to Chronicle fails",
+			desc: "upload to Chronicle fails (transient)",
 			setupExporter: func() *chronicleExporter {
 				mockClient := mocks.NewMockIngestionServiceV2Client(gomock.NewController(t))
 				marshaller := NewMockMarshaler(t)
@@ -74,9 +78,31 @@ func TestLogsDataPusher(t *testing.T) {
 			},
 			setupMocks: func(mockClient *mocks.MockIngestionServiceV2Client) {
 				// Simulate an error returned from the Chronicle service
-				mockClient.EXPECT().BatchCreateLogs(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("gRPC error"))
+				err := status.Error(codes.Unavailable, "service unavailable")
+				mockClient.EXPECT().BatchCreateLogs(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, err)
 			},
-			expectedErr: "gRPC error",
+			expectedErr: "service unavailable",
+		},
+		{
+			desc: "upload to Chronicle fails (permanent)",
+			setupExporter: func() *chronicleExporter {
+				mockClient := mocks.NewMockIngestionServiceV2Client(gomock.NewController(t))
+				marshaller := NewMockMarshaler(t)
+				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]*api.BatchCreateLogsRequest{{}}, nil)
+				return &chronicleExporter{
+					cfg:       &cfg,
+					metrics:   newExporterMetrics([]byte{}, []byte{}, "", cfg.Namespace),
+					logger:    zap.NewNop(),
+					client:    mockClient,
+					marshaler: marshaller,
+				}
+			},
+			setupMocks: func(mockClient *mocks.MockIngestionServiceV2Client) {
+				err := status.Error(codes.InvalidArgument, "Invalid argument detected.")
+				mockClient.EXPECT().BatchCreateLogs(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, err)
+			},
+			expectedErr:  "Invalid argument detected.",
+			permanentErr: true,
 		},
 		{
 			desc: "marshaler error",
@@ -134,6 +160,11 @@ func TestLogsDataPusher(t *testing.T) {
 				require.NoError(t, err)
 			} else {
 				require.ErrorContains(t, err, tc.expectedErr)
+				if tc.permanentErr {
+					require.True(t, consumererror.IsPermanent(err), "Expected error to be permanent")
+				} else {
+					require.False(t, consumererror.IsPermanent(err), "Expected error to be transient")
+				}
 			}
 		})
 	}
