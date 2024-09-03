@@ -26,6 +26,7 @@ import (
 	"unicode"
 
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/component/componentstatus"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -85,7 +86,7 @@ func (r *httpLogsReceiver) startListening(ctx context.Context, host component.Ho
 		r.logger.Debug("Serve done")
 		if err != http.ErrServerClosed {
 			r.logger.Error("Serve failed", zap.Error(err))
-			r.telemetrySettings.ReportStatus(component.NewFatalErrorEvent(err))
+			componentstatus.ReportStatus(host, componentstatus.NewFatalErrorEvent(err))
 		}
 	}()
 

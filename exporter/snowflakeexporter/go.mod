@@ -7,12 +7,12 @@ require (
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/snowflakedb/gosnowflake v1.11.0
 	github.com/stretchr/testify v1.9.0
-	go.opentelemetry.io/collector/component v0.107.0
-	go.opentelemetry.io/collector/config/configretry v1.13.0
-	go.opentelemetry.io/collector/confmap v0.107.0
-	go.opentelemetry.io/collector/consumer v0.107.0
-	go.opentelemetry.io/collector/exporter v0.107.0
-	go.opentelemetry.io/collector/pdata v1.13.0
+	go.opentelemetry.io/collector/component v0.108.0
+	go.opentelemetry.io/collector/config/configretry v1.14.0
+	go.opentelemetry.io/collector/confmap v1.14.0
+	go.opentelemetry.io/collector/consumer v0.108.0
+	go.opentelemetry.io/collector/exporter v0.108.0
+	go.opentelemetry.io/collector/pdata v1.14.0
 	go.uber.org/zap v1.27.0
 )
 
@@ -46,7 +46,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-viper/mapstructure/v2 v2.0.0 // indirect
+	github.com/go-viper/mapstructure/v2 v2.1.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -54,10 +54,9 @@ require (
 	github.com/google/flatbuffers v23.5.26+incompatible // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
-	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.16.7 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/knadh/koanf/maps v0.1.1 // indirect
 	github.com/knadh/koanf/providers/confmap v0.1.0 // indirect
@@ -71,22 +70,20 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.19.1 // indirect
+	github.com/prometheus/client_golang v1.20.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
-	go.opentelemetry.io/collector v0.107.0 // indirect
-	go.opentelemetry.io/collector/config/configtelemetry v0.107.0 // indirect
-	go.opentelemetry.io/collector/consumer/consumerprofiles v0.107.0 // indirect
-	go.opentelemetry.io/collector/consumer/consumertest v0.107.0 // indirect
-	go.opentelemetry.io/collector/extension v0.107.0 // indirect
-	go.opentelemetry.io/collector/featuregate v1.13.0 // indirect
-	go.opentelemetry.io/collector/internal/globalgates v0.107.0 // indirect
-	go.opentelemetry.io/collector/pdata/pprofile v0.107.0 // indirect
-	go.opentelemetry.io/collector/receiver v0.107.0 // indirect
+	go.opentelemetry.io/collector v0.108.0 // indirect
+	go.opentelemetry.io/collector/config/configtelemetry v0.108.0 // indirect
+	go.opentelemetry.io/collector/consumer/consumerprofiles v0.108.0 // indirect
+	go.opentelemetry.io/collector/consumer/consumertest v0.108.0 // indirect
+	go.opentelemetry.io/collector/extension v0.108.0 // indirect
+	go.opentelemetry.io/collector/pdata/pprofile v0.108.0 // indirect
+	go.opentelemetry.io/collector/receiver v0.108.0 // indirect
 	go.opentelemetry.io/otel v1.28.0 // indirect
 	go.opentelemetry.io/otel/exporters/prometheus v0.50.0 // indirect
 	go.opentelemetry.io/otel/metric v1.28.0 // indirect
@@ -99,7 +96,7 @@ require (
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.23.0 // indirect
+	golang.org/x/sys v0.24.0 // indirect
 	golang.org/x/term v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
