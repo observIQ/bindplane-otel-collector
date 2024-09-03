@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	Type = component.MustNewType("okta")
+	Type      = component.MustNewType("okta")
+	ScopeName = "github.com/observiq/bindplane-agent/receiver/oktareceiver"
 )
 
 const (
