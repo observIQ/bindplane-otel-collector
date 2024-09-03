@@ -1,0 +1,65 @@
+resourceLogs:
+  - resource:
+      attributes:
+        - key: okta.domain
+          value:
+            stringValue: observiq.okta.com
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: uuid
+                value:
+                  stringValue: b4219832-5e5b-11ef-8d62-99cf43fc3f63
+              - key: eventType
+                value:
+                  stringValue: user.session.end
+              - key: displayMessage
+                value:
+                  stringValue: User logout from Okta
+              - key: outcome.result
+                value:
+                  stringValue: SUCCESS
+              - key: actor.id
+                value:
+                  stringValue: "2131920389102"
+              - key: actor.alternateId
+                value:
+                  stringValue: person@observiq.com
+              - key: actor.displayName
+                value:
+                  stringValue: First Last
+            body:
+              stringValue: '{"actor":{"alternateId":"person@observiq.com","displayName":"First Last","id":"2131920389102","type":"User"},"authenticationContext":{"authenticationStep":0,"externalSessionId":"123123123123123123"},"client":{"device":"Computer","geographicalContext":{"city":"Crystal Mountain","country":"United States","geolocation":{"lat":99,"lon":420},"postalCode":"12345","state":"Michigan"},"ipAddress":"123.123.123.123","userAgent":{"browser":"CHROME","os":"Mac OS X","rawUserAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"},"zone":"null"},"debugContext":{"debugData":{"dtHash":"12312fdsafsdfa","requestId":"12312fdsafsdfa","requestUri":"/login/admin/signout","url":"/login/admin/signout?"}},"displayMessage":"User logout from Okta","eventType":"user.session.end","legacyEventType":"core.user_auth.logout_success","outcome":{"result":"SUCCESS"},"published":"2024-08-19T18:49:02.891Z","request":{"ipChain":[{"geographicalContext":{"city":"Blue Rapids","country":"United States","geolocation":{"lat":55,"lon":44},"postalCode":"49503","state":"Michigan"},"ip":"123.123.123.123","version":"V4"}]},"securityContext":{"asNumber":7922,"asOrg":"comcast","domain":"comcast.net","isProxy":false,"isp":"comcast"},"severity":"INFO","target":[{"alternateId":"person@observiq.com","displayName":"First Last","id":"00jlndann3u222II","type":"User"}],"transaction":{"detail":{},"id":"ASJFKJLSDJFNJL@JKL@J#KL","type":"WEB"},"uuid":"b4219832-5e5b-11ef-8d62-99cf43fc3f63","version":"0"}'
+            observedTimeUnixNano: "1724859912099148000"
+            spanId: ""
+            timeUnixNano: "1724093342891000000"
+            traceId: ""
+          - attributes:
+              - key: uuid
+                value:
+                  stringValue: b4903332d-5e5b-11ef-8f8x-77b22c321166
+              - key: eventType
+                value:
+                  stringValue: app.oauth2.token.revoke
+              - key: displayMessage
+                value:
+                  stringValue: OIDC token revocation request
+              - key: outcome.result
+                value:
+                  stringValue: SUCCESS
+              - key: actor.id
+                value:
+                  stringValue: okta.2b195223v8-bcc0-56eb-a449-cfcfb7422f26
+              - key: actor.alternateId
+                value:
+                  stringValue: 0jkdsjan33324242
+              - key: actor.displayName
+                value:
+                  stringValue: Okta Dashboard
+            body:
+              stringValue: '{"actor":{"alternateId":"0jkdsjan33324242","displayName":"Okta Dashboard","id":"okta.2b195223v8-bcc0-56eb-a449-cfcfb7422f26","type":"PublicClientApp"},"authenticationContext":{"authenticationStep":0,"externalSessionId":"unknown"},"client":{"device":"Computer","geographicalContext":{"city":"Huge Rapids","country":"United States","geolocation":{"lat":33.9656,"lon":-66.65},"postalCode":"49503","state":"Michigan"},"ipAddress":"1232.321.123.222","userAgent":{"browser":"CHROME","os":"Mac OS X","rawUserAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"},"zone":"null"},"debugContext":{"debugData":{"dtHash":"234n2jk34j2k34j2k3n4j23234n2jk34j2k34j2k3n4j23","requestId":"234n2jk34j2k34j2k3n4j23","requestUri":"/oauth2/v1/revoke","threatSuspected":"false","url":"/oauth2/v1/revoke?"}},"displayMessage":"OIDC token revocation request","eventType":"app.oauth2.token.revoke","legacyEventType":"app.oauth2.token.revoke_success","outcome":{"result":"SUCCESS"},"published":"2024-08-19T18:49:03.619Z","request":{"ipChain":[{"geographicalContext":{"city":"Large Rapids","country":"United States","geolocation":{"lat":66.9656,"lon":-88.65},"postalCode":"49503","state":"Michigan"},"ip":"555.333.22.33","version":"V4"}]},"securityContext":{"asNumber":7922,"asOrg":"comcast","domain":"comcast.net","isProxy":false,"isp":"comcast"},"severity":"INFO","target":[{"detailEntry":{"expires":"2024-08-19T19:37:07.000Z","hash":"234n2jk34j2k34j2k3n4j23","subject":"234n2jk34j2k34j2k3n4j23"},"displayName":"Access Token","id":"234n2jk34j2k34j2k3n4j23","type":"access_token"}],"transaction":{"detail":{},"id":"234n2jk34j2k34j2k3n4j23","type":"WEB"},"uuid":"b4903332d-5e5b-11ef-8f8x-77b22c321166","version":"0"}'
+            observedTimeUnixNano: "1724859912099148000"
+            spanId: ""
+            timeUnixNano: "1724093343619000000"
+            traceId: ""
+        scope: {}

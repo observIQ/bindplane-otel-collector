@@ -1,0 +1,32 @@
+resourceMetrics:
+  - resource: {}
+    scopeMetrics:
+      - metrics:
+          - name: otelcol_processor_throughputmeasurement_log_data_size
+            sum:
+              dataPoints:
+                - asInt: "3974"
+                  attributes:
+                    - key: processor
+                      value:
+                        stringValue: throughputmeasurement/1
+                  timeUnixNano: "1000000"
+          - name: otelcol_processor_throughputmeasurement_metric_data_size
+            sum:
+              dataPoints:
+                - asInt: "5675"
+                  attributes:
+                    - key: processor
+                      value:
+                        stringValue: throughputmeasurement/1
+                  timeUnixNano: "1000000"
+          - name: otelcol_processor_throughputmeasurement_trace_data_size
+            sum:
+              dataPoints:
+                - asInt: "16767"
+                  attributes:
+                    - key: processor
+                      value:
+                        stringValue: throughputmeasurement/1
+                  timeUnixNano: "1000000"
+        scope: {}

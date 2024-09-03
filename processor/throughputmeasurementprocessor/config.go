@@ -17,6 +17,8 @@ package throughputmeasurementprocessor
 
 import (
 	"errors"
+
+	"go.opentelemetry.io/collector/component"
 )
 
 var errInvalidSamplingRatio = errors.New("sampling_ratio must be between 0.0 and 1.0")
@@ -28,6 +30,12 @@ type Config struct {
 
 	// SamplingRatio is the ratio of payloads that are measured. Values between 0.0 and 1.0 are valid.
 	SamplingRatio float64 `mapstructure:"sampling_ratio"`
+
+	// Bindplane extension to use in order to report metrics. Optional.
+	BindplaneExtension component.ID `mapstructure:"bindplane_extension"`
+
+	// Extra labels to add to measurements and associate with emitted metrics
+	ExtraLabels map[string]string `mapstructure:"extra_labels"`
 }
 
 // Validate validates the processor configuration

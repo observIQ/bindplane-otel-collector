@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/observiq/bindplane-agent/expr"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottllog"
@@ -54,6 +55,13 @@ func (m *marshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]string,
 			scopeLog := resourceLog.ScopeLogs().At(j)
 			for k := 0; k < scopeLog.LogRecords().Len(); k++ {
 				logRecord := scopeLog.LogRecords().At(k)
+
+				// Escape any unescaped newlines (if body is a string)
+				logBody := logRecord.Body()
+				if logBody.Type() == pcommon.ValueTypeStr {
+					logBody.SetStr(strings.ReplaceAll(logBody.AsString(), "\n", "\\n"))
+				}
+
 				rawLog, err := m.getRawLog(ctx, logRecord, scopeLog, resourceLog)
 				if err != nil {
 					m.teleSettings.Logger.Error("Error processing log record", zap.Error(err))

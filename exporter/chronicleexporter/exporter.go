@@ -25,14 +25,17 @@ import (
 	"github.com/google/uuid"
 	"github.com/observiq/bindplane-agent/exporter/chronicleexporter/protos/api"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
 	"google.golang.org/grpc/encoding/gzip"
+	"google.golang.org/grpc/status"
 )
 
 const scope = "https://www.googleapis.com/auth/malachite-ingestion"
@@ -161,7 +164,19 @@ func (ce *chronicleExporter) uploadToChronicle(ctx context.Context, request *api
 
 	_, err := ce.client.BatchCreateLogs(ctx, request, ce.buildOptions()...)
 	if err != nil {
-		return fmt.Errorf("upload logs to chronicle: %w", err)
+		errCode := status.Code(err)
+		switch errCode {
+		// These errors are potentially transient
+		case codes.Canceled,
+			codes.Unavailable,
+			codes.DeadlineExceeded,
+			codes.ResourceExhausted,
+			codes.Aborted:
+			return fmt.Errorf("upload logs to chronicle: %w", err)
+		default:
+			return consumererror.NewPermanent(fmt.Errorf("upload logs to chronicle: %w", err))
+		}
+
 	}
 
 	ce.metrics.addSentLogs(totalLogs)

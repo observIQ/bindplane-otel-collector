@@ -140,6 +140,24 @@ func TestMarshalRawLogs(t *testing.T) {
 			rawLogField: `attributes["nonexistent"]`,
 			wantErr:     true,
 		},
+		{
+			name: "String body with newline character",
+			logRecords: []plog.LogRecord{
+				mockLogRecord(t, "Test \nbody", map[string]any{"key1": "value1"}),
+			},
+			expected:    []string{`{"attributes":{"key1":"value1"},"body":"Test \\nbody","resource_attributes":{}}`},
+			rawLogField: "",
+			wantErr:     false,
+		},
+		{
+			name: "Does not affect already escaped newline characters in string body",
+			logRecords: []plog.LogRecord{
+				mockLogRecord(t, "Test\\n \nbody", map[string]any{"key1": "value1"}),
+			},
+			expected:    []string{`{"attributes":{"key1":"value1"},"body":"Test\\n \\nbody","resource_attributes":{}}`},
+			rawLogField: "",
+			wantErr:     false,
+		},
 	}
 
 	for _, tt := range tests {
