@@ -31,6 +31,7 @@ func Test_createDefaultConfig(t *testing.T) {
 		Endpoint:            "malachiteingestion-pa.googleapis.com",
 		Compression:         "none",
 		CollectAgentMetrics: true,
+		Protocol:            "gRPC",
 	}
 
 	actual := createDefaultConfig()

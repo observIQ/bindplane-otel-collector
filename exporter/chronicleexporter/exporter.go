@@ -15,9 +15,13 @@
 package chronicleexporter
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -29,18 +33,23 @@ import (
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
-	"google.golang.org/grpc/encoding/gzip"
+	grpcgzip "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
-const scope = "https://www.googleapis.com/auth/malachite-ingestion"
+const (
+	grpcScope = "https://www.googleapis.com/auth/malachite-ingestion"
+	httpScope = "https://www.googleapis.com/auth/cloud-platform"
 
-const baseEndpoint = "malachiteingestion-pa.googleapis.com"
+	baseEndpoint = "malachiteingestion-pa.googleapis.com"
+)
 
 type chronicleExporter struct {
 	cfg                     *Config
@@ -53,6 +62,8 @@ type chronicleExporter struct {
 	wg                      sync.WaitGroup
 
 	cancel context.CancelFunc
+
+	httpClient *http.Client
 }
 
 func newExporter(cfg *Config, params exporter.Settings, collectorID, exporterID string) (*chronicleExporter, error) {
@@ -66,11 +77,6 @@ func newExporter(cfg *Config, params exporter.Settings, collectorID, exporterID 
 		// Apply OAuth tokens for each RPC call
 		grpc.WithPerRPCCredentials(oauth.TokenSource{TokenSource: ts}),
 		grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, "")),
-	}
-
-	conn, err := grpc.DialContext(context.Background(), cfg.Endpoint+":443", opts...)
-	if err != nil {
-		return nil, fmt.Errorf("dial: %w", err)
 	}
 
 	customerID, err := uuid.Parse(cfg.CustomerID)
@@ -93,23 +99,39 @@ func newExporter(cfg *Config, params exporter.Settings, collectorID, exporterID 
 		cfg:         cfg,
 		logger:      params.Logger,
 		metrics:     newExporterMetrics(uuidCID[:], customerID[:], exporterID, cfg.Namespace),
-		client:      api.NewIngestionServiceV2Client(conn),
-		conn:        conn,
 		marshaler:   marshaller,
 		collectorID: collectorID,
 		exporterID:  exporterID,
 		cancel:      cancel,
 	}
 
-	if cfg.CollectAgentMetrics {
-		exp.wg.Add(1)
-		go exp.startHostMetricsCollection(ctx)
+	if cfg.Protocol == protocolHTTPS {
+		exp.httpClient = oauth2.NewClient(context.Background(), creds.TokenSource)
+	} else {
+		conn, err := grpc.NewClient(cfg.Endpoint+":443", opts...)
+		if err != nil {
+			return nil, fmt.Errorf("dial: %w", err)
+		}
+
+		exp.conn = conn
+		exp.client = api.NewIngestionServiceV2Client(conn)
+
+		if cfg.CollectAgentMetrics {
+			exp.wg.Add(1)
+			go exp.startHostMetricsCollection(ctx)
+		}
 	}
 
 	return exp, nil
 }
 
 func loadGoogleCredentials(cfg *Config) (*google.Credentials, error) {
+
+	scope := grpcScope
+	if cfg.Protocol == protocolHTTPS {
+		scope = httpScope
+	}
+
 	switch {
 	case cfg.Creds != "":
 		return google.CredentialsFromJSON(context.Background(), []byte(cfg.Creds), scope)
@@ -187,8 +209,8 @@ func (ce *chronicleExporter) uploadToChronicle(ctx context.Context, request *api
 func (ce *chronicleExporter) buildOptions() []grpc.CallOption {
 	opts := make([]grpc.CallOption, 0)
 
-	if ce.cfg.Compression == gzip.Name {
-		opts = append(opts, grpc.UseCompressor(gzip.Name))
+	if ce.cfg.Compression == grpcgzip.Name {
+		opts = append(opts, grpc.UseCompressor(grpcgzip.Name))
 	}
 
 	return opts
@@ -226,5 +248,81 @@ func (ce *chronicleExporter) Shutdown(context.Context) error {
 			return fmt.Errorf("connection close: %s", err)
 		}
 	}
+	return nil
+}
+
+func (ce *chronicleExporter) logsHTTPDataPusher(ctx context.Context, ld plog.Logs) error {
+	payloads, err := ce.marshaler.MarshalRawLogsForHTTP(ctx, ld)
+	if err != nil {
+		return fmt.Errorf("marshal logs: %w", err)
+	}
+
+	for logType, payload := range payloads {
+		if err := ce.uploadToChronicleHTTP(ctx, payload, logType); err != nil {
+			return fmt.Errorf("upload to chronicle: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// This uses the DataPlane URL for the request
+// URL for the request: https://{region}-chronicle.googleapis.com/{version}/projects/{project}/location/{region}/instances/{customerID}/logTypes/{logtype}/logs:import
+func buildEndpoint(cfg *Config, logType string) string {
+	//                Location Endpoint Version    Project      Location    Instance     LogType
+	formatString := "https://%s-%s/%s/projects/%s/locations/%s/instances/%s/logTypes/%s/logs:import"
+	return fmt.Sprintf(formatString, cfg.Location, cfg.Endpoint, "v1alpha", cfg.Project, cfg.Location, cfg.CustomerID, logType)
+}
+
+func (ce *chronicleExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.ImportLogsRequest, logType string) error {
+
+	data, err := protojson.Marshal(logs)
+	if err != nil {
+		return fmt.Errorf("marshal protobuf logs to JSON: %w", err)
+	}
+
+	var body io.Reader
+
+	if ce.cfg.Compression == grpcgzip.Name {
+		var b bytes.Buffer
+		gz := gzip.NewWriter(&b)
+		if _, err := gz.Write(data); err != nil {
+			return fmt.Errorf("gzip write: %w", err)
+		}
+		if err := gz.Close(); err != nil {
+			return fmt.Errorf("gzip close: %w", err)
+		}
+		body = &b
+	} else {
+		body = bytes.NewBuffer(data)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, "POST", buildEndpoint(ce.cfg, logType), body)
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+
+	if ce.cfg.Compression == grpcgzip.Name {
+		request.Header.Set("Content-Encoding", "gzip")
+	}
+
+	request.Header.Set("Content-Type", "application/json")
+
+	resp, err := ce.httpClient.Do(request)
+	if err != nil {
+		return fmt.Errorf("send request to Chronicle: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		if err != nil {
+			ce.logger.Warn("Failed to read response body", zap.Error(err))
+		} else {
+			ce.logger.Warn("Received non-OK response from Chronicle", zap.String("status", resp.Status), zap.ByteString("response", respBody))
+		}
+		return fmt.Errorf("received non-OK response from Chronicle: %s", resp.Status)
+	}
+
 	return nil
 }

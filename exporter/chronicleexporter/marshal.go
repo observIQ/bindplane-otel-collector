@@ -48,6 +48,7 @@ var supportedLogTypes = map[string]string{
 //go:generate mockery --name logMarshaler --filename mock_log_marshaler.go --structname MockMarshaler --inpackage
 type logMarshaler interface {
 	MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]*api.BatchCreateLogsRequest, error)
+	MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs) (map[string]*api.ImportLogsRequest, error)
 }
 
 type protoMarshaler struct {
@@ -223,6 +224,83 @@ func (m *protoMarshaler) constructPayloads(rawLogs map[string][]*api.LogEntry) [
 					},
 				},
 			})
+		}
+	}
+	return payloads
+}
+
+func (m *protoMarshaler) MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs) (map[string]*api.ImportLogsRequest, error) {
+	rawLogs, err := m.extractRawHTTPLogs(ctx, ld)
+	if err != nil {
+		return nil, fmt.Errorf("extract raw logs: %w", err)
+	}
+
+	return m.constructHTTPPayloads(rawLogs), nil
+}
+
+func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (map[string][]*api.Log, error) {
+	entries := make(map[string][]*api.Log)
+
+	for i := 0; i < ld.ResourceLogs().Len(); i++ {
+		resourceLog := ld.ResourceLogs().At(i)
+		for j := 0; j < resourceLog.ScopeLogs().Len(); j++ {
+			scopeLog := resourceLog.ScopeLogs().At(j)
+			for k := 0; k < scopeLog.LogRecords().Len(); k++ {
+				logRecord := scopeLog.LogRecords().At(k)
+				rawLog, logType, err := m.processLogRecord(ctx, logRecord, scopeLog, resourceLog)
+				if err != nil {
+					m.teleSettings.Logger.Error("Error processing log record", zap.Error(err))
+					continue
+				}
+
+				if rawLog == "" {
+					continue
+				}
+
+				var timestamp time.Time
+				if logRecord.Timestamp() != 0 {
+					timestamp = logRecord.Timestamp().AsTime()
+				} else {
+					timestamp = logRecord.ObservedTimestamp().AsTime()
+				}
+
+				entry := &api.Log{
+					LogEntryTime:   timestamppb.New(timestamp),
+					CollectionTime: timestamppb.New(logRecord.ObservedTimestamp().AsTime()),
+					Data:           []byte(rawLog),
+				}
+				entries[logType] = append(entries[logType], entry)
+			}
+		}
+	}
+
+	return entries, nil
+}
+
+func buildForwarderString(cfg Config) string {
+	format := "projects/%s/locations/%s/instances/%s/forwarders/%s"
+	return fmt.Sprintf(format, cfg.Project, cfg.Location, cfg.CustomerID, cfg.Forwarder)
+}
+
+func (m *protoMarshaler) constructHTTPPayloads(rawLogs map[string][]*api.Log) map[string]*api.ImportLogsRequest {
+	payloads := make(map[string]*api.ImportLogsRequest, len(rawLogs))
+
+	for logType, entries := range rawLogs {
+		if len(entries) > 0 {
+			payloads[logType] =
+				&api.ImportLogsRequest{
+					// TODO: Add parent and hint
+					// We don't yet have solid guidance on what these should be
+					Parent: "",
+					Hint:   "",
+
+					Source: &api.ImportLogsRequest_InlineSource{
+						InlineSource: &api.ImportLogsRequest_LogsInlineSource{
+							Forwarder: buildForwarderString(m.cfg),
+							Logs:      entries,
+						},
+					},
+				}
 		}
 	}
 	return payloads
