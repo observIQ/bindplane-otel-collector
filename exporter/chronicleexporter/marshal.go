@@ -155,18 +155,21 @@ func (m *protoMarshaler) getLogType(ctx context.Context, logRecord plog.LogRecor
 	logType, err := m.getRawField(ctx, chronicleLogTypeField, logRecord, scope, resource)
 	if err != nil {
 		return m.cfg.LogType, fmt.Errorf("get chronicle log type: %w", err)
-	} else if logType != "" {
+	}
+	if logType != "" {
 		return logType, nil
 	}
 
 	if m.cfg.OverrideLogType {
 		logType, err := m.getRawField(ctx, logTypeField, logRecord, scope, resource)
-		if err != nil || logType == "" {
+
+		if err != nil {
 			return m.cfg.LogType, fmt.Errorf("get log type: %w", err)
 		}
-
-		if chronicleLogType, ok := supportedLogTypes[logType]; ok {
-			return chronicleLogType, nil
+		if logType != "" {
+			if chronicleLogType, ok := supportedLogTypes[logType]; ok {
+				return chronicleLogType, nil
+			}
 		}
 	}
 

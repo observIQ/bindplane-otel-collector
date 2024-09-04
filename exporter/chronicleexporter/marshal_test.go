@@ -69,6 +69,35 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 			},
 		},
 		{
+			name: "Single log record with expected data, no log_type",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "WINEVTLOG",
+				RawLogField:     "body",
+				OverrideLogType: true,
+			},
+			labels: []*api.Label{
+				{Key: "env", Value: "prod"},
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Test log message", nil))
+			},
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				require.Len(t, requests, 1)
+				batch := requests[0].Batch
+				require.Equal(t, "WINEVTLOG", batch.LogType)
+				require.Len(t, batch.Entries, 1)
+
+				// Convert Data (byte slice) to string for comparison
+				logDataAsString := string(batch.Entries[0].Data)
+				expectedLogData := `Test log message`
+				require.Equal(t, expectedLogData, logDataAsString)
+
+				require.NotNil(t, batch.StartTime)
+				require.True(t, timestamppb.New(startTime).AsTime().Equal(batch.StartTime.AsTime()), "Start time should be set correctly")
+			},
+		},
+		{
 			name: "Multiple log records",
 			cfg: Config{
 				CustomerID:      uuid.New().String(),
