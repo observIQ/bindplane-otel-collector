@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sync"
 
 	"github.com/observiq/bindplane-agent/internal/measurements"
 	"go.opentelemetry.io/collector/component"
@@ -33,12 +34,13 @@ type throughputMeasurementProcessor struct {
 	enabled             bool
 	measurements        *measurements.ThroughputMeasurements
 	samplingCutOffRatio float64
-	processorID         string
+	processorID         component.ID
 	bindplane           component.ID
+	startOnce           sync.Once
 }
 
-func newThroughputMeasurementProcessor(logger *zap.Logger, mp metric.MeterProvider, cfg *Config, processorID string) (*throughputMeasurementProcessor, error) {
-	measurements, err := measurements.NewThroughputMeasurements(mp, processorID, cfg.ExtraLabels)
+func newThroughputMeasurementProcessor(logger *zap.Logger, mp metric.MeterProvider, cfg *Config, processorID component.ID) (*throughputMeasurementProcessor, error) {
+	measurements, err := measurements.NewThroughputMeasurements(mp, processorID.String(), cfg.ExtraLabels)
 	if err != nil {
 		return nil, fmt.Errorf("create throughput measurements: %w", err)
 	}
@@ -50,21 +52,29 @@ func newThroughputMeasurementProcessor(logger *zap.Logger, mp metric.MeterProvid
 		samplingCutOffRatio: cfg.SamplingRatio,
 		processorID:         processorID,
 		bindplane:           cfg.BindplaneExtension,
+		startOnce:           sync.Once{},
 	}, nil
 }
 
 func (tmp *throughputMeasurementProcessor) start(_ context.Context, host component.Host) error {
+	var err error
+	tmp.startOnce.Do(func() {
+		registry, getRegErr := GetThroughputRegistry(host, tmp.bindplane)
+		if getRegErr != nil {
+			err = fmt.Errorf("get throughput registry: %w", getRegErr)
+			return
+		}
 
-	registry, err := GetThroughputRegistry(host, tmp.bindplane)
-	if err != nil {
-		return fmt.Errorf("get throughput registry: %w", err)
-	}
+		if registry != nil {
+			registerErr := registry.RegisterThroughputMeasurements(tmp.processorID.String(), tmp.measurements)
+			if registerErr != nil {
+				err = fmt.Errorf("register throughput measurements: %w", registerErr)
+				return
+			}
+		}
+	})
 
-	if registry != nil {
-		registry.RegisterThroughputMeasurements(tmp.processorID, tmp.measurements)
-	}
-
-	return nil
+	return err
 }
 
 func (tmp *throughputMeasurementProcessor) processTraces(ctx context.Context, td ptrace.Traces) (ptrace.Traces, error) {
@@ -98,4 +108,9 @@ func (tmp *throughputMeasurementProcessor) processMetrics(ctx context.Context, m
 	}
 
 	return md, nil
+}
+
+func (tmp *throughputMeasurementProcessor) shutdown(_ context.Context) error {
+	unregisterProcessor(tmp.processorID)
+	return nil
 }

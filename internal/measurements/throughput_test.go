@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
@@ -225,7 +226,7 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		tmp.AddMetrics(context.Background(), metrics)
 		tmp.AddTraces(context.Background(), traces)
 
-		reg.RegisterThroughputMeasurements("throughputmeasurement/1", tmp)
+		require.NoError(t, reg.RegisterThroughputMeasurements("throughputmeasurement/1", tmp))
 
 		actualMetrics := reg.OTLPMeasurements(nil)
 
@@ -257,11 +258,35 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		tmp.AddMetrics(context.Background(), metrics)
 		tmp.AddTraces(context.Background(), traces)
 
-		reg.RegisterThroughputMeasurements("throughputmeasurement/1", tmp)
+		require.NoError(t, reg.RegisterThroughputMeasurements("throughputmeasurement/1", tmp))
 
 		actualMetrics := reg.OTLPMeasurements(nil)
 
 		expectedMetrics, err := golden.ReadMetrics(filepath.Join("testdata", "expected", "throughput_measurements_count.yaml"))
+		require.NoError(t, err)
+
+		require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, actualMetrics, pmetrictest.IgnoreTimestamp()))
+	})
+
+	t.Run("Test only metrics throughput", func(t *testing.T) {
+		reg := NewResettableThroughputMeasurementsRegistry(false)
+
+		mp := metric.NewMeterProvider()
+		defer mp.Shutdown(context.Background())
+
+		tmp, err := NewThroughputMeasurements(mp, "throughputmeasurement/1", map[string]string{})
+		require.NoError(t, err)
+
+		metrics, err := golden.ReadMetrics(filepath.Join("testdata", "metrics", "host-metrics.yaml"))
+		require.NoError(t, err)
+
+		tmp.AddMetrics(context.Background(), metrics)
+
+		require.NoError(t, reg.RegisterThroughputMeasurements("throughputmeasurement/1", tmp))
+
+		actualMetrics := reg.OTLPMeasurements(nil)
+
+		expectedMetrics, err := golden.ReadMetrics(filepath.Join("testdata", "expected", "throughput_measurements_metrics_only.yaml"))
 		require.NoError(t, err)
 
 		require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, actualMetrics, pmetrictest.IgnoreTimestamp()))
@@ -291,7 +316,7 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		tmp.AddMetrics(context.Background(), metrics)
 		tmp.AddTraces(context.Background(), traces)
 
-		reg.RegisterThroughputMeasurements("throughputmeasurement/1", tmp)
+		require.NoError(t, reg.RegisterThroughputMeasurements("throughputmeasurement/1", tmp))
 
 		actualMetrics := reg.OTLPMeasurements(nil)
 
@@ -323,10 +348,25 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		tmp.AddMetrics(context.Background(), metrics)
 		tmp.AddTraces(context.Background(), traces)
 
-		reg.RegisterThroughputMeasurements("throughputmeasurement/1", tmp)
+		require.NoError(t, reg.RegisterThroughputMeasurements("throughputmeasurement/1", tmp))
 
 		reg.Reset()
 
 		require.NoError(t, pmetrictest.CompareMetrics(pmetric.NewMetrics(), reg.OTLPMeasurements(nil)))
+	})
+
+	t.Run("Double registering is an error", func(t *testing.T) {
+		reg := NewResettableThroughputMeasurementsRegistry(false)
+
+		mp := noop.NewMeterProvider()
+
+		tmp, err := NewThroughputMeasurements(mp, "throughputmeasurement/1", map[string]string{})
+		require.NoError(t, err)
+
+		require.NoError(t, reg.RegisterThroughputMeasurements("throughputmeasurement/1", tmp))
+
+		err = reg.RegisterThroughputMeasurements("throughputmeasurement/1", tmp)
+		require.Error(t, err)
+		require.Equal(t, err.Error(), `measurements for processor "throughputmeasurement/1" was already registered`)
 	})
 }

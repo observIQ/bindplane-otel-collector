@@ -24,6 +24,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/pmetrictest"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/ptracetest"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
@@ -39,7 +40,7 @@ func TestProcessor_Logs(t *testing.T) {
 	)
 	defer mp.Shutdown(context.Background())
 
-	processorID := "throughputmeasurement/1"
+	processorID := component.MustNewIDWithName("throughputmeasurement", "1")
 
 	tmp, err := newThroughputMeasurementProcessor(zap.NewNop(), mp, &Config{
 		Enabled:       true,
@@ -71,7 +72,7 @@ func TestProcessor_Logs(t *testing.T) {
 
 				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
-				require.Equal(t, processorID, processorAttr.AsString())
+				require.Equal(t, processorID.String(), processorAttr.AsString())
 
 				logSize = sum.DataPoints[0].Value
 
@@ -81,7 +82,7 @@ func TestProcessor_Logs(t *testing.T) {
 
 				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
-				require.Equal(t, processorID, processorAttr.AsString())
+				require.Equal(t, processorID.String(), processorAttr.AsString())
 
 				logCount = sum.DataPoints[0].Value
 			}
@@ -102,7 +103,7 @@ func TestProcessor_Metrics(t *testing.T) {
 	)
 	defer mp.Shutdown(context.Background())
 
-	processorID := "throughputmeasurement/1"
+	processorID := component.MustNewIDWithName("throughputmeasurement", "1")
 
 	tmp, err := newThroughputMeasurementProcessor(zap.NewNop(), mp, &Config{
 		Enabled:       true,
@@ -134,7 +135,7 @@ func TestProcessor_Metrics(t *testing.T) {
 
 				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
-				require.Equal(t, processorID, processorAttr.AsString())
+				require.Equal(t, processorID.String(), processorAttr.AsString())
 
 				metricSize = sum.DataPoints[0].Value
 
@@ -144,7 +145,7 @@ func TestProcessor_Metrics(t *testing.T) {
 
 				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
-				require.Equal(t, processorID, processorAttr.AsString())
+				require.Equal(t, processorID.String(), processorAttr.AsString())
 
 				datapointCount = sum.DataPoints[0].Value
 			}
@@ -165,7 +166,7 @@ func TestProcessor_Traces(t *testing.T) {
 	)
 	defer mp.Shutdown(context.Background())
 
-	processorID := "throughputmeasurement/1"
+	processorID := component.MustNewIDWithName("throughputmeasurement", "1")
 
 	tmp, err := newThroughputMeasurementProcessor(zap.NewNop(), mp, &Config{
 		Enabled:       true,
@@ -197,7 +198,7 @@ func TestProcessor_Traces(t *testing.T) {
 
 				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
-				require.Equal(t, processorID, processorAttr.AsString())
+				require.Equal(t, processorID.String(), processorAttr.AsString())
 
 				traceSize = sum.DataPoints[0].Value
 
@@ -207,7 +208,7 @@ func TestProcessor_Traces(t *testing.T) {
 
 				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
-				require.Equal(t, processorID, processorAttr.AsString())
+				require.Equal(t, processorID.String(), processorAttr.AsString())
 
 				spanCount = sum.DataPoints[0].Value
 			}
@@ -229,7 +230,7 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 	)
 	defer mp.Shutdown(context.Background())
 
-	processorID := "throughputmeasurement/1"
+	processorID := component.MustNewIDWithName("throughputmeasurement", "1")
 
 	tmp1, err := newThroughputMeasurementProcessor(zap.NewNop(), mp, &Config{
 		Enabled:       true,
@@ -267,7 +268,7 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 
 				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
-				require.Equal(t, processorID, processorAttr.AsString())
+				require.Equal(t, processorID.String(), processorAttr.AsString())
 
 				logSize = sum.DataPoints[0].Value
 
@@ -277,7 +278,7 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 
 				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
 				require.True(t, ok, "processor attribute was not found")
-				require.Equal(t, processorID, processorAttr.AsString())
+				require.Equal(t, processorID.String(), processorAttr.AsString())
 
 				logCount = sum.DataPoints[0].Value
 			}
@@ -299,8 +300,8 @@ func TestProcessor_Logs_TwoInstancesDifferentID(t *testing.T) {
 	)
 	defer mp.Shutdown(context.Background())
 
-	processorID1 := "throughputmeasurement/1"
-	processorID2 := "throughputmeasurement/2"
+	processorID1 := component.MustNewIDWithName("throughputmeasurement", "1")
+	processorID2 := component.MustNewIDWithName("throughputmeasurement", "2")
 
 	tmp1, err := newThroughputMeasurementProcessor(zap.NewNop(), mp, &Config{
 		Enabled:       true,
@@ -344,9 +345,9 @@ func TestProcessor_Logs_TwoInstancesDifferentID(t *testing.T) {
 					require.True(t, ok, "processor attribute was not found")
 
 					switch processorAttr.AsString() {
-					case processorID1:
+					case processorID1.String():
 						logSize1 = dp.Value
-					case processorID2:
+					case processorID2.String():
 						logSize2 = dp.Value
 					default:
 						require.Fail(t, "ID %s should not be present in log data size metrics", processorAttr.AsString())
@@ -362,9 +363,9 @@ func TestProcessor_Logs_TwoInstancesDifferentID(t *testing.T) {
 					require.True(t, ok, "processor attribute was not found")
 
 					switch processorAttr.AsString() {
-					case processorID1:
+					case processorID1.String():
 						logCount1 = dp.Value
-					case processorID2:
+					case processorID2.String():
 						logCount2 = dp.Value
 					default:
 						require.Fail(t, "ID %s should not be present in log count metrics", processorAttr.AsString())

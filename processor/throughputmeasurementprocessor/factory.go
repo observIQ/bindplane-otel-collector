@@ -17,6 +17,7 @@ package throughputmeasurementprocessor
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -60,7 +61,7 @@ func createTracesProcessor(
 	nextConsumer consumer.Traces,
 ) (processor.Traces, error) {
 	oCfg := cfg.(*Config)
-	tmp, err := newThroughputMeasurementProcessor(set.Logger, set.TelemetrySettings.MeterProvider, oCfg, set.ID.String())
+	tmp, err := createOrGetProcessor(set, oCfg)
 	if err != nil {
 		return nil, fmt.Errorf("create throughputmeasurementprocessor: %w", err)
 	}
@@ -69,6 +70,7 @@ func createTracesProcessor(
 		ctx, set, cfg, nextConsumer, tmp.processTraces,
 		processorhelper.WithCapabilities(consumerCapabilities),
 		processorhelper.WithStart(tmp.start),
+		processorhelper.WithShutdown(tmp.shutdown),
 	)
 }
 
@@ -79,7 +81,7 @@ func createLogsProcessor(
 	nextConsumer consumer.Logs,
 ) (processor.Logs, error) {
 	oCfg := cfg.(*Config)
-	tmp, err := newThroughputMeasurementProcessor(set.Logger, set.TelemetrySettings.MeterProvider, oCfg, set.ID.String())
+	tmp, err := createOrGetProcessor(set, oCfg)
 	if err != nil {
 		return nil, fmt.Errorf("create throughputmeasurementprocessor: %w", err)
 	}
@@ -88,6 +90,7 @@ func createLogsProcessor(
 		ctx, set, cfg, nextConsumer, tmp.processLogs,
 		processorhelper.WithCapabilities(consumerCapabilities),
 		processorhelper.WithStart(tmp.start),
+		processorhelper.WithShutdown(tmp.shutdown),
 	)
 }
 
@@ -98,7 +101,7 @@ func createMetricsProcessor(
 	nextConsumer consumer.Metrics,
 ) (processor.Metrics, error) {
 	oCfg := cfg.(*Config)
-	tmp, err := newThroughputMeasurementProcessor(set.Logger, set.TelemetrySettings.MeterProvider, oCfg, set.ID.String())
+	tmp, err := createOrGetProcessor(set, oCfg)
 	if err != nil {
 		return nil, fmt.Errorf("create throughputmeasurementprocessor: %w", err)
 	}
@@ -107,5 +110,38 @@ func createMetricsProcessor(
 		ctx, set, cfg, nextConsumer, tmp.processMetrics,
 		processorhelper.WithCapabilities(consumerCapabilities),
 		processorhelper.WithStart(tmp.start),
+		processorhelper.WithShutdown(tmp.shutdown),
 	)
 }
+
+func createOrGetProcessor(set processor.Settings, cfg *Config) (*throughputMeasurementProcessor, error) {
+	processorsMux.Lock()
+	defer processorsMux.Unlock()
+
+	var tmp *throughputMeasurementProcessor
+	if p, ok := processors[set.ID]; ok {
+		tmp = p
+	} else {
+		var err error
+		tmp, err = newThroughputMeasurementProcessor(set.Logger, set.MeterProvider, cfg, set.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		processors[set.ID] = tmp
+	}
+
+	return tmp, nil
+}
+
+func unregisterProcessor(id component.ID) {
+	processorsMux.Lock()
+	defer processorsMux.Unlock()
+	delete(processors, id)
+}
+
+// processors is a map of component.ID to an instance of throughput processor.
+// It is used so that only one instance of a particular throughput processor exists, even if it's included
+// across multiple pipelines/signal types.
+var processors = map[component.ID]*throughputMeasurementProcessor{}
+var processorsMux = sync.Mutex{}

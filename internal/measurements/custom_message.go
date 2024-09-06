@@ -52,24 +52,25 @@ func OTLPThroughputMeasurements(tm *ThroughputMeasurements, includeCountMetrics 
 
 	ts := pcommon.NewTimestampFromTime(time.Now())
 
-	setOTLPSum(s.AppendEmpty(), "otelcol_processor_throughputmeasurement_log_data_size", tm.LogSize(), attrs, ts)
-	setOTLPSum(s.AppendEmpty(), "otelcol_processor_throughputmeasurement_metric_data_size", tm.MetricSize(), attrs, ts)
-	setOTLPSum(s.AppendEmpty(), "otelcol_processor_throughputmeasurement_trace_data_size", tm.TraceSize(), attrs, ts)
+	addOTLPSum(s, "otelcol_processor_throughputmeasurement_log_data_size", tm.LogSize(), attrs, ts)
+	addOTLPSum(s, "otelcol_processor_throughputmeasurement_metric_data_size", tm.MetricSize(), attrs, ts)
+	addOTLPSum(s, "otelcol_processor_throughputmeasurement_trace_data_size", tm.TraceSize(), attrs, ts)
 
 	if includeCountMetrics {
-		setOTLPSum(s.AppendEmpty(), "otelcol_processor_throughputmeasurement_log_count", tm.LogCount(), attrs, ts)
-		setOTLPSum(s.AppendEmpty(), "otelcol_processor_throughputmeasurement_metric_count", tm.DatapointCount(), attrs, ts)
-		setOTLPSum(s.AppendEmpty(), "otelcol_processor_throughputmeasurement_trace_count", tm.TraceSize(), attrs, ts)
+		addOTLPSum(s, "otelcol_processor_throughputmeasurement_log_count", tm.LogCount(), attrs, ts)
+		addOTLPSum(s, "otelcol_processor_throughputmeasurement_metric_count", tm.DatapointCount(), attrs, ts)
+		addOTLPSum(s, "otelcol_processor_throughputmeasurement_trace_count", tm.TraceSize(), attrs, ts)
 	}
 
 	return s
 }
 
-func setOTLPSum(m pmetric.Metric, name string, value int64, attrs pcommon.Map, now pcommon.Timestamp) {
+func addOTLPSum(ms pmetric.MetricSlice, name string, value int64, attrs pcommon.Map, now pcommon.Timestamp) {
 	if value == 0 {
 		// Ignore value if it's 0
 		return
 	}
+	m := ms.AppendEmpty()
 
 	m.SetName(name)
 	m.SetEmptySum()

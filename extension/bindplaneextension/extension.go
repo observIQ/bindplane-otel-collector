@@ -66,8 +66,8 @@ func (b *bindplaneExtension) Start(_ context.Context, host component.Host) error
 	return nil
 }
 
-func (b *bindplaneExtension) RegisterThroughputMeasurements(processorID string, measurements *measurements.ThroughputMeasurements) {
-	b.ctmr.RegisterThroughputMeasurements(processorID, measurements)
+func (b *bindplaneExtension) RegisterThroughputMeasurements(processorID string, measurements *measurements.ThroughputMeasurements) error {
+	return b.ctmr.RegisterThroughputMeasurements(processorID, measurements)
 }
 
 func (b *bindplaneExtension) setupCustomCapabilities(host component.Host) error {

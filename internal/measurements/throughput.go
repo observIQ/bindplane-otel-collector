@@ -32,7 +32,9 @@ import (
 // ThroughputMeasurementsRegistry represents a registry for the throughputmeasurement processor to
 // register their ThroughputMeasurements.
 type ThroughputMeasurementsRegistry interface {
-	RegisterThroughputMeasurements(processorID string, measurements *ThroughputMeasurements)
+	// RegisterThroughputMeasurements registers the measurements for the given processor.
+	// It should return an error if the processor has already been registered.
+	RegisterThroughputMeasurements(processorID string, measurements *ThroughputMeasurements) error
 }
 
 // ThroughputMeasurements represents all captured throughput metrics.
@@ -228,8 +230,13 @@ func NewResettableThroughputMeasurementsRegistry(emitCountMetrics bool) *Resetta
 }
 
 // RegisterThroughputMeasurements registers the ThroughputMeasurements with the registry.
-func (ctmr *ResettableThroughputMeasurementsRegistry) RegisterThroughputMeasurements(processorID string, measurements *ThroughputMeasurements) {
-	ctmr.measurements.Store(processorID, measurements)
+func (ctmr *ResettableThroughputMeasurementsRegistry) RegisterThroughputMeasurements(processorID string, measurements *ThroughputMeasurements) error {
+	_, alreadyExists := ctmr.measurements.LoadOrStore(processorID, measurements)
+	if alreadyExists {
+		return fmt.Errorf("measurements for processor %q was already registered", processorID)
+	}
+
+	return nil
 }
 
 // Reset unregisters all throughput measurements in this registry

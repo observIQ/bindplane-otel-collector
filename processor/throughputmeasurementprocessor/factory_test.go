@@ -15,9 +15,14 @@
 package throughputmeasurementprocessor
 
 import (
+	"context"
 	"testing"
 
+	"github.com/observiq/bindplane-agent/internal/measurements"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/consumer/consumertest"
+	"go.opentelemetry.io/collector/processor/processortest"
 )
 
 func TestNewFactory(t *testing.T) {
@@ -33,3 +38,123 @@ func TestNewFactory(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, expectedCfg, cfg)
 }
+
+// Test that 2 instances with the same processor ID will not error when started
+func TestCreateProcessorTwice_Logs(t *testing.T) {
+	processorID := component.MustNewIDWithName("throughputmeasurement", "1")
+	bindplaneExtensionID := component.MustNewID("bindplane")
+
+	set := processortest.NewNopSettings()
+	set.ID = processorID
+
+	cfg := &Config{
+		Enabled:            true,
+		SamplingRatio:      1,
+		BindplaneExtension: bindplaneExtensionID,
+	}
+
+	l1, err := createLogsProcessor(context.Background(), set, cfg, consumertest.NewNop())
+	require.NoError(t, err)
+	l2, err := createLogsProcessor(context.Background(), set, cfg, consumertest.NewNop())
+	require.NoError(t, err)
+
+	mockBindplane := mockThoughputRegistry{
+		ResettableThroughputMeasurementsRegistry: measurements.NewResettableThroughputMeasurementsRegistry(false),
+	}
+
+	mh := mockHost{
+		extMap: map[component.ID]component.Component{
+			bindplaneExtensionID: mockBindplane,
+		},
+	}
+
+	require.NoError(t, l1.Start(context.Background(), mh))
+	require.NoError(t, l2.Start(context.Background(), mh))
+	require.NoError(t, l1.Shutdown(context.Background()))
+	require.NoError(t, l2.Shutdown(context.Background()))
+}
+
+// Test that 2 instances with the same processor ID will not error when started
+func TestCreateProcessorTwice_Metrics(t *testing.T) {
+	processorID := component.MustNewIDWithName("throughputmeasurement", "1")
+	bindplaneExtensionID := component.MustNewID("bindplane")
+
+	set := processortest.NewNopSettings()
+	set.ID = processorID
+
+	cfg := &Config{
+		Enabled:            true,
+		SamplingRatio:      1,
+		BindplaneExtension: bindplaneExtensionID,
+	}
+
+	l1, err := createMetricsProcessor(context.Background(), set, cfg, consumertest.NewNop())
+	require.NoError(t, err)
+	l2, err := createMetricsProcessor(context.Background(), set, cfg, consumertest.NewNop())
+	require.NoError(t, err)
+
+	mockBindplane := mockThoughputRegistry{
+		ResettableThroughputMeasurementsRegistry: measurements.NewResettableThroughputMeasurementsRegistry(false),
+	}
+
+	mh := mockHost{
+		extMap: map[component.ID]component.Component{
+			bindplaneExtensionID: mockBindplane,
+		},
+	}
+
+	require.NoError(t, l1.Start(context.Background(), mh))
+	require.NoError(t, l2.Start(context.Background(), mh))
+	require.NoError(t, l1.Shutdown(context.Background()))
+	require.NoError(t, l2.Shutdown(context.Background()))
+}
+
+// Test that 2 instances with the same processor ID will not error when started
+func TestCreateProcessorTwice_Traces(t *testing.T) {
+	processorID := component.MustNewIDWithName("throughputmeasurement", "1")
+	bindplaneExtensionID := component.MustNewID("bindplane")
+
+	set := processortest.NewNopSettings()
+	set.ID = processorID
+
+	cfg := &Config{
+		Enabled:            true,
+		SamplingRatio:      1,
+		BindplaneExtension: bindplaneExtensionID,
+	}
+
+	l1, err := createTracesProcessor(context.Background(), set, cfg, consumertest.NewNop())
+	require.NoError(t, err)
+	l2, err := createTracesProcessor(context.Background(), set, cfg, consumertest.NewNop())
+	require.NoError(t, err)
+
+	mockBindplane := mockThoughputRegistry{
+		ResettableThroughputMeasurementsRegistry: measurements.NewResettableThroughputMeasurementsRegistry(false),
+	}
+
+	mh := mockHost{
+		extMap: map[component.ID]component.Component{
+			bindplaneExtensionID: mockBindplane,
+		},
+	}
+
+	require.NoError(t, l1.Start(context.Background(), mh))
+	require.NoError(t, l2.Start(context.Background(), mh))
+	require.NoError(t, l1.Shutdown(context.Background()))
+	require.NoError(t, l2.Shutdown(context.Background()))
+}
+
+type mockHost struct {
+	extMap map[component.ID]component.Component
+}
+
+func (m mockHost) GetExtensions() map[component.ID]component.Component {
+	return m.extMap
+}
+
+type mockThoughputRegistry struct {
+	*measurements.ResettableThroughputMeasurementsRegistry
+}
+
+func (mockThoughputRegistry) Start(_ context.Context, _ component.Host) error { return nil }
+func (mockThoughputRegistry) Shutdown(_ context.Context) error                { return nil }
