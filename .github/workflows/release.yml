@@ -15,6 +15,8 @@ jobs:
         with:
           go-version: "1.21"
           check-latest: true
+      - name: Install Tools
+        run: make install-tools
       # Needed until supervisor binary is released
       - name: Build Supervisor Binary
         run: make release-prep
@@ -113,6 +115,8 @@ jobs:
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+      - name: Install Tools
+        run: make install-tools
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
