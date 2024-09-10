@@ -50,9 +50,6 @@ jobs:
       - name: Install Tools
         if: steps.tool-cache.outputs.cache-hit != 'true'
         run: make install-tools
-          cache-dependency-path: |
-            go.sum
-            **/go.sum
       - name: Build
         run: make build-linux
       - name: Scan Third Party Dependency Licenses
@@ -71,7 +68,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: "1.22"
+          check-latest: true
           cache-dependency-path: |
             **/go.sum
       - name: Cache Tools
@@ -99,7 +97,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: "1.22"
+          check-latest: true
           cache-dependency-path: |
             **/go.sum
       - name: Cache Tools
