@@ -132,6 +132,11 @@ install-tools:
 # update cosign in docs/verify-signature.md when updating this version
 	go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
 
+# install builder cmd for better CI
+.PHONY: install-builder
+install-builder:
+	cd $(TOOLS_MOD_DIR) && go install go.opentelemetry.io/collector/cmd/builder
+
 .PHONY: lint
 lint:
 	revive -config revive/config.toml -formatter friendly ./...
@@ -240,7 +245,7 @@ release-prep:
 	@rm -rf release_deps
 	@mkdir release_deps
 	@echo 'v$(CURR_VERSION)' > release_deps/VERSION.txt
-	./buildscripts/download-dependencies.sh release_deps
+	bash ./buildscripts/download-dependencies.sh release_deps
 	@cp -r ./plugins release_deps/
 	@cp service/com.observiq.collector.plist release_deps/com.observiq.collector.plist
 	@jq ".files[] | select(.service != null)" windows/wix.json >> release_deps/windows_service.json
