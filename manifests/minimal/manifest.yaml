@@ -8,8 +8,8 @@ dist:
 conf_resolver:
   default_uri_scheme: "env"
 extensions:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.108.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.108.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.108.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.108.0
   - gomod: github.com/observiq/bindplane-agent/extension/bindplaneextension v1.59.2
     path: "./extension/bindplaneextension"
 exporters:
