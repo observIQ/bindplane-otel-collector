@@ -4,29 +4,22 @@ dist:
   description: ObservIQ's minimal distro for OpenTelemetry Collector
   version: "v0.0.1"
   output_path: ./dist
-  otelcol_version: 0.106.1
-
+  otelcol_version: v0.108.1
 conf_resolver:
   default_uri_scheme: "env"
-
 extensions:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.106.1
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.106.1
-  - gomod: github.com/observiq/bindplane-agent/extension/bindplaneextension v1.56.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.108.1
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.108.1
+  - gomod: github.com/observiq/bindplane-agent/extension/bindplaneextension v1.59.2
     path: "./extension/bindplaneextension"
-
 exporters:
-  - gomod: go.opentelemetry.io/collector/exporter/nopexporter v0.106.1
-
+  - gomod: go.opentelemetry.io/collector/exporter/nopexporter v0.108.1
 processors:
-  - gomod: github.com/observiq/bindplane-agent/processor/snapshotprocessor v1.58.0
+  - gomod: github.com/observiq/bindplane-agent/processor/snapshotprocessor v1.59.2
     path: "./processor/snapshotprocessor"
-
 receivers:
-  - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.106.1
-
+  - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.108.1
 connectors: []
-
 # When adding a replace, add a comment before it to document why it's needed and when it can be removed
 replaces:
   # See https://github.com/google/gnostic/issues/262
