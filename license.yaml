@@ -41,6 +41,8 @@ exceptions:
     - path: "github.com/coralogix/opentelemetry-cx-protobuf-api/coralogixpb"
     # uses a custom license that says we can basically do whatever we want with it
     - path: "github.com/xi2/xz"
+    # repo has Apache 2.0 license but lichen fails to find it https://bitbucket.org/atlassian/go-asap/src/master/LICENSE.txt
+    - path: "bitbucket.org/atlassian/go-asap/v2"
     # Internal modules
     - path: "./processor/resourceattributetransposerprocessor"
     - path: "./receiver/m365receiver"
