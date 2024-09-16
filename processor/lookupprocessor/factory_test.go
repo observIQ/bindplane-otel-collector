@@ -19,10 +19,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer/consumertest"
-	"go.opentelemetry.io/collector/processor"
-	"go.uber.org/zap"
+	"go.opentelemetry.io/collector/processor/processortest"
 )
 
 func TestNewFactory(t *testing.T) {
@@ -37,12 +35,7 @@ func TestNewFactory(t *testing.T) {
 		Context: "body",
 		Field:   "ip",
 	}
-	settings := processor.Settings{
-		ID: component.NewIDWithName(componentType, "test"),
-		TelemetrySettings: component.TelemetrySettings{
-			Logger: zap.NewNop(),
-		},
-	}
+	settings := processortest.NewNopSettings()
 	consumer := consumertest.NewNop()
 
 	traceProcessor, err := factory.CreateTracesProcessor(context.Background(), settings, &cfg, consumer)

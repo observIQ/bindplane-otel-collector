@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	Type = component.MustNewType("marshal")
+	Type      = component.MustNewType("marshal")
+	ScopeName = "github.com/observiq/bindplane-agent/processor/marshalprocessor"
 )
 
 const (
