@@ -38,6 +38,7 @@ func NewFactory() exporter.Factory {
 // createDefaultConfig creates the default configuration for the exporter.
 func createDefaultConfig() component.Config {
 	return &Config{
+		Protocol:            protocolGRPC,
 		TimeoutSettings:     exporterhelper.NewDefaultTimeoutSettings(),
 		QueueSettings:       exporterhelper.NewDefaultQueueSettings(),
 		BackOffConfig:       configretry.NewDefaultBackOffConfig(),
@@ -72,11 +73,15 @@ func createLogsExporter(
 		return nil, err
 	}
 
+	pusher := exp.logsDataPusher
+	if chronicleCfg.Protocol == protocolHTTPS {
+		pusher = exp.logsHTTPDataPusher
+	}
 	return exporterhelper.NewLogsExporter(
 		ctx,
 		params,
 		chronicleCfg,
-		exp.logsDataPusher,
+		pusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
 		exporterhelper.WithTimeout(chronicleCfg.TimeoutSettings),
 		exporterhelper.WithQueue(chronicleCfg.QueueSettings),

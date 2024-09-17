@@ -69,6 +69,35 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 			},
 		},
 		{
+			name: "Single log record with expected data, no log_type",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "WINEVTLOG",
+				RawLogField:     "body",
+				OverrideLogType: true,
+			},
+			labels: []*api.Label{
+				{Key: "env", Value: "prod"},
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Test log message", nil))
+			},
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				require.Len(t, requests, 1)
+				batch := requests[0].Batch
+				require.Equal(t, "WINEVTLOG", batch.LogType)
+				require.Len(t, batch.Entries, 1)
+
+				// Convert Data (byte slice) to string for comparison
+				logDataAsString := string(batch.Entries[0].Data)
+				expectedLogData := `Test log message`
+				require.Equal(t, expectedLogData, logDataAsString)
+
+				require.NotNil(t, batch.StartTime)
+				require.True(t, timestamppb.New(startTime).AsTime().Equal(batch.StartTime.AsTime()), "Start time should be set correctly")
+			},
+		},
+		{
 			name: "Multiple log records",
 			cfg: Config{
 				CustomerID:      uuid.New().String(),
@@ -185,6 +214,134 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 
 			logs := tt.logRecords()
 			requests, err := marshaler.MarshalRawLogs(context.Background(), logs)
+			require.NoError(t, err)
+
+			tt.expectations(t, requests)
+		})
+	}
+}
+
+func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
+	logger := zap.NewNop()
+	startTime := time.Now()
+
+	tests := []struct {
+		name         string
+		cfg          Config
+		labels       []*api.Label
+		logRecords   func() plog.Logs
+		expectations func(t *testing.T, requests map[string]*api.ImportLogsRequest)
+	}{
+		{
+			name: "Single log record with expected data",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "WINEVTLOG",
+				RawLogField:     "body",
+				OverrideLogType: false,
+				Protocol:        protocolHTTPS,
+				Project:         "test-project",
+				Location:        "us",
+				Forwarder:       uuid.New().String(),
+			},
+			labels: []*api.Label{
+				{Key: "env", Value: "prod"},
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Test log message", map[string]any{"log_type": "WINEVTLOG"}))
+			},
+			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+				require.Len(t, requests, 1)
+				logs := requests["WINEVTLOG"].GetInlineSource().Logs
+				require.Len(t, logs, 1)
+
+				// Convert Data (byte slice) to string for comparison
+				logDataAsString := string(logs[0].Data)
+				expectedLogData := `Test log message`
+				require.Equal(t, expectedLogData, logDataAsString)
+			},
+		},
+		{
+			name: "Multiple log records",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "WINEVTLOG",
+				RawLogField:     "body",
+				OverrideLogType: false,
+			},
+			labels: []*api.Label{
+				{Key: "env", Value: "staging"},
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				record1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record1.Body().SetStr("First log message")
+				record2 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record2.Body().SetStr("Second log message")
+				return logs
+			},
+			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+				require.Len(t, requests, 1, "Expected a single batch request")
+				logs := requests["WINEVTLOG"].GetInlineSource().Logs
+				require.Len(t, logs, 2, "Expected two log entries in the batch")
+				// Verifying the first log entry data
+				require.Equal(t, "First log message", string(logs[0].Data))
+				// Verifying the second log entry data
+				require.Equal(t, "Second log message", string(logs[1].Data))
+			},
+		},
+		{
+			name: "Log record with attributes",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "WINEVTLOG",
+				RawLogField:     "attributes",
+				OverrideLogType: false,
+			},
+			labels: []*api.Label{},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("", map[string]any{"key1": "value1", "log_type": "WINEVTLOG"}))
+			},
+			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+				require.Len(t, requests, 1)
+				logs := requests["WINEVTLOG"].GetInlineSource().Logs
+				require.Len(t, logs, 1)
+
+				// Assuming the attributes are marshaled into the Data field as a JSON string
+				expectedData := `{"key1":"value1", "log_type":"WINEVTLOG"}`
+				actualData := string(logs[0].Data)
+				require.JSONEq(t, expectedData, actualData, "Log attributes should match expected")
+			},
+		},
+		{
+			name: "No log records",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "DEFAULT",
+				RawLogField:     "body",
+				OverrideLogType: false,
+			},
+			labels: []*api.Label{},
+			logRecords: func() plog.Logs {
+				return plog.NewLogs() // No log records added
+			},
+			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+				require.Len(t, requests, 0, "Expected no requests due to no log records")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			customerID, err := uuid.Parse(tt.cfg.CustomerID)
+			require.NoError(t, err)
+
+			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, tt.labels, customerID[:])
+			marshaler.startTime = startTime
+			require.NoError(t, err)
+
+			logs := tt.logRecords()
+			requests, err := marshaler.MarshalRawLogsForHTTP(context.Background(), logs)
 			require.NoError(t, err)
 
 			tt.expectations(t, requests)

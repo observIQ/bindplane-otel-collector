@@ -140,7 +140,13 @@ func (l *m365LogsReceiver) Shutdown(ctx context.Context) error {
 		l.cancel()
 	}
 	l.wg.Wait()
-	return l.checkpoint(ctx)
+
+	err := l.checkpoint(ctx)
+	if err != nil {
+		l.logger.Error("failed checkpoint", zap.Error(err))
+	}
+
+	return l.storageClient.Close(ctx)
 }
 
 // spins a go routine at each poll interval to go get logs

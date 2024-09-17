@@ -1,0 +1,71 @@
+// Request message for importing logs.
+
+syntax = "proto3";
+
+option go_package = "github.com/exporter/chronicleexporter/proto/api";
+
+import "google/protobuf/timestamp.proto";
+
+// Represents a telemetry log.
+message Log {
+  // The resource name of this log.
+  // Format:
+  // projects/{project}/locations/{region}/instances/{instance}/logTypes/{log_type}/logs
+  // /{log}
+  string name = 1;
+
+  // Raw data for the log entry.
+  bytes data = 2;
+
+  // Timestamp of the log entry.
+  google.protobuf.Timestamp log_entry_time = 3;
+
+  // The time at which the log entry was collected. Must be after the
+  // log_entry_time.
+  google.protobuf.Timestamp collection_time = 4;
+
+  // The user-configured environment namespace to identify the data
+  // domain the logs originated from. This namespace will be used as a tag to
+  // identify the appropriate data domain for indexing and enrichment
+  // functionality.
+  string environment_namespace = 5;
+
+  // The user-configured custom metadata labels.
+  map<string, LogLabel> labels = 6;
+
+  // Label for a user configured custom metadata key.
+  message LogLabel {
+    // The value of the label.
+    string value = 1;
+
+    // Indicates whether this label can be used for Data RBAC.
+    bool rbac_enabled = 2;
+  }
+}
+
+message ImportLogsRequest {
+  // The parent, which owns this collection of logs.
+  string parent = 1;
+
+  oneof source {
+    // Logs to be imported are specified inline.
+    LogsInlineSource inline_source = 2;
+  }
+
+  // Opaque hint to help parsing the log.
+  string hint = 4;
+
+  // A import source with the logs to import included inline.
+  message LogsInlineSource {
+    // The logs being imported.
+    repeated Log logs = 1;
+
+    // The forwarder sending this import request.
+    string forwarder = 2;
+
+    // Source file name. Populated for certain types of files processed by the
+    // outofband processor which may have metadata encoded in it for use by
+    // the parser.
+    string source_filename = 3;
+  }
+}

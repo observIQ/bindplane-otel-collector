@@ -1,0 +1,11 @@
+type: marshal
+
+status:
+  class: processor
+  stability:
+    development: [logs]
+  distributions: [observiq]
+  codeowners:
+    active: [kuiperda]
+tests:
+  config:
