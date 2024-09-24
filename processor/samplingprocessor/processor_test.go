@@ -18,7 +18,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/observiq/bindplane-agent/expr"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
@@ -29,23 +31,61 @@ func Test_processTraces(t *testing.T) {
 	td := ptrace.NewTraces()
 	td.ResourceSpans().AppendEmpty().ScopeSpans().AppendEmpty().Spans().AppendEmpty()
 
+	emptySpan := ptrace.NewTraces()
+	emptySpan.ResourceSpans().AppendEmpty().ScopeSpans().AppendEmpty().Spans().AppendEmpty()
+	emptySpan.ResourceSpans().At(0).ScopeSpans().At(0).Spans().RemoveIf(func(_ ptrace.Span) bool { return true })
+
+	multipleSpansInput := ptrace.NewTraces()
+	multipleSpansInput.ResourceSpans().AppendEmpty().ScopeSpans().AppendEmpty().Spans().AppendEmpty()
+	multipleSpansInput.ResourceSpans().At(0).ScopeSpans().At(0).Spans().AppendEmpty()
+	multipleSpansInput.ResourceSpans().At(0).ScopeSpans().At(0).Spans().At(0).Attributes().PutInt("ID", 1)
+	multipleSpansInput.ResourceSpans().At(0).ScopeSpans().At(0).Spans().At(1).Attributes().PutInt("ID", 2)
+
+	multipleSpansExpected := ptrace.NewTraces()
+	multipleSpansExpected.ResourceSpans().AppendEmpty().ScopeSpans().AppendEmpty().Spans().AppendEmpty()
+	multipleSpansExpected.ResourceSpans().At(0).ScopeSpans().At(0).Spans().At(0).Attributes().PutInt("ID", 2)
+
 	testCases := []struct {
 		desc      string
 		dropRatio float64
+		condition string
 		input     ptrace.Traces
 		expected  ptrace.Traces
 	}{
 		{
-			desc:      "Always Drop",
+			desc:      "Always Drop true",
+			condition: "true",
 			dropRatio: 1.0,
 			input:     td,
-			expected:  ptrace.NewTraces(),
+			expected:  emptySpan,
 		},
 		{
-			desc:      "Never Drop",
+			desc:      "Never Drop true",
+			condition: "true",
 			dropRatio: 0.0,
 			input:     td,
 			expected:  td,
+		},
+		{
+			desc:      "Always Drop false",
+			condition: "false",
+			dropRatio: 1.0,
+			input:     td,
+			expected:  td,
+		},
+		{
+			desc:      "Never Drop false",
+			condition: "false",
+			dropRatio: 0.0,
+			input:     td,
+			expected:  td,
+		},
+		{
+			desc:      "multiple spans condition",
+			condition: `(attributes["ID"] == 1)`,
+			dropRatio: 1.0,
+			input:     multipleSpansInput,
+			expected:  multipleSpansExpected,
 		},
 	}
 
@@ -53,9 +93,13 @@ func Test_processTraces(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			cfg := &Config{
 				DropRatio: tc.dropRatio,
+				Condition: tc.condition,
 			}
 
-			processor := newSamplingProcessor(zap.NewNop(), cfg)
+			ottlCondition, err := expr.NewOTTLSpanCondition(cfg.Condition, component.TelemetrySettings{Logger: zap.NewNop()})
+			require.NoError(t, err)
+
+			processor := newTracesSamplingProcessor(zap.NewNop(), cfg, ottlCondition)
 			actual, err := processor.processTraces(context.Background(), tc.input)
 			require.NoError(t, err)
 			require.Equal(t, tc.expected, actual)
@@ -66,24 +110,64 @@ func Test_processTraces(t *testing.T) {
 func Test_processLogs(t *testing.T) {
 	ld := plog.NewLogs()
 	ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+	emptyLogRecords := plog.NewLogs()
+	emptyLogRecords.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+	emptyLogRecords.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().RemoveIf(func(_ plog.LogRecord) bool { return true })
+
+	multipleRecordsInput := plog.NewLogs()
+	multipleRecordsInput.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+	multipleRecordsInput.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().AppendEmpty()
+	multipleRecordsInput.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Body().SetEmptyMap()
+	multipleRecordsInput.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(1).Body().SetEmptyMap()
+	multipleRecordsInput.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Body().Map().PutInt("ID", 1)
+	multipleRecordsInput.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(1).Body().Map().PutInt("ID", 2)
+
+	multipleRecordsExpected := plog.NewLogs()
+	multipleRecordsExpected.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+	multipleRecordsExpected.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Body().SetEmptyMap()
+	multipleRecordsExpected.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Body().Map().PutInt("ID", 2)
 
 	testCases := []struct {
 		desc      string
 		dropRatio float64
+		condition string
 		input     plog.Logs
 		expected  plog.Logs
 	}{
 		{
-			desc:      "Always Drop",
+			desc:      "Always Drop true",
 			dropRatio: 1.0,
+			condition: "true",
 			input:     ld,
-			expected:  plog.NewLogs(),
+			expected:  emptyLogRecords,
 		},
 		{
-			desc:      "Never Drop",
+			desc:      "Never Drop true",
 			dropRatio: 0.0,
+			condition: "true",
 			input:     ld,
 			expected:  ld,
+		},
+		{
+			desc:      "Always Drop false",
+			dropRatio: 1.0,
+			condition: "false",
+			input:     ld,
+			expected:  ld,
+		},
+		{
+			desc:      "Never Drop false",
+			dropRatio: 0.0,
+			condition: "false",
+			input:     ld,
+			expected:  ld,
+		},
+		{
+			desc:      "Always Drop condition multiple records",
+			dropRatio: 1.0,
+			condition: `(body["ID"] == 1)`,
+			input:     multipleRecordsInput,
+			expected:  multipleRecordsExpected,
 		},
 	}
 
@@ -91,9 +175,13 @@ func Test_processLogs(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			cfg := &Config{
 				DropRatio: tc.dropRatio,
+				Condition: tc.condition,
 			}
 
-			processor := newSamplingProcessor(zap.NewNop(), cfg)
+			ottlCondition, err := expr.NewOTTLLogRecordCondition(cfg.Condition, component.TelemetrySettings{Logger: zap.NewNop()})
+			require.NoError(t, err)
+
+			processor := newLogsSamplingProcessor(zap.NewNop(), cfg, ottlCondition)
 			actual, err := processor.processLogs(context.Background(), tc.input)
 			require.NoError(t, err)
 			require.Equal(t, tc.expected, actual)
@@ -107,23 +195,63 @@ func Test_processMetrics(t *testing.T) {
 	metric.SetEmptyGauge()
 	metric.Gauge().DataPoints().AppendEmpty()
 
+	emptyMetrics := pmetric.NewMetrics()
+	em := emptyMetrics.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
+	em.SetEmptyGauge()
+	em.Gauge().DataPoints().AppendEmpty()
+	emptyMetrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().RemoveIf(func(_ pmetric.Metric) bool { return true })
+
+	multipleMetrics := pmetric.NewMetrics()
+	m1 := multipleMetrics.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
+	m2 := multipleMetrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().AppendEmpty()
+	m1.SetName("m1")
+	m2.SetName("m2")
+
+	multipleMetricsResult := pmetric.NewMetrics()
+	m1r := multipleMetricsResult.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
+	m1r.SetName("m2")
+
 	testCases := []struct {
 		desc      string
+		condition string
 		dropRatio float64
 		input     pmetric.Metrics
 		expected  pmetric.Metrics
 	}{
 		{
-			desc:      "Always Drop",
+			desc:      "Always Drop true",
+			condition: "true",
 			dropRatio: 1.0,
 			input:     md,
-			expected:  pmetric.NewMetrics(),
+			expected:  emptyMetrics,
 		},
 		{
-			desc:      "Never Drop",
+			desc:      "Never Drop true",
+			condition: "true",
 			dropRatio: 0.0,
 			input:     md,
 			expected:  md,
+		},
+		{
+			desc:      "Always Drop false",
+			condition: "false",
+			dropRatio: 1.0,
+			input:     md,
+			expected:  md,
+		},
+		{
+			desc:      "Never Drop false",
+			condition: "false",
+			dropRatio: 0.0,
+			input:     md,
+			expected:  md,
+		},
+		{
+			desc:      "multiple metrics condition",
+			condition: `(metric.name == "m1")`,
+			dropRatio: 1.0,
+			input:     multipleMetrics,
+			expected:  multipleMetricsResult,
 		},
 	}
 
@@ -131,9 +259,13 @@ func Test_processMetrics(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			cfg := &Config{
 				DropRatio: tc.dropRatio,
+				Condition: tc.condition,
 			}
 
-			processor := newSamplingProcessor(zap.NewNop(), cfg)
+			ottlCondition, err := expr.NewOTTLDatapointCondition(cfg.Condition, component.TelemetrySettings{Logger: zap.NewNop()})
+			require.NoError(t, err)
+
+			processor := newMetricsSamplingProcessor(zap.NewNop(), cfg, ottlCondition)
 			actual, err := processor.processMetrics(context.Background(), tc.input)
 			require.NoError(t, err)
 			require.Equal(t, tc.expected, actual)

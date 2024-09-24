@@ -25,6 +25,8 @@ var errInvalidDropRatio = errors.New("drop_ratio must be between 0.0 and 1.0")
 type Config struct {
 	// DropRatio is the ratio of payloads that are dropped. Values between 0.0 and 1.0 are valid.
 	DropRatio float64 `mapstructure:"drop_ratio"`
+	// Condition is an OTTL Condition, this processor will only be run on a log record if this condition evaluates to true
+	Condition string `mapstructure:"condition"`
 }
 
 // Validate validates the processor configuration

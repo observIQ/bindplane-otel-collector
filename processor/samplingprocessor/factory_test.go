@@ -26,6 +26,7 @@ func TestNewFactory(t *testing.T) {
 
 	expectedCfg := &Config{
 		DropRatio: 0.5,
+		Condition: "true",
 	}
 
 	cfg, ok := factory.CreateDefaultConfig().(*Config)
