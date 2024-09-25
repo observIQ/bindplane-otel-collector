@@ -21,6 +21,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottldatapoint"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottllog"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottlmetric"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottlspan"
 	"go.opentelemetry.io/collector/component"
 )
@@ -47,6 +48,21 @@ func NewOTTLSpanExpression(expression string, set component.TelemetrySettings) (
 	}
 
 	return &OTTLExpression[ottlspan.TransformContext]{
+		statement: statement,
+	}, nil
+}
+
+// NewOTTLMetricExpression creates a new expression for metrics.
+// The expression is wrapped in an editor function, so only Converter functions and target expressions can be used.
+func NewOTTLMetricExpression(expression string, set component.TelemetrySettings) (*OTTLExpression[ottlmetric.TransformContext], error) {
+	// Wrap the expression in the "value" function, since the ottl grammar expects a function first.
+	statementStr := fmt.Sprintf("value(%s)", expression)
+	statement, err := NewOTTLMetricStatement(statementStr, set)
+	if err != nil {
+		return nil, err
+	}
+
+	return &OTTLExpression[ottlmetric.TransformContext]{
 		statement: statement,
 	}, nil
 }

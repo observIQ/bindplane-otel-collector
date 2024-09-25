@@ -96,7 +96,7 @@ func createMetricsProcessor(
 	nextConsumer consumer.Metrics,
 ) (processor.Metrics, error) {
 	oCfg := cfg.(*Config)
-	condition, err := expr.NewOTTLDatapointCondition(oCfg.Condition, set.TelemetrySettings)
+	condition, err := expr.NewOTTLMetricCondition(oCfg.Condition, set.TelemetrySettings)
 	if err != nil {
 		return nil, fmt.Errorf("invalid condition: %w", err)
 	}

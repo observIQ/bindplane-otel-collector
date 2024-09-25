@@ -4,7 +4,7 @@ go 1.22.6
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.4.0
-	github.com/observiq/bindplane-agent/internal/rehydration v1.60.0
+	github.com/observiq/bindplane-agent/internal/rehydration v1.61.0
 	github.com/observiq/bindplane-agent/internal/testutils v1.61.0
 	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/collector/component v0.109.0

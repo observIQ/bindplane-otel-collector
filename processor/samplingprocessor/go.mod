@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-agent/processor/samplingprocessor
 go 1.22.6
 
 require (
-	github.com/observiq/bindplane-agent/expr v1.60.0
+	github.com/observiq/bindplane-agent/expr v1.61.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.109.0
 	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/collector/component v0.109.0
@@ -50,3 +50,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/observiq/bindplane-agent/expr => ../../expr

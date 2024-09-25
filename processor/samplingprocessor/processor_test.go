@@ -31,10 +31,6 @@ func Test_processTraces(t *testing.T) {
 	td := ptrace.NewTraces()
 	td.ResourceSpans().AppendEmpty().ScopeSpans().AppendEmpty().Spans().AppendEmpty()
 
-	emptySpan := ptrace.NewTraces()
-	emptySpan.ResourceSpans().AppendEmpty().ScopeSpans().AppendEmpty().Spans().AppendEmpty()
-	emptySpan.ResourceSpans().At(0).ScopeSpans().At(0).Spans().RemoveIf(func(_ ptrace.Span) bool { return true })
-
 	multipleSpansInput := ptrace.NewTraces()
 	multipleSpansInput.ResourceSpans().AppendEmpty().ScopeSpans().AppendEmpty().Spans().AppendEmpty()
 	multipleSpansInput.ResourceSpans().At(0).ScopeSpans().At(0).Spans().AppendEmpty()
@@ -57,7 +53,7 @@ func Test_processTraces(t *testing.T) {
 			condition: "true",
 			dropRatio: 1.0,
 			input:     td,
-			expected:  emptySpan,
+			expected:  ptrace.NewTraces(),
 		},
 		{
 			desc:      "Never Drop true",
@@ -110,9 +106,6 @@ func Test_processTraces(t *testing.T) {
 func Test_processLogs(t *testing.T) {
 	ld := plog.NewLogs()
 	ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-	emptyLogRecords := plog.NewLogs()
-	emptyLogRecords.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-	emptyLogRecords.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().RemoveIf(func(_ plog.LogRecord) bool { return true })
 
 	multipleRecordsInput := plog.NewLogs()
 	multipleRecordsInput.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
@@ -139,7 +132,7 @@ func Test_processLogs(t *testing.T) {
 			dropRatio: 1.0,
 			condition: "true",
 			input:     ld,
-			expected:  emptyLogRecords,
+			expected:  plog.NewLogs(),
 		},
 		{
 			desc:      "Never Drop true",
@@ -195,12 +188,6 @@ func Test_processMetrics(t *testing.T) {
 	metric.SetEmptyGauge()
 	metric.Gauge().DataPoints().AppendEmpty()
 
-	emptyMetrics := pmetric.NewMetrics()
-	em := emptyMetrics.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
-	em.SetEmptyGauge()
-	em.Gauge().DataPoints().AppendEmpty()
-	emptyMetrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().RemoveIf(func(_ pmetric.Metric) bool { return true })
-
 	multipleMetrics := pmetric.NewMetrics()
 	m1 := multipleMetrics.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
 	m2 := multipleMetrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().AppendEmpty()
@@ -223,7 +210,7 @@ func Test_processMetrics(t *testing.T) {
 			condition: "true",
 			dropRatio: 1.0,
 			input:     md,
-			expected:  emptyMetrics,
+			expected:  pmetric.NewMetrics(),
 		},
 		{
 			desc:      "Never Drop true",
@@ -248,7 +235,7 @@ func Test_processMetrics(t *testing.T) {
 		},
 		{
 			desc:      "multiple metrics condition",
-			condition: `(metric.name == "m1")`,
+			condition: `(name == "m1")`,
 			dropRatio: 1.0,
 			input:     multipleMetrics,
 			expected:  multipleMetricsResult,
@@ -262,7 +249,7 @@ func Test_processMetrics(t *testing.T) {
 				Condition: tc.condition,
 			}
 
-			ottlCondition, err := expr.NewOTTLDatapointCondition(cfg.Condition, component.TelemetrySettings{Logger: zap.NewNop()})
+			ottlCondition, err := expr.NewOTTLMetricCondition(cfg.Condition, component.TelemetrySettings{Logger: zap.NewNop()})
 			require.NoError(t, err)
 
 			processor := newMetricsSamplingProcessor(zap.NewNop(), cfg, ottlCondition)
