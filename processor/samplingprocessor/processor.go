@@ -111,7 +111,13 @@ func (sp *tracesSamplingProcessor) processTraces(ctx context.Context, td ptrace.
 				return err == nil && match && sampleFunc(sp.dropCutOffRatio)
 			})
 		}
+		td.ResourceSpans().At(i).ScopeSpans().RemoveIf(func(ss ptrace.ScopeSpans) bool {
+			return ss.Spans().Len() == 0
+		})
 	}
+	td.ResourceSpans().RemoveIf(func(rs ptrace.ResourceSpans) bool {
+		return rs.ScopeSpans().Len() == 0
+	})
 	return td, nil
 }
 
@@ -145,7 +151,13 @@ func (sp *logsSamplingProcessor) processLogs(ctx context.Context, ld plog.Logs) 
 				return err == nil && match && sampleFunc(sp.dropCutOffRatio)
 			})
 		}
+		ld.ResourceLogs().At(i).ScopeLogs().RemoveIf(func(sl plog.ScopeLogs) bool {
+			return sl.LogRecords().Len() == 0
+		})
 	}
+	ld.ResourceLogs().RemoveIf(func(rl plog.ResourceLogs) bool {
+		return rl.ScopeLogs().Len() == 0
+	})
 	return ld, nil
 }
 
@@ -180,6 +192,12 @@ func (sp *metricsSamplingProcessor) processMetrics(ctx context.Context, md pmetr
 				return err == nil && match && sampleFunc(sp.dropCutOffRatio)
 			})
 		}
+		md.ResourceMetrics().At(i).ScopeMetrics().RemoveIf(func(sm pmetric.ScopeMetrics) bool {
+			return sm.Metrics().Len() == 0
+		})
 	}
+	md.ResourceMetrics().RemoveIf(func(rm pmetric.ResourceMetrics) bool {
+		return rm.ScopeMetrics().Len() == 0
+	})
 	return md, nil
 }

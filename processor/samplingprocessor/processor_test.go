@@ -16,9 +16,13 @@ package samplingprocessor
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/observiq/bindplane-agent/expr"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/plogtest"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/pmetrictest"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/ptracetest"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -258,4 +262,113 @@ func Test_processMetrics(t *testing.T) {
 			require.Equal(t, tc.expected, actual)
 		})
 	}
+}
+
+func Test_completeResourceDropping(t *testing.T) {
+	cfg := &Config{
+		DropRatio: 0.5,
+		Condition: "true",
+	}
+
+	t.Run("verify no empty logs", func(t *testing.T) {
+		ld := plog.NewLogs()
+		for i := 0; i < 2; i++ {
+			rl := ld.ResourceLogs().AppendEmpty()
+			for j := 0; j < 3; j++ {
+				sl := rl.ScopeLogs().AppendEmpty()
+
+				lr := sl.LogRecords().AppendEmpty()
+				lr.Body().SetEmptyMap()
+				lr.Body().Map().PutStr("id", fmt.Sprintf("rl-%d/sl-%d/lr", i, j))
+			}
+		}
+
+		ottlCondition, err := expr.NewOTTLLogRecordCondition(cfg.Condition, component.TelemetrySettings{Logger: zap.NewNop()})
+		require.NoError(t, err)
+		processor := newLogsSamplingProcessor(zap.NewNop(), cfg, ottlCondition)
+
+		actual, err := processor.processLogs(context.Background(), ld)
+		require.NoError(t, err)
+
+		// can't know for sure how many logs are removed, but at 50% we can safely assume not all logs are removed
+		err = plogtest.CompareLogs(plog.NewLogs(), actual)
+		require.Error(t, err)
+
+		for i := 0; i < actual.ResourceLogs().Len(); i++ {
+			rl := actual.ResourceLogs().At(i)
+			require.NotEqual(t, 0, rl.ScopeLogs().Len())
+			for j := 0; j < rl.ScopeLogs().Len(); j++ {
+				sl := rl.ScopeLogs().At(j)
+				require.NotEqual(t, 0, sl.LogRecords().Len())
+			}
+		}
+	})
+
+	t.Run("verify no empty traces", func(t *testing.T) {
+		td := ptrace.NewTraces()
+		for i := 0; i < 2; i++ {
+			rt := td.ResourceSpans().AppendEmpty()
+			for j := 0; j < 3; j++ {
+				st := rt.ScopeSpans().AppendEmpty()
+
+				sd := st.Spans().AppendEmpty()
+				m := sd.Attributes().PutEmptyMap("test")
+				m.PutStr("id", fmt.Sprintf("rt-%d/st-%d/s", i, j))
+			}
+		}
+
+		ottlCondition, err := expr.NewOTTLSpanCondition(cfg.Condition, component.TelemetrySettings{Logger: zap.NewNop()})
+		require.NoError(t, err)
+		processor := newTracesSamplingProcessor(zap.NewNop(), cfg, ottlCondition)
+
+		actual, err := processor.processTraces(context.Background(), td)
+		require.NoError(t, err)
+
+		// can't know for sure how many traces are removed, but at 50% we can safely assume not all traces are removed
+		err = ptracetest.CompareTraces(ptrace.NewTraces(), actual)
+		require.Error(t, err)
+
+		for i := 0; i < actual.ResourceSpans().Len(); i++ {
+			rt := actual.ResourceSpans().At(i)
+			require.NotEqual(t, 0, rt.ScopeSpans().Len())
+			for j := 0; j < rt.ScopeSpans().Len(); j++ {
+				st := rt.ScopeSpans().At(j)
+				require.NotEqual(t, 0, st.Spans().Len())
+			}
+		}
+	})
+
+	t.Run("verify no empty metrics", func(t *testing.T) {
+		md := pmetric.NewMetrics()
+		for i := 0; i < 2; i++ {
+			rm := md.ResourceMetrics().AppendEmpty()
+			for j := 0; j < 3; j++ {
+				sm := rm.ScopeMetrics().AppendEmpty()
+
+				m := sm.Metrics().AppendEmpty()
+				m.SetName(fmt.Sprintf("rm-%d/sm-%d/m", i, j))
+			}
+		}
+
+		ottlCondition, err := expr.NewOTTLMetricCondition(cfg.Condition, component.TelemetrySettings{Logger: zap.NewNop()})
+		require.NoError(t, err)
+		processor := newMetricsSamplingProcessor(zap.NewNop(), cfg, ottlCondition)
+
+		actual, err := processor.processMetrics(context.Background(), md)
+		require.NoError(t, err)
+
+		// can't know for sure how many traces are removed, but at 50% we can safely assume not all traces are removed
+		err = pmetrictest.CompareMetrics(pmetric.NewMetrics(), actual)
+		require.Error(t, err)
+
+		for i := 0; i < actual.ResourceMetrics().Len(); i++ {
+			rm := actual.ResourceMetrics().At(i)
+			require.NotEqual(t, 0, rm.ScopeMetrics().Len())
+			for j := 0; j < rm.ScopeMetrics().Len(); j++ {
+				sm := rm.ScopeMetrics().At(j)
+				require.NotEqual(t, 0, sm.Metrics().Len())
+			}
+		}
+
+	})
 }
