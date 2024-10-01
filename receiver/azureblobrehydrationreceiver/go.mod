@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-agent/receiver/azureblobrehydrationreceiver
 go 1.22.6
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.4.0
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.4.1
 	github.com/observiq/bindplane-agent/internal/rehydration v1.61.0
 	github.com/observiq/bindplane-agent/internal/testutils v1.61.0
 	github.com/stretchr/testify v1.9.0
@@ -17,7 +17,7 @@ require (
 )
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.13.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.14.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.10.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect

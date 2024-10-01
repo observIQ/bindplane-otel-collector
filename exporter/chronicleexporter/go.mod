@@ -20,12 +20,12 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/oauth2 v0.23.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20240822170219-fc7c04adadcd
-	google.golang.org/grpc v1.66.2
+	google.golang.org/grpc v1.67.0
 	google.golang.org/protobuf v1.34.2
 )
 
 require (
-	cloud.google.com/go/compute/metadata v0.3.0 // indirect
+	cloud.google.com/go/compute/metadata v0.5.0 // indirect
 	github.com/alecthomas/participle/v2 v2.1.1 // indirect
 	github.com/antonmedv/expr v1.15.5 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect

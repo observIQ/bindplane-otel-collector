@@ -42,8 +42,8 @@ github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
-github.com/open-telemetry/opamp-go v0.15.0 h1:X2TWhEsGQ8GP7Uos3Ic9v/1aFUqoECZXKS7xAF5HqsA=
-github.com/open-telemetry/opamp-go v0.15.0/go.mod h1:QyPeN56JXlcZt5yG5RMdZ50Ju+zMFs1Ihy/hwHyF8Oo=
+github.com/open-telemetry/opamp-go v0.17.0 h1:3R4+B/6Sy8mknLBbzO3gqloqwTT02rCSRcr4ac2B124=
+github.com/open-telemetry/opamp-go v0.17.0/go.mod h1:SGDhUoAx7uGutO4ENNMQla/tiSujxgZmMPJXIOPGBdk=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.110.0 h1:AAi04sp/VeDsYM+Z24OSTd5ZKOZ6Oy65nBOTltKbN/Q=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.110.0/go.mod h1:wBrMy+mgk1llwg2zufyS6VNVZxavBQH97zJcxiDEWz8=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.110.0 h1:07mGeb5o9W6DcT1xlXBX5pHamVO9bcro0pFct/z0Ivs=
