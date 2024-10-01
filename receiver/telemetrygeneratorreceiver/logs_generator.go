@@ -73,7 +73,9 @@ func (g *defaultLogGenerator) generateLogs() plog.Logs {
 			scopeLogs := resourceLogs.ScopeLogs().At(k)
 			for j := 0; j < scopeLogs.LogRecords().Len(); j++ {
 				log := scopeLogs.LogRecords().At(j)
-				log.SetTimestamp(pcommon.NewTimestampFromTime(time.Now()))
+				recordTime := pcommon.NewTimestampFromTime(time.Now())
+				log.SetTimestamp(recordTime)
+				log.SetObservedTimestamp(recordTime)
 			}
 		}
 	}

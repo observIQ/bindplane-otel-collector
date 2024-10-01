@@ -16,8 +16,10 @@ package samplingprocessor
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
+	"github.com/observiq/bindplane-agent/expr"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/processor"
@@ -51,6 +53,7 @@ func NewFactory() processor.Factory {
 func createDefaultConfig() component.Config {
 	return &Config{
 		DropRatio: 0.5,
+		Condition: "true",
 	}
 }
 
@@ -61,7 +64,11 @@ func createTracesProcessor(
 	nextConsumer consumer.Traces,
 ) (processor.Traces, error) {
 	oCfg := cfg.(*Config)
-	sp := newSamplingProcessor(set.Logger, oCfg)
+	condition, err := expr.NewOTTLSpanCondition(oCfg.Condition, set.TelemetrySettings)
+	if err != nil {
+		return nil, fmt.Errorf("invalid condition: %w", err)
+	}
+	sp := newTracesSamplingProcessor(set.Logger, oCfg, condition)
 
 	return processorhelper.NewTracesProcessor(ctx, set, cfg, nextConsumer, sp.processTraces, processorhelper.WithCapabilities(consumerCapabilities))
 }
@@ -73,7 +80,11 @@ func createLogsProcessor(
 	nextConsumer consumer.Logs,
 ) (processor.Logs, error) {
 	oCfg := cfg.(*Config)
-	tmp := newSamplingProcessor(set.Logger, oCfg)
+	condition, err := expr.NewOTTLLogRecordCondition(oCfg.Condition, set.TelemetrySettings)
+	if err != nil {
+		return nil, fmt.Errorf("invalid condition: %w", err)
+	}
+	tmp := newLogsSamplingProcessor(set.Logger, oCfg, condition)
 
 	return processorhelper.NewLogsProcessor(ctx, set, cfg, nextConsumer, tmp.processLogs, processorhelper.WithCapabilities(consumerCapabilities))
 }
@@ -85,7 +96,11 @@ func createMetricsProcessor(
 	nextConsumer consumer.Metrics,
 ) (processor.Metrics, error) {
 	oCfg := cfg.(*Config)
-	tmp := newSamplingProcessor(set.Logger, oCfg)
+	condition, err := expr.NewOTTLMetricCondition(oCfg.Condition, set.TelemetrySettings)
+	if err != nil {
+		return nil, fmt.Errorf("invalid condition: %w", err)
+	}
+	tmp := newMetricsSamplingProcessor(set.Logger, oCfg, condition)
 
 	return processorhelper.NewMetricsProcessor(ctx, set, cfg, nextConsumer, tmp.processMetrics, processorhelper.WithCapabilities(consumerCapabilities))
 }

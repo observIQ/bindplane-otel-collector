@@ -131,7 +131,9 @@ func clearTimeStamps(logs plog.Logs) {
 			scopeLogs := resourceLogs.ScopeLogs().At(k)
 			for j := 0; j < scopeLogs.LogRecords().Len(); j++ {
 				log := scopeLogs.LogRecords().At(j)
-				log.SetTimestamp(pcommon.NewTimestampFromTime(time.Time{}))
+				recordTime := pcommon.NewTimestampFromTime(time.Time{})
+				log.SetTimestamp(recordTime)
+				log.SetObservedTimestamp(recordTime)
 			}
 		}
 	}

@@ -20,6 +20,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottldatapoint"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottllog"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottlmetric"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottlspan"
 	"go.opentelemetry.io/collector/component"
 )
@@ -44,6 +45,19 @@ func NewOTTLSpanCondition(condition string, set component.TelemetrySettings) (*O
 	}
 
 	return &OTTLCondition[ottlspan.TransformContext]{
+		statement: statement,
+	}, nil
+}
+
+// NewOTTLMetricCondition creates a new OTTLCondition for a metric with the given condition.
+func NewOTTLMetricCondition(condition string, set component.TelemetrySettings) (*OTTLCondition[ottlmetric.TransformContext], error) {
+	statementStr := "noop() where " + condition
+	statement, err := NewOTTLMetricStatement(statementStr, set)
+	if err != nil {
+		return nil, err
+	}
+
+	return &OTTLCondition[ottlmetric.TransformContext]{
 		statement: statement,
 	}, nil
 }

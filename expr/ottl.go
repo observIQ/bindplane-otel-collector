@@ -23,6 +23,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottldatapoint"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottllog"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottlmetric"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottlspan"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/ottlfuncs"
 )
@@ -34,6 +35,20 @@ func NewOTTLSpanStatement(statementStr string, set component.TelemetrySettings) 
 		return nil, err
 	}
 
+	statement, err := parser.ParseStatement(statementStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return statement, nil
+}
+
+// NewOTTLMetricStatement parses the given statement into an ottl.Statement for a metric transform context.
+func NewOTTLMetricStatement(statementStr string, set component.TelemetrySettings) (*ottl.Statement[ottlmetric.TransformContext], error) {
+	parser, err := ottlmetric.NewParser(functions[ottlmetric.TransformContext](), set)
+	if err != nil {
+		return nil, err
+	}
 	statement, err := parser.ParseStatement(statementStr)
 	if err != nil {
 		return nil, err
