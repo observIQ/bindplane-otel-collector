@@ -47,8 +47,6 @@ for PLATFORM in "${PLATFORMS[@]}"; do
         EXT=""
     fi
     echo "Building supervisor for $GOOS/$GOARCH"
-    GOOS="$GOOS" GOARCH="$GOARCH" go build main.go
-    cp main${EXT} $PROJECT_BASE/$DOWNLOAD_DIR/supervisor_bin/opampsupervisor_${GOOS}_${GOARCH}${EXT}
-    rm main${EXT}
+    GOOS="$GOOS" GOARCH="$GOARCH" go build -o $PROJECT_BASE/$DOWNLOAD_DIR/supervisor_bin/opampsupervisor_${GOOS}_${GOARCH}${EXT} .
 done
 $(cd $PROJECT_BASE/$DOWNLOAD_DIR && rm -rf opentelemetry-collector-contrib)
