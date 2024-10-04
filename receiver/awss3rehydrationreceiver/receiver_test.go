@@ -29,6 +29,7 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
+	"go.opentelemetry.io/collector/pipeline"
 	"go.uber.org/zap"
 )
 
@@ -50,7 +51,7 @@ func Test_newMetricsReceiver(t *testing.T) {
 	require.Equal(t, testLogger, r.logger)
 	require.Equal(t, id, r.id)
 	require.Equal(t, mockClient, r.awsClient)
-	require.Equal(t, component.DataTypeMetrics, r.supportedTelemetry)
+	require.Equal(t, pipeline.SignalMetrics, r.supportedTelemetry)
 	require.IsType(t, &rehydration.MetricsConsumer{}, r.consumer)
 }
 
@@ -72,7 +73,7 @@ func Test_newLogsReceiver(t *testing.T) {
 	require.Equal(t, testLogger, r.logger)
 	require.Equal(t, id, r.id)
 	require.Equal(t, mockClient, r.awsClient)
-	require.Equal(t, component.DataTypeLogs, r.supportedTelemetry)
+	require.Equal(t, pipeline.SignalLogs, r.supportedTelemetry)
 	require.IsType(t, &rehydration.LogsConsumer{}, r.consumer)
 }
 
@@ -94,7 +95,7 @@ func Test_newTracesReceiver(t *testing.T) {
 	require.Equal(t, testLogger, r.logger)
 	require.Equal(t, id, r.id)
 	require.Equal(t, mockClient, r.awsClient)
-	require.Equal(t, component.DataTypeTraces, r.supportedTelemetry)
+	require.Equal(t, pipeline.SignalTraces, r.supportedTelemetry)
 	require.IsType(t, &rehydration.TracesConsumer{}, r.consumer)
 }
 

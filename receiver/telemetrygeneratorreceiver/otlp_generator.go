@@ -15,14 +15,13 @@
 package telemetrygeneratorreceiver //import "github.com/observiq/bindplane-agent/receiver/telemetrygeneratorreceiver"
 
 import (
-	"fmt"
 	"time"
 
-	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
+	"go.opentelemetry.io/collector/pipeline"
 	"go.uber.org/zap"
 )
 
@@ -35,7 +34,7 @@ var getCurrentTime = func() time.Time { return time.Now().UTC() }
 type otlpGenerator struct {
 	cfg           GeneratorConfig
 	logger        *zap.Logger
-	telemetryType component.DataType
+	telemetryType pipeline.Signal
 	logs          plog.Logs
 	logsStart     time.Time
 	metrics       pmetric.Metrics
@@ -53,17 +52,22 @@ func newOtlpGenerator(cfg GeneratorConfig, logger *zap.Logger) (*otlpGenerator, 
 		traces:  ptrace.NewTraces(),
 	}
 
-	// validation already proves this exists, is a string, and a component.DataType
-	telemetryType, err := component.NewType(lg.cfg.AdditionalConfig["telemetry_type"].(string))
-	if err != nil {
-		return nil, fmt.Errorf("invalid telemetry type: %w", err)
+	// validation already proves this exists, is a string, and a pipeline.Signal
+	telemetryType := lg.cfg.AdditionalConfig["telemetry_type"].(string)
+	switch telemetryType {
+	case pipeline.SignalLogs.String():
+		lg.telemetryType = pipeline.SignalLogs
+	case pipeline.SignalMetrics.String():
+		lg.telemetryType = pipeline.SignalMetrics
+	case pipeline.SignalTraces.String():
+		lg.telemetryType = pipeline.SignalTraces
 	}
 
-	lg.telemetryType = telemetryType
 	jsonBytes := []byte(lg.cfg.AdditionalConfig["otlp_json"].(string))
 
+	var err error
 	switch lg.telemetryType {
-	case component.DataTypeLogs:
+	case pipeline.SignalLogs:
 		marshaler := plog.JSONUnmarshaler{}
 		lg.logs, err = marshaler.UnmarshalLogs(jsonBytes)
 		// validation should catch this error
@@ -71,7 +75,7 @@ func newOtlpGenerator(cfg GeneratorConfig, logger *zap.Logger) (*otlpGenerator, 
 			logger.Warn("error unmarshalling otlp logs json", zap.Error(err))
 		}
 		lg.adjustLogTimes()
-	case component.DataTypeMetrics:
+	case pipeline.SignalMetrics:
 		marshaler := pmetric.JSONUnmarshaler{}
 		lg.metrics, err = marshaler.UnmarshalMetrics(jsonBytes)
 		// validation should catch this error
@@ -79,7 +83,7 @@ func newOtlpGenerator(cfg GeneratorConfig, logger *zap.Logger) (*otlpGenerator, 
 			logger.Warn("error unmarshalling otlp metrics json", zap.Error(err))
 		}
 		lg.adjustMetricTimes()
-	case component.DataTypeTraces:
+	case pipeline.SignalTraces:
 		marshaler := ptrace.JSONUnmarshaler{}
 		lg.traces, err = marshaler.UnmarshalTraces(jsonBytes)
 		// validation should catch this error

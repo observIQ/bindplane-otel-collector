@@ -604,7 +604,7 @@ func TestProcessorExtractMetrics(t *testing.T) {
 
 	routeMetrics := &consumertest.MetricsSink{}
 	createSettings := receivertest.NewNopSettings()
-	createSettings.ID = component.NewIDWithName(component.DataTypeMetrics, routeReceiverName)
+	createSettings.ID = component.NewIDWithName(component.Type{}, routeReceiverName)
 
 	routereceiver.NewFactory().CreateMetricsReceiver(context.Background(), createSettings, routereceiver.Config{}, routeMetrics)
 

@@ -26,9 +26,9 @@ import (
 func TestNewFactory(t *testing.T) {
 	factory := NewFactory()
 	require.Equal(t, componentType, factory.Type())
-	require.Equal(t, stability, factory.LogsProcessorStability())
-	require.Equal(t, stability, factory.MetricsProcessorStability())
-	require.Equal(t, stability, factory.TracesProcessorStability())
+	require.Equal(t, stability, factory.LogsStability())
+	require.Equal(t, stability, factory.MetricsStability())
+	require.Equal(t, stability, factory.TracesStability())
 	require.Equal(t, createDefaultConfig(), factory.CreateDefaultConfig())
 
 	cfg := Config{

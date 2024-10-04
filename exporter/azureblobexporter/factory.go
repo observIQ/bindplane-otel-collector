@@ -38,11 +38,11 @@ func NewFactory() exporter.Factory {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		TimeoutSettings: exporterhelper.NewDefaultTimeoutSettings(),
-		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
-		BackOffConfig:   configretry.NewDefaultBackOffConfig(),
-		Partition:       minutePartition,
-		Compression:     noCompression,
+		TimeoutConfig: exporterhelper.NewDefaultTimeoutConfig(),
+		QueueConfig:   exporterhelper.NewDefaultQueueConfig(),
+		BackOffConfig: configretry.NewDefaultBackOffConfig(),
+		Partition:     minutePartition,
+		Compression:   noCompression,
 	}
 }
 
@@ -61,8 +61,8 @@ func createMetricsExporter(ctx context.Context, params exporter.Settings, config
 		config,
 		exp.metricsDataPusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
-		exporterhelper.WithTimeout(cfg.TimeoutSettings),
-		exporterhelper.WithQueue(cfg.QueueSettings),
+		exporterhelper.WithTimeout(cfg.TimeoutConfig),
+		exporterhelper.WithQueue(cfg.QueueConfig),
 		exporterhelper.WithRetry(cfg.BackOffConfig),
 	)
 }
@@ -82,8 +82,8 @@ func createLogsExporter(ctx context.Context, params exporter.Settings, config co
 		config,
 		exp.logsDataPusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
-		exporterhelper.WithTimeout(cfg.TimeoutSettings),
-		exporterhelper.WithQueue(cfg.QueueSettings),
+		exporterhelper.WithTimeout(cfg.TimeoutConfig),
+		exporterhelper.WithQueue(cfg.QueueConfig),
 		exporterhelper.WithRetry(cfg.BackOffConfig),
 	)
 }
@@ -103,8 +103,8 @@ func createTracesExporter(ctx context.Context, params exporter.Settings, config 
 		config,
 		exp.tracesDataPusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
-		exporterhelper.WithTimeout(cfg.TimeoutSettings),
-		exporterhelper.WithQueue(cfg.QueueSettings),
+		exporterhelper.WithTimeout(cfg.TimeoutConfig),
+		exporterhelper.WithQueue(cfg.QueueConfig),
 		exporterhelper.WithRetry(cfg.BackOffConfig),
 	)
 }

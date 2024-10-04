@@ -25,6 +25,7 @@ import (
 	"github.com/observiq/bindplane-agent/receiver/azureblobrehydrationreceiver/internal/azureblob"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/pipeline"
 	"go.uber.org/zap"
 )
 
@@ -37,7 +38,7 @@ type rehydrationReceiver struct {
 	id                 component.ID
 	cfg                *Config
 	azureClient        azureblob.BlobClient
-	supportedTelemetry component.DataType
+	supportedTelemetry pipeline.Signal
 	consumer           rehydration.Consumer
 	checkpointStore    rehydration.CheckpointStorer
 
@@ -57,7 +58,7 @@ func newMetricsReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextCo
 		return nil, err
 	}
 
-	r.supportedTelemetry = component.DataTypeMetrics
+	r.supportedTelemetry = pipeline.SignalMetrics
 	r.consumer = rehydration.NewMetricsConsumer(nextConsumer)
 
 	return r, nil
@@ -70,7 +71,7 @@ func newLogsReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextConsu
 		return nil, err
 	}
 
-	r.supportedTelemetry = component.DataTypeLogs
+	r.supportedTelemetry = pipeline.SignalLogs
 	r.consumer = rehydration.NewLogsConsumer(nextConsumer)
 
 	return r, nil
@@ -83,7 +84,7 @@ func newTracesReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextCon
 		return nil, err
 	}
 
-	r.supportedTelemetry = component.DataTypeTraces
+	r.supportedTelemetry = pipeline.SignalTraces
 	r.consumer = rehydration.NewTracesConsumer(nextConsumer)
 
 	return r, nil

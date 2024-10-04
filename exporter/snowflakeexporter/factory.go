@@ -41,10 +41,10 @@ func NewFactory() exporter.Factory {
 // createDefaultConfig creates the default configuration for the exporter
 func createDefaultConfig() component.Config {
 	return &Config{
-		TimeoutSettings: exporterhelper.NewDefaultTimeoutSettings(),
-		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
-		BackOffConfig:   configretry.NewDefaultBackOffConfig(),
-		Database:        defaultDatabase,
+		TimeoutConfig: exporterhelper.NewDefaultTimeoutConfig(),
+		QueueConfig:   exporterhelper.NewDefaultQueueConfig(),
+		BackOffConfig: configretry.NewDefaultBackOffConfig(),
+		Database:      defaultDatabase,
 		Logs: TelemetryConfig{
 			Schema: defaultLogsSchema,
 			Table:  defaultTable,
@@ -84,8 +84,8 @@ func createLogsExporter(
 		exporterhelper.WithStart(e.start),
 		exporterhelper.WithShutdown(e.shutdown),
 		exporterhelper.WithCapabilities(e.Capabilities()),
-		exporterhelper.WithTimeout(e.cfg.TimeoutSettings),
-		exporterhelper.WithQueue(e.cfg.QueueSettings),
+		exporterhelper.WithTimeout(e.cfg.TimeoutConfig),
+		exporterhelper.WithQueue(e.cfg.QueueConfig),
 		exporterhelper.WithRetry(e.cfg.BackOffConfig),
 	)
 }
@@ -114,8 +114,8 @@ func createMetricsExporter(
 		exporterhelper.WithStart(e.start),
 		exporterhelper.WithShutdown(e.shutdown),
 		exporterhelper.WithCapabilities(e.Capabilities()),
-		exporterhelper.WithTimeout(e.cfg.TimeoutSettings),
-		exporterhelper.WithQueue(e.cfg.QueueSettings),
+		exporterhelper.WithTimeout(e.cfg.TimeoutConfig),
+		exporterhelper.WithQueue(e.cfg.QueueConfig),
 		exporterhelper.WithRetry(e.cfg.BackOffConfig),
 	)
 }
@@ -144,8 +144,8 @@ func createTracesExporter(
 		exporterhelper.WithStart(e.start),
 		exporterhelper.WithShutdown(e.shutdown),
 		exporterhelper.WithCapabilities(e.Capabilities()),
-		exporterhelper.WithTimeout(e.cfg.TimeoutSettings),
-		exporterhelper.WithQueue(e.cfg.QueueSettings),
+		exporterhelper.WithTimeout(e.cfg.TimeoutConfig),
+		exporterhelper.WithQueue(e.cfg.QueueConfig),
 		exporterhelper.WithRetry(e.cfg.BackOffConfig),
 	)
 }

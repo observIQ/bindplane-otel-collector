@@ -22,6 +22,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/pipeline"
 )
 
 func TestLoadPlugin(t *testing.T) {
@@ -82,7 +83,7 @@ func TestRenderComponents(t *testing.T) {
 		name           string
 		plugin         *Plugin
 		values         map[string]any
-		dataType       component.DataType
+		dataType       pipeline.Signal
 		expectedResult *RenderedConfig
 		expectedErr    error
 	}{
@@ -188,7 +189,7 @@ service:
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := tc.plugin.Render(tc.values, component.NewID(component.DataTypeLogs))
+			result, err := tc.plugin.Render(tc.values, component.NewID(component.MustNewType(pipeline.SignalLogs.String())))
 			switch tc.expectedErr {
 			case nil:
 				require.NoError(t, err)

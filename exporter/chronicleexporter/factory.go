@@ -39,8 +39,8 @@ func NewFactory() exporter.Factory {
 func createDefaultConfig() component.Config {
 	return &Config{
 		Protocol:            protocolGRPC,
-		TimeoutSettings:     exporterhelper.NewDefaultTimeoutSettings(),
-		QueueSettings:       exporterhelper.NewDefaultQueueSettings(),
+		TimeoutConfig:       exporterhelper.NewDefaultTimeoutConfig(),
+		QueueConfig:         exporterhelper.NewDefaultQueueConfig(),
 		BackOffConfig:       configretry.NewDefaultBackOffConfig(),
 		OverrideLogType:     true,
 		Endpoint:            baseEndpoint,
@@ -83,8 +83,8 @@ func createLogsExporter(
 		chronicleCfg,
 		pusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
-		exporterhelper.WithTimeout(chronicleCfg.TimeoutSettings),
-		exporterhelper.WithQueue(chronicleCfg.QueueSettings),
+		exporterhelper.WithTimeout(chronicleCfg.TimeoutConfig),
+		exporterhelper.WithQueue(chronicleCfg.QueueConfig),
 		exporterhelper.WithRetry(chronicleCfg.BackOffConfig),
 		exporterhelper.WithShutdown(exp.Shutdown),
 	)

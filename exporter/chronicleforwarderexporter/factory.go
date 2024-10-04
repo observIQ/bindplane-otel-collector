@@ -37,10 +37,10 @@ func NewFactory() exporter.Factory {
 // createDefaultConfig creates the default configuration for the exporter.
 func createDefaultConfig() component.Config {
 	return &Config{
-		TimeoutSettings: exporterhelper.NewDefaultTimeoutSettings(),
-		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
-		BackOffConfig:   configretry.NewDefaultBackOffConfig(),
-		ExportType:      exportTypeSyslog,
+		TimeoutConfig: exporterhelper.NewDefaultTimeoutConfig(),
+		QueueConfig:   exporterhelper.NewDefaultQueueConfig(),
+		BackOffConfig: configretry.NewDefaultBackOffConfig(),
+		ExportType:    exportTypeSyslog,
 		Syslog: SyslogConfig{
 			AddrConfig: confignet.AddrConfig{
 				Endpoint:  "127.0.0.1:10514",
@@ -72,8 +72,8 @@ func createLogsExporter(
 		forwarderCfg,
 		exp.logsDataPusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
-		exporterhelper.WithTimeout(forwarderCfg.TimeoutSettings),
-		exporterhelper.WithQueue(forwarderCfg.QueueSettings),
+		exporterhelper.WithTimeout(forwarderCfg.TimeoutConfig),
+		exporterhelper.WithQueue(forwarderCfg.QueueConfig),
 		exporterhelper.WithRetry(forwarderCfg.BackOffConfig),
 	)
 }

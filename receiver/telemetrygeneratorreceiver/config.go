@@ -20,11 +20,11 @@ import (
 	"fmt"
 
 	"github.com/mitchellh/mapstructure"
-	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
+	"go.opentelemetry.io/collector/pipeline"
 )
 
 // Config is the configuration for the telemetry generator receiver
@@ -131,13 +131,8 @@ func validateOTLPGenerator(cfg *GeneratorConfig) error {
 		return fmt.Errorf("invalid telemetry type: %v", telemetryType)
 	}
 
-	dataType, err := component.NewType(telemetryTypeStr)
-	if err != nil {
-		return fmt.Errorf("invalid telemetry type: %w", err)
-	}
-
-	switch dataType {
-	case component.DataTypeLogs, component.DataTypeMetrics, component.DataTypeTraces:
+	switch telemetryTypeStr {
+	case pipeline.SignalLogs.String(), pipeline.SignalMetrics.String(), pipeline.SignalTraces.String():
 	default:
 		return fmt.Errorf("invalid telemetry type: %s", telemetryType)
 	}
@@ -155,8 +150,8 @@ func validateOTLPGenerator(cfg *GeneratorConfig) error {
 
 	jsonBytes := []byte(otlpJSONStr)
 
-	switch dataType {
-	case component.DataTypeLogs:
+	switch telemetryTypeStr {
+	case pipeline.SignalLogs.String():
 		marshaler := plog.JSONUnmarshaler{}
 		logs, err := marshaler.UnmarshalLogs(jsonBytes)
 		if err != nil {
@@ -165,7 +160,7 @@ func validateOTLPGenerator(cfg *GeneratorConfig) error {
 		if logs.LogRecordCount() == 0 {
 			return errors.New("no log records found in otlp_json")
 		}
-	case component.DataTypeMetrics:
+	case pipeline.SignalMetrics.String():
 		marshaler := pmetric.JSONUnmarshaler{}
 		metrics, err := marshaler.UnmarshalMetrics(jsonBytes)
 		if err != nil {
@@ -174,7 +169,7 @@ func validateOTLPGenerator(cfg *GeneratorConfig) error {
 		if metrics.DataPointCount() == 0 {
 			return errors.New("no metric data points found in otlp_json")
 		}
-	case component.DataTypeTraces:
+	case pipeline.SignalTraces.String():
 		marshaler := ptrace.JSONUnmarshaler{}
 		traces, err := marshaler.UnmarshalTraces(jsonBytes)
 		if err != nil {
