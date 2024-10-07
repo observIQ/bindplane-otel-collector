@@ -20,7 +20,12 @@ processors:
 receivers:
   - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.111.0
 connectors: []
-providers: []
+providers:
+  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.17.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.17.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/httpprovider v1.17.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/httpsprovider v1.17.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.17.0
 # When adding a replace, add a comment before it to document why it's needed and when it can be removed
 replaces:
   # See https://github.com/google/gnostic/issues/262
