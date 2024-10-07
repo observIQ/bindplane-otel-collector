@@ -8,7 +8,7 @@ require (
 	github.com/client9/misspell v0.3.4
 	github.com/google/addlicense v1.1.1
 	github.com/mgechev/revive v1.5.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/cmd/opampsupervisor v0.108.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/cmd/opampsupervisor v0.111.0
 	github.com/securego/gosec/v2 v2.18.2
 	github.com/uw-labs/lichen v0.1.7
 	github.com/vektra/mockery/v2 v2.50.0
@@ -83,7 +83,7 @@ require (
 	github.com/spf13/cobra v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.18.2 // indirect
-	github.com/stretchr/testify v1.9.0 // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/urfave/cli/v2 v2.25.7 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
@@ -96,7 +96,7 @@ require (
 	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.22.0 // indirect
 	go.opentelemetry.io/collector/filter v0.116.0 // indirect
 	go.opentelemetry.io/collector/pdata v1.22.0 // indirect
-	go.opentelemetry.io/collector/semconv v0.114.0 // indirect
+	go.opentelemetry.io/collector/semconv v0.116.0 // indirect
 	go.opentelemetry.io/otel v1.32.0 // indirect
 	go.opentelemetry.io/otel/metric v1.32.0 // indirect
 	go.opentelemetry.io/otel/trace v1.32.0 // indirect
@@ -116,3 +116,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace go.opentelemetry.io/collector/cmd/builder => go.opentelemetry.io/collector/cmd/builder v0.111.1-0.20241004150551-9d6a84e0b86f
