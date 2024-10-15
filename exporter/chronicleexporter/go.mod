@@ -5,7 +5,7 @@ go 1.22.6
 require (
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
-	github.com/observiq/bindplane-agent/expr v1.61.0
+	github.com/observiq/bindplane-agent/expr v1.62.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.111.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.9.0
@@ -21,7 +21,7 @@ require (
 	golang.org/x/oauth2 v0.23.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20240822170219-fc7c04adadcd
 	google.golang.org/grpc v1.67.1
-	google.golang.org/protobuf v1.34.2
+	google.golang.org/protobuf v1.35.1
 )
 
 require (
