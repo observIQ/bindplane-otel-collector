@@ -1,3 +1,7 @@
+**DEPRECATED**
+
+The Marshal Processor has been deprecated. It will be removed in the v1.64.0 release. Use the `ToString` and `ToKeyValueString` OTTL functions instead.
+
 # Marshal Processor
 
 This processor is used to marshal parsed logs into JSON or KV format.
