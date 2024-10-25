@@ -125,15 +125,17 @@ For more installation information, and how to configure OpAMP, see [installing o
 
 ### BDOT Collector default `config.yaml`
 
-With the BDOT Collector installed, it will start collecting basic metrics about the host machine printing them to the log. To further configure your collector edit the `config.yaml` file just like you would an OpenTelemetry Collector. To find your `config.yaml` file based on your operating system, reference the table below:
+With the collector installed, you can use BindPlane to create a configuration and begin monitoring.
 
-| OS      | Default Location                                              |
-|:--------|:--------------------------------------------------------------|
-| Linux   | `/opt/observiq-otel-collector/config.yaml`                      |
-| Windows | `C:\Program Files\observIQ OpenTelemetry Collector\config.yaml` |
-| macOS   | `/opt/observiq-otel-collector/config.yaml`                      |
+You can edit the supervisor config as needed for communicating with BindPlane and managing the agent. To find your config file based on your OS reference the table below:
 
-For more information on configuration see the [Configuration section](#configuration).
+| OS      | Default Location                                                  |
+|:--------|:------------------------------------------------------------------|
+| Linux   | /opt/observiq-otel-collector/supervisor.yaml                      |
+| Windows | C:\Program Files\observIQ OpenTelemetry Collector\supervisor.yaml |
+| macOS   | /opt/observiq-otel-collector/supervisor.yaml                      |
+
+For more information on supervisor configuration see the [supervisor documentation](./docs/supervisor.md).
 
 ### Manage BDOT Collector with Bindplane Telemetry Pipeline via OpAMP
 
@@ -176,37 +178,6 @@ For supported extensions and their documentation see [extensions](/docs/extensio
 
 For supported connectors and their documentation see [connectors](/docs/connectors.md).
 
-### Example `config.yaml`
-
-Here's a sample setup for `hostmetrics` on Google Cloud. To make sure your environment is set up with required prerequisites, see the [Google Cloud Exporter Prerequisites](/config/google_cloud_exporter/README.md) page. Further details for this GCP example can be found [here](/config/google_cloud_exporter/hostmetrics).
-
-```yaml
-# Receivers collect metrics from a source. The hostmetrics receiver will get
-# CPU load metrics about the machine the collector is running on every minute.
-receivers:
-  hostmetrics:
-    collection_interval: 60s
-    scrapers:
-      cpu:
-      disk:
-      load:
-      filesystem:
-      memory:
-      network:
-      paging:
-      processes:
-
-# Exporters send the data to a destination, in this case GCP.
-exporters: 
-  googlecloud:
-
-# Service specifies how to construct the data pipelines using the configurations above.
-service:
-  pipelines:
-    metrics:
-      receivers: [hostmetrics]
-      exporters: [googlecloud]
-```
 
 ## Connecting to Bindplane Telemetry Pipeline with OpAMP
 
