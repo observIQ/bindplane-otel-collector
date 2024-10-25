@@ -1,6 +1,6 @@
 # macOS Installation
 
-### Installing
+## Installing
 The agent may be installed through a shell script.
 
 This script may also be used to update an existing installation.
@@ -12,31 +12,31 @@ sudo sh -c "$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/r
 
 Installation artifacts are signed. Information on verifying the signature can be found at [Verifying Artifact Signatures](./verify-signature.md).
 
-#### Managed Mode
+### OpAMP Management
 
-To install the agent with an OpAMP connection configuration set the following flags. 
+To install the agent and connect the supervisor to an OpAMP management platform, set the following flags. 
 
 ```sh
 sudo sh -c "$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/install_macos.sh)" install_macos.sh -e <your_endpoint> -s <secret-key>
 ```
 
-To read more about the generated connection configuration file see [OpAMP docs](./opamp.md).
+To read more about OpAMP management, see the [supervisor docs](./supervisor.md).
 
 ## Configuring the Agent
 
-After installing the `observiq-otel-collector` you can change the configuration file printed out at the end of the installation.
+The agent is ran and managed by the [OpenTelemetry supervisor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/cmd/opampsupervisor). The supervisor must receive the agent's configuration from an OpAMP management platform, after which it will stop and restart the agent with the new config.
 
-The default configuration file can be found at `/opt/observiq-otel-collector/config.yaml`.
+The supervisor remembers the last config it received via OpAMP and always rewrites the agent's config file with it when it starts. This means you can't manually edit the agent's config file on disk. The best way to modify the configuration is to send a new one from the OpAMP platform the supervisor is connected to.
 
-After changing the configuration file run `sudo launchctl unload /Library/LaunchDaemons/com.observiq.collector.plist; sudo launchctl load /Library/LaunchDaemons/com.observiq.collector.plist` for the changes to take effect.
+The agent configuration file is located at `/opt/observiq-otel-collector/supervisor_storage/effective.yaml`.
 
-For more information on configuring the agent, see the [OpenTelemetry docs](https://opentelemetry.io/docs/collector/configuration/).
+If this method of collector management does not work for your use case, see this [alternative option](./supervisor.md#alternatives)
 
 **Logging**
 
-Logs from the agent will appear in `/opt/observiq-otel-collector/log`. You may run `sudo tail -F /opt/observiq-otel-collector/log/collector.log` to view them.
+Logs from the agent will appear in `/opt/observiq-otel-collector/supervisor_storage/agent.log`. You may run `sudo tail -F /opt/observiq-otel-collector/supervisor_storage/agent.log` to view them.
 
-Stderr for the agent process can be found at `/var/log/observiq_collector.err`.
+Stderr for the supervisor process can be found at `/var/log/observiq_collector.err`.
 
 ## Agent Services Commands
 
