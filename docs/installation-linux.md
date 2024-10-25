@@ -16,15 +16,15 @@ To install using the installation script, you may run:
 sudo sh -c "$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/install_unix.sh)" install_unix.sh
 ```
 
-#### Managed Mode
+#### OpAMP Management
 
-To install the agent with an OpAMP connection configuration set the following flags. 
+To install the agent and connect the supervisor to an OpAMP management platform, set the following flags. 
 
 ```sh
 sudo sh -c "$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/install_unix.sh)" install_unix.sh -e <your_endpoint> -s <secret-key>
 ```
 
-To read more about the generated connection configuration file see [OpAMP docs](./opamp.md).
+To read more about OpAMP management, see the [supervisor docs](./supervisor.md).
 
 ### Installation from local package
 
@@ -59,17 +59,17 @@ sudo systemctl enable --now observiq-otel-collector
 ## Configuring the Agent
 After installing, systems with systemd installed will have the `observiq-otel-collector` service up and running!
 
-**Logging**
-
-Logs from the agent will appear in `/opt/observiq-otel-collector/log`. You may run `sudo tail -F /opt/observiq-otel-collector/log/collector.log` to view them.
-
-Stdout and stderr for the agent process are recorded via journald. You man run `sudo journalctl -u observiq-otel-collector.service` to view them.
-
 **Configuration**
 
-The config file for the agent can be found at `/opt/observiq-otel-collector/config.yaml`. When changing the configuration,the agent service must be restarted in order for config changes to take effect.
+The config file for the agent can be found at `/opt/observiq-otel-collector/supervisor_storage/effective.yaml`. If you modify this file, the supervisor will overwrite it on startup with the last config it received from an OpAMP platform. The best way to change the agent's configuration is to send a new config to the supervisor via OpAMP.
 
-For more information on configuring the agent, see the [OpenTelemetry docs](https://opentelemetry.io/docs/collector/configuration/).
+If this method of collector management does not work for your use case, see this [alternative option](./supervisor.md#alternatives)
+
+**Logging**
+
+Logs from the agent will appear in `/opt/observiq-otel-collector/supervisor_storage/agent.log`. You may run `sudo tail -F /opt/observiq-otel-collector/supervisor_storage/agent.log` to view them.
+
+Stdout and stderr for the supervisor process are recorded via journald. You man run `sudo journalctl -u observiq-otel-collector.service` to view them.
 
 **Permissions**
 
