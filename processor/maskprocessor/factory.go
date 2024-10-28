@@ -65,7 +65,7 @@ func createTracesProcessor(
 	}
 
 	processor := newProcessor(set.Logger, maskCfg)
-	return processorhelper.NewTracesProcessor(
+	return processorhelper.NewTraces(
 		ctx,
 		set,
 		cfg,
@@ -88,7 +88,7 @@ func createLogsProcessor(
 	}
 
 	processor := newProcessor(set.Logger, maskCfg)
-	return processorhelper.NewLogsProcessor(
+	return processorhelper.NewLogs(
 		ctx,
 		set,
 		cfg,
@@ -111,7 +111,7 @@ func createMetricsProcessor(
 	}
 
 	processor := newProcessor(set.Logger, maskCfg)
-	return processorhelper.NewMetricsProcessor(
+	return processorhelper.NewMetrics(
 		ctx,
 		set,
 		cfg,

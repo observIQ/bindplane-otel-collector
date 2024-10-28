@@ -41,7 +41,7 @@ func TestProcess_Logs(t *testing.T) {
 	sink := &consumertest.LogsSink{}
 
 	pSet := processortest.NewNopSettings()
-	p, err := factory.CreateLogsProcessor(context.Background(), pSet, factory.CreateDefaultConfig(), sink)
+	p, err := factory.CreateLogs(context.Background(), pSet, factory.CreateDefaultConfig(), sink)
 	require.NoError(t, err)
 
 	mockOpamp := &mockOpAMPExtension{
@@ -105,7 +105,7 @@ func TestProcess_Metrics(t *testing.T) {
 	sink := &consumertest.MetricsSink{}
 
 	pSet := processortest.NewNopSettings()
-	p, err := factory.CreateMetricsProcessor(context.Background(), pSet, factory.CreateDefaultConfig(), sink)
+	p, err := factory.CreateMetrics(context.Background(), pSet, factory.CreateDefaultConfig(), sink)
 	require.NoError(t, err)
 
 	mockOpamp := &mockOpAMPExtension{
@@ -169,7 +169,7 @@ func TestProcess_Traces(t *testing.T) {
 	sink := &consumertest.TracesSink{}
 
 	pSet := processortest.NewNopSettings()
-	p, err := factory.CreateTracesProcessor(context.Background(), pSet, factory.CreateDefaultConfig(), sink)
+	p, err := factory.CreateTraces(context.Background(), pSet, factory.CreateDefaultConfig(), sink)
 	require.NoError(t, err)
 
 	mockOpamp := &mockOpAMPExtension{

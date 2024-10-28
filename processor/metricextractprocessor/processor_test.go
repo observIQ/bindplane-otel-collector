@@ -606,7 +606,7 @@ func TestProcessorExtractMetrics(t *testing.T) {
 	createSettings := receivertest.NewNopSettings()
 	createSettings.ID = component.NewIDWithName(component.Type{}, routeReceiverName)
 
-	routereceiver.NewFactory().CreateMetricsReceiver(context.Background(), createSettings, routereceiver.Config{}, routeMetrics)
+	routereceiver.NewFactory().CreateMetrics(context.Background(), createSettings, routereceiver.Config{}, routeMetrics)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -617,7 +617,7 @@ func TestProcessorExtractMetrics(t *testing.T) {
 
 			factory := NewFactory()
 
-			p, err := factory.CreateLogsProcessor(context.Background(), processortest.NewNopSettings(), tc.cfg, logSink)
+			p, err := factory.CreateLogs(context.Background(), processortest.NewNopSettings(), tc.cfg, logSink)
 			require.NoError(t, err)
 
 			logsClone := plog.NewLogs()

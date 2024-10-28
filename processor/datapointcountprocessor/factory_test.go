@@ -28,7 +28,7 @@ func TestNewProcessorFactory(t *testing.T) {
 	require.Equal(t, componentType, f.Type())
 	require.Equal(t, stability, f.MetricsStability())
 	require.NotNil(t, f.CreateDefaultConfig())
-	require.NotNil(t, f.CreateMetricsProcessor)
+	require.NotNil(t, f.CreateMetrics)
 }
 
 func TestCreateMetricsProcessor(t *testing.T) {
@@ -68,7 +68,7 @@ func TestCreateMetricsProcessor(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			f := NewFactory()
-			p, err := f.CreateMetricsProcessor(context.Background(), processor.Settings{}, tc.cfg, nil)
+			p, err := f.CreateMetrics(context.Background(), processor.Settings{}, tc.cfg, nil)
 			if tc.expectedErr == "" {
 				require.NoError(t, err)
 				require.IsType(t, &metricCountProcessor{}, p)

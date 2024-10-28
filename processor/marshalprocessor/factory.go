@@ -46,5 +46,5 @@ func createLogsProcessor(
 	oCfg := cfg.(*Config)
 	tmp := newMarshalProcessor(set.Logger, oCfg)
 
-	return processorhelper.NewLogsProcessor(ctx, set, cfg, nextConsumer, tmp.processLogs, processorhelper.WithCapabilities(consumerCapabilities))
+	return processorhelper.NewLogs(ctx, set, cfg, nextConsumer, tmp.processLogs, processorhelper.WithCapabilities(consumerCapabilities))
 }

@@ -38,15 +38,15 @@ func TestNewFactory(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, expectedCfg, cfg)
 
-	l, err := factory.CreateLogsProcessor(context.Background(), processortest.NewNopSettings(), cfg, consumertest.NewNop())
+	l, err := factory.CreateLogs(context.Background(), processortest.NewNopSettings(), cfg, consumertest.NewNop())
 	require.NoError(t, err)
 	require.NotNil(t, l)
 
-	m, err := factory.CreateMetricsProcessor(context.Background(), processortest.NewNopSettings(), cfg, consumertest.NewNop())
+	m, err := factory.CreateMetrics(context.Background(), processortest.NewNopSettings(), cfg, consumertest.NewNop())
 	require.NoError(t, err)
 	require.NotNil(t, m)
 
-	tr, err := factory.CreateTracesProcessor(context.Background(), processortest.NewNopSettings(), cfg, consumertest.NewNop())
+	tr, err := factory.CreateTraces(context.Background(), processortest.NewNopSettings(), cfg, consumertest.NewNop())
 	require.NoError(t, err)
 	require.NotNil(t, tr)
 

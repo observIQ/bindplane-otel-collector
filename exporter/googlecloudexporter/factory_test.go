@@ -46,7 +46,7 @@ func TestCreateMetricExporterSuccess(t *testing.T) {
 	ctx := context.Background()
 	set := exportertest.NewNopSettings()
 
-	testExporter, err := factory.CreateMetricsExporter(ctx, set, cfg)
+	testExporter, err := factory.CreateMetrics(ctx, set, cfg)
 	require.NoError(t, err)
 
 	googleExporter, ok := testExporter.(*googlecloudExporter)
@@ -75,7 +75,7 @@ func TestCreateLogsExporterSuccess(t *testing.T) {
 	ctx := context.Background()
 	set := exportertest.NewNopSettings()
 
-	testExporter, err := factory.CreateLogsExporter(ctx, set, cfg)
+	testExporter, err := factory.CreateLogs(ctx, set, cfg)
 	require.NoError(t, err)
 
 	googleExporter, ok := testExporter.(*googlecloudExporter)
@@ -104,7 +104,7 @@ func TestCreateTracesExporterSuccess(t *testing.T) {
 	ctx := context.Background()
 	set := exportertest.NewNopSettings()
 
-	testExporter, err := factory.CreateTracesExporter(ctx, set, cfg)
+	testExporter, err := factory.CreateTraces(ctx, set, cfg)
 	require.NoError(t, err)
 
 	googleExporter, ok := testExporter.(*googlecloudExporter)
@@ -128,15 +128,15 @@ func TestCreateExporterFailure(t *testing.T) {
 	ctx := context.Background()
 	set := exportertest.NewNopSettings()
 
-	_, err := factory.CreateMetricsExporter(ctx, set, cfg)
+	_, err := factory.CreateMetrics(ctx, set, cfg)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to create metrics exporter")
 
-	_, err = factory.CreateLogsExporter(ctx, set, cfg)
+	_, err = factory.CreateLogs(ctx, set, cfg)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to create logs exporter")
 
-	_, err = factory.CreateTracesExporter(ctx, set, cfg)
+	_, err = factory.CreateTraces(ctx, set, cfg)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to create traces exporter")
 }

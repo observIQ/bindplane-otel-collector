@@ -49,7 +49,7 @@ func TestCreateMetricExporterSuccess(t *testing.T) {
 	ctx := context.Background()
 	set := exportertest.NewNopSettings()
 
-	testExporter, err := factory.CreateMetricsExporter(ctx, set, cfg)
+	testExporter, err := factory.CreateMetrics(ctx, set, cfg)
 	require.NoError(t, err)
 
 	createdMockExporter, ok := testExporter.(*MockExporter)
@@ -73,7 +73,7 @@ func TestCreateExporterFailure(t *testing.T) {
 	ctx := context.Background()
 	set := exportertest.NewNopSettings()
 
-	_, err := factory.CreateMetricsExporter(ctx, set, cfg)
+	_, err := factory.CreateMetrics(ctx, set, cfg)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to create metrics exporter")
 }
