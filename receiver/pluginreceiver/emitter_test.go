@@ -37,7 +37,7 @@ func TestCreateLogEmitterFactory(t *testing.T) {
 	set := exporter.Settings{}
 	cfg := defaultEmitterConfig()
 
-	exporter, err := factory.CreateLogsExporter(ctx, set, cfg)
+	exporter, err := factory.CreateLogs(ctx, set, cfg)
 	require.NoError(t, err)
 
 	err = exporter.ConsumeLogs(ctx, logs)
@@ -55,7 +55,7 @@ func TestCreateMetricEmitterFactory(t *testing.T) {
 	set := exporter.Settings{}
 	cfg := defaultEmitterConfig()
 
-	exporter, err := factory.CreateMetricsExporter(ctx, set, cfg)
+	exporter, err := factory.CreateMetrics(ctx, set, cfg)
 	require.NoError(t, err)
 
 	err = exporter.ConsumeMetrics(ctx, metrics)
@@ -73,7 +73,7 @@ func TestCreateTraceEmitterFactory(t *testing.T) {
 	set := exporter.Settings{}
 	cfg := defaultEmitterConfig()
 
-	exporter, err := factory.CreateTracesExporter(ctx, set, cfg)
+	exporter, err := factory.CreateTraces(ctx, set, cfg)
 	require.NoError(t, err)
 
 	err = exporter.ConsumeTraces(ctx, traces)

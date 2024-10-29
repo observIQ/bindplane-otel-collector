@@ -65,7 +65,7 @@ func createTracesProcessor(
 	}
 
 	processor := newLookupProcessor(lookupCfg, set.Logger)
-	return processorhelper.NewTracesProcessor(
+	return processorhelper.NewTraces(
 		ctx,
 		set,
 		cfg,
@@ -90,7 +90,7 @@ func createLogsProcessor(
 	}
 
 	processor := newLookupProcessor(lookupCfg, set.Logger)
-	return processorhelper.NewLogsProcessor(
+	return processorhelper.NewLogs(
 		ctx,
 		set,
 		cfg,
@@ -115,7 +115,7 @@ func createMetricsProcessor(
 	}
 
 	processor := newLookupProcessor(lookupCfg, set.Logger)
-	return processorhelper.NewMetricsProcessor(
+	return processorhelper.NewMetrics(
 		ctx,
 		set,
 		cfg,

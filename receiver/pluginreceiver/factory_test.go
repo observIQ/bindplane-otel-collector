@@ -112,7 +112,7 @@ func TestCreateLogsReceiver(t *testing.T) {
 		},
 	}
 
-	receiver, err := factory.CreateLogsReceiver(ctx, set, cfg, consumer)
+	receiver, err := factory.CreateLogs(ctx, set, cfg, consumer)
 	require.NoError(t, err)
 	require.IsType(t, &Receiver{}, receiver)
 }
@@ -129,7 +129,7 @@ func TestCreateMetricsReceiver(t *testing.T) {
 		},
 	}
 
-	receiver, err := factory.CreateMetricsReceiver(ctx, set, cfg, consumer)
+	receiver, err := factory.CreateMetrics(ctx, set, cfg, consumer)
 	require.NoError(t, err)
 	require.IsType(t, &Receiver{}, receiver)
 }
@@ -146,7 +146,7 @@ func TestCreateTracesReceiver(t *testing.T) {
 		},
 	}
 
-	receiver, err := factory.CreateTracesReceiver(ctx, set, cfg, consumer)
+	receiver, err := factory.CreateTraces(ctx, set, cfg, consumer)
 	require.NoError(t, err)
 	require.IsType(t, &Receiver{}, receiver)
 }

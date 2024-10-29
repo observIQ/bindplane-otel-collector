@@ -49,7 +49,7 @@ func TestNewFactory(t *testing.T) {
 		// Default config should be valid
 		require.NoError(t, c.Validate())
 
-		defaultProcessor, err := fact.CreateMetricsProcessor(
+		defaultProcessor, err := fact.CreateMetrics(
 			context.Background(),
 			processortest.NewNopSettings(),
 			conf,
@@ -64,7 +64,7 @@ func TestNewFactory(t *testing.T) {
 		fact := NewFactory()
 		require.NotNil(t, fact)
 
-		_, err := fact.CreateMetricsProcessor(
+		_, err := fact.CreateMetrics(
 			context.Background(),
 			processortest.NewNopSettings(),
 			"not a config",
@@ -78,7 +78,7 @@ func TestNewFactory(t *testing.T) {
 		fact := NewFactory()
 		require.NotNil(t, fact)
 
-		_, err := fact.CreateMetricsProcessor(
+		_, err := fact.CreateMetrics(
 			context.Background(),
 			processortest.NewNopSettings(),
 			&Config{

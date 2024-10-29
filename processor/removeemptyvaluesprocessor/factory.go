@@ -68,7 +68,7 @@ func createTracesProcessor(
 	}
 	evp := newEmptyValueProcessor(set.Logger, *oCfg)
 
-	return processorhelper.NewTracesProcessor(ctx, set, cfg, nextConsumer, evp.processTraces, processorhelper.WithCapabilities(consumerCapabilities))
+	return processorhelper.NewTraces(ctx, set, cfg, nextConsumer, evp.processTraces, processorhelper.WithCapabilities(consumerCapabilities))
 }
 
 func createLogsProcessor(
@@ -83,7 +83,7 @@ func createLogsProcessor(
 	}
 	evp := newEmptyValueProcessor(set.Logger, *oCfg)
 
-	return processorhelper.NewLogsProcessor(ctx, set, cfg, nextConsumer, evp.processLogs, processorhelper.WithCapabilities(consumerCapabilities))
+	return processorhelper.NewLogs(ctx, set, cfg, nextConsumer, evp.processLogs, processorhelper.WithCapabilities(consumerCapabilities))
 }
 
 func createMetricsProcessor(
@@ -98,5 +98,5 @@ func createMetricsProcessor(
 	}
 	evp := newEmptyValueProcessor(set.Logger, *oCfg)
 
-	return processorhelper.NewMetricsProcessor(ctx, set, cfg, nextConsumer, evp.processMetrics, processorhelper.WithCapabilities(consumerCapabilities))
+	return processorhelper.NewMetrics(ctx, set, cfg, nextConsumer, evp.processMetrics, processorhelper.WithCapabilities(consumerCapabilities))
 }

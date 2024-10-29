@@ -45,7 +45,7 @@ func TestShutdownBeforeStart(t *testing.T) {
 
 	processorFactory := NewFactory()
 	processorSettings := processor.Settings{TelemetrySettings: component.TelemetrySettings{Logger: zaptest.NewLogger(t)}}
-	processor, err := processorFactory.CreateMetricsProcessor(context.Background(), processorSettings, processorCfg, nextMetricConsumer)
+	processor, err := processorFactory.CreateMetrics(context.Background(), processorSettings, processorCfg, nextMetricConsumer)
 	require.NoError(t, err)
 
 	require.NotPanics(t, func() {
@@ -67,11 +67,11 @@ func TestConsumeMetrics(t *testing.T) {
 
 	processorFactory := NewFactory()
 	processorSettings := processor.Settings{TelemetrySettings: component.TelemetrySettings{Logger: zaptest.NewLogger(t)}}
-	processor, err := processorFactory.CreateMetricsProcessor(context.Background(), processorSettings, processorCfg, nextMetricConsumer)
+	processor, err := processorFactory.CreateMetrics(context.Background(), processorSettings, processorCfg, nextMetricConsumer)
 	require.NoError(t, err)
 
 	receiverFactory := routereceiver.NewFactory()
-	receiver, err := receiverFactory.CreateMetricsReceiver(context.Background(), receiver.Settings{}, receiverFactory.CreateDefaultConfig(), countMetricConsumer)
+	receiver, err := receiverFactory.CreateMetrics(context.Background(), receiver.Settings{}, receiverFactory.CreateDefaultConfig(), countMetricConsumer)
 	require.NoError(t, err)
 
 	err = processor.Start(context.Background(), nil)
@@ -130,11 +130,11 @@ func TestConsumeMetricsAttrsOnly(t *testing.T) {
 
 	processorFactory := NewFactory()
 	processorSettings := processor.Settings{TelemetrySettings: component.TelemetrySettings{Logger: zaptest.NewLogger(t)}}
-	processor, err := processorFactory.CreateMetricsProcessor(context.Background(), processorSettings, processorCfg, nextMetricConsumer)
+	processor, err := processorFactory.CreateMetrics(context.Background(), processorSettings, processorCfg, nextMetricConsumer)
 	require.NoError(t, err)
 
 	receiverFactory := routereceiver.NewFactory()
-	receiver, err := receiverFactory.CreateMetricsReceiver(context.Background(), receiver.Settings{}, receiverFactory.CreateDefaultConfig(), countMetricConsumer)
+	receiver, err := receiverFactory.CreateMetrics(context.Background(), receiver.Settings{}, receiverFactory.CreateDefaultConfig(), countMetricConsumer)
 	require.NoError(t, err)
 
 	err = processor.Start(context.Background(), nil)
@@ -196,11 +196,11 @@ func TestConsumeMetricsOTTL(t *testing.T) {
 
 	processorFactory := NewFactory()
 	processorSettings := processor.Settings{TelemetrySettings: component.TelemetrySettings{Logger: zaptest.NewLogger(t)}}
-	processor, err := processorFactory.CreateMetricsProcessor(context.Background(), processorSettings, processorCfg, nextMetricConsumer)
+	processor, err := processorFactory.CreateMetrics(context.Background(), processorSettings, processorCfg, nextMetricConsumer)
 	require.NoError(t, err)
 
 	receiverFactory := routereceiver.NewFactory()
-	receiver, err := receiverFactory.CreateMetricsReceiver(context.Background(), receiver.Settings{}, receiverFactory.CreateDefaultConfig(), countMetricConsumer)
+	receiver, err := receiverFactory.CreateMetrics(context.Background(), receiver.Settings{}, receiverFactory.CreateDefaultConfig(), countMetricConsumer)
 	require.NoError(t, err)
 
 	err = processor.Start(context.Background(), nil)
@@ -251,7 +251,7 @@ func TestConsumeLogsWithoutReceiver(t *testing.T) {
 	processorCfg := createDefaultConfig().(*Config)
 	processorFactory := NewFactory()
 	processorSettings := processor.Settings{TelemetrySettings: component.TelemetrySettings{Logger: logger.Logger}}
-	p, err := processorFactory.CreateMetricsProcessor(context.Background(), processorSettings, processorCfg, &consumertest.MetricsSink{})
+	p, err := processorFactory.CreateMetrics(context.Background(), processorSettings, processorCfg, &consumertest.MetricsSink{})
 	require.NoError(t, err)
 
 	metricCountProcessor := p.(*metricCountProcessor)

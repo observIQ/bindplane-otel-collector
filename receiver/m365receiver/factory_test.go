@@ -31,7 +31,7 @@ func TestType(t *testing.T) {
 
 func TestCreateMetricsReceiver(t *testing.T) {
 	factory := NewFactory()
-	test, err := factory.CreateMetricsReceiver(
+	test, err := factory.CreateMetrics(
 		context.Background(),
 		receivertest.NewNopSettings(),
 		createDefaultConfig(),
@@ -43,7 +43,7 @@ func TestCreateMetricsReceiver(t *testing.T) {
 
 func TestCreateLogsReceiver(t *testing.T) {
 	factory := NewFactory()
-	test, err := factory.CreateLogsReceiver(
+	test, err := factory.CreateLogs(
 		context.Background(),
 		receivertest.NewNopSettings(),
 		createDefaultConfig(),

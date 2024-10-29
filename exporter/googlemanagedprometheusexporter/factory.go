@@ -54,7 +54,7 @@ func createMetricsExporter(ctx context.Context, set exporter.Settings, cfg compo
 		set.Logger.Error("Failed to set project automatically", zap.Error(err))
 	}
 
-	gmpExporter, err := gmpFactory.CreateMetricsExporter(ctx, set, exporterConfig.GMPConfig)
+	gmpExporter, err := gmpFactory.CreateMetrics(ctx, set, exporterConfig.GMPConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create metrics exporter: %w", err)
 	}

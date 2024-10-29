@@ -32,7 +32,7 @@ func TestType(t *testing.T) {
 func TestCreateLogsReceiver(t *testing.T) {
 	cfg := createDefaultConfig().(*Config)
 
-	_, err := NewFactory().CreateLogsReceiver(
+	_, err := NewFactory().CreateLogs(
 		context.Background(),
 		receivertest.NewNopSettings(),
 		cfg,

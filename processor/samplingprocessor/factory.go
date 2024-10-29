@@ -70,7 +70,7 @@ func createTracesProcessor(
 	}
 	sp := newTracesSamplingProcessor(set.Logger, oCfg, condition)
 
-	return processorhelper.NewTracesProcessor(ctx, set, cfg, nextConsumer, sp.processTraces, processorhelper.WithCapabilities(consumerCapabilities))
+	return processorhelper.NewTraces(ctx, set, cfg, nextConsumer, sp.processTraces, processorhelper.WithCapabilities(consumerCapabilities))
 }
 
 func createLogsProcessor(
@@ -86,7 +86,7 @@ func createLogsProcessor(
 	}
 	tmp := newLogsSamplingProcessor(set.Logger, oCfg, condition)
 
-	return processorhelper.NewLogsProcessor(ctx, set, cfg, nextConsumer, tmp.processLogs, processorhelper.WithCapabilities(consumerCapabilities))
+	return processorhelper.NewLogs(ctx, set, cfg, nextConsumer, tmp.processLogs, processorhelper.WithCapabilities(consumerCapabilities))
 }
 
 func createMetricsProcessor(
@@ -102,5 +102,5 @@ func createMetricsProcessor(
 	}
 	tmp := newMetricsSamplingProcessor(set.Logger, oCfg, condition)
 
-	return processorhelper.NewMetricsProcessor(ctx, set, cfg, nextConsumer, tmp.processMetrics, processorhelper.WithCapabilities(consumerCapabilities))
+	return processorhelper.NewMetrics(ctx, set, cfg, nextConsumer, tmp.processMetrics, processorhelper.WithCapabilities(consumerCapabilities))
 }

@@ -26,30 +26,30 @@ import (
 func TestNewFactory(t *testing.T) {
 	f := NewFactory()
 	require.Equal(t, component.NewID(componentType).Type(), f.Type())
-	require.Equal(t, stability, f.MetricsReceiverStability())
+	require.Equal(t, stability, f.MetricsStability())
 	require.NotNil(t, f.CreateDefaultConfig())
-	require.NotNil(t, f.CreateMetricsReceiver)
-	require.NotNil(t, f.CreateLogsReceiver)
-	require.NotNil(t, f.CreateTracesReceiver)
+	require.NotNil(t, f.CreateMetrics)
+	require.NotNil(t, f.CreateLogs)
+	require.NotNil(t, f.CreateTraces)
 }
 
 func TestCreateMetricsReceiver(t *testing.T) {
 	f := NewFactory()
-	r, err := f.CreateMetricsReceiver(context.Background(), receiver.Settings{}, createDefaultConfig(), nil)
+	r, err := f.CreateMetrics(context.Background(), receiver.Settings{}, createDefaultConfig(), nil)
 	require.NoError(t, err)
 	require.IsType(t, &routeReceiver{}, r)
 }
 
 func TestCreateLogsReceiver(t *testing.T) {
 	f := NewFactory()
-	r, err := f.CreateLogsReceiver(context.Background(), receiver.Settings{}, createDefaultConfig(), nil)
+	r, err := f.CreateLogs(context.Background(), receiver.Settings{}, createDefaultConfig(), nil)
 	require.NoError(t, err)
 	require.IsType(t, &routeReceiver{}, r)
 }
 
 func TestCreateTracesReceiver(t *testing.T) {
 	f := NewFactory()
-	r, err := f.CreateTracesReceiver(context.Background(), receiver.Settings{}, createDefaultConfig(), nil)
+	r, err := f.CreateTraces(context.Background(), receiver.Settings{}, createDefaultConfig(), nil)
 	require.NoError(t, err)
 	require.IsType(t, &routeReceiver{}, r)
 }
