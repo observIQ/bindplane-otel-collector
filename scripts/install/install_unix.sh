@@ -771,6 +771,10 @@ create_supervisor_config() {
   [ -n "$OPAMP_LABELS" ] && command printf '      service.labels: "%s"\n' "$OPAMP_LABELS" >>"$supervisor_yml_path"
   command printf 'storage:\n' >>"$supervisor_yml_path"
   command printf '  directory: "%s"\n' "$INSTALL_DIR/supervisor_storage" >>"$supervisor_yml_path"
+  command printf 'telemetry:\n' >>"$supervisor_yml_path"
+  command printf '  logs:\n' >>"$supervisor_yml_path"
+  command printf '    level: 0\n' >>"$supervisor_yml_path"
+  command printf '    output_paths: ["%s"]' "$INSTALL_DIR/supervisor_storage/supervisor.log" >>"$supervisor_yml_path"
 }
 
 # This will display the results of an installation
