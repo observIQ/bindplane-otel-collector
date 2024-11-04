@@ -632,13 +632,16 @@ create_supervisor_config() {
   command printf '  accepts_remote_config: true\n' >>"$supervisor_yml_path"
   command printf '  reports_remote_config: true\n' >>"$supervisor_yml_path"
   command printf 'agent:\n' >>"$supervisor_yml_path"
-  # TODO(dakota): Add logging config option when supervisor suppports it
   command printf '  executable: "%s"\n' "$INSTALL_DIR/observiq-otel-collector" >>"$supervisor_yml_path"
   command printf '  description:\n' >>"$supervisor_yml_path"
   command printf '    non_identifying_attributes:\n' >>"$supervisor_yml_path"
   [ -n "$OPAMP_LABELS" ] && command printf '      service.labels: "%s"\n' "$OPAMP_LABELS" >>"$supervisor_yml_path"
   command printf 'storage:\n' >>"$supervisor_yml_path"
   command printf '  directory: "%s"\n' "$INSTALL_DIR/supervisor_storage" >>"$supervisor_yml_path"
+  command printf 'telemetry:\n' >>"$supervisor_yml_path"
+  command printf '  logs:\n' >>"$supervisor_yml_path"
+  command printf '    level: 0\n' >>"$supervisor_yml_path"
+  command printf '    output_paths: ["%s"]' "$INSTALL_DIR/supervisor_storage/supervisor.log" >>"$supervisor_yml_path"
   succeeded
 }
 
