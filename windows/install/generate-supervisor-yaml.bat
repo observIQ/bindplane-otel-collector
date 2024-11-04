@@ -47,6 +47,11 @@ set "serviceLabelsField=      service.labels: "%labels%""
 set "storageField=storage:"
 set "directoryField=  directory: '%install_dir%supervisor_storage'"
 
+set "telemetryField=telemetry:"
+set "logsField=  logs:"
+set "logsLevelField=    level: 0"
+set "logsOutputPathsField=    output_paths: ['%install_dir%supervisor_storage\supervisor.log']"
+
 echo %serverField% >"%supervisorFile%"
 echo %endpointField% >>"%supervisorFile%"
 echo %headersField% >>"%supervisorFile%"
@@ -67,5 +72,10 @@ echo %serviceLabelsField% >>"%supervisorFile%"
 
 echo %storageField% >>"%supervisorFile%"
 echo %directoryField% >>"%supervisorFile%"
+
+echo %telemetryField% >>"%supervisorFile%"
+echo %logsField% >>"%supervisorFile%"
+echo %logsLevelField% >>"%supervisorFile%"
+echo %logsOutputPathsField% >>"%supervisorFile%"
 
 endlocal
