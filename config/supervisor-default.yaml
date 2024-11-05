@@ -1,0 +1,12 @@
+server:
+  endpoint: ws://localhost:3001/v1/opamp
+
+capabilities:
+  accepts_remote_config: true
+  reports_remote_config: true
+
+agent:
+  executable: "./observiq-otel-collector"
+
+storage:
+  directory: "./supervisor_storage"
