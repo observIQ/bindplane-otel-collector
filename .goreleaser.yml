@@ -188,6 +188,12 @@ nfpms:
         dst: /opt/observiq-otel-collector/plugins
       # Storage dir is used by stateful receivers, such as filelog receiver. It allows
       # receivers to track their progress and buffer data.
+      - src: config/supervisor-default.yaml
+        dst: /opt/observiq-otel-collector/supervisor.yaml
+        file_info:
+          mode: 0750
+          owner: observiq-otel-collector
+          group: observiq-otel-collector
       - dst: /opt/observiq-otel-collector/storage
         type: dir
         file_info:

@@ -30,6 +30,9 @@ indent=""
 non_interactive=false
 error_mode=false
 
+# Default Supervisor Config Hash
+DEFAULT_SUPERVISOR_CFG_HASH="ac4e6001f1b19d371bba6a2797ba0a55d7ca73151ba6908040598ca275c0efca"
+
 # Colors
 if [ "$non_interactive" = "false" ]; then
   num_colors=$(tput colors 2>/dev/null)
@@ -485,21 +488,28 @@ ask_clean_install() {
   fi
 
   if [ -f "$SUPERVISOR_YML_PATH" ]; then
-    command printf "${indent}An installation already exists. Would you like to do a clean install? $(prompt n)"
-    read -r clean_install_response
-    clean_install_response=$(echo "$clean_install_response" | tr '[:upper:]' '[:lower:]')
-    case $clean_install_response in
-    y | yes)
-      increase_indent
-      success "Doing clean install!"
-      decrease_indent
+    # Check for default config file hash
+    cfg_file_hash=$(sha256sum "$SUPERVISOR_YML_PATH" | awk '{print $1}')
+    if [ "$cfg_file_hash" = "$DEFAULT_SUPERVISOR_CFG_HASH" ]; then
+      # config matches default config, mark clean_install as true
       clean_install="true"
-      ;;
-    *)
-      warn "Doing upgrade instead of clean install"
-      clean_install="false"
-      ;;
-    esac
+    else
+      command printf "${indent}An installation already exists. Would you like to do a clean install? $(prompt n)"
+      read -r clean_install_response
+      clean_install_response=$(echo "$clean_install_response" | tr '[:upper:]' '[:lower:]')
+      case $clean_install_response in
+      y | yes)
+        increase_indent
+        success "Doing clean install!"
+        decrease_indent
+        clean_install="true"
+        ;;
+      *)
+        warn "Doing upgrade instead of clean install"
+        clean_install="false"
+        ;;
+      esac
+    fi
   else
     warn "Previous supervisor config not found, doing clean install"
     clean_install="true"
@@ -569,10 +579,7 @@ install_package() {
   decrease_indent
   succeeded
 
-  # If an endpoint was specified, we need to write the supervisor.yaml
-  if [ -n "$OPAMP_ENDPOINT" ]; then
-    create_supervisor_config "$SUPERVISOR_YML_PATH"
-  fi
+  create_supervisor_config "$SUPERVISOR_YML_PATH"
 
   # Install jmx jar
   info "Moving opentelemetry-java-contrib-jmx-metrics.jar to /opt..."
@@ -613,6 +620,13 @@ create_supervisor_config() {
   fi
 
   info "Creating supervisor config..."
+
+  if [ -z "$OPAMP_ENDPOINT" ]; then
+    OPAMP_ENDPOINT="ws://localhost:3001/v1/opamp"
+    increase_indent
+    info "No OpAMP endpoint specified, starting agent using 'ws://localhost:3001/v1/opamp' as endpoint."
+    decrease_indent
+  fi
 
   # Note here: We create the file and change permissions of the file here BEFORE writing info to it.
   # We do this because the file contains the secret key.

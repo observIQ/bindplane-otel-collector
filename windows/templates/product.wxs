@@ -234,10 +234,10 @@
 
         <!-- Schedule the action that creates the supervisor.yaml file on initial install -->
         <Custom Action="CustomExecCreateSupervisorYaml_set" After="InstallInitialize" >
-            <![CDATA[(VersionNT >= 603 OR VersionNT64 >= 603) AND NOT Installed AND NOT REMOVE AND ENABLEMANAGEMENT AND NOT WIX_UPGRADE_DETECTED]]>
+            <![CDATA[(VersionNT >= 603 OR VersionNT64 >= 603) AND NOT Installed AND NOT REMOVE AND NOT WIX_UPGRADE_DETECTED]]>
         </Custom>
         <Custom Action="CustomExecCreateSupervisorYaml" After="InstallFiles" >
-            <![CDATA[(VersionNT >= 603 OR VersionNT64 >= 603) AND NOT Installed AND NOT REMOVE AND ENABLEMANAGEMENT AND NOT WIX_UPGRADE_DETECTED]]>
+            <![CDATA[(VersionNT >= 603 OR VersionNT64 >= 603) AND NOT Installed AND NOT REMOVE AND NOT WIX_UPGRADE_DETECTED]]>
         </Custom>
         
         <!-- Schedule the action that removes the supervisor.yaml file on final uninstall -->
