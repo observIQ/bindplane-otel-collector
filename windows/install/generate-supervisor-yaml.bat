@@ -12,13 +12,8 @@ echo %secret_key%
 echo %labels%
 
 if "%endpoint%"=="" (
-    echo Endpoint not specified; Not writing output yaml
-    exit /b 0
-)
-
-if "%secret_key%"=="" (
-    echo Secret Key not specified; Not writing output yaml
-    exit /b 0
+    echo Endpoint not specified, using default value of 'ws://localhost:3001/v1/opamp'
+    set "endpoint=ws://localhost:3001/v1/opamp"
 )
 
 set "supervisorFile=%install_dir%supervisor.yaml"
