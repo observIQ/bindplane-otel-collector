@@ -3,6 +3,7 @@ package loganomalyprocessor
 import (
 	"context"
 	"math"
+	"sort"
 	"sync"
 	"time"
 
@@ -36,15 +37,16 @@ type Processor struct {
 	baselineWindowCount int64
 	logTimestamps       []time.Time
 
-	startTime     time.Time
-	lastCheckTime time.Time
-	checkTicker   *time.Ticker
+	startTime   time.Time
+	checkTicker *time.Ticker
 
 	nextConsumer consumer.Logs
 }
 
 func newProcessor(config *Config, log *zap.Logger, nextConsumer consumer.Logs) *Processor {
 	ctx, cancel := context.WithCancel(context.Background())
+
+	log = log.WithOptions(zap.Development())
 
 	return &Processor{
 		ctx:    ctx,
@@ -55,8 +57,7 @@ func newProcessor(config *Config, log *zap.Logger, nextConsumer consumer.Logs) *
 
 		config: config,
 
-		startTime:     time.Now(),
-		lastCheckTime: time.Now(),
+		startTime: time.Now(),
 
 		checkTicker: nil,
 
@@ -120,56 +121,46 @@ func (p *Processor) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 		}
 	}
 
-	p.pruneOldLogs(currentTime)
-
-	if anomaly := p.checkForAnomaly(); anomaly != nil {
-		//p.anomalyFormatter.Add(*anomaly)
-		icon := "📈"
-		if anomaly.anomalyType == "Drop" {
-			icon = "📉"
-		}
-		p.logger.Info("Log anomaly detected",
-			zap.String("anomaly_type", icon+" "+anomaly.anomalyType),
-			zap.Float64("baseline_rate", anomaly.baselineRate),
-			zap.Float64("current_rate", anomaly.currentRate),
-			zap.Float64("deviation_percentage", anomaly.percentageDiff))
-		//p.anomalyFormatter.LogReport(p.logger)
-		//p.anomalyFormatter.Clear()
-		//
-		// p.logger.Info("Log anomaly detected",
-		// 	zap.String("Anomaly Type", anomaly.anomalyType),
-		// 	zap.Float64("Baseline Rate", anomaly.baselineRate),
-		// 	zap.Float64("Current Rate", anomaly.currentRate),
-		// 	zap.Float64("Percentage Difference", anomaly.percentageDiff),
-		// 	zap.Float64("Deviation Threshold", p.config.DeviationThreshold),
-		// 	zap.Int64("Baseline Log Count", p.baselineWindowCount),
-		// 	zap.Int64("Current Log Count", p.currentWindowCount),
-		// )
-	}
+	p.pruneLogs(currentTime)
 
 	return p.nextConsumer.ConsumeLogs(ctx, ld)
 }
 
-func (p *Processor) pruneOldLogs(currentTime time.Time) {
-	var newTimestamps []time.Time
-
-	p.currentWindowCount = 0
-	p.baselineWindowCount = 0
-
-	// Recalculate counters based on windows
-	for _, timestamp := range p.logTimestamps {
-		timeDiff := currentTime.Sub(timestamp)
-
-		if timeDiff <= p.config.ComparisonWindows.BaselineWindow {
-			p.baselineWindowCount++
-			if timeDiff <= p.config.ComparisonWindows.CurrentWindow {
-				p.currentWindowCount++
-			}
-			newTimestamps = append(newTimestamps, timestamp)
-		}
+func (p *Processor) pruneLogs(currentTime time.Time) {
+	if len(p.logTimestamps) == 0 {
+		return
 	}
 
-	p.logTimestamps = newTimestamps
+	if currentTime.Sub(p.logTimestamps[0]) <= p.config.ComparisonWindows.BaselineWindow {
+		return
+	}
+
+	// binary search to find the earliest timestamp that we can prune
+	baselineLimit := currentTime.Add(-p.config.ComparisonWindows.BaselineWindow)
+	cutoffIndex := sort.Search(len(p.logTimestamps), func(i int) bool {
+		return p.logTimestamps[i].After(baselineLimit)
+	})
+
+	if cutoffIndex == len(p.logTimestamps) {
+		p.logTimestamps = p.logTimestamps[:0]
+		p.currentWindowCount = 0
+		p.baselineWindowCount = 0
+		return
+	}
+
+	// Update timestamps slice
+	p.logTimestamps = p.logTimestamps[cutoffIndex:]
+
+	// Reset counters
+	p.baselineWindowCount = int64(len(p.logTimestamps))
+
+	// Count current window logs
+	currentLimit := currentTime.Add(-p.config.ComparisonWindows.CurrentWindow)
+	currentIndex := sort.Search(len(p.logTimestamps), func(i int) bool {
+		return p.logTimestamps[i].After(currentLimit)
+	})
+	p.currentWindowCount = int64(len(p.logTimestamps) - currentIndex)
+
 }
 
 func (p *Processor) checkForAnomaly() *AnomalyStat {
@@ -178,11 +169,6 @@ func (p *Processor) checkForAnomaly() *AnomalyStat {
 	}
 
 	if time.Since(p.startTime) < p.config.ComparisonWindows.BaselineWindow {
-		return nil
-	}
-
-	// Alter this if you want to alert based on every new log instead of waiting on interval to report.
-	if time.Since(p.lastCheckTime) < p.config.ComparisonWindows.CurrentWindow {
 		return nil
 	}
 
@@ -212,20 +198,27 @@ func (p *Processor) noLogAnomalyCheck() {
 	p.stateLock.Lock()
 	defer p.stateLock.Unlock()
 
-	p.pruneOldLogs(time.Now())
+	p.pruneLogs(time.Now())
 	if anomaly := p.checkForAnomaly(); anomaly != nil {
-		icon := "📈"
-		if anomaly.anomalyType == "Drop" {
-			icon = "📉"
-		}
-		p.logger.Info("Log anomaly detected",
-			zap.String("anomaly_type", icon+" "+anomaly.anomalyType),
-			zap.Float64("baseline_rate", anomaly.baselineRate),
-			zap.Float64("current_rate", anomaly.currentRate),
-			zap.Float64("deviation_percentage", anomaly.percentageDiff))
-		// 	p.anomalyFormatter.Add(*anomaly)
-		// 	p.anomalyFormatter.LogReport(p.logger)
-		// 	p.anomalyFormatter.Clear()
+		p.logAnomaly(anomaly)
 	}
-	p.lastCheckTime = time.Now()
+}
+
+func (p *Processor) logAnomaly(anomaly *AnomalyStat) {
+	if anomaly == nil {
+		return
+	}
+
+	icon := "📈"
+	if anomaly.anomalyType == "Drop" {
+		icon = "📉"
+	}
+
+	p.logger.Info("Log anomaly detected",
+		zap.String("anomaly_type", icon+" "+anomaly.anomalyType),
+		zap.Float64("baseline_rate (logs/min)", anomaly.baselineRate),
+		zap.Float64("current_rate (logs/min)", anomaly.currentRate),
+		zap.Float64("deviation_percentage", anomaly.percentageDiff),
+	)
+	p.logger.Sync()
 }
