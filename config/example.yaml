@@ -1,32 +1,24 @@
-# 'receivers' specify configurations of receivers.
-# See the README for more information about the receivers available for configuration.
 receivers:
-  nop:
-
-# 'processors' specify configurations of processors.
-# See the README for more information about the processors available for configuration.
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
 processors:
-  # The batch processor; This processor will aggregate incoming metrics into a batch, releasing them if
-  # a certain time has passed or if a certain number of entries have been aggregated.
-  # For more information on configuring the batch processor, refer to the documentation here:
-  # https://github.com/open-telemetry/opentelemetry-collector/tree/main/processor/batchprocessor
-  batch:
+  anomaly:
+    comparison_windows:
+      current_window: 1m
+      baseline_window: 3m
+    deviation_threshold: 90
 
-# 'exporters' specify configurations for certain exporters.
-# See the README for more information on the exporters available for configuration.
 exporters:
   nop:
 
-# 'service' specifies how to construct the data pipelines using the configurations above.
 service:
   pipelines:
-    metrics:
-      receivers: [nop]
-      processors: [batch]
+    logs:
+      receivers: [otlp]
+      processors: [anomaly]
       exporters: [nop]
 
-  telemetry:
-    # Disable agents own telemetry to avoid port binding collisions for port 8888. BindPlane
-    # will enable metrics and configure the port when a configuration is pushed to the agent.
-    metrics:
-      level: none

@@ -1,0 +1,1 @@
+{"all_packages_hash":"djEuNjYuMA==","all_error_message":"","package_states":{"observiq-otel-collector":{"name":"observiq-otel-collector","agent_version":"v1.63.0","agent_hash":null,"server_version":"v1.66.0","server_hash":"djEuNjYuMA==","status":3,"error_message":"Failed to run the latest Updater: updater failed to update collector"}}}

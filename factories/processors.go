@@ -66,6 +66,7 @@ var defaultProcessors = []processor.Factory{
 	groupbytraceprocessor.NewFactory(),
 	intervalprocessor.NewFactory(),
 	k8sattributesprocessor.NewFactory(),
+	loganomalyprocessor.NewFactory(),
 	logcountprocessor.NewFactory(),
 	logdedupprocessor.NewFactory(),
 	logstransformprocessor.NewFactory(),
