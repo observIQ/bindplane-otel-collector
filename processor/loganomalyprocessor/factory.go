@@ -1,4 +1,4 @@
-package loganomalyprocessor 
+package loganomalyprocessor
 
 import (
 	"context"
@@ -20,11 +20,11 @@ func NewFactory() processor.Factory {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		ComparisonWindows: EvaluationWindow{
-			CurrentWindow:  time.Minute,
-			BaselineWindow: 5 * time.Minute,
-		},
-		DeviationThreshold: 50,
+		SampleInterval:   1 * time.Minute,
+		MaxWindowAge:     1 * time.Hour,
+		ZScoreThreshold:  3.0,
+		MADThreshold:     3.5,
+		EmergencyMaxSize: 1000,
 	}
 }
 
