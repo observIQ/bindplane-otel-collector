@@ -84,7 +84,7 @@ func newExporter(cfg *Config, params exporter.Settings, collectorID, exporterID 
 		return nil, fmt.Errorf("parse customer ID: %w", err)
 	}
 
-	marshaller, err := newProtoMarshaler(*cfg, params.TelemetrySettings, buildLabels(cfg), customerID[:])
+	marshaller, err := newProtoMarshaler(*cfg, params.TelemetrySettings, customerID[:])
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaller: %w", err)
 	}
@@ -149,17 +149,6 @@ func loadGoogleCredentials(cfg *Config) (*google.Credentials, error) {
 	default:
 		return google.FindDefaultCredentials(context.Background(), scope)
 	}
-}
-
-func buildLabels(cfg *Config) []*api.Label {
-	labels := make([]*api.Label, 0, len(cfg.IngestionLabels))
-	for k, v := range cfg.IngestionLabels {
-		labels = append(labels, &api.Label{
-			Key:   k,
-			Value: v,
-		})
-	}
-	return labels
 }
 
 func (ce *chronicleExporter) Capabilities() consumer.Capabilities {

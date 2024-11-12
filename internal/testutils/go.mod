@@ -1,10 +1,10 @@
 module github.com/observiq/bindplane-agent/internal/testutils
 
-go 1.22.6
+go 1.22.7
 
 require (
 	github.com/stretchr/testify v1.9.0
-	go.opentelemetry.io/collector/pdata v1.18.0
+	go.opentelemetry.io/collector/pdata v1.19.0
 )
 
 require (

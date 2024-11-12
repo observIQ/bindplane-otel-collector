@@ -93,10 +93,6 @@ func (cfg *Config) Validate() error {
 		return errors.New("can only specify creds_file_path or creds")
 	}
 
-	if cfg.LogType == "" {
-		return errors.New("log_type is required")
-	}
-
 	if cfg.RawLogField != "" {
 		_, err := expr.NewOTTLLogRecordExpression(cfg.RawLogField, component.TelemetrySettings{
 			Logger: zap.NewNop(),

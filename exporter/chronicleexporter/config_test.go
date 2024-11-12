@@ -37,15 +37,6 @@ func TestConfigValidate(t *testing.T) {
 			expectedErr: "can only specify creds_file_path or creds",
 		},
 		{
-			desc: "LogType is empty",
-			config: &Config{
-				Creds:       "creds_example",
-				Compression: noCompression,
-			},
-			expectedErr: "log_type is required",
-		},
-
-		{
 			desc: "Valid config with creds",
 			config: &Config{
 				Creds:       "creds_example",
