@@ -4,7 +4,7 @@ go 1.22.7
 
 require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/collector v0.49.0
-	github.com/observiq/bindplane-agent/internal/version v0.0.0-20240717172323-a1d3e6ed4aab
+	github.com/observiq/bindplane-agent/internal/version v1.68.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter v0.116.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v0.116.0
