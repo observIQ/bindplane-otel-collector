@@ -6,13 +6,10 @@ dist:
   description: ObservIQ's custom distro for OpenTelemetry Collector
   version: "v2.0.0"
   output_path: ./builder
-  #otelcol_version: 0.113.0
 conf_resolver:
   default_uri_scheme: "env"
 extensions:
   - gomod: go.opentelemetry.io/collector/extension/zpagesextension v0.113.0
-  # ballastextension deprecated, keeping at v0.108.1
-  #- gomod: go.opentelemetry.io/collector/extension/ballastextension v0.108.1
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension v0.113.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/asapauthextension v0.113.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/awsproxy v0.113.0
@@ -37,7 +34,7 @@ extensions:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/sigv4authextension v0.113.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.113.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/dbstorage v0.113.0
-  - gomod: github.com/observiq/bindplane-agent/extension/bindplaneextension v1.61.1
+  - gomod: github.com/observiq/bindplane-agent/extension/bindplaneextension v1.64.0
     path: "./extension/bindplaneextension"
 exporters:
   - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.113.0
@@ -48,9 +45,9 @@ exporters:
 processors:
   - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.113.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor v0.113.0
-  - gomod: github.com/observiq/bindplane-agent/processor/snapshotprocessor v1.61.1
+  - gomod: github.com/observiq/bindplane-agent/processor/snapshotprocessor v1.64.0
     path: "./processor/snapshotprocessor"
-  - gomod: github.com/observiq/bindplane-agent/processor/throughputmeasurementprocessor v1.61.1
+  - gomod: github.com/observiq/bindplane-agent/processor/throughputmeasurementprocessor v1.64.0
     path: "./processor/throughputmeasurementprocessor"
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.113.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbyattrsprocessor v0.113.0
@@ -66,11 +63,11 @@ receivers:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/saphanareceiver v0.113.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/sapmreceiver v0.113.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/statsdreceiver v0.113.0
-  - gomod: github.com/observiq/bindplane-agent/receiver/pluginreceiver v1.61.1
+  - gomod: github.com/observiq/bindplane-agent/receiver/pluginreceiver v1.64.0
     path: "./receiver/pluginreceiver"
-  - gomod: github.com/observiq/bindplane-agent/receiver/routereceiver v1.61.1
+  - gomod: github.com/observiq/bindplane-agent/receiver/routereceiver v1.64.0
     path: "./receiver/routereceiver"
-  - gomod: github.com/observiq/bindplane-agent/receiver/telemetrygeneratorreceiver v1.61.1
+  - gomod: github.com/observiq/bindplane-agent/receiver/telemetrygeneratorreceiver v1.64.0
     path: "./receiver/telemetrygeneratorreceiver"
 connectors:
   - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.113.0
