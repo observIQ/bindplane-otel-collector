@@ -27,6 +27,27 @@ jobs:
           go install github.com/uw-labs/lichen@v0.1.7
           lichen --config=./license.yaml $(find dist/collector_*)
 
+  build_aix:
+    runs-on: ubuntu-latest-4-cores
+    steps:
+      - name: Checkout Sources
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          check-latest: true
+          cache-dependency-path: |
+            **/go.sum
+      - name: Install Builder
+        run: make install-builder
+      - name: Build
+        run: make build-aix
+      - name: Scan Third Party Dependency Licenses
+        run: |
+          go install github.com/uw-labs/lichen@v0.1.7
+          lichen --config=./license.yaml $(find dist/collector_* dist/updater_*)
+
   build_darwin:
     runs-on: macos-14
     steps:
