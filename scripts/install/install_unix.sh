@@ -788,7 +788,7 @@ create_supervisor_config() {
   command printf 'telemetry:\n' >>"$supervisor_yml_path"
   command printf '  logs:\n' >>"$supervisor_yml_path"
   command printf '    level: 0\n' >>"$supervisor_yml_path"
-  command printf '    output_paths: ["%s"]' "$INSTALL_DIR/supervisor_storage/supervisor.log" >>"$supervisor_yml_path"
+  command printf '    output_paths: ["%s"]' "$INSTALL_DIR/supervisor.log" >>"$supervisor_yml_path"
   succeeded
 }
 
