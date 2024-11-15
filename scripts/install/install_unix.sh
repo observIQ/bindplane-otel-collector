@@ -940,6 +940,10 @@ main() {
         base_url=$2
         shift 2
         ;;
+      -r | --uninstall)
+        uninstall
+        exit 0
+        ;;
       -h | --help)
         usage
         exit 0
