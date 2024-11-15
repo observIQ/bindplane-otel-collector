@@ -103,3 +103,6 @@ replaces:
   - github.com/observiq/bindplane-agent/internal/report => ../internal/report
   - github.com/observiq/bindplane-agent/internal/testutils => ../internal/testutils
   - github.com/observiq/bindplane-agent/internal/rehydration => ../internal/rehydration
+  # Thrift only updates twice a year if we're lucky, and we don't want to wait 6+ months for
+  # https://github.com/apache/thrift/pull/3042
+  - github.com/apache/thrift => github.com/apache/thrift v0.21.1-0.20240926171305-90af876c67be
