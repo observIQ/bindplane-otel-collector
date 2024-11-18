@@ -32,7 +32,7 @@ VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG))
 # Builds the agent for current GOOS/GOARCH pair
 .PHONY: agent
 agent:
-	builder --config="./manifests/observIQ/manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)"
+	CGO_ENABLED=0 builder --config="./manifests/observIQ/manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)"
 	mkdir -p $(OUTDIR); cp ./builder/observiq-otel-collector $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
 
 # Builds a custom distro for the current GOOS/GOARCH pair using the manifest specified
@@ -45,7 +45,7 @@ distro:
 # Builds the updater for current GOOS/GOARCH pair && sets flags
 .PHONY: updater
 updater:
-	cd ./updater/; go build -ldflags "-s -w\
+	cd ./updater/; CGO_ENABLED=0 go build -ldflags "-s -w\
 		-X 'github.com/observiq/bindplane-otel-collector/updater/internal/version.version=$(VERSION)'\
 		-X 'github.com/observiq/bindplane-agent/updater/internal/version.gitHash=$(shell git rev-parse HEAD)'\
 		-X 'github.com/observiq/bindplane-agent/updater/internal/version.date=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")'"\
