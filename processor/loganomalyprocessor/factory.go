@@ -25,6 +25,8 @@ func createDefaultConfig() component.Config {
 		ZScoreThreshold:  3.0,
 		MADThreshold:     3.5,
 		EmergencyMaxSize: 1000,
+		Enabled:          true,
+		OpAMP:            defaultOpAMPExtensionID,
 	}
 }
 
