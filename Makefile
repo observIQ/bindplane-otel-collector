@@ -60,7 +60,7 @@ run-supervisor:
 .PHONY: kill
 kill:
 	pkill -9 opampsupervisor || true
-	pkill -9 observiq-agent-distro || true
+	pkill -9 collector_$(GOOS)_$(GOARCH) || true
 
 # Stops processes and cleans up
 .PHONY: reset
