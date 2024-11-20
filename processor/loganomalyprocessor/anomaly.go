@@ -233,7 +233,7 @@ func (p *Processor) logAnomaly(anomaly *AnomalyStat) {
 	p.stateLock.Lock()
 	defer p.stateLock.Unlock()
 
-	p.anomalyBuffer = append(p.anomalyBuffer, anomaly)
+	p.anomalyBuffer = append(p.anomalyBuffer, &logs)
 	if len(p.anomalyBuffer) > p.anomalyBufferSize {
 		// Remove oldest anomaly when buffer is full
 		p.anomalyBuffer = p.anomalyBuffer[1:]

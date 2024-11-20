@@ -3,14 +3,11 @@ module github.com/observiq/bindplane-agent/processor/loganomalyprocessor
 go 1.22.6
 
 require (
-	github.com/open-telemetry/opamp-go v0.15.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.112.0
 	go.opentelemetry.io/collector/component v0.112.0
 	go.opentelemetry.io/collector/consumer v0.112.0
 	go.opentelemetry.io/collector/pdata v1.18.0
 	go.opentelemetry.io/collector/processor v0.112.0
 	go.uber.org/zap v1.27.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

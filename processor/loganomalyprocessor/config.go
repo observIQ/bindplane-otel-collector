@@ -34,10 +34,6 @@ type Config struct {
 	MADThreshold    float64 `mapstructure:"mad_threshold"`
 	// Maximum number of samples to keep (emergency limit)
 	EmergencyMaxSize int `mapstructure:"emergency_max_size"`
-	// OpAMP arguments
-	Enabled           bool         `mapstructure:"enabled"`
-	OpAMP             component.ID `mapstructure:"opamp"`
-	AnomalyBufferSize int          `mapstructure:"anomaly_buffer_size"`
 }
 
 // Validate checks whether the input configuration has all of the required fields for the processor.

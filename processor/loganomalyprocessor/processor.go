@@ -16,12 +16,9 @@ package loganomalyprocessor
 
 import (
 	"context"
-	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -49,16 +46,8 @@ type Processor struct {
 	}
 	lastSampleTime time.Time
 
-	// New fields for OpAMP
-	started                 *atomic.Bool
-	stopped                 *atomic.Bool
-	opampExtensionID        component.ID
-	customCapabilityHandler opampcustommessages.CustomCapabilityHandler
-	doneChan                chan struct{}
-	wg                      *sync.WaitGroup
-
 	// Buffer for storing recent anomalies
-	anomalyBuffer     []*AnomalyStat
+	anomalyBuffer     []*plog.Logs
 	anomalyBufferSize int // Maximum number of anomalies to store
 
 	nextConsumer consumer.Logs
@@ -78,10 +67,6 @@ func newProcessor(config *Config, logger *zap.Logger, nextConsumer consumer.Logs
 		stateLock:    sync.Mutex{},
 		rateHistory:  make([]Sample, 0, config.MaxWindowAge/config.SampleInterval),
 		nextConsumer: nextConsumer,
-		started:      &atomic.Bool{},
-		stopped:      &atomic.Bool{},
-		doneChan:     make(chan struct{}),
-		wg:           &sync.WaitGroup{},
 	}
 }
 
@@ -94,34 +79,14 @@ func (p *Processor) Start(_ context.Context, host component.Host) error {
 			case <-p.ctx.Done():
 				return
 			case <-ticker.C:
-				p.checkAndUpdateMetrics()
-
+				p.checkAndUpdateAnomalies()
+				if err := p.exportAnomalies(p.ctx); err != nil {
+					p.logger.Error("Failed to export anomalies", zap.Error(err))
+				}
 			}
 		}
 	}()
 
-	if p.config.Enabled {
-		ext, ok := host.GetExtensions()[p.config.OpAMP]
-		if !ok {
-			return fmt.Errorf("opamp extension %q does not exist", p.config.OpAMP)
-		}
-
-		registry, ok := ext.(opampcustommessages.CustomCapabilityRegistry)
-		if !ok {
-			return fmt.Errorf("extension %q is not a custom message registry", p.config.OpAMP)
-		}
-
-		var err error
-		p.customCapabilityHandler, err = registry.Register(anomalyCapability)
-		if err != nil {
-			return fmt.Errorf("register custom capability: %w", err)
-		}
-
-		p.wg.Add(1)
-
-		// Start processing OpAMP messages
-		go p.processOpAMPMessages(p.customCapabilityHandler)
-	}
 	return nil
 }
 
@@ -168,7 +133,7 @@ func (p *Processor) countLogs(ld plog.Logs) int64 {
 }
 
 // checkAndUpdateMetrics runs periodically to check for anomalies even when no logs are received
-func (p *Processor) checkAndUpdateMetrics() {
+func (p *Processor) checkAndUpdateAnomalies() {
 	p.stateLock.Lock()
 	defer p.stateLock.Unlock()
 
@@ -176,4 +141,25 @@ func (p *Processor) checkAndUpdateMetrics() {
 	if now.Sub(p.lastSampleTime) >= p.config.SampleInterval {
 		p.takeSample(now)
 	}
+}
+
+// exportAnomalies sends the logs that are in the anomaly buffer to the next consumer
+func (p *Processor) exportAnomalies(ctx context.Context) error {
+	p.stateLock.Lock()
+	defer p.stateLock.Unlock()
+
+	if len(p.anomalyBuffer) == 0 {
+		return nil
+	}
+
+	for _, anomalyLog := range p.anomalyBuffer {
+		if err := p.nextConsumer.ConsumeLogs(ctx, *anomalyLog); err != nil {
+			p.logger.Error("Failed to export anomaly log", zap.Error(err))
+			return err
+		}
+	}
+
+	p.anomalyBuffer = nil
+
+	return nil
 }
