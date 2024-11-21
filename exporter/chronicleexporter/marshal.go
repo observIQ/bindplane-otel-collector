@@ -254,6 +254,44 @@ func (m *protoMarshaler) getIngestionLabels(logRecord plog.LogRecord) ([]*api.La
 }
 
 func (m *protoMarshaler) getRawField(ctx context.Context, field string, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, error) {
+	switch field {
+	case "body":
+		switch logRecord.Body().Type() {
+		case pcommon.ValueTypeStr:
+			return logRecord.Body().Str(), nil
+		case pcommon.ValueTypeMap:
+			bytes, err := json.Marshal(logRecord.Body().AsRaw())
+			if err != nil {
+				return "", fmt.Errorf("marshal log body: %w", err)
+			}
+			return string(bytes), nil
+		}
+	case logTypeField:
+		attributes := logRecord.Attributes().AsRaw()
+		if logType, ok := attributes["log_type"]; ok {
+			if v, ok := logType.(string); ok {
+				return v, nil
+			}
+		}
+		return "", nil
+	case chronicleLogTypeField:
+		attributes := logRecord.Attributes().AsRaw()
+		if logType, ok := attributes["chronicle_log_type"]; ok {
+			if v, ok := logType.(string); ok {
+				return v, nil
+			}
+		}
+		return "", nil
+	case chronicleNamespaceField:
+		attributes := logRecord.Attributes().AsRaw()
+		if namespace, ok := attributes["chronicle_namespace"]; ok {
+			if v, ok := namespace.(string); ok {
+				return v, nil
+			}
+		}
+		return "", nil
+	}
+
 	lrExpr, err := expr.NewOTTLLogRecordExpression(field, m.teleSettings)
 	if err != nil {
 		return "", fmt.Errorf("raw_log_field is invalid: %s", err)

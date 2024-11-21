@@ -76,7 +76,7 @@ func createLogsExporter(
 		return nil, fmt.Errorf("failed to create logs exporter: %w", err)
 	}
 
-	return exporterhelper.NewLogsExporter(
+	return exporterhelper.NewLogs(
 		ctx,
 		params,
 		c,
@@ -106,7 +106,7 @@ func createMetricsExporter(
 		return nil, fmt.Errorf("failed to create metrics exporter: %w", err)
 	}
 
-	return exporterhelper.NewMetricsExporter(
+	return exporterhelper.NewMetrics(
 		ctx,
 		params,
 		c,
@@ -136,7 +136,7 @@ func createTracesExporter(
 		return nil, fmt.Errorf("failed to create traces exporter: %w", err)
 	}
 
-	return exporterhelper.NewTracesExporter(
+	return exporterhelper.NewTraces(
 		ctx,
 		params,
 		c,

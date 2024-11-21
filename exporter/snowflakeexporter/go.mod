@@ -7,13 +7,14 @@ require (
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/snowflakedb/gosnowflake v1.12.0
 	github.com/stretchr/testify v1.9.0
-	go.opentelemetry.io/collector/component v0.113.0
-	go.opentelemetry.io/collector/config/configretry v1.19.0
-	go.opentelemetry.io/collector/confmap v1.19.0
-	go.opentelemetry.io/collector/consumer v0.113.0
-	go.opentelemetry.io/collector/exporter v0.113.0
-	go.opentelemetry.io/collector/exporter/exportertest v0.113.0
-	go.opentelemetry.io/collector/pdata v1.19.0
+	go.opentelemetry.io/collector/component v0.114.0
+	go.opentelemetry.io/collector/component/componenttest v0.114.0
+	go.opentelemetry.io/collector/config/configretry v1.20.0
+	go.opentelemetry.io/collector/confmap v1.20.0
+	go.opentelemetry.io/collector/consumer v0.114.0
+	go.opentelemetry.io/collector/exporter v0.114.0
+	go.opentelemetry.io/collector/exporter/exportertest v0.114.0
+	go.opentelemetry.io/collector/pdata v1.20.0
 	go.uber.org/zap v1.27.0
 )
 
@@ -60,7 +61,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/knadh/koanf/maps v0.1.1 // indirect
 	github.com/knadh/koanf/providers/confmap v0.1.0 // indirect
-	github.com/knadh/koanf/v2 v2.1.1 // indirect
+	github.com/knadh/koanf/v2 v2.1.2 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -72,30 +73,30 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
-	go.opentelemetry.io/collector/config/configtelemetry v0.113.0 // indirect
-	go.opentelemetry.io/collector/consumer/consumererror v0.113.0 // indirect
-	go.opentelemetry.io/collector/consumer/consumerprofiles v0.113.0 // indirect
-	go.opentelemetry.io/collector/consumer/consumertest v0.113.0 // indirect
-	go.opentelemetry.io/collector/exporter/exporterprofiles v0.113.0 // indirect
-	go.opentelemetry.io/collector/extension v0.113.0 // indirect
-	go.opentelemetry.io/collector/extension/experimental/storage v0.113.0 // indirect
-	go.opentelemetry.io/collector/pdata/pprofile v0.113.0 // indirect
-	go.opentelemetry.io/collector/pipeline v0.113.0 // indirect
-	go.opentelemetry.io/collector/receiver v0.113.0 // indirect
-	go.opentelemetry.io/collector/receiver/receiverprofiles v0.113.0 // indirect
-	go.opentelemetry.io/collector/receiver/receivertest v0.113.0 // indirect
-	go.opentelemetry.io/otel v1.31.0 // indirect
-	go.opentelemetry.io/otel/metric v1.31.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.31.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v1.31.0 // indirect
-	go.opentelemetry.io/otel/trace v1.31.0 // indirect
+	go.opentelemetry.io/collector/config/configtelemetry v0.114.0 // indirect
+	go.opentelemetry.io/collector/consumer/consumererror v0.114.0 // indirect
+	go.opentelemetry.io/collector/consumer/consumerprofiles v0.114.0 // indirect
+	go.opentelemetry.io/collector/consumer/consumertest v0.114.0 // indirect
+	go.opentelemetry.io/collector/exporter/exporterprofiles v0.114.0 // indirect
+	go.opentelemetry.io/collector/extension v0.114.0 // indirect
+	go.opentelemetry.io/collector/extension/experimental/storage v0.114.0 // indirect
+	go.opentelemetry.io/collector/pdata/pprofile v0.114.0 // indirect
+	go.opentelemetry.io/collector/pipeline v0.114.0 // indirect
+	go.opentelemetry.io/collector/receiver v0.114.0 // indirect
+	go.opentelemetry.io/collector/receiver/receiverprofiles v0.114.0 // indirect
+	go.opentelemetry.io/collector/receiver/receivertest v0.114.0 // indirect
+	go.opentelemetry.io/otel v1.32.0 // indirect
+	go.opentelemetry.io/otel/metric v1.32.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.32.0 // indirect
+	go.opentelemetry.io/otel/sdk/metric v1.32.0 // indirect
+	go.opentelemetry.io/otel/trace v1.32.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.26.0 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.28.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/sys v0.27.0 // indirect
 	golang.org/x/term v0.23.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
