@@ -4,7 +4,7 @@ go 1.22.7
 
 require (
 	github.com/stretchr/testify v1.9.0
-	go.opentelemetry.io/collector/pdata v1.19.0
+	go.opentelemetry.io/collector/pdata v1.20.0
 )
 
 require (

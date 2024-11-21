@@ -77,7 +77,7 @@ func createLogsExporter(
 	if chronicleCfg.Protocol == protocolHTTPS {
 		pusher = exp.logsHTTPDataPusher
 	}
-	return exporterhelper.NewLogsExporter(
+	return exporterhelper.NewLogs(
 		ctx,
 		params,
 		chronicleCfg,
