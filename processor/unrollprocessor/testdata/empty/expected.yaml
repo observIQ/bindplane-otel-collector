@@ -1,0 +1,28 @@
+resourceLogs:
+  - resource: {}
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: recordName
+                value:
+                  stringValue: recordA
+            body: {}
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: recordName
+                value:
+                  stringValue: recordA
+            body:
+              stringValue: value2
+            spanId: ""
+            traceId: ""
+          - attributes:
+              - key: recordName
+                value:
+                  stringValue: recordA
+            body:
+              bytesValue: aGVsbG8gd29ybGQ=
+            spanId: ""
+            traceId: ""
+        scope: {}
