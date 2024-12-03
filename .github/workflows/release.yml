@@ -19,7 +19,7 @@ jobs:
         run: make install-tools
       # Needed until supervisor binary is released
       - name: Build Supervisor Binary
-        run: make release-prep
+        run: make release-prep CURR_VERSION=${{ github.ref_name }}
       - name: Build Windows Binaries
         run: make build-binaries
       - name: Copy Windows Collector Binary

@@ -21,7 +21,7 @@ jobs:
       - name: Install tools
         run: make install-tools
       - name: Release Prep
-        run: make release-prep
+        run: make release-prep CURR_VERSION=${{ github.event.inputs.version }}
       - name: Build Binaries
         run: make build-binaries
       - name: Copy Windows Collector Binary
