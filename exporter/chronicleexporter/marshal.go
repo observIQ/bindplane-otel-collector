@@ -163,18 +163,26 @@ func (m *protoMarshaler) processLogRecord(ctx context.Context, logRecord plog.Lo
 	return rawLog, logType, namespace, ingestionLabels, nil
 }
 
-func (m *protoMarshaler) processHTTPLogRecord(ctx context.Context, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, string, error) {
+func (m *protoMarshaler) processHTTPLogRecord(ctx context.Context, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, string, string, map[string]*api.Log_LogLabel, error) {
 	rawLog, err := m.getRawLog(ctx, logRecord, scope, resource)
 	if err != nil {
-		return "", "", err
+		return "", "", "", nil, err
 	}
 
 	logType, err := m.getLogType(ctx, logRecord, scope, resource)
 	if err != nil {
-		return "", "", err
+		return "", "", "", nil, err
+	}
+	namespace, err := m.getNamespace(ctx, logRecord, scope, resource)
+	if err != nil {
+		return "", "", "", nil, err
+	}
+	ingestionLabels, err := m.getHTTPIngestionLabels(logRecord)
+	if err != nil {
+		return "", "", "", nil, err
 	}
 
-	return rawLog, logType, nil
+	return rawLog, logType, namespace, ingestionLabels, nil
 }
 
 func (m *protoMarshaler) getRawLog(ctx context.Context, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, error) {
@@ -239,6 +247,7 @@ func (m *protoMarshaler) getIngestionLabels(logRecord plog.LogRecord) ([]*api.La
 	if err != nil {
 		return []*api.Label{}, fmt.Errorf("get chronicle ingestion labels: %w", err)
 	}
+
 	if len(ingestionLabels) != 0 {
 		return ingestionLabels, nil
 	}
@@ -249,6 +258,27 @@ func (m *protoMarshaler) getIngestionLabels(logRecord plog.LogRecord) ([]*api.La
 			Key:   key,
 			Value: value,
 		})
+	}
+	return configLabels, nil
+}
+
+func (m *protoMarshaler) getHTTPIngestionLabels(logRecord plog.LogRecord) (map[string]*api.Log_LogLabel, error) {
+	// Check for labels in attributes["chronicle_ingestion_labels"]
+	ingestionLabels, err := m.getHTTPRawNestedFields(chronicleIngestionLabelsPrefix, logRecord)
+	if err != nil {
+		return nil, fmt.Errorf("get chronicle ingestion labels: %w", err)
+	}
+
+	if len(ingestionLabels) != 0 {
+		return ingestionLabels, nil
+	}
+
+	// use labels defined in the config if needed
+	configLabels := make(map[string]*api.Log_LogLabel)
+	for key, value := range m.cfg.IngestionLabels {
+		configLabels[key] = &api.Log_LogLabel{
+			Value: value,
+		}
 	}
 	return configLabels, nil
 }
@@ -344,6 +374,34 @@ func (m *protoMarshaler) getRawNestedFields(field string, logRecord plog.LogReco
 	return nestedFields, nil
 }
 
+func (m *protoMarshaler) getHTTPRawNestedFields(field string, logRecord plog.LogRecord) (map[string]*api.Log_LogLabel, error) {
+	nestedFields := make(map[string]*api.Log_LogLabel) // Map with key as string and value as Log_LogLabel
+	logRecord.Attributes().Range(func(key string, value pcommon.Value) bool {
+		if !strings.HasPrefix(key, field) {
+			return true
+		}
+		// Extract the key name from the nested field
+		cleanKey := strings.Trim(key[len(field):], `[]"`)
+		var jsonMap map[string]string
+
+		// If needs to be parsed as JSON
+		if err := json.Unmarshal([]byte(value.AsString()), &jsonMap); err == nil {
+			for k, v := range jsonMap {
+				nestedFields[k] = &api.Log_LogLabel{
+					Value: v,
+				}
+			}
+		} else {
+			nestedFields[cleanKey] = &api.Log_LogLabel{
+				Value: value.AsString(),
+			}
+		}
+		return true
+	})
+
+	return nestedFields, nil
+}
+
 func (m *protoMarshaler) constructPayloads(rawLogs map[string][]*api.LogEntry, namespaceMap map[string]string, ingestionLabelsMap map[string][]*api.Label) []*api.BatchCreateLogsRequest {
 	payloads := make([]*api.BatchCreateLogsRequest, 0, len(rawLogs))
 	for logType, entries := range rawLogs {
@@ -387,7 +445,7 @@ func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (
 			scopeLog := resourceLog.ScopeLogs().At(j)
 			for k := 0; k < scopeLog.LogRecords().Len(); k++ {
 				logRecord := scopeLog.LogRecords().At(k)
-				rawLog, logType, err := m.processHTTPLogRecord(ctx, logRecord, scopeLog, resourceLog)
+				rawLog, logType, namespace, ingestionLabels, err := m.processHTTPLogRecord(ctx, logRecord, scopeLog, resourceLog)
 				if err != nil {
 					m.teleSettings.Logger.Error("Error processing log record", zap.Error(err))
 					continue
@@ -405,9 +463,11 @@ func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (
 				}
 
 				entry := &api.Log{
-					LogEntryTime:   timestamppb.New(timestamp),
-					CollectionTime: timestamppb.New(logRecord.ObservedTimestamp().AsTime()),
-					Data:           []byte(rawLog),
+					LogEntryTime:         timestamppb.New(timestamp),
+					CollectionTime:       timestamppb.New(logRecord.ObservedTimestamp().AsTime()),
+					Data:                 []byte(rawLog),
+					EnvironmentNamespace: namespace,
+					Labels:               ingestionLabels,
 				}
 				entries[logType] = append(entries[logType], entry)
 			}

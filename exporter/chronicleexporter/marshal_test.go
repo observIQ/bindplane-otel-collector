@@ -462,7 +462,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 			cfg: Config{
 				CustomerID:      uuid.New().String(),
 				LogType:         "WINEVTLOG",
-				IngestionLabels: map[string]string{`chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"},
 				RawLogField:     "attributes",
 				OverrideLogType: false,
 			},
@@ -493,6 +492,217 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 			},
 			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
 				require.Len(t, requests, 0, "Expected no requests due to no log records")
+			},
+		},
+		{
+			name: "No log type set in config or attributes",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "WINEVTLOG",
+				RawLogField:     "attributes",
+				OverrideLogType: false,
+			},
+			labels: []*api.Label{},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("", map[string]any{"key1": "value1", "log_type": "WINEVTLOG", "namespace": "test", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"}))
+			},
+			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+				require.Len(t, requests, 1)
+				logs := requests["WINEVTLOG"].GetInlineSource().Logs
+				// Assuming the attributes are marshaled into the Data field as a JSON string
+				expectedData := `{"key1":"value1", "log_type":"WINEVTLOG", "namespace":"test", "chronicle_ingestion_label[\"key1\"]": "value1", "chronicle_ingestion_label[\"key2\"]": "value2"}`
+				actualData := string(logs[0].Data)
+				require.JSONEq(t, expectedData, actualData, "Log attributes should match expected")
+			},
+		},
+		{
+			name: "Multiple log records with duplicate data, no log type in attributes",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "WINEVTLOG",
+				RawLogField:     "body",
+				OverrideLogType: false,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				record1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record1.Body().SetStr("First log message")
+				record1.Attributes().FromRaw(map[string]any{"chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				record2 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record2.Body().SetStr("Second log message")
+				record2.Attributes().FromRaw(map[string]any{"chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				return logs
+			},
+			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+				// verify one request for log type in config
+				require.Len(t, requests, 1, "Expected a single batch request")
+				logs := requests["WINEVTLOG"].GetInlineSource().Logs
+				// verify batch source labels
+				require.Len(t, logs[0].Labels, 2)
+				require.Len(t, logs, 2, "Expected two log entries in the batch")
+				// Verifying the first log entry data
+				require.Equal(t, "First log message", string(logs[0].Data))
+				// Verifying the second log entry data
+				require.Equal(t, "Second log message", string(logs[1].Data))
+			},
+		},
+		{
+			name: "Multiple log records with different data, no log type in attributes",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "WINEVTLOG",
+				RawLogField:     "body",
+				OverrideLogType: false,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				record1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record1.Body().SetStr("First log message")
+				record1.Attributes().FromRaw(map[string]any{`chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				record2 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record2.Body().SetStr("Second log message")
+				record2.Attributes().FromRaw(map[string]any{`chronicle_ingestion_label["key3"]`: "value3", `chronicle_ingestion_label["key4"]`: "value4"})
+				return logs
+			},
+			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+				// verify one request for one log type
+				require.Len(t, requests, 1, "Expected a single batch request")
+				logs := requests["WINEVTLOG"].GetInlineSource().Logs
+				require.Len(t, logs, 2, "Expected two log entries in the batch")
+				require.Equal(t, "", logs[0].EnvironmentNamespace)
+				// verify batch source labels
+				require.Len(t, logs[0].Labels, 2)
+				require.Len(t, logs[1].Labels, 2)
+				// Verifying the first log entry data
+				require.Equal(t, "First log message", string(logs[0].Data))
+				// Verifying the second log entry data
+				require.Equal(t, "Second log message", string(logs[1].Data))
+			},
+		},
+		{
+			name: "Override log type with attribute",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "DEFAULT", // This should be overridden by the log_type attribute
+				RawLogField:     "body",
+				OverrideLogType: true,
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"log_type": "windows_event.application", "namespace": "test", `ingestion_label["realkey1"]`: "realvalue1", `ingestion_label["realkey2"]`: "realvalue2"}))
+			},
+			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+				require.Len(t, requests, 1)
+				logs := requests["WINEVTLOG"].GetInlineSource().Logs
+				require.NotEqual(t, len(logs), 0)
+			},
+		},
+		{
+			name: "Override log type with chronicle attribute",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "DEFAULT", // This should be overridden by the chronicle_log_type attribute
+				RawLogField:     "body",
+				OverrideLogType: true,
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"chronicle_log_type": "ASOC_ALERT", "chronicle_namespace": "test", `chronicle_ingestion_label["realkey1"]`: "realvalue1", `chronicle_ingestion_label["realkey2"]`: "realvalue2"}))
+			},
+			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+				require.Len(t, requests, 1)
+				logs := requests["ASOC_ALERT"].GetInlineSource().Logs
+				require.Equal(t, "test", logs[0].EnvironmentNamespace, "Expected namespace to be overridden by attribute")
+				expectedLabels := map[string]string{
+					"realkey1": "realvalue1",
+					"realkey2": "realvalue2",
+				}
+				for key, label := range logs[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+			},
+		},
+		{
+			name: "Multiple log records with duplicate data, log type in attributes",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "WINEVTLOG",
+				RawLogField:     "body",
+				OverrideLogType: false,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				record1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record1.Body().SetStr("First log message")
+				record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+
+				record2 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record2.Body().SetStr("Second log message")
+				record2.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				return logs
+			},
+			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+				// verify 1 request, 2 batches for same log type
+				require.Len(t, requests, 1, "Expected a single batch request")
+				logs := requests["WINEVTLOGS"].GetInlineSource().Logs
+				require.Len(t, logs, 2, "Expected two log entries in the batch")
+				// verify variables
+				require.Equal(t, "test1", logs[0].EnvironmentNamespace)
+				require.Len(t, logs[0].Labels, 2)
+				expectedLabels := map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				}
+				for key, label := range logs[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+			},
+		},
+		{
+			name: "Multiple log records with different data, log type in attributes",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "WINEVTLOG",
+				RawLogField:     "body",
+				OverrideLogType: false,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				record1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record1.Body().SetStr("First log message")
+				record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+
+				record2 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record2.Body().SetStr("Second log message")
+				record2.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS2", "chronicle_namespace": "test2", `chronicle_ingestion_label["key3"]`: "value3", `chronicle_ingestion_label["key4"]`: "value4"})
+				return logs
+			},
+
+			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+				expectedLabels := map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+					"key3": "value3",
+					"key4": "value4",
+				}
+				// verify 2 requests, with 1 batch for different log types
+				require.Len(t, requests, 2, "Expected a two batch request")
+
+				logs1 := requests["WINEVTLOGS1"].GetInlineSource().Logs
+				require.Len(t, logs1, 1, "Expected one log entries in the batch")
+				// verify variables for first log
+				require.Equal(t, logs1[0].EnvironmentNamespace, "test1")
+				require.Len(t, logs1[0].Labels, 2)
+				for key, label := range logs1[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+
+				logs2 := requests["WINEVTLOGS2"].GetInlineSource().Logs
+				require.Len(t, logs2, 1, "Expected one log entries in the batch")
+				// verify variables for second log
+				require.Equal(t, logs2[0].EnvironmentNamespace, "test2")
+				require.Len(t, logs2[0].Labels, 2)
+				for key, label := range logs2[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
 			},
 		},
 	}
