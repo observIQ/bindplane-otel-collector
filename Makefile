@@ -244,7 +244,7 @@ update-modules:
 release-prep:
 	@rm -rf release_deps
 	@mkdir release_deps
-	@echo 'v$(CURR_VERSION)' > release_deps/VERSION.txt
+	@echo '$(CURR_VERSION)' > release_deps/VERSION.txt
 	bash ./buildscripts/download-dependencies.sh release_deps
 	@cp -r ./plugins release_deps/
 	@cp service/com.observiq.collector.plist release_deps/com.observiq.collector.plist
