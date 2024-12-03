@@ -5,7 +5,7 @@ go 1.22.7
 require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/collector v0.49.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter v0.114.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v0.114.0
 	go.opentelemetry.io/collector/consumer v0.114.0
 	go.opentelemetry.io/collector/exporter v0.114.0
@@ -14,7 +14,7 @@ require (
 	go.opentelemetry.io/collector/processor v0.114.0
 	go.opentelemetry.io/collector/processor/batchprocessor v0.114.0
 	go.uber.org/multierr v1.11.0
-	google.golang.org/api v0.208.0
+	google.golang.org/api v0.209.0
 )
 
 require (
