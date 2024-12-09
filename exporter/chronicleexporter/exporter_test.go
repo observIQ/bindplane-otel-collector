@@ -50,11 +50,11 @@ func TestLogsDataPusher(t *testing.T) {
 				marshaller := NewMockMarshaler(t)
 				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]*api.BatchCreateLogsRequest{{}}, nil)
 				return &chronicleExporter{
-					cfg:       &cfg,
-					metrics:   newExporterMetrics([]byte{}, []byte{}, "", cfg.Namespace),
-					logger:    zap.NewNop(),
-					client:    mockClient,
-					marshaler: marshaller,
+					cfg:        &cfg,
+					metrics:    newExporterMetrics([]byte{}, []byte{}, "", cfg.Namespace),
+					logger:     zap.NewNop(),
+					grpcClient: mockClient,
+					marshaler:  marshaller,
 				}
 			},
 			setupMocks: func(mockClient *mocks.MockIngestionServiceV2Client) {
@@ -69,11 +69,11 @@ func TestLogsDataPusher(t *testing.T) {
 				marshaller := NewMockMarshaler(t)
 				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]*api.BatchCreateLogsRequest{{}}, nil)
 				return &chronicleExporter{
-					cfg:       &cfg,
-					metrics:   newExporterMetrics([]byte{}, []byte{}, "", cfg.Namespace),
-					logger:    zap.NewNop(),
-					client:    mockClient,
-					marshaler: marshaller,
+					cfg:        &cfg,
+					metrics:    newExporterMetrics([]byte{}, []byte{}, "", cfg.Namespace),
+					logger:     zap.NewNop(),
+					grpcClient: mockClient,
+					marshaler:  marshaller,
 				}
 			},
 			setupMocks: func(mockClient *mocks.MockIngestionServiceV2Client) {
@@ -90,11 +90,11 @@ func TestLogsDataPusher(t *testing.T) {
 				marshaller := NewMockMarshaler(t)
 				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]*api.BatchCreateLogsRequest{{}}, nil)
 				return &chronicleExporter{
-					cfg:       &cfg,
-					metrics:   newExporterMetrics([]byte{}, []byte{}, "", cfg.Namespace),
-					logger:    zap.NewNop(),
-					client:    mockClient,
-					marshaler: marshaller,
+					cfg:        &cfg,
+					metrics:    newExporterMetrics([]byte{}, []byte{}, "", cfg.Namespace),
+					logger:     zap.NewNop(),
+					grpcClient: mockClient,
+					marshaler:  marshaller,
 				}
 			},
 			setupMocks: func(mockClient *mocks.MockIngestionServiceV2Client) {
@@ -112,11 +112,11 @@ func TestLogsDataPusher(t *testing.T) {
 				// Simulate an error during log marshaling
 				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return(nil, errors.New("marshal error"))
 				return &chronicleExporter{
-					cfg:       &cfg,
-					metrics:   newExporterMetrics([]byte{}, []byte{}, "", cfg.Namespace),
-					logger:    zap.NewNop(),
-					client:    mockClient,
-					marshaler: marshaller,
+					cfg:        &cfg,
+					metrics:    newExporterMetrics([]byte{}, []byte{}, "", cfg.Namespace),
+					logger:     zap.NewNop(),
+					grpcClient: mockClient,
+					marshaler:  marshaller,
 				}
 			},
 			setupMocks: func(_ *mocks.MockIngestionServiceV2Client) {
@@ -132,11 +132,11 @@ func TestLogsDataPusher(t *testing.T) {
 				// Return an empty slice to simulate no logs to push
 				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]*api.BatchCreateLogsRequest{}, nil)
 				return &chronicleExporter{
-					cfg:       &cfg,
-					metrics:   newExporterMetrics([]byte{}, []byte{}, "", cfg.Namespace),
-					logger:    zap.NewNop(),
-					client:    mockClient,
-					marshaler: marshaller,
+					cfg:        &cfg,
+					metrics:    newExporterMetrics([]byte{}, []byte{}, "", cfg.Namespace),
+					logger:     zap.NewNop(),
+					grpcClient: mockClient,
+					marshaler:  marshaller,
 				}
 			},
 			setupMocks: func(_ *mocks.MockIngestionServiceV2Client) {
@@ -149,7 +149,7 @@ func TestLogsDataPusher(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			exporter := tc.setupExporter()
-			tc.setupMocks(exporter.client.(*mocks.MockIngestionServiceV2Client))
+			tc.setupMocks(exporter.grpcClient.(*mocks.MockIngestionServiceV2Client))
 
 			// Create a dummy plog.Logs to pass to logsDataPusher
 			logs := mockLogs(mockLogRecord("Test body", map[string]any{"key1": "value1"}))

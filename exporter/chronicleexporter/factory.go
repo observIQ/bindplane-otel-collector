@@ -86,6 +86,7 @@ func createLogsExporter(
 		exporterhelper.WithTimeout(chronicleCfg.TimeoutConfig),
 		exporterhelper.WithQueue(chronicleCfg.QueueConfig),
 		exporterhelper.WithRetry(chronicleCfg.BackOffConfig),
+		exporterhelper.WithStart(exp.Start),
 		exporterhelper.WithShutdown(exp.Shutdown),
 	)
 }

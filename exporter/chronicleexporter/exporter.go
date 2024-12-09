@@ -28,6 +28,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
@@ -54,31 +55,21 @@ const (
 type chronicleExporter struct {
 	cfg                     *Config
 	logger                  *zap.Logger
-	client                  api.IngestionServiceV2Client
-	conn                    *grpc.ClientConn
 	marshaler               logMarshaler
-	metrics                 *exporterMetrics
 	collectorID, exporterID string
-	wg                      sync.WaitGroup
 
-	cancel context.CancelFunc
+	// fields used for gRPC
+	grpcClient api.IngestionServiceV2Client
+	grpcConn   *grpc.ClientConn
+	wg         sync.WaitGroup
+	cancel     context.CancelFunc
+	metrics    *exporterMetrics
 
+	// fields used for HTTP
 	httpClient *http.Client
 }
 
 func newExporter(cfg *Config, params exporter.Settings, collectorID, exporterID string) (*chronicleExporter, error) {
-	creds, err := loadGoogleCredentials(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("load Google credentials: %w", err)
-	}
-
-	ts := creds.TokenSource
-	opts := []grpc.DialOption{
-		// Apply OAuth tokens for each RPC call
-		grpc.WithPerRPCCredentials(oauth.TokenSource{TokenSource: ts}),
-		grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, "")),
-	}
-
 	customerID, err := uuid.Parse(cfg.CustomerID)
 	if err != nil {
 		return nil, fmt.Errorf("parse customer ID: %w", err)
@@ -94,39 +85,75 @@ func newExporter(cfg *Config, params exporter.Settings, collectorID, exporterID 
 		return nil, fmt.Errorf("parse collector ID: %w", err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	exp := &chronicleExporter{
+	return &chronicleExporter{
 		cfg:         cfg,
 		logger:      params.Logger,
 		metrics:     newExporterMetrics(uuidCID[:], customerID[:], exporterID, cfg.Namespace),
 		marshaler:   marshaller,
 		collectorID: collectorID,
 		exporterID:  exporterID,
-		cancel:      cancel,
+	}, nil
+}
+
+func (ce *chronicleExporter) Start(_ context.Context, _ component.Host) error {
+	creds, err := loadGoogleCredentials(ce.cfg)
+	if err != nil {
+		return fmt.Errorf("load Google credentials: %w", err)
 	}
 
-	if cfg.Protocol == protocolHTTPS {
-		exp.httpClient = oauth2.NewClient(context.Background(), creds.TokenSource)
-	} else {
-		conn, err := grpc.NewClient(cfg.Endpoint+":443", opts...)
-		if err != nil {
-			return nil, fmt.Errorf("dial: %w", err)
-		}
-
-		exp.conn = conn
-		exp.client = api.NewIngestionServiceV2Client(conn)
-
-		if cfg.CollectAgentMetrics {
-			exp.wg.Add(1)
-			go exp.startHostMetricsCollection(ctx)
-		}
+	if ce.cfg.Protocol == protocolHTTPS {
+		ce.httpClient = oauth2.NewClient(context.Background(), creds.TokenSource)
+		return nil
 	}
 
-	return exp, nil
+	opts := []grpc.DialOption{
+		// Apply OAuth tokens for each RPC call
+		grpc.WithPerRPCCredentials(oauth.TokenSource{TokenSource: creds.TokenSource}),
+		grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, "")),
+	}
+	conn, err := grpc.NewClient(ce.cfg.Endpoint+":443", opts...)
+	if err != nil {
+		return fmt.Errorf("dial: %w", err)
+	}
+	ce.grpcConn = conn
+	ce.grpcClient = api.NewIngestionServiceV2Client(conn)
+
+	if ce.cfg.CollectAgentMetrics {
+		ctx, cancel := context.WithCancel(context.Background())
+		ce.cancel = cancel
+		ce.wg.Add(1)
+		go ce.startHostMetricsCollection(ctx)
+	}
+
+	return nil
+}
+
+func (ce *chronicleExporter) Shutdown(context.Context) error {
+	defer http.DefaultTransport.(*http.Transport).CloseIdleConnections()
+	if ce.cfg.Protocol == protocolHTTPS {
+		t := ce.httpClient.Transport.(*oauth2.Transport)
+		if t.Base != nil {
+			t.Base.(*http.Transport).CloseIdleConnections()
+		}
+		return nil
+	}
+	if ce.cancel != nil {
+		ce.cancel()
+		ce.wg.Wait()
+	}
+	if ce.grpcConn != nil {
+		if err := ce.grpcConn.Close(); err != nil {
+			return fmt.Errorf("connection close: %s", err)
+		}
+	}
+	return nil
+}
+
+func (ce *chronicleExporter) Capabilities() consumer.Capabilities {
+	return consumer.Capabilities{MutatesData: false}
 }
 
 func loadGoogleCredentials(cfg *Config) (*google.Credentials, error) {
-
 	scope := grpcScope
 	if cfg.Protocol == protocolHTTPS {
 		scope = httpScope
@@ -151,10 +178,6 @@ func loadGoogleCredentials(cfg *Config) (*google.Credentials, error) {
 	}
 }
 
-func (ce *chronicleExporter) Capabilities() consumer.Capabilities {
-	return consumer.Capabilities{MutatesData: false}
-}
-
 func (ce *chronicleExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
 	payloads, err := ce.marshaler.MarshalRawLogs(ctx, ld)
 	if err != nil {
@@ -173,7 +196,7 @@ func (ce *chronicleExporter) logsDataPusher(ctx context.Context, ld plog.Logs) e
 func (ce *chronicleExporter) uploadToChronicle(ctx context.Context, request *api.BatchCreateLogsRequest) error {
 	totalLogs := int64(len(request.GetBatch().GetEntries()))
 
-	_, err := ce.client.BatchCreateLogs(ctx, request, ce.buildOptions()...)
+	_, err := ce.grpcClient.BatchCreateLogs(ctx, request, ce.buildOptions()...)
 	if err != nil {
 		errCode := status.Code(err)
 		switch errCode {
@@ -187,7 +210,6 @@ func (ce *chronicleExporter) uploadToChronicle(ctx context.Context, request *api
 		default:
 			return consumererror.NewPermanent(fmt.Errorf("upload logs to chronicle: %w", err))
 		}
-
 	}
 
 	ce.metrics.addSentLogs(totalLogs)
@@ -221,23 +243,12 @@ func (ce *chronicleExporter) startHostMetricsCollection(ctx context.Context) {
 				ce.logger.Error("Failed to collect host metrics", zap.Error(err))
 			}
 			request := ce.metrics.getAndReset()
-			_, err = ce.client.BatchCreateEvents(ctx, request, ce.buildOptions()...)
+			_, err = ce.grpcClient.BatchCreateEvents(ctx, request, ce.buildOptions()...)
 			if err != nil {
 				ce.logger.Error("Failed to upload host metrics", zap.Error(err))
 			}
 		}
 	}
-}
-
-func (ce *chronicleExporter) Shutdown(context.Context) error {
-	ce.cancel()
-	ce.wg.Wait()
-	if ce.conn != nil {
-		if err := ce.conn.Close(); err != nil {
-			return fmt.Errorf("connection close: %s", err)
-		}
-	}
-	return nil
 }
 
 func (ce *chronicleExporter) logsHTTPDataPusher(ctx context.Context, ld plog.Logs) error {
