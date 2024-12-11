@@ -24,14 +24,18 @@ import (
 
 func Test_createDefaultConfig(t *testing.T) {
 	expectedCfg := &Config{
-		TimeoutConfig:       exporterhelper.NewDefaultTimeoutConfig(),
-		QueueConfig:         exporterhelper.NewDefaultQueueConfig(),
-		BackOffConfig:       configretry.NewDefaultBackOffConfig(),
-		OverrideLogType:     true,
-		Endpoint:            "malachiteingestion-pa.googleapis.com",
-		Compression:         "none",
-		CollectAgentMetrics: true,
-		Protocol:            "gRPC",
+		TimeoutConfig:             exporterhelper.NewDefaultTimeoutConfig(),
+		QueueConfig:               exporterhelper.NewDefaultQueueConfig(),
+		BackOffConfig:             configretry.NewDefaultBackOffConfig(),
+		OverrideLogType:           true,
+		Endpoint:                  "malachiteingestion-pa.googleapis.com",
+		Compression:               "none",
+		CollectAgentMetrics:       true,
+		Protocol:                  protocolGRPC,
+		BatchLogCountLimitGRPC:    defaultBatchLogCountLimitGRPC,
+		BatchRequestSizeLimitGRPC: defaultBatchRequestSizeLimitGRPC,
+		BatchLogCountLimitHTTP:    defaultBatchLogCountLimitHTTP,
+		BatchRequestSizeLimitHTTP: defaultBatchRequestSizeLimitHTTP,
 	}
 
 	actual := createDefaultConfig()

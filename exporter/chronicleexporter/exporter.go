@@ -257,9 +257,11 @@ func (ce *chronicleExporter) logsHTTPDataPusher(ctx context.Context, ld plog.Log
 		return fmt.Errorf("marshal logs: %w", err)
 	}
 
-	for logType, payload := range payloads {
-		if err := ce.uploadToChronicleHTTP(ctx, payload, logType); err != nil {
-			return fmt.Errorf("upload to chronicle: %w", err)
+	for logType, logTypePayloads := range payloads {
+		for _, payload := range logTypePayloads {
+			if err := ce.uploadToChronicleHTTP(ctx, payload, logType); err != nil {
+				return fmt.Errorf("upload to chronicle: %w", err)
+			}
 		}
 	}
 

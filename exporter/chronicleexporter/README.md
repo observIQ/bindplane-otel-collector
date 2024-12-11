@@ -22,19 +22,23 @@ This exporter facilitates the sending of logs to Chronicle, which is a security 
 
 The exporter can be configured using the following fields:
 
-| Field                   | Type              | Default                                | Required | Description                                                                                 |
-| ----------------------- | ----------------- | -------------------------------------- | -------- | ------------------------------------------------------------------------------------------- |
-| `endpoint`              | string            | `malachiteingestion-pa.googleapis.com` | `false`  | The Endpoint for sending to chronicle.                                                      |
-| `creds_file_path`       | string            |                                        | `true`   | The file path to the Google credentials JSON file.                                          |
-| `creds`                 | string            |                                        | `true`   | The Google credentials JSON.                                                                |
-| `log_type`              | string            |                                        | `false`  | The type of log that will be sent.                                                          |
-| `raw_log_field`         | string            |                                        | `false`  | The field name for raw logs.                                                                |
-| `customer_id`           | string            |                                        | `false`  | The customer ID used for sending logs.                                                      |
-| `override_log_type`     | bool              | `true`                                 | `false`  | Whether or not to override the `log_type` in the config with `attributes["log_type"]`       |
-| `namespace`             | string            |                                        | `false`  | User-configured environment namespace to identify the data domain the logs originated from. |
-| `compression`           | string            | `none`                                 | `false`  | The compression type to use when sending logs. valid values are `none` and `gzip`           |
-| `ingestion_labels`      | map[string]string |                                        | `false`  | Key-value pairs of labels to be applied to the logs when sent to chronicle.                 |
-| `collect_agent_metrics` | bool              | `true`                                 | `false`  | Enables collecting metrics about the agent's process and log ingestion metrics              |
+| Field                           | Type              | Default                                | Required | Description                                                                                 |
+| ------------------------------- | ----------------- | -------------------------------------- | -------- | ------------------------------------------------------------------------------------------- |
+| `endpoint`                      | string            | `malachiteingestion-pa.googleapis.com` | `false`  | The Endpoint for sending to chronicle.                                                      |
+| `creds_file_path`               | string            |                                        | `true`   | The file path to the Google credentials JSON file.                                          |
+| `creds`                         | string            |                                        | `true`   | The Google credentials JSON.                                                                |
+| `log_type`                      | string            |                                        | `false`  | The type of log that will be sent.                                                          |
+| `raw_log_field`                 | string            |                                        | `false`  | The field name for raw logs.                                                                |
+| `customer_id`                   | string            |                                        | `false`  | The customer ID used for sending logs.                                                      |
+| `override_log_type`             | bool              | `true`                                 | `false`  | Whether or not to override the `log_type` in the config with `attributes["log_type"]`       |
+| `namespace`                     | string            |                                        | `false`  | User-configured environment namespace to identify the data domain the logs originated from. |
+| `compression`                   | string            | `none`                                 | `false`  | The compression type to use when sending logs. valid values are `none` and `gzip`           |
+| `ingestion_labels`              | map[string]string |                                        | `false`  | Key-value pairs of labels to be applied to the logs when sent to chronicle.                 |
+| `collect_agent_metrics`         | bool              | `true`                                 | `false`  | Enables collecting metrics about the agent's process and log ingestion metrics              |
+| `batch_log_count_limit_grpc`    | int               | `1000`                                 | `false`  | The maximum number of logs allowed in a gRPC batch creation request.                        |
+| `batch_request_size_limit_grpc` | int               | `1048576`                              | `false`  | The maximum size, in bytes, allowed for a gRPC batch creation request.                      |
+| `batch_log_count_limit_http`    | int               | `1000`                                 | `false`  | The maximum number of logs allowed in a HTTP batch creation request.                        |
+| `batch_request_size_limit_http` | int               | `1048576`                              | `false`  | The maximum size, in bytes, allowed for a HTTP batch creation request.                      |
 
 ### Log Type
 
@@ -62,6 +66,10 @@ This exporter requires a Google Cloud service account with access to the Chronic
 Besides the default endpoint, there are also regional endpoints that can be used [here](https://cloud.google.com/chronicle/docs/reference/ingestion-api#regional_endpoints).
 
 For additional information on accessing Chronicle, see the [Chronicle documentation](https://cloud.google.com/chronicle/docs/reference/ingestion-api#getting_api_authentication_credentials).
+
+## Log Batch Creation Request Limits
+
+`batch_log_count_limit_grpc`, `batch_request_size_limit_grpc`, `batch_log_count_limit_http`, `batch_request_size_limit_http` are all used for ensuring log batch creation requests don't exceed Chronicle's backend limits - the former two for Chronicle's gRPC endpoint, and the latter two for Chronicle's HTTP endpoint. If a request either exceeds the configured size limit or contains more logs than the configured log count limit, the request will be split into multiple requests that adhere to these limits, with each request containing a subset of the logs contained in the original request. Any single logs that result in the request exceeding the size limit will be dropped.
 
 ## Example Configuration
 
