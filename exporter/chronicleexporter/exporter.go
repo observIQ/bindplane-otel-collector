@@ -48,8 +48,6 @@ import (
 const (
 	grpcScope = "https://www.googleapis.com/auth/malachite-ingestion"
 	httpScope = "https://www.googleapis.com/auth/cloud-platform"
-
-	baseEndpoint = "malachiteingestion-pa.googleapis.com"
 )
 
 type chronicleExporter struct {
@@ -63,7 +61,7 @@ type chronicleExporter struct {
 	grpcConn   *grpc.ClientConn
 	wg         sync.WaitGroup
 	cancel     context.CancelFunc
-	metrics    *exporterMetrics
+	metrics    *hostMetricsReporter
 
 	// fields used for HTTP
 	httpClient *http.Client
@@ -88,7 +86,7 @@ func newExporter(cfg *Config, params exporter.Settings, collectorID, exporterID 
 	return &chronicleExporter{
 		cfg:         cfg,
 		logger:      params.Logger,
-		metrics:     newExporterMetrics(uuidCID[:], customerID[:], exporterID, cfg.Namespace),
+		metrics:     newHostMetricsReporter(uuidCID[:], customerID[:], exporterID, cfg.Namespace),
 		marshaler:   marshaller,
 		collectorID: collectorID,
 		exporterID:  exporterID,

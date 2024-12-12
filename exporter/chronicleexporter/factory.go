@@ -35,10 +35,13 @@ func NewFactory() exporter.Factory {
 		exporter.WithLogs(createLogsExporter, metadata.LogsStability))
 }
 
-const defaultBatchLogCountLimitGRPC = 1000
-const defaultBatchRequestSizeLimitGRPC = 1048576
-const defaultBatchLogCountLimitHTTP = 1000
-const defaultBatchRequestSizeLimitHTTP = 1048576
+const (
+	defaultEndpoint                  = "malachiteingestion-pa.googleapis.com"
+	defaultBatchLogCountLimitGRPC    = 1000
+	defaultBatchRequestSizeLimitGRPC = 1048576
+	defaultBatchLogCountLimitHTTP    = 1000
+	defaultBatchRequestSizeLimitHTTP = 1048576
+)
 
 // createDefaultConfig creates the default configuration for the exporter.
 func createDefaultConfig() component.Config {
@@ -48,9 +51,9 @@ func createDefaultConfig() component.Config {
 		QueueConfig:               exporterhelper.NewDefaultQueueConfig(),
 		BackOffConfig:             configretry.NewDefaultBackOffConfig(),
 		OverrideLogType:           true,
-		Endpoint:                  baseEndpoint,
 		Compression:               noCompression,
 		CollectAgentMetrics:       true,
+		Endpoint:                  defaultEndpoint,
 		BatchLogCountLimitGRPC:    defaultBatchLogCountLimitGRPC,
 		BatchRequestSizeLimitGRPC: defaultBatchRequestSizeLimitGRPC,
 		BatchLogCountLimitHTTP:    defaultBatchLogCountLimitHTTP,

@@ -26,7 +26,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type exporterMetrics struct {
+type hostMetricsReporter struct {
 	mutex       sync.Mutex
 	agentID     []byte
 	customerID  []byte
@@ -38,9 +38,9 @@ type exporterMetrics struct {
 	logsSent    int64
 }
 
-func newExporterMetrics(agentID, customerID []byte, exporterID, namespace string) *exporterMetrics {
+func newHostMetricsReporter(agentID, customerID []byte, exporterID, namespace string) *hostMetricsReporter {
 	now := timestamppb.Now()
-	return &exporterMetrics{
+	return &hostMetricsReporter{
 		agentID:    agentID,
 		exporterID: exporterID,
 		startTime:  now,
@@ -54,16 +54,16 @@ func newExporterMetrics(agentID, customerID []byte, exporterID, namespace string
 	}
 }
 
-func (cm *exporterMetrics) getAndReset() *api.BatchCreateEventsRequest {
-	cm.mutex.Lock()
-	defer cm.mutex.Unlock()
+func (hmr *hostMetricsReporter) getAndReset() *api.BatchCreateEventsRequest {
+	hmr.mutex.Lock()
+	defer hmr.mutex.Unlock()
 
 	now := timestamppb.Now()
 	batchID := uuid.New()
 	source := &api.EventSource{
 		CollectorId: chronicleCollectorID[:],
-		Namespace:   cm.namespace,
-		CustomerId:  cm.customerID,
+		Namespace:   hmr.namespace,
+		CustomerId:  hmr.customerID,
 	}
 
 	request := &api.BatchCreateEventsRequest{
@@ -71,44 +71,44 @@ func (cm *exporterMetrics) getAndReset() *api.BatchCreateEventsRequest {
 			Id:        batchID[:],
 			Source:    source,
 			Type:      api.EventBatch_AGENT_STATS,
-			StartTime: cm.startTime,
+			StartTime: hmr.startTime,
 			Events: []*api.Event{
 				{
 					Timestamp:      now,
 					CollectionTime: now,
 					Source:         source,
 					Payload: &api.Event_AgentStats{
-						AgentStats: cm.stats,
+						AgentStats: hmr.stats,
 					},
 				},
 			},
 		},
 	}
 
-	cm.resetStats()
+	hmr.resetStats()
 	return request
 }
 
-func (cm *exporterMetrics) resetStats() {
-	cm.stats = &api.AgentStatsEvent{
+func (hmr *hostMetricsReporter) resetStats() {
+	hmr.stats = &api.AgentStatsEvent{
 		ExporterStats: []*api.ExporterStats{
 			{
-				Name:          cm.exporterID,
-				AcceptedSpans: cm.logsSent,
-				RefusedSpans:  cm.logsDropped,
+				Name:          hmr.exporterID,
+				AcceptedSpans: hmr.logsSent,
+				RefusedSpans:  hmr.logsDropped,
 			},
 		},
-		AgentId:         cm.agentID,
-		StartTime:       cm.startTime,
+		AgentId:         hmr.agentID,
+		StartTime:       hmr.startTime,
 		WindowStartTime: timestamppb.Now(),
 	}
-	cm.logsDropped = 0
-	cm.logsSent = 0
+	hmr.logsDropped = 0
+	hmr.logsSent = 0
 }
 
-func (cm *exporterMetrics) collectHostMetrics() error {
-	cm.mutex.Lock()
-	defer cm.mutex.Unlock()
+func (hmr *hostMetricsReporter) collectHostMetrics() error {
+	hmr.mutex.Lock()
+	defer hmr.mutex.Unlock()
 
 	// Get the current process using the current PID
 	proc, err := process.NewProcess(int32(os.Getpid()))
@@ -124,14 +124,14 @@ func (cm *exporterMetrics) collectHostMetrics() error {
 	totalCPUTime := cpuTimes.User + cpuTimes.System
 
 	// convert to milliseconds
-	cm.stats.ProcessCpuSeconds = int64(totalCPUTime * 1000)
+	hmr.stats.ProcessCpuSeconds = int64(totalCPUTime * 1000)
 
 	// Collect memory usage (RSS)
 	memInfo, err := proc.MemoryInfo()
 	if err != nil {
 		return fmt.Errorf("get memory info: %w", err)
 	}
-	cm.stats.ProcessMemoryRss = int64(memInfo.RSS / 1024) // Convert bytes to kilobytes
+	hmr.stats.ProcessMemoryRss = int64(memInfo.RSS / 1024) // Convert bytes to kilobytes
 
 	// Calculate process uptime
 	startTimeMs, err := proc.CreateTime()
@@ -140,19 +140,19 @@ func (cm *exporterMetrics) collectHostMetrics() error {
 	}
 	startTimeSec := startTimeMs / 1000
 	currentTimeSec := time.Now().Unix()
-	cm.stats.ProcessUptime = currentTimeSec - startTimeSec
+	hmr.stats.ProcessUptime = currentTimeSec - startTimeSec
 
 	return nil
 }
 
-func (cm *exporterMetrics) updateLastSuccessfulUpload() {
-	cm.mutex.Lock()
-	defer cm.mutex.Unlock()
-	cm.stats.LastSuccessfulUploadTime = timestamppb.Now()
+func (hmr *hostMetricsReporter) updateLastSuccessfulUpload() {
+	hmr.mutex.Lock()
+	defer hmr.mutex.Unlock()
+	hmr.stats.LastSuccessfulUploadTime = timestamppb.Now()
 }
 
-func (cm *exporterMetrics) addSentLogs(count int64) {
-	cm.mutex.Lock()
-	defer cm.mutex.Unlock()
-	cm.logsSent += count
+func (hmr *hostMetricsReporter) addSentLogs(count int64) {
+	hmr.mutex.Lock()
+	defer hmr.mutex.Unlock()
+	hmr.logsSent += count
 }
