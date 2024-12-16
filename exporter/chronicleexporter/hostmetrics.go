@@ -88,10 +88,8 @@ func (hmr *hostMetricsReporter) start() {
 	ctx, cancel := context.WithCancel(context.Background())
 	hmr.cancel = cancel
 	hmr.wg.Add(1)
-
 	go func() {
 		defer hmr.wg.Done()
-
 		for {
 			select {
 			case <-ctx.Done():
