@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-agent/internal/version
+module github.com/observiq/bindplane-otel-collector/internal/version
 
 go 1.21.9
 
