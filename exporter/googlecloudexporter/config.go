@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 
 	"github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/collector"
-	"github.com/observiq/bindplane-agent/internal/version"
+	"github.com/observiq/bindplane-otel-collector/internal/version"
 	gcp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/processor/batchprocessor"

@@ -43,7 +43,7 @@ find manifests -type f -name "manifest.yaml" | while read -r file; do
     # Use sed to update the version for matching lines
     sed -i '' -E "s|(github.com/open-telemetry/opentelemetry-collector-contrib[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+|\1 $new_version_opentelemetry_contrib|g" "$file"
     sed -i '' -E "s|(go.opentelemetry.io/collector[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+|\1 $new_version_opentelemetry_collector|g" "$file"
-    sed -i '' -E "s|(github.com/observiq/bindplane-agent[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+|\1 $new_version_bindplane_agent|g" "$file"
+    sed -i '' -E "s|(github.com/observiq/bindplane-otel-collector[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+|\1 $new_version_bindplane_agent|g" "$file"
 
     echo "Versions updated successfully in $file."
 done
