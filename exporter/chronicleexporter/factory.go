@@ -18,13 +18,11 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/uuid"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
-	semconv "go.opentelemetry.io/collector/semconv/v1.5.0"
 )
 
 // NewFactory creates a new Chronicle exporter factory.
@@ -72,15 +70,7 @@ func createLogsExporter(
 		return nil, errors.New("invalid config type")
 	}
 
-	var cID string
-	sid, ok := params.Resource.Attributes().Get(semconv.AttributeServiceInstanceID)
-	if ok {
-		cID = sid.AsString()
-	} else {
-		cID = uuid.New().String()
-	}
-
-	exp, err := newExporter(chronicleCfg, params, cID, params.ID.String())
+	exp, err := newExporter(chronicleCfg, params, params.ID.String())
 	if err != nil {
 		return nil, err
 	}

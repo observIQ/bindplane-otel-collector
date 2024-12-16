@@ -15,6 +15,7 @@
 package chronicleexporter
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -23,10 +24,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/shirou/gopsutil/v3/process"
+	"go.opentelemetry.io/collector/component"
+	semconv "go.opentelemetry.io/collector/semconv/v1.5.0"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type hostMetricsReporter struct {
+	set    component.TelemetrySettings
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
+	send   sendMetricsFunc
+
 	mutex       sync.Mutex
 	agentID     []byte
 	customerID  []byte
@@ -38,20 +47,67 @@ type hostMetricsReporter struct {
 	logsSent    int64
 }
 
-func newHostMetricsReporter(agentID, customerID []byte, exporterID, namespace string) *hostMetricsReporter {
+type sendMetricsFunc func(context.Context, *api.BatchCreateEventsRequest) error
+
+func newHostMetricsReporter(cfg *Config, set component.TelemetrySettings, exporterID string, send sendMetricsFunc) (*hostMetricsReporter, error) {
+	customerID, err := uuid.Parse(cfg.CustomerID)
+	if err != nil {
+		return nil, fmt.Errorf("parse customer ID: %w", err)
+	}
+
+	agentID := uuid.New()
+	if sid, ok := set.Resource.Attributes().Get(semconv.AttributeServiceInstanceID); ok {
+		var err error
+		agentID, err = uuid.Parse(sid.AsString())
+		if err != nil {
+			return nil, fmt.Errorf("parse collector ID: %w", err)
+		}
+	}
+
 	now := timestamppb.Now()
 	return &hostMetricsReporter{
-		agentID:    agentID,
+		set:        set,
+		send:       send,
+		agentID:    agentID[:],
 		exporterID: exporterID,
 		startTime:  now,
-		customerID: customerID,
-		namespace:  namespace,
+		customerID: customerID[:],
+		namespace:  cfg.Namespace,
 		stats: &api.AgentStatsEvent{
+			AgentId:         agentID[:],
 			WindowStartTime: now,
-			AgentId:         agentID,
 			StartTime:       now,
 		},
-	}
+	}, nil
+}
+
+func (hmr *hostMetricsReporter) start() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	hmr.cancel = cancel
+	hmr.wg.Add(1)
+
+	go func() {
+		defer hmr.wg.Done()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				err := hmr.collectHostMetrics()
+				if err != nil {
+					hmr.set.Logger.Error("Failed to collect host metrics", zap.Error(err))
+				}
+				request := hmr.getAndReset()
+				if err = hmr.send(ctx, request); err != nil {
+					hmr.set.Logger.Error("Failed to upload host metrics", zap.Error(err))
+				}
+			}
+		}
+	}()
 }
 
 func (hmr *hostMetricsReporter) getAndReset() *api.BatchCreateEventsRequest {
@@ -87,6 +143,13 @@ func (hmr *hostMetricsReporter) getAndReset() *api.BatchCreateEventsRequest {
 
 	hmr.resetStats()
 	return request
+}
+
+func (hmr *hostMetricsReporter) shutdown() {
+	if hmr.cancel != nil {
+		hmr.cancel()
+		hmr.wg.Wait()
+	}
 }
 
 func (hmr *hostMetricsReporter) resetStats() {
@@ -145,14 +208,9 @@ func (hmr *hostMetricsReporter) collectHostMetrics() error {
 	return nil
 }
 
-func (hmr *hostMetricsReporter) updateLastSuccessfulUpload() {
-	hmr.mutex.Lock()
-	defer hmr.mutex.Unlock()
-	hmr.stats.LastSuccessfulUploadTime = timestamppb.Now()
-}
-
-func (hmr *hostMetricsReporter) addSentLogs(count int64) {
+func (hmr *hostMetricsReporter) recordSent(count int64) {
 	hmr.mutex.Lock()
 	defer hmr.mutex.Unlock()
 	hmr.logsSent += count
+	hmr.stats.LastSuccessfulUploadTime = timestamppb.Now()
 }

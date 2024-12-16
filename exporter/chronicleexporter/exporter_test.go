@@ -51,7 +51,25 @@ func TestLogsDataPusher(t *testing.T) {
 				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]*api.BatchCreateLogsRequest{{}}, nil)
 				return &chronicleExporter{
 					cfg:        &cfg,
-					metrics:    newHostMetricsReporter([]byte{}, []byte{}, "", cfg.Namespace),
+					set:        componenttest.NewNopTelemetrySettings(),
+					grpcClient: mockClient,
+					marshaler:  marshaller,
+				}
+			},
+			setupMocks: func(mockClient *mocks.MockIngestionServiceV2Client) {
+				mockClient.EXPECT().BatchCreateLogs(gomock.Any(), gomock.Any(), gomock.Any()).Return(&api.BatchCreateLogsResponse{}, nil)
+			},
+			expectedErr: "",
+		},
+		{
+			desc: "successful push to Chronicle with metrics",
+			setupExporter: func() *chronicleExporter {
+				mockClient := mocks.NewMockIngestionServiceV2Client(gomock.NewController(t))
+				marshaller := NewMockMarshaler(t)
+				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]*api.BatchCreateLogsRequest{{}}, nil)
+				cfg.CollectAgentMetrics = true
+				return &chronicleExporter{
+					cfg:        &cfg,
 					set:        componenttest.NewNopTelemetrySettings(),
 					grpcClient: mockClient,
 					marshaler:  marshaller,
@@ -70,7 +88,6 @@ func TestLogsDataPusher(t *testing.T) {
 				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]*api.BatchCreateLogsRequest{{}}, nil)
 				return &chronicleExporter{
 					cfg:        &cfg,
-					metrics:    newHostMetricsReporter([]byte{}, []byte{}, "", cfg.Namespace),
 					set:        componenttest.NewNopTelemetrySettings(),
 					grpcClient: mockClient,
 					marshaler:  marshaller,
@@ -91,7 +108,6 @@ func TestLogsDataPusher(t *testing.T) {
 				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]*api.BatchCreateLogsRequest{{}}, nil)
 				return &chronicleExporter{
 					cfg:        &cfg,
-					metrics:    newHostMetricsReporter([]byte{}, []byte{}, "", cfg.Namespace),
 					set:        componenttest.NewNopTelemetrySettings(),
 					grpcClient: mockClient,
 					marshaler:  marshaller,
@@ -113,7 +129,6 @@ func TestLogsDataPusher(t *testing.T) {
 				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return(nil, errors.New("marshal error"))
 				return &chronicleExporter{
 					cfg:        &cfg,
-					metrics:    newHostMetricsReporter([]byte{}, []byte{}, "", cfg.Namespace),
 					set:        componenttest.NewNopTelemetrySettings(),
 					grpcClient: mockClient,
 					marshaler:  marshaller,
@@ -133,7 +148,6 @@ func TestLogsDataPusher(t *testing.T) {
 				marshaller.On("MarshalRawLogs", mock.Anything, mock.Anything).Return([]*api.BatchCreateLogsRequest{}, nil)
 				return &chronicleExporter{
 					cfg:        &cfg,
-					metrics:    newHostMetricsReporter([]byte{}, []byte{}, "", cfg.Namespace),
 					set:        componenttest.NewNopTelemetrySettings(),
 					grpcClient: mockClient,
 					marshaler:  marshaller,
