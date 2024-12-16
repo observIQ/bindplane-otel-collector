@@ -1,5 +1,5 @@
 dist:
-  module: github.com/observiq/bindplane-agent-ocb
+  module: github.com/observiq/bindplane-otel-collector-ocb
   name: observiq-distro
   description: ObservIQ's minimal distro for OpenTelemetry Collector
   version: "v0.0.1"
@@ -9,7 +9,7 @@ conf_resolver:
 extensions:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.114.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.114.0
-  - gomod: github.com/observiq/bindplane-agent/extension/bindplaneextension v1.66.0
+  - gomod: github.com/observiq/bindplane-otel-collector/extension/bindplaneextension v1.66.0
     path: "./extension/bindplaneextension"
 exporters:
   - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.114.0
@@ -17,7 +17,7 @@ exporters:
 processors:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor v0.114.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.114.0
-  - gomod: github.com/observiq/bindplane-agent/processor/snapshotprocessor v1.66.0
+  - gomod: github.com/observiq/bindplane-otel-collector/processor/snapshotprocessor v1.66.0
     path: "./processor/snapshotprocessor"
 receivers:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.114.0

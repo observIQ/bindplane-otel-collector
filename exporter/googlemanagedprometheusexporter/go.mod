@@ -5,7 +5,7 @@ go 1.23.8
 toolchain go1.24.1
 
 require (
-	github.com/observiq/bindplane-agent/internal/version v1.77.0
+	github.com/observiq/bindplane-otel-collector/internal/version v1.77.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.124.1
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v1.30.0
@@ -105,4 +105,4 @@ require (
 )
 
 // Needed until 'version' package changes are included in a release
-replace github.com/observiq/bindplane-agent/internal/version => ../../internal/version
+replace github.com/observiq/bindplane-otel-collector/internal/version => ../../internal/version
