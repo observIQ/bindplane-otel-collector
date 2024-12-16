@@ -22,7 +22,7 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"
 
-	"github.com/observiq/bindplane-agent/receiver/oktareceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-collector/receiver/oktareceiver/internal/metadata"
 )
 
 // NewFactory creates a new factory for the Okta receiver

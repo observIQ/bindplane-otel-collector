@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-agent/counter
+module github.com/observiq/bindplane-otel-collector/counter
 
 go 1.22.7
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package telemetrygeneratorreceiver //import "github.com/observiq/bindplane-agent/receiver/telemetrygeneratorreceiver"
+package telemetrygeneratorreceiver //import "github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver"
 
 import (
 	"time"

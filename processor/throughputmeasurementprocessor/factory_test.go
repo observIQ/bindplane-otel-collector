@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/observiq/bindplane-agent/internal/measurements"
+	"github.com/observiq/bindplane-otel-collector/internal/measurements"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer/consumertest"

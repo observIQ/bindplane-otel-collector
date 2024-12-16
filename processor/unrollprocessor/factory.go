@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package unrollprocessor // import "github.com/observiq/bindplane-agent/processor/unrollprocessor"
+package unrollprocessor // import "github.com/observiq/bindplane-otel-collector/processor/unrollprocessor"
 
 import (
 	"context"

@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/observiq/bindplane-agent/exporter/chronicleexporter/protos/api"
-	"github.com/observiq/bindplane-agent/exporter/chronicleexporter/protos/api/mocks"
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/consumer/consumererror"

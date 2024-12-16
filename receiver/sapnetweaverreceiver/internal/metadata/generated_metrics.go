@@ -2230,7 +2230,7 @@ func WithStartTimeOverride(start pcommon.Timestamp) ResourceMetricsOption {
 func (mb *MetricsBuilder) EmitForResource(options ...ResourceMetricsOption) {
 	rm := pmetric.NewResourceMetrics()
 	ils := rm.ScopeMetrics().AppendEmpty()
-	ils.Scope().SetName("github.com/observiq/bindplane-agent/receiver/sapnetweaverreceiver")
+	ils.Scope().SetName("github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver")
 	ils.Scope().SetVersion(mb.buildInfo.Version)
 	ils.Metrics().EnsureCapacity(mb.metricsCapacity)
 	mb.metricSapnetweaverAbapUpdateStatus.emit(ils.Metrics())

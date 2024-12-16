@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-agent/receiver/routereceiver
+module github.com/observiq/bindplane-otel-collector/receiver/routereceiver
 
 go 1.22.7
 

@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-agent/processor/unrollprocessor
+module github.com/observiq/bindplane-otel-collector/processor/unrollprocessor
 
 go 1.22.7
 

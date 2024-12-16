@@ -5,7 +5,7 @@ package chronicleexporter
 import (
 	context "context"
 
-	api "github.com/observiq/bindplane-agent/exporter/chronicleexporter/protos/api"
+	api "github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 
 	mock "github.com/stretchr/testify/mock"
 

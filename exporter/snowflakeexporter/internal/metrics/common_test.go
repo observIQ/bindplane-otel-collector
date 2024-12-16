@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package metrics defines how to send the different pmetric types to Snowflake
-package metrics // "github.com/observiq/bindplane-agent/exporter/snowflakeexporter/internal/metrics"
+package metrics // "github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter/internal/metrics"
 
 import (
 	"go.opentelemetry.io/collector/pdata/pmetric"

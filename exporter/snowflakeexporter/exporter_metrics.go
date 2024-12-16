@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/observiq/bindplane-agent/exporter/snowflakeexporter/internal/database"
-	"github.com/observiq/bindplane-agent/exporter/snowflakeexporter/internal/metrics"
+	"github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter/internal/database"
+	"github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter/internal/metrics"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter"

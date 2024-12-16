@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package utility provides utility functions for the snowflakeexporter package to consolidate code
-package utility // "github.com/observiq/bindplane-agent/exporter/snowflakeexporter/internal/utility"
+package utility // "github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter/internal/utility"
 
 import (
 	"database/sql/driver"

@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/observiq/bindplane-agent/exporter/chronicleexporter/protos/api"
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/shirou/gopsutil/v3/process"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

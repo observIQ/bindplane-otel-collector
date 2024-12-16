@@ -15,4 +15,4 @@
 // Package azureblobrehydrationreceiver contains the core logic for the Azure Blob Rehydration receiver
 //
 //go:generate mdatagen metadata.yaml
-package azureblobrehydrationreceiver //import "github.com/observiq/bindplane-agent/receiver/azureblobrehydrationreceiver"
+package azureblobrehydrationreceiver //import "github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver"

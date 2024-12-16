@@ -2,8 +2,8 @@
 This receiver is used to generate synthetic telemetry for testing and configuration purposes. 
 
 ## Minimum Agent Versions
-- Introduced: [v1.46.0](https://github.com/observIQ/bindplane-agent/releases/tag/v1.46.0)
-- Updated to include host_metrics: [v1.47.0](https://github.com/observIQ/bindplane-agent/releases/tag/v1.47.0)
+- Introduced: [v1.46.0](https://github.com/observIQ/bindplane-otel-collector/releases/tag/v1.46.0)
+- Updated to include host_metrics: [v1.47.0](https://github.com/observIQ/bindplane-otel-collector/releases/tag/v1.47.0)
 
 ## Supported Pipelines
 - Logs

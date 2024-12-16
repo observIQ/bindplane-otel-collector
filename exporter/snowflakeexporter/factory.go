@@ -19,8 +19,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/observiq/bindplane-agent/exporter/snowflakeexporter/internal/database"
-	"github.com/observiq/bindplane-agent/exporter/snowflakeexporter/internal/metadata"
+	"github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter/internal/database"
+	"github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter"

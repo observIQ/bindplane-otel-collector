@@ -11,7 +11,7 @@ Due to the nature of the APIs being used to collect data from Microsoft 365, the
 - As part of [configuring Microsoft 365](#configuring-microsoft-365) a client secret will need to be generated in Azure Active Directory. When this is done, a date for when the secret expires will need to be selected. The user is responsible for tracking expiration of secrets and generating new secrets as needed. 
 
 ## Minimum Agent Versions
-- Introduced: [v1.27.0](https://github.com/observIQ/bindplane-agent/releases/tag/v1.27.0)
+- Introduced: [v1.27.0](https://github.com/observIQ/bindplane-otel-collector/releases/tag/v1.27.0)
 
 ## Supported Pipelines
 - Metrics

@@ -19,7 +19,7 @@ package throughputmeasurementprocessor
 import (
 	"fmt"
 
-	"github.com/observiq/bindplane-agent/internal/measurements"
+	"github.com/observiq/bindplane-otel-collector/internal/measurements"
 	"go.opentelemetry.io/collector/component"
 )
 

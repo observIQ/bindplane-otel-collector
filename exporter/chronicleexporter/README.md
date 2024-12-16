@@ -6,7 +6,7 @@ This exporter facilitates the sending of logs to Chronicle, which is a security 
 
 ## Minimum Collector Versions
 
-- Introduced: [v1.39.0](https://github.com/observIQ/bindplane-agent/releases/tag/v1.39.0)
+- Introduced: [v1.39.0](https://github.com/observIQ/bindplane-otel-collector/releases/tag/v1.39.0)
 
 ## Supported Pipelines
 

@@ -2,7 +2,7 @@
 This processor calculates statistics from metrics over a configurable interval, allowing for metrics to be sampled at a higher rate, or to reduce the volume of metric data from push-based sources.
 
 ## Minimum agent versions
-- Introduced: [v1.19.0](https://github.com/observIQ/bindplane-agent/releases/tag/v1.19.0)
+- Introduced: [v1.19.0](https://github.com/observIQ/bindplane-otel-collector/releases/tag/v1.19.0)
 
 ## Supported pipelines
 - Metrics

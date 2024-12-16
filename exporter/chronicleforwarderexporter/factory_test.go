@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package chronicleforwarderexporter // import "github.com/observiq/bindplane-agent/exporter/azureblobexporter"
+package chronicleforwarderexporter // import "github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter"
 
 import (
 	"testing"

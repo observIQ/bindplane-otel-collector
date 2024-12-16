@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package oktareceiver provides a receiver that receives telemetry from an Okta domain.
-package oktareceiver // import "github.com/observiq/bindplane-agent/receiver/oktareceiver"
+package oktareceiver // import "github.com/observiq/bindplane-otel-collector/receiver/oktareceiver"
 
 import (
 	"errors"

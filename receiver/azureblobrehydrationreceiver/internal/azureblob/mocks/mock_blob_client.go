@@ -5,7 +5,7 @@ package mocks
 import (
 	context "context"
 
-	azureblob "github.com/observiq/bindplane-agent/receiver/azureblobrehydrationreceiver/internal/azureblob"
+	azureblob "github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver/internal/azureblob"
 
 	mock "github.com/stretchr/testify/mock"
 )

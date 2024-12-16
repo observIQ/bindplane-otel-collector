@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package azureblobrehydrationreceiver //import "github.com/observiq/bindplane-agent/receiver/azureblobrehydrationreceiver"
+package azureblobrehydrationreceiver //import "github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver"
 
 import (
 	"errors"
 	"fmt"
 	"time"
 
-	"github.com/observiq/bindplane-agent/internal/rehydration"
+	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
 	"go.opentelemetry.io/collector/component"
 )
 

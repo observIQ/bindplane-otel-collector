@@ -15,4 +15,4 @@
 //go:generate mdatagen metadata.yaml
 
 // Package snowflakeexporter exports OpenTelemetry data to a Snowflake database.
-package snowflakeexporter // import "github.com/observiq/bindplane-agent/exporter/snowflakeexporter"
+package snowflakeexporter // import "github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter"

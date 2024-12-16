@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-agent/processor/metricstatsprocessor
+module github.com/observiq/bindplane-otel-collector/processor/metricstatsprocessor
 
 go 1.22.7
 

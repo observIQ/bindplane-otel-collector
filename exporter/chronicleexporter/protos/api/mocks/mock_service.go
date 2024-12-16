@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	generated "github.com/observiq/bindplane-agent/exporter/chronicleexporter/protos/api"
+	generated "github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	grpc "google.golang.org/grpc"
 )
 

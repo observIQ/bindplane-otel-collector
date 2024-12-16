@@ -8,7 +8,7 @@ import (
 
 var (
 	Type      = component.MustNewType("awss3rehydration")
-	ScopeName = "github.com/observiq/bindplane-agent/receiver/awss3rehydrationreceiver"
+	ScopeName = "github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver"
 )
 
 const (

@@ -1,11 +1,11 @@
-module github.com/observiq/bindplane-agent/receiver/azureblobrehydrationreceiver
+module github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver
 
 go 1.22.7
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.5.0
-	github.com/observiq/bindplane-agent/internal/rehydration v1.62.0
-	github.com/observiq/bindplane-agent/internal/testutils v1.66.0
+	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.62.0
+	github.com/observiq/bindplane-otel-collector/internal/testutils v1.66.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v0.114.0
 	go.opentelemetry.io/collector/component/componenttest v0.114.0
@@ -61,6 +61,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/observiq/bindplane-agent/internal/rehydration => ../../internal/rehydration
+replace github.com/observiq/bindplane-otel-collector/internal/rehydration => ../../internal/rehydration
 
-replace github.com/observiq/bindplane-agent/internal/testutils => ../../internal/testutils
+replace github.com/observiq/bindplane-otel-collector/internal/testutils => ../../internal/testutils

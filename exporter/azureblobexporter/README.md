@@ -3,7 +3,7 @@
 This exporter allows you to export metrics, traces, and logs to Azure Blob Storage. Telemetry is exported in [OpenTelemetry Protocol JSON format](https://github.com/open-telemetry/opentelemetry-proto).
 
 ## Minimum Agent Versions
-- Introduced: [v1.35.0](https://github.com/observIQ/bindplane-agent/releases/tag/v1.35.0)
+- Introduced: [v1.35.0](https://github.com/observIQ/bindplane-otel-collector/releases/tag/v1.35.0)
 
 ## Supported Pipelines
 - Metrics

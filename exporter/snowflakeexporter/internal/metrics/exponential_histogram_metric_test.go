@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/bindplane-agent/exporter/snowflakeexporter/internal/database/mocks"
-	"github.com/observiq/bindplane-agent/exporter/snowflakeexporter/internal/utility"
+	"github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter/internal/database/mocks"
+	"github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter/internal/utility"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.uber.org/zap"

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package database defines functions to be used by the Snowflake exporter for interacting with Snowflake
-package database // import "github.com/observiq/bindplane-agent/exporter/snowflakeexporter/internal/database"
+package database // import "github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter/internal/database"
 
 import (
 	"context"

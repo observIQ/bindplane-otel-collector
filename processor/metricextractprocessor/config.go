@@ -19,7 +19,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/observiq/bindplane-agent/expr"
+	"github.com/observiq/bindplane-otel-collector/expr"
 	"go.opentelemetry.io/collector/component"
 	"go.uber.org/zap"
 )

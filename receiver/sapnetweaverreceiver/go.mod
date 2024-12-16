@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-agent/receiver/sapnetweaverreceiver
+module github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver
 
 go 1.22.7
 

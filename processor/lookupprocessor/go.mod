@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-agent/processor/lookupprocessor
+module github.com/observiq/bindplane-otel-collector/processor/lookupprocessor
 
 go 1.22.7
 

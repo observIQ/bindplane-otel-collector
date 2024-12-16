@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package aws provides an S3 client for AWS
-package aws //import "github.com/observiq/bindplane-agent/receiver/awss3rehydrationreceiver/internal/aws"
+package aws //import "github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver/internal/aws"
 
 import (
 	"context"

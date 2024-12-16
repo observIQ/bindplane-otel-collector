@@ -8,7 +8,7 @@ import (
 
 var (
 	Type      = component.MustNewType("chronicle")
-	ScopeName = "github.com/observiq/bindplane-agent/exporter/chronicleexporter"
+	ScopeName = "github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter"
 )
 
 const (

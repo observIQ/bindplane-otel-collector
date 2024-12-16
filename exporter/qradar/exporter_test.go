@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/bindplane-agent/exporter/qradar/internal/mocks"
+	"github.com/observiq/bindplane-otel-collector/exporter/qradar/internal/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/config/confignet"

@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-agent/processor/removeemptyvaluesprocessor
+module github.com/observiq/bindplane-otel-collector/processor/removeemptyvaluesprocessor
 
 go 1.22.7
 

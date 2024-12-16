@@ -14,4 +14,4 @@
 
 //go:generate mdatagen metadata.yaml
 
-package httpreceiver //import "github.com/observiq/bindplane-agent/receiver/httpreceiver"
+package httpreceiver //import "github.com/observiq/bindplane-otel-collector/receiver/httpreceiver"

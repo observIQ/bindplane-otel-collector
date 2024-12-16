@@ -4,7 +4,7 @@ The QRadar Exporter is designed for forwarding logs to a QRadar instance using i
 
 ## Minimum Agent Versions
 
-- Introduced: [v1.61.0](https://github.com/observIQ/bindplane-agent/releases/tag/v1.61.0)
+- Introduced: [v1.61.0](https://github.com/observIQ/bindplane-otel-collector/releases/tag/v1.61.0)
 
 ## Supported Pipelines
 

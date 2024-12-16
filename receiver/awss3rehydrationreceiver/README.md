@@ -5,7 +5,7 @@ Rehydrates OTLP from AWS S3 that was stored using the [awss3exporter](https://gi
 This is not a traditional receiver that continually produces data but rather rehydrates all objects found within a specified time range. Once all of the objects have been rehydrated in that time range the receiver will stop producing data. After the receiver has detected three consecutive empty polls it will stop polling for new objects in order to prevent unnecessary API calls.
 
 ## Minimum Agent Versions
-- Introduced: [v1.49.0](https://github.com/observIQ/bindplane-agent/releases/tag/v1.49.0)
+- Introduced: [v1.49.0](https://github.com/observIQ/bindplane-otel-collector/releases/tag/v1.49.0)
 
 ## Supported Pipelines
 - Metrics

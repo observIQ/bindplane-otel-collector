@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-agent/exporter/googlecloudexporter
+module github.com/observiq/bindplane-otel-collector/exporter/googlecloudexporter
 
 go 1.22.7
 

@@ -20,7 +20,7 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/observiq/bindplane-agent/internal/measurements"
+	"github.com/observiq/bindplane-otel-collector/internal/measurements"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"

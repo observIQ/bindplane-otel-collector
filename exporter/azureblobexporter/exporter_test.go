@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package azureblobexporter // import "github.com/observiq/bindplane-agent/exporter/azureblobexporter"
+package azureblobexporter // import "github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter"
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/observiq/bindplane-agent/exporter/azureblobexporter/internal/mocks"
+	"github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter/internal/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/pdata/plog"

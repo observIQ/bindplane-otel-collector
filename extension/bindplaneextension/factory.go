@@ -17,7 +17,7 @@ package bindplaneextension
 import (
 	"context"
 
-	"github.com/observiq/bindplane-agent/extension/bindplaneextension/internal/metadata"
+	"github.com/observiq/bindplane-otel-collector/extension/bindplaneextension/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/extension"
 )

@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-agent/exporter/googlemanagedprometheusexporter
+module github.com/observiq/bindplane-otel-collector/exporter/googlemanagedprometheusexporter
 
 go 1.22.7
 

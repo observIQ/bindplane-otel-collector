@@ -18,8 +18,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/observiq/bindplane-agent/exporter/snowflakeexporter/internal/database"
-	"github.com/observiq/bindplane-agent/exporter/snowflakeexporter/internal/utility"
+	"github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter/internal/database"
+	"github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter/internal/utility"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.uber.org/zap"
 )

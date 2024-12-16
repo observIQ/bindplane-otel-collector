@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-agent/internal/testutils
+module github.com/observiq/bindplane-otel-collector/internal/testutils
 
 go 1.22.7
 

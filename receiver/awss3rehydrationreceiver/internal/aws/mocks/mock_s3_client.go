@@ -5,7 +5,7 @@ package mocks
 import (
 	context "context"
 
-	aws "github.com/observiq/bindplane-agent/receiver/awss3rehydrationreceiver/internal/aws"
+	aws "github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver/internal/aws"
 
 	mock "github.com/stretchr/testify/mock"
 )

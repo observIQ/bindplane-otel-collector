@@ -8,7 +8,7 @@ import (
 
 var (
 	Type      = component.MustNewType("azureblobrehydration")
-	ScopeName = "github.com/observiq/bindplane-agent/receiver/azureblobrehydrationreceiver"
+	ScopeName = "github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver"
 )
 
 const (
