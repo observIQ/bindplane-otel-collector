@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
-	"go.opentelemetry.io/collector/receiver/scrapererror"
+	"go.opentelemetry.io/collector/scraper/scrapererror"
 
 	"github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver/internal/models"
