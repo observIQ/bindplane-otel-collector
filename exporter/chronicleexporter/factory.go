@@ -16,7 +16,6 @@ package chronicleexporter
 
 import (
 	"context"
-	"errors"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
@@ -64,30 +63,25 @@ func createLogsExporter(
 	ctx context.Context,
 	params exporter.Settings,
 	cfg component.Config,
-) (exporter.Logs, error) {
-	chronicleCfg, ok := cfg.(*Config)
-	if !ok {
-		return nil, errors.New("invalid config type")
+) (exp exporter.Logs, err error) {
+	c := cfg.(*Config)
+	if c.Protocol == protocolHTTPS {
+		exp, err = newHTTPExporter(c, params)
+	} else {
+		exp, err = newGRPCExporter(c, params)
 	}
-
-	exp, err := newExporter(chronicleCfg, params, params.ID.String())
 	if err != nil {
 		return nil, err
-	}
-
-	pusher := exp.logsDataPusher
-	if chronicleCfg.Protocol == protocolHTTPS {
-		pusher = exp.logsHTTPDataPusher
 	}
 	return exporterhelper.NewLogs(
 		ctx,
 		params,
-		chronicleCfg,
-		pusher,
+		c,
+		exp.ConsumeLogs,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
-		exporterhelper.WithTimeout(chronicleCfg.TimeoutConfig),
-		exporterhelper.WithQueue(chronicleCfg.QueueConfig),
-		exporterhelper.WithRetry(chronicleCfg.BackOffConfig),
+		exporterhelper.WithTimeout(c.TimeoutConfig),
+		exporterhelper.WithQueue(c.QueueConfig),
+		exporterhelper.WithRetry(c.BackOffConfig),
 		exporterhelper.WithStart(exp.Start),
 		exporterhelper.WithShutdown(exp.Shutdown),
 	)

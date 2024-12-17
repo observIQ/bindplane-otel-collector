@@ -61,7 +61,11 @@ type protoMarshaler struct {
 	collectorID  []byte
 }
 
-func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings, customerID []byte) (*protoMarshaler, error) {
+func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings) (*protoMarshaler, error) {
+	customerID, err := uuid.Parse(cfg.CustomerID)
+	if err != nil {
+		return nil, fmt.Errorf("parse customer ID: %w", err)
+	}
 	return &protoMarshaler{
 		startTime:    time.Now(),
 		cfg:          cfg,

@@ -125,7 +125,7 @@ func TestHTTPExporter(t *testing.T) {
 				return logs
 			}(),
 			expectedRequests: 1,
-			expectedErr:      "upload logs to chronicle: 503 Service Unavailable",
+			expectedErr:      "upload to chronicle: 503 Service Unavailable",
 			permanentErr:     false,
 		},
 		{
@@ -144,7 +144,7 @@ func TestHTTPExporter(t *testing.T) {
 				return logs
 			}(),
 			expectedRequests: 1,
-			expectedErr:      "Permanent error: upload logs to chronicle: 401 Unauthorized",
+			expectedErr:      "upload to chronicle: Permanent error: 401 Unauthorized",
 			permanentErr:     true,
 		},
 	}
