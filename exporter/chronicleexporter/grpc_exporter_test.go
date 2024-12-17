@@ -19,7 +19,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/observiq/bindplane-agent/exporter/chronicleexporter/protos/api"
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumererror"
