@@ -15,7 +15,7 @@ The provided configuration assumes the agent is running on the Docker system. By
 The user running the agent must have permission to read the [docker socket](https://docs.docker.com/engine/install/linux-postinstall/).
 
 ```bash
-sudo usermod -aG docker observiq-otel-collector
+sudo usermod -aG docker bindplane-otel-collector
 ```
 
 ## Deployment
@@ -38,7 +38,7 @@ docker run -d \
     --volume="$(pwd)/credentials.json:/etc/otel/credentials.json" \
     -e "GOOGLE_APPLICATION_CREDENTIALS=/etc/otel/credentials.json" \
     -e "DOCKER_AGENT_HOSTNAME=$(hostname)" \
-    observiq/bindplane-agent:v1.30.0
+    observiq/bindplane-otel-collector:v1.30.0
 ```
 
 Run with Docker Compose
@@ -51,7 +51,7 @@ services:
     # Run as root if using a configuration that requires
     # root privileges.
     #user: root
-    image: observiq/bindplane-agent:v1.30.0
+    image: observiq/bindplane-otel-collector:v1.30.0
     restart: always
     deploy:
       resources:

@@ -2,7 +2,7 @@
 # https://github.com/open-telemetry/opentelemetry-collector-releases/blob/main/distributions/otelcol-contrib/manifest.yaml
 dist:
   module: github.com/observiq/bindplane-otel-collector
-  name: observiq-otel-collector
+  name: bindplane-otel-collector
   description: ObservIQ's custom distro for OpenTelemetry Collector
   version: "v2.0.0"
   output_path: ./builder

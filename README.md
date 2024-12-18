@@ -101,8 +101,10 @@ To install directly with the appropriate package manager, and how to configure O
 
 To install the BDOT Collector on Windows run the Powershell command below to install the MSI with no UI.
 
+To install the BDOT on Windows, run the Powershell command below to install the MSI with no UI.
+
 ```pwsh
-msiexec /i "https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/observiq-otel-collector.msi" /quiet
+msiexec /i "https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/bindplane-otel-collector.msi" /quiet
 ```
 
 Alternately, for an interactive installation [download the latest MSI](https://github.com/observIQ/bindplane-otel-collector/releases/latest).
@@ -130,10 +132,10 @@ With the collector installed, you can use BindPlane to create a configuration an
 You can edit the supervisor config as needed for communicating with BindPlane and managing the agent. To find your config file based on your OS reference the table below:
 
 | OS      | Default Location                                                  |
-|:--------|:------------------------------------------------------------------|
-| Linux   | /opt/observiq-otel-collector/supervisor.yaml                      |
+| :------ | :---------------------------------------------------------------- |
+| Linux   | /opt/bindplane-otel-collector/supervisor.yaml                     |
 | Windows | C:\Program Files\observIQ OpenTelemetry Collector\supervisor.yaml |
-| macOS   | /opt/observiq-otel-collector/supervisor.yaml                      |
+| macOS   | /opt/bindplane-otel-collector/supervisor.yaml                     |
 
 For more information on supervisor configuration see the [supervisor documentation](./docs/supervisor.md).
 
@@ -149,7 +151,10 @@ For more information on managing collectors via OpAMP see the [Connecting to Bin
 
 The BDOT Collector uses OpenTelemetry Collector configuration.
 
-For sample configs, see the [config](/config/) directory.
+The BDOT uses OpenTelemetry configuration. Running the agent with the supervisor requires receiving the agent's config from an OpAMP management server, namely BindPlane in this context.
+
+Specific information on managing agents, creating a configuration, and rolling out configs can be found in [BindPlane documentation](https://observiq.com/docs/getting-started/quickstart-guide).
+
 For general configuration help, see the [OpenTelemetry docs](https://opentelemetry.io/docs/collector/configuration/).
 
 For configuration options of a specific component, take a look at the README found in their respective module roots. For a list of currently supported components see [Included Components](#included-components).

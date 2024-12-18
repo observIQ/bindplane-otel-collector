@@ -17,9 +17,10 @@ service account key exists in this directory.
 
 ```bash
  docker-compose up -d
- ```
+```
 
-***docker-compose.yml***
+**_docker-compose.yml_**
+
 ```yaml
 version: "3.9"
 services:
@@ -29,18 +30,18 @@ services:
     container_name: cadvisor
     hostname: cadvisor
     ports:
-    - 8080:8080
+      - 8080:8080
     volumes:
-    - /:/rootfs:ro
-    - /var/run:/var/run:rw
-    - /sys:/sys:ro
-    - /var/lib/docker/:/var/lib/docker:ro
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
 
   agent:
-    image: observiq/bindplane-agent:1.30.0
+    image: observiq/bindplane-otel-collector:1.30.0
     restart: always
-    container_name: bindplane-agent
-    hostname: bindplane-agent
+    container_name: bindplane-otel-collector
+    hostname: bindplane-otel-collector
     deploy:
       resources:
         limits:

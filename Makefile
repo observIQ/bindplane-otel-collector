@@ -27,13 +27,13 @@ CURRENT_TAG := $(shell git tag --sort=v:refname --points-at HEAD | grep -E "v[0-
 VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG))
 
 # Build binaries for current GOOS/GOARCH by default
-.DEFAULT_GOAL := agent
+.DEFAULT_GOAL := collector
 
-# Builds the agent for current GOOS/GOARCH pair
-.PHONY: agent
-agent:
+# Builds the collector for current GOOS/GOARCH pair
+.PHONY: collector
+collector:
 	CGO_ENABLED=0 builder --config="./manifests/observIQ/manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)"
-	mkdir -p $(OUTDIR); cp ./builder/observiq-otel-collector $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
+	mkdir -p $(OUTDIR); cp ./builder/bindplane-otel-collector $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
 
 # Builds a custom distro for the current GOOS/GOARCH pair using the manifest specified
 # MANIFEST = path to the manifest file for the distro to be built
@@ -42,12 +42,12 @@ agent:
 distro:
 	builder --config="$(MANIFEST)"
 
-# Runs the supervisor invoking the agent build in /dist
+# Runs the supervisor invoking the collector build in /dist
 .PHONY: run-supervisor
 run-supervisor:
 	opampsupervisor --config ./local/supervisor.yaml
 
-# Ensures the supervisor and agent are stopped
+# Ensures the supervisor and collector are stopped
 .PHONY: kill
 kill:
 	pkill -9 opampsupervisor || true
@@ -72,35 +72,35 @@ build-windows: build-windows-amd64
 
 .PHONY: build-linux-ppc64
 build-linux-ppc64:
-	GOOS=linux GOARCH=ppc64 $(MAKE) agent
+	GOOS=linux GOARCH=ppc64 $(MAKE) collector
 
 .PHONY: build-linux-ppc64le
 build-linux-ppc64le:
-	GOOS=linux GOARCH=ppc64le $(MAKE) agent
+	GOOS=linux GOARCH=ppc64le $(MAKE) collector
 
 .PHONY: build-linux-amd64
 build-linux-amd64:
-	GOOS=linux GOARCH=amd64 $(MAKE) agent
+	GOOS=linux GOARCH=amd64 $(MAKE) collector
 
 .PHONY: build-linux-arm64
 build-linux-arm64:
-	GOOS=linux GOARCH=arm64 $(MAKE) agent
+	GOOS=linux GOARCH=arm64 $(MAKE) collector
 
 .PHONY: build-linux-arm
 build-linux-arm:
-	GOOS=linux GOARCH=arm $(MAKE) agent
+	GOOS=linux GOARCH=arm $(MAKE) collector
 
 .PHONY: build-darwin-amd64
 build-darwin-amd64:
-	GOOS=darwin GOARCH=amd64 $(MAKE) agent
+	GOOS=darwin GOARCH=amd64 $(MAKE) collector
 
 .PHONY: build-darwin-arm64
 build-darwin-arm64:
-	GOOS=darwin GOARCH=arm64 $(MAKE) agent
+	GOOS=darwin GOARCH=arm64 $(MAKE) collector
 
 .PHONY: build-windows-amd64
 build-windows-amd64:
-	GOOS=windows GOARCH=amd64 $(MAKE) agent
+	GOOS=windows GOARCH=amd64 $(MAKE) collector
 
 # tool-related commands
 .PHONY: install-tools
@@ -229,17 +229,17 @@ release-prep:
 	@echo '$(CURR_VERSION)' > release_deps/VERSION.txt
 	bash ./buildscripts/download-dependencies.sh release_deps
 	@cp -r ./plugins release_deps/
-	@cp service/com.observiq.collector.plist release_deps/com.observiq.collector.plist
+	@cp service/com.bindplane.otel.collector.plist release_deps/com.bindplane.otel.collector.plist
 	@jq ".files[] | select(.service != null)" windows/wix.json >> release_deps/windows_service.json
-	@cp service/observiq-otel-collector.service release_deps/observiq-otel-collector.service
-	@cp service/observiq-otel-collector release_deps/observiq-otel-collector
+	@cp service/bindplane-otel-collector.service release_deps/bindplane-otel-collector.service
+	@cp service/bindplane-otel-collector release_deps/bindplane-otel-collector
 	@cp -r ./service/sysconfig release_deps/
 
 # Build and sign, skip release and ignore dirty git tree
 .PHONY: release-test
 release-test:
 # If there is no MSI in the root dir, we'll create a dummy one so that goreleaser can complete successfully
-	if [ ! -e "./observiq-otel-collector.msi" ]; then touch ./observiq-otel-collector.msi; fi
+	if [ ! -e "./bindplane-otel-collector.msi" ]; then touch ./bindplane-otel-collector.msi; fi
 	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
 
 .PHONY: for-all
@@ -250,7 +250,7 @@ for-all:
 	 	$${CMD} ); \
 	done
 
-# Release a new version of the agent. This will also tag all submodules
+# Release a new version of the collector. This will also tag all submodules
 .PHONY: release
 release:
 	@if [ -z "$(version)" ]; then \
