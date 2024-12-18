@@ -1,23 +1,23 @@
-# Contributing to bindplane-agent
+# Contributing to bindplane-otel-collector
 
 ## Pull Requests
 
 ### How to Submit Pull Requests
 
-Everyone is welcome to contribute code to `bindplane-agent` via GitHub pull requests (PRs).
+Everyone is welcome to contribute code to `bindplane-otel-collector` via GitHub pull requests (PRs).
 
 To create a new PR, fork the project in GitHub and clone the upstream repo:
 
 ```sh
-$ git clone https://github.com/observIQ/bindplane-agent
+$ git clone https://github.com/observIQ/bindplane-otel-collector
 ```
 
-This would put the project in the `bindplane-agent` directory in current working directory.
+This would put the project in the `bindplane-otel-collector` directory in current working directory.
 
 Enter the newly created directory and add your fork as a new remote:
 
 ```sh
-$ git remote add <YOUR_FORK> git@github.com:<YOUR_GITHUB_USERNAME>/bindplane-agent
+$ git remote add <YOUR_FORK> git@github.com:<YOUR_GITHUB_USERNAME>/bindplane-otel-collector
 ```
 
 Check out a new branch, make modifications, run linters and tests, and push the branch to your fork:
@@ -31,7 +31,7 @@ $ git commit
 $ git push --set-upstream <YOUR_FORK> <YOUR_BRANCH_NAME>
 ```
 
-Open a pull request from your fork and feature branch to the main branch of the `bindplane-agent` repo.
+Open a pull request from your fork and feature branch to the main branch of the `bindplane-otel-collector` repo.
 
 **Note**: If the PR is not ready for review, mark it as [`draft`](https://github.blog/2019-02-14-introducing-draft-pull-requests/).
 
@@ -50,8 +50,8 @@ If you're stuck, tag a maintainer and ask a question. We're here to help each ot
 
 A PR is considered to be **ready to merge** when:
 
-* It has received approval from at least two maintainers.
-* CI passes.
-* Major feedback is resolved.
+- It has received approval from at least two maintainers.
+- CI passes.
+- Major feedback is resolved.
 
 Tag a maintainer to request a merge once the above is complete.

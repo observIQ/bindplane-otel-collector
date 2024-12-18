@@ -11,11 +11,11 @@
                 <Control Id="InstallDescription" Hidden="yes" Type="Text" X="135" Y="70" Width="220" Height="80" Transparent="yes" NoPrefix="yes" Text="Config location: 
     [INSTALLDIR]config.yaml
 To stop the agent service, run: 
-    Stop-Service -Name observiq-otel-collector
+    Stop-Service -Name bindplane-otel-collector
 To start the agent service, run: 
-    Start-Service -Name observiq-otel-collector
+    Start-Service -Name bindplane-otel-collector
 To restart agent the service, run:
-    Restart-Service -Name observiq-otel-collector" >
+    Restart-Service -Name bindplane-otel-collector" >
                     <Condition Action="show">NOT Installed</Condition>
                 </Control>
                 <Control Id="UninstallDescription" Hidden="yes" Type="Text" X="135" Y="70" Width="220" Height="40" Transparent="yes" NoPrefix="yes" Text="!(loc.ExitDialogDescription)" >

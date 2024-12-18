@@ -8,13 +8,14 @@ for other configurations as well.
 ## Image
 
 Push the agent image to your GCR account:
+
 - replace `1.30.0` with your desired version
 - replace `myproject` with your gcr project
 
 ```bash
-docker pull observiq/bindplane-agent:1.30.0
-docker tag observiq/bindplane-agent:1.30.0 gcr.io/myproject/bindplane-agent:1.30.0
-docker push gcr.io/myproject/bindplane-agent:1.30.0
+docker pull observiq/bindplane-otel-collector:1.30.0
+docker tag observiq/bindplane-otel-collector:1.30.0 gcr.io/myproject/bindplane-otel-collector:1.30.0
+docker push gcr.io/myproject/bindplane-otel-collector:1.30.0
 ```
 
 ## Deployment
@@ -25,7 +26,7 @@ Follow the steps in [Image](./google-cloud-run.md#image) before continuing.
 
 1. Create secret: cloudrun-mongodb-publickey (mongodb atlas public key)
 2. Create secret: cloudrun-mongodb-privatekey (mongodb atlas private key)
-3. Create secret: cloudrun-mongodb-config  (agent config.yaml, upload as a file)
+3. Create secret: cloudrun-mongodb-config (agent config.yaml, upload as a file)
 4. Give the Cloud Run service account "secret accessor" for each secret (from steps 1-3)
 
 ![Secrets](assets/secrets.png)
@@ -54,4 +55,3 @@ Follow the steps in [Image](./google-cloud-run.md#image) before continuing.
 10. Secret: Mount `cloudrun-mongodb-config` as `/etc/otel/config.yaml` file mount path.
 
 ![Config Mount](assets/config_mount.png)
-
