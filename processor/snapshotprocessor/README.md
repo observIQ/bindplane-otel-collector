@@ -1,6 +1,7 @@
 # Snapshot Processor
 
-The snapshot processor is used in custom distributions of the collector to provide snapshot functionality in BindPlane. It is not currently included in the official `bindplane-agent`.
+The snapshot processor is used in custom distributions of the collector to provide snapshot functionality in BindPlane. It is not currently included in the official `bindplane-otel-collector`.
+
 ## Supported pipelines
 
 - Logs
@@ -16,16 +17,16 @@ The snapshot processor is used in custom distributions of the collector to provi
 ## Configuration
 
 | Field   | Type   | Default | Required | Description                                                            |
-|---------|--------|---------|----------|------------------------------------------------------------------------|
+| ------- | ------ | ------- | -------- | ---------------------------------------------------------------------- |
 | enabled | bool   | `true`  | `false`  | Whether the snapshot processor is enabled or not.                      |
 | opamp   | string | `opamp` | `true`   | Specifies the name of the opamp extension for sending custom messages. |
-
 
 ## Examples
 
 ### Usage in pipelines
 
 The snapshot processor may be used in a pipeline in order to temporarily catch telemetry data in a buffer, which an opamp server may request:
+
 ```yaml
 receivers:
   filelog:

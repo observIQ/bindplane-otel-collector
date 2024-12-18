@@ -16,7 +16,7 @@
 set -e
 
 install() {
-    username="observiq-otel-collector"
+    username="bindplane-otel-collector"
 
     if getent group "$username" >/dev/null 2>&1; then
         echo "Group ${username} already exists."

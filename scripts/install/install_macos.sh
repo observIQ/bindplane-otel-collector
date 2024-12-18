@@ -16,13 +16,13 @@
 set -e
 
 # Collector Constants
-SERVICE_NAME="com.observiq.collector"
+SERVICE_NAME="com.bindplane.otel.collector"
 DOWNLOAD_BASE="https://github.com/observIQ/bindplane-otel-collector/releases/download"
 
 # Script Constants
 PREREQS="printf sed uname tr find grep"
-TMP_DIR="${TMPDIR:-"/tmp/"}observiq-otel-collector" # Allow this to be overriden by cannonical TMPDIR env var
-INSTALL_DIR="/opt/observiq-otel-collector"
+TMP_DIR="${TMPDIR:-"/tmp/"}bindplane-otel-collector" # Allow this to be overriden by cannonical TMPDIR env var
+INSTALL_DIR="/opt/bindplane-otel-collector"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor.yaml"
 SCRIPT_NAME="$0"
 INDENT_WIDTH='  '
@@ -168,7 +168,7 @@ usage() {
     cat <<EOF
 Usage:
   $(fg_yellow '-v, --version')
-      Defines the version of the BindPlane Agent.
+      Defines the version of the BDOT.
       If not provided, this will default to the latest version.
       Alternatively the COLLECTOR_VERSION environment variable can be
       set to configure the agent version.
@@ -179,13 +179,13 @@ Usage:
 
   $(fg_yellow '-l, --url')
       Defines the URL that the components will be downloaded from.
-      If not provided, this will default to BindPlane Agent\'s GitHub releases.
-      Example: '-l http://my.domain.org/observiq-otel-collector' will download from there.
+      If not provided, this will default to BDOT\'s GitHub releases.
+      Example: '-l http://my.domain.org/bindplane-otel-collector' will download from there.
 
   $(fg_yellow '-b, --base-url')
-      Defines the base of the download URL as '{base_url}/v{version}/observiq-otel-collector-v{version}-darwin-{os_arch}.tar.gz'.
+      Defines the base of the download URL as '{base_url}/v{version}/bindplane-otel-collector-v{version}-darwin-{os_arch}.tar.gz'.
       If not provided, this will default to '$DOWNLOAD_BASE'.
-      Example: '-b http://my.domain.org/observiq-otel-collector/binaries' will be used as the base of the download URL.
+      Example: '-b http://my.domain.org/bindplane-otel-collector/binaries' will be used as the base of the download URL.
     
   $(fg_yellow '-f, --file')
       Install Agent from a local file instead of downloading from a URL.
@@ -387,7 +387,7 @@ setup_installation() {
 
   if [ -z "$package_path" ]; then
     set_download_urls
-    out_file_path="$TMP_DIR/observiq-otel-collector.tar.gz"
+    out_file_path="$TMP_DIR/bindplane-otel-collector.tar.gz"
   else
     out_file_path="$package_path"
   fi
@@ -441,7 +441,7 @@ set_download_urls() {
       base_url=$DOWNLOAD_BASE
     fi
 
-    collector_download_url="$base_url/v$version/observiq-otel-collector-v${version}-darwin-${os_arch}.tar.gz"
+    collector_download_url="$base_url/v$version/bindplane-otel-collector-v${version}-darwin-${os_arch}.tar.gz"
   else
     collector_download_url="$url"
   fi
@@ -518,14 +518,14 @@ ask_clean_install() {
 
 # latest_version gets the tag of the latest release, without the v prefix.
 latest_version() {
-  curl -sSL -H"Accept: application/vnd.github.v3+json" https://api.github.com/repos/observIQ/bindplane-agent/releases/latest |
+  curl -sSL -H"Accept: application/vnd.github.v3+json" https://api.github.com/repos/observIQ/bindplane-otel-collector/releases/latest |
     grep "\"tag_name\"" |
     sed -E 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
 }
 
 # This will install the package by downloading & unpacking the tarball into the install directory
 install_package() {
-  banner "Installing BindPlane Agent"
+  banner "Installing BDOT"
   increase_indent
 
   # Remove temporary directory, if it exists
@@ -566,10 +566,10 @@ install_package() {
   info "Copying artifacts to install directory..."
   increase_indent
 
-  # This find command gets a list of all artifacts paths except opentelemetry-java-contrib-jmx-metrics.jar
+  # This find command gets a list of all artifacts paths
   FILES=$(
     cd "$TMP_DIR/artifacts"
-    find "." -type f -not \( -name opentelemetry-java-contrib-jmx-metrics.jar \)
+    find "." -type f
   )
   # Move files to install dir
   for f in $FILES; do
@@ -580,11 +580,6 @@ install_package() {
   succeeded
 
   create_supervisor_config "$SUPERVISOR_YML_PATH"
-
-  # Install jmx jar
-  info "Moving opentelemetry-java-contrib-jmx-metrics.jar to /opt..."
-  mv "$TMP_DIR/artifacts/opentelemetry-java-contrib-jmx-metrics.jar" "/opt/opentelemetry-java-contrib-jmx-metrics.jar" || error_exit "$LINENO" "Failed to copy opentelemetry-java-contrib-jmx-metrics.jar to /opt"
-  succeeded
 
   if [ -f "/Library/LaunchDaemons/$SERVICE_NAME.plist" ]; then
     # Existing service file, we should stop & unload first.
@@ -607,7 +602,7 @@ install_package() {
   rm -rf "$TMP_DIR" || error_exit "$LINENO" "Failed to remove temp dir: $TMP_DIR"
   succeeded
 
-  success "BindPlane Agent installation complete!"
+  success "BDOT installation complete!"
   decrease_indent
 }
 
@@ -646,7 +641,7 @@ create_supervisor_config() {
   command printf '  accepts_remote_config: true\n' >>"$supervisor_yml_path"
   command printf '  reports_remote_config: true\n' >>"$supervisor_yml_path"
   command printf 'agent:\n' >>"$supervisor_yml_path"
-  command printf '  executable: "%s"\n' "$INSTALL_DIR/observiq-otel-collector" >>"$supervisor_yml_path"
+  command printf '  executable: "%s"\n' "$INSTALL_DIR/bindplane-otel-collector" >>"$supervisor_yml_path"
   command printf '  description:\n' >>"$supervisor_yml_path"
   command printf '    non_identifying_attributes:\n' >>"$supervisor_yml_path"
   [ -n "$OPAMP_LABELS" ] && command printf '      service.labels: "%s"\n' "$OPAMP_LABELS" >>"$supervisor_yml_path"
@@ -674,7 +669,7 @@ display_results() {
   increase_indent
   info "For more information on configuring the agent, see the docs:"
   increase_indent
-  info "$(fg_cyan "https://github.com/observIQ/bindplane-otel-collector/tree/main#bindplane-agent")$(reset)"
+  info "$(fg_cyan "https://github.com/observIQ/bindplane-otel-collector/tree/main#bindplane-otel-collector")$(reset)"
   decrease_indent
   info "If you have any other questions please contact us at $(fg_cyan support@observiq.com)$(reset)"
   decrease_indent
@@ -684,10 +679,10 @@ display_results() {
 }
 
 uninstall() {
-  banner "Uninstalling BindPlane Agent"
+  banner "Uninstalling BDOT"
   increase_indent
 
-  if [ ! -f "$INSTALL_DIR/observiq-otel-collector" ]; then
+  if [ ! -f "$INSTALL_DIR/bindplane-otel-collector" ]; then
     # If the agent binary is not present, we assume that the agent is not installed
     # In this case, do nothing.
     info "No install detected, skipping..."
@@ -703,15 +698,11 @@ uninstall() {
 
   # Removes the whole install directory
   info "Removing installed artifacts..."
-  rm -rf /opt/observiq-otel-collector || error_exit "$LINENO" "Failed to remove /opt/observiq-otel-collector"
+  rm -rf /opt/bindplane-otel-collector || error_exit "$LINENO" "Failed to remove /opt/bindplane-otel-collector"
   succeeded
 
   info "Removing any existing log files"
   rm -f "/var/log/observiq_collector.err" || error_exit "$LINENO" "Failed to remove /var/log/observiq_collector.err"
-  succeeded
-
-  info "Removing opentelemetry-java-contrib-jmx-metrics.jar from /opt..."
-  rm -f "/opt/opentelemetry-java-contrib-jmx-metrics.jar" || error_exit "$LINENO" "Failed to remove /opt/opentelemetry-java-contrib-jmx-metrics.jar"
   succeeded
 
   decrease_indent

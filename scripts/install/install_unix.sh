@@ -16,7 +16,7 @@
 set -e
 
 # Agent Constants
-PACKAGE_NAME="observiq-otel-collector"
+PACKAGE_NAME="bindplane-otel-collector"
 DOWNLOAD_BASE="https://github.com/observIQ/bindplane-otel-collector/releases/download"
 
 # Determine if we need service or systemctl for prereqs
@@ -28,7 +28,7 @@ fi
 
 # Script Constants
 TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env var
-INSTALL_DIR="/opt/observiq-otel-collector"
+INSTALL_DIR="/opt/bindplane-otel-collector"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor.yaml"
 PREREQS="curl printf $SVC_PRE sed uname cut"
 SCRIPT_NAME="$0"
@@ -40,7 +40,7 @@ error_mode=false
 # Default Supervisor Config Hash
 DEFAULT_SUPERVISOR_CFG_HASH="ac4e6001f1b19d371bba6a2797ba0a55d7ca73151ba6908040598ca275c0efca"
 
-# out_file_path is the full path to the downloaded package (e.g. "/tmp/observiq-otel-collector_linux_amd64.deb")
+# out_file_path is the full path to the downloaded package (e.g. "/tmp/bindplane-otel-collector_linux_amd64.deb")
 out_file_path="unknown"
 
 # Colors
@@ -178,7 +178,7 @@ usage() {
     cat <<EOF
 Usage:
   $(fg_yellow '-v, --version')
-      Defines the version of the BindPlane Agent.
+      Defines the version of the BDOT.
       If not provided, this will default to the latest version.
       Alternatively the COLLECTOR_VERSION environment variable can be
       set to configure the agent version.
@@ -189,13 +189,13 @@ Usage:
 
   $(fg_yellow '-l, --url')
       Defines the URL that the components will be downloaded from.
-      If not provided, this will default to BindPlane Agent\'s GitHub releases.
-      Example: '-l http://my.domain.org/observiq-otel-collector' will download from there.
+      If not provided, this will default to BDOT\'s GitHub releases.
+      Example: '-l http://my.domain.org/bindplane-otel-collector' will download from there.
 
   $(fg_yellow '-b, --base-url')
       Defines the base of the download URL as '{base_url}/v{version}/{PACKAGE_NAME}_v{version}_linux_{os_arch}.{package_type}'.
       If not provided, this will default to '$DOWNLOAD_BASE'.
-      Example: '-b http://my.domain.org/observiq-otel-collector/binaries' will be used as the base of the download URL.
+      Example: '-b http://my.domain.org/bindplane-otel-collector/binaries' will be used as the base of the download URL.
 
   $(fg_yellow '-f, --file')
       Install Agent from a local file instead of downloading from a URL.
@@ -650,7 +650,7 @@ package_type_check() {
 
 # latest_version gets the tag of the latest release, without the v prefix.
 latest_version() {
-  curl -sSL -H"Accept: application/vnd.github.v3+json" https://api.github.com/repos/observIQ/observiq-otel-collector/releases/latest |
+  curl -sSL -H"Accept: application/vnd.github.v3+json" https://api.github.com/repos/observIQ/bindplane-otel-collector/releases/latest |
     grep "\"tag_name\"" |
     sed -r 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
 }
@@ -658,7 +658,7 @@ latest_version() {
 # This will install the package by downloading the archived agent,
 # extracting the binaries, and then removing the archive.
 install_package() {
-  banner "Installing BindPlane Agent"
+  banner "Installing BDOT"
   increase_indent
 
   # if the user didn't specify a local file then download the package
@@ -684,7 +684,7 @@ install_package() {
   # if target install directory doesn't exist and we're using dpkg ensure a clean state
   # by checking for the package and running purge if it exists.
   if [ ! -d "$INSTALL_DIR" ] && [ "$package_type" = "deb" ]; then
-    dpkg -s "observiq-otel-collector" >/dev/null 2>&1 && dpkg --purge "observiq-otel-collector" >/dev/null 2>&1
+    dpkg -s "bindplane-otel-collector" >/dev/null 2>&1 && dpkg --purge "bindplane-otel-collector" >/dev/null 2>&1
   fi
 
   unpack_package || error_exit "$LINENO" "Failed to extract package"
@@ -693,37 +693,37 @@ install_package() {
   create_supervisor_config "$SUPERVISOR_YML_PATH"
 
   if [ "$SVC_PRE" = "systemctl" ]; then
-    if [ "$(systemctl is-enabled observiq-otel-collector)" = "enabled" ]; then
+    if [ "$(systemctl is-enabled bindplane-otel-collector)" = "enabled" ]; then
       # The unit is already enabled; It may be running, too, if this was an upgrade.
       # We'll want to restart, which will start it if it wasn't running already,
       # and restart in the case that this was an upgrade on a running agent.
       info "Restarting service..."
-      systemctl restart observiq-otel-collector >/dev/null 2>&1 || error_exit "$LINENO" "Failed to restart service"
+      systemctl restart bindplane-otel-collector >/dev/null 2>&1 || error_exit "$LINENO" "Failed to restart service"
       succeeded
     else
       info "Enabling service..."
-      systemctl enable --now observiq-otel-collector >/dev/null 2>&1 || error_exit "$LINENO" "Failed to enable service"
+      systemctl enable --now bindplane-otel-collector >/dev/null 2>&1 || error_exit "$LINENO" "Failed to enable service"
       succeeded
     fi
   else
-    case "$(service observiq-otel-collector status)" in
+    case "$(service bindplane-otel-collector status)" in
     *running*)
       # The service is running.
       # We'll want to restart.
       info "Restarting service..."
-      service observiq-otel-collector restart >/dev/null 2>&1 || error_exit "$LINENO" "Failed to restart service"
+      service bindplane-otel-collector restart >/dev/null 2>&1 || error_exit "$LINENO" "Failed to restart service"
       succeeded
       ;;
     *)
       info "Enabling and starting service..."
-      chkconfig observiq-otel-collector on >/dev/null 2>&1 || error_exit "$LINENO" "Failed to enable service"
-      service observiq-otel-collector start >/dev/null 2>&1 || error_exit "$LINENO" "Failed to start service"
+      chkconfig bindplane-otel-collector on >/dev/null 2>&1 || error_exit "$LINENO" "Failed to enable service"
+      service bindplane-otel-collector start >/dev/null 2>&1 || error_exit "$LINENO" "Failed to start service"
       succeeded
       ;;
     esac
   fi
 
-  success "BindPlane Agent installation complete!"
+  success "BDOT installation complete!"
   decrease_indent
 }
 
@@ -765,7 +765,7 @@ create_supervisor_config() {
   # We do this because the file contains the secret key.
   # We do not want the file readable by anyone other than root/obseriq-otel-collector.
   command printf '' >>"$supervisor_yml_path"
-  chown observiq-otel-collector:observiq-otel-collector "$supervisor_yml_path"
+  chown bindplane-otel-collector:bindplane-otel-collector "$supervisor_yml_path"
   chmod 0600 "$supervisor_yml_path"
 
   command printf 'server:\n' >"$supervisor_yml_path"
@@ -779,7 +779,7 @@ create_supervisor_config() {
   command printf '  accepts_remote_config: true\n' >>"$supervisor_yml_path"
   command printf '  reports_remote_config: true\n' >>"$supervisor_yml_path"
   command printf 'agent:\n' >>"$supervisor_yml_path"
-  command printf '  executable: "%s"\n' "$INSTALL_DIR/observiq-otel-collector" >>"$supervisor_yml_path"
+  command printf '  executable: "%s"\n' "$INSTALL_DIR/bindplane-otel-collector" >>"$supervisor_yml_path"
   command printf '  description:\n' >>"$supervisor_yml_path"
   command printf '    non_identifying_attributes:\n' >>"$supervisor_yml_path"
   [ -n "$OPAMP_LABELS" ] && command printf '      service.labels: "%s"\n' "$OPAMP_LABELS" >>"$supervisor_yml_path"
@@ -800,13 +800,13 @@ display_results() {
   info "Agent Config:       $(fg_cyan "$INSTALL_DIR/supervisor_storage/effective.yaml")$(reset)"
   info "Agent Logs Command:       $(fg_cyan "sudo tail -F $INSTALL_DIR/supervisor_storage/agent.log")$(reset)"
   if [ "$SVC_PRE" = "systemctl" ]; then
-    info "Supervisor Start Command:      $(fg_cyan "sudo systemctl start observiq-otel-collector")$(reset)"
-    info "Supervisor Stop Command:       $(fg_cyan "sudo systemctl stop observiq-otel-collector")$(reset)"
-    info "Status Command:     $(fg_cyan "sudo systemctl status observiq-otel-collector")$(reset)"
+    info "Supervisor Start Command:      $(fg_cyan "sudo systemctl start bindplane-otel-collector")$(reset)"
+    info "Supervisor Stop Command:       $(fg_cyan "sudo systemctl stop bindplane-otel-collector")$(reset)"
+    info "Status Command:     $(fg_cyan "sudo systemctl status bindplane-otel-collector")$(reset)"
   else
-    info "Supervisor Start Command:      $(fg_cyan "sudo service observiq-otel-collector start")$(reset)"
-    info "Supervisor Stop Command:       $(fg_cyan "sudo service observiq-otel-collector stop")$(reset)"
-    info "Status Command:     $(fg_cyan "sudo service observiq-otel-collector status")$(reset)"
+    info "Supervisor Start Command:      $(fg_cyan "sudo service bindplane-otel-collector start")$(reset)"
+    info "Supervisor Stop Command:       $(fg_cyan "sudo service bindplane-otel-collector stop")$(reset)"
+    info "Status Command:     $(fg_cyan "sudo service bindplane-otel-collector status")$(reset)"
   fi
   decrease_indent
 
@@ -814,7 +814,7 @@ display_results() {
   increase_indent
   info "For more information on configuring the agent, see the docs:"
   increase_indent
-  info "$(fg_cyan "https://github.com/observIQ/bindplane-otel-collector/tree/main#bindplane-agent")$(reset)"
+  info "$(fg_cyan "https://github.com/observIQ/bindplane-otel-collector/tree/main#bindplane-otel-collector")$(reset)"
   decrease_indent
   info "If you have any other questions please contact us at $(fg_cyan support@observiq.com)$(reset)"
   increase_indent
@@ -828,10 +828,10 @@ display_results() {
 uninstall_package() {
   case "$package_type" in
   deb)
-    dpkg -r "observiq-otel-collector" >/dev/null 2>&1
+    dpkg -r "bindplane-otel-collector" >/dev/null 2>&1
     ;;
   rpm)
-    rpm -e "observiq-otel-collector" >/dev/null 2>&1
+    rpm -e "bindplane-otel-collector" >/dev/null 2>&1
     ;;
   *)
     error "Unrecognized package type"
@@ -843,7 +843,7 @@ uninstall_package() {
 
 uninstall() {
   set_package_type
-  banner "Uninstalling BindPlane Agent"
+  banner "Uninstalling BDOT"
   increase_indent
 
   info "Checking permissions..."
@@ -852,20 +852,20 @@ uninstall() {
 
   if [ "$SVC_PRE" = "systemctl" ]; then
     info "Stopping service..."
-    systemctl stop observiq-otel-collector >/dev/null || error_exit "$LINENO" "Failed to stop service"
+    systemctl stop bindplane-otel-collector >/dev/null || error_exit "$LINENO" "Failed to stop service"
     succeeded
 
     info "Disabling service..."
-    systemctl disable observiq-otel-collector >/dev/null 2>&1 || error_exit "$LINENO" "Failed to disable service"
+    systemctl disable bindplane-otel-collector >/dev/null 2>&1 || error_exit "$LINENO" "Failed to disable service"
     succeeded
   else
     info "Stopping service..."
-    service observiq-otel-collector stop
+    service bindplane-otel-collector stop
     succeeded
 
     info "Disabling service..."
-    chkconfig observiq-otel-collector on
-    # rm -f /etc/init.d/observiq-otel-collector
+    chkconfig bindplane-otel-collector on
+    # rm -f /etc/init.d/bindplane-otel-collector
     succeeded
   fi
 

@@ -2,7 +2,7 @@
 
 OpenTelemetry is at the core of standardizing telemetry solutions. At observIQ, we’re focused on building the very best in open source telemetry software. Our relationship with OpenTelemetry began in 2021, with observIQ, contributing our logging agent, Stanza, to the OpenTelemetry community. Now, we are shifting our focus to simplifying OpenTelemetry solutions to its large base of users. On that note, we launched a collector that combines the best of both worlds, with OpenTelemetry at its core, combined with observIQ’s functionalities to simplify its usage.
 
-In this post, we are taking you through the installation of the BindPlane Agent and the steps to configure the agent to gather host metrics, eventually forwarding those metrics to the Google Cloud Operations.
+In this post, we are taking you through the installation of the BDOT and the steps to configure the agent to gather host metrics, eventually forwarding those metrics to the Google Cloud Operations.
 
 ## Connect to BindPlane
 
@@ -17,7 +17,7 @@ Please note that the agent must be installed on the system which you wish to col
 #### Windows:
 
 ```pwsh
-msiexec /i "https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/observiq-otel-collector.msi" /quiet ENABLEMANAGEMENT="1" OPAMPENDPOINT="<your_endpoint>" OPAMPSECRETKEY="<your_secret_key>"
+msiexec /i "https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/bindplane-otel-collector.msi" /quiet ENABLEMANAGEMENT="1" OPAMPENDPOINT="<your_endpoint>" OPAMPSECRETKEY="<your_secret_key>"
 ```
 
 #### Linux:
@@ -45,12 +45,12 @@ Create a service account JSON key and place it on the system that is running the
 
 ### Linux
 
-In this example, the key is placed at `/opt/observiq-otel-collector/sa.json` and its permissions are restricted to the user running the collector process.
+In this example, the key is placed at `/opt/bindplane-otel-collector/sa.json` and its permissions are restricted to the user running the collector process.
 
 ```shell
-sudo cp sa.json /opt/observiq-otel-collector/sa.json
-sudo chown observiq-otel-collector: /opt/observiq-otel-collector/sa.json
-sudo chmod 0400 /opt/observiq-otel-collector/sa.json
+sudo cp sa.json /opt/bindplane-otel-collector/sa.json
+sudo chown bindplane-otel-collector: /opt/bindplane-otel-collector/sa.json
+sudo chmod 0400 /opt/bindplane-otel-collector/sa.json
 ```
 
 Set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable by creating a systemd override. A systemd override allows users to modify the systemd service configuration without modifying the service directly. This allows package upgrades to happen seamlessly. You can learn more about systemd units and overrides here.
@@ -58,14 +58,14 @@ Set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable by creating a syst
 Run the following command
 
 ```shell
-sudo systemctl edit observiq-otel-collector
+sudo systemctl edit bindplane-otel-collector
 ```
 
 If this is the first time an override is being created, paste the following contents into the file:
 
 ```
 [Service]
-Environment=GOOGLE_APPLICATION_CREDENTIALS=/opt/observiq-otel-collector/sa.json
+Environment=GOOGLE_APPLICATION_CREDENTIALS=/opt/bindplane-otel-collector/sa.json
 ```
 
 If an override is already in place, simply insert the Environment parameter into the existing Service section.
@@ -79,7 +79,7 @@ sudo systemctl daemon-reload
 Restart the supervisor
 
 ```shell
-sudo systemctl restart observiq-otel-collector
+sudo systemctl restart bindplane-otel-collector
 ```
 
 ### Windows
@@ -103,7 +103,7 @@ Once the configuration is made, roll it out to this agent to begin collecting da
 
 ## Viewing the metrics in Google Cloud Operations
 
-You should now be able to view the host metrics in your Metrics explorer. Nice work! This is how simple it is to collect host metrics with the BindPlane Agent.
+You should now be able to view the host metrics in your Metrics explorer. Nice work! This is how simple it is to collect host metrics with the BDOT.
 
 ### Metrics collected
 

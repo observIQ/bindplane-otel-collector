@@ -1,6 +1,6 @@
 # Create Support Bundle Scripts
 
-There are three support bundle scripts that are used to collect information about the system and the BindPlane Agent. They must be run on the machine hosting the BindPlane Agent. The scripts are located in the [scripts/support](../scripts/support) directory. They produce output in the directory they are run from. All of the support scripts collect the following information:
+There are three support bundle scripts that are used to collect information about the system and the BDOT. They must be run on the machine hosting the BDOT. The scripts are located in the [scripts/support](../scripts/support) directory. They produce output in the directory they are run from. All of the support scripts collect the following information:
 
     - Agent logs
     - Agent configuration

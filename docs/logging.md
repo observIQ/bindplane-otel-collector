@@ -1,21 +1,21 @@
 # Logging
 
-The BindPlane Agent offers two methods of collecting logs. First is individual receivers such as Filelog and Journald. Second is the Plugin receiver which utilizes pre-configured plugins to gather logs from many different sources.
+The BDOT offers two methods of collecting logs. First is individual receivers such as Filelog and Journald. Second is the Plugin receiver which utilizes pre-configured plugins to gather logs from many different sources.
 
 ## Using Indivudal Receivers
 
 To add logging using an individual receiver, add the receiver into your `config.yaml` similar to the Filelog example below. The available logging receivers include:
 
- * [Filelog Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/filelogreceiver)
- * [TCP Log Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/tcplogreceiver)
- * [UDP Log Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/udplogreceiver)
- * [Syslog Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/syslogreceiver)
- * [Journald Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver)
- * [Windows Events Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver)
+- [Filelog Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/filelogreceiver)
+- [TCP Log Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/tcplogreceiver)
+- [UDP Log Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/udplogreceiver)
+- [Syslog Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/syslogreceiver)
+- [Journald Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver)
+- [Windows Events Receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver)
 
 To see a full list of receivers, check the [Receivers](/docs/receivers.md) page.
 
-The example below uses the Filelog receiver. Additional [operators](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/README.md#what-operators-are-available) can be added to further parse logs. To see more details on the Filelog receiver, see the [OTel documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/filelogreceiver). 
+The example below uses the Filelog receiver. Additional [operators](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/README.md#what-operators-are-available) can be added to further parse logs. To see more details on the Filelog receiver, see the [OTel documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/filelogreceiver).
 
 ```yaml
 receivers:
@@ -28,7 +28,7 @@ receivers:
       - type: json_parser
         timestamp:
           parse_from: attributes.time
-          layout: '%Y-%m-%d %H:%M:%S'
+          layout: "%Y-%m-%d %H:%M:%S"
 
 exporters:
   googlecloud:
@@ -48,7 +48,6 @@ service:
       receivers: [filelog]
       processors: [batch]
       exporters: [googlecloud]
-
 ```
 
 ## Using the Plugin Receiver
@@ -82,5 +81,4 @@ service:
       receivers: [plugin]
       processors: [batch]
       exporters: [googlecloud]
-
 ```

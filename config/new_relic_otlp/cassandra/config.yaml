@@ -1,6 +1,6 @@
 receivers:
   jmx:
-    jar_path: /opt/opentelemetry-java-contrib-jmx-metrics.jar
+    jar_path: /opt/bindplane-otel-collector/opentelemetry-java-contrib-jmx-metrics.jar
     endpoint: localhost:7199
     target_system: cassandra,jvm
     collection_interval: 60s
@@ -27,9 +27,9 @@ service:
   pipelines:
     metrics:
       receivers:
-      - jmx
+        - jmx
       processors:
-      - resourcedetection
-      - batch
+        - resourcedetection
+        - batch
       exporters:
-      - otlp
+        - otlp

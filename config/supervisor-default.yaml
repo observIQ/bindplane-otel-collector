@@ -6,7 +6,7 @@ capabilities:
   reports_remote_config: true
 
 agent:
-  executable: "./observiq-otel-collector"
+  executable: "./bindplane-otel-collector"
 
 storage:
   directory: "./supervisor_storage"

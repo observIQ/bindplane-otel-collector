@@ -19,7 +19,7 @@ PREREQS="printf sed uname sudo tar gzip"
 INDENT_WIDTH='  '
 indent=""
 
-collector_dir=/opt/observiq-otel-collector
+collector_dir=/opt/bindplane-otel-collector
 
 # Colors
 num_colors=$(tput colors 2>/dev/null)
@@ -39,7 +39,7 @@ fi
 
 printf() {
   if command -v sed >/dev/null; then
-    command printf -- "$@" | sed -E "$sed_ignore s/^/$indent/g"  # Ignore sole reset characters if defined
+    command printf -- "$@" | sed -E "$sed_ignore s/^/$indent/g" # Ignore sole reset characters if defined
   else
     # Ignore $* suggestion as this breaks the output
     # shellcheck disable=SC2145
@@ -47,21 +47,21 @@ printf() {
   fi
 }
 
-increase_indent() { indent="$INDENT_WIDTH$indent" ; }
-decrease_indent() { indent="${indent#*"$INDENT_WIDTH"}" ; }
+increase_indent() { indent="$INDENT_WIDTH$indent"; }
+decrease_indent() { indent="${indent#*"$INDENT_WIDTH"}"; }
 
 # Color functions reset only when given an argument
 # Ignore "parameters are never passed"
 # shellcheck disable=SC2120
-reset() { command printf "$reset$*$(if [ -n "$1" ]; then command printf "$reset"; fi)" ; }
-fg_cyan() { command printf "$fg_cyan$*$(if [ -n "$1" ]; then command printf "$reset"; fi)" ; }
-fg_green() { command printf "$fg_green$*$(if [ -n "$1" ]; then command printf "$reset"; fi)" ; }
-fg_red() { command printf "$fg_red$*$(if [ -n "$1" ]; then command printf "$reset"; fi)" ; }
-fg_yellow() { command printf "$fg_yellow$*$(if [ -n "$1" ]; then command printf "$reset"; fi)" ; }
+reset() { command printf "$reset$*$(if [ -n "$1" ]; then command printf "$reset"; fi)"; }
+fg_cyan() { command printf "$fg_cyan$*$(if [ -n "$1" ]; then command printf "$reset"; fi)"; }
+fg_green() { command printf "$fg_green$*$(if [ -n "$1" ]; then command printf "$reset"; fi)"; }
+fg_red() { command printf "$fg_red$*$(if [ -n "$1" ]; then command printf "$reset"; fi)"; }
+fg_yellow() { command printf "$fg_yellow$*$(if [ -n "$1" ]; then command printf "$reset"; fi)"; }
 
 # Intentionally using variables in format string
 # shellcheck disable=SC2059
-info() { printf "$*\\n" ; }
+info() { printf "$*\\n"; }
 
 # Intentionally using variables in format string
 # shellcheck disable=SC2059
@@ -73,10 +73,9 @@ error() {
 
 # Intentionally using variables in format string
 # shellcheck disable=SC2059
-success() { printf "$fg_green$*$reset\\n" ; }
+success() { printf "$fg_green$*$reset\\n"; }
 
-observiq_banner()
-{
+observiq_banner() {
   fg_cyan "           888                                        8888888 .d88888b.\\n"
   fg_cyan "           888                                          888  d88P\" \"Y88b\\n"
   fg_cyan "           888                                          888  888     888\\n"
@@ -90,20 +89,21 @@ observiq_banner()
   reset
 }
 
-separator() { printf "===================================================\\n" ; }
+separator() { printf "===================================================\\n"; }
 
 banner() {
   printf "\\n"
   separator
-  printf "| %s\\n" "$*" ;
+  printf "| %s\\n" "$*"
   separator
 }
 
 usage() {
   increase_indent
-  USAGE=$(cat <<EOF
+  USAGE=$(
+    cat <<EOF
 Usage:
-  Collects support bundle for BindPlane Agent
+  Collects support bundle for BDOT
 EOF
   )
   info "$USAGE"
@@ -151,13 +151,13 @@ os_check() {
   info "Checking that the operating system is supported..."
   os_type=$(uname -s)
   case "$os_type" in
-    Linux)
-      succeeded
-      ;;
-    *)
-      failed
-      error_exit "$LINENO" "The operating system $(fg_yellow "$os_type") is not supported by this script."
-      ;;
+  Linux)
+    succeeded
+    ;;
+  *)
+    failed
+    error_exit "$LINENO" "The operating system $(fg_yellow "$os_type") is not supported by this script."
+    ;;
   esac
 }
 
@@ -165,20 +165,19 @@ os_arch_check() {
   info "Checking for valid operating system architecture..."
   arch=$(uname -m)
   case "$arch" in
-    x86_64|amd64)
-      arch=amd64
-      ;;
-    aarch64|arm64|aarch64_be|armv8b|armv8l)
-      arch=arm64
-      succeeded
-      ;;
-    *)
-      failed
-      error_exit "$LINENO" "The operating system architecture $(fg_yellow "$arch") is not supported by this script."
-      ;;
+  x86_64 | amd64)
+    arch=amd64
+    ;;
+  aarch64 | arm64 | aarch64_be | armv8b | armv8l)
+    arch=arm64
+    succeeded
+    ;;
+  *)
+    failed
+    error_exit "$LINENO" "The operating system architecture $(fg_yellow "$arch") is not supported by this script."
+    ;;
   esac
 }
-
 
 # This will check if the current environment has
 # all required shell dependencies to run the installation.
@@ -216,95 +215,95 @@ check_prereqs() {
 }
 
 function bundle_files() {
-    banner "Collecting files for support bundle"
-    increase_indent
-    # Directory for logs
-    log_dir="$collector_dir/log"
-    
-    # Check if directory exists
+  banner "Collecting files for support bundle"
+  increase_indent
+  # Directory for logs
+  log_dir="$collector_dir/log"
+
+  # Check if directory exists
+  if [ ! -d "$log_dir" ]; then
+    info "Directory ($fg_red "$log_dir")$(reset) does not exist."
+    read -p "Please enter an existing directory for logs: " log_dir
     if [ ! -d "$log_dir" ]; then
-        info "Directory ($fg_red "$log_dir")$(reset) does not exist."
-        read -p "Please enter an existing directory for logs: " log_dir
-        if [ ! -d "$log_dir" ]; then
-            echo "Directory $log_dir does not exist."
-            return 1
-        fi
+      echo "Directory $log_dir does not exist."
+      return 1
     fi
+  fi
 
-    read -p "Do you want to include only the most recent logs (y or n)? " response
-    increase_indent
-    tar_filename="support_bundle_$(date +%Y%m%d_%H%M%S).tar"
-    if [ "$response" = "n" ]; then
-        # Get all the log files
-        info "Collecting all log files in $(fg_cyan "$log_dir")$(reset)"
-        tar -cf $tar_filename -C $log_dir $(ls -Art $log_dir)
+  read -p "Do you want to include only the most recent logs (y or n)? " response
+  increase_indent
+  tar_filename="support_bundle_$(date +%Y%m%d_%H%M%S).tar"
+  if [ "$response" = "n" ]; then
+    # Get all the log files
+    info "Collecting all log files in $(fg_cyan "$log_dir")$(reset)"
+    tar -cf $tar_filename -C $log_dir $(ls -Art $log_dir)
+  else
+    # Get the most recent log file
+    recent_log=$(ls -Art $log_dir | tail -n 1)
+    if [ -n "$recent_log" ]; then
+      tar -cf $tar_filename -C $log_dir $recent_log
+      info "Added file $(fg_cyan "$recent_log")$(reset) to the tar file."
+
     else
-        # Get the most recent log file
-        recent_log=$(ls -Art $log_dir | tail -n 1)
-        if [ -n "$recent_log" ]; then
-            tar -cf $tar_filename -C $log_dir $recent_log
-            info "Added file $(fg_cyan "$recent_log")$(reset) to the tar file."
-
-        else
-            info "No logs found in $(fg_red $log_dir)"
-            return 1
-        fi
-        # Get the /log/observiq_collector.err file
-        err_file="$log_dir/observiq_collector.err"
-        if [ -f "$err_file" ]; then
-            tar --append --file=$tar_filename -C $log_dir observiq_collector.err
-            info "Added file $(fg_cyan "$err_file")$(reset) to the tar file."
-        fi
+      info "No logs found in $(fg_red $log_dir)"
+      return 1
     fi
-
-    # Check if the files exist, if yes append them to the tar file
-    for file in issue os-release
-    do
-        if [ -f "/etc/$file" ]; then
-            # These might be symlinks, so cat them to real files
-            cat "/etc/$file" > "$file"
-            tar --append --file=$tar_filename $file
-            rm $file
-            info "Added file $(fg_cyan "/etc/$file")$(reset) to the tar file."
-        else
-            info "File $(fg_red "/etc/$file")$(reset) does not exist."
-        fi
-    done
-
-    collector_config="$collector_dir/config.yaml"
-    if [ -f "$collector_config" ]; then
-        read -p "Do you want to include the collector config (y or n)? " response
-        if [ "$response" != "n" ]; then
-            info "Adding collector config $(fg_cyan "$collector_config")$(reset)"
-            tar --append --file=$tar_filename -C $collector_dir config.yaml
-        fi
+    # Get the /log/observiq_collector.err file
+    err_file="$log_dir/observiq_collector.err"
+    if [ -f "$err_file" ]; then
+      tar --append --file=$tar_filename -C $log_dir observiq_collector.err
+      info "Added file $(fg_cyan "$err_file")$(reset) to the tar file."
     fi
+  fi
 
-    # Grab the logs from journalctl -- in some cases, the collector.log file 
-    # may be empty, but there may be logs in journalctl
-    info "Collecting logs from journalctl..."
-    journalctl -u observiq-otel-collector.service -n 50 > journalctl.log
-    tar --append --file=$tar_filename journalctl.log
-    rm journalctl.log
+  # Check if the files exist, if yes append them to the tar file
+  for file in issue os-release; do
+    if [ -f "/etc/$file" ]; then
+      # These might be symlinks, so cat them to real files
+      cat "/etc/$file" >"$file"
+      tar --append --file=$tar_filename $file
+      rm $file
+      info "Added file $(fg_cyan "/etc/$file")$(reset) to the tar file."
+    else
+      info "File $(fg_red "/etc/$file")$(reset) does not exist."
+    fi
+  done
 
-    # Compress the tar file
-    info "Compressing the tar file..."
-    gzip $tar_filename
+  collector_config="$collector_dir/config.yaml"
+  if [ -f "$collector_config" ]; then
+    read -p "Do you want to include the collector config (y or n)? " response
+    if [ "$response" != "n" ]; then
+      info "Adding collector config $(fg_cyan "$collector_config")$(reset)"
+      tar --append --file=$tar_filename -C $collector_dir config.yaml
+    fi
+  fi
 
-    info "Files have been added to the file $(realpath $tar_filename.gz) successfully."
+  # Grab the logs from journalctl -- in some cases, the collector.log file
+  # may be empty, but there may be logs in journalctl
+  info "Collecting logs from journalctl..."
+  journalctl -u bindplane-otel-collector.service -n 50 >journalctl.log
+  tar --append --file=$tar_filename journalctl.log
+  rm journalctl.log
+
+  # Compress the tar file
+  info "Compressing the tar file..."
+  gzip $tar_filename
+
+  info "Files have been added to the file $(realpath $tar_filename.gz) successfully."
 }
-
 
 main() {
   if [ $# -ge 1 ]; then
     while [ -n "$1" ]; do
-      case "$1" in                
-        -h|--help)
-          usage
-          force_exit
-          ;;
+      case "$1" in
+      -h | --help)
+        usage
+        force_exit
+        ;;
       --)
-        shift; break ;;
+        shift
+        break
+        ;;
       *)
         error "Invalid argument: $1"
         usage
@@ -320,4 +319,3 @@ main() {
 }
 
 main "$@"
-

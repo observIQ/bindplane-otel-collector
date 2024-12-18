@@ -6,12 +6,12 @@ StartLimitBurst=5
 [Service]
 Type=simple
 User=root
-Group=observiq-otel-collector
+Group=bindplane-otel-collector
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
-Environment=OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
-Environment=OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
-WorkingDirectory=/opt/observiq-otel-collector
-ExecStart=/opt/observiq-otel-collector/opampsupervisor --config supervisor.yaml
+Environment=OIQ_OTEL_COLLECTOR_HOME=/opt/bindplane-otel-collector
+Environment=OIQ_OTEL_COLLECTOR_STORAGE=/opt/bindplane-otel-collector/storage
+WorkingDirectory=/opt/bindplane-otel-collector
+ExecStart=/opt/bindplane-otel-collector/opampsupervisor --config supervisor.yaml
 SuccessExitStatus=0
 TimeoutSec=20
 StandardOutput=journal

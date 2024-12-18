@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.observiq.collector</string>
+    <string>com.bindplane.otel.collector</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>OIQ_OTEL_COLLECTOR_HOME</key>
