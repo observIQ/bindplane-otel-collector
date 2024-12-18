@@ -23,7 +23,7 @@ jobs:
       - name: Build Windows Binaries
         run: make build-binaries
       - name: Copy Windows Collector Binary
-        run: cp dist/collector_windows_amd64.exe windows/observiq-otel-collector.exe
+        run: cp dist/collector_windows_amd64.exe windows/bindplane-otel-collector.exe
       - name: Copy Supervisor Binary
         run: cp release_deps/supervisor_bin/opampsupervisor_windows_amd64.exe windows/opampsupervisor.exe
       - name: Copy Plugins to MSI Build Directory
@@ -50,13 +50,13 @@ jobs:
           unzip wix310-binaries.zip
         working-directory: C:/build
       - name: "Build MSI from Tagged Release"
-        run: go-msi.exe make -m observiq-otel-collector.msi --version ${{ github.ref_name }} --arch amd64
+        run: go-msi.exe make -m bindplane-otel-collector.msi --version ${{ github.ref_name }} --arch amd64
         working-directory: C:/build
       - name: "Upload MSI"
         uses: actions/upload-artifact@v4
         with:
-          name: observiq-otel-collector.msi
-          path: C:/build/observiq-otel-collector.msi
+          name: bindplane-otel-collector.msi
+          path: C:/build/bindplane-otel-collector.msi
           # Short lived because Go Releaser will upload the msi to a release (github release, gcs, etc)
           retention-days: 1
 
@@ -99,8 +99,8 @@ jobs:
       - name: Retrieve Windows 64-bit MSI Installer
         uses: actions/download-artifact@v4
         with:
-          name: observiq-otel-collector.msi
-          path: observiq-otel-collector.msi
+          name: bindplane-otel-collector.msi
+          path: bindplane-otel-collector.msi
       - name: Install cosign
         run: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
       - name: Build cosign key file
@@ -109,7 +109,7 @@ jobs:
         env:
           COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
       - name: Sign MSI
-        run: cosign sign-blob --key=cosign.key --output-signature ./observiq-otel-collector.msi/observiq-otel-collector.msi.sig ./observiq-otel-collector.msi/observiq-otel-collector.msi
+        run: cosign sign-blob --key=cosign.key --output-signature ./bindplane-otel-collector.msi/bindplane-otel-collector.msi.sig ./bindplane-otel-collector.msi/bindplane-otel-collector.msi
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
@@ -130,15 +130,15 @@ jobs:
         run: |
           mkdir artifacts
           cp ./scripts/install/*.sh ./artifacts
-          cp ./observiq-otel-collector.msi/observiq-otel-collector.msi ./artifacts
+          cp ./bindplane-otel-collector.msi/bindplane-otel-collector.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
           cp ./dist/*zip ./artifacts
           cp ./dist/*.rpm ./artifacts
           cp ./dist/*.deb ./artifacts
           cp ./dist/*SHA256SUMS ./artifacts
-          tar -czvf observiq-otel-collector-${{ github.ref_name }}-artifacts.tar.gz -C ./artifacts .
+          tar -czvf bindplane-otel-collector-${{ github.ref_name }}-artifacts.tar.gz -C ./artifacts .
       - name: Sign artifact archive
-        run: cosign sign-blob --key=cosign.key --output-signature ./observiq-otel-collector-${{ github.ref_name }}-artifacts.tar.gz.sig ./observiq-otel-collector-${{ github.ref_name }}-artifacts.tar.gz
+        run: cosign sign-blob --key=cosign.key --output-signature ./bindplane-otel-collector-${{ github.ref_name }}-artifacts.tar.gz.sig ./bindplane-otel-collector-${{ github.ref_name }}-artifacts.tar.gz
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
@@ -146,7 +146,7 @@ jobs:
         uses: AButler/upload-release-assets@v2.0
         with:
           repo-token: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
-          files: "observiq-otel-collector-${{ github.ref_name }}-artifacts.tar.gz*"
+          files: "bindplane-otel-collector-${{ github.ref_name }}-artifacts.tar.gz*"
           release-tag: ${{ github.ref_name }}
       # Trigger installation tests in otel-collector-installer-testing
       - name: Trigger Installation Testing

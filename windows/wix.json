@@ -1,5 +1,5 @@
 {
-  "product": "observIQ Distro for OpenTelemetry Collector",
+  "product": "BindPlane Distro for OpenTelemetry Collector (BDOT)",
   "company": "observIQ, Inc.",
   "license": "./LICENSE.rtf",
   "info": {
@@ -11,15 +11,15 @@
     {
       "path": "opampsupervisor.exe",
       "service": {
-        "name": "observiq-otel-collector",
+        "name": "bindplane-otel-collector",
         "start": "delayed",
-        "display-name": "observIQ Distro for OpenTelemetry Collector",
-        "description": "observIQ's distribution of the OpenTelemetry collector.",
+        "display-name": "BDOT",
+        "description": "BindPlane Distro fo OpenTelemetry Collector (BDOT).",
         "arguments": "--config &quot;[INSTALLDIR]supervisor.yaml&quot;"
       }
     },
     {
-      "path": "observiq-otel-collector.exe"
+      "path": "bindplane-otel-collector.exe"
     },
     {
       "path": "opentelemetry-java-contrib-jmx-metrics.jar"

@@ -1,6 +1,6 @@
 # observIQ manifest
 
-This manifest contains all components available in [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector/tree/v0.105.0), [OpenTelemetryContrib](https://github.com/open-telemetry/opentelemetry-collector-contrib), and custom components defined in this repo. The options available here match parity with what was available to the BindPlane Agent v1.
+This manifest contains all components available in [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector/tree/v0.105.0), [OpenTelemetryContrib](https://github.com/open-telemetry/opentelemetry-collector-contrib), and custom components defined in this repo. The options available here match parity with what was available to the BDOT v1.
 
 ## Components
 

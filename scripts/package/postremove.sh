@@ -16,22 +16,22 @@
 set -e
 
 remove() {
-  rm -f /usr/lib/systemd/system/observiq-otel-collector.service || {
-    printf 'failed to remove /usr/lib/systemd/system/observiq-otel-collector.service'
+  rm -f /usr/lib/systemd/system/bindplane-otel-collector.service || {
+    printf 'failed to remove /usr/lib/systemd/system/bindplane-otel-collector.service'
   }
 
-  rm -f /etc/sysconfig/observiq-otel-collector || {
-    printf 'failed to remove /etc/sysconfig/observiq-otel-collector'
+  rm -f /etc/sysconfig/bindplane-otel-collector || {
+    printf 'failed to remove /etc/sysconfig/bindplane-otel-collector'
   }
 
-  rm -f /etc/init.d/observiq-otel-collector || {
-    printf 'failed to remove /etc/init.d/observiq-otel-collector'
+  rm -f /etc/init.d/bindplane-otel-collector || {
+    printf 'failed to remove /etc/init.d/bindplane-otel-collector'
   }
 
   # remove the entire folder
   # pkg manager will remove most files but this will delete the remaining
-  rm -rf /opt/observiq-otel-collector || {
-    printf 'failed to remove /opt/observiq-otel-collector'
+  rm -rf /opt/bindplane-otel-collector || {
+    printf 'failed to remove /opt/bindplane-otel-collector'
   }
 }
 

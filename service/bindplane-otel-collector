@@ -2,17 +2,17 @@
 # observIQ OTEL daemon
 # chkconfig: 2345 99 05
 # description: observIQ's distribution of the OpenTelemetry collector
-# processname: observiq-otel-collector
-# pidfile: /var/run/observiq-otel-collector.pid
+# processname: bindplane-otel-collector
+# pidfile: /var/run/bindplane-otel-collector.pid
 
 ### BEGIN INIT INFO
-# Provides: observiq-otel-collector
-# Required-Start: 
-# Required-Stop: 
-# Should-Start: 
+# Provides: bindplane-otel-collector
+# Required-Start:
+# Required-Stop:
+# Should-Start:
 # Default-Start: 3 5
-# Default-Stop: 0 1 2 6  
-# Description: Start the observiq-otel-collector service
+# Default-Stop: 0 1 2 6
+# Description: Start the bindplane-otel-collector service
 ### END INIT INFO
 
 # Source function library.
@@ -64,7 +64,7 @@ fi
 
 # Pull in sysconfig settings
 # shellcheck disable=SC1091
-[ -f /etc/sysconfig/observiq-otel-collector ] && . /etc/sysconfig/observiq-otel-collector
+[ -f /etc/sysconfig/bindplane-otel-collector ] && . /etc/sysconfig/bindplane-otel-collector
 
 RETVAL=0
 start() {
@@ -80,9 +80,9 @@ start() {
     daemon --pidfile="$PIDFILE" "$START_CMD"
     RETVAL=$?
     # truncate the pid file, just in case
-    : > "$PIDFILE"
+    : >"$PIDFILE"
     # shellcheck disable=SC2005
-    echo "$(pidof "$BINARY")" > "$PIDFILE"
+    echo "$(pidof "$BINARY")" >"$PIDFILE"
     [ "$RETVAL" -eq 0 ] && touch "$LOCKFILE"
   # SUSE
   elif [ "$RCSTATUS" ]; then
@@ -91,15 +91,15 @@ start() {
 
     # NOTE: startproc return 0, even if service is
     # already running to match LSB spec.
-    nohup "$PROGRAM" --config supervisor.yaml > /dev/null 2>&1 &
+    nohup "$PROGRAM" --config supervisor.yaml >/dev/null 2>&1 &
 
     # Remember status and be verbose
     rc_status -v
 
     # truncate the pid file, just in case
-    : > "$PIDFILE"
+    : >"$PIDFILE"
     # shellcheck disable=SC2005
-    echo "$(pidof "$BINARY")" > "$PIDFILE"
+    echo "$(pidof "$BINARY")" >"$PIDFILE"
   fi
   echo
 }
@@ -109,19 +109,19 @@ stop() {
   echo -n "Shutting down $0: "
   # RHEL
   if [ "$STATUS" ]; then
-      killproc -p "$PIDFILE" -d30 "$BINARY"
-      RETVAL=$?
-      echo
-      [ "$RETVAL" -eq 0 ] && rm -f "$LOCKFILE"
-      return "$RETVAL"
+    killproc -p "$PIDFILE" -d30 "$BINARY"
+    RETVAL=$?
+    echo
+    [ "$RETVAL" -eq 0 ] && rm -f "$LOCKFILE"
+    return "$RETVAL"
   # SUSE
   elif [ "$RCSTATUS" ]; then
-      ## Stop daemon with killproc(8) and if this fails
-      ## set echo the echo return value.
-      killproc -t30 -p "$PIDFILE" "$BINARY"
+    ## Stop daemon with killproc(8) and if this fails
+    ## set echo the echo return value.
+    killproc -t30 -p "$PIDFILE" "$BINARY"
 
-      # Remember status and be verbose
-      rc_status -v
+    # Remember status and be verbose
+    rc_status -v
   fi
   echo
 }
@@ -155,7 +155,7 @@ pid_not_running() {
 
 pid_status() {
   if [ -e "$PIDFILE" ]; then
-    if ps -p "$(cat "$PIDFILE")" > /dev/null; then
+    if ps -p "$(cat "$PIDFILE")" >/dev/null; then
       echo " * $PROGRAM" is running, pid="$(cat "$PIDFILE")"
     else
       pid_not_running
@@ -201,43 +201,43 @@ otel_status() {
 
 cd "$OIQ_OTEL_COLLECTOR_HOME" || exit 1
 case "$1" in
-  # Start the service
-  start)
-    start
-    ;;
-  # Stop the service
-  stop)
-    stop
-    ;;
-  # Get the status of the service
-  status)
-    otel_status
-    ;;
-  # Restart the service by stop, then restart
-  restart)
-    stop
-    # sleep for 1 second to prevent false starts leaving us in a bad state
-    sleep 1
-    start
-    ;;
-  # Not currently implemented, but should reload the config file
-  reload)
-    reload
-    ;;
-  # Not currently implemented, but should reload the config file.
-  # If it fails, restart
-  force-reload)
-    force_reload
-    ;;
-  # Conditionally restart the service (only if running already)
-  condrestart|try-restart)
-    otel_status >/dev/null 2>&1 || exit 0
-    restart
-    ;;
-  *)
-    echo "Usage: $0 {start|stop|restart|condrestart|try-restart|reload|force-reload|status}"
-    RETVAL=3
-    ;;
+# Start the service
+start)
+  start
+  ;;
+# Stop the service
+stop)
+  stop
+  ;;
+# Get the status of the service
+status)
+  otel_status
+  ;;
+# Restart the service by stop, then restart
+restart)
+  stop
+  # sleep for 1 second to prevent false starts leaving us in a bad state
+  sleep 1
+  start
+  ;;
+# Not currently implemented, but should reload the config file
+reload)
+  reload
+  ;;
+# Not currently implemented, but should reload the config file.
+# If it fails, restart
+force-reload)
+  force_reload
+  ;;
+# Conditionally restart the service (only if running already)
+condrestart | try-restart)
+  otel_status >/dev/null 2>&1 || exit 0
+  restart
+  ;;
+*)
+  echo "Usage: $0 {start|stop|restart|condrestart|try-restart|reload|force-reload|status}"
+  RETVAL=3
+  ;;
 esac
 cd "$OLDPWD" || exit 1
 

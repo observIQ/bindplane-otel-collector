@@ -15,7 +15,7 @@ RUN mkdir \
     && chmod 0750 /etc/otel/storage
 
 RUN mkdir /licenses
-COPY LICENSE /licenses/observiq-otel-collector.license
+COPY LICENSE /licenses/bindplane-otel-collector.license
 
 COPY release_deps/VERSION.txt /etc/otel/VERSION.txt
 
@@ -35,7 +35,7 @@ COPY --from=stage --chown=otel:otel /licenses /licenses
 COPY --from=stage --chown=otel:otel /etc/otel /etc/otel
 COPY --from=stage --chown=otel:otel /etc/otel/storage /etc/otel/storage
 
-COPY observiq-otel-collector /collector/observiq-otel-collector
+COPY bindplane-otel-collector /collector/bindplane-otel-collector
 COPY opampsupervisor /collector/opampsupervisor
 
 ENV OIQ_OTEL_COLLECTOR_HOME=/etc/otel

@@ -16,19 +16,19 @@
 set -e
 
 handle_systemctl() {
-  systemctl stop observiq-otel-collector >/dev/null || {
+  systemctl stop bindplane-otel-collector >/dev/null || {
     printf 'failed to stop service'
   }
-  systemctl disable observiq-otel-collector >/dev/null 2>&1 || {
+  systemctl disable bindplane-otel-collector >/dev/null 2>&1 || {
     printf 'failed to disable service'
   }
 }
 
 handle_service() {
-  service observiq-otel-collector stop || {
+  service bindplane-otel-collector stop || {
     printf 'failed to stop service'
   }
-  chkconfig observiq-otel-collector on >/dev/null 2>&1 || {
+  chkconfig bindplane-otel-collector on >/dev/null 2>&1 || {
     printf 'failed to disable service'
   }
 }

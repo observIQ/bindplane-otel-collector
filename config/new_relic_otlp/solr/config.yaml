@@ -2,7 +2,7 @@ receivers:
   jmx:
     collection_interval: 30s
     endpoint: localhost:9999
-    jar_path: /opt/opentelemetry-java-contrib-jmx-metrics.jar
+    jar_path: /opt/bindplane-otel-collector/opentelemetry-java-contrib-jmx-metrics.jar
     target_system: solr
     resource_attributes:
       solr.endpoint: localhost:9999
@@ -27,9 +27,9 @@ service:
   pipelines:
     metrics:
       receivers:
-      - jmx
+        - jmx
       processors:
-      - resourcedetection
-      - batch
+        - resourcedetection
+        - batch
       exporters:
-      - otlp
+        - otlp

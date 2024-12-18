@@ -6,6 +6,7 @@ specific configurations, all of which are compatible with Google Cloud Monitorin
 ## Google Cloud APIs
 
 Enable the following APIs.
+
 - Cloud Metrics
 - Cloud Logging
 - Cloud Tracing
@@ -29,6 +30,7 @@ exporters:
 **Credential File**
 
 A Google Cloud Service Account can used for authentication by creating a service account and key.
+
 - [Create a service account](https://cloud.google.com/iam/docs/creating-managing-service-accounts) with the following roles:
   - Metrics: `roles/monitoring.metricWriter`
   - Logs: `roles/logging.logWriter`
@@ -36,10 +38,11 @@ A Google Cloud Service Account can used for authentication by creating a service
 - [Create a service account json key](https://cloud.google.com/iam/docs/creating-managing-service-account-keys) and place it on the system that is running the agent.
 
 The `credentials_file` parameter can be set:
+
 ```yaml
 exporters:
   googlecloud:
-    credentials_file: /opt/observiq-otel-collector/credentials.json
+    credentials_file: /opt/bindplane-otel-collector/credentials.json
 ```
 
 **Credential JSON**
@@ -50,6 +53,7 @@ account setup and credential file creation is idential to the `Credential File` 
 Setting the `credentials` parameter will override the `credentials_file` parameter.
 
 The `credentials` parameter can be set by embedding the credential json:
+
 ```yaml
 exporters:
   googlecloud:
