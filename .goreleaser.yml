@@ -45,35 +45,6 @@ builds:
         goarch: ppc64le
     prebuilt:
       path: tmp/collector_{{ .Os }}_{{ .Arch }}{{ .Ext }}
-  - id: updater
-    builder: prebuilt
-    binary: updater
-    mod_timestamp: "{{ .CommitTimestamp }}"
-    goos:
-      - windows
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-      - arm
-      - ppc64
-      - ppc64le
-    ignore:
-      - goos: windows
-        goarch: arm
-      - goos: windows
-        goarch: arm64
-      - goos: windows
-        goarch: ppc64
-      - goos: windows
-        goarch: ppc64le
-      - goos: darwin
-        goarch: ppc64
-      - goos: darwin
-        goarch: ppc64le
-    prebuilt:
-      path: tmp/updater_{{ .Os }}_{{ .Arch }}{{ .Ext }}
   - id: supervisor
     builder: prebuilt
     binary: opampsupervisor

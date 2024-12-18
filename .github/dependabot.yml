@@ -268,16 +268,6 @@ updates:
       prefix: "deps"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/updater"
-    schedule:
-      interval: "weekly"
-    ignore:
-      # Opentelemetry updates will be done manually
-      - dependency-name: "github.com/open-telemetry/opamp-go"
-    commit-message:
-      prefix: "deps"
-      include: "scope"
-  - package-ecosystem: "gomod"
     directory: "/packagestate"
     schedule:
       interval: "weekly"
