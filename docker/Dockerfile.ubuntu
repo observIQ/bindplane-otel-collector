@@ -53,14 +53,14 @@ COPY --from=jdk $JAVA_HOME $JAVA_HOME
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 RUN mkdir /licenses
-COPY LICENSE /licenses/observiq-otel-collector.license
+COPY LICENSE /licenses/bindplane-otel-collector.license
 
 COPY release_deps/VERSION.txt /etc/otel/VERSION.txt
 
-COPY observiq-otel-collector /collector/observiq-otel-collector
+COPY bindplane-otel-collector /collector/bindplane-otel-collector
 COPY opampsupervisor /collector/opampsupervisor
 
-COPY release_deps/opentelemetry-java-contrib-jmx-metrics.jar /opt/opentelemetry-java-contrib-jmx-metrics.jar
+COPY release_deps/opentelemetry-java-contrib-jmx-metrics.jar /opt/bindplane-otel-collector/opentelemetry-java-contrib-jmx-metrics.jar
 
 USER otel
 WORKDIR /etc/otel

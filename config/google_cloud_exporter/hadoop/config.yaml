@@ -1,13 +1,13 @@
 receivers:
   jmx:
-    jar_path: /opt/opentelemetry-java-contrib-jmx-metrics.jar
+    jar_path: /opt/bindplane-otel-collector/opentelemetry-java-contrib-jmx-metrics.jar
     endpoint: localhost:8004
     target_system: hadoop,jvm
     collection_interval: 60s
     resource_attributes:
       hadoop.endpoint: localhost:8004
 
-exporters: 
+exporters:
   googlecloud:
     metric:
       resource_filters:
@@ -17,6 +17,6 @@ service:
   pipelines:
     metrics:
       receivers:
-      - jmx
+        - jmx
       exporters:
-      - googlecloud
+        - googlecloud

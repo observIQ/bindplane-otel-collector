@@ -1,0 +1,18 @@
+# Configuration file for the bindplane-otel-collector service.
+# These variables control the behavior of the bindplane-otel-collector
+# Disabling the following for shellcheck, because they aren't relevant
+# to this file
+# shellcheck disable=SC2148,SC2034
+
+# Environment variables
+BINARY=opampsupervisor
+PROGRAM=/opt/bindplane-otel-collector/"$BINARY"
+START_CMD="nohup /opt/bindplane-otel-collector/$BINARY > /dev/null 2>&1 &"
+LOCKFILE=/var/lock/"$BINARY"
+PIDFILE=/var/run/"$BINARY".pid
+# Set to true to enable service file debugging (Not currently available)
+DEBUG=false
+
+# These are exported
+export OIQ_OTEL_COLLECTOR_HOME=/opt/bindplane-otel-collector
+export OIQ_OTEL_COLLECTOR_STORAGE=/opt/bindplane-otel-collector/storage

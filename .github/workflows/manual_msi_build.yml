@@ -25,7 +25,7 @@ jobs:
       - name: Build Binaries
         run: make build-binaries
       - name: Copy Windows Collector Binary
-        run: cp dist/collector_windows_amd64.exe windows/observiq-otel-collector.exe
+        run: cp dist/collector_windows_amd64.exe windows/bindplane-otel-collector.exe
       - name: Copy Supervisor Binary
         run: cp release_deps/supervisor_bin/opampsupervisor_windows_amd64.exe windows/opampsupervisor.exe
       - name: Copy Plugins to MSI Build Directory
@@ -52,12 +52,12 @@ jobs:
           unzip wix310-binaries.zip
         working-directory: C:/build
       - name: "Build MSI from Tagged Release"
-        run: go-msi.exe make -m observiq-otel-collector.msi --version ${{ github.event.inputs.version }} --arch amd64
+        run: go-msi.exe make -m bindplane-otel-collector.msi --version ${{ github.event.inputs.version }} --arch amd64
         working-directory: C:/build
       - name: "Upload MSI"
         uses: actions/upload-artifact@v4
         with:
-          name: observiq-otel-collector.msi
-          path: C:/build/observiq-otel-collector.msi
+          name: bindplane-otel-collector.msi
+          path: C:/build/bindplane-otel-collector.msi
           # Short lived because this is meant as an action for developers
           retention-days: 1
