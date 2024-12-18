@@ -24,8 +24,6 @@ jobs:
         run: make build-binaries
       - name: Copy Windows Collector Binary
         run: cp dist/collector_windows_amd64.exe windows/observiq-otel-collector.exe
-      - name: Copy Windows Updater Binary
-        run: cp dist/updater_windows_amd64.exe windows/updater.exe
       - name: Copy Supervisor Binary
         run: cp release_deps/supervisor_bin/opampsupervisor_windows_amd64.exe windows/opampsupervisor.exe
       - name: Copy Plugins to MSI Build Directory
