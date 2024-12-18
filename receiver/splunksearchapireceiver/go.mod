@@ -1,4 +1,4 @@
-module github.com/open-telemetry/opentelemtry-collector-contrib/receiver/splunksearchapireceiver
+module github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver
 
 go 1.22.7
 
