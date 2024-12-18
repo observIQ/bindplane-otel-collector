@@ -369,9 +369,15 @@ require (
 	github.com/microsoft/go-mssqldb v1.8.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
+<<<<<<< HEAD
 	github.com/observiq/bindplane-otel-collector/counter v1.69.0 // indirect
 	github.com/observiq/bindplane-otel-collector/expr v1.69.0 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.69.0 // indirect
+=======
+	github.com/observiq/bindplane-otel-collector/counter v1.68.0 // indirect
+	github.com/observiq/bindplane-otel-collector/expr v1.68.0 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.62.0 // indirect
+>>>>>>> ee516ea5 (chore: Update modules to v1.68.0)
 	github.com/okta/okta-sdk-golang/v2 v2.20.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.116.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension v0.116.0 // indirect
