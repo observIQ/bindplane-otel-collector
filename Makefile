@@ -27,7 +27,7 @@ CURRENT_TAG := $(shell git tag --sort=v:refname --points-at HEAD | grep -E "v[0-
 VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG))
 
 # Build binaries for current GOOS/GOARCH by default
-.DEFAULT_GOAL := build-binaries
+.DEFAULT_GOAL := agent
 
 # Builds the agent for current GOOS/GOARCH pair
 .PHONY: agent
@@ -41,15 +41,6 @@ agent:
 .PHONY: distro
 distro:
 	builder --config="$(MANIFEST)"
-
-# Builds the updater for current GOOS/GOARCH pair && sets flags
-.PHONY: updater
-updater:
-	cd ./updater/; CGO_ENABLED=0 go build -ldflags "-s -w\
-		-X 'github.com/observiq/bindplane-otel-collector/updater/internal/version.version=$(VERSION)'\
-		-X 'github.com/observiq/bindplane-agent/updater/internal/version.gitHash=$(shell git rev-parse HEAD)'\
-		-X 'github.com/observiq/bindplane-agent/updater/internal/version.date=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")'"\
-		-o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
 
 # Runs the supervisor invoking the agent build in /dist
 .PHONY: run-supervisor
@@ -67,10 +58,6 @@ kill:
 reset: kill
 	rm -rf agent.log effective.yaml local/storage/* builder/
 
-# Builds the updater + agent for current GOOS/GOARCH pair
-.PHONY: build-binaries
-build-binaries: agent updater
-
 .PHONY: build-all
 build-all: build-linux build-darwin build-windows
 
@@ -85,35 +72,35 @@ build-windows: build-windows-amd64
 
 .PHONY: build-linux-ppc64
 build-linux-ppc64:
-	GOOS=linux GOARCH=ppc64 $(MAKE) build-binaries -j2
+	GOOS=linux GOARCH=ppc64 $(MAKE) agent
 
 .PHONY: build-linux-ppc64le
 build-linux-ppc64le:
-	GOOS=linux GOARCH=ppc64le $(MAKE) build-binaries -j2
+	GOOS=linux GOARCH=ppc64le $(MAKE) agent
 
 .PHONY: build-linux-amd64
 build-linux-amd64:
-	GOOS=linux GOARCH=amd64 $(MAKE) build-binaries -j2
+	GOOS=linux GOARCH=amd64 $(MAKE) agent
 
 .PHONY: build-linux-arm64
 build-linux-arm64:
-	GOOS=linux GOARCH=arm64 $(MAKE) build-binaries -j2
+	GOOS=linux GOARCH=arm64 $(MAKE) agent
 
 .PHONY: build-linux-arm
 build-linux-arm:
-	GOOS=linux GOARCH=arm $(MAKE) build-binaries -j2
+	GOOS=linux GOARCH=arm $(MAKE) agent
 
 .PHONY: build-darwin-amd64
 build-darwin-amd64:
-	GOOS=darwin GOARCH=amd64 $(MAKE) build-binaries -j2
+	GOOS=darwin GOARCH=amd64 $(MAKE) agent
 
 .PHONY: build-darwin-arm64
 build-darwin-arm64:
-	GOOS=darwin GOARCH=arm64 $(MAKE) build-binaries -j2
+	GOOS=darwin GOARCH=arm64 $(MAKE) agent
 
 .PHONY: build-windows-amd64
 build-windows-amd64:
-	GOOS=windows GOARCH=amd64 $(MAKE) build-binaries -j2
+	GOOS=windows GOARCH=amd64 $(MAKE) agent
 
 # tool-related commands
 .PHONY: install-tools
@@ -162,10 +149,6 @@ test-with-cover:
 	$(MAKE) for-all CMD="go test -coverprofile=cover.out ./..."
 	$(MAKE) for-all CMD="go tool cover -html=cover.out -o cover.html"
 
-.PHONY: test-updater-integration
-test-updater-integration:
-	cd updater; go test $(INTEGRATION_TEST_ARGS) -race ./...
-
 .PHONY: bench
 bench:
 	$(MAKE) for-all CMD="go test -benchmem -run=^$$ -bench ^* ./..."
@@ -189,7 +172,6 @@ gosec:
 	cd internal; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
 	cd extension; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
 	cd receiver; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
-	cd updater; gosec -exclude-dir internal/service/testdata ./...
 
 # This target performs all checks that CI will do (excluding the build itself)
 .PHONY: ci-checks
@@ -300,7 +282,7 @@ clean:
 
 .PHONY: scan-licenses
 scan-licenses:
-	lichen --config=./license.yaml $$(find dist/collector_* dist/updater_*)
+	lichen --config=./license.yaml $$(find dist/collector_*)
 
 .PHONY: generate
 generate:

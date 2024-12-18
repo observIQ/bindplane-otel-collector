@@ -22,9 +22,6 @@
       "path": "observiq-otel-collector.exe"
     },
     {
-      "path": "updater.exe"
-    },
-    {
       "path": "opentelemetry-java-contrib-jmx-metrics.jar"
     },
     {

@@ -21,9 +21,3 @@ jobs:
             **/go.sum
       - name: Run Tests
         run: make test
-      - name: Run Updater Integration Tests (non-linux)
-        if: matrix.os != 'ubuntu-20.04'
-        run: make test-updater-integration
-      - name: Run Updater Integration Tests (linux)
-        if: matrix.os == 'ubuntu-20.04'
-        run: sudo make test-updater-integration
