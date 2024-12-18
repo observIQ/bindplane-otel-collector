@@ -125,6 +125,41 @@ func TestProcessMetrics(t *testing.T) {
 		requireMetricsAttrsEqual(t, rawAttributes, outMetricsSlice)
 	})
 
+	t.Run("Removes resource attributes with slice", func(t *testing.T) {
+		p := newEmptyValueProcessor(zaptest.NewLogger(t), Config{
+			RemoveNulls:      true,
+			RemoveEmptyLists: true,
+			RemoveEmptyMaps:  true,
+			EmptyStringValues: []string{
+				"-",
+			},
+			ExcludeKeys: []MapKey{
+				{
+					field: attributesField,
+				},
+				{
+					field: bodyField,
+				},
+			},
+		})
+
+		inputMetrics := testMetricsWithSlice()
+
+		outputLogs, err := p.processMetrics(context.Background(), inputMetrics)
+		require.NoError(t, err)
+
+		outResourceMetrics := outputLogs.ResourceMetrics().At(0)
+		expected := map[string]any{
+			"resource_key": "resource_value",
+			"not.empty.slice": []any{
+				map[string]any{"some.key": "val1"},
+			},
+			"not.empty.primitive.slice": []any{
+				"some.value", "another.value", true,
+			},
+		}
+		require.Equal(t, expected, outResourceMetrics.Resource().Attributes().AsRaw())
+	})
 	t.Run("Removes resource attributes, ignores excluded", func(t *testing.T) {
 		p := newEmptyValueProcessor(zaptest.NewLogger(t), Config{
 			RemoveNulls:      true,
@@ -164,6 +199,60 @@ func TestProcessMetrics(t *testing.T) {
 		}, outResourceMetrics.Resource().Attributes().AsRaw())
 		requireMetricsAttrsEqual(t, rawAttributes, outMetricsSlice)
 	})
+
+	t.Run("Removes resource attributes with slice, ignores excluded", func(t *testing.T) {
+		p := newEmptyValueProcessor(zaptest.NewLogger(t), Config{
+			RemoveNulls:      true,
+			RemoveEmptyLists: true,
+			RemoveEmptyMaps:  true,
+			EmptyStringValues: []string{
+				"-",
+			},
+			ExcludeKeys: []MapKey{
+				{
+					field: resourceField,
+					key:   "nested.map.map.some.key",
+				},
+				{
+					field: resourceField,
+					key:   "not.empty.slice.empty.key",
+				},
+				{
+					field: attributesField,
+				},
+				{
+					field: bodyField,
+				},
+			},
+		})
+
+		inputMetrics := testMetricsWithSlice()
+
+		outputLogs, err := p.processMetrics(context.Background(), inputMetrics)
+		require.NoError(t, err)
+
+		outResourceMetrics := outputLogs.ResourceMetrics().At(0)
+		expected := map[string]any{
+			"resource_key": "resource_value",
+			"not.empty.slice": []any{
+				map[string]any{
+					"some.key": "val1",
+				},
+				map[string]any{
+					"empty.key": "-",
+				},
+			},
+			"nested.map": map[string]any{
+				"map": map[string]any{
+					"some.key": "-",
+				},
+			},
+			"not.empty.primitive.slice": []any{
+				"some.value", "another.value", true,
+			},
+		}
+		require.Equal(t, expected, outResourceMetrics.Resource().Attributes().AsRaw())
+	})
 }
 
 func TestProcessTraces(t *testing.T) {
@@ -197,6 +286,47 @@ func TestProcessTraces(t *testing.T) {
 		require.Equal(t, map[string]any{
 			"attr_key": "attr_value",
 		}, span.Attributes().AsRaw())
+	})
+
+	t.Run("Removes attributes with slice", func(t *testing.T) {
+		p := newEmptyValueProcessor(zaptest.NewLogger(t), Config{
+			RemoveNulls:      true,
+			RemoveEmptyLists: true,
+			RemoveEmptyMaps:  true,
+			EmptyStringValues: []string{
+				"-",
+			},
+			ExcludeKeys: []MapKey{
+				{
+					field: resourceField,
+				},
+				{
+					field: bodyField,
+				},
+			},
+		})
+		inputTraces := testTracesWithSlice()
+
+		outputTraces, err := p.processTraces(context.Background(), inputTraces)
+		require.NoError(t, err)
+
+		outResourceSpans := outputTraces.ResourceSpans().At(0)
+		span := outResourceSpans.ScopeSpans().At(0).Spans().At(0)
+
+		expected := map[string]any{
+			"attr_key": "attr_value",
+			"not.empty.slice": []any{
+				map[string]any{
+					"some.key": "val1",
+				},
+			},
+			"not.empty.primitive.slice": []any{
+				"some.value", "another.value", true,
+			},
+		}
+
+		require.Equal(t, expected, span.Attributes().AsRaw())
+
 	})
 
 	t.Run("Removes attributes, ignores excluded", func(t *testing.T) {
@@ -236,6 +366,58 @@ func TestProcessTraces(t *testing.T) {
 		}, span.Attributes().AsRaw())
 	})
 
+	t.Run("Removes attributes with slice ignores excluded", func(t *testing.T) {
+		p := newEmptyValueProcessor(zaptest.NewLogger(t), Config{
+			RemoveNulls:      true,
+			RemoveEmptyLists: true,
+			RemoveEmptyMaps:  true,
+			EmptyStringValues: []string{
+				"-",
+			},
+			ExcludeKeys: []MapKey{
+				{
+					field: attributesField,
+					key:   "empty.key",
+				},
+				{
+					field: attributesField,
+					key:   "not.empty.slice.empty.key",
+				},
+				{
+					field: resourceField,
+				},
+				{
+					field: bodyField,
+				},
+			},
+		})
+
+		inputTraces := testTracesWithSlice()
+
+		outputTraces, err := p.processTraces(context.Background(), inputTraces)
+		require.NoError(t, err)
+
+		outResourceSpans := outputTraces.ResourceSpans().At(0)
+		span := outResourceSpans.ScopeSpans().At(0).Spans().At(0)
+
+		expected := map[string]any{
+			"attr_key":  "attr_value",
+			"empty.key": nil,
+			"not.empty.slice": []any{
+				map[string]any{
+					"some.key": "val1",
+				},
+				map[string]any{
+					"empty.key": "-",
+				},
+			},
+			"not.empty.primitive.slice": []any{
+				"some.value", "another.value", true,
+			},
+		}
+		require.Equal(t, expected, span.Attributes().AsRaw())
+	})
+
 	t.Run("Removes resource attributes", func(t *testing.T) {
 		p := newEmptyValueProcessor(zaptest.NewLogger(t), Config{
 			RemoveNulls:      true,
@@ -266,6 +448,44 @@ func TestProcessTraces(t *testing.T) {
 			"resource_key": "resource_value",
 		}, outResourceSpans.Resource().Attributes().AsRaw())
 		require.Equal(t, rawAttributes, span.Attributes().AsRaw())
+	})
+
+	t.Run("Removes resource attributes with slice", func(t *testing.T) {
+		p := newEmptyValueProcessor(zaptest.NewLogger(t), Config{
+			RemoveNulls:      true,
+			RemoveEmptyLists: true,
+			RemoveEmptyMaps:  true,
+			EmptyStringValues: []string{
+				"-",
+			},
+			ExcludeKeys: []MapKey{
+				{
+					field: attributesField,
+				},
+				{
+					field: bodyField,
+				},
+			},
+		})
+
+		inputTraces := testTracesWithSlice()
+
+		outputTraces, err := p.processTraces(context.Background(), inputTraces)
+		require.NoError(t, err)
+
+		outResourceSpans := outputTraces.ResourceSpans().At(0)
+
+		expected := map[string]any{
+			"resource_key": "resource_value",
+			"not.empty.slice": []any{
+				map[string]any{"some.key": "val1"},
+			},
+			"not.empty.primitive.slice": []any{
+				"some.value", "another.value", true,
+			},
+		}
+
+		require.Equal(t, expected, outResourceSpans.Resource().Attributes().AsRaw())
 	})
 
 	t.Run("Removes resource attributes, ignores excluded", func(t *testing.T) {
@@ -307,6 +527,57 @@ func TestProcessTraces(t *testing.T) {
 			},
 		}, outResourceSpans.Resource().Attributes().AsRaw())
 		require.Equal(t, rawAttributes, span.Attributes().AsRaw())
+	})
+
+	t.Run("Removes resource attributes with slice ignores excluded", func(t *testing.T) {
+		p := newEmptyValueProcessor(zaptest.NewLogger(t), Config{
+			RemoveNulls:      true,
+			RemoveEmptyLists: true,
+			RemoveEmptyMaps:  true,
+			EmptyStringValues: []string{
+				"-",
+			},
+			ExcludeKeys: []MapKey{
+				{
+					field: resourceField,
+					key:   "empty.key",
+				},
+				{
+					field: resourceField,
+					key:   "not.empty.slice.empty.key",
+				},
+				{
+					field: attributesField,
+				},
+				{
+					field: bodyField,
+				},
+			},
+		})
+
+		inputTraces := testTracesWithSlice()
+
+		outputTraces, err := p.processTraces(context.Background(), inputTraces)
+		require.NoError(t, err)
+
+		outResourceSpans := outputTraces.ResourceSpans().At(0)
+
+		expected := map[string]any{
+			"resource_key": "resource_value",
+			"empty.key":    nil,
+			"not.empty.slice": []any{
+				map[string]any{
+					"some.key": "val1",
+				},
+				map[string]any{
+					"empty.key": "-",
+				},
+			},
+			"not.empty.primitive.slice": []any{
+				"some.value", "another.value", true,
+			},
+		}
+		require.Equal(t, expected, outResourceSpans.Resource().Attributes().AsRaw())
 	})
 }
 
@@ -490,6 +761,47 @@ func TestProcessLogs(t *testing.T) {
 		}, outLogRecord.Body().Map().AsRaw())
 	})
 
+	t.Run("Removes body keys with slice", func(t *testing.T) {
+		p := newEmptyValueProcessor(zaptest.NewLogger(t), Config{
+			RemoveNulls:      true,
+			RemoveEmptyLists: true,
+			RemoveEmptyMaps:  true,
+			EmptyStringValues: []string{
+				"-",
+			},
+			ExcludeKeys: []MapKey{
+				{
+					field: attributesField,
+				},
+				{
+					field: resourceField,
+				},
+			},
+		})
+
+		inputLog := testLogWithSlice()
+
+		outputLogs, err := p.processLogs(context.Background(), inputLog)
+		require.NoError(t, err)
+
+		outResourceLogs := outputLogs.ResourceLogs().At(0)
+		outLogRecord := outResourceLogs.ScopeLogs().At(0).LogRecords().At(0)
+
+		require.Equal(t, rawResourceAttributesWithSlice, outResourceLogs.Resource().Attributes().AsRaw())
+		require.Equal(t, rawAttributesWithSlice, outLogRecord.Attributes().AsRaw())
+		require.Equal(t, map[string]any{
+			"body_key": "body_value",
+			"not.empty.slice": []any{
+				map[string]any{
+					"some.key": "val1",
+				},
+			},
+			"not.empty.primitive.slice": []any{
+				"some.value", "another.value", true,
+			},
+		}, outLogRecord.Body().Map().AsRaw())
+	})
+
 	t.Run("Removes body keys, ignores excluded", func(t *testing.T) {
 		p := newEmptyValueProcessor(zaptest.NewLogger(t), Config{
 			RemoveNulls:      true,
@@ -525,6 +837,59 @@ func TestProcessLogs(t *testing.T) {
 		require.Equal(t, map[string]any{
 			"body_key":  "body_value",
 			"empty.key": nil,
+		}, outLogRecord.Body().Map().AsRaw())
+	})
+
+	t.Run("Removes body keys with slice, ignores excluded", func(t *testing.T) {
+		p := newEmptyValueProcessor(zaptest.NewLogger(t), Config{
+			RemoveNulls:      true,
+			RemoveEmptyLists: true,
+			RemoveEmptyMaps:  true,
+			EmptyStringValues: []string{
+				"-",
+			},
+			ExcludeKeys: []MapKey{
+				{
+					field: bodyField,
+					key:   "empty.key",
+				},
+				{
+					field: bodyField,
+					key:   "not.empty.slice.empty.key",
+				},
+				{
+					field: attributesField,
+				},
+				{
+					field: resourceField,
+				},
+			},
+		})
+
+		inputLog := testLogWithSlice()
+
+		outputLogs, err := p.processLogs(context.Background(), inputLog)
+		require.NoError(t, err)
+
+		outResourceLogs := outputLogs.ResourceLogs().At(0)
+		outLogRecord := outResourceLogs.ScopeLogs().At(0).LogRecords().At(0)
+
+		require.Equal(t, rawResourceAttributesWithSlice, outResourceLogs.Resource().Attributes().AsRaw())
+		require.Equal(t, rawAttributesWithSlice, outLogRecord.Attributes().AsRaw())
+		require.Equal(t, map[string]any{
+			"body_key":  "body_value",
+			"empty.key": nil,
+			"not.empty.slice": []any{
+				map[string]any{
+					"some.key": "val1",
+				},
+				map[string]any{
+					"empty.key": "-",
+				},
+			},
+			"not.empty.primitive.slice": []any{
+				"some.value", "another.value", true,
+			},
 		}, outLogRecord.Body().Map().AsRaw())
 	})
 
@@ -605,6 +970,34 @@ var rawResourceAttributes = map[string]any{
 	},
 }
 
+var rawResourceAttributesWithSlice = map[string]any{
+	"empty.key":        nil,
+	"removable.string": "-",
+	"resource_key":     "resource_value",
+	"empty.map":        map[string]any{},
+	"empty.slice":      []any{},
+	"nested.map": map[string]any{
+		"map": map[string]any{
+			"some.key":    "-",
+			"another.key": "-",
+		},
+	},
+	"not.empty.slice": []any{
+		map[string]any{
+			"some.key": "val1",
+		},
+		map[string]any{
+			"empty.key": "-",
+		},
+		map[string]any{
+			"another.empty.key": "-",
+		},
+	},
+	"not.empty.primitive.slice": []any{
+		"some.value", "another.value", "-", true, nil,
+	},
+}
+
 var rawAttributes = map[string]any{
 	"empty.key":        nil,
 	"removable.string": "-",
@@ -613,12 +1006,56 @@ var rawAttributes = map[string]any{
 	"empty.slice":      []any{},
 }
 
+var rawAttributesWithSlice = map[string]any{
+	"empty.key":        nil,
+	"removable.string": "-",
+	"attr_key":         "attr_value",
+	"empty.map":        map[string]any{},
+	"empty.slice":      []any{},
+	"not.empty.slice": []any{
+		map[string]any{
+			"some.key": "val1",
+		},
+		map[string]any{
+			"empty.key": "-",
+		},
+		map[string]any{
+			"another.empty.key": "-",
+		},
+	},
+	"not.empty.primitive.slice": []any{
+		"some.value", "another.value", "-", true, nil,
+	},
+}
+
 var rawBody = map[string]any{
 	"empty.key":        nil,
 	"removable.string": "-",
 	"body_key":         "body_value",
 	"empty.map":        map[string]any{},
 	"empty.slice":      []any{},
+}
+
+var rawBodyWithSlice = map[string]any{
+	"empty.key":        nil,
+	"removable.string": "-",
+	"body_key":         "body_value",
+	"empty.map":        map[string]any{},
+	"empty.slice":      []any{},
+	"not.empty.slice": []any{
+		map[string]any{
+			"some.key": "val1",
+		},
+		map[string]any{
+			"empty.key": "-",
+		},
+		map[string]any{
+			"another.empty.key": "-",
+		},
+	},
+	"not.empty.primitive.slice": []any{
+		"some.value", "another.value", "-", true, nil,
+	},
 }
 
 func testLog() plog.Logs {
@@ -650,6 +1087,23 @@ func testLogEmptySliceBody() plog.Logs {
 	attrs.FromRaw(rawAttributes)
 
 	logRecord.Body().SetEmptySlice()
+
+	return ld
+}
+
+func testLogWithSlice() plog.Logs {
+	ld := plog.NewLogs()
+	resourceLog := ld.ResourceLogs().AppendEmpty()
+	resourceLog.Resource().Attributes().FromRaw(rawResourceAttributesWithSlice)
+
+	scopeLog := resourceLog.ScopeLogs().AppendEmpty()
+	logRecord := scopeLog.LogRecords().AppendEmpty()
+
+	attrs := logRecord.Attributes()
+	attrs.FromRaw(rawAttributesWithSlice)
+
+	mapBody := logRecord.Body().SetEmptyMap()
+	mapBody.FromRaw(rawBodyWithSlice)
 
 	return ld
 }
@@ -700,6 +1154,14 @@ func testMetrics() pmetric.Metrics {
 	return ms
 }
 
+func testMetricsWithSlice() pmetric.Metrics {
+	ms := pmetric.NewMetrics()
+	resourceMetrics := ms.ResourceMetrics().AppendEmpty()
+	resourceMetrics.Resource().Attributes().FromRaw(rawResourceAttributesWithSlice)
+
+	return ms
+}
+
 func requireMetricsAttrsEqual(t *testing.T, rawAttrs map[string]any, ms pmetric.MetricSlice) {
 	require.Equal(t, rawAttrs, ms.At(0).Gauge().DataPoints().At(0).Attributes().AsRaw())
 	require.Equal(t, rawAttrs, ms.At(1).Sum().DataPoints().At(0).Attributes().AsRaw())
@@ -716,6 +1178,17 @@ func testTraces() ptrace.Traces {
 
 	span := resourceSpans.ScopeSpans().AppendEmpty().Spans().AppendEmpty()
 	span.Attributes().FromRaw(rawAttributes)
+
+	return td
+}
+
+func testTracesWithSlice() ptrace.Traces {
+	td := ptrace.NewTraces()
+	resourceSpans := td.ResourceSpans().AppendEmpty()
+	resourceSpans.Resource().Attributes().FromRaw(rawResourceAttributesWithSlice)
+
+	span := resourceSpans.ScopeSpans().AppendEmpty().Spans().AppendEmpty()
+	span.Attributes().FromRaw(rawAttributesWithSlice)
 
 	return td
 }

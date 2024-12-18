@@ -1,0 +1,212 @@
+<entry
+       xmlns="http://www.w3.org/2005/Atom"
+       xmlns:s="http://dev.splunk.com/ns/rest"
+       xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">
+  <title>search index</title>
+  <id>https://localhost:8089/services/search/jobs/mysearch_02151949</id>
+  <updated>2011-07-07T20:49:58.000-07:00</updated>
+  <link href="/services/search/jobs/mysearch_02151949" rel="alternate"/>
+  <published>2011-07-07T20:49:57.000-07:00</published>
+  <link href="/services/search/jobs/mysearch_02151949/search.log" rel="search.log"/>
+  <link href="/services/search/jobs/mysearch_02151949/events" rel="events"/>
+  <link href="/services/search/jobs/mysearch_02151949/results" rel="results"/>
+  <link href="/services/search/jobs/mysearch_02151949/results_preview" rel="results_preview"/>
+  <link href="/services/search/jobs/mysearch_02151949/timeline" rel="timeline"/>
+  <link href="/services/search/jobs/mysearch_02151949/summary" rel="summary"/>
+  <link href="/services/search/jobs/mysearch_02151949/control" rel="control"/>
+  <author>
+    <name>admin</name>
+  </author>
+  <content type="text/xml">
+    <s:dict>
+      <s:key name="cursorTime">1969-12-31T16:00:00.000-08:00</s:key>
+      <s:key name="delegate"></s:key>
+      <s:key name="diskUsage">2174976</s:key>
+      <s:key name="dispatchState">DONE</s:key>
+      <s:key name="doneProgress">1.00000</s:key>
+      <s:key name="dropCount">0</s:key>
+      <s:key name="earliestTime">2011-07-07T11:18:08.000-07:00</s:key>
+      <s:key name="eventAvailableCount">287</s:key>
+      <s:key name="eventCount">287</s:key>
+      <s:key name="eventFieldCount">6</s:key>
+      <s:key name="eventIsStreaming">1</s:key>
+      <s:key name="eventIsTruncated">0</s:key>
+      <s:key name="eventSearch">search index</s:key>
+      <s:key name="eventSorting">desc</s:key>
+      <s:key name="isDone">1</s:key>
+      <s:key name="isFailed">0</s:key>
+      <s:key name="isFinalized">0</s:key>
+      <s:key name="isPaused">0</s:key>
+      <s:key name="isPreviewEnabled">0</s:key>
+      <s:key name="isRealTimeSearch">0</s:key>
+      <s:key name="isRemoteTimeline">0</s:key>
+      <s:key name="isSaved">0</s:key>
+      <s:key name="isSavedSearch">0</s:key>
+      <s:key name="isZombie">0</s:key>
+      <s:key name="keywords">index</s:key>
+      <s:key name="label"></s:key>
+      <s:key name="latestTime">1969-12-31T16:00:00.000-08:00</s:key>
+      <s:key name="numPreviews">0</s:key>
+      <s:key name="priority">5</s:key>
+      <s:key name="remoteSearch">litsearch index | fields  keepcolorder=t "host" "index" "linecount" "source" "sourcetype" "splunk_server"</s:key>
+      <s:key name="reportSearch"></s:key>
+      <s:key name="resultCount">287</s:key>
+      <s:key name="resultIsStreaming">1</s:key>
+      <s:key name="resultPreviewCount">287</s:key>
+      <s:key name="runDuration">1.004000</s:key>
+      <s:key name="scanCount">287</s:key>
+      <s:key name="sid">mysearch_02151949</s:key>
+      <s:key name="statusBuckets">0</s:key>
+      <s:key name="ttl">516</s:key>
+      <s:key name="performance">
+        <s:dict>
+          <s:key name="command.fields">
+            <s:dict>
+              <s:key name="duration_secs">0.004</s:key>
+              <s:key name="invocations">4</s:key>
+              <s:key name="input_count">287</s:key>
+              <s:key name="output_count">287</s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="command.search">
+            <s:dict>
+              <s:key name="duration_secs">0.089</s:key>
+              <s:key name="invocations">4</s:key>
+              <s:key name="input_count">0</s:key>
+              <s:key name="output_count">287</s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="command.search.fieldalias">
+            <s:dict>
+              <s:key name="duration_secs">0.002</s:key>
+              <s:key name="invocations">2</s:key>
+              <s:key name="input_count">287</s:key>
+              <s:key name="output_count">287</s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="command.search.index">
+            <s:dict>
+              <s:key name="duration_secs">0.005</s:key>
+              <s:key name="invocations">4</s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="command.search.kv">
+            <s:dict>
+              <s:key name="duration_secs">0.002</s:key>
+              <s:key name="invocations">2</s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="command.search.lookups">
+            <s:dict>
+              <s:key name="duration_secs">0.002</s:key>
+              <s:key name="invocations">2</s:key>
+              <s:key name="input_count">287</s:key>
+              <s:key name="output_count">287</s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="command.search.rawdata">
+            <s:dict>
+              <s:key name="duration_secs">0.083</s:key>
+              <s:key name="invocations">2</s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="command.search.tags">
+            <s:dict>
+              <s:key name="duration_secs">0.004</s:key>
+              <s:key name="invocations">4</s:key>
+              <s:key name="input_count">287</s:key>
+              <s:key name="output_count">287</s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="command.search.typer">
+            <s:dict>
+              <s:key name="duration_secs">0.004</s:key>
+              <s:key name="invocations">4</s:key>
+              <s:key name="input_count">287</s:key>
+              <s:key name="output_count">287</s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="dispatch.createProviderQueue">
+            <s:dict>
+              <s:key name="duration_secs">0.059</s:key>
+              <s:key name="invocations">1</s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="dispatch.evaluate">
+            <s:dict>
+              <s:key name="duration_secs">0.037</s:key>
+              <s:key name="invocations">1</s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="dispatch.evaluate.search">
+            <s:dict>
+              <s:key name="duration_secs">0.036</s:key>
+              <s:key name="invocations">1</s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="dispatch.fetch">
+            <s:dict>
+              <s:key name="duration_secs">0.092</s:key>
+              <s:key name="invocations">5</s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="dispatch.readEventsInResults">
+            <s:dict>
+              <s:key name="duration_secs">0.110</s:key>
+              <s:key name="invocations">1</s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="dispatch.stream.local">
+            <s:dict>
+              <s:key name="duration_secs">0.089</s:key>
+              <s:key name="invocations">4</s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="dispatch.timeline">
+            <s:dict>
+              <s:key name="duration_secs">0.359</s:key>
+              <s:key name="invocations">5</s:key>
+            </s:dict>
+          </s:key>
+        </s:dict>
+      </s:key>
+      <s:key name="messages">
+        <s:dict/>
+      </s:key>
+      <s:key name="request">
+        <s:dict>
+          <s:key name="id">mysearch_02151949</s:key>
+          <s:key name="search">search index</s:key>
+        </s:dict>
+      </s:key>
+      <s:key name="eai:acl">
+        <s:dict>
+          <s:key name="perms">
+            <s:dict>
+              <s:key name="read">
+                <s:list>
+                  <s:item>admin</s:item>
+                </s:list>
+              </s:key>
+              <s:key name="write">
+                <s:list>
+                  <s:item>admin</s:item>
+                </s:list>
+              </s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="owner">admin</s:key>
+          <s:key name="modifiable">true</s:key>
+          <s:key name="sharing">global</s:key>
+          <s:key name="app">search</s:key>
+          <s:key name="can_write">true</s:key>
+        </s:dict>
+      </s:key>
+      <s:key name="searchProviders">
+        <s:list>
+          <s:item>mbp15.splunk.com</s:item>
+        </s:list>
+      </s:key>
+    </s:dict>
+  </content>
+</entry>

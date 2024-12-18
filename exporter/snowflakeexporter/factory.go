@@ -21,6 +21,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter/internal/database"
 	"github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter/internal/metadata"
+	"github.com/snowflakedb/gosnowflake"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter"
@@ -40,6 +41,10 @@ func NewFactory() exporter.Factory {
 
 // createDefaultConfig creates the default configuration for the exporter
 func createDefaultConfig() component.Config {
+	// need to include default snowflake config, will be overwritten with user values
+	sfCfg := buildDefaultSFConfig()
+	dsn, _ := gosnowflake.DSN(sfCfg)
+
 	return &Config{
 		TimeoutConfig: exporterhelper.NewDefaultTimeoutConfig(),
 		QueueConfig:   exporterhelper.NewDefaultQueueConfig(),
@@ -57,6 +62,7 @@ func createDefaultConfig() component.Config {
 			Schema: defaultTracesSchema,
 			Table:  defaultTable,
 		},
+		dsn: dsn,
 	}
 }
 

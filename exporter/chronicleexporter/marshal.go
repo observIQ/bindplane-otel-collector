@@ -29,6 +29,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -50,7 +51,7 @@ var supportedLogTypes = map[string]string{
 //go:generate mockery --name logMarshaler --filename mock_log_marshaler.go --structname MockMarshaler --inpackage
 type logMarshaler interface {
 	MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]*api.BatchCreateLogsRequest, error)
-	MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs) (map[string]*api.ImportLogsRequest, error)
+	MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs) (map[string][]*api.ImportLogsRequest, error)
 }
 type protoMarshaler struct {
 	cfg          Config
@@ -60,7 +61,11 @@ type protoMarshaler struct {
 	collectorID  []byte
 }
 
-func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings, customerID []byte) (*protoMarshaler, error) {
+func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings) (*protoMarshaler, error) {
+	customerID, err := uuid.Parse(cfg.CustomerID)
+	if err != nil {
+		return nil, fmt.Errorf("parse customer ID: %w", err)
+	}
 	return &protoMarshaler{
 		startTime:    time.Now(),
 		cfg:          cfg,
@@ -411,25 +416,61 @@ func (m *protoMarshaler) constructPayloads(rawLogs map[string][]*api.LogEntry, n
 				namespace = m.cfg.Namespace
 			}
 			ingestionLabels := ingestionLabelsMap[logType]
-			payloads = append(payloads, &api.BatchCreateLogsRequest{
-				Batch: &api.LogEntryBatch{
-					StartTime: timestamppb.New(m.startTime),
-					Entries:   entries,
-					LogType:   logType,
-					Source: &api.EventSource{
-						CollectorId: m.collectorID,
-						CustomerId:  m.customerID,
-						Labels:      ingestionLabels,
-						Namespace:   namespace,
-					},
-				},
-			})
+
+			request := m.buildGRPCRequest(entries, logType, namespace, ingestionLabels)
+
+			payloads = append(payloads, m.enforceMaximumsGRPCRequest(request)...)
 		}
 	}
 	return payloads
 }
 
-func (m *protoMarshaler) MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs) (map[string]*api.ImportLogsRequest, error) {
+func (m *protoMarshaler) enforceMaximumsGRPCRequest(request *api.BatchCreateLogsRequest) []*api.BatchCreateLogsRequest {
+	size := proto.Size(request)
+	entries := request.Batch.Entries
+	if size <= m.cfg.BatchRequestSizeLimitGRPC && len(entries) <= m.cfg.BatchLogCountLimitGRPC {
+		return []*api.BatchCreateLogsRequest{
+			request,
+		}
+	}
+
+	if len(entries) < 2 {
+		m.teleSettings.Logger.Error("Single entry exceeds max request size. Dropping entry", zap.Int("size", size))
+		return []*api.BatchCreateLogsRequest{}
+	}
+
+	// split request into two
+	mid := len(entries) / 2
+	leftHalf := entries[:mid]
+	rightHalf := entries[mid:]
+
+	request.Batch.Entries = leftHalf
+	otherHalfRequest := m.buildGRPCRequest(rightHalf, request.Batch.LogType, request.Batch.Source.Namespace, request.Batch.Source.Labels)
+
+	// re-enforce max size restriction on each half
+	enforcedRequest := m.enforceMaximumsGRPCRequest(request)
+	enforcedOtherHalfRequest := m.enforceMaximumsGRPCRequest(otherHalfRequest)
+
+	return append(enforcedRequest, enforcedOtherHalfRequest...)
+}
+
+func (m *protoMarshaler) buildGRPCRequest(entries []*api.LogEntry, logType, namespace string, ingestionLabels []*api.Label) *api.BatchCreateLogsRequest {
+	return &api.BatchCreateLogsRequest{
+		Batch: &api.LogEntryBatch{
+			StartTime: timestamppb.New(m.startTime),
+			Entries:   entries,
+			LogType:   logType,
+			Source: &api.EventSource{
+				CollectorId: m.collectorID,
+				CustomerId:  m.customerID,
+				Labels:      ingestionLabels,
+				Namespace:   namespace,
+			},
+		},
+	}
+}
+
+func (m *protoMarshaler) MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs) (map[string][]*api.ImportLogsRequest, error) {
 	rawLogs, err := m.extractRawHTTPLogs(ctx, ld)
 	if err != nil {
 		return nil, fmt.Errorf("extract raw logs: %w", err)
@@ -482,26 +523,60 @@ func buildForwarderString(cfg Config) string {
 	return fmt.Sprintf(format, cfg.Project, cfg.Location, cfg.CustomerID, cfg.Forwarder)
 }
 
-func (m *protoMarshaler) constructHTTPPayloads(rawLogs map[string][]*api.Log) map[string]*api.ImportLogsRequest {
-	payloads := make(map[string]*api.ImportLogsRequest, len(rawLogs))
+func (m *protoMarshaler) constructHTTPPayloads(rawLogs map[string][]*api.Log) map[string][]*api.ImportLogsRequest {
+	payloads := make(map[string][]*api.ImportLogsRequest, len(rawLogs))
 
 	for logType, entries := range rawLogs {
 		if len(entries) > 0 {
-			payloads[logType] =
-				&api.ImportLogsRequest{
-					// TODO: Add parent and hint
-					// We don't yet have solid guidance on what these should be
-					Parent: "",
-					Hint:   "",
+			request := m.buildHTTPRequest(entries)
 
-					Source: &api.ImportLogsRequest_InlineSource{
-						InlineSource: &api.ImportLogsRequest_LogsInlineSource{
-							Forwarder: buildForwarderString(m.cfg),
-							Logs:      entries,
-						},
-					},
-				}
+			payloads[logType] = m.enforceMaximumsHTTPRequest(request)
 		}
 	}
 	return payloads
+}
+
+func (m *protoMarshaler) enforceMaximumsHTTPRequest(request *api.ImportLogsRequest) []*api.ImportLogsRequest {
+	size := proto.Size(request)
+	logs := request.GetInlineSource().Logs
+	if size <= m.cfg.BatchRequestSizeLimitHTTP && len(logs) <= m.cfg.BatchLogCountLimitHTTP {
+		return []*api.ImportLogsRequest{
+			request,
+		}
+	}
+
+	if len(logs) < 2 {
+		m.teleSettings.Logger.Error("Single entry exceeds max request size. Dropping entry", zap.Int("size", size))
+		return []*api.ImportLogsRequest{}
+	}
+
+	// split request into two
+	mid := len(logs) / 2
+	leftHalf := logs[:mid]
+	rightHalf := logs[mid:]
+
+	request.GetInlineSource().Logs = leftHalf
+	otherHalfRequest := m.buildHTTPRequest(rightHalf)
+
+	// re-enforce max size restriction on each half
+	enforcedRequest := m.enforceMaximumsHTTPRequest(request)
+	enforcedOtherHalfRequest := m.enforceMaximumsHTTPRequest(otherHalfRequest)
+
+	return append(enforcedRequest, enforcedOtherHalfRequest...)
+}
+
+func (m *protoMarshaler) buildHTTPRequest(entries []*api.Log) *api.ImportLogsRequest {
+	return &api.ImportLogsRequest{
+		// TODO: Add parent and hint
+		// We don't yet have solid guidance on what these should be
+		Parent: "",
+		Hint:   "",
+
+		Source: &api.ImportLogsRequest_InlineSource{
+			InlineSource: &api.ImportLogsRequest_LogsInlineSource{
+				Forwarder: buildForwarderString(m.cfg),
+				Logs:      entries,
+			},
+		},
+	}
 }

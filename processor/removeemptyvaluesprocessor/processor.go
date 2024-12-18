@@ -16,6 +16,7 @@ package removeemptyvaluesprocessor
 
 import (
 	"context"
+
 	"strings"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -171,7 +172,6 @@ func cleanMap(m pcommon.Map, c Config, excludeKeys map[string]struct{}) {
 		if _, ok := excludeKeys[s]; ok {
 			return false
 		}
-
 		switch v.Type() {
 		case pcommon.ValueTypeEmpty:
 			return c.RemoveNulls
@@ -180,6 +180,7 @@ func cleanMap(m pcommon.Map, c Config, excludeKeys map[string]struct{}) {
 			cleanMap(subMap, c, trimMapKeyPrefix(s, excludeKeys))
 			return c.RemoveEmptyMaps && subMap.Len() == 0
 		case pcommon.ValueTypeSlice:
+			cleanSlice(v.Slice(), c, trimMapKeyPrefix(s, excludeKeys))
 			return c.RemoveEmptyLists && v.Slice().Len() == 0
 		case pcommon.ValueTypeStr:
 			return shouldFilterString(v.Str(), c.EmptyStringValues)
@@ -187,6 +188,36 @@ func cleanMap(m pcommon.Map, c Config, excludeKeys map[string]struct{}) {
 
 		return false
 	})
+}
+
+// cleanSlice removes empty values from the slice, as defined by the config.
+func cleanSlice(slice pcommon.Slice, c Config, excludeKeys map[string]struct{}) {
+	filteredSlice := pcommon.NewSlice()
+	for i := 0; i < slice.Len(); i++ {
+		item := slice.At(i)
+		switch item.Type() {
+		case pcommon.ValueTypeEmpty:
+			if c.RemoveNulls {
+				continue
+			}
+		case pcommon.ValueTypeMap:
+			cleanMap(item.Map(), c, excludeKeys)
+			if c.RemoveEmptyMaps && item.Map().Len() == 0 {
+				continue
+			}
+		case pcommon.ValueTypeSlice:
+			cleanSlice(item.Slice(), c, excludeKeys)
+			if c.RemoveEmptyLists && item.Slice().Len() == 0 {
+				continue
+			}
+		case pcommon.ValueTypeStr:
+			if shouldFilterString(item.Str(), c.EmptyStringValues) {
+				continue
+			}
+		}
+		item.CopyTo(filteredSlice.AppendEmpty())
+	}
+	filteredSlice.CopyTo(slice) // Replace original slice with the filtered one
 }
 
 // trimMapKeyPrefix returns the provided keys with the specified prefix removed.
@@ -270,6 +301,7 @@ func cleanLogBody(lr plog.LogRecord, c Config, keys map[string]struct{}) {
 		}
 	case pcommon.ValueTypeSlice:
 		bodySlice := body.Slice()
+		cleanSlice(bodySlice, c, keys)
 		if c.RemoveEmptyLists && bodySlice.Len() == 0 {
 			pcommon.NewValueEmpty().CopyTo(body)
 		}

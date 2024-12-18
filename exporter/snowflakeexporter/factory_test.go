@@ -40,6 +40,7 @@ func Test_createDefaultConfig(t *testing.T) {
 			Schema: defaultTracesSchema,
 			Table:  defaultTable,
 		},
+		dsn: "default-user:default-password@default-account.snowflakecomputing.com:443?ocspFailOpen=true&validateDefaultParameters=true",
 	}
 
 	actual := createDefaultConfig()

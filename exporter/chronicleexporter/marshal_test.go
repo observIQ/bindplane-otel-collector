@@ -25,6 +25,7 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
+	"golang.org/x/exp/rand"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -41,10 +42,12 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 		{
 			name: "Single log record with expected data",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "body",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Test log message", map[string]any{"log_type": "WINEVTLOG", "namespace": "test", `chronicle_ingestion_label["env"]`: "prod"}))
@@ -67,10 +70,12 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 		{
 			name: "Single log record with expected data, no log_type, namespace, or ingestion labels",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "body",
-				OverrideLogType: true,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           true,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Test log message", nil))
@@ -95,10 +100,12 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 		{
 			name: "Multiple log records",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "body",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				logs := plog.NewLogs()
@@ -121,10 +128,12 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 		{
 			name: "Log record with attributes",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "attributes",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "attributes",
+				OverrideLogType:           false,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("", map[string]any{"key1": "value1", "log_type": "WINEVTLOG", "namespace": "test", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"}))
@@ -143,10 +152,12 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 		{
 			name: "No log records",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "DEFAULT",
-				RawLogField:     "body",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "DEFAULT",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				return plog.NewLogs() // No log records added
@@ -158,9 +169,11 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 		{
 			name: "No log type set in config or attributes",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				RawLogField:     "body",
-				OverrideLogType: true,
+				CustomerID:                uuid.New().String(),
+				RawLogField:               "body",
+				OverrideLogType:           true,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Log without logType", map[string]any{"namespace": "test", `ingestion_label["realkey1"]`: "realvalue1", `ingestion_label["realkey2"]`: "realvalue2"}))
@@ -174,10 +187,12 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 		{
 			name: "Multiple log records with duplicate data, no log type in attributes",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "body",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				logs := plog.NewLogs()
@@ -205,10 +220,12 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 		{
 			name: "Multiple log records with different data, no log type in attributes",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "body",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				logs := plog.NewLogs()
@@ -238,10 +255,12 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 		{
 			name: "Override log type with attribute",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "DEFAULT", // This should be overridden by the log_type attribute
-				RawLogField:     "body",
-				OverrideLogType: true,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "DEFAULT", // This should be overridden by the log_type attribute
+				RawLogField:               "body",
+				OverrideLogType:           true,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"log_type": "windows_event.application", "namespace": "test", `ingestion_label["realkey1"]`: "realvalue1", `ingestion_label["realkey2"]`: "realvalue2"}))
@@ -255,10 +274,12 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 		{
 			name: "Override log type with chronicle attribute",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "DEFAULT", // This should be overridden by the chronicle_log_type attribute
-				RawLogField:     "body",
-				OverrideLogType: true,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "DEFAULT", // This should be overridden by the chronicle_log_type attribute
+				RawLogField:               "body",
+				OverrideLogType:           true,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"chronicle_log_type": "ASOC_ALERT", "chronicle_namespace": "test", `chronicle_ingestion_label["realkey1"]`: "realvalue1", `chronicle_ingestion_label["realkey2"]`: "realvalue2"}))
@@ -280,10 +301,12 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 		{
 			name: "Multiple log records with duplicate data, log type in attributes",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "body",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				logs := plog.NewLogs()
@@ -317,10 +340,12 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 		{
 			name: "Multiple log records with different data, log type in attributes",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "body",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				logs := plog.NewLogs()
@@ -369,14 +394,386 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "Many logs, all one batch",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				logRecords := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+				for i := 0; i < 1000; i++ {
+					record1 := logRecords.AppendEmpty()
+					record1.Body().SetStr("Log message")
+					record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				}
+				return logs
+			},
+
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				// verify 1 request, with 1 batch
+				require.Len(t, requests, 1, "Expected a one-batch request")
+				batch := requests[0].Batch
+				require.Len(t, batch.Entries, 1000, "Expected 1000 log entries in the batch")
+				// verify batch for first log
+				require.Contains(t, batch.LogType, "WINEVTLOGS")
+				require.Contains(t, batch.Source.Namespace, "test")
+				require.Len(t, batch.Source.Labels, 2)
+
+				// verify ingestion labels
+				for _, req := range requests {
+					for _, label := range req.Batch.Source.Labels {
+						require.Contains(t, []string{
+							"key1",
+							"key2",
+							"key3",
+							"key4",
+						}, label.Key)
+						require.Contains(t, []string{
+							"value1",
+							"value2",
+							"value3",
+							"value4",
+						}, label.Value)
+					}
+				}
+			},
+		},
+		{
+			name: "Single batch split into multiple because more than 1000 logs",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				logRecords := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+				for i := 0; i < 1001; i++ {
+					record1 := logRecords.AppendEmpty()
+					record1.Body().SetStr("Log message")
+					record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				}
+				return logs
+			},
+
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				// verify 1 request, with 1 batch
+				require.Len(t, requests, 2, "Expected a two-batch request")
+				batch := requests[0].Batch
+				require.Len(t, batch.Entries, 500, "Expected 500 log entries in the first batch")
+				// verify batch for first log
+				require.Contains(t, batch.LogType, "WINEVTLOGS")
+				require.Contains(t, batch.Source.Namespace, "test")
+				require.Len(t, batch.Source.Labels, 2)
+
+				batch2 := requests[1].Batch
+				require.Len(t, batch2.Entries, 501, "Expected 501 log entries in the second batch")
+				// verify batch for first log
+				require.Contains(t, batch2.LogType, "WINEVTLOGS")
+				require.Contains(t, batch2.Source.Namespace, "test")
+				require.Len(t, batch2.Source.Labels, 2)
+
+				// verify ingestion labels
+				for _, req := range requests {
+					for _, label := range req.Batch.Source.Labels {
+						require.Contains(t, []string{
+							"key1",
+							"key2",
+							"key3",
+							"key4",
+						}, label.Key)
+						require.Contains(t, []string{
+							"value1",
+							"value2",
+							"value3",
+							"value4",
+						}, label.Value)
+					}
+				}
+			},
+		},
+		{
+			name: "Recursively split batch, exceeds 1000 entries multiple times",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				logRecords := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+				for i := 0; i < 2002; i++ {
+					record1 := logRecords.AppendEmpty()
+					record1.Body().SetStr("Log message")
+					record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				}
+				return logs
+			},
+
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				// verify 1 request, with 1 batch
+				require.Len(t, requests, 4, "Expected a four-batch request")
+				batch := requests[0].Batch
+				require.Len(t, batch.Entries, 500, "Expected 500 log entries in the first batch")
+				// verify batch for first log
+				require.Contains(t, batch.LogType, "WINEVTLOGS")
+				require.Contains(t, batch.Source.Namespace, "test")
+				require.Len(t, batch.Source.Labels, 2)
+
+				batch2 := requests[1].Batch
+				require.Len(t, batch2.Entries, 501, "Expected 501 log entries in the second batch")
+				// verify batch for first log
+				require.Contains(t, batch2.LogType, "WINEVTLOGS")
+				require.Contains(t, batch2.Source.Namespace, "test")
+				require.Len(t, batch2.Source.Labels, 2)
+
+				batch3 := requests[2].Batch
+				require.Len(t, batch3.Entries, 500, "Expected 500 log entries in the third batch")
+				// verify batch for first log
+				require.Contains(t, batch3.LogType, "WINEVTLOGS")
+				require.Contains(t, batch3.Source.Namespace, "test")
+				require.Len(t, batch3.Source.Labels, 2)
+
+				batch4 := requests[3].Batch
+				require.Len(t, batch4.Entries, 501, "Expected 501 log entries in the fourth batch")
+				// verify batch for first log
+				require.Contains(t, batch4.LogType, "WINEVTLOGS")
+				require.Contains(t, batch4.Source.Namespace, "test")
+				require.Len(t, batch4.Source.Labels, 2)
+
+				// verify ingestion labels
+				for _, req := range requests {
+					for _, label := range req.Batch.Source.Labels {
+						require.Contains(t, []string{
+							"key1",
+							"key2",
+							"key3",
+							"key4",
+						}, label.Key)
+						require.Contains(t, []string{
+							"value1",
+							"value2",
+							"value3",
+							"value4",
+						}, label.Value)
+					}
+				}
+			},
+		},
+		{
+			name: "Single batch split into multiple because request size too large",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				logRecords := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+				// create 640 logs with size 8192 bytes each - totalling 5242880 bytes. non-body fields put us over limit
+				for i := 0; i < 640; i++ {
+					record1 := logRecords.AppendEmpty()
+					body := tokenWithLength(8192)
+					record1.Body().SetStr(string(body))
+					record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				}
+				return logs
+			},
+
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				// verify  request, with 1 batch
+				require.Len(t, requests, 2, "Expected a two-batch request")
+				batch := requests[0].Batch
+				require.Len(t, batch.Entries, 320, "Expected 320 log entries in the first batch")
+				// verify batch for first log
+				require.Contains(t, batch.LogType, "WINEVTLOGS")
+				require.Contains(t, batch.Source.Namespace, "test")
+				require.Len(t, batch.Source.Labels, 2)
+
+				batch2 := requests[1].Batch
+				require.Len(t, batch2.Entries, 320, "Expected 320 log entries in the second batch")
+				// verify batch for first log
+				require.Contains(t, batch2.LogType, "WINEVTLOGS")
+				require.Contains(t, batch2.Source.Namespace, "test")
+				require.Len(t, batch2.Source.Labels, 2)
+
+				// verify ingestion labels
+				for _, req := range requests {
+					for _, label := range req.Batch.Source.Labels {
+						require.Contains(t, []string{
+							"key1",
+							"key2",
+							"key3",
+							"key4",
+						}, label.Key)
+						require.Contains(t, []string{
+							"value1",
+							"value2",
+							"value3",
+							"value4",
+						}, label.Value)
+					}
+				}
+			},
+		},
+		{
+			name: "Recursively split batch into multiple because request size too large",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				logRecords := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+				// create 1280 logs with size 8192 bytes each - totalling 5242880 * 2 bytes. non-body fields put us over twice the limit
+				for i := 0; i < 1280; i++ {
+					record1 := logRecords.AppendEmpty()
+					body := tokenWithLength(8192)
+					record1.Body().SetStr(string(body))
+					record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				}
+				return logs
+			},
+
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				// verify 1 request, with 1 batch
+				require.Len(t, requests, 4, "Expected a four-batch request")
+				batch := requests[0].Batch
+				require.Len(t, batch.Entries, 320, "Expected 320 log entries in the first batch")
+				// verify batch for first log
+				require.Contains(t, batch.LogType, "WINEVTLOGS")
+				require.Contains(t, batch.Source.Namespace, "test")
+				require.Len(t, batch.Source.Labels, 2)
+
+				batch2 := requests[1].Batch
+				require.Len(t, batch2.Entries, 320, "Expected 320 log entries in the second batch")
+				// verify batch for first log
+				require.Contains(t, batch2.LogType, "WINEVTLOGS")
+				require.Contains(t, batch2.Source.Namespace, "test")
+				require.Len(t, batch2.Source.Labels, 2)
+
+				batch3 := requests[2].Batch
+				require.Len(t, batch3.Entries, 320, "Expected 320 log entries in the third batch")
+				// verify batch for first log
+				require.Contains(t, batch3.LogType, "WINEVTLOGS")
+				require.Contains(t, batch3.Source.Namespace, "test")
+				require.Len(t, batch3.Source.Labels, 2)
+
+				batch4 := requests[3].Batch
+				require.Len(t, batch4.Entries, 320, "Expected 320 log entries in the fourth batch")
+				// verify batch for first log
+				require.Contains(t, batch4.LogType, "WINEVTLOGS")
+				require.Contains(t, batch4.Source.Namespace, "test")
+				require.Len(t, batch4.Source.Labels, 2)
+
+				// verify ingestion labels
+				for _, req := range requests {
+					for _, label := range req.Batch.Source.Labels {
+						require.Contains(t, []string{
+							"key1",
+							"key2",
+							"key3",
+							"key4",
+						}, label.Key)
+						require.Contains(t, []string{
+							"value1",
+							"value2",
+							"value3",
+							"value4",
+						}, label.Value)
+					}
+				}
+			},
+		},
+		{
+			name: "Unsplittable batch, single log exceeds max request size",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				record1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := tokenWithLength(5242881)
+				record1.Body().SetStr(string(body))
+				record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				return logs
+			},
+
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				// verify 1 request, with 1 batch
+				require.Len(t, requests, 0, "Expected a zero requests")
+			},
+		},
+		{
+			name: "Multiple valid log records + unsplittable log entries",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitGRPC:    1000,
+				BatchRequestSizeLimitGRPC: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				tooLargeBody := string(tokenWithLength(5242881))
+				// first normal log, then impossible to split log
+				logRecords1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+				record1 := logRecords1.AppendEmpty()
+				record1.Body().SetStr("First log message")
+				tooLargeRecord1 := logRecords1.AppendEmpty()
+				tooLargeRecord1.Body().SetStr(tooLargeBody)
+				// first impossible to split log, then normal log
+				logRecords2 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+				tooLargeRecord2 := logRecords2.AppendEmpty()
+				tooLargeRecord2.Body().SetStr(tooLargeBody)
+				record2 := logRecords2.AppendEmpty()
+				record2.Body().SetStr("Second log message")
+				return logs
+			},
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				// this is a kind of weird edge case, the overly large logs makes the final requests quite inefficient, but it's going to be so rare that the inefficiency isn't a real concern
+				require.Len(t, requests, 2, "Expected two batch requests")
+				batch1 := requests[0].Batch
+				require.Len(t, batch1.Entries, 1, "Expected one log entry in the first batch")
+				// Verifying the first log entry data
+				require.Equal(t, "First log message", string(batch1.Entries[0].Data))
+
+				batch2 := requests[1].Batch
+				require.Len(t, batch2.Entries, 1, "Expected one log entry in the second batch")
+				// Verifying the second log entry data
+				require.Equal(t, "Second log message", string(batch2.Entries[0].Data))
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			customerID, err := uuid.Parse(tt.cfg.CustomerID)
-			require.NoError(t, err)
-
-			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, customerID[:])
+			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger})
 			marshaler.startTime = startTime
 			require.NoError(t, err)
 
@@ -398,19 +795,21 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 		cfg          Config
 		labels       []*api.Label
 		logRecords   func() plog.Logs
-		expectations func(t *testing.T, requests map[string]*api.ImportLogsRequest)
+		expectations func(t *testing.T, requests map[string][]*api.ImportLogsRequest)
 	}{
 		{
 			name: "Single log record with expected data",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "body",
-				OverrideLogType: false,
-				Protocol:        protocolHTTPS,
-				Project:         "test-project",
-				Location:        "us",
-				Forwarder:       uuid.New().String(),
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				Protocol:                  protocolHTTPS,
+				Project:                   "test-project",
+				Location:                  "us",
+				Forwarder:                 uuid.New().String(),
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			labels: []*api.Label{
 				{Key: "env", Value: "prod"},
@@ -418,9 +817,9 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Test log message", map[string]any{"log_type": "WINEVTLOG", "namespace": "test"}))
 			},
-			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
 				require.Len(t, requests, 1)
-				logs := requests["WINEVTLOG"].GetInlineSource().Logs
+				logs := requests["WINEVTLOG"][0].GetInlineSource().Logs
 				require.Len(t, logs, 1)
 				// Convert Data (byte slice) to string for comparison
 				logDataAsString := string(logs[0].Data)
@@ -431,10 +830,12 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 		{
 			name: "Multiple log records",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "body",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			labels: []*api.Label{
 				{Key: "env", Value: "staging"},
@@ -447,9 +848,9 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				record2.Body().SetStr("Second log message")
 				return logs
 			},
-			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
 				require.Len(t, requests, 1, "Expected a single batch request")
-				logs := requests["WINEVTLOG"].GetInlineSource().Logs
+				logs := requests["WINEVTLOG"][0].GetInlineSource().Logs
 				require.Len(t, logs, 2, "Expected two log entries in the batch")
 				// Verifying the first log entry data
 				require.Equal(t, "First log message", string(logs[0].Data))
@@ -460,18 +861,20 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 		{
 			name: "Log record with attributes",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "attributes",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "attributes",
+				OverrideLogType:           false,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			labels: []*api.Label{},
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("", map[string]any{"key1": "value1", "log_type": "WINEVTLOG", "namespace": "test", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"}))
 			},
-			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
 				require.Len(t, requests, 1)
-				logs := requests["WINEVTLOG"].GetInlineSource().Logs
+				logs := requests["WINEVTLOG"][0].GetInlineSource().Logs
 				// Assuming the attributes are marshaled into the Data field as a JSON string
 				expectedData := `{"key1":"value1", "log_type":"WINEVTLOG", "namespace":"test", "chronicle_ingestion_label[\"key1\"]": "value1", "chronicle_ingestion_label[\"key2\"]": "value2"}`
 				actualData := string(logs[0].Data)
@@ -481,34 +884,38 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 		{
 			name: "No log records",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "DEFAULT",
-				RawLogField:     "body",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "DEFAULT",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			labels: []*api.Label{},
 			logRecords: func() plog.Logs {
 				return plog.NewLogs() // No log records added
 			},
-			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
 				require.Len(t, requests, 0, "Expected no requests due to no log records")
 			},
 		},
 		{
 			name: "No log type set in config or attributes",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "attributes",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "attributes",
+				OverrideLogType:           false,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			labels: []*api.Label{},
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("", map[string]any{"key1": "value1", "log_type": "WINEVTLOG", "namespace": "test", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"}))
 			},
-			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
 				require.Len(t, requests, 1)
-				logs := requests["WINEVTLOG"].GetInlineSource().Logs
+				logs := requests["WINEVTLOG"][0].GetInlineSource().Logs
 				// Assuming the attributes are marshaled into the Data field as a JSON string
 				expectedData := `{"key1":"value1", "log_type":"WINEVTLOG", "namespace":"test", "chronicle_ingestion_label[\"key1\"]": "value1", "chronicle_ingestion_label[\"key2\"]": "value2"}`
 				actualData := string(logs[0].Data)
@@ -518,10 +925,12 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 		{
 			name: "Multiple log records with duplicate data, no log type in attributes",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "body",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				logs := plog.NewLogs()
@@ -533,10 +942,10 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				record2.Attributes().FromRaw(map[string]any{"chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
 				return logs
 			},
-			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
 				// verify one request for log type in config
 				require.Len(t, requests, 1, "Expected a single batch request")
-				logs := requests["WINEVTLOG"].GetInlineSource().Logs
+				logs := requests["WINEVTLOG"][0].GetInlineSource().Logs
 				// verify batch source labels
 				require.Len(t, logs[0].Labels, 2)
 				require.Len(t, logs, 2, "Expected two log entries in the batch")
@@ -549,10 +958,12 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 		{
 			name: "Multiple log records with different data, no log type in attributes",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "body",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				logs := plog.NewLogs()
@@ -564,10 +975,10 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				record2.Attributes().FromRaw(map[string]any{`chronicle_ingestion_label["key3"]`: "value3", `chronicle_ingestion_label["key4"]`: "value4"})
 				return logs
 			},
-			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
 				// verify one request for one log type
 				require.Len(t, requests, 1, "Expected a single batch request")
-				logs := requests["WINEVTLOG"].GetInlineSource().Logs
+				logs := requests["WINEVTLOG"][0].GetInlineSource().Logs
 				require.Len(t, logs, 2, "Expected two log entries in the batch")
 				require.Equal(t, "", logs[0].EnvironmentNamespace)
 				// verify batch source labels
@@ -582,34 +993,38 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 		{
 			name: "Override log type with attribute",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "DEFAULT", // This should be overridden by the log_type attribute
-				RawLogField:     "body",
-				OverrideLogType: true,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "DEFAULT", // This should be overridden by the log_type attribute
+				RawLogField:               "body",
+				OverrideLogType:           true,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"log_type": "windows_event.application", "namespace": "test", `ingestion_label["realkey1"]`: "realvalue1", `ingestion_label["realkey2"]`: "realvalue2"}))
 			},
-			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
 				require.Len(t, requests, 1)
-				logs := requests["WINEVTLOG"].GetInlineSource().Logs
+				logs := requests["WINEVTLOG"][0].GetInlineSource().Logs
 				require.NotEqual(t, len(logs), 0)
 			},
 		},
 		{
 			name: "Override log type with chronicle attribute",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "DEFAULT", // This should be overridden by the chronicle_log_type attribute
-				RawLogField:     "body",
-				OverrideLogType: true,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "DEFAULT", // This should be overridden by the chronicle_log_type attribute
+				RawLogField:               "body",
+				OverrideLogType:           true,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"chronicle_log_type": "ASOC_ALERT", "chronicle_namespace": "test", `chronicle_ingestion_label["realkey1"]`: "realvalue1", `chronicle_ingestion_label["realkey2"]`: "realvalue2"}))
 			},
-			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
 				require.Len(t, requests, 1)
-				logs := requests["ASOC_ALERT"].GetInlineSource().Logs
+				logs := requests["ASOC_ALERT"][0].GetInlineSource().Logs
 				require.Equal(t, "test", logs[0].EnvironmentNamespace, "Expected namespace to be overridden by attribute")
 				expectedLabels := map[string]string{
 					"realkey1": "realvalue1",
@@ -623,10 +1038,12 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 		{
 			name: "Multiple log records with duplicate data, log type in attributes",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "body",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				logs := plog.NewLogs()
@@ -639,10 +1056,10 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				record2.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
 				return logs
 			},
-			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
 				// verify 1 request, 2 batches for same log type
 				require.Len(t, requests, 1, "Expected a single batch request")
-				logs := requests["WINEVTLOGS"].GetInlineSource().Logs
+				logs := requests["WINEVTLOGS"][0].GetInlineSource().Logs
 				require.Len(t, logs, 2, "Expected two log entries in the batch")
 				// verify variables
 				require.Equal(t, "test1", logs[0].EnvironmentNamespace)
@@ -659,10 +1076,12 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 		{
 			name: "Multiple log records with different data, log type in attributes",
 			cfg: Config{
-				CustomerID:      uuid.New().String(),
-				LogType:         "WINEVTLOG",
-				RawLogField:     "body",
-				OverrideLogType: false,
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			logRecords: func() plog.Logs {
 				logs := plog.NewLogs()
@@ -676,7 +1095,7 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				return logs
 			},
 
-			expectations: func(t *testing.T, requests map[string]*api.ImportLogsRequest) {
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
 				expectedLabels := map[string]string{
 					"key1": "value1",
 					"key2": "value2",
@@ -686,7 +1105,7 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				// verify 2 requests, with 1 batch for different log types
 				require.Len(t, requests, 2, "Expected a two batch request")
 
-				logs1 := requests["WINEVTLOGS1"].GetInlineSource().Logs
+				logs1 := requests["WINEVTLOGS1"][0].GetInlineSource().Logs
 				require.Len(t, logs1, 1, "Expected one log entries in the batch")
 				// verify variables for first log
 				require.Equal(t, logs1[0].EnvironmentNamespace, "test1")
@@ -695,7 +1114,7 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
 				}
 
-				logs2 := requests["WINEVTLOGS2"].GetInlineSource().Logs
+				logs2 := requests["WINEVTLOGS2"][0].GetInlineSource().Logs
 				require.Len(t, logs2, 1, "Expected one log entries in the batch")
 				// verify variables for second log
 				require.Equal(t, logs2[0].EnvironmentNamespace, "test2")
@@ -705,14 +1124,363 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "Many log records all one batch",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				logRecords := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+				for i := 0; i < 1000; i++ {
+					record1 := logRecords.AppendEmpty()
+					record1.Body().SetStr("First log message")
+					record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				}
+
+				return logs
+			},
+
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
+				expectedLabels := map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				}
+				// verify 1 requests
+				require.Len(t, requests, 1, "Expected a one batch request")
+
+				logs1 := requests["WINEVTLOGS1"][0].GetInlineSource().Logs
+				require.Len(t, logs1, 1000, "Expected one thousand log entries in the batch")
+				// verify variables for first log
+				require.Equal(t, logs1[0].EnvironmentNamespace, "test1")
+				require.Len(t, logs1[0].Labels, 2)
+				for key, label := range logs1[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+			},
+		},
+		{
+			name: "Many log records split into two batches",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				logRecords := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+				for i := 0; i < 1001; i++ {
+					record1 := logRecords.AppendEmpty()
+					record1.Body().SetStr("First log message")
+					record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				}
+
+				return logs
+			},
+
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
+				expectedLabels := map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				}
+				// verify 1 request log type
+				require.Len(t, requests, 1, "Expected one log type for the requests")
+				winEvtLogRequests := requests["WINEVTLOGS1"]
+				require.Len(t, winEvtLogRequests, 2, "Expected two batches")
+
+				logs1 := winEvtLogRequests[0].GetInlineSource().Logs
+				require.Len(t, logs1, 500, "Expected 500 log entries in the first batch")
+				// verify variables for first log
+				require.Equal(t, logs1[0].EnvironmentNamespace, "test1")
+				require.Len(t, logs1[0].Labels, 2)
+				for key, label := range logs1[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+
+				logs2 := winEvtLogRequests[1].GetInlineSource().Logs
+				require.Len(t, logs2, 501, "Expected 501 log entries in the second batch")
+				// verify variables for first log
+				require.Equal(t, logs2[0].EnvironmentNamespace, "test1")
+				require.Len(t, logs2[0].Labels, 2)
+				for key, label := range logs2[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+			},
+		},
+		{
+			name: "Recursively split batch multiple times because too many logs",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				logRecords := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+				for i := 0; i < 2002; i++ {
+					record1 := logRecords.AppendEmpty()
+					record1.Body().SetStr("First log message")
+					record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				}
+
+				return logs
+			},
+
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
+				expectedLabels := map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				}
+				// verify 1 request log type
+				require.Len(t, requests, 1, "Expected one log type for the requests")
+				winEvtLogRequests := requests["WINEVTLOGS1"]
+				require.Len(t, winEvtLogRequests, 4, "Expected four batches")
+
+				logs1 := winEvtLogRequests[0].GetInlineSource().Logs
+				require.Len(t, logs1, 500, "Expected 500 log entries in the first batch")
+				// verify variables for first log
+				require.Equal(t, logs1[0].EnvironmentNamespace, "test1")
+				require.Len(t, logs1[0].Labels, 2)
+				for key, label := range logs1[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+
+				logs2 := winEvtLogRequests[1].GetInlineSource().Logs
+				require.Len(t, logs2, 501, "Expected 501 log entries in the second batch")
+				// verify variables for first log
+				require.Equal(t, logs2[0].EnvironmentNamespace, "test1")
+				require.Len(t, logs2[0].Labels, 2)
+				for key, label := range logs2[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+
+				logs3 := winEvtLogRequests[2].GetInlineSource().Logs
+				require.Len(t, logs3, 500, "Expected 500 log entries in the third batch")
+				// verify variables for first log
+				require.Equal(t, logs3[0].EnvironmentNamespace, "test1")
+				require.Len(t, logs3[0].Labels, 2)
+				for key, label := range logs3[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+
+				logs4 := winEvtLogRequests[3].GetInlineSource().Logs
+				require.Len(t, logs4, 501, "Expected 501 log entries in the fourth batch")
+				// verify variables for first log
+				require.Equal(t, logs4[0].EnvironmentNamespace, "test1")
+				require.Len(t, logs4[0].Labels, 2)
+				for key, label := range logs4[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+			},
+		},
+		{
+			name: "Many log records split into two batches because request size too large",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				logRecords := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+				// 8192 * 640 = 5242880
+				body := tokenWithLength(8192)
+				for i := 0; i < 640; i++ {
+					record1 := logRecords.AppendEmpty()
+					record1.Body().SetStr(string(body))
+					record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				}
+
+				return logs
+			},
+
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
+				expectedLabels := map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				}
+				// verify 1 request log type
+				require.Len(t, requests, 1, "Expected one log type for the requests")
+				winEvtLogRequests := requests["WINEVTLOGS1"]
+				require.Len(t, winEvtLogRequests, 2, "Expected two batches")
+
+				logs1 := winEvtLogRequests[0].GetInlineSource().Logs
+				require.Len(t, logs1, 320, "Expected 320 log entries in the first batch")
+				// verify variables for first log
+				require.Equal(t, logs1[0].EnvironmentNamespace, "test1")
+				require.Len(t, logs1[0].Labels, 2)
+				for key, label := range logs1[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+
+				logs2 := winEvtLogRequests[1].GetInlineSource().Logs
+				require.Len(t, logs2, 320, "Expected 320 log entries in the second batch")
+				// verify variables for first log
+				require.Equal(t, logs2[0].EnvironmentNamespace, "test1")
+				require.Len(t, logs2[0].Labels, 2)
+				for key, label := range logs2[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+			},
+		},
+		{
+			name: "Recursively split into batches because request size too large",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitHTTP:    2000,
+				BatchRequestSizeLimitHTTP: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				logRecords := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+				// 8192 * 1280 = 5242880 * 2
+				body := tokenWithLength(8192)
+				for i := 0; i < 1280; i++ {
+					record1 := logRecords.AppendEmpty()
+					record1.Body().SetStr(string(body))
+					record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				}
+
+				return logs
+			},
+
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
+				expectedLabels := map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				}
+				// verify 1 request log type
+				require.Len(t, requests, 1, "Expected one log type for the requests")
+				winEvtLogRequests := requests["WINEVTLOGS1"]
+				require.Len(t, winEvtLogRequests, 4, "Expected four batches")
+
+				logs1 := winEvtLogRequests[0].GetInlineSource().Logs
+				require.Len(t, logs1, 320, "Expected 320 log entries in the first batch")
+				// verify variables for first log
+				require.Equal(t, logs1[0].EnvironmentNamespace, "test1")
+				require.Len(t, logs1[0].Labels, 2)
+				for key, label := range logs1[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+
+				logs2 := winEvtLogRequests[1].GetInlineSource().Logs
+				require.Len(t, logs2, 320, "Expected 320 log entries in the second batch")
+				// verify variables for first log
+				require.Equal(t, logs2[0].EnvironmentNamespace, "test1")
+				require.Len(t, logs2[0].Labels, 2)
+				for key, label := range logs2[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+
+				logs3 := winEvtLogRequests[2].GetInlineSource().Logs
+				require.Len(t, logs3, 320, "Expected 320 log entries in the third batch")
+				// verify variables for first log
+				require.Equal(t, logs3[0].EnvironmentNamespace, "test1")
+				require.Len(t, logs3[0].Labels, 2)
+				for key, label := range logs3[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+
+				logs4 := winEvtLogRequests[3].GetInlineSource().Logs
+				require.Len(t, logs4, 320, "Expected 320 log entries in the fourth batch")
+				// verify variables for first log
+				require.Equal(t, logs4[0].EnvironmentNamespace, "test1")
+				require.Len(t, logs4[0].Labels, 2)
+				for key, label := range logs4[0].Labels {
+					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+			},
+		},
+		{
+			name: "Unsplittable log record, single log exceeds request size limit",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 100000,
+			},
+			labels: []*api.Label{
+				{Key: "env", Value: "staging"},
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				record1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record1.Body().SetStr(string(tokenWithLength(100000)))
+				return logs
+			},
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
+				require.Len(t, requests, 1, "Expected one log type")
+				require.Len(t, requests["WINEVTLOG"], 0, "Expected WINEVTLOG log type to have zero requests")
+			},
+		},
+		{
+			name: "Unsplittable log record, single log exceeds request size limit, mixed with okay logs",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchLogCountLimitHTTP:    1000,
+				BatchRequestSizeLimitHTTP: 100000,
+			},
+			labels: []*api.Label{
+				{Key: "env", Value: "staging"},
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				tooLargeBody := string(tokenWithLength(100001))
+				// first normal log, then impossible to split log
+				logRecords1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+				record1 := logRecords1.AppendEmpty()
+				record1.Body().SetStr("First log message")
+				tooLargeRecord1 := logRecords1.AppendEmpty()
+				tooLargeRecord1.Body().SetStr(tooLargeBody)
+				// first impossible to split log, then normal log
+				logRecords2 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+				tooLargeRecord2 := logRecords2.AppendEmpty()
+				tooLargeRecord2.Body().SetStr(tooLargeBody)
+				record2 := logRecords2.AppendEmpty()
+				record2.Body().SetStr("Second log message")
+				return logs
+			},
+			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
+				require.Len(t, requests, 1, "Expected one log type")
+				winEvtLogRequests := requests["WINEVTLOG"]
+				require.Len(t, winEvtLogRequests, 2, "Expected WINEVTLOG log type to have zero requests")
+
+				logs1 := winEvtLogRequests[0].GetInlineSource().Logs
+				require.Len(t, logs1, 1, "Expected 1 log entry in the first batch")
+				require.Equal(t, string(logs1[0].Data), "First log message")
+
+				logs2 := winEvtLogRequests[1].GetInlineSource().Logs
+				require.Len(t, logs2, 1, "Expected 1 log entry in the second batch")
+				require.Equal(t, string(logs2[0].Data), "Second log message")
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			customerID, err := uuid.Parse(tt.cfg.CustomerID)
-			require.NoError(t, err)
-
-			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, customerID[:])
+			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger})
 			marshaler.startTime = startTime
 			require.NoError(t, err)
 
@@ -723,6 +1491,15 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 			tt.expectations(t, requests)
 		})
 	}
+}
+
+func tokenWithLength(length int) []byte {
+	charset := "abcdefghijklmnopqrstuvwxyz"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return b
 }
 
 func mockLogRecord(body string, attributes map[string]any) plog.LogRecord {
@@ -920,5 +1697,4 @@ func Benchmark_getRawField(b *testing.B) {
 			}
 		})
 	}
-
 }

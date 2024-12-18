@@ -1,4 +1,4 @@
-# QRadaar Exporter
+# QRadar Exporter
 
 The QRadar Exporter is designed for forwarding logs to a QRadar instance using its Syslog endpoint. This exporter supports customization of data export types and various configuration options to tailor the connection and data handling to specific needs.
 

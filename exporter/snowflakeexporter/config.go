@@ -98,7 +98,7 @@ func (c *Config) Validate() error {
 }
 
 func (c *Config) buildSnowflakeDSN() error {
-	sf := gosnowflake.Config{}
+	sf := buildDefaultSFConfig()
 
 	sf.User = c.Username
 	sf.Password = c.Password
@@ -112,11 +112,19 @@ func (c *Config) buildSnowflakeDSN() error {
 	t := "true"
 	sf.Params["client_session_keep_alive"] = &t // to prevent auth token expiration after ~4 hours
 
-	dsn, err := gosnowflake.DSN(&sf)
+	dsn, err := gosnowflake.DSN(sf)
 	if err != nil {
 		return fmt.Errorf("failed to build DSN: %w", err)
 	}
 
 	c.dsn = dsn
 	return nil
+}
+
+func buildDefaultSFConfig() *gosnowflake.Config {
+	return &gosnowflake.Config{
+		Account:  "default-account",
+		User:     "default-user",
+		Password: "default-password",
+	}
 }
