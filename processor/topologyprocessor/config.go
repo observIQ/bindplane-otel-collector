@@ -52,6 +52,10 @@ func (cfg Config) Validate() error {
 		return nil
 	}
 
+	if cfg.Interval < 10*time.Second {
+		return errors.New("`interval` must be at least 10 seconds")
+	}
+
 	if cfg.Configuration == "" {
 		return errors.New("`configuration` must be specified")
 	}
