@@ -274,7 +274,7 @@ func Test_completeResourceDropping(t *testing.T) {
 		ld := plog.NewLogs()
 		for i := 0; i < 2; i++ {
 			rl := ld.ResourceLogs().AppendEmpty()
-			for j := 0; j < 3; j++ {
+			for j := 0; j < 10; j++ {
 				sl := rl.ScopeLogs().AppendEmpty()
 
 				lr := sl.LogRecords().AppendEmpty()
@@ -308,7 +308,7 @@ func Test_completeResourceDropping(t *testing.T) {
 		td := ptrace.NewTraces()
 		for i := 0; i < 2; i++ {
 			rt := td.ResourceSpans().AppendEmpty()
-			for j := 0; j < 3; j++ {
+			for j := 0; j < 10; j++ {
 				st := rt.ScopeSpans().AppendEmpty()
 
 				sd := st.Spans().AppendEmpty()
@@ -342,7 +342,7 @@ func Test_completeResourceDropping(t *testing.T) {
 		md := pmetric.NewMetrics()
 		for i := 0; i < 2; i++ {
 			rm := md.ResourceMetrics().AppendEmpty()
-			for j := 0; j < 3; j++ {
+			for j := 0; j < 10; j++ {
 				sm := rm.ScopeMetrics().AppendEmpty()
 
 				m := sm.Metrics().AppendEmpty()
