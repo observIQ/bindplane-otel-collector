@@ -22,8 +22,8 @@ jobs:
         run: make install-tools
       - name: Release Prep
         run: make release-prep CURR_VERSION=${{ github.event.inputs.version }}
-      - name: Build Binaries
-        run: make build-binaries
+      - name: Build Windows Collector Binary
+        run: make collector
       - name: Copy Windows Collector Binary
         run: cp dist/collector_windows_amd64.exe windows/bindplane-otel-collector.exe
       - name: Copy Supervisor Binary
