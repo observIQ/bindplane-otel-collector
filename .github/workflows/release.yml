@@ -20,8 +20,8 @@ jobs:
       # Needed until supervisor binary is released
       - name: Build Supervisor Binary
         run: make release-prep CURR_VERSION=${{ github.ref_name }}
-      - name: Build Windows Binaries
-        run: make build-binaries
+      - name: Build Windows Collector Binary
+        run: make collector
       - name: Copy Windows Collector Binary
         run: cp dist/collector_windows_amd64.exe windows/bindplane-otel-collector.exe
       - name: Copy Supervisor Binary
