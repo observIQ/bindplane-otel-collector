@@ -39,7 +39,7 @@ Open a pull request from your fork and feature branch to the main branch of the 
 
 Our CI runs the following checks on each PR. You can run the following local commands to ensure your code is ready for PR:
 
-- Build (`make agent`)
+- Build (`make collector`)
 - CI Checks (`make ci-checks`)
 
 ### How to Receive Feedback
