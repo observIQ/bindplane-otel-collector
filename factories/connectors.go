@@ -33,4 +33,5 @@ var defaultConnectors = []connector.Factory{
 	routingconnector.NewFactory(),
 	roundrobinconnector.NewFactory(),
 	failoverconnector.NewFactory(),
+	loganomalyconnector.NewFactory(),
 }
