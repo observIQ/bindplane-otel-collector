@@ -16,6 +16,7 @@ package topologyprocessor
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -24,6 +25,18 @@ func TestConfigValidate(t *testing.T) {
 	t.Run("Default config is valid", func(t *testing.T) {
 		err := createDefaultConfig().(*Config).Validate()
 		require.NoError(t, err)
+	})
+
+	t.Run("interval too low", func(t *testing.T) {
+		cfg := Config{
+			Enabled:        true,
+			Interval:       8 * time.Second,
+			AccountID:      "myacct",
+			Configuration:  "myConfig",
+			OrganizationID: "myorg",
+		}
+		err := cfg.Validate()
+		require.Error(t, err)
 	})
 
 	t.Run("Empty configuration", func(t *testing.T) {
