@@ -199,6 +199,8 @@ require (
 )
 
 require (
+	github.com/observiq/bindplane-otel-collector/internal/topology v1.68.0
+	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.68.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.116.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.116.0
 	go.opentelemetry.io/collector/extension/extensiontest v0.116.0
@@ -853,6 +855,8 @@ replace github.com/observiq/bindplane-otel-collector/processor/lookupprocessor =
 
 replace github.com/observiq/bindplane-otel-collector/processor/unrollprocessor => ./processor/unrollprocessor
 
+replace github.com/observiq/bindplane-otel-collector/processor/topologyprocessor => ./processor/topologyprocessor
+
 replace github.com/observiq/bindplane-otel-collector/expr => ./expr
 
 replace github.com/observiq/bindplane-otel-collector/counter => ./counter
@@ -874,6 +878,8 @@ replace github.com/observiq/bindplane-otel-collector/internal/testutils => ./int
 replace github.com/observiq/bindplane-otel-collector/internal/report => ./internal/report
 
 replace github.com/observiq/bindplane-otel-collector/internal/measurements => ./internal/measurements
+
+replace github.com/observiq/bindplane-otel-collector/internal/topology => ./internal/topology
 
 replace github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver => ./receiver/splunksearchapireceiver
 
