@@ -29,9 +29,6 @@ type Detector struct {
 	}
 	lastSampleTime time.Time
 
-	// Buffer for storing recent anomalies
-	anomalyBuffer []*plog.Logs
-
 	nextConsumer consumer.Logs
 }
 
@@ -61,9 +58,6 @@ func (d *Detector) Start(_ context.Context, host component.Host) error {
 				return
 			case <-ticker.C:
 				d.checkAndUpdateAnomalies()
-				// if err := p.exportAnomalies(ctx); err != nil {
-				// 	p.logger.Error("Failed to export anomalies", zap.Error(err))
-				// }
 			}
 		}
 	}()
@@ -122,25 +116,4 @@ func (d *Detector) checkAndUpdateAnomalies() {
 	if now.Sub(d.lastSampleTime) >= d.config.SampleInterval {
 		d.takeSample(now)
 	}
-}
-
-// exportAnomalies sends the logs that are in the anomaly buffer to the next consumer
-func (d *Detector) exportAnomalies(ctx context.Context) error {
-	d.stateLock.Lock()
-	defer d.stateLock.Unlock()
-
-	if len(d.anomalyBuffer) == 0 {
-		return nil
-	}
-
-	for _, anomalyLog := range d.anomalyBuffer {
-		if err := d.nextConsumer.ConsumeLogs(ctx, *anomalyLog); err != nil {
-			d.logger.Error("Failed to export anomaly log", zap.Error(err))
-			return err
-		}
-	}
-
-	d.anomalyBuffer = nil
-
-	return nil
 }

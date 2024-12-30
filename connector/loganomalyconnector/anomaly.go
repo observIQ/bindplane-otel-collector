@@ -190,11 +190,6 @@ func (d *Detector) logAnomaly(anomaly *AnomalyStat) {
 		return
 	}
 
-	icon := "📈"
-	if anomaly.anomalyType == "Drop" {
-		icon = "📉"
-	}
-
 	// Create a new Logs instance
 	logs := plog.NewLogs()
 	resourceLogs := logs.ResourceLogs().AppendEmpty()
@@ -206,7 +201,7 @@ func (d *Detector) logAnomaly(anomaly *AnomalyStat) {
 	logRecord.SetSeverityText("WARNING")
 	logRecord.SetSeverityNumber(plog.SeverityNumberWarn)
 
-	logRecord.Body().SetStr(fmt.Sprintf("%s Log Anomaly Detected: %s", icon, anomaly.anomalyType))
+	logRecord.Body().SetStr(fmt.Sprintf("Log Anomaly Detected: %s", anomaly.anomalyType))
 
 	// Add all anomaly data as attributes
 	attrs := logRecord.Attributes()
@@ -221,7 +216,7 @@ func (d *Detector) logAnomaly(anomaly *AnomalyStat) {
 	attrs.PutDouble("baseline.mad", anomaly.baselineStats.mad)
 
 	d.logger.Info("Log anomaly detected",
-		zap.String("anomaly_type", icon+" "+anomaly.anomalyType),
+		zap.String("anomaly_type", anomaly.anomalyType),
 		zap.Float64("current_rate", anomaly.currentRate),
 		zap.Float64("baseline_mean", anomaly.baselineStats.mean),
 		zap.Float64("baseline_median", anomaly.baselineStats.median),
@@ -236,26 +231,4 @@ func (d *Detector) logAnomaly(anomaly *AnomalyStat) {
 	if err := d.nextConsumer.ConsumeLogs(ctx, logs); err != nil {
 		d.logger.Error("Failed to export anomaly log", zap.Error(err))
 	}
-	// p.anomalyBuffer = append(p.anomalyBuffer, &logs)
-	// if len(p.anomalyBuffer) > p.config.EmergencyMaxSize {
-	// 	// Remove oldest anomaly when buffer is full
-	// 	p.anomalyBuffer = p.anomalyBuffer[1:]
-	// }
-
-	// if len(p.anomalyBuffer) == 0 {
-	// 	p.stateLock.Lock()
-	// 	defer p.stateLock.Unlock()
-	// 	return
-	// }
-
-	// for _, anomalyLog := range p.anomalyBuffer {
-	// 	if err := p.nextConsumer.ConsumeLogs(p.ctx, *anomalyLog); err != nil {
-	// 		p.logger.Error("Failed to export anomaly log", zap.Error(err))
-	// 	}
-	// }
-
-	// p.anomalyBuffer = nil
-
-	// p.stateLock.Lock()
-	// defer p.stateLock.Unlock()
 }
