@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/ccid"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/shirou/gopsutil/v3/process"
 	"go.opentelemetry.io/collector/component"
@@ -68,9 +69,9 @@ func newHostMetricsReporter(cfg *Config, set component.TelemetrySettings, export
 	return &hostMetricsReporter{
 		set:        set,
 		send:       send,
+		startTime:  now,
 		agentID:    agentID[:],
 		exporterID: exporterID,
-		startTime:  now,
 		customerID: customerID[:],
 		namespace:  cfg.Namespace,
 		stats: &api.AgentStatsEvent{
@@ -108,6 +109,13 @@ func (hmr *hostMetricsReporter) start() {
 	}()
 }
 
+func (hmr *hostMetricsReporter) shutdown() {
+	if hmr.cancel != nil {
+		hmr.cancel()
+		hmr.wg.Wait()
+	}
+}
+
 func (hmr *hostMetricsReporter) getAndReset() *api.BatchCreateEventsRequest {
 	hmr.mutex.Lock()
 	defer hmr.mutex.Unlock()
@@ -115,7 +123,7 @@ func (hmr *hostMetricsReporter) getAndReset() *api.BatchCreateEventsRequest {
 	now := timestamppb.Now()
 	batchID := uuid.New()
 	source := &api.EventSource{
-		CollectorId: chronicleCollectorID[:],
+		CollectorId: ccid.ChronicleCollectorID[:],
 		Namespace:   hmr.namespace,
 		CustomerId:  hmr.customerID,
 	}
@@ -141,13 +149,6 @@ func (hmr *hostMetricsReporter) getAndReset() *api.BatchCreateEventsRequest {
 
 	hmr.resetStats()
 	return request
-}
-
-func (hmr *hostMetricsReporter) shutdown() {
-	if hmr.cancel != nil {
-		hmr.cancel()
-		hmr.wg.Wait()
-	}
 }
 
 func (hmr *hostMetricsReporter) resetStats() {

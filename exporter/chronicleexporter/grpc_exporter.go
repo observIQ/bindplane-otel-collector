@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/marshal"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -40,7 +41,7 @@ type grpcExporter struct {
 	cfg        *Config
 	set        component.TelemetrySettings
 	exporterID string
-	marshaler  *protoMarshaler
+	marshaler  *marshal.GRPC
 
 	client  api.IngestionServiceV2Client
 	conn    *grpc.ClientConn
@@ -48,7 +49,16 @@ type grpcExporter struct {
 }
 
 func newGRPCExporter(cfg *Config, params exporter.Settings) (*grpcExporter, error) {
-	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings)
+	marshaler, err := marshal.NewGRPC(marshal.Config{
+		CustomerID:            cfg.CustomerID,
+		Namespace:             cfg.Namespace,
+		LogType:               cfg.LogType,
+		RawLogField:           cfg.RawLogField,
+		OverrideLogType:       cfg.OverrideLogType,
+		IngestionLabels:       cfg.IngestionLabels,
+		BatchRequestSizeLimit: cfg.BatchRequestSizeLimitGRPC,
+		BatchLogCountLimit:    cfg.BatchLogCountLimitGRPC,
+	}, params.TelemetrySettings)
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}
@@ -107,7 +117,7 @@ func (exp *grpcExporter) Shutdown(context.Context) error {
 }
 
 func (exp *grpcExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
-	payloads, err := exp.marshaler.MarshalRawLogs(ctx, ld)
+	payloads, err := exp.marshaler.MarshalLogs(ctx, ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
 	}

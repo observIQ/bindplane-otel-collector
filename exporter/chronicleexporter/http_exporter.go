@@ -23,6 +23,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/marshal"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -40,12 +41,26 @@ const httpScope = "https://www.googleapis.com/auth/cloud-platform"
 type httpExporter struct {
 	cfg       *Config
 	set       component.TelemetrySettings
-	marshaler *protoMarshaler
+	marshaler *marshal.HTTP
 	client    *http.Client
 }
 
 func newHTTPExporter(cfg *Config, params exporter.Settings) (*httpExporter, error) {
-	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings)
+	marshaler, err := marshal.NewHTTP(marshal.HTTPConfig{
+		Config: marshal.Config{
+			CustomerID:            cfg.CustomerID,
+			Namespace:             cfg.Namespace,
+			LogType:               cfg.LogType,
+			RawLogField:           cfg.RawLogField,
+			OverrideLogType:       cfg.OverrideLogType,
+			IngestionLabels:       cfg.IngestionLabels,
+			BatchRequestSizeLimit: cfg.BatchRequestSizeLimitHTTP,
+			BatchLogCountLimit:    cfg.BatchLogCountLimitHTTP,
+		},
+		Project:   cfg.Project,
+		Location:  cfg.Location,
+		Forwarder: cfg.Forwarder,
+	}, params.TelemetrySettings)
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}
@@ -79,7 +94,7 @@ func (exp *httpExporter) Shutdown(context.Context) error {
 }
 
 func (exp *httpExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
-	payloads, err := exp.marshaler.MarshalRawLogsForHTTP(ctx, ld)
+	payloads, err := exp.marshaler.MarshalLogs(ctx, ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
 	}

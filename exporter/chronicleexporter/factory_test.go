@@ -38,6 +38,6 @@ func Test_createDefaultConfig(t *testing.T) {
 		BatchRequestSizeLimitHTTP: defaultBatchRequestSizeLimitHTTP,
 	}
 
-	actual := createDefaultConfig()
+	actual := NewFactory().CreateDefaultConfig()
 	require.Equal(t, expectedCfg, actual)
 }
