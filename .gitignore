@@ -28,3 +28,6 @@ manager*.yaml
 logging*.yaml
 config.yaml
 storage
+
+# For those of us switching between V1 and V2 branches
+builder
