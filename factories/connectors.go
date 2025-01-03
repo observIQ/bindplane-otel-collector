@@ -16,6 +16,8 @@ package factories
 
 import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/connector/failoverconnector"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector"
@@ -29,4 +31,6 @@ var defaultConnectors = []connector.Factory{
 	servicegraphconnector.NewFactory(),
 	spanmetricsconnector.NewFactory(),
 	routingconnector.NewFactory(),
+	roundrobinconnector.NewFactory(),
+	failoverconnector.NewFactory(),
 }
