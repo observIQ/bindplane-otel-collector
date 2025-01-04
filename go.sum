@@ -1930,6 +1930,10 @@ github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnect
 github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.116.0/go.mod h1:N9b/khAf5kuUDMyUK01ASwrNLEl8kP6ipJMIoHil9V0=
 github.com/open-telemetry/opentelemetry-collector-contrib/connector/datadogconnector v0.116.0 h1:LkDulGYsynGY9l6YB9kmIJCLFeW/oSG9P72w5vKEH18=
 github.com/open-telemetry/opentelemetry-collector-contrib/connector/datadogconnector v0.116.0/go.mod h1:ILW1/7BdsP3b4Pj5lRfZ6TgEQyMvLf4TU8PIj5cEagI=
+github.com/open-telemetry/opentelemetry-collector-contrib/connector/failoverconnector v0.116.0 h1:6FzwaKJiAOIufY4T+p9Dg7z9qCpDzgg9ITF+QJgD0QI=
+github.com/open-telemetry/opentelemetry-collector-contrib/connector/failoverconnector v0.116.0/go.mod h1:joR0s7m7ZDMwzr1zCJaMDNZXw+Z0s8D8cbQ+hIdaaDg=
+github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.116.0 h1:jeZTd9bHiVf2HBZASUTJiEjHw/tDwuOdaaP4xMqTx8I=
+github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.116.0/go.mod h1:nSMvnyKux8WG6Z67cIJLTYh2dxZDFQFv/7ttpfkWB3s=
 github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.116.0 h1:cHtt/v5biG+5Ibc0wgf4v8GgQ5Uf1WbY+cHRao2iN8M=
 github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.116.0/go.mod h1:Yx1mL7dh69rM6KWU/EGm+vzcKNs5e2tLst8iau1StnQ=
 github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector v0.116.0 h1:p7xdOP1RH3BUeidDqyJi07HOMJ9owlQSwS5gByaDxn0=
