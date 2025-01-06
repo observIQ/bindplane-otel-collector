@@ -39,8 +39,8 @@ func TestSplunkResultsPaginationFailure(t *testing.T) {
 	cfg.Searches = []Search{
 		{
 			Query:          "search index=otel",
-			EarliestTime:   "2024-11-14T00:00:00",
-			LatestTime:     "2024-11-14T23:59:59",
+			EarliestTime:   "2024-11-14T00:00",
+			LatestTime:     "2024-11-14T23:59",
 			EventBatchSize: 5,
 		},
 	}
@@ -104,8 +104,8 @@ func TestExporterFailure(t *testing.T) {
 	cfg.Searches = []Search{
 		{
 			Query:          "search index=otel",
-			EarliestTime:   "2024-11-14T00:00:00",
-			LatestTime:     "2024-11-14T23:59:59",
+			EarliestTime:   "2024-11-14T00:00",
+			LatestTime:     "2024-11-14T23:59",
 			EventBatchSize: 3,
 		},
 	}

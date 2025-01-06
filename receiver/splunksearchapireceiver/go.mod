@@ -88,3 +88,6 @@ require (
 	google.golang.org/grpc v1.68.1 // indirect
 	google.golang.org/protobuf v1.35.2 // indirect
 )
+
+replace github.com/observiq/bindplane-otel-collector/internal/rehydration => ../../internal/rehydration
+
