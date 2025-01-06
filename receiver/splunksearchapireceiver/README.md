@@ -21,8 +21,8 @@ Unlike other receivers, the SSAPI receiver is not built to collect live data. In
 | token_type                    | string   | `(no default)`                                                                           | Specifies the type of token used to authenticate to Splunk using `auth_token`. Accepted values are "Bearer" or "Splunk". |
 | job_poll_interval | duration | `5s` | The receiver uses an API call to determine if a search has completed. Specifies how long to wait between polling for search job completion. |
 | searches.query | string | `required (no default)` | The Splunk search to run to retrieve the desired events. Queries must start with `search` and should not contain additional commands, nor any time fields (e.g. `earliesttime`) |
-| searches.earliest_time | string | `required (no default)` | The earliest timestamp to collect logs. Only logs that occurred at or after this timestamp will be collected. Must be in 'yyyy-MM-ddTHH:mm:ss' format (UTC). |
-| searches.latest_time | string | `required (no default)` | The latest timestamp to collect logs. Only logs that occurred at or before this timestamp will be collected. Must be in 'yyyy-MM-ddTHH:mm:ss' format (UTC). |
+| searches.earliest_time | string | `required (no default)` | The earliest timestamp to collect logs. Only logs that occurred at or after this timestamp will be collected. Must be in 'yyyy-MM-ddTHH:mm' format (UTC). |
+| searches.latest_time | string | `required (no default)` | The latest timestamp to collect logs. Only logs that occurred at or before this timestamp will be collected. Must be in 'yyyy-MM-ddTHH:mm' format (UTC). |
 | searches.event_batch_size | int | `100` | The amount of events to query from Splunk for a single request. |
 | storage | component | `required (no default)` | The component ID of a storage extension which can be used when polling for `logs`. The storage extension prevents duplication of data after an exporter error by remembering which events were previously exported. |
 
