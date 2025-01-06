@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
+
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/adapter"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -120,20 +122,16 @@ func (ssapir *splunksearchapireceiver) runQueries(ctx context.Context) {
 		}
 
 		// parse time strings to time.Time
-		layout := "2006-01-02T15:04:05"
-		earliestTime, err := time.Parse(layout, search.EarliestTime)
+		earliestTime, err := time.Parse(rehydration.TimeFormat, search.EarliestTime)
 		if err != nil {
 			ssapir.logger.Error("error parsing earliest time", zap.Error(err))
 			return
 		}
-		latestTime, err := time.Parse(layout, search.LatestTime)
+		latestTime, err := time.Parse(rehydration.TimeFormat, search.LatestTime)
 		if err != nil {
 			ssapir.logger.Error("error parsing earliest time", zap.Error(err))
 			return
 		}
-
-		fmt.Println("earliestTime: ", earliestTime)
-		fmt.Println("latestTime: ", latestTime)
 
 		// create search in Splunk
 		searchID, err := ssapir.createSplunkSearch(search)
