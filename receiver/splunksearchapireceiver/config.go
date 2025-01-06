@@ -113,14 +113,15 @@ func (cfg *Config) Validate() error {
 		}
 
 		// parse time strings to time.Time
-		_, err := time.Parse(time.RFC3339, search.EarliestTime)
+		layout := "2006-01-02T15:04:05"
+		_, err := time.Parse(layout, search.EarliestTime)
 		if err != nil {
-			return errors.New("earliest_time failed to parse as RFC3339")
+			return errors.New("earliest_time failed to parse")
 		}
 
-		_, err = time.Parse(time.RFC3339, search.LatestTime)
+		_, err = time.Parse(layout, search.LatestTime)
 		if err != nil {
-			return errors.New("latest_time failed to parse as RFC3339")
+			return errors.New("latest_time failed to parse")
 		}
 
 	}

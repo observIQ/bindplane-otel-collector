@@ -120,8 +120,20 @@ func (ssapir *splunksearchapireceiver) runQueries(ctx context.Context) {
 		}
 
 		// parse time strings to time.Time
-		earliestTime, _ := time.Parse(time.RFC3339, search.EarliestTime)
-		latestTime, _ := time.Parse(time.RFC3339, search.LatestTime)
+		layout := "2006-01-02T15:04:05"
+		earliestTime, err := time.Parse(layout, search.EarliestTime)
+		if err != nil {
+			ssapir.logger.Error("error parsing earliest time", zap.Error(err))
+			return
+		}
+		latestTime, err := time.Parse(layout, search.LatestTime)
+		if err != nil {
+			ssapir.logger.Error("error parsing earliest time", zap.Error(err))
+			return
+		}
+
+		fmt.Println("earliestTime: ", earliestTime)
+		fmt.Println("latestTime: ", latestTime)
 
 		// create search in Splunk
 		searchID, err := ssapir.createSplunkSearch(search)
@@ -155,18 +167,18 @@ func (ssapir *splunksearchapireceiver) runQueries(ctx context.Context) {
 					limitReached = true
 					break
 				}
-				// convert log timestamp to ISO 8601 (UTC() makes RFC 3339 into ISO 8601)
+
 				logTimestamp, err := time.Parse(time.RFC3339, splunkLog.Time)
 				if err != nil {
 					ssapir.logger.Error("error parsing log timestamp", zap.Error(err))
 					break
 				}
-				if logTimestamp.UTC().Before(earliestTime.UTC()) {
-					ssapir.logger.Info("skipping log entry - timestamp before earliestTime", zap.Time("time", logTimestamp.UTC()), zap.Time("earliestTime", earliestTime.UTC()))
+				if logTimestamp.UTC().Before(earliestTime) {
+					ssapir.logger.Info("skipping log entry - timestamp before earliestTime", zap.Time("time", logTimestamp.UTC()), zap.Time("earliestTime", earliestTime))
 					break
 				}
-				if logTimestamp.UTC().After(latestTime.UTC()) {
-					ssapir.logger.Info("skipping log entry - timestamp after latestTime", zap.Time("time", logTimestamp.UTC()), zap.Time("latestTime", latestTime.UTC()))
+				if logTimestamp.UTC().After(latestTime) {
+					ssapir.logger.Info("skipping log entry - timestamp after latestTime", zap.Time("time", logTimestamp.UTC()), zap.Time("latestTime", latestTime))
 					continue
 				}
 				log := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
