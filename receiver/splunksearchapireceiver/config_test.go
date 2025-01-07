@@ -42,8 +42,8 @@ func TestValidate(t *testing.T) {
 			searches: []Search{
 				{
 					Query:        "search index=_internal",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
+					LatestTime:   "2024-10-30T14:00",
 				},
 			},
 			errExpected: true,
@@ -57,8 +57,8 @@ func TestValidate(t *testing.T) {
 			searches: []Search{
 				{
 					Query:        "search index=_internal",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
+					LatestTime:   "2024-10-30T14:00",
 				},
 			},
 			errExpected: true,
@@ -72,8 +72,8 @@ func TestValidate(t *testing.T) {
 			searches: []Search{
 				{
 					Query:        "search index=_internal",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
+					LatestTime:   "2024-10-30T14:00",
 				},
 			},
 			errExpected: true,
@@ -87,8 +87,8 @@ func TestValidate(t *testing.T) {
 			searches: []Search{
 				{
 					Query:        "search index=_internal",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
+					LatestTime:   "2024-10-30T14:00",
 				},
 			},
 			errExpected: true,
@@ -103,8 +103,8 @@ func TestValidate(t *testing.T) {
 			searches: []Search{
 				{
 					Query:        "search index=_internal",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
+					LatestTime:   "2024-10-30T14:00",
 				},
 			},
 			errExpected: true,
@@ -121,8 +121,8 @@ func TestValidate(t *testing.T) {
 			searches: []Search{
 				{
 					Query:        "search index=_internal",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
+					LatestTime:   "2024-10-30T14:00",
 				},
 			},
 			errExpected: true,
@@ -136,8 +136,8 @@ func TestValidate(t *testing.T) {
 			searches: []Search{
 				{
 					Query:        "search index=_internal",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
+					LatestTime:   "2024-10-30T14:00",
 				},
 			},
 			errExpected: true,
@@ -160,8 +160,8 @@ func TestValidate(t *testing.T) {
 			storage:  "file_storage",
 			searches: []Search{
 				{
-					EarliestTime: "2024-10-30T04:00:00.000Z",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
+					LatestTime:   "2024-10-30T14:00",
 				},
 			},
 			errExpected: true,
@@ -176,7 +176,7 @@ func TestValidate(t *testing.T) {
 			searches: []Search{
 				{
 					Query:      "search index=_internal",
-					LatestTime: "2024-10-30T14:00:00.000Z",
+					LatestTime: "2024-10-30T14:00",
 				},
 			},
 			errExpected: true,
@@ -192,11 +192,11 @@ func TestValidate(t *testing.T) {
 				{
 					Query:        "search index=_internal",
 					EarliestTime: "-1hr",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					LatestTime:   "2024-10-30T14:00",
 				},
 			},
 			errExpected: true,
-			errText:     "earliest_time failed to parse as RFC3339",
+			errText:     "earliest_time failed to parse",
 		},
 		{
 			desc:     "Missing latest_time",
@@ -207,7 +207,7 @@ func TestValidate(t *testing.T) {
 			searches: []Search{
 				{
 					Query:        "search index=_internal",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
 				},
 			},
 			errExpected: true,
@@ -222,12 +222,12 @@ func TestValidate(t *testing.T) {
 			searches: []Search{
 				{
 					Query:        "search index=_internal",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
 					LatestTime:   "-1hr",
 				},
 			},
 			errExpected: true,
-			errText:     "latest_time failed to parse as RFC3339",
+			errText:     "latest_time failed to parse",
 		},
 		{
 			desc:     "Invalid query chaining",
@@ -238,8 +238,8 @@ func TestValidate(t *testing.T) {
 			searches: []Search{
 				{
 					Query:        "search index=_internal | stats count by sourcetype",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
+					LatestTime:   "2024-10-30T14:00",
 				},
 			},
 			errExpected: true,
@@ -254,8 +254,8 @@ func TestValidate(t *testing.T) {
 			searches: []Search{
 				{
 					Query:        "search index=_internal",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
+					LatestTime:   "2024-10-30T14:00",
 				},
 			},
 			errExpected: false,
@@ -269,8 +269,8 @@ func TestValidate(t *testing.T) {
 			searches: []Search{
 				{
 					Query:        "search index=_internal",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
+					LatestTime:   "2024-10-30T14:00",
 				},
 			},
 			errExpected: false,
@@ -284,13 +284,13 @@ func TestValidate(t *testing.T) {
 			searches: []Search{
 				{
 					Query:        "search index=_internal",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
+					LatestTime:   "2024-10-30T14:00",
 				},
 				{
 					Query:        "search index=_audit",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
+					LatestTime:   "2024-10-30T14:00",
 				},
 			},
 			errExpected: false,
@@ -304,8 +304,8 @@ func TestValidate(t *testing.T) {
 			searches: []Search{
 				{
 					Query:        "search index=_internal",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					EarliestTime: "2024-10-30T04:00",
+					LatestTime:   "2024-10-30T14:00",
 					Limit:        10,
 				},
 			},
@@ -319,9 +319,9 @@ func TestValidate(t *testing.T) {
 			storage:  "file_storage",
 			searches: []Search{
 				{
-					Query:        "search index=_internal earliest=2024-10-30T04:00:00.000Z latest=2024-10-30T14:00:00.000Z",
-					EarliestTime: "2024-10-30T04:00:00.000Z",
-					LatestTime:   "2024-10-30T14:00:00.000Z",
+					Query:        "search index=_internal earliest=2024-10-30T04:00 latest=2024-10-30T14:00",
+					EarliestTime: "2024-10-30T04:00",
+					LatestTime:   "2024-10-30T14:00",
 				},
 			},
 			errExpected: true,
