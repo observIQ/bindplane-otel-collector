@@ -28,6 +28,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/collector"
 	"github.com/observiq/bindplane-otel-collector/internal/measurements"
 	"github.com/observiq/bindplane-otel-collector/internal/report"
+	"github.com/observiq/bindplane-otel-collector/internal/topology"
 	"github.com/observiq/bindplane-otel-collector/internal/version"
 	"github.com/observiq/bindplane-otel-collector/opamp"
 	"github.com/observiq/bindplane-otel-collector/packagestate"
@@ -66,6 +67,7 @@ type Client struct {
 	updatingPackage         bool
 	reportManager           *report.Manager
 	measurementsSender      *measurementsSender
+	topologySender          *topologySender
 
 	// To signal if we are disconnecting already and not take any actions on connection failures
 	disconnecting bool
@@ -90,6 +92,7 @@ type NewClientArgs struct {
 	CollectorConfigPath  string
 	LoggerConfigPath     string
 	MeasurementsReporter MeasurementsReporter
+	TopologyReporter     TopologyReporter
 }
 
 // NewClient creates a new OpAmp client
@@ -149,6 +152,7 @@ func NewClient(args *NewClientArgs) (opamp.Client, error) {
 	err = observiqClient.opampClient.SetCustomCapabilities(&protobufs.CustomCapabilities{
 		Capabilities: []string{
 			measurements.ReportMeasurementsV1Capability,
+			topology.ReportTopologyCapability,
 		},
 	})
 	if err != nil {
@@ -162,6 +166,13 @@ func NewClient(args *NewClientArgs) (opamp.Client, error) {
 		observiqClient.opampClient,
 		args.Config.MeasurementsInterval,
 		args.Config.ExtraMeasurementsAttributes,
+	)
+
+	// Create topology sender
+	observiqClient.topologySender = newTopologySender(
+		clientLogger,
+		args.TopologyReporter,
+		observiqClient.opampClient,
 	)
 
 	return observiqClient, nil
@@ -344,11 +355,18 @@ func (c *Client) onMessageFuncHandler(ctx context.Context, msg *types.MessageDat
 	}
 	if msg.CustomCapabilities != nil {
 		if slices.Contains(msg.CustomCapabilities.Capabilities, measurements.ReportMeasurementsV1Capability) {
-			c.logger.Info("Server supports custom message measurements, starting sender.")
+			c.logger.Info("Server supports custom throughput message measurements, starting measurements sender.")
 			c.measurementsSender.Start()
 		} else {
-			c.logger.Info("Server does not support custom message measurements, stopping sender.")
+			c.logger.Info("Server does not support custom throughput message measurements, stopping measurements sender.")
 			c.measurementsSender.Stop()
+		}
+		if slices.Contains(msg.CustomCapabilities.Capabilities, topology.ReportTopologyCapability) {
+			c.logger.Info("Server supports custom topology messages, starting topology sender.")
+			c.topologySender.Start()
+		} else {
+			c.logger.Info("Server does not support custom topology messages, stopping topology sender.")
+			c.topologySender.Stop()
 		}
 	}
 }

@@ -25,6 +25,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/factories"
 	"github.com/observiq/bindplane-otel-collector/internal/measurements"
+	"github.com/observiq/bindplane-otel-collector/internal/topology"
 	"go.opentelemetry.io/collector/otelcol"
 	"go.uber.org/zap"
 )
@@ -201,8 +202,9 @@ func (c *collector) Stop(ctx context.Context) {
 
 	c.svc = nil
 
-	// After shutting down, we reset the throughputs measurements registry so it's fresh for the next collector startup.
+	// After shutting down, we reset the registries so they're fresh for the next collector startup.
 	measurements.BindplaneAgentThroughputMeasurementsRegistry.Reset()
+	topology.BindplaneAgentTopologyRegistry.Reset()
 }
 
 // Restart will restart the collector. It will also reset the status channel.
