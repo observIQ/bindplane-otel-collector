@@ -496,10 +496,10 @@ func Test_processBlob(t *testing.T) {
 				},
 				consumer:    mockConsumer,
 				azureClient: mockClient,
-				ctx:         context.Background(),
+				// ctx:         context.Background(),
 			}
 
-			err := r.processBlob(tc.info)
+			err := r.processBlob(context.Background(), tc.info)
 			if tc.expectedErr == nil {
 				require.NoError(t, err)
 			} else {
@@ -517,7 +517,7 @@ func setNewAzureBlobClient(t *testing.T) *blobmocks.MockBlobClient {
 
 	mockClient := blobmocks.NewMockBlobClient(t)
 
-	newAzureBlobClient = func(_ string) (azureblob.BlobClient, error) {
+	newAzureBlobClient = func(_ string, _ int, _ int) (azureblob.BlobClient, error) {
 		return mockClient, nil
 	}
 

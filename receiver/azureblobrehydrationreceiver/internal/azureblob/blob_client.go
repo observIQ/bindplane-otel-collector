@@ -41,33 +41,39 @@ type BlobClient interface {
 
 	// DeleteBlob deletes the blob in the specified container
 	DeleteBlob(ctx context.Context, container, blobPath string) error
+
+	// StreamBlobs will stream blobs to the blobChan and errors to the errChan, generally if an errChan gets an item
+	// then the stream should be stopped
+	StreamBlobs(ctx context.Context, container string, prefix, marker *string, errChan chan error, blobChan chan *BlobResults, doneChan chan struct{})
 }
 
 // AzureClient is an implementation of the BlobClient for Azure
 type AzureClient struct {
-	azClient *azblob.Client
+	azClient  *azblob.Client
+	batchSize int
+	pageSize  int32
 }
 
 // NewAzureBlobClient creates a new azureBlobClient with the given connection string
-func NewAzureBlobClient(connectionString string) (BlobClient, error) {
+func NewAzureBlobClient(connectionString string, batchSize, pageSize int) (BlobClient, error) {
 	azClient, err := azblob.NewClientFromConnectionString(connectionString, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	return &AzureClient{
-		azClient: azClient,
+		azClient:  azClient,
+		batchSize: batchSize,
+		pageSize:  int32(pageSize),
 	}, nil
 }
-
-// contentLengthKey key for the content length metadata
-const contentLengthKey = "ContentLength"
 
 // ListBlobs returns a list of blobInfo objects present in the container with the given prefix
 func (a *AzureClient) ListBlobs(ctx context.Context, container string, prefix, marker *string) ([]*BlobInfo, *string, error) {
 	listOptions := &azblob.ListBlobsFlatOptions{
-		Marker: marker,
-		Prefix: prefix,
+		Marker:     marker,
+		Prefix:     prefix,
+		MaxResults: &a.pageSize,
 	}
 
 	pager := a.azClient.NewListBlobsFlatPager(container, listOptions)
@@ -94,13 +100,87 @@ func (a *AzureClient) ListBlobs(ctx context.Context, container string, prefix, m
 				Name: *blob.Name,
 				Size: *blob.Properties.ContentLength,
 			}
-
 			blobs = append(blobs, info)
 		}
 		nextMarker = resp.NextMarker
 	}
 
 	return blobs, nextMarker, nil
+}
+
+const emptyPollLimit = 3
+
+// BlobResults contains the blobs for the receiver to process and the last marker
+type BlobResults struct {
+	Blobs      []*BlobInfo
+	LastMarker *string
+}
+
+// StreamBlobs will stream blobs to the blobChan and errors to the errChan, generally if an errChan gets an item
+// then the stream should be stopped
+func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix, beginningMarker *string, errChan chan error, blobChan chan *BlobResults, doneChan chan struct{}) {
+	pager := a.azClient.NewListBlobsFlatPager(container, &azblob.ListBlobsFlatOptions{
+		Marker:     beginningMarker,
+		Prefix:     prefix,
+		MaxResults: &a.pageSize,
+	})
+
+	emptyPollCount := 0
+	for pager.More() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			// If we had empty polls for the last 3 times, then we can assume that there are no more blobs to process
+			// and we can close the stream to avoid charging for the requests
+			if emptyPollCount == emptyPollLimit {
+				close(doneChan)
+				return
+			}
+
+			resp, err := pager.NextPage(ctx)
+			if err != nil {
+				errChan <- fmt.Errorf("error streaming blobs: %w", err)
+				return
+			}
+
+			batch := []*BlobInfo{}
+			for _, blob := range resp.Segment.BlobItems {
+				if blob.Deleted != nil && *blob.Deleted {
+					continue
+				}
+				if blob.Name == nil || blob.Properties == nil || blob.Properties.ContentLength == nil {
+					continue
+				}
+
+				info := &BlobInfo{
+					Name: *blob.Name,
+					Size: *blob.Properties.ContentLength,
+				}
+				batch = append(batch, info)
+				if len(batch) == int(a.batchSize) {
+					blobChan <- &BlobResults{
+						Blobs:      batch,
+						LastMarker: resp.NextMarker,
+					}
+					batch = []*BlobInfo{}
+				}
+			}
+
+			if len(batch) == 0 {
+				emptyPollCount++
+				continue
+			}
+
+			emptyPollCount = 0
+			blobChan <- &BlobResults{
+				Blobs:      batch,
+				LastMarker: resp.NextMarker,
+			}
+		}
+	}
+
+	close(doneChan)
 }
 
 // DownloadBlob downloads the contents of the blob into the supplied buffer.

@@ -25,6 +25,9 @@ import (
 
 // Config is the configuration for the azure blob rehydration receiver
 type Config struct {
+	// BatchSize is the number of blobs to process entering the pipeline in a single batch. (default 1000)
+	BatchSize int `mapstructure:"batch_size"`
+
 	// ConnectionString is the Azure Blob Storage connection key,
 	// which can be found in the Azure Blob Storage resource on the Azure Portal. (no default)
 	ConnectionString string `mapstructure:"connection_string"`
@@ -45,6 +48,9 @@ type Config struct {
 	// Default value of false
 	DeleteOnRead bool `mapstructure:"delete_on_read"`
 
+	// PageSize is the number of blobs to request from the Azure API at a time. (default 1000)
+	PageSize int `mapstructure:"page_size"`
+
 	// PollInterval is the interval at which the Azure API is scanned for blobs.
 	// Default value of 1m
 	PollInterval time.Duration `mapstructure:"poll_interval"`
@@ -58,6 +64,10 @@ type Config struct {
 
 // Validate validates the config
 func (c *Config) Validate() error {
+	if c.BatchSize < 1 {
+		return errors.New("batch_size must be greater than 0")
+	}
+
 	if c.ConnectionString == "" {
 		return errors.New("connection_string is required")
 	}
@@ -79,6 +89,10 @@ func (c *Config) Validate() error {
 	// Check case where ending_time is to close or before starting time
 	if endingTs.Sub(*startingTs) < time.Minute {
 		return errors.New("ending_time must be at least one minute after starting_time")
+	}
+
+	if c.PageSize < 1 {
+		return errors.New("page_size must be greater than 0")
 	}
 
 	if c.PollInterval < time.Second {

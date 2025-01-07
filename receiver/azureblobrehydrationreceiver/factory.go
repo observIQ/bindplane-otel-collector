@@ -45,6 +45,8 @@ func createDefaultConfig() component.Config {
 		DeleteOnRead: false,
 		PollInterval: time.Minute,
 		PollTimeout:  time.Second * 30,
+		BatchSize:    100,
+		PageSize:     1000,
 	}
 }
 
