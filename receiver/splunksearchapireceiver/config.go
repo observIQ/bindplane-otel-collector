@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
 )
@@ -113,14 +114,14 @@ func (cfg *Config) Validate() error {
 		}
 
 		// parse time strings to time.Time
-		_, err := time.Parse(time.RFC3339, search.EarliestTime)
+		_, err := time.Parse(rehydration.TimeFormat, search.EarliestTime)
 		if err != nil {
-			return errors.New("earliest_time failed to parse as RFC3339")
+			return errors.New("earliest_time failed to parse")
 		}
 
-		_, err = time.Parse(time.RFC3339, search.LatestTime)
+		_, err = time.Parse(rehydration.TimeFormat, search.LatestTime)
 		if err != nil {
-			return errors.New("latest_time failed to parse as RFC3339")
+			return errors.New("latest_time failed to parse")
 		}
 
 	}
