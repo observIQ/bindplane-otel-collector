@@ -23,6 +23,7 @@ import (
 
 var _ component.Config = (*Config)(nil)
 
+// Config defines the configuration parameters for the log anomaly detector connector.
 type Config struct {
 	// How often to take measurements
 	SampleInterval time.Duration `mapstructure:"sample_interval"`

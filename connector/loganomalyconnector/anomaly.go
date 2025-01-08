@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package loganomalyconnector provides an OpenTelemetry collector connector that detects
+// anomalies in log throughput using statistical analysis. It monitors the rate of incoming
+// logs and generates alerts when significant deviations from the baseline are detected,
+// using both Z-score and Median Absolute Deviation (MAD) methods for anomaly detection.
 package loganomalyconnector
 
 import (
@@ -26,11 +30,15 @@ import (
 	"go.uber.org/zap"
 )
 
+// Sample represents a single measurement of log throughput at a specific point in time.
+// It pairs a timestamp with the corresponding rate of logs per minute for that sample period.
 type Sample struct {
 	timestamp time.Time
 	rate      float64
 }
 
+// Statistics holds statistical measures calculated from a set of log rate samples.
+// These statistics are used to establish a baseline and detect anomalies in log throughput.
 type Statistics struct {
 	mean    float64
 	stdDev  float64
@@ -39,6 +47,8 @@ type Statistics struct {
 	samples []float64
 }
 
+// AnomalyStat contains information about a detected log throughput anomaly,
+// including the type of anomaly, baseline statistics, and deviation metrics.
 type AnomalyStat struct {
 	anomalyType    string
 	baselineStats  Statistics
