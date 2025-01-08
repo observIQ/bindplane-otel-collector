@@ -79,10 +79,6 @@ func (cfg *Config) Validate() error {
 		return errors.New("at least one search must be provided")
 	}
 
-	if cfg.StorageID == nil {
-		return errors.New("storage configuration is required for this receiver")
-	}
-
 	for _, search := range cfg.Searches {
 		if search.Query == "" {
 			return errors.New("missing query in search")
