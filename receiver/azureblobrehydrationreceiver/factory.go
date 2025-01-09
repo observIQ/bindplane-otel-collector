@@ -17,7 +17,6 @@ package azureblobrehydrationreceiver //import "github.com/observiq/bindplane-ote
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver/internal/metadata"
 	"go.opentelemetry.io/collector/component"
@@ -43,8 +42,6 @@ func NewFactory() receiver.Factory {
 func createDefaultConfig() component.Config {
 	return &Config{
 		DeleteOnRead: false,
-		PollInterval: time.Minute,
-		PollTimeout:  time.Second * 30,
 		BatchSize:    100,
 		PageSize:     1000,
 	}

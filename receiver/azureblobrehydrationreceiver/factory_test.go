@@ -16,7 +16,6 @@ package azureblobrehydrationreceiver //import "github.com/observiq/bindplane-ote
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -24,8 +23,6 @@ import (
 func Test_createDefaultConfig(t *testing.T) {
 	expectedCfg := &Config{
 		DeleteOnRead: false,
-		PollInterval: time.Minute,
-		PollTimeout:  time.Second * 30,
 		BatchSize:    100,
 		PageSize:     1000,
 	}

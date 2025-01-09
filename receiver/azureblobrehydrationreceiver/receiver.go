@@ -289,6 +289,5 @@ func (r *rehydrationReceiver) makeCheckpoint(ctx context.Context) error {
 	r.mut.Lock()
 	defer r.mut.Unlock()
 	r.checkpoint.UpdateCheckpoint(*r.lastBlobTime, r.lastBlob.Name)
-	r.checkpointStore.SaveCheckpoint(ctx, r.checkpointKey(), r.checkpoint)
-	return nil
+	return r.checkpointStore.SaveCheckpoint(ctx, r.checkpointKey(), r.checkpoint)
 }

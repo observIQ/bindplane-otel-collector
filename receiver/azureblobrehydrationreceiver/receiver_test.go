@@ -111,7 +111,6 @@ func Test_fullRehydration(t *testing.T) {
 	cfg := &Config{
 		StartingTime: "2023-10-02T17:00",
 		EndingTime:   "2023-10-02T18:00",
-		PollInterval: 10 * time.Millisecond,
 		Container:    "container",
 		DeleteOnRead: false,
 	}

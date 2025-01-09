@@ -51,13 +51,6 @@ type Config struct {
 	// PageSize is the number of blobs to request from the Azure API at a time. (default 1000)
 	PageSize int `mapstructure:"page_size"`
 
-	// PollInterval is the interval at which the Azure API is scanned for blobs.
-	// Default value of 1m
-	PollInterval time.Duration `mapstructure:"poll_interval"`
-
-	// PollTimeout is the timeout for the Azure API to scan for blobs.
-	PollTimeout time.Duration `mapstructure:"poll_timeout"`
-
 	// ID of the storage extension to use for storing progress
 	StorageID *component.ID `mapstructure:"storage"`
 }
@@ -93,14 +86,6 @@ func (c *Config) Validate() error {
 
 	if c.PageSize < 1 {
 		return errors.New("page_size must be greater than 0")
-	}
-
-	if c.PollInterval < time.Second {
-		return errors.New("poll_interval must be at least one second")
-	}
-
-	if c.PollTimeout < time.Second {
-		return errors.New("poll_timeout must be at least one second")
 	}
 
 	return nil
