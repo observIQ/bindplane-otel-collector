@@ -9,7 +9,7 @@ This receiver collects Splunk events using the [Splunk Search API](https://docs.
 - Configured storage extension
 
 ## Use Case
-Unlike other receivers, the SSAPI receiver is not built to collect live data. Instead, it collects a finite set of historical data and transfers it to a destination, preserving the timestamp from the source. For this reason, the SSAPI recevier only needs to be left running until all Splunk events have been migrated, which is denoted by the log message: "all search results exported". Until this log message or some other error is printed, avoid cancelling the collector for any reason, as it will unnecessarily interfere with the receiver's ability to protect against writing duplicate events.
+Unlike other receivers, the SSAPI receiver is not built to collect live data. Instead, it collects a finite set of historical data and transfers it to a destination, preserving the timestamp from the source. For this reason, the SSAPI receiver only needs to be left running until all Splunk events have been migrated, which is denoted by the log message: "all search results exported". Until this log message or some other error is printed, avoid cancelling the collector for any reason, as it will unnecessarily interfere with the receiver's ability to protect against writing duplicate events.
 
 ## Configuration
 | Field               | Type     | Default                                                                                         | Description                                                                                                                                                             |
@@ -24,7 +24,7 @@ Unlike other receivers, the SSAPI receiver is not built to collect live data. In
 | searches.earliest_time | string | `required (no default)` | The earliest timestamp to collect logs. Only logs that occurred at or after this timestamp will be collected. Must be in 'yyyy-MM-ddTHH:mm' format (UTC). |
 | searches.latest_time | string | `required (no default)` | The latest timestamp to collect logs. Only logs that occurred at or before this timestamp will be collected. Must be in 'yyyy-MM-ddTHH:mm' format (UTC). |
 | searches.event_batch_size | int | `100` | The amount of events to query from Splunk for a single request. |
-| storage | component | `required (no default)` | The component ID of a storage extension which can be used when polling for `logs`. The storage extension prevents duplication of data after an exporter error by remembering which events were previously exported. |
+| storage | component | `(no default)` | The component ID of a storage extension which can be used when polling for `logs`. The storage extension prevents duplication of data after an exporter error by remembering which events were previously exported. This should be configured in all production environments. |
 
 ### Example Configuration
 ```yaml
@@ -60,10 +60,10 @@ extensions:
      - `latest_time: "2024-12-31T23:59:59.999-05:00"`
    - Note: By default, GCL will not accept logs with a timestamp older than 30 days. Contact Google to modify this rule.
 3. Repeat steps 1 & 2 for each index you wish to collect from
-3. Configure a storage extension to store checkpointing data for the receiver.
-4. Configure the rest of the receiver fields according to your Splunk environment.
-5. Add a `googlecloud` exporter to your config. Configure the exporter to send to a GCP project where your service account has Logging Admin role. To check the permissions of service accounts in your project, go to the [IAM page](https://console.cloud.google.com/iam-admin/iam). 
-6. Disable the `sending_queue` field on the GCP exporter. The sending queue introduces an asynchronous step to the pipeline, which will jeopardize the receiver's ability to checkpoint correctly and recover from errors. For this same reason, avoid using any asynchronous processors (e.g., batch processor).
+4. Configure a storage extension to store checkpointing data for the receiver.
+5. Configure the rest of the receiver fields according to your Splunk environment.
+6. Add a `googlecloud` exporter to your config. Configure the exporter to send to a GCP project where your service account has Logging Admin role. To check the permissions of service accounts in your project, go to the [IAM page](https://console.cloud.google.com/iam-admin/iam). 
+7. Disable the `sending_queue` field on the GCP exporter. The sending queue introduces an asynchronous step to the pipeline, which will jeopardize the receiver's ability to checkpoint correctly and recover from errors. For this same reason, avoid using any asynchronous processors (e.g., batch processor).
 
 After following these steps, your configuration should look something like this:
 ```yaml
