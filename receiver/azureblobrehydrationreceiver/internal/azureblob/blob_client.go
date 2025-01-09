@@ -44,7 +44,7 @@ type BlobClient interface {
 
 	// StreamBlobs will stream blobs to the blobChan and errors to the errChan, generally if an errChan gets an item
 	// then the stream should be stopped
-	StreamBlobs(ctx context.Context, container string, prefix, marker *string, errChan chan error, blobChan chan *BlobResults, doneChan chan struct{})
+	StreamBlobs(ctx context.Context, container string, prefix *string, errChan chan error, blobChan chan *BlobResults, doneChan chan struct{})
 }
 
 // AzureClient is an implementation of the BlobClient for Azure
@@ -118,9 +118,10 @@ type BlobResults struct {
 
 // StreamBlobs will stream blobs to the blobChan and errors to the errChan, generally if an errChan gets an item
 // then the stream should be stopped
-func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix, beginningMarker *string, errChan chan error, blobChan chan *BlobResults, doneChan chan struct{}) {
+func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix *string, errChan chan error, blobChan chan *BlobResults, doneChan chan struct{}) {
+	var marker *string
 	pager := a.azClient.NewListBlobsFlatPager(container, &azblob.ListBlobsFlatOptions{
-		Marker:     beginningMarker,
+		Marker:     marker,
 		Prefix:     prefix,
 		MaxResults: &a.pageSize,
 	})
@@ -161,7 +162,7 @@ func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix,
 				if len(batch) == int(a.batchSize) {
 					blobChan <- &BlobResults{
 						Blobs:      batch,
-						LastMarker: resp.NextMarker,
+						LastMarker: marker,
 					}
 					batch = []*BlobInfo{}
 				}
@@ -175,8 +176,9 @@ func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix,
 			emptyPollCount = 0
 			blobChan <- &BlobResults{
 				Blobs:      batch,
-				LastMarker: resp.NextMarker,
+				LastMarker: marker,
 			}
+			marker = resp.NextMarker
 		}
 	}
 

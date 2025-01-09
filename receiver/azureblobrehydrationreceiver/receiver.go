@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
@@ -43,13 +44,18 @@ type rehydrationReceiver struct {
 	checkpoint         *rehydration.CheckPoint
 	checkpointStore    rehydration.CheckpointStorer
 
+	blobChan chan *azureblob.BlobResults
+	errChan  chan error
+	doneChan chan struct{}
+
+	mut *sync.Mutex
+
 	lastBlob     *azureblob.BlobInfo
 	lastBlobTime *time.Time
 
 	startingTime time.Time
 	endingTime   time.Time
 
-	started    bool
 	cancelFunc context.CancelFunc
 }
 
@@ -119,6 +125,10 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 		checkpointStore: rehydration.NewNopStorage(),
 		startingTime:    startingTime,
 		endingTime:      endingTime,
+		blobChan:        make(chan *azureblob.BlobResults),
+		errChan:         make(chan error),
+		doneChan:        make(chan struct{}),
+		mut:             &sync.Mutex{},
 	}, nil
 }
 
@@ -131,8 +141,6 @@ func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) er
 		}
 		r.checkpointStore = checkpointStore
 	}
-
-	r.started = true
 	go r.streamRehydrateBlobs(ctx)
 	return nil
 }
@@ -144,21 +152,15 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 	if r.cancelFunc != nil {
 		r.cancelFunc()
 	}
-	r.makeCheckpoint(ctx)
+	if err := r.makeCheckpoint(ctx); err != nil {
+		r.logger.Error("Error while saving checkpoint", zap.Error(err))
+		err = errors.Join(err, err)
+	}
 	err = errors.Join(err, r.checkpointStore.Close(ctx))
 	return err
 }
 
-// emptyPollLimit is the number of consecutive empty polling cycles that can
-// occur before we stop polling.
-const emptyPollLimit = 3
-
 func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
-	ticker := time.NewTicker(r.cfg.PollInterval)
-	defer ticker.Stop()
-
-	var marker *string
-
 	checkpoint, err := r.checkpointStore.LoadCheckPoint(ctx, r.checkpointKey())
 	if err != nil {
 		r.logger.Warn("Error loading checkpoint, continuing without a previous checkpoint", zap.Error(err))
@@ -171,30 +173,28 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 		prefix = &r.cfg.RootFolder
 	}
 
-	blobChan := make(chan *azureblob.BlobResults)
-	errChan := make(chan error)
-
 	cancelCtx, cancel := context.WithCancel(ctx)
 	r.cancelFunc = cancel
-	doneChan := make(chan struct{})
 
-	go r.azureClient.StreamBlobs(cancelCtx, r.cfg.Container, prefix, marker, errChan, blobChan, doneChan)
+	startTime := time.Now()
+	r.logger.Info("Starting rehydration", zap.Time("startTime", startTime))
+
+	go r.azureClient.StreamBlobs(cancelCtx, r.cfg.Container, prefix, r.errChan, r.blobChan, r.doneChan)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-doneChan:
+		case <-r.doneChan:
+			r.logger.Info("Finished rehydrating blobs", zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
 			return
-		case err := <-errChan:
-			r.logger.Error("Error streaming blobs", zap.Error(err))
+		case err := <-r.errChan:
+			r.logger.Error("Error streaming blobs, stopping rehydration", zap.Error(err), zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
 			return
-		case br := <-blobChan:
-			r.logger.Debug("Received blobs from stream", zap.Int("number_of_blobs", len(br.Blobs)))
+		case br := <-r.blobChan:
 			r.rehydrateBlobs(ctx, br.Blobs)
 		}
 	}
-
 }
 
 func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azureblob.BlobInfo) {
@@ -285,8 +285,9 @@ func (r *rehydrationReceiver) makeCheckpoint(ctx context.Context) error {
 	if r.lastBlob == nil || r.lastBlobTime == nil {
 		return nil
 	}
-
 	r.logger.Debug("Making checkpoint", zap.String("blob", r.lastBlob.Name), zap.Time("time", *r.lastBlobTime))
+	r.mut.Lock()
+	defer r.mut.Unlock()
 	r.checkpoint.UpdateCheckpoint(*r.lastBlobTime, r.lastBlob.Name)
 	r.checkpointStore.SaveCheckpoint(ctx, r.checkpointKey(), r.checkpoint)
 	return nil

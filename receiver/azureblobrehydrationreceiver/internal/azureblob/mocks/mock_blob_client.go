@@ -200,9 +200,9 @@ func (_c *MockBlobClient_ListBlobs_Call) RunAndReturn(run func(context.Context, 
 	return _c
 }
 
-// StreamBlobs provides a mock function with given fields: ctx, container, prefix, marker, errChan, blobChan, doneChan
-func (_m *MockBlobClient) StreamBlobs(ctx context.Context, container string, prefix *string, marker *string, errChan chan error, blobChan chan *azureblob.BlobResults, doneChan chan struct{}) {
-	_m.Called(ctx, container, prefix, marker, errChan, blobChan, doneChan)
+// StreamBlobs provides a mock function with given fields: ctx, container, prefix, errChan, blobChan, doneChan
+func (_m *MockBlobClient) StreamBlobs(ctx context.Context, container string, prefix *string, errChan chan error, blobChan chan *azureblob.BlobResults, doneChan chan struct{}) {
+	_m.Called(ctx, container, prefix, errChan, blobChan, doneChan)
 }
 
 // MockBlobClient_StreamBlobs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StreamBlobs'
@@ -214,17 +214,16 @@ type MockBlobClient_StreamBlobs_Call struct {
 //   - ctx context.Context
 //   - container string
 //   - prefix *string
-//   - marker *string
 //   - errChan chan error
 //   - blobChan chan *azureblob.BlobResults
 //   - doneChan chan struct{}
-func (_e *MockBlobClient_Expecter) StreamBlobs(ctx interface{}, container interface{}, prefix interface{}, marker interface{}, errChan interface{}, blobChan interface{}, doneChan interface{}) *MockBlobClient_StreamBlobs_Call {
-	return &MockBlobClient_StreamBlobs_Call{Call: _e.mock.On("StreamBlobs", ctx, container, prefix, marker, errChan, blobChan, doneChan)}
+func (_e *MockBlobClient_Expecter) StreamBlobs(ctx interface{}, container interface{}, prefix interface{}, errChan interface{}, blobChan interface{}, doneChan interface{}) *MockBlobClient_StreamBlobs_Call {
+	return &MockBlobClient_StreamBlobs_Call{Call: _e.mock.On("StreamBlobs", ctx, container, prefix, errChan, blobChan, doneChan)}
 }
 
-func (_c *MockBlobClient_StreamBlobs_Call) Run(run func(ctx context.Context, container string, prefix *string, marker *string, errChan chan error, blobChan chan *azureblob.BlobResults, doneChan chan struct{})) *MockBlobClient_StreamBlobs_Call {
+func (_c *MockBlobClient_StreamBlobs_Call) Run(run func(ctx context.Context, container string, prefix *string, errChan chan error, blobChan chan *azureblob.BlobResults, doneChan chan struct{})) *MockBlobClient_StreamBlobs_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(*string), args[3].(*string), args[4].(chan error), args[5].(chan *azureblob.BlobResults), args[6].(chan struct{}))
+		run(args[0].(context.Context), args[1].(string), args[2].(*string), args[3].(chan error), args[4].(chan *azureblob.BlobResults), args[5].(chan struct{}))
 	})
 	return _c
 }
@@ -234,7 +233,7 @@ func (_c *MockBlobClient_StreamBlobs_Call) Return() *MockBlobClient_StreamBlobs_
 	return _c
 }
 
-func (_c *MockBlobClient_StreamBlobs_Call) RunAndReturn(run func(context.Context, string, *string, *string, chan error, chan *azureblob.BlobResults, chan struct{})) *MockBlobClient_StreamBlobs_Call {
+func (_c *MockBlobClient_StreamBlobs_Call) RunAndReturn(run func(context.Context, string, *string, chan error, chan *azureblob.BlobResults, chan struct{})) *MockBlobClient_StreamBlobs_Call {
 	_c.Call.Return(run)
 	return _c
 }
