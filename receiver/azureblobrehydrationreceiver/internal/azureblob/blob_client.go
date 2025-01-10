@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 )
 
@@ -32,9 +33,6 @@ type BlobInfo struct {
 //
 //go:generate mockery --name BlobClient --output ./mocks --with-expecter --filename mock_blob_client.go --structname MockBlobClient
 type BlobClient interface {
-	// ListBlobs returns a list of blobInfo objects present in the container with the given prefix
-	ListBlobs(ctx context.Context, container string, prefix, marker *string) ([]*BlobInfo, *string, error)
-
 	// DownloadBlob downloads the contents of the blob into the supplied buffer.
 	// It will return the count of bytes used in the buffer.
 	DownloadBlob(ctx context.Context, container, blobPath string, buf []byte) (int64, error)
@@ -42,14 +40,22 @@ type BlobClient interface {
 	// DeleteBlob deletes the blob in the specified container
 	DeleteBlob(ctx context.Context, container, blobPath string) error
 
-	// StreamBlobs will stream blobs to the blobChan and errors to the errChan, generally if an errChan gets an item
+	// StreamBlobs will stream BlobInfo to the blobChan and errors to the errChan, generally if an errChan gets an item
 	// then the stream should be stopped
 	StreamBlobs(ctx context.Context, container string, prefix *string, errChan chan error, blobChan chan *BlobResults, doneChan chan struct{})
 }
 
+type blobClient interface {
+	NewListBlobsFlatPager(containerName string, options *azblob.ListBlobsFlatOptions) *runtime.Pager[azblob.ListBlobsFlatResponse]
+	DownloadBuffer(ctx context.Context, containerName string, blobPath string, buffer []byte, options *azblob.DownloadBufferOptions) (int64, error)
+	DeleteBlob(ctx context.Context, containerName string, blobPath string, options *azblob.DeleteBlobOptions) (azblob.DeleteBlobResponse, error)
+}
+
+var _ blobClient = &azblob.Client{}
+
 // AzureClient is an implementation of the BlobClient for Azure
 type AzureClient struct {
-	azClient  *azblob.Client
+	azClient  blobClient
 	batchSize int
 	pageSize  int32
 }
@@ -66,46 +72,6 @@ func NewAzureBlobClient(connectionString string, batchSize, pageSize int) (BlobC
 		batchSize: batchSize,
 		pageSize:  int32(pageSize),
 	}, nil
-}
-
-// ListBlobs returns a list of blobInfo objects present in the container with the given prefix
-func (a *AzureClient) ListBlobs(ctx context.Context, container string, prefix, marker *string) ([]*BlobInfo, *string, error) {
-	listOptions := &azblob.ListBlobsFlatOptions{
-		Marker:     marker,
-		Prefix:     prefix,
-		MaxResults: &a.pageSize,
-	}
-
-	pager := a.azClient.NewListBlobsFlatPager(container, listOptions)
-
-	var nextMarker *string
-	blobs := make([]*BlobInfo, 0)
-	for pager.More() {
-		resp, err := pager.NextPage(ctx)
-		if err != nil {
-			return nil, nil, fmt.Errorf("listBlobs: %w", err)
-		}
-
-		for _, blob := range resp.Segment.BlobItems {
-			// Skip deleted blobs
-			if blob.Deleted != nil && *blob.Deleted {
-				continue
-			}
-			// All blob fields are pointers so check all pointers we need before we try to process it
-			if blob.Name == nil || blob.Properties == nil || blob.Properties.ContentLength == nil {
-				continue
-			}
-
-			info := &BlobInfo{
-				Name: *blob.Name,
-				Size: *blob.Properties.ContentLength,
-			}
-			blobs = append(blobs, info)
-		}
-		nextMarker = resp.NextMarker
-	}
-
-	return blobs, nextMarker, nil
 }
 
 const emptyPollLimit = 3

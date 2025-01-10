@@ -132,6 +132,8 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 	}, nil
 }
 
+// move delimiter to transform block
+
 // Start starts the rehydration receiver
 func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) error {
 	if r.cfg.StorageID != nil {
@@ -201,6 +203,12 @@ func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azure
 	// Go through each blob and parse it's path to determine if we should consume it or not
 	numProcessedBlobs := 0
 	for _, blob := range blobs {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		blobTime, telemetryType, err := rehydration.ParseEntityPath(blob.Name)
 		switch {
 		case errors.Is(err, rehydration.ErrInvalidEntityPath):
@@ -219,7 +227,11 @@ func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azure
 
 			// Process and consume the blob at the given path
 			if err := r.processBlob(ctx, blob); err != nil {
-				r.logger.Error("Error consuming blob", zap.String("blob", blob.Name), zap.Error(err))
+				// If the error is because the context was canceled, then we don't want to log it
+				if !errors.Is(err, context.Canceled) {
+					r.logger.Error("Error consuming blob", zap.String("blob", blob.Name), zap.Error(err))
+				}
+
 				continue
 			}
 
