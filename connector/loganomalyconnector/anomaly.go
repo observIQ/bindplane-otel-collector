@@ -151,7 +151,7 @@ func calculateStatistics(rates []float64) Statistics {
 
 // checkForAnomaly performs the anomaly detection
 func (d *Detector) checkForAnomaly() *AnomalyStat {
-	if len(d.rateHistory) < 1 {
+	if len(d.rateHistory) < 10 {
 		return nil
 	}
 
@@ -163,10 +163,51 @@ func (d *Detector) checkForAnomaly() *AnomalyStat {
 	}
 
 	stats := calculateStatistics(rates)
-	if stats.stdDev == 0 || stats.mad == 0 {
+
+	if stats.stdDev == 0 {
+		if currentRate != stats.mean {
+			percentageDiff := ((currentRate - stats.mean) / stats.mean) * 100
+			anomalyType := "Drop"
+			if currentRate > stats.mean {
+				anomalyType = "Spike"
+			}
+
+			return &AnomalyStat{
+				anomalyType:    anomalyType,
+				baselineStats:  stats,
+				currentRate:    currentRate,
+				zScore:         0, // Not meaningful when stdDev is 0
+				madScore:       0, // Not meaningful when MAD is 0
+				percentageDiff: math.Abs(percentageDiff),
+				timestamp:      d.rateHistory[len(d.rateHistory)-1].timestamp,
+			}
+		}
 		return nil
 	}
 
+	if stats.mad == 0 {
+		// Only use Z-score for anomaly detection in this case
+		zScore := (currentRate - stats.mean) / stats.stdDev
+		percentageDiff := ((currentRate - stats.mean) / stats.mean) * 100
+
+		if math.Abs(zScore) > d.config.ZScoreThreshold {
+			anomalyType := "Drop"
+			if currentRate > stats.mean {
+				anomalyType = "Spike"
+			}
+
+			return &AnomalyStat{
+				anomalyType:    anomalyType,
+				baselineStats:  stats,
+				currentRate:    currentRate,
+				zScore:         zScore,
+				madScore:       0, // Not meaningful when MAD is 0
+				percentageDiff: math.Abs(percentageDiff),
+				timestamp:      d.rateHistory[len(d.rateHistory)-1].timestamp,
+			}
+		}
+		return nil
+	}
 	zScore := (currentRate - stats.mean) / stats.stdDev
 	madScore := (currentRate - stats.median) / stats.mad
 	percentageDiff := ((currentRate - stats.mean) / stats.mean) * 100
