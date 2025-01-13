@@ -132,8 +132,6 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 	}, nil
 }
 
-// move delimiter to transform block
-
 // Start starts the rehydration receiver
 func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) error {
 	if r.cfg.StorageID != nil {
@@ -143,7 +141,11 @@ func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) er
 		}
 		r.checkpointStore = checkpointStore
 	}
-	go r.streamRehydrateBlobs(ctx)
+
+	cancelCtx, cancel := context.WithCancel(ctx)
+	r.cancelFunc = cancel
+
+	go r.streamRehydrateBlobs(cancelCtx)
 	return nil
 }
 
@@ -175,13 +177,10 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 		prefix = &r.cfg.RootFolder
 	}
 
-	cancelCtx, cancel := context.WithCancel(ctx)
-	r.cancelFunc = cancel
-
 	startTime := time.Now()
 	r.logger.Info("Starting rehydration", zap.Time("startTime", startTime))
 
-	go r.azureClient.StreamBlobs(cancelCtx, r.cfg.Container, prefix, r.errChan, r.blobChan, r.doneChan)
+	go r.azureClient.StreamBlobs(ctx, r.cfg.Container, prefix, r.errChan, r.blobChan, r.doneChan)
 
 	for {
 		select {
@@ -201,6 +200,7 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 
 func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azureblob.BlobInfo) {
 	// Go through each blob and parse it's path to determine if we should consume it or not
+	r.logger.Debug("parsing through blobs", zap.Int("num_blobs", len(blobs)))
 	for _, blob := range blobs {
 		select {
 		case <-ctx.Done():
@@ -230,7 +230,6 @@ func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azure
 				if !errors.Is(err, context.Canceled) {
 					r.logger.Error("Error consuming blob", zap.String("blob", blob.Name), zap.Error(err))
 				}
-
 				continue
 			}
 

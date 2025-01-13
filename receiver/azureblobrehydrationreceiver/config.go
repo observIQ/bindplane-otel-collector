@@ -25,7 +25,7 @@ import (
 
 // Config is the configuration for the azure blob rehydration receiver
 type Config struct {
-	// BatchSize is the number of blobs to process entering the pipeline in a single batch. (default 1000)
+	// BatchSize is the number of blobs to process entering the pipeline in a single batch. (default 100)
 	BatchSize int `mapstructure:"batch_size"`
 
 	// ConnectionString is the Azure Blob Storage connection key,
@@ -48,6 +48,17 @@ type Config struct {
 	// Default value of false
 	DeleteOnRead bool `mapstructure:"delete_on_read"`
 
+	// Deprecated: PollInterval is no longer required due to streaming blobs for processing.
+	// if a value is provided, validation will throw an error
+	// PollInterval is the interval at which the Azure API is scanned for blobs.
+	// Default value of 1m
+	PollInterval time.Duration `mapstructure:"poll_interval"`
+
+	// Deprecated: PollTimeout is no longer required due to streaming blobs for processing.
+	// if a value is provided, validation will throw an error
+	// PollTimeout is the timeout for the Azure API to scan for blobs.
+	PollTimeout time.Duration `mapstructure:"poll_timeout"`
+
 	// PageSize is the number of blobs to request from the Azure API at a time. (default 1000)
 	PageSize int `mapstructure:"page_size"`
 
@@ -57,6 +68,14 @@ type Config struct {
 
 // Validate validates the config
 func (c *Config) Validate() error {
+	if c.PollInterval != 0 {
+		return errors.New("poll_interval is no longer supported and batch_size/page_size should be used instead")
+	}
+
+	if c.PollTimeout != 0 {
+		return errors.New("poll_timeout is no longer supported and batch_size/page_size should be used instead")
+	}
+
 	if c.BatchSize < 1 {
 		return errors.New("batch_size must be greater than 0")
 	}
