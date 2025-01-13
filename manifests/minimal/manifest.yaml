@@ -2,7 +2,7 @@ dist:
   module: github.com/observiq/bindplane-otel-collector-ocb
   name: observiq-distro
   description: ObservIQ's minimal distro for OpenTelemetry Collector
-  version: "v0.0.1"
+
   output_path: ./dist
 conf_resolver:
   default_uri_scheme: "env"
