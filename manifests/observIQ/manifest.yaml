@@ -243,6 +243,8 @@ receivers:
     path: "./receiver/routereceiver"
   - gomod: github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver v1.68.0
     path: "./receiver/sapnetweaverreceiver"
+  - gomod: github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver v1.68.0
+    path: "./receiver/splunksearchapireceiver"
   - gomod: github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.68.0
     path: "./receiver/telemetrygeneratorreceiver"
 connectors:
