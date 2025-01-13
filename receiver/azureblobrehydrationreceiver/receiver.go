@@ -201,7 +201,6 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 
 func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azureblob.BlobInfo) {
 	// Go through each blob and parse it's path to determine if we should consume it or not
-	numProcessedBlobs := 0
 	for _, blob := range blobs {
 		select {
 		case <-ctx.Done():
@@ -235,8 +234,7 @@ func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azure
 				continue
 			}
 
-			numProcessedBlobs++
-			r.logger.Debug("Processed blob", zap.String("blob", blob.Name), zap.Int("num_processed_blobs", numProcessedBlobs))
+			r.logger.Debug("Processed blob", zap.String("blob", blob.Name))
 
 			// Delete blob if configured to do so
 			if r.cfg.DeleteOnRead {
