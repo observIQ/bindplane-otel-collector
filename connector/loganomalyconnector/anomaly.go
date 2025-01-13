@@ -151,7 +151,7 @@ func calculateStatistics(rates []float64) Statistics {
 
 // checkForAnomaly performs the anomaly detection
 func (d *Detector) checkForAnomaly() *AnomalyStat {
-	if len(d.rateHistory) < 10 {
+	if len(d.rateHistory) < 1 {
 		return nil
 	}
 
