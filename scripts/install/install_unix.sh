@@ -804,16 +804,16 @@ install_package() {
         if lssrc -s bindplane-otel-collector > /dev/null 2>&1; then
           rmssys -s bindplane-otel-collector
         else
-          mkssys -s bindplane-otel-collector -p /opt/bindplane-otel-collector/bindplane-otel-collector -u "$(id -u bindplane-otel-collector)" -S -n15 -f9 -a '--config config.yaml --manager manager.yaml --logging logging.yaml'
+          mkssys -s bindplane-otel-collector -p /opt/bindplane-otel-collector/opampsupervisor -u "$(id -u bindplane-otel-collector)" -S -n15 -f9 -a '--config supervisor.yaml'
         fi
 
         # Install the service to start on boot
         # Removing it if it exists, in order to have the most recent version
-        if lsitab oiqcollector > /dev/null 2>&1; then
-          rmitab oiqcollector
+        if lsitab bpcollector > /dev/null 2>&1; then
+          rmitab bpcollector
         else
           # shellcheck disable=SC2016
-          mkitab 'oiqcollector:23456789:respawn:startsrc -s bindplane-otel-collector -a start -e "$(cat /etc/bindplane-otel-collector.aix.env)"'
+          mkitab 'bpcollector:23456789:respawn:startsrc -s bindplane-otel-collector -a start -e "$(cat /etc/bindplane-otel-collector.aix.env)"'
         fi
 
         # Start the service with the proper environment variables
@@ -842,7 +842,7 @@ install_aix()
   mkdir -p /opt/bindplane-otel-collector/storage > /dev/null 2>&1
 
   # Extract 
-  zcat "$out_file_path" | tar -Uxvf - -C /opt/bindplane-otel-collector > /dev/null 2>&1
+  gunzip -c "$out_file_path" | tar -Uxvf - -C /opt/bindplane-otel-collector > /dev/null 2>&1
 
   # Move files to appropriate locations
   mv /opt/bindplane-otel-collector/opentelemetry-java-contrib-jmx-metrics.jar /opt/ > /dev/null 2>&1
@@ -952,7 +952,7 @@ display_results() {
     info "Supervisor Stop Command:       $(fg_cyan "sudo service bindplane-otel-collector stop")$(reset)"
     info "Supervisor Status Command:     $(fg_cyan "sudo service bindplane-otel-collector status")$(reset)"
   elif [ "$SVC_PRE" = "mkssys" ]; then
-    info "Supervisor Start Command:      $(fg_cyan "sudo startsrc -s bindplane-otel-collector -a start -e "$(cat /opt/bindplane-otel-collector/bindplane-otel-collector.env)"")$(reset)"
+    info "Supervisor Start Command:      $(fg_cyan "sudo startsrc -s bindplane-otel-collector -a start -e \"\$(cat /etc/bindplane-otel-collector.env)\"")$(reset)"
     info "Supervisor Stop Command:       $(fg_cyan "sudo stopsrc -s bindplane-otel-collector")$(reset)"
     info "Supervisor Status Command:     $(fg_cyan "sudo lssrc -s bindplane-otel-collector")$(reset)"
   fi
@@ -1043,9 +1043,9 @@ uninstall()
 
     # Remove the service
     info "Disabling service..."
-    if lsitab oiqcollector > /dev/null 2>&1; then
+    if lsitab bpcollector > /dev/null 2>&1; then
       # Removing start on boot for the service
-      rmitab oiqcollector
+      rmitab bpcollector
     fi
     if lssrc -s bindplane-otel-collector > /dev/null 2>&1; then
       # Removing actual service entry
