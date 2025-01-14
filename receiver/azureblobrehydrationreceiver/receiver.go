@@ -134,6 +134,8 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 
 // Start starts the rehydration receiver
 func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) error {
+	r.logAnyDeprecationWarnings()
+
 	if r.cfg.StorageID != nil {
 		checkpointStore, err := rehydration.NewCheckpointStorage(ctx, host, *r.cfg.StorageID, r.id, r.supportedTelemetry)
 		if err != nil {
@@ -147,6 +149,16 @@ func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) er
 
 	go r.streamRehydrateBlobs(cancelCtx)
 	return nil
+}
+
+func (r *rehydrationReceiver) logAnyDeprecationWarnings() {
+	if r.cfg.PollInterval != 0 {
+		r.logger.Warn("poll_interval is no longer recognized and will be removed in a future release. batch_size/page_size should be used instead")
+	}
+
+	if r.cfg.PollTimeout != 0 {
+		r.logger.Warn("poll_timeout is no longer recognized and will be removed in a future release. batch_size/page_size should be used instead")
+	}
 }
 
 // Shutdown shuts down the rehydration receiver

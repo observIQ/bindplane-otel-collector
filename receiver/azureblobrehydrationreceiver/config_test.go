@@ -126,6 +126,21 @@ func TestConfigValidate(t *testing.T) {
 			expectErr: errors.New("ending_time must be at least one minute after starting_time"),
 		},
 		{
+			desc: "with deprecated poll_interval",
+			cfg: &Config{
+				ConnectionString: "connection_string",
+				Container:        "container",
+				RootFolder:       "root",
+				StartingTime:     "2023-10-02T17:00",
+				EndingTime:       "2023-10-02T17:01",
+				DeleteOnRead:     false,
+				BatchSize:        100,
+				PageSize:         1000,
+			},
+			// expect no error until future release where poll_interval is removed
+			expectErr: nil,
+		},
+		{
 			desc: "Bad batch_size",
 			cfg: &Config{
 				ConnectionString: "connection_string",

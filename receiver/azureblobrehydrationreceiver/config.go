@@ -68,14 +68,6 @@ type Config struct {
 
 // Validate validates the config
 func (c *Config) Validate() error {
-	if c.PollInterval != 0 {
-		return errors.New("poll_interval is no longer supported and batch_size/page_size should be used instead")
-	}
-
-	if c.PollTimeout != 0 {
-		return errors.New("poll_timeout is no longer supported and batch_size/page_size should be used instead")
-	}
-
 	if c.BatchSize < 1 {
 		return errors.New("batch_size must be greater than 0")
 	}

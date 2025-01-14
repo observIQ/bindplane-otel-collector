@@ -19,6 +19,8 @@ import (
 	"compress/gzip"
 	"context"
 	"errors"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -29,6 +31,7 @@ import (
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/pipeline"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
 	"github.com/observiq/bindplane-otel-collector/internal/testutils"
@@ -514,6 +517,47 @@ func Test_processBlob(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLogsDeprecationWarnings(t *testing.T) {
+	mockClient := setNewAzureBlobClient(t)
+
+	testLogger, ol := observer.New(zap.WarnLevel)
+
+	r := &rehydrationReceiver{
+		logger: zap.New(testLogger),
+		cfg: &Config{
+			StartingTime: "2023-10-02T17:00",
+			EndingTime:   "2023-10-02T17:01",
+			PollInterval: 1 * time.Second,
+			PollTimeout:  1 * time.Second,
+		},
+		azureClient:     mockClient,
+		blobChan:        make(chan *azureblob.BlobResults),
+		errChan:         make(chan error),
+		doneChan:        make(chan struct{}),
+		mut:             &sync.Mutex{},
+		checkpointStore: rehydration.NewNopStorage(),
+	}
+	mockClient.On("StreamBlobs", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
+		close(r.doneChan)
+	})
+
+	require.NoError(t, r.Start(context.Background(), componenttest.NewNopHost()))
+
+	require.Eventually(t, func() bool {
+		foundBothLogs := false
+		foundPollInterval := false
+		for _, log := range ol.All() {
+			if strings.Contains(log.Message, "poll_interval is no longer recognized and will be removed in a future release. batch_size/page_size should be used instead") {
+				foundBothLogs = true
+			}
+			if strings.Contains(log.Message, "poll_interval is no longer recognized and will be removed in a future release. batch_size/page_size should be used instead") {
+				foundPollInterval = true
+			}
+		}
+		return foundBothLogs && foundPollInterval
+	}, 10*time.Second, 1*time.Second)
 }
 
 // setNewAzureBlobClient helper function used to set the newAzureBlobClient
