@@ -66,6 +66,22 @@
       "system": "yes",
       "action": "set",
       "part": "all"
+    },
+    {
+      "name": "OIQ_USER_GROUP_SID",
+      "value": "System.Security.Principal.SecurityIdentifier('S-1-5-32-545')",
+      "permanent": "no",
+      "system": "yes",
+      "action": "set",
+      "part": "all"
+    },
+    {
+      "name": "OIQ_USER_GROUP_NAME",
+      "value": "[OIQ_USER_GROUP_SID].Translate([System.Security.Principal.NTAccount]).Value",
+      "permanent": "no",
+      "system": "yes",
+      "action": "set",
+      "part": "all"
     }
   ],
   "registries": [
