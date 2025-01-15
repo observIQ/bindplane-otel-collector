@@ -182,7 +182,6 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 		r.logger.Error("Error while saving checkpoint", zap.Error(err))
 		err = errors.Join(err, err)
 	}
-	r.logger.Info("last blob that was processed", zap.String("blob", r.lastBlob.Name), zap.Time("time", *r.lastBlobTime))
 	err = errors.Join(err, r.checkpointStore.Close(ctx))
 	return err
 }
