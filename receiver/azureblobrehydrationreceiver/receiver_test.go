@@ -145,9 +145,7 @@ func Test_fullRehydration(t *testing.T) {
 		require.NoError(t, err)
 
 		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
-			r.blobChan <- &azureblob.BlobResults{
-				Blobs: returnedBlobInfo,
-			}
+			r.blobChan <- returnedBlobInfo
 			close(r.doneChan)
 		})
 
@@ -190,9 +188,7 @@ func Test_fullRehydration(t *testing.T) {
 
 		// Setup mocks
 		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
-			r.blobChan <- &azureblob.BlobResults{
-				Blobs: returnedBlobInfo,
-			}
+			r.blobChan <- returnedBlobInfo
 			close(r.doneChan)
 		})
 		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
@@ -234,9 +230,7 @@ func Test_fullRehydration(t *testing.T) {
 		require.NoError(t, err)
 
 		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
-			r.blobChan <- &azureblob.BlobResults{
-				Blobs: returnedBlobInfo,
-			}
+			r.blobChan <- returnedBlobInfo
 			close(r.doneChan)
 		})
 		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
@@ -281,9 +275,7 @@ func Test_fullRehydration(t *testing.T) {
 		require.NoError(t, err)
 
 		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
-			r.blobChan <- &azureblob.BlobResults{
-				Blobs: returnedBlobInfo,
-			}
+			r.blobChan <- returnedBlobInfo
 			close(r.doneChan)
 		})
 		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
@@ -334,9 +326,7 @@ func Test_fullRehydration(t *testing.T) {
 		require.NoError(t, err)
 
 		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
-			r.blobChan <- &azureblob.BlobResults{
-				Blobs: returnedBlobInfo,
-			}
+			r.blobChan <- returnedBlobInfo
 			close(r.doneChan)
 		})
 		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
@@ -389,9 +379,7 @@ func Test_fullRehydration(t *testing.T) {
 		require.NoError(t, err)
 
 		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
-			r.blobChan <- &azureblob.BlobResults{
-				Blobs: returnedBlobInfo,
-			}
+			r.blobChan <- returnedBlobInfo
 			close(r.doneChan)
 		})
 		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
@@ -535,7 +523,7 @@ func TestLogsDeprecationWarnings(t *testing.T) {
 			PollTimeout:  1 * time.Second,
 		},
 		azureClient:     mockClient,
-		blobChan:        make(chan *azureblob.BlobResults),
+		blobChan:        make(chan []*azureblob.BlobInfo),
 		errChan:         make(chan error),
 		doneChan:        make(chan struct{}),
 		mut:             &sync.Mutex{},

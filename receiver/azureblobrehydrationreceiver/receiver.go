@@ -45,7 +45,7 @@ type rehydrationReceiver struct {
 	checkpoint         *rehydration.CheckPoint
 	checkpointStore    rehydration.CheckpointStorer
 
-	blobChan chan *azureblob.BlobResults
+	blobChan chan []*azureblob.BlobInfo
 	errChan  chan error
 	doneChan chan struct{}
 
@@ -101,6 +101,10 @@ func newTracesReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextCon
 	return r, nil
 }
 
+// factor of buffered channel size
+// number of blobs to process at a time is blobChanSize * batchSize
+const blobChanSize = 5
+
 // newRehydrationReceiver creates a new rehydration receiver
 func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*rehydrationReceiver, error) {
 	azureClient, err := newAzureBlobClient(cfg.ConnectionString, cfg.BatchSize, cfg.PageSize)
@@ -128,7 +132,7 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 		checkpointStore: rehydration.NewNopStorage(),
 		startingTime:    startingTime,
 		endingTime:      endingTime,
-		blobChan:        make(chan *azureblob.BlobResults),
+		blobChan:        make(chan []*azureblob.BlobInfo, blobChanSize),
 		errChan:         make(chan error),
 		doneChan:        make(chan struct{}),
 		mut:             &sync.Mutex{},
@@ -168,6 +172,9 @@ func (r *rehydrationReceiver) logAnyDeprecationWarnings() {
 // Shutdown shuts down the rehydration receiver
 func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 	var err error
+	// we can wait for the wg to finish as we know that all the in-flight blobs are done processing
+	r.wg.Wait()
+
 	if r.cancelFunc != nil {
 		r.cancelFunc()
 	}
@@ -175,6 +182,7 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 		r.logger.Error("Error while saving checkpoint", zap.Error(err))
 		err = errors.Join(err, err)
 	}
+	r.logger.Info("last blob that was processed", zap.String("blob", r.lastBlob.Name), zap.Time("time", *r.lastBlobTime))
 	err = errors.Join(err, r.checkpointStore.Close(ctx))
 	return err
 }
@@ -210,17 +218,12 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 			r.logger.Error("Error streaming blobs, stopping rehydration", zap.Error(err), zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
 			return
 		case br := <-r.blobChan:
-			numProcessedBlobs := r.rehydrateBlobs(ctx, br.Blobs)
+			numProcessedBlobs := r.rehydrateBlobs(ctx, br)
 			if numProcessedBlobs != 0 {
 				emptyPolls = 0
 				continue
 			}
-
 			emptyPolls++
-			if emptyPolls == emptyPollLimit {
-				r.logger.Warn("No blobs processed for 3 consecutive polls, assuming no more blobs to process")
-				return
-			}
 		}
 	}
 }
@@ -262,7 +265,6 @@ func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azure
 					return
 				default:
 				}
-
 				// Process and consume the blob at the given path
 				if err := r.processBlob(ctx, blob); err != nil {
 					// If the error is because the context was canceled, then we don't want to log it

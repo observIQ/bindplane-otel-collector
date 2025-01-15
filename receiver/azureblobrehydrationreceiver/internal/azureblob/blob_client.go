@@ -42,7 +42,7 @@ type BlobClient interface {
 
 	// StreamBlobs will stream BlobInfo to the blobChan and errors to the errChan, generally if an errChan gets an item
 	// then the stream should be stopped
-	StreamBlobs(ctx context.Context, container string, prefix *string, errChan chan error, blobChan chan *BlobResults, doneChan chan struct{})
+	StreamBlobs(ctx context.Context, container string, prefix *string, errChan chan error, blobChan chan []*BlobInfo, doneChan chan struct{})
 }
 
 type blobClient interface {
@@ -73,15 +73,9 @@ func NewAzureBlobClient(connectionString string, batchSize, pageSize int) (BlobC
 	}, nil
 }
 
-// BlobResults contains the blobs for the receiver to process and the last marker
-type BlobResults struct {
-	Blobs      []*BlobInfo
-	LastMarker *string
-}
-
 // StreamBlobs will stream blobs to the blobChan and errors to the errChan, generally if an errChan gets an item
 // then the stream should be stopped
-func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix *string, errChan chan error, blobChan chan *BlobResults, doneChan chan struct{}) {
+func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix *string, errChan chan error, blobChan chan []*BlobInfo, doneChan chan struct{}) {
 	var marker *string
 
 	pager := a.azClient.NewListBlobsFlatPager(container, &azblob.ListBlobsFlatOptions{
@@ -116,18 +110,12 @@ func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix 
 				}
 				batch = append(batch, info)
 				if len(batch) == int(a.batchSize) {
-					blobChan <- &BlobResults{
-						Blobs:      batch,
-						LastMarker: marker,
-					}
+					blobChan <- batch
 					batch = []*BlobInfo{}
 				}
 			}
 
-			blobChan <- &BlobResults{
-				Blobs:      batch,
-				LastMarker: marker,
-			}
+			blobChan <- batch
 			marker = resp.NextMarker
 		}
 	}
