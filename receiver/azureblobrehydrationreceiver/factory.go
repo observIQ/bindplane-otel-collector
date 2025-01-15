@@ -27,6 +27,9 @@ import (
 // errImproperCfgType error for when an invalid config type is passed to receiver creation funcs
 var errImproperCfgType = errors.New("improper config type")
 
+const defaultBatchSize = 30
+const defaultPageSize = 1000
+
 // NewFactory creates a new receiver factory
 func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
@@ -42,8 +45,8 @@ func NewFactory() receiver.Factory {
 func createDefaultConfig() component.Config {
 	return &Config{
 		DeleteOnRead: false,
-		BatchSize:    100,
-		PageSize:     1000,
+		BatchSize:    defaultBatchSize,
+		PageSize:     defaultPageSize,
 	}
 }
 

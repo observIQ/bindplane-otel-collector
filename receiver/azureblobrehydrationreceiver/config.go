@@ -25,7 +25,7 @@ import (
 
 // Config is the configuration for the azure blob rehydration receiver
 type Config struct {
-	// BatchSize is the number of blobs to process entering the pipeline in a single batch. (default 100)
+	// BatchSize is the number of blobs to process entering the pipeline in a single batch. (default 30)
 	BatchSize int `mapstructure:"batch_size"`
 
 	// ConnectionString is the Azure Blob Storage connection key,

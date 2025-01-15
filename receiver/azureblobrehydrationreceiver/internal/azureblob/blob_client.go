@@ -66,15 +66,12 @@ func NewAzureBlobClient(connectionString string, batchSize, pageSize int) (BlobC
 	if err != nil {
 		return nil, err
 	}
-
 	return &AzureClient{
 		azClient:  azClient,
 		batchSize: batchSize,
 		pageSize:  int32(pageSize),
 	}, nil
 }
-
-const emptyPollLimit = 3
 
 // BlobResults contains the blobs for the receiver to process and the last marker
 type BlobResults struct {
@@ -86,25 +83,18 @@ type BlobResults struct {
 // then the stream should be stopped
 func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix *string, errChan chan error, blobChan chan *BlobResults, doneChan chan struct{}) {
 	var marker *string
+
 	pager := a.azClient.NewListBlobsFlatPager(container, &azblob.ListBlobsFlatOptions{
 		Marker:     marker,
 		Prefix:     prefix,
 		MaxResults: &a.pageSize,
 	})
 
-	emptyPollCount := 0
 	for pager.More() {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			// If we had empty polls for the last 3 times, then we can assume that there are no more blobs to process
-			// and we can close the stream to avoid charging for the requests
-			if emptyPollCount == emptyPollLimit {
-				close(doneChan)
-				return
-			}
-
 			resp, err := pager.NextPage(ctx)
 			if err != nil {
 				errChan <- fmt.Errorf("error streaming blobs: %w", err)
@@ -134,12 +124,6 @@ func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix 
 				}
 			}
 
-			if len(batch) == 0 {
-				emptyPollCount++
-				continue
-			}
-
-			emptyPollCount = 0
 			blobChan <- &BlobResults{
 				Blobs:      batch,
 				LastMarker: marker,

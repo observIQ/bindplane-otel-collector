@@ -302,10 +302,12 @@ func Test_fullRehydration(t *testing.T) {
 	})
 
 	t.Run("Delete on Read", func(t *testing.T) {
-		cfg.DeleteOnRead = true
-		t.Cleanup(func() {
-			cfg.DeleteOnRead = false
-		})
+		deleteCfg := &Config{
+			StartingTime: cfg.StartingTime,
+			EndingTime:   cfg.EndingTime,
+			Container:    cfg.Container,
+			DeleteOnRead: true,
+		}
 
 		// Test data
 		logs, jsonBytes := testutils.GenerateTestLogs(t)
@@ -328,7 +330,7 @@ func Test_fullRehydration(t *testing.T) {
 		mockClient := setNewAzureBlobClient(t)
 		// Create new receiver
 		testConsumer := &consumertest.LogsSink{}
-		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
+		r, err := newLogsReceiver(id, testLogger, deleteCfg, testConsumer)
 		require.NoError(t, err)
 
 		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {

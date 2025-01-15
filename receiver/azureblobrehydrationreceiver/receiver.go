@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
@@ -48,7 +49,9 @@ type rehydrationReceiver struct {
 	errChan  chan error
 	doneChan chan struct{}
 
+	// mutexes for ensuring a thread safe checkpoint
 	mut *sync.Mutex
+	wg  *sync.WaitGroup
 
 	lastBlob     *azureblob.BlobInfo
 	lastBlobTime *time.Time
@@ -129,6 +132,7 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 		errChan:         make(chan error),
 		doneChan:        make(chan struct{}),
 		mut:             &sync.Mutex{},
+		wg:              &sync.WaitGroup{},
 	}, nil
 }
 
@@ -164,7 +168,6 @@ func (r *rehydrationReceiver) logAnyDeprecationWarnings() {
 // Shutdown shuts down the rehydration receiver
 func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 	var err error
-	// If we have called started then close and wait for goroutine to finish
 	if r.cancelFunc != nil {
 		r.cancelFunc()
 	}
@@ -194,6 +197,8 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 
 	go r.azureClient.StreamBlobs(ctx, r.cfg.Container, prefix, r.errChan, r.blobChan, r.doneChan)
 
+	emptyPolls := 0
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -205,18 +210,31 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 			r.logger.Error("Error streaming blobs, stopping rehydration", zap.Error(err), zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
 			return
 		case br := <-r.blobChan:
-			r.rehydrateBlobs(ctx, br.Blobs)
+			numProcessedBlobs := r.rehydrateBlobs(ctx, br.Blobs)
+			if numProcessedBlobs != 0 {
+				emptyPolls = 0
+				continue
+			}
+
+			emptyPolls++
+			if emptyPolls == emptyPollLimit {
+				r.logger.Warn("No blobs processed for 3 consecutive polls, assuming no more blobs to process")
+				return
+			}
 		}
 	}
 }
 
-func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azureblob.BlobInfo) {
+const emptyPollLimit = 5
+
+func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azureblob.BlobInfo) (numProcessedBlobs int) {
 	// Go through each blob and parse it's path to determine if we should consume it or not
 	r.logger.Debug("parsing through blobs", zap.Int("num_blobs", len(blobs)))
+	processedBlobCount := atomic.Int64{}
 	for _, blob := range blobs {
 		select {
 		case <-ctx.Done():
-			return
+			return int(processedBlobCount.Load())
 		default:
 		}
 
@@ -236,29 +254,40 @@ func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azure
 			r.lastBlob = blob
 			r.lastBlobTime = blobTime
 
-			// Process and consume the blob at the given path
-			if err := r.processBlob(ctx, blob); err != nil {
-				// If the error is because the context was canceled, then we don't want to log it
-				if !errors.Is(err, context.Canceled) {
-					r.logger.Error("Error consuming blob", zap.String("blob", blob.Name), zap.Error(err))
+			r.wg.Add(1)
+			go func() {
+				defer r.wg.Done()
+				select {
+				case <-ctx.Done():
+					return
+				default:
 				}
-				continue
-			}
 
-			r.logger.Debug("Processed blob", zap.String("blob", blob.Name))
+				// Process and consume the blob at the given path
+				if err := r.processBlob(ctx, blob); err != nil {
+					// If the error is because the context was canceled, then we don't want to log it
+					if !errors.Is(err, context.Canceled) {
+						r.logger.Error("Error consuming blob", zap.String("blob", blob.Name), zap.Error(err))
+					}
+					return
+				}
+				processedBlobCount.Add(1)
 
-			// Delete blob if configured to do so
-			if r.cfg.DeleteOnRead {
-				if err := r.azureClient.DeleteBlob(ctx, r.cfg.Container, blob.Name); err != nil {
+				// Delete blob if configured to do so
+				if err := r.conditionallyDeleteBlob(ctx, blob); err != nil {
 					r.logger.Error("Error while attempting to delete blob", zap.String("blob", blob.Name), zap.Error(err))
 				}
-			}
+			}()
 		}
 	}
 
 	if err := r.makeCheckpoint(ctx); err != nil {
 		r.logger.Error("Error while saving checkpoint", zap.Error(err))
 	}
+
+	r.wg.Wait()
+
+	return int(processedBlobCount.Load())
 }
 
 // processBlob does the following:
@@ -311,4 +340,11 @@ func (r *rehydrationReceiver) makeCheckpoint(ctx context.Context) error {
 	defer r.mut.Unlock()
 	r.checkpoint.UpdateCheckpoint(*r.lastBlobTime, r.lastBlob.Name)
 	return r.checkpointStore.SaveCheckpoint(ctx, r.checkpointKey(), r.checkpoint)
+}
+
+func (r *rehydrationReceiver) conditionallyDeleteBlob(ctx context.Context, blob *azureblob.BlobInfo) error {
+	if !r.cfg.DeleteOnRead {
+		return nil
+	}
+	return r.azureClient.DeleteBlob(ctx, r.cfg.Container, blob.Name)
 }

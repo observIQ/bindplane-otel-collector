@@ -33,8 +33,8 @@ This is not a traditional receiver that continually produces data but rather reh
 | storage | string | | `false` | The component ID of a storage extension. The storage extension prevents duplication of data after a collector restart by remembering which blobs were previously rehydrated. |
 | poll_interval* | string | | `false` | The interval at which the Azure API is scanned for blobs. |
 | poll_timeout* | string | | `false` | The timeout for the Azure API to scan for blobs. |
-| batch_size | int | `100` | `false` | The number of blobs to continue processing in the pipeline before sending more data to the pipeline. |
-| page_size | int | `1000` | `false` | The maximum number of blobs to request in a single API call. |
+| batch_size | int | `30` | `false` | The number of blobs to download and process in the pipeline simultaneously. This parameter directly impacts performance by controlling the concurrent blob download limit. |
+| page_size | int | `1000` | `false` | The maximum number of blob information to request in a single API call. |
 
 > Deprecated*: `poll_interval` and `poll_timeout` are no longer supported and `batch_size`/`page_size` should be used instead.
 
