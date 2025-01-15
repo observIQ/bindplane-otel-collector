@@ -237,7 +237,7 @@ func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azure
 	for _, blob := range blobs {
 		select {
 		case <-ctx.Done():
-			return int(processedBlobCount.Load())
+			break
 		default:
 		}
 
