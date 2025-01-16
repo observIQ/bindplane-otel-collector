@@ -178,13 +178,8 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 	shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	var errs error
-
 	// signal shutdown intent
-	select {
-	case r.doneChan <- struct{}{}:
-	default:
-	}
+	close(r.doneChan)
 
 	// wait for any in-progress operations to finish
 	done := make(chan struct{})
@@ -199,6 +194,7 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 		return fmt.Errorf("shutdown timeout: %w", shutdownCtx.Err())
 	}
 
+	var errs error
 	if err := r.makeCheckpoint(shutdownCtx); err != nil {
 		r.logger.Error("Error while saving checkpoint", zap.Error(err))
 		err = errors.Join(err, err)
@@ -228,6 +224,7 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			r.logger.Info("Context cancelled, stopping rehydration", zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
 			return
 		case <-r.doneChan:
 			r.logger.Info("Finished rehydrating blobs", zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
@@ -237,6 +234,7 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 			return
 		case br, ok := <-r.blobChan:
 			if !ok {
+				r.logger.Info("Finished rehydrating blobs", zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
 				return
 			}
 			numProcessedBlobs := r.rehydrateBlobs(ctx, br)
@@ -249,7 +247,7 @@ const emptyPollLimit = 5
 
 func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azureblob.BlobInfo) (numProcessedBlobs int) {
 	// Go through each blob and parse it's path to determine if we should consume it or not
-	r.logger.Debug("parsing through blobs", zap.Int("num_blobs", len(blobs)))
+	r.logger.Debug("received a batch of blobs, parsing through them to determine if they should be rehydrated", zap.Int("num_blobs", len(blobs)))
 	processedBlobCount := atomic.Int64{}
 	for _, blob := range blobs {
 		select {

@@ -13,12 +13,14 @@ This is not a traditional receiver that continually produces data but rather reh
 - Traces
 
 ## How it works
-1. The receiver polls blob storage for pages of blobs in the specified container. There is no current way of specifying a time range to rehydrate so any blobs outside fo the time range still  need to be retrieved from the API in order to filter via the `starting_time` and `ending_time` configuration.
+1. The receiver polls blob storage for pages of blobs in the specified container.
 2. The receiver will parse each blob's path to determine if it matches a path created by the [Azure Blob Exporter](../../exporter/azureblobexporter/README.md#blob-path).
 3. If the blob path is from the exporter, the receiver will parse the timestamp represented by the path.
 4. If the timestamp is within the configured range the receiver will download the blob and parse its contents into OTLP data.
 
     a. The receiver will process both uncompressed JSON blobs and blobs compressed with gzip.
+
+> Note: There is no current way of specifying a time range to rehydrate so any blobs outside fo the time range still  need to be retrieved from the API in order to filter via the `starting_time` and `ending_time` configuration.
 
 ## Configuration
 

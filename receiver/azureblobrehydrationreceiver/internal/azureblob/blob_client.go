@@ -89,35 +89,36 @@ func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix 
 		case <-ctx.Done():
 			return
 		default:
-			resp, err := pager.NextPage(ctx)
-			if err != nil {
-				errChan <- fmt.Errorf("error streaming blobs: %w", err)
-				return
-			}
-
-			batch := []*BlobInfo{}
-			for _, blob := range resp.Segment.BlobItems {
-				if blob.Deleted != nil && *blob.Deleted {
-					continue
-				}
-				if blob.Name == nil || blob.Properties == nil || blob.Properties.ContentLength == nil {
-					continue
-				}
-
-				info := &BlobInfo{
-					Name: *blob.Name,
-					Size: *blob.Properties.ContentLength,
-				}
-				batch = append(batch, info)
-				if len(batch) == int(a.batchSize) {
-					blobChan <- batch
-					batch = []*BlobInfo{}
-				}
-			}
-
-			blobChan <- batch
-			marker = resp.NextMarker
 		}
+
+		resp, err := pager.NextPage(ctx)
+		if err != nil {
+			errChan <- fmt.Errorf("error streaming blobs: %w", err)
+			return
+		}
+
+		batch := []*BlobInfo{}
+		for _, blob := range resp.Segment.BlobItems {
+			if blob.Deleted != nil && *blob.Deleted {
+				continue
+			}
+			if blob.Name == nil || blob.Properties == nil || blob.Properties.ContentLength == nil {
+				continue
+			}
+
+			info := &BlobInfo{
+				Name: *blob.Name,
+				Size: *blob.Properties.ContentLength,
+			}
+			batch = append(batch, info)
+			if len(batch) == int(a.batchSize) {
+				blobChan <- batch
+				batch = []*BlobInfo{}
+			}
+		}
+
+		blobChan <- batch
+		marker = resp.NextMarker
 	}
 
 	close(doneChan)
