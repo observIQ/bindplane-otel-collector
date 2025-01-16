@@ -175,7 +175,7 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 		r.cancelFunc()
 	}
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	var errs error
