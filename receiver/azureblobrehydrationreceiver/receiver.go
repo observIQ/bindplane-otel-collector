@@ -171,19 +171,40 @@ func (r *rehydrationReceiver) logAnyDeprecationWarnings() {
 
 // Shutdown shuts down the rehydration receiver
 func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
-	var err error
-	// we can wait for the wg to finish as we know that all the in-flight blobs are done processing
-	r.wg.Wait()
-
 	if r.cancelFunc != nil {
 		r.cancelFunc()
 	}
-	if err := r.makeCheckpoint(ctx); err != nil {
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var errs error
+
+	// signal shutdown intent
+	select {
+	case r.doneChan <- struct{}{}:
+	default:
+	}
+
+	// wait for any in-progress operations to finish
+	done := make(chan struct{})
+	go func() {
+		r.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-shutdownCtx.Done():
+		return fmt.Errorf("shutdown timeout: %w", shutdownCtx.Err())
+	}
+
+	if err := r.makeCheckpoint(shutdownCtx); err != nil {
 		r.logger.Error("Error while saving checkpoint", zap.Error(err))
 		err = errors.Join(err, err)
 	}
-	err = errors.Join(err, r.checkpointStore.Close(ctx))
-	return err
+
+	return errors.Join(errs, r.checkpointStore.Close(shutdownCtx))
 }
 
 func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
@@ -204,8 +225,6 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 
 	go r.azureClient.StreamBlobs(ctx, r.cfg.Container, prefix, r.errChan, r.blobChan, r.doneChan)
 
-	emptyPolls := 0
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -216,13 +235,12 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 		case err := <-r.errChan:
 			r.logger.Error("Error streaming blobs, stopping rehydration", zap.Error(err), zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
 			return
-		case br := <-r.blobChan:
-			numProcessedBlobs := r.rehydrateBlobs(ctx, br)
-			if numProcessedBlobs != 0 {
-				emptyPolls = 0
-				continue
+		case br, ok := <-r.blobChan:
+			if !ok {
+				return
 			}
-			emptyPolls++
+			numProcessedBlobs := r.rehydrateBlobs(ctx, br)
+			r.logger.Debug("Processed a number of blobs", zap.Int("num_processed_blobs", numProcessedBlobs))
 		}
 	}
 }
@@ -253,9 +271,6 @@ func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azure
 				continue
 			}
 
-			r.lastBlob = blob
-			r.lastBlobTime = blobTime
-
 			r.wg.Add(1)
 			go func() {
 				defer r.wg.Done()
@@ -278,15 +293,22 @@ func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azure
 				if err := r.conditionallyDeleteBlob(ctx, blob); err != nil {
 					r.logger.Error("Error while attempting to delete blob", zap.String("blob", blob.Name), zap.Error(err))
 				}
+
+				if r.lastBlobTime == nil || r.lastBlobTime.Before(*blobTime) {
+					r.mut.Lock()
+					r.lastBlob = blob
+					r.lastBlobTime = blobTime
+					r.mut.Unlock()
+				}
 			}()
 		}
 	}
 
+	r.wg.Wait()
+
 	if err := r.makeCheckpoint(ctx); err != nil {
 		r.logger.Error("Error while saving checkpoint", zap.Error(err))
 	}
-
-	r.wg.Wait()
 
 	return int(processedBlobCount.Load())
 }

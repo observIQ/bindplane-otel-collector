@@ -146,7 +146,6 @@ func Test_fullRehydration(t *testing.T) {
 
 		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
 			r.blobChan <- returnedBlobInfo
-			close(r.doneChan)
 		})
 
 		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
@@ -189,7 +188,6 @@ func Test_fullRehydration(t *testing.T) {
 		// Setup mocks
 		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
 			r.blobChan <- returnedBlobInfo
-			close(r.doneChan)
 		})
 		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 			require.Len(t, buf, int(expectedBuffSize))
@@ -231,7 +229,6 @@ func Test_fullRehydration(t *testing.T) {
 
 		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
 			r.blobChan <- returnedBlobInfo
-			close(r.doneChan)
 		})
 		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 			require.Len(t, buf, int(expectedBuffSize))
@@ -276,7 +273,6 @@ func Test_fullRehydration(t *testing.T) {
 
 		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
 			r.blobChan <- returnedBlobInfo
-			close(r.doneChan)
 		})
 		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 			require.Len(t, buf, int(expectedBuffSize))
@@ -327,7 +323,6 @@ func Test_fullRehydration(t *testing.T) {
 
 		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
 			r.blobChan <- returnedBlobInfo
-			close(r.doneChan)
 		})
 		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 			require.Len(t, buf, int(expectedBuffSize))
@@ -380,7 +375,6 @@ func Test_fullRehydration(t *testing.T) {
 
 		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
 			r.blobChan <- returnedBlobInfo
-			close(r.doneChan)
 		})
 		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 			require.Len(t, buf, int(expectedBuffSize))
