@@ -118,7 +118,6 @@ func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix 
 		}
 
 		blobChan <- batch
-		marker = resp.NextMarker
 	}
 
 	close(doneChan)
