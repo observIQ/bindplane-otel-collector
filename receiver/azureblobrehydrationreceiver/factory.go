@@ -17,7 +17,6 @@ package azureblobrehydrationreceiver //import "github.com/observiq/bindplane-ote
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver/internal/metadata"
 	"go.opentelemetry.io/collector/component"
@@ -27,6 +26,9 @@ import (
 
 // errImproperCfgType error for when an invalid config type is passed to receiver creation funcs
 var errImproperCfgType = errors.New("improper config type")
+
+const defaultBatchSize = 30
+const defaultPageSize = 1000
 
 // NewFactory creates a new receiver factory
 func NewFactory() receiver.Factory {
@@ -43,8 +45,8 @@ func NewFactory() receiver.Factory {
 func createDefaultConfig() component.Config {
 	return &Config{
 		DeleteOnRead: false,
-		PollInterval: time.Minute,
-		PollTimeout:  time.Second * 30,
+		BatchSize:    defaultBatchSize,
+		PageSize:     defaultPageSize,
 	}
 }
 

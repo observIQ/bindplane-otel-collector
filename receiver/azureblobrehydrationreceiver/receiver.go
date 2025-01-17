@@ -19,6 +19,8 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
@@ -40,15 +42,24 @@ type rehydrationReceiver struct {
 	azureClient        azureblob.BlobClient
 	supportedTelemetry pipeline.Signal
 	consumer           rehydration.Consumer
+	checkpoint         *rehydration.CheckPoint
 	checkpointStore    rehydration.CheckpointStorer
+
+	blobChan chan []*azureblob.BlobInfo
+	errChan  chan error
+	doneChan chan struct{}
+
+	// mutexes for ensuring a thread safe checkpoint
+	mut *sync.Mutex
+	wg  *sync.WaitGroup
+
+	lastBlob     *azureblob.BlobInfo
+	lastBlobTime *time.Time
 
 	startingTime time.Time
 	endingTime   time.Time
 
-	doneChan   chan struct{}
-	started    bool
-	ctx        context.Context
-	cancelFunc context.CancelCauseFunc
+	cancelFunc context.CancelFunc
 }
 
 // newMetricsReceiver creates a new metrics specific receiver.
@@ -90,9 +101,13 @@ func newTracesReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextCon
 	return r, nil
 }
 
+// factor of buffered channel size
+// number of blobs to process at a time is blobChanSize * batchSize
+const blobChanSize = 5
+
 // newRehydrationReceiver creates a new rehydration receiver
 func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*rehydrationReceiver, error) {
-	azureClient, err := newAzureBlobClient(cfg.ConnectionString)
+	azureClient, err := newAzureBlobClient(cfg.ConnectionString, cfg.BatchSize, cfg.PageSize)
 	if err != nil {
 		return nil, fmt.Errorf("new Azure client: %w", err)
 	}
@@ -109,170 +124,203 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 		return nil, fmt.Errorf("invalid ending_time timestamp: %w", err)
 	}
 
-	ctx, cancel := context.WithCancelCause(context.Background())
-
 	return &rehydrationReceiver{
 		logger:          logger,
 		id:              id,
 		cfg:             cfg,
 		azureClient:     azureClient,
-		doneChan:        make(chan struct{}),
 		checkpointStore: rehydration.NewNopStorage(),
 		startingTime:    startingTime,
 		endingTime:      endingTime,
-		ctx:             ctx,
-		cancelFunc:      cancel,
+		blobChan:        make(chan []*azureblob.BlobInfo, blobChanSize),
+		errChan:         make(chan error),
+		doneChan:        make(chan struct{}),
+		mut:             &sync.Mutex{},
+		wg:              &sync.WaitGroup{},
 	}, nil
 }
 
 // Start starts the rehydration receiver
 func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) error {
+	r.logAnyDeprecationWarnings()
 
 	if r.cfg.StorageID != nil {
 		checkpointStore, err := rehydration.NewCheckpointStorage(ctx, host, *r.cfg.StorageID, r.id, r.supportedTelemetry)
 		if err != nil {
 			return fmt.Errorf("NewCheckpointStorage: %w", err)
 		}
-
 		r.checkpointStore = checkpointStore
 	}
 
-	r.started = true
-	go r.scrape()
+	cancelCtx, cancel := context.WithCancel(ctx)
+	r.cancelFunc = cancel
+
+	go r.streamRehydrateBlobs(cancelCtx)
 	return nil
+}
+
+func (r *rehydrationReceiver) logAnyDeprecationWarnings() {
+	if r.cfg.PollInterval != 0 {
+		r.logger.Warn("poll_interval is no longer recognized and will be removed in a future release. batch_size/page_size should be used instead")
+	}
+
+	if r.cfg.PollTimeout != 0 {
+		r.logger.Warn("poll_timeout is no longer recognized and will be removed in a future release. batch_size/page_size should be used instead")
+	}
 }
 
 // Shutdown shuts down the rehydration receiver
 func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
-	r.cancelFunc(errors.New("shutdown"))
-	var err error
-
-	// If we have called started then close and wait for goroutine to finish
-	if r.started {
-		select {
-		case <-ctx.Done():
-			err = ctx.Err()
-		case <-r.doneChan:
-		}
+	if r.cancelFunc != nil {
+		r.cancelFunc()
 	}
 
-	err = errors.Join(err, r.checkpointStore.Close(ctx))
+	shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 
-	return err
+	// signal shutdown intent
+	close(r.doneChan)
+
+	// wait for any in-progress operations to finish
+	done := make(chan struct{})
+	go func() {
+		r.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-shutdownCtx.Done():
+		return fmt.Errorf("shutdown timeout: %w", shutdownCtx.Err())
+	}
+
+	var errs error
+	if err := r.makeCheckpoint(shutdownCtx); err != nil {
+		errs = errors.Join(errs, fmt.Errorf("error while saving checkpoint: %w", err))
+	}
+
+	if err := r.checkpointStore.Close(shutdownCtx); err != nil {
+		errs = errors.Join(errs, fmt.Errorf("error while closing checkpoint store: %w", err))
+	}
+
+	return errs
 }
 
-// emptyPollLimit is the number of consecutive empty polling cycles that can
-// occur before we stop polling.
-const emptyPollLimit = 3
-
-// scrape scrapes the Azure api on interval
-func (r *rehydrationReceiver) scrape() {
-	defer close(r.doneChan)
-	ticker := time.NewTicker(r.cfg.PollInterval)
-	defer ticker.Stop()
-
-	var marker *string
-
-	// load the previous checkpoint. If not exist should return zero value for time
-	checkpoint, err := r.checkpointStore.LoadCheckPoint(r.ctx, r.checkpointKey())
+func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
+	checkpoint, err := r.checkpointStore.LoadCheckPoint(ctx, r.checkpointKey())
 	if err != nil {
 		r.logger.Warn("Error loading checkpoint, continuing without a previous checkpoint", zap.Error(err))
 		checkpoint = rehydration.NewCheckpoint()
 	}
+	r.checkpoint = checkpoint
 
-	// Call once before the loop to ensure we do a collection before the first ticker
-	numBlobsRehydrated := r.rehydrateBlobs(checkpoint, marker)
-	emptyBlobCounter := checkBlobCount(numBlobsRehydrated, 0)
-
-	for {
-		select {
-		case <-r.ctx.Done():
-			return
-		case <-ticker.C:
-			// Polling for blobs has egress charges so we want to stop polling
-			// after we stop finding blobs.
-			if emptyBlobCounter == emptyPollLimit {
-				return
-			}
-
-			numBlobsRehydrated := r.rehydrateBlobs(checkpoint, marker)
-			emptyBlobCounter = checkBlobCount(numBlobsRehydrated, emptyBlobCounter)
-		}
-	}
-}
-
-// rehydrateBlobs pulls blob paths from the UI and if they are within the specified
-// time range then the blobs will be downloaded and rehydrated.
-// The passed in checkpoint and marker will be updated and should be used in the next iteration.
-// The count of blobs processed will be returned
-func (r *rehydrationReceiver) rehydrateBlobs(checkpoint *rehydration.CheckPoint, marker *string) (numBlobsRehydrated int) {
 	var prefix *string
 	if r.cfg.RootFolder != "" {
 		prefix = &r.cfg.RootFolder
 	}
 
-	ctxTimeout, cancel := context.WithTimeout(r.ctx, r.cfg.PollTimeout)
-	defer cancel()
+	startTime := time.Now()
+	r.logger.Info("Starting rehydration", zap.Time("startTime", startTime))
 
-	// get blobs from Azure
-	blobs, nextMarker, err := r.azureClient.ListBlobs(ctxTimeout, r.cfg.Container, prefix, marker)
-	if err != nil {
-		r.logger.Error("Failed to list blobs", zap.Error(err))
-		return
+	go r.azureClient.StreamBlobs(ctx, r.cfg.Container, prefix, r.errChan, r.blobChan, r.doneChan)
+
+	for {
+		select {
+		case <-ctx.Done():
+			r.logger.Info("Context cancelled, stopping rehydration", zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
+			return
+		case <-r.doneChan:
+			r.logger.Info("Finished rehydrating blobs", zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
+			return
+		case err := <-r.errChan:
+			r.logger.Error("Error streaming blobs, stopping rehydration", zap.Error(err), zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
+			return
+		case br, ok := <-r.blobChan:
+			if !ok {
+				r.logger.Info("Finished rehydrating blobs", zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
+				return
+			}
+			numProcessedBlobs := r.rehydrateBlobs(ctx, br)
+			r.logger.Debug("Processed a number of blobs", zap.Int("num_processed_blobs", numProcessedBlobs))
+		}
 	}
+}
 
-	marker = nextMarker
-
+func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azureblob.BlobInfo) (numProcessedBlobs int) {
 	// Go through each blob and parse it's path to determine if we should consume it or not
+	r.logger.Debug("Received a batch of blobs, parsing through them to determine if they should be rehydrated", zap.Int("num_blobs", len(blobs)))
+	processedBlobCount := atomic.Int64{}
 	for _, blob := range blobs {
+		select {
+		case <-ctx.Done():
+			break
+		default:
+		}
+
 		blobTime, telemetryType, err := rehydration.ParseEntityPath(blob.Name)
 		switch {
 		case errors.Is(err, rehydration.ErrInvalidEntityPath):
 			r.logger.Debug("Skipping Blob, non-matching blob path", zap.String("blob", blob.Name))
 		case err != nil:
 			r.logger.Error("Error processing blob path", zap.String("blob", blob.Name), zap.Error(err))
-		case checkpoint.ShouldParse(*blobTime, blob.Name):
+		case r.checkpoint.ShouldParse(*blobTime, blob.Name):
 			// if the blob is not in the specified time range or not of the telemetry type supported by this receiver
 			// then skip consuming it.
 			if !rehydration.IsInTimeRange(*blobTime, r.startingTime, r.endingTime) || telemetryType != r.supportedTelemetry {
 				continue
 			}
 
-			// Process and consume the blob at the given path
-			if err := r.processBlob(blob); err != nil {
-				r.logger.Error("Error consuming blob", zap.String("blob", blob.Name), zap.Error(err))
-				continue
-			}
+			r.wg.Add(1)
+			go func() {
+				defer r.wg.Done()
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+				// Process and consume the blob at the given path
+				if err := r.processBlob(ctx, blob); err != nil {
+					// If the error is because the context was canceled, then we don't want to log it
+					if !errors.Is(err, context.Canceled) {
+						r.logger.Error("Error consuming blob", zap.String("blob", blob.Name), zap.Error(err))
+					}
+					return
+				}
+				processedBlobCount.Add(1)
 
-			numBlobsRehydrated++
-
-			// Update and save the checkpoint with the most recently processed blob
-			checkpoint.UpdateCheckpoint(*blobTime, blob.Name)
-			if err := r.checkpointStore.SaveCheckpoint(r.ctx, r.checkpointKey(), checkpoint); err != nil {
-				r.logger.Error("Error while saving checkpoint", zap.Error(err))
-			}
-
-			// Delete blob if configured to do so
-			if r.cfg.DeleteOnRead {
-				if err := r.azureClient.DeleteBlob(r.ctx, r.cfg.Container, blob.Name); err != nil {
+				// Delete blob if configured to do so
+				if err := r.conditionallyDeleteBlob(ctx, blob); err != nil {
 					r.logger.Error("Error while attempting to delete blob", zap.String("blob", blob.Name), zap.Error(err))
 				}
-			}
+
+				if r.lastBlobTime == nil || r.lastBlobTime.Before(*blobTime) {
+					r.mut.Lock()
+					r.lastBlob = blob
+					r.lastBlobTime = blobTime
+					r.mut.Unlock()
+				}
+			}()
 		}
 	}
 
-	return
+	r.wg.Wait()
+
+	if err := r.makeCheckpoint(ctx); err != nil {
+		r.logger.Error("Error while saving checkpoint", zap.Error(err))
+	}
+
+	return int(processedBlobCount.Load())
 }
 
 // processBlob does the following:
 // 1. Downloads the blob
 // 2. Decompresses the blob if applicable
 // 3. Pass the blob to the consumer
-func (r *rehydrationReceiver) processBlob(blob *azureblob.BlobInfo) error {
+func (r *rehydrationReceiver) processBlob(ctx context.Context, blob *azureblob.BlobInfo) error {
 	// Allocate a buffer the size of the blob. If the buffer isn't big enough download errors.
 	blobBuffer := make([]byte, blob.Size)
 
-	size, err := r.azureClient.DownloadBlob(r.ctx, r.cfg.Container, blob.Name, blobBuffer)
+	size, err := r.azureClient.DownloadBlob(ctx, r.cfg.Container, blob.Name, blobBuffer)
 	if err != nil {
 		return fmt.Errorf("download blob: %w", err)
 	}
@@ -291,7 +339,7 @@ func (r *rehydrationReceiver) processBlob(blob *azureblob.BlobInfo) error {
 		return fmt.Errorf("unsupported file type: %s", ext)
 	}
 
-	if err := r.consumer.Consume(r.ctx, blobBuffer); err != nil {
+	if err := r.consumer.Consume(ctx, blobBuffer); err != nil {
 		return fmt.Errorf("consume: %w", err)
 	}
 	return nil
@@ -305,16 +353,20 @@ func (r *rehydrationReceiver) checkpointKey() string {
 	return fmt.Sprintf("%s_%s_%s", checkpointStorageKey, r.id, r.supportedTelemetry.String())
 }
 
-// checkBlobCount checks the number of blobs rehydrated and the current state of the
-// empty counter. If zero blobs were rehydrated increment the counter.
-// If there were blobs rehydrated reset the counter as we want to track consecutive zero sized polls.
-func checkBlobCount(numBlobsRehydrated, emptyBlobsCounter int) int {
-	switch {
-	case emptyBlobsCounter == emptyPollLimit: // If we are at the limit return the limit
-		return emptyPollLimit
-	case numBlobsRehydrated == 0: // If no blobs were rehydrated then increment the empty blobs counter
-		return emptyBlobsCounter + 1
-	default: // Default case is numBlobsRehydrated > 0 so reset emptyBlobsCounter to 0
-		return 0
+func (r *rehydrationReceiver) makeCheckpoint(ctx context.Context) error {
+	if r.lastBlob == nil || r.lastBlobTime == nil {
+		return nil
 	}
+	r.logger.Debug("Making checkpoint", zap.String("blob", r.lastBlob.Name), zap.Time("time", *r.lastBlobTime))
+	r.mut.Lock()
+	defer r.mut.Unlock()
+	r.checkpoint.UpdateCheckpoint(*r.lastBlobTime, r.lastBlob.Name)
+	return r.checkpointStore.SaveCheckpoint(ctx, r.checkpointKey(), r.checkpoint)
+}
+
+func (r *rehydrationReceiver) conditionallyDeleteBlob(ctx context.Context, blob *azureblob.BlobInfo) error {
+	if !r.cfg.DeleteOnRead {
+		return nil
+	}
+	return r.azureClient.DeleteBlob(ctx, r.cfg.Container, blob.Name)
 }
