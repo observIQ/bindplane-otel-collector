@@ -357,12 +357,12 @@ func (r *rehydrationReceiver) saveCheckpointData(objectTime *time.Time, objectNa
 }
 
 func (r *rehydrationReceiver) handleCheckpoint(ctx context.Context) error {
-	r.checkpointMutex.Lock()
-	defer r.checkpointMutex.Unlock()
-
 	if r.lastObjectName == "" || r.lastObjectTime == nil {
 		return nil
 	}
+
+	r.checkpointMutex.Lock()
+	defer r.checkpointMutex.Unlock()
 
 	// update && store checkpoint
 	r.checkpoint.UpdateCheckpoint(*r.lastObjectTime, r.lastObjectName)
