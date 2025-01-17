@@ -281,6 +281,9 @@ func (r *rehydrationReceiver) rehydrate(ctx context.Context, objects []*aws.Obje
 	}
 
 	r.wg.Wait()
+	if err := r.handleCheckpoint(ctx); err != nil {
+		r.logger.Error("Error saving checkpoint", zap.Error(err))
+	}
 	r.logger.Info("Successfully rehydrated objects", zap.Int64("number of objects processed", processedObjectsCount.Load()))
 }
 
