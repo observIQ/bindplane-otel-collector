@@ -47,11 +47,18 @@ type Config struct {
 	// RoleArn the role ARN to be assumed
 	RoleArn string `mapstructure:"role_arn"`
 
-	// PollInterval is the interval at which the Azure API is scanned for blobs.
-	// Default value of 1m
+	// PollSize is the max number of objects to be returned by a single poll against the S3 API.
+	// Default value of 1000
+	PollSize int `mapstructure:"poll_size"`
+
+	// BatchSize is the max number of objects to process at once after retrieving from the S3 API.
+	// Default value of 100
+	BatchSize int `mapstructure:"batch_size"`
+
+	// PollInterval (Deprecated) is the interval at which the Azure API is scanned for blobs.
 	PollInterval time.Duration `mapstructure:"poll_interval"`
 
-	// PollTimeout is the timeout for the Azure API to scan for blobs.
+	// PollTimeout (Deprecated) is the timeout for the Azure API to scan for blobs.
 	PollTimeout time.Duration `mapstructure:"poll_timeout"`
 
 	// ID of the storage extension to use for storing progress
@@ -83,12 +90,12 @@ func (c *Config) Validate() error {
 		return errors.New("ending_time must be at least one minute after starting_time")
 	}
 
-	if c.PollInterval < time.Second {
-		return errors.New("poll_interval must be at least one second")
+	if c.PollSize < 1 {
+		return errors.New("poll_size must be greater than 0")
 	}
 
-	if c.PollTimeout < time.Second {
-		return errors.New("poll_timeout must be at least one second")
+	if c.BatchSize < 1 {
+		return errors.New("batch_size must be greater than 0")
 	}
 
 	return nil
