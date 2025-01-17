@@ -139,7 +139,7 @@ func Test_fullRehydration(t *testing.T) {
 
 		// Setup mocks
 		mockClient := setNewAWSClient(t)
-		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(args mock.Arguments) {
+		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(_ mock.Arguments) {
 			r.objectChan <- returnedObjectInfo
 		})
 		mockClient.EXPECT().DownloadObject(mock.Anything, cfg.S3Bucket, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
@@ -186,7 +186,7 @@ func Test_fullRehydration(t *testing.T) {
 
 		// Setup mocks
 		mockClient := setNewAWSClient(t)
-		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(args mock.Arguments) {
+		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(_ mock.Arguments) {
 			r.objectChan <- returnedObjectInfo
 		})
 		mockClient.EXPECT().DownloadObject(mock.Anything, cfg.S3Bucket, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
@@ -233,7 +233,7 @@ func Test_fullRehydration(t *testing.T) {
 
 		// Setup mocks
 		mockClient := setNewAWSClient(t)
-		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(args mock.Arguments) {
+		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(_ mock.Arguments) {
 			r.objectChan <- returnedObjectInfo
 		})
 		mockClient.EXPECT().DownloadObject(mock.Anything, cfg.S3Bucket, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
@@ -281,7 +281,7 @@ func Test_fullRehydration(t *testing.T) {
 
 		// Setup mocks
 		mockClient := setNewAWSClient(t)
-		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(args mock.Arguments) {
+		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(_ mock.Arguments) {
 			r.objectChan <- returnedObjectInfo
 		})
 		mockClient.EXPECT().DownloadObject(mock.Anything, cfg.S3Bucket, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
@@ -333,7 +333,7 @@ func Test_fullRehydration(t *testing.T) {
 
 		// Setup mocks
 		mockClient := setNewAWSClient(t)
-		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(args mock.Arguments) {
+		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(_ mock.Arguments) {
 			r.objectChan <- returnedObjectInfo
 		})
 		mockClient.EXPECT().DownloadObject(mock.Anything, cfg.S3Bucket, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
@@ -387,7 +387,7 @@ func Test_fullRehydration(t *testing.T) {
 
 		// Setup mocks
 		mockClient := setNewAWSClient(t)
-		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(args mock.Arguments) {
+		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(_ mock.Arguments) {
 			r.objectChan <- returnedObjectInfo
 		})
 		mockClient.EXPECT().DownloadObject(mock.Anything, cfg.S3Bucket, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {

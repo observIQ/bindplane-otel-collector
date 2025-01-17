@@ -74,6 +74,7 @@ func NewAWSClient(logger *zap.Logger, region string, pollSize, batchSize int) (S
 	}, nil
 }
 
+// StreamObjects continuously pulls & batches ObjectInfo from S3 before sending down the objectChan.
 func (a *DefaultClient) StreamObjects(ctx context.Context, bucket, prefix string, objectChan chan *ObjectResults, errChan chan error, doneChan chan struct{}) {
 	objectPaginator := s3.NewListObjectsV2Paginator(&a.client, &s3.ListObjectsV2Input{
 		Bucket:  aws.String(bucket),
