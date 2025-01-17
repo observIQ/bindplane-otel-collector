@@ -16,7 +16,6 @@ package awss3rehydrationreceiver //import "github.com/observiq/bindplane-otel-co
 
 import (
 	"context"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -113,48 +112,36 @@ func Test_fullRehydration(t *testing.T) {
 		DeleteOnRead: false,
 	}
 
-	t.Run("empty blob polling", func(t *testing.T) {
-		var listCounter atomic.Int32
+	t.Run("metrics", func(t *testing.T) {
+		// Test data
+		metrics, jsonBytes := testutils.GenerateTestMetrics(t)
+		expectedBuffSize := int64(len(jsonBytes))
 
-		// Setup mocks
-		mockClient := setNewAWSClient(t)
-		mockClient.EXPECT().ListObjects(mock.Anything, cfg.S3Bucket, (*string)(nil), (*string)(nil)).Times(3).Return([]*aws.ObjectInfo{}, nil, nil).
-			Run(func(_ mock.Arguments) {
-				listCounter.Add(1)
-			})
+		returnedObjectInfo := &aws.ObjectResults{
+			Objects: []*aws.ObjectInfo{
+				{
+					Name: "year=2023/month=10/day=02/hour=17/minute=05/blobmetrics_12345.json",
+					Size: expectedBuffSize,
+				},
+				{
+					Name: "year=2023/month=10/day=01/hour=17/minute=05/blobmetrics_7890.json",
+					Size: 5,
+				},
+			},
+		}
+
+		targetBlob := returnedObjectInfo.Objects[0]
 
 		// Create new receiver
 		testConsumer := &consumertest.MetricsSink{}
 		r, err := newMetricsReceiver(id, testLogger, cfg, testConsumer)
 		require.NoError(t, err)
 
-		checkFunc := func() bool {
-			return listCounter.Load() == 3
-		}
-		runRehydrationValidateTest(t, r, checkFunc)
-	})
-
-	t.Run("metrics", func(t *testing.T) {
-		// Test data
-		metrics, jsonBytes := testutils.GenerateTestMetrics(t)
-		expectedBuffSize := int64(len(jsonBytes))
-
-		returnedBlobInfo := []*aws.ObjectInfo{
-			{
-				Name: "year=2023/month=10/day=02/hour=17/minute=05/blobmetrics_12345.json",
-				Size: expectedBuffSize,
-			},
-			{
-				Name: "year=2023/month=10/day=01/hour=17/minute=05/blobmetrics_7890.json",
-				Size: 5,
-			},
-		}
-
-		targetBlob := returnedBlobInfo[0]
-
 		// Setup mocks
 		mockClient := setNewAWSClient(t)
-		mockClient.EXPECT().ListObjects(mock.Anything, cfg.S3Bucket, (*string)(nil), (*string)(nil)).Return(returnedBlobInfo, nil, nil)
+		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(args mock.Arguments) {
+			r.objectChan <- returnedObjectInfo
+		})
 		mockClient.EXPECT().DownloadObject(mock.Anything, cfg.S3Bucket, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 			require.Len(t, buf, int(expectedBuffSize))
 
@@ -163,10 +150,7 @@ func Test_fullRehydration(t *testing.T) {
 			return expectedBuffSize, nil
 		})
 
-		// Create new receiver
-		testConsumer := &consumertest.MetricsSink{}
-		r, err := newMetricsReceiver(id, testLogger, cfg, testConsumer)
-		require.NoError(t, err)
+		r.awsClient = mockClient
 
 		checkFunc := func() bool {
 			return testConsumer.DataPointCount() == metrics.DataPointCount()
@@ -180,22 +164,31 @@ func Test_fullRehydration(t *testing.T) {
 		traces, jsonBytes := testutils.GenerateTestTraces(t)
 		expectedBuffSize := int64(len(jsonBytes))
 
-		returnedBlobInfo := []*aws.ObjectInfo{
-			{
-				Name: "year=2023/month=10/day=02/hour=17/minute=05/blobtraces_12345.json",
-				Size: expectedBuffSize,
-			},
-			{
-				Name: "year=2023/month=10/day=01/hour=17/minute=05/blobtraces_7890.json",
-				Size: 5,
+		returnedObjectInfo := &aws.ObjectResults{
+			Objects: []*aws.ObjectInfo{
+				{
+					Name: "year=2023/month=10/day=02/hour=17/minute=05/blobtraces_12345.json",
+					Size: expectedBuffSize,
+				},
+				{
+					Name: "year=2023/month=10/day=01/hour=17/minute=05/blobtraces_7890.json",
+					Size: 5,
+				},
 			},
 		}
 
-		targetBlob := returnedBlobInfo[0]
+		targetBlob := returnedObjectInfo.Objects[0]
+
+		// Create new receiver
+		testConsumer := &consumertest.TracesSink{}
+		r, err := newTracesReceiver(id, testLogger, cfg, testConsumer)
+		require.NoError(t, err)
 
 		// Setup mocks
 		mockClient := setNewAWSClient(t)
-		mockClient.EXPECT().ListObjects(mock.Anything, cfg.S3Bucket, (*string)(nil), (*string)(nil)).Return(returnedBlobInfo, nil, nil)
+		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(args mock.Arguments) {
+			r.objectChan <- returnedObjectInfo
+		})
 		mockClient.EXPECT().DownloadObject(mock.Anything, cfg.S3Bucket, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 			require.Len(t, buf, int(expectedBuffSize))
 
@@ -204,10 +197,7 @@ func Test_fullRehydration(t *testing.T) {
 			return expectedBuffSize, nil
 		})
 
-		// Create new receiver
-		testConsumer := &consumertest.TracesSink{}
-		r, err := newTracesReceiver(id, testLogger, cfg, testConsumer)
-		require.NoError(t, err)
+		r.awsClient = mockClient
 
 		checkFunc := func() bool {
 			return testConsumer.SpanCount() == traces.SpanCount()
@@ -221,22 +211,31 @@ func Test_fullRehydration(t *testing.T) {
 		logs, jsonBytes := testutils.GenerateTestLogs(t)
 		expectedBuffSize := int64(len(jsonBytes))
 
-		returnedBlobInfo := []*aws.ObjectInfo{
-			{
-				Name: "year=2023/month=10/day=02/hour=17/minute=05/bloblogs_12345.json",
-				Size: expectedBuffSize,
-			},
-			{
-				Name: "year=2023/month=10/day=01/hour=17/minute=05/bloblogs_7890.json",
-				Size: 5,
+		returnedObjectInfo := &aws.ObjectResults{
+			Objects: []*aws.ObjectInfo{
+				{
+					Name: "year=2023/month=10/day=02/hour=17/minute=05/bloblogs_12345.json",
+					Size: expectedBuffSize,
+				},
+				{
+					Name: "year=2023/month=10/day=01/hour=17/minute=05/bloblogs_7890.json",
+					Size: 5,
+				},
 			},
 		}
 
-		targetBlob := returnedBlobInfo[0]
+		targetBlob := returnedObjectInfo.Objects[0]
+
+		// Create new receiver
+		testConsumer := &consumertest.LogsSink{}
+		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
+		require.NoError(t, err)
 
 		// Setup mocks
 		mockClient := setNewAWSClient(t)
-		mockClient.EXPECT().ListObjects(mock.Anything, cfg.S3Bucket, (*string)(nil), (*string)(nil)).Return(returnedBlobInfo, nil, nil)
+		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(args mock.Arguments) {
+			r.objectChan <- returnedObjectInfo
+		})
 		mockClient.EXPECT().DownloadObject(mock.Anything, cfg.S3Bucket, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 			require.Len(t, buf, int(expectedBuffSize))
 
@@ -245,10 +244,7 @@ func Test_fullRehydration(t *testing.T) {
 			return expectedBuffSize, nil
 		})
 
-		// Create new receiver
-		testConsumer := &consumertest.LogsSink{}
-		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
-		require.NoError(t, err)
+		r.awsClient = mockClient
 
 		checkFunc := func() bool {
 			return testConsumer.LogRecordCount() == logs.LogRecordCount()
@@ -263,22 +259,31 @@ func Test_fullRehydration(t *testing.T) {
 		compressedBytes := testutils.GZipCompressData(t, jsonBytes)
 		expectedBuffSize := int64(len(compressedBytes))
 
-		returnedBlobInfo := []*aws.ObjectInfo{
-			{
-				Name: "year=2023/month=10/day=02/hour=17/minute=05/bloblogs_12345.json.gz",
-				Size: expectedBuffSize,
-			},
-			{
-				Name: "year=2023/month=10/day=01/hour=17/minute=05/bloblogs_7890.json.gz",
-				Size: 5,
+		returnedObjectInfo := &aws.ObjectResults{
+			Objects: []*aws.ObjectInfo{
+				{
+					Name: "year=2023/month=10/day=02/hour=17/minute=05/bloblogs_12345.json.gz",
+					Size: expectedBuffSize,
+				},
+				{
+					Name: "year=2023/month=10/day=01/hour=17/minute=05/bloblogs_7890.json.gz",
+					Size: 5,
+				},
 			},
 		}
 
-		targetBlob := returnedBlobInfo[0]
+		targetBlob := returnedObjectInfo.Objects[0]
+
+		// Create new receiver
+		testConsumer := &consumertest.LogsSink{}
+		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
+		require.NoError(t, err)
 
 		// Setup mocks
 		mockClient := setNewAWSClient(t)
-		mockClient.EXPECT().ListObjects(mock.Anything, cfg.S3Bucket, (*string)(nil), (*string)(nil)).Return(returnedBlobInfo, nil, nil)
+		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(args mock.Arguments) {
+			r.objectChan <- returnedObjectInfo
+		})
 		mockClient.EXPECT().DownloadObject(mock.Anything, cfg.S3Bucket, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 			require.Len(t, buf, int(expectedBuffSize))
 
@@ -287,10 +292,7 @@ func Test_fullRehydration(t *testing.T) {
 			return expectedBuffSize, nil
 		})
 
-		// Create new receiver
-		testConsumer := &consumertest.LogsSink{}
-		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
-		require.NoError(t, err)
+		r.awsClient = mockClient
 
 		checkFunc := func() bool {
 			return testConsumer.LogRecordCount() == logs.LogRecordCount()
@@ -309,22 +311,31 @@ func Test_fullRehydration(t *testing.T) {
 		logs, jsonBytes := testutils.GenerateTestLogs(t)
 		expectedBuffSize := int64(len(jsonBytes))
 
-		returnedBlobInfo := []*aws.ObjectInfo{
-			{
-				Name: "year=2023/month=10/day=02/hour=17/minute=05/bloblogs_12345.json",
-				Size: expectedBuffSize,
-			},
-			{
-				Name: "year=2023/month=10/day=01/hour=17/minute=05/bloblogs_7890.json",
-				Size: 5,
+		returnedObjectInfo := &aws.ObjectResults{
+			Objects: []*aws.ObjectInfo{
+				{
+					Name: "year=2023/month=10/day=02/hour=17/minute=05/bloblogs_12345.json",
+					Size: expectedBuffSize,
+				},
+				{
+					Name: "year=2023/month=10/day=01/hour=17/minute=05/bloblogs_7890.json",
+					Size: 5,
+				},
 			},
 		}
 
-		targetBlob := returnedBlobInfo[0]
+		targetBlob := returnedObjectInfo.Objects[0]
+
+		// Create new receiver
+		testConsumer := &consumertest.LogsSink{}
+		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
+		require.NoError(t, err)
 
 		// Setup mocks
 		mockClient := setNewAWSClient(t)
-		mockClient.EXPECT().ListObjects(mock.Anything, cfg.S3Bucket, (*string)(nil), (*string)(nil)).Return(returnedBlobInfo, nil, nil)
+		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(args mock.Arguments) {
+			r.objectChan <- returnedObjectInfo
+		})
 		mockClient.EXPECT().DownloadObject(mock.Anything, cfg.S3Bucket, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 			require.Len(t, buf, int(expectedBuffSize))
 
@@ -332,12 +343,9 @@ func Test_fullRehydration(t *testing.T) {
 
 			return expectedBuffSize, nil
 		})
-		mockClient.EXPECT().DeleteObjects(mock.Anything, cfg.S3Bucket, []string{targetBlob.Name}).Return(nil)
+		mockClient.EXPECT().DeleteObject(mock.Anything, cfg.S3Bucket, targetBlob.Name).Return(nil)
 
-		// Create new receiver
-		testConsumer := &consumertest.LogsSink{}
-		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
-		require.NoError(t, err)
+		r.awsClient = mockClient
 
 		checkFunc := func() bool {
 			return testConsumer.LogRecordCount() == logs.LogRecordCount()
@@ -352,27 +360,36 @@ func Test_fullRehydration(t *testing.T) {
 		logs, jsonBytes := testutils.GenerateTestLogs(t)
 		expectedBuffSize := int64(len(jsonBytes))
 
-		returnedBlobInfo := []*aws.ObjectInfo{
-			{
-				Name: "year=2022/month=10/day=02/hour=17/minute=05/bloblogs_12345.json", // Out of time range
-			},
-			{
-				Name: "year=nope/month=10/day=02/hour=17/minute=05/bloblogs_12345.json", // Bad time parsing
-			},
-			{
-				Name: "bloblogs_7890.json", // Invalid path
-			},
-			{
-				Name: "year=2023/month=10/day=02/hour=17/minute=05/bloblogs_12345.json", // blobs are processed in order so adding a good one at the end to test when we are done
-				Size: expectedBuffSize,
+		returnedObjectInfo := &aws.ObjectResults{
+			Objects: []*aws.ObjectInfo{
+				{
+					Name: "year=2022/month=10/day=02/hour=17/minute=05/bloblogs_12345.json", // Out of time range
+				},
+				{
+					Name: "year=nope/month=10/day=02/hour=17/minute=05/bloblogs_12345.json", // Bad time parsing
+				},
+				{
+					Name: "bloblogs_7890.json", // Invalid path
+				},
+				{
+					Name: "year=2023/month=10/day=02/hour=17/minute=05/bloblogs_12345.json", // blobs are processed in order so adding a good one at the end to test when we are done
+					Size: expectedBuffSize,
+				},
 			},
 		}
 
-		targetBlob := returnedBlobInfo[3]
+		targetBlob := returnedObjectInfo.Objects[3]
+
+		// Create new receiver
+		testConsumer := &consumertest.LogsSink{}
+		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
+		require.NoError(t, err)
 
 		// Setup mocks
 		mockClient := setNewAWSClient(t)
-		mockClient.EXPECT().ListObjects(mock.Anything, cfg.S3Bucket, (*string)(nil), (*string)(nil)).Return(returnedBlobInfo, nil, nil)
+		mockClient.EXPECT().StreamObjects(mock.Anything, cfg.S3Bucket, cfg.S3Prefix, mock.Anything, mock.Anything, mock.Anything).Times(1).Return().Run(func(args mock.Arguments) {
+			r.objectChan <- returnedObjectInfo
+		})
 		mockClient.EXPECT().DownloadObject(mock.Anything, cfg.S3Bucket, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 			require.Len(t, buf, int(expectedBuffSize))
 
@@ -381,10 +398,7 @@ func Test_fullRehydration(t *testing.T) {
 			return expectedBuffSize, nil
 		})
 
-		// Create new receiver
-		testConsumer := &consumertest.LogsSink{}
-		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
-		require.NoError(t, err)
+		r.awsClient = mockClient
 
 		checkFunc := func() bool {
 			return testConsumer.LogRecordCount() == logs.LogRecordCount()
@@ -401,7 +415,7 @@ func runRehydrationValidateTest(t *testing.T, r *rehydrationReceiver, checkFunc 
 	require.NoError(t, err)
 
 	// Wait for telemetry to be consumed
-	require.Eventually(t, checkFunc, time.Second, 10*time.Millisecond)
+	require.Eventually(t, checkFunc, 3*time.Second, 10*time.Millisecond)
 
 	// Shutdown receivers
 	err = r.Shutdown(context.Background())
@@ -416,7 +430,7 @@ func setNewAWSClient(t *testing.T) *mocks.MockS3Client {
 
 	mockClient := mocks.NewMockS3Client(t)
 
-	newAWSS3Client = func(_, _ string) (aws.S3Client, error) {
+	newAWSS3Client = func(_ *zap.Logger, _ string, _, _ int) (aws.S3Client, error) {
 		return mockClient, nil
 	}
 

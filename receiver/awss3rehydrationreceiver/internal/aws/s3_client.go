@@ -23,8 +23,21 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"go.uber.org/zap"
 )
+
+// S3Client provides a client for S3 object operations
+//
+//go:generate mockery --name S3Client --output ./mocks --with-expecter --filename mock_s3_client.go --structname MockS3Client
+type S3Client interface {
+	// StreamObjects continuously pulls & batches ObjectInfo from S3 before sending down the objectChan.
+	// Errors are sent down the errChan and stop the process. When no more objects are retrieved from S3, the doneChan is closed.
+	StreamObjects(ctx context.Context, bucket, prefix string, objectChan chan *ObjectResults, errChan chan error, doneChan chan struct{})
+	// DownloadObject downloads the contents of the object into the buffer.
+	DownloadObject(ctx context.Context, bucket, key string, buf []byte) (int64, error)
+	// DeleteObject deletes the object with the given key in the specified bucket
+	DeleteObject(ctx context.Context, bucket string, key string) error
+}
 
 // ObjectInfo contains necessary info to process S3 objects
 type ObjectInfo struct {
@@ -32,78 +45,91 @@ type ObjectInfo struct {
 	Size int64
 }
 
-// S3Client provides a client for S3 object operations
-//
-//go:generate mockery --name S3Client --output ./mocks --with-expecter --filename mock_s3_client.go --structname MockS3Client
-type S3Client interface {
-	// ListObjects returns a list of ObjectInfo objects present in the bucket with the given prefix
-	ListObjects(ctx context.Context, bucket string, prefix, continuationToken *string) ([]*ObjectInfo, *string, error)
-
-	// DownloadObject downloads the contents of the object into the buffer.
-	DownloadObject(ctx context.Context, bucket, key string, buf []byte) (int64, error)
-
-	// DeleteObjects deletes the keys in the specified bucket
-	DeleteObjects(ctx context.Context, bucket string, keys []string) error
+// ObjectResults contain a batch of ObjectInfo
+type ObjectResults struct {
+	Objects []*ObjectInfo
 }
 
 // DefaultClient is an implementation of the S3Client for AWS
 type DefaultClient struct {
-	sessionCfg aws.Config
-	roleArn    string
+	logger *zap.Logger
+	client s3.Client
+
+	pollSize  int
+	batchSize int
 }
 
 // NewAWSClient creates a new AWS Client
-func NewAWSClient(region, roleArn string) (S3Client, error) {
+func NewAWSClient(logger *zap.Logger, region string, pollSize, batchSize int) (S3Client, error) {
 	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(region))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("aws load default config: %w", err)
 	}
 
 	return &DefaultClient{
-		sessionCfg: cfg,
-		roleArn:    roleArn,
+		logger:    logger,
+		client:    *s3.NewFromConfig(cfg),
+		pollSize:  pollSize,
+		batchSize: batchSize,
 	}, nil
 }
 
-// ListObjects list all the objects in the bucket with the given prefix. Uses the continuationToken from the last request for paging.
-func (a *DefaultClient) ListObjects(ctx context.Context, bucket string, prefix, continuationToken *string) ([]*ObjectInfo, *string, error) {
-	svc := s3.NewFromConfig(a.sessionCfg)
+func (a *DefaultClient) StreamObjects(ctx context.Context, bucket, prefix string, objectChan chan *ObjectResults, errChan chan error, doneChan chan struct{}) {
+	objectPaginator := s3.NewListObjectsV2Paginator(&a.client, &s3.ListObjectsV2Input{
+		Bucket:  aws.String(bucket),
+		Prefix:  aws.String(prefix),
+		MaxKeys: aws.Int32(int32(a.pollSize)),
+	})
 
-	input := &s3.ListObjectsV2Input{
-		Bucket:            aws.String(bucket),
-		ContinuationToken: continuationToken,
-		Prefix:            prefix,
-	}
-
-	output, err := svc.ListObjectsV2(ctx, input)
-	if err != nil {
-		return nil, nil, fmt.Errorf("list objects: %w", err)
-	}
-
-	nextToken := output.ContinuationToken
-
-	objects := make([]*ObjectInfo, len(output.Contents))
-
-	for i, object := range output.Contents {
-		// All fields are pointers so check all pointers needed to process are present
-		if object.Key == nil || object.Size == nil {
-			continue
+	for objectPaginator.HasMorePages() {
+		// check context
+		select {
+		case <-ctx.Done():
+			a.logger.Info("Context finished, stopping stream")
+			return
+		default:
 		}
 
-		objects[i] = &ObjectInfo{
-			Name: *object.Key,
-			Size: *object.Size,
+		output, err := objectPaginator.NextPage(ctx)
+		if err != nil {
+			errChan <- fmt.Errorf("next page: %w", err)
+			return
+		}
+
+		batch := []*ObjectInfo{}
+		for _, object := range output.Contents {
+			// verify necessary fields for processing are present
+			if object.Key == nil || object.Size == nil {
+				a.logger.Debug("Not adding object to stream - missing fields needed for processing")
+				continue
+			}
+			// add object; check & send batch if at batch limit
+			batch = append(batch, &ObjectInfo{
+				Name: *object.Key,
+				Size: *object.Size,
+			})
+			if len(batch) == a.batchSize {
+				objectChan <- &ObjectResults{
+					Objects: batch,
+				}
+				batch = []*ObjectInfo{}
+			}
+		}
+
+		// send remaining batch if present
+		if len(batch) != 0 {
+			objectChan <- &ObjectResults{
+				Objects: batch,
+			}
 		}
 	}
-
-	return objects, nextToken, nil
+	a.logger.Info("No more pages to pull from S3, stopping stream")
+	close(doneChan)
 }
 
 // DownloadObject downloads the contents of the object.
 func (a *DefaultClient) DownloadObject(ctx context.Context, bucket, key string, buf []byte) (int64, error) {
-	client := s3.NewFromConfig(a.sessionCfg)
-
-	downloader := manager.NewDownloader(client)
+	downloader := manager.NewDownloader(&a.client)
 
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
@@ -119,28 +145,14 @@ func (a *DefaultClient) DownloadObject(ctx context.Context, bucket, key string, 
 	return n, err
 }
 
-// DeleteObjects deletes the keys in the specified bucket
-func (a *DefaultClient) DeleteObjects(ctx context.Context, bucket string, keys []string) error {
-	client := s3.NewFromConfig(a.sessionCfg)
-
-	objects := make([]types.ObjectIdentifier, len(keys))
-	for i, key := range keys {
-		objects[i] = types.ObjectIdentifier{
-			Key: aws.String(key),
-		}
-	}
-
-	params := &s3.DeleteObjectsInput{
+// DeleteObject deletes the object with the given key in the specified bucket
+func (a *DefaultClient) DeleteObject(ctx context.Context, bucket string, key string) error {
+	_, err := a.client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
-		Delete: &types.Delete{
-			Objects: objects,
-		},
-	}
-
-	_, err := client.DeleteObjects(ctx, params)
+		Key:    aws.String(key),
+	})
 	if err != nil {
-		return fmt.Errorf("delete: %w", err)
+		return fmt.Errorf("s3 delete object: %w", err)
 	}
-
 	return nil
 }
