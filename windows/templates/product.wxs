@@ -75,7 +75,7 @@
                 <Component Id="ProductFolder" Guid="f8525e78-62c7-4665-81ad-f27e936edc88">
                     <CreateFolder>
                         <Permission User="Administrators" GenericAll="yes" />
-                        <Permission User="Users" GenericAll="no" />
+                        <Permission User="[OIQ_USER_GROUP_NAME]" GenericAll="no" />
                     </CreateFolder>
                 </Component>
                 {{define "FILES"}}
