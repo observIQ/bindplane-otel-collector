@@ -20,7 +20,7 @@ This is not a traditional receiver that continually produces data but rather reh
 
     a. The receiver will process both uncompressed JSON blobs and blobs compressed with gzip.
 
-> Note: There is no current way of specifying a time range to rehydrate so any blobs outside fo the time range still  need to be retrieved from the API in order to filter via the `starting_time` and `ending_time` configuration.
+> Note: There is no current way of specifying a time range to rehydrate so any blobs outside of the time range still need to be retrieved from the API in order to filter via the `starting_time` and `ending_time` configuration.
 
 ## Configuration
 

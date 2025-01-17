@@ -196,7 +196,6 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 
 	var errs error
 	if err := r.makeCheckpoint(shutdownCtx); err != nil {
-		r.logger.Error("Error while saving checkpoint", zap.Error(err))
 		errs = errors.Join(errs, fmt.Errorf("error while saving checkpoint: %w", err))
 	}
 
@@ -249,7 +248,7 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 
 func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azureblob.BlobInfo) (numProcessedBlobs int) {
 	// Go through each blob and parse it's path to determine if we should consume it or not
-	r.logger.Debug("received a batch of blobs, parsing through them to determine if they should be rehydrated", zap.Int("num_blobs", len(blobs)))
+	r.logger.Debug("Received a batch of blobs, parsing through them to determine if they should be rehydrated", zap.Int("num_blobs", len(blobs)))
 	processedBlobCount := atomic.Int64{}
 	for _, blob := range blobs {
 		select {
