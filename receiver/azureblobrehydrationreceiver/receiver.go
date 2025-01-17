@@ -101,10 +101,6 @@ func newTracesReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextCon
 	return r, nil
 }
 
-// factor of buffered channel size
-// number of blobs to process at a time is blobChanSize * batchSize
-const blobChanSize = 5
-
 // newRehydrationReceiver creates a new rehydration receiver
 func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*rehydrationReceiver, error) {
 	azureClient, err := newAzureBlobClient(cfg.ConnectionString, cfg.BatchSize, cfg.PageSize)
@@ -132,7 +128,7 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 		checkpointStore: rehydration.NewNopStorage(),
 		startingTime:    startingTime,
 		endingTime:      endingTime,
-		blobChan:        make(chan []*azureblob.BlobInfo, blobChanSize),
+		blobChan:        make(chan []*azureblob.BlobInfo),
 		errChan:         make(chan error),
 		doneChan:        make(chan struct{}),
 		mut:             &sync.Mutex{},
