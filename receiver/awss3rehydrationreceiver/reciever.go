@@ -19,6 +19,8 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
@@ -33,6 +35,9 @@ import (
 // Meant to be overwritten for tests
 var newAWSS3Client = aws.NewAWSClient
 
+// checkpointStorageKey is the key used for storing the checkpoint
+const checkpointStorageKey = "aws_s3_checkpoint"
+
 type rehydrationReceiver struct {
 	logger             *zap.Logger
 	id                 component.ID
@@ -40,15 +45,23 @@ type rehydrationReceiver struct {
 	awsClient          aws.S3Client
 	supportedTelemetry pipeline.Signal
 	consumer           rehydration.Consumer
-	checkpointStore    rehydration.CheckpointStorer
+	wg                 *sync.WaitGroup
+	doneChan           chan struct{}
+	objectChan         chan *aws.ObjectResults
+	errChan            chan error
+
+	checkpoint      *rehydration.CheckPoint
+	checkpointStore rehydration.CheckpointStorer
+	checkpointKey   string
+	checkpointMutex *sync.Mutex
+
+	lastObjectTime *time.Time
+	lastObjectName string
 
 	startingTime time.Time
 	endingTime   time.Time
 
-	doneChan   chan struct{}
-	started    bool
-	ctx        context.Context
-	cancelFunc context.CancelCauseFunc
+	cancelFunc context.CancelFunc
 }
 
 // newMetricsReceiver creates a new metrics specific receiver.
@@ -92,7 +105,7 @@ func newTracesReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextCon
 
 // newRehydrationReceiver creates a new rehydration receiver
 func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*rehydrationReceiver, error) {
-	awsClient, err := newAWSS3Client(cfg.Region, cfg.RoleArn)
+	awsClient, err := newAWSS3Client(logger, cfg.Region, cfg.PollSize, cfg.BatchSize)
 	if err != nil {
 		return nil, fmt.Errorf("new aws s3 client: %w", err)
 	}
@@ -109,168 +122,206 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 		return nil, fmt.Errorf("invalid ending_time timestamp: %w", err)
 	}
 
-	ctx, cancel := context.WithCancelCause(context.Background())
-
 	return &rehydrationReceiver{
 		logger:          logger,
 		id:              id,
 		cfg:             cfg,
 		awsClient:       awsClient,
-		doneChan:        make(chan struct{}),
 		checkpointStore: rehydration.NewNopStorage(),
 		startingTime:    startingTime,
 		endingTime:      endingTime,
-		ctx:             ctx,
-		cancelFunc:      cancel,
+		doneChan:        make(chan struct{}),
+		wg:              &sync.WaitGroup{},
+		checkpointMutex: &sync.Mutex{},
+		objectChan:      make(chan *aws.ObjectResults),
+		errChan:         make(chan error),
 	}, nil
 }
 
 // Start starts the rehydration receiver
 func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) error {
+	r.logDeprecationWarnings()
 
-	if r.cfg.StorageID != nil {
-		checkpointStore, err := rehydration.NewCheckpointStorage(ctx, host, *r.cfg.StorageID, r.id, r.supportedTelemetry)
-		if err != nil {
-			return fmt.Errorf("NewCheckpointStorage: %w", err)
-		}
-
-		r.checkpointStore = checkpointStore
+	if err := r.initCheckpoint(ctx, host); err != nil {
+		return fmt.Errorf("init checkpoint: %w", err)
 	}
 
-	r.started = true
-	go r.scrape()
+	cancelCtx, cancelFunc := context.WithCancel(context.Background())
+	r.cancelFunc = cancelFunc
+
+	go r.stream(cancelCtx)
 	return nil
 }
 
 // Shutdown shuts down the rehydration receiver
 func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
-	r.cancelFunc(errors.New("shutdown"))
-	var err error
+	if r.cancelFunc != nil {
+		r.cancelFunc()
+	}
+	close(r.doneChan)
 
-	// If we have called started then close and wait for goroutine to finish
-	if r.started {
-		select {
-		case <-ctx.Done():
-			err = ctx.Err()
-		case <-r.doneChan:
-		}
+	// wait for any in-progress object rehydrations to finish
+	done := make(chan struct{})
+	go func() {
+		r.wg.Wait()
+		close(done)
+	}()
+
+	shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	select {
+	case <-done:
+	case <-shutdownCtx.Done():
+		return fmt.Errorf("shutdown timeout: %w", shutdownCtx.Err())
 	}
 
-	err = errors.Join(err, r.checkpointStore.Close(ctx))
-
-	return err
+	var errs error
+	if err := r.handleCheckpoint(ctx); err != nil {
+		errs = errors.Join(errs, fmt.Errorf("handle checkpoint: %w", err))
+	}
+	if err := r.checkpointStore.Close(ctx); err != nil {
+		errs = errors.Join(errs, fmt.Errorf("close checkpoint store: %w", err))
+	}
+	return errs
 }
 
-// emptyPollLimit is the number of consecutive empty polling cycles that can
-// occur before we stop polling.
-const emptyPollLimit = 3
+// logDeprecationWarnings logs errors about deprecated parameters and should be removed when deprecation is completed.
+func (r *rehydrationReceiver) logDeprecationWarnings() {
+	if r.cfg.PollInterval != 0 {
+		r.logger.Warn("poll_interval is no longer recognized and will be removed in a future release. poll_size/batch_size should be used instead")
+	}
+	if r.cfg.PollTimeout != 0 {
+		r.logger.Warn("poll_timeout is no longer recognized and will be removed in a future release. poll_size/batch_size should be used instead")
+	}
+}
 
-// scrape scrapes the Azure api on interval
-func (r *rehydrationReceiver) scrape() {
-	defer close(r.doneChan)
-	ticker := time.NewTicker(r.cfg.PollInterval)
-	defer ticker.Stop()
+// initCheckpoint initializes a checkpoint store in an extension if configured & retrieves first checkpoint
+func (r *rehydrationReceiver) initCheckpoint(ctx context.Context, host component.Host) error {
+	// init checkpoint storage using storage ext if configured
+	if r.cfg.StorageID != nil {
+		checkpointStore, err := rehydration.NewCheckpointStorage(ctx, host, *r.cfg.StorageID, r.id, r.supportedTelemetry)
+		if err != nil {
+			return fmt.Errorf("new rehydration checkpoint storage: %w", err)
+		}
+		r.checkpointStore = checkpointStore
+	}
 
-	var marker *string
+	// create static checkpoint key used for storing
+	r.checkpointKey = fmt.Sprintf("%s_%s_%s", checkpointStorageKey, r.id, r.supportedTelemetry.String())
 
 	// load the previous checkpoint. If not exist should return zero value for time
-	checkpoint, err := r.checkpointStore.LoadCheckPoint(r.ctx, r.checkpointKey())
+	checkpoint, err := r.checkpointStore.LoadCheckPoint(ctx, r.checkpointKey)
 	if err != nil {
 		r.logger.Warn("Error loading checkpoint, continuing without a previous checkpoint", zap.Error(err))
 		checkpoint = rehydration.NewCheckpoint()
 	}
+	r.checkpoint = checkpoint
 
-	// Call once before the loop to ensure we do a collection before the first ticker
-	numBlobsRehydrated := r.rehydrate(checkpoint, marker)
-	emptyEntityCounter := checkEntityCount(numBlobsRehydrated, 0)
+	return nil
+}
+
+// stream uses the S3 client to process batches of objects as they are sent down a channel
+func (r *rehydrationReceiver) stream(ctx context.Context) {
+	startTime := time.Now()
+	r.logger.Info("Starting rehydration", zap.Time("start time", startTime))
+
+	go r.awsClient.StreamObjects(ctx, r.cfg.S3Bucket, r.cfg.S3Prefix, r.objectChan, r.errChan, r.doneChan)
 
 	for {
 		select {
-		case <-r.ctx.Done():
+		case <-ctx.Done():
+			r.logger.Info("Context finished, stopping rehydration", zap.Duration("duration", time.Since(startTime)))
 			return
-		case <-ticker.C:
-			// Polling for blobs has egress charges so we want to stop polling
-			// after we stop finding blobs.
-			if emptyEntityCounter == emptyPollLimit {
-				return
-			}
-
-			numBlobsRehydrated := r.rehydrate(checkpoint, marker)
-			emptyEntityCounter = checkEntityCount(numBlobsRehydrated, emptyEntityCounter)
+		case <-r.doneChan:
+			r.logger.Info("Finished rehydrating objects", zap.Duration("duration", time.Since(startTime)))
+			return
+		case err := <-r.errChan:
+			r.logger.Error("Error streaming objects, stopping rehydration", zap.Error(err), zap.Duration("duration", time.Since(startTime)))
+			return
+		case o := <-r.objectChan:
+			r.logger.Info("Rehydrating new batch of objects", zap.Int("number of objects", len(o.Objects)))
+			r.rehydrate(ctx, o.Objects)
 		}
 	}
 }
 
-func (r *rehydrationReceiver) rehydrate(checkpoint *rehydration.CheckPoint, marker *string) (numEntitiesRehydrated int) {
-	rehydrateCtx, cancel := context.WithTimeout(r.ctx, r.cfg.PollTimeout)
-	defer cancel()
-
-	var prefix *string
-	if r.cfg.S3Prefix != "" {
-		prefix = &r.cfg.S3Prefix
-	}
-
-	objects, nextMarker, err := r.awsClient.ListObjects(rehydrateCtx, r.cfg.S3Bucket, prefix, marker)
-	if err != nil {
-		r.logger.Error("Failed to list objects", zap.Error(err))
-		return
-	}
-
-	marker = nextMarker
-
-	processedObjectNames := make([]string, 0, len(objects))
-
+// rehydrate will check each object and verify if it should be rehydrated, calling a go routine to handle rehydration per object
+func (r *rehydrationReceiver) rehydrate(ctx context.Context, objects []*aws.ObjectInfo) {
+	// keep track of object names for number processed and deleting
+	processedObjectsCount := &atomic.Int64{}
 	for _, object := range objects {
-		r.logger.Debug("Object", zap.String("name", object.Name))
+		// check context
+		select {
+		case <-ctx.Done():
+			r.logger.Info("Context finished, exiting rehydrate func")
+		default:
+		}
+
+		// start processing object
+		r.logger.Debug("Processing object", zap.String("name", object.Name))
 		objectTime, telemetryType, err := rehydration.ParseEntityPath(object.Name)
+
 		switch {
 		case errors.Is(err, rehydration.ErrInvalidEntityPath):
-			r.logger.Debug("Skipping Object, non-matching entity path", zap.String("object", object.Name))
+			r.logger.Debug("Skipping object - non-matching entity path", zap.String("object", object.Name))
 		case err != nil:
 			r.logger.Error("Error processing object path", zap.String("object", object.Name), zap.Error(err))
-		case checkpoint.ShouldParse(*objectTime, object.Name):
-			// if the object is not in the specified time range or not of the telemetry type supported by this receiver
-			// then skip consuming it.
+		case r.checkpoint.ShouldParse(*objectTime, object.Name):
+			// if object is not in specified time range or not the telemetry type supported by this receiver then skip consuming
 			if !rehydration.IsInTimeRange(*objectTime, r.startingTime, r.endingTime) || telemetryType != r.supportedTelemetry {
+				r.logger.Debug("Skipping object - not in configured time range or not supported telemetry type", zap.String("object", object.Name))
 				continue
 			}
-
-			// Process and consume the object at the given path
-			if err := r.processObject(object); err != nil {
-				r.logger.Error("Error consuming object", zap.String("object", object.Name), zap.Error(err))
-				continue
-			}
-
-			checkpoint.UpdateCheckpoint(*objectTime, object.Name)
-			if err := r.checkpointStore.SaveCheckpoint(r.ctx, r.checkpointKey(), checkpoint); err != nil {
-				r.logger.Error("Error while saving checkpoint", zap.Error(err))
-			}
-
-			// keep track of object names for number processed and deleting
-			processedObjectNames = append(processedObjectNames, object.Name)
+			r.wg.Add(1)
+			go r.rehydrateObject(ctx, object, objectTime, processedObjectsCount)
+		default:
+			r.logger.Debug("Skipping object - already parsed or timestamp is too old", zap.String("object", object.Name))
 		}
 	}
 
-	numEntitiesRehydrated = len(processedObjectNames)
+	r.wg.Wait()
+	if err := r.handleCheckpoint(ctx); err != nil {
+		r.logger.Error("Error saving checkpoint", zap.Error(err))
+	}
+	r.logger.Info("Successfully rehydrated objects", zap.Int64("number of objects processed", processedObjectsCount.Load()))
+}
 
-	// Delete objects
-	if r.cfg.DeleteOnRead && len(processedObjectNames) > 0 {
-		if err := r.awsClient.DeleteObjects(r.ctx, r.cfg.S3Bucket, processedObjectNames); err != nil {
-			r.logger.Error("Error while attempting to delete objects", zap.Error(err))
-		}
+// rehydrateObject asynchronously handles rehydrating a given object & deleting it if configured
+func (r *rehydrationReceiver) rehydrateObject(ctx context.Context, object *aws.ObjectInfo, objectTime *time.Time, count *atomic.Int64) {
+	defer r.wg.Done()
+
+	// check context
+	select {
+	case <-ctx.Done():
+		r.logger.Info("Context finished, exiting rehydrateObject func")
+	default:
 	}
 
-	return
+	// process and consume the object at the given path
+	if err := r.processObject(ctx, object); err != nil {
+		r.logger.Error("Error processing object", zap.String("object", object.Name), zap.Error(err))
+		return
+	}
+	count.Add(1)
+	r.saveCheckpointData(objectTime, object.Name)
+	// delete object if configured
+	if r.cfg.DeleteOnRead {
+		if err := r.awsClient.DeleteObject(ctx, r.cfg.S3Bucket, object.Name); err != nil {
+			r.logger.Error("Error while deleting object", zap.String("object", object.Name), zap.Error(err))
+		}
+		r.logger.Info("Successfully deleted rehydrated object", zap.String("object", object.Name))
+	}
 }
 
 // processObject does the following:
 // 1. Downloads the object
 // 2. Decompresses the object if applicable
 // 3. Pass the object to the consumer
-func (r *rehydrationReceiver) processObject(object *aws.ObjectInfo) error {
+func (r *rehydrationReceiver) processObject(ctx context.Context, object *aws.ObjectInfo) error {
 	objectBuffer := make([]byte, object.Size)
 
-	size, err := r.awsClient.DownloadObject(r.ctx, r.cfg.S3Bucket, object.Name, objectBuffer)
+	size, err := r.awsClient.DownloadObject(ctx, r.cfg.S3Bucket, object.Name, objectBuffer)
 	if err != nil {
 		return fmt.Errorf("download object: %w", err)
 	}
@@ -288,31 +339,35 @@ func (r *rehydrationReceiver) processObject(object *aws.ObjectInfo) error {
 		return fmt.Errorf("unsupported file type: %s", ext)
 	}
 
-	if err := r.consumer.Consume(r.ctx, objectBuffer); err != nil {
+	if err := r.consumer.Consume(ctx, objectBuffer); err != nil {
 		return fmt.Errorf("consume: %w", err)
 	}
 
 	return nil
 }
 
-// checkpointStorageKey is the key used for storing the checkpoint
-const checkpointStorageKey = "aws_s3_checkpoint"
+func (r *rehydrationReceiver) saveCheckpointData(objectTime *time.Time, objectName string) {
+	r.checkpointMutex.Lock()
+	defer r.checkpointMutex.Unlock()
 
-// checkpointKey returns the key used for storing the checkpoint
-func (r *rehydrationReceiver) checkpointKey() string {
-	return fmt.Sprintf("%s_%s_%s", checkpointStorageKey, r.id, r.supportedTelemetry.String())
+	if r.lastObjectTime == nil || r.lastObjectTime.Before(*objectTime) {
+		r.lastObjectName = objectName
+		r.lastObjectTime = objectTime
+	}
 }
 
-// checkEntityCount checks the number of entities rehydrated and the current state of the
-// empty counter. If zero entities were rehydrated increment the counter.
-// If there were entities rehydrated reset the counter as we want to track consecutive zero sized polls.
-func checkEntityCount(numEntitiesRehydrated, emptyEntityCounter int) int {
-	switch {
-	case emptyEntityCounter == emptyPollLimit: // If we are at the limit return the limit
-		return emptyPollLimit
-	case numEntitiesRehydrated == 0: // If no entities were rehydrated then increment the empty entities counter
-		return emptyEntityCounter + 1
-	default: // Default case is numEntitiesRehydrated > 0 so reset emptyEntityCounter to 0
-		return 0
+func (r *rehydrationReceiver) handleCheckpoint(ctx context.Context) error {
+	if r.lastObjectName == "" || r.lastObjectTime == nil {
+		return nil
 	}
+
+	r.checkpointMutex.Lock()
+	defer r.checkpointMutex.Unlock()
+
+	// update && store checkpoint
+	r.checkpoint.UpdateCheckpoint(*r.lastObjectTime, r.lastObjectName)
+	if err := r.checkpointStore.SaveCheckpoint(ctx, r.checkpointKey, r.checkpoint); err != nil {
+		return fmt.Errorf("save checkpoint: %w", err)
+	}
+	return nil
 }
