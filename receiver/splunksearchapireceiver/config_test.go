@@ -140,8 +140,7 @@ func TestValidate(t *testing.T) {
 					LatestTime:   "2024-10-30T14:00",
 				},
 			},
-			errExpected: true,
-			errText:     "storage configuration is required for this receiver",
+			errExpected: false,
 		},
 		{
 			desc:        "Missing searches",

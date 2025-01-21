@@ -23,17 +23,17 @@ func (_m *MockS3Client) EXPECT() *MockS3Client_Expecter {
 	return &MockS3Client_Expecter{mock: &_m.Mock}
 }
 
-// DeleteObjects provides a mock function with given fields: ctx, bucket, keys
-func (_m *MockS3Client) DeleteObjects(ctx context.Context, bucket string, keys []string) error {
-	ret := _m.Called(ctx, bucket, keys)
+// DeleteObject provides a mock function with given fields: ctx, bucket, key
+func (_m *MockS3Client) DeleteObject(ctx context.Context, bucket string, key string) error {
+	ret := _m.Called(ctx, bucket, key)
 
 	if len(ret) == 0 {
-		panic("no return value specified for DeleteObjects")
+		panic("no return value specified for DeleteObject")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, []string) error); ok {
-		r0 = rf(ctx, bucket, keys)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, bucket, key)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -41,32 +41,32 @@ func (_m *MockS3Client) DeleteObjects(ctx context.Context, bucket string, keys [
 	return r0
 }
 
-// MockS3Client_DeleteObjects_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteObjects'
-type MockS3Client_DeleteObjects_Call struct {
+// MockS3Client_DeleteObject_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteObject'
+type MockS3Client_DeleteObject_Call struct {
 	*mock.Call
 }
 
-// DeleteObjects is a helper method to define mock.On call
+// DeleteObject is a helper method to define mock.On call
 //   - ctx context.Context
 //   - bucket string
-//   - keys []string
-func (_e *MockS3Client_Expecter) DeleteObjects(ctx interface{}, bucket interface{}, keys interface{}) *MockS3Client_DeleteObjects_Call {
-	return &MockS3Client_DeleteObjects_Call{Call: _e.mock.On("DeleteObjects", ctx, bucket, keys)}
+//   - key string
+func (_e *MockS3Client_Expecter) DeleteObject(ctx interface{}, bucket interface{}, key interface{}) *MockS3Client_DeleteObject_Call {
+	return &MockS3Client_DeleteObject_Call{Call: _e.mock.On("DeleteObject", ctx, bucket, key)}
 }
 
-func (_c *MockS3Client_DeleteObjects_Call) Run(run func(ctx context.Context, bucket string, keys []string)) *MockS3Client_DeleteObjects_Call {
+func (_c *MockS3Client_DeleteObject_Call) Run(run func(ctx context.Context, bucket string, key string)) *MockS3Client_DeleteObject_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].([]string))
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})
 	return _c
 }
 
-func (_c *MockS3Client_DeleteObjects_Call) Return(_a0 error) *MockS3Client_DeleteObjects_Call {
+func (_c *MockS3Client_DeleteObject_Call) Return(_a0 error) *MockS3Client_DeleteObject_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockS3Client_DeleteObjects_Call) RunAndReturn(run func(context.Context, string, []string) error) *MockS3Client_DeleteObjects_Call {
+func (_c *MockS3Client_DeleteObject_Call) RunAndReturn(run func(context.Context, string, string) error) *MockS3Client_DeleteObject_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -130,73 +130,41 @@ func (_c *MockS3Client_DownloadObject_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
-// ListObjects provides a mock function with given fields: ctx, bucket, prefix, continuationToken
-func (_m *MockS3Client) ListObjects(ctx context.Context, bucket string, prefix *string, continuationToken *string) ([]*aws.ObjectInfo, *string, error) {
-	ret := _m.Called(ctx, bucket, prefix, continuationToken)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ListObjects")
-	}
-
-	var r0 []*aws.ObjectInfo
-	var r1 *string
-	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, *string, *string) ([]*aws.ObjectInfo, *string, error)); ok {
-		return rf(ctx, bucket, prefix, continuationToken)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, *string, *string) []*aws.ObjectInfo); ok {
-		r0 = rf(ctx, bucket, prefix, continuationToken)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*aws.ObjectInfo)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, string, *string, *string) *string); ok {
-		r1 = rf(ctx, bucket, prefix, continuationToken)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(*string)
-		}
-	}
-
-	if rf, ok := ret.Get(2).(func(context.Context, string, *string, *string) error); ok {
-		r2 = rf(ctx, bucket, prefix, continuationToken)
-	} else {
-		r2 = ret.Error(2)
-	}
-
-	return r0, r1, r2
+// StreamObjects provides a mock function with given fields: ctx, bucket, prefix, objectChan, errChan, doneChan
+func (_m *MockS3Client) StreamObjects(ctx context.Context, bucket string, prefix string, objectChan chan *aws.ObjectResults, errChan chan error, doneChan chan struct{}) {
+	_m.Called(ctx, bucket, prefix, objectChan, errChan, doneChan)
 }
 
-// MockS3Client_ListObjects_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListObjects'
-type MockS3Client_ListObjects_Call struct {
+// MockS3Client_StreamObjects_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StreamObjects'
+type MockS3Client_StreamObjects_Call struct {
 	*mock.Call
 }
 
-// ListObjects is a helper method to define mock.On call
+// StreamObjects is a helper method to define mock.On call
 //   - ctx context.Context
 //   - bucket string
-//   - prefix *string
-//   - continuationToken *string
-func (_e *MockS3Client_Expecter) ListObjects(ctx interface{}, bucket interface{}, prefix interface{}, continuationToken interface{}) *MockS3Client_ListObjects_Call {
-	return &MockS3Client_ListObjects_Call{Call: _e.mock.On("ListObjects", ctx, bucket, prefix, continuationToken)}
+//   - prefix string
+//   - objectChan chan *aws.ObjectResults
+//   - errChan chan error
+//   - doneChan chan struct{}
+func (_e *MockS3Client_Expecter) StreamObjects(ctx interface{}, bucket interface{}, prefix interface{}, objectChan interface{}, errChan interface{}, doneChan interface{}) *MockS3Client_StreamObjects_Call {
+	return &MockS3Client_StreamObjects_Call{Call: _e.mock.On("StreamObjects", ctx, bucket, prefix, objectChan, errChan, doneChan)}
 }
 
-func (_c *MockS3Client_ListObjects_Call) Run(run func(ctx context.Context, bucket string, prefix *string, continuationToken *string)) *MockS3Client_ListObjects_Call {
+func (_c *MockS3Client_StreamObjects_Call) Run(run func(ctx context.Context, bucket string, prefix string, objectChan chan *aws.ObjectResults, errChan chan error, doneChan chan struct{})) *MockS3Client_StreamObjects_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(*string), args[3].(*string))
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(chan *aws.ObjectResults), args[4].(chan error), args[5].(chan struct{}))
 	})
 	return _c
 }
 
-func (_c *MockS3Client_ListObjects_Call) Return(_a0 []*aws.ObjectInfo, _a1 *string, _a2 error) *MockS3Client_ListObjects_Call {
-	_c.Call.Return(_a0, _a1, _a2)
+func (_c *MockS3Client_StreamObjects_Call) Return() *MockS3Client_StreamObjects_Call {
+	_c.Call.Return()
 	return _c
 }
 
-func (_c *MockS3Client_ListObjects_Call) RunAndReturn(run func(context.Context, string, *string, *string) ([]*aws.ObjectInfo, *string, error)) *MockS3Client_ListObjects_Call {
-	_c.Call.Return(run)
+func (_c *MockS3Client_StreamObjects_Call) RunAndReturn(run func(context.Context, string, string, chan *aws.ObjectResults, chan error, chan struct{})) *MockS3Client_StreamObjects_Call {
+	_c.Run(run)
 	return _c
 }
 

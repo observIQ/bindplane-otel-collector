@@ -19,14 +19,11 @@ import (
 	"compress/gzip"
 	"context"
 	"errors"
-	"sync/atomic"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
-	"github.com/observiq/bindplane-otel-collector/internal/testutils"
-	"github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver/internal/azureblob"
-	blobmocks "github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver/internal/azureblob/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
@@ -34,6 +31,12 @@ import (
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/pipeline"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
+
+	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
+	"github.com/observiq/bindplane-otel-collector/internal/testutils"
+	"github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver/internal/azureblob"
+	blobmocks "github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver/internal/azureblob/mocks"
 )
 
 func Test_newMetricsReceiver(t *testing.T) {
@@ -111,31 +114,9 @@ func Test_fullRehydration(t *testing.T) {
 	cfg := &Config{
 		StartingTime: "2023-10-02T17:00",
 		EndingTime:   "2023-10-02T18:00",
-		PollInterval: 10 * time.Millisecond,
 		Container:    "container",
 		DeleteOnRead: false,
 	}
-
-	t.Run("empty blob polling", func(t *testing.T) {
-		var listCounter atomic.Int32
-
-		// Setup mocks
-		mockClient := setNewAzureBlobClient(t)
-		mockClient.EXPECT().ListBlobs(mock.Anything, cfg.Container, (*string)(nil), (*string)(nil)).Times(3).Return([]*azureblob.BlobInfo{}, nil, nil).
-			Run(func(_ mock.Arguments) {
-				listCounter.Add(1)
-			})
-
-		// Create new receiver
-		testConsumer := &consumertest.MetricsSink{}
-		r, err := newMetricsReceiver(id, testLogger, cfg, testConsumer)
-		require.NoError(t, err)
-
-		checkFunc := func() bool {
-			return listCounter.Load() == 3
-		}
-		runRehydrationValidateTest(t, r, checkFunc)
-	})
 
 	t.Run("metrics", func(t *testing.T) {
 		// Test data
@@ -153,23 +134,25 @@ func Test_fullRehydration(t *testing.T) {
 			},
 		}
 
+		// Create new receiver
+
 		targetBlob := returnedBlobInfo[0]
 
 		// Setup mocks
 		mockClient := setNewAzureBlobClient(t)
-		mockClient.EXPECT().ListBlobs(mock.Anything, cfg.Container, (*string)(nil), (*string)(nil)).Return(returnedBlobInfo, nil, nil)
-		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
-			require.Len(t, buf, int(expectedBuffSize))
-
-			copy(buf, jsonBytes)
-
-			return expectedBuffSize, nil
-		})
-
-		// Create new receiver
 		testConsumer := &consumertest.MetricsSink{}
 		r, err := newMetricsReceiver(id, testLogger, cfg, testConsumer)
 		require.NoError(t, err)
+
+		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
+			r.blobChan <- returnedBlobInfo
+		})
+
+		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
+			require.Len(t, buf, int(expectedBuffSize))
+			copy(buf, jsonBytes)
+			return expectedBuffSize, nil
+		})
 
 		checkFunc := func() bool {
 			return testConsumer.DataPointCount() == metrics.DataPointCount()
@@ -195,22 +178,22 @@ func Test_fullRehydration(t *testing.T) {
 		}
 
 		targetBlob := returnedBlobInfo[0]
-
-		// Setup mocks
 		mockClient := setNewAzureBlobClient(t)
-		mockClient.EXPECT().ListBlobs(mock.Anything, cfg.Container, (*string)(nil), (*string)(nil)).Return(returnedBlobInfo, nil, nil)
-		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
-			require.Len(t, buf, int(expectedBuffSize))
-
-			copy(buf, jsonBytes)
-
-			return expectedBuffSize, nil
-		})
 
 		// Create new receiver
 		testConsumer := &consumertest.TracesSink{}
 		r, err := newTracesReceiver(id, testLogger, cfg, testConsumer)
 		require.NoError(t, err)
+
+		// Setup mocks
+		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
+			r.blobChan <- returnedBlobInfo
+		})
+		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
+			require.Len(t, buf, int(expectedBuffSize))
+			copy(buf, jsonBytes)
+			return expectedBuffSize, nil
+		})
 
 		checkFunc := func() bool {
 			return testConsumer.SpanCount() == traces.SpanCount()
@@ -239,7 +222,14 @@ func Test_fullRehydration(t *testing.T) {
 
 		// Setup mocks
 		mockClient := setNewAzureBlobClient(t)
-		mockClient.EXPECT().ListBlobs(mock.Anything, cfg.Container, (*string)(nil), (*string)(nil)).Return(returnedBlobInfo, nil, nil)
+		// Create new receiver
+		testConsumer := &consumertest.LogsSink{}
+		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
+		require.NoError(t, err)
+
+		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
+			r.blobChan <- returnedBlobInfo
+		})
 		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 			require.Len(t, buf, int(expectedBuffSize))
 
@@ -247,11 +237,6 @@ func Test_fullRehydration(t *testing.T) {
 
 			return expectedBuffSize, nil
 		})
-
-		// Create new receiver
-		testConsumer := &consumertest.LogsSink{}
-		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
-		require.NoError(t, err)
 
 		checkFunc := func() bool {
 			return testConsumer.LogRecordCount() == logs.LogRecordCount()
@@ -281,7 +266,14 @@ func Test_fullRehydration(t *testing.T) {
 
 		// Setup mocks
 		mockClient := setNewAzureBlobClient(t)
-		mockClient.EXPECT().ListBlobs(mock.Anything, cfg.Container, (*string)(nil), (*string)(nil)).Return(returnedBlobInfo, nil, nil)
+		// Create new receiver
+		testConsumer := &consumertest.LogsSink{}
+		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
+		require.NoError(t, err)
+
+		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
+			r.blobChan <- returnedBlobInfo
+		})
 		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 			require.Len(t, buf, int(expectedBuffSize))
 
@@ -289,11 +281,6 @@ func Test_fullRehydration(t *testing.T) {
 
 			return expectedBuffSize, nil
 		})
-
-		// Create new receiver
-		testConsumer := &consumertest.LogsSink{}
-		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
-		require.NoError(t, err)
 
 		checkFunc := func() bool {
 			return testConsumer.LogRecordCount() == logs.LogRecordCount()
@@ -303,10 +290,12 @@ func Test_fullRehydration(t *testing.T) {
 	})
 
 	t.Run("Delete on Read", func(t *testing.T) {
-		cfg.DeleteOnRead = true
-		t.Cleanup(func() {
-			cfg.DeleteOnRead = false
-		})
+		deleteCfg := &Config{
+			StartingTime: cfg.StartingTime,
+			EndingTime:   cfg.EndingTime,
+			Container:    cfg.Container,
+			DeleteOnRead: true,
+		}
 
 		// Test data
 		logs, jsonBytes := testutils.GenerateTestLogs(t)
@@ -327,7 +316,14 @@ func Test_fullRehydration(t *testing.T) {
 
 		// Setup mocks
 		mockClient := setNewAzureBlobClient(t)
-		mockClient.EXPECT().ListBlobs(mock.Anything, cfg.Container, (*string)(nil), (*string)(nil)).Return(returnedBlobInfo, nil, nil)
+		// Create new receiver
+		testConsumer := &consumertest.LogsSink{}
+		r, err := newLogsReceiver(id, testLogger, deleteCfg, testConsumer)
+		require.NoError(t, err)
+
+		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
+			r.blobChan <- returnedBlobInfo
+		})
 		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 			require.Len(t, buf, int(expectedBuffSize))
 
@@ -335,12 +331,8 @@ func Test_fullRehydration(t *testing.T) {
 
 			return expectedBuffSize, nil
 		})
-		mockClient.EXPECT().DeleteBlob(mock.Anything, cfg.Container, targetBlob.Name).Return(nil)
 
-		// Create new receiver
-		testConsumer := &consumertest.LogsSink{}
-		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
-		require.NoError(t, err)
+		mockClient.EXPECT().DeleteBlob(mock.Anything, cfg.Container, targetBlob.Name).Return(nil)
 
 		checkFunc := func() bool {
 			return testConsumer.LogRecordCount() == logs.LogRecordCount()
@@ -375,7 +367,15 @@ func Test_fullRehydration(t *testing.T) {
 
 		// Setup mocks
 		mockClient := setNewAzureBlobClient(t)
-		mockClient.EXPECT().ListBlobs(mock.Anything, cfg.Container, (*string)(nil), (*string)(nil)).Return(returnedBlobInfo, nil, nil)
+
+		// Create new receiver
+		testConsumer := &consumertest.LogsSink{}
+		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
+		require.NoError(t, err)
+
+		mockClient.EXPECT().StreamBlobs(mock.Anything, cfg.Container, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
+			r.blobChan <- returnedBlobInfo
+		})
 		mockClient.EXPECT().DownloadBlob(mock.Anything, cfg.Container, targetBlob.Name, mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 			require.Len(t, buf, int(expectedBuffSize))
 
@@ -383,11 +383,6 @@ func Test_fullRehydration(t *testing.T) {
 
 			return expectedBuffSize, nil
 		})
-
-		// Create new receiver
-		testConsumer := &consumertest.LogsSink{}
-		r, err := newLogsReceiver(id, testLogger, cfg, testConsumer)
-		require.NoError(t, err)
 
 		checkFunc := func() bool {
 			return testConsumer.LogRecordCount() == logs.LogRecordCount()
@@ -496,10 +491,9 @@ func Test_processBlob(t *testing.T) {
 				},
 				consumer:    mockConsumer,
 				azureClient: mockClient,
-				ctx:         context.Background(),
 			}
 
-			err := r.processBlob(tc.info)
+			err := r.processBlob(context.Background(), tc.info)
 			if tc.expectedErr == nil {
 				require.NoError(t, err)
 			} else {
@@ -507,6 +501,47 @@ func Test_processBlob(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLogsDeprecationWarnings(t *testing.T) {
+	mockClient := setNewAzureBlobClient(t)
+
+	testLogger, ol := observer.New(zap.WarnLevel)
+
+	r := &rehydrationReceiver{
+		logger: zap.New(testLogger),
+		cfg: &Config{
+			StartingTime: "2023-10-02T17:00",
+			EndingTime:   "2023-10-02T17:01",
+			PollInterval: 1 * time.Second,
+			PollTimeout:  1 * time.Second,
+		},
+		azureClient:     mockClient,
+		blobChan:        make(chan []*azureblob.BlobInfo),
+		errChan:         make(chan error),
+		doneChan:        make(chan struct{}),
+		mut:             &sync.Mutex{},
+		checkpointStore: rehydration.NewNopStorage(),
+	}
+	mockClient.On("StreamBlobs", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
+		close(r.doneChan)
+	})
+
+	require.NoError(t, r.Start(context.Background(), componenttest.NewNopHost()))
+
+	require.Eventually(t, func() bool {
+		foundBothLogs := false
+		foundPollInterval := false
+		for _, log := range ol.All() {
+			if strings.Contains(log.Message, "poll_interval is no longer recognized and will be removed in a future release. batch_size/page_size should be used instead") {
+				foundBothLogs = true
+			}
+			if strings.Contains(log.Message, "poll_interval is no longer recognized and will be removed in a future release. batch_size/page_size should be used instead") {
+				foundPollInterval = true
+			}
+		}
+		return foundBothLogs && foundPollInterval
+	}, 10*time.Second, 1*time.Second)
 }
 
 // setNewAzureBlobClient helper function used to set the newAzureBlobClient
@@ -517,7 +552,7 @@ func setNewAzureBlobClient(t *testing.T) *blobmocks.MockBlobClient {
 
 	mockClient := blobmocks.NewMockBlobClient(t)
 
-	newAzureBlobClient = func(_ string) (azureblob.BlobClient, error) {
+	newAzureBlobClient = func(_ string, _ int, _ int) (azureblob.BlobClient, error) {
 		return mockClient, nil
 	}
 

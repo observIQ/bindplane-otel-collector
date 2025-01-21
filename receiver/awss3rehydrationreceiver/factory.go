@@ -17,7 +17,6 @@ package awss3rehydrationreceiver //import "github.com/observiq/bindplane-otel-co
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver/internal/metadata"
 	"go.opentelemetry.io/collector/component"
@@ -43,8 +42,8 @@ func NewFactory() receiver.Factory {
 func createDefaultConfig() component.Config {
 	return &Config{
 		DeleteOnRead: false,
-		PollInterval: time.Minute,
-		PollTimeout:  time.Second * 30,
+		PollSize:     1000,
+		BatchSize:    100,
 	}
 }
 

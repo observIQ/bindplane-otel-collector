@@ -14,7 +14,7 @@ import (
 	"go.opentelemetry.io/collector/receiver"
 )
 
-// AttributeControlState specifies the a value control_state attribute.
+// AttributeControlState specifies the value control_state attribute.
 type AttributeControlState int
 
 const (
@@ -48,7 +48,7 @@ var MapAttributeControlState = map[string]AttributeControlState{
 	"red":    AttributeControlStateRed,
 }
 
-// AttributeResponseType specifies the a value response_type attribute.
+// AttributeResponseType specifies the value response_type attribute.
 type AttributeResponseType int
 
 const (

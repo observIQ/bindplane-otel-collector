@@ -12,7 +12,7 @@ import (
 	"go.opentelemetry.io/collector/receiver"
 )
 
-// AttributeOnedriveActivity specifies the a value onedriveActivity attribute.
+// AttributeOnedriveActivity specifies the value onedriveActivity attribute.
 type AttributeOnedriveActivity int
 
 const (
@@ -46,7 +46,7 @@ var MapAttributeOnedriveActivity = map[string]AttributeOnedriveActivity{
 	"external_share": AttributeOnedriveActivityExternalShare,
 }
 
-// AttributeOutlookActivity specifies the a value outlookActivity attribute.
+// AttributeOutlookActivity specifies the value outlookActivity attribute.
 type AttributeOutlookActivity int
 
 const (
@@ -76,7 +76,7 @@ var MapAttributeOutlookActivity = map[string]AttributeOutlookActivity{
 	"received": AttributeOutlookActivityReceived,
 }
 
-// AttributeOutlookApps specifies the a value outlookApps attribute.
+// AttributeOutlookApps specifies the value outlookApps attribute.
 type AttributeOutlookApps int
 
 const (
@@ -126,7 +126,7 @@ var MapAttributeOutlookApps = map[string]AttributeOutlookApps{
 	"other_mobile": AttributeOutlookAppsOtherMobile,
 }
 
-// AttributeOutlookQuotas specifies the a value outlookQuotas attribute.
+// AttributeOutlookQuotas specifies the value outlookQuotas attribute.
 type AttributeOutlookQuotas int
 
 const (
@@ -164,7 +164,7 @@ var MapAttributeOutlookQuotas = map[string]AttributeOutlookQuotas{
 	"indeterminate":           AttributeOutlookQuotasIndeterminate,
 }
 
-// AttributeTeamsDevices specifies the a value teamsDevices attribute.
+// AttributeTeamsDevices specifies the value teamsDevices attribute.
 type AttributeTeamsDevices int
 
 const (

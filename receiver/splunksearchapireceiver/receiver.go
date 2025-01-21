@@ -247,7 +247,7 @@ func (ssapir *splunksearchapireceiver) pollSearchCompletion(ctx context.Context,
 }
 
 func (ssapir *splunksearchapireceiver) createSplunkSearch(search Search) (string, error) {
-	timeFormat := "%Y-%m-%dT%H:%M:%S"
+	timeFormat := "%Y-%m-%dT%H:%M"
 	searchQuery := fmt.Sprintf("%s starttime=\"%s\" endtime=\"%s\" timeformat=\"%s\"", search.Query, search.EarliestTime, search.LatestTime, timeFormat)
 	ssapir.logger.Info("creating search", zap.String("query", searchQuery))
 	resp, err := ssapir.client.CreateSearchJob(searchQuery)
