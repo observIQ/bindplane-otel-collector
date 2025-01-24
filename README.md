@@ -9,7 +9,7 @@
 </a>
 
 <p align="center">
-  The BindPlane Distro for OpenTelemetry Collector (BDOT Collector) is observIQ’s distribution of the upstream <a href="https://github.com/open-telemetry/opentelemetry-collector">OpenTelemetry Collector</a>. It’s the first distribution to implement the <a href="https://opentelemetry.io/docs/specs/opamp/">Open Agent Management Protocol</a> (OpAMP) and is designed to be fully managed with <a href="https://observiq.com/">BindPlane Telemetry Pipeline</a>.
+  IAN TEST CHANGE #1, DO NOT MERGE The BindPlane Distro for OpenTelemetry Collector (BDOT Collector) is observIQ’s distribution of the upstream <a href="https://github.com/open-telemetry/opentelemetry-collector">OpenTelemetry Collector</a>. It’s the first distribution to implement the <a href="https://opentelemetry.io/docs/specs/opamp/">Open Agent Management Protocol</a> (OpAMP) and is designed to be fully managed with <a href="https://observiq.com/">BindPlane Telemetry Pipeline</a>.
 </p>
 
 <b>
