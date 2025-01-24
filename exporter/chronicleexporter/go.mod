@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter
 go 1.22.7
 
 require (
-	github.com/golang/mock v1.6.0
+	github.com/golang/mock v1.7.0
 	github.com/google/uuid v1.6.0
 	github.com/observiq/bindplane-otel-collector/expr v1.70.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.117.0
