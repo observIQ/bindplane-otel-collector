@@ -101,7 +101,10 @@ func (d *Detector) processLogBatch(batch logBatch) {
 	}
 
 	// Add counts to current window
-	logCount := batch.logs.LogRecordCount()
+	var logCount int
+	if batch.logs != (plog.Logs{}) { // Check if logs is not empty
+		logCount = batch.logs.LogRecordCount()
+	}
 	d.counts[len(d.counts)-1] += int64(logCount)
 
 	// Check for anomalies using the fixed window counts
