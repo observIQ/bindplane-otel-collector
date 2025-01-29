@@ -27,13 +27,20 @@ var _ component.Config = (*Config)(nil)
 type Config struct {
 	// How often to take measurements
 	SampleInterval time.Duration `mapstructure:"sample_interval"`
-	// How long to keep samples
+	// MaxWindowAge defines the maximum age of samples to retain in the detection window.
+	// Samples older than this duration are pruned from the analysis window.
+	// This duration determines how far back the detector looks when establishing baseline behavior.
 	MaxWindowAge time.Duration `mapstructure:"max_window_age"`
-	// Thresholds for anomaly detection
+	// ZScoreThreshold is the number of standard deviations from the mean that a sample
+	// must exceed to be considered an anomaly. A larger threshold means fewer but more
+	// significant anomalies will be detected. For normally distributed data, a value
+	// of 3.0 means only ~0.3% of samples would naturally fall outside this range.
 	ZScoreThreshold float64 `mapstructure:"zscore_threshold"`
-	MADThreshold    float64 `mapstructure:"mad_threshold"`
-	// Maximum number of samples to keep (emergency limit)
-	EmergencyMaxSize int `mapstructure:"emergency_max_size"`
+	// MADThreshold is the number of Median Absolute Deviations (MAD) from the median that
+	// a sample must exceed to be considered an anomaly. MAD is more robust to outliers
+	// than Z-score. Like ZScoreThreshold, higher values mean more extreme deviations
+	// are required to trigger an anomaly.
+	MADThreshold float64 `mapstructure:"mad_threshold"`
 }
 
 // Validate checks whether the input configuration has all of the required fields for the processor.
@@ -66,10 +73,6 @@ func (config *Config) Validate() error {
 
 	if config.MADThreshold <= 0 {
 		return fmt.Errorf("mad_threshold must be positive, got %v", config.MADThreshold)
-	}
-
-	if config.EmergencyMaxSize <= 0 {
-		return fmt.Errorf("emergency_max_size must be positive, got %v", config.EmergencyMaxSize)
 	}
 	return nil
 }

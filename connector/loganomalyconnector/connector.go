@@ -25,6 +25,12 @@ import (
 	"go.uber.org/zap"
 )
 
+type logBatch struct {
+	logs    plog.Logs
+	ctx     context.Context
+	errChan chan error
+}
+
 // Detector implements the log anomaly detection connector.
 // It maintains a rolling window of log rate samples and uses statistical analysis
 // to detect anomalies in log throughput. The detector processes incoming logs,
@@ -37,38 +43,34 @@ type Detector struct {
 	stateLock sync.Mutex
 	config    *Config
 
-	// Rolling window of rate samples
-	rateHistory []Sample
+	counts            []int64
+	lastWindowEndTime time.Time
 
-	// Current bucket for accumulating logs
-	currentBucket struct {
-		count int64
-		start time.Time
-	}
-	lastSampleTime time.Time
-
+	logChan      chan logBatch
 	nextConsumer consumer.Logs
 }
 
 func newDetector(config *Config, logger *zap.Logger, nextConsumer consumer.Logs) *Detector {
 	ctx, cancel := context.WithCancel(context.Background())
-
-	logger = logger.WithOptions(zap.Development())
+	numWindows := int(config.MaxWindowAge.Minutes())
 
 	return &Detector{
-		ctx:          ctx,
-		cancel:       cancel,
-		logger:       logger,
-		config:       config,
-		stateLock:    sync.Mutex{},
-		rateHistory:  make([]Sample, 0, config.MaxWindowAge/config.SampleInterval),
-		nextConsumer: nextConsumer,
+		ctx:               ctx,
+		cancel:            cancel,
+		logger:            logger,
+		config:            config,
+		stateLock:         sync.Mutex{},
+		nextConsumer:      nextConsumer,
+		logChan:           make(chan logBatch, 1000),
+		counts:            make([]int64, numWindows),
+		lastWindowEndTime: time.Now().Truncate(time.Minute),
 	}
 }
 
 // Start begins the anomaly detection process, sampling at intervals specified in the config.
 // It launches a background goroutine that periodically checks for and updates anomalies.
 func (d *Detector) Start(_ context.Context, _ component.Host) error {
+
 	ticker := time.NewTicker(d.config.SampleInterval)
 
 	go func() {
@@ -76,8 +78,10 @@ func (d *Detector) Start(_ context.Context, _ component.Host) error {
 			select {
 			case <-d.ctx.Done():
 				return
+			case batch := <-d.logChan:
+				d.processLogBatch(batch)
 			case <-ticker.C:
-				d.checkAndUpdateAnomalies()
+				d.checkForAnomaly() // check this
 			}
 		}
 	}()
@@ -85,61 +89,56 @@ func (d *Detector) Start(_ context.Context, _ component.Host) error {
 	return nil
 }
 
+func (d *Detector) processLogBatch(batch logBatch) {
+	now := time.Now()
+
+	// Update windows that have elapsed since last update
+	for now.Sub(d.lastWindowEndTime).Minutes() >= 1 {
+		// Shift windows and add empty window
+		copy(d.counts, d.counts[1:])
+		d.counts[len(d.counts)-1] = 0
+		d.lastWindowEndTime = d.lastWindowEndTime.Add(time.Minute)
+	}
+
+	// Add counts to current window
+	logCount := batch.logs.LogRecordCount()
+	d.counts[len(d.counts)-1] += int64(logCount)
+
+	// Check for anomalies using the fixed window counts
+	if anomaly := d.checkForAnomaly(); anomaly != nil {
+		d.logAnomaly(anomaly)
+	}
+}
+
 // Shutdown stops the detector's operations by canceling its context.
 // It cleans up any resources and stops the background sampling process.
-func (d *Detector) Shutdown(_ context.Context) error {
+func (d *Detector) Shutdown(ctx context.Context) error {
 	d.cancel()
-	return nil
+
+	// Wait for the main processing loop to finish
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		close(d.logChan)
+		return nil
+	}
 }
 
 // Capabilities returns the consumer capabilities of the detector.
 // It indicates that this detector does not mutate the data it processes.
 func (d *Detector) Capabilities() consumer.Capabilities {
-	return consumer.Capabilities{MutatesData: false}
+	return consumer.Capabilities{}
 }
 
 // ConsumeLogs processes incoming log data, counting the logs and maintaining time-based sampling buckets.
-// The logs are then forwarded to the next consumer in the pipeline.
 func (d *Detector) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
-	d.stateLock.Lock()
-	defer d.stateLock.Unlock()
+	errChan := make(chan error, 1)
 
-	logCount := d.countLogs(ld)
-
-	if d.currentBucket.start.IsZero() {
-		d.currentBucket.start = time.Now()
-	}
-
-	d.currentBucket.count += logCount
-
-	now := time.Now()
-	if now.Sub(d.lastSampleTime) >= d.config.SampleInterval {
-		d.takeSample(now)
-	}
-
-	return d.nextConsumer.ConsumeLogs(ctx, ld)
-}
-
-// countLogs counts the number of log records in the input
-func (d *Detector) countLogs(ld plog.Logs) int64 {
-	var count int64
-	rls := ld.ResourceLogs()
-	for i := 0; i < rls.Len(); i++ {
-		sls := rls.At(i).ScopeLogs()
-		for j := 0; j < sls.Len(); j++ {
-			count += int64(sls.At(j).LogRecords().Len())
-		}
-	}
-	return count
-}
-
-// checkAndUpdateMetrics runs periodically to check for anomalies even when no logs are received
-func (d *Detector) checkAndUpdateAnomalies() {
-	d.stateLock.Lock()
-	defer d.stateLock.Unlock()
-
-	now := time.Now()
-	if now.Sub(d.lastSampleTime) >= d.config.SampleInterval {
-		d.takeSample(now)
+	select {
+	case d.logChan <- logBatch{logs: ld, ctx: ctx, errChan: errChan}:
+		return <-errChan
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
