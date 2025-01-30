@@ -5,6 +5,7 @@ go 1.22.6
 require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.117.0
 	github.com/stretchr/testify v1.10.0
+	go.opentelemetry.io/collector/client v1.23.0
 	go.opentelemetry.io/collector/component v0.117.0
 	go.opentelemetry.io/collector/consumer v1.23.0
 	go.opentelemetry.io/collector/consumer/consumertest v0.117.0
@@ -12,13 +13,13 @@ require (
 	go.opentelemetry.io/collector/processor v0.117.0
 	go.opentelemetry.io/collector/processor/processortest v0.117.0
 	go.uber.org/zap v1.27.0
-	google.golang.org/grpc v1.69.2
 )
 
 require (
 	go.opentelemetry.io/collector/component/componenttest v0.117.0 // indirect
 	go.opentelemetry.io/collector/consumer/xconsumer v0.117.0 // indirect
 	go.opentelemetry.io/collector/processor/xprocessor v0.117.0 // indirect
+	google.golang.org/grpc v1.69.4 // indirect
 )
 
 require (
