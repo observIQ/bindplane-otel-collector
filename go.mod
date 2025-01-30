@@ -202,6 +202,7 @@ require (
 )
 
 require (
+	github.com/observiq/bindplane-otel-collector/connector/throughputanomalyconnector v0.0.0-00010101000000-000000000000
 	github.com/observiq/bindplane-otel-collector/internal/topology v1.69.0
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.69.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.117.0
@@ -817,6 +818,8 @@ require (
 )
 
 replace github.com/observiq/bindplane-otel-collector/processor/resourceattributetransposerprocessor => ./processor/resourceattributetransposerprocessor
+
+replace github.com/observiq/bindplane-otel-collector/connector/throughputanomalyconnector => ./connector/throughputanomalyconnector
 
 replace github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver => ./receiver/pluginreceiver
 
