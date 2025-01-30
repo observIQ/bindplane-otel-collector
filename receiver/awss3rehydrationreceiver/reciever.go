@@ -158,7 +158,6 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 	if r.cancelFunc != nil {
 		r.cancelFunc()
 	}
-	close(r.doneChan)
 
 	// wait for any in-progress object rehydrations to finish
 	done := make(chan struct{})
@@ -180,9 +179,14 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 	if err := r.handleCheckpoint(ctx); err != nil {
 		errs = errors.Join(errs, fmt.Errorf("handle checkpoint: %w", err))
 	}
+
+	r.checkpointMutex.Lock()
+	defer r.checkpointMutex.Unlock()
+
 	if err := r.checkpointStore.Close(ctx); err != nil {
 		errs = errors.Join(errs, fmt.Errorf("close checkpoint store: %w", err))
 	}
+	r.logger.Info("Shutdown complete")
 	return errs
 }
 

@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/receiver/splunksearchapirece
 go 1.22.7
 
 require (
-	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.69.0
+	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.70.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.117.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v0.117.0
