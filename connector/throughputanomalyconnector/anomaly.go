@@ -16,7 +16,7 @@
 // anomalies in log throughput using statistical analysis. It monitors the rate of incoming
 // logs and generates alerts when significant deviations from the baseline are detected,
 // using both Z-score and Median Absolute Deviation (MAD) methods for anomaly detection.
-package loganomalyconnector
+package throughputanomalyconnector
 
 import (
 	"context"
@@ -187,15 +187,6 @@ func (d *Detector) logAnomaly(anomaly *AnomalyStat) {
 	attrs.PutDouble("baseline.median", anomaly.baselineStats.median)
 	attrs.PutDouble("baseline.mad", anomaly.baselineStats.mad)
 
-	d.logger.Info("Log anomaly detected",
-		zap.String("anomaly_type", anomaly.anomalyType),
-		zap.Float64("current_count", float64(anomaly.currentCount)),
-		zap.Float64("baseline_mean", anomaly.baselineStats.mean),
-		zap.Float64("baseline_median", anomaly.baselineStats.median),
-		zap.Float64("z_score", anomaly.zScore),
-		zap.Float64("mad_score", anomaly.madScore),
-		zap.Float64("deviation_percentage", anomaly.percentageDiff),
-	)
 	// Create a new context with timeout for exporting
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/connector/loganomalyconnector
+module github.com/observiq/bindplane-otel-collector/connector/throughputanomalyconnector
 
 go 1.22.7
 
@@ -7,7 +7,6 @@ require (
 	go.opentelemetry.io/collector/component v0.116.0
 	go.opentelemetry.io/collector/connector v0.116.0
 	go.opentelemetry.io/collector/consumer v1.22.0
-	go.opentelemetry.io/collector/consumer/consumertest v0.116.0
 	go.opentelemetry.io/collector/pdata v1.22.0
 	go.uber.org/zap v1.27.0
 )

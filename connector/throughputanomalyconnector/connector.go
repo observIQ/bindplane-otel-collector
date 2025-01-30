@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package loganomalyconnector
+package throughputanomalyconnector
 
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
@@ -43,20 +44,20 @@ type Detector struct {
 	stateLock sync.Mutex
 	config    *Config
 
-	counts            []int64
+	counts       []int64
+	currentCount atomic.Int64
+
 	lastWindowEndTime time.Time
 
 	logChan      chan logBatch
 	nextConsumer consumer.Logs
+	wg           sync.WaitGroup
 }
 
 func newDetector(config *Config, logger *zap.Logger, nextConsumer consumer.Logs) *Detector {
-	ctx, cancel := context.WithCancel(context.Background())
 	numWindows := int(config.MaxWindowAge.Minutes())
 
 	return &Detector{
-		ctx:               ctx,
-		cancel:            cancel,
 		logger:            logger,
 		config:            config,
 		stateLock:         sync.Mutex{},
@@ -69,11 +70,19 @@ func newDetector(config *Config, logger *zap.Logger, nextConsumer consumer.Logs)
 
 // Start begins the anomaly detection process, sampling at intervals specified in the config.
 // It launches a background goroutine that periodically checks for and updates anomalies.
-func (d *Detector) Start(_ context.Context, _ component.Host) error {
+func (d *Detector) Start(ctx context.Context, _ component.Host) error {
+	d.ctx, d.cancel = context.WithCancel(ctx)
 
 	ticker := time.NewTicker(d.config.SampleInterval)
 
+	d.wg.Add(1)
+
 	go func() {
+		defer func() {
+			ticker.Stop()
+			d.wg.Done()
+		}()
+
 		for {
 			select {
 			case <-d.ctx.Done():
@@ -81,7 +90,7 @@ func (d *Detector) Start(_ context.Context, _ component.Host) error {
 			case batch := <-d.logChan:
 				d.processLogBatch(batch)
 			case <-ticker.C:
-				d.checkForAnomaly() // check this
+				d.analyzeTimeWindow()
 			}
 		}
 	}()
@@ -89,42 +98,74 @@ func (d *Detector) Start(_ context.Context, _ component.Host) error {
 	return nil
 }
 
-func (d *Detector) processLogBatch(batch logBatch) {
-	now := time.Now()
-
-	// Update windows that have elapsed since last update
-	for now.Sub(d.lastWindowEndTime).Minutes() >= 1 {
-		// Shift windows and add empty window
-		copy(d.counts, d.counts[1:])
-		d.counts[len(d.counts)-1] = 0
-		d.lastWindowEndTime = d.lastWindowEndTime.Add(time.Minute)
-	}
-
-	// Add counts to current window
-	var logCount int
-	if batch.logs != (plog.Logs{}) { // Check if logs is not empty
-		logCount = batch.logs.LogRecordCount()
-	}
-	d.counts[len(d.counts)-1] += int64(logCount)
-
-	// Check for anomalies using the fixed window counts
-	if anomaly := d.checkForAnomaly(); anomaly != nil {
-		d.logAnomaly(anomaly)
-	}
-}
-
 // Shutdown stops the detector's operations by canceling its context.
 // It cleans up any resources and stops the background sampling process.
 func (d *Detector) Shutdown(ctx context.Context) error {
 	d.cancel()
 
-	// Wait for the main processing loop to finish
+	close(d.logChan)
+
+	// Wait for goroutine to finish with timeout from context
+	done := make(chan struct{})
+	go func() {
+		d.wg.Wait()
+		close(done)
+	}()
+
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	default:
-		close(d.logChan)
+	case <-done:
 		return nil
+	}
+}
+
+func (d *Detector) processLogBatch(batch logBatch) {
+	logCount := batch.logs.LogRecordCount()
+	d.currentCount.Add(int64(logCount))
+
+	err := d.nextConsumer.ConsumeLogs(batch.ctx, batch.logs)
+	batch.errChan <- err
+}
+
+func (d *Detector) analyzeTimeWindow() {
+	d.stateLock.Lock()
+	defer d.stateLock.Unlock()
+
+	now := time.Now()
+	currentCount := d.currentCount.Swap(0)
+
+	if len(d.counts) > 0 {
+		d.counts[len(d.counts)-1] = currentCount
+	}
+
+	// drop any windows that are too old
+	maxAge := d.config.MaxWindowAge
+	cutoffTime := now.Add(-maxAge)
+
+	// find the first window that is not too old
+	var keepIndex int
+	for i := range d.counts {
+		windowTime := d.lastWindowEndTime.Add(-time.Duration(len(d.counts)-1-i) * time.Minute)
+		if windowTime.After(cutoffTime) {
+			keepIndex = i
+			break
+		}
+	}
+
+	if keepIndex > 0 {
+		d.counts = d.counts[keepIndex:]
+	}
+
+	// add windows until we reach current time
+	for d.lastWindowEndTime.Add(time.Minute).Before(now) {
+		d.counts = append(d.counts, 0)
+		d.lastWindowEndTime = d.lastWindowEndTime.Add(time.Minute)
+	}
+
+	// Check for anomalies using the fixed window counts
+	if anomaly := d.checkForAnomaly(); anomaly != nil {
+		d.logAnomaly(anomaly)
 	}
 }
 
@@ -144,4 +185,5 @@ func (d *Detector) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+
 }

@@ -15,7 +15,7 @@
 package factories
 
 import (
-	"github.com/observiq/bindplane-otel-collector/connector/loganomalyconnector"
+	"github.com/observiq/bindplane-otel-collector/connector/throughputanomalyconnector"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/connector/failoverconnector"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector"
@@ -34,5 +34,5 @@ var defaultConnectors = []connector.Factory{
 	routingconnector.NewFactory(),
 	roundrobinconnector.NewFactory(),
 	failoverconnector.NewFactory(),
-	loganomalyconnector.NewFactory(),
+	throughputanomalyconnector.NewFactory(),
 }
