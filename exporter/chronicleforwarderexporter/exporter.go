@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter"
@@ -52,11 +53,13 @@ type forwarderClient struct {
 }
 
 func (fc *forwarderClient) Dial(network string, address string) (net.Conn, error) {
-	return net.Dial(network, address)
+	return net.DialTimeout(network, address, 10*time.Second)
 }
 
 func (fc *forwarderClient) DialWithTLS(network string, addr string, config *tls.Config) (*tls.Conn, error) {
-	return tls.Dial(network, addr, config)
+	d := new(net.Dialer)
+	d.Timeout = 10 * time.Second
+	return tls.DialWithDialer(d, network, addr, config)
 }
 
 func (fc *forwarderClient) OpenFile(name string) (*os.File, error) {
