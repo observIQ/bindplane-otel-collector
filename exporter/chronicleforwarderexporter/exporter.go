@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter"
@@ -49,14 +50,17 @@ type chronicleForwarderClient interface {
 }
 
 type forwarderClient struct {
+	timeout time.Duration
 }
 
 func (fc *forwarderClient) Dial(network string, address string) (net.Conn, error) {
-	return net.Dial(network, address)
+	return net.DialTimeout(network, address, fc.timeout)
 }
 
 func (fc *forwarderClient) DialWithTLS(network string, addr string, config *tls.Config) (*tls.Conn, error) {
-	return tls.Dial(network, addr, config)
+	d := new(net.Dialer)
+	d.Timeout = fc.timeout
+	return tls.DialWithDialer(d, network, addr, config)
 }
 
 func (fc *forwarderClient) OpenFile(name string) (*os.File, error) {
@@ -66,10 +70,12 @@ func (fc *forwarderClient) OpenFile(name string) (*os.File, error) {
 
 func newExporter(cfg *Config, params exporter.Settings) (*chronicleForwarderExporter, error) {
 	return &chronicleForwarderExporter{
-		cfg:                      cfg,
-		logger:                   params.Logger,
-		marshaler:                newMarshaler(*cfg, params.TelemetrySettings),
-		chronicleForwarderClient: &forwarderClient{},
+		cfg:       cfg,
+		logger:    params.Logger,
+		marshaler: newMarshaler(*cfg, params.TelemetrySettings),
+		chronicleForwarderClient: &forwarderClient{
+			timeout: cfg.Syslog.DialerConfig.Timeout,
+		},
 	}, nil
 }
 
