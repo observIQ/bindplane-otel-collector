@@ -1915,8 +1915,8 @@ github.com/onsi/gomega v1.5.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1Cpa
 github.com/onsi/gomega v1.7.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/onsi/gomega v1.34.2 h1:pNCwDkzrsv7MS9kpaQvVb1aVLahQXyJ/Tv5oAZMI3i8=
 github.com/onsi/gomega v1.34.2/go.mod h1:v1xfxRgk0KIsG+QOdm7p8UosrOzPYRo60fd3B/1Dukc=
-github.com/open-telemetry/opamp-go v0.17.0 h1:3R4+B/6Sy8mknLBbzO3gqloqwTT02rCSRcr4ac2B124=
-github.com/open-telemetry/opamp-go v0.17.0/go.mod h1:SGDhUoAx7uGutO4ENNMQla/tiSujxgZmMPJXIOPGBdk=
+github.com/open-telemetry/opamp-go v0.19.0 h1:8LvQKDwqi+BU3Yy159SU31e2XB0vgnk+PN45pnKilPs=
+github.com/open-telemetry/opamp-go v0.19.0/go.mod h1:9/1G6T5dnJz4cJtoYSr6AX18kHdOxnxxETJPZSHyEUg=
 github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.117.0 h1:zbTAdG01+Zgx5yVseF16m5yNew9DfZpaBtlC/weScCo=
 github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.117.0/go.mod h1:Sepz963Q0I7/XeipIKY0xifQ4l2fF7wwkJ5PuxULr0c=
 github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.117.0 h1:PcVrvnHWoJbvmdTCGG/A31efVMkp+NUagZoa7ekAYdI=

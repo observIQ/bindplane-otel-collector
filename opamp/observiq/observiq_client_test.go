@@ -409,12 +409,12 @@ func TestClientConnect(t *testing.T) {
 					},
 					TLSConfig:   nil,
 					InstanceUid: c.ident.agentID.OpAMPInstanceUID(),
-					Callbacks: types.CallbacksStruct{
-						OnConnectFunc:          c.onConnectHandler,
-						OnConnectFailedFunc:    c.onConnectFailedHandler,
-						OnErrorFunc:            c.onErrorHandler,
-						OnMessageFunc:          c.onMessageFuncHandler,
-						GetEffectiveConfigFunc: c.onGetEffectiveConfigHandler,
+					Callbacks: types.Callbacks{
+						OnConnect:          c.onConnectHandler,
+						OnConnectFailed:    c.onConnectFailedHandler,
+						OnError:            c.onErrorHandler,
+						OnMessage:          c.onMessageFuncHandler,
+						GetEffectiveConfig: c.onGetEffectiveConfigHandler,
 					},
 					PackagesStateProvider: c.packagesStateProvider,
 				}

@@ -24,6 +24,7 @@ import (
 	"net/url"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/observiq/bindplane-otel-collector/collector"
 	"github.com/observiq/bindplane-otel-collector/internal/measurements"
@@ -48,7 +49,8 @@ const capabilities = protobufs.AgentCapabilities_AgentCapabilities_ReportsStatus
 	protobufs.AgentCapabilities_AgentCapabilities_ReportsPackageStatuses |
 	protobufs.AgentCapabilities_AgentCapabilities_ReportsEffectiveConfig |
 	protobufs.AgentCapabilities_AgentCapabilities_AcceptsRemoteConfig |
-	protobufs.AgentCapabilities_AgentCapabilities_ReportsRemoteConfig
+	protobufs.AgentCapabilities_AgentCapabilities_ReportsRemoteConfig |
+	protobufs.AgentCapabilities_AgentCapabilities_ReportsHeartbeat
 
 // Ensure interface is satisfied
 var _ opamp.Client = (*Client)(nil)
@@ -240,12 +242,12 @@ func (c *Client) Connect(ctx context.Context) error {
 		},
 		TLSConfig:   tlsCfg,
 		InstanceUid: c.ident.agentID.OpAMPInstanceUID(),
-		Callbacks: types.CallbacksStruct{
-			OnConnectFunc:          c.onConnectHandler,
-			OnConnectFailedFunc:    c.onConnectFailedHandler,
-			OnErrorFunc:            c.onErrorHandler,
-			OnMessageFunc:          c.onMessageFuncHandler,
-			GetEffectiveConfigFunc: c.onGetEffectiveConfigHandler,
+		Callbacks: types.Callbacks{
+			OnConnect:          c.onConnectHandler,
+			OnConnectFailed:    c.onConnectFailedHandler,
+			OnError:            c.onErrorHandler,
+			OnMessage:          c.onMessageFuncHandler,
+			GetEffectiveConfig: c.onGetEffectiveConfigHandler,
 			// Unimplemented handlers
 			// OnOpampConnectionSettingsFunc
 			// OnOpampConnectionSettingsAcceptedFunc
@@ -254,6 +256,7 @@ func (c *Client) Connect(ctx context.Context) error {
 		},
 		PackagesStateProvider: c.packagesStateProvider,
 		Capabilities:          capabilities,
+		HeartbeatInterval:     ptr(time.Duration(0)),
 	}
 
 	// Start the embedded collector
@@ -746,4 +749,8 @@ func (c *Client) safeGetDisconnecting() bool {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	return c.disconnecting
+}
+
+func ptr[T any](v T) *T {
+	return &v
 }
