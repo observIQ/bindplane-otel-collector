@@ -35,7 +35,7 @@ func Test_createDefaultConfig(t *testing.T) {
 				Endpoint:  "127.0.0.1:10514",
 				Transport: "tcp",
 				DialerConfig: confignet.DialerConfig{
-					Timeout: 10 * time.Second,
+					Timeout: 5 * time.Second,
 				},
 			},
 		},
