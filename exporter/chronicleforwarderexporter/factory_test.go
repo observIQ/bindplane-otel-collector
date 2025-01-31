@@ -16,6 +16,7 @@ package chronicleforwarderexporter // import "github.com/observiq/bindplane-otel
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/config/confignet"
@@ -33,6 +34,9 @@ func Test_createDefaultConfig(t *testing.T) {
 			AddrConfig: confignet.AddrConfig{
 				Endpoint:  "127.0.0.1:10514",
 				Transport: "tcp",
+				DialerConfig: confignet.DialerConfig{
+					Timeout: 5 * time.Second,
+				},
 			},
 		},
 	}
