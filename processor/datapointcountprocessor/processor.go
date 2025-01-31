@@ -122,7 +122,7 @@ func (p *metricCountProcessor) ConsumeMetrics(ctx context.Context, m pmetric.Met
 	return p.consumer.ConsumeMetrics(ctx, m)
 }
 
-// consumeMetricsOTTL processes the metrics using configured expr expressions
+// consumeMetricsExpr processes the metrics using configured expr expressions
 func (p *metricCountProcessor) consumeMetricsExpr(m pmetric.Metrics) {
 	resourceGroups := expr.ConvertToDatapointResourceGroup(m)
 	for _, group := range resourceGroups {
