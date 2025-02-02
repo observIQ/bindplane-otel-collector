@@ -6,7 +6,7 @@ require (
 	github.com/golang/snappy v0.0.4
 	github.com/observiq/bindplane-otel-collector/internal/measurements v1.70.0
 	github.com/observiq/bindplane-otel-collector/internal/topology v1.70.0
-	github.com/open-telemetry/opamp-go v0.18.0
+	github.com/open-telemetry/opamp-go v0.19.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.117.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v0.117.0
