@@ -206,6 +206,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.70.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.118.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.118.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.118.0
 	go.opentelemetry.io/collector/extension/extensiontest v0.118.0
 	go.opentelemetry.io/collector/processor/processortest v0.118.0
 	go.opentelemetry.io/collector/receiver/receivertest v0.118.0

@@ -3,7 +3,7 @@
 Below is a list of supported receivers with links to their documentation pages.
 
 | Name                                       | GitHub README                                                                                                                                                       |
-|--------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Active Directory Domain Services Receiver  | [activedirectorydsreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.118.0/receiver/activedirectorydsreceiver/README.md)           |
 | Aerospike Receiver                         | [aerospikereceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.118.0/receiver/aerospikereceiver/README.md)                           |
 | Apache CouchDB Receiver                    | [couchdbreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.118.0/receiver/couchdbreceiver/README.md)                               |
@@ -50,6 +50,7 @@ Below is a list of supported receivers with links to their documentation pages.
 | MongoDB Receiver                           | [mongodbreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.118.0/receiver/mongodbreceiver/README.md)                               |
 | MongoDB Atlas Receiver                     | [mongodbatlasreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.118.0/receiver/mongodbatlasreceiver/README.md)                     |
 | MySQL Receiver                             | [mysqlreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.118.0/receiver/mysqlreceiver/README.md)                                   |
+| NetFlow Receiver                           | [netflowreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.118.0/receiver/netflowreceiver/README.md)                               |
 | NGINX Receiver                             | [nginxreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.118.0/receiver/nginxreceiver/README.md)                                   |
 | Okta Receiver                              | [oktareceiver](../receiver/oktareceiver/README.md)                                                                                                                  |
 | OpenCensus Receiver                        | [opencensusreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.118.0/receiver/opencensusreceiver/README.md)                         |
