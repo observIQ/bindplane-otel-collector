@@ -780,6 +780,8 @@ create_supervisor_config() {
   command printf '  reports_remote_config: true\n' >>"$supervisor_yml_path"
   command printf 'agent:\n' >>"$supervisor_yml_path"
   command printf '  executable: "%s"\n' "$INSTALL_DIR/bindplane-otel-collector" >>"$supervisor_yml_path"
+  command printf '  config_apply_timeout: 30s\n' >>"$supervisor_yml_path"
+  command printf '  bootstrap_timeout: 5s\n' >>"$supervisor_yml_path"
   command printf '  description:\n' >>"$supervisor_yml_path"
   command printf '    non_identifying_attributes:\n' >>"$supervisor_yml_path"
   [ -n "$OPAMP_LABELS" ] && command printf '      service.labels: "%s"\n' "$OPAMP_LABELS" >>"$supervisor_yml_path"

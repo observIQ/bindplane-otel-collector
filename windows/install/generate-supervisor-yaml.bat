@@ -35,6 +35,8 @@ set "reportsRemoteCfgField=  reports_remote_config: true"
 
 set "agentField=agent:"
 set "executablePathField=  executable: '%agentBinary%'"
+set "configApplyTimeoutField=  config_apply_timeout: 30s"
+set "bootstrapTimeoutField=  bootstrap_timeout: 5s"
 set "descriptionField=  description:"
 set "nonIdentifyingAttributesField=    non_identifying_attributes:"
 set "serviceLabelsField=      service.labels: "%labels%""
