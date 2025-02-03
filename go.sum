@@ -2233,6 +2233,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbreceiv
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbreceiver v0.118.0/go.mod h1:PEJIQrVA5gSvqI7yFtXD1cKW4yJLrecXIG+TtkgvcDo=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mysqlreceiver v0.118.0 h1:Djj/jwMKZ2C7ChaeEhtBcLxnO0jXDcbKoyve8fZr6IE=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mysqlreceiver v0.118.0/go.mod h1:0KT2Fxyk5FX+xcXTUGFrPfq4BQfEXjlcn7fH3AYkgP0=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.118.0 h1:Q4mosEEfPkL8lEc7cYAqNEdRXw952mk0T06fT3kuzGs=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.118.0/go.mod h1:GExsniRodKpE0X6/UzBSkVT00NlsxK6szFF6MDNo53Q=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/nginxreceiver v0.118.0 h1:rFtp5RKedC0u9fsNc1f9MYNZFfY3fRBTT/ajITIqBWs=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/nginxreceiver v0.118.0/go.mod h1:D95GeajiWeh6CFBeWEC3aJo2UwouIdooJnwvXK+1Egc=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/opencensusreceiver v0.118.0 h1:xBhG84x+FIlIuaeFFRa4GB6tEBpUsyXCdj00EFobjlc=
