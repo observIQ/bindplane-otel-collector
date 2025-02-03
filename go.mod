@@ -37,7 +37,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver v1.70.0
 	github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.70.0
 	github.com/oklog/ulid/v2 v2.1.0
-	github.com/open-telemetry/opamp-go v0.17.0
+	github.com/open-telemetry/opamp-go v0.19.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.117.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/failoverconnector v0.117.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.117.0
