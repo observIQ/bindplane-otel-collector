@@ -63,8 +63,8 @@ func newDetector(config *Config, logger *zap.Logger, nextConsumer consumer.Logs)
 		stateLock:         sync.Mutex{},
 		nextConsumer:      nextConsumer,
 		logChan:           make(chan logBatch, 1000),
-		counts:            make([]int64, numWindows),
-		lastWindowEndTime: time.Now().Truncate(time.Minute),
+		counts:            make([]int64, 0, numWindows),
+		lastWindowEndTime: time.Now().Truncate(config.AnalysisInterval),
 	}
 }
 
@@ -73,7 +73,7 @@ func newDetector(config *Config, logger *zap.Logger, nextConsumer consumer.Logs)
 func (d *Detector) Start(ctx context.Context, _ component.Host) error {
 	d.ctx, d.cancel = context.WithCancel(ctx)
 
-	ticker := time.NewTicker(d.config.SampleInterval)
+	ticker := time.NewTicker(d.config.AnalysisInterval)
 
 	d.wg.Add(1)
 
@@ -123,9 +123,6 @@ func (d *Detector) Shutdown(ctx context.Context) error {
 func (d *Detector) processLogBatch(batch logBatch) {
 	logCount := batch.logs.LogRecordCount()
 	d.currentCount.Add(int64(logCount))
-
-	err := d.nextConsumer.ConsumeLogs(batch.ctx, batch.logs)
-	batch.errChan <- err
 }
 
 func (d *Detector) analyzeTimeWindow() {
@@ -135,18 +132,15 @@ func (d *Detector) analyzeTimeWindow() {
 	now := time.Now()
 	currentCount := d.currentCount.Swap(0)
 
-	if len(d.counts) > 0 {
-		d.counts[len(d.counts)-1] = currentCount
-	}
-
 	// drop any windows that are too old
 	maxAge := d.config.MaxWindowAge
 	cutoffTime := now.Add(-maxAge)
+	windowDuration := d.config.AnalysisInterval
 
 	// find the first window that is not too old
 	var keepIndex int
 	for i := range d.counts {
-		windowTime := d.lastWindowEndTime.Add(-time.Duration(len(d.counts)-1-i) * time.Minute)
+		windowTime := d.lastWindowEndTime.Add(-time.Duration(len(d.counts)-1-i) * windowDuration)
 		if windowTime.After(cutoffTime) {
 			keepIndex = i
 			break
@@ -158,9 +152,17 @@ func (d *Detector) analyzeTimeWindow() {
 	}
 
 	// add windows until we reach current time
-	for d.lastWindowEndTime.Add(time.Minute).Before(now) {
+	for d.lastWindowEndTime.Add(windowDuration).Before(now) {
 		d.counts = append(d.counts, 0)
-		d.lastWindowEndTime = d.lastWindowEndTime.Add(time.Minute)
+		d.lastWindowEndTime = d.lastWindowEndTime.Add(windowDuration)
+	}
+
+	if len(d.counts) > 0 {
+		d.counts[len(d.counts)-1] = currentCount
+	} else {
+		// Initialize first window
+		d.counts = append(d.counts, currentCount)
+		d.lastWindowEndTime = now.Truncate(windowDuration)
 	}
 
 	// Check for anomalies using the fixed window counts

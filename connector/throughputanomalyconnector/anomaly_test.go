@@ -35,40 +35,40 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "valid config",
 			config: Config{
-				SampleInterval:  time.Minute,
-				MaxWindowAge:    time.Hour,
-				ZScoreThreshold: 3.0,
-				MADThreshold:    3.0,
+				AnalysisInterval: time.Minute,
+				MaxWindowAge:     time.Hour,
+				ZScoreThreshold:  3.0,
+				MADThreshold:     3.0,
 			},
 			expectError: false,
 		},
 		{
 			name: "invalid sample interval - too small",
 			config: Config{
-				SampleInterval:  time.Second * 30,
-				MaxWindowAge:    time.Hour,
-				ZScoreThreshold: 3.0,
-				MADThreshold:    3.0,
+				AnalysisInterval: time.Second * 30,
+				MaxWindowAge:     time.Hour,
+				ZScoreThreshold:  3.0,
+				MADThreshold:     3.0,
 			},
 			expectError: true,
 		},
 		{
 			name: "invalid max window age - too small relative to sample interval",
 			config: Config{
-				SampleInterval:  time.Minute,
-				MaxWindowAge:    time.Minute * 5,
-				ZScoreThreshold: 3.0,
-				MADThreshold:    3.0,
+				AnalysisInterval: time.Minute,
+				MaxWindowAge:     time.Minute * 5,
+				ZScoreThreshold:  3.0,
+				MADThreshold:     3.0,
 			},
 			expectError: true,
 		},
 		{
 			name: "invalid threshold - negative z-score",
 			config: Config{
-				SampleInterval:  time.Minute,
-				MaxWindowAge:    time.Hour,
-				ZScoreThreshold: -1.0,
-				MADThreshold:    3.0,
+				AnalysisInterval: time.Minute,
+				MaxWindowAge:     time.Hour,
+				ZScoreThreshold:  -1.0,
+				MADThreshold:     3.0,
 			},
 			expectError: true,
 		},
@@ -160,10 +160,10 @@ func (m *mockConsumer) Capabilities() consumer.Capabilities {
 
 func TestDetector_AnomalyDetection(t *testing.T) {
 	config := &Config{
-		SampleInterval:  time.Minute,
-		MaxWindowAge:    time.Hour,
-		ZScoreThreshold: 2.0,
-		MADThreshold:    2.0,
+		AnalysisInterval: time.Minute,
+		MaxWindowAge:     time.Hour,
+		ZScoreThreshold:  2.0,
+		MADThreshold:     2.0,
 	}
 
 	logger := zap.NewNop()
@@ -254,19 +254,25 @@ func TestDetector_AnomalyDetection(t *testing.T) {
 
 func TestDetector_Shutdown(t *testing.T) {
 	config := &Config{
-		SampleInterval:  time.Minute,
-		MaxWindowAge:    time.Hour,
-		ZScoreThreshold: 3.0,
-		MADThreshold:    3.0,
+		AnalysisInterval: time.Minute,
+		MaxWindowAge:     time.Hour,
+		ZScoreThreshold:  3.0,
+		MADThreshold:     3.0,
 	}
 
 	logger := zap.NewNop()
 	mockConsumer := &mockConsumer{}
 	detector := newDetector(config, logger, mockConsumer)
 
+	// Initialize the log channel with proper capacity
+	detector.logChan = make(chan logBatch, 1)
+
 	// Start the detector
 	err := detector.Start(context.Background(), nil)
 	require.NoError(t, err)
+
+	// Allow some time for goroutine to start
+	time.Sleep(100 * time.Millisecond)
 
 	// Test clean shutdown
 	ctx := context.Background()
@@ -283,8 +289,12 @@ func TestDetector_Shutdown(t *testing.T) {
 
 	// Test shutdown with canceled context
 	detector = newDetector(config, logger, mockConsumer)
+	detector.logChan = make(chan logBatch, 1) // Initialize channel for new detector
 	err = detector.Start(context.Background(), nil)
 	require.NoError(t, err)
+
+	// Allow some time for goroutine to start
+	time.Sleep(100 * time.Millisecond)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

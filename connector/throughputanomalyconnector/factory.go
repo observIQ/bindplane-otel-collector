@@ -35,10 +35,10 @@ func NewFactory() connector.Factory {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		SampleInterval:  1 * time.Minute,
-		MaxWindowAge:    1 * time.Hour,
-		ZScoreThreshold: 3.0,
-		MADThreshold:    3.5,
+		AnalysisInterval: 1 * time.Minute,
+		MaxWindowAge:     1 * time.Hour,
+		ZScoreThreshold:  3.0,
+		MADThreshold:     3.5,
 	}
 }
 

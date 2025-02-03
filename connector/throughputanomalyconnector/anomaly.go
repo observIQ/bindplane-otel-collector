@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package loganomalyconnector provides an OpenTelemetry collector connector that detects
+// Package throughputanomalyconnector provides an OpenTelemetry collector connector that detects
 // anomalies in log throughput using statistical analysis. It monitors the rate of incoming
 // logs and generates alerts when significant deviations from the baseline are detected,
 // using both Z-score and Median Absolute Deviation (MAD) methods for anomaly detection.
@@ -63,7 +63,6 @@ func calculateStatistics(counts []int64) Statistics {
 	for _, count := range counts {
 		sum += float64(count)
 	}
-
 	mean := sum / float64(len(counts))
 
 	// Calculate standard deviation
@@ -77,18 +76,34 @@ func calculateStatistics(counts []int64) Statistics {
 	// Calculate median
 	sortedCounts := make([]int64, len(counts))
 	copy(sortedCounts, counts)
-	sort.Slice(sortedCounts, func(i int, j int) bool {
+	sort.Slice(sortedCounts, func(i, j int) bool {
 		return sortedCounts[i] < sortedCounts[j]
 	})
-	median := float64(sortedCounts[len(sortedCounts)/2])
 
-	// Calculate MAD
+	var median float64
+	if len(sortedCounts)%2 == 0 {
+		// If even number of samples, average the two middle values
+		mid := len(sortedCounts) / 2
+		median = (float64(sortedCounts[mid-1]) + float64(sortedCounts[mid])) / 2
+	} else {
+		// If odd number of samples, take the middle value
+		median = float64(sortedCounts[len(sortedCounts)/2])
+	}
+
+	// Calculate MAD (Median Absolute Deviation)
 	deviations := make([]float64, len(counts))
 	for i, count := range counts {
 		deviations[i] = math.Abs(float64(count) - median)
 	}
 	sort.Float64s(deviations)
-	mad := deviations[len(deviations)/2] * 1.4826
+
+	var mad float64
+	if len(deviations)%2 == 0 {
+		mid := len(deviations) / 2
+		mad = (deviations[mid-1] + deviations[mid]) / 2 * 1.4826
+	} else {
+		mad = deviations[len(deviations)/2] * 1.4826
+	}
 
 	return Statistics{
 		mean:    mean,
@@ -111,9 +126,20 @@ func (d *Detector) checkForAnomaly() *AnomalyStat {
 
 	stats := calculateStatistics(historicalCounts)
 
-	if stats.stdDev == 0 {
+	var percentageDiff float64
+	if stats.mean == 0 {
+		if float64(currentCount) == 0 {
+			percentageDiff = 0
+		} else {
+			percentageDiff = 100 // handle division by zero by allowing percentage diff to be 100%
+		}
+	} else {
+		percentageDiff = ((float64(currentCount) - stats.mean) / stats.mean) * 100
+	}
+	percentageDiff = math.Abs(percentageDiff)
+
+	if stats.stdDev == 0 || stats.mad == 0 {
 		if float64(currentCount) != stats.mean {
-			percentageDiff := ((float64(currentCount) - stats.mean) / stats.mean) * 100
 			anomalyType := "Drop"
 			if float64(currentCount) > stats.mean {
 				anomalyType = "Spike"
@@ -125,15 +151,15 @@ func (d *Detector) checkForAnomaly() *AnomalyStat {
 				currentCount:   currentCount,
 				zScore:         0, // Not meaningful when stdDev is 0
 				madScore:       0, // Not meaningful when MAD is 0
-				percentageDiff: math.Abs(percentageDiff),
+				percentageDiff: percentageDiff,
 				timestamp:      d.lastWindowEndTime,
 			}
 		}
 		return nil
 	}
+
 	zScore := (float64(currentCount) - stats.mean) / stats.stdDev
 	madScore := (float64(currentCount) - stats.median) / stats.mad
-	percentageDiff := ((float64(currentCount) - stats.mean) / stats.mean) * 100
 
 	// Check for anomaly using both Z-score and MAD
 	if math.Abs(zScore) > d.config.ZScoreThreshold || math.Abs(madScore) > d.config.MADThreshold {
@@ -148,7 +174,7 @@ func (d *Detector) checkForAnomaly() *AnomalyStat {
 			currentCount:   currentCount,
 			zScore:         zScore,
 			madScore:       madScore,
-			percentageDiff: math.Abs(percentageDiff),
+			percentageDiff: percentageDiff,
 			timestamp:      d.lastWindowEndTime,
 		}
 	}

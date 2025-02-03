@@ -26,7 +26,7 @@ var _ component.Config = (*Config)(nil)
 // Config defines the configuration parameters for the log anomaly detector connector.
 type Config struct {
 	// How often to take measurements
-	SampleInterval time.Duration `mapstructure:"sample_interval"`
+	AnalysisInterval time.Duration `mapstructure:"analysis_interval"`
 	// MaxWindowAge defines the maximum age of samples to retain in the detection window.
 	// Samples older than this duration are pruned from the analysis window.
 	// This duration determines how far back the detector looks when establishing baseline behavior.
@@ -46,14 +46,14 @@ type Config struct {
 // Validate checks whether the input configuration has all of the required fields for the processor.
 // An error is returned if there are any invalid inputs.
 func (config *Config) Validate() error {
-	if config.SampleInterval <= 0 {
-		return fmt.Errorf("sample_interval must be positive, got %v", config.SampleInterval)
+	if config.AnalysisInterval <= 0 {
+		return fmt.Errorf("analysis_interval must be positive, got %v", config.AnalysisInterval)
 	}
-	if config.SampleInterval < time.Minute {
-		return fmt.Errorf("sample_interval must be at least 1 minute, got %v", config.SampleInterval)
+	if config.AnalysisInterval < time.Minute {
+		return fmt.Errorf("analysis_interval must be at least 1 minute, got %v", config.AnalysisInterval)
 	}
-	if config.SampleInterval > time.Hour {
-		return fmt.Errorf("sample_interval must not exceed 1 hour, got %v", config.SampleInterval)
+	if config.AnalysisInterval > time.Hour {
+		return fmt.Errorf("analysis_interval must not exceed 1 hour, got %v", config.AnalysisInterval)
 	}
 	if config.MaxWindowAge <= 0 {
 		return fmt.Errorf("max_window_age must be positive, got %v", config.MaxWindowAge)
@@ -62,9 +62,9 @@ func (config *Config) Validate() error {
 		return fmt.Errorf("max_window_age must be at least 1 hour, got %v", config.MaxWindowAge)
 	}
 
-	if config.MaxWindowAge < config.SampleInterval*10 {
-		return fmt.Errorf("max_window_age (%v) must be at least 10 times larger than sample_interval (%v)",
-			config.MaxWindowAge, config.SampleInterval)
+	if config.MaxWindowAge < config.AnalysisInterval*10 {
+		return fmt.Errorf("max_window_age (%v) must be at least 10 times larger than analysis_interval (%v)",
+			config.MaxWindowAge, config.AnalysisInterval)
 	}
 
 	if config.ZScoreThreshold <= 0 {
