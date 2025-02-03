@@ -4,7 +4,7 @@ go 1.22.7
 
 require (
 	github.com/observiq/bindplane-otel-collector/internal/report v1.70.0
-	github.com/open-telemetry/opamp-go v0.18.0
+	github.com/open-telemetry/opamp-go v0.19.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.118.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.118.0
 	github.com/stretchr/testify v1.10.0
