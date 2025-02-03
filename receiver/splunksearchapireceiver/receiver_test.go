@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/extension/experimental/storage"
+	"go.opentelemetry.io/collector/extension/xextension/storage"
 	"go.uber.org/zap"
 )
 
@@ -212,7 +212,7 @@ func (m *mockStorage) Set(ctx context.Context, key string, value []byte) error {
 	return args.Error(0)
 }
 
-func (m *mockStorage) Batch(_ context.Context, _ ...storage.Operation) error {
+func (m *mockStorage) Batch(_ context.Context, _ ...*storage.Operation) error {
 	return nil
 }
 
