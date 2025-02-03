@@ -212,7 +212,7 @@ func (m *mockStorage) Set(ctx context.Context, key string, value []byte) error {
 	return args.Error(0)
 }
 
-func (m *mockStorage) Batch(_ context.Context, _ ...storage.Operation) error {
+func (m *mockStorage) Batch(_ context.Context, _ ...*storage.Operation) error {
 	return nil
 }
 
