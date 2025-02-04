@@ -117,6 +117,21 @@ func (p *logCountProcessor) ConsumeLogs(ctx context.Context, pl plog.Logs) error
 	return p.consumer.ConsumeLogs(ctx, pl)
 }
 
+// consumeLogsExpr processes the logs using configured expr expressions
+func (p *logCountProcessor) consumeLogsExpr(pl plog.Logs) {
+	resourceGroups := expr.ConvertToResourceGroups(pl)
+	for _, group := range resourceGroups {
+		resource := group.Resource
+		for _, record := range group.Records {
+			if p.match.MatchRecord(record) {
+				attrs := p.attrs.Extract(record)
+				p.counter.Add(resource, attrs)
+			}
+		}
+	}
+}
+
+// consumeLogsOTTL processes the logs using configured OTTL expressions
 func (p *logCountProcessor) consumeLogsOTTL(ctx context.Context, pl plog.Logs) {
 	resourceLogs := pl.ResourceLogs()
 	for i := 0; i < resourceLogs.Len(); i++ {
@@ -125,10 +140,10 @@ func (p *logCountProcessor) consumeLogsOTTL(ctx context.Context, pl plog.Logs) {
 
 		scopeLogs := resourceLog.ScopeLogs()
 		for j := 0; j < scopeLogs.Len(); j++ {
-			scopeLog := scopeLogs.At(0)
+			scopeLog := scopeLogs.At(j)
 			logs := scopeLog.LogRecords()
 			for k := 0; k < logs.Len(); k++ {
-				log := logs.At(0)
+				log := logs.At(k)
 				logCtx := ottllog.NewTransformContext(log, scopeLog.Scope(), resource, scopeLog, resourceLog)
 				match, err := p.OTTLmatch.Match(ctx, logCtx)
 				if err != nil {
@@ -140,19 +155,6 @@ func (p *logCountProcessor) consumeLogsOTTL(ctx context.Context, pl plog.Logs) {
 					attrs := p.OTTLattrs.ExtractAttributes(ctx, logCtx)
 					p.counter.Add(resource.Attributes().AsRaw(), attrs)
 				}
-			}
-		}
-	}
-}
-
-func (p *logCountProcessor) consumeLogsExpr(pl plog.Logs) {
-	resourceGroups := expr.ConvertToResourceGroups(pl)
-	for _, group := range resourceGroups {
-		resource := group.Resource
-		for _, record := range group.Records {
-			if p.match.MatchRecord(record) {
-				attrs := p.attrs.Extract(record)
-				p.counter.Add(resource, attrs)
 			}
 		}
 	}

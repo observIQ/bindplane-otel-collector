@@ -26,9 +26,9 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/pmetrictest"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/ptracetest"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/client"
 	"go.opentelemetry.io/collector/component"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/metadata"
 )
 
 func TestProcessor_Logs(t *testing.T) {
@@ -46,11 +46,13 @@ func TestProcessor_Logs(t *testing.T) {
 	logs, err := golden.ReadLogs(filepath.Join("testdata", "logs", "w3c-logs.yaml"))
 	require.NoError(t, err)
 
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.MD{
-		accountIDHeader:      []string{"myAccountID1"},
-		organizationIDHeader: []string{"myOrgID1"},
-		configurationHeader:  []string{"myConfigName1"},
-		resourceNameHeader:   []string{"myResourceName1"},
+	ctx := client.NewContext(context.Background(), client.Info{
+		Metadata: client.NewMetadata(map[string][]string{
+			accountIDHeader:      {"myAccountID1"},
+			organizationIDHeader: {"myOrgID1"},
+			configurationHeader:  {"myConfigName1"},
+			resourceNameHeader:   {"myResourceName1"},
+		}),
 	})
 	processedLogs, err := tmp.processLogs(ctx, logs)
 	require.NoError(t, err)
@@ -87,11 +89,13 @@ func TestProcessor_Metrics(t *testing.T) {
 	metrics, err := golden.ReadMetrics(filepath.Join("testdata", "metrics", "host-metrics.yaml"))
 	require.NoError(t, err)
 
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.MD{
-		accountIDHeader:      []string{"myAccountID1"},
-		organizationIDHeader: []string{"myOrgID1"},
-		configurationHeader:  []string{"myConfigName1"},
-		resourceNameHeader:   []string{"myResourceName1"},
+	ctx := client.NewContext(context.Background(), client.Info{
+		Metadata: client.NewMetadata(map[string][]string{
+			accountIDHeader:      {"myAccountID1"},
+			organizationIDHeader: {"myOrgID1"},
+			configurationHeader:  {"myConfigName1"},
+			resourceNameHeader:   {"myResourceName1"},
+		}),
 	})
 
 	processedMetrics, err := tmp.processMetrics(ctx, metrics)
@@ -129,11 +133,13 @@ func TestProcessor_Traces(t *testing.T) {
 	traces, err := golden.ReadTraces(filepath.Join("testdata", "traces", "bindplane-traces.yaml"))
 	require.NoError(t, err)
 
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.MD{
-		accountIDHeader:      []string{"myAccountID1"},
-		organizationIDHeader: []string{"myOrgID1"},
-		configurationHeader:  []string{"myConfigName1"},
-		resourceNameHeader:   []string{"myResourceName1"},
+	ctx := client.NewContext(context.Background(), client.Info{
+		Metadata: client.NewMetadata(map[string][]string{
+			accountIDHeader:      {"myAccountID1"},
+			organizationIDHeader: {"myOrgID1"},
+			configurationHeader:  {"myConfigName1"},
+			resourceNameHeader:   {"myResourceName1"},
+		}),
 	})
 
 	processedTraces, err := tmp.processTraces(ctx, traces)
@@ -154,6 +160,39 @@ func TestProcessor_Traces(t *testing.T) {
 	}
 	_, ok := tmp.topology.Topology.RouteTable[ci]
 	require.True(t, ok)
+}
+
+func TestProcessor_MissingHeader(t *testing.T) {
+	processorID := component.MustNewIDWithName("topology", "1")
+
+	tmp, err := newTopologyProcessor(zap.NewNop(), &Config{
+		Enabled:        true,
+		Interval:       time.Second,
+		OrganizationID: "myOrgID",
+		AccountID:      "myAccountID",
+		Configuration:  "myConfigName",
+	}, processorID)
+	require.NoError(t, err)
+
+	traces, err := golden.ReadTraces(filepath.Join("testdata", "traces", "bindplane-traces.yaml"))
+	require.NoError(t, err)
+
+	ctx := client.NewContext(context.Background(), client.Info{
+		Metadata: client.NewMetadata(map[string][]string{
+			organizationIDHeader: {"myOrgID1"},
+			configurationHeader:  {"myConfigName1"},
+			resourceNameHeader:   {"myResourceName1"},
+		}),
+	})
+
+	processedTraces, err := tmp.processTraces(ctx, traces)
+	require.NoError(t, err)
+
+	// Output traces should be the same as input logs (passthrough check)
+	require.NoError(t, ptracetest.CompareTraces(traces, processedTraces))
+
+	// validate that upsert route was not performed
+	require.Equal(t, 0, len(tmp.topology.Topology.RouteTable))
 }
 
 // Test 2 instances with the same processor ID

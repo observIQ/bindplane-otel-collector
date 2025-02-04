@@ -17,6 +17,7 @@ package chronicleforwarderexporter
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleforwarderexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
@@ -45,6 +46,9 @@ func createDefaultConfig() component.Config {
 			AddrConfig: confignet.AddrConfig{
 				Endpoint:  "127.0.0.1:10514",
 				Transport: "tcp",
+				DialerConfig: confignet.DialerConfig{
+					Timeout: 5 * time.Second,
+				},
 			},
 		},
 	}

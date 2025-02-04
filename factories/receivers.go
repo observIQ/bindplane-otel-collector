@@ -65,6 +65,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbatlasreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mysqlreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/nginxreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/opencensusreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/podmanreceiver"
@@ -140,6 +141,7 @@ var defaultReceivers = []receiver.Factory{
 	mongodbatlasreceiver.NewFactory(),
 	mongodbreceiver.NewFactory(),
 	mysqlreceiver.NewFactory(),
+	netflowreceiver.NewFactory(),
 	nginxreceiver.NewFactory(),
 	oktareceiver.NewFactory(),
 	opencensusreceiver.NewFactory(),
