@@ -213,7 +213,7 @@ require (
 )
 
 require (
-	cel.dev/expr v0.16.2 // indirect
+	cel.dev/expr v0.19.0 // indirect
 	cloud.google.com/go/auth v0.14.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.7 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
@@ -461,7 +461,7 @@ require (
 	go.opentelemetry.io/collector/service v0.118.0 // indirect
 	go.opentelemetry.io/contrib/bridges/otelzap v0.6.0 // indirect
 	go.opentelemetry.io/contrib/config v0.10.0 // indirect
-	go.opentelemetry.io/contrib/detectors/gcp v1.31.0 // indirect
+	go.opentelemetry.io/contrib/detectors/gcp v1.32.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.7.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.32.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.32.0 // indirect
@@ -801,7 +801,7 @@ require (
 	gonum.org/v1/gonum v0.15.1 // indirect
 	google.golang.org/api v0.217.0 // indirect
 	google.golang.org/genproto v0.0.0-20241118233622-e639e219e697 // indirect
-	google.golang.org/grpc v1.69.4 // indirect
+	google.golang.org/grpc v1.70.0 // indirect
 	google.golang.org/protobuf v1.36.3 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
