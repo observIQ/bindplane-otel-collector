@@ -1723,7 +1723,7 @@ func Test_getCollectorID(t *testing.T) {
 		{
 			name:        "Google",
 			licenseType: "Google",
-			expect:      defaultCollectorID[:],
+			expect:      googleCollectorID[:],
 		},
 		{
 			name:        "FreeCloud",

@@ -40,12 +40,14 @@ const chronicleIngestionLabelsPrefix = `chronicle_ingestion_label`
 
 // Specific collector IDs for Chronicle used to identify bindplane agents.
 var (
-	defaultCollectorID          = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1111")
+	googleCollectorID           = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1111")
 	googleEnterpriseCollectorID = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1112")
 	enterpriseCollectorID       = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1113")
+	defaultCollectorID          = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1114")
 )
 
 const (
+	licenseTypeGoogle           = "Google"
 	licenseTypeGoogleEnterprise = "GoogleEnterprise"
 	licenseTypeEnterprise       = "Enterprise"
 )
@@ -592,6 +594,8 @@ func (m *protoMarshaler) buildHTTPRequest(entries []*api.Log) *api.ImportLogsReq
 
 func getCollectorID(licenseType string) []byte {
 	switch strings.ToLower(licenseType) {
+	case strings.ToLower(licenseTypeGoogle):
+		return googleCollectorID[:]
 	case strings.ToLower(licenseTypeGoogleEnterprise):
 		return googleEnterpriseCollectorID[:]
 	case strings.ToLower(licenseTypeEnterprise):
