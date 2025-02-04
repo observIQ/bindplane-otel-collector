@@ -45,6 +45,7 @@ type hostMetricsReporter struct {
 	stats       *api.AgentStatsEvent
 	logsDropped int64
 	logsSent    int64
+	licenseType string
 }
 
 type sendMetricsFunc func(context.Context, *api.BatchCreateEventsRequest) error
@@ -78,6 +79,7 @@ func newHostMetricsReporter(cfg *Config, set component.TelemetrySettings, export
 			WindowStartTime: now,
 			StartTime:       now,
 		},
+		licenseType: cfg.LicenseType,
 	}, nil
 }
 
@@ -115,7 +117,7 @@ func (hmr *hostMetricsReporter) getAndReset() *api.BatchCreateEventsRequest {
 	now := timestamppb.Now()
 	batchID := uuid.New()
 	source := &api.EventSource{
-		CollectorId: chronicleCollectorID[:],
+		CollectorId: getCollectorID(hmr.licenseType),
 		Namespace:   hmr.namespace,
 		CustomerId:  hmr.customerID,
 	}

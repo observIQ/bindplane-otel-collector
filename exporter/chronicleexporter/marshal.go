@@ -38,8 +38,17 @@ const chronicleLogTypeField = `attributes["chronicle_log_type"]`
 const chronicleNamespaceField = `attributes["chronicle_namespace"]`
 const chronicleIngestionLabelsPrefix = `chronicle_ingestion_label`
 
-// This is a specific collector ID for Chronicle. It's used to identify bindplane agents in Chronicle.
-var chronicleCollectorID = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1111")
+// Specific collector IDs for Chronicle used to identify bindplane agents.
+var (
+	defaultCollectorID          = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1111")
+	googleEnterpriseCollectorID = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1112")
+	enterpriseCollectorID       = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1113")
+)
+
+const (
+	licenseTypeGoogleEnterprise = "GoogleEnterprise"
+	licenseTypeEnterprise       = "Enterprise"
+)
 
 var supportedLogTypes = map[string]string{
 	"windows_event.security":    "WINEVTLOG",
@@ -71,7 +80,7 @@ func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings) (*p
 		cfg:          cfg,
 		teleSettings: teleSettings,
 		customerID:   customerID[:],
-		collectorID:  chronicleCollectorID[:],
+		collectorID:  getCollectorID(cfg.LicenseType),
 	}, nil
 }
 
@@ -578,5 +587,16 @@ func (m *protoMarshaler) buildHTTPRequest(entries []*api.Log) *api.ImportLogsReq
 				Logs:      entries,
 			},
 		},
+	}
+}
+
+func getCollectorID(licenseType string) []byte {
+	switch strings.ToLower(licenseType) {
+	case strings.ToLower(licenseTypeGoogleEnterprise):
+		return googleEnterpriseCollectorID[:]
+	case strings.ToLower(licenseTypeEnterprise):
+		return enterpriseCollectorID[:]
+	default:
+		return defaultCollectorID[:]
 	}
 }

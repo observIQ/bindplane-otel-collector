@@ -107,6 +107,10 @@ type Config struct {
 	// This field is defaulted to 1048576 as that is the default Chronicle backend limit
 	// Setting this option to a value above the Chronicle backend limit may result in rejected log batch requests
 	BatchRequestSizeLimitHTTP int `mapstructure:"batch_request_size_limit_http"`
+
+	// LicenseType is the license type of the bindplane instance managing this agent.
+	// This field is used to determine collector ID for Chronicle.
+	LicenseType string `mapstructure:"license_type"`
 }
 
 // Validate checks if the configuration is valid.
