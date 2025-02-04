@@ -22,12 +22,12 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/topology"
+	"go.opentelemetry.io/collector/client"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/metadata"
 )
 
 const (
@@ -112,40 +112,46 @@ func (tp *topologyProcessor) processMetrics(ctx context.Context, md pmetric.Metr
 }
 
 func (tp *topologyProcessor) processTopologyHeaders(ctx context.Context) {
-	metadata, ok := metadata.FromIncomingContext(ctx)
-	if ok {
-		var configuration, accountID, organizationID, resourceName string
+	headers := client.FromContext(ctx).Metadata
+	var configuration, accountID, organizationID, resourceName string
 
-		configurationHeaders := metadata.Get(configurationHeader)
-		if len(configurationHeaders) > 0 {
-			configuration = configurationHeaders[0]
-		}
+	configurationHeaders := headers.Get(configurationHeader)
+	if configurationHeaders != nil && len(configurationHeaders) > 0 {
+		configuration = configurationHeaders[0]
+	} else {
+		return
+	}
 
-		accountIDHeaders := metadata.Get(accountIDHeader)
-		if len(accountIDHeaders) > 0 {
-			accountID = accountIDHeaders[0]
-		}
+	accountIDHeaders := headers.Get(accountIDHeader)
+	if accountIDHeaders != nil && len(accountIDHeaders) > 0 {
+		accountID = accountIDHeaders[0]
+	} else {
+		return
+	}
 
-		organizationIDHeaders := metadata.Get(organizationIDHeader)
-		if len(organizationIDHeaders) > 0 {
-			organizationID = organizationIDHeaders[0]
-		}
+	organizationIDHeaders := headers.Get(organizationIDHeader)
+	if organizationIDHeaders != nil && len(organizationIDHeaders) > 0 {
+		organizationID = organizationIDHeaders[0]
+	} else {
+		return
+	}
 
-		resourceNameHeaders := metadata.Get(resourceNameHeader)
-		if len(resourceNameHeaders) > 0 {
-			resourceName = resourceNameHeaders[0]
-		}
+	resourceNameHeaders := headers.Get(resourceNameHeader)
+	if resourceNameHeaders != nil && len(resourceNameHeaders) > 0 {
+		resourceName = resourceNameHeaders[0]
+	} else {
+		return
+	}
 
-		// only upsert if all headers are present
-		if configuration != "" && accountID != "" && organizationID != "" && resourceName != "" {
-			gw := topology.GatewayInfo{
-				Configuration:  configuration,
-				AccountID:      accountID,
-				OrganizationID: organizationID,
-				GatewayID:      resourceName,
-			}
-			tp.topology.UpsertRoute(ctx, gw)
+	// only upsert if all headers are present
+	if configuration != "" && accountID != "" && organizationID != "" && resourceName != "" {
+		gw := topology.GatewayInfo{
+			Configuration:  configuration,
+			AccountID:      accountID,
+			OrganizationID: organizationID,
+			GatewayID:      resourceName,
 		}
+		tp.topology.UpsertRoute(ctx, gw)
 	}
 }
 

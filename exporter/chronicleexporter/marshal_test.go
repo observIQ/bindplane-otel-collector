@@ -1698,3 +1698,68 @@ func Benchmark_getRawField(b *testing.B) {
 		})
 	}
 }
+
+func Test_getCollectorID(t *testing.T) {
+	cases := []struct {
+		name        string
+		licenseType string
+		expect      []byte
+	}{
+		{
+			name:        "GoogleEnterprise",
+			licenseType: "GoogleEnterprise",
+			expect:      googleEnterpriseCollectorID[:],
+		},
+		{
+			name:        "GoogleEnterprise lowercase",
+			licenseType: "googleenterprise",
+			expect:      googleEnterpriseCollectorID[:],
+		},
+		{
+			name:        "Enterprise",
+			licenseType: "Enterprise",
+			expect:      enterpriseCollectorID[:],
+		},
+		{
+			name:        "Google",
+			licenseType: "Google",
+			expect:      googleCollectorID[:],
+		},
+		{
+			name:        "FreeCloud",
+			licenseType: "FreeCloud",
+			expect:      defaultCollectorID[:],
+		},
+		{
+			name:        "Free",
+			licenseType: "Free",
+			expect:      defaultCollectorID[:],
+		},
+		{
+			name:        "Development",
+			licenseType: "Development",
+			expect:      defaultCollectorID[:],
+		},
+		{
+			name:        "Trial",
+			licenseType: "Trial",
+			expect:      defaultCollectorID[:],
+		},
+		{
+			name:        "Honeycomb",
+			licenseType: "Honeycomb",
+			expect:      defaultCollectorID[:],
+		},
+		{
+			name:        "unknown license type",
+			licenseType: "unknown",
+			expect:      defaultCollectorID[:],
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.expect, getCollectorID(tc.licenseType))
+		})
+	}
+}

@@ -174,9 +174,6 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 	shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	// signal shutdown intent
-	close(r.doneChan)
-
 	// wait for any in-progress operations to finish
 	done := make(chan struct{})
 	go func() {
@@ -195,10 +192,13 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 		errs = errors.Join(errs, fmt.Errorf("error while saving checkpoint: %w", err))
 	}
 
+	r.mut.Lock()
+	defer r.mut.Unlock()
+
 	if err := r.checkpointStore.Close(shutdownCtx); err != nil {
 		errs = errors.Join(errs, fmt.Errorf("error while closing checkpoint store: %w", err))
 	}
-
+	r.logger.Info("Shutdown complete")
 	return errs
 }
 
