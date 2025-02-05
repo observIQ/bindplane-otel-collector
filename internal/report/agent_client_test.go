@@ -62,7 +62,7 @@ func TestAgentClientDo(t *testing.T) {
 				headerID := r.Header.Get("Agent-ID")
 				require.Equal(t, tc.agentID, headerID)
 
-				secretKeyHeader := r.Header.Get("X-Bindplane-Secret-Key")
+				secretKeyHeader := r.Header.Get("X-BindPlane-Secret-Key")
 				if tc.secretKey != nil {
 					require.Equal(t, *tc.secretKey, secretKeyHeader)
 				} else {

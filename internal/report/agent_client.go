@@ -65,7 +65,7 @@ func (a *AgentClient) Do(req *http.Request) (*http.Response, error) {
 	req.Header.Add("Agent-ID", a.agentID)
 
 	if a.secretKey != nil {
-		req.Header.Add("X-Bindplane-Secret-Key", *a.secretKey)
+		req.Header.Add("X-BindPlane-Secret-Key", *a.secretKey)
 	}
 
 	return a.client.Do(req)

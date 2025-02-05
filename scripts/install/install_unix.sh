@@ -762,14 +762,13 @@ display_results()
       info "Start Command:      $(fg_cyan "sudo systemctl start observiq-otel-collector")$(reset)"
       info "Stop Command:       $(fg_cyan "sudo systemctl stop observiq-otel-collector")$(reset)"
       info "Status Command:     $(fg_cyan "sudo systemctl status observiq-otel-collector")$(reset)"
-      info "Uninstall Command:  $(fg_cyan "sudo systemctl observiq-otel-collector -r")$(reset)"
     else
       info "Start Command:      $(fg_cyan "sudo service observiq-otel-collector start")$(reset)"
       info "Stop Command:       $(fg_cyan "sudo service observiq-otel-collector stop")$(reset)"
       info "Status Command:     $(fg_cyan "sudo service observiq-otel-collector status")$(reset)"
-      info "Uninstall Command:  $(fg_cyan "sudo service observiq-otel-collector -r")$(reset)"
     fi
     info "Logs Command:       $(fg_cyan "sudo tail -F /opt/observiq-otel-collector/log/collector.log")$(reset)"
+    info "Uninstall Command:  $(fg_cyan "sudo sh -c "$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/install_unix.sh)" install_unix.sh -r")$(reset)"
     decrease_indent
 
     banner 'Support'
