@@ -52,6 +52,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
     myMap["huaweicloudcesreceiver"] = "huaweicloudcesreceiver"
     myMap["awscontainerinsightreceiver"] = "awscontainerinsightreceiver"
     myMap["telemetrygenerator"] = "telemetrygeneratorreceiver"
+    myMap["dotnetdiagnostics"] = "dotnet_diagnostics"
 } {
   split($NF, parts, " ")
   name=parts[1]
@@ -97,6 +98,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["splunkhec"] = "splunk_hec"
   myMap["tencentcloudlogservice"] = "tencentcloud_logservice"
   myMap["alibabacloudlogservice"] = "alibabacloud_logservice"
+  myMap["jaegerthrifthttp"] = "jaeger_thrift"
 } {
   split($NF, parts, " ")
   name=parts[1]
@@ -127,6 +129,9 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["oidcauth"] = "oidc"
   myMap["oauth2clientauth"] = "oauth2client"
   myMap["memorylimiter"] = "memory_limiter"
+  myMap["healthcheck"] = "health_check"
+  myMap["headerssetter"] = "headers_setter"
+  myMap["ballast"] = "memory_ballast"
 } {
   split($NF, parts, " ")
   name=parts[1]
@@ -153,6 +158,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["tailsampling"] = "tail_sampling"
   myMap["probabilisticsampler"] = "probabilistic_sampler"
   myMap["memorylimiter"] = "memory_limiter"
+  myMap["logdeduplication"] = "logdedup"
 } {
   split($NF, parts, " ")
   name=parts[1]
@@ -172,4 +178,4 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   } END { printf "\n"
 }' >> "$OUTPUT_DIR/$VERSION.yaml"
 
-git co main
+git co scripts/available-components-v1.x
