@@ -2193,6 +2193,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/receiver/elasticsearch
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/elasticsearchreceiver v0.118.0/go.mod h1:ilNqvdSwP2Y+GILBlDlKALIOt5GU1YxEc5bzsHkZk3w=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.118.0 h1:j/961n8IAbqdw6NoWrnJLTADnLzH3txAZhMocaUi+3o=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.118.0/go.mod h1:6LGm+uv2Hv0D9OCJ/7d5+2h+he/8YbQT7lV3rFrUskA=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filestatsreceiver v0.118.0 h1:nuv7EVxJACTAxhvvMhsvk8kLZucxEiN2jsWgcZHWvtA=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filestatsreceiver v0.118.0/go.mod h1:Kks0FpJHXKWLFdbtX+0cBRfrYrucmmlGoIyiBiuXWgM=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/flinkmetricsreceiver v0.118.0 h1:0hwI8OBd7m8MFcRZIpiPhgNvYLS3Ju/WR6o0VHgHYR0=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/flinkmetricsreceiver v0.118.0/go.mod h1:83TNhCIwWnJfkwTDuBMPeLY6zQNA3G6YbwihrEI9JO0=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/fluentforwardreceiver v0.118.0 h1:E7R1x5fBhWKbG4F0c7vLfIYoL7a5XB9BZDagq2XDPp4=

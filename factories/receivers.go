@@ -45,6 +45,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/dockerstatsreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/elasticsearchreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filestatsreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/flinkmetricsreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/fluentforwardreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver"
@@ -120,6 +121,7 @@ var defaultReceivers = []receiver.Factory{
 	elasticsearchreceiver.NewFactory(),
 	filelogreceiver.NewFactory(),
 	flinkmetricsreceiver.NewFactory(),
+	filestatsreceiver.NewFactory(),
 	fluentforwardreceiver.NewFactory(),
 	googlecloudpubsubreceiver.NewFactory(),
 	googlecloudspannerreceiver.NewFactory(),
