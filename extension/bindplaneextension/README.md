@@ -1,6 +1,6 @@
-# BindPlane Extension
+# Bindplane Extension
 
-This extension is used by BindPlane in custom distributions to store BindPlane specific information. It is not currently included in the official `bindplane-agent`.
+This extension is used by Bindplane in custom distributions to store Bindplane specific information. It is not currently included in the official `bindplane-agent`.
 
 ## Configuration
 
@@ -11,9 +11,9 @@ This extension is used by BindPlane in custom distributions to store BindPlane s
 
 ## Examples
 
-### Setting labels for BindPlane
+### Setting labels for Bindplane
 
-BindPlane expects a single unnamed bindplane extension in the configuration. It may be used to specify labels:
+Bindplane expects a single unnamed bindplane extension in the configuration. It may be used to specify labels:
 ```yaml
 receivers:
   nop:

@@ -3,13 +3,13 @@
     <picture>
       <source media="(prefers-color-scheme: light)" srcset="https://res.cloudinary.com/du4nxa27k/image/upload/v1734023130/observiq-logo-dark_i3ycyh.svg" width="auto" height="50">
       <source media="(prefers-color-scheme: dark)" srcset="https://res.cloudinary.com/du4nxa27k/image/upload/v1734023130/observiq-logo-white_fdr6y8.svg" width="auto" height="80">
-      <img alt="BindPlane Logo" src="https://res.cloudinary.com/du4nxa27k/image/upload/v1734023130/observiq-logo-dark_i3ycyh.svg" width="auto" height="50">
+      <img alt="Bindplane Logo" src="https://res.cloudinary.com/du4nxa27k/image/upload/v1734023130/observiq-logo-dark_i3ycyh.svg" width="auto" height="50">
     </picture>
   </p>
 </a>
 
 <p align="center">
-  The BindPlane Distro for OpenTelemetry Collector (BDOT Collector) is observIQ’s distribution of the upstream <a href="https://github.com/open-telemetry/opentelemetry-collector">OpenTelemetry Collector</a>. It’s the first distribution to implement the <a href="https://opentelemetry.io/docs/specs/opamp/">Open Agent Management Protocol</a> (OpAMP) and is designed to be fully managed with <a href="https://observiq.com/">BindPlane Telemetry Pipeline</a>.
+  The Bindplane Distro for OpenTelemetry Collector (BDOT Collector) is observIQ’s distribution of the upstream <a href="https://github.com/open-telemetry/opentelemetry-collector">OpenTelemetry Collector</a>. It’s the first distribution to implement the <a href="https://opentelemetry.io/docs/specs/opamp/">Open Agent Management Protocol</a> (OpAMP) and is designed to be fully managed with <a href="https://observiq.com/">Bindplane Telemetry Pipeline</a>.
 </p>
 
 <b>
@@ -53,21 +53,21 @@
 </p>
 <p align="center">
   <i>
-    Learn how to connect BindPlane Distro for OpenTelemetry Collector to telemetry <a href="https://observiq.com/docs/resources/sources">sources</a> and <a href="https://observiq.com/docs/resources/destinations">destinations</a>, and use <a href="https://observiq.com/docs/resources/processors">processors</a> to transform data.
+    Learn how to connect Bindplane Distro for OpenTelemetry Collector to telemetry <a href="https://observiq.com/docs/resources/sources">sources</a> and <a href="https://observiq.com/docs/resources/destinations">destinations</a>, and use <a href="https://observiq.com/docs/resources/processors">processors</a> to transform data.
   </i>
 </p>
 
-## Why BindPlane Distro for OpenTelemetry Collector?
+## Why Bindplane Distro for OpenTelemetry Collector?
 
 If you're managing telemetry at scale you'll run in to these problems sooner or later:
 
 1. **Agent fatigue.** You'll manage endless proprietary agents and OpenTelemetry Collectors that collect and forward telemetry to different observability backends, leading to performance issues.
 2. **Endless configuration files.** Even with GitOps practices you'll have to manage hundreds of configuration files for different sources, destinations, and processors written in either proprietary languages or YAML.
-3. **High complexity.** OpenTelemetry's complexity and learning curve make it difficult to implement, manage, and re-point telemetry without a centralized management plane like BindPlane Telemetry Pipeline to standardize telemetry ingestion, processing, and shipping, with a unified, OpenTelemetry-native pipeline.
+3. **High complexity.** OpenTelemetry's complexity and learning curve make it difficult to implement, manage, and re-point telemetry without a centralized management plane like Bindplane Telemetry Pipeline to standardize telemetry ingestion, processing, and shipping, with a unified, OpenTelemetry-native pipeline.
 
 ### An OpenTelemetry Collector you're used to
 
-The BDOT Collector is observIQ’s distribution of the upstream [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector). It’s the first distribution to implement the [Open Agent Management Protocol](https://opentelemetry.io/docs/specs/opamp/) (OpAMP) and is designed to be fully managed with [BindPlane Telemetry Pipeline](https://observiq.com/solutions).
+The BDOT Collector is observIQ’s distribution of the upstream [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector). It’s the first distribution to implement the [Open Agent Management Protocol](https://opentelemetry.io/docs/specs/opamp/) (OpAMP) and is designed to be fully managed with [Bindplane Telemetry Pipeline](https://observiq.com/solutions).
 
 ### Focused on usability
 
@@ -135,13 +135,13 @@ With the BDOT Collector installed, it will start collecting basic metrics about 
 
 For more information on configuration see the [Configuration section](#configuration).
 
-### Manage BDOT Collector with BindPlane Telemetry Pipeline via OpAMP
+### Manage BDOT Collector with Bindplane Telemetry Pipeline via OpAMP
 
-Improving developer experience with OpenTelemetry is observIQ's primary focus. We're building BindPlane Telemetry Pipeline to help deploy and manage OpenTelemetry Collectors at scale, but retain core OpenTelemetry Standards for terminology and configuration, with the added benefit of enabling remote management with OpAMP.
+Improving developer experience with OpenTelemetry is observIQ's primary focus. We're building Bindplane Telemetry Pipeline to help deploy and manage OpenTelemetry Collectors at scale, but retain core OpenTelemetry Standards for terminology and configuration, with the added benefit of enabling remote management with OpAMP.
 
-The BDOT Collector can be configured as an OpenTelemetry Collector that is managed by the BindPlane Telemetry Pipeline via OpAMP. BindPlane is designed to be OpenTelemetry-first, with OpenTelemetry as its core framework. By providing a centralized management plane, it simplifies the development, implementation, management, and configuration of OpenTelemetry.
+The BDOT Collector can be configured as an OpenTelemetry Collector that is managed by the Bindplane Telemetry Pipeline via OpAMP. Bindplane is designed to be OpenTelemetry-first, with OpenTelemetry as its core framework. By providing a centralized management plane, it simplifies the development, implementation, management, and configuration of OpenTelemetry.
 
-For more information on managing collectors via OpAMP see the [Connecting to BindPlane Telemetry Pipeline with OpAMP section](#connecting-to-bindplane-telemetry-pipeline-with-opamp).
+For more information on managing collectors via OpAMP see the [Connecting to Bindplane Telemetry Pipeline with OpAMP section](#connecting-to-bindplane-telemetry-pipeline-with-opamp).
 
 ## Configuration
 
@@ -208,27 +208,27 @@ service:
       exporters: [googlecloud]
 ```
 
-## Connecting to BindPlane Telemetry Pipeline with OpAMP
+## Connecting to Bindplane Telemetry Pipeline with OpAMP
 
-BindPlane is designed to be OpenTelemetry-first, with OpenTelemetry as its core framework, to create a unified toolset with data ownership. By providing a centralized management plane, it simplifies the development, implementation, management, and configuration of OpenTelemetry.
+Bindplane is designed to be OpenTelemetry-first, with OpenTelemetry as its core framework, to create a unified toolset with data ownership. By providing a centralized management plane, it simplifies the development, implementation, management, and configuration of OpenTelemetry.
 
-To learn more about configuring OpAMP, see [OpAMP Configuration](/docs/opamp.md), or get started with BindPlane Telemetry Pipeline below.
+To learn more about configuring OpAMP, see [OpAMP Configuration](/docs/opamp.md), or get started with Bindplane Telemetry Pipeline below.
 
-### BindPlane Cloud
+### Bindplane Cloud
 
-BindPlane Cloud is the quickest way to get started with OpenTelemetry-native telemetry pipelines. It offers managed infrastructure along with instant, free access for development projects and proofs of concept.
+Bindplane Cloud is the quickest way to get started with OpenTelemetry-native telemetry pipelines. It offers managed infrastructure along with instant, free access for development projects and proofs of concept.
 
 <a href="https://app.bindplane.com/signup"><img src="https://res.cloudinary.com/du4nxa27k/image/upload/v1734001746/sign-up-bindplane-cloud_tzhj8r.png" alt="Sign-up" width="200px"></a>
 
-### BindPlane On Prem
+### Bindplane On Prem
 
-You can also get started with BindPlane On Prem for free by hosting it yourself.
+You can also get started with Bindplane On Prem for free by hosting it yourself.
 
 <a href="https://observiq.com/download"><img src="https://res.cloudinary.com/du4nxa27k/image/upload/v1734000970/download-bindplane-on-prem_rhdrme.png" alt="Download" width="200px"></a>
 
 ## Community
 
-Have an idea to improve the BindPlane Distro for OpenTelemetry Collector? Here's how you can help:
+Have an idea to improve the Bindplane Distro for OpenTelemetry Collector? Here's how you can help:
 
 - Star this repo ⭐️ and follow us on [Twitter](https://x.com/bindplane).
 - Upvote issues with 👍 so we know what to prioritize in the road map.
@@ -237,7 +237,7 @@ Have an idea to improve the BindPlane Distro for OpenTelemetry Collector? Here's
 
 ## Contributing
 
-The BindPlane Distro for OpenTelemetry Collector is an open source project. If you'd like to contribute, take a look at our [contribution guidelines](/CONTRIBUTING.md) and [developer guide](/docs/development.md).
+The Bindplane Distro for OpenTelemetry Collector is an open source project. If you'd like to contribute, take a look at our [contribution guidelines](/CONTRIBUTING.md) and [developer guide](/docs/development.md).
 
 All sorts of contributions are **welcome and extremely helpful**. 🙌
 

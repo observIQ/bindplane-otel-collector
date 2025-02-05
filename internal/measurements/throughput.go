@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package measurements provides code to help manage throughput measurements for BindPlane and
+// Package measurements provides code to help manage throughput measurements for Bindplane and
 // the throughput measurement processor.
 package measurements
 

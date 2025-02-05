@@ -1,6 +1,6 @@
 # Logging
 
-The BindPlane Agent offers two methods of collecting logs. First is individual receivers such as Filelog and Journald. Second is the Plugin receiver which utilizes pre-configured plugins to gather logs from many different sources.
+The Bindplane Agent offers two methods of collecting logs. First is individual receivers such as Filelog and Journald. Second is the Plugin receiver which utilizes pre-configured plugins to gather logs from many different sources.
 
 ## Using Indivudal Receivers
 
