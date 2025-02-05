@@ -177,7 +177,7 @@ usage()
   USAGE=$(cat <<EOF
 Usage:
   $(fg_yellow '-v, --version')
-      Defines the version of the BindPlane Agent.
+      Defines the version of the Bindplane Agent.
       If not provided, this will default to the latest version.
       Alternatively the COLLECTOR_VERSION environment variable can be
       set to configure the agent version.
@@ -188,7 +188,7 @@ Usage:
 
   $(fg_yellow '-l, --url')
       Defines the URL that the components will be downloaded from.
-      If not provided, this will default to BindPlane Agent\'s GitHub releases.
+      If not provided, this will default to Bindplane Agent\'s GitHub releases.
       Example: '-l http://my.domain.org/observiq-otel-collector' will download from there.
 
   $(fg_yellow '-b, --base-url')
@@ -230,9 +230,9 @@ Usage:
     The '--endpoint' flag must be specified if this flag is specified.
 
   $(fg_yellow '-c, --check-bp-url')
-    Check access to the BindPlane server URL.
+    Check access to the Bindplane server URL.
 
-    This parameter will have the script check access to BindPlane based on the provided '--endpoint'
+    This parameter will have the script check access to Bindplane based on the provided '--endpoint'
 
   $(fg_yellow '-q, --quiet')
     Use quiet (non-interactive) mode to run the script in headless environments
@@ -485,19 +485,19 @@ set_opamp_secret_key()
   fi
 }
 
-# Test connection to BindPlane if it was specified
+# Test connection to Bindplane if it was specified
 connection_check()
 {
   if [ -n "$check_bp_url" ] ; then
     if [ -n "$opamp_endpoint" ]; then
       HTTP_ENDPOINT="$(echo "${opamp_endpoint}" | sed -z 's#^ws#http#' | sed -z 's#/v1/opamp$##')"
-      info "Testing connection to BindPlane: $fg_magenta$HTTP_ENDPOINT$reset..."
+      info "Testing connection to Bindplane: $fg_magenta$HTTP_ENDPOINT$reset..."
 
       if curl --max-time 20 -s "${HTTP_ENDPOINT}" > /dev/null; then
         succeeded
       else
         failed
-        warn "Connection to BindPlane has failed."
+        warn "Connection to Bindplane has failed."
         increase_indent
         printf "%sDo you wish to continue installation?%s  " "$fg_yellow" "$reset"
         prompt "n"
@@ -507,7 +507,7 @@ connection_check()
         if [ "$input" = "y" ] || [ "$input" = "Y" ]; then
           info "Continuing installation."
         else
-          error_exit "$LINENO" "Aborting due to user input after connectivity failure between this system and the BindPlane server."
+          error_exit "$LINENO" "Aborting due to user input after connectivity failure between this system and the Bindplane server."
         fi
       fi
     fi
@@ -553,7 +553,7 @@ interactive_check()
   if [ "$non_interactive" = "true" ] && [ "$check_bp_url" = "true" ]
   then 
     failed
-    error_exit "$LINENO" "Checking the BindPlane server URL is not compatible with quiet (non-interactive) mode."
+    error_exit "$LINENO" "Checking the Bindplane server URL is not compatible with quiet (non-interactive) mode."
   fi
 }
 
@@ -640,7 +640,7 @@ latest_version()
 # extracting the binaries, and then removing the archive.
 install_package()
 {
-  banner "Installing BindPlane Agent"
+  banner "Installing Bindplane Agent"
   increase_indent
 
   # if the user didn't specify a local file then download the package
@@ -710,7 +710,7 @@ install_package()
     esac
   fi
 
-  success "BindPlane Agent installation complete!"
+  success "Bindplane Agent installation complete!"
   decrease_indent
 }
 
@@ -762,10 +762,12 @@ display_results()
       info "Start Command:      $(fg_cyan "sudo systemctl start observiq-otel-collector")$(reset)"
       info "Stop Command:       $(fg_cyan "sudo systemctl stop observiq-otel-collector")$(reset)"
       info "Status Command:     $(fg_cyan "sudo systemctl status observiq-otel-collector")$(reset)"
+      info "Uninstall Command:  $(fg_cyan "sudo systemctl observiq-otel-collector -r")$(reset)"
     else
       info "Start Command:      $(fg_cyan "sudo service observiq-otel-collector start")$(reset)"
       info "Stop Command:       $(fg_cyan "sudo service observiq-otel-collector stop")$(reset)"
       info "Status Command:     $(fg_cyan "sudo service observiq-otel-collector status")$(reset)"
+      info "Uninstall Command:  $(fg_cyan "sudo service observiq-otel-collector -r")$(reset)"
     fi
     info "Logs Command:       $(fg_cyan "sudo tail -F /opt/observiq-otel-collector/log/collector.log")$(reset)"
     decrease_indent
@@ -805,7 +807,7 @@ uninstall_package()
 uninstall()
 {
   set_package_type
-  banner "Uninstalling BindPlane Agent"
+  banner "Uninstalling Bindplane Agent"
   increase_indent
 
   info "Checking permissions..."
