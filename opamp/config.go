@@ -124,7 +124,7 @@ func (a AgentID) OpAMPInstanceUID() types.InstanceUid {
 }
 
 // Type returns the string type of the agent ID (ULID, UUID) as it should
-// be reported to BindPlane.
+// be reported to Bindplane.
 func (a AgentID) Type() string {
 	return string(a.idType)
 }

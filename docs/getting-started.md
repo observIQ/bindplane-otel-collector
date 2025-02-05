@@ -2,13 +2,13 @@
 
 OpenTelemetry is at the core of standardizing telemetry solutions. At observIQ, we’re focused on building the very best in open source telemetry software. Our relationship with OpenTelemetry began in 2021, with observIQ, contributing our logging agent, Stanza, to the OpenTelemetry community. Now, we are shifting our focus to simplifying OpenTelemetry solutions to its large base of users. On that note, we launched a collector that combines the best of both worlds, with OpenTelemetry at its core, combined with observIQ’s functionalities to simplify its usage.
 
-In this post, we are taking you through the installation of the BindPlane Agent and the steps to configure the agent to gather host metrics, eventually forwarding those metrics to the Google Cloud Operations.
+In this post, we are taking you through the installation of the Bindplane Agent and the steps to configure the agent to gather host metrics, eventually forwarding those metrics to the Google Cloud Operations.
 
 ## Installing the agent
 
 The simplest way to get started is with one of the single-line installation commands shown below. For more advanced options, you'll find a variety of installation options for Linux, Windows, and macOS on GitHub.
 
-Use the following single-line installation script to install the BindPlane Agent.
+Use the following single-line installation script to install the Bindplane Agent.
 Please note that the agent must be installed on the system which you wish to collect host metrics from.
 
 #### Windows:
@@ -145,7 +145,7 @@ systemctl restart observiq-otel-collector
 
 ## Viewing the metrics in Google Cloud Operations
 
-You should now be able to view the host metrics in your Metrics explorer. Nice work! This is how simple it is to collect host metrics with the BindPlane Agent.
+You should now be able to view the host metrics in your Metrics explorer. Nice work! This is how simple it is to collect host metrics with the Bindplane Agent.
 
 ### Metrics collected
 

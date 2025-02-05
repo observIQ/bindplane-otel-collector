@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package topology provides code to help manage topology updates for BindPlane and the topology processor.
+// Package topology provides code to help manage topology updates for Bindplane and the topology processor.
 package topology
 
 import (

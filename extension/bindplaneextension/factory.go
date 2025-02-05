@@ -27,7 +27,7 @@ func NewFactory() extension.Factory {
 	return extension.NewFactory(
 		metadata.Type,
 		defaultConfig,
-		createBindPlaneExtension,
+		createBindplaneExtension,
 		metadata.ExtensionStability,
 	)
 }
@@ -36,7 +36,7 @@ func defaultConfig() component.Config {
 	return &Config{}
 }
 
-func createBindPlaneExtension(_ context.Context, cs extension.Settings, cfg component.Config) (extension.Extension, error) {
+func createBindplaneExtension(_ context.Context, cs extension.Settings, cfg component.Config) (extension.Extension, error) {
 	oCfg := cfg.(*Config)
 
 	return newBindplaneExtension(cs.Logger, oCfg), nil

@@ -1,6 +1,6 @@
-# BindPlane Agent Updater
+# Bindplane Agent Updater
 
-The updater is a separate binary that runs as a separate process to update agent artifacts (including the agent itself) when managed by [BindPlane OP](https://observiq.com/).
+The updater is a separate binary that runs as a separate process to update agent artifacts (including the agent itself) when managed by [Bindplane OP](https://observiq.com/).
 
 Because the updater interacts with the service manager, and may edit privileged files, it needs elevated privileges to run (root on Linux + macOS, administrative privileges on Windows).
 
@@ -47,4 +47,4 @@ In the event of update failure, you may look in the following places for more in
 
 * The agent produces logs in the log directory (by default, `$INSTALL_DIR/log/collector.log`).
 * The updater produces logs in the agent's log directory, and is always set to log at a debug level (`$INSTALL_DIR/log/updater.log`).
-* If the update was initiated through the BindPlane OP UI, an error message should be displayed in the UI.
+* If the update was initiated through the Bindplane OP UI, an error message should be displayed in the UI.

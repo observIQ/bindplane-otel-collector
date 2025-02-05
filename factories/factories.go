@@ -25,7 +25,7 @@ import (
 	"go.uber.org/multierr"
 )
 
-// DefaultFactories returns the default factories used by the BindPlane Agent
+// DefaultFactories returns the default factories used by the Bindplane Agent
 func DefaultFactories() (otelcol.Factories, error) {
 	return combineFactories(defaultReceivers, defaultProcessors, defaultExporters, defaultExtensions, defaultConnectors)
 }

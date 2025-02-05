@@ -29,7 +29,7 @@ type Config struct {
 	// Enabled controls whether this processor is enabled or not.
 	Enabled bool `mapstructure:"enabled"`
 
-	// Interval is the interval at which this processor sends topology messages to BindPlane
+	// Interval is the interval at which this processor sends topology messages to Bindplane
 	Interval time.Duration `mapstructure:"interval"`
 
 	// Bindplane extension to use in order to report topology. Optional.
