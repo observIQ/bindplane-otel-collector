@@ -1,6 +1,6 @@
 # OpAMP Configuration
 
-The BindPlane Agent can be setup as an agent that is managed by the [BindPlane OP platform](https://observiq.com/) via OpAMP.
+The Bindplane Agent can be setup as an agent that is managed by the [Bindplane OP platform](https://observiq.com/) via OpAMP.
 
 ## Configuration
 

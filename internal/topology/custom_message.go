@@ -17,6 +17,6 @@ package topology
 const (
 	// ReportTopologyCapability is the capability needed to report topology to bindplane
 	ReportTopologyCapability = "com.bindplane.topology"
-	// ReportTopologyType is the type for reporting topology to BindPlane
+	// ReportTopologyType is the type for reporting topology to Bindplane
 	ReportTopologyType = "reportTopology"
 )
