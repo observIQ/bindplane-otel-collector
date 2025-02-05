@@ -25,7 +25,7 @@ import (
 const (
 	// ReportMeasurementsV1Capability is the capability needed to report measurements to bindplane
 	ReportMeasurementsV1Capability = "com.bindplane.measurements.v1"
-	// ReportMeasurementsType is the type for reporting measurements to BindPlane
+	// ReportMeasurementsType is the type for reporting measurements to Bindplane
 	ReportMeasurementsType = "reportMeasurements"
 )
 

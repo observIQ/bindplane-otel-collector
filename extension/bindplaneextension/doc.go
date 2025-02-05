@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package bindplaneextension provides an extension that facilitates communication with BindPlane
+// Package bindplaneextension provides an extension that facilitates communication with Bindplane
 package bindplaneextension
 
 //go:generate mdatagen metadata.yaml

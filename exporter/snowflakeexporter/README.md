@@ -91,9 +91,9 @@ Next the `SYSADMIN` role needs to be granted the ability to create databases in 
 GRANT CREATE DATABASE ON ACCOUNT TO ROLE "SYSADMIN";
 ```
 
-#### 3. Create New User For BindPlane
+#### 3. Create New User For Bindplane
 
-Now a new user needs to be created that the BindPlane Agent can login as. The user should also have the default role assigned as `SYSADMIN`, although it isn't necessary. 
+Now a new user needs to be created that the Bindplane Agent can login as. The user should also have the default role assigned as `SYSADMIN`, although it isn't necessary. 
 
 **Note:** If the default role is not assigned, then the exporter will need to be configured with the correct role to work. 
 
