@@ -21,14 +21,14 @@ if [ $# -ne 1 ]; then
 fi
 
 VERSION=$1
-BRANCH="release/$VERSION"
+TAG="tags/$VERSION"
 OUTPUT_DIR="local/available-components/yaml"
 TEMP_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'tmpdir') # MacOS compatible temp dir creation
 
 # Create output directory if it doesn't exist
 mkdir -p "$OUTPUT_DIR"
 
-git checkout $BRANCH
+git checkout $TAG
 
 touch $OUTPUT_DIR/$VERSION.yaml
 
@@ -173,4 +173,3 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
 }' >> "$OUTPUT_DIR/$VERSION.yaml"
 
 git co main
-git br -d $BRANCH
