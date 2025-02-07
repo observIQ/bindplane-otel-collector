@@ -7,14 +7,14 @@ require (
 	github.com/observiq/bindplane-otel-collector/internal/measurements v1.68.0
 	github.com/observiq/bindplane-otel-collector/internal/topology v1.68.0
 	github.com/open-telemetry/opamp-go v0.17.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.116.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.117.0
 	github.com/stretchr/testify v1.10.0
-	go.opentelemetry.io/collector/component v0.116.0
-	go.opentelemetry.io/collector/component/componenttest v0.116.0
-	go.opentelemetry.io/collector/confmap v1.22.0
-	go.opentelemetry.io/collector/extension v0.116.0
-	go.opentelemetry.io/collector/extension/extensiontest v0.116.0
-	go.opentelemetry.io/collector/pdata v1.22.0
+	go.opentelemetry.io/collector/component v0.117.0
+	go.opentelemetry.io/collector/component/componenttest v0.117.0
+	go.opentelemetry.io/collector/confmap v1.23.0
+	go.opentelemetry.io/collector/extension v0.117.0
+	go.opentelemetry.io/collector/extension/extensiontest v0.117.0
+	go.opentelemetry.io/collector/pdata v1.23.0
 	go.uber.org/goleak v1.3.0
 	go.uber.org/zap v1.27.0
 )

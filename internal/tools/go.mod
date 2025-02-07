@@ -8,12 +8,12 @@ require (
 	github.com/client9/misspell v0.3.4
 	github.com/google/addlicense v1.1.1
 	github.com/mgechev/revive v1.5.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/cmd/opampsupervisor v0.116.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/cmd/opampsupervisor v0.117.0
 	github.com/securego/gosec/v2 v2.18.2
 	github.com/uw-labs/lichen v0.1.7
 	github.com/vektra/mockery/v2 v2.50.0
-	go.opentelemetry.io/collector/cmd/builder v0.116.0
-	go.opentelemetry.io/collector/cmd/mdatagen v0.116.0
+	go.opentelemetry.io/collector/cmd/builder v0.117.0
+	go.opentelemetry.io/collector/cmd/mdatagen v0.117.0
 	golang.org/x/tools v0.29.0
 )
 

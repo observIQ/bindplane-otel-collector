@@ -23,7 +23,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/m365receiver/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
-	"go.opentelemetry.io/collector/receiver/scraperhelper"
+	"go.opentelemetry.io/collector/scraper/scraperhelper"
 )
 
 var clientSecretRegEx = regexp.MustCompile("^[a-zA-Z0-9-_.~]{1,40}$")
