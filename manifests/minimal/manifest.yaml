@@ -7,28 +7,28 @@ dist:
 conf_resolver:
   default_uri_scheme: "env"
 extensions:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.116.0
-  - gomod: github.com/observiq/bindplane-otel-collector/extension/bindplaneextension v1.68.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.118.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.118.0
+  - gomod: github.com/observiq/bindplane-otel-collector/extension/bindplaneextension v1.70.0
     path: "./extension/bindplaneextension"
 exporters:
-  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.116.0
-  - gomod: go.opentelemetry.io/collector/exporter/nopexporter v0.116.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.118.0
+  - gomod: go.opentelemetry.io/collector/exporter/nopexporter v0.118.0
 processors:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.116.0
-  - gomod: github.com/observiq/bindplane-otel-collector/processor/snapshotprocessor v1.68.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor v0.118.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.118.0
+  - gomod: github.com/observiq/bindplane-otel-collector/processor/snapshotprocessor v1.70.0
     path: "./processor/snapshotprocessor"
 receivers:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.116.0
-  - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.116.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.118.0
+  - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.118.0
 connectors: []
 providers:
-  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v0.116.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v0.116.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/httpprovider v0.116.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/httpsprovider v0.116.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v0.116.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v0.118.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v0.118.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/httpprovider v0.118.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/httpsprovider v0.118.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v0.118.0
 # When adding a replace, add a comment before it to document why it's needed and when it can be removed
 replaces:
   # See https://github.com/google/gnostic/issues/262
