@@ -6,11 +6,11 @@ require (
 	github.com/client9/misspell v0.3.4
 	github.com/google/addlicense v1.1.1
 	github.com/mgechev/revive v1.9.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/cmd/opampsupervisor v0.116.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/cmd/opampsupervisor v0.118.0
 	github.com/securego/gosec/v2 v2.18.2
 	github.com/uw-labs/lichen v0.1.7
 	github.com/vektra/mockery/v2 v2.53.0
-	go.opentelemetry.io/collector/cmd/builder v0.116.0
+	go.opentelemetry.io/collector/cmd/builder v0.118.0
 	go.opentelemetry.io/collector/cmd/mdatagen v0.124.0
 	golang.org/x/tools v0.32.0
 )
@@ -68,7 +68,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
-	github.com/open-telemetry/opamp-go v0.17.0 // indirect
+	github.com/open-telemetry/opamp-go v0.18.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
@@ -90,8 +90,8 @@ require (
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/collector/component v1.30.0 // indirect
-	go.opentelemetry.io/collector/config/configopaque v1.22.0 // indirect
-	go.opentelemetry.io/collector/config/configtls v1.22.0 // indirect
+	go.opentelemetry.io/collector/config/configopaque v1.24.0 // indirect
+	go.opentelemetry.io/collector/config/configtls v1.24.0 // indirect
 	go.opentelemetry.io/collector/confmap v1.30.0 // indirect
 	go.opentelemetry.io/collector/confmap/provider/envprovider v1.24.0 // indirect
 	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.30.0 // indirect
