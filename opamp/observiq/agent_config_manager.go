@@ -158,7 +158,8 @@ func (a *AgentConfigManager) updateExistingConfig(configName string, managedConf
 		return verifyDiskContents(managedConfig.ConfigPath, managedConfig.GetCurrentConfigHash(), newContents)
 	}
 
-	a.logger.Info("Applying changes to config file", zap.String("config", configName))
+	a.logger.Info("Applying changes to config file",
+		zap.String("OnDiskCollectorConfig", managedConfig.ConfigPath))
 	changed, err = managedConfig.Reload(newContents)
 	if err != nil {
 		err = fmt.Errorf("failed to reload config: %s: %w", configName, err)
