@@ -17,6 +17,6 @@ TimeoutSec=20
 StandardOutput=journal
 Restart=on-failure
 RestartSec=5s
-KillMode=process
+KillMode=control-group
 [Install]
 WantedBy=multi-user.target
