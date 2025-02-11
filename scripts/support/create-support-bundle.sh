@@ -103,7 +103,7 @@ usage() {
   increase_indent
   USAGE=$(cat <<EOF
 Usage:
-  Collects support bundle for BindPlane Agent
+  Collects support bundle for Bindplane Agent
 EOF
   )
   info "$USAGE"

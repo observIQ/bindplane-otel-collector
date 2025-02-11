@@ -290,7 +290,7 @@ dockers:
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-amd64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}"
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-amd64:{{ .Major }}.{{ .Minor }}"
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-amd64:{{ .Major }}"
-      # BindPlane Agent Containers
+      # Bindplane Agent Containers
       - "observiq/bindplane-agent-amd64:latest"
       - "observiq/bindplane-agent-amd64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}"
       - "observiq/bindplane-agent-amd64:{{ .Major }}.{{ .Minor }}"
@@ -336,7 +336,7 @@ dockers:
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-arm64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}"
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-arm64:{{ .Major }}.{{ .Minor }}"
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-arm64:{{ .Major }}"
-      # BindPlane Agent Containers
+      # Bindplane Agent Containers
       - "observiq/bindplane-agent-arm64:latest"
       - "observiq/bindplane-agent-arm64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}"
       - "observiq/bindplane-agent-arm64:{{ .Major }}.{{ .Minor }}"
@@ -374,7 +374,7 @@ dockers:
       - "observiq/observiq-otel-collector-amd64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}-ubi8"
       - "ghcr.io/observiq/observiq-otel-collector-amd64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}-ubi8"
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-amd64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}-ubi8"
-      # BindPlane Agent Containers
+      # Bindplane Agent Containers
       - "observiq/bindplane-agent-amd64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}-ubi8"
       - "ghcr.io/observiq/bindplane-agent-amd64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}-ubi8"
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-amd64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}-ubi8"
@@ -402,7 +402,7 @@ dockers:
       - "observiq/observiq-otel-collector-arm64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}-ubi8"
       - "ghcr.io/observiq/observiq-otel-collector-arm64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}-ubi8"
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-arm64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}-ubi8"
-      # BindPlane Agent Containers
+      # Bindplane Agent Containers
       - "observiq/bindplane-agent-arm64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}-ubi8"
       - "ghcr.io/observiq/bindplane-agent-arm64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}-ubi8"
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-arm64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}-ubi8"
@@ -513,7 +513,7 @@ docker_manifests:
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-amd64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}-ubi8"
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-arm64:{{ .Major }}.{{ .Minor }}.{{ .Patch }}-ubi8"
     skip_push: false
-  # BindPlane Agent Manifests
+  # Bindplane Agent Manifests
   - name_template: "observiq/bindplane-agent:latest"
     image_templates:
       - "observiq/bindplane-agent-amd64:latest"

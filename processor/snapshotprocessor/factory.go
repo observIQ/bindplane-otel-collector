@@ -67,6 +67,7 @@ func createTracesProcessor(
 		sp.processTraces,
 		processorhelper.WithCapabilities(consumerCapabilities),
 		processorhelper.WithStart(sp.start),
+		processorhelper.WithShutdown(sp.stop),
 	)
 }
 
@@ -87,6 +88,7 @@ func createLogsProcessor(
 		sp.processLogs,
 		processorhelper.WithCapabilities(consumerCapabilities),
 		processorhelper.WithStart(sp.start),
+		processorhelper.WithShutdown(sp.stop),
 	)
 }
 
@@ -107,6 +109,7 @@ func createMetricsProcessor(
 		sp.processMetrics,
 		processorhelper.WithCapabilities(consumerCapabilities),
 		processorhelper.WithStart(sp.start),
+		processorhelper.WithShutdown(sp.stop),
 	)
 }
 

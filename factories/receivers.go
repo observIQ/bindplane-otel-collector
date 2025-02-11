@@ -45,6 +45,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/dockerstatsreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/elasticsearchreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filestatsreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/flinkmetricsreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/fluentforwardreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver"
@@ -65,6 +66,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbatlasreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mysqlreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/nginxreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/opencensusreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/podmanreceiver"
@@ -119,6 +121,7 @@ var defaultReceivers = []receiver.Factory{
 	elasticsearchreceiver.NewFactory(),
 	filelogreceiver.NewFactory(),
 	flinkmetricsreceiver.NewFactory(),
+	filestatsreceiver.NewFactory(),
 	fluentforwardreceiver.NewFactory(),
 	googlecloudpubsubreceiver.NewFactory(),
 	googlecloudspannerreceiver.NewFactory(),
@@ -140,6 +143,7 @@ var defaultReceivers = []receiver.Factory{
 	mongodbatlasreceiver.NewFactory(),
 	mongodbreceiver.NewFactory(),
 	mysqlreceiver.NewFactory(),
+	netflowreceiver.NewFactory(),
 	nginxreceiver.NewFactory(),
 	oktareceiver.NewFactory(),
 	opencensusreceiver.NewFactory(),
