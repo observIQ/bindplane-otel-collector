@@ -159,7 +159,6 @@ func (a *AgentConfigManager) updateExistingConfig(configName string, managedConf
 	}
 
 	a.logger.Info("Applying changes to config file",
-		zap.String("OpAMPConfig", configName),
 		zap.String("OnDiskCollectorConfig", managedConfig.ConfigPath))
 	changed, err = managedConfig.Reload(newContents)
 	if err != nil {
