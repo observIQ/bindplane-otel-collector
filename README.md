@@ -234,7 +234,7 @@ V1 distributions of the BDOT Collector use a custom OpAMP manager built into the
 
 ### V2
 
-V2 is the latest major release of the BDOT Collector. This version is currently in [Beta](https://github.com/observIQ/bindplane-otel-collector/releases/tag/v2.0.0-beta.1). V2 distributions of the BDOT Collector use the [OpenTelemetry OpAMP supervisor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/cmd/opampsupervisor) to interface between the OpenTelemetry Collector and the OpAMP server run by Bindplane. For more information, [see this documentation](https://github.com/observIQ/bindplane-otel-collector/blob/release/v2.0.0/docs/supervisor.md).
+V2 is the latest major release of the BDOT Collector. This version is currently in [Beta](https://github.com/observIQ/bindplane-otel-collector/releases/tag/v2.0.0-beta.3). V2 distributions of the BDOT Collector use the [OpenTelemetry OpAMP supervisor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/cmd/opampsupervisor) to interface between the OpenTelemetry Collector and the OpAMP server run by Bindplane. For more information, [see this documentation](https://github.com/observIQ/bindplane-otel-collector/blob/release/v2.0.0/docs/supervisor.md).
 
 ## Community
 
