@@ -83,6 +83,31 @@ func TestToTLS(t *testing.T) {
 			},
 		},
 		{
+			desc: "TLS Insecure with mtls",
+			testFunc: func(t *testing.T) {
+				cfg := Config{
+					TLS: &TLSConfig{
+						InsecureSkipVerify: true,
+						KeyFile:            &keyFileContents,
+						CertFile:           &certFileContents,
+					},
+				}
+
+				expectedConfig := tls.Config{
+					InsecureSkipVerify: true,
+					MinVersion:         tls.VersionTLS12,
+				}
+
+				cert, err := tls.LoadX509KeyPair(certFileContents, keyFileContents)
+				require.NoError(t, err)
+				expectedConfig.Certificates = []tls.Certificate{cert}
+
+				actual, err := cfg.ToTLS(nil)
+				assert.NoError(t, err)
+				assert.Equal(t, &expectedConfig, actual)
+			},
+		},
+		{
 			desc: "Insecure False, No Files Specified",
 			testFunc: func(t *testing.T) {
 				cfg := Config{
