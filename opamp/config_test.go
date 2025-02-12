@@ -233,6 +233,39 @@ func TestToTLS(t *testing.T) {
 				assert.Equal(t, &expectedConfig, actual)
 			},
 		},
+		{
+			desc: "Insecure True, All TLS Files Valid and Specified",
+			testFunc: func(t *testing.T) {
+				cfg := Config{
+					TLS: &TLSConfig{
+						InsecureSkipVerify: true,
+						CAFile:             &caFileContents,
+						KeyFile:            &keyFileContents,
+						CertFile:           &certFileContents,
+					},
+				}
+
+				expectedConfig := tls.Config{
+					InsecureSkipVerify: true,
+					MinVersion:         tls.VersionTLS12,
+				}
+
+				caCert, err := os.ReadFile(caFileContents)
+				require.NoError(t, err)
+				caCertPool := x509.NewCertPool()
+				caCertPool.AppendCertsFromPEM(caCert)
+				expectedConfig.RootCAs = caCertPool
+
+				cert, err := tls.LoadX509KeyPair(certFileContents, keyFileContents)
+				require.NoError(t, err)
+				expectedConfig.Certificates = []tls.Certificate{cert}
+
+				actual, err := cfg.ToTLS(caCertPool)
+				assert.NoError(t, err)
+
+				assert.Equal(t, &expectedConfig, actual)
+			},
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.desc, tc.testFunc)
