@@ -223,7 +223,6 @@ func (c Config) ToTLS(caCertPool *x509.CertPool) (*tls.Config, error) {
 
 	if c.TLS.InsecureSkipVerify {
 		tlsConfig.InsecureSkipVerify = true
-		return tlsConfig, nil
 	}
 
 	// Load CA cert if specified
