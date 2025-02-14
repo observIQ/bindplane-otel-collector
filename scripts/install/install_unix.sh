@@ -768,7 +768,7 @@ display_results()
       info "Status Command:     $(fg_cyan "sudo service observiq-otel-collector status")$(reset)"
     fi
     info "Logs Command:       $(fg_cyan "sudo tail -F /opt/observiq-otel-collector/log/collector.log")$(reset)"
-    info "Uninstall Command:  $(fg_cyan "sudo sh -c \"curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/install_unix.sh\" install_unix.sh -r")$(reset)"
+    info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/install_unix.sh)\" install_unix.sh -r")$(reset)"
     decrease_indent
 
     banner 'Support'
