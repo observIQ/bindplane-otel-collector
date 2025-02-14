@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector
 
-go 1.22.7
+go 1.23.6
 
 require (
 	github.com/google/uuid v1.6.0

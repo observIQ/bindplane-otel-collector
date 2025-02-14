@@ -32,8 +32,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
-          check-latest: true
+          go-version-file: go.mod
           cache-dependency-path: |
             go.sum
             **/go.sum
@@ -51,8 +50,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
-          check-latest: true
+          go-version-file: go.mod
           cache-dependency-path: |
             go.sum
             **/go.sum
