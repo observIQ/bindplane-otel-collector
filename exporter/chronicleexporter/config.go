@@ -131,8 +131,8 @@ func (cfg *Config) Validate() error {
 	}
 
 	if cfg.Protocol == protocolHTTPS {
-		if cfg.Location == "" {
-			return errors.New("location is required when protocol is https")
+		if cfg.Endpoint == "" {
+			return errors.New("endpoint is required when protocol is https")
 		}
 		if cfg.Project == "" {
 			return errors.New("project is required when protocol is https")
