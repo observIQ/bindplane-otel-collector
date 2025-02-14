@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/receiver/m365receiver
 
-go 1.22.7
+go 1.23.6
 
 require (
 	github.com/google/go-cmp v0.6.0
