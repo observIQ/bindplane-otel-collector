@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/receiver/routereceiver
 
-go 1.22.7
+go 1.23.6
 
 require (
 	github.com/stretchr/testify v1.10.0
