@@ -2015,6 +2015,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/extension/oauth2client
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/oauth2clientauthextension v0.118.0/go.mod h1:K6Hs7Cgx12E02YyoNwEijytITPRE1QRed7R1HlG3o9k=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/oidcauthextension v0.118.0 h1:OWeWpgt3ZQ9kkB/ljdu7ewkBJPm0db2ZQx06IXiHoZY=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/oidcauthextension v0.118.0/go.mod h1:KWRv/4+lDRAd0aZlpjdNtDEBHsGUJAQxgub99hivIcs=
+github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.118.0 h1:OjwttpZXJ98EORCfFqh3y1DNBR/qucTyKWvOH4YMTI0=
+github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.118.0/go.mod h1:FG6L7/gXDQMpi/uNUfMhGGPDjhImsOB9ZdiG82+CIJo=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension v0.118.0 h1:KlIEiJprSJYUvc2XxXCu0uXM0/T/IbTKcyugEcjmnm4=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension v0.118.0/go.mod h1:oE1OPZITVJobOfQBHokvUlCm4BILngcmba1jkKhBcKs=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/sigv4authextension v0.118.0 h1:QyF+bWK7cdhYDB+v+W/rgo/9WtIAztZbAmi1SAYtJ50=
@@ -2169,6 +2171,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awsecscontain
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awsecscontainermetricsreceiver v0.118.0/go.mod h1:YKiC6UXd0Mks5z1Y7X3mw7ML7J7sZYSP4jKCE97l0Rk=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awsfirehosereceiver v0.118.0 h1:Gc2fxU0XAfIj3GrQapABpn78q0Hxk7W5Lv0ikq0IP2s=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awsfirehosereceiver v0.118.0/go.mod h1:Y97vVh3wPKwTBpQvUf08Az/gKft96CX23eeqVaeFwkA=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awss3receiver v0.118.0 h1:JT6NXMpypf7KhS2Og269Tv2uwH45GU0rCV7mHfgk/4Q=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awss3receiver v0.118.0/go.mod h1:tb4MVneQfRxXew4nqqR8W22UH+rGDzH51y6lMZgZ9HE=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awsxrayreceiver v0.118.0 h1:8/n1POkYJU9KtL+z79M3qq87WTgakHEyDbu7A1wmrdM=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awsxrayreceiver v0.118.0/go.mod h1:dUi2goqukOfF2IMazAI6o064ij2fJIYCeIZ6PXPuqyk=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/azureblobreceiver v0.118.0 h1:QLotMeRX8nW9woRq0vYu42RpvIDF31iOAxsWaKgvAc8=

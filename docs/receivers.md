@@ -15,6 +15,7 @@ Below is a list of supported receivers with links to their documentation pages.
 | AWS CloudWatch Container Insights Receiver | [awscontainerinsightreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.118.0/receiver/awscontainerinsightreceiver/README.md)       |
 | AWS ECS Container Metrics Receiver         | [awsecscontainermetricsreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.118.0/receiver/awsecscontainermetricsreceiver/README.md) |
 | AWS Kinesis Data Firehose Receiver         | [awsfirehosereceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.118.0/receiver/awsfirehosereceiver/README.md)                       |
+| AWS S3 Receiver                            | [awss3receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.118.0/receiver/awss3receiver/README.md)                                   |
 | AWS S3 Rehydration Receiver                | [awss3rehydrationreceiver](../receiver/awss3rehydrationreceiver/README.md)                                                                                          |
 | AWS X-Ray Receiver                         | [awsxrayreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.118.0/receiver/awsxrayreceiver/README.md)                               |
 | Azure Blob Receiver                        | [azureblobreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.118.0/receiver/azureblobreceiver/README.md)                           |
