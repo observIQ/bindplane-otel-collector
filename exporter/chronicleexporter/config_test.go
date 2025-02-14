@@ -92,7 +92,7 @@ func TestConfigValidate(t *testing.T) {
 			expectedErr: "invalid compression type",
 		},
 		{
-			desc: "Protocol is https and location is empty",
+			desc: "Protocol is https and endpoint is empty",
 			config: &Config{
 				CredsFilePath:             "/path/to/creds_file",
 				LogType:                   "log_type_example",
@@ -102,11 +102,12 @@ func TestConfigValidate(t *testing.T) {
 				Project:                   "project_example",
 				BatchRequestSizeLimitHTTP: defaultBatchRequestSizeLimitHTTP,
 			},
-			expectedErr: "location is required when protocol is https",
+			expectedErr: "endpoint is required when protocol is https",
 		},
 		{
 			desc: "Protocol is https and forwarder is empty",
 			config: &Config{
+				Endpoint:                  "myendpoint.com",
 				CredsFilePath:             "/path/to/creds_file",
 				LogType:                   "log_type_example",
 				Protocol:                  protocolHTTPS,
@@ -120,6 +121,7 @@ func TestConfigValidate(t *testing.T) {
 		{
 			desc: "Protocol is https and project is empty",
 			config: &Config{
+				Endpoint:                  "myendpoint.com",
 				CredsFilePath:             "/path/to/creds_file",
 				LogType:                   "log_type_example",
 				Protocol:                  protocolHTTPS,
@@ -133,6 +135,7 @@ func TestConfigValidate(t *testing.T) {
 		{
 			desc: "Protocol is https and http batch request size limit is 0",
 			config: &Config{
+				Endpoint:                  "myendpoint.com",
 				CredsFilePath:             "/path/to/creds_file",
 				LogType:                   "log_type_example",
 				Protocol:                  protocolHTTPS,
@@ -147,6 +150,7 @@ func TestConfigValidate(t *testing.T) {
 		{
 			desc: "Valid https config",
 			config: &Config{
+				Endpoint:                  "myendpoint.com",
 				CredsFilePath:             "/path/to/creds_file",
 				LogType:                   "log_type_example",
 				Protocol:                  protocolHTTPS,
@@ -156,6 +160,37 @@ func TestConfigValidate(t *testing.T) {
 				Forwarder:                 "forwarder_example",
 				BatchRequestSizeLimitHTTP: defaultBatchRequestSizeLimitHTTP,
 			},
+		},
+		{
+			desc: "Valid https config with custom API version",
+			config: &Config{
+				Endpoint:                  "myendpoint.com",
+				CredsFilePath:             "/path/to/creds_file",
+				LogType:                   "log_type_example",
+				Protocol:                  protocolHTTPS,
+				Compression:               noCompression,
+				Project:                   "project_example",
+				Location:                  "location_example",
+				Forwarder:                 "forwarder_example",
+				BatchRequestSizeLimitHTTP: defaultBatchRequestSizeLimitHTTP,
+				APIVersion:                "v1beta",
+			},
+		},
+		{
+			desc: "Invalid API version",
+			config: &Config{
+				Endpoint:                  "myendpoint.com",
+				CredsFilePath:             "/path/to/creds_file",
+				LogType:                   "log_type_example",
+				Protocol:                  protocolHTTPS,
+				Compression:               noCompression,
+				Project:                   "project_example",
+				Location:                  "location_example",
+				Forwarder:                 "forwarder_example",
+				BatchRequestSizeLimitHTTP: defaultBatchRequestSizeLimitHTTP,
+				APIVersion:                "invalid",
+			},
+			expectedErr: "invalid API version: invalid",
 		},
 	}
 

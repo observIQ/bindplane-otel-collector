@@ -429,8 +429,17 @@ var httpStatsEndpoint = func(cfg *Config, collectorID string) string {
 }
 
 func baseEndpoint(cfg *Config) string {
-	formatString := "https://%s-%s/v1alpha/projects/%s/locations/%s/instances/%s"
-	return fmt.Sprintf(formatString, cfg.Location, cfg.Endpoint, cfg.Project, cfg.Location, cfg.CustomerID)
+	var endpoint string
+	if cfg.IgnoreLocation {
+		endpoint = cfg.Endpoint
+	} else {
+		endpoint = fmt.Sprintf("%s-%s", cfg.Location, cfg.Endpoint)
+	}
+	if cfg.APIVersion == "" {
+		cfg.APIVersion = apiVersionV1Alpha
+	}
+	formatString := "https://%s/%s/projects/%s/locations/%s/instances/%s"
+	return fmt.Sprintf(formatString, endpoint, cfg.APIVersion, cfg.Project, cfg.Location, cfg.CustomerID)
 }
 
 func (exp *httpExporter) uploadStatsHTTP(ctx context.Context, request *api.BatchCreateEventsRequest, collectorID string) error {
