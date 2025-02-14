@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/processor/spancountprocessor
 
-go 1.22.7
+go 1.23.6
 
 require (
 	github.com/observiq/bindplane-otel-collector/counter v1.71.0

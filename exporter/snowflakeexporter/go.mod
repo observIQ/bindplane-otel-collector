@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter
 
-go 1.22.7
+go 1.23.6
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2

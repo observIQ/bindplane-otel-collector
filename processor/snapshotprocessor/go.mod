@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/processor/snapshotprocessor
 
-go 1.22.7
+go 1.23.6
 
 require (
 	github.com/observiq/bindplane-otel-collector/internal/report v1.71.0
