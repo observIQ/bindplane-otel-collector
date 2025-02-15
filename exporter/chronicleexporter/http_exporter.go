@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"go.opentelemetry.io/collector/component"
@@ -29,6 +30,7 @@ import (
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	grpcgzip "google.golang.org/grpc/encoding/gzip"
@@ -45,6 +47,12 @@ type httpExporter struct {
 }
 
 func newHTTPExporter(cfg *Config, params exporter.Settings) (*httpExporter, error) {
+	// TODO(jsirianni): OpAMP config reload seems to break this?
+	if err := setupMetrics(); err != nil {
+		return nil, fmt.Errorf("setup metrics: %w", err)
+	}
+	otel.SetMeterProvider(params.MeterProvider)
+
 	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings)
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
@@ -79,6 +87,8 @@ func (exp *httpExporter) Shutdown(context.Context) error {
 }
 
 func (exp *httpExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
+	batchLogCount.Record(ctx, int64(ld.LogRecordCount()))
+
 	payloads, err := exp.marshaler.MarshalRawLogsForHTTP(ctx, ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
@@ -98,6 +108,8 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 	if err != nil {
 		return fmt.Errorf("marshal protobuf logs to JSON: %w", err)
 	}
+
+	payloadSizeBytes.Record(ctx, int64(len(data)))
 
 	var body io.Reader
 	if exp.cfg.Compression == grpcgzip.Name {
@@ -125,11 +137,16 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 
 	request.Header.Set("Content-Type", "application/json")
 
+	// Track request latency
+	start := time.Now()
+
 	resp, err := exp.client.Do(request)
 	if err != nil {
 		return fmt.Errorf("send request to Chronicle: %w", err)
 	}
 	defer resp.Body.Close()
+
+	requestLatencyMilliseconds.Record(ctx, time.Since(start).Milliseconds())
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err == nil && resp.StatusCode == http.StatusOK {
