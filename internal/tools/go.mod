@@ -7,7 +7,7 @@ toolchain go1.24.0
 require (
 	github.com/client9/misspell v0.3.4
 	github.com/google/addlicense v1.1.1
-	github.com/mgechev/revive v1.6.0
+	github.com/mgechev/revive v1.7.0
 	github.com/securego/gosec/v2 v2.18.2
 	github.com/uw-labs/lichen v0.1.7
 	github.com/vektra/mockery/v2 v2.52.1
@@ -46,7 +46,7 @@ require (
 	github.com/knadh/koanf/v2 v2.1.2 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mgechev/dots v0.0.0-20210922191527-e955255bf517 // indirect
