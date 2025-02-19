@@ -24,7 +24,7 @@ import (
 
 	"github.com/golang/snappy"
 	"github.com/observiq/bindplane-otel-collector/internal/measurements"
-	"github.com/observiq/bindplane-otel-collector/internal/topology"
+	"github.com/observiq/bindplane-otel-collector/processor/topologyprocessor"
 	"github.com/open-telemetry/opamp-go/client/types"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages"
 	"go.opentelemetry.io/collector/component"
@@ -36,7 +36,7 @@ type bindplaneExtension struct {
 	logger                            *zap.Logger
 	cfg                               *Config
 	measurementsRegistry              *measurements.ResettableThroughputMeasurementsRegistry
-	topologyRegistry                  *topology.ResettableTopologyRegistry
+	topologyRegistry                  *topologyprocessor.ResettableTopologyRegistry
 	customCapabilityHandlerThroughput opampcustommessages.CustomCapabilityHandler
 	customCapabilityHandlerTopology   opampcustommessages.CustomCapabilityHandler
 
@@ -49,7 +49,7 @@ func newBindplaneExtension(logger *zap.Logger, cfg *Config) *bindplaneExtension 
 		logger:               logger,
 		cfg:                  cfg,
 		measurementsRegistry: measurements.NewResettableThroughputMeasurementsRegistry(false),
-		topologyRegistry:     topology.NewResettableTopologyRegistry(),
+		topologyRegistry:     topologyprocessor.NewResettableTopologyRegistry(),
 		doneChan:             make(chan struct{}),
 		wg:                   &sync.WaitGroup{},
 	}
@@ -81,7 +81,7 @@ func (b *bindplaneExtension) RegisterThroughputMeasurements(processorID string, 
 	return b.measurementsRegistry.RegisterThroughputMeasurements(processorID, measurements)
 }
 
-func (b *bindplaneExtension) RegisterTopologyState(processorID string, topology *topology.TopoState) error {
+func (b *bindplaneExtension) RegisterTopologyState(processorID string, topology *topologyprocessor.TopoState) error {
 	return b.topologyRegistry.RegisterTopologyState(processorID, topology)
 }
 
@@ -104,7 +104,7 @@ func (b *bindplaneExtension) setupCustomCapabilities(host component.Host) error 
 		}
 	}
 
-	b.customCapabilityHandlerTopology, err = registry.Register(topology.ReportTopologyCapability)
+	b.customCapabilityHandlerTopology, err = registry.Register(topologyprocessor.ReportTopologyCapability)
 	if err != nil {
 		return fmt.Errorf("register custom topology capability: %w", err)
 	}
@@ -205,7 +205,7 @@ func (b *bindplaneExtension) reportTopology() error {
 
 	encoded := snappy.Encode(nil, marshalled)
 	for {
-		sendingChannel, err := b.customCapabilityHandlerTopology.SendMessage(topology.ReportTopologyType, encoded)
+		sendingChannel, err := b.customCapabilityHandlerTopology.SendMessage(topologyprocessor.ReportTopologyType, encoded)
 		switch {
 		case err == nil:
 			return nil

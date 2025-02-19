@@ -204,7 +204,6 @@ require (
 )
 
 require (
-	github.com/observiq/bindplane-otel-collector/internal/topology v1.71.4
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.71.4
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.120.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.120.0
@@ -907,8 +906,6 @@ replace github.com/observiq/bindplane-otel-collector/internal/testutils => ./int
 replace github.com/observiq/bindplane-otel-collector/internal/report => ./internal/report
 
 replace github.com/observiq/bindplane-otel-collector/internal/measurements => ./internal/measurements
-
-replace github.com/observiq/bindplane-otel-collector/internal/topology => ./internal/topology
 
 replace github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver => ./receiver/splunksearchapireceiver
 
