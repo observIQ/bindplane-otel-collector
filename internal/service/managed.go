@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/observiq/bindplane-otel-collector/internal/measurements"
-	"github.com/observiq/bindplane-otel-collector/pkg/topology"
+	"github.com/observiq/bindplane-otel-collector/processor/topologyprocessor"
 
 	"github.com/observiq/bindplane-otel-collector/collector"
 	"github.com/observiq/bindplane-otel-collector/internal/version"
@@ -58,7 +58,7 @@ func NewManagedCollectorService(col collector.Collector, logger *zap.Logger, man
 		CollectorConfigPath:  collectorConfigPath,
 		LoggerConfigPath:     loggerConfigPath,
 		MeasurementsReporter: measurements.BindplaneAgentThroughputMeasurementsRegistry,
-		TopologyReporter:     topology.BindplaneAgentTopologyRegistry,
+		TopologyReporter:     topologyprocessor.BindplaneAgentTopologyRegistry,
 	}
 
 	// Create new client

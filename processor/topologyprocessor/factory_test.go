@@ -18,7 +18,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/observiq/bindplane-otel-collector/pkg/topology"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer/consumertest"
@@ -82,7 +81,7 @@ func TestCreateProcessorTwice_Logs(t *testing.T) {
 	require.NoError(t, err)
 
 	mockBindplane := mockTopologyRegistry{
-		ResettableTopologyRegistry: topology.NewResettableTopologyRegistry(),
+		ResettableTopologyRegistry: NewResettableTopologyRegistry(),
 	}
 
 	mh := mockHost{
@@ -120,7 +119,7 @@ func TestCreateProcessorTwice_Metrics(t *testing.T) {
 	require.NoError(t, err)
 
 	mockBindplane := mockTopologyRegistry{
-		ResettableTopologyRegistry: topology.NewResettableTopologyRegistry(),
+		ResettableTopologyRegistry: NewResettableTopologyRegistry(),
 	}
 
 	mh := mockHost{
@@ -158,7 +157,7 @@ func TestCreateProcessorTwice_Traces(t *testing.T) {
 	require.NoError(t, err)
 
 	mockBindplane := mockTopologyRegistry{
-		ResettableTopologyRegistry: topology.NewResettableTopologyRegistry(),
+		ResettableTopologyRegistry: NewResettableTopologyRegistry(),
 	}
 
 	mh := mockHost{
@@ -186,7 +185,7 @@ func (m mockHost) GetExtensions() map[component.ID]component.Component {
 }
 
 type mockTopologyRegistry struct {
-	*topology.ResettableTopologyRegistry
+	*ResettableTopologyRegistry
 }
 
 func (mockTopologyRegistry) Start(_ context.Context, _ component.Host) error { return nil }

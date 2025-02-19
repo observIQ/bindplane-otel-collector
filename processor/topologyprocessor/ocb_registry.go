@@ -19,13 +19,12 @@ package topologyprocessor
 import (
 	"fmt"
 
-	"github.com/observiq/bindplane-otel-collector/pkg/topology"
 	"go.opentelemetry.io/collector/component"
 )
 
 // GetTopologyRegistry returns the topology registry that should be registered to based on the component ID.
 // nil, nil may be returned by this function. In this case, the processor should not register it's topology state anywhere.
-func GetTopologyRegistry(host component.Host, bindplane component.ID) (topology.TopoRegistry, error) {
+func GetTopologyRegistry(host component.Host, bindplane component.ID) (TopoRegistry, error) {
 	var emptyComponentID component.ID
 	if bindplane == emptyComponentID {
 		// No bindplane component referenced, so we won't register our topology state anywhere.
@@ -37,7 +36,7 @@ func GetTopologyRegistry(host component.Host, bindplane component.ID) (topology.
 		return nil, fmt.Errorf("bindplane extension %q does not exist", bindplane)
 	}
 
-	registry, ok := ext.(topology.TopoRegistry)
+	registry, ok := ext.(TopoRegistry)
 	if !ok {
 		return nil, fmt.Errorf("extension %q is not an topology state registry", bindplane)
 	}

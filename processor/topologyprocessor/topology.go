@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package topology provides code to help manage topology updates for Bindplane and the topology processor.
-package topology
+package topologyprocessor
 
 import (
 	"context"

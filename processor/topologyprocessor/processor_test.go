@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/pkg/topology"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/plogtest"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/pmetrictest"
@@ -64,7 +63,7 @@ func TestProcessor_Logs(t *testing.T) {
 	require.True(t, tmp.topology.Topology.GatewaySource.AccountID == "myAccountID")
 	require.True(t, tmp.topology.Topology.GatewaySource.OrganizationID == "myOrgID")
 	require.True(t, tmp.topology.Topology.GatewaySource.Configuration == "myConfigName")
-	ci := topology.GatewayInfo{
+	ci := GatewayInfo{
 		Configuration:  "myConfigName1",
 		AccountID:      "myAccountID1",
 		OrganizationID: "myOrgID1",
@@ -108,7 +107,7 @@ func TestProcessor_Metrics(t *testing.T) {
 	require.True(t, tmp.topology.Topology.GatewaySource.AccountID == "myAccountID")
 	require.True(t, tmp.topology.Topology.GatewaySource.OrganizationID == "myOrgID")
 	require.True(t, tmp.topology.Topology.GatewaySource.Configuration == "myConfigName")
-	ci := topology.GatewayInfo{
+	ci := GatewayInfo{
 		Configuration:  "myConfigName1",
 		AccountID:      "myAccountID1",
 		OrganizationID: "myOrgID1",
@@ -152,7 +151,7 @@ func TestProcessor_Traces(t *testing.T) {
 	require.True(t, tmp.topology.Topology.GatewaySource.AccountID == "myAccountID")
 	require.True(t, tmp.topology.Topology.GatewaySource.OrganizationID == "myOrgID")
 	require.True(t, tmp.topology.Topology.GatewaySource.Configuration == "myConfigName")
-	ci := topology.GatewayInfo{
+	ci := GatewayInfo{
 		Configuration:  "myConfigName1",
 		AccountID:      "myAccountID1",
 		OrganizationID: "myOrgID1",

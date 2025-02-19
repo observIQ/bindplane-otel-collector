@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/golang/snappy"
-	"github.com/observiq/bindplane-otel-collector/pkg/topology"
+	"github.com/observiq/bindplane-otel-collector/processor/topologyprocessor"
 	"github.com/open-telemetry/opamp-go/client"
 	"github.com/open-telemetry/opamp-go/client/types"
 	"github.com/open-telemetry/opamp-go/protobufs"
@@ -30,7 +30,7 @@ import (
 
 // TopologyReporter represents an object that reports topology state.
 type TopologyReporter interface {
-	TopologyInfos() []topology.TopoInfo
+	TopologyInfos() []topologyprocessor.TopoInfo
 	SetIntervalChan() chan time.Duration
 }
 
@@ -124,8 +124,8 @@ func (ts *topologySender) loop() {
 			encoded := snappy.Encode(nil, marshalled)
 
 			cm := &protobufs.CustomMessage{
-				Capability: topology.ReportTopologyCapability,
-				Type:       topology.ReportTopologyType,
+				Capability: topologyprocessor.ReportTopologyCapability,
+				Type:       topologyprocessor.ReportTopologyType,
 				Data:       encoded,
 			}
 
