@@ -55,4 +55,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/observiq/bindplane-otel-collector/internal/topology => ../../internal/topology
+replace github.com/observiq/bindplane-otel-collector/pkg/topology => ../../pkg/topology

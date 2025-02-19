@@ -53,4 +53,4 @@ require (
 
 replace github.com/observiq/bindplane-otel-collector/internal/measurements => ../../internal/measurements
 
-replace github.com/observiq/bindplane-otel-collector/internal/topology => ../../internal/topology
+replace github.com/observiq/bindplane-otel-collector/pkg/topology => ../../pkg/topology

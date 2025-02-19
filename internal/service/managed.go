@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/observiq/bindplane-otel-collector/internal/measurements"
-	"github.com/observiq/bindplane-otel-collector/internal/topology"
+	"github.com/observiq/bindplane-otel-collector/pkg/topology"
 
 	"github.com/observiq/bindplane-otel-collector/collector"
 	"github.com/observiq/bindplane-otel-collector/internal/version"
