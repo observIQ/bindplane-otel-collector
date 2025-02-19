@@ -21,7 +21,7 @@ FROM eclipse-temurin:8-jdk as jdk
 
 # Final Stage
 #
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 WORKDIR /
 
 RUN apt-get update && \
