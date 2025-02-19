@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/exporter/googlemanagedpromet
 go 1.23.6
 
 require (
-	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.120.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.120.1
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v0.120.0
 	go.opentelemetry.io/collector/consumer v1.26.0
@@ -43,7 +43,7 @@ require (
 	github.com/knadh/koanf v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/prometheus v0.120.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/prometheus v0.120.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
