@@ -1,7 +1,7 @@
 # Google Cloud Exporter
 
 This exporter can be used to send metrics, traces, and logs to Google Cloud Monitoring. It is an extension of the official 
-[Google Cloud Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.120.0/exporter/googlecloudexporter), with additional processors built in to streamline configuration.
+[Google Cloud Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.120.1/exporter/googlecloudexporter), with additional processors built in to streamline configuration.
 
 ## Configuration
 | Field              | Default          | Required | Description                                                                                                                                                                                                  |
