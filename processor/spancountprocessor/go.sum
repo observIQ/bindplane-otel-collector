@@ -57,10 +57,10 @@ github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
-github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.120.0 h1:lRHDUyoBJysAHNrhG0/ZQVCv5/uS6pviIDgsFwdPUv0=
-github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.120.0/go.mod h1:mOY8UQl7fYj9Ob4e5ODXPqm2rsvDHaYwb08lHxD66KQ=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.120.0 h1:MItZ5OfEMxPdrgLsSe/NP1H90bqGJ+OrG6xHK51cS5Y=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.120.0/go.mod h1:VwlxXynsoW5ovBV04mKW1BT7DF64jjiyFOqJ4bX83xE=
+github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.120.1 h1:ku4dAsZI7DxMvR9dJrMq6DnVM6Ku7sP1Vf9pBKEOOjI=
+github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.120.1/go.mod h1:wfU5cMQdJL3rNGs2CBkE3QyoncOOnz8sHuCCQuMDJc0=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.120.1 h1:6LD6S+5j9WVHtg3VDeS1Pb9kpvvKX+KnyzBZVu2Yu8A=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.120.1/go.mod h1:LsnmCOQt9lMVIAeVo59Dmkrv8u/2t1Jz51Xtgfd7/8A=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rogpeppe/go-internal v1.10.0 h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=
