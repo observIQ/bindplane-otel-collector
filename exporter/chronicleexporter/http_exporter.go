@@ -156,6 +156,9 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 // URL for the request: https://{region}-chronicle.googleapis.com/{version}/projects/{project}/location/{region}/instances/{customerID}
 // Override for testing
 var httpEndpoint = func(cfg *Config, logType string) string {
+	if cfg.Location == "" {
+		return fmt.Sprintf("https://%s/v1alpha/projects/%s/instances/%s/logTypes/%s/logs:import", cfg.Endpoint, cfg.Project, cfg.CustomerID, logType)
+	}
 	formatString := "https://%s-%s/v1alpha/projects/%s/locations/%s/instances/%s/logTypes/%s/logs:import"
 	return fmt.Sprintf(formatString, cfg.Location, cfg.Endpoint, cfg.Project, cfg.Location, cfg.CustomerID, logType)
 }
