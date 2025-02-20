@@ -14,8 +14,9 @@
 # limitations under the License.
 
 # This is the list of stable (v1.0.0+) modules in the core repository.
-read -d '' STABLE_MODULES << EOF
+read -d '' STABLE_MODULES <<EOF
 go.opentelemetry.io/collector/pdata
+go.opentelemetry.io/collector/client
 go.opentelemetry.io/collector/config/configtls
 go.opentelemetry.io/collector/config/configretry
 go.opentelemetry.io/collector/confmap
@@ -26,6 +27,7 @@ go.opentelemetry.io/collector/confmap/provider/httpsprovider
 go.opentelemetry.io/collector/confmap/provider/yamlprovider
 go.opentelemetry.io/collector/config/confignet
 go.opentelemetry.io/collector/consumer
+go.opentelemetry.io/collector/featuregate
 EOF
 
 is_stable_module() {
@@ -40,7 +42,8 @@ is_stable_module() {
 is_contrib_module() {
     case $1 in
     github.com/open-telemetry/opentelemetry-collector-contrib*)
-        return 0;;
+        return 0
+        ;;
     esac
     return 1
 }
@@ -65,14 +68,13 @@ if [ -z "$PDATA_TARGET_VERSION" ]; then
 fi
 
 LOCAL_MODULES=$(find . -type f -name "go.mod" -exec dirname {} \; | sort)
-for local_mod in $LOCAL_MODULES
-do
+for local_mod in $LOCAL_MODULES; do
     # Run in a subshell so that the CD doesn't change this shell's current directory
     (
         echo "Updating deps in $local_mod"
         cd "$local_mod" || exit 1
         # go list will not work if module is not tidy, so we tidy first
-        go mod tidy -compat=1.22
+        go mod tidy -compat=1.23
 
         OTEL_MODULES=$(go list -m -f '{{if not (or .Indirect .Main)}}{{.Path}}{{end}}' all |
             grep -E -e '(?:^github.com/open-telemetry/opentelemetry-collector-contrib)|(?:^go.opentelemetry.io/collector)')
@@ -81,7 +83,7 @@ do
             if is_stable_module "$mod"; then
                 echo "$local_mod: $mod@$PDATA_TARGET_VERSION"
                 go mod edit -require "$mod@$PDATA_TARGET_VERSION"
-            elif is_contrib_module "$mode"; then
+            elif is_contrib_module "$mod"; then
                 echo "$local_mod: $mod@$CONTRIB_TARGET_VERSION"
                 go mod edit -require "$mod@$CONTRIB_TARGET_VERSION"
             else
