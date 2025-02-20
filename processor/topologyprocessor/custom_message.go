@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package topology
+package topologyprocessor
 
 const (
 	// ReportTopologyCapability is the capability needed to report topology to bindplane

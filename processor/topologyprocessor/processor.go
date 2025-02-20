@@ -21,7 +21,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/internal/topology"
 	"go.opentelemetry.io/collector/client"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -38,14 +37,14 @@ const (
 )
 
 type topologyUpdate struct {
-	gw         topology.GatewayInfo
-	routeTable map[topology.GatewayInfo]time.Time
+	gw         GatewayInfo
+	routeTable map[GatewayInfo]time.Time
 }
 
 type topologyProcessor struct {
 	logger      *zap.Logger
 	enabled     bool
-	topology    *topology.TopoState
+	topology    *TopoState
 	interval    time.Duration
 	processorID component.ID
 	bindplane   component.ID
@@ -55,13 +54,13 @@ type topologyProcessor struct {
 
 // newTopologyProcessor creates a new topology processor
 func newTopologyProcessor(logger *zap.Logger, cfg *Config, processorID component.ID) (*topologyProcessor, error) {
-	destGw := topology.GatewayInfo{
+	destGw := GatewayInfo{
 		GatewayID:      strings.TrimPrefix(processorID.String(), "topology/"),
 		Configuration:  cfg.Configuration,
 		AccountID:      cfg.AccountID,
 		OrganizationID: cfg.OrganizationID,
 	}
-	topology, err := topology.NewTopologyState(destGw)
+	topology, err := NewTopologyState(destGw)
 	if err != nil {
 		return nil, fmt.Errorf("create topology state: %w", err)
 	}
@@ -145,7 +144,7 @@ func (tp *topologyProcessor) processTopologyHeaders(ctx context.Context) {
 
 	// only upsert if all headers are present
 	if configuration != "" && accountID != "" && organizationID != "" && resourceName != "" {
-		gw := topology.GatewayInfo{
+		gw := GatewayInfo{
 			Configuration:  configuration,
 			AccountID:      accountID,
 			OrganizationID: organizationID,
