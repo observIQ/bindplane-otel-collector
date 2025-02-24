@@ -1,14 +1,14 @@
 # Google Managed Prometheus Exporter
 
 This exporter can be used to send metrics to Google Cloud Managed Service for Prometheus. It is an extension of the official 
-[Google Managed Prometheus Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.120.0/exporter/googlemanagedprometheusexporter), with additional configuration options.
+[Google Managed Prometheus Exporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.120.1/exporter/googlemanagedprometheusexporter), with additional configuration options.
 
 ## Supported pipelines
 - Metrics
 
 ## How It Works
 1. The user configures this exporter in a pipeline
-2. If the pipeline does not use the prometheus receiver with the gcp detector, set resource attributes in the pipeline [as described in the upstream documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.120.0/exporter/googlemanagedprometheusexporter#resource-attribute-handling).
+2. If the pipeline does not use the prometheus receiver with the gcp detector, set resource attributes in the pipeline [as described in the upstream documentation](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.120.1/exporter/googlemanagedprometheusexporter#resource-attribute-handling).
 3. Metrics are sent to Google Cloud.
 
 ## Configuration
