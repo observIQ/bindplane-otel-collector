@@ -29,10 +29,10 @@ import (
 	"github.com/observiq/bindplane-otel-collector/collector"
 	"github.com/observiq/bindplane-otel-collector/internal/measurements"
 	"github.com/observiq/bindplane-otel-collector/internal/report"
-	"github.com/observiq/bindplane-otel-collector/internal/topology"
 	"github.com/observiq/bindplane-otel-collector/internal/version"
 	"github.com/observiq/bindplane-otel-collector/opamp"
 	"github.com/observiq/bindplane-otel-collector/packagestate"
+	"github.com/observiq/bindplane-otel-collector/processor/topologyprocessor"
 	"github.com/open-telemetry/opamp-go/client"
 	"github.com/open-telemetry/opamp-go/client/types"
 	"github.com/open-telemetry/opamp-go/protobufs"
@@ -154,7 +154,7 @@ func NewClient(args *NewClientArgs) (opamp.Client, error) {
 	err = observiqClient.opampClient.SetCustomCapabilities(&protobufs.CustomCapabilities{
 		Capabilities: []string{
 			measurements.ReportMeasurementsV1Capability,
-			topology.ReportTopologyCapability,
+			topologyprocessor.ReportTopologyCapability,
 		},
 	})
 	if err != nil {
@@ -364,7 +364,7 @@ func (c *Client) onMessageFuncHandler(ctx context.Context, msg *types.MessageDat
 			c.logger.Info("Server does not support custom throughput message measurements, stopping measurements sender.")
 			c.measurementsSender.Stop()
 		}
-		if slices.Contains(msg.CustomCapabilities.Capabilities, topology.ReportTopologyCapability) {
+		if slices.Contains(msg.CustomCapabilities.Capabilities, topologyprocessor.ReportTopologyCapability) {
 			c.logger.Info("Server supports custom topology messages, starting topology sender.")
 			c.topologySender.Start()
 		} else {
