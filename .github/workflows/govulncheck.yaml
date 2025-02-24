@@ -1,5 +1,8 @@
 name: Go Vulnerability Scan
 on:
+  push:
+    branches:
+      - ci/govulncheck
   schedule:
     - cron: '30 8 * * 2' # Weekly on Tuesdays at 8:30 AM UTC
   workflow_dispatch:
@@ -37,9 +40,9 @@ jobs:
         if: steps.recommendations.outputs.recommendations == ''
         with:
           method: chat.postMessage
-          token: ${{ secrets.GOVULNCHECK_SLACK_BOT_TOKEN }}
+          token: ${{ secrets.ORG_GOVULNCHECK_SLACK_BOT_TOKEN }}
           payload: |
-            channel: ${{ secrets.GOVULNCHECK_SLACK_CHANNEL }}
+            channel: ${{ secrets.ORG_GOVULNCHECK_SLACK_BOT_CHANNEL }}
             text: "🔍 Govulncheck: ${{ github.repository }}"
             attachments:
               - color: "#00ff38"
