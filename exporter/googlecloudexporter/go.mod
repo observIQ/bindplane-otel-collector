@@ -14,7 +14,7 @@ require (
 	go.opentelemetry.io/collector/processor v0.120.0
 	go.opentelemetry.io/collector/processor/batchprocessor v0.120.0
 	go.uber.org/multierr v1.11.0
-	google.golang.org/api v0.221.0
+	google.golang.org/api v0.222.0
 )
 
 require (
@@ -92,5 +92,5 @@ require (
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/time v0.10.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250106144421-5f5ef82da422 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250207221924-e9438ea467c6 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250212204824-5a70512c5d8b // indirect
 )
