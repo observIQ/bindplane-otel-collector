@@ -42,7 +42,7 @@ jobs:
           method: chat.postMessage
           token: ${{ secrets.ORG_GOVULNCHECK_SLACK_BOT_TOKEN }}
           payload: |
-            channel: ${{ secrets.ORG_GOVULNCHECK_SLACK_BOT_CHANNEL }}
+            channel: C08DCHLNKDX  # bp-vulnerability-checks
             text: "🔍 Govulncheck: ${{ github.repository }}"
             attachments:
               - color: "#00ff38"
@@ -60,7 +60,7 @@ jobs:
           method: chat.postMessage
           token: ${{ secrets.ORG_GOVULNCHECK_SLACK_BOT_TOKEN }}
           payload: |
-            channel: ${{ secrets.ORG_GOVULNCHECK_SLACK_BOT_CHANNEL }}
+            channel: C08DCHLNKDX  # bp-vulnerability-checks
             text: "🔍 Govulncheck: ${{ github.repository }}"
             attachments:
               - color: "#ff0000"
