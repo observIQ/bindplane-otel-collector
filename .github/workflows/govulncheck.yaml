@@ -1,8 +1,5 @@
 name: Go Vulnerability Scan
 on:
-  push:
-    branches:
-      - ci/govulncheck
   schedule:
     - cron: '30 8 * * 2' # Weekly on Tuesdays at 8:30 AM UTC
   workflow_dispatch:
