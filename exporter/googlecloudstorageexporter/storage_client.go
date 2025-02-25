@@ -22,7 +22,8 @@ type googleCloudStorageClient struct {
 }
 
 // newGoogleCloudStorageClient creates a new googleCloudStorageClient with the given connection string
-func newGoogleCloudStorageClient(ctx context.Context, cfg *Config) (*googleCloudStorageClient, error) {
+func newGoogleCloudStorageClient(cfg *Config) (*googleCloudStorageClient, error) {
+	ctx := context.Background()
 	var opts []option.ClientOption
 
 	switch {
