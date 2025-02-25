@@ -15,7 +15,7 @@
 
 set -e
 
-PREREQS="printf sed uname sudo tar gzip"
+PREREQS="printf sed uname sudo tar gzip curl"
 INDENT_WIDTH='  '
 indent=""
 
@@ -75,19 +75,19 @@ error() {
 # shellcheck disable=SC2059
 success() { printf "$fg_green$*$reset\\n" ; }
 
-observiq_banner()
+bindplane_banner()
 {
-  fg_cyan "           888                                        8888888 .d88888b.\\n"
-  fg_cyan "           888                                          888  d88P\" \"Y88b\\n"
-  fg_cyan "           888                                          888  888     888\\n"
-  fg_cyan "   .d88b.  88888b.  .d8888b   .d88b.  888d888 888  888  888  888     888\\n"
-  fg_cyan "  d88\"\"88b 888 \"88b 88K      d8P  Y8b 888P\"   888  888  888  888     888\\n"
-  fg_cyan "  888  888 888  888 \"Y8888b. 88888888 888     Y88  88P  888  888 Y8b 888\\n"
-  fg_cyan "  Y88..88P 888 d88P      X88 Y8b.     888      Y8bd8P   888  Y88b.Y8b88P\\n"
-  fg_cyan "   \"Y88P\"  88888P\"   88888P'  \"Y8888  888       Y88P  8888888 \"Y888888\"\\n"
-  fg_cyan "                                                                   Y8b  \\n"
+  if [ "$non_interactive" = "false" ]; then
+    fg_cyan " oooooooooo.   o8o                    .o8  ooooooooo.   oooo\\n"
+    fg_cyan " '888'   '88b  '\"'                   \"888  '888   'Y88. '888\\n" 
+    fg_cyan "  888     888 oooo  ooo. .oo.    .oooo888   888   .d88'  888   .oooo.   ooo. .oo.    .ooooo.\\n"
+    fg_cyan "  888oooo888' '888  '888P\"Y88b  d88' '888   888ooo88P'   888  'P  )88b  '888P\"Y88b  d88' '88b\\n" 
+    fg_cyan "  888    '88b  888   888   888  888   888   888          888   .oP\"888   888   888  888ooo888\\n"
+    fg_cyan "  888    .88P  888   888   888  888   888   888          888  d8(  888   888   888  888    .o\\n"
+    fg_cyan " o888bood8P'  o888o o888o o888o 'Y8bod88P\" o888o        o888o 'Y888\"\"8o o888o o888o '88bod8P'\\n"
 
-  reset
+    reset
+  fi
 }
 
 separator() { printf "===================================================\\n" ; }
@@ -292,8 +292,32 @@ function bundle_files() {
     gzip $tar_filename
 
     info "Files have been added to the file $(realpath $tar_filename.gz) successfully."
+    decrease_indent
 }
 
+collect_profiles() {
+  read -p "Collect go pprof? (y/n) " PPROF
+  if [[ "$PPROF" == y*  ]]; then
+    increase_indent
+    # POSIX prompt
+    info "For endpoint, please use the format http://localhost:13133 or https://localhost:13133\n"
+    info "where 13133 is the port you configured in your profile extension (13133 is the default)"
+    read -p "Endpoint: " ENDPOINT
+    printf "\n"
+    curl -ksS http://localhost:13133/debug/pprof/goroutine --output goroutines.pprof
+    curl -ksS http://localhost:13133/debug/pprof/heap --output heap.pprof
+    curl -ksS http://localhost:13133/debug/pprof/threadcreate --output threadcreate.pprof
+    curl -ksS http://localhost:13133/debug/pprof/block --output block.pprof
+    curl -ksS http://localhost:13133/debug/pprof/mutex --output mutex.pprof
+    curl -ksS http://localhost:13133/debug/pprof/profile --output profile.pprof
+    curl -ksS http://localhost:13133/debug/pprof/trace?seconds=5 > profile.pb.gz
+    tar_filename="pprof_$(date +%Y%m%d_%H%M%S).tar.gz"
+    tar -czvf $tar_filename goroutines.pprof heap.pprof threadcreate.pprof block.pprof mutex.pprof profile.pprof profile.pb.gz
+
+    info "Profile files have been added to the file $(realpath $tar_filename.gz) successfully."
+    decrease_indent
+  fi
+}
 
 main() {
   if [ $# -ge 1 ]; then
@@ -314,10 +338,10 @@ main() {
     done
   fi
 
-  observiq_banner
+  bindplane_banner
   check_prereqs
   bundle_files
+  collect_profiles
 }
 
 main "$@"
-
