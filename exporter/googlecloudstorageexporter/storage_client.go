@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/storage"
-	"google.golang.org/api/googleapi"
+	// "google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 )
 
@@ -13,7 +13,7 @@ import (
 //
 //go:generate mockery --name storageClient --output ./internal/mocks --with-expecter --filename mock_storage_client.go --structname mockStorageClient
 type storageClient interface {
-	CreateBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error
+	// CreateBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error
 	UploadObject(ctx context.Context, projectID string, bucketName string, objectName string, storageClass string, location string, buffer []byte) error
 }
 
@@ -48,14 +48,9 @@ func newGoogleCloudStorageClient(cfg *Config) (*googleCloudStorageClient, error)
 }
 
 func (c *googleCloudStorageClient) UploadObject(ctx context.Context, projectID string, bucketName string, objectName string, storageClass string, location string, buffer []byte) error {
-	bucket := c.storageClient.Bucket(bucketName)
+	//assume bucket exists for now
 	
-	// Try to create the bucket - if it exists, that's fine
-	if err := c.CreateBucket(ctx, projectID, bucketName, storageClass, location); err != nil {
-		return fmt.Errorf("failed to create bucket: %w", err)
-	}
-
-	// Now upload the object
+	bucket := c.storageClient.Bucket(bucketName)
 	obj := bucket.Object(objectName)
 	writer := obj.NewWriter(ctx)
 	
@@ -70,20 +65,20 @@ func (c *googleCloudStorageClient) UploadObject(ctx context.Context, projectID s
 	return nil
 }
 
-func (c *googleCloudStorageClient) CreateBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error {
-	bucket := c.storageClient.Bucket(bucketName)
+// func (c *googleCloudStorageClient) CreateBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error {
+// 	bucket := c.storageClient.Bucket(bucketName)
 	
-	storageClassAndLocation := &storage.BucketAttrs{
-		StorageClass: storageClass,
-		Location:     location,
-	}
+// 	storageClassAndLocation := &storage.BucketAttrs{
+// 		StorageClass: storageClass,
+// 		Location:     location,
+// 	}
 	
-	if err := bucket.Create(ctx, projectID, storageClassAndLocation); err != nil {
-		// Check if the error is because the bucket already exists
-		if e, ok := err.(*googleapi.Error); ok && e.Code == 409 {
-			return nil
-		}
-		return fmt.Errorf("failed to create bucket %q: %w", bucketName, err)
-	}
-	return nil
-}
+// 	if err := bucket.Create(ctx, projectID, storageClassAndLocation); err != nil {
+// 		// Check if the error is because the bucket already exists
+// 		if e, ok := err.(*googleapi.Error); ok && e.Code == 409 {
+// 			return nil
+// 		}
+// 		return fmt.Errorf("failed to create bucket %q: %w", bucketName, err)
+// 	}
+// 	return nil
+// }
