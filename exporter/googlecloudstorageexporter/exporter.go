@@ -3,6 +3,9 @@ package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"strings"
+	"time"
 
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter"
@@ -30,7 +33,7 @@ func newExporter(cfg *Config, params exporter.Settings) (*googleCloudStorageExpo
 		cfg: cfg,
 		storageClient: storageClient,
 		logger:     params.Logger,
-		marshaler:  newMarshaler(),
+		marshaler:  newMarshaler(cfg.Compression),
 	}, nil
 }
 
@@ -44,9 +47,9 @@ func (g *googleCloudStorageExporter) metricsDataPusher(ctx context.Context, md p
 		return fmt.Errorf("failed to marshal metrics: %w", err)
 	}
 
-	blobName := g.getBlobName("metrics")
+	objectName := g.getObjectName("metrics")
 
-	return g.uploadBuffer(ctx, blobName, buf)
+	return g.storageClient.UploadObject(ctx, g.cfg.BucketName, objectName, buf)
 }
 
 func (g *googleCloudStorageExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
@@ -55,9 +58,9 @@ func (g *googleCloudStorageExporter) logsDataPusher(ctx context.Context, ld plog
 		return fmt.Errorf("failed to marshal logs: %w", err)
 	}
 
-	blobName := g.getBlobName("logs")
+	objectName := g.getObjectName("logs")
 
-	return g.uploadBuffer(ctx, blobName, buf)
+	return g.storageClient.UploadObject(ctx, g.cfg.BucketName, objectName, buf)
 }
 
 func (g *googleCloudStorageExporter) traceDataPusher(ctx context.Context, td ptrace.Traces) error {
@@ -66,61 +69,36 @@ func (g *googleCloudStorageExporter) traceDataPusher(ctx context.Context, td ptr
 		return fmt.Errorf("failed to marshal traces: %w", err)
 	}
 
-	blobName := g.getBlobName("traces")
+	objectName := g.getObjectName("traces")
 
-	return g.uploadBuffer(ctx, blobName, buf)
+	return g.storageClient.UploadObject(ctx, g.cfg.BucketName, objectName, buf)
 }
 
-// func (g *googleCloudStorageExporter) getBlobName(telemetryType string) string {
-// 	now := time.Now()
-// 	year, month, day := now.Date()
-// 	hour, minute, _ := now.Clock()
+func (g *googleCloudStorageExporter) getObjectName(telemetryType string) string {
+	now := time.Now()
+	year, month, day := now.Date()
+	hour, minute, _ := now.Clock()
 
-// 	blobNameBuilder := strings.Builder{}
+	objectNameBuilder := strings.Builder{}
 
-// 	if g.cfg.FolderName != "" {
-// 		blobNameBuilder.WriteString(g.cfg.FolderName)
-// 		blobNameBuilder.WriteString("/")
-// 	}
+	if g.cfg.FolderName != "" {
+		objectNameBuilder.WriteString(g.cfg.FolderName)
+		objectNameBuilder.WriteString("/")
+	}
 
-// 	blobNameBuilder.WriteString(fmt.Sprintf("%s-%d-%d-%d-%d-%d", telemetryType, year, month, day, hour, minute))
+	objectNameBuilder.WriteString(fmt.Sprintf("%s-%d-%d-%d-%d-%d", telemetryType, year, month, day, hour, minute))
 
-// 	if g.cfg.ObjectPrefix != "" {
-// 		blobNameBuilder.WriteString(fmt.Sprintf("-%s", g.cfg.ObjectPrefix))
-// 	}
+	if g.cfg.ObjectPrefix != "" {
+		objectNameBuilder.WriteString(fmt.Sprintf("-%s", g.cfg.ObjectPrefix))
+	}
 
-// 	randomID := randomInRange(100000000, 999999999)
+	randomID := randomInRange(100000000, 999999999)
 
-// 	blobNameBuilder.WriteString(fmt.Sprintf("-%d", randomID))
+	objectNameBuilder.WriteString(fmt.Sprintf("-%d", randomID))
 
-// 	return blobNameBuilder.String()
-// }
+	return objectNameBuilder.String()
+}
 
-// func (g *googleCloudStorageExporter) uploadBuffer(ctx context.Context, blobName string, buf []byte) error {
-// 	bucket, err := g.storageClient.GetBucket(ctx, g.cfg.BucketName)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to create bucket: %w", err)
-// 	}
-
-// 	object := bucket.Object(blobName)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to create object: %w", err)
-// 	}
-
-// 	writer := object.NewWriter(ctx)
-// 	writer.Write(buf)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to write to object: %w", err)
-// 	}
-
-// 	err = writer.Close()
-// 	if err != nil {
-// 		return fmt.Errorf("failed to close writer: %w", err)
-// 	}
-
-// 	return nil
-// }
-
-// func randomInRange(low, hi int) int {
-// 	return low + rand.Intn(hi-low)
-// }
+func randomInRange(low, hi int) int {
+	return low + rand.Intn(hi-low)
+}
