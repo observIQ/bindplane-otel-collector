@@ -1,8 +1,16 @@
 package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter"
 
-import "errors"
+import (
+	"errors"
+
+	"go.opentelemetry.io/collector/exporter/exporterhelper"
+)
 
 type Config struct {
+	exporterhelper.TimeoutSettings `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct.
+	exporterhelper.QueueSettings   `mapstructure:"sending_queue"`
+	exporterhelper.RetrySettings   `mapstructure:"retry_on_failure"`
+
 	ProjectID  string `mapstructure:"project_id"`
 	BucketName string `mapstructure:"bucket_name"`
 	Location   string `mapstructure:"location"`
