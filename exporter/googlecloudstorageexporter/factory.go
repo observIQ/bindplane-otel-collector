@@ -37,25 +37,64 @@ func createDefaultConfig() component.Config {
 }
 
 func createMetricsExporter(ctx context.Context, params exporter.CreateSettings, config component.Config) (exporter.Metrics, error) {
-	_, ok := config.(*Config)
+	cfg, ok := config.(*Config)
 	if !ok {
 		return nil, errors.New("not a Google Cloud Storage config")
 	}
-	return nil, nil
+	exp, err := newExporter(cfg, params)
+	if err != nil {
+		return nil, err
+	}
+	return exporterhelper.NewMetricsExporter(
+		ctx,
+		params,
+		cfg,
+		exp.metricsDataPusher,
+		exporterhelper.WithCapabilities(exp.Capabilities()),
+		exporterhelper.WithTimeout(cfg.TimeoutSettings),
+		exporterhelper.WithQueue(cfg.QueueSettings),
+		exporterhelper.WithRetry(cfg.RetrySettings),
+	)
 }
 
 func createLogsExporter(ctx context.Context, params exporter.CreateSettings, config component.Config) (exporter.Logs, error) {
-	_, ok := config.(*Config)
+	cfg, ok := config.(*Config)
 	if !ok {
 		return nil, errors.New("not a Google Cloud Storage config")
 	}
-	return nil, nil
+	exp, err := newExporter(cfg, params)
+	if err != nil {
+		return nil, err
+	}
+	return exporterhelper.NewLogsExporter(
+		ctx,
+		params,
+		cfg,
+		exp.logsDataPusher,
+		exporterhelper.WithCapabilities(exp.Capabilities()),
+		exporterhelper.WithTimeout(cfg.TimeoutSettings),
+		exporterhelper.WithQueue(cfg.QueueSettings),
+		exporterhelper.WithRetry(cfg.RetrySettings),
+	)
 }
 
 func createTracesExporter(ctx context.Context, params exporter.CreateSettings, config component.Config) (exporter.Traces, error) {
-	_, ok := config.(*Config)
+	cfg, ok := config.(*Config)
 	if !ok {
 		return nil, errors.New("not a Google Cloud Storage config")
 	}
-	return nil, nil
+	exp, err := newExporter(cfg, params)
+	if err != nil {
+		return nil, err
+	}
+	return exporterhelper.NewTracesExporter(
+		ctx,
+		params,
+		cfg,
+		exp.traceDataPusher,
+		exporterhelper.WithCapabilities(exp.Capabilities()),
+		exporterhelper.WithTimeout(cfg.TimeoutSettings),
+		exporterhelper.WithQueue(cfg.QueueSettings),
+		exporterhelper.WithRetry(cfg.RetrySettings),
+	)
 }
