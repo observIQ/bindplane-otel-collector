@@ -15,6 +15,9 @@
 package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter"
 
 import (
+	"bytes"
+	"compress/gzip"
+
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
@@ -37,33 +40,104 @@ type marshaler interface {
 	Format() string
 }
 
-func newMarshaler() marshaler {
-	return &baseMarshaller{
+// newMarshaler creates a new marshaler based on compression type
+func newMarshaler(compression compressionType) marshaler {
+	base := &baseMarshaler{
 		logsMarshaler:    &plog.JSONMarshaler{},
 		tracesMarshaler:  &ptrace.JSONMarshaler{},
 		metricsMarshaler: &pmetric.JSONMarshaler{},
 	}
+
+	switch compression {
+	case gzipCompression:
+		return &gzipMarshaler{
+			base: base,
+		}
+	default:
+		return base
+	}
 }
 
-// baseMarshaller is the base marshaller that marshals otlp structures into JSON
-type baseMarshaller struct {
+// baseMarshaler is the base marshaller that marshals otlp structures into JSON
+type baseMarshaler struct {
 	logsMarshaler    plog.Marshaler
 	tracesMarshaler  ptrace.Marshaler
 	metricsMarshaler pmetric.Marshaler
 }
 
-func (b *baseMarshaller) MarshalTraces(td ptrace.Traces) ([]byte, error) {
+// MarshalTraces returns the marshaled json traces data
+func (b *baseMarshaler) MarshalTraces(td ptrace.Traces) ([]byte, error) {
 	return b.tracesMarshaler.MarshalTraces(td)
 }
 
-func (b *baseMarshaller) MarshalLogs(ld plog.Logs) ([]byte, error) {
+// MarshalLogs returns the marshaled json logs data
+func (b *baseMarshaler) MarshalLogs(ld plog.Logs) ([]byte, error) {
 	return b.logsMarshaler.MarshalLogs(ld)
 }
 
-func (b *baseMarshaller) MarshalMetrics(md pmetric.Metrics) ([]byte, error) {
+// MarshalMetrics returns the marshaled json metrics data
+func (b *baseMarshaler) MarshalMetrics(md pmetric.Metrics) ([]byte, error) {
 	return b.metricsMarshaler.MarshalMetrics(md)
 }
 
-func (b *baseMarshaller) Format() string {
+// Format returns the file format of the data this marshaler returns
+func (b *baseMarshaler) Format() string {
 	return "json"
+}
+
+// gzipMarshaler gzip compresses marshalled data
+type gzipMarshaler struct {
+	base *baseMarshaler
+}
+
+// MarshalTraces returns the marshaled json traces data
+func (g *gzipMarshaler) MarshalTraces(td ptrace.Traces) ([]byte, error) {
+	data, err := g.base.MarshalTraces(td)
+	if err != nil {
+		return nil, err
+	}
+
+	return g.compress(data)
+}
+
+// MarshalLogs returns the marshaled json logs data
+func (g *gzipMarshaler) MarshalLogs(ld plog.Logs) ([]byte, error) {
+	data, err := g.base.MarshalLogs(ld)
+	if err != nil {
+		return nil, err
+	}
+
+	return g.compress(data)
+}
+
+// MarshalMetrics returns the marshaled json metrics data
+func (g *gzipMarshaler) MarshalMetrics(md pmetric.Metrics) ([]byte, error) {
+	data, err := g.base.MarshalMetrics(md)
+	if err != nil {
+		return nil, err
+	}
+
+	return g.compress(data)
+}
+
+// Format returns the file format of the data this marshaler returns
+func (g *gzipMarshaler) Format() string {
+	return "json.gz"
+}
+
+// compress applies gzip compression to the data
+func (g *gzipMarshaler) compress(data []byte) ([]byte, error) {
+	var buf bytes.Buffer
+	writer := gzip.NewWriter(&buf)
+
+	_, err := writer.Write(data)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
