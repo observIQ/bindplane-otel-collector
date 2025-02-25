@@ -5,7 +5,8 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/storage"
-	// "google.golang.org/api/googleapi"
+	"go.uber.org/zap"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
@@ -15,6 +16,7 @@ import (
 type storageClient interface {
 	// CreateBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error
 	UploadObject(ctx context.Context, projectID string, bucketName string, objectName string, storageClass string, location string, buffer []byte) error
+	ListBuckets(ctx context.Context, projectID string) ([]string, error)
 }
 
 // googleCloudStorageClient is the google cloud storage implementation of the storageClient
@@ -47,8 +49,34 @@ func newGoogleCloudStorageClient(cfg *Config) (*googleCloudStorageClient, error)
 	}, nil
 }
 
+func (c *googleCloudStorageClient) ListBuckets(ctx context.Context, projectID string) ([]string, error) {
+	var bucketNames []string
+	it := c.storageClient.Buckets(ctx, projectID)
+	for {
+		bucketAttrs, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("error listing buckets: %w", err)
+		}
+		bucketNames = append(bucketNames, bucketAttrs.Name)
+	}
+	return bucketNames, nil
+}
+
 func (c *googleCloudStorageClient) UploadObject(ctx context.Context, projectID string, bucketName string, objectName string, storageClass string, location string, buffer []byte) error {
-	//assume bucket exists for now
+	// First, list available buckets and log them
+	buckets, err := c.ListBuckets(ctx, projectID)
+	if err != nil {
+		return fmt.Errorf("failed to list buckets before upload: %w", err)
+	}
+	
+	// Log available buckets
+	zap.L().Info("Available buckets in project",
+		zap.String("project_id", projectID),
+		zap.Strings("buckets", buckets),
+		zap.String("target_bucket", bucketName))
 	
 	bucket := c.storageClient.Bucket(bucketName)
 	obj := bucket.Object(objectName)
