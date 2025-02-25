@@ -13,7 +13,7 @@ import (
 //go:generate mockery --name storageClient --output ./internal/mocks --with-expecter --filename mock_storage_client.go --structname mockStorageClient
 type storageClient interface {
 	CreateBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error
-	UploadObject(ctx context.Context, bucketName string, objectName string, buffer []byte) error
+	UploadObject(ctx context.Context, projectID string, bucketName string, objectName string, storageClass string, location string, buffer []byte) error
 }
 
 // googleCloudStorageClient is the google cloud storage implementation of the storageClient
@@ -46,8 +46,20 @@ func newGoogleCloudStorageClient(cfg *Config) (*googleCloudStorageClient, error)
 	}, nil
 }
 
-func (c *googleCloudStorageClient) UploadObject(ctx context.Context, bucketName string, objectName string, buffer []byte) error {
+func (c *googleCloudStorageClient) UploadObject(ctx context.Context, projectID string, bucketName string, objectName string, storageClass string, location string, buffer []byte) error {
 	bucket := c.storageClient.Bucket(bucketName)
+	
+	// Check if bucket exists
+	_, err := bucket.Attrs(ctx)
+	if err == storage.ErrBucketNotExist {
+		if err := c.CreateBucket(ctx, projectID, bucketName, storageClass, location); err != nil {
+			return fmt.Errorf("failed to create bucket before upload: %w", err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("failed to check bucket %q: %w", bucketName, err)
+	}
+
+	// Now upload the object
 	obj := bucket.Object(objectName)
 	writer := obj.NewWriter(ctx)
 	
