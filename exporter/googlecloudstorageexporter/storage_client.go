@@ -2,6 +2,7 @@ package googlecloudstorageexporter // import "github.com/observiq/bindplane-agen
 
 import (
 	"context"
+	"fmt"
 
 	"cloud.google.com/go/storage"
 )
@@ -12,6 +13,7 @@ import (
 type storageClient interface {
 	// UploadBuffer uploads a buffer in blocks to a block blob.
 	UploadBuffer(context.Context, string, string, []byte) error
+	CreateBucket(context.Context, string, string) error
 }
 
 // googleCloudStorageClient is the google cloud storage implementation of the storageClient
@@ -32,6 +34,42 @@ func newGoogleCloudStorageClient(connectionString string) (*googleCloudStorageCl
 }
 
 func (a *googleCloudStorageClient) UploadBuffer(ctx context.Context, containerName, blobName string, buffer []byte) error {
-	_, err := a.storageClient.UploadBuffer(ctx, containerName, blobName, buffer, nil)
-	return err
+	bucket := a.storageClient.Bucket(containerName)
+	obj := bucket.Object(blobName)
+	writer := obj.NewWriter(ctx)
+	
+	if _, err := writer.Write(buffer); err != nil {
+		return fmt.Errorf("failed to write to bucket %q: %w", containerName, err)
+	}
+	
+	if err := writer.Close(); err != nil {
+		return fmt.Errorf("failed to close writer for bucket %q: %w", containerName, err)
+	}
+	
+	return nil
+}
+
+func (a *googleCloudStorageClient) createBucket(ctx context.Context, projectID, bucketName string) error {
+	bucket := a.storageClient.Bucket(bucketName)
+	
+	// Check if bucket already exists
+	_, err := bucket.Attrs(ctx)
+	if err == nil {
+		// Bucket already exists
+		return nil
+	}
+	if err != storage.ErrBucketNotExist {
+		// Return error if it's not a "bucket not exist" error
+		return fmt.Errorf("failed to check bucket %q: %w", bucketName, err)
+	}
+
+	// Bucket doesn't exist, create it
+	storageClassAndLocation := &storage.BucketAttrs{
+		StorageClass: "COLDLINE",
+		Location:     "asia",
+	}
+	if err := bucket.Create(ctx, projectID, storageClassAndLocation); err != nil {
+		return fmt.Errorf("failed to create bucket %q: %w", bucketName, err)
+	}
+	return nil
 }
