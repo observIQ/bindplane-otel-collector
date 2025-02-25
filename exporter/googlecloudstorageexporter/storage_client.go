@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/option"
 )
 
 // storageClient is a wrapper for a Google Cloud Storage client to allow mocking for testing.
@@ -21,10 +22,17 @@ type googleCloudStorageClient struct {
 }
 
 // newGoogleCloudStorageClient creates a new googleCloudStorageClient with the given connection string
-func newGoogleCloudStorageClient() (*googleCloudStorageClient, error) {
-	ctx := context.Background()
+func newGoogleCloudStorageClient(ctx context.Context, cfg *Config) (*googleCloudStorageClient, error) {
+	var opts []option.ClientOption
 
-	storageClient, err := storage.NewClient(ctx)
+	switch {
+	case cfg.Credentials != "":
+		opts = append(opts, option.WithCredentialsJSON([]byte(cfg.Credentials)))
+	case cfg.CredentialsFile != "":
+		opts = append(opts, option.WithCredentialsFile(cfg.CredentialsFile))
+	}
+
+	storageClient, err := storage.NewClient(ctx, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("storage.NewClient: %w", err)
 	}

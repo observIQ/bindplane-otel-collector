@@ -44,6 +44,8 @@ func createDefaultConfig() component.Config {
 		StorageClass: "",
 		FolderName: "",
 		ObjectPrefix: "",
+		Credentials: "",
+		CredentialsFile: "",
 		Partition:    minutePartition,
 		Compression:  noCompression,
 		TimeoutConfig: exporterhelper.NewDefaultTimeoutConfig(),

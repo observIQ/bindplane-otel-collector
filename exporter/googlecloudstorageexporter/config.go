@@ -29,7 +29,9 @@ type Config struct {
 	StorageClass string `mapstructure:"storage_class"`
 	FolderName string `mapstructure:"folder_name"`
 	ObjectPrefix string `mapstructure:"object_prefix"`
-	// CredentialsFile string `mapstructure:"credentials_file"`
+
+	Credentials string `mapstructure:"credentials"`
+	CredentialsFile string `mapstructure:"credentials_file"`
 
 	Partition partitionType `mapstructure:"partition"`
 	Compression compressionType `mapstructure:"compression"`
@@ -48,6 +50,11 @@ func (c *Config) Validate() error {
 	}
 	if c.Location == "" {
 		return errors.New("location is required")
+	}
+
+	// Validate credentials - only one form of credentials should be provided
+	if c.Credentials != "" && c.CredentialsFile != "" {
+		return errors.New("only one form of credentials should be provided")
 	}
 
 	switch c.Partition {
