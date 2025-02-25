@@ -59,11 +59,10 @@ func (c *Config) Validate() error {
 
 	switch c.Compression {
 	case noCompression, gzipCompression:
-		return nil
+	// do nothing	
 	default:
 		return fmt.Errorf("unsupported compression type: %s", c.Compression)
 	}
 	
 	return nil
-
 }
