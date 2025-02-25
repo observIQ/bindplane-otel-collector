@@ -26,11 +26,14 @@ func newGoogleCloudStorageClient(cfg *Config) (*googleCloudStorageClient, error)
 	ctx := context.Background()
 	var opts []option.ClientOption
 
+	// Handle credentials if provided, otherwise use default credentials
 	switch {
 	case cfg.Credentials != "":
 		opts = append(opts, option.WithCredentialsJSON([]byte(cfg.Credentials)))
 	case cfg.CredentialsFile != "":
 		opts = append(opts, option.WithCredentialsFile(cfg.CredentialsFile))
+	default:
+		// Will use default credentials from the environment
 	}
 
 	storageClient, err := storage.NewClient(ctx, opts...)

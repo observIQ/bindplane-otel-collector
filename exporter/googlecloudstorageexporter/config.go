@@ -52,9 +52,9 @@ func (c *Config) Validate() error {
 		return errors.New("location is required")
 	}
 
-	// Validate credentials - only one form of credentials should be provided
+	// Validate credentials - both can be empty (for default credentials) but both cannot be set
 	if c.Credentials != "" && c.CredentialsFile != "" {
-		return errors.New("only one form of credentials should be provided")
+		return errors.New("cannot specify both credentials and credentials_file")
 	}
 
 	switch c.Partition {
