@@ -304,13 +304,13 @@ collect_profiles() {
     info "where 13133 is the port you configured in your profile extension (13133 is the default)"
     read -p "Endpoint: " ENDPOINT
     printf "\n"
-    curl -ksS http://localhost:13133/debug/pprof/goroutine --output goroutines.pprof
-    curl -ksS http://localhost:13133/debug/pprof/heap --output heap.pprof
-    curl -ksS http://localhost:13133/debug/pprof/threadcreate --output threadcreate.pprof
-    curl -ksS http://localhost:13133/debug/pprof/block --output block.pprof
-    curl -ksS http://localhost:13133/debug/pprof/mutex --output mutex.pprof
-    curl -ksS http://localhost:13133/debug/pprof/profile --output profile.pprof
-    curl -ksS http://localhost:13133/debug/pprof/trace?seconds=5 > profile.pb.gz
+    curl -ksS "$ENDPOINT/debug/pprof/goroutine" --output goroutines.pprof
+    curl -ksS "$ENDPOINT/debug/pprof/heap" --output heap.pprof
+    curl -ksS "$ENDPOINT/debug/pprof/threadcreate" --output threadcreate.pprof
+    curl -ksS "$ENDPOINT/debug/pprof/block" --output block.pprof
+    curl -ksS "$ENDPOINT/debug/pprof/mutex" --output mutex.pprof
+    curl -ksS "$ENDPOINT/debug/pprof/profile" --output profile.pprof
+    curl -ksS "$ENDPOINT/debug/pprof/trace?seconds=5" > profile.pb.gz
     tar_filename="pprof_$(date +%Y%m%d_%H%M%S).tar.gz"
     tar -czvf $tar_filename goroutines.pprof heap.pprof threadcreate.pprof block.pprof mutex.pprof profile.pprof profile.pb.gz
 
