@@ -7,13 +7,12 @@ import (
 	"cloud.google.com/go/storage"
 )
 
-// storageClient is a wrapper for an Google Cloud Storage client to allow mocking for testing.
+// storageClient is a wrapper for a Google Cloud Storage client to allow mocking for testing.
 //
 //go:generate mockery --name storageClient --output ./internal/mocks --with-expecter --filename mock_storage_client.go --structname mockStorageClient
 type storageClient interface {
-	// UploadBuffer uploads a buffer in blocks to a block blob.
-	UploadBuffer(context.Context, string, string, []byte) error
-	CreateBucket(context.Context, string, string) error
+	CreateBucket(ctx context.Context, projectID string, bucketName string) error
+	// UploadBlob(ctx context.Context, containerName string, blobName string, buffer []byte) error
 }
 
 // googleCloudStorageClient is the google cloud storage implementation of the storageClient
@@ -22,38 +21,37 @@ type googleCloudStorageClient struct {
 }
 
 // newGoogleCloudStorageClient creates a new googleCloudStorageClient with the given connection string
-func newGoogleCloudStorageClient(connectionString string) (*googleCloudStorageClient, error) {
+func newGoogleCloudStorageClient() (*googleCloudStorageClient, error) {
 	ctx := context.Background()
 
 	storageClient, err := storage.NewClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("storage.NewClient: %w", err)
 	}
-	// defer close?
 
 	return &googleCloudStorageClient{
 		storageClient: storageClient,
 	}, nil
 }
 
-func (a *googleCloudStorageClient) UploadBuffer(ctx context.Context, containerName, blobName string, buffer []byte) error {
-	bucket := a.storageClient.Bucket(containerName)
-	obj := bucket.Object(blobName)
+func (c *googleCloudStorageClient) UploadObject(ctx context.Context, bucketName string, objectName string, buffer []byte) error {
+	bucket := c.storageClient.Bucket(bucketName)
+	obj := bucket.Object(objectName)
 	writer := obj.NewWriter(ctx)
 	
 	if _, err := writer.Write(buffer); err != nil {
-		return fmt.Errorf("failed to write to bucket %q: %w", containerName, err)
+		return fmt.Errorf("failed to write to bucket %q: %w", bucketName, err)
 	}
 	
 	if err := writer.Close(); err != nil {
-		return fmt.Errorf("failed to close writer for bucket %q: %w", containerName, err)
+		return fmt.Errorf("failed to close writer for bucket %q: %w", bucketName, err)
 	}
 	
 	return nil
 }
 
-func (a *googleCloudStorageClient) createBucket(ctx context.Context, projectID, bucketName string) error {
-	bucket := a.storageClient.Bucket(bucketName)
+func (c *googleCloudStorageClient) createBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error {
+	bucket := c.storageClient.Bucket(bucketName)
 	
 	// Check if bucket already exists
 	_, err := bucket.Attrs(ctx)
@@ -68,8 +66,8 @@ func (a *googleCloudStorageClient) createBucket(ctx context.Context, projectID, 
 
 	// Bucket doesn't exist, create it
 	storageClassAndLocation := &storage.BucketAttrs{
-		StorageClass: "COLDLINE",
-		Location:     "asia",
+		StorageClass: storageClass,
+		Location:     location,
 	}
 	if err := bucket.Create(ctx, projectID, storageClassAndLocation); err != nil {
 		return fmt.Errorf("failed to create bucket %q: %w", bucketName, err)
