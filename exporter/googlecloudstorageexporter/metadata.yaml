@@ -1,0 +1,7 @@
+type: googlecloudstorage
+
+status:
+  class: exporter
+  stability:
+    alpha: [traces, metrics, logs]
+  distributions: [observiq]
