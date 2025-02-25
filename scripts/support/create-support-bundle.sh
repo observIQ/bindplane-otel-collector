@@ -77,6 +77,7 @@ success() { printf "$fg_green$*$reset\\n" ; }
 
 bindplane_banner()
 {
+  # shellcheck disable=SC2154
   if [ "$non_interactive" = "false" ]; then
     fg_cyan " oooooooooo.   o8o                    .o8  ooooooooo.   oooo\\n"
     fg_cyan " '888'   '88b  '\"'                   \"888  '888   'Y88. '888\\n"
@@ -223,7 +224,8 @@ function bundle_files() {
     
     # Check if directory exists
     if [ ! -d "$log_dir" ]; then
-        info "Directory ($fg_red "$log_dir")$(reset) does not exist."
+        info "Directory ($fg_red $log_dir)$(reset) does not exist."
+        # shellcheck disable=SC2162
         read -p "Please enter an existing directory for logs: " log_dir
         if [ ! -d "$log_dir" ]; then
             echo "Directory $log_dir does not exist."
@@ -231,28 +233,32 @@ function bundle_files() {
         fi
     fi
 
+    # shellcheck disable=SC2162
     read -p "Do you want to include only the most recent logs (y or n)? " response
     increase_indent
     tar_filename="support_bundle_$(date +%Y%m%d_%H%M%S).tar"
     if [ "$response" = "n" ]; then
         # Get all the log files
         info "Collecting all log files in $(fg_cyan "$log_dir")$(reset)"
-        tar -cf $tar_filename -C $log_dir $(ls -Art $log_dir)
+        # shellcheck disable=SC2046
+        tar -cf "$tar_filename" -C "$log_dir" $(ls -Art "$log_dir")
     else
         # Get the most recent log file
-        recent_log=$(ls -Art $log_dir | tail -n 1)
+        # shellcheck disable=SC2012
+        recent_log=$(ls -Art "$log_dir" | tail -n 1)
         if [ -n "$recent_log" ]; then
-            tar -cf $tar_filename -C $log_dir $recent_log
+            tar -cf "$tar_filename" -C "$log_dir" "$recent_log"
             info "Added file $(fg_cyan "$recent_log")$(reset) to the tar file."
 
         else
+            # shellcheck disable=SC2086
             info "No logs found in $(fg_red $log_dir)"
             return 1
         fi
         # Get the /log/observiq_collector.err file
         err_file="$log_dir/observiq_collector.err"
         if [ -f "$err_file" ]; then
-            tar --append --file=$tar_filename -C $log_dir observiq_collector.err
+            tar --append --file="$tar_filename" -C "$log_dir" observiq_collector.err
             info "Added file $(fg_cyan "$err_file")$(reset) to the tar file."
         fi
     fi
@@ -263,7 +269,7 @@ function bundle_files() {
         if [ -f "/etc/$file" ]; then
             # These might be symlinks, so cat them to real files
             cat "/etc/$file" > "$file"
-            tar --append --file=$tar_filename $file
+            tar --append --file="$tar_filename" $file
             rm $file
             info "Added file $(fg_cyan "/etc/$file")$(reset) to the tar file."
         else
@@ -273,10 +279,11 @@ function bundle_files() {
 
     collector_config="$collector_dir/config.yaml"
     if [ -f "$collector_config" ]; then
+        # shellcheck disable=SC2162
         read -p "Do you want to include the collector config (y or n)? " response
         if [ "$response" != "n" ]; then
             info "Adding collector config $(fg_cyan "$collector_config")$(reset)"
-            tar --append --file=$tar_filename -C $collector_dir config.yaml
+            tar --append --file="$tar_filename" -C "$collector_dir" config.yaml
         fi
     fi
 
@@ -284,24 +291,26 @@ function bundle_files() {
     # may be empty, but there may be logs in journalctl
     info "Collecting logs from journalctl..."
     journalctl -u observiq-otel-collector.service -n 50 > journalctl.log
-    tar --append --file=$tar_filename journalctl.log
+    tar --append --file="$tar_filename" journalctl.log
     rm journalctl.log
 
     # Compress the tar file
     info "Compressing the tar file..."
-    gzip $tar_filename
+    gzip "$tar_filename"
 
-    info "Files have been added to the file $(realpath $tar_filename.gz) successfully."
+    info "Files have been added to the file $(realpath "$tar_filename.gz") successfully."
     decrease_indent
 }
 
 collect_profiles() {
+  # shellcheck disable=SC2162
   read -p "Collect go pprof? (y/n) " PPROF
   if [[ "$PPROF" == y*  ]]; then
     increase_indent
     # POSIX prompt
     info "For endpoint, please use the format http://localhost:13133 or https://localhost:13133\n"
     info "where 13133 is the port you configured in your profile extension (13133 is the default)"
+    # shellcheck disable=SC2162
     read -p "Endpoint: " ENDPOINT
     printf "\n"
     curl -ksS "$ENDPOINT/debug/pprof/goroutine" --output goroutines.pprof
@@ -312,9 +321,9 @@ collect_profiles() {
     curl -ksS "$ENDPOINT/debug/pprof/profile" --output profile.pprof
     curl -ksS "$ENDPOINT/debug/pprof/trace?seconds=5" > profile.pb.gz
     tar_filename="pprof_$(date +%Y%m%d_%H%M%S).tar.gz"
-    tar -czvf $tar_filename goroutines.pprof heap.pprof threadcreate.pprof block.pprof mutex.pprof profile.pprof profile.pb.gz
+    tar -czvf "$tar_filename" goroutines.pprof heap.pprof threadcreate.pprof block.pprof mutex.pprof profile.pprof profile.pb.gz
 
-    info "Profile files have been added to the file $(realpath $tar_filename.gz) successfully."
+    info "Profile files have been added to the file $(realpath "$tar_filename.gz") successfully."
     decrease_indent
   fi
 }
