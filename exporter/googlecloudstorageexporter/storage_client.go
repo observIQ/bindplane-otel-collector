@@ -23,10 +23,13 @@ type googleCloudStorageClient struct {
 
 // newGoogleCloudStorageClient creates a new googleCloudStorageClient with the given connection string
 func newGoogleCloudStorageClient(connectionString string) (*googleCloudStorageClient, error) {
-	storageClient, err := storage.NewClient(context.Background())
+	ctx := context.Background()
+
+	storageClient, err := storage.NewClient(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("storage.NewClient: %w", err)
 	}
+	// defer close?
 
 	return &googleCloudStorageClient{
 		storageClient: storageClient,
