@@ -17,7 +17,7 @@ type Config struct {
 	Location   string `mapstructure:"location"`
 	StorageClass string `mapstructure:"storage_class"`
 	FolderName string `mapstructure:"folder_name"`
-	BlobPrefix string `mapstructure:"blob_prefix"`
+	ObjectPrefix string `mapstructure:"object_prefix"`
 	// CredentialsFile string `mapstructure:"credentials_file"`
 }
 
