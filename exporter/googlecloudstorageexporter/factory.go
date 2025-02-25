@@ -1,3 +1,17 @@
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter"
 
 import (
@@ -6,6 +20,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
@@ -23,9 +38,9 @@ func NewFactory() exporter.Factory {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		TimeoutSettings: exporterhelper.NewDefaultTimeoutSettings(),
-		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
-		RetrySettings:   exporterhelper.NewDefaultRetrySettings(),
+		TimeoutConfig: exporterhelper.NewDefaultTimeoutConfig(),
+		QueueConfig:   exporterhelper.NewDefaultQueueConfig(),
+		BackOffConfig: configretry.NewDefaultBackOffConfig(),
 		BucketName: "",
 		ProjectID:  "",
 		Location:   "",
@@ -36,7 +51,7 @@ func createDefaultConfig() component.Config {
 	}
 }
 
-func createMetricsExporter(ctx context.Context, params exporter.CreateSettings, config component.Config) (exporter.Metrics, error) {
+func createMetricsExporter(ctx context.Context, params exporter.Settings, config component.Config) (exporter.Metrics, error) {
 	cfg, ok := config.(*Config)
 	if !ok {
 		return nil, errors.New("not a Google Cloud Storage config")
@@ -45,19 +60,19 @@ func createMetricsExporter(ctx context.Context, params exporter.CreateSettings, 
 	if err != nil {
 		return nil, err
 	}
-	return exporterhelper.NewMetricsExporter(
+	return exporterhelper.NewMetrics(
 		ctx,
 		params,
 		cfg,
 		exp.metricsDataPusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
-		exporterhelper.WithTimeout(cfg.TimeoutSettings),
-		exporterhelper.WithQueue(cfg.QueueSettings),
-		exporterhelper.WithRetry(cfg.RetrySettings),
+		exporterhelper.WithTimeout(cfg.TimeoutConfig),
+		exporterhelper.WithQueue(cfg.QueueConfig),
+		exporterhelper.WithRetry(cfg.BackOffConfig),
 	)
 }
 
-func createLogsExporter(ctx context.Context, params exporter.CreateSettings, config component.Config) (exporter.Logs, error) {
+func createLogsExporter(ctx context.Context, params exporter.Settings, config component.Config) (exporter.Logs, error) {
 	cfg, ok := config.(*Config)
 	if !ok {
 		return nil, errors.New("not a Google Cloud Storage config")
@@ -66,19 +81,19 @@ func createLogsExporter(ctx context.Context, params exporter.CreateSettings, con
 	if err != nil {
 		return nil, err
 	}
-	return exporterhelper.NewLogsExporter(
+	return exporterhelper.NewLogs(
 		ctx,
 		params,
 		cfg,
 		exp.logsDataPusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
-		exporterhelper.WithTimeout(cfg.TimeoutSettings),
-		exporterhelper.WithQueue(cfg.QueueSettings),
-		exporterhelper.WithRetry(cfg.RetrySettings),
+		exporterhelper.WithTimeout(cfg.TimeoutConfig),
+		exporterhelper.WithQueue(cfg.QueueConfig),
+		exporterhelper.WithRetry(cfg.BackOffConfig),
 	)
 }
 
-func createTracesExporter(ctx context.Context, params exporter.CreateSettings, config component.Config) (exporter.Traces, error) {
+func createTracesExporter(ctx context.Context, params exporter.Settings, config component.Config) (exporter.Traces, error) {
 	cfg, ok := config.(*Config)
 	if !ok {
 		return nil, errors.New("not a Google Cloud Storage config")
@@ -87,14 +102,14 @@ func createTracesExporter(ctx context.Context, params exporter.CreateSettings, c
 	if err != nil {
 		return nil, err
 	}
-	return exporterhelper.NewTracesExporter(
+	return exporterhelper.NewTraces(
 		ctx,
 		params,
 		cfg,
 		exp.traceDataPusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
-		exporterhelper.WithTimeout(cfg.TimeoutSettings),
-		exporterhelper.WithQueue(cfg.QueueSettings),
-		exporterhelper.WithRetry(cfg.RetrySettings),
+		exporterhelper.WithTimeout(cfg.TimeoutConfig),
+		exporterhelper.WithQueue(cfg.QueueConfig),
+		exporterhelper.WithRetry(cfg.BackOffConfig),
 	)
 }

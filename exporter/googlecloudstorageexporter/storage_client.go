@@ -12,7 +12,7 @@ import (
 //go:generate mockery --name storageClient --output ./internal/mocks --with-expecter --filename mock_storage_client.go --structname mockStorageClient
 type storageClient interface {
 	CreateBucket(ctx context.Context, projectID string, bucketName string) error
-	// UploadBlob(ctx context.Context, containerName string, blobName string, buffer []byte) error
+	UploadObject(ctx context.Context, bucketName string, objectName string, buffer []byte) error
 }
 
 // googleCloudStorageClient is the google cloud storage implementation of the storageClient
