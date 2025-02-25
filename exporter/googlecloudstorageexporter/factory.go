@@ -38,16 +38,17 @@ func NewFactory() exporter.Factory {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		TimeoutConfig: exporterhelper.NewDefaultTimeoutConfig(),
-		QueueConfig:   exporterhelper.NewDefaultQueueConfig(),
-		BackOffConfig: configretry.NewDefaultBackOffConfig(),
-		BucketName: "",
 		ProjectID:  "",
+		BucketName: "",
 		Location:   "",
 		StorageClass: "",
 		FolderName: "",
-		BlobPrefix: "",
-		// Partition:       minute,
+		ObjectPrefix: "",
+		Partition:    minutePartition,
+		Compression:  noCompression,
+		TimeoutConfig: exporterhelper.NewDefaultTimeoutConfig(),
+		QueueConfig:   exporterhelper.NewDefaultQueueConfig(),
+		BackOffConfig: configretry.NewDefaultBackOffConfig(),
 	}
 }
 
