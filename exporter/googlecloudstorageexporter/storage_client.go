@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 )
 
@@ -49,14 +50,9 @@ func newGoogleCloudStorageClient(cfg *Config) (*googleCloudStorageClient, error)
 func (c *googleCloudStorageClient) UploadObject(ctx context.Context, projectID string, bucketName string, objectName string, storageClass string, location string, buffer []byte) error {
 	bucket := c.storageClient.Bucket(bucketName)
 	
-	// Check if bucket exists
-	_, err := bucket.Attrs(ctx)
-	if err == storage.ErrBucketNotExist {
-		if err := c.CreateBucket(ctx, projectID, bucketName, storageClass, location); err != nil {
-			return fmt.Errorf("failed to create bucket before upload: %w", err)
-		}
-	} else if err != nil {
-		return fmt.Errorf("failed to check bucket %q: %w", bucketName, err)
+	// Try to create the bucket - if it exists, that's fine
+	if err := c.CreateBucket(ctx, projectID, bucketName, storageClass, location); err != nil {
+		return fmt.Errorf("failed to create bucket: %w", err)
 	}
 
 	// Now upload the object
@@ -77,23 +73,16 @@ func (c *googleCloudStorageClient) UploadObject(ctx context.Context, projectID s
 func (c *googleCloudStorageClient) CreateBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error {
 	bucket := c.storageClient.Bucket(bucketName)
 	
-	// Check if bucket already exists
-	_, err := bucket.Attrs(ctx)
-	if err == nil {
-		// Bucket already exists
-		return nil
-	}
-	if err != storage.ErrBucketNotExist {
-		// Return error if it's not a "bucket not exist" error
-		return fmt.Errorf("failed to check bucket %q: %w", bucketName, err)
-	}
-
-	// Bucket doesn't exist, create it
 	storageClassAndLocation := &storage.BucketAttrs{
 		StorageClass: storageClass,
 		Location:     location,
 	}
+	
 	if err := bucket.Create(ctx, projectID, storageClassAndLocation); err != nil {
+		// Check if the error is because the bucket already exists
+		if e, ok := err.(*googleapi.Error); ok && e.Code == 409 {
+			return nil
+		}
 		return fmt.Errorf("failed to create bucket %q: %w", bucketName, err)
 	}
 	return nil
