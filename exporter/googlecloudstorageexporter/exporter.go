@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/storage"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -18,13 +17,13 @@ import (
 
 type googleCloudStorageExporter struct {
 	cfg *Config
-	storageClient *storage.Client
+	storageClient storageClient
 	logger     *zap.Logger
 	marshaler  marshaler
 }
 
 func newExporter(cfg *Config, params exporter.CreateSettings) (*googleCloudStorageExporter, error) {
-	storageClient, err := storage.NewClient(context.Background())
+	storageClient, err := newGoogleCloudStorageClient(cfg.ConnectionString)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create storage client: %w", err)
 	}
