@@ -21,9 +21,9 @@ func (_m *mockStorageClient) EXPECT() *mockStorageClient_Expecter {
 	return &mockStorageClient_Expecter{mock: &_m.Mock}
 }
 
-// BucketExists provides a mock function with given fields: ctx, projectID, bucketName
-func (_m *mockStorageClient) BucketExists(ctx context.Context, projectID string, bucketName string) (bool, error) {
-	ret := _m.Called(ctx, projectID, bucketName)
+// BucketExists provides a mock function with given fields: ctx
+func (_m *mockStorageClient) BucketExists(ctx context.Context) (bool, error) {
+	ret := _m.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BucketExists")
@@ -31,17 +31,17 @@ func (_m *mockStorageClient) BucketExists(ctx context.Context, projectID string,
 
 	var r0 bool
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (bool, error)); ok {
-		return rf(ctx, projectID, bucketName)
+	if rf, ok := ret.Get(0).(func(context.Context) (bool, error)); ok {
+		return rf(ctx)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) bool); ok {
-		r0 = rf(ctx, projectID, bucketName)
+	if rf, ok := ret.Get(0).(func(context.Context) bool); ok {
+		r0 = rf(ctx)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, projectID, bucketName)
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -56,15 +56,13 @@ type mockStorageClient_BucketExists_Call struct {
 
 // BucketExists is a helper method to define mock.On call
 //   - ctx context.Context
-//   - projectID string
-//   - bucketName string
-func (_e *mockStorageClient_Expecter) BucketExists(ctx interface{}, projectID interface{}, bucketName interface{}) *mockStorageClient_BucketExists_Call {
-	return &mockStorageClient_BucketExists_Call{Call: _e.mock.On("BucketExists", ctx, projectID, bucketName)}
+func (_e *mockStorageClient_Expecter) BucketExists(ctx interface{}) *mockStorageClient_BucketExists_Call {
+	return &mockStorageClient_BucketExists_Call{Call: _e.mock.On("BucketExists", ctx)}
 }
 
-func (_c *mockStorageClient_BucketExists_Call) Run(run func(ctx context.Context, projectID string, bucketName string)) *mockStorageClient_BucketExists_Call {
+func (_c *mockStorageClient_BucketExists_Call) Run(run func(ctx context.Context)) *mockStorageClient_BucketExists_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
+		run(args[0].(context.Context))
 	})
 	return _c
 }
@@ -74,22 +72,22 @@ func (_c *mockStorageClient_BucketExists_Call) Return(_a0 bool, _a1 error) *mock
 	return _c
 }
 
-func (_c *mockStorageClient_BucketExists_Call) RunAndReturn(run func(context.Context, string, string) (bool, error)) *mockStorageClient_BucketExists_Call {
+func (_c *mockStorageClient_BucketExists_Call) RunAndReturn(run func(context.Context) (bool, error)) *mockStorageClient_BucketExists_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// CreateBucket provides a mock function with given fields: ctx, projectID, bucketName, storageClass, location
-func (_m *mockStorageClient) CreateBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error {
-	ret := _m.Called(ctx, projectID, bucketName, storageClass, location)
+// CreateBucket provides a mock function with given fields: ctx
+func (_m *mockStorageClient) CreateBucket(ctx context.Context) error {
+	ret := _m.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateBucket")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) error); ok {
-		r0 = rf(ctx, projectID, bucketName, storageClass, location)
+	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = rf(ctx)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -104,17 +102,13 @@ type mockStorageClient_CreateBucket_Call struct {
 
 // CreateBucket is a helper method to define mock.On call
 //   - ctx context.Context
-//   - projectID string
-//   - bucketName string
-//   - storageClass string
-//   - location string
-func (_e *mockStorageClient_Expecter) CreateBucket(ctx interface{}, projectID interface{}, bucketName interface{}, storageClass interface{}, location interface{}) *mockStorageClient_CreateBucket_Call {
-	return &mockStorageClient_CreateBucket_Call{Call: _e.mock.On("CreateBucket", ctx, projectID, bucketName, storageClass, location)}
+func (_e *mockStorageClient_Expecter) CreateBucket(ctx interface{}) *mockStorageClient_CreateBucket_Call {
+	return &mockStorageClient_CreateBucket_Call{Call: _e.mock.On("CreateBucket", ctx)}
 }
 
-func (_c *mockStorageClient_CreateBucket_Call) Run(run func(ctx context.Context, projectID string, bucketName string, storageClass string, location string)) *mockStorageClient_CreateBucket_Call {
+func (_c *mockStorageClient_CreateBucket_Call) Run(run func(ctx context.Context)) *mockStorageClient_CreateBucket_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(string))
+		run(args[0].(context.Context))
 	})
 	return _c
 }
@@ -124,22 +118,22 @@ func (_c *mockStorageClient_CreateBucket_Call) Return(_a0 error) *mockStorageCli
 	return _c
 }
 
-func (_c *mockStorageClient_CreateBucket_Call) RunAndReturn(run func(context.Context, string, string, string, string) error) *mockStorageClient_CreateBucket_Call {
+func (_c *mockStorageClient_CreateBucket_Call) RunAndReturn(run func(context.Context) error) *mockStorageClient_CreateBucket_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// UploadObject provides a mock function with given fields: ctx, projectID, bucketName, objectName, storageClass, location, buffer
-func (_m *mockStorageClient) UploadObject(ctx context.Context, projectID string, bucketName string, objectName string, storageClass string, location string, buffer []byte) error {
-	ret := _m.Called(ctx, projectID, bucketName, objectName, storageClass, location, buffer)
+// UploadObject provides a mock function with given fields: ctx, objectName, buffer
+func (_m *mockStorageClient) UploadObject(ctx context.Context, objectName string, buffer []byte) error {
+	ret := _m.Called(ctx, objectName, buffer)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UploadObject")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, string, []byte) error); ok {
-		r0 = rf(ctx, projectID, bucketName, objectName, storageClass, location, buffer)
+	if rf, ok := ret.Get(0).(func(context.Context, string, []byte) error); ok {
+		r0 = rf(ctx, objectName, buffer)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -154,19 +148,15 @@ type mockStorageClient_UploadObject_Call struct {
 
 // UploadObject is a helper method to define mock.On call
 //   - ctx context.Context
-//   - projectID string
-//   - bucketName string
 //   - objectName string
-//   - storageClass string
-//   - location string
 //   - buffer []byte
-func (_e *mockStorageClient_Expecter) UploadObject(ctx interface{}, projectID interface{}, bucketName interface{}, objectName interface{}, storageClass interface{}, location interface{}, buffer interface{}) *mockStorageClient_UploadObject_Call {
-	return &mockStorageClient_UploadObject_Call{Call: _e.mock.On("UploadObject", ctx, projectID, bucketName, objectName, storageClass, location, buffer)}
+func (_e *mockStorageClient_Expecter) UploadObject(ctx interface{}, objectName interface{}, buffer interface{}) *mockStorageClient_UploadObject_Call {
+	return &mockStorageClient_UploadObject_Call{Call: _e.mock.On("UploadObject", ctx, objectName, buffer)}
 }
 
-func (_c *mockStorageClient_UploadObject_Call) Run(run func(ctx context.Context, projectID string, bucketName string, objectName string, storageClass string, location string, buffer []byte)) *mockStorageClient_UploadObject_Call {
+func (_c *mockStorageClient_UploadObject_Call) Run(run func(ctx context.Context, objectName string, buffer []byte)) *mockStorageClient_UploadObject_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(string), args[5].(string), args[6].([]byte))
+		run(args[0].(context.Context), args[1].(string), args[2].([]byte))
 	})
 	return _c
 }
@@ -176,7 +166,7 @@ func (_c *mockStorageClient_UploadObject_Call) Return(_a0 error) *mockStorageCli
 	return _c
 }
 
-func (_c *mockStorageClient_UploadObject_Call) RunAndReturn(run func(context.Context, string, string, string, string, string, []byte) error) *mockStorageClient_UploadObject_Call {
+func (_c *mockStorageClient_UploadObject_Call) RunAndReturn(run func(context.Context, string, []byte) error) *mockStorageClient_UploadObject_Call {
 	_c.Call.Return(run)
 	return _c
 }
