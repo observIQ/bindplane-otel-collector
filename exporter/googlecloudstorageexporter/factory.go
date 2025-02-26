@@ -109,7 +109,7 @@ func createTracesExporter(ctx context.Context, params exporter.Settings, config 
 		ctx,
 		params,
 		cfg,
-		exp.traceDataPusher,
+		exp.tracesDataPusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
 		exporterhelper.WithTimeout(cfg.TimeoutConfig),
 		exporterhelper.WithQueue(cfg.QueueConfig),
