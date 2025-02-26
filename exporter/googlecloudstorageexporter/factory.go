@@ -66,7 +66,7 @@ func createMetricsExporter(ctx context.Context, params exporter.Settings, config
 	return exporterhelper.NewMetrics(
 		ctx,
 		params,
-		cfg,
+		config,
 		exp.metricsDataPusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
 		exporterhelper.WithTimeout(cfg.TimeoutConfig),
@@ -87,7 +87,7 @@ func createLogsExporter(ctx context.Context, params exporter.Settings, config co
 	return exporterhelper.NewLogs(
 		ctx,
 		params,
-		cfg,
+		config,
 		exp.logsDataPusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
 		exporterhelper.WithTimeout(cfg.TimeoutConfig),
@@ -108,7 +108,7 @@ func createTracesExporter(ctx context.Context, params exporter.Settings, config 
 	return exporterhelper.NewTraces(
 		ctx,
 		params,
-		cfg,
+		config,
 		exp.tracesDataPusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
 		exporterhelper.WithTimeout(cfg.TimeoutConfig),
