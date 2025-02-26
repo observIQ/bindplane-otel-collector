@@ -27,17 +27,18 @@ import (
 //
 //go:generate mockery --name storageClient --output ./internal/mocks --with-expecter --filename mock_storage_client.go --structname mockStorageClient
 type storageClient interface {
-	CreateBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error
-	UploadObject(ctx context.Context, projectID string, bucketName string, objectName string, storageClass string, location string, buffer []byte) error
-	BucketExists(ctx context.Context, projectID string, bucketName string) (bool, error)
+	CreateBucket(ctx context.Context) error
+	UploadObject(ctx context.Context, objectName string, buffer []byte) error
+	BucketExists(ctx context.Context) (bool, error)
 }
 
 // googleCloudStorageClient is the google cloud storage implementation of the storageClient
 type googleCloudStorageClient struct {
 	storageClient *storage.Client
+	config        *Config
 }
 
-// newGoogleCloudStorageClient creates a new googleCloudStorageClient with the given connection string
+// newGoogleCloudStorageClient creates a new googleCloudStorageClient with the given config
 func newGoogleCloudStorageClient(cfg *Config) (*googleCloudStorageClient, error) {
 	ctx := context.Background()
 	var opts []option.ClientOption
@@ -59,11 +60,12 @@ func newGoogleCloudStorageClient(cfg *Config) (*googleCloudStorageClient, error)
 
 	return &googleCloudStorageClient{
 		storageClient: storageClient,
+		config:        cfg,
 	}, nil
 }
 
-func (c *googleCloudStorageClient) BucketExists(ctx context.Context, projectID string, bucketName string) (bool, error) {
-	it := c.storageClient.Buckets(ctx, projectID)
+func (c *googleCloudStorageClient) BucketExists(ctx context.Context) (bool, error) {
+	it := c.storageClient.Buckets(ctx, c.config.ProjectID)
 	for {
 		bucketAttrs, err := it.Next()
 		if err == iterator.Done {
@@ -72,51 +74,51 @@ func (c *googleCloudStorageClient) BucketExists(ctx context.Context, projectID s
 		if err != nil {
 			return false, fmt.Errorf("error listing buckets: %w", err)
 		}
-		if bucketAttrs.Name == bucketName {
+		if bucketAttrs.Name == c.config.BucketName {
 			return true, nil
 		}
 	}
 	return false, nil
 }
 
-func (c *googleCloudStorageClient) CreateBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error {
-	bucket := c.storageClient.Bucket(bucketName)
+func (c *googleCloudStorageClient) CreateBucket(ctx context.Context) error {
+	bucket := c.storageClient.Bucket(c.config.BucketName)
 	
 	storageClassAndLocation := &storage.BucketAttrs{
-		StorageClass: storageClass,
-		Location:     location,
+		StorageClass: c.config.BucketStorageClass,
+		Location:     c.config.BucketLocation,
 	}
 	
-	if err := bucket.Create(ctx, projectID, storageClassAndLocation); err != nil {
-		return fmt.Errorf("failed to create bucket %q: %w", bucketName, err)
+	if err := bucket.Create(ctx, c.config.ProjectID, storageClassAndLocation); err != nil {
+		return fmt.Errorf("failed to create bucket %q: %w", c.config.BucketName, err)
 	}
 	return nil
 }
 
-func (c *googleCloudStorageClient) UploadObject(ctx context.Context, projectID string, bucketName string, objectName string, storageClass string, location string, buffer []byte) error {
+func (c *googleCloudStorageClient) UploadObject(ctx context.Context, objectName string, buffer []byte) error {
 	// Check if bucket exists
-	exists, err := c.BucketExists(ctx, projectID, bucketName)
+	exists, err := c.BucketExists(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to check if bucket exists: %w", err)
 	}
 	
 	// Create bucket if it doesn't exist
 	if !exists {			
-		if err := c.CreateBucket(ctx, projectID, bucketName, storageClass, location); err != nil {
+		if err := c.CreateBucket(ctx); err != nil {
 			return fmt.Errorf("failed to create bucket: %w", err)
 		}
 	}
 	
-	bucket := c.storageClient.Bucket(bucketName)
+	bucket := c.storageClient.Bucket(c.config.BucketName)
 	obj := bucket.Object(objectName)
 	writer := obj.NewWriter(ctx)
 	
 	if _, err := writer.Write(buffer); err != nil {
-		return fmt.Errorf("failed to write to bucket %q: %w", bucketName, err)
+		return fmt.Errorf("failed to write to bucket %q: %w", c.config.BucketName, err)
 	}
 	
 	if err := writer.Close(); err != nil {
-		return fmt.Errorf("failed to close writer for bucket %q: %w", bucketName, err)
+		return fmt.Errorf("failed to close writer for bucket %q: %w", c.config.BucketName, err)
 	}
 	
 	return nil
