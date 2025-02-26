@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/storage"
-	"go.uber.org/zap"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
@@ -14,9 +13,9 @@ import (
 //
 //go:generate mockery --name storageClient --output ./internal/mocks --with-expecter --filename mock_storage_client.go --structname mockStorageClient
 type storageClient interface {
-	// CreateBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error
+	CreateBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error
 	UploadObject(ctx context.Context, projectID string, bucketName string, objectName string, storageClass string, location string, buffer []byte) error
-	ListBuckets(ctx context.Context, projectID string) ([]string, error)
+	BucketExists(ctx context.Context, projectID string, bucketName string) (bool, error)
 }
 
 // googleCloudStorageClient is the google cloud storage implementation of the storageClient
@@ -49,8 +48,7 @@ func newGoogleCloudStorageClient(cfg *Config) (*googleCloudStorageClient, error)
 	}, nil
 }
 
-func (c *googleCloudStorageClient) ListBuckets(ctx context.Context, projectID string) ([]string, error) {
-	var bucketNames []string
+func (c *googleCloudStorageClient) BucketExists(ctx context.Context, projectID string, bucketName string) (bool, error) {
 	it := c.storageClient.Buckets(ctx, projectID)
 	for {
 		bucketAttrs, err := it.Next()
@@ -58,25 +56,42 @@ func (c *googleCloudStorageClient) ListBuckets(ctx context.Context, projectID st
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("error listing buckets: %w", err)
+			return false, fmt.Errorf("error listing buckets: %w", err)
 		}
-		bucketNames = append(bucketNames, bucketAttrs.Name)
+		if bucketAttrs.Name == bucketName {
+			return true, nil
+		}
 	}
-	return bucketNames, nil
+	return false, nil
+}
+
+func (c *googleCloudStorageClient) CreateBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error {
+	bucket := c.storageClient.Bucket(bucketName)
+	
+	storageClassAndLocation := &storage.BucketAttrs{
+		StorageClass: storageClass,
+		Location:     location,
+	}
+	
+	if err := bucket.Create(ctx, projectID, storageClassAndLocation); err != nil {
+		return fmt.Errorf("failed to create bucket %q: %w", bucketName, err)
+	}
+	return nil
 }
 
 func (c *googleCloudStorageClient) UploadObject(ctx context.Context, projectID string, bucketName string, objectName string, storageClass string, location string, buffer []byte) error {
-	// First, list available buckets and log them
-	buckets, err := c.ListBuckets(ctx, projectID)
+	// Check if bucket exists
+	exists, err := c.BucketExists(ctx, projectID, bucketName)
 	if err != nil {
-		return fmt.Errorf("failed to list buckets before upload: %w", err)
+		return fmt.Errorf("failed to check if bucket exists: %w", err)
 	}
 	
-	// Log available buckets
-	zap.L().Info("Available buckets in project",
-		zap.String("project_id", projectID),
-		zap.Strings("buckets", buckets),
-		zap.String("target_bucket", bucketName))
+	// Create bucket if it doesn't exist
+	if !exists {			
+		if err := c.CreateBucket(ctx, projectID, bucketName, storageClass, location); err != nil {
+			return fmt.Errorf("failed to create bucket: %w", err)
+		}
+	}
 	
 	bucket := c.storageClient.Bucket(bucketName)
 	obj := bucket.Object(objectName)
@@ -92,21 +107,3 @@ func (c *googleCloudStorageClient) UploadObject(ctx context.Context, projectID s
 	
 	return nil
 }
-
-// func (c *googleCloudStorageClient) CreateBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error {
-// 	bucket := c.storageClient.Bucket(bucketName)
-	
-// 	storageClassAndLocation := &storage.BucketAttrs{
-// 		StorageClass: storageClass,
-// 		Location:     location,
-// 	}
-	
-// 	if err := bucket.Create(ctx, projectID, storageClassAndLocation); err != nil {
-// 		// Check if the error is because the bucket already exists
-// 		if e, ok := err.(*googleapi.Error); ok && e.Code == 409 {
-// 			return nil
-// 		}
-// 		return fmt.Errorf("failed to create bucket %q: %w", bucketName, err)
-// 	}
-// 	return nil
-// }
