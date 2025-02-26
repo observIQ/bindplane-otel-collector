@@ -66,7 +66,7 @@ func (g *googleCloudStorageExporter) metricsDataPusher(ctx context.Context, md p
 
 	objectName := g.getObjectName("metrics")
 
-	return g.storageClient.UploadObject(ctx, g.cfg.ProjectID, g.cfg.BucketName, objectName, g.cfg.BucketStorageClass, g.cfg.BucketLocation, buf)
+	return g.storageClient.UploadObject(ctx, objectName, buf)
 }
 
 // logsDataPusher pushes logs data to Google Cloud Storage
@@ -78,7 +78,7 @@ func (g *googleCloudStorageExporter) logsDataPusher(ctx context.Context, ld plog
 
 	objectName := g.getObjectName("logs")
 
-	return g.storageClient.UploadObject(ctx, g.cfg.ProjectID, g.cfg.BucketName, objectName, g.cfg.BucketStorageClass, g.cfg.BucketLocation, buf)
+	return g.storageClient.UploadObject(ctx, objectName, buf)
 }
 
 // tracesDataPusher pushes trace data to Google Cloud Storage
@@ -90,7 +90,7 @@ func (g *googleCloudStorageExporter) tracesDataPusher(ctx context.Context, td pt
 
 	objectName := g.getObjectName("traces")
 
-	return g.storageClient.UploadObject(ctx, g.cfg.ProjectID, g.cfg.BucketName, objectName, g.cfg.BucketStorageClass, g.cfg.BucketLocation, buf)
+	return g.storageClient.UploadObject(ctx, objectName, buf)
 }
 
 // getObjectName formats the object name based on the configuration and current time stamp
