@@ -21,6 +21,64 @@ func (_m *mockStorageClient) EXPECT() *mockStorageClient_Expecter {
 	return &mockStorageClient_Expecter{mock: &_m.Mock}
 }
 
+// BucketExists provides a mock function with given fields: ctx, projectID, bucketName
+func (_m *mockStorageClient) BucketExists(ctx context.Context, projectID string, bucketName string) (bool, error) {
+	ret := _m.Called(ctx, projectID, bucketName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BucketExists")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (bool, error)); ok {
+		return rf(ctx, projectID, bucketName)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) bool); ok {
+		r0 = rf(ctx, projectID, bucketName)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, projectID, bucketName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// mockStorageClient_BucketExists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BucketExists'
+type mockStorageClient_BucketExists_Call struct {
+	*mock.Call
+}
+
+// BucketExists is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID string
+//   - bucketName string
+func (_e *mockStorageClient_Expecter) BucketExists(ctx interface{}, projectID interface{}, bucketName interface{}) *mockStorageClient_BucketExists_Call {
+	return &mockStorageClient_BucketExists_Call{Call: _e.mock.On("BucketExists", ctx, projectID, bucketName)}
+}
+
+func (_c *mockStorageClient_BucketExists_Call) Run(run func(ctx context.Context, projectID string, bucketName string)) *mockStorageClient_BucketExists_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *mockStorageClient_BucketExists_Call) Return(_a0 bool, _a1 error) *mockStorageClient_BucketExists_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *mockStorageClient_BucketExists_Call) RunAndReturn(run func(context.Context, string, string) (bool, error)) *mockStorageClient_BucketExists_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateBucket provides a mock function with given fields: ctx, projectID, bucketName, storageClass, location
 func (_m *mockStorageClient) CreateBucket(ctx context.Context, projectID string, bucketName string, storageClass string, location string) error {
 	ret := _m.Called(ctx, projectID, bucketName, storageClass, location)
@@ -71,17 +129,17 @@ func (_c *mockStorageClient_CreateBucket_Call) RunAndReturn(run func(context.Con
 	return _c
 }
 
-// UploadObject provides a mock function with given fields: ctx, bucketName, objectName, buffer
-func (_m *mockStorageClient) UploadObject(ctx context.Context, bucketName string, objectName string, buffer []byte) error {
-	ret := _m.Called(ctx, bucketName, objectName, buffer)
+// UploadObject provides a mock function with given fields: ctx, projectID, bucketName, objectName, storageClass, location, buffer
+func (_m *mockStorageClient) UploadObject(ctx context.Context, projectID string, bucketName string, objectName string, storageClass string, location string, buffer []byte) error {
+	ret := _m.Called(ctx, projectID, bucketName, objectName, storageClass, location, buffer)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UploadObject")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, []byte) error); ok {
-		r0 = rf(ctx, bucketName, objectName, buffer)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, string, []byte) error); ok {
+		r0 = rf(ctx, projectID, bucketName, objectName, storageClass, location, buffer)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -96,16 +154,19 @@ type mockStorageClient_UploadObject_Call struct {
 
 // UploadObject is a helper method to define mock.On call
 //   - ctx context.Context
+//   - projectID string
 //   - bucketName string
 //   - objectName string
+//   - storageClass string
+//   - location string
 //   - buffer []byte
-func (_e *mockStorageClient_Expecter) UploadObject(ctx interface{}, bucketName interface{}, objectName interface{}, buffer interface{}) *mockStorageClient_UploadObject_Call {
-	return &mockStorageClient_UploadObject_Call{Call: _e.mock.On("UploadObject", ctx, bucketName, objectName, buffer)}
+func (_e *mockStorageClient_Expecter) UploadObject(ctx interface{}, projectID interface{}, bucketName interface{}, objectName interface{}, storageClass interface{}, location interface{}, buffer interface{}) *mockStorageClient_UploadObject_Call {
+	return &mockStorageClient_UploadObject_Call{Call: _e.mock.On("UploadObject", ctx, projectID, bucketName, objectName, storageClass, location, buffer)}
 }
 
-func (_c *mockStorageClient_UploadObject_Call) Run(run func(ctx context.Context, bucketName string, objectName string, buffer []byte)) *mockStorageClient_UploadObject_Call {
+func (_c *mockStorageClient_UploadObject_Call) Run(run func(ctx context.Context, projectID string, bucketName string, objectName string, storageClass string, location string, buffer []byte)) *mockStorageClient_UploadObject_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].([]byte))
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(string), args[5].(string), args[6].([]byte))
 	})
 	return _c
 }
@@ -115,14 +176,14 @@ func (_c *mockStorageClient_UploadObject_Call) Return(_a0 error) *mockStorageCli
 	return _c
 }
 
-func (_c *mockStorageClient_UploadObject_Call) RunAndReturn(run func(context.Context, string, string, []byte) error) *mockStorageClient_UploadObject_Call {
+func (_c *mockStorageClient_UploadObject_Call) RunAndReturn(run func(context.Context, string, string, string, string, string, []byte) error) *mockStorageClient_UploadObject_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// newMockStorageClient creates a new instance of mockStorageClient. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// NewMockStorageClient creates a new instance of mockStorageClient. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
-func newMockStorageClient(t interface {
+func NewMockStorageClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *mockStorageClient {
