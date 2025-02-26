@@ -90,6 +90,7 @@ func (c *googleCloudStorageClient) UploadObject(ctx context.Context, objectName 
 func (c *googleCloudStorageClient) writeToObject(ctx context.Context, obj *storage.ObjectHandle, buffer []byte) error {
 	writer := obj.NewWriter(ctx)
 	
+	// Write is async so it may return nil err even if the write fails
 	if _, err := writer.Write(buffer); err != nil {
 		// If Write returns an error, we should still try to close
 		closeErr := writer.Close()
@@ -97,12 +98,12 @@ func (c *googleCloudStorageClient) writeToObject(ctx context.Context, obj *stora
 			// If both failed, include both errors in the message
 			return fmt.Errorf("write failed: %v, close failed: %v", err, closeErr)
 		}
-		return err
+		return fmt.Errorf("failed to write to object %q: %w", obj.ObjectName(), err)
 	}
 	
-	// Always check Close error as the source of truth
+	// Always check Close error to see if the write was successful
 	if err := writer.Close(); err != nil {
-		return err
+		return fmt.Errorf("failed to complete write to object %q: %w", obj.ObjectName(), err)
 	}
 	
 	return nil
