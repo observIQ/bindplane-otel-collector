@@ -65,24 +65,17 @@ func newGoogleCloudStorageClient(cfg *Config) (*googleCloudStorageClient, error)
 func (c *googleCloudStorageClient) UploadObject(ctx context.Context, objectName string, buffer []byte) error {
 	bucket := c.storageClient.Bucket(c.config.BucketName)
 	obj := bucket.Object(objectName)
-	writer := obj.NewWriter(ctx)
 	
-	// Try writing first
-	if _, err := writer.Write(buffer); err != nil {
-		// Check if error is due to missing bucket
-		if isBucketNotFoundError(err) {
-			// Try to create the bucket
+	// First attempt to write
+	if err := c.writeToObject(ctx, obj, buffer); err != nil {
+		// If bucket doesn't exist, try to create it and write again
+		if isBucketNotFoundError(err) {	
 			if err := c.createBucket(ctx); err != nil {
-				// If creation failed because bucket exists in another project
-				if isBucketExistsError(err) {
-					return fmt.Errorf("bucket %q exists but is not accessible: %w", c.config.BucketName, err)
-				}
 				return fmt.Errorf("failed to create bucket %q: %w", c.config.BucketName, err)
 			}
 			
-			// Bucket created, try writing again
-			writer = obj.NewWriter(ctx)
-			if _, err := writer.Write(buffer); err != nil {
+			// Try writing again after bucket creation
+			if err := c.writeToObject(ctx, obj, buffer); err != nil {
 				return fmt.Errorf("failed to write to bucket %q after creation: %w", c.config.BucketName, err)
 			}
 		} else {
@@ -90,8 +83,26 @@ func (c *googleCloudStorageClient) UploadObject(ctx context.Context, objectName 
 		}
 	}
 	
+	return nil
+}
+
+// writeToObject attempts to write data to a GCS object and waits for completion
+func (c *googleCloudStorageClient) writeToObject(ctx context.Context, obj *storage.ObjectHandle, buffer []byte) error {
+	writer := obj.NewWriter(ctx)
+	
+	if _, err := writer.Write(buffer); err != nil {
+		// If Write returns an error, we should still try to close
+		closeErr := writer.Close()
+		if closeErr != nil {
+			// If both failed, include both errors in the message
+			return fmt.Errorf("write failed: %v, close failed: %v", err, closeErr)
+		}
+		return err
+	}
+	
+	// Always check Close error as the source of truth
 	if err := writer.Close(); err != nil {
-		return fmt.Errorf("failed to close writer for bucket %q: %w", c.config.BucketName, err)
+		return err
 	}
 	
 	return nil
@@ -112,14 +123,6 @@ func (c *googleCloudStorageClient) createBucket(ctx context.Context) error {
 func isBucketNotFoundError(err error) bool {
 	if e, ok := err.(*googleapi.Error); ok {
 		return e.Code == 404 && e.Message == "The specified bucket does not exist."
-	}
-	return false
-}
-
-// isBucketExistsError checks if the error indicates the bucket already exists
-func isBucketExistsError(err error) bool {
-	if e, ok := err.(*googleapi.Error); ok {
-		return e.Code == 409
 	}
 	return false
 }
