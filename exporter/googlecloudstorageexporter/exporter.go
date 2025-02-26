@@ -75,26 +75,42 @@ func (g *googleCloudStorageExporter) traceDataPusher(ctx context.Context, td ptr
 }
 
 func (g *googleCloudStorageExporter) getObjectName(telemetryType string) string {
-	now := time.Now()
+	now := time.Now().UTC()
 	year, month, day := now.Date()
 	hour, minute, _ := now.Clock()
 
 	objectNameBuilder := strings.Builder{}
 
+	// Add folder name if specified
 	if g.cfg.FolderName != "" {
-		objectNameBuilder.WriteString(g.cfg.FolderName)
-		objectNameBuilder.WriteString("/")
+		objectNameBuilder.WriteString(fmt.Sprintf("%s/", g.cfg.FolderName))
 	}
 
-	objectNameBuilder.WriteString(fmt.Sprintf("%s-%d-%d-%d-%d-%d", telemetryType, year, month, day, hour, minute))
+	// Add hierarchical time-based folders
+	objectNameBuilder.WriteString(fmt.Sprintf("year=%d/month=%02d/day=%02d/hour=%02d", year, month, day, hour))
 
+	// Add minute folder if using minute partitioning
+	if g.cfg.Partition == "minute" {
+		objectNameBuilder.WriteString(fmt.Sprintf("/minute=%02d", minute))
+	}
+
+	objectNameBuilder.WriteString("/")
+
+	// Add object prefix if specified
 	if g.cfg.ObjectPrefix != "" {
-		objectNameBuilder.WriteString(fmt.Sprintf("-%s", g.cfg.ObjectPrefix))
+		objectNameBuilder.WriteString(g.cfg.ObjectPrefix)
 	}
 
+	// Generate a random ID for the name
 	randomID := randomInRange(100000000, 999999999)
 
-	objectNameBuilder.WriteString(fmt.Sprintf("-%d", randomID))
+	// Write base file name with telemetry type and random ID
+	objectNameBuilder.WriteString(fmt.Sprintf("%s_%d", telemetryType, randomID))
+
+	// Add compression extension if compression is enabled
+	if g.cfg.Compression == "gzip" {
+		objectNameBuilder.WriteString(".gz")
+	}
 
 	return objectNameBuilder.String()
 }
