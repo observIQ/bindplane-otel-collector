@@ -70,7 +70,7 @@ func Test_exporter_metricsDataPusher(t *testing.T) {
 				mockMarshaler.EXPECT().MarshalMetrics(input).Return(expectBuff, nil)
 				mockMarshaler.EXPECT().Format().Return("json")
 
-				mockStorageClient.EXPECT().UploadObject(mock.Anything, cfg.ProjectID, cfg.BucketName, mock.Anything, mock.Anything, mock.Anything, expectBuff).Return(errors.New("client"))
+				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectBuff).Return(errors.New("client"))
 
 				return mockStorageClient, mockMarshaler
 			},
@@ -85,7 +85,7 @@ func Test_exporter_metricsDataPusher(t *testing.T) {
 				mockMarshaler.EXPECT().MarshalMetrics(input).Return(expectBuff, nil)
 				mockMarshaler.EXPECT().Format().Return("json")
 
-				mockStorageClient.EXPECT().UploadObject(mock.Anything, cfg.ProjectID, cfg.BucketName, mock.Anything, mock.Anything, mock.Anything, expectBuff).Return(nil)
+				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectBuff).Return(nil)
 
 				return mockStorageClient, mockMarshaler
 			},
@@ -150,7 +150,7 @@ func Test_exporter_logsDataPusher(t *testing.T) {
 				mockMarshaler.EXPECT().MarshalLogs(input).Return(expectBuff, nil)
 				mockMarshaler.EXPECT().Format().Return("json")
 
-				mockStorageClient.EXPECT().UploadObject(mock.Anything, cfg.ProjectID, cfg.BucketName, mock.Anything, mock.Anything, mock.Anything, expectBuff).Return(errors.New("client"))
+				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectBuff).Return(errors.New("client"))
 
 				return mockStorageClient, mockMarshaler
 			},
@@ -165,7 +165,7 @@ func Test_exporter_logsDataPusher(t *testing.T) {
 				mockMarshaler.EXPECT().MarshalLogs(input).Return(expectBuff, nil)
 				mockMarshaler.EXPECT().Format().Return("json")
 
-				mockStorageClient.EXPECT().UploadObject(mock.Anything, cfg.ProjectID, cfg.BucketName, mock.Anything, mock.Anything, mock.Anything, expectBuff).Return(nil)
+				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectBuff).Return(nil)
 
 				return mockStorageClient, mockMarshaler
 			},
@@ -230,7 +230,7 @@ func Test_exporter_traceDataPusher(t *testing.T) {
 				mockMarshaler.EXPECT().MarshalTraces(input).Return(expectBuff, nil)
 				mockMarshaler.EXPECT().Format().Return("json")
 
-				mockStorageClient.EXPECT().UploadObject(mock.Anything, cfg.ProjectID, cfg.BucketName, mock.Anything, mock.Anything, mock.Anything, expectBuff).Return(errors.New("client"))
+				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectBuff).Return(errors.New("client"))
 
 				return mockStorageClient, mockMarshaler
 			},
@@ -245,7 +245,7 @@ func Test_exporter_traceDataPusher(t *testing.T) {
 				mockMarshaler.EXPECT().MarshalTraces(input).Return(expectBuff, nil)
 				mockMarshaler.EXPECT().Format().Return("json")
 
-				mockStorageClient.EXPECT().UploadObject(mock.Anything, cfg.ProjectID, cfg.BucketName, mock.Anything, mock.Anything, mock.Anything, expectBuff).Return(nil)
+				mockStorageClient.EXPECT().UploadObject(mock.Anything, mock.Anything, expectBuff).Return(nil)
 
 				return mockStorageClient, mockMarshaler
 			},
