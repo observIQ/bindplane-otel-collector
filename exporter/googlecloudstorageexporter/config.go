@@ -22,6 +22,7 @@ import (
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
+// partitionType is the type of partition to store objects under
 type partitionType string
 
 const (
@@ -29,6 +30,7 @@ const (
 	hourPartition   partitionType = "hour"
 )
 
+// compressionType is the type of compression to apply to objects
 type compressionType string
 
 const (
@@ -36,18 +38,37 @@ const (
 	gzipCompression compressionType = "gzip"
 )
 
+// Config is the configuration for the googlecloudstorage exporter
+
 type Config struct {
+	// ProjectID is the ID of the Google Cloud project the bucket belongs to.
 	ProjectID  string `mapstructure:"project_id"`
+
+	// BucketName is the name of the bucket to store objects in.
 	BucketName string `mapstructure:"bucket_name"`
-	Location   string `mapstructure:"location"`
-	StorageClass string `mapstructure:"storage_class"`
+
+	// BucketLocation is the location of the bucket.
+	BucketLocation   string `mapstructure:"bucket_location"`
+
+	// BucketStorageClass is the storage class of the bucket.
+	BucketStorageClass string `mapstructure:"bucket_storage_class"`
+	
+	// FolderName is the name of the folder to store objects under.
 	FolderName string `mapstructure:"folder_name"`
+
+	// ObjectPrefix is the prefix to add to the object name.
 	ObjectPrefix string `mapstructure:"object_prefix"`
 
+	// Credentials and CredentialsFile are mutually exclusive and provide authentication to Google Cloud Storage.
 	Credentials string `mapstructure:"credentials"`
 	CredentialsFile string `mapstructure:"credentials_file"`
 
+	// Partition is the time granularity of the object.
+	// Valid values are "hour" or "minute". Default: minute
 	Partition partitionType `mapstructure:"partition"`
+
+	// Compression is the type of compression to use.
+	// Valid values are "none" or "gzip". Default: none
 	Compression compressionType `mapstructure:"compression"`
 
 	exporterhelper.TimeoutConfig `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct.
@@ -55,15 +76,13 @@ type Config struct {
 	configretry.BackOffConfig `mapstructure:"retry_on_failure"`
 }
 
+// Validate validates the config.
 func (c *Config) Validate() error {
 	if c.BucketName == "" {
 		return errors.New("bucket_name is required")
 	}
 	if c.ProjectID == "" {
 		return errors.New("project_id is required")
-	}
-	if c.Location == "" {
-		return errors.New("location is required")
 	}
 
 	// Validate credentials - both can be empty (for default credentials) but both cannot be set
