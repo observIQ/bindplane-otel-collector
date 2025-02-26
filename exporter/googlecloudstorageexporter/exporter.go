@@ -29,6 +29,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// googleCloudStorageExporter exports OTLP data as Google Cloud Storage objects
 type googleCloudStorageExporter struct {
 	cfg *Config
 	storageClient storageClient
@@ -36,12 +37,12 @@ type googleCloudStorageExporter struct {
 	marshaler  marshaler
 }
 
+// newExporter creates a new Google Cloud Storage exporter
 func newExporter(cfg *Config, params exporter.Settings) (*googleCloudStorageExporter, error) {
 	storageClient, err := newGoogleCloudStorageClient(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create storage client: %w", err)
 	}
-	// should close the client?
 
 	return &googleCloudStorageExporter{
 		cfg: cfg,
@@ -51,10 +52,12 @@ func newExporter(cfg *Config, params exporter.Settings) (*googleCloudStorageExpo
 	}, nil
 }
 
+// Capabilities lists the exporter's capabilities
 func (g *googleCloudStorageExporter) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: false}
 }
 
+// metricsDataPusher pushes metrics data to Google Cloud Storage
 func (g *googleCloudStorageExporter) metricsDataPusher(ctx context.Context, md pmetric.Metrics) error {
 	buf, err := g.marshaler.MarshalMetrics(md)
 	if err != nil {
@@ -66,6 +69,7 @@ func (g *googleCloudStorageExporter) metricsDataPusher(ctx context.Context, md p
 	return g.storageClient.UploadObject(ctx, g.cfg.ProjectID, g.cfg.BucketName, objectName, g.cfg.BucketStorageClass, g.cfg.BucketLocation, buf)
 }
 
+// logsDataPusher pushes logs data to Google Cloud Storage
 func (g *googleCloudStorageExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
 	buf, err := g.marshaler.MarshalLogs(ld)
 	if err != nil {
@@ -77,7 +81,8 @@ func (g *googleCloudStorageExporter) logsDataPusher(ctx context.Context, ld plog
 	return g.storageClient.UploadObject(ctx, g.cfg.ProjectID, g.cfg.BucketName, objectName, g.cfg.BucketStorageClass, g.cfg.BucketLocation, buf)
 }
 
-func (g *googleCloudStorageExporter) traceDataPusher(ctx context.Context, td ptrace.Traces) error {
+// tracesDataPusher pushes trace data to Google Cloud Storage
+func (g *googleCloudStorageExporter) tracesDataPusher(ctx context.Context, td ptrace.Traces) error {
 	buf, err := g.marshaler.MarshalTraces(td)
 	if err != nil {
 		return fmt.Errorf("failed to marshal traces: %w", err)
@@ -88,6 +93,7 @@ func (g *googleCloudStorageExporter) traceDataPusher(ctx context.Context, td ptr
 	return g.storageClient.UploadObject(ctx, g.cfg.ProjectID, g.cfg.BucketName, objectName, g.cfg.BucketStorageClass, g.cfg.BucketLocation, buf)
 }
 
+// getObjectName formats the object name based on the configuration and current time stamp
 func (g *googleCloudStorageExporter) getObjectName(telemetryType string) string {
 	now := time.Now().UTC()
 	year, month, day := now.Date()
@@ -104,7 +110,7 @@ func (g *googleCloudStorageExporter) getObjectName(telemetryType string) string 
 	objectNameBuilder.WriteString(fmt.Sprintf("year=%d/month=%02d/day=%02d/hour=%02d", year, month, day, hour))
 
 	// Add minute folder if using minute partitioning
-	if g.cfg.Partition == "minute" {
+	if g.cfg.Partition == minutePartition {
 		objectNameBuilder.WriteString(fmt.Sprintf("/minute=%02d", minute))
 	}
 
@@ -119,16 +125,12 @@ func (g *googleCloudStorageExporter) getObjectName(telemetryType string) string 
 	randomID := randomInRange(100000000, 999999999)
 
 	// Write base file name with telemetry type and random ID
-	objectNameBuilder.WriteString(fmt.Sprintf("%s_%d", telemetryType, randomID))
-
-	// Add compression extension if compression is enabled
-	if g.cfg.Compression == "gzip" {
-		objectNameBuilder.WriteString(".gz")
-	}
+	objectNameBuilder.WriteString(fmt.Sprintf("%s_%d.%s", telemetryType, randomID, g.marshaler.Format()))
 
 	return objectNameBuilder.String()
 }
 
+// #nosec G404 -- randomly generated number is not used for security purposes. It's ok if it's weak
 func randomInRange(low, hi int) int {
 	return low + rand.Intn(hi-low)
 }
