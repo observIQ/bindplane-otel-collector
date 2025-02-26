@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/storage"
-	"google.golang.org/api/iterator"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 )
 
@@ -27,9 +27,7 @@ import (
 //
 //go:generate mockery --name storageClient --output ./internal/mocks --with-expecter --filename mock_storage_client.go --structname mockStorageClient
 type storageClient interface {
-	CreateBucket(ctx context.Context) error
 	UploadObject(ctx context.Context, objectName string, buffer []byte) error
-	BucketExists(ctx context.Context) (bool, error)
 }
 
 // googleCloudStorageClient is the google cloud storage implementation of the storageClient
@@ -64,57 +62,32 @@ func newGoogleCloudStorageClient(cfg *Config) (*googleCloudStorageClient, error)
 	}, nil
 }
 
-func (c *googleCloudStorageClient) BucketExists(ctx context.Context) (bool, error) {
-	it := c.storageClient.Buckets(ctx, c.config.ProjectID)
-	for {
-		bucketAttrs, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return false, fmt.Errorf("error listing buckets: %w", err)
-		}
-		if bucketAttrs.Name == c.config.BucketName {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-func (c *googleCloudStorageClient) CreateBucket(ctx context.Context) error {
-	bucket := c.storageClient.Bucket(c.config.BucketName)
-	
-	storageClassAndLocation := &storage.BucketAttrs{
-		StorageClass: c.config.BucketStorageClass,
-		Location:     c.config.BucketLocation,
-	}
-	
-	if err := bucket.Create(ctx, c.config.ProjectID, storageClassAndLocation); err != nil {
-		return fmt.Errorf("failed to create bucket %q: %w", c.config.BucketName, err)
-	}
-	return nil
-}
-
 func (c *googleCloudStorageClient) UploadObject(ctx context.Context, objectName string, buffer []byte) error {
-	// Check if bucket exists
-	exists, err := c.BucketExists(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to check if bucket exists: %w", err)
-	}
-	
-	// Create bucket if it doesn't exist
-	if !exists {			
-		if err := c.CreateBucket(ctx); err != nil {
-			return fmt.Errorf("failed to create bucket: %w", err)
-		}
-	}
-	
 	bucket := c.storageClient.Bucket(c.config.BucketName)
 	obj := bucket.Object(objectName)
 	writer := obj.NewWriter(ctx)
 	
+	// Try writing first
 	if _, err := writer.Write(buffer); err != nil {
-		return fmt.Errorf("failed to write to bucket %q: %w", c.config.BucketName, err)
+		// Check if error is due to missing bucket
+		if isBucketNotFoundError(err) {
+			// Try to create the bucket
+			if err := c.createBucket(ctx); err != nil {
+				// If creation failed because bucket exists in another project
+				if isBucketExistsError(err) {
+					return fmt.Errorf("bucket %q exists but is not accessible: %w", c.config.BucketName, err)
+				}
+				return fmt.Errorf("failed to create bucket %q: %w", c.config.BucketName, err)
+			}
+			
+			// Bucket created, try writing again
+			writer = obj.NewWriter(ctx)
+			if _, err := writer.Write(buffer); err != nil {
+				return fmt.Errorf("failed to write to bucket %q after creation: %w", c.config.BucketName, err)
+			}
+		} else {
+			return fmt.Errorf("failed to write to bucket %q: %w", c.config.BucketName, err)
+		}
 	}
 	
 	if err := writer.Close(); err != nil {
@@ -122,4 +95,31 @@ func (c *googleCloudStorageClient) UploadObject(ctx context.Context, objectName 
 	}
 	
 	return nil
+}
+
+func (c *googleCloudStorageClient) createBucket(ctx context.Context) error {
+	bucket := c.storageClient.Bucket(c.config.BucketName)
+	
+	storageClassAndLocation := &storage.BucketAttrs{
+		StorageClass: c.config.BucketStorageClass,
+		Location:     c.config.BucketLocation,
+	}
+	
+	return bucket.Create(ctx, c.config.ProjectID, storageClassAndLocation)
+}
+
+// isBucketNotFoundError checks if the error indicates the bucket doesn't exist
+func isBucketNotFoundError(err error) bool {
+	if e, ok := err.(*googleapi.Error); ok {
+		return e.Code == 404 && e.Message == "The specified bucket does not exist."
+	}
+	return false
+}
+
+// isBucketExistsError checks if the error indicates the bucket already exists
+func isBucketExistsError(err error) bool {
+	if e, ok := err.(*googleapi.Error); ok {
+		return e.Code == 409
+	}
+	return false
 }
