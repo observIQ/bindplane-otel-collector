@@ -40,8 +40,8 @@ func createDefaultConfig() component.Config {
 	return &Config{
 		ProjectID:  "",
 		BucketName: "",
-		Location:   "",
-		StorageClass: "",
+		BucketLocation:   "",
+		BucketStorageClass: "",
 		FolderName: "",
 		ObjectPrefix: "",
 		Credentials: "",

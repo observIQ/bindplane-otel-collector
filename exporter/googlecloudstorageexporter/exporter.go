@@ -63,7 +63,7 @@ func (g *googleCloudStorageExporter) metricsDataPusher(ctx context.Context, md p
 
 	objectName := g.getObjectName("metrics")
 
-	return g.storageClient.UploadObject(ctx, g.cfg.ProjectID, g.cfg.BucketName, objectName, g.cfg.StorageClass, g.cfg.Location, buf)
+	return g.storageClient.UploadObject(ctx, g.cfg.ProjectID, g.cfg.BucketName, objectName, g.cfg.BucketStorageClass, g.cfg.BucketLocation, buf)
 }
 
 func (g *googleCloudStorageExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
@@ -74,7 +74,7 @@ func (g *googleCloudStorageExporter) logsDataPusher(ctx context.Context, ld plog
 
 	objectName := g.getObjectName("logs")
 
-	return g.storageClient.UploadObject(ctx, g.cfg.ProjectID, g.cfg.BucketName, objectName, g.cfg.StorageClass, g.cfg.Location, buf)
+	return g.storageClient.UploadObject(ctx, g.cfg.ProjectID, g.cfg.BucketName, objectName, g.cfg.BucketStorageClass, g.cfg.BucketLocation, buf)
 }
 
 func (g *googleCloudStorageExporter) traceDataPusher(ctx context.Context, td ptrace.Traces) error {
@@ -85,7 +85,7 @@ func (g *googleCloudStorageExporter) traceDataPusher(ctx context.Context, td ptr
 
 	objectName := g.getObjectName("traces")
 
-	return g.storageClient.UploadObject(ctx, g.cfg.ProjectID, g.cfg.BucketName, objectName, g.cfg.StorageClass, g.cfg.Location, buf)
+	return g.storageClient.UploadObject(ctx, g.cfg.ProjectID, g.cfg.BucketName, objectName, g.cfg.BucketStorageClass, g.cfg.BucketLocation, buf)
 }
 
 func (g *googleCloudStorageExporter) getObjectName(telemetryType string) string {
