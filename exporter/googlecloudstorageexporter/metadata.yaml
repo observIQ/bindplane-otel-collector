@@ -5,3 +5,6 @@ status:
   stability:
     alpha: [traces, metrics, logs]
   distributions: [observiq]
+
+tests:
+  skip_lifecycle: true
