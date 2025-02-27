@@ -41,7 +41,10 @@ func setupMetrics() error {
 		metric.WithExplicitBucketBoundaries(
 			100,
 			500,
-			1000,    // typical large log
+			1000,
+			5000,
+			10000,
+			50000,
 			100000,  // 0.10mb
 			500000,  // 0.50mb
 			1000000, // 1mb
@@ -70,6 +73,8 @@ func setupMetrics() error {
 			800,
 			900,
 			1000, // 1 second
+			1250,
+			1500,
 			2000,
 			5000,
 			10000, // 10 seconds
