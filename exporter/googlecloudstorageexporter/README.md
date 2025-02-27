@@ -21,6 +21,7 @@ This exporter allows you to export logs, metrics, and traces to Google Cloud Sto
 
 1. The exporter will create a bucket if it doesn't exist. Bucket names in GCS are _globally_ unique, so if any organization contains a bucket with the given name, it will fail to create and will likely give 403 Forbidden codes back when it tries to write. You can manually create the bucket in GCS to ensure the name is not taken. [More info](https://cloud.google.com/storage/docs/buckets)
 2. You can authenticate to Google Cloud using the provided `credentials`, `credentials_file`, or by using Application Default Credentials.
+3. Your authentication credentials must have the Storage Admin permission to create buckets, folders, and objects.
 
 ## Configuration
 
