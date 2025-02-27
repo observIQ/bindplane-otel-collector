@@ -91,15 +91,11 @@ func (c *googleCloudStorageClient) writeToObject(ctx context.Context, obj *stora
 	writer := obj.NewWriter(ctx)
 
 	if _, err := writer.Write(buffer); err != nil {
-		writer.Close() // Best effort cleanup
+		writer.Close()
 		return err
 	}
 
-	if err := writer.Close(); err != nil {
-		return err
-	}
-
-	return nil
+	return writer.Close()
 }
 
 func (c *googleCloudStorageClient) createBucket(ctx context.Context) error {

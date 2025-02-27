@@ -39,7 +39,6 @@ const (
 )
 
 // Config is the configuration for the googlecloudstorage exporter
-
 type Config struct {
 	// ProjectID is the ID of the Google Cloud project the bucket belongs to.
 	ProjectID string `mapstructure:"project_id"`
