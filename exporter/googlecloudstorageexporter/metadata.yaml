@@ -7,7 +7,5 @@ status:
   distributions: [observiq]
 
 tests:
-  config:
-    bucket_name: test-bucket
-    project_id: test-project
   skip_lifecycle: true
+  skip_shutdown: true
