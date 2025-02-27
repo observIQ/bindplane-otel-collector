@@ -37,11 +37,11 @@ func Test_exporter_Capabilities(t *testing.T) {
 
 func Test_exporter_metricsDataPusher(t *testing.T) {
 	cfg := &Config{
-		BucketName: "bucket",
-		ProjectID:  "project",
-		FolderName: "folder",
+		BucketName:   "bucket",
+		ProjectID:    "project",
+		FolderName:   "folder",
 		ObjectPrefix: "prefix",
-		Partition:  minutePartition,
+		Partition:    minutePartition,
 	}
 
 	testCases := []struct {
@@ -98,10 +98,10 @@ func Test_exporter_metricsDataPusher(t *testing.T) {
 			md, expectedBytes := generateTestMetrics(t)
 			mockStorageClient, mockMarshaler := tc.mockGen(t, md, expectedBytes)
 			exp := &googleCloudStorageExporter{
-				cfg:        cfg,
+				cfg:           cfg,
 				storageClient: mockStorageClient,
-				logger:     zap.NewNop(),
-				marshaler:  mockMarshaler,
+				logger:        zap.NewNop(),
+				marshaler:     mockMarshaler,
 			}
 
 			err := exp.metricsDataPusher(context.Background(), md)
@@ -117,11 +117,11 @@ func Test_exporter_metricsDataPusher(t *testing.T) {
 
 func Test_exporter_logsDataPusher(t *testing.T) {
 	cfg := &Config{
-		BucketName: "bucket",
-		ProjectID:  "project",
-		FolderName: "folder",
+		BucketName:   "bucket",
+		ProjectID:    "project",
+		FolderName:   "folder",
 		ObjectPrefix: "prefix",
-		Partition:  minutePartition,
+		Partition:    minutePartition,
 	}
 
 	testCases := []struct {
@@ -178,10 +178,10 @@ func Test_exporter_logsDataPusher(t *testing.T) {
 			ld, expectedBytes := generateTestLogs(t)
 			mockStorageClient, mockMarshaler := tc.mockGen(t, ld, expectedBytes)
 			exp := &googleCloudStorageExporter{
-				cfg:        cfg,
+				cfg:           cfg,
 				storageClient: mockStorageClient,
-				logger:     zap.NewNop(),
-				marshaler:  mockMarshaler,
+				logger:        zap.NewNop(),
+				marshaler:     mockMarshaler,
 			}
 
 			err := exp.logsDataPusher(context.Background(), ld)
@@ -197,11 +197,11 @@ func Test_exporter_logsDataPusher(t *testing.T) {
 
 func Test_exporter_traceDataPusher(t *testing.T) {
 	cfg := &Config{
-		BucketName: "bucket",
-		ProjectID:  "project",
-		FolderName: "folder",
+		BucketName:   "bucket",
+		ProjectID:    "project",
+		FolderName:   "folder",
 		ObjectPrefix: "prefix",
-		Partition:  minutePartition,
+		Partition:    minutePartition,
 	}
 
 	testCases := []struct {
@@ -258,10 +258,10 @@ func Test_exporter_traceDataPusher(t *testing.T) {
 			td, expectedBytes := generateTestTraces(t)
 			mockStorageClient, mockMarshaler := tc.mockGen(t, td, expectedBytes)
 			exp := &googleCloudStorageExporter{
-				cfg:        cfg,
+				cfg:           cfg,
 				storageClient: mockStorageClient,
-				logger:     zap.NewNop(),
-				marshaler:  mockMarshaler,
+				logger:        zap.NewNop(),
+				marshaler:     mockMarshaler,
 			}
 
 			err := exp.tracesDataPusher(context.Background(), td)
@@ -305,11 +305,11 @@ func Test_exporter_getObjectName(t *testing.T) {
 		{
 			desc: "Full config",
 			cfg: &Config{
-				BucketName: "bucket",
-				ProjectID:  "project",
-				FolderName: "folder",
+				BucketName:   "bucket",
+				ProjectID:    "project",
+				FolderName:   "folder",
 				ObjectPrefix: "prefix",
-				Partition:  minutePartition,
+				Partition:    minutePartition,
 			},
 			telemetryType: "metrics",
 			expectedRegex: `^folder/year=\d{4}/month=\d{2}/day=\d{2}/hour=\d{2}/minute=\d{2}/prefixmetrics_\d+\.json$`,

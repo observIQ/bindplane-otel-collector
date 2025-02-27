@@ -42,17 +42,17 @@ const (
 
 type Config struct {
 	// ProjectID is the ID of the Google Cloud project the bucket belongs to.
-	ProjectID  string `mapstructure:"project_id"`
+	ProjectID string `mapstructure:"project_id"`
 
 	// BucketName is the name of the bucket to store objects in.
 	BucketName string `mapstructure:"bucket_name"`
 
 	// BucketLocation is the location of the bucket.
-	BucketLocation   string `mapstructure:"bucket_location"`
+	BucketLocation string `mapstructure:"bucket_location"`
 
 	// BucketStorageClass is the storage class of the bucket.
 	BucketStorageClass string `mapstructure:"bucket_storage_class"`
-	
+
 	// FolderName is the name of the folder to store objects under.
 	FolderName string `mapstructure:"folder_name"`
 
@@ -60,7 +60,7 @@ type Config struct {
 	ObjectPrefix string `mapstructure:"object_prefix"`
 
 	// Credentials and CredentialsFile are mutually exclusive and provide authentication to Google Cloud Storage.
-	Credentials string `mapstructure:"credentials"`
+	Credentials     string `mapstructure:"credentials"`
 	CredentialsFile string `mapstructure:"credentials_file"`
 
 	// Partition is the time granularity of the object.
@@ -73,7 +73,7 @@ type Config struct {
 
 	exporterhelper.TimeoutConfig `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct.
 	exporterhelper.QueueConfig   `mapstructure:"sending_queue"`
-	configretry.BackOffConfig `mapstructure:"retry_on_failure"`
+	configretry.BackOffConfig    `mapstructure:"retry_on_failure"`
 }
 
 // Validate validates the config.
@@ -99,10 +99,10 @@ func (c *Config) Validate() error {
 
 	switch c.Compression {
 	case noCompression, gzipCompression:
-	// do nothing	
+	// do nothing
 	default:
 		return fmt.Errorf("unsupported compression type: %s", c.Compression)
 	}
-	
+
 	return nil
 }
