@@ -16,6 +16,12 @@
             Version="{{.Version.MSI}}"
             Manufacturer="{{.Company}}"
             Language="1033">
+      
+      <Property Id="ALLUSERS" Value="1" />    <!--equals to install="permachine" at package element but this element depricated -->
+      <Property Id="MSIUSEREALADMINDETECTION" Value="1" /> 
+      <Condition Message="Please Run as Administrator.">
+        Privileged
+      </Condition>
 
       <Package InstallerVersion="200" Compressed="yes" Description="{{.Product}} {{.Version.Display}}"
                Comments="This installs {{.Product}} {{.Version.Display}}" InstallScope="perMachine"/>
