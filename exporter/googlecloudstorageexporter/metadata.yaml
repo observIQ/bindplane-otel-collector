@@ -1,0 +1,13 @@
+type: googlecloudstorage
+
+status:
+  class: exporter
+  stability:
+    alpha: [traces, metrics, logs]
+  distributions: [observiq]
+
+tests:
+  config:
+    bucket_name: test-bucket
+    project_id: test-project
+  skip_lifecycle: true
