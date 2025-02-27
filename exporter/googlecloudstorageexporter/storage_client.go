@@ -92,10 +92,14 @@ func (c *googleCloudStorageClient) writeToObject(ctx context.Context, obj *stora
 	writer := obj.NewWriter(ctx)
 
 	if _, err := writer.Write(buffer); err != nil {
-		writer.Close()
-		return err
+		// If Write returns an error, we should still try to close and check for close error
+		if closeErr := writer.Close(); closeErr != nil {
+			return fmt.Errorf("write failed: %v, close failed: %v", err, closeErr)
+		}
+		return fmt.Errorf("failed to write to object %q: %w", obj.ObjectName(), err)
 	}
 
+	// Always check Close error as the source of truth for write success. Err is handled by UploadObject
 	return writer.Close()
 }
 
