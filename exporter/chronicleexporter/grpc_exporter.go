@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"go.opentelemetry.io/collector/component"
@@ -107,6 +108,8 @@ func (exp *grpcExporter) Shutdown(context.Context) error {
 }
 
 func (exp *grpcExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
+	batchLogCount.Record(ctx, int64(ld.LogRecordCount()))
+
 	payloads, err := exp.marshaler.MarshalRawLogs(ctx, ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
@@ -124,6 +127,10 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 		totalLogs := int64(len(request.GetBatch().GetEntries()))
 		defer exp.metrics.recordSent(totalLogs)
 	}
+
+	// Track request latency
+	start := time.Now()
+
 	_, err := exp.client.BatchCreateLogs(ctx, request, exp.buildOptions()...)
 	if err != nil {
 		errCode := status.Code(err)
@@ -140,6 +147,9 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 			return consumererror.NewPermanent(fmt.Errorf("upload logs to chronicle: %w", err))
 		}
 	}
+
+	requestLatencyMilliseconds.Record(ctx, time.Since(start).Milliseconds())
+
 	return nil
 }
 

@@ -8,9 +8,12 @@ import (
 var (
 	mp = otel.Meter("chronicleexporter")
 
+	// Common metrics (gRPC and HTTP)
 	batchLogCount              metric.Int64Histogram
-	payloadSizeBytes           metric.Int64Histogram
 	requestLatencyMilliseconds metric.Int64Histogram
+
+	// HTTP exporter metrics
+	payloadSizeBytes metric.Int64Histogram
 )
 
 func setupMetrics() error {
