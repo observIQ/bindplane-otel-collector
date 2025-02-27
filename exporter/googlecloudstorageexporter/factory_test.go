@@ -24,19 +24,19 @@ import (
 
 func Test_createDefaultConfig(t *testing.T) {
 	expectedCfg := &Config{
-		ProjectID:  "",
-		BucketName: "",
-		BucketLocation:   "",
+		ProjectID:          "",
+		BucketName:         "",
+		BucketLocation:     "",
 		BucketStorageClass: "",
-		FolderName: "",
-		ObjectPrefix: "",
-		Credentials: "",
-		CredentialsFile: "",
-		Partition:    minutePartition,
-		Compression:  noCompression,
-		TimeoutConfig: exporterhelper.NewDefaultTimeoutConfig(),
-		QueueConfig:   exporterhelper.NewDefaultQueueConfig(),
-		BackOffConfig: configretry.NewDefaultBackOffConfig(),
+		FolderName:         "",
+		ObjectPrefix:       "",
+		Credentials:        "",
+		CredentialsFile:    "",
+		Partition:          minutePartition,
+		Compression:        noCompression,
+		TimeoutConfig:      exporterhelper.NewDefaultTimeoutConfig(),
+		QueueConfig:        exporterhelper.NewDefaultQueueConfig(),
+		BackOffConfig:      configretry.NewDefaultBackOffConfig(),
 	}
 
 	actual := createDefaultConfig()

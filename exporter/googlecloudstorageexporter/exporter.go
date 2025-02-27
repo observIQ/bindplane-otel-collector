@@ -31,10 +31,10 @@ import (
 
 // googleCloudStorageExporter exports OTLP data as Google Cloud Storage objects
 type googleCloudStorageExporter struct {
-	cfg *Config
+	cfg           *Config
 	storageClient storageClient
-	logger     *zap.Logger
-	marshaler  marshaler
+	logger        *zap.Logger
+	marshaler     marshaler
 }
 
 // newExporter creates a new Google Cloud Storage exporter
@@ -45,10 +45,10 @@ func newExporter(cfg *Config, params exporter.Settings) (*googleCloudStorageExpo
 	}
 
 	return &googleCloudStorageExporter{
-		cfg: cfg,
+		cfg:           cfg,
 		storageClient: storageClient,
-		logger:     params.Logger,
-		marshaler:  newMarshaler(cfg.Compression),
+		logger:        params.Logger,
+		marshaler:     newMarshaler(cfg.Compression),
 	}, nil
 }
 
