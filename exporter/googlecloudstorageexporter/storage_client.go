@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package googlecloudstorageexporter // import "github.com/observiq/bindplane-agent/exporter/googlecloudstorageexporter"
+package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter"
 
 import (
 	"context"
@@ -62,6 +62,7 @@ func newGoogleCloudStorageClient(cfg *Config) (*googleCloudStorageClient, error)
 	}, nil
 }
 
+// UploadObject will try to write to the bucket. It will create the bucket if it doesn't exist
 func (c *googleCloudStorageClient) UploadObject(ctx context.Context, objectName string, buffer []byte) error {
 	bucket := c.storageClient.Bucket(c.config.BucketName)
 	obj := bucket.Object(objectName)
@@ -98,6 +99,7 @@ func (c *googleCloudStorageClient) writeToObject(ctx context.Context, obj *stora
 	return writer.Close()
 }
 
+// createBucket will create a bucket in the project
 func (c *googleCloudStorageClient) createBucket(ctx context.Context) error {
 	bucket := c.storageClient.Bucket(c.config.BucketName)
 
