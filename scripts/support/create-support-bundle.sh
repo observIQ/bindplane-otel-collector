@@ -303,7 +303,7 @@ function bundle_files() {
 
 collect_profiles() {
   # shellcheck disable=SC2162
-  read -p "Collect go pprof? (y/n) " PPROF
+  read -p "Collect go pprof profiles? (y/n) " PPROF
   if [[ "$PPROF" == y*  ]]; then
     tar_filename="$1"
     increase_indent
