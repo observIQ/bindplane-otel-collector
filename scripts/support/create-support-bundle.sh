@@ -264,7 +264,7 @@ function bundle_files() {
     fi
 
     # Check if the files exist, if yes append them to the tar file
-    for file in issue os-release
+    for file in issue os-release redhat-release debian_version
     do
         if [ -f "/etc/$file" ]; then
             # These might be symlinks, so cat them to real files
