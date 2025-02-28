@@ -294,6 +294,8 @@ function bundle_files() {
     tar --append --file="$tar_filename" journalctl.log
     rm journalctl.log
 
+    collect_profiles $tar_filename
+
     # Compress the tar file
     info "Compressing the tar file..."
     gzip "$tar_filename"
@@ -306,6 +308,7 @@ collect_profiles() {
   # shellcheck disable=SC2162
   read -p "Collect go pprof? (y/n) " PPROF
   if [[ "$PPROF" == y*  ]]; then
+    tar_filename="$1"
     increase_indent
     # POSIX prompt
     info "For endpoint, please use the format http://localhost:13133 or https://localhost:13133\n"
@@ -313,6 +316,7 @@ collect_profiles() {
     # shellcheck disable=SC2162
     read -p "Endpoint: " ENDPOINT
     printf "\n"
+    info "Collecting golang pprof profiles..."
     curl -ksS "$ENDPOINT/debug/pprof/goroutine" --output goroutines.pprof
     curl -ksS "$ENDPOINT/debug/pprof/heap" --output heap.pprof
     curl -ksS "$ENDPOINT/debug/pprof/threadcreate" --output threadcreate.pprof
@@ -320,10 +324,10 @@ collect_profiles() {
     curl -ksS "$ENDPOINT/debug/pprof/mutex" --output mutex.pprof
     curl -ksS "$ENDPOINT/debug/pprof/profile" --output profile.pprof
     curl -ksS "$ENDPOINT/debug/pprof/trace?seconds=5" > profile.pb.gz
-    tar_filename="pprof_$(date +%Y%m%d_%H%M%S).tar.gz"
-    tar -czvf "$tar_filename" goroutines.pprof heap.pprof threadcreate.pprof block.pprof mutex.pprof profile.pprof profile.pb.gz
+    tar -cf "$tar_filename" goroutines.pprof heap.pprof threadcreate.pprof block.pprof mutex.pprof profile.pprof profile.pb.gz
+    rm -f goroutines.pprof heap.pprof threadcreate.pprof block.pprof mutex.pprof profile.pprof profile.pb.gz
 
-    info "Profile files have been added to the file $(realpath "$tar_filename.gz") successfully."
+    info "Profile files have been added to the file $(realpath "$tar_filename") successfully."
     decrease_indent
   fi
 }
@@ -350,7 +354,6 @@ main() {
   bindplane_banner
   check_prereqs
   bundle_files
-  collect_profiles
 }
 
 main "$@"
