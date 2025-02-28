@@ -321,7 +321,7 @@ collect_profiles() {
     curl -ksS "$ENDPOINT/debug/pprof/mutex" --output mutex.pprof
     curl -ksS "$ENDPOINT/debug/pprof/profile" --output profile.pprof
     curl -ksS "$ENDPOINT/debug/pprof/trace?seconds=5" > profile.pb.gz
-    tar -cf "$tar_filename" goroutines.pprof heap.pprof threadcreate.pprof block.pprof mutex.pprof profile.pprof profile.pb.gz
+    tar -rf "$tar_filename" goroutines.pprof heap.pprof threadcreate.pprof block.pprof mutex.pprof profile.pprof profile.pb.gz
     rm -f goroutines.pprof heap.pprof threadcreate.pprof block.pprof mutex.pprof profile.pprof profile.pb.gz
 
     info "Profile files have been added to the file $(realpath "$tar_filename") successfully."
