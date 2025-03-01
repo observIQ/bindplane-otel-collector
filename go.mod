@@ -26,6 +26,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/processor/spancountprocessor v1.72.0
 	github.com/observiq/bindplane-otel-collector/processor/throughputmeasurementprocessor v1.72.0
 	github.com/observiq/bindplane-otel-collector/processor/unrollprocessor v1.72.0
+	github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver v1.72.0
 	github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver v1.72.0
 	github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver v1.72.0
 	github.com/observiq/bindplane-otel-collector/receiver/httpreceiver v1.72.0
@@ -314,10 +315,12 @@ require (
 	github.com/antchfx/xpath v1.3.3 // indirect
 	github.com/apache/arrow/go/v16 v16.0.0 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
+	github.com/aws/aws-lambda-go v1.47.0 // indirect
 	github.com/aws/aws-msk-iam-sasl-signer-go v1.0.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.61 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.203.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/servicediscovery v1.34.11 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.29.3 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/briandowns/spinner v1.23.0 // indirect
@@ -896,6 +899,8 @@ replace github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrati
 replace github.com/observiq/bindplane-otel-collector/receiver/httpreceiver => ./receiver/httpreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/oktareceiver => ./receiver/oktareceiver
+
+replace github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver => ./receiver/awss3eventreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver => ./receiver/awss3rehydrationreceiver
 

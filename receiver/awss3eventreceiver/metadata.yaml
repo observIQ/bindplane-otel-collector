@@ -1,0 +1,16 @@
+type: s3event
+
+status:
+  class: receiver
+  stability:
+    development: [logs]
+
+resource_attributes:
+  aws.s3.bucket:
+    description: The name of the S3 bucket containing the processed object
+    enabled: true
+    type: string
+  aws.s3.key:
+    description: The key of the S3 object that was processed
+    enabled: true
+    type: string
