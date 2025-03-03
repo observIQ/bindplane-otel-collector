@@ -1,4 +1,4 @@
-<a href="https://observiq.com">
+<a href="https://bindplane.com">
   <p align="center">
     <picture>
       <source media="(prefers-color-scheme: light)" srcset="https://res.cloudinary.com/du4nxa27k/image/upload/v1734001913/bindplane-logo_czndai.svg" width="auto" height="50">
@@ -9,12 +9,12 @@
 </a>
 
 <p align="center">
-  The Bindplane Distro for OpenTelemetry Collector (BDOT Collector) is Bindplane’s distribution of the upstream <a href="https://github.com/open-telemetry/opentelemetry-collector">OpenTelemetry Collector</a>. It’s the first distribution to implement the <a href="https://opentelemetry.io/docs/specs/opamp/">Open Agent Management Protocol</a> (OpAMP) and is designed to be fully managed with <a href="https://observiq.com/">Bindplane Telemetry Pipeline</a>. The BDOT Collector is built using the <a href="https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder">OpenTelemetry Collector Builder</a>.
+  The Bindplane Distro for OpenTelemetry Collector (BDOT Collector) is Bindplane’s distribution of the upstream <a href="https://github.com/open-telemetry/opentelemetry-collector">OpenTelemetry Collector</a>. It’s the first distribution to implement the <a href="https://opentelemetry.io/docs/specs/opamp/">Open Agent Management Protocol</a> (OpAMP) and is designed to be fully managed with <a href="https://bindplane.com/">Bindplane Telemetry Pipeline</a>. The BDOT Collector is built using the <a href="https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder">OpenTelemetry Collector Builder</a>.
 </p>
 
 <b>
   <p align="center">
-    <a href="https://observiq.com/docs/getting-started/quickstart-guide">
+    <a href="https://bindplane.com/docs/getting-started/quickstart-guide">
       Get Started! &nbsp;👉&nbsp;
     </a>
   </p>
@@ -22,12 +22,12 @@
 
 <b>
   <p align="center">
-    <a href="https://observiq.com">Website</a>&nbsp;|&nbsp;
-    <a href="https://observiq.com/docs/advanced-setup/installation">Docs</a>&nbsp;|&nbsp;
-    <a href="https://observiq.com/docs/how-to-guides/routing-telemetry">How-to Guides</a>&nbsp;|&nbsp;
-    <a href="https://observiq.com/docs/feature-guides/processors">Feature Guides</a>&nbsp;|&nbsp;
-    <a href="https://observiq.com/blog">Blog</a>&nbsp;|&nbsp;
-    <a href="https://observiq.com/mastering-opentelemetry">OTel Hub</a>&nbsp;|&nbsp;
+    <a href="https://bindplane.com">Website</a>&nbsp;|&nbsp;
+    <a href="https://bindplane.com/docs/advanced-setup/installation">Docs</a>&nbsp;|&nbsp;
+    <a href="https://bindplane.com/docs/how-to-guides/routing-telemetry">How-to Guides</a>&nbsp;|&nbsp;
+    <a href="https://bindplane.com/docs/feature-guides/processors">Feature Guides</a>&nbsp;|&nbsp;
+    <a href="https://bindplane.com/blog">Blog</a>&nbsp;|&nbsp;
+    <a href="https://bindplane.com/mastering-opentelemetry">OTel Hub</a>&nbsp;|&nbsp;
     <a href="https://www.launchpass.com/bindplane">Slack</a>
   </p>
 </b>
@@ -53,7 +53,7 @@
 </p>
 <p align="center">
   <i>
-    Learn how to connect Bindplane Distro for OpenTelemetry Collector to telemetry <a href="https://observiq.com/docs/resources/sources">sources</a> and <a href="https://observiq.com/docs/resources/destinations">destinations</a>, and use <a href="https://observiq.com/docs/resources/processors">processors</a> to transform data.
+    Learn how to connect Bindplane Distro for OpenTelemetry Collector to telemetry <a href="https://bindplane.com/docs/resources/sources">sources</a> and <a href="https://bindplane.com/docs/resources/destinations">destinations</a>, and use <a href="https://bindplane.com/docs/resources/processors">processors</a> to transform data.
   </i>
 </p>
 
@@ -67,7 +67,7 @@ If you're managing telemetry at scale you'll run in to these problems sooner or 
 
 ### An OpenTelemetry Collector you're used to
 
-The BDOT Collector is observIQ’s distribution of the upstream [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector). It’s the first distribution to implement the [Open Agent Management Protocol](https://opentelemetry.io/docs/specs/opamp/) (OpAMP) and is designed to be fully managed with [Bindplane Telemetry Pipeline](https://observiq.com/solutions).
+The BDOT Collector is Bindplane's distribution of the upstream [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector). It’s the first distribution to implement the [Open Agent Management Protocol](https://opentelemetry.io/docs/specs/opamp/) (OpAMP) and is designed to be fully managed with [Bindplane Telemetry Pipeline](https://bindplane.com/solutions).
 
 ### Focused on usability
 
@@ -79,11 +79,11 @@ Bundled with all core OpenTelemetry receivers, processors, and exporters as well
 
 ### Always production-ready and fully-supported
 
-Tested, verified, and supported by observIQ.
+Tested, verified, and supported by Bindplane.
 
 ## Getting Started
 
-Follow the [Getting Started](/docs/getting-started.md) guide for more detailed installation instructions, or view the list of [Supported Operating System Versions](https://observiq.com/docs/advanced-setup/installation/install-agent).
+Follow the [Getting Started](/docs/getting-started.md) guide for more detailed installation instructions, or view the list of [Supported Operating System Versions](https://bindplane.com/docs/advanced-setup/installation/install-agent).
 
 To continue with the quick start, follow along below.
 
@@ -127,8 +127,8 @@ For more installation information, and how to configure OpAMP, see [installing o
 
 With the BDOT Collector installed, it will start collecting basic metrics about the host machine printing them to the log. To further configure your collector edit the `config.yaml` file just like you would an OpenTelemetry Collector. To find your `config.yaml` file based on your operating system, reference the table below:
 
-| OS      | Default Location                                              |
-|:--------|:--------------------------------------------------------------|
+| OS      | Default Location                                                |
+| :------ | :-------------------------------------------------------------- |
 | Linux   | `/opt/observiq-otel-collector/config.yaml`                      |
 | Windows | `C:\Program Files\observIQ OpenTelemetry Collector\config.yaml` |
 | macOS   | `/opt/observiq-otel-collector/config.yaml`                      |
@@ -197,7 +197,7 @@ receivers:
       processes:
 
 # Exporters send the data to a destination, in this case GCP.
-exporters: 
+exporters:
   googlecloud:
 
 # Service specifies how to construct the data pipelines using the configurations above.
