@@ -80,8 +80,8 @@ func TestConfigValidate(t *testing.T) {
 		{
 			desc: "Valid minimal config",
 			config: &Config{
-				BucketName: "test-bucket",
-				Partition:  minutePartition,
+				BucketName:  "test-bucket",
+				Partition:   minutePartition,
 				Compression: noCompression,
 			},
 			expectedErr: nil,
