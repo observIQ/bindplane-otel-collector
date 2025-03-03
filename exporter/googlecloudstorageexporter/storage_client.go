@@ -68,7 +68,19 @@ func newGoogleCloudStorageClient(cfg *Config) (*googleCloudStorageClient, error)
 			cfg.ProjectID = creds.ProjectID
 		}
 	default:
-		// Will use default credentials from the environment
+		// Find application default credentials from the environment
+		creds, err := google.FindDefaultCredentials(ctx, storage.ScopeFullControl)
+		if err != nil {
+			return nil, fmt.Errorf("find default credentials: %w", err)
+		}
+		opts = append(opts, option.WithCredentials(creds))
+		if cfg.ProjectID == "" {
+			cfg.ProjectID = creds.ProjectID
+		}
+	}
+
+	if cfg.ProjectID == "" {
+		return nil, fmt.Errorf("project_id not set in config and could not be read from credentials")
 	}
 
 	storageClient, err := storage.NewClient(ctx, opts...)
