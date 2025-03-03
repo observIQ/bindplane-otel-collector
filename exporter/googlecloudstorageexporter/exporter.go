@@ -41,7 +41,7 @@ type googleCloudStorageExporter struct {
 func newExporter(cfg *Config, params exporter.Settings) (*googleCloudStorageExporter, error) {
 	storageClient, err := newGoogleCloudStorageClient(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create storage client: %w", err)
+		return nil, fmt.Errorf("create storage client: %w", err)
 	}
 
 	return &googleCloudStorageExporter{
@@ -61,7 +61,7 @@ func (g *googleCloudStorageExporter) Capabilities() consumer.Capabilities {
 func (g *googleCloudStorageExporter) metricsDataPusher(ctx context.Context, md pmetric.Metrics) error {
 	buf, err := g.marshaler.MarshalMetrics(md)
 	if err != nil {
-		return fmt.Errorf("failed to marshal metrics: %w", err)
+		return fmt.Errorf("marshal metrics: %w", err)
 	}
 
 	objectName := g.getObjectName("metrics")
@@ -73,7 +73,7 @@ func (g *googleCloudStorageExporter) metricsDataPusher(ctx context.Context, md p
 func (g *googleCloudStorageExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
 	buf, err := g.marshaler.MarshalLogs(ld)
 	if err != nil {
-		return fmt.Errorf("failed to marshal logs: %w", err)
+		return fmt.Errorf("marshal logs: %w", err)
 	}
 
 	objectName := g.getObjectName("logs")
@@ -85,7 +85,7 @@ func (g *googleCloudStorageExporter) logsDataPusher(ctx context.Context, ld plog
 func (g *googleCloudStorageExporter) tracesDataPusher(ctx context.Context, td ptrace.Traces) error {
 	buf, err := g.marshaler.MarshalTraces(td)
 	if err != nil {
-		return fmt.Errorf("failed to marshal traces: %w", err)
+		return fmt.Errorf("marshal traces: %w", err)
 	}
 
 	objectName := g.getObjectName("traces")
