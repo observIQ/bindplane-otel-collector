@@ -22,7 +22,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpsqs"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -33,7 +33,7 @@ type logsReceiver struct {
 	id        component.ID
 	cfg       *Config
 	telemetry component.TelemetrySettings
-	sqsClient bpsqs.Client
+	sqsClient bpaws.SQSClient
 	next      consumer.Logs
 	startOnce sync.Once
 	stopOnce  sync.Once
@@ -45,7 +45,7 @@ type logsReceiver struct {
 }
 
 func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Config, next consumer.Logs) (component.Component, error) {
-	region, err := cfg.GetRegion()
+	region, err := bpaws.ParseRegionFromSQSURL(cfg.SQSQueueURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract region from SQS URL: %w", err)
 	}
@@ -60,7 +60,7 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 		cfg:       cfg,
 		telemetry: tel,
 		next:      next,
-		sqsClient: bpsqs.NewClient(awsConfig),
+		sqsClient: bpaws.NewClient(awsConfig).SQS(),
 		workerPool: sync.Pool{
 			New: func() interface{} {
 				return worker.New(tel, awsConfig, next)

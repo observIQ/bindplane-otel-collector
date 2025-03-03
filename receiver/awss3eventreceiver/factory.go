@@ -17,6 +17,7 @@ package awss3eventreceiver // import "github.com/observiq/bindplane-otel-collect
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
@@ -52,5 +53,10 @@ func createLogsReceiver(_ context.Context, params receiver.Settings, conf compon
 	if !ok {
 		return nil, errImproperCfgType
 	}
+
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("validate config: %w", err)
+	}
+
 	return newLogsReceiver(params.ID, params.TelemetrySettings, cfg, con)
 }

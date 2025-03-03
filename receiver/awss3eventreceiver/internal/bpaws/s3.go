@@ -12,23 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package bps3 provides a client for the S3 service.
-package bps3 // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bps3"
+// Package c provides a client for the S3 service.
+package bpaws // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
 
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-// NewClient creates a new S3 client
-var NewClient = func(cfg aws.Config) Client {
-	return s3.NewFromConfig(cfg)
-}
-
-// Client is the interface for the S3 client
-type Client interface {
+// S3Client is the interface for the S3 client
+type S3Client interface {
 	// GetObject retrieves an object from S3
 	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
 }

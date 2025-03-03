@@ -17,61 +17,73 @@ package fake
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpsqs"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
 )
 
-// NewSQSClient creates a new fake SQS client with the provided messages
-func NewSQSClient(messages []types.Message) func(cfg aws.Config) bpsqs.Client {
-	return func(_ aws.Config) bpsqs.Client {
-		return &sqsClient{
-			Messages:        messages,
-			DeletedMessages: []string{},
-		}
-	}
+var ErrEmptyQueue = errors.New("queue is empty")
+
+var _ bpaws.SQSClient = &sqsClient{}
+
+var fakeSQS = struct {
+	mu sync.Mutex
+
+	messages        []types.Message
+	deletedMessages []string
+}{
+	messages:        []types.Message{},
+	deletedMessages: []string{},
 }
 
-type sqsClient struct {
-	Messages        []types.Message
-	ReceiveError    error
-	DeleteError     error
-	DeletedMessages []string
-	mu              sync.Mutex
+// NewSQSClient creates a new fake SQS client with the provided messages
+func NewSQSClient(_ aws.Config) bpaws.SQSClient {
+	return &sqsClient{}
 }
+
+type sqsClient struct{}
 
 func (f *sqsClient) ReceiveMessage(_ context.Context, params *sqs.ReceiveMessageInput, _ ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
+	fakeSQS.mu.Lock()
+	defer fakeSQS.mu.Unlock()
 
-	if f.ReceiveError != nil {
-		return nil, f.ReceiveError
+	if len(fakeSQS.messages) == 0 {
+		return nil, ErrEmptyQueue
 	}
 
-	maxMessages := len(f.Messages)
-	if params.MaxNumberOfMessages > 0 && int(params.MaxNumberOfMessages) < maxMessages {
-		maxMessages = int(params.MaxNumberOfMessages)
+	messages := fakeSQS.messages
+	if params.MaxNumberOfMessages > 0 && int(params.MaxNumberOfMessages) < len(messages) {
+		messages = messages[:int(params.MaxNumberOfMessages)]
 	}
 
+	copyMessages := make([]types.Message, len(messages))
+	copy(copyMessages, messages)
 	return &sqs.ReceiveMessageOutput{
-		Messages: f.Messages[:maxMessages],
+		Messages: copyMessages,
 	}, nil
 }
 
 func (f *sqsClient) DeleteMessage(_ context.Context, params *sqs.DeleteMessageInput, _ ...func(*sqs.Options)) (*sqs.DeleteMessageOutput, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
+	fakeSQS.mu.Lock()
+	defer fakeSQS.mu.Unlock()
 
-	if f.DeleteError != nil {
-		return nil, f.DeleteError
-	}
-
-	if params.ReceiptHandle != nil {
-		f.DeletedMessages = append(f.DeletedMessages, *params.ReceiptHandle)
+	for i, msg := range fakeSQS.messages {
+		if *msg.ReceiptHandle == *params.ReceiptHandle {
+			fakeSQS.messages = append(fakeSQS.messages[:i], fakeSQS.messages[i+1:]...)
+			fakeSQS.deletedMessages = append(fakeSQS.deletedMessages, *params.ReceiptHandle)
+			break
+		}
 	}
 
 	return &sqs.DeleteMessageOutput{}, nil
+}
+
+func (f *sqsClient) sendMessage(msg types.Message) {
+	fakeSQS.mu.Lock()
+	defer fakeSQS.mu.Unlock()
+	fakeSQS.messages = append(fakeSQS.messages, msg)
 }

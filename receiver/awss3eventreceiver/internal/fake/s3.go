@@ -24,53 +24,58 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bps3"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
 )
 
-// NewS3Client creates a new fake S3 client
-func NewS3Client(_ aws.Config) bps3.Client {
-	return &S3Client{
-		objects: make(map[string]map[string][]byte),
-	}
+var _ bpaws.S3Client = &s3Client{}
+
+var fakeS3 = struct {
+	mu      sync.Mutex
+	objects map[string]map[string]string
+}{
+	objects: make(map[string]map[string]string),
 }
 
-// S3Client is a fake S3 client
-type S3Client struct {
-	objects  map[string]map[string][]byte
-	getError error
-	mu       sync.Mutex
+// NewS3Client creates a new fake S3 client
+func NewS3Client(_ aws.Config) bpaws.S3Client {
+	return &s3Client{}
 }
+
+// s3Client is a fake S3 client
+type s3Client struct{}
 
 // GetObject gets an object from the fake S3 client
-func (f *S3Client) GetObject(_ context.Context, params *s3.GetObjectInput, _ ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	if f.getError != nil {
-		return nil, f.getError
-	}
-
+func (f *s3Client) GetObject(_ context.Context, params *s3.GetObjectInput, _ ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
 	if params.Bucket == nil || params.Key == nil {
 		return nil, errors.New("bucket or key is nil")
 	}
 
-	bucket := *params.Bucket
-	key := *params.Key
+	fakeS3.mu.Lock()
+	defer fakeS3.mu.Unlock()
 
-	if _, ok := f.objects[bucket]; !ok {
+	bucket, ok := fakeS3.objects[*params.Bucket]
+	if !ok {
 		return nil, errors.New("bucket not found")
 	}
 
-	if _, ok := f.objects[bucket][key]; !ok {
+	object, ok := bucket[*params.Key]
+	if !ok {
 		return nil, errors.New("key not found")
 	}
 
-	data := f.objects[bucket][key]
-	dataCopy := make([]byte, len(data))
-	copy(dataCopy, data)
-	body := io.NopCloser(strings.NewReader(string(dataCopy)))
+	dataCopy := make([]byte, len(object))
+	copy(dataCopy, object)
 
 	return &s3.GetObjectOutput{
-		Body: body,
+		Body: io.NopCloser(strings.NewReader(string(dataCopy))),
 	}, nil
+}
+
+func (f *s3Client) putObject(bucket string, key string, body string) {
+	fakeS3.mu.Lock()
+	defer fakeS3.mu.Unlock()
+	if _, ok := fakeS3.objects[bucket]; !ok {
+		fakeS3.objects[bucket] = make(map[string]string)
+	}
+	fakeS3.objects[bucket][key] = body
 }

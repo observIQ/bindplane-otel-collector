@@ -26,9 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bps3"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpsqs"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -42,17 +40,16 @@ import (
 // It is designed to be used in a worker pool.
 type Worker struct {
 	tel          component.TelemetrySettings
-	s3client     bps3.Client
-	sqsClient    bpsqs.Client
+	client       bpaws.Client
 	nextConsumer consumer.Logs
 }
 
 // New creates a new Worker
 func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.Logs) *Worker {
+	client := bpaws.NewClient(cfg)
 	return &Worker{
 		tel:          tel,
-		s3client:     s3.NewFromConfig(cfg),
-		sqsClient:    sqs.NewFromConfig(cfg),
+		client:       client,
 		nextConsumer: nextConsumer,
 	}
 }
@@ -73,29 +70,20 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	w.tel.Logger.Debug("processing notification", zap.Int("event.count", len(notification.Records)))
 
 	ld := plog.NewLogs()
-
-	// Efficiently aggregate events into a single plog.Logs according to resource attributes
-	// Since each resource has one scope, hash by resource attributes but store the scope
-	resourceHashes := make(map[[16]byte]plog.ScopeLogs)
 	for _, record := range notification.Records {
-		resourceHash := pdatautil.Hash(
-			pdatautil.WithString(record.S3.Bucket.Name),
-			pdatautil.WithString(record.S3.Object.Key),
-		)
+		bucket := record.S3.Bucket.Name
+		key := record.S3.Object.Key
+		w.tel.Logger.Debug("processing record",
+			zap.String("bucket", bucket),
+			zap.String("key", key))
 
-		sls, ok := resourceHashes[resourceHash]
-		if !ok {
-			rls := ld.ResourceLogs().AppendEmpty()
-			rls.Resource().Attributes().PutStr("aws.s3.bucket", record.S3.Bucket.Name)
-			rls.Resource().Attributes().PutStr("aws.s3.key", record.S3.Object.Key)
-			sls = rls.ScopeLogs().AppendEmpty()
-			resourceHashes[resourceHash] = sls
-		}
+		// Create new resource logs for each record
+		rls := ld.ResourceLogs().AppendEmpty()
+		rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
+		rls.Resource().Attributes().PutStr("aws.s3.key", key)
+		sls := rls.ScopeLogs().AppendEmpty()
 
-		lrs := w.processRecord(ctx, record)
-		if lrs != nil {
-			lrs.MoveAndAppendTo(sls.LogRecords())
-		}
+		w.processRecord(ctx, record, sls.LogRecords())
 	}
 
 	// TODO allow configuration of whether to delete messages before or after consuming the logs.
@@ -106,7 +94,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 		QueueUrl:      aws.String(queueURL),
 		ReceiptHandle: msg.ReceiptHandle,
 	}
-	_, err = w.sqsClient.DeleteMessage(ctx, deleteParams)
+	_, err = w.client.SQS().DeleteMessage(ctx, deleteParams)
 	if err != nil {
 		w.tel.Logger.Error("delete message", zap.Error(err))
 		return
@@ -118,14 +106,14 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	}
 }
 
-func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord) *plog.LogRecordSlice {
+func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord, lrs plog.LogRecordSlice) *plog.LogRecordSlice {
 	w.tel.Logger.Debug("reading S3 object",
 		zap.String("bucket", record.S3.Bucket.Name),
 		zap.String("key", record.S3.Object.Key),
 		zap.Int64("size", record.S3.Object.Size),
 	)
 
-	resp, err := w.s3client.GetObject(ctx, &s3.GetObjectInput{
+	resp, err := w.client.S3().GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(record.S3.Bucket.Name),
 		Key:    aws.String(record.S3.Object.Key),
 	})
@@ -144,10 +132,9 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 		return nil
 	}
 
-	lrs := plog.NewLogRecordSlice()
 	lr := lrs.AppendEmpty()
 	lr.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
-	// TODO set timestamp from event.Time
+	lr.SetTimestamp(pcommon.NewTimestampFromTime(record.EventTime))
 	lr.Body().SetStr(string(data))
 	return &lrs
 }

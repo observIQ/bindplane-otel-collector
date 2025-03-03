@@ -90,5 +90,5 @@ func TestFactoryCreateReceiverErrors(t *testing.T) {
 	consumerLogs := consumertest.NewNop()
 	_, err := factory.CreateLogs(ctx, params, cfg, consumerLogs)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "sqs_queue_url is required")
+	assert.Contains(t, err.Error(), "'sqs_queue_url' is required")
 }

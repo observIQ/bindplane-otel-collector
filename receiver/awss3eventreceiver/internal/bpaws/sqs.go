@@ -12,23 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package bpsqs provides a client for the SQS service.
-package bpsqs // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpsqs"
+// Package bpaws provides a client for the SQS service.
+package bpaws // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal bpaws"
 
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
-// NewClient creates a new SQS client
-var NewClient = func(cfg aws.Config) Client {
-	return sqs.NewFromConfig(cfg)
-}
-
 // Client is the interface for the SQS client
-type Client interface {
+type SQSClient interface {
 	ReceiveMessage(ctx context.Context, params *sqs.ReceiveMessageInput, optFns ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error)
 	DeleteMessage(ctx context.Context, params *sqs.DeleteMessageInput, optFns ...func(*sqs.Options)) (*sqs.DeleteMessageOutput, error)
 }

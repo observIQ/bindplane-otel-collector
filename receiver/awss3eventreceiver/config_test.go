@@ -58,6 +58,7 @@ func TestLoadConfig(t *testing.T) {
 				PollInterval:      30 * time.Second,
 				VisibilityTimeout: 600 * time.Second,
 				APIMaxMessages:    20,
+				Workers:           10,
 			},
 			expectError: false,
 		},
@@ -94,218 +95,65 @@ func TestLoadConfig(t *testing.T) {
 func TestConfigValidate(t *testing.T) {
 	testCases := []struct {
 		desc        string
-		cfg         *Config
+		cfgMod      func(*Config)
 		expectedErr string
 	}{
 		{
 			desc: "Valid config",
-			cfg: &Config{
-				SQSQueueURL:       "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue",
-				PollInterval:      30 * time.Second,
-				VisibilityTimeout: 600 * time.Second,
-				APIMaxMessages:    10,
+			cfgMod: func(cfg *Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 			},
 			expectedErr: "",
 		},
 		{
-			desc: "Missing SQS queue URL",
-			cfg: &Config{
-				PollInterval:      30 * time.Second,
-				VisibilityTimeout: 600 * time.Second,
-				APIMaxMessages:    10,
-			},
-			expectedErr: "sqs_queue_url is required",
+			desc:        "Missing SQS queue URL",
+			cfgMod:      func(cfg *Config) {},
+			expectedErr: "'sqs_queue_url' is required",
 		},
 		{
 			desc: "Invalid poll interval",
-			cfg: &Config{
-				SQSQueueURL:       "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue",
-				PollInterval:      0,
-				VisibilityTimeout: 600 * time.Second,
-				APIMaxMessages:    10,
+			cfgMod: func(cfg *Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.PollInterval = 0
 			},
-			expectedErr: "poll_interval must be greater than 0",
+			expectedErr: "'poll_interval' must be greater than 0",
 		},
 		{
 			desc: "Invalid visibility timeout",
-			cfg: &Config{
-				SQSQueueURL:       "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue",
-				PollInterval:      30 * time.Second,
-				VisibilityTimeout: 0,
-				APIMaxMessages:    10,
+			cfgMod: func(cfg *Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.VisibilityTimeout = 0
 			},
-			expectedErr: "visibility_timeout must be greater than 0",
+			expectedErr: "'visibility_timeout' must be greater than 0",
 		},
 		{
 			desc: "Invalid API max messages",
-			cfg: &Config{
-				SQSQueueURL:       "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue",
-				PollInterval:      30 * time.Second,
-				VisibilityTimeout: 600 * time.Second,
-				APIMaxMessages:    0,
+			cfgMod: func(cfg *Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.APIMaxMessages = 0
 			},
-			expectedErr: "api_max_messages must be greater than 0",
+			expectedErr: "'api_max_messages' must be greater than 0",
 		},
 		{
-			desc: "Invalid max workers",
-			cfg: &Config{
-				SQSQueueURL:       "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue",
-				PollInterval:      30 * time.Second,
-				VisibilityTimeout: 600 * time.Second,
-				APIMaxMessages:    10,
+			desc: "Invalid workers",
+			cfgMod: func(cfg *Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.Workers = -1
 			},
-			expectedErr: "max_workers must be greater than 0",
+			expectedErr: "'workers' must be greater than 0",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			err := tc.cfg.Validate()
+			f := NewFactory()
+			cfg := f.CreateDefaultConfig().(*Config)
+			tc.cfgMod(cfg)
+			err := cfg.Validate()
 			if tc.expectedErr != "" {
 				assert.EqualError(t, err, tc.expectedErr)
 			} else {
 				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestExtractRegionFromSQSURL(t *testing.T) {
-	tests := []struct {
-		name        string
-		sqsURL      string
-		expected    string
-		shouldError bool
-	}{
-		{
-			name:        "Valid SQS URL US West 2",
-			sqsURL:      "https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue",
-			expected:    "us-west-2",
-			shouldError: false,
-		},
-		{
-			name:        "Valid SQS URL US East 1",
-			sqsURL:      "https://sqs.us-east-1.amazonaws.com/123456789012/MyQueue",
-			expected:    "us-east-1",
-			shouldError: false,
-		},
-		{
-			name:        "Valid SQS URL EU Central 1",
-			sqsURL:      "https://sqs.eu-central-1.amazonaws.com/123456789012/MyQueue",
-			expected:    "eu-central-1",
-			shouldError: false,
-		},
-		{
-			name:        "Invalid URL Format",
-			sqsURL:      "invalid-url",
-			expected:    "",
-			shouldError: true,
-		},
-		{
-			name:        "Invalid Host Format",
-			sqsURL:      "https://invalid.host.com/queue",
-			expected:    "",
-			shouldError: true,
-		},
-		{
-			name:        "Invalid SQS URL (missing sqs prefix)",
-			sqsURL:      "https://not-sqs.us-west-2.amazonaws.com/123456789012/MyQueue",
-			expected:    "",
-			shouldError: true,
-		},
-		{
-			name:        "Invalid Region Format",
-			sqsURL:      "https://sqs.invalid-region.amazonaws.com/123456789012/MyQueue",
-			expected:    "",
-			shouldError: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create a config with the test SQS URL
-			cfg := Config{
-				SQSQueueURL: tt.sqsURL,
-			}
-
-			// Use the GetRegion method
-			region, err := cfg.GetRegion()
-
-			if tt.shouldError {
-				require.Error(t, err)
-				assert.Empty(t, region)
-			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.expected, region)
-			}
-		})
-	}
-}
-
-func TestConfigValidateRegionExtraction(t *testing.T) {
-	tests := []struct {
-		name        string
-		config      Config
-		shouldError bool
-	}{
-		{
-			name: "Valid Config with Valid SQS URL",
-			config: Config{
-				SQSQueueURL:       "https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue",
-				PollInterval:      20,
-				VisibilityTimeout: 300,
-				APIMaxMessages:    10,
-			},
-			shouldError: false,
-		},
-		{
-			name: "Valid Config with Different Region",
-			config: Config{
-				SQSQueueURL:       "https://sqs.us-east-1.amazonaws.com/123456789012/MyQueue",
-				PollInterval:      20,
-				VisibilityTimeout: 300,
-				APIMaxMessages:    10,
-			},
-			shouldError: false,
-		},
-		{
-			name: "Invalid SQS URL for Region Extraction",
-			config: Config{
-				SQSQueueURL:       "https://invalid-url",
-				PollInterval:      20,
-				VisibilityTimeout: 300,
-				APIMaxMessages:    10,
-			},
-			shouldError: true,
-		},
-		{
-			name: "Missing SQS URL",
-			config: Config{
-				SQSQueueURL:       "", // Missing URL
-				PollInterval:      20,
-				VisibilityTimeout: 300,
-				APIMaxMessages:    10,
-			},
-			shouldError: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.config.Validate()
-
-			if tt.shouldError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				// Check if we can extract the region from the SQS URL
-				if tt.config.SQSQueueURL != "" {
-					region, regErr := tt.config.GetRegion()
-					if !tt.shouldError {
-						assert.NoError(t, regErr)
-						assert.NotEmpty(t, region)
-					}
-				}
 			}
 		})
 	}

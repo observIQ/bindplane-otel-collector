@@ -16,11 +16,9 @@ package awss3eventreceiver // import "github.com/observiq/bindplane-otel-collect
 
 import (
 	"errors"
-	"fmt"
-	"net/url"
-	"regexp"
-	"strings"
 	"time"
+
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
 )
 
 // Config defines the configuration for the AWS S3 Event receiver.
@@ -46,55 +44,28 @@ type Config struct {
 // Validate checks if all required fields are present and valid.
 func (c *Config) Validate() error {
 	if c.SQSQueueURL == "" {
-		return errors.New("sqs_queue_url is required")
+		return errors.New("'sqs_queue_url' is required")
 	}
 
 	if c.PollInterval <= 0 {
-		return errors.New("poll_interval must be greater than 0")
+		return errors.New("'poll_interval' must be greater than 0")
 	}
 
 	if c.VisibilityTimeout <= 0 {
-		return errors.New("visibility_timeout must be greater than 0")
+		return errors.New("'visibility_timeout' must be greater than 0")
 	}
 
 	if c.APIMaxMessages <= 0 {
-		return errors.New("api_max_messages must be greater than 0")
+		return errors.New("'api_max_messages' must be greater than 0")
 	}
 
-	// Validate that SQS URL has a valid region
-	_, err := c.GetRegion()
-	if err != nil {
+	if c.Workers <= 0 {
+		return errors.New("'workers' must be greater than 0")
+	}
+
+	if _, err := bpaws.ParseRegionFromSQSURL(c.SQSQueueURL); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-// GetRegion extracts the AWS region from the SQS queue URL.
-// TODO internal/bpssqs/ParseRegion(url string) (string, error)
-func (c *Config) GetRegion() (string, error) {
-	if c.SQSQueueURL == "" {
-		return "", errors.New("SQS queue URL is required")
-	}
-
-	parsedURL, err := url.Parse(c.SQSQueueURL)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse SQS URL: %w", err)
-	}
-
-	// SQS URL format: https://sqs.{region}.amazonaws.com/{account}/{queue}
-	hostParts := strings.Split(parsedURL.Host, ".")
-	if len(hostParts) < 4 || hostParts[0] != "sqs" {
-		return "", fmt.Errorf("invalid SQS URL format: %s", c.SQSQueueURL)
-	}
-
-	region := hostParts[1]
-
-	// Validate that the region has a valid format
-	validRegion := regexp.MustCompile(`^[a-z]{2}-[a-z]+-\d+$`)
-	if !validRegion.MatchString(region) {
-		return "", fmt.Errorf("invalid region format in SQS URL: %s", region)
-	}
-
-	return region, nil
 }
