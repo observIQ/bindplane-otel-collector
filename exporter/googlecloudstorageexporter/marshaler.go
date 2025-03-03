@@ -17,6 +17,7 @@ package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
@@ -94,7 +95,7 @@ type gzipMarshaler struct {
 func (g *gzipMarshaler) MarshalTraces(td ptrace.Traces) ([]byte, error) {
 	data, err := g.base.MarshalTraces(td)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("marshal traces: %w", err)
 	}
 
 	return g.compress(data)
@@ -104,7 +105,7 @@ func (g *gzipMarshaler) MarshalTraces(td ptrace.Traces) ([]byte, error) {
 func (g *gzipMarshaler) MarshalLogs(ld plog.Logs) ([]byte, error) {
 	data, err := g.base.MarshalLogs(ld)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("marshal logs: %w", err)
 	}
 
 	return g.compress(data)
@@ -114,7 +115,7 @@ func (g *gzipMarshaler) MarshalLogs(ld plog.Logs) ([]byte, error) {
 func (g *gzipMarshaler) MarshalMetrics(md pmetric.Metrics) ([]byte, error) {
 	data, err := g.base.MarshalMetrics(md)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("marshal metrics: %w", err)
 	}
 
 	return g.compress(data)
@@ -132,11 +133,11 @@ func (g *gzipMarshaler) compress(data []byte) ([]byte, error) {
 
 	_, err := writer.Write(data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("compress: %w", err)
 	}
 
 	if err := writer.Close(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("close: %w", err)
 	}
 
 	return buf.Bytes(), nil

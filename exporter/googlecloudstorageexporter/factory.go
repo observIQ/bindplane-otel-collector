@@ -17,6 +17,7 @@ package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
@@ -61,7 +62,7 @@ func createMetricsExporter(ctx context.Context, params exporter.Settings, config
 	}
 	exp, err := newExporter(cfg, params)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new metrics exporter: %w", err)
 	}
 	return exporterhelper.NewMetrics(
 		ctx,
@@ -82,7 +83,7 @@ func createLogsExporter(ctx context.Context, params exporter.Settings, config co
 	}
 	exp, err := newExporter(cfg, params)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new logs exporter: %w", err)
 	}
 	return exporterhelper.NewLogs(
 		ctx,
@@ -103,7 +104,7 @@ func createTracesExporter(ctx context.Context, params exporter.Settings, config 
 	}
 	exp, err := newExporter(cfg, params)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new traces exporter: %w", err)
 	}
 	return exporterhelper.NewTraces(
 		ctx,
