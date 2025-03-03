@@ -3,7 +3,7 @@
 Below is a list of supported exporters with links to their documentation pages.
 
 | Name                                                     | GitHub README                                                                                                                                                       |
-|----------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Alibaba Cloud Log Service Exporter                       | [alibabacloudlogserviceexporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.120.1/exporter/alibabacloudlogserviceexporter/README.md) |
 | AWS CloudWatch Logs Exporter                             | [awscloudwatchlogsexporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.120.1/exporter/awscloudwatchlogsexporter/README.md)           |
 | AWS CloudWatch EMF Exporter                              | [awsemfexporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.120.1/exporter/awsemfexporter/README.md)                                 |
@@ -24,6 +24,7 @@ Below is a list of supported exporters with links to their documentation pages.
 | Google Cloud Exporter                                    | [googlecloudexporter](../exporter/googlecloudexporter/README.md)                                                                                                    |
 | Google Cloud Pub/Sub Exporter                            | [googlecloudpubsubexporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.120.1/exporter/googlecloudpubsubexporter/README.md)           |
 | Google Managed Service for Prometheus Collector Exporter | [googlemanagedprometheus](../exporter/googlemanagedprometheusexporter/README.md)                                                                                    |
+| Google Cloud Storage Exporter                            | [googlecloudstorage](../exporter/googlecloudstorageexporter/README.md)                                                                                              |
 | InfluxDB Exporter                                        | [influxdbexporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.120.1/exporter/influxdbexporter/README.md)                             |
 | Kafka Exporter                                           | [kafkaexporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.120.1/exporter/kafkaexporter/README.md)                                   |
 | Load-Balancing (Trace ID Aware) Exporter                 | [loadbalancingexporter](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.120.1/exporter/loadbalancingexporter/README.md)                   |

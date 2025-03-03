@@ -19,6 +19,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleforwarderexporter"
 	"github.com/observiq/bindplane-otel-collector/exporter/googlecloudexporter"
+	"github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter"
 	"github.com/observiq/bindplane-otel-collector/exporter/googlemanagedprometheusexporter"
 	"github.com/observiq/bindplane-otel-collector/exporter/qradar"
 	"github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter"
@@ -79,6 +80,7 @@ var defaultExporters = []exporter.Factory{
 	googlecloudexporter.NewFactory(version.Version()),
 	googlecloudpubsubexporter.NewFactory(),
 	googlemanagedprometheusexporter.NewFactory(version.Version()),
+	googlecloudstorageexporter.NewFactory(),
 	influxdbexporter.NewFactory(),
 	kafkaexporter.NewFactory(),
 	loadbalancingexporter.NewFactory(),
