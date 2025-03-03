@@ -17,8 +17,10 @@ package googlecloudstorageexporter // import "github.com/observiq/bindplane-otel
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"cloud.google.com/go/storage"
+	"golang.org/x/oauth2/google"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 )
@@ -45,8 +47,26 @@ func newGoogleCloudStorageClient(cfg *Config) (*googleCloudStorageClient, error)
 	switch {
 	case cfg.Credentials != "":
 		opts = append(opts, option.WithCredentialsJSON([]byte(cfg.Credentials)))
+		if cfg.ProjectID == "" {
+			creds, err := google.CredentialsFromJSON(ctx, []byte(cfg.Credentials))
+			if err != nil {
+				return nil, fmt.Errorf("credentials from json: %w", err)
+			}
+			cfg.ProjectID = creds.ProjectID
+		}
 	case cfg.CredentialsFile != "":
 		opts = append(opts, option.WithCredentialsFile(cfg.CredentialsFile))
+		if cfg.ProjectID == "" {
+			credBytes, err := os.ReadFile(cfg.CredentialsFile)
+			if err != nil {
+				return nil, fmt.Errorf("read credentials file: %w", err)
+			}
+			creds, err := google.CredentialsFromJSON(ctx, credBytes)
+			if err != nil {
+				return nil, fmt.Errorf("credentials from json: %w", err)
+			}
+			cfg.ProjectID = creds.ProjectID
+		}
 	default:
 		// Will use default credentials from the environment
 	}

@@ -25,18 +25,18 @@ This exporter allows you to export logs, metrics, and traces to Google Cloud Sto
 
 ## Configuration
 
-| Field                | Type   | Default  | Required | Description                                                                                                         |
-| -------------------- | ------ | -------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
-| project_id           | string |          | `true`   | The ID of the Google Cloud project the bucket belongs to.                                                           |
-| bucket_name          | string |          | `true`   | The name of the bucket to store objects in.                                                                         |
-| bucket_location      | string |          | `false`  | The location of the bucket. Uses GCS default location if not set. Can only be set during bucket creation.           |
-| bucket_storage_class | string |          | `false`  | The storage class of the bucket. Uses GCS default storage class if not set. Can only be set during bucket creation. |
-| folder_name          | string |          | `false`  | An optional folder to put the objects in.                                                                           |
-| object_prefix        | string |          | `false`  | An optional prefix to prepend to the object file name.                                                              |
-| credentials          | string |          | `false`  | Optional credentials to provide authentication to Google Cloud. Mutually exclusive with `credentials_file`.         |
-| credentials_file     | string |          | `false`  | Optional file path to credentials to provide authentication to Google Cloud. Mutually exclusive with `credentials`. |
-| partition            | string | `minute` | `false`  | Time granularity of object name. Valid values are `hour` or `minute`.                                               |
-| compression          | string | `none`   | `false`  | The type of compression applied to the data before sending it to storage. Valid values are `none` and `gzip`.       |
+| Field                | Type   | Default  | Required | Description                                                                                                                               |
+| -------------------- | ------ | -------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| bucket_name          | string |          | `true`   | The name of the bucket to store objects in.                                                                                               |
+| project_id           | string |          | `false`  | The ID of the Google Cloud project the bucket belongs to. The exporter will read this value from the credentials if it is not configured. |
+| bucket_location      | string |          | `false`  | The location of the bucket. Uses GCS default location if not set. Can only be set during bucket creation.                                 |
+| bucket_storage_class | string |          | `false`  | The storage class of the bucket. Uses GCS default storage class if not set. Can only be set during bucket creation.                       |
+| folder_name          | string |          | `false`  | An optional folder to put the objects in.                                                                                                 |
+| object_prefix        | string |          | `false`  | An optional prefix to prepend to the object file name.                                                                                    |
+| credentials          | string |          | `false`  | Optional credentials to provide authentication to Google Cloud. Mutually exclusive with `credentials_file`.                               |
+| credentials_file     | string |          | `false`  | Optional file path to credentials to provide authentication to Google Cloud. Mutually exclusive with `credentials`.                       |
+| partition            | string | `minute` | `false`  | Time granularity of object name. Valid values are `hour` or `minute`.                                                                     |
+| compression          | string | `none`   | `false`  | The type of compression applied to the data before sending it to storage. Valid values are `none` and `gzip`.                             |
 
 ### Object Path
 
@@ -50,11 +50,10 @@ Object paths will be in the form:
 
 ### Minimal Configuration
 
-This configuration only specifies a project ID and the bucket name. The exporter will use the default partition of `minute` and will not apply compression. It will use the Google Cloud default location and storage class for the bucket, will not add a folder name or object prefix, and will authenticate to google cloud using application default credentials instead of `credentials` or `credentials_file`.
+This configuration only specifies the bucket name. The exporter will use the default partition of `minute` and will not apply compression. It will use the Google Cloud default location and storage class for the bucket, will not add a folder name or object prefix, and will authenticate to google cloud using application default credentials instead of `credentials` or `credentials_file`. The project ID is read from the credentials.
 
 ```yaml
 googlecloudstorage:
-  project_id: "my-project-id-18352"
   bucket_name: "my-bucket-name"
 ```
 
@@ -72,7 +71,6 @@ This shows specifying a partition of `hour` and that the `minute=XX` portion of 
 
 ```yaml
 googlecloudstorage:
-  project_id: "my-project-id-18352"
   bucket_name: "my-bucket-name"
   partition: "hour"
   compression: "gzip"

@@ -80,9 +80,6 @@ func (c *Config) Validate() error {
 	if c.BucketName == "" {
 		return errors.New("bucket_name is required")
 	}
-	if c.ProjectID == "" {
-		return errors.New("project_id is required")
-	}
 
 	// Validate credentials - both can be empty (for default credentials) but both cannot be set
 	if c.Credentials != "" && c.CredentialsFile != "" {

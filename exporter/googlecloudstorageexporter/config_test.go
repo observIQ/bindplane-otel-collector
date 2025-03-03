@@ -40,18 +40,6 @@ func TestConfigValidate(t *testing.T) {
 			expectedErr: errors.New("bucket_name is required"),
 		},
 		{
-			desc: "Empty project ID",
-			config: &Config{
-				BucketName:         "test-bucket",
-				ProjectID:          "",
-				Partition:          minutePartition,
-				Compression:        noCompression,
-				BucketStorageClass: "STANDARD",
-				BucketLocation:     "us-central1",
-			},
-			expectedErr: errors.New("project_id is required"),
-		},
-		{
 			desc: "Both credentials and credentials file provided",
 			config: &Config{
 				BucketName:         "test-bucket",
@@ -88,6 +76,15 @@ func TestConfigValidate(t *testing.T) {
 				BucketLocation:     "us-central1",
 			},
 			expectedErr: errors.New("unsupported compression type"),
+		},
+		{
+			desc: "Valid minimal config",
+			config: &Config{
+				BucketName: "test-bucket",
+				Partition:  minutePartition,
+				Compression: noCompression,
+			},
+			expectedErr: nil,
 		},
 		{
 			desc: "Valid config with hour partition",
