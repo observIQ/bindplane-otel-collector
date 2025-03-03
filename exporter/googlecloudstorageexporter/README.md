@@ -37,6 +37,9 @@ This exporter allows you to export logs, metrics, and traces to Google Cloud Sto
 | credentials_file     | string |          | `false`  | Optional file path to credentials to provide authentication to Google Cloud. Mutually exclusive with `credentials`.                       |
 | partition            | string | `minute` | `false`  | Time granularity of object name. Valid values are `hour` or `minute`.                                                                     |
 | compression          | string | `none`   | `false`  | The type of compression applied to the data before sending it to storage. Valid values are `none` and `gzip`.                             |
+| timeout              | string |          | `false`  | See [doc](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md) for details.             |
+| sending_queue        | map    |          | `false`  | See [doc](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md) for details.             |
+| retry_on_failure     | map    |          | `false`  | See [doc](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md) for details.             |
 
 ### Object Path
 
