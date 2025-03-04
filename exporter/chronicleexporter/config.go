@@ -149,10 +149,6 @@ func (cfg *Config) Validate() error {
 		if cfg.Forwarder == "" {
 			return errors.New("forwarder is required when protocol is https")
 		}
-		// deprecated
-		// if cfg.BatchLogCountLimitHTTP <= 0 {
-		// 	return errors.New("positive batch count log limit is required when protocol is https")
-		// }
 		if cfg.BatchRequestSizeLimitHTTP <= 0 {
 			return errors.New("positive batch request size limit is required when protocol is https")
 		}
@@ -161,10 +157,6 @@ func (cfg *Config) Validate() error {
 	}
 
 	if cfg.Protocol == protocolGRPC {
-		// deprecated
-		// if cfg.BatchLogCountLimitGRPC <= 0 {
-		// 	return errors.New("positive batch count log limit is required when protocol is grpc")
-		// }
 		if cfg.BatchRequestSizeLimitGRPC <= 0 {
 			return errors.New("positive batch request size limit is required when protocol is grpc")
 		}
