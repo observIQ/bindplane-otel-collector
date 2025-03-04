@@ -43,17 +43,19 @@ const (
 // createDefaultConfig creates the default configuration for the exporter.
 func createDefaultConfig() component.Config {
 	return &Config{
-		Protocol:                  protocolGRPC,
-		TimeoutConfig:             exporterhelper.NewDefaultTimeoutConfig(),
-		QueueConfig:               exporterhelper.NewDefaultQueueConfig(),
-		BackOffConfig:             configretry.NewDefaultBackOffConfig(),
-		OverrideLogType:           true,
-		Compression:               noCompression,
-		CollectAgentMetrics:       true,
-		Endpoint:                  defaultEndpoint,
-		BatchLogCountLimitGRPC:    defaultBatchLogCountLimitGRPC,
+		Protocol:            protocolGRPC,
+		TimeoutConfig:       exporterhelper.NewDefaultTimeoutConfig(),
+		QueueConfig:         exporterhelper.NewDefaultQueueConfig(),
+		BackOffConfig:       configretry.NewDefaultBackOffConfig(),
+		OverrideLogType:     true,
+		Compression:         noCompression,
+		CollectAgentMetrics: true,
+		Endpoint:            defaultEndpoint,
+		// deprecated
+		// BatchLogCountLimitGRPC:    defaultBatchLogCountLimitGRPC,
 		BatchRequestSizeLimitGRPC: defaultBatchRequestSizeLimitGRPC,
-		BatchLogCountLimitHTTP:    defaultBatchLogCountLimitHTTP,
+		// deprecated
+		// BatchLogCountLimitHTTP:    defaultBatchLogCountLimitHTTP,
 		BatchRequestSizeLimitHTTP: defaultBatchRequestSizeLimitHTTP,
 	}
 }

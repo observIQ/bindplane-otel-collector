@@ -35,9 +35,7 @@ The exporter can be configured using the following fields:
 | `compression`                   | string            | `none`                                 | `false`  | The compression type to use when sending logs. valid values are `none` and `gzip`           |
 | `ingestion_labels`              | map[string]string |                                        | `false`  | Key-value pairs of labels to be applied to the logs when sent to chronicle.                 |
 | `collect_agent_metrics`         | bool              | `true`                                 | `false`  | Enables collecting metrics about the agent's process and log ingestion metrics              |
-| `batch_log_count_limit_grpc`    | int               | `1000`                                 | `false`  | The maximum number of logs allowed in a gRPC batch creation request.                        |
 | `batch_request_size_limit_grpc` | int               | `1048576`                              | `false`  | The maximum size, in bytes, allowed for a gRPC batch creation request.                      |
-| `batch_log_count_limit_http`    | int               | `1000`                                 | `false`  | The maximum number of logs allowed in a HTTP batch creation request.                        |
 | `batch_request_size_limit_http` | int               | `1048576`                              | `false`  | The maximum size, in bytes, allowed for a HTTP batch creation request.                      |
 
 ### Log Type
@@ -69,7 +67,7 @@ For additional information on accessing Chronicle, see the [Chronicle documentat
 
 ## Log Batch Creation Request Limits
 
-`batch_log_count_limit_grpc`, `batch_request_size_limit_grpc`, `batch_log_count_limit_http`, `batch_request_size_limit_http` are all used for ensuring log batch creation requests don't exceed Chronicle's backend limits - the former two for Chronicle's gRPC endpoint, and the latter two for Chronicle's HTTP endpoint. If a request either exceeds the configured size limit or contains more logs than the configured log count limit, the request will be split into multiple requests that adhere to these limits, with each request containing a subset of the logs contained in the original request. Any single logs that result in the request exceeding the size limit will be dropped.
+`batch_request_size_limit_grpc` and `batch_request_size_limit_http` are used for ensuring log batch creation requests don't exceed Chronicle's backend limits - the former for Chronicle's gRPC endpoint, and the latter for Chronicle's HTTP endpoint. If a request exceeds the configured size limit, the request will be split into multiple requests that adhere to this limit, with each request containing a subset of the logs contained in the original request. Any single logs that result in the request exceeding the size limit will be dropped.
 
 ## Example Configuration
 
