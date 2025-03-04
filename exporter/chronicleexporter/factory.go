@@ -34,9 +34,7 @@ func NewFactory() exporter.Factory {
 
 const (
 	defaultEndpoint                  = "malachiteingestion-pa.googleapis.com"
-	defaultBatchLogCountLimitGRPC    = 1000
 	defaultBatchRequestSizeLimitGRPC = 1048576
-	defaultBatchLogCountLimitHTTP    = 1000
 	defaultBatchRequestSizeLimitHTTP = 1048576
 )
 
@@ -51,9 +49,7 @@ func createDefaultConfig() component.Config {
 		Compression:               noCompression,
 		CollectAgentMetrics:       true,
 		Endpoint:                  defaultEndpoint,
-		BatchLogCountLimitGRPC:    defaultBatchLogCountLimitGRPC,
 		BatchRequestSizeLimitGRPC: defaultBatchRequestSizeLimitGRPC,
-		BatchLogCountLimitHTTP:    defaultBatchLogCountLimitHTTP,
 		BatchRequestSizeLimitHTTP: defaultBatchRequestSizeLimitHTTP,
 	}
 }

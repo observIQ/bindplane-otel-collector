@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macos-13, windows-2022-8-cores]
+        os: [ubuntu-latest-8-cores, macos-13, windows-2022-8-cores]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Sources
@@ -22,8 +22,8 @@ jobs:
       - name: Run Tests
         run: make test
       - name: Run Updater Integration Tests (non-linux)
-        if: matrix.os != 'ubuntu-20.04'
+        if: matrix.os != 'ubuntu-latest-8-cores'
         run: make test-updater-integration
       - name: Run Updater Integration Tests (linux)
-        if: matrix.os == 'ubuntu-20.04'
+        if: matrix.os == 'ubuntu-latest-8-cores'
         run: sudo make test-updater-integration
