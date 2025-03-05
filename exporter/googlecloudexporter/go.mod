@@ -14,7 +14,7 @@ require (
 	go.opentelemetry.io/collector/processor v0.121.0
 	go.opentelemetry.io/collector/processor/batchprocessor v0.121.0
 	go.uber.org/multierr v1.11.0
-	google.golang.org/api v0.221.0
+	google.golang.org/api v0.223.0
 )
 
 require (
@@ -52,7 +52,7 @@ require (
 
 require (
 	cloud.google.com/go v0.118.0 // indirect
-	cloud.google.com/go/auth v0.14.1 // indirect
+	cloud.google.com/go/auth v0.15.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.7 // indirect
 	cloud.google.com/go/compute/metadata v0.6.0 // indirect
 	cloud.google.com/go/longrunning v0.6.4 // indirect
@@ -90,8 +90,8 @@ require (
 	go.opentelemetry.io/collector/receiver/receivertest v0.121.0 // indirect
 	go.opentelemetry.io/collector/receiver/xreceiver v0.121.0 // indirect
 	go.opentelemetry.io/collector/semconv v0.121.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.58.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.58.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.59.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.59.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.34.0 // indirect
 	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
