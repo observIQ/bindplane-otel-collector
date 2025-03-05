@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/consumer"
-	"go.opentelemetry.io/collector/exporter"
+	"go.opentelemetry.io/collector/exporter/exportertest"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
@@ -34,7 +34,7 @@ func TestCreateLogEmitterFactory(t *testing.T) {
 
 	factory := createLogEmitterFactory(consumer)
 	ctx := context.Background()
-	set := exporter.Settings{}
+	set := exportertest.NewNopSettings(emitterType)
 	cfg := defaultEmitterConfig()
 
 	exporter, err := factory.CreateLogs(ctx, set, cfg)
@@ -52,7 +52,7 @@ func TestCreateMetricEmitterFactory(t *testing.T) {
 
 	factory := createMetricEmitterFactory(consumer)
 	ctx := context.Background()
-	set := exporter.Settings{}
+	set := exportertest.NewNopSettings(emitterType)
 	cfg := defaultEmitterConfig()
 
 	exporter, err := factory.CreateMetrics(ctx, set, cfg)
@@ -70,7 +70,7 @@ func TestCreateTraceEmitterFactory(t *testing.T) {
 
 	factory := createTraceEmitterFactory(consumer)
 	ctx := context.Background()
-	set := exporter.Settings{}
+	set := exportertest.NewNopSettings(emitterType)
 	cfg := defaultEmitterConfig()
 
 	exporter, err := factory.CreateTraces(ctx, set, cfg)

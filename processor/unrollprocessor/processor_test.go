@@ -95,7 +95,7 @@ func TestProcessor(t *testing.T) {
 			f := NewFactory()
 			cfg := f.CreateDefaultConfig().(*Config)
 			cfg.Recursive = test.recursive
-			set := processortest.NewNopSettings()
+			set := processortest.NewNopSettings(componentType)
 			sink := &consumertest.LogsSink{}
 			p, err := f.CreateLogs(context.Background(), set, cfg, sink)
 			require.NoError(t, err)

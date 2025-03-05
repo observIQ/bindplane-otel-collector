@@ -20,6 +20,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/receiver/httpreceiver/internal/metadata"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/receiver/receivertest"
 )
 
@@ -34,7 +35,7 @@ func TestCreateLogsReceiver(t *testing.T) {
 
 	_, err := NewFactory().CreateLogs(
 		context.Background(),
-		receivertest.NewNopSettings(),
+		receivertest.NewNopSettings(component.MustNewType("http")),
 		cfg,
 		nil,
 	)

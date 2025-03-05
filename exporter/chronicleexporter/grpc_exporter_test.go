@@ -172,7 +172,7 @@ func TestGRPCExporter(t *testing.T) {
 			require.NoError(t, cfg.Validate())
 
 			ctx := context.Background()
-			exp, err := f.CreateLogs(ctx, exportertest.NewNopSettings(), cfg)
+			exp, err := f.CreateLogs(ctx, exportertest.NewNopSettings(typ), cfg)
 			require.NoError(t, err)
 			require.NoError(t, exp.Start(ctx, componenttest.NewNopHost()))
 			defer func() {

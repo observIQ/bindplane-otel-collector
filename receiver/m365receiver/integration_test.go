@@ -37,7 +37,7 @@ func TestM365Integration(t *testing.T) {
 	cfg.ClientSecret = "testClientSecret"
 
 	//create receiver
-	settings := receivertest.NewNopSettings()
+	settings := receivertest.NewNopSettings(typ)
 	rcvr := newM365Scraper(settings, cfg)
 
 	//create m365Client object with the http.Client = to the mock server for the integration tests

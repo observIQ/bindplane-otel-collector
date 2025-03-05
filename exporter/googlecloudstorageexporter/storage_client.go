@@ -27,7 +27,7 @@ import (
 
 // storageClient is a wrapper for a Google Cloud Storage client to allow mocking for testing.
 //
-//go:generate mockery --name storageClient --output ./internal/mocks --with-expecter --filename mock_storage_client.go --structname mockStorageClient
+//go:generate mockery --name storageClient --output ./internal/mocks --with-expecter --filename mock_storage_client.go --structname MockStorageClient
 type storageClient interface {
 	UploadObject(ctx context.Context, objectName string, buffer []byte) error
 }

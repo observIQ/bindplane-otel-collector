@@ -32,6 +32,8 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
+var id = component.NewIDWithName(componentType, "test")
+
 func TestProcessorCapabilities(t *testing.T) {
 	p := &logCountProcessor{}
 	require.Equal(t, consumer.Capabilities{MutatesData: false}, p.Capabilities())
@@ -44,7 +46,7 @@ func TestShutdownBeforeStart(t *testing.T) {
 	processorCfg.Interval = time.Millisecond * 100
 
 	processorFactory := NewFactory()
-	processorSettings := processor.Settings{TelemetrySettings: component.TelemetrySettings{Logger: zap.NewNop()}}
+	processorSettings := processor.Settings{ID: id, TelemetrySettings: component.TelemetrySettings{Logger: zap.NewNop()}}
 	processor, err := processorFactory.CreateLogs(context.Background(), processorSettings, processorCfg, logConsumer)
 	require.NoError(t, err)
 
@@ -65,14 +67,16 @@ func TestConsumeLogs(t *testing.T) {
 		"dimension1": `body.message`,
 		"dimension2": `resource["service.name"]`,
 	}
+	processorCfg.Route = "test"
 
 	processorFactory := NewFactory()
-	processorSettings := processor.Settings{TelemetrySettings: component.TelemetrySettings{Logger: zap.NewNop()}}
+	processorSettings := processor.Settings{ID: id, TelemetrySettings: component.TelemetrySettings{Logger: zap.NewNop()}}
 	processor, err := processorFactory.CreateLogs(context.Background(), processorSettings, processorCfg, logConsumer)
 	require.NoError(t, err)
 
 	receiverFactory := routereceiver.NewFactory()
-	receiver, err := receiverFactory.CreateMetrics(context.Background(), receiver.Settings{}, receiverFactory.CreateDefaultConfig(), metricConsumer)
+	routeID := component.NewIDWithName(receiverFactory.Type(), "test")
+	receiver, err := receiverFactory.CreateMetrics(context.Background(), receiver.Settings{ID: routeID}, receiverFactory.CreateDefaultConfig(), metricConsumer)
 	require.NoError(t, err)
 
 	err = processor.Start(context.Background(), nil)
@@ -123,14 +127,15 @@ func TestConsumeLogsAttrsOnly(t *testing.T) {
 		"dimension1": `body.message`,
 		"dimension2": `resource["service.name"]`,
 	}
-
+	processorCfg.Route = "test"
 	processorFactory := NewFactory()
-	processorSettings := processor.Settings{TelemetrySettings: component.TelemetrySettings{Logger: zap.NewNop()}}
+	processorSettings := processor.Settings{ID: id, TelemetrySettings: component.TelemetrySettings{Logger: zap.NewNop()}}
 	processor, err := processorFactory.CreateLogs(context.Background(), processorSettings, processorCfg, logConsumer)
 	require.NoError(t, err)
 
 	receiverFactory := routereceiver.NewFactory()
-	receiver, err := receiverFactory.CreateMetrics(context.Background(), receiver.Settings{}, receiverFactory.CreateDefaultConfig(), metricConsumer)
+	routeID := component.NewIDWithName(receiverFactory.Type(), "test")
+	receiver, err := receiverFactory.CreateMetrics(context.Background(), receiver.Settings{ID: routeID}, receiverFactory.CreateDefaultConfig(), metricConsumer)
 	require.NoError(t, err)
 
 	err = processor.Start(context.Background(), nil)
@@ -184,14 +189,15 @@ func TestConsumeLogsOTTL(t *testing.T) {
 		"dimension1": `body["message"]`,
 		"dimension2": `resource.attributes["service.name"]`,
 	}
-
+	processorCfg.Route = "test"
 	processorFactory := NewFactory()
-	processorSettings := processor.Settings{TelemetrySettings: component.TelemetrySettings{Logger: zap.NewNop()}}
+	processorSettings := processor.Settings{ID: id, TelemetrySettings: component.TelemetrySettings{Logger: zap.NewNop()}}
 	processor, err := processorFactory.CreateLogs(context.Background(), processorSettings, processorCfg, logConsumer)
 	require.NoError(t, err)
 
 	receiverFactory := routereceiver.NewFactory()
-	receiver, err := receiverFactory.CreateMetrics(context.Background(), receiver.Settings{}, receiverFactory.CreateDefaultConfig(), metricConsumer)
+	routeID := component.NewIDWithName(receiverFactory.Type(), "test")
+	receiver, err := receiverFactory.CreateMetrics(context.Background(), receiver.Settings{ID: routeID}, receiverFactory.CreateDefaultConfig(), metricConsumer)
 	require.NoError(t, err)
 
 	err = processor.Start(context.Background(), nil)
@@ -236,7 +242,7 @@ func TestConsumeLogsWithoutReceiver(t *testing.T) {
 	logger := NewTestLogger()
 	processorCfg := createDefaultConfig().(*Config)
 	processorFactory := NewFactory()
-	processorSettings := processor.Settings{TelemetrySettings: component.TelemetrySettings{Logger: logger.Logger}}
+	processorSettings := processor.Settings{ID: id, TelemetrySettings: component.TelemetrySettings{Logger: logger.Logger}}
 	p, err := processorFactory.CreateLogs(context.Background(), processorSettings, processorCfg, &LogConsumer{})
 	require.NoError(t, err)
 

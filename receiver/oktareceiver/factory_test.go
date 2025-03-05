@@ -34,7 +34,7 @@ func TestCreateLogsReceiver(t *testing.T) {
 
 	recv, err := NewFactory().CreateLogs(
 		context.Background(),
-		receivertest.NewNopSettings(),
+		receivertest.NewNopSettings(typ),
 		cfg,
 		nil,
 	)

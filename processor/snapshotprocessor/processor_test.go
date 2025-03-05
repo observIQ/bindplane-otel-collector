@@ -40,7 +40,7 @@ func TestProcess_Logs(t *testing.T) {
 	factory := NewFactory()
 	sink := &consumertest.LogsSink{}
 
-	pSet := processortest.NewNopSettings()
+	pSet := processortest.NewNopSettings(componentType)
 	p, err := factory.CreateLogs(context.Background(), pSet, factory.CreateDefaultConfig(), sink)
 	require.NoError(t, err)
 
@@ -104,7 +104,7 @@ func TestProcess_Metrics(t *testing.T) {
 	factory := NewFactory()
 	sink := &consumertest.MetricsSink{}
 
-	pSet := processortest.NewNopSettings()
+	pSet := processortest.NewNopSettings(componentType)
 	p, err := factory.CreateMetrics(context.Background(), pSet, factory.CreateDefaultConfig(), sink)
 	require.NoError(t, err)
 
@@ -168,7 +168,7 @@ func TestProcess_Traces(t *testing.T) {
 	factory := NewFactory()
 	sink := &consumertest.TracesSink{}
 
-	pSet := processortest.NewNopSettings()
+	pSet := processortest.NewNopSettings(componentType)
 	p, err := factory.CreateTraces(context.Background(), pSet, factory.CreateDefaultConfig(), sink)
 	require.NoError(t, err)
 

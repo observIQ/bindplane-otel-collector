@@ -41,10 +41,10 @@ func TestNewFactory(t *testing.T) {
 
 // Test that 2 instances with the same processor ID will not error when started
 func TestCreateProcessorTwice_Logs(t *testing.T) {
-	processorID := component.MustNewIDWithName("throughputmeasurement", "1")
+	processorID := component.NewIDWithName(componentType, "1")
 	bindplaneExtensionID := component.MustNewID("bindplane")
 
-	set := processortest.NewNopSettings()
+	set := processortest.NewNopSettings(componentType)
 	set.ID = processorID
 
 	cfg := &Config{
@@ -76,10 +76,10 @@ func TestCreateProcessorTwice_Logs(t *testing.T) {
 
 // Test that 2 instances with the same processor ID will not error when started
 func TestCreateProcessorTwice_Metrics(t *testing.T) {
-	processorID := component.MustNewIDWithName("throughputmeasurement", "1")
+	processorID := component.NewIDWithName(componentType, "1")
 	bindplaneExtensionID := component.MustNewID("bindplane")
 
-	set := processortest.NewNopSettings()
+	set := processortest.NewNopSettings(componentType)
 	set.ID = processorID
 
 	cfg := &Config{
@@ -111,10 +111,10 @@ func TestCreateProcessorTwice_Metrics(t *testing.T) {
 
 // Test that 2 instances with the same processor ID will not error when started
 func TestCreateProcessorTwice_Traces(t *testing.T) {
-	processorID := component.MustNewIDWithName("throughputmeasurement", "1")
+	processorID := component.NewIDWithName(componentType, "1")
 	bindplaneExtensionID := component.MustNewID("bindplane")
 
-	set := processortest.NewNopSettings()
+	set := processortest.NewNopSettings(componentType)
 	set.ID = processorID
 
 	cfg := &Config{

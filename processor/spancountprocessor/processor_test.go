@@ -33,6 +33,8 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
+var id = component.NewIDWithName(componentType, "test")
+
 func TestProcessorCapabilities(t *testing.T) {
 	p := &spanCountProcessor{}
 	require.Equal(t, consumer.Capabilities{MutatesData: false}, p.Capabilities())
@@ -45,7 +47,7 @@ func TestShutdownBeforeStart(t *testing.T) {
 	processorCfg.Interval = time.Millisecond * 100
 
 	processorFactory := NewFactory()
-	processorSettings := processor.Settings{TelemetrySettings: component.TelemetrySettings{Logger: zaptest.NewLogger(t)}}
+	processorSettings := processor.Settings{ID: id, TelemetrySettings: component.TelemetrySettings{Logger: zaptest.NewLogger(t)}}
 	processor, err := processorFactory.CreateTraces(context.Background(), processorSettings, processorCfg, nextTracesConsumer)
 	require.NoError(t, err)
 	require.NotPanics(t, func() {
@@ -64,14 +66,16 @@ func TestConsumeTraces(t *testing.T) {
 		"dimension1": `span_duration_ms`,
 		"dimension2": `resource["service.name"]`,
 	}
+	processorCfg.Route = "test"
 
 	processorFactory := NewFactory()
-	processorSettings := processor.Settings{TelemetrySettings: component.TelemetrySettings{Logger: zaptest.NewLogger(t)}}
+	processorSettings := processor.Settings{ID: id, TelemetrySettings: component.TelemetrySettings{Logger: zaptest.NewLogger(t)}}
 	processor, err := processorFactory.CreateTraces(context.Background(), processorSettings, processorCfg, nextTracesConsumer)
 	require.NoError(t, err)
 
 	receiverFactory := routereceiver.NewFactory()
-	receiver, err := receiverFactory.CreateMetrics(context.Background(), receiver.Settings{}, receiverFactory.CreateDefaultConfig(), countMetricConsumer)
+	routeID := component.NewIDWithName(receiverFactory.Type(), "test")
+	receiver, err := receiverFactory.CreateMetrics(context.Background(), receiver.Settings{ID: routeID}, receiverFactory.CreateDefaultConfig(), countMetricConsumer)
 	require.NoError(t, err)
 
 	err = processor.Start(context.Background(), nil)
@@ -131,14 +135,16 @@ func TestConsumeTracesAttrsOnly(t *testing.T) {
 		"dimension1": `span_duration_ms`,
 		"dimension2": `resource["service.name"]`,
 	}
+	processorCfg.Route = "test"
 
 	processorFactory := NewFactory()
-	processorSettings := processor.Settings{TelemetrySettings: component.TelemetrySettings{Logger: zaptest.NewLogger(t)}}
+	processorSettings := processor.Settings{ID: id, TelemetrySettings: component.TelemetrySettings{Logger: zaptest.NewLogger(t)}}
 	processor, err := processorFactory.CreateTraces(context.Background(), processorSettings, processorCfg, nextTracesConsumer)
 	require.NoError(t, err)
 
 	receiverFactory := routereceiver.NewFactory()
-	receiver, err := receiverFactory.CreateMetrics(context.Background(), receiver.Settings{}, receiverFactory.CreateDefaultConfig(), countMetricConsumer)
+	routeID := component.NewIDWithName(receiverFactory.Type(), "test")
+	receiver, err := receiverFactory.CreateMetrics(context.Background(), receiver.Settings{ID: routeID}, receiverFactory.CreateDefaultConfig(), countMetricConsumer)
 	require.NoError(t, err)
 
 	err = processor.Start(context.Background(), nil)
@@ -201,14 +207,16 @@ func TestConsumeTracesOTTL(t *testing.T) {
 		"dimension1": `end_time_unix_nano - start_time_unix_nano`,
 		"dimension2": `resource.attributes["service.name"]`,
 	}
+	processorCfg.Route = "test"
 
 	processorFactory := NewFactory()
-	processorSettings := processor.Settings{TelemetrySettings: component.TelemetrySettings{Logger: zaptest.NewLogger(t)}}
+	processorSettings := processor.Settings{ID: id, TelemetrySettings: component.TelemetrySettings{Logger: zaptest.NewLogger(t)}}
 	processor, err := processorFactory.CreateTraces(context.Background(), processorSettings, processorCfg, nextTracesConsumer)
 	require.NoError(t, err)
 
 	receiverFactory := routereceiver.NewFactory()
-	receiver, err := receiverFactory.CreateMetrics(context.Background(), receiver.Settings{}, receiverFactory.CreateDefaultConfig(), countMetricConsumer)
+	routeID := component.NewIDWithName(receiverFactory.Type(), "test")
+	receiver, err := receiverFactory.CreateMetrics(context.Background(), receiver.Settings{ID: routeID}, receiverFactory.CreateDefaultConfig(), countMetricConsumer)
 	require.NoError(t, err)
 
 	err = processor.Start(context.Background(), nil)
@@ -262,7 +270,7 @@ func TestConsumeTracesWithoutReceiver(t *testing.T) {
 	logger := NewTestLogger()
 	processorCfg := createDefaultConfig().(*Config)
 	processorFactory := NewFactory()
-	processorSettings := processor.Settings{TelemetrySettings: component.TelemetrySettings{Logger: logger.Logger}}
+	processorSettings := processor.Settings{ID: id, TelemetrySettings: component.TelemetrySettings{Logger: logger.Logger}}
 	p, err := processorFactory.CreateTraces(context.Background(), processorSettings, processorCfg, &consumertest.TracesSink{})
 	require.NoError(t, err)
 

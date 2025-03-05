@@ -35,7 +35,7 @@ func TestNewFactory(t *testing.T) {
 		Context: "body",
 		Field:   "ip",
 	}
-	settings := processortest.NewNopSettings()
+	settings := processortest.NewNopSettings(componentType)
 	consumer := consumertest.NewNop()
 
 	traceProcessor, err := factory.CreateTraces(context.Background(), settings, &cfg, consumer)

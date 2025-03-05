@@ -78,7 +78,7 @@ func TestNewTracesExporter(t *testing.T) {
 			exp, err := newTracesExporter(
 				tc.ctx,
 				tc.c,
-				exportertest.NewNopSettings(),
+				exportertest.NewNopSettings(typ),
 				tc.newDatabase,
 			)
 
@@ -169,7 +169,7 @@ func TestTracesStart(t *testing.T) {
 			tracesExp, err := newTracesExporter(
 				tc.ctx,
 				c,
-				exportertest.NewNopSettings(),
+				exportertest.NewNopSettings(typ),
 				func(_, _, _ string) (database.Database, error) { return nil, nil },
 			)
 			require.NoError(t, err)
@@ -256,7 +256,7 @@ func TestTracesDataPusher(t *testing.T) {
 			tracesExp, err := newTracesExporter(
 				tc.ctx,
 				c,
-				exportertest.NewNopSettings(),
+				exportertest.NewNopSettings(typ),
 				func(_, _, _ string) (database.Database, error) { return nil, nil },
 			)
 			require.NoError(t, err)

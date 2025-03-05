@@ -39,8 +39,8 @@ func TestNewFactory(t *testing.T) {
 }
 
 func TestCreateOrGetProcessor(t *testing.T) {
-	p1Settings := processortest.NewNopSettings()
-	p1Settings.ID = component.MustNewIDWithName(componentType.String(), "proc1")
+	p1Settings := processortest.NewNopSettings(componentType)
+	p1Settings.ID = component.NewIDWithName(componentType, "proc1")
 
 	p1, err := createOrGetProcessor(p1Settings, createDefaultConfig().(*Config))
 	require.NoError(t, err)
@@ -50,8 +50,8 @@ func TestCreateOrGetProcessor(t *testing.T) {
 	// p1 and p1Copy should be the same pointer
 	require.True(t, p1 == p1Copy, "p1 and p1Copy are not the same pointer")
 
-	p2Settings := processortest.NewNopSettings()
-	p2Settings.ID = component.MustNewIDWithName(componentType.String(), "proc2")
+	p2Settings := processortest.NewNopSettings(componentType)
+	p2Settings.ID = component.NewIDWithName(componentType, "proc2")
 
 	p2, err := createOrGetProcessor(p2Settings, createDefaultConfig().(*Config))
 	require.NoError(t, err)
@@ -60,10 +60,10 @@ func TestCreateOrGetProcessor(t *testing.T) {
 
 // Test that 2 instances with the same processor ID will not error when started
 func TestCreateProcessorTwice_Logs(t *testing.T) {
-	processorID := component.MustNewIDWithName("topology", "1")
+	processorID := component.NewIDWithName(componentType, "1")
 	bindplaneExtensionID := component.MustNewID("bindplane")
 
-	set := processortest.NewNopSettings()
+	set := processortest.NewNopSettings(componentType)
 	set.ID = processorID
 
 	cfg := &Config{
@@ -101,7 +101,7 @@ func TestCreateProcessorTwice_Metrics(t *testing.T) {
 	processorID := component.MustNewIDWithName("throughputmeasurement", "1")
 	bindplaneExtensionID := component.MustNewID("bindplane")
 
-	set := processortest.NewNopSettings()
+	set := processortest.NewNopSettings(componentType)
 	set.ID = processorID
 
 	cfg := &Config{
@@ -139,7 +139,7 @@ func TestCreateProcessorTwice_Traces(t *testing.T) {
 	processorID := component.MustNewIDWithName("throughputmeasurement", "1")
 	bindplaneExtensionID := component.MustNewID("bindplane")
 
-	set := processortest.NewNopSettings()
+	set := processortest.NewNopSettings(componentType)
 	set.ID = processorID
 
 	cfg := &Config{

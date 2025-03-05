@@ -59,7 +59,7 @@ func TestReceiverMetrics(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			factory := NewFactory()
 			cfg := factory.CreateDefaultConfig().(*Config)
-			set := receivertest.NewNopSettings()
+			set := receivertest.NewNopSettings(componentType)
 			set.ID = component.NewIDWithName(componentType, tc.receiverName)
 			receiver, err := factory.CreateMetrics(context.Background(), set, cfg, tc.consumer)
 			require.NoError(t, err)
@@ -109,7 +109,7 @@ func TestReceiverLogs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			factory := NewFactory()
 			cfg := factory.CreateDefaultConfig().(*Config)
-			set := receivertest.NewNopSettings()
+			set := receivertest.NewNopSettings(componentType)
 			set.ID = component.NewIDWithName(componentType, tc.receiverName)
 			receiver, err := factory.CreateLogs(context.Background(), set, cfg, tc.consumer)
 			require.NoError(t, err)
@@ -159,7 +159,7 @@ func TestReceiverTraces(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			factory := NewFactory()
 			cfg := factory.CreateDefaultConfig().(*Config)
-			set := receivertest.NewNopSettings()
+			set := receivertest.NewNopSettings(componentType)
 			set.ID = component.NewIDWithName(componentType, tc.receiverName)
 			receiver, err := factory.CreateTraces(context.Background(), set, cfg, tc.consumer)
 			require.NoError(t, err)

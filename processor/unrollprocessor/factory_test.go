@@ -41,7 +41,7 @@ func TestBadFactory(t *testing.T) {
 	cfg := factory.CreateDefaultConfig().(*Config)
 	cfg.Field = "invalid"
 
-	_, err := factory.CreateLogs(context.Background(), processortest.NewNopSettings(), cfg, &consumertest.LogsSink{})
+	_, err := factory.CreateLogs(context.Background(), processortest.NewNopSettings(componentType), cfg, &consumertest.LogsSink{})
 	require.Error(t, err)
 	require.ErrorContains(t, err, "invalid config for \"unroll\" processor")
 }
