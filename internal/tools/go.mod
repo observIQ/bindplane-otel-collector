@@ -2,8 +2,6 @@ module github.com/observiq/bindplane-otel-collector/internal/tools
 
 go 1.24
 
-toolchain go1.24.0
-
 require (
 	github.com/client9/misspell v0.3.4
 	github.com/google/addlicense v1.1.1
