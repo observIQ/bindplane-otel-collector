@@ -33,6 +33,7 @@ var gcpFactory = gcp.NewFactory()
 
 // componentType is the type of the google cloud exporter
 var componentType = component.MustNewType("googlecloud")
+var batchProcessorType = component.MustNewType("batch")
 
 const (
 	// The stability level of the exporter. Matches the current exporter in contrib
@@ -74,6 +75,7 @@ func createMetricsExporter(ctx context.Context, set exporter.Settings, cfg compo
 	}
 
 	processorSettings := processor.Settings{
+		ID:                component.NewIDWithName(batchProcessorType, "googlecloud/metrics/batch"),
 		TelemetrySettings: set.TelemetrySettings,
 		BuildInfo:         set.BuildInfo,
 	}
@@ -121,6 +123,7 @@ func createLogsExporter(ctx context.Context, set exporter.Settings, cfg componen
 	}
 
 	processorSettings := processor.Settings{
+		ID:                component.NewIDWithName(batchProcessorType, "googlecloud/logs/batch"),
 		TelemetrySettings: set.TelemetrySettings,
 		BuildInfo:         set.BuildInfo,
 	}
@@ -168,6 +171,7 @@ func createTracesExporter(ctx context.Context, set exporter.Settings, cfg compon
 	}
 
 	processorSettings := processor.Settings{
+		ID:                component.NewIDWithName(batchProcessorType, "googlecloud/traces/batch"),
 		TelemetrySettings: set.TelemetrySettings,
 		BuildInfo:         set.BuildInfo,
 	}
