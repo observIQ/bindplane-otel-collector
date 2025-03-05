@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/confmap/xconfmap"
 )
 
 func TestValidate(t *testing.T) {
@@ -109,7 +109,7 @@ func TestValidate(t *testing.T) {
 			cfg.ClientID = tc.clientID
 			cfg.ClientSecret = tc.clientSecret
 
-			err := component.ValidateConfig(cfg)
+			err := xconfmap.Validate(cfg)
 
 			if tc.errExpected {
 				require.EqualError(t, err, tc.errText)

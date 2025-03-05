@@ -41,7 +41,7 @@ func TestCreateMetricsReceiver(t *testing.T) {
 
 				_, err := createMetricsReceiver(
 					context.Background(),
-					receivertest.NewNopSettings(),
+					receivertest.NewNopSettings(typ),
 					createDefaultConfig(),
 					consumertest.NewNop(),
 				)
@@ -56,7 +56,7 @@ func TestCreateMetricsReceiver(t *testing.T) {
 
 				_, err := createMetricsReceiver(
 					context.Background(),
-					receivertest.NewNopSettings(),
+					receivertest.NewNopSettings(typ),
 					nil,
 					consumertest.NewNop(),
 				)

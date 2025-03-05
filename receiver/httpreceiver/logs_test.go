@@ -30,6 +30,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/plogtest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/consumer"
@@ -348,7 +349,7 @@ func TestShutdownNoServer(t *testing.T) {
 }
 
 func newReceiver(t *testing.T, cfg *Config, c consumer.Logs) *httpLogsReceiver {
-	s := receivertest.NewNopSettings()
+	s := receivertest.NewNopSettings(component.MustNewType("http"))
 	s.Logger = zaptest.NewLogger(t)
 	r, err := newHTTPLogsReceiver(s, cfg, c)
 	require.NoError(t, err)
