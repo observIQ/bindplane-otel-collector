@@ -28,6 +28,8 @@ import (
 	"go.opentelemetry.io/collector/pdata/pmetric"
 )
 
+var typ = component.MustNewType("googlemanagedprometheus")
+
 func TestCreateMetricExporterSuccess(t *testing.T) {
 	mockExporter := &MockExporter{}
 
@@ -47,7 +49,7 @@ func TestCreateMetricExporterSuccess(t *testing.T) {
 	factory := NewFactory(collectorVersion)
 	cfg := createDefaultConfig(collectorVersion)()
 	ctx := context.Background()
-	set := exportertest.NewNopSettings()
+	set := exportertest.NewNopSettings(typ)
 
 	testExporter, err := factory.CreateMetrics(ctx, set, cfg)
 	require.NoError(t, err)
@@ -71,7 +73,7 @@ func TestCreateExporterFailure(t *testing.T) {
 	factory := NewFactory(collectorVersion)
 	cfg := createDefaultConfig(collectorVersion)()
 	ctx := context.Background()
-	set := exportertest.NewNopSettings()
+	set := exportertest.NewNopSettings(typ)
 
 	_, err := factory.CreateMetrics(ctx, set, cfg)
 	require.Error(t, err)

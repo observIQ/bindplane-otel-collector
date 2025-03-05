@@ -54,7 +54,7 @@ func TestCombineFactories(t *testing.T) {
 				tcplogreceiver.NewFactory(),
 				tcplogreceiver.NewFactory(),
 			},
-			expectedError: errors.New(`duplicate receiver factory "tcplog"`),
+			expectedError: errors.New(`duplicate component factory "tcplog"`),
 		},
 		{
 			name: "With multiple errors",
@@ -74,7 +74,7 @@ func TestCombineFactories(t *testing.T) {
 				bearertokenauthextension.NewFactory(),
 				bearertokenauthextension.NewFactory(),
 			},
-			expectedError: errors.New(`duplicate receiver factory "tcplog"; duplicate processor factory "attributes"; duplicate exporter factory "debug"; duplicate extension factory "bearertokenauth"`),
+			expectedError: errors.New(`duplicate component factory "tcplog"; duplicate component factory "attributes"; duplicate component factory "debug"; duplicate component factory "bearertokenauth"`),
 		},
 	}
 

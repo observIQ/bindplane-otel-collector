@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/receiver"
+	"go.opentelemetry.io/collector/receiver/receivertest"
 )
 
 func TestCreateReceiver(t *testing.T) {
@@ -104,7 +105,7 @@ func TestCreateLogsReceiver(t *testing.T) {
 	factory := NewFactory()
 	consumer := &MockConsumer{}
 	ctx := context.Background()
-	set := receiver.Settings{}
+	set := receivertest.NewNopSettings(componentType)
 	cfg := &Config{
 		Path: "./testdata/plugin-valid.yaml",
 		Parameters: map[string]any{
@@ -121,7 +122,7 @@ func TestCreateMetricsReceiver(t *testing.T) {
 	factory := NewFactory()
 	consumer := &MockConsumer{}
 	ctx := context.Background()
-	set := receiver.Settings{}
+	set := receivertest.NewNopSettings(componentType)
 	cfg := &Config{
 		Path: "./testdata/plugin-valid.yaml",
 		Parameters: map[string]any{
@@ -138,7 +139,7 @@ func TestCreateTracesReceiver(t *testing.T) {
 	factory := NewFactory()
 	consumer := &MockConsumer{}
 	ctx := context.Background()
-	set := receiver.Settings{}
+	set := receivertest.NewNopSettings(componentType)
 	cfg := &Config{
 		Path: "./testdata/plugin-valid.yaml",
 		Parameters: map[string]any{
