@@ -51,7 +51,7 @@ func TestNewFactory(t *testing.T) {
 
 		defaultProcessor, err := fact.CreateMetrics(
 			context.Background(),
-			processortest.NewNopSettings(),
+			processortest.NewNopSettings(componentType),
 			conf,
 			consumertest.NewNop(),
 		)
@@ -66,7 +66,7 @@ func TestNewFactory(t *testing.T) {
 
 		_, err := fact.CreateMetrics(
 			context.Background(),
-			processortest.NewNopSettings(),
+			processortest.NewNopSettings(componentType),
 			"not a config",
 			consumertest.NewNop(),
 		)
@@ -80,7 +80,7 @@ func TestNewFactory(t *testing.T) {
 
 		_, err := fact.CreateMetrics(
 			context.Background(),
-			processortest.NewNopSettings(),
+			processortest.NewNopSettings(componentType),
 			&Config{
 				Include: "^(",
 			},
