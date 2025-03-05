@@ -182,7 +182,7 @@ check-license:
 # This target adds a license copyright header is on every source file that is missing one
 .PHONY: add-license
 add-license:
-	@ADDLICENSEOUT=`addlicense -y "" -c "observIQ, Inc." $(ALL_SRC) 2>&1`; \
+	@ADDLICENSEOUT=`addlicense -y "" -c "Bindplane, Inc." $(ALL_SRC) 2>&1`; \
 		if [ "$$ADDLICENSEOUT" ]; then \
 			echo "addlicense FAILED => add License errors:\n"; \
 			echo "$$ADDLICENSEOUT\n"; \
