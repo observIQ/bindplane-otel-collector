@@ -36,10 +36,6 @@ type Config struct {
 	// be invisible to other consumers.
 	VisibilityTimeout time.Duration `mapstructure:"visibility_timeout"`
 
-	// APIMaxMessages defines the maximum number of messages to request from
-	// SQS at once.
-	APIMaxMessages int32 `mapstructure:"api_max_messages"`
-
 	// MaxLogSize defines the maximum size in bytes for a single log record.
 	// Logs exceeding this size will be split into chunks.
 	// Default is 1MB.
@@ -60,17 +56,12 @@ func (c *Config) Validate() error {
 		return errors.New("'visibility_timeout' must be greater than 0")
 	}
 
-	if c.APIMaxMessages <= 0 {
-		return errors.New("'api_max_messages' must be greater than 0")
-	}
-
 	if c.Workers <= 0 {
 		return errors.New("'workers' must be greater than 0")
 	}
 
 	if c.MaxLogSize <= 0 {
-		// Default to 1MB if not set or invalid
-		c.MaxLogSize = 1024 * 1024
+		return errors.New("'max_log_size' must be greater than 0")
 	}
 
 	if _, err := bpaws.ParseRegionFromSQSURL(c.SQSQueueURL); err != nil {

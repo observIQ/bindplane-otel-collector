@@ -57,7 +57,6 @@ func TestLoadConfig(t *testing.T) {
 				SQSQueueURL:       "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
 				PollInterval:      30 * time.Second,
 				VisibilityTimeout: 600 * time.Second,
-				APIMaxMessages:    20,
 				Workers:           10,
 				MaxLogSize:        4096,
 			},
@@ -128,20 +127,20 @@ func TestConfigValidate(t *testing.T) {
 			expectedErr: "'visibility_timeout' must be greater than 0",
 		},
 		{
-			desc: "Invalid API max messages",
-			cfgMod: func(cfg *Config) {
-				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
-				cfg.APIMaxMessages = 0
-			},
-			expectedErr: "'api_max_messages' must be greater than 0",
-		},
-		{
 			desc: "Invalid workers",
 			cfgMod: func(cfg *Config) {
 				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 				cfg.Workers = -1
 			},
 			expectedErr: "'workers' must be greater than 0",
+		},
+		{
+			desc: "Invalid max log size",
+			cfgMod: func(cfg *Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.MaxLogSize = 0
+			},
+			expectedErr: "'max_log_size' must be greater than 0",
 		},
 	}
 

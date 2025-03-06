@@ -42,8 +42,8 @@ func createDefaultConfig() component.Config {
 	return &Config{
 		PollInterval:      20 * time.Second,
 		VisibilityTimeout: 300 * time.Second,
-		APIMaxMessages:    10,
 		Workers:           5,
+		MaxLogSize:        1024 * 1024,
 	}
 }
 

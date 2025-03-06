@@ -147,41 +147,51 @@ func (r *logsReceiver) poll(ctx context.Context, deferThis func()) {
 			r.telemetry.Logger.Info("context cancelled, stopping polling")
 			return
 		case <-ticker.C:
-			err := r.receiveMessages(ctx)
-			if err != nil {
-				r.telemetry.Logger.Error("polling SQS", zap.Error(err))
-			}
+			numMessages := r.receiveMessages(ctx)
+			r.telemetry.Logger.Debug(fmt.Sprintf("received %d messages", numMessages))
+			// TODO calculate next poll time based on messages per second
 		}
 	}
 }
 
-func (r *logsReceiver) receiveMessages(ctx context.Context) error {
+func (r *logsReceiver) receiveMessages(ctx context.Context) int {
+	var numMessages int
+
 	queueURL := r.cfg.SQSQueueURL
-	resp, err := r.sqsClient.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
+	params := &sqs.ReceiveMessageInput{
 		QueueUrl:            &queueURL,
-		MaxNumberOfMessages: r.cfg.APIMaxMessages,
+		MaxNumberOfMessages: 10,
 		VisibilityTimeout:   int32(r.cfg.VisibilityTimeout.Seconds()),
 		WaitTimeSeconds:     10, // Use long polling
-	})
+	}
+
+	resp, err := r.sqsClient.ReceiveMessage(ctx, params)
 	if err != nil {
-		return fmt.Errorf("receive messages: %w", err)
+		r.telemetry.Logger.Error("receive messages", zap.Error(err))
+		return numMessages
 	}
 
-	if len(resp.Messages) == 0 {
-		return nil
-	}
+	// loop until we get no messages
+	for len(resp.Messages) > 0 {
+		r.telemetry.Logger.Debug("messages received", zap.Int("count", len(resp.Messages)), zap.String("first_message_id", *resp.Messages[0].MessageId))
 
-	r.telemetry.Logger.Debug("messages received", zap.Int("count", len(resp.Messages)), zap.String("first_message_id", *resp.Messages[0].MessageId))
+		for _, msg := range resp.Messages {
+			select {
+			case r.msgChan <- workerMessage{msg: msg, queueURL: queueURL}:
+				r.telemetry.Logger.Debug("queued message", zap.String("message_id", *msg.MessageId))
+			case <-ctx.Done():
+				return numMessages
+			}
+		}
 
-	for _, msg := range resp.Messages {
-		select {
-		case r.msgChan <- workerMessage{msg: msg, queueURL: queueURL}:
-			r.telemetry.Logger.Debug("queued message", zap.String("message_id", *msg.MessageId))
-		case <-ctx.Done():
-			return ctx.Err()
+		r.telemetry.Logger.Debug(fmt.Sprintf("queued %d messages for processing", len(resp.Messages)))
+
+		resp, err = r.sqsClient.ReceiveMessage(ctx, params)
+		if err != nil {
+			r.telemetry.Logger.Error("receive messages", zap.Error(err))
+			return numMessages
 		}
 	}
 
-	r.telemetry.Logger.Debug("queued all messages for processing")
-	return nil
+	return numMessages
 }

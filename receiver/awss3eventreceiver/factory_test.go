@@ -43,7 +43,7 @@ func TestFactoryCreateDefaultConfig(t *testing.T) {
 	assert.Equal(t, "", receiverCfg.SQSQueueURL)
 	assert.Equal(t, 20*time.Second, receiverCfg.PollInterval)
 	assert.Equal(t, 300*time.Second, receiverCfg.VisibilityTimeout)
-	assert.Equal(t, int32(10), receiverCfg.APIMaxMessages)
+	assert.Equal(t, 1024*1024, receiverCfg.MaxLogSize)
 }
 
 // Test factory receiver creation methods
