@@ -30,3 +30,6 @@ logging*.yaml
 builder
 agent*.log
 effective*.yaml
+
+# Backup files
+*.bak
