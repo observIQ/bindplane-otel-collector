@@ -94,8 +94,8 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zookeeperreceiver"
 	"go.opentelemetry.io/collector/receiver"
+	"go.opentelemetry.io/collector/receiver/nopreceiver"
 	"go.opentelemetry.io/collector/receiver/otlpreceiver"
-	"go.opentelemetry.io/collector/receiver/receivertest"
 )
 
 var defaultReceivers = []receiver.Factory{
@@ -147,6 +147,7 @@ var defaultReceivers = []receiver.Factory{
 	mysqlreceiver.NewFactory(),
 	netflowreceiver.NewFactory(),
 	nginxreceiver.NewFactory(),
+	nopreceiver.NewFactory(),
 	oktareceiver.NewFactory(),
 	opencensusreceiver.NewFactory(),
 	otlpreceiver.NewFactory(),
@@ -155,7 +156,6 @@ var defaultReceivers = []receiver.Factory{
 	postgresqlreceiver.NewFactory(),
 	prometheusreceiver.NewFactory(),
 	rabbitmqreceiver.NewFactory(),
-	receivertest.NewNopFactory(),
 	redisreceiver.NewFactory(),
 	riakreceiver.NewFactory(),
 	routereceiver.NewFactory(),

@@ -211,7 +211,6 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.121.0
 	go.opentelemetry.io/collector/extension/extensiontest v0.121.0
 	go.opentelemetry.io/collector/processor/processortest v0.121.0
-	go.opentelemetry.io/collector/receiver/receivertest v0.121.0
 )
 
 require (
@@ -483,6 +482,7 @@ require (
 	go.opentelemetry.io/collector/pipeline/xpipeline v0.121.0 // indirect
 	go.opentelemetry.io/collector/processor/processorhelper/xprocessorhelper v0.121.0 // indirect
 	go.opentelemetry.io/collector/processor/xprocessor v0.121.0 // indirect
+	go.opentelemetry.io/collector/receiver/receivertest v0.121.0 // indirect
 	go.opentelemetry.io/collector/receiver/xreceiver v0.121.0 // indirect
 	go.opentelemetry.io/collector/scraper v0.121.0 // indirect
 	go.opentelemetry.io/collector/scraper/scraperhelper v0.121.0 // indirect
@@ -804,6 +804,7 @@ require (
 	go.etcd.io/bbolt v1.4.0 // indirect
 	go.mongodb.org/atlas v0.37.0 // indirect
 	go.mongodb.org/mongo-driver v1.17.3 // indirect
+	go.opentelemetry.io/collector/receiver/nopreceiver v0.121.0
 	go.opentelemetry.io/collector/semconv v0.121.0 // indirect; indir7.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.59.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.59.0 // indirect
