@@ -36,5 +36,8 @@ builder
 agent*.log
 effective*.yaml
 
+# Backup files
+*.bak
+
 # Ignore generated credentials from google-github-actions/auth
 gha-creds-*.json
