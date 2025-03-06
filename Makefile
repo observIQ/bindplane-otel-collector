@@ -21,10 +21,11 @@ else
 EXT?=
 endif
 
+SNAPSHOT := $(shell git rev-parse --short HEAD)
 PREVIOUS_TAG := $(shell git tag --sort=v:refname --no-contains HEAD | grep -E "[0-9]+\.[0-9]+\.[0-9]+$$" | tail -n1)
 CURRENT_TAG := $(shell git tag --sort=v:refname --points-at HEAD | grep -E "v[0-9]+\.[0-9]+\.[0-9]+$$" | tail -n1)
 # Version will be the tag pointing to the current commit, or the previous version tag if there is no such tag
-VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG))
+VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG)-SNAPSHOT-$(SNAPSHOT))
 
 # Build binaries for current GOOS/GOARCH by default
 .DEFAULT_GOAL := build-binaries
@@ -32,7 +33,7 @@ VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG))
 # Builds just the agent for current GOOS/GOARCH pair
 .PHONY: agent
 agent:
-	go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=1.71.5-SNAPSHOT-fd77aac2" -tags bindplane -o $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) ./cmd/collector
+	go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)" -tags bindplane -o $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT) ./cmd/collector
 
 # Builds just the updater for current GOOS/GOARCH pair
 .PHONY: updater
