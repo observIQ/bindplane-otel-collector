@@ -895,6 +895,8 @@ require (
 
 replace github.com/observiq/bindplane-otel-collector/processor/resourceattributetransposerprocessor => ./processor/resourceattributetransposerprocessor
 
+replace github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs => ./receiver/bindplaneauditlogs
+
 replace github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver => ./receiver/pluginreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/m365receiver => ./receiver/m365receiver
