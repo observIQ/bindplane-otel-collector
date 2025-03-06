@@ -76,9 +76,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	for _, record := range notification.Records {
 		bucket := record.S3.Bucket.Name
 		key := record.S3.Object.Key
-		w.tel.Logger.Debug("processing record",
-			zap.String("bucket", bucket),
-			zap.String("key", key))
+		w.tel.Logger.Debug("processing record", zap.String("bucket", bucket), zap.String("key", key))
 
 		// Create new resource logs for each record
 		rls := ld.ResourceLogs().AppendEmpty()
@@ -99,32 +97,30 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	}
 	_, err = w.client.SQS().DeleteMessage(ctx, deleteParams)
 	if err != nil {
-		w.tel.Logger.Error("delete message", zap.Error(err))
+		w.tel.Logger.Error("delete message", zap.Error(err), zap.String("message_id", *msg.MessageId))
 		return
 	}
-	w.tel.Logger.Debug("deleted message", zap.Int("event.count", len(notification.Records)))
+	w.tel.Logger.Debug("deleted message", zap.String("message_id", *msg.MessageId), zap.Int("event.count", len(notification.Records)))
 
 	if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
-		w.tel.Logger.Error("consume logs", zap.Error(err))
+		w.tel.Logger.Error("consume logs", zap.Error(err), zap.String("message_id", *msg.MessageId))
 	}
 }
 
-func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord, lrs plog.LogRecordSlice) *plog.LogRecordSlice {
-	w.tel.Logger.Debug("reading S3 object",
-		zap.String("bucket", record.S3.Bucket.Name),
-		zap.String("key", record.S3.Object.Key),
-		zap.Int64("size", record.S3.Object.Size),
-	)
+func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord, lrs plog.LogRecordSlice) {
+	bucket := record.S3.Bucket.Name
+	key := record.S3.Object.Key
+	size := record.S3.Object.Size
+
+	w.tel.Logger.Debug("reading S3 object", zap.String("bucket", bucket), zap.String("key", key), zap.Int64("size", size))
 
 	resp, err := w.client.S3().GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(record.S3.Bucket.Name),
-		Key:    aws.String(record.S3.Object.Key),
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
 	})
 	if err != nil {
-		w.tel.Logger.Error("get object", zap.Error(err),
-			zap.String("bucket", record.S3.Bucket.Name),
-			zap.String("key", record.S3.Object.Key))
-		return nil
+		w.tel.Logger.Error("get object", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
+		return
 	}
 	defer resp.Body.Close()
 
@@ -140,8 +136,8 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord,
 			if err == io.EOF {
 				break
 			}
-			w.tel.Logger.Error("reading object content", zap.Error(err))
-			return nil
+			w.tel.Logger.Error("reading object content", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
+			return
 		}
 
 		if len(lineBytes) == 0 {
@@ -155,9 +151,5 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord,
 		lr.Body().SetStr(string(lineBytes))
 	}
 
-	w.tel.Logger.Debug("processed S3 object",
-		zap.String("bucket", record.S3.Bucket.Name),
-		zap.String("key", record.S3.Object.Key))
-
-	return &lrs
+	w.tel.Logger.Debug("processed S3 object", zap.String("bucket", bucket), zap.String("key", key))
 }

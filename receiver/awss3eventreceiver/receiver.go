@@ -157,14 +157,12 @@ func (r *logsReceiver) poll(ctx context.Context, deferThis func()) {
 
 func (r *logsReceiver) receiveMessages(ctx context.Context) error {
 	queueURL := r.cfg.SQSQueueURL
-	receiveParams := &sqs.ReceiveMessageInput{
+	resp, err := r.sqsClient.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
 		QueueUrl:            &queueURL,
 		MaxNumberOfMessages: r.cfg.APIMaxMessages,
 		VisibilityTimeout:   int32(r.cfg.VisibilityTimeout.Seconds()),
 		WaitTimeSeconds:     10, // Use long polling
-	}
-
-	resp, err := r.sqsClient.ReceiveMessage(ctx, receiveParams)
+	})
 	if err != nil {
 		return fmt.Errorf("receive messages: %w", err)
 	}
