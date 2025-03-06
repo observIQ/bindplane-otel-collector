@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/receiver/receivertest"
 )
@@ -33,7 +34,7 @@ func TestCreateLogsReceiver(t *testing.T) {
 	factory := NewFactory()
 	test, err := factory.CreateLogs(
 		context.Background(),
-		receivertest.NewNopSettings(),
+		receivertest.NewNopSettings(component.MustNewType("splunksearchapi")),
 		createDefaultConfig(),
 		consumertest.NewNop(),
 	)

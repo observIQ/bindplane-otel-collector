@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/confmap/confmaptest"
+	"go.opentelemetry.io/collector/confmap/xconfmap"
 	"go.uber.org/multierr"
 )
 
@@ -103,7 +104,7 @@ func TestValidate(t *testing.T) {
 			cfg.Endpoint = tc.endpoint
 			cfg.Username = tc.username
 			cfg.Password = tc.password
-			err := component.ValidateConfig(cfg)
+			err := xconfmap.Validate(cfg)
 			if tc.errExpected {
 				require.EqualError(t, err, tc.errText)
 				return
