@@ -121,7 +121,9 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord,
 		Key:    aws.String(record.S3.Object.Key),
 	})
 	if err != nil {
-		w.tel.Logger.Error("get object", zap.Error(err))
+		w.tel.Logger.Error("get object", zap.Error(err),
+			zap.String("bucket", record.S3.Bucket.Name),
+			zap.String("key", record.S3.Object.Key))
 		return nil
 	}
 	defer resp.Body.Close()
