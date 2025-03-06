@@ -16,6 +16,7 @@
 package worker // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"io"
@@ -42,15 +43,17 @@ type Worker struct {
 	tel          component.TelemetrySettings
 	client       bpaws.Client
 	nextConsumer consumer.Logs
+	maxLogSize   int
 }
 
 // New creates a new Worker
-func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.Logs) *Worker {
+func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.Logs, maxLogSize int) *Worker {
 	client := bpaws.NewClient(cfg)
 	return &Worker{
 		tel:          tel,
 		client:       client,
 		nextConsumer: nextConsumer,
+		maxLogSize:   maxLogSize,
 	}
 }
 
@@ -123,18 +126,36 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord,
 	}
 	defer resp.Body.Close()
 
-	// TODO switch to a streaming reader that tokenizes the object content
-	// and sends the log records to the channel in batches
-	data := make([]byte, record.S3.Object.Size)
-	_, err = io.ReadFull(resp.Body, data)
-	if err != nil {
-		w.tel.Logger.Error("read object", zap.Error(err))
-		return nil
+	now := time.Now()
+
+	reader := bufio.NewReader(resp.Body)
+
+	for {
+		// ReadLine returns line fragments if the line doesn't fit in the buffer
+		lineBytes, _, err := reader.ReadLine()
+
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			w.tel.Logger.Error("reading object content", zap.Error(err))
+			return nil
+		}
+
+		if len(lineBytes) == 0 {
+			continue
+		}
+
+		// Create a log record for this line fragment
+		lr := lrs.AppendEmpty()
+		lr.SetObservedTimestamp(pcommon.NewTimestampFromTime(now))
+		lr.SetTimestamp(pcommon.NewTimestampFromTime(record.EventTime))
+		lr.Body().SetStr(string(lineBytes))
 	}
 
-	lr := lrs.AppendEmpty()
-	lr.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
-	lr.SetTimestamp(pcommon.NewTimestampFromTime(record.EventTime))
-	lr.Body().SetStr(string(data))
+	w.tel.Logger.Debug("processed S3 object",
+		zap.String("bucket", record.S3.Bucket.Name),
+		zap.String("key", record.S3.Object.Key))
+
 	return &lrs
 }

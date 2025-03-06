@@ -39,6 +39,11 @@ type Config struct {
 	// APIMaxMessages defines the maximum number of messages to request from
 	// SQS at once.
 	APIMaxMessages int32 `mapstructure:"api_max_messages"`
+
+	// MaxLogSize defines the maximum size in bytes for a single log record.
+	// Logs exceeding this size will be split into chunks.
+	// Default is 1MB.
+	MaxLogSize int `mapstructure:"max_log_size"`
 }
 
 // Validate checks if all required fields are present and valid.
@@ -61,6 +66,11 @@ func (c *Config) Validate() error {
 
 	if c.Workers <= 0 {
 		return errors.New("'workers' must be greater than 0")
+	}
+
+	if c.MaxLogSize <= 0 {
+		// Default to 1MB if not set or invalid
+		c.MaxLogSize = 1024 * 1024
 	}
 
 	if _, err := bpaws.ParseRegionFromSQSURL(c.SQSQueueURL); err != nil {

@@ -17,6 +17,7 @@ package worker_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -32,12 +33,21 @@ import (
 func TestProcessMessage(t *testing.T) {
 	defer fake.SetFakeConstructorForTest(t)()
 
+	longLineLength := 100000
+	maxLogSize := 4096
+
+	// Calculate expected fragments for the long line
+	// Need to use ceiling division to handle any remainder correctly
+	longLine := createLongLine(longLineLength)
+	expectedLongLineFragments := (longLineLength + maxLogSize - 1) / maxLogSize
+
 	testCases := []struct {
-		name       string
-		objectSets []map[string]map[string]string
+		name        string
+		objectSets  []map[string]map[string]string
+		expectLines int
 	}{
 		{
-			name: "single object",
+			name: "single object - single line",
 			objectSets: []map[string]map[string]string{
 				{
 					"mybucket": {
@@ -45,36 +55,67 @@ func TestProcessMessage(t *testing.T) {
 					},
 				},
 			},
+			expectLines: 1,
 		},
 		{
-			name: "multiple objects",
+			name: "single object - multiple lines",
 			objectSets: []map[string]map[string]string{
 				{
 					"mybucket": {
-						"mykey1": "myvalue1",
-						"mykey2": "myvalue2",
-					},
-					"mybucket2": {
-						"mykey3": "myvalue3",
-						"mykey4": "myvalue4",
+						"mykey1": "line1\nline2\nline3",
 					},
 				},
 			},
+			expectLines: 3,
 		},
 		{
-			name: "multiple objects with different buckets",
+			name: "multiple objects with multiple lines",
 			objectSets: []map[string]map[string]string{
 				{
-					"mybucket1": {
-						"mykey1": "myvalue1",
-						"mykey2": "myvalue2",
+					"mybucket": {
+						"mykey1": "line1\nline2\nline3",
+						"mykey2": "line1\nline2",
 					},
 					"mybucket2": {
-						"mykey3": "myvalue3",
-						"mykey4": "myvalue4",
+						"mykey3": "line1\nline2\nline3\nline4",
+						"mykey4": "line1",
 					},
 				},
 			},
+			expectLines: 10,
+		},
+		{
+			name: "objects with empty lines",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket": {
+						"mykey1": "line1\n\nline3",
+					},
+				},
+			},
+			expectLines: 2,
+		},
+		{
+			name: "objects with trailing newlines",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket": {
+						"mykey1": "line1\nline2\n",
+					},
+				},
+			},
+			expectLines: 2,
+		},
+		{
+			name: "object with very long line",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket": {
+						"mykey1": longLine,
+					},
+				},
+			},
+			expectLines: expectedLongLineFragments,
 		},
 	}
 
@@ -83,17 +124,13 @@ func TestProcessMessage(t *testing.T) {
 			ctx := context.Background()
 			fakeAWS := fake.NewClient(t).(*fake.AWS)
 
-			var numObjects int
 			for _, objectSet := range testCase.objectSets {
-				for _, bucket := range objectSet {
-					numObjects += len(bucket)
-				}
 				fakeAWS.CreateObjects(t, objectSet)
 			}
 
 			set := componenttest.NewNopTelemetrySettings()
 			sink := new(consumertest.LogsSink)
-			w := worker.New(set, aws.Config{}, sink)
+			w := worker.New(set, aws.Config{}, sink, maxLogSize)
 
 			numCallbacks := 0
 
@@ -112,15 +149,25 @@ func TestProcessMessage(t *testing.T) {
 
 			require.Equal(t, len(testCase.objectSets), numCallbacks)
 			require.Equal(t, len(testCase.objectSets), len(sink.AllLogs()))
+
 			var numRecords int
 			for _, logs := range sink.AllLogs() {
 				numRecords += logs.LogRecordCount()
 			}
-			require.Equal(t, numObjects, numRecords)
+			require.Equal(t, testCase.expectLines, numRecords)
 
-			// Queue should be empty
 			_, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 			require.Equal(t, fake.ErrEmptyQueue, err)
 		})
 	}
+}
+
+func createLongLine(length int) string {
+	builder := strings.Builder{}
+	builder.Grow(length)
+	pattern := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	for builder.Len() < length {
+		builder.WriteString(pattern)
+	}
+	return builder.String()[:length]
 }

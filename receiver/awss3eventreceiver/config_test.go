@@ -59,6 +59,7 @@ func TestLoadConfig(t *testing.T) {
 				VisibilityTimeout: 600 * time.Second,
 				APIMaxMessages:    20,
 				Workers:           10,
+				MaxLogSize:        4096,
 			},
 			expectError: false,
 		},
