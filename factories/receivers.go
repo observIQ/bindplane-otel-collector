@@ -17,6 +17,7 @@ package factories
 import (
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs"
 	"github.com/observiq/bindplane-otel-collector/receiver/httpreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/m365receiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/oktareceiver"
@@ -100,6 +101,7 @@ import (
 
 var defaultReceivers = []receiver.Factory{
 	activedirectorydsreceiver.NewFactory(),
+	bindplaneauditlogs.NewFactory(),
 	aerospikereceiver.NewFactory(),
 	apachereceiver.NewFactory(),
 	apachesparkreceiver.NewFactory(),
