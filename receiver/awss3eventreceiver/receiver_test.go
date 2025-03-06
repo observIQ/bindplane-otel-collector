@@ -16,10 +16,10 @@ package awss3eventreceiver_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -90,7 +90,7 @@ func TestRegionExtractionFromSQSURL(t *testing.T) {
 }
 
 func TestStartShutdown(t *testing.T) {
-	defer fake.SetFakeConstructorForTest()()
+	defer fake.SetFakeConstructorForTest(t)()
 
 	ctx := context.Background()
 	set := receivertest.NewNopSettings()
@@ -109,11 +109,12 @@ func TestStartShutdown(t *testing.T) {
 }
 
 func TestReceiver(t *testing.T) {
-	defer fake.SetFakeConstructorForTest()()
+	defer fake.SetFakeConstructorForTest(t)()
 
 	testCases := []struct {
 		name       string
 		objectSets []map[string]map[string]string
+		// TODO test number of workers
 	}{
 		{
 			name: "single object",
@@ -160,7 +161,7 @@ func TestReceiver(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			ctx := context.Background()
-			fakeAWS := fake.NewClient(aws.Config{}).(*fake.AWS)
+			fakeAWS := fake.NewClient(t).(*fake.AWS)
 
 			var numObjects int
 			for _, objectSet := range testCase.objectSets {
@@ -174,7 +175,7 @@ func TestReceiver(t *testing.T) {
 			f := rcvr.NewFactory()
 			cfg := f.CreateDefaultConfig().(*rcvr.Config)
 			cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
-			cfg.PollInterval = 10 * time.Millisecond
+			cfg.PollInterval = 50 * time.Millisecond
 			sink := new(consumertest.LogsSink)
 
 			receiver, err := f.CreateLogs(context.Background(), set, cfg, sink)
@@ -202,4 +203,69 @@ func TestReceiver(t *testing.T) {
 			require.Equal(t, fake.ErrEmptyQueue, err)
 		})
 	}
+}
+
+func TestManyObjects(t *testing.T) {
+	defer fake.SetFakeConstructorForTest(t)()
+
+	ctx := context.Background()
+	fakeAWS := fake.NewClient(t).(*fake.AWS)
+
+	numBuckets := 10
+	numObjectsPerBucket := 100
+	numObjectsPerMessage := 4 // Test assumes this divides evenly into numObjectsPerBucket
+
+	totalObjects := numBuckets * numObjectsPerBucket
+	totalMessages := totalObjects / numObjectsPerMessage
+
+	var objectNumber int
+	objectSet := make(map[string]map[string]string)
+	for i := 0; i < numBuckets; i++ {
+		bucket := fmt.Sprintf("bucket-%d", i)
+		for j := 0; j < numObjectsPerBucket; j++ {
+			if _, ok := objectSet[bucket]; !ok {
+				objectSet[bucket] = make(map[string]string)
+			}
+			objectSet[bucket][fmt.Sprintf("object-%d", j)] = fmt.Sprintf("value-%d", j)
+			objectNumber++
+			if objectNumber%numObjectsPerMessage == 0 {
+				fakeAWS.CreateObjects(t, objectSet)
+				objectSet = make(map[string]map[string]string)
+			}
+		}
+	}
+
+	set := receivertest.NewNopSettings()
+	f := rcvr.NewFactory()
+	cfg := f.CreateDefaultConfig().(*rcvr.Config)
+	cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+	cfg.PollInterval = 50 * time.Millisecond
+	cfg.Workers = 16
+	sink := new(consumertest.LogsSink)
+
+	receiver, err := f.CreateLogs(context.Background(), set, cfg, sink)
+	require.NoError(t, err)
+	require.NotNil(t, receiver)
+
+	host := componenttest.NewNopHost()
+	require.NoError(t, receiver.Start(ctx, host))
+
+	defer func() {
+		require.NoError(t, receiver.Shutdown(ctx))
+	}()
+
+	require.Eventually(t, func() bool {
+		logs := sink.AllLogs()
+		return len(logs) == totalMessages
+	}, 10*time.Second, 500*time.Millisecond)
+
+	var numRecords int
+	for _, logs := range sink.AllLogs() {
+		numRecords += logs.LogRecordCount()
+	}
+	require.Equal(t, totalMessages, len(sink.AllLogs()), "Incorrect number of messages")
+	require.Equal(t, totalObjects, numRecords, "Incorrect number of records")
+
+	_, err = fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+	require.Equal(t, fake.ErrEmptyQueue, err)
 }

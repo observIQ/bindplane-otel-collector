@@ -18,14 +18,17 @@ package fake
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
+	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
+	"github.com/stretchr/testify/require"
 )
 
+// ErrEmptyQueue is an error returned when a queue is empty
 var ErrEmptyQueue = errors.New("queue is empty")
 
 var _ bpaws.SQSClient = &sqsClient{}
@@ -33,15 +36,28 @@ var _ bpaws.SQSClient = &sqsClient{}
 var fakeSQS = struct {
 	mu sync.Mutex
 
-	messages        []types.Message
-	deletedMessages []string
+	messages          []types.Message
+	invisibleMessages map[string]types.Message
+	deletedMessages   []string
 }{
-	messages:        []types.Message{},
-	deletedMessages: []string{},
+	messages:          []types.Message{},
+	invisibleMessages: make(map[string]types.Message),
+	deletedMessages:   []string{},
 }
 
-// NewSQSClient creates a new fake SQS client with the provided messages
-func NewSQSClient(_ aws.Config) bpaws.SQSClient {
+// NewSQSClient creates a new fake SQS client
+// If t is provided, automatically registers message leak checking for test cleanup
+func NewSQSClient(t *testing.T) bpaws.SQSClient {
+	// Register leak check if testing.T was provided
+
+	t.Cleanup(func() {
+		fakeSQS.mu.Lock()
+		defer fakeSQS.mu.Unlock()
+
+		require.Empty(t, fakeSQS.messages)
+		require.Empty(t, fakeSQS.invisibleMessages)
+	})
+
 	return &sqsClient{}
 }
 
@@ -55,9 +71,16 @@ func (f *sqsClient) ReceiveMessage(_ context.Context, params *sqs.ReceiveMessage
 		return nil, ErrEmptyQueue
 	}
 
-	messages := fakeSQS.messages
-	if params.MaxNumberOfMessages > 0 && int(params.MaxNumberOfMessages) < len(messages) {
-		messages = messages[:int(params.MaxNumberOfMessages)]
+	numMessages := len(fakeSQS.messages)
+	if params.MaxNumberOfMessages > 0 && int(params.MaxNumberOfMessages) < numMessages {
+		numMessages = int(params.MaxNumberOfMessages)
+	}
+
+	messages := fakeSQS.messages[:numMessages]
+	fakeSQS.messages = fakeSQS.messages[numMessages:]
+
+	for _, msg := range messages {
+		fakeSQS.invisibleMessages[*msg.ReceiptHandle] = msg
 	}
 
 	copyMessages := make([]types.Message, len(messages))
@@ -71,13 +94,12 @@ func (f *sqsClient) DeleteMessage(_ context.Context, params *sqs.DeleteMessageIn
 	fakeSQS.mu.Lock()
 	defer fakeSQS.mu.Unlock()
 
-	for i, msg := range fakeSQS.messages {
-		if *msg.ReceiptHandle == *params.ReceiptHandle {
-			fakeSQS.messages = append(fakeSQS.messages[:i], fakeSQS.messages[i+1:]...)
-			fakeSQS.deletedMessages = append(fakeSQS.deletedMessages, *params.ReceiptHandle)
-			break
-		}
+	if _, exists := fakeSQS.invisibleMessages[*params.ReceiptHandle]; !exists {
+		return nil, fmt.Errorf("attempt to delete message that wasn't received: %s", *params.ReceiptHandle)
 	}
+
+	delete(fakeSQS.invisibleMessages, *params.ReceiptHandle)
+	fakeSQS.deletedMessages = append(fakeSQS.deletedMessages, *params.ReceiptHandle)
 
 	return &sqs.DeleteMessageOutput{}, nil
 }

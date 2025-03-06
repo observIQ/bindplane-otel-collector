@@ -23,6 +23,7 @@ import (
 	"strings"
 )
 
+// ParseRegionFromSQSURL parses the region from a SQS URL
 func ParseRegionFromSQSURL(queueURL string) (string, error) {
 	if queueURL == "" {
 		return "", errors.New("SQS queue URL is required")

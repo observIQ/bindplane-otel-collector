@@ -30,7 +30,7 @@ import (
 )
 
 func TestProcessMessage(t *testing.T) {
-	defer fake.SetFakeConstructorForTest()()
+	defer fake.SetFakeConstructorForTest(t)()
 
 	testCases := []struct {
 		name       string
@@ -81,7 +81,7 @@ func TestProcessMessage(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			ctx := context.Background()
-			fakeAWS := fake.NewClient(aws.Config{}).(*fake.AWS)
+			fakeAWS := fake.NewClient(t).(*fake.AWS)
 
 			var numObjects int
 			for _, objectSet := range testCase.objectSets {

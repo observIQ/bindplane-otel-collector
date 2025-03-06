@@ -29,6 +29,7 @@ var NewClient = func(cfg aws.Config) Client {
 	}
 }
 
+// Client is a client for AWS services
 type Client interface {
 	S3() S3Client
 	SQS() SQSClient

@@ -107,7 +107,7 @@ func TestConfigValidate(t *testing.T) {
 		},
 		{
 			desc:        "Missing SQS queue URL",
-			cfgMod:      func(cfg *Config) {},
+			cfgMod:      func(_ *Config) {},
 			expectedErr: "'sqs_queue_url' is required",
 		},
 		{

@@ -31,6 +31,7 @@ import (
 
 var _ bpaws.Client = &AWS{}
 
+// AWS is a fake AWS client
 type AWS struct {
 	s3Client  *s3Client
 	sqsClient *sqsClient
@@ -42,26 +43,35 @@ type AWS struct {
 // SetFakeConstructorForTest sets the fake constructor for the AWS client
 // It returns a function that restores the original constructor
 // It is intended to be used in a defer statement
-// e.g. defer fake.SetFakeConstructorForTest()()
-func SetFakeConstructorForTest() func() {
+// e.g. defer fake.SetFakeConstructorForTest(t)()
+func SetFakeConstructorForTest(t *testing.T) func() {
 	realNewClient := bpaws.NewClient
-	bpaws.NewClient = NewClient
+	bpaws.NewClient = func(_ aws.Config) bpaws.Client {
+		return &AWS{
+			s3Client:  NewS3Client(t).(*s3Client),
+			sqsClient: NewSQSClient(t).(*sqsClient),
+		}
+	}
+
 	return func() {
 		bpaws.NewClient = realNewClient
 	}
 }
 
-func NewClient(cfg aws.Config) bpaws.Client {
+// NewClient creates a new fake AWS client
+func NewClient(t *testing.T) bpaws.Client {
 	return &AWS{
-		s3Client:  NewS3Client(cfg).(*s3Client),
-		sqsClient: NewSQSClient(cfg).(*sqsClient),
+		s3Client:  NewS3Client(t).(*s3Client),
+		sqsClient: NewSQSClient(t).(*sqsClient),
 	}
 }
 
+// S3 returns the fake S3 client
 func (a *AWS) S3() bpaws.S3Client {
 	return a.s3Client
 }
 
+// SQS returns the fake SQS client
 func (a *AWS) SQS() bpaws.SQSClient {
 	return a.sqsClient
 }

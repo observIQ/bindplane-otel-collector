@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package c provides a client for the S3 service.
+// Package bpaws provides a client for AWS services.
 package bpaws // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
 
 import (

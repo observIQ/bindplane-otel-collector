@@ -22,6 +22,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 	"go.opentelemetry.io/collector/component"
@@ -42,6 +43,14 @@ type logsReceiver struct {
 	pollDone   chan struct{}
 	workerPool sync.Pool
 	workerWg   sync.WaitGroup
+
+	// Channel for distributing messages to worker goroutines
+	msgChan chan workerMessage
+}
+
+type workerMessage struct {
+	msg      types.Message
+	queueURL string
 }
 
 func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Config, next consumer.Logs) (component.Component, error) {
@@ -71,6 +80,15 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 
 func (r *logsReceiver) Start(ctx context.Context, _ component.Host) error {
 	r.startOnce.Do(func() {
+		// Create message channel
+		r.msgChan = make(chan workerMessage, r.cfg.Workers*2)
+
+		// Start fixed number of workers
+		for i := 0; i < r.cfg.Workers; i++ {
+			r.workerWg.Add(1)
+			go r.runWorker(ctx)
+		}
+
 		pollCtx, pollCancel := context.WithCancel(ctx)
 		r.pollCancel = pollCancel
 		r.pollDone = make(chan struct{})
@@ -82,10 +100,37 @@ func (r *logsReceiver) Start(ctx context.Context, _ component.Host) error {
 	return nil
 }
 
+func (r *logsReceiver) runWorker(ctx context.Context) {
+	defer r.workerWg.Done()
+	w := r.workerPool.Get().(*worker.Worker)
+
+	r.telemetry.Logger.Debug("worker started")
+
+	for {
+		select {
+		case <-ctx.Done():
+			r.telemetry.Logger.Debug("worker stopping due to context cancellation")
+			r.workerPool.Put(w)
+			return
+		case msg, ok := <-r.msgChan:
+			if !ok {
+				r.telemetry.Logger.Debug("worker stopping due to closed channel")
+				r.workerPool.Put(w)
+				return
+			}
+			r.telemetry.Logger.Debug("worker processing message", zap.String("message_id", *msg.msg.MessageId))
+			w.ProcessMessage(ctx, msg.msg, msg.queueURL, func() {
+				r.telemetry.Logger.Debug("worker finished processing message", zap.String("message_id", *msg.msg.MessageId))
+			})
+		}
+	}
+}
+
 func (r *logsReceiver) Shutdown(context.Context) error {
 	r.stopOnce.Do(func() {
 		r.pollCancel()
 		<-r.pollDone
+		close(r.msgChan)
 		r.workerWg.Wait()
 	})
 	return nil
@@ -128,17 +173,17 @@ func (r *logsReceiver) receiveMessages(ctx context.Context) error {
 		return nil
 	}
 
-	r.telemetry.Logger.Debug("messages received", zap.Int("count", len(resp.Messages)))
+	r.telemetry.Logger.Debug("messages received", zap.Int("count", len(resp.Messages)), zap.String("first_message_id", *resp.Messages[0].MessageId))
 
 	for _, msg := range resp.Messages {
-		w := r.workerPool.Get().(*worker.Worker)
-		r.workerWg.Add(1)
-		go w.ProcessMessage(ctx, msg, queueURL, func() {
-			r.workerWg.Done()
-			r.workerPool.Put(w)
-		})
+		select {
+		case r.msgChan <- workerMessage{msg: msg, queueURL: queueURL}:
+			r.telemetry.Logger.Debug("queued message", zap.String("message_id", *msg.MessageId))
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 
-	r.telemetry.Logger.Debug("processed all messages")
+	r.telemetry.Logger.Debug("queued all messages for processing")
 	return nil
 }
