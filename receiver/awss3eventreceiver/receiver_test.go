@@ -17,6 +17,7 @@ package awss3eventreceiver_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -112,9 +113,9 @@ func TestReceiver(t *testing.T) {
 	defer fake.SetFakeConstructorForTest(t)()
 
 	testCases := []struct {
-		name       string
-		objectSets []map[string]map[string]string
-		// TODO test number of workers
+		name        string
+		objectSets  []map[string]map[string]string
+		expectLines int
 	}{
 		{
 			name: "single object",
@@ -125,6 +126,7 @@ func TestReceiver(t *testing.T) {
 					},
 				},
 			},
+			expectLines: 1,
 		},
 		{
 			name: "multiple objects",
@@ -140,6 +142,7 @@ func TestReceiver(t *testing.T) {
 					},
 				},
 			},
+			expectLines: 4,
 		},
 		{
 			name: "multiple objects with different buckets",
@@ -155,16 +158,45 @@ func TestReceiver(t *testing.T) {
 					},
 				},
 			},
+			expectLines: 4,
+		},
+		{
+			name: "multiple objects multiple lines",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket1": {
+						"mykey1": "myvalue1\nmyvalue2",
+						"mykey2": "myvalue3\nmyvalue4",
+					},
+				},
+			},
+			expectLines: 4,
+		},
+		{
+			name: "multiple objects multiple lines with different buckets",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket1": {
+						"mykey1": "myvalue1\nmyvalue2",
+						"mykey2": "myvalue3\nmyvalue4",
+					},
+					"mybucket2": {
+						"mykey3": "myvalue5\nmyvalue6",
+						"mykey4": "myvalue7\nmyvalue8",
+					},
+				},
+			},
+			expectLines: 8,
 		},
 	}
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
 			fakeAWS := fake.NewClient(t).(*fake.AWS)
 
 			var numObjects int
-			for _, objectSet := range testCase.objectSets {
+			for _, objectSet := range tc.objectSets {
 				for _, bucket := range objectSet {
 					numObjects += len(bucket)
 				}
@@ -190,14 +222,14 @@ func TestReceiver(t *testing.T) {
 			}()
 
 			require.Eventually(t, func() bool {
-				return len(sink.AllLogs()) == len(testCase.objectSets)
+				return len(sink.AllLogs()) == len(tc.objectSets)
 			}, time.Second, 100*time.Millisecond)
 
 			var numRecords int
 			for _, logs := range sink.AllLogs() {
 				numRecords += logs.LogRecordCount()
 			}
-			require.Equal(t, numObjects, numRecords)
+			require.Equal(t, tc.expectLines, numRecords)
 
 			_, err = fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 			require.Equal(t, fake.ErrEmptyQueue, err)
@@ -215,8 +247,25 @@ func TestManyObjects(t *testing.T) {
 	numObjectsPerBucket := 100
 	numObjectsPerMessage := 4 // Test assumes this divides evenly into numObjectsPerBucket
 
+	// Create standard multiline log formats
+	contentTypes := []string{
+		"This is a single line log message",
+		"First line of log\nSecond line of log",
+		"Line 1\nLine 2\nLine 3",
+		"INFO: Operation started\nDEBUG: Processing data\nINFO: Operation completed",
+	}
+	numContentTypes := len(contentTypes)
+
 	totalObjects := numBuckets * numObjectsPerBucket
-	totalMessages := totalObjects / numObjectsPerMessage
+
+	// Calculate expected records by counting lines in each content type
+	expectedRecords := 0
+	for i := 0; i < totalObjects; i++ {
+		contentTypeIndex := i % numContentTypes
+		content := contentTypes[contentTypeIndex]
+		lines := strings.Split(content, "\n")
+		expectedRecords += len(lines)
+	}
 
 	var objectNumber int
 	objectSet := make(map[string]map[string]string)
@@ -226,7 +275,12 @@ func TestManyObjects(t *testing.T) {
 			if _, ok := objectSet[bucket]; !ok {
 				objectSet[bucket] = make(map[string]string)
 			}
-			objectSet[bucket][fmt.Sprintf("object-%d", j)] = fmt.Sprintf("value-%d", j)
+
+			// Select a content type based on the object number
+			contentTypeIndex := (i*numObjectsPerBucket + j) % numContentTypes
+			content := contentTypes[contentTypeIndex]
+
+			objectSet[bucket][fmt.Sprintf("object-%d", j)] = content
 			objectNumber++
 			if objectNumber%numObjectsPerMessage == 0 {
 				fakeAWS.CreateObjects(t, objectSet)
@@ -241,6 +295,7 @@ func TestManyObjects(t *testing.T) {
 	cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 	cfg.PollInterval = 50 * time.Millisecond
 	cfg.Workers = 16
+	cfg.MaxLogSize = 4096
 	sink := new(consumertest.LogsSink)
 
 	receiver, err := f.CreateLogs(context.Background(), set, cfg, sink)
@@ -256,15 +311,15 @@ func TestManyObjects(t *testing.T) {
 
 	require.Eventually(t, func() bool {
 		logs := sink.AllLogs()
-		return len(logs) == totalMessages
+		return len(logs) == totalObjects/numObjectsPerMessage
 	}, 10*time.Second, 500*time.Millisecond)
 
 	var numRecords int
 	for _, logs := range sink.AllLogs() {
 		numRecords += logs.LogRecordCount()
 	}
-	require.Equal(t, totalMessages, len(sink.AllLogs()), "Incorrect number of messages")
-	require.Equal(t, totalObjects, numRecords, "Incorrect number of records")
+	require.Equal(t, totalObjects/numObjectsPerMessage, len(sink.AllLogs()), "Incorrect number of messages")
+	require.Equal(t, expectedRecords, numRecords, "Incorrect number of records")
 
 	_, err = fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.Equal(t, fake.ErrEmptyQueue, err)
