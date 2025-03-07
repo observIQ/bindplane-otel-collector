@@ -22,19 +22,21 @@ This receiver is capable of collecting audit logs from a Bindplane instance.
 
 ## Configuration
 
-| Field         | Type   | Default | Required | Description                                                                                                                                                                                                                  |
-| ------------- | ------ | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| bindplane_url | string |         | `true`   | The Bindplane URL the receiver should collect logs from. (e.g. `https://app.bindplane.com`)                                                                                                                                  |
-| api_key       | string |         | `true`   | The Bindplane API key with read access to audit logs.                                                                                                                                                                        |
-| poll_interval | string | 1m      | `false`  | The rate at which this receiver will poll Bindplane for logs. This value must be in the range [10 seconds - 24 hours] and must be a string readable by Golang's [time.ParseDuration](https://pkg.go.dev/time#ParseDuration). |
+| Field                | Type   | Default | Required | Description                                                                                                                                                                                                                  |
+| -------------------- | ------ | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| bindplane_url_string | string |         | `true`   | The Bindplane URL the receiver should collect logs from. (e.g. `https://app.bindplane.com`)                                                                                                                                  |
+| api_key              | string |         | `true`   | The Bindplane API key with read access to audit logs.                                                                                                                                                                        |
+| scheme               | string |         | `false`  | The scheme of the Bindplane URL. If not provided, the scheme will be `https`.                                                                                                                                                |
+| poll_interval        | string | 1m      | `false`  | The rate at which this receiver will poll Bindplane for logs. This value must be in the range [10 seconds - 24 hours] and must be a string readable by Golang's [time.ParseDuration](https://pkg.go.dev/time#ParseDuration). |
 
 ### Example Configuration
 
 ```yaml
 receivers:
   bindplaneauditlogs:
-    bindplane_url: https://app.bindplane.com
+    bindplane_url_string: https://app.bindplane.com
     api_key: 1234567890
+    scheme: https
     poll_interval: 10s
 exporters:
   googlecloud:
