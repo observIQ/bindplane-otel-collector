@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/backoff"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 	"go.opentelemetry.io/collector/component"
@@ -138,9 +139,11 @@ func (r *logsReceiver) Shutdown(context.Context) error {
 
 func (r *logsReceiver) poll(ctx context.Context, deferThis func()) {
 	defer deferThis()
-	ticker := time.NewTicker(r.cfg.PollInterval)
+
+	ticker := time.NewTicker(r.cfg.StandardPollInterval)
 	defer ticker.Stop()
 
+	nextInterval := backoff.New(r.telemetry, r.cfg.StandardPollInterval, r.cfg.MaxPollInterval, r.cfg.PollingBackoffFactor)
 	for {
 		select {
 		case <-ctx.Done():
@@ -149,7 +152,7 @@ func (r *logsReceiver) poll(ctx context.Context, deferThis func()) {
 		case <-ticker.C:
 			numMessages := r.receiveMessages(ctx)
 			r.telemetry.Logger.Debug(fmt.Sprintf("received %d messages", numMessages))
-			// TODO calculate next poll time based on messages per second
+			ticker.Reset(nextInterval.Update(numMessages))
 		}
 	}
 }

@@ -98,7 +98,7 @@ func TestStartShutdown(t *testing.T) {
 	f := rcvr.NewFactory()
 	cfg := f.CreateDefaultConfig().(*rcvr.Config)
 	cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
-	cfg.PollInterval = 10 * time.Millisecond
+	cfg.StandardPollInterval = 10 * time.Millisecond
 	next := consumertest.NewNop()
 
 	receiver, err := f.CreateLogs(context.Background(), set, cfg, next)
@@ -207,7 +207,7 @@ func TestReceiver(t *testing.T) {
 			f := rcvr.NewFactory()
 			cfg := f.CreateDefaultConfig().(*rcvr.Config)
 			cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
-			cfg.PollInterval = 50 * time.Millisecond
+			cfg.StandardPollInterval = 50 * time.Millisecond
 			sink := new(consumertest.LogsSink)
 
 			receiver, err := f.CreateLogs(context.Background(), set, cfg, sink)
@@ -293,7 +293,7 @@ func TestManyObjects(t *testing.T) {
 	f := rcvr.NewFactory()
 	cfg := f.CreateDefaultConfig().(*rcvr.Config)
 	cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
-	cfg.PollInterval = 50 * time.Millisecond
+	cfg.StandardPollInterval = 50 * time.Millisecond
 	cfg.Workers = 16
 	cfg.MaxLogSize = 4096
 	sink := new(consumertest.LogsSink)

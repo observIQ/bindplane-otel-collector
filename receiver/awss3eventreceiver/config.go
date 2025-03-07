@@ -26,8 +26,18 @@ type Config struct {
 	// SQSQueueURL is the URL of the SQS queue that receives S3 event notifications.
 	SQSQueueURL string `mapstructure:"sqs_queue_url"`
 
-	// PollInterval is the interval at which to poll the SQS queue for messages.
-	PollInterval time.Duration `mapstructure:"poll_interval"`
+	// StandardPollInterval is the default interval to poll the SQS queue for messages.
+	// When messages are found, polling will occur at this interval.
+	StandardPollInterval time.Duration `mapstructure:"standard_poll_interval"`
+
+	// MaxPollInterval is the maximum interval between SQS queue polls.
+	// When no messages are found, the interval will increase up to this duration.
+	MaxPollInterval time.Duration `mapstructure:"max_poll_interval"`
+
+	// PollingBackoffFactor is the multiplier used to increase the polling interval
+	// when no messages are found. For example, a value of 1.5 means the interval
+	// increases by 50% after each empty poll.
+	PollingBackoffFactor float64 `mapstructure:"polling_backoff_factor"`
 
 	// Workers is the number of workers to use to process events.
 	Workers int `mapstructure:"workers"`
@@ -48,8 +58,16 @@ func (c *Config) Validate() error {
 		return errors.New("'sqs_queue_url' is required")
 	}
 
-	if c.PollInterval <= 0 {
-		return errors.New("'poll_interval' must be greater than 0")
+	if c.StandardPollInterval <= 0 {
+		return errors.New("'standard_poll_interval' must be greater than 0")
+	}
+
+	if c.MaxPollInterval <= c.StandardPollInterval {
+		return errors.New("'max_poll_interval' must be greater than 'standard_poll_interval'")
+	}
+
+	if c.PollingBackoffFactor <= 1 {
+		return errors.New("'polling_backoff_factor' must be greater than 1")
 	}
 
 	if c.VisibilityTimeout <= 0 {

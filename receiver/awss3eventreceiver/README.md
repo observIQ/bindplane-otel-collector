@@ -18,7 +18,9 @@ The AWS S3 Event Receiver consumes S3 event notifications for object creation ev
 | Field                  | Type   | Default | Required | Description |
 |------------------------|--------|---------|----------|-------------|
 | sqs_queue_url          | string |         | `true`   | The URL of the SQS queue to poll for S3 event notifications (the AWS region is automatically extracted from this URL) |
-| poll_interval          | duration | 20s   | `false`  | The interval at which the SQS queue is polled |
+| standard_poll_interval | duration | 15s   | `false`  | The interval at which the SQS queue is polled for messages |
+| max_poll_interval      | duration | 2m   | `false`  | The maximum interval at which the SQS queue is polled for messages |
+| polling_backoff_factor | float    | 2     | `false`  | The factor by which the polling interval is multiplied after an unsuccessful poll |
 | workers                | int      | 5     | `false`  | The number of workers to process messages in parallel |
 | visibility_timeout     | duration | 300s  | `false`  | The visibility timeout for SQS messages |
 | api_max_messages       | int    | 10      | `false`  | The maximum number of messages to retrieve in a single SQS poll |

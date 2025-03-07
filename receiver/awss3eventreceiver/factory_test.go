@@ -41,7 +41,9 @@ func TestFactoryCreateDefaultConfig(t *testing.T) {
 	receiverCfg, ok := cfg.(*Config)
 	require.True(t, ok)
 	assert.Equal(t, "", receiverCfg.SQSQueueURL)
-	assert.Equal(t, 20*time.Second, receiverCfg.PollInterval)
+	assert.Equal(t, 5*time.Second, receiverCfg.StandardPollInterval)
+	assert.Equal(t, 60*time.Second, receiverCfg.MaxPollInterval)
+	assert.Equal(t, 1.5, receiverCfg.PollingBackoffFactor)
 	assert.Equal(t, 300*time.Second, receiverCfg.VisibilityTimeout)
 	assert.Equal(t, 1024*1024, receiverCfg.MaxLogSize)
 }

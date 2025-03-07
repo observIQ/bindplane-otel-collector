@@ -54,11 +54,13 @@ func TestLoadConfig(t *testing.T) {
 		{
 			id: component.NewIDWithName(Type, "custom"),
 			expected: &Config{
-				SQSQueueURL:       "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
-				PollInterval:      30 * time.Second,
-				VisibilityTimeout: 600 * time.Second,
-				Workers:           10,
-				MaxLogSize:        4096,
+				SQSQueueURL:          "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
+				StandardPollInterval: 30 * time.Second,
+				MaxPollInterval:      60 * time.Second,
+				PollingBackoffFactor: 2,
+				VisibilityTimeout:    600 * time.Second,
+				Workers:              10,
+				MaxLogSize:           4096,
 			},
 			expectError: false,
 		},
@@ -114,9 +116,28 @@ func TestConfigValidate(t *testing.T) {
 			desc: "Invalid poll interval",
 			cfgMod: func(cfg *Config) {
 				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
-				cfg.PollInterval = 0
+				cfg.StandardPollInterval = 0
 			},
-			expectedErr: "'poll_interval' must be greater than 0",
+			expectedErr: "'standard_poll_interval' must be greater than 0",
+		},
+		{
+			desc: "Invalid max poll interval",
+			cfgMod: func(cfg *Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.StandardPollInterval = 15 * time.Second
+				cfg.MaxPollInterval = 10 * time.Second
+			},
+			expectedErr: "'max_poll_interval' must be greater than 'standard_poll_interval'",
+		},
+		{
+			desc: "Invalid polling backoff factor",
+			cfgMod: func(cfg *Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.StandardPollInterval = 15 * time.Second
+				cfg.MaxPollInterval = 60 * time.Second
+				cfg.PollingBackoffFactor = 1
+			},
+			expectedErr: "'polling_backoff_factor' must be greater than 1",
 		},
 		{
 			desc: "Invalid visibility timeout",
