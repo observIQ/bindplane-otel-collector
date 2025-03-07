@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -40,20 +41,22 @@ import (
 // It also handles deleting messages from the SQS queue after they have been processed.
 // It is designed to be used in a worker pool.
 type Worker struct {
-	tel          component.TelemetrySettings
-	client       bpaws.Client
-	nextConsumer consumer.Logs
-	maxLogSize   int
+	tel            component.TelemetrySettings
+	client         bpaws.Client
+	nextConsumer   consumer.Logs
+	maxLogSize     int
+	maxLogsEmitted int
 }
 
 // New creates a new Worker
-func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.Logs, maxLogSize int) *Worker {
+func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.Logs, maxLogSize int, maxLogsEmitted int) *Worker {
 	client := bpaws.NewClient(cfg)
 	return &Worker{
-		tel:          tel,
-		client:       client,
-		nextConsumer: nextConsumer,
-		maxLogSize:   maxLogSize,
+		tel:            tel,
+		client:         client,
+		nextConsumer:   nextConsumer,
+		maxLogSize:     maxLogSize,
+		maxLogsEmitted: maxLogsEmitted,
 	}
 }
 
@@ -72,42 +75,46 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	}
 	w.tel.Logger.Debug("processing notification", zap.Int("event.count", len(notification.Records)))
 
-	ld := plog.NewLogs()
+	// Filter records to only include s3:ObjectCreated:* events
+	var objectCreatedRecords []events.S3EventRecord
 	for _, record := range notification.Records {
-		bucket := record.S3.Bucket.Name
-		key := record.S3.Object.Key
-		w.tel.Logger.Debug("processing record", zap.String("bucket", bucket), zap.String("key", key))
-
-		// Create new resource logs for each record
-		rls := ld.ResourceLogs().AppendEmpty()
-		rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
-		rls.Resource().Attributes().PutStr("aws.s3.key", key)
-		sls := rls.ScopeLogs().AppendEmpty()
-
-		w.processRecord(ctx, record, sls.LogRecords())
+		if strings.HasPrefix(record.EventName, "s3:ObjectCreated:") {
+			objectCreatedRecords = append(objectCreatedRecords, record)
+		} else {
+			w.tel.Logger.Warn("unexpected event: receiver handles only s3:ObjectCreated:* events",
+				zap.String("event_name", record.EventName),
+				zap.String("bucket", record.S3.Bucket.Name),
+				zap.String("key", record.S3.Object.Key))
+		}
 	}
 
-	// TODO allow configuration of whether to delete messages before or after consuming the logs.
-	// ConsumeLogs then Delete: If Delete fails, the message may be redelivered.
-	// Delete then ConsumeLogs: If the ConsumeLogs fails, the logs will be lost.
-
-	deleteParams := &sqs.DeleteMessageInput{
-		QueueUrl:      aws.String(queueURL),
-		ReceiptHandle: msg.ReceiptHandle,
-	}
-	_, err = w.client.SQS().DeleteMessage(ctx, deleteParams)
-	if err != nil {
-		w.tel.Logger.Error("delete message", zap.Error(err), zap.String("message_id", *msg.MessageId))
+	if len(objectCreatedRecords) == 0 {
+		w.tel.Logger.Debug("no s3:ObjectCreated:* events found in notification, skipping", zap.String("message_id", *msg.MessageId))
+		w.deleteMessage(ctx, msg, queueURL)
 		return
 	}
-	w.tel.Logger.Debug("deleted message", zap.String("message_id", *msg.MessageId), zap.Int("event.count", len(notification.Records)))
 
-	if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
-		w.tel.Logger.Error("consume logs", zap.Error(err), zap.String("message_id", *msg.MessageId))
+	if len(objectCreatedRecords) > 1 {
+		w.tel.Logger.Warn("duplicate logs possible: multiple s3:ObjectCreated:* events found in notification",
+			zap.Int("event.count", len(objectCreatedRecords)),
+			zap.String("message_id", *msg.MessageId),
+		)
 	}
+
+	for _, record := range objectCreatedRecords {
+		w.tel.Logger.Debug("processing record",
+			zap.String("bucket", record.S3.Bucket.Name),
+			zap.String("key", record.S3.Object.Key),
+		)
+
+		w.processRecord(ctx, record)
+	}
+
+	// TODO conditional upon 404 error
+	w.deleteMessage(ctx, msg, queueURL)
 }
 
-func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord, lrs plog.LogRecordSlice) {
+func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord) {
 	bucket := record.S3.Bucket.Name
 	key := record.S3.Object.Key
 	size := record.S3.Object.Size
@@ -127,6 +134,12 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord,
 	now := time.Now()
 
 	reader := bufio.NewReader(resp.Body)
+
+	ld := plog.NewLogs()
+	rls := ld.ResourceLogs().AppendEmpty()
+	rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
+	rls.Resource().Attributes().PutStr("aws.s3.key", key)
+	lrs := rls.ScopeLogs().AppendEmpty().LogRecords()
 
 	for {
 		// ReadLine returns line fragments if the line doesn't fit in the buffer
@@ -149,7 +162,41 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord,
 		lr.SetObservedTimestamp(pcommon.NewTimestampFromTime(now))
 		lr.SetTimestamp(pcommon.NewTimestampFromTime(record.EventTime))
 		lr.Body().SetStr(string(lineBytes))
+
+		if ld.LogRecordCount() >= w.maxLogsEmitted {
+			if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
+				w.tel.Logger.Error("consume logs", zap.Error(err),
+					zap.String("bucket", bucket),
+					zap.String("key", key),
+				)
+			}
+			ld = plog.NewLogs()
+			rls = ld.ResourceLogs().AppendEmpty()
+			rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
+			rls.Resource().Attributes().PutStr("aws.s3.key", key)
+			lrs = rls.ScopeLogs().AppendEmpty().LogRecords()
+		}
 	}
 
+	if ld.LogRecordCount() == 0 {
+		return
+	}
+
+	if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
+		w.tel.Logger.Error("consume logs", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
+	}
 	w.tel.Logger.Debug("processed S3 object", zap.String("bucket", bucket), zap.String("key", key))
+}
+
+func (w *Worker) deleteMessage(ctx context.Context, msg types.Message, queueURL string) {
+	deleteParams := &sqs.DeleteMessageInput{
+		QueueUrl:      aws.String(queueURL),
+		ReceiptHandle: msg.ReceiptHandle,
+	}
+	_, err := w.client.SQS().DeleteMessage(ctx, deleteParams)
+	if err != nil {
+		w.tel.Logger.Error("delete message", zap.Error(err), zap.String("message_id", *msg.MessageId))
+		return
+	}
+	w.tel.Logger.Debug("deleted message", zap.String("message_id", *msg.MessageId))
 }

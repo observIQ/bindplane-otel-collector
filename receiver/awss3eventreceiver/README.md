@@ -1,12 +1,13 @@
 # AWS S3 Event Receiver
 
-The AWS S3 Event Receiver consumes S3 event notifications for object creation events and emits the S3 object as the string body of a log record.
+The AWS S3 Event Receiver consumes S3 event notifications for object creation events (`s3:ObjectCreated:*`) and emits the S3 object as the string body of a log record.
 
 ## How It Works
 
 1. The receiver polls an SQS queue for S3 event notifications.
-2. When an object creation event is received, the receiver downloads the S3 object.
+2. When an object creation event (`s3:ObjectCreated:*`) is received, the receiver downloads the S3 object.
 3. The receiver reads the object into the body of a new log record.
+4. Non-object creation events are ignored but removed from the queue.
 
 ## TODO
 

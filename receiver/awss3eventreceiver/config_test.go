@@ -61,6 +61,7 @@ func TestLoadConfig(t *testing.T) {
 				VisibilityTimeout:    600 * time.Second,
 				Workers:              10,
 				MaxLogSize:           4096,
+				MaxLogsEmitted:       1000,
 			},
 			expectError: false,
 		},

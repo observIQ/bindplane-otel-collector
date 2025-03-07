@@ -46,6 +46,7 @@ func createDefaultConfig() component.Config {
 		VisibilityTimeout:    300 * time.Second,
 		Workers:              5,
 		MaxLogSize:           1024 * 1024,
+		MaxLogsEmitted:       1000,
 	}
 }
 

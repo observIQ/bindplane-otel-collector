@@ -35,6 +35,7 @@ func TestProcessMessage(t *testing.T) {
 
 	longLineLength := 100000
 	maxLogSize := 4096
+	maxLogsEmitted := 1000
 
 	// Calculate expected fragments for the long line
 	// Need to use ceiling division to handle any remainder correctly
@@ -124,13 +125,17 @@ func TestProcessMessage(t *testing.T) {
 			ctx := context.Background()
 			fakeAWS := fake.NewClient(t).(*fake.AWS)
 
+			var totalObjects int
 			for _, objectSet := range testCase.objectSets {
+				for _, bucket := range objectSet {
+					totalObjects += len(bucket)
+				}
 				fakeAWS.CreateObjects(t, objectSet)
 			}
 
 			set := componenttest.NewNopTelemetrySettings()
 			sink := new(consumertest.LogsSink)
-			w := worker.New(set, aws.Config{}, sink, maxLogSize)
+			w := worker.New(set, aws.Config{}, sink, maxLogSize, maxLogsEmitted)
 
 			numCallbacks := 0
 
@@ -148,7 +153,7 @@ func TestProcessMessage(t *testing.T) {
 			}
 
 			require.Equal(t, len(testCase.objectSets), numCallbacks)
-			require.Equal(t, len(testCase.objectSets), len(sink.AllLogs()))
+			require.Equal(t, totalObjects, len(sink.AllLogs()), "Expected %d log batches (one per object)", totalObjects)
 
 			var numRecords int
 			for _, logs := range sink.AllLogs() {
@@ -170,4 +175,132 @@ func createLongLine(length int) string {
 		builder.WriteString(pattern)
 	}
 	return builder.String()[:length]
+}
+
+func TestEventTypeFiltering(t *testing.T) {
+	defer fake.SetFakeConstructorForTest(t)()
+
+	maxLogSize := 4096
+	maxLogsEmitted := 1000
+
+	testCases := []struct {
+		name        string
+		eventType   string
+		objectSets  []map[string]map[string]string
+		expectLines int
+		expectLogs  int
+	}{
+		{
+			name:      "s3:ObjectCreated:Put - should be processed",
+			eventType: "s3:ObjectCreated:Put",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket": {
+						"mykey1": "line1\nline2",
+					},
+				},
+			},
+			expectLines: 2,
+			expectLogs:  1,
+		},
+		{
+			name:      "s3:ObjectCreated:CompleteMultipartUpload - should be processed",
+			eventType: "s3:ObjectCreated:CompleteMultipartUpload",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket": {
+						"mykey1": "line1\nline2\nline3",
+					},
+				},
+			},
+			expectLines: 3,
+			expectLogs:  1,
+		},
+		{
+			name:      "s3:ObjectRemoved:Delete - should not be processed",
+			eventType: "s3:ObjectRemoved:Delete",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket": {
+						"mykey1": "line1\nline2",
+					},
+				},
+			},
+			expectLines: 0,
+			expectLogs:  0,
+		},
+		{
+			name:      "s3:ReducedRedundancyLostObject - should not be processed",
+			eventType: "s3:ReducedRedundancyLostObject",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket": {
+						"mykey1": "line1\nline2",
+					},
+				},
+			},
+			expectLines: 0,
+			expectLogs:  0,
+		},
+		{
+			name:      "s3:Replication - should not be processed",
+			eventType: "s3:Replication:OperationCompletedReplication",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket": {
+						"mykey1": "line1\nline2",
+					},
+				},
+			},
+			expectLines: 0,
+			expectLogs:  0,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := context.Background()
+			fakeAWS := fake.NewClient(t).(*fake.AWS)
+
+			for _, objectSet := range testCase.objectSets {
+				fakeAWS.CreateObjectsWithEventType(t, testCase.eventType, objectSet)
+			}
+
+			set := componenttest.NewNopTelemetrySettings()
+			sink := new(consumertest.LogsSink)
+			w := worker.New(set, aws.Config{}, sink, maxLogSize, maxLogsEmitted)
+
+			numCallbacks := 0
+
+			for {
+				msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+				if err != nil {
+					require.ErrorIs(t, err, fake.ErrEmptyQueue)
+					break
+				}
+				for _, msg := range msg.Messages {
+					w.ProcessMessage(ctx, msg, "myqueue", func() {
+						numCallbacks++
+					})
+				}
+			}
+
+			require.Equal(t, len(testCase.objectSets), numCallbacks)
+
+			if testCase.expectLogs == 0 {
+				require.Empty(t, sink.AllLogs())
+			} else {
+				require.Equal(t, testCase.expectLogs, len(sink.AllLogs()))
+			}
+
+			var numRecords int
+			for _, logs := range sink.AllLogs() {
+				numRecords += logs.LogRecordCount()
+			}
+			require.Equal(t, testCase.expectLines, numRecords)
+
+			_, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+			require.Equal(t, fake.ErrEmptyQueue, err)
+		})
+	}
 }

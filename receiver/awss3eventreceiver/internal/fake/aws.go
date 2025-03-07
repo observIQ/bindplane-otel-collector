@@ -89,6 +89,22 @@ func (a *AWS) CreateObjects(t *testing.T, objects map[string]map[string]string) 
 	a.sqsClient.sendMessage(msg)
 }
 
+// CreateObjectsWithEventType creates objects in the fake S3 client and adds a corresponding message
+// to the fake SQS client with the specified event type
+func (a *AWS) CreateObjectsWithEventType(t *testing.T, eventType string, objects map[string]map[string]string) {
+	records := make([]events.S3EventRecord, 0, len(objects))
+	for bucket, keys := range objects {
+		for key, body := range keys {
+			a.s3Client.putObject(bucket, key, body)
+			record := newS3Record(bucket, key, body)
+			record.EventName = eventType
+			records = append(records, record)
+		}
+	}
+	msg := a.newS3Event(t, records...)
+	a.sqsClient.sendMessage(msg)
+}
+
 func (a *AWS) newS3Event(t *testing.T, records ...events.S3EventRecord) types.Message {
 	a.countMu.Lock()
 	receiptHandle := aws.String(fmt.Sprintf("receiptHandle-%d", a.count))
@@ -107,7 +123,7 @@ func (a *AWS) newS3Event(t *testing.T, records ...events.S3EventRecord) types.Me
 
 func newS3Record(bucket string, key string, body string) events.S3EventRecord {
 	return events.S3EventRecord{
-		EventName:   "ObjectCreated:Put",
+		EventName:   "s3:ObjectCreated:Put",
 		EventSource: "aws:s3",
 		EventTime:   time.Now(),
 		S3: events.S3Entity{

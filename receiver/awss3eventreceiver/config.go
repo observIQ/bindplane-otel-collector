@@ -50,6 +50,11 @@ type Config struct {
 	// Logs exceeding this size will be split into chunks.
 	// Default is 1MB.
 	MaxLogSize int `mapstructure:"max_log_size"`
+
+	// MaxLogsEmitted defines the maximum number of log records to emit in a single batch.
+	// A higher number will result in fewer batches, but more memory usage.
+	// Default is 1000.
+	MaxLogsEmitted int `mapstructure:"max_logs_emitted"`
 }
 
 // Validate checks if all required fields are present and valid.
