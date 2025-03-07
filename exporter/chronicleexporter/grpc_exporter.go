@@ -27,6 +27,8 @@ import (
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -147,6 +149,12 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 			codes.DeadlineExceeded,
 			codes.ResourceExhausted,
 			codes.Aborted:
+
+			errAttr := attribute.String("error", errCode.String())
+			exp.telemetry.OtelcolExporterRequestLatency.Record(
+				ctx, time.Since(start).Milliseconds(),
+				metric.WithAttributeSet(attribute.NewSet(errAttr)),
+			)
 			return fmt.Errorf("upload logs to chronicle: %w", err)
 		default:
 			return consumererror.NewPermanent(fmt.Errorf("upload logs to chronicle: %w", err))
