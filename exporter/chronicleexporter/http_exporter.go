@@ -31,6 +31,8 @@ import (
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	grpcgzip "google.golang.org/grpc/encoding/gzip"
@@ -135,11 +137,23 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 
 	resp, err := exp.client.Do(request)
 	if err != nil {
+		errAttr := attribute.String("error", "unknown")
+		if errors.Is(err, context.DeadlineExceeded) {
+			errAttr = attribute.String("error", "timeout")
+		}
+		exp.telemetry.OtelcolExporterRequestLatency.Record(
+			ctx, time.Since(start).Milliseconds(),
+			metric.WithAttributeSet(attribute.NewSet(errAttr)),
+		)
 		return fmt.Errorf("send request to Chronicle: %w", err)
 	}
 	defer resp.Body.Close()
 
-	exp.telemetry.OtelcolExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds())
+	statusAttr := attribute.String("status", resp.Status)
+	exp.telemetry.OtelcolExporterRequestLatency.Record(
+		ctx, time.Since(start).Milliseconds(),
+		metric.WithAttributeSet(attribute.NewSet(statusAttr)),
+	)
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err == nil && resp.StatusCode == http.StatusOK {
