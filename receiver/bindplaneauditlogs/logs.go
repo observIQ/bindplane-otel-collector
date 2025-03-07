@@ -110,7 +110,7 @@ func (r *bindplaneAuditLogsReceiver) poll(ctx context.Context) error {
 func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) []AuditLogEvent {
 	var logs []AuditLogEvent
 	const timeout = 1 * time.Minute
-	reqURL := r.cfg.BindplaneURL
+	reqURL := r.cfg.BindplaneURL.URL
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
