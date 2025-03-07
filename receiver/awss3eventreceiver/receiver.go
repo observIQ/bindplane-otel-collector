@@ -72,7 +72,7 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 		next:      next,
 		sqsClient: bpaws.NewClient(awsConfig).SQS(),
 		workerPool: sync.Pool{
-			New: func() interface{} {
+			New: func() any {
 				return worker.New(tel, awsConfig, next, cfg.MaxLogSize, cfg.MaxLogsEmitted)
 			},
 		},

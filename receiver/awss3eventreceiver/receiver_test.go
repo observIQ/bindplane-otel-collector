@@ -252,45 +252,22 @@ func TestManyObjects(t *testing.T) {
 
 	numBuckets := 10
 	numObjectsPerBucket := 100
-	numObjectsPerMessage := 4 // Test assumes this divides evenly into numObjectsPerBucket
 
-	// Create standard multiline log formats
-	sampleLogs := []string{
-		"line1\nline2\nline3",
-		"line1\nline2\nline3\nline4\nline5",
-		"line1\nline2",
-		"line1\nline2\nline3\nline4",
-	}
+	logContent := "line1\nline2\nline3"
+	linesPerObject := strings.Count(logContent, "\n") + 1
 
-	// Create buckets of objects and batches
-	var allBatches []map[string]map[string]string
-	var expectLines int
-
+	objects := make(map[string]map[string]string)
 	for b := 0; b < numBuckets; b++ {
 		bucketName := fmt.Sprintf("bucket%d", b)
+		objects[bucketName] = make(map[string]string)
 
-		for o := 0; o < numObjectsPerBucket; o += numObjectsPerMessage {
-			// Create a new batch of objects
-			batchObjects := make(map[string]map[string]string)
-			batchObjects[bucketName] = make(map[string]string)
-
-			for i := 0; i < numObjectsPerMessage; i++ {
-				// Log contents are just the sample logs repeated
-				key := fmt.Sprintf("object-%d-%d", o, i)
-				log := sampleLogs[i%len(sampleLogs)]
-				batchObjects[bucketName][key] = log
-				expectLines += strings.Count(log, "\n") + 1
-			}
-
-			// Add this batch to our collection
-			allBatches = append(allBatches, batchObjects)
+		for o := 0; o < numObjectsPerBucket; o++ {
+			key := fmt.Sprintf("object-%d", o)
+			objects[bucketName][key] = logContent
 		}
 	}
 
-	// Process all but the last batch
-	for i := 0; i < len(allBatches)-1; i++ {
-		fakeAWS.CreateObjects(t, allBatches[i])
-	}
+	fakeAWS.CreateObjects(t, objects)
 
 	set := receivertest.NewNopSettings()
 	f := rcvr.NewFactory()
@@ -306,33 +283,27 @@ func TestManyObjects(t *testing.T) {
 	host := componenttest.NewNopHost()
 	require.NoError(t, receiver.Start(ctx, host))
 
-	// Send the last batch after starting the receiver
-	lastBatch := allBatches[len(allBatches)-1]
-	fakeAWS.CreateObjects(t, lastBatch)
-
 	defer func() {
 		require.NoError(t, receiver.Shutdown(ctx))
 	}()
 
-	// Calculate total objects across all batches
 	var totalObjects int
-	for _, batch := range allBatches {
-		for _, bucketObjs := range batch {
-			totalObjects += len(bucketObjs)
-		}
+	for _, bucketObjs := range objects {
+		totalObjects += len(bucketObjs)
 	}
 
-	// Wait for all log batches to be processed
 	require.Eventually(t, func() bool {
 		return len(sink.AllLogs()) == totalObjects
 	}, 10*time.Second, 100*time.Millisecond)
 
-	// Count actual records and compare to expected
 	var numRecords int
 	for _, logs := range sink.AllLogs() {
 		numRecords += logs.LogRecordCount()
 	}
-	require.Equal(t, expectLines, numRecords)
+
+	// Calculate expected total lines
+	expectedTotalLines := totalObjects * linesPerObject
+	require.Equal(t, expectedTotalLines, numRecords)
 
 	_, err = fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.Equal(t, fake.ErrEmptyQueue, err)

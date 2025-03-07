@@ -137,8 +137,3 @@ func newS3Record(bucket string, key string, body string) events.S3EventRecord {
 		},
 	}
 }
-
-// DeleteS3Object deletes an object from the fake S3 store to simulate the NoSuchKey error
-func (a *AWS) DeleteS3Object(bucket string, key string) {
-	a.s3Client.DeleteObject(bucket, key)
-}

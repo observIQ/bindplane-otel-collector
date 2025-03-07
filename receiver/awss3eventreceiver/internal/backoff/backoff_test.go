@@ -78,11 +78,11 @@ func TestExponentialBackoff(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			telemetry := componenttest.NewNopTelemetrySettings()
-			backoff := backoff.New(telemetry, tt.standardPollInterval, tt.maxPollInterval, tt.backoffFactor)
+			bkoff := backoff.New(telemetry, tt.standardPollInterval, tt.maxPollInterval, tt.backoffFactor)
 
 			actualIntervals := make([]time.Duration, 0, len(tt.messagesSequence))
 			for _, msgCount := range tt.messagesSequence {
-				actualIntervals = append(actualIntervals, backoff.Update(msgCount))
+				actualIntervals = append(actualIntervals, bkoff.Update(msgCount))
 			}
 			assert.Equal(t, tt.expectedIntervals, actualIntervals)
 		})
