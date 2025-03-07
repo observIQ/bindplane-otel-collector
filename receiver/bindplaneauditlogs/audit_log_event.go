@@ -25,7 +25,7 @@ var (
 	AuditEventActionPending AuditEventAction = "Pending"
 )
 
-// AuditEvent represents an event effecting a resource that is used to create an audit trail
+// AuditLogEvent represents an event effecting a resource that is used to create an audit trail
 type AuditLogEvent struct {
 	// ID is a ULID uniquely identifying this event
 	ID string `json:"id" db:"id"`

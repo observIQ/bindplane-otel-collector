@@ -28,14 +28,13 @@ type Config struct {
 	// BindplaneURLString is the URL string of the Bindplane instance
 	BindplaneURLString string `mapstructure:"bindplane_url_string"`
 
+	// APIKey is the authentication key for accessing BindPlane audit logs
+	APIKey string `mapstructure:"api_key"`
 	// BindplaneURL is the URL of the Bindplane instance, taken from BindplaneURLString
 	BindplaneURL url.URL `mapstructure:"bindplane_url"`
 
 	// Scheme is the scheme of the Bindplane URL
 	Scheme string `mapstructure:"scheme"`
-
-	// APIKey is the authentication key for accessing BindPlane audit logs
-	APIKey string `mapstructure:"api_key"`
 
 	// PollInterval is the interval at which the receiver polls for new audit logs
 	PollInterval time.Duration `mapstructure:"poll_interval"`

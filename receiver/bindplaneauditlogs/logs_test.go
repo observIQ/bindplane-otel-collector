@@ -33,7 +33,7 @@ import (
 )
 
 type mockHTTPClient struct {
-	mockDo func(req *http.Request) (*http.Response, error)
+	mockDo func(_ *http.Request) (*http.Response, error)
 }
 
 func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
@@ -113,7 +113,7 @@ func TestGetLogs(t *testing.T) {
 	require.NoError(t, err)
 
 	recv.client = &mockHTTPClient{
-		mockDo: func(req *http.Request) (*http.Response, error) {
+		mockDo: func(_ *http.Request) (*http.Response, error) {
 			return &http.Response{
 				StatusCode: http.StatusOK,
 				Body:       io.NopCloser(strings.NewReader(string(responseBody))),
@@ -153,7 +153,7 @@ func TestGetLogsErrorHandling(t *testing.T) {
 			name: "bad request error",
 			setupMock: func() httpClient {
 				return &mockHTTPClient{
-					mockDo: func(req *http.Request) (*http.Response, error) {
+					mockDo: func(_ *http.Request) (*http.Response, error) {
 						return &http.Response{
 							StatusCode: http.StatusBadRequest,
 							Body:       io.NopCloser(strings.NewReader("")),
@@ -167,7 +167,7 @@ func TestGetLogsErrorHandling(t *testing.T) {
 			name: "invalid json response",
 			setupMock: func() httpClient {
 				return &mockHTTPClient{
-					mockDo: func(req *http.Request) (*http.Response, error) {
+					mockDo: func(_ *http.Request) (*http.Response, error) {
 						return &http.Response{
 							StatusCode: http.StatusOK,
 							Body:       io.NopCloser(strings.NewReader("invalid json")),
