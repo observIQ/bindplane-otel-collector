@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/otel/metric/noop"
 	"go.uber.org/zap"
 	"golang.org/x/exp/rand"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -34,14 +35,15 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 	logger := zap.NewNop()
 	startTime := time.Now()
 
-	componentTelemetry := component.TelemetrySettings{
+	telemSettings := component.TelemetrySettings{
 		Logger:        logger,
-		MeterProvider: telemetryProvider.MeterProvider(),
+		MeterProvider: noop.NewMeterProvider(),
 	}
-	telemetryBuilder, err := metadata.NewTelemetryBuilder(componentTelemetry)
+
+	telemetry, err := metadata.NewTelemetryBuilder(telemSettings)
 	if err != nil {
-		t.Errorf("Failed to create telemetry builder: %v", err)
-		t.FailNow()
+		t.Errorf("Error creating telemetry builder: %v", err)
+		t.Fail()
 	}
 
 	tests := []struct {
@@ -639,7 +641,7 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			marshaler, err := newProtoMarshaler(tt.cfg, componentTelemetry, telemetryBuilder)
+			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, telemetry)
 			marshaler.startTime = startTime
 			require.NoError(t, err)
 
@@ -656,11 +658,15 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 	logger := zap.NewNop()
 	startTime := time.Now()
 
-	componentTelemetry := component.TelemetrySettings{Logger: logger}
-	telemetryBuilder, err := metadata.NewTelemetryBuilder(componentTelemetry)
+	telemSettings := component.TelemetrySettings{
+		Logger:        logger,
+		MeterProvider: noop.NewMeterProvider(),
+	}
+
+	telemetry, err := metadata.NewTelemetryBuilder(telemSettings)
 	if err != nil {
-		t.Errorf("Failed to create telemetry builder: %v", err)
-		t.FailNow()
+		t.Errorf("Error creating telemetry builder: %v", err)
+		t.Fail()
 	}
 
 	tests := []struct {
@@ -1217,7 +1223,7 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, telemetryBuilder)
+			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, telemetry)
 			marshaler.startTime = startTime
 			require.NoError(t, err)
 
