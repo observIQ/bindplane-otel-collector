@@ -24,13 +24,13 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"
-	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	grpcgzip "google.golang.org/grpc/encoding/gzip"
@@ -44,23 +44,25 @@ type httpExporter struct {
 	set       component.TelemetrySettings
 	marshaler *protoMarshaler
 	client    *http.Client
+
+	telemetryBuilder *metadata.TelemetryBuilder
 }
 
 func newHTTPExporter(cfg *Config, params exporter.Settings) (*httpExporter, error) {
-	// TODO(jsirianni): OpAMP config reload seems to break this?
-	if err := setupMetrics(); err != nil {
-		return nil, fmt.Errorf("setup metrics: %w", err)
+	telemetry, err := metadata.NewTelemetryBuilder(params.TelemetrySettings)
+	if err != nil {
+		return nil, fmt.Errorf("create telemetry builder: %w", err)
 	}
-	otel.SetMeterProvider(params.MeterProvider)
 
 	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings)
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}
 	return &httpExporter{
-		cfg:       cfg,
-		set:       params.TelemetrySettings,
-		marshaler: marshaler,
+		cfg:              cfg,
+		set:              params.TelemetrySettings,
+		marshaler:        marshaler,
+		telemetryBuilder: telemetry,
 	}, nil
 }
 
@@ -87,7 +89,7 @@ func (exp *httpExporter) Shutdown(context.Context) error {
 }
 
 func (exp *httpExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
-	batchLogCount.Record(ctx, int64(ld.LogRecordCount()))
+	exp.telemetryBuilder.OtelcolExporterBatchSize.Record(ctx, int64(ld.LogRecordCount()))
 
 	payloads, err := exp.marshaler.MarshalRawLogsForHTTP(ctx, ld)
 	if err != nil {
@@ -109,7 +111,7 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 		return fmt.Errorf("marshal protobuf logs to JSON: %w", err)
 	}
 
-	payloadSizeBytes.Record(ctx, int64(len(data)))
+	exp.telemetryBuilder.OtelcolExporterPayloadSize.Record(ctx, int64(len(data)))
 
 	var body io.Reader
 	if exp.cfg.Compression == grpcgzip.Name {
@@ -146,7 +148,7 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 	}
 	defer resp.Body.Close()
 
-	requestLatencyMilliseconds.Record(ctx, time.Since(start).Milliseconds())
+	exp.telemetryBuilder.OtelcolExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds())
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err == nil && resp.StatusCode == http.StatusOK {
