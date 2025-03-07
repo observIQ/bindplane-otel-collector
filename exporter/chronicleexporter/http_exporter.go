@@ -45,24 +45,19 @@ type httpExporter struct {
 	marshaler *protoMarshaler
 	client    *http.Client
 
-	telemetryBuilder *metadata.TelemetryBuilder
+	telemetry *metadata.TelemetryBuilder
 }
 
-func newHTTPExporter(cfg *Config, params exporter.Settings) (*httpExporter, error) {
-	telemetry, err := metadata.NewTelemetryBuilder(params.TelemetrySettings)
-	if err != nil {
-		return nil, fmt.Errorf("create telemetry builder: %w", err)
-	}
-
-	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings)
+func newHTTPExporter(cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (*httpExporter, error) {
+	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings, telemetry)
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}
 	return &httpExporter{
-		cfg:              cfg,
-		set:              params.TelemetrySettings,
-		marshaler:        marshaler,
-		telemetryBuilder: telemetry,
+		cfg:       cfg,
+		set:       params.TelemetrySettings,
+		marshaler: marshaler,
+		telemetry: telemetry,
 	}, nil
 }
 
@@ -89,8 +84,6 @@ func (exp *httpExporter) Shutdown(context.Context) error {
 }
 
 func (exp *httpExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
-	exp.telemetryBuilder.OtelcolExporterBatchSize.Record(ctx, int64(ld.LogRecordCount()))
-
 	payloads, err := exp.marshaler.MarshalRawLogsForHTTP(ctx, ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
@@ -110,8 +103,6 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 	if err != nil {
 		return fmt.Errorf("marshal protobuf logs to JSON: %w", err)
 	}
-
-	exp.telemetryBuilder.OtelcolExporterPayloadSize.Record(ctx, int64(len(data)))
 
 	var body io.Reader
 	if exp.cfg.Compression == grpcgzip.Name {
@@ -148,7 +139,7 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 	}
 	defer resp.Body.Close()
 
-	exp.telemetryBuilder.OtelcolExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds())
+	exp.telemetry.OtelcolExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds())
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err == nil && resp.StatusCode == http.StatusOK {

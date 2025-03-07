@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
@@ -32,6 +33,16 @@ import (
 func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 	logger := zap.NewNop()
 	startTime := time.Now()
+
+	componentTelemetry := component.TelemetrySettings{
+		Logger:        logger,
+		MeterProvider: telemetryProvider.MeterProvider(),
+	}
+	telemetryBuilder, err := metadata.NewTelemetryBuilder(componentTelemetry)
+	if err != nil {
+		t.Errorf("Failed to create telemetry builder: %v", err)
+		t.FailNow()
+	}
 
 	tests := []struct {
 		name         string
@@ -628,7 +639,7 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger})
+			marshaler, err := newProtoMarshaler(tt.cfg, componentTelemetry, telemetryBuilder)
 			marshaler.startTime = startTime
 			require.NoError(t, err)
 
@@ -644,6 +655,13 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 	logger := zap.NewNop()
 	startTime := time.Now()
+
+	componentTelemetry := component.TelemetrySettings{Logger: logger}
+	telemetryBuilder, err := metadata.NewTelemetryBuilder(componentTelemetry)
+	if err != nil {
+		t.Errorf("Failed to create telemetry builder: %v", err)
+		t.FailNow()
+	}
 
 	tests := []struct {
 		name         string
@@ -1199,7 +1217,7 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger})
+			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, telemetryBuilder)
 			marshaler.startTime = startTime
 			require.NoError(t, err)
 
