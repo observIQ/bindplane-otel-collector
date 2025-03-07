@@ -20,7 +20,6 @@ import (
 	"io"
 	"net/http"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -110,15 +109,13 @@ func (r *bindplaneAuditLogsReceiver) poll(ctx context.Context) error {
 
 func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) []AuditLogEvent {
 	var logs []AuditLogEvent
-
+	const timeout = 1 * time.Minute
 	reqURL := r.cfg.BindplaneURL
-	reqURL = strings.TrimRight(reqURL, "/")
-	if !strings.Contains(reqURL, "://") {
-		reqURL = "http://" + reqURL
-	}
-	reqURL = reqURL + "/v1/audit-events"
 
-	req, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	reqURL.Path = "/v1/audit-events"
+	req, err := http.NewRequestWithContext(ctx, "GET", reqURL.String(), nil)
 	if err != nil {
 		r.logger.Error("error creating request", zap.Error(err))
 		return logs
@@ -151,7 +148,7 @@ func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) []AuditLogEven
 	var response apiResponse
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		r.logger.Error("unable to unmarshal log events", zap.Error(err), zap.String("body", string(body)))
+		r.logger.Error("unable to unmarshal log events", zap.Error(err))
 		return logs
 	}
 
@@ -193,7 +190,7 @@ func (r *bindplaneAuditLogsReceiver) processLogEvents(observedTime pcommon.Times
 			logRecord.SetTimestamp(pcommon.NewTimestampFromTime(*logEvent.Timestamp))
 		}
 
-		// Set attributes based on the BindPlane audit log format
+		// Set attributes based on the Bindplane audit log format
 		attrs := logRecord.Attributes()
 		attrs.PutStr("id", logEvent.ID)
 		if logEvent.Timestamp != nil {
@@ -210,6 +207,9 @@ func (r *bindplaneAuditLogsReceiver) processLogEvents(observedTime pcommon.Times
 		if logEvent.Account != "" {
 			attrs.PutStr("account", logEvent.Account)
 		}
+
+		resourceAttributes := logRecord.Attributes()
+		resourceAttributes.PutStr("bindplane_url", r.cfg.BindplaneURLString)
 	}
 
 	return logs
