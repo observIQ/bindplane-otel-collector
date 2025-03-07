@@ -34,6 +34,9 @@ The AWS S3 Event Receiver consumes S3 event notifications for object creation ev
 To use this receiver, you need to:
 
 1. Configure an S3 bucket to send event notifications to an SQS queue for object creation events.
+   - Configure your S3 event notifications with `BatchSize: 1` to ensure each SQS message contains only one S3 event.
+   - This setting is crucial because if an object cannot be accessed (e.g., 404 error), the entire SQS message is preserved for retry.
+   - If a message contains multiple objects and one fails, all objects will be reprocessed on retry, causing unnecessary duplication.
 2. Ensure the collector has permission to read and delete messages from the SQS queue.
 3. Ensure the collector has permission to read objects from the S3 bucket.
 
