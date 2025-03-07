@@ -48,25 +48,20 @@ type grpcExporter struct {
 	conn    *grpc.ClientConn
 	metrics *hostMetricsReporter
 
-	telemetryBuilder *metadata.TelemetryBuilder
+	telemetry *metadata.TelemetryBuilder
 }
 
-func newGRPCExporter(cfg *Config, params exporter.Settings) (*grpcExporter, error) {
-	telemetry, err := metadata.NewTelemetryBuilder(params.TelemetrySettings)
-	if err != nil {
-		return nil, fmt.Errorf("create telemetry builder: %w", err)
-	}
-
-	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings)
+func newGRPCExporter(cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (*grpcExporter, error) {
+	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings, telemetry)
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}
 	return &grpcExporter{
-		cfg:              cfg,
-		set:              params.TelemetrySettings,
-		exporterID:       params.ID.String(),
-		marshaler:        marshaler,
-		telemetryBuilder: telemetry,
+		cfg:        cfg,
+		set:        params.TelemetrySettings,
+		exporterID: params.ID.String(),
+		marshaler:  marshaler,
+		telemetry:  telemetry,
 	}, nil
 }
 
@@ -117,8 +112,6 @@ func (exp *grpcExporter) Shutdown(context.Context) error {
 }
 
 func (exp *grpcExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
-	exp.telemetryBuilder.OtelcolExporterBatchSize.Record(ctx, int64(ld.LogRecordCount()))
-
 	payloads, err := exp.marshaler.MarshalRawLogs(ctx, ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
@@ -164,7 +157,7 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 		exp.metrics.recordSent(totalLogs)
 	}
 
-	exp.telemetryBuilder.OtelcolExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds())
+	exp.telemetry.OtelcolExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds())
 
 	return nil
 }
