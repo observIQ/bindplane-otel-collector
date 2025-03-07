@@ -64,7 +64,7 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 		"otelcol_otelcol_exporter_batch_size",
 		metric.WithDescription("The number of logs in a batch."),
 		metric.WithUnit("{logs}"),
-		metric.WithExplicitBucketBoundaries([]float64{1, 100, 250, 500, 750, 1000, 2000, 3000, 4000, 5000, 10000}...),
+		metric.WithExplicitBucketBoundaries([]float64{1, 100, 250, 500, 750, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 20000, 30000, 40000, 50000}...),
 	)
 	errs = errors.Join(errs, err)
 	builder.OtelcolExporterPayloadSize, err = builder.meter.Int64Histogram(
@@ -78,7 +78,7 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 		"otelcol_otelcol_exporter_request_latency",
 		metric.WithDescription("The latency of the request in milliseconds."),
 		metric.WithUnit("ms"),
-		metric.WithExplicitBucketBoundaries([]float64{100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1250, 1500, 2000, 5000, 10000, 15000, 20000, 30000, 60000}...),
+		metric.WithExplicitBucketBoundaries([]float64{100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 10000, 15000, 20000, 30000, 60000}...),
 	)
 	errs = errors.Join(errs, err)
 	return &builder, errs
