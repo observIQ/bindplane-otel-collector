@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -43,7 +44,7 @@ func (m *mockHTTPClient) CloseIdleConnections() {}
 
 func TestStartAndShutdown(t *testing.T) {
 	cfg := createDefaultConfig().(*Config)
-	cfg.BindplaneURL = "http://localhost:3000"
+	cfg.BindplaneURLString = "https://localhost:3000"
 	cfg.APIKey = "testkey"
 
 	recv := newReceiver(t, cfg, consumertest.NewNop())
@@ -57,7 +58,11 @@ func TestStartAndShutdown(t *testing.T) {
 
 func TestGetLogs(t *testing.T) {
 	cfg := createDefaultConfig().(*Config)
-	cfg.BindplaneURL = "http://localhost:3000"
+	cfg.BindplaneURLString = "https://localhost:3000"
+	cfg.BindplaneURL = url.URL{
+		Scheme: "https",
+		Host:   "localhost:3000",
+	}
 	cfg.APIKey = "testkey"
 
 	recv := newReceiver(t, cfg, consumertest.NewNop())
@@ -136,7 +141,7 @@ func TestGetLogs(t *testing.T) {
 
 func TestGetLogsErrorHandling(t *testing.T) {
 	cfg := createDefaultConfig().(*Config)
-	cfg.BindplaneURL = "http://localhost:3000"
+	cfg.BindplaneURLString = "https://localhost:3000"
 	cfg.APIKey = "testkey"
 
 	tests := []struct {
