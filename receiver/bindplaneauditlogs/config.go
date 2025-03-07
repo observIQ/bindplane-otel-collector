@@ -17,11 +17,17 @@ package bindplaneauditlogs // import "github.com/observiq/bindplane-otel-collect
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"time"
 
 	"go.opentelemetry.io/collector/config/confighttp"
 )
+
+// URLConfig is a wrapper for url.URL that implements proper unmarshaling
+type URLConfig struct {
+	*url.URL
+}
 
 // Config defines the configuration for the Bindplane audit logs receiver
 type Config struct {
@@ -31,7 +37,7 @@ type Config struct {
 	// APIKey is the authentication key for accessing BindPlane audit logs
 	APIKey string `mapstructure:"api_key"`
 	// BindplaneURL is the URL of the Bindplane instance, taken from BindplaneURLString
-	BindplaneURL url.URL `mapstructure:"bindplane_url"`
+	BindplaneURL URLConfig `mapstructure:"bindplane_url"`
 
 	// Scheme is the scheme of the Bindplane URL
 	Scheme string `mapstructure:"scheme"`
@@ -56,10 +62,16 @@ func (c *Config) Validate() error {
 	// parse the string into a url
 	bindplaneURL, err := url.Parse(c.BindplaneURLString)
 	if err != nil {
-		return errors.New("bindplane_url_string is not a valid URL")
+		return fmt.Errorf("error parsing bindplane_url_string: %w", err)
 	}
 
-	c.BindplaneURL = *bindplaneURL
+	c.BindplaneURL = URLConfig{URL: bindplaneURL}
+
+	// Parse the URL during validation
+	_, err = url.Parse(c.BindplaneURL.String())
+	if err != nil {
+		return fmt.Errorf("error parsing bindplane_url: %w", err)
+	}
 
 	if c.BindplaneURL.Host == "" || c.BindplaneURL.Scheme == "" {
 		return errors.New("bindplane_url_string must contain a host and scheme")
