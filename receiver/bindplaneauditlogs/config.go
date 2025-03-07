@@ -17,20 +17,31 @@ package bindplaneauditlogs // import "github.com/observiq/bindplane-otel-collect
 
 import (
 	"errors"
+	"net/url"
 	"time"
+
+	"go.opentelemetry.io/collector/config/confighttp"
 )
 
-// Config defines the configuration for the BindPlane audit logs receiver
+// Config defines the configuration for the Bindplane audit logs receiver
 type Config struct {
-	// BindplaneURL is the URL of the BindPlane instance
-	BindplaneURL string `mapstructure:"bindplane_url"`
+	// BindplaneURLString is the URL string of the Bindplane instance
+	BindplaneURLString string `mapstructure:"bindplane_url_string"`
+
+	// BindplaneURL is the URL of the Bindplane instance, taken from BindplaneURLString
+	BindplaneURL url.URL `mapstructure:"bindplane_url"`
+
+	// Scheme is the scheme of the Bindplane URL
+	Scheme string `mapstructure:"scheme"`
 
 	// APIKey is the authentication key for accessing BindPlane audit logs
 	APIKey string `mapstructure:"api_key"`
 
 	// PollInterval is the interval at which the receiver polls for new audit logs
-	// Default: 10 seconds
 	PollInterval time.Duration `mapstructure:"poll_interval"`
+
+	// ClientConfig is the configuration for the HTTP client
+	confighttp.ClientConfig `mapstructure:",squash"`
 }
 
 // Validate ensures the config is valid
@@ -39,11 +50,25 @@ func (c *Config) Validate() error {
 		return errors.New("api_key cannot be empty")
 	}
 
-	if c.BindplaneURL == "" {
-		return errors.New("bindplane_url cannot be empty")
+	if c.BindplaneURLString == "" {
+		return errors.New("bindplane_url_string cannot be empty")
 	}
 
-	if c.PollInterval < 10*time.Second || c.PollInterval > 24*time.Hour {
+	// parse the string into a url
+	bindplaneURL, err := url.Parse(c.BindplaneURLString)
+	if err != nil {
+		return errors.New("bindplane_url_string is not a valid URL")
+	}
+
+	c.BindplaneURL = *bindplaneURL
+
+	if c.BindplaneURL.Host == "" || c.BindplaneURL.Scheme == "" {
+		return errors.New("bindplane_url_string must contain a host and scheme")
+	}
+
+	if c.PollInterval == 0 {
+		c.PollInterval = 10 * time.Second
+	} else if c.PollInterval < 10*time.Second || c.PollInterval > 24*time.Hour {
 		return errors.New("poll_interval must be between 10 seconds and 24 hours")
 	}
 
