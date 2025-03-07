@@ -8,6 +8,7 @@ The AWS S3 Event Receiver consumes S3 event notifications for object creation ev
 2. When an object creation event (`s3:ObjectCreated:*`) is received, the receiver downloads the S3 object.
 3. The receiver reads the object into the body of a new log record.
 4. Non-object creation events are ignored but removed from the queue.
+5. If an S3 object is not found (404 error), the corresponding SQS message is preserved for retry later.
 
 ## TODO
 

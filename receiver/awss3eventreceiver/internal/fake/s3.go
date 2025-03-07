@@ -79,3 +79,12 @@ func (f *s3Client) putObject(bucket string, key string, body string) {
 	}
 	fakeS3.objects[bucket][key] = body
 }
+
+// DeleteObject deletes an object from the fake S3 store
+func (f *s3Client) DeleteObject(bucket string, key string) {
+	fakeS3.mu.Lock()
+	defer fakeS3.mu.Unlock()
+	if bucketMap, ok := fakeS3.objects[bucket]; ok {
+		delete(bucketMap, key)
+	}
+}

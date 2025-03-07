@@ -54,6 +54,7 @@ type Config struct {
 	// MaxLogsEmitted defines the maximum number of log records to emit in a single batch.
 	// A higher number will result in fewer batches, but more memory usage.
 	// Default is 1000.
+	// TODO Allow 0 to represent no limit?
 	MaxLogsEmitted int `mapstructure:"max_logs_emitted"`
 }
 

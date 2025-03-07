@@ -71,6 +71,8 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	err := json.Unmarshal([]byte(*msg.Body), notification)
 	if err != nil {
 		w.tel.Logger.Error("unmarshal notification", zap.Error(err))
+		// We can delete messages with unmarshaling errors as they'll never succeed
+		w.deleteMessage(ctx, msg, queueURL)
 		return
 	}
 	w.tel.Logger.Debug("processing notification", zap.Int("event.count", len(notification.Records)))
@@ -101,20 +103,31 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 		)
 	}
 
+	var noSuchKeyError bool
 	for _, record := range objectCreatedRecords {
 		w.tel.Logger.Debug("processing record",
 			zap.String("bucket", record.S3.Bucket.Name),
 			zap.String("key", record.S3.Object.Key),
 		)
 
-		w.processRecord(ctx, record)
+		if err := w.processRecord(ctx, record); err != nil {
+			if strings.Contains(err.Error(), "NoSuchKey") {
+				noSuchKeyError = true
+				w.tel.Logger.Warn("S3 object not found (404 NoSuchKey), preserving message for retry",
+					zap.Error(err),
+					zap.String("bucket", record.S3.Bucket.Name),
+					zap.String("key", record.S3.Object.Key))
+			}
+		}
 	}
-
-	// TODO conditional upon 404 error
-	w.deleteMessage(ctx, msg, queueURL)
+	if noSuchKeyError {
+		w.tel.Logger.Info("message preserved for retry due to NoSuchKey error", zap.String("message_id", *msg.MessageId))
+	} else {
+		w.deleteMessage(ctx, msg, queueURL)
+	}
 }
 
-func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord) {
+func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord) error {
 	bucket := record.S3.Bucket.Name
 	key := record.S3.Object.Key
 	size := record.S3.Object.Size
@@ -127,7 +140,7 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 	})
 	if err != nil {
 		w.tel.Logger.Error("get object", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
-		return
+		return err
 	}
 	defer resp.Body.Close()
 
@@ -150,7 +163,7 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 				break
 			}
 			w.tel.Logger.Error("reading object content", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
-			return
+			return err
 		}
 
 		if len(lineBytes) == 0 {
@@ -179,13 +192,15 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 	}
 
 	if ld.LogRecordCount() == 0 {
-		return
+		return nil
 	}
 
 	if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
 		w.tel.Logger.Error("consume logs", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
+		return err
 	}
 	w.tel.Logger.Debug("processed S3 object", zap.String("bucket", bucket), zap.String("key", key))
+	return nil
 }
 
 func (w *Worker) deleteMessage(ctx context.Context, msg types.Message, queueURL string) {
