@@ -110,11 +110,13 @@ func (r *bindplaneAuditLogsReceiver) poll(ctx context.Context) error {
 func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) []AuditLogEvent {
 	var logs []AuditLogEvent
 	const timeout = 1 * time.Minute
-	reqURL := r.cfg.BindplaneURL.URL
+
+	reqURL := *r.cfg.BindplaneURL.URL // Create a copy of the URL to modify
+	reqURL.Path = "/v1/audit-events"
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	reqURL.Path = "/v1/audit-events"
+
 	req, err := http.NewRequestWithContext(ctx, "GET", reqURL.String(), nil)
 	if err != nil {
 		r.logger.Error("error creating request", zap.Error(err))
