@@ -65,7 +65,7 @@ func (c *Config) Validate() error {
 	}
 
 	if c.bindplaneURL == nil {
-		return errors.New("bindplaneURL cannot be nil")
+		return errors.New("failed to parse endpoint URL")
 	}
 
 	if c.bindplaneURL.Host == "" || c.bindplaneURL.Scheme == "" {
