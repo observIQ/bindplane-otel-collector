@@ -24,27 +24,23 @@ import (
 	"go.opentelemetry.io/collector/config/confighttp"
 )
 
-// URLConfig is a wrapper for url.URL that implements proper unmarshaling
-type URLConfig struct {
-	URL *url.URL `mapstructure:"url"`
-}
-
 // Config defines the configuration for the Bindplane audit logs receiver
 type Config struct {
-	// BindplaneURLString is the URL string of the Bindplane instance
-	BindplaneURLString string `mapstructure:"bindplane_url_string"`
 
 	// APIKey is the authentication key for accessing BindPlane audit logs
 	APIKey string `mapstructure:"api_key"`
 
-	// BindplaneURL is the URL of the Bindplane instance, taken from BindplaneURLString
-	BindplaneURL URLConfig `mapstructure:"bindplane_url"`
+	// Scheme is the URL scheme used to connect to the BindPlane audit logs API
+	Scheme string `mapstructure:"scheme"`
+
+	// ClientConfig is the configuration for the HTTP client
+	confighttp.ClientConfig `mapstructure:",squash"`
 
 	// PollInterval is the interval at which the receiver polls for new audit logs
 	PollInterval time.Duration `mapstructure:"poll_interval"`
 
-	// ClientConfig is the configuration for the HTTP client
-	confighttp.ClientConfig `mapstructure:",squash"`
+	// bindplaneURL is the URL to the BindPlane audit logs API. Taken from the client config endpoint.
+	bindplaneURL *url.URL
 }
 
 // Validate ensures the config is valid
@@ -53,29 +49,30 @@ func (c *Config) Validate() error {
 		return errors.New("api_key cannot be empty")
 	}
 
-	if c.BindplaneURLString == "" {
-		return errors.New("bindplane_url_string cannot be empty")
+	if c.Scheme == "" {
+		return errors.New("scheme cannot be empty")
+	}
+
+	if c.Endpoint == "" {
+		return errors.New("endpoint cannot be empty")
 	}
 
 	// parse the string into a url
-	bindplaneURL, err := url.Parse(c.BindplaneURLString)
+	var err error
+	c.bindplaneURL, err = url.Parse(c.Endpoint)
 	if err != nil {
-		return fmt.Errorf("error parsing bindplane_url_string: %w", err)
+		return fmt.Errorf("error parsing endpoint: %w", err)
 	}
 
-	if bindplaneURL.Host == "" || bindplaneURL.Scheme == "" {
-		return errors.New("bindplane_url_string must contain a host and scheme")
+	if c.bindplaneURL == nil {
+		return errors.New("bindplaneURL cannot be nil")
 	}
 
-	// Set the BindplaneURL
-	c.BindplaneURL = URLConfig{URL: bindplaneURL}
-	if c.BindplaneURL.URL == nil {
-		return errors.New("bindplane_url must be initialized")
+	if c.bindplaneURL.Host == "" || c.bindplaneURL.Scheme == "" {
+		return errors.New("endpoint must contain a host and scheme")
 	}
 
-	if c.PollInterval == 0 {
-		c.PollInterval = 10 * time.Second
-	} else if c.PollInterval < 10*time.Second || c.PollInterval > 24*time.Hour {
+	if c.PollInterval < 10*time.Second || c.PollInterval > 24*time.Hour {
 		return errors.New("poll_interval must be between 10 seconds and 24 hours")
 	}
 

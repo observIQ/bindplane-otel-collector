@@ -111,14 +111,8 @@ func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) []AuditLogEven
 	var logs []AuditLogEvent
 	const timeout = 1 * time.Minute
 
-	// Defensive check for nil URL
-	if r.cfg.BindplaneURL.URL == nil {
-		r.logger.Error("BindplaneURL is not initialized")
-		return logs
-	}
-
 	// Create a new URL to avoid modifying the original
-	reqURL := r.cfg.BindplaneURL.URL
+	reqURL := r.cfg.bindplaneURL
 	reqURL.Path = "/v1/audit-events"
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -218,7 +212,7 @@ func (r *bindplaneAuditLogsReceiver) processLogEvents(observedTime pcommon.Times
 		}
 
 		resourceAttributes := logRecord.Attributes()
-		resourceAttributes.PutStr("bindplane_url", r.cfg.BindplaneURLString)
+		resourceAttributes.PutStr("bindplane_url", r.cfg.Endpoint)
 	}
 
 	return logs

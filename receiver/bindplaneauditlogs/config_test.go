@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/config/confighttp"
 )
 
 func TestValidate(t *testing.T) {
@@ -31,52 +32,79 @@ func TestValidate(t *testing.T) {
 		{
 			desc: "pass simple",
 			config: Config{
-				BindplaneURLString: "https://app.bindplane.com",
-				APIKey:             "testkey",
-				PollInterval:       time.Second * 10,
+				APIKey: "testkey",
+				Scheme: "https",
+				ClientConfig: confighttp.ClientConfig{
+					Endpoint: "https://app.bindplane.com",
+				},
+				PollInterval: time.Second * 10,
 			},
 		},
 		{
 			desc:        "fail no api key",
 			expectedErr: errors.New("api_key cannot be empty"),
 			config: Config{
-				BindplaneURLString: "https://localhost:3000",
-				PollInterval:       time.Second * 10,
-			},
-		},
-		{
-			desc:        "fail no bindplane url",
-			expectedErr: errors.New("bindplane_url_string cannot be empty"),
-			config: Config{
-				APIKey:       "testkey",
+				Scheme: "https",
+				ClientConfig: confighttp.ClientConfig{
+					Endpoint: "https://app.bindplane.com",
+				},
 				PollInterval: time.Second * 10,
 			},
 		},
 		{
-			desc:        "fail invalid bindplane url no host",
-			expectedErr: errors.New("bindplane_url_string must contain a host and scheme"),
+			desc:        "fail no scheme",
+			expectedErr: errors.New("scheme cannot be empty"),
 			config: Config{
-				BindplaneURLString: "invalid-url",
-				APIKey:             "testkey",
-				PollInterval:       time.Second * 10,
+				APIKey: "testkey",
+				ClientConfig: confighttp.ClientConfig{
+					Endpoint: "https://localhost:3000",
+				},
+				PollInterval: time.Second * 10,
+			},
+		},
+		{
+			desc:        "fail no bindplane url",
+			expectedErr: errors.New("endpoint cannot be empty"),
+			config: Config{
+				APIKey:       "testkey",
+				Scheme:       "https",
+				PollInterval: time.Second * 10,
+			},
+		},
+		{
+			desc:        "fail invalid bindplane url",
+			expectedErr: errors.New("endpoint must contain a host and scheme"),
+			config: Config{
+				APIKey: "testkey",
+				Scheme: "https",
+				ClientConfig: confighttp.ClientConfig{
+					Endpoint: "invalid-url",
+				},
+				PollInterval: time.Second * 10,
 			},
 		},
 		{
 			desc:        "fail invalid bindplane url no scheme",
-			expectedErr: errors.New("bindplane_url_string must contain a host and scheme"),
+			expectedErr: errors.New("endpoint must contain a host and scheme"),
 			config: Config{
-				BindplaneURLString: "localhost:3000",
-				APIKey:             "testkey",
-				PollInterval:       time.Second * 10,
+				APIKey: "testkey",
+				Scheme: "https",
+				ClientConfig: confighttp.ClientConfig{
+					Endpoint: "app.bindplane.com",
+				},
+				PollInterval: time.Second * 10,
 			},
 		},
 		{
 			desc:        "fail invalid poll interval",
 			expectedErr: errors.New("poll_interval must be between 10 seconds and 24 hours"),
 			config: Config{
-				BindplaneURLString: "https://localhost:3000",
-				APIKey:             "testkey",
-				PollInterval:       time.Second,
+				APIKey: "testkey",
+				Scheme: "https",
+				ClientConfig: confighttp.ClientConfig{
+					Endpoint: "https://localhost:3000",
+				},
+				PollInterval: time.Second,
 			},
 		},
 	}
