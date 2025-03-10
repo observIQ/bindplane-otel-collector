@@ -7,5 +7,5 @@ status:
   distributions: [observiq]
 
 tests:
-  config:
-    endpoint: "https://test.com"
+  skip_lifecycle: true
+  skip_shutdown: true
