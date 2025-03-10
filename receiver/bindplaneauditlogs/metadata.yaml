@@ -5,3 +5,7 @@ status:
   stability:
     alpha: [logs]
   distributions: [observiq]
+
+tests:
+  config:
+    endpoint: "https://test.com"
