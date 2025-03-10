@@ -112,7 +112,6 @@ func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) []AuditLogEven
 	var logs []AuditLogEvent
 	const timeout = 1 * time.Minute
 
-	// Create a new URL instead of modifying the original
 	reqURL := &url.URL{
 		Scheme: r.cfg.bindplaneURL.Scheme,
 		Host:   r.cfg.bindplaneURL.Host,
