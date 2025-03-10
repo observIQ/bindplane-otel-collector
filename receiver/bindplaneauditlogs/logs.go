@@ -56,11 +56,6 @@ type httpClient interface {
 
 // newBindplaneAuditLogsReceiver returns a newly configured bindplaneAuditLogsReceiver
 func newBindplaneAuditLogsReceiver(cfg *Config, logger *zap.Logger, consumer consumer.Logs) (*bindplaneAuditLogsReceiver, error) {
-	// Validate config before creating receiver
-	if err := cfg.Validate(); err != nil {
-		return nil, err
-	}
-
 	return &bindplaneAuditLogsReceiver{
 		cfg:           *cfg,
 		client:        http.DefaultClient,
