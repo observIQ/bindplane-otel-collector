@@ -26,7 +26,7 @@ import (
 
 // URLConfig is a wrapper for url.URL that implements proper unmarshaling
 type URLConfig struct {
-	URL *url.URL
+	URL *url.URL `mapstructure:"url"`
 }
 
 // Config defines the configuration for the Bindplane audit logs receiver
