@@ -31,6 +31,13 @@ func TestType(t *testing.T) {
 
 func TestCreateLogsReceiver(t *testing.T) {
 	cfg := createDefaultConfig().(*Config)
+	cfg.APIKey = "test-api-key"
+	cfg.Scheme = "https"
+	cfg.ClientConfig.Endpoint = "https://test.bindplane.com"
+
+	// Need to validate to set up the bindplaneURL
+	err := cfg.Validate()
+	require.NoError(t, err)
 
 	recv, err := NewFactory().CreateLogs(
 		context.Background(),

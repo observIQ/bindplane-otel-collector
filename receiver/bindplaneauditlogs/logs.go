@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"sync"
 	"time"
@@ -111,9 +112,12 @@ func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) []AuditLogEven
 	var logs []AuditLogEvent
 	const timeout = 1 * time.Minute
 
-	// Create a new URL to avoid modifying the original
-	reqURL := r.cfg.bindplaneURL
-	reqURL.Path = "/v1/audit-events"
+	// Create a new URL instead of modifying the original
+	reqURL := &url.URL{
+		Scheme: r.cfg.bindplaneURL.Scheme,
+		Host:   r.cfg.bindplaneURL.Host,
+		Path:   "/v1/audit-events",
+	}
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
