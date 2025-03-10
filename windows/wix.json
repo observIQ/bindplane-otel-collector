@@ -1,6 +1,6 @@
 {
   "product": "observIQ Distro for OpenTelemetry Collector",
-  "company": "observIQ, Inc.",
+  "company": "Bindplane, Inc.",
   "license": "./LICENSE.rtf",
   "info": {
     "help-link": "https://observiq.com/contact/",

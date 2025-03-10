@@ -1,6 +1,6 @@
 # Getting Started
 
-OpenTelemetry is at the core of standardizing telemetry solutions. At observIQ, we’re focused on building the very best in open source telemetry software. Our relationship with OpenTelemetry began in 2021, with observIQ, contributing our logging agent, Stanza, to the OpenTelemetry community. Now, we are shifting our focus to simplifying OpenTelemetry solutions to its large base of users. On that note, we launched a collector that combines the best of both worlds, with OpenTelemetry at its core, combined with observIQ’s functionalities to simplify its usage.
+OpenTelemetry is at the core of standardizing telemetry solutions. At Bindplane, we’re focused on building the very best in open source telemetry software. Our relationship with OpenTelemetry began in 2021, with Bindplane, contributing our logging agent, Stanza, to the OpenTelemetry community. Now, we are shifting our focus to simplifying OpenTelemetry solutions to its large base of users. On that note, we launched a collector that combines the best of both worlds, with OpenTelemetry at its core, combined with Bindplane’s functionalities to simplify its usage.
 
 In this post, we are taking you through the installation of the Bindplane Agent and the steps to configure the agent to gather host metrics, eventually forwarding those metrics to the Google Cloud Operations.
 
@@ -27,7 +27,7 @@ For more details on installation, see our [Linux](/docs/installation-linux.md), 
 
 ## Setting up pre-requisites and authentication credentials
 
-In the following example, we are using Google Cloud Operations as the destination. However, OpenTelemetry offers exporters for many destinations. Check out the list of exporters [here](/docs/exporters.md). 
+In the following example, we are using Google Cloud Operations as the destination. However, OpenTelemetry offers exporters for many destinations. Check out the list of exporters [here](/docs/exporters.md).
 
 ### Setting up Google Cloud exporter prerequisites:
 
@@ -49,7 +49,7 @@ sudo cp sa.json /opt/observiq-otel-collector/sa.json
 sudo chown observiq-otel-collector: /opt/observiq-otel-collector/sa.json
 sudo chmod 0400 /opt/observiq-otel-collector/sa.json
 ```
- 
+
 Set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable by creating a systemd override. A systemd override allows users to modify the systemd service configuration without modifying the service directly. This allows package upgrades to happen seamlessly. You can learn more about systemd units and overrides here.
 
 Run the following command
@@ -64,7 +64,7 @@ If this is the first time an override is being created, paste the following cont
 [Service]
 Environment=GOOGLE_APPLICATION_CREDENTIALS=/opt/observiq-otel-collector/sa.json
 ```
- 
+
 If an override is already in place, simply insert the Environment parameter into the existing Service section.
 
 Reload Systemd:
@@ -78,7 +78,7 @@ Restart the agent
 ```shell
 sudo systemctl restart observiq-otel-collector
 ```
- 
+
 ### Windows
 
 In this example, the key is placed at `C:/observiq/collector/sa.json`.
@@ -89,14 +89,14 @@ Run the following command
 ```batch
 setx GOOGLE_APPLICATION_CREDENTIALS "C:/observiq/collector/sa.json" /m
 ```
- 
+
 Restart the service using the services application.
 
 ## Configuring the agent
 
 In this sample configuration, the steps to use the host metrics receiver to fetch metrics from the host system and export them to Google Cloud Operations are detailed. This is how it works:
 
-The agent scrapes metrics and logs from the host and exports them to a destination assigned in the configuration file. 
+The agent scrapes metrics and logs from the host and exports them to a destination assigned in the configuration file.
 To export the metrics to Google Cloud Operations, use the configurations outlined in the googlecloudexporter as in the example `config.yaml` below.
 
 After the installation, the config file for the agent can be found at:
@@ -149,21 +149,21 @@ You should now be able to view the host metrics in your Metrics explorer. Nice w
 
 ### Metrics collected
 
-| Metric | Description | Metric Namespace |
-| --- | --- | --- |
-| Processes Created | Total number of created processes. | custom.googleapis.com/opencensus/system.processes.created |
-| Process Count | Total number of processes in each state. | custom.googleapis.com/opencensus/system.processes.count |
-| Process CPU time | Total CPU seconds broken down by different states. | custom.googleapis.com/opencensus/process.cpu.time |
-| Process Disk IO | Disk bytes transferred. | custom.googleapis.com/opencensus/process.disk.io |
-| File System Inodes Used | FileSystem inodes used. | custom.googleapis.com/opencensus/system.filesystem.inodes.usage |
-| File System Utilization | Filesystem bytes used. | custom.googleapis.com/opencensus/system.filesystem.usage |
-| Process Physical Memory Utilization | The amount of physical memory in use. | custom.googleapis.com/opencensus/process.memory.physical_usage |
-| Process Virtual Memory Utilization | Virtual memory size. | custom.googleapis.com/opencensus/process.memory.virtual_usage |
-| Networking Errors | The number of errors encountered. | custom.googleapis.com/opencensus/system.network.errors |
-| Networking Connections | The number of connections. | custom.googleapis.com/opencensus/system.network.connections |
+| Metric                              | Description                                        | Metric Namespace                                                |
+| ----------------------------------- | -------------------------------------------------- | --------------------------------------------------------------- |
+| Processes Created                   | Total number of created processes.                 | custom.googleapis.com/opencensus/system.processes.created       |
+| Process Count                       | Total number of processes in each state.           | custom.googleapis.com/opencensus/system.processes.count         |
+| Process CPU time                    | Total CPU seconds broken down by different states. | custom.googleapis.com/opencensus/process.cpu.time               |
+| Process Disk IO                     | Disk bytes transferred.                            | custom.googleapis.com/opencensus/process.disk.io                |
+| File System Inodes Used             | FileSystem inodes used.                            | custom.googleapis.com/opencensus/system.filesystem.inodes.usage |
+| File System Utilization             | Filesystem bytes used.                             | custom.googleapis.com/opencensus/system.filesystem.usage        |
+| Process Physical Memory Utilization | The amount of physical memory in use.              | custom.googleapis.com/opencensus/process.memory.physical_usage  |
+| Process Virtual Memory Utilization  | Virtual memory size.                               | custom.googleapis.com/opencensus/process.memory.virtual_usage   |
+| Networking Errors                   | The number of errors encountered.                  | custom.googleapis.com/opencensus/system.network.errors          |
+| Networking Connections              | The number of connections.                         | custom.googleapis.com/opencensus/system.network.connections     |
 
 ## What Next?
 
-Check out our list of supported [receivers](), [processors](), [exporters](), and [extensions]() for more information about making a config. To see more monitoring examples, be sure to follow the [Observability Blog](https://observiq.com/blog/).
+Check out our list of supported [receivers](), [processors](), [exporters](), and [extensions]() for more information about making a config. To see more monitoring examples, be sure to follow the [Observability Blog](https://bindplane.com/blog/).
 
 observIQ’s distribution is a game-changer for companies looking to implement the OpenTelemetry standards. The single line installer, seamlessly integrated receivers, exporter, and processor pool make working with this agent simple. For questions, requests, and suggestions, reach out to our support team at support@observIQ.com.
