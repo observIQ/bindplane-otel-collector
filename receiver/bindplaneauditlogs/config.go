@@ -36,11 +36,9 @@ type Config struct {
 
 	// APIKey is the authentication key for accessing BindPlane audit logs
 	APIKey string `mapstructure:"api_key"`
+
 	// BindplaneURL is the URL of the Bindplane instance, taken from BindplaneURLString
 	BindplaneURL URLConfig `mapstructure:"bindplane_url"`
-
-	// Scheme is the scheme of the Bindplane URL
-	Scheme string `mapstructure:"scheme"`
 
 	// PollInterval is the interval at which the receiver polls for new audit logs
 	PollInterval time.Duration `mapstructure:"poll_interval"`
@@ -65,16 +63,14 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("error parsing bindplane_url_string: %w", err)
 	}
 
-	c.BindplaneURL = URLConfig{URL: bindplaneURL}
-
-	// Parse the URL during validation
-	_, err = url.Parse(c.BindplaneURL.URL.String())
-	if err != nil {
-		return fmt.Errorf("error parsing bindplane_url: %w", err)
+	if bindplaneURL.Host == "" || bindplaneURL.Scheme == "" {
+		return errors.New("bindplane_url_string must contain a host and scheme")
 	}
 
-	if c.BindplaneURL.URL.Host == "" || c.BindplaneURL.URL.Scheme == "" {
-		return errors.New("bindplane_url_string must contain a host and scheme")
+	// Set the BindplaneURL
+	c.BindplaneURL = URLConfig{URL: bindplaneURL}
+	if c.BindplaneURL.URL == nil {
+		return errors.New("bindplane_url must be initialized")
 	}
 
 	if c.PollInterval == 0 {
