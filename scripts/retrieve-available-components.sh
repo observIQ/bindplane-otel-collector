@@ -177,5 +177,3 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   printf "        %s:\n          metadata:\n          - key: code.namespace\n            value: %s", name, namespace
   } END { printf "\n"
 }' >> "$OUTPUT_DIR/$VERSION.yaml"
-
-git co scripts/available-components-v1.x
