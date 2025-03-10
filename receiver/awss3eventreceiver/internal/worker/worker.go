@@ -80,7 +80,8 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	// Filter records to only include s3:ObjectCreated:* events
 	var objectCreatedRecords []events.S3EventRecord
 	for _, record := range notification.Records {
-		if strings.HasPrefix(record.EventName, "s3:ObjectCreated:") {
+		// S3 UI shows the prefix as "s3:ObjectCreated:", but the event name is unmarshalled as "ObjectCreated:"
+		if strings.Contains(record.EventName, "ObjectCreated:") {
 			objectCreatedRecords = append(objectCreatedRecords, record)
 		} else {
 			w.tel.Logger.Warn("unexpected event: receiver handles only s3:ObjectCreated:* events",
