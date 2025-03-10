@@ -26,7 +26,7 @@ import (
 
 // URLConfig is a wrapper for url.URL that implements proper unmarshaling
 type URLConfig struct {
-	*url.URL
+	URL *url.URL
 }
 
 // Config defines the configuration for the Bindplane audit logs receiver
@@ -68,12 +68,12 @@ func (c *Config) Validate() error {
 	c.BindplaneURL = URLConfig{URL: bindplaneURL}
 
 	// Parse the URL during validation
-	_, err = url.Parse(c.BindplaneURL.String())
+	_, err = url.Parse(c.BindplaneURL.URL.String())
 	if err != nil {
 		return fmt.Errorf("error parsing bindplane_url: %w", err)
 	}
 
-	if c.BindplaneURL.Host == "" || c.BindplaneURL.Scheme == "" {
+	if c.BindplaneURL.URL.Host == "" || c.BindplaneURL.URL.Scheme == "" {
 		return errors.New("bindplane_url_string must contain a host and scheme")
 	}
 
