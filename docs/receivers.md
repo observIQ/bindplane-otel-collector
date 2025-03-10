@@ -21,6 +21,7 @@ Below is a list of supported receivers with links to their documentation pages.
 | Azure Blob Receiver                        | [azureblobreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/azureblobreceiver/README.md)                           |
 | Azure Blob Rehydration Receiver            | [azureblobrehydration](../receiver/azureblobrehydrationreceiver/README.md)                                                                                          |
 | Azure Event Hub Receiver                   | [azureeventhubreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/azureeventhubreceiver/README.md)                   |
+| Bindplane Audit Logs Receiver              | [bindplaneauditlogsreceiver](../receiver/bindplaneauditlogs/README.md)                                                                                              |
 | Carbon Receiver                            | [carbonreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/carbonreceiver/README.md)                                 |
 | Cloudflare Receiver                        | [cloudflarereceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/cloudflarereceiver/README.md)                         |
 | Cloud Foundry Receiver                     | [cloudfoundryreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/cloudfoundryreceiver/README.md)                     |

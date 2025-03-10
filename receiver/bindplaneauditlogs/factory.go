@@ -24,11 +24,6 @@ import (
 	"go.opentelemetry.io/collector/receiver"
 )
 
-const (
-	// TypeStr is the unique identifier for the BindPlane audit logs receiver
-	TypeStr = "bindplaneauditlogs"
-)
-
 // NewFactory creates a new factory for the Okta receiver
 func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
