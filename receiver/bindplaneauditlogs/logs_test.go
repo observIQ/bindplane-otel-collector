@@ -65,13 +65,11 @@ func TestStartAndShutdown(t *testing.T) {
 func TestGetLogs(t *testing.T) {
 	cfg := createDefaultConfig().(*Config)
 	cfg.BindplaneURLString = "https://localhost:3000"
-	cfg.BindplaneURL = URLConfig{
-		URL: &url.URL{
-			Scheme: "https",
-			Host:   "localhost:3000",
-		},
-	}
 	cfg.APIKey = "testkey"
+
+	// Validate will set up the URL properly
+	err := cfg.Validate()
+	require.NoError(t, err)
 
 	recv := newReceiver(t, cfg, consumertest.NewNop())
 
@@ -237,6 +235,13 @@ func TestProcessLogEvents(t *testing.T) {
 }
 
 func newReceiver(t *testing.T, cfg *Config, c consumer.Logs) *bindplaneAuditLogsReceiver {
+	// Parse and set the URL before creating the receiver
+	if cfg.BindplaneURLString != "" {
+		parsedURL, err := url.Parse(cfg.BindplaneURLString)
+		require.NoError(t, err)
+		cfg.BindplaneURL = URLConfig{URL: parsedURL}
+	}
+
 	r, err := newBindplaneAuditLogsReceiver(cfg, zap.NewNop(), c)
 	require.NoError(t, err)
 	return r

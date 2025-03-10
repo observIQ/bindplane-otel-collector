@@ -56,6 +56,11 @@ type httpClient interface {
 
 // newBindplaneAuditLogsReceiver returns a newly configured bindplaneAuditLogsReceiver
 func newBindplaneAuditLogsReceiver(cfg *Config, logger *zap.Logger, consumer consumer.Logs) (*bindplaneAuditLogsReceiver, error) {
+	// Validate config before creating receiver
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+
 	return &bindplaneAuditLogsReceiver{
 		cfg:           *cfg,
 		client:        http.DefaultClient,
@@ -111,7 +116,14 @@ func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) []AuditLogEven
 	var logs []AuditLogEvent
 	const timeout = 1 * time.Minute
 
-	reqURL := *r.cfg.BindplaneURL.URL // Create a copy of the URL to modify
+	// Defensive check for nil URL
+	if r.cfg.BindplaneURL.URL == nil {
+		r.logger.Error("BindplaneURL is not initialized")
+		return logs
+	}
+
+	// Create a new URL to avoid modifying the original
+	reqURL := r.cfg.BindplaneURL.URL
 	reqURL.Path = "/v1/audit-events"
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
