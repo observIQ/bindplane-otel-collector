@@ -114,7 +114,7 @@ func TestGetLogs(t *testing.T) {
 
 	recv.client = &http.Client{
 		Transport: &mockTransport{
-			roundTripFunc: func(req *http.Request) (*http.Response, error) {
+			roundTripFunc: func(_ *http.Request) (*http.Response, error) {
 				return &http.Response{
 					StatusCode: http.StatusOK,
 					Body:       io.NopCloser(strings.NewReader(string(responseBody))),
@@ -160,7 +160,7 @@ func TestGetLogsErrorHandling(t *testing.T) {
 			setupMock: func() *http.Client {
 				return &http.Client{
 					Transport: &mockTransport{
-						roundTripFunc: func(req *http.Request) (*http.Response, error) {
+						roundTripFunc: func(_ *http.Request) (*http.Response, error) {
 							return &http.Response{
 								StatusCode: http.StatusBadRequest,
 								Body:       io.NopCloser(strings.NewReader("")),
@@ -176,7 +176,7 @@ func TestGetLogsErrorHandling(t *testing.T) {
 			setupMock: func() *http.Client {
 				return &http.Client{
 					Transport: &mockTransport{
-						roundTripFunc: func(req *http.Request) (*http.Response, error) {
+						roundTripFunc: func(_ *http.Request) (*http.Response, error) {
 							return &http.Response{
 								StatusCode: http.StatusOK,
 								Body:       io.NopCloser(strings.NewReader("invalid json")),
