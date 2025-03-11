@@ -30,9 +30,6 @@ type Config struct {
 	// APIKey is the authentication key for accessing BindPlane audit logs
 	APIKey string `mapstructure:"api_key"`
 
-	// Scheme is the URL scheme used to connect to the BindPlane audit logs API
-	Scheme string `mapstructure:"scheme"`
-
 	// ClientConfig is the configuration for the HTTP client
 	confighttp.ClientConfig `mapstructure:",squash"`
 
@@ -47,10 +44,6 @@ type Config struct {
 func (c *Config) Validate() error {
 	if c.APIKey == "" {
 		return errors.New("api_key cannot be empty")
-	}
-
-	if c.Scheme == "" {
-		return errors.New("scheme cannot be empty")
 	}
 
 	if c.Endpoint == "" {
