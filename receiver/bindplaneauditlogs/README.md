@@ -37,7 +37,6 @@ This receiver is capable of collecting audit logs from a Bindplane instance.
 receivers:
   bindplaneauditlogs:
     api_key: 1234567890
-    scheme: https
     endpoint: https://app.bindplane.com
     poll_interval: 10s
 exporters:

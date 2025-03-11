@@ -211,7 +211,9 @@ func (r *bindplaneAuditLogsReceiver) Shutdown(_ context.Context) error {
 	if r.cancel != nil {
 		r.cancel()
 	}
-	r.client.CloseIdleConnections()
 	r.wg.Wait()
+	if r.client != nil {
+		r.client.CloseIdleConnections()
+	}
 	return nil
 }
