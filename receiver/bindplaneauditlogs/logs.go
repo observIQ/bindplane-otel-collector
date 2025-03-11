@@ -17,6 +17,7 @@ package bindplaneauditlogs
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -42,24 +43,19 @@ type apiResponse struct {
 
 type bindplaneAuditLogsReceiver struct {
 	cfg           Config
-	client        httpClient
+	client        *http.Client
 	consumer      consumer.Logs
 	logger        *zap.Logger
 	cancel        context.CancelFunc
 	wg            *sync.WaitGroup
 	lastTimestamp time.Time
-}
-
-type httpClient interface {
-	Do(req *http.Request) (*http.Response, error)
-	CloseIdleConnections()
+	settings      component.TelemetrySettings
 }
 
 // newBindplaneAuditLogsReceiver returns a newly configured bindplaneAuditLogsReceiver
 func newBindplaneAuditLogsReceiver(cfg *Config, logger *zap.Logger, consumer consumer.Logs) (*bindplaneAuditLogsReceiver, error) {
 	return &bindplaneAuditLogsReceiver{
 		cfg:           *cfg,
-		client:        http.DefaultClient,
 		consumer:      consumer,
 		logger:        logger,
 		wg:            &sync.WaitGroup{},
@@ -67,8 +63,14 @@ func newBindplaneAuditLogsReceiver(cfg *Config, logger *zap.Logger, consumer con
 	}, nil
 }
 
-func (r *bindplaneAuditLogsReceiver) Start(_ context.Context, _ component.Host) error {
-	ctx, cancel := context.WithCancel(context.Background())
+func (r *bindplaneAuditLogsReceiver) Start(ctx context.Context, host component.Host) error {
+	client, err := r.cfg.ToClient(ctx, host, r.settings)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP client: %w", err)
+	}
+	r.client = client
+
+	ctx, cancel := context.WithCancel(ctx)
 	r.cancel = cancel
 	r.wg.Add(1)
 	go r.startPolling(ctx)
@@ -97,7 +99,10 @@ func (r *bindplaneAuditLogsReceiver) startPolling(ctx context.Context) {
 }
 
 func (r *bindplaneAuditLogsReceiver) poll(ctx context.Context) error {
-	logEvents := r.getLogs(ctx)
+	logEvents, err := r.getLogs(ctx)
+	if err != nil {
+		return err
+	}
 	observedTime := pcommon.NewTimestampFromTime(time.Now())
 	logs := r.processLogEvents(observedTime, logEvents)
 	if logs.LogRecordCount() > 0 {
@@ -108,14 +113,13 @@ func (r *bindplaneAuditLogsReceiver) poll(ctx context.Context) error {
 	return nil
 }
 
-func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) []AuditLogEvent {
+func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) ([]AuditLogEvent, error) {
 	var logs []AuditLogEvent
 	const timeout = 1 * time.Minute
 
 	reqURL := &url.URL{
-		Scheme: r.cfg.bindplaneURL.Scheme,
-		Host:   r.cfg.bindplaneURL.Host,
-		Path:   "/v1/audit-events",
+		Host: r.cfg.bindplaneURL.Host,
+		Path: "/v1/audit-events",
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -123,8 +127,8 @@ func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) []AuditLogEven
 
 	req, err := http.NewRequestWithContext(ctx, "GET", reqURL.String(), nil)
 	if err != nil {
-		r.logger.Error("error creating request", zap.Error(err))
-		return logs
+		err = fmt.Errorf("error creating request: %w", err)
+		return nil, err
 	}
 
 	query := req.URL.Query()
@@ -135,27 +139,27 @@ func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) []AuditLogEven
 
 	res, err := r.client.Do(req)
 	if err != nil {
-		r.logger.Error("error making request", zap.Error(err))
-		return logs
+		err = fmt.Errorf("error making request: %w", err)
+		return nil, err
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		r.logger.Error("non-200 response", zap.String("status", res.Status))
-		return logs
+		err = fmt.Errorf("non-200 response: %s", res.Status)
+		return nil, err
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		r.logger.Error("error reading response", zap.Error(err))
-		return logs
+		err = fmt.Errorf("error reading response: %w", err)
+		return nil, err
 	}
 
 	var response apiResponse
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		r.logger.Error("unable to unmarshal log events", zap.Error(err))
-		return logs
+		err = fmt.Errorf("unable to unmarshal log events: %w", err)
+		return nil, err
 	}
 
 	logs = response.AuditEvents
@@ -178,7 +182,7 @@ func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) []AuditLogEven
 		}
 	}
 
-	return logs
+	return logs, nil
 }
 
 func (r *bindplaneAuditLogsReceiver) processLogEvents(observedTime pcommon.Timestamp, logEvents []AuditLogEvent) plog.Logs {

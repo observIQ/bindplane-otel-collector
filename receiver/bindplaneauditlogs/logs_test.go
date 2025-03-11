@@ -32,15 +32,13 @@ import (
 	"go.uber.org/zap"
 )
 
-type mockHTTPClient struct {
-	mockDo func(_ *http.Request) (*http.Response, error)
+type mockTransport struct {
+	roundTripFunc func(*http.Request) (*http.Response, error)
 }
 
-func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	return m.mockDo(req)
+func (m *mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	return m.roundTripFunc(req)
 }
-
-func (m *mockHTTPClient) CloseIdleConnections() {}
 
 func TestStartAndShutdown(t *testing.T) {
 	cfg := createDefaultConfig().(*Config)
@@ -114,16 +112,19 @@ func TestGetLogs(t *testing.T) {
 	responseBody, err := json.Marshal(testResponse)
 	require.NoError(t, err)
 
-	recv.client = &mockHTTPClient{
-		mockDo: func(_ *http.Request) (*http.Response, error) {
-			return &http.Response{
-				StatusCode: http.StatusOK,
-				Body:       io.NopCloser(strings.NewReader(string(responseBody))),
-			}, nil
+	recv.client = &http.Client{
+		Transport: &mockTransport{
+			roundTripFunc: func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(string(responseBody))),
+				}, nil
+			},
 		},
 	}
 
-	logs := recv.getLogs(context.Background())
+	logs, err := recv.getLogs(context.Background())
+	require.NoError(t, err)
 
 	// Verify logs are sorted newest first
 	require.Equal(t, 3, len(logs))
@@ -151,18 +152,20 @@ func TestGetLogsErrorHandling(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		setupMock  func() httpClient
+		setupMock  func() *http.Client
 		wantLength int
 	}{
 		{
 			name: "bad request error",
-			setupMock: func() httpClient {
-				return &mockHTTPClient{
-					mockDo: func(_ *http.Request) (*http.Response, error) {
-						return &http.Response{
-							StatusCode: http.StatusBadRequest,
-							Body:       io.NopCloser(strings.NewReader("")),
-						}, nil
+			setupMock: func() *http.Client {
+				return &http.Client{
+					Transport: &mockTransport{
+						roundTripFunc: func(req *http.Request) (*http.Response, error) {
+							return &http.Response{
+								StatusCode: http.StatusBadRequest,
+								Body:       io.NopCloser(strings.NewReader("")),
+							}, nil
+						},
 					},
 				}
 			},
@@ -170,13 +173,15 @@ func TestGetLogsErrorHandling(t *testing.T) {
 		},
 		{
 			name: "invalid json response",
-			setupMock: func() httpClient {
-				return &mockHTTPClient{
-					mockDo: func(_ *http.Request) (*http.Response, error) {
-						return &http.Response{
-							StatusCode: http.StatusOK,
-							Body:       io.NopCloser(strings.NewReader("invalid json")),
-						}, nil
+			setupMock: func() *http.Client {
+				return &http.Client{
+					Transport: &mockTransport{
+						roundTripFunc: func(req *http.Request) (*http.Response, error) {
+							return &http.Response{
+								StatusCode: http.StatusOK,
+								Body:       io.NopCloser(strings.NewReader("invalid json")),
+							}, nil
+						},
 					},
 				}
 			},
@@ -189,8 +194,9 @@ func TestGetLogsErrorHandling(t *testing.T) {
 			recv := newReceiver(t, cfg, consumertest.NewNop())
 			recv.client = tt.setupMock()
 
-			logs := recv.getLogs(context.Background())
-			require.Equal(t, tt.wantLength, len(logs))
+			logs, err := recv.getLogs(context.Background())
+			require.Error(t, err)
+			require.Nil(t, logs)
 		})
 	}
 }

@@ -33,7 +33,6 @@ func TestValidate(t *testing.T) {
 			desc: "pass simple",
 			config: Config{
 				APIKey: "testkey",
-				Scheme: "https",
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: "https://app.bindplane.com",
 				},
@@ -44,20 +43,8 @@ func TestValidate(t *testing.T) {
 			desc:        "fail no api key",
 			expectedErr: errors.New("api_key cannot be empty"),
 			config: Config{
-				Scheme: "https",
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: "https://app.bindplane.com",
-				},
-				PollInterval: time.Second * 10,
-			},
-		},
-		{
-			desc:        "fail no scheme",
-			expectedErr: errors.New("scheme cannot be empty"),
-			config: Config{
-				APIKey: "testkey",
-				ClientConfig: confighttp.ClientConfig{
-					Endpoint: "https://localhost:3000",
 				},
 				PollInterval: time.Second * 10,
 			},
@@ -67,7 +54,6 @@ func TestValidate(t *testing.T) {
 			expectedErr: errors.New("endpoint cannot be empty"),
 			config: Config{
 				APIKey:       "testkey",
-				Scheme:       "https",
 				PollInterval: time.Second * 10,
 			},
 		},
@@ -76,7 +62,6 @@ func TestValidate(t *testing.T) {
 			expectedErr: errors.New("endpoint must contain a host and scheme"),
 			config: Config{
 				APIKey: "testkey",
-				Scheme: "https",
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: "invalid-url",
 				},
@@ -88,7 +73,6 @@ func TestValidate(t *testing.T) {
 			expectedErr: errors.New("endpoint must contain a host and scheme"),
 			config: Config{
 				APIKey: "testkey",
-				Scheme: "https",
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: "app.bindplane.com",
 				},
@@ -100,7 +84,6 @@ func TestValidate(t *testing.T) {
 			expectedErr: errors.New("poll_interval must be between 10 seconds and 24 hours"),
 			config: Config{
 				APIKey: "testkey",
-				Scheme: "https",
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: "https://localhost:3000",
 				},
