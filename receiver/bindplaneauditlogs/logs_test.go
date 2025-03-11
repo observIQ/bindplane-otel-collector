@@ -139,7 +139,6 @@ func TestGetLogs(t *testing.T) {
 	require.Equal(t, "Deleted", string(newestLog.Action))
 	require.Equal(t, "metrics", newestLog.Configuration)
 
-	require.Equal(t, newest, recv.lastTimestamp)
 }
 
 func TestGetLogsErrorHandling(t *testing.T) {

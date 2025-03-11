@@ -42,24 +42,22 @@ type apiResponse struct {
 }
 
 type bindplaneAuditLogsReceiver struct {
-	cfg           Config
-	client        *http.Client
-	consumer      consumer.Logs
-	logger        *zap.Logger
-	cancel        context.CancelFunc
-	wg            *sync.WaitGroup
-	lastTimestamp time.Time
-	settings      component.TelemetrySettings
+	cfg      Config
+	client   *http.Client
+	consumer consumer.Logs
+	logger   *zap.Logger
+	cancel   context.CancelFunc
+	wg       *sync.WaitGroup
+	settings component.TelemetrySettings
 }
 
 // newBindplaneAuditLogsReceiver returns a newly configured bindplaneAuditLogsReceiver
 func newBindplaneAuditLogsReceiver(cfg *Config, logger *zap.Logger, consumer consumer.Logs) (*bindplaneAuditLogsReceiver, error) {
 	return &bindplaneAuditLogsReceiver{
-		cfg:           *cfg,
-		consumer:      consumer,
-		logger:        logger,
-		wg:            &sync.WaitGroup{},
-		lastTimestamp: time.Now().UTC().Add(-cfg.PollInterval),
+		cfg:      *cfg,
+		consumer: consumer,
+		logger:   logger,
+		wg:       &sync.WaitGroup{},
 	}, nil
 }
 
@@ -70,7 +68,7 @@ func (r *bindplaneAuditLogsReceiver) Start(ctx context.Context, host component.H
 	}
 	r.client = client
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	r.cancel = cancel
 	r.wg.Add(1)
 	go r.startPolling(ctx)
@@ -101,15 +99,20 @@ func (r *bindplaneAuditLogsReceiver) startPolling(ctx context.Context) {
 func (r *bindplaneAuditLogsReceiver) poll(ctx context.Context) error {
 	logEvents, err := r.getLogs(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("getLogs: %w", err)
 	}
 	observedTime := pcommon.NewTimestampFromTime(time.Now())
 	logs := r.processLogEvents(observedTime, logEvents)
-	if logs.LogRecordCount() > 0 {
-		if err := r.consumer.ConsumeLogs(ctx, logs); err != nil {
-			return err
-		}
+
+	if !(logs.LogRecordCount() > 0) {
+		r.logger.Debug("no logs to process")
+		return nil
 	}
+
+	if err := r.consumer.ConsumeLogs(ctx, logs); err != nil {
+		return fmt.Errorf("consumeLogs: %w", err)
+	}
+
 	return nil
 }
 
@@ -127,39 +130,30 @@ func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) ([]AuditLogEve
 
 	req, err := http.NewRequestWithContext(ctx, "GET", reqURL.String(), nil)
 	if err != nil {
-		err = fmt.Errorf("error creating request: %w", err)
-		return nil, err
+		return nil, fmt.Errorf("newRequestWithContext: %w", err)
 	}
-
-	query := req.URL.Query()
-	query.Add("since", r.lastTimestamp.Format(bindplaneTimeFormat))
-	req.URL.RawQuery = query.Encode()
 
 	req.Header.Add("X-Bindplane-Api-Key", r.cfg.APIKey)
 
 	res, err := r.client.Do(req)
 	if err != nil {
-		err = fmt.Errorf("error making request: %w", err)
-		return nil, err
+		return nil, fmt.Errorf("client.Do: %w", err)
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		err = fmt.Errorf("non-200 response: %s", res.Status)
-		return nil, err
+		return nil, fmt.Errorf("non-200 response: %s", res.Status)
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		err = fmt.Errorf("error reading response: %w", err)
-		return nil, err
+		return nil, fmt.Errorf("io.ReadAll: %w", err)
 	}
 
 	var response apiResponse
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		err = fmt.Errorf("unable to unmarshal log events: %w", err)
-		return nil, err
+		return nil, fmt.Errorf("unable to unmarshal log events: %w", err)
 	}
 
 	logs = response.AuditEvents
@@ -168,19 +162,6 @@ func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) ([]AuditLogEve
 	sort.Slice(logs, func(i, j int) bool {
 		return logs[i].Timestamp.After(*logs[j].Timestamp)
 	})
-
-	// Update lastTimestamp
-	if len(logs) > 0 {
-		var latestTime time.Time
-		for _, event := range logs {
-			if event.Timestamp != nil && event.Timestamp.After(latestTime) {
-				latestTime = *event.Timestamp
-			}
-		}
-		if !latestTime.IsZero() {
-			r.lastTimestamp = latestTime
-		}
-	}
 
 	return logs, nil
 }
