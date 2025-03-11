@@ -3,7 +3,7 @@ type: chronicle
 status:
   class: exporter
   stability:
-    alpha: [logs, metrics]  # Adding 'metrics' since you have generated metric code
+    alpha: [logs]
   distributions: [observiq]
 
 telemetry:
