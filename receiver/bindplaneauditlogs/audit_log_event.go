@@ -25,7 +25,7 @@ type AuditLogEvent struct {
 	// ResourceName is the resource name + friendly name of the resource
 	ResourceName string `json:"resourceName"`
 	// Description is the friendly name of the resource
-	Description string `json:"description" csv:"description"`
+	Description string `json:"description"`
 	// ResourceKind is the resource that was modified
 	ResourceKind string `json:"resourceKind"`
 	// Configuration is the name of the configuration affected. This may be nil if there is not associated configuration.
