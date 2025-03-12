@@ -21,9 +21,10 @@ builds:
     tags:
       - bindplane
     goos:
-      - windows
-      - linux
+      - aix
       - darwin
+      - linux
+      - windows
     goarch:
       - amd64
       - arm64
@@ -31,6 +32,18 @@ builds:
       - ppc64
       - ppc64le
     ignore:
+      - goos: aix
+        goarch: arm64
+      - goos: aix
+        goarch: arm
+      - goos: aix
+        goarch: amd64
+      - goos: aix
+        goarch: ppc64le
+      - goos: darwin
+        goarch: ppc64
+      - goos: darwin
+        goarch: ppc64le
       - goos: windows
         goarch: arm
       - goos: windows
@@ -38,10 +51,6 @@ builds:
       - goos: windows
         goarch: ppc64
       - goos: windows
-        goarch: ppc64le
-      - goos: darwin
-        goarch: ppc64
-      - goos: darwin
         goarch: ppc64le
     prebuilt:
       path: tmp/collector_{{ .Os }}_{{ .Arch }}{{ .Ext }}
@@ -49,9 +58,10 @@ builds:
     builder: prebuilt
     binary: opampsupervisor
     goos:
-      - windows
-      - linux
+      - aix
       - darwin
+      - linux
+      - windows
     goarch:
       - amd64
       - arm64
@@ -59,6 +69,18 @@ builds:
       - ppc64
       - ppc64le
     ignore:
+      - goos: aix
+        goarch: amd64
+      - goos: aix
+        goarch: arm64
+      - goos: aix
+        goarch: arm
+      - goos: aix
+        goarch: ppc64le
+      - goos: darwin
+        goarch: ppc64
+      - goos: darwin
+        goarch: ppc64le
       - goos: windows
         goarch: arm
       - goos: windows
@@ -67,12 +89,14 @@ builds:
         goarch: ppc64
       - goos: windows
         goarch: ppc64le
-      - goos: darwin
-        goarch: ppc64
-      - goos: darwin
-        goarch: ppc64le
     prebuilt:
       path: release_deps/supervisor_bin/opampsupervisor_{{ .Os }}_{{ .Arch }}{{ .Ext }}
+    ldflags:
+      - -s -w
+      - -X github.com/observiq/bindplane-agent/updater/internal/version.version=v{{ .Version }}
+      - -X github.com/observiq/bindplane-agent/updater/internal/version.gitHash={{ .FullCommit }}
+      - -X github.com/observiq/bindplane-agent/updater/internal/version.date={{ .Date }}
+    no_unique_dist_dir: false
 
 # https://goreleaser.com/customization/archive/
 archives:
@@ -103,6 +127,9 @@ archives:
         strip_parent: true
       - src: release_deps/sysconfig/bindplane-otel-collector
         dst: "install/sysconfig"
+        strip_parent: true
+      - src: release_deps/bindplane-otel-collector.aix.env
+        dst: "install"
         strip_parent: true
     format_overrides:
       - goos: windows
@@ -610,6 +637,7 @@ release:
 
 # https://goreleaser.com/customization/changelog/
 changelog:
+  disable: false
   use: github
   sort: asc
   groups:
