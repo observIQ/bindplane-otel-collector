@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"sort"
 	"sync"
 	"time"
@@ -42,22 +41,24 @@ type apiResponse struct {
 }
 
 type bindplaneAuditLogsReceiver struct {
-	cfg      Config
-	client   *http.Client
-	consumer consumer.Logs
-	logger   *zap.Logger
-	cancel   context.CancelFunc
-	wg       *sync.WaitGroup
-	settings component.TelemetrySettings
+	cfg           Config
+	client        *http.Client
+	consumer      consumer.Logs
+	logger        *zap.Logger
+	cancel        context.CancelFunc
+	wg            *sync.WaitGroup
+	lastTimestamp *time.Time
+	settings      component.TelemetrySettings
 }
 
 // newBindplaneAuditLogsReceiver returns a newly configured bindplaneAuditLogsReceiver
 func newBindplaneAuditLogsReceiver(cfg *Config, logger *zap.Logger, consumer consumer.Logs) (*bindplaneAuditLogsReceiver, error) {
 	return &bindplaneAuditLogsReceiver{
-		cfg:      *cfg,
-		consumer: consumer,
-		logger:   logger,
-		wg:       &sync.WaitGroup{},
+		cfg:           *cfg,
+		consumer:      consumer,
+		logger:        logger,
+		wg:            &sync.WaitGroup{},
+		lastTimestamp: nil,
 	}, nil
 }
 
@@ -120,9 +121,14 @@ func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) ([]AuditLogEve
 	var logs []AuditLogEvent
 	const timeout = 1 * time.Minute
 
-	reqURL := &url.URL{
-		Host: r.cfg.bindplaneURL.Host,
-		Path: "/v1/audit-events",
+	reqURL := *r.cfg.bindplaneURL
+	reqURL.Path = "/v1/audit-events"
+
+	// Only add the since parameter if we have a lastTimestamp
+	if r.lastTimestamp != nil {
+		q := reqURL.Query()
+		q.Add("since", r.lastTimestamp.Format(bindplaneTimeFormat))
+		reqURL.RawQuery = q.Encode()
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -163,20 +169,29 @@ func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) ([]AuditLogEve
 		return logs[i].Timestamp.After(*logs[j].Timestamp)
 	})
 
+	if len(logs) > 0 {
+		// first log has the newest timestamp
+		r.lastTimestamp = logs[0].Timestamp
+	}
+
 	return logs, nil
 }
 
 func (r *bindplaneAuditLogsReceiver) processLogEvents(observedTime pcommon.Timestamp, logEvents []AuditLogEvent) plog.Logs {
 	logs := plog.NewLogs()
 	resourceLogs := logs.ResourceLogs().AppendEmpty()
-	resourceLogs.ScopeLogs().AppendEmpty()
+
+	// Add resource attributes
+	resourceAttrs := resourceLogs.Resource().Attributes()
+	resourceAttrs.PutStr("bindplane_url", r.cfg.Endpoint)
+
+	scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
 
 	for _, logEvent := range logEvents {
-		logRecord := resourceLogs.ScopeLogs().At(0).LogRecords().AppendEmpty()
+		logRecord := scopeLogs.LogRecords().AppendEmpty()
 
 		// Set timestamps
 		logRecord.SetObservedTimestamp(observedTime)
-		// Set the timestamp directly since Timestamp is already a *time.Time
 		if logEvent.Timestamp != nil {
 			logRecord.SetTimestamp(pcommon.NewTimestampFromTime(*logEvent.Timestamp))
 		}
@@ -195,12 +210,9 @@ func (r *bindplaneAuditLogsReceiver) processLogEvents(observedTime pcommon.Times
 		}
 		attrs.PutStr("action", string(logEvent.Action))
 		attrs.PutStr("user", logEvent.User)
-		if logEvent.Account != "" {
-			attrs.PutStr("account", logEvent.Account)
-		}
 
-		resourceAttributes := logRecord.Attributes()
-		resourceAttributes.PutStr("bindplane_url", r.cfg.Endpoint)
+		resourceAttrs.PutStr("account", logEvent.Account)
+
 	}
 
 	return logs
