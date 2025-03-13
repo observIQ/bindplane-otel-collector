@@ -648,7 +648,7 @@ require (
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/golang/snappy v0.0.4
+	github.com/golang/snappy v1.0.0
 	// (Dakota): cadvisor only works on version `v0.49.1-0.20240628164550-89f779d86055` until they release v0.50.0 with updated docker dep
 	// https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/33870
 	github.com/google/cadvisor v0.51.1-0.20250126012415-5b649021c2da // indirect
