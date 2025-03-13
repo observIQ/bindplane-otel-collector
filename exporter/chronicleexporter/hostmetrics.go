@@ -84,12 +84,13 @@ func newHostMetricsReporter(cfg *Config, set component.TelemetrySettings, export
 }
 
 func (hmr *hostMetricsReporter) start() {
-	ticker := time.NewTicker(5 * time.Minute)
 	ctx, cancel := context.WithCancel(context.Background())
 	hmr.cancel = cancel
 	hmr.wg.Add(1)
 
 	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+
 		defer func() {
 			hmr.wg.Done()
 			ticker.Stop()

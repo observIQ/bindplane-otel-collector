@@ -120,10 +120,7 @@ func (exp *grpcExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 }
 
 func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.BatchCreateLogsRequest) error {
-	if exp.metrics != nil {
-		totalLogs := int64(len(request.GetBatch().GetEntries()))
-		defer exp.metrics.recordSent(totalLogs)
-	}
+
 	_, err := exp.client.BatchCreateLogs(ctx, request, exp.buildOptions()...)
 	if err != nil {
 		errCode := status.Code(err)
@@ -139,6 +136,10 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 		default:
 			return consumererror.NewPermanent(fmt.Errorf("upload logs to chronicle: %w", err))
 		}
+	}
+	if exp.metrics != nil {
+		totalLogs := int64(len(request.GetBatch().GetEntries()))
+		exp.metrics.recordSent(totalLogs)
 	}
 	return nil
 }
