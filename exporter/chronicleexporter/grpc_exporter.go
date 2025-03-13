@@ -79,7 +79,7 @@ func (exp *grpcExporter) Start(ctx context.Context, _ component.Host) error {
 
 	if exp.cfg.CollectAgentMetrics {
 		f := func(ctx context.Context, request *api.BatchCreateEventsRequest) error {
-			_, err := exp.client.BatchCreateEvents(ctx, request)
+			_, err := exp.client.BatchCreateEvents(ctx, request, exp.buildOptions()...)
 			return err
 		}
 		metrics, err := newHostMetricsReporter(exp.cfg, exp.set, exp.exporterID, f)
