@@ -196,6 +196,14 @@ func (r *bindplaneAuditLogsReceiver) processLogEvents(observedTime pcommon.Times
 			logRecord.SetTimestamp(pcommon.NewTimestampFromTime(*logEvent.Timestamp))
 		}
 
+		// Set body as description
+		body := logRecord.Body()
+		if logEvent.Description != "" {
+			body.SetStr(logEvent.Description)
+		} else {
+			body.SetStr(fmt.Sprintf("Audit log event - Action: %s, Resource: %s, User: %s", logEvent.Action, logEvent.ResourceName, logEvent.User))
+		}
+
 		// Set attributes based on the Bindplane audit log format
 		attrs := logRecord.Attributes()
 		attrs.PutStr("id", logEvent.ID)
@@ -203,7 +211,6 @@ func (r *bindplaneAuditLogsReceiver) processLogEvents(observedTime pcommon.Times
 			attrs.PutStr("timestamp", logEvent.Timestamp.Format(bindplaneTimeFormat))
 		}
 		attrs.PutStr("resource_name", logEvent.ResourceName)
-		attrs.PutStr("description", logEvent.Description)
 		attrs.PutStr("resource_kind", string(logEvent.ResourceKind))
 		if logEvent.Configuration != "" {
 			attrs.PutStr("configuration", logEvent.Configuration)
