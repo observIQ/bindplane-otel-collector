@@ -156,6 +156,7 @@ gosec:
 	  -exclude-dir=extension/bindplaneextension \
 	  -exclude-dir=processor/snapshotprocessor \
 	  -exclude-dir=internal/tools \
+	  -exclude-dir=exporter/chronicleexporter/internal/metadata \
 	  ./...
 # exclude the testdata dir; it contains a go program for testing.
 	cd updater; gosec -exclude-dir internal/service/testdata ./...
@@ -233,6 +234,10 @@ release-test:
 # If there is no MSI in the root dir, we'll create a dummy one so that goreleaser can complete successfully
 	if [ ! -e "./observiq-otel-collector.msi" ]; then touch ./observiq-otel-collector.msi; fi
 	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
+
+build-single:
+	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --skip=publish --clean --skip=validate --snapshot --single-target
+
 
 .PHONY: for-all
 for-all:
