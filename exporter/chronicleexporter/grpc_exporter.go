@@ -79,7 +79,7 @@ func (exp *grpcExporter) Start(ctx context.Context, _ component.Host) error {
 
 	if exp.cfg.CollectAgentMetrics {
 		f := func(ctx context.Context, request *api.BatchCreateEventsRequest) error {
-			_, err := exp.client.BatchCreateEvents(ctx, request)
+			_, err := exp.client.BatchCreateEvents(ctx, request, exp.buildOptions()...)
 			return err
 		}
 		metrics, err := newHostMetricsReporter(exp.cfg, exp.set, exp.exporterID, f)
@@ -120,10 +120,7 @@ func (exp *grpcExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 }
 
 func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.BatchCreateLogsRequest) error {
-	if exp.metrics != nil {
-		totalLogs := int64(len(request.GetBatch().GetEntries()))
-		defer exp.metrics.recordSent(totalLogs)
-	}
+
 	_, err := exp.client.BatchCreateLogs(ctx, request, exp.buildOptions()...)
 	if err != nil {
 		errCode := status.Code(err)
@@ -139,6 +136,10 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 		default:
 			return consumererror.NewPermanent(fmt.Errorf("upload logs to chronicle: %w", err))
 		}
+	}
+	if exp.metrics != nil {
+		totalLogs := int64(len(request.GetBatch().GetEntries()))
+		exp.metrics.recordSent(totalLogs)
 	}
 	return nil
 }
