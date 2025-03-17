@@ -197,11 +197,8 @@ func (r *bindplaneAuditLogsReceiver) processLogEvents(observedTime pcommon.Times
 		}
 
 		// Set body as description
-		body := logRecord.Body()
 		if logEvent.Description != "" {
-			body.SetStr(logEvent.Description)
-		} else {
-			body.SetStr(fmt.Sprintf("Audit log event - Action: %s, Resource: %s, User: %s", logEvent.Action, logEvent.ResourceName, logEvent.User))
+			logRecord.Body().SetStr(logEvent.Description)
 		}
 
 		// Set attributes based on the Bindplane audit log format
