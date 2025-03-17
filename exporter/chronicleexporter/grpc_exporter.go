@@ -127,8 +127,6 @@ func (exp *grpcExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 }
 
 func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.BatchCreateLogsRequest) error {
-<<<<<<< HEAD
-=======
 	if exp.metrics != nil {
 		totalLogs := int64(len(request.GetBatch().GetEntries()))
 		defer exp.metrics.recordSent(totalLogs)
@@ -136,7 +134,6 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 
 	// Track request latency
 	start := time.Now()
->>>>>>> 0a3886ac (implement metrics in grpc api)
 
 	_, err := exp.client.BatchCreateLogs(ctx, request, exp.buildOptions()...)
 	if err != nil {
@@ -160,12 +157,13 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 			return consumererror.NewPermanent(fmt.Errorf("upload logs to chronicle: %w", err))
 		}
 	}
+
+	exp.telemetry.OtelcolExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds())
+
 	if exp.metrics != nil {
 		totalLogs := int64(len(request.GetBatch().GetEntries()))
 		exp.metrics.recordSent(totalLogs)
 	}
-
-	exp.telemetry.OtelcolExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds())
 
 	return nil
 }
