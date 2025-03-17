@@ -22,13 +22,17 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	grpcgzip "google.golang.org/grpc/encoding/gzip"
@@ -42,10 +46,12 @@ type httpExporter struct {
 	set       component.TelemetrySettings
 	marshaler *protoMarshaler
 	client    *http.Client
+
+	telemetry *metadata.TelemetryBuilder
 }
 
-func newHTTPExporter(cfg *Config, params exporter.Settings) (*httpExporter, error) {
-	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings)
+func newHTTPExporter(cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (*httpExporter, error) {
+	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings, telemetry)
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}
@@ -53,6 +59,7 @@ func newHTTPExporter(cfg *Config, params exporter.Settings) (*httpExporter, erro
 		cfg:       cfg,
 		set:       params.TelemetrySettings,
 		marshaler: marshaler,
+		telemetry: telemetry,
 	}, nil
 }
 
@@ -125,11 +132,28 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 
 	request.Header.Set("Content-Type", "application/json")
 
+	// Track request latency
+	start := time.Now()
+
 	resp, err := exp.client.Do(request)
 	if err != nil {
+		errAttr := attribute.String("error", "unknown")
+		if errors.Is(err, context.DeadlineExceeded) {
+			errAttr = attribute.String("error", "timeout")
+		}
+		exp.telemetry.ExporterRequestLatency.Record(
+			ctx, time.Since(start).Milliseconds(),
+			metric.WithAttributeSet(attribute.NewSet(errAttr)),
+		)
 		return fmt.Errorf("send request to Chronicle: %w", err)
 	}
 	defer resp.Body.Close()
+
+	statusAttr := attribute.String("status", resp.Status)
+	exp.telemetry.ExporterRequestLatency.Record(
+		ctx, time.Since(start).Milliseconds(),
+		metric.WithAttributeSet(attribute.NewSet(statusAttr)),
+	)
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err == nil && resp.StatusCode == http.StatusOK {
