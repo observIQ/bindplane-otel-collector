@@ -8,7 +8,7 @@ status:
 
 telemetry:
   metrics:
-    otelcol_exporter_batch_size:
+    exporter_batch_size:
       enabled: true
       description: "The number of logs in a batch."
       unit: "{logs}"
@@ -16,7 +16,7 @@ telemetry:
         value_type: int
         bucket_boundaries: [1, 100, 250, 500, 750, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 20000, 30000, 40000, 50000]
 
-    otelcol_exporter_payload_size:
+    exporter_payload_size:
       enabled: true
       description: "The size of the payload in bytes."
       unit: "B"
@@ -24,7 +24,7 @@ telemetry:
         value_type: int
         bucket_boundaries: [100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1e6, 2e6, 3e6, 4e6, 5e6]
 
-    otelcol_exporter_request_latency:
+    exporter_request_latency:
       enabled: true
       description: "The latency of the request in milliseconds."
       unit: "ms"
@@ -45,5 +45,6 @@ tests:
         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
         "token_uri": "https://oauth2.googleapis.com/token",
         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs
+      }
     customer_id: "123e4567-e89b-12d3-a456-426614174000" # fake customer id
   skip_lifecycle: true

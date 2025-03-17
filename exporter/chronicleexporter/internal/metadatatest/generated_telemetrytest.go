@@ -21,9 +21,9 @@ func NewSettings(tt *componenttest.Telemetry) exporter.Settings {
 	return set
 }
 
-func AssertEqualOtelcolExporterBatchSize(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.HistogramDataPoint[int64], opts ...metricdatatest.Option) {
+func AssertEqualExporterBatchSize(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.HistogramDataPoint[int64], opts ...metricdatatest.Option) {
 	want := metricdata.Metrics{
-		Name:        "otelcol_otelcol_exporter_batch_size",
+		Name:        "otelcol_exporter_batch_size",
 		Description: "The number of logs in a batch.",
 		Unit:        "{logs}",
 		Data: metricdata.Histogram[int64]{
@@ -31,14 +31,14 @@ func AssertEqualOtelcolExporterBatchSize(t *testing.T, tt *componenttest.Telemet
 			DataPoints:  dps,
 		},
 	}
-	got, err := tt.GetMetric("otelcol_otelcol_exporter_batch_size")
+	got, err := tt.GetMetric("otelcol_exporter_batch_size")
 	require.NoError(t, err)
 	metricdatatest.AssertEqual(t, want, got, opts...)
 }
 
-func AssertEqualOtelcolExporterPayloadSize(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.HistogramDataPoint[int64], opts ...metricdatatest.Option) {
+func AssertEqualExporterPayloadSize(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.HistogramDataPoint[int64], opts ...metricdatatest.Option) {
 	want := metricdata.Metrics{
-		Name:        "otelcol_otelcol_exporter_payload_size",
+		Name:        "otelcol_exporter_payload_size",
 		Description: "The size of the payload in bytes.",
 		Unit:        "B",
 		Data: metricdata.Histogram[int64]{
@@ -46,14 +46,14 @@ func AssertEqualOtelcolExporterPayloadSize(t *testing.T, tt *componenttest.Telem
 			DataPoints:  dps,
 		},
 	}
-	got, err := tt.GetMetric("otelcol_otelcol_exporter_payload_size")
+	got, err := tt.GetMetric("otelcol_exporter_payload_size")
 	require.NoError(t, err)
 	metricdatatest.AssertEqual(t, want, got, opts...)
 }
 
-func AssertEqualOtelcolExporterRequestLatency(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.HistogramDataPoint[int64], opts ...metricdatatest.Option) {
+func AssertEqualExporterRequestLatency(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.HistogramDataPoint[int64], opts ...metricdatatest.Option) {
 	want := metricdata.Metrics{
-		Name:        "otelcol_otelcol_exporter_request_latency",
+		Name:        "otelcol_exporter_request_latency",
 		Description: "The latency of the request in milliseconds.",
 		Unit:        "ms",
 		Data: metricdata.Histogram[int64]{
@@ -61,7 +61,7 @@ func AssertEqualOtelcolExporterRequestLatency(t *testing.T, tt *componenttest.Te
 			DataPoints:  dps,
 		},
 	}
-	got, err := tt.GetMetric("otelcol_otelcol_exporter_request_latency")
+	got, err := tt.GetMetric("otelcol_exporter_request_latency")
 	require.NoError(t, err)
 	metricdatatest.AssertEqual(t, want, got, opts...)
 }

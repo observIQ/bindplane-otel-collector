@@ -148,7 +148,7 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 			codes.Aborted:
 
 			errAttr := attribute.String("error", errCode.String())
-			exp.telemetry.OtelcolExporterRequestLatency.Record(
+			exp.telemetry.ExporterRequestLatency.Record(
 				ctx, time.Since(start).Milliseconds(),
 				metric.WithAttributeSet(attribute.NewSet(errAttr)),
 			)
@@ -158,7 +158,7 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 		}
 	}
 
-	exp.telemetry.OtelcolExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds())
+	exp.telemetry.ExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds())
 
 	if exp.metrics != nil {
 		totalLogs := int64(len(request.GetBatch().GetEntries()))

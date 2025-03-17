@@ -438,8 +438,8 @@ func (m *protoMarshaler) constructPayloads(rawLogs map[string][]*api.LogEntry, n
 
 			payloads = append(payloads, m.enforceMaximumsGRPCRequest(request)...)
 			for _, payload := range payloads {
-				m.telemetry.OtelcolExporterBatchSize.Record(metricCtx, int64(len(payload.Batch.Entries)))
-				m.telemetry.OtelcolExporterPayloadSize.Record(metricCtx, int64(proto.Size(payload)))
+				m.telemetry.ExporterBatchSize.Record(metricCtx, int64(len(payload.Batch.Entries)))
+				m.telemetry.ExporterPayloadSize.Record(metricCtx, int64(proto.Size(payload)))
 			}
 		}
 	}
@@ -556,8 +556,8 @@ func (m *protoMarshaler) constructHTTPPayloads(rawLogs map[string][]*api.Log) ma
 
 			payloads[logType] = m.enforceMaximumsHTTPRequest(request)
 			for _, payload := range payloads[logType] {
-				m.telemetry.OtelcolExporterBatchSize.Record(metricCtx, int64(len(payload.GetInlineSource().Logs)))
-				m.telemetry.OtelcolExporterPayloadSize.Record(metricCtx, int64(proto.Size(payload)))
+				m.telemetry.ExporterBatchSize.Record(metricCtx, int64(len(payload.GetInlineSource().Logs)))
+				m.telemetry.ExporterPayloadSize.Record(metricCtx, int64(proto.Size(payload)))
 			}
 		}
 	}

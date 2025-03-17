@@ -19,16 +19,16 @@ func TestSetupTelemetry(t *testing.T) {
 	tb, err := metadata.NewTelemetryBuilder(testTel.NewTelemetrySettings())
 	require.NoError(t, err)
 	defer tb.Shutdown()
-	tb.OtelcolExporterBatchSize.Record(context.Background(), 1)
-	tb.OtelcolExporterPayloadSize.Record(context.Background(), 1)
-	tb.OtelcolExporterRequestLatency.Record(context.Background(), 1)
-	AssertEqualOtelcolExporterBatchSize(t, testTel,
+	tb.ExporterBatchSize.Record(context.Background(), 1)
+	tb.ExporterPayloadSize.Record(context.Background(), 1)
+	tb.ExporterRequestLatency.Record(context.Background(), 1)
+	AssertEqualExporterBatchSize(t, testTel,
 		[]metricdata.HistogramDataPoint[int64]{{}}, metricdatatest.IgnoreValue(),
 		metricdatatest.IgnoreTimestamp())
-	AssertEqualOtelcolExporterPayloadSize(t, testTel,
+	AssertEqualExporterPayloadSize(t, testTel,
 		[]metricdata.HistogramDataPoint[int64]{{}}, metricdatatest.IgnoreValue(),
 		metricdatatest.IgnoreTimestamp())
-	AssertEqualOtelcolExporterRequestLatency(t, testTel,
+	AssertEqualExporterRequestLatency(t, testTel,
 		[]metricdata.HistogramDataPoint[int64]{{}}, metricdatatest.IgnoreValue(),
 		metricdatatest.IgnoreTimestamp())
 

@@ -23,12 +23,12 @@ func Tracer(settings component.TelemetrySettings) trace.Tracer {
 // TelemetryBuilder provides an interface for components to report telemetry
 // as defined in metadata and user config.
 type TelemetryBuilder struct {
-	meter                         metric.Meter
-	mu                            sync.Mutex
-	registrations                 []metric.Registration
-	OtelcolExporterBatchSize      metric.Int64Histogram
-	OtelcolExporterPayloadSize    metric.Int64Histogram
-	OtelcolExporterRequestLatency metric.Int64Histogram
+	meter                  metric.Meter
+	mu                     sync.Mutex
+	registrations          []metric.Registration
+	ExporterBatchSize      metric.Int64Histogram
+	ExporterPayloadSize    metric.Int64Histogram
+	ExporterRequestLatency metric.Int64Histogram
 }
 
 // TelemetryBuilderOption applies changes to default builder.
@@ -60,22 +60,22 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 	}
 	builder.meter = Meter(settings)
 	var err, errs error
-	builder.OtelcolExporterBatchSize, err = builder.meter.Int64Histogram(
-		"otelcol_otelcol_exporter_batch_size",
+	builder.ExporterBatchSize, err = builder.meter.Int64Histogram(
+		"otelcol_exporter_batch_size",
 		metric.WithDescription("The number of logs in a batch."),
 		metric.WithUnit("{logs}"),
 		metric.WithExplicitBucketBoundaries([]float64{1, 100, 250, 500, 750, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 20000, 30000, 40000, 50000}...),
 	)
 	errs = errors.Join(errs, err)
-	builder.OtelcolExporterPayloadSize, err = builder.meter.Int64Histogram(
-		"otelcol_otelcol_exporter_payload_size",
+	builder.ExporterPayloadSize, err = builder.meter.Int64Histogram(
+		"otelcol_exporter_payload_size",
 		metric.WithDescription("The size of the payload in bytes."),
 		metric.WithUnit("B"),
 		metric.WithExplicitBucketBoundaries([]float64{100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1e+06, 2e+06, 3e+06, 4e+06, 5e+06}...),
 	)
 	errs = errors.Join(errs, err)
-	builder.OtelcolExporterRequestLatency, err = builder.meter.Int64Histogram(
-		"otelcol_otelcol_exporter_request_latency",
+	builder.ExporterRequestLatency, err = builder.meter.Int64Histogram(
+		"otelcol_exporter_request_latency",
 		metric.WithDescription("The latency of the request in milliseconds."),
 		metric.WithUnit("ms"),
 		metric.WithExplicitBucketBoundaries([]float64{100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 10000, 15000, 20000, 30000, 60000}...),

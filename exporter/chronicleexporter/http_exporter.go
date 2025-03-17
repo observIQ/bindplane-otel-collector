@@ -141,7 +141,7 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 		if errors.Is(err, context.DeadlineExceeded) {
 			errAttr = attribute.String("error", "timeout")
 		}
-		exp.telemetry.OtelcolExporterRequestLatency.Record(
+		exp.telemetry.ExporterRequestLatency.Record(
 			ctx, time.Since(start).Milliseconds(),
 			metric.WithAttributeSet(attribute.NewSet(errAttr)),
 		)
@@ -150,7 +150,7 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 	defer resp.Body.Close()
 
 	statusAttr := attribute.String("status", resp.Status)
-	exp.telemetry.OtelcolExporterRequestLatency.Record(
+	exp.telemetry.ExporterRequestLatency.Record(
 		ctx, time.Since(start).Milliseconds(),
 		metric.WithAttributeSet(attribute.NewSet(statusAttr)),
 	)

@@ -6,7 +6,7 @@
 
 The following telemetry is emitted by this component.
 
-### otelcol_otelcol_exporter_batch_size
+### otelcol_exporter_batch_size
 
 The number of logs in a batch.
 
@@ -14,7 +14,7 @@ The number of logs in a batch.
 | ---- | ----------- | ---------- |
 | {logs} | Histogram | Int |
 
-### otelcol_otelcol_exporter_payload_size
+### otelcol_exporter_payload_size
 
 The size of the payload in bytes.
 
@@ -22,7 +22,7 @@ The size of the payload in bytes.
 | ---- | ----------- | ---------- |
 | B | Histogram | Int |
 
-### otelcol_otelcol_exporter_request_latency
+### otelcol_exporter_request_latency
 
 The latency of the request in milliseconds.
 
