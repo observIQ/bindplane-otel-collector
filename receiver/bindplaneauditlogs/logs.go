@@ -127,7 +127,7 @@ func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) ([]AuditLogEve
 	// Only add the since parameter if we have a lastTimestamp
 	if r.lastTimestamp != nil {
 		q := reqURL.Query()
-		q.Add("max-date", r.lastTimestamp.Format(time.RFC3339))
+		q.Add("min-date", r.lastTimestamp.Format("2006-01-02 15:04:05.000000-07"))
 		reqURL.RawQuery = q.Encode()
 	}
 
@@ -172,7 +172,7 @@ func (r *bindplaneAuditLogsReceiver) getLogs(ctx context.Context) ([]AuditLogEve
 	if len(logs) > 0 {
 		// first log has the newest timestamp
 		r.lastTimestamp = logs[0].Timestamp
-		*r.lastTimestamp = r.lastTimestamp.Add(time.Nanosecond)
+		*r.lastTimestamp = r.lastTimestamp.Add(time.Microsecond)
 	}
 
 	return logs, nil
