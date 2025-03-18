@@ -30,6 +30,7 @@ go.opentelemetry.io/collector/config/confignet
 go.opentelemetry.io/collector/consumer
 go.opentelemetry.io/collector/extension
 go.opentelemetry.io/collector/featuregate
+go.opentelemetry.io/collector/receiver
 EOF
 
 is_stable_module() {
