@@ -31,6 +31,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/processor/unrollprocessor v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver v1.74.0
+	github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/httpreceiver v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/oktareceiver v1.74.0
@@ -986,3 +987,5 @@ replace github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorage
 
 // This is a temporary replacement to pull in Bomin's PR here: https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/38149
 replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20250319170526-bba46d3e01a9
+
+replace github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver => ./receiver/googlecloudstoragerehydrationreceiver
