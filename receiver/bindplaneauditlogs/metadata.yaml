@@ -1,0 +1,11 @@
+type: bindplaneauditlogs
+
+status:
+  class: receiver
+  stability:
+    alpha: [logs]
+  distributions: [observiq]
+
+tests:
+  skip_lifecycle: true
+  skip_shutdown: true
