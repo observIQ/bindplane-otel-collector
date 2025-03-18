@@ -286,9 +286,9 @@ func TestLastTimestampUpdate(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 3, len(logs))
 
-	// Verify lastTimestamp is set to newest timestamp + 1 nanosecond
+	// Verify lastTimestamp is set to newest timestamp + 1 microsecond
 	require.NotNil(t, recv.lastTimestamp)
-	expectedTimestamp := newest.Add(time.Nanosecond)
+	expectedTimestamp := newest.Add(time.Microsecond)
 	require.Equal(t, expectedTimestamp, *recv.lastTimestamp)
 }
 
