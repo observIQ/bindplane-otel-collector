@@ -21,6 +21,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/exporter/googlecloudexporter"
 	"github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter"
 	"github.com/observiq/bindplane-otel-collector/exporter/googlemanagedprometheusexporter"
+  "github.com/observiq/bindplane-otel-collector/exporter/microsoftsentinelexporter"
 	"github.com/observiq/bindplane-otel-collector/exporter/qradar"
 	"github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter"
 	"github.com/observiq/bindplane-otel-collector/internal/version"
@@ -100,4 +101,5 @@ var defaultExporters = []exporter.Factory{
 	sumologicexporter.NewFactory(),
 	syslogexporter.NewFactory(),
 	zipkinexporter.NewFactory(),
+	microsoftsentinelexporter.NewFactory(),
 }
