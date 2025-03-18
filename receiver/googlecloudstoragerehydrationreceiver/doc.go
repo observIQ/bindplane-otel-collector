@@ -13,6 +13,6 @@
 // limitations under the License.
 
 // Package googlecloudstoragerehydrationreceiver implements a receiver that rehydrates telemetry data from Google Cloud Storage.
-// It supports rehydrating metrics, logs, and traces from files stored in a Google Cloud Storage bucket.
-// The receiver expects the data to be in the same format as exported by the Google Cloud Storage exporter.
+//
+//go:generate mdatagen metadata.yaml
 package googlecloudstoragerehydrationreceiver //import "github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver"
