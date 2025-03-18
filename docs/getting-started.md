@@ -164,6 +164,6 @@ You should now be able to view the host metrics in your Metrics explorer. Nice w
 
 ## What Next?
 
-Check out our list of supported [receivers](), [processors](), [exporters](), and [extensions]() for more information about making a config. To see more monitoring examples, be sure to follow the [Observability Blog](https://observiq.com/blog/).
+Check out our list of supported [receivers](), [processors](), [exporters](), and [extensions]() for more information about making a config. To see more monitoring examples, be sure to follow the [Observability Blog](https://bindplane.com/blog/).
 
 Bindplane’s distribution is a game-changer for companies looking to implement the OpenTelemetry standards. The single line installer, seamlessly integrated receivers, exporter, and processor pool make working with this agent simple. For questions, requests, and suggestions, reach out to our support team at support@observIQ.com.
