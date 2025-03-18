@@ -232,6 +232,66 @@ func TestProcessLogEvents(t *testing.T) {
 	require.Equal(t, "test-resource", resourceName.Str())
 }
 
+func TestLastTimestampUpdate(t *testing.T) {
+	cfg := createDefaultConfig().(*Config)
+	cfg.bindplaneURL = &url.URL{
+		Scheme: "https",
+		Host:   "localhost:3000",
+	}
+	cfg.APIKey = "testkey"
+
+	recv := newReceiver(t, cfg, consumertest.NewNop())
+
+	// Create test timestamps
+	now := time.Now().UTC()
+	older := now.Add(-1 * time.Hour)
+	newest := now.Add(1 * time.Hour)
+
+	testResponse := apiResponse{
+		AuditEvents: []AuditLogEvent{
+			{
+				ID:        "1",
+				Timestamp: &older,
+			},
+			{
+				ID:        "2",
+				Timestamp: &now,
+			},
+			{
+				ID:        "3",
+				Timestamp: &newest,
+			},
+		},
+	}
+
+	responseBody, err := json.Marshal(testResponse)
+	require.NoError(t, err)
+
+	recv.client = &http.Client{
+		Transport: &mockTransport{
+			roundTripFunc: func(_ *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(string(responseBody))),
+				}, nil
+			},
+		},
+	}
+
+	// Initial lastTimestamp should be nil
+	require.Nil(t, recv.lastTimestamp)
+
+	// Get logs
+	logs, err := recv.getLogs(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, 3, len(logs))
+
+	// Verify lastTimestamp is set to newest timestamp + 1 nanosecond
+	require.NotNil(t, recv.lastTimestamp)
+	expectedTimestamp := newest.Add(time.Nanosecond)
+	require.Equal(t, expectedTimestamp, *recv.lastTimestamp)
+}
+
 func newReceiver(t *testing.T, cfg *Config, c consumer.Logs) *bindplaneAuditLogsReceiver {
 	r, err := newBindplaneAuditLogsReceiver(cfg, zap.NewNop(), c)
 	require.NoError(t, err)
