@@ -208,6 +208,7 @@ require (
 )
 
 require (
+	github.com/observiq/bindplane-otel-collector/exporter/microsoftsentinelexporter v0.0.0-00010101000000-000000000000
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.74.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.122.0
@@ -226,6 +227,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.17.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.2 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.10.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/monitor/ingestion/azlogs v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5 v5.7.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v4 v4.3.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.0 // indirect
@@ -918,6 +920,8 @@ replace github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter 
 replace github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter => ./exporter/chronicleexporter
 
 replace github.com/observiq/bindplane-otel-collector/exporter/chronicleforwarderexporter => ./exporter/chronicleforwarderexporter
+
+replace github.com/observiq/bindplane-otel-collector/exporter/microsoftsentinelexporter => ./exporter/microsoftsentinelexporter
 
 replace github.com/observiq/bindplane-otel-collector/exporter/qradar => ./exporter/qradar
 
