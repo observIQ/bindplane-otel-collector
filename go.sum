@@ -1993,6 +1993,8 @@ github.com/nxadm/tail v1.4.11 h1:8feyoE3OzPrcshW5/MJ4sGESc5cqmGkGCWlco4l0bqY=
 github.com/nxadm/tail v1.4.11/go.mod h1:OTaG3NK980DZzxbRq6lEuzgU+mug70nY11sMd4JXXHc=
 github.com/oapi-codegen/runtime v1.0.0 h1:P4rqFX5fMFWqRzY9M/3YF9+aPSPPB06IzP2P7oOxrWo=
 github.com/oapi-codegen/runtime v1.0.0/go.mod h1:LmCUMQuPB4M/nLXilQXhHw+BLZdDb18B34OO356yJ/A=
+github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20250319170526-bba46d3e01a9 h1:2st0v1DCUXwhg9rfxZ8SGRjNp4yYZCOvPnNXwh4Iiz8=
+github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20250319170526-bba46d3e01a9/go.mod h1:tcg6BLGKdAnc2Tek63KtIYlf07OlMVHDVkl8UJXLaWg=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/ulid v1.3.1 h1:EGfNDEx6MqHz8B3uNV6QAib1UR2Lm97sHi3ocA6ESJ4=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
@@ -2193,8 +2195,6 @@ github.com/open-telemetry/opentelemetry-collector-contrib/pkg/resourcetotelemetr
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/resourcetotelemetry v0.122.0/go.mod h1:xRVCkxl7mUlRsp65vfpOZXsbD1WrUYBQJPeeGA4adj4=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling v0.122.0 h1:n0nWcGanaHanlih+YRp8etj1/fYZoQFRk+7+/J85dpU=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling v0.122.0/go.mod h1:MMvJIC26DIEZo5DR4Ub/WJD1aPVxKGpgJolXxTtjgLE=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.122.0 h1:svIr2YfIsCg7zkEy9QA3RVdOq6ArvPqLOY/6noq5dWU=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.122.0/go.mod h1:tcg6BLGKdAnc2Tek63KtIYlf07OlMVHDVkl8UJXLaWg=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/azure v0.122.0 h1:NRRPQX2h+BUgAFjHLtCL35lJPELpj45FmImiwT/1etE=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/azure v0.122.0/go.mod h1:cLRBD0KTx58pTi2HlkqwNnJ4YGlDMh/ka5CRjYouhHk=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/azurelogs v0.122.0 h1:YVQpFFdsNBFkU1F8mi0PmTqKZDSoND4/3C01+GSPVqg=
