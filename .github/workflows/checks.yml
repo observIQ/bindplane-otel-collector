@@ -4,7 +4,7 @@ on:
 
 jobs:
   setup-tools:
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-24.04"
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
@@ -23,7 +23,7 @@ jobs:
         run: make install-tools
 
   check-fmt:
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-24.04"
     needs:
       - setup-tools
     steps:
@@ -46,7 +46,7 @@ jobs:
         run: make check-fmt
 
   check-license:
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-24.04"
     needs:
       - setup-tools
     steps:
@@ -69,7 +69,7 @@ jobs:
         run: make check-license
 
   gosec:
-    runs-on: ubuntu-20.04
+    runs-on: "ubuntu-24.04"
     needs:
       - setup-tools
     steps:
@@ -92,7 +92,7 @@ jobs:
         run: make gosec
 
   misspell:
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-24.04"
     needs:
       - setup-tools
     steps:
@@ -115,7 +115,7 @@ jobs:
         run: make misspell
 
   lint:
-    runs-on: ubuntu-20.04
+    runs-on: "ubuntu-24.04"
     needs:
       - setup-tools
     steps:
@@ -139,7 +139,7 @@ jobs:
 
   # Below checks don't need to run `make install-tools`
   check-plugin-docs:
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-24.04"
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4

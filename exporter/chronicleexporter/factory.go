@@ -16,6 +16,7 @@ package chronicleexporter
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
@@ -34,9 +35,7 @@ func NewFactory() exporter.Factory {
 
 const (
 	defaultEndpoint                  = "malachiteingestion-pa.googleapis.com"
-	defaultBatchLogCountLimitGRPC    = 1000
 	defaultBatchRequestSizeLimitGRPC = 1048576
-	defaultBatchLogCountLimitHTTP    = 1000
 	defaultBatchRequestSizeLimitHTTP = 1048576
 )
 
@@ -51,9 +50,7 @@ func createDefaultConfig() component.Config {
 		Compression:               noCompression,
 		CollectAgentMetrics:       true,
 		Endpoint:                  defaultEndpoint,
-		BatchLogCountLimitGRPC:    defaultBatchLogCountLimitGRPC,
 		BatchRequestSizeLimitGRPC: defaultBatchRequestSizeLimitGRPC,
-		BatchLogCountLimitHTTP:    defaultBatchLogCountLimitHTTP,
 		BatchRequestSizeLimitHTTP: defaultBatchRequestSizeLimitHTTP,
 	}
 }
@@ -64,11 +61,16 @@ func createLogsExporter(
 	params exporter.Settings,
 	cfg component.Config,
 ) (exp exporter.Logs, err error) {
+	t, err := metadata.NewTelemetryBuilder(params.TelemetrySettings)
+	if err != nil {
+		return nil, fmt.Errorf("create telemetry builder: %w", err)
+	}
+
 	c := cfg.(*Config)
 	if c.Protocol == protocolHTTPS {
-		exp, err = newHTTPExporter(c, params)
+		exp, err = newHTTPExporter(c, params, t)
 	} else {
-		exp, err = newGRPCExporter(c, params)
+		exp, err = newGRPCExporter(c, params, t)
 	}
 	if err != nil {
 		return nil, err

@@ -17,6 +17,7 @@
 read -d '' STABLE_MODULES <<EOF
 go.opentelemetry.io/collector/pdata
 go.opentelemetry.io/collector/client
+go.opentelemetry.io/collector/component
 go.opentelemetry.io/collector/config/configtls
 go.opentelemetry.io/collector/config/configretry
 go.opentelemetry.io/collector/confmap
@@ -27,7 +28,9 @@ go.opentelemetry.io/collector/confmap/provider/httpsprovider
 go.opentelemetry.io/collector/confmap/provider/yamlprovider
 go.opentelemetry.io/collector/config/confignet
 go.opentelemetry.io/collector/consumer
+go.opentelemetry.io/collector/extension
 go.opentelemetry.io/collector/featuregate
+go.opentelemetry.io/collector/receiver
 EOF
 
 is_stable_module() {

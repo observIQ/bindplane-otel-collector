@@ -1,4 +1,4 @@
-# Bindplane OP Logs Plugin
+# Bindplane Logs Plugin
 
 Log parser for Bindplane Observability Pipeline.
 

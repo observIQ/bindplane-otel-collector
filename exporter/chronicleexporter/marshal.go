@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/observiq/bindplane-otel-collector/expr"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottllog"
@@ -70,9 +71,10 @@ type protoMarshaler struct {
 	startTime    time.Time
 	customerID   []byte
 	collectorID  []byte
+	telemetry    *metadata.TelemetryBuilder
 }
 
-func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings) (*protoMarshaler, error) {
+func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings, telemetry *metadata.TelemetryBuilder) (*protoMarshaler, error) {
 	customerID, err := uuid.Parse(cfg.CustomerID)
 	if err != nil {
 		return nil, fmt.Errorf("parse customer ID: %w", err)
@@ -83,6 +85,7 @@ func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings) (*p
 		teleSettings: teleSettings,
 		customerID:   customerID[:],
 		collectorID:  getCollectorID(cfg.LicenseType),
+		telemetry:    telemetry,
 	}, nil
 }
 
@@ -420,6 +423,9 @@ func (m *protoMarshaler) getHTTPRawNestedFields(field string, logRecord plog.Log
 
 func (m *protoMarshaler) constructPayloads(rawLogs map[string][]*api.LogEntry, namespaceMap map[string]string, ingestionLabelsMap map[string][]*api.Label) []*api.BatchCreateLogsRequest {
 	payloads := make([]*api.BatchCreateLogsRequest, 0, len(rawLogs))
+
+	metricCtx := context.Background()
+
 	for logType, entries := range rawLogs {
 		if len(entries) > 0 {
 			namespace, ok := namespaceMap[logType]
@@ -431,15 +437,20 @@ func (m *protoMarshaler) constructPayloads(rawLogs map[string][]*api.LogEntry, n
 			request := m.buildGRPCRequest(entries, logType, namespace, ingestionLabels)
 
 			payloads = append(payloads, m.enforceMaximumsGRPCRequest(request)...)
+			for _, payload := range payloads {
+				m.telemetry.ExporterBatchSize.Record(metricCtx, int64(len(payload.Batch.Entries)))
+				m.telemetry.ExporterPayloadSize.Record(metricCtx, int64(proto.Size(payload)))
+			}
 		}
 	}
 	return payloads
 }
 
+// deprecated
 func (m *protoMarshaler) enforceMaximumsGRPCRequest(request *api.BatchCreateLogsRequest) []*api.BatchCreateLogsRequest {
 	size := proto.Size(request)
 	entries := request.Batch.Entries
-	if size <= m.cfg.BatchRequestSizeLimitGRPC && len(entries) <= m.cfg.BatchLogCountLimitGRPC {
+	if size <= m.cfg.BatchRequestSizeLimitGRPC {
 		return []*api.BatchCreateLogsRequest{
 			request,
 		}
@@ -537,20 +548,27 @@ func buildForwarderString(cfg Config) string {
 func (m *protoMarshaler) constructHTTPPayloads(rawLogs map[string][]*api.Log) map[string][]*api.ImportLogsRequest {
 	payloads := make(map[string][]*api.ImportLogsRequest, len(rawLogs))
 
+	metricCtx := context.Background()
+
 	for logType, entries := range rawLogs {
 		if len(entries) > 0 {
 			request := m.buildHTTPRequest(entries)
 
 			payloads[logType] = m.enforceMaximumsHTTPRequest(request)
+			for _, payload := range payloads[logType] {
+				m.telemetry.ExporterBatchSize.Record(metricCtx, int64(len(payload.GetInlineSource().Logs)))
+				m.telemetry.ExporterPayloadSize.Record(metricCtx, int64(proto.Size(payload)))
+			}
 		}
 	}
 	return payloads
 }
 
+// deprecated
 func (m *protoMarshaler) enforceMaximumsHTTPRequest(request *api.ImportLogsRequest) []*api.ImportLogsRequest {
 	size := proto.Size(request)
 	logs := request.GetInlineSource().Logs
-	if size <= m.cfg.BatchRequestSizeLimitHTTP && len(logs) <= m.cfg.BatchLogCountLimitHTTP {
+	if size <= m.cfg.BatchRequestSizeLimitHTTP {
 		return []*api.ImportLogsRequest{
 			request,
 		}

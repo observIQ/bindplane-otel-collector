@@ -8,7 +8,7 @@ jobs:
   vulncheck:
     name: Go Vulnerability Scan
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Check out source code
         uses: actions/checkout@v4

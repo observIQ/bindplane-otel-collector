@@ -21,10 +21,11 @@ else
 EXT?=
 endif
 
+SNAPSHOT := $(shell git rev-parse --short HEAD)
 PREVIOUS_TAG := $(shell git tag --sort=v:refname --no-contains HEAD | grep -E "[0-9]+\.[0-9]+\.[0-9]+$$" | tail -n1)
 CURRENT_TAG := $(shell git tag --sort=v:refname --points-at HEAD | grep -E "v[0-9]+\.[0-9]+\.[0-9]+$$" | tail -n1)
 # Version will be the tag pointing to the current commit, or the previous version tag if there is no such tag
-VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG))
+VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG)-SNAPSHOT-$(SNAPSHOT))
 
 # Build binaries for current GOOS/GOARCH by default
 .DEFAULT_GOAL := build-binaries
@@ -155,6 +156,7 @@ gosec:
 	  -exclude-dir=extension/bindplaneextension \
 	  -exclude-dir=processor/snapshotprocessor \
 	  -exclude-dir=internal/tools \
+	  -exclude-dir=exporter/chronicleexporter/internal/metadata \
 	  ./...
 # exclude the testdata dir; it contains a go program for testing.
 	cd updater; gosec -exclude-dir internal/service/testdata ./...
@@ -232,6 +234,10 @@ release-test:
 # If there is no MSI in the root dir, we'll create a dummy one so that goreleaser can complete successfully
 	if [ ! -e "./observiq-otel-collector.msi" ]; then touch ./observiq-otel-collector.msi; fi
 	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
+
+build-single:
+	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --skip=publish --clean --skip=validate --snapshot --single-target
+
 
 .PHONY: for-all
 for-all:

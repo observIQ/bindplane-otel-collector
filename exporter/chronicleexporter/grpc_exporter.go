@@ -18,13 +18,17 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -45,10 +49,12 @@ type grpcExporter struct {
 	client  api.IngestionServiceV2Client
 	conn    *grpc.ClientConn
 	metrics *hostMetricsReporter
+
+	telemetry *metadata.TelemetryBuilder
 }
 
-func newGRPCExporter(cfg *Config, params exporter.Settings) (*grpcExporter, error) {
-	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings)
+func newGRPCExporter(cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (*grpcExporter, error) {
+	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings, telemetry)
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}
@@ -57,6 +63,7 @@ func newGRPCExporter(cfg *Config, params exporter.Settings) (*grpcExporter, erro
 		set:        params.TelemetrySettings,
 		exporterID: params.ID.String(),
 		marshaler:  marshaler,
+		telemetry:  telemetry,
 	}, nil
 }
 
@@ -79,7 +86,7 @@ func (exp *grpcExporter) Start(ctx context.Context, _ component.Host) error {
 
 	if exp.cfg.CollectAgentMetrics {
 		f := func(ctx context.Context, request *api.BatchCreateEventsRequest) error {
-			_, err := exp.client.BatchCreateEvents(ctx, request)
+			_, err := exp.client.BatchCreateEvents(ctx, request, exp.buildOptions()...)
 			return err
 		}
 		metrics, err := newHostMetricsReporter(exp.cfg, exp.set, exp.exporterID, f)
@@ -124,6 +131,10 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 		totalLogs := int64(len(request.GetBatch().GetEntries()))
 		defer exp.metrics.recordSent(totalLogs)
 	}
+
+	// Track request latency
+	start := time.Now()
+
 	_, err := exp.client.BatchCreateLogs(ctx, request, exp.buildOptions()...)
 	if err != nil {
 		errCode := status.Code(err)
@@ -135,11 +146,25 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 			codes.DeadlineExceeded,
 			codes.ResourceExhausted,
 			codes.Aborted:
+
+			errAttr := attribute.String("error", errCode.String())
+			exp.telemetry.ExporterRequestLatency.Record(
+				ctx, time.Since(start).Milliseconds(),
+				metric.WithAttributeSet(attribute.NewSet(errAttr)),
+			)
 			return fmt.Errorf("upload logs to chronicle: %w", err)
 		default:
 			return consumererror.NewPermanent(fmt.Errorf("upload logs to chronicle: %w", err))
 		}
 	}
+
+	exp.telemetry.ExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds())
+
+	if exp.metrics != nil {
+		totalLogs := int64(len(request.GetBatch().GetEntries()))
+		exp.metrics.recordSent(totalLogs)
+	}
+
 	return nil
 }
 

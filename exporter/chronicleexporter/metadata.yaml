@@ -6,9 +6,35 @@ status:
     alpha: [logs]
   distributions: [observiq]
 
+telemetry:
+  metrics:
+    exporter_batch_size:
+      enabled: true
+      description: "The number of logs in a batch."
+      unit: "{logs}"
+      histogram:
+        value_type: int
+        bucket_boundaries: [1, 100, 250, 500, 750, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 20000, 30000, 40000, 50000]
+
+    exporter_payload_size:
+      enabled: true
+      description: "The size of the payload in bytes."
+      unit: "B"
+      histogram:
+        value_type: int
+        bucket_boundaries: [100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1e6, 2e6, 3e6, 4e6, 5e6]
+
+    exporter_request_latency:
+      enabled: true
+      description: "The latency of the request in milliseconds."
+      unit: "ms"
+      histogram:
+        value_type: int
+        bucket_boundaries: [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 10000, 15000, 20000, 30000, 60000]
+
 tests:
   config:
-    creds: | # theses credentials are not real and a modified version of the real credentials
+    creds: | # Fake credentials for testing
       {
         "type": "service_account",
         "project_id": "project",
@@ -18,9 +44,7 @@ tests:
         "client_id": "123456789abcdefghijkl",
         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
         "token_uri": "https://oauth2.googleapis.com/token",
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/account%40project.iam.gserviceaccount.com",
-        "universe_domain": "googleapis.com"
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs
       }
     customer_id: "123e4567-e89b-12d3-a456-426614174000" # fake customer id
   skip_lifecycle: true

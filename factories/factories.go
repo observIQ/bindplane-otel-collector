@@ -37,27 +37,27 @@ func combineFactories(receivers []receiver.Factory, processors []processor.Facto
 	connectors []connector.Factory) (otelcol.Factories, error) {
 	var errs []error
 
-	receiverMap, err := receiver.MakeFactoryMap(receivers...)
+	receiverMap, err := otelcol.MakeFactoryMap(receivers...)
 	if err != nil {
 		errs = append(errs, err)
 	}
 
-	processorMap, err := processor.MakeFactoryMap(processors...)
+	processorMap, err := otelcol.MakeFactoryMap(processors...)
 	if err != nil {
 		errs = append(errs, err)
 	}
 
-	exporterMap, err := exporter.MakeFactoryMap(exporters...)
+	exporterMap, err := otelcol.MakeFactoryMap(exporters...)
 	if err != nil {
 		errs = append(errs, err)
 	}
 
-	extensionMap, err := extension.MakeFactoryMap(extensions...)
+	extensionMap, err := otelcol.MakeFactoryMap(extensions...)
 	if err != nil {
 		errs = append(errs, err)
 	}
 
-	connectorMap, err := connector.MakeFactoryMap(connectors...)
+	connectorMap, err := otelcol.MakeFactoryMap(connectors...)
 	if err != nil {
 		errs = append(errs, err)
 	}

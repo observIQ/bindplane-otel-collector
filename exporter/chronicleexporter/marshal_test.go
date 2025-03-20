@@ -20,10 +20,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/otel/metric/noop"
 	"go.uber.org/zap"
 	"golang.org/x/exp/rand"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -32,6 +34,17 @@ import (
 func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 	logger := zap.NewNop()
 	startTime := time.Now()
+
+	telemSettings := component.TelemetrySettings{
+		Logger:        logger,
+		MeterProvider: noop.NewMeterProvider(),
+	}
+
+	telemetry, err := metadata.NewTelemetryBuilder(telemSettings)
+	if err != nil {
+		t.Errorf("Error creating telemetry builder: %v", err)
+		t.Fail()
+	}
 
 	tests := []struct {
 		name         string
@@ -46,7 +59,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -74,7 +86,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           true,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -104,7 +115,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -132,7 +142,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "attributes",
 				OverrideLogType:           false,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -156,7 +165,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				LogType:                   "DEFAULT",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -172,7 +180,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				CustomerID:                uuid.New().String(),
 				RawLogField:               "body",
 				OverrideLogType:           true,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -191,7 +198,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -224,7 +230,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -259,7 +264,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				LogType:                   "DEFAULT", // This should be overridden by the log_type attribute
 				RawLogField:               "body",
 				OverrideLogType:           true,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -278,7 +282,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				LogType:                   "DEFAULT", // This should be overridden by the chronicle_log_type attribute
 				RawLogField:               "body",
 				OverrideLogType:           true,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -305,7 +308,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -344,7 +346,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -401,7 +402,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -445,141 +445,12 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 			},
 		},
 		{
-			name: "Single batch split into multiple because more than 1000 logs",
-			cfg: Config{
-				CustomerID:                uuid.New().String(),
-				LogType:                   "WINEVTLOG",
-				RawLogField:               "body",
-				OverrideLogType:           false,
-				BatchLogCountLimitGRPC:    1000,
-				BatchRequestSizeLimitGRPC: 5242880,
-			},
-			logRecords: func() plog.Logs {
-				logs := plog.NewLogs()
-				logRecords := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
-				for i := 0; i < 1001; i++ {
-					record1 := logRecords.AppendEmpty()
-					record1.Body().SetStr("Log message")
-					record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
-				}
-				return logs
-			},
-
-			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
-				// verify 1 request, with 1 batch
-				require.Len(t, requests, 2, "Expected a two-batch request")
-				batch := requests[0].Batch
-				require.Len(t, batch.Entries, 500, "Expected 500 log entries in the first batch")
-				// verify batch for first log
-				require.Contains(t, batch.LogType, "WINEVTLOGS")
-				require.Contains(t, batch.Source.Namespace, "test")
-				require.Len(t, batch.Source.Labels, 2)
-
-				batch2 := requests[1].Batch
-				require.Len(t, batch2.Entries, 501, "Expected 501 log entries in the second batch")
-				// verify batch for first log
-				require.Contains(t, batch2.LogType, "WINEVTLOGS")
-				require.Contains(t, batch2.Source.Namespace, "test")
-				require.Len(t, batch2.Source.Labels, 2)
-
-				// verify ingestion labels
-				for _, req := range requests {
-					for _, label := range req.Batch.Source.Labels {
-						require.Contains(t, []string{
-							"key1",
-							"key2",
-							"key3",
-							"key4",
-						}, label.Key)
-						require.Contains(t, []string{
-							"value1",
-							"value2",
-							"value3",
-							"value4",
-						}, label.Value)
-					}
-				}
-			},
-		},
-		{
-			name: "Recursively split batch, exceeds 1000 entries multiple times",
-			cfg: Config{
-				CustomerID:                uuid.New().String(),
-				LogType:                   "WINEVTLOG",
-				RawLogField:               "body",
-				OverrideLogType:           false,
-				BatchLogCountLimitGRPC:    1000,
-				BatchRequestSizeLimitGRPC: 5242880,
-			},
-			logRecords: func() plog.Logs {
-				logs := plog.NewLogs()
-				logRecords := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
-				for i := 0; i < 2002; i++ {
-					record1 := logRecords.AppendEmpty()
-					record1.Body().SetStr("Log message")
-					record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
-				}
-				return logs
-			},
-
-			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
-				// verify 1 request, with 1 batch
-				require.Len(t, requests, 4, "Expected a four-batch request")
-				batch := requests[0].Batch
-				require.Len(t, batch.Entries, 500, "Expected 500 log entries in the first batch")
-				// verify batch for first log
-				require.Contains(t, batch.LogType, "WINEVTLOGS")
-				require.Contains(t, batch.Source.Namespace, "test")
-				require.Len(t, batch.Source.Labels, 2)
-
-				batch2 := requests[1].Batch
-				require.Len(t, batch2.Entries, 501, "Expected 501 log entries in the second batch")
-				// verify batch for first log
-				require.Contains(t, batch2.LogType, "WINEVTLOGS")
-				require.Contains(t, batch2.Source.Namespace, "test")
-				require.Len(t, batch2.Source.Labels, 2)
-
-				batch3 := requests[2].Batch
-				require.Len(t, batch3.Entries, 500, "Expected 500 log entries in the third batch")
-				// verify batch for first log
-				require.Contains(t, batch3.LogType, "WINEVTLOGS")
-				require.Contains(t, batch3.Source.Namespace, "test")
-				require.Len(t, batch3.Source.Labels, 2)
-
-				batch4 := requests[3].Batch
-				require.Len(t, batch4.Entries, 501, "Expected 501 log entries in the fourth batch")
-				// verify batch for first log
-				require.Contains(t, batch4.LogType, "WINEVTLOGS")
-				require.Contains(t, batch4.Source.Namespace, "test")
-				require.Len(t, batch4.Source.Labels, 2)
-
-				// verify ingestion labels
-				for _, req := range requests {
-					for _, label := range req.Batch.Source.Labels {
-						require.Contains(t, []string{
-							"key1",
-							"key2",
-							"key3",
-							"key4",
-						}, label.Key)
-						require.Contains(t, []string{
-							"value1",
-							"value2",
-							"value3",
-							"value4",
-						}, label.Value)
-					}
-				}
-			},
-		},
-		{
 			name: "Single batch split into multiple because request size too large",
 			cfg: Config{
 				CustomerID:                uuid.New().String(),
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -638,7 +509,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -711,7 +581,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -735,7 +604,6 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitGRPC:    1000,
 				BatchRequestSizeLimitGRPC: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -773,7 +641,7 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger})
+			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, telemetry)
 			marshaler.startTime = startTime
 			require.NoError(t, err)
 
@@ -789,6 +657,17 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 	logger := zap.NewNop()
 	startTime := time.Now()
+
+	telemSettings := component.TelemetrySettings{
+		Logger:        logger,
+		MeterProvider: noop.NewMeterProvider(),
+	}
+
+	telemetry, err := metadata.NewTelemetryBuilder(telemSettings)
+	if err != nil {
+		t.Errorf("Error creating telemetry builder: %v", err)
+		t.Fail()
+	}
 
 	tests := []struct {
 		name         string
@@ -808,7 +687,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				Project:                   "test-project",
 				Location:                  "us",
 				Forwarder:                 uuid.New().String(),
-				BatchLogCountLimitHTTP:    1000,
 				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			labels: []*api.Label{
@@ -834,7 +712,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitHTTP:    1000,
 				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			labels: []*api.Label{
@@ -865,7 +742,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "attributes",
 				OverrideLogType:           false,
-				BatchLogCountLimitHTTP:    1000,
 				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			labels: []*api.Label{},
@@ -888,7 +764,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				LogType:                   "DEFAULT",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitHTTP:    1000,
 				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			labels: []*api.Label{},
@@ -906,7 +781,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "attributes",
 				OverrideLogType:           false,
-				BatchLogCountLimitHTTP:    1000,
 				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			labels: []*api.Label{},
@@ -929,7 +803,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitHTTP:    1000,
 				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -962,7 +835,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitHTTP:    1000,
 				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -997,7 +869,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				LogType:                   "DEFAULT", // This should be overridden by the log_type attribute
 				RawLogField:               "body",
 				OverrideLogType:           true,
-				BatchLogCountLimitHTTP:    1000,
 				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -1016,7 +887,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				LogType:                   "DEFAULT", // This should be overridden by the chronicle_log_type attribute
 				RawLogField:               "body",
 				OverrideLogType:           true,
-				BatchLogCountLimitHTTP:    1000,
 				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -1042,7 +912,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitHTTP:    1000,
 				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -1080,7 +949,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitHTTP:    1000,
 				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -1131,7 +999,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitHTTP:    1000,
 				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -1165,133 +1032,12 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 			},
 		},
 		{
-			name: "Many log records split into two batches",
-			cfg: Config{
-				CustomerID:                uuid.New().String(),
-				LogType:                   "WINEVTLOG",
-				RawLogField:               "body",
-				OverrideLogType:           false,
-				BatchLogCountLimitHTTP:    1000,
-				BatchRequestSizeLimitHTTP: 5242880,
-			},
-			logRecords: func() plog.Logs {
-				logs := plog.NewLogs()
-				logRecords := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
-				for i := 0; i < 1001; i++ {
-					record1 := logRecords.AppendEmpty()
-					record1.Body().SetStr("First log message")
-					record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
-				}
-
-				return logs
-			},
-
-			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
-				expectedLabels := map[string]string{
-					"key1": "value1",
-					"key2": "value2",
-				}
-				// verify 1 request log type
-				require.Len(t, requests, 1, "Expected one log type for the requests")
-				winEvtLogRequests := requests["WINEVTLOGS1"]
-				require.Len(t, winEvtLogRequests, 2, "Expected two batches")
-
-				logs1 := winEvtLogRequests[0].GetInlineSource().Logs
-				require.Len(t, logs1, 500, "Expected 500 log entries in the first batch")
-				// verify variables for first log
-				require.Equal(t, logs1[0].EnvironmentNamespace, "test1")
-				require.Len(t, logs1[0].Labels, 2)
-				for key, label := range logs1[0].Labels {
-					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
-				}
-
-				logs2 := winEvtLogRequests[1].GetInlineSource().Logs
-				require.Len(t, logs2, 501, "Expected 501 log entries in the second batch")
-				// verify variables for first log
-				require.Equal(t, logs2[0].EnvironmentNamespace, "test1")
-				require.Len(t, logs2[0].Labels, 2)
-				for key, label := range logs2[0].Labels {
-					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
-				}
-			},
-		},
-		{
-			name: "Recursively split batch multiple times because too many logs",
-			cfg: Config{
-				CustomerID:                uuid.New().String(),
-				LogType:                   "WINEVTLOG",
-				RawLogField:               "body",
-				OverrideLogType:           false,
-				BatchLogCountLimitHTTP:    1000,
-				BatchRequestSizeLimitHTTP: 5242880,
-			},
-			logRecords: func() plog.Logs {
-				logs := plog.NewLogs()
-				logRecords := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
-				for i := 0; i < 2002; i++ {
-					record1 := logRecords.AppendEmpty()
-					record1.Body().SetStr("First log message")
-					record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
-				}
-
-				return logs
-			},
-
-			expectations: func(t *testing.T, requests map[string][]*api.ImportLogsRequest) {
-				expectedLabels := map[string]string{
-					"key1": "value1",
-					"key2": "value2",
-				}
-				// verify 1 request log type
-				require.Len(t, requests, 1, "Expected one log type for the requests")
-				winEvtLogRequests := requests["WINEVTLOGS1"]
-				require.Len(t, winEvtLogRequests, 4, "Expected four batches")
-
-				logs1 := winEvtLogRequests[0].GetInlineSource().Logs
-				require.Len(t, logs1, 500, "Expected 500 log entries in the first batch")
-				// verify variables for first log
-				require.Equal(t, logs1[0].EnvironmentNamespace, "test1")
-				require.Len(t, logs1[0].Labels, 2)
-				for key, label := range logs1[0].Labels {
-					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
-				}
-
-				logs2 := winEvtLogRequests[1].GetInlineSource().Logs
-				require.Len(t, logs2, 501, "Expected 501 log entries in the second batch")
-				// verify variables for first log
-				require.Equal(t, logs2[0].EnvironmentNamespace, "test1")
-				require.Len(t, logs2[0].Labels, 2)
-				for key, label := range logs2[0].Labels {
-					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
-				}
-
-				logs3 := winEvtLogRequests[2].GetInlineSource().Logs
-				require.Len(t, logs3, 500, "Expected 500 log entries in the third batch")
-				// verify variables for first log
-				require.Equal(t, logs3[0].EnvironmentNamespace, "test1")
-				require.Len(t, logs3[0].Labels, 2)
-				for key, label := range logs3[0].Labels {
-					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
-				}
-
-				logs4 := winEvtLogRequests[3].GetInlineSource().Logs
-				require.Len(t, logs4, 501, "Expected 501 log entries in the fourth batch")
-				// verify variables for first log
-				require.Equal(t, logs4[0].EnvironmentNamespace, "test1")
-				require.Len(t, logs4[0].Labels, 2)
-				for key, label := range logs4[0].Labels {
-					require.Equal(t, expectedLabels[key], label.Value, "Expected ingestion label to be overridden by attribute")
-				}
-			},
-		},
-		{
 			name: "Many log records split into two batches because request size too large",
 			cfg: Config{
 				CustomerID:                uuid.New().String(),
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitHTTP:    1000,
 				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -1344,7 +1090,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitHTTP:    2000,
 				BatchRequestSizeLimitHTTP: 5242880,
 			},
 			logRecords: func() plog.Logs {
@@ -1415,7 +1160,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitHTTP:    1000,
 				BatchRequestSizeLimitHTTP: 100000,
 			},
 			labels: []*api.Label{
@@ -1439,7 +1183,6 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 				LogType:                   "WINEVTLOG",
 				RawLogField:               "body",
 				OverrideLogType:           false,
-				BatchLogCountLimitHTTP:    1000,
 				BatchRequestSizeLimitHTTP: 100000,
 			},
 			labels: []*api.Label{
@@ -1480,7 +1223,7 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger})
+			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, telemetry)
 			marshaler.startTime = startTime
 			require.NoError(t, err)
 

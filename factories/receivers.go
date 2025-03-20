@@ -18,6 +18,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs"
 	"github.com/observiq/bindplane-otel-collector/receiver/httpreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/m365receiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/oktareceiver"
@@ -95,12 +96,13 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zookeeperreceiver"
 	"go.opentelemetry.io/collector/receiver"
+	"go.opentelemetry.io/collector/receiver/nopreceiver"
 	"go.opentelemetry.io/collector/receiver/otlpreceiver"
-	"go.opentelemetry.io/collector/receiver/receivertest"
 )
 
 var defaultReceivers = []receiver.Factory{
 	activedirectorydsreceiver.NewFactory(),
+	bindplaneauditlogs.NewFactory(),
 	aerospikereceiver.NewFactory(),
 	apachereceiver.NewFactory(),
 	apachesparkreceiver.NewFactory(),
@@ -149,6 +151,7 @@ var defaultReceivers = []receiver.Factory{
 	mysqlreceiver.NewFactory(),
 	netflowreceiver.NewFactory(),
 	nginxreceiver.NewFactory(),
+	nopreceiver.NewFactory(),
 	oktareceiver.NewFactory(),
 	opencensusreceiver.NewFactory(),
 	otlpreceiver.NewFactory(),
@@ -157,7 +160,6 @@ var defaultReceivers = []receiver.Factory{
 	postgresqlreceiver.NewFactory(),
 	prometheusreceiver.NewFactory(),
 	rabbitmqreceiver.NewFactory(),
-	receivertest.NewNopFactory(),
 	redisreceiver.NewFactory(),
 	riakreceiver.NewFactory(),
 	routereceiver.NewFactory(),
