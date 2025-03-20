@@ -10,10 +10,6 @@ The AWS S3 Event Receiver consumes S3 event notifications for object creation ev
 4. Non-object creation events are ignored but removed from the queue.
 5. If an S3 object is not found (404 error), the corresponding SQS message is preserved for retry later.
 
-## TODO
-
-- Instead of reading the entire object into a log body, stream the object content and tokenize it into multiple logs.
-
 
 ## Configuration
 
