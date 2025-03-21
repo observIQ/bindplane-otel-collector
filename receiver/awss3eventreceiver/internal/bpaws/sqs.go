@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package bpaws provides a client for the SQS service.
-package bpaws // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal bpaws"
+package bpaws // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
 
 import (
 	"context"
