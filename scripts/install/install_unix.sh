@@ -505,13 +505,13 @@ ask_clean_install() {
         clean_install="true"
         ;;
       *)
-        warn "Doing upgrade instead of clean install..."
+        warn "Doing upgrade instead of clean install"
         clean_install="false"
         ;;
       esac
     fi
   else
-    warn "Previous supervisor config not found, doing clean install..."
+    warn "Previous supervisor config not found, doing clean install"
     clean_install="true"
   fi
 }
