@@ -59,7 +59,7 @@ func TestLoadConfig(t *testing.T) {
 				MaxPollInterval:      60 * time.Second,
 				PollingBackoffFactor: 2,
 				VisibilityTimeout:    600 * time.Second,
-				Workers:              10,
+				Workers:              5,
 				MaxLogSize:           4096,
 				MaxLogsEmitted:       1000,
 			},
