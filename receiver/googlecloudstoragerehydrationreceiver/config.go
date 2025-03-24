@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
 	"go.opentelemetry.io/collector/component"
 )
 
@@ -34,17 +35,16 @@ type Config struct {
 	// FolderName is the name of the folder in the bucket to pull from.
 	FolderName string `mapstructure:"folder_name"`
 
-	// StartingTime the UTC timestamp to start rehydration from.
+	// StartingTime is the UTC timestamp to start rehydration from.
 	StartingTime string `mapstructure:"starting_time"`
 
-	// EndingTime the UTC timestamp to rehydrate up until.
+	// EndingTime is the UTC timestamp to rehydrate up until.
 	EndingTime string `mapstructure:"ending_time"`
 
-	// DeleteOnRead indicates if a file should be deleted once it has been processed
-	// Default value of false
+	// DeleteOnRead indicates if a file should be deleted once it has been processed (default false)
 	DeleteOnRead bool `mapstructure:"delete_on_read"`
 
-	// PageSize is the number of blobs to request from the Google Cloud Storage API at a time. (default 1000)
+	// PageSize is the number of objects to request from the Google Cloud Storage API at a time. (default 1000)
 	PageSize int `mapstructure:"page_size"`
 
 	// Credentials is the JSON credentials for Google Cloud Storage
@@ -92,16 +92,16 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// validateTimestamp validates and parses a timestamp string
+// validateTimestamp validates the passed in timestamp string
 func validateTimestamp(timestamp string) (*time.Time, error) {
 	if timestamp == "" {
-		return nil, errors.New("timestamp is required")
+		return nil, errors.New("missing value")
 	}
 
-	ts, err := time.Parse(time.RFC3339, timestamp)
+	ts, err := time.Parse(rehydration.TimeFormat, timestamp)
 	if err != nil {
-		return nil, fmt.Errorf("invalid timestamp format: %w", err)
+		return nil, errors.New("invalid timestamp format must be in the form YYYY-MM-DDTHH:MM")
 	}
 
 	return &ts, nil
-} 
+}
