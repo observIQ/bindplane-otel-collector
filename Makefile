@@ -35,6 +35,12 @@ collector:
 	CGO_ENABLED=0 builder --config="./manifests/observIQ/manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)"
 	mkdir -p $(OUTDIR); cp ./builder/bindplane-otel-collector $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
 
+# Builds the agent for current GOOS/GOARCH pair (aix)
+.PHONY: collector-aix
+collector-aix:
+	builder --config="./manifests/observIQ/manifest-aix.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)"
+	mkdir -p $(OUTDIR); cp ./builder/bindplane-otel-collector $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
+
 # Builds a custom distro for the current GOOS/GOARCH pair using the manifest specified
 # MANIFEST = path to the manifest file for the distro to be built
 # Usage: make distro MANIFEST="./manifests/custom/my_distro_manifest.yaml"
@@ -59,10 +65,16 @@ reset: kill
 	rm -rf agent.log effective.yaml local/storage/* builder/
 
 .PHONY: build-all
-build-all: build-linux build-darwin build-windows
+build-all: build-linux build-unix build-windows
 
 .PHONY: build-linux
 build-linux: build-linux-amd64 build-linux-arm64 build-linux-arm build-linux-ppc64 build-linux-ppc64le
+
+.PHONY: build-unix
+build-unix: build-darwin build-aix
+
+.PHONY: build-aix
+build-aix: build-aix-ppc64
 
 .PHONY: build-darwin
 build-darwin: build-darwin-amd64 build-darwin-arm64
@@ -89,6 +101,10 @@ build-linux-arm64:
 .PHONY: build-linux-arm
 build-linux-arm:
 	GOOS=linux GOARCH=arm $(MAKE) collector
+
+.PHONY: build-aix-ppc64
+build-aix-ppc64:
+	GOOS=aix GOARCH=ppc64 $(MAKE) collector-aix
 
 .PHONY: build-darwin-amd64
 build-darwin-amd64:
@@ -233,6 +249,7 @@ release-prep:
 	@jq ".files[] | select(.service != null)" windows/wix.json >> release_deps/windows_service.json
 	@cp service/bindplane-otel-collector.service release_deps/bindplane-otel-collector.service
 	@cp service/bindplane-otel-collector release_deps/bindplane-otel-collector
+	@cp service/bindplane-otel-collector.aix.env release_deps/bindplane-otel-collector.aix.env
 	@cp -r ./service/sysconfig release_deps/
 
 # Build and sign, skip release and ignore dirty git tree
