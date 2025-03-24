@@ -15,22 +15,21 @@
 package googlecloudstoragerehydrationreceiver //import "github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver"
 
 import (
+	"errors"
 	"testing"
-	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestConfig_Validate(t *testing.T) {
-	tests := []struct {
-		name    string
-		config  *Config
-		wantErr bool
+	testCases := []struct {
+		desc    string
+		cfg     *Config
+		expectErr error
 	}{
 		{
-			name: "valid config",
-			config: &Config{
+			desc: "valid config",
+			cfg: &Config{
 				BucketName:    "test-bucket",
 				StartingTime:  "2024-01-01T00:00:00Z",
 				EndingTime:    "2024-01-02T00:00:00Z",
@@ -38,136 +37,114 @@ func TestConfig_Validate(t *testing.T) {
 				PageSize:      1000,
 				DeleteOnRead:  false,
 			},
-			wantErr: false,
+			expectErr: nil,
 		},
 		{
-			name: "missing bucket name",
-			config: &Config{
+			desc: "missing bucket name",
+			cfg: &Config{
 				StartingTime: "2024-01-01T00:00:00Z",
 				EndingTime:   "2024-01-02T00:00:00Z",
 				BatchSize:    30,
 				PageSize:     1000,
 			},
-			wantErr: true,
+			expectErr: errors.New("bucket_name is required"),
 		},
 		{
-			name: "invalid starting time",
-			config: &Config{
+			desc: "missing starting time",
+			cfg: &Config{
+				BucketName: "test-bucket",
+				EndingTime: "2024-01-02T00:00:00Z",
+				BatchSize:  30,
+				PageSize:   1000,
+			},
+			expectErr: errors.New("starting_time is invalid: missing value"),
+		},
+		{
+			desc: "invalid starting time",
+			cfg: &Config{
 				BucketName:   "test-bucket",
 				StartingTime: "invalid",
 				EndingTime:   "2024-01-02T00:00:00Z",
 				BatchSize:    30,
 				PageSize:     1000,
 			},
-			wantErr: true,
+			expectErr: errors.New("starting_time is invalid: invalid timestamp format must be in the form YYYY-MM-DDTHH:MM"),
 		},
 		{
-			name: "invalid ending time",
-			config: &Config{
+			desc: "missing ending time",
+			cfg: &Config{
+				BucketName:   "test-bucket",
+				StartingTime: "2024-01-01T00:00:00Z",
+				BatchSize:    30,
+				PageSize:     1000,
+			},	
+			expectErr: errors.New("ending_time is invalid: missing value"),
+		},
+		{
+			desc: "invalid ending time",
+			cfg: &Config{
 				BucketName:   "test-bucket",
 				StartingTime: "2024-01-01T00:00:00Z",
 				EndingTime:   "invalid",
 				BatchSize:    30,
 				PageSize:     1000,
 			},
-			wantErr: true,
+			expectErr: errors.New("ending_time is invalid: invalid timestamp format must be in the form YYYY-MM-DDTHH:MM"),
 		},
 		{
-			name: "ending time before starting time",
-			config: &Config{
+			desc: "ending time before starting time",
+			cfg: &Config{
 				BucketName:   "test-bucket",
 				StartingTime: "2024-01-02T00:00:00Z",
 				EndingTime:   "2024-01-01T00:00:00Z",
 				BatchSize:    30,
 				PageSize:     1000,
 			},
-			wantErr: true,
+			expectErr: errors.New("ending_time must be at least one minute after starting_time"),
 		},
 		{
-			name: "ending time too close to starting time",
-			config: &Config{
+			desc: "ending time too close to starting time",
+			cfg: &Config{
 				BucketName:   "test-bucket",
 				StartingTime: "2024-01-01T00:00:00Z",
 				EndingTime:   "2024-01-01T00:00:30Z",
 				BatchSize:    30,
 				PageSize:     1000,
 			},
-			wantErr: true,
+			expectErr: errors.New("ending_time must be at least one minute after starting_time"),
 		},
 		{
-			name: "invalid batch size",
-			config: &Config{
+			desc: "invalid batch size",
+			cfg: &Config{
 				BucketName:   "test-bucket",
 				StartingTime: "2024-01-01T00:00:00Z",
 				EndingTime:   "2024-01-02T00:00:00Z",
 				BatchSize:    0,
 				PageSize:     1000,
 			},
-			wantErr: true,
+			expectErr: errors.New("batch_size must be greater than 0"),
 		},
 		{
-			name: "invalid page size",
-			config: &Config{
+			desc: "invalid page size",
+			cfg: &Config{
 				BucketName:   "test-bucket",
 				StartingTime: "2024-01-01T00:00:00Z",
 				EndingTime:   "2024-01-02T00:00:00Z",
 				BatchSize:    30,
 				PageSize:     0,
 			},
-			wantErr: true,
+			expectErr: errors.New("page_size must be greater than 0"),
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.config.Validate()
-			if tt.wantErr {
-				assert.Error(t, err)
-				return
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			err := tc.cfg.Validate()
+			if tc.expectErr == nil {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, tc.expectErr.Error())
 			}
-			assert.NoError(t, err)
 		})
 	}
 }
-
-func TestValidateTimestamp(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		wantErr bool
-	}{
-		{
-			name:    "valid timestamp",
-			input:   "2024-01-01T00:00:00Z",
-			wantErr: false,
-		},
-		{
-			name:    "empty timestamp",
-			input:   "",
-			wantErr: true,
-		},
-		{
-			name:    "invalid format",
-			input:   "2024-01-01",
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ts, err := validateTimestamp(tt.input)
-			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Nil(t, ts)
-				return
-			}
-			assert.NoError(t, err)
-			assert.NotNil(t, ts)
-
-			// Verify the timestamp was parsed correctly
-			expected, err := time.Parse(time.RFC3339, tt.input)
-			require.NoError(t, err)
-			assert.Equal(t, expected, *ts)
-		})
-	}
-} 
