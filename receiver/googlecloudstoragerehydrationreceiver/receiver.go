@@ -22,28 +22,28 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
-	"github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver/internal"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/extension/xextension/storage"
 	"go.opentelemetry.io/collector/pipeline"
 	"go.uber.org/zap"
 )
 
 // newStorageClient is the function used to create new Google Cloud Storage Clients.
 // Meant to be overwritten for tests
-var newStorageClient = internal.NewStorageClient
+var newStorageClient = NewStorageClient
 
 type rehydrationReceiver struct {
 	logger             *zap.Logger
 	id                 component.ID
 	cfg                *Config
-	storageClient      internal.StorageClient
+	storageClient      StorageClient
 	supportedTelemetry pipeline.Signal
 	consumer           rehydration.Consumer
 	checkpoint         *rehydration.CheckPoint
 	checkpointStore    rehydration.CheckpointStorer
 
-	blobChan chan []*internal.BlobInfo
+	blobChan chan []*BlobInfo
 	errChan  chan error
 	doneChan chan struct{}
 
@@ -51,7 +51,7 @@ type rehydrationReceiver struct {
 	mut *sync.Mutex
 	wg  *sync.WaitGroup
 
-	lastBlob     *internal.BlobInfo
+	lastBlob     *BlobInfo
 	lastBlobTime *time.Time
 
 	startingTime time.Time
@@ -121,7 +121,7 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 		id:            id,
 		cfg:           cfg,
 		storageClient: storageClient,
-		blobChan:      make(chan []*internal.BlobInfo, cfg.BatchSize),
+		blobChan:      make(chan []*BlobInfo, cfg.BatchSize),
 		errChan:       make(chan error, 1),
 		doneChan:      make(chan struct{}),
 		mut:           &sync.Mutex{},
@@ -136,23 +136,30 @@ func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) er
 	ctx, r.cancelFunc = context.WithCancel(ctx)
 
 	// Get the storage extension
-	storage, err := rehydration.GetStorageExtension(ctx, host, r.cfg.StorageID)
-	if err != nil {
-		return fmt.Errorf("failed to get storage extension: %w", err)
+	extension, ok := host.GetExtensions()[*r.cfg.StorageID]
+	if !ok {
+		return fmt.Errorf("storage extension '%s' not found", r.cfg.StorageID)
+	}
+
+	_, ok = extension.(storage.Extension)
+	if !ok {
+		return fmt.Errorf("non-storage extension '%s' found", r.cfg.StorageID)
 	}
 
 	// Create checkpoint store
-	r.checkpointStore = rehydration.NewCheckpointStore(storage, r.id.String())
+	checkpointStore, err := rehydration.NewCheckpointStorage(ctx, host, *r.cfg.StorageID, r.id, r.supportedTelemetry)
+	if err != nil {
+		return fmt.Errorf("failed to create checkpoint storage: %w", err)
+	}
+	r.checkpointStore = checkpointStore
 
 	// Load checkpoint if it exists
-	checkpoint, err := r.checkpointStore.LoadCheckpoint(ctx)
+	checkpoint, err := r.checkpointStore.LoadCheckPoint(ctx, r.checkpointKey())
 	if err != nil {
-		if !errors.Is(err, rehydration.ErrNoCheckpoint) {
+		if !errors.Is(err, context.Canceled) {
 			return fmt.Errorf("failed to load checkpoint: %w", err)
 		}
-		checkpoint = &rehydration.CheckPoint{
-			LastProcessedTime: r.startingTime,
-		}
+		checkpoint = rehydration.NewCheckpoint()
 	}
 
 	r.checkpoint = checkpoint
@@ -223,7 +230,7 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 }
 
 // rehydrateBlobs processes a batch of blobs
-func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*internal.BlobInfo) (numProcessedBlobs int) {
+func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*BlobInfo) (numProcessedBlobs int) {
 	for _, blob := range blobs {
 		if err := r.processBlob(ctx, blob); err != nil {
 			r.logger.Error("Failed to process blob", zap.String("name", blob.Name), zap.Error(err))
@@ -235,7 +242,7 @@ func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*inter
 }
 
 // processBlob processes a single blob
-func (r *rehydrationReceiver) processBlob(ctx context.Context, blob *internal.BlobInfo) error {
+func (r *rehydrationReceiver) processBlob(ctx context.Context, blob *BlobInfo) error {
 	// Download the blob
 	data, err := r.storageClient.DownloadBlob(ctx, blob.Name)
 	if err != nil {
@@ -277,11 +284,10 @@ func (r *rehydrationReceiver) makeCheckpoint(ctx context.Context) error {
 		return nil
 	}
 
-	checkpoint := &rehydration.CheckPoint{
-		LastProcessedTime: *r.lastBlobTime,
-	}
+	checkpoint := rehydration.NewCheckpoint()
+	checkpoint.UpdateCheckpoint(*r.lastBlobTime, r.lastBlob.Name)
 
-	if err := r.checkpointStore.StoreCheckpoint(ctx, checkpoint); err != nil {
+	if err := r.checkpointStore.SaveCheckpoint(ctx, r.checkpointKey(), checkpoint); err != nil {
 		return fmt.Errorf("failed to store checkpoint: %w", err)
 	}
 

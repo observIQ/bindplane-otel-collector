@@ -18,6 +18,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs"
+	"github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/httpreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/m365receiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/oktareceiver"
@@ -129,6 +130,7 @@ var defaultReceivers = []receiver.Factory{
 	fluentforwardreceiver.NewFactory(),
 	googlecloudpubsubreceiver.NewFactory(),
 	googlecloudspannerreceiver.NewFactory(),
+	googlecloudstoragerehydrationreceiver.NewFactory(),
 	hostmetricsreceiver.NewFactory(),
 	httpcheckreceiver.NewFactory(),
 	httpreceiver.NewFactory(),

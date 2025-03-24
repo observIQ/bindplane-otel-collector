@@ -24,15 +24,15 @@ import (
 
 // Config is the configuration for the Google Cloud Storage rehydration receiver
 type Config struct {
-	// BatchSize is the number of blobs to process entering the pipeline in a single batch. (default 30)
-	// This number directly affects the number of goroutines that will be created to process the blobs.
+	// BatchSize is the number of objects to process entering the pipeline in a single batch. (default 30)
+	// This number directly affects the number of goroutines that will be created to process the objects.
 	BatchSize int `mapstructure:"batch_size"`
 
 	// BucketName is the name of the Google Cloud Storage bucket to pull from. (no default)
 	BucketName string `mapstructure:"bucket_name"`
 
-	// RootFolder is the name of the root folder in path.
-	RootFolder string `mapstructure:"root_folder"`
+	// FolderName is the name of the folder in the bucket to pull from.
+	FolderName string `mapstructure:"folder_name"`
 
 	// StartingTime the UTC timestamp to start rehydration from.
 	StartingTime string `mapstructure:"starting_time"`

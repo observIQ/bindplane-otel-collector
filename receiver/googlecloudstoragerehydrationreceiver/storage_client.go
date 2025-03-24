@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package internal
+package googlecloudstoragerehydrationreceiver //import "github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver"
 
 import (
 	"context"
@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
@@ -49,11 +48,11 @@ type StorageClient interface {
 type googleCloudStorageClient struct {
 	client     *storage.Client
 	bucket     *storage.BucketHandle
-	config     *googlecloudstoragerehydrationreceiver.Config
+	config     *Config
 }
 
 // NewStorageClient creates a new Google Cloud Storage client
-func NewStorageClient(cfg *googlecloudstoragerehydrationreceiver.Config) (StorageClient, error) {
+func NewStorageClient(cfg *Config) (StorageClient, error) {
 	ctx := context.Background()
 	var opts []option.ClientOption
 
@@ -113,7 +112,7 @@ func NewStorageClient(cfg *googlecloudstoragerehydrationreceiver.Config) (Storag
 func (c *googleCloudStorageClient) ListBlobs(ctx context.Context, startTime, endTime time.Time) ([]*BlobInfo, error) {
 	var blobs []*BlobInfo
 	it := c.bucket.Objects(ctx, &storage.Query{
-		Prefix: c.config.RootFolder,
+		Prefix: c.config.FolderName,
 	})
 
 	for {

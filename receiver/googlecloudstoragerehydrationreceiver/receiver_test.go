@@ -19,22 +19,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver/internal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/extension/xextension/storage"
 	"go.uber.org/zap"
 )
 
 type mockStorageClient struct {
-	listBlobsFunc    func(ctx context.Context, startTime, endTime time.Time) ([]*internal.BlobInfo, error)
+	listBlobsFunc    func(ctx context.Context, startTime, endTime time.Time) ([]*BlobInfo, error)
 	downloadBlobFunc func(ctx context.Context, name string) ([]byte, error)
 	deleteBlobFunc   func(ctx context.Context, name string) error
 }
 
-func (m *mockStorageClient) ListBlobs(ctx context.Context, startTime, endTime time.Time) ([]*internal.BlobInfo, error) {
+func (m *mockStorageClient) ListBlobs(ctx context.Context, startTime, endTime time.Time) ([]*BlobInfo, error) {
 	if m.listBlobsFunc != nil {
 		return m.listBlobsFunc(ctx, startTime, endTime)
 	}
@@ -88,7 +87,7 @@ func TestNewMetricsReceiver(t *testing.T) {
 		DeleteOnRead:  false,
 	}
 
-	receiver, err := newMetricsReceiver(component.NewID("test"), zap.NewNop(), cfg, consumer.NewNopMetrics())
+	receiver, err := newMetricsReceiver(component.NewIDWithName("test", "test"), zap.NewNop(), cfg, consumertest.NewNop())
 	assert.NoError(t, err)
 	assert.NotNil(t, receiver)
 }
@@ -103,7 +102,7 @@ func TestNewLogsReceiver(t *testing.T) {
 		DeleteOnRead:  false,
 	}
 
-	receiver, err := newLogsReceiver(component.NewID("test"), zap.NewNop(), cfg, consumer.NewNopLogs())
+	receiver, err := newLogsReceiver(component.NewIDWithName("test", "test"), zap.NewNop(), cfg, consumertest.NewNop())
 	assert.NoError(t, err)
 	assert.NotNil(t, receiver)
 }
@@ -118,7 +117,7 @@ func TestNewTracesReceiver(t *testing.T) {
 		DeleteOnRead:  false,
 	}
 
-	receiver, err := newTracesReceiver(component.NewID("test"), zap.NewNop(), cfg, consumer.NewNopTraces())
+	receiver, err := newTracesReceiver(component.NewIDWithName("test", "test"), zap.NewNop(), cfg, consumertest.NewNop())
 	assert.NoError(t, err)
 	assert.NotNil(t, receiver)
 }
@@ -131,10 +130,10 @@ func TestRehydrationReceiver_Start(t *testing.T) {
 		BatchSize:     30,
 		PageSize:      1000,
 		DeleteOnRead:  false,
-		StorageID:     &component.ID{Type: "test", Name: "storage"},
+		StorageID:     component.NewIDWithName("test", "storage"),
 	}
 
-	storageID := component.NewID("test")
+	storageID := component.NewIDWithName("test", "storage")
 	storageExt := &mockStorageExtension{
 		getClientFunc: func(ctx context.Context, kind component.Kind, id component.ID, signal string) (storage.Client, error) {
 			return &mockStorageClient{}, nil
@@ -147,7 +146,7 @@ func TestRehydrationReceiver_Start(t *testing.T) {
 		},
 	}
 
-	receiver, err := newMetricsReceiver(storageID, zap.NewNop(), cfg, consumer.NewNopMetrics())
+	receiver, err := newMetricsReceiver(storageID, zap.NewNop(), cfg, consumertest.NewNop())
 	require.NoError(t, err)
 	require.NotNil(t, receiver)
 
@@ -165,7 +164,7 @@ func TestRehydrationReceiver_Shutdown(t *testing.T) {
 		DeleteOnRead:  false,
 	}
 
-	receiver, err := newMetricsReceiver(component.NewID("test"), zap.NewNop(), cfg, consumer.NewNopMetrics())
+	receiver, err := newMetricsReceiver(component.NewIDWithName("test", "test"), zap.NewNop(), cfg, consumertest.NewNop())
 	require.NoError(t, err)
 	require.NotNil(t, receiver)
 
@@ -183,7 +182,7 @@ func TestRehydrationReceiver_ProcessBlob(t *testing.T) {
 		DeleteOnRead:  true,
 	}
 
-	blob := &internal.BlobInfo{
+	blob := &BlobInfo{
 		Name:         "test-blob",
 		LastModified: time.Now(),
 		Size:         100,
