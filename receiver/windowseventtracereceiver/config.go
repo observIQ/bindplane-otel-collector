@@ -28,6 +28,9 @@ type Config struct {
 
 	// Providers is a list of providers to create subscriptions for.
 	Providers []Provider `mapstructure:"providers"`
+
+	// Attributes is a list of attributes to add to the logs.
+	Attributes map[string]string `mapstructure:"attributes"`
 }
 
 type Provider struct {
@@ -38,10 +41,8 @@ func createDefaultConfig() component.Config {
 	return &Config{
 		SessionName: "OtelCollectorETW",
 		Providers: []Provider{
-			// Microsoft-Windows-Kernel-File
-			{Name: "{EDD08927-9CC4-4E65-B970-C2560FB5C289}"},
-			// Microsoft Paint
-			{Name: "{1d75856d-36a7-4ecb-a3f5-b13152222d29}"},
+			// Microsoft-Windows-DNS-Client
+			{Name: "Microsoft-Windows-DNS-Client"},
 		},
 	}
 }

@@ -30,7 +30,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/0xrawsec/golang-etw/etw"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/entry"
 )
 
 type logsReceiver struct {
@@ -128,13 +127,16 @@ func (lr *logsReceiver) parseLogs(ctx context.Context, event *etw.Event) (plog.L
 	scopeLog := resourceLog.ScopeLogs().AppendEmpty()
 
 	record := scopeLog.LogRecords().AppendEmpty()
-	parseEventData(event, record)
+	for key, value := range lr.cfg.Attributes {
+		record.Attributes().PutStr(key, value)
+	}
+
+	lr.parseEventData(event, record)
 	return logs, nil
 }
 
 // parseEventData parses the event data and sets the log record with that data
 func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) {
-
 	record.SetTimestamp(pcommon.NewTimestampFromTime(event.System.TimeCreated.SystemTime))
 	record.SetSeverityNumber(parseSeverity(event.System.Level.Name, strconv.FormatUint(uint64(event.System.Level.Value), 10)))
 
@@ -226,30 +228,30 @@ func (lr *logsReceiver) Shutdown(ctx context.Context) error {
 }
 
 // parseRenderedSeverity will parse the severity of the event.
-func parseSeverity(levelName, levelValue string) entry.Severity {
+func parseSeverity(levelName, levelValue string) plog.SeverityNumber {
 	switch levelName {
 	case "":
 		switch levelValue {
 		case "1":
-			return entry.Fatal
+			return plog.SeverityNumberFatal
 		case "2":
-			return entry.Error
+			return plog.SeverityNumberError
 		case "3":
-			return entry.Warn
+			return plog.SeverityNumberWarn
 		case "4":
-			return entry.Info
+			return plog.SeverityNumberInfo
 		default:
-			return entry.Default
+			return plog.SeverityNumberInfo
 		}
 	case "Critical":
-		return entry.Fatal
+		return plog.SeverityNumberFatal
 	case "Error":
-		return entry.Error
+		return plog.SeverityNumberError
 	case "Warning":
-		return entry.Warn
+		return plog.SeverityNumberWarn
 	case "Information":
-		return entry.Info
+		return plog.SeverityNumberInfo
 	default:
-		return entry.Default
+		return plog.SeverityNumberInfo
 	}
 }
