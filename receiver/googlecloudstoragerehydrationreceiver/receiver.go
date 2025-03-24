@@ -199,34 +199,23 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 	r.wg.Add(1)
 	defer r.wg.Done()
 
-	// Get all blobs within the time range
-	blobs, err := r.storageClient.ListBlobs(ctx, r.startingTime, r.endingTime)
-	if err != nil {
-		r.errChan <- fmt.Errorf("failed to list blobs: %w", err)
-		return
-	}
+	// Start streaming blobs
+	go r.storageClient.StreamBlobs(ctx, r.startingTime, r.endingTime, r.errChan, r.blobChan, r.doneChan)
 
-	// Process blobs in batches
-	for i := 0; i < len(blobs); i += r.cfg.BatchSize {
-		end := i + r.cfg.BatchSize
-		if end > len(blobs) {
-			end = len(blobs)
-		}
-
-		batch := blobs[i:end]
-		r.blobChan <- batch
-
-		// Wait for the batch to be processed
+	// Process blobs as they arrive
+	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-r.doneChan:
 			return
+		case batch := <-r.blobChan:
+			r.rehydrateBlobs(ctx, batch)
+		case err := <-r.errChan:
+			r.logger.Error("Error streaming blobs", zap.Error(err))
+			return
 		}
 	}
-
-	// Close the blob channel when done
-	close(r.blobChan)
 }
 
 // rehydrateBlobs processes a batch of blobs
@@ -264,7 +253,8 @@ func (r *rehydrationReceiver) processBlob(ctx context.Context, blob *BlobInfo) e
 	// Update checkpoint
 	r.mut.Lock()
 	r.lastBlob = blob
-	r.lastBlobTime = &blob.LastModified
+	now := time.Now()
+	r.lastBlobTime = &now
 	r.mut.Unlock()
 
 	return nil
