@@ -35,7 +35,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: 1.23.6
       - name: Cache Tools
         id: tool-cache
         uses: actions/cache@v3
@@ -59,7 +59,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: 1.23.6
       - name: Cache Tools
         id: tool-cache
         uses: actions/cache@v3
@@ -83,7 +83,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: 1.23.6
       - name: Cache Tools
         id: tool-cache
         uses: actions/cache@v3
@@ -107,7 +107,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: 1.23.6
       - name: Cache Tools
         id: tool-cache
         uses: actions/cache@v3
@@ -131,7 +131,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: 1.23.6
       - name: Cache Tools
         id: tool-cache
         uses: actions/cache@v3
@@ -154,7 +154,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: 1.23.6
       - name: Plugin Doc Generation
         run: make create-plugin-docs
       - name: Check Changed Plugin Docs
