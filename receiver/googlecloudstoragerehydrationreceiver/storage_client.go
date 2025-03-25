@@ -46,8 +46,8 @@ type StorageClient interface {
 	StreamObjects(ctx context.Context, errChan chan error, objectChan chan []*ObjectInfo, doneChan chan struct{})
 }
 
-// googleCloudStorageClient implements the StorageClient interface
-type googleCloudStorageClient struct {
+// GoogleCloudStorageClient implements the StorageClient interface
+type GoogleCloudStorageClient struct {
 	client     *storage.Client
 	bucket     *storage.BucketHandle
 	config     *Config
@@ -104,7 +104,7 @@ func NewStorageClient(cfg *Config) (StorageClient, error) {
 		return nil, fmt.Errorf("storage.NewClient: %w", err)
 	}
 
-	return &googleCloudStorageClient{
+	return &GoogleCloudStorageClient{
 		client:    client,
 		bucket:    client.Bucket(cfg.BucketName),
 		config:    cfg,
@@ -113,7 +113,7 @@ func NewStorageClient(cfg *Config) (StorageClient, error) {
 }
 
 // StreamObjects streams objects from the bucket within the given time range
-func (g *googleCloudStorageClient) StreamObjects(ctx context.Context, errChan chan error, objectChan chan []*ObjectInfo, doneChan chan struct{}) {
+func (g *GoogleCloudStorageClient) StreamObjects(ctx context.Context, errChan chan error, objectChan chan []*ObjectInfo, doneChan chan struct{}) {
 	it := g.bucket.Objects(ctx, &storage.Query{
 		Prefix: g.config.FolderName,
 	})
@@ -155,7 +155,7 @@ func (g *googleCloudStorageClient) StreamObjects(ctx context.Context, errChan ch
 
 // DownloadObject downloads the contents of the object into the supplied buffer.
 // It will return the count of bytes used in the buffer.
-func (g *googleCloudStorageClient) DownloadObject(ctx context.Context, name string, buf []byte) (int64, error) {
+func (g *GoogleCloudStorageClient) DownloadObject(ctx context.Context, name string, buf []byte) (int64, error) {
 	obj := g.bucket.Object(name)
 	reader, err := obj.NewReader(ctx)
 	if err != nil {
@@ -165,14 +165,14 @@ func (g *googleCloudStorageClient) DownloadObject(ctx context.Context, name stri
 
 	n, err := io.ReadFull(reader, buf)
 	if err != nil {
-		return 0, fmt.Errorf("read blob: %w", err)
+		return 0, fmt.Errorf("read object: %w", err)
 	}
 
 	return int64(n), nil
 }
 
 // DeleteObject deletes the specified object from the bucket
-func (g *googleCloudStorageClient) DeleteObject(ctx context.Context, name string) error {
+func (g *GoogleCloudStorageClient) DeleteObject(ctx context.Context, name string) error {
 	obj := g.bucket.Object(name)
 	if err := obj.Delete(ctx); err != nil {
 		return fmt.Errorf("object.Delete: %w", err)
