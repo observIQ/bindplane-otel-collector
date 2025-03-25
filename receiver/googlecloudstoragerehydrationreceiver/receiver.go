@@ -21,6 +21,8 @@ import (
 	"sync"
 	"time"
 
+	"sync/atomic"
+
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -200,7 +202,7 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 	defer r.wg.Done()
 
 	// Start streaming blobs
-	go r.storageClient.StreamObjects(ctx, r.startingTime, r.endingTime, r.errChan, r.objectChan, r.doneChan)
+	go r.storageClient.StreamObjects(ctx, r.errChan, r.objectChan, r.doneChan)
 
 	// Process blobs as they arrive
 	for {
@@ -220,14 +222,77 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 
 // rehydrateObjects processes a batch of objects
 func (r *rehydrationReceiver) rehydrateObjects(ctx context.Context, objects []*ObjectInfo) (numProcessedObjects int) {
+	// Go through each object and parse its path to determine if we should consume it or not
+	r.logger.Debug("Received a batch of objects, parsing through them to determine if they should be rehydrated", zap.Int("num_objects", len(objects)))
+	processedObjectCount := atomic.Int64{}
 	for _, object := range objects {
-		if err := r.processObject(ctx, object); err != nil {
-			r.logger.Error("Failed to process object", zap.String("name", object.Name), zap.Error(err))
-			continue
+		select {
+		case <-ctx.Done():
+			break
+		default:
 		}
-		numProcessedObjects++
+
+		objectTime, telemetryType, err := rehydration.ParseEntityPath(object.Name)
+		switch {
+		case errors.Is(err, rehydration.ErrInvalidEntityPath):
+			r.logger.Debug("Skipping Object, non-matching object path", zap.String("object", object.Name))
+		case err != nil:
+			r.logger.Error("Error processing object path", zap.String("object", object.Name), zap.Error(err))
+		case r.checkpoint.ShouldParse(*objectTime, object.Name):
+			// if the object is not in the specified time range or not of the telemetry type supported by this receiver
+			// then skip consuming it.
+			if !rehydration.IsInTimeRange(*objectTime, r.startingTime, r.endingTime) || telemetryType != r.supportedTelemetry {
+				continue
+			}
+
+			r.wg.Add(1)
+			go func() {
+				defer r.wg.Done()
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+				// Process and consume the object at the given path
+				if err := r.processObject(ctx, object); err != nil {
+					// If the error is because the context was canceled, then we don't want to log it
+					if !errors.Is(err, context.Canceled) {
+						r.logger.Error("Error consuming object", zap.String("object", object.Name), zap.Error(err))
+					}
+					return
+				}
+				processedObjectCount.Add(1)
+
+				// Delete object if configured to do so
+				if err := r.conditionallyDeleteObject(ctx, object); err != nil {
+					r.logger.Error("Error while attempting to delete object", zap.String("object", object.Name), zap.Error(err))
+				}
+
+				if r.lastObjectTime == nil || r.lastObjectTime.Before(*objectTime) {
+					r.mut.Lock()
+					r.lastObject = object
+					r.lastObjectTime = objectTime
+					r.mut.Unlock()
+				}
+			}()
+		}
 	}
-	return numProcessedObjects
+
+	r.wg.Wait()
+
+	if err := r.makeCheckpoint(ctx); err != nil {
+		r.logger.Error("Error while saving checkpoint", zap.Error(err))
+	}
+
+	return int(processedObjectCount.Load())
+}
+
+// conditionallyDeleteObject deletes the object if DeleteOnRead is enabled
+func (r *rehydrationReceiver) conditionallyDeleteObject(ctx context.Context, object *ObjectInfo) error {
+	if !r.cfg.DeleteOnRead {
+		return nil
+	}
+	return r.storageClient.DeleteObject(ctx, object.Name)
 }
 
 // processObject processes a single object

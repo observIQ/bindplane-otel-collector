@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	"cloud.google.com/go/storage"
 	"golang.org/x/oauth2/google"
@@ -44,7 +43,7 @@ type StorageClient interface {
 	DeleteObject(ctx context.Context, name string) error
 	// StreamObjects will stream ObjectInfo to the objectChan and errors to the errChan, generally if an errChan gets an item
 	// then the stream should be stopped
-	StreamObjects(ctx context.Context, startTime, endTime time.Time, errChan chan error, objectChan chan []*ObjectInfo, doneChan chan struct{})
+	StreamObjects(ctx context.Context, errChan chan error, objectChan chan []*ObjectInfo, doneChan chan struct{})
 }
 
 // googleCloudStorageClient implements the StorageClient interface
@@ -114,7 +113,7 @@ func NewStorageClient(cfg *Config) (StorageClient, error) {
 }
 
 // StreamObjects streams objects from the bucket within the given time range
-func (g *googleCloudStorageClient) StreamObjects(ctx context.Context, startTime, endTime time.Time, errChan chan error, objectChan chan []*ObjectInfo, doneChan chan struct{}) {
+func (g *googleCloudStorageClient) StreamObjects(ctx context.Context, errChan chan error, objectChan chan []*ObjectInfo, doneChan chan struct{}) {
 	it := g.bucket.Objects(ctx, &storage.Query{
 		Prefix: g.config.FolderName,
 	})
@@ -139,11 +138,6 @@ func (g *googleCloudStorageClient) StreamObjects(ctx context.Context, startTime,
 		if err != nil {
 			errChan <- fmt.Errorf("iterator.Next: %w", err)
 			return
-		}
-
-		// Skip objects outside the time range
-		if attrs.Updated.Before(startTime) || attrs.Updated.After(endTime) {
-			continue
 		}
 
 		batch = append(batch, &ObjectInfo{
