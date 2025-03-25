@@ -20,9 +20,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"sync"
-	"time"
-
 	"sync/atomic"
+	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
 	"go.opentelemetry.io/collector/component"
@@ -125,6 +124,7 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 		id:            id,
 		cfg:           cfg,
 		storageClient: storageClient,
+		checkpointStore: rehydration.NewNopStorage(),
 		startingTime:  startingTime,
 		endingTime:    endingTime,
 		objectChan:    make(chan []*ObjectInfo),
