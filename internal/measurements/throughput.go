@@ -281,5 +281,5 @@ func (ctmr *ResettableThroughputMeasurementsRegistry) OTLPMeasurements(extraAttr
 // Reset unregisters all throughput measurements in this registry
 func (ctmr *ResettableThroughputMeasurementsRegistry) Reset() {
 	ctmr.measurements = &sync.Map{}
-	ctmr.lastReportTime = time.Now()
+	ctmr.lastReportTime = time.Time{} // Set to zero time to indicate that no metrics have been reported yet
 }
