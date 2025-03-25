@@ -68,7 +68,7 @@ func newMeasurementsSender(l *zap.Logger, reporter MeasurementsReporter, opampCl
 		isRunning:            false,
 		done:                 make(chan struct{}),
 		wg:                   &sync.WaitGroup{},
-		lastSuccessfulSend:   time.Now(),
+		lastSuccessfulSend:   time.Time{}, // Set to zero time to indicate that no metrics have been reported yet
 	}
 }
 

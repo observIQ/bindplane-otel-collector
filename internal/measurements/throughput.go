@@ -238,7 +238,7 @@ func NewResettableThroughputMeasurementsRegistry(emitCountMetrics bool) *Resetta
 	return &ResettableThroughputMeasurementsRegistry{
 		measurements:     &sync.Map{},
 		emitCountMetrics: emitCountMetrics,
-		lastReportTime:   time.Now(),
+		lastReportTime:   time.Time{}, // Set to zero time to indicate that no metrics have been reported yet
 	}
 }
 
