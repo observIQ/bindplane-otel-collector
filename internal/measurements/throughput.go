@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
@@ -43,6 +44,7 @@ type ThroughputMeasurements struct {
 	logSize, metricSize, traceSize      *int64Counter
 	logCount, datapointCount, spanCount *int64Counter
 	attributes                          attribute.Set
+	lastCollectionTime                  time.Time
 }
 
 // NewThroughputMeasurements initializes a new ThroughputMeasurements, adding metrics for the measurements to the meter provider.
@@ -106,19 +108,21 @@ func NewThroughputMeasurements(mp metric.MeterProvider, processorID string, extr
 	attrs := createMeasurementsAttributeSet(processorID, extraAttributes)
 
 	return &ThroughputMeasurements{
-		logSize:        newInt64Counter(logSize, attrs),
-		logCount:       newInt64Counter(logCount, attrs),
-		metricSize:     newInt64Counter(metricSize, attrs),
-		datapointCount: newInt64Counter(datapointCount, attrs),
-		traceSize:      newInt64Counter(traceSize, attrs),
-		spanCount:      newInt64Counter(spanCount, attrs),
-		attributes:     attrs,
+		logSize:            newInt64Counter(logSize, attrs),
+		logCount:           newInt64Counter(logCount, attrs),
+		metricSize:         newInt64Counter(metricSize, attrs),
+		datapointCount:     newInt64Counter(datapointCount, attrs),
+		traceSize:          newInt64Counter(traceSize, attrs),
+		spanCount:          newInt64Counter(spanCount, attrs),
+		attributes:         attrs,
+		lastCollectionTime: time.Now(),
 	}, nil
 }
 
 // AddLogs records throughput metrics for the provided logs.
 func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs) {
 	sizer := plog.ProtoMarshaler{}
+	tm.lastCollectionTime = time.Now()
 
 	tm.logSize.Add(ctx, int64(sizer.LogsSize(l)))
 	tm.logCount.Add(ctx, int64(l.LogRecordCount()))
@@ -127,6 +131,7 @@ func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs) {
 // AddMetrics records throughput metrics for the provided metrics.
 func (tm *ThroughputMeasurements) AddMetrics(ctx context.Context, m pmetric.Metrics) {
 	sizer := pmetric.ProtoMarshaler{}
+	tm.lastCollectionTime = time.Now()
 
 	tm.metricSize.Add(ctx, int64(sizer.MetricsSize(m)))
 	tm.datapointCount.Add(ctx, int64(m.DataPointCount()))
@@ -135,9 +140,15 @@ func (tm *ThroughputMeasurements) AddMetrics(ctx context.Context, m pmetric.Metr
 // AddTraces records throughput metrics for the provided traces.
 func (tm *ThroughputMeasurements) AddTraces(ctx context.Context, t ptrace.Traces) {
 	sizer := ptrace.ProtoMarshaler{}
+	tm.lastCollectionTime = time.Now()
 
 	tm.traceSize.Add(ctx, int64(sizer.TracesSize(t)))
 	tm.spanCount.Add(ctx, int64(t.SpanCount()))
+}
+
+// LastCollectionTime returns the time of the last metric collection
+func (tm *ThroughputMeasurements) LastCollectionTime() time.Time {
+	return tm.lastCollectionTime
 }
 
 // LogSize returns the total size in bytes of all log payloads added to this ThroughputMeasurements.
@@ -219,6 +230,7 @@ func createMeasurementsAttributeSet(processorID string, extraAttributes map[stri
 type ResettableThroughputMeasurementsRegistry struct {
 	measurements     *sync.Map
 	emitCountMetrics bool
+	lastReportTime   time.Time
 }
 
 // NewResettableThroughputMeasurementsRegistry creates a new ResettableThroughputMeasurementsRegistry
@@ -226,6 +238,7 @@ func NewResettableThroughputMeasurementsRegistry(emitCountMetrics bool) *Resetta
 	return &ResettableThroughputMeasurementsRegistry{
 		measurements:     &sync.Map{},
 		emitCountMetrics: emitCountMetrics,
+		lastReportTime:   time.Now(),
 	}
 }
 
@@ -239,11 +252,6 @@ func (ctmr *ResettableThroughputMeasurementsRegistry) RegisterThroughputMeasurem
 	return nil
 }
 
-// Reset unregisters all throughput measurements in this registry
-func (ctmr *ResettableThroughputMeasurementsRegistry) Reset() {
-	ctmr.measurements = &sync.Map{}
-}
-
 // OTLPMeasurements returns all the measurements in this registry as OTLP metrics.
 func (ctmr *ResettableThroughputMeasurementsRegistry) OTLPMeasurements(extraAttributes map[string]string) pmetric.Metrics {
 	m := pmetric.NewMetrics()
@@ -252,7 +260,10 @@ func (ctmr *ResettableThroughputMeasurementsRegistry) OTLPMeasurements(extraAttr
 
 	ctmr.measurements.Range(func(_, value any) bool {
 		tm := value.(*ThroughputMeasurements)
-		OTLPThroughputMeasurements(tm, ctmr.emitCountMetrics, extraAttributes).MoveAndAppendTo(sm.Metrics())
+		// Only include metrics collected after the last report time
+		if tm.LastCollectionTime().After(ctmr.lastReportTime) {
+			OTLPThroughputMeasurements(tm, ctmr.emitCountMetrics, extraAttributes).MoveAndAppendTo(sm.Metrics())
+		}
 		return true
 	})
 
@@ -262,5 +273,13 @@ func (ctmr *ResettableThroughputMeasurementsRegistry) OTLPMeasurements(extraAttr
 		return pmetric.NewMetrics()
 	}
 
+	// Update the last report time to now
+	ctmr.lastReportTime = time.Now()
 	return m
+}
+
+// Reset unregisters all throughput measurements in this registry
+func (ctmr *ResettableThroughputMeasurementsRegistry) Reset() {
+	ctmr.measurements = &sync.Map{}
+	ctmr.lastReportTime = time.Now()
 }
