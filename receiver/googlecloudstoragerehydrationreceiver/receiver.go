@@ -344,7 +344,7 @@ func (r *rehydrationReceiver) makeCheckpoint(ctx context.Context) error {
 	defer r.mut.Unlock()
 	r.checkpoint.UpdateCheckpoint(*r.lastObjectTime, r.lastObject.Name)
 	return r.checkpointStore.SaveCheckpoint(ctx, r.checkpointKey(), r.checkpoint)
-} 
+}
 
 // conditionallyDeleteObject deletes the object if DeleteOnRead is enabled
 func (r *rehydrationReceiver) conditionallyDeleteObject(ctx context.Context, object *ObjectInfo) error {

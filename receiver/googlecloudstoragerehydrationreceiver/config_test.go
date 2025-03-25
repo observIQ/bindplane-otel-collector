@@ -23,18 +23,18 @@ import (
 
 func TestConfig_Validate(t *testing.T) {
 	testCases := []struct {
-		desc    string
-		cfg     *Config
+		desc      string
+		cfg       *Config
 		expectErr error
 	}{
 		{
 			desc: "valid config",
 			cfg: &Config{
-				BucketName:    "test-bucket",
-				StartingTime:  "2024-01-01T00:00:00Z",
-				EndingTime:    "2024-01-02T00:00:00Z",
-				BatchSize:     30,
-				DeleteOnRead:  false,
+				BucketName:   "test-bucket",
+				StartingTime: "2024-01-01T00:00:00Z",
+				EndingTime:   "2024-01-02T00:00:00Z",
+				BatchSize:    30,
+				DeleteOnRead: false,
 			},
 			expectErr: nil,
 		},
@@ -72,7 +72,7 @@ func TestConfig_Validate(t *testing.T) {
 				BucketName:   "test-bucket",
 				StartingTime: "2024-01-01T00:00:00Z",
 				BatchSize:    30,
-			},	
+			},
 			expectErr: errors.New("ending_time is invalid: missing value"),
 		},
 		{

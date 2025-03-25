@@ -48,10 +48,10 @@ type StorageClient interface {
 
 // GoogleCloudStorageClient implements the StorageClient interface
 type GoogleCloudStorageClient struct {
-	client     *storage.Client
-	bucket     *storage.BucketHandle
-	config     *Config
-	batchSize  int
+	client    *storage.Client
+	bucket    *storage.BucketHandle
+	config    *Config
+	batchSize int
 }
 
 // NewStorageClient creates a new Google Cloud Storage client
