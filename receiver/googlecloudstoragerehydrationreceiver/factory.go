@@ -27,17 +27,18 @@ import (
 // errImproperCfgType error for when an invalid config type is passed to receiver creation funcs
 var errImproperCfgType = errors.New("improper config type")
 
-const defaultBatchSize = 30
-const defaultPageSize = 1000
+const (
+	defaultBatchSize = 30
+)
 
-// NewFactory creates a new receiver factory
+// NewFactory creates a new factory for the Google Cloud Storage rehydration receiver
 func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
 		metadata.Type,
 		createDefaultConfig,
+		receiver.WithTraces(createTracesReceiver, metadata.TracesStability),
 		receiver.WithMetrics(createMetricsReceiver, metadata.MetricsStability),
 		receiver.WithLogs(createLogsReceiver, metadata.LogsStability),
-		receiver.WithTraces(createTracesReceiver, metadata.TracesStability),
 	)
 }
 
@@ -46,7 +47,6 @@ func createDefaultConfig() component.Config {
 	return &Config{
 		DeleteOnRead: false,
 		BatchSize:    defaultBatchSize,
-		PageSize:     defaultPageSize,
 	}
 }
 

@@ -44,9 +44,6 @@ type Config struct {
 	// DeleteOnRead indicates if a file should be deleted once it has been processed (default false)
 	DeleteOnRead bool `mapstructure:"delete_on_read"`
 
-	// PageSize is the number of objects to request from the Google Cloud Storage API at a time. (default 1000)
-	PageSize int `mapstructure:"page_size"`
-
 	// Credentials is the JSON credentials for Google Cloud Storage
 	Credentials string `mapstructure:"credentials"`
 
@@ -83,10 +80,6 @@ func (c *Config) Validate() error {
 	// Check case where ending_time is to close or before starting time
 	if endingTs.Sub(*startingTs) < time.Minute {
 		return errors.New("ending_time must be at least one minute after starting_time")
-	}
-
-	if c.PageSize < 1 {
-		return errors.New("page_size must be greater than 0")
 	}
 
 	return nil
