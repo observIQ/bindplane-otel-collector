@@ -43,16 +43,16 @@ type rehydrationReceiver struct {
 	checkpoint         *rehydration.CheckPoint
 	checkpointStore    rehydration.CheckpointStorer
 
-	blobChan chan []*BlobInfo
-	errChan  chan error
-	doneChan chan struct{}
+	objectChan chan []*ObjectInfo
+	errChan    chan error
+	doneChan   chan struct{}
 
 	// mutexes for ensuring a thread safe checkpoint
 	mut *sync.Mutex
 	wg  *sync.WaitGroup
 
-	lastBlob     *BlobInfo
-	lastBlobTime *time.Time
+	lastObject     *ObjectInfo
+	lastObjectTime *time.Time
 
 	startingTime time.Time
 	endingTime   time.Time
@@ -121,7 +121,7 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 		id:            id,
 		cfg:           cfg,
 		storageClient: storageClient,
-		blobChan:      make(chan []*BlobInfo, cfg.BatchSize),
+		objectChan:    make(chan []*ObjectInfo, cfg.BatchSize),
 		errChan:       make(chan error, 1),
 		doneChan:      make(chan struct{}),
 		mut:           &sync.Mutex{},
@@ -163,7 +163,7 @@ func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) er
 	}
 
 	r.checkpoint = checkpoint
-	r.lastBlobTime = &r.startingTime
+	r.lastObjectTime = &r.startingTime
 
 	// Start the rehydration process
 	go r.streamRehydrateBlobs(ctx)
@@ -182,7 +182,7 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 
 	// Close channels
 	close(r.doneChan)
-	close(r.blobChan)
+	close(r.objectChan)
 	close(r.errChan)
 
 	// Check for any errors
@@ -200,7 +200,7 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 	defer r.wg.Done()
 
 	// Start streaming blobs
-	go r.storageClient.StreamBlobs(ctx, r.startingTime, r.endingTime, r.errChan, r.blobChan, r.doneChan)
+	go r.storageClient.StreamObjects(ctx, r.startingTime, r.endingTime, r.errChan, r.objectChan, r.doneChan)
 
 	// Process blobs as they arrive
 	for {
@@ -209,52 +209,59 @@ func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
 			return
 		case <-r.doneChan:
 			return
-		case batch := <-r.blobChan:
-			r.rehydrateBlobs(ctx, batch)
+		case batch := <-r.objectChan:
+			r.rehydrateObjects(ctx, batch)
 		case err := <-r.errChan:
-			r.logger.Error("Error streaming blobs", zap.Error(err))
+			r.logger.Error("Error streaming objects", zap.Error(err))
 			return
 		}
 	}
 }
 
-// rehydrateBlobs processes a batch of blobs
-func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*BlobInfo) (numProcessedBlobs int) {
-	for _, blob := range blobs {
-		if err := r.processBlob(ctx, blob); err != nil {
-			r.logger.Error("Failed to process blob", zap.String("name", blob.Name), zap.Error(err))
+// rehydrateObjects processes a batch of objects
+func (r *rehydrationReceiver) rehydrateObjects(ctx context.Context, objects []*ObjectInfo) (numProcessedObjects int) {
+	for _, object := range objects {
+		if err := r.processObject(ctx, object); err != nil {
+			r.logger.Error("Failed to process object", zap.String("name", object.Name), zap.Error(err))
 			continue
 		}
-		numProcessedBlobs++
+		numProcessedObjects++
 	}
-	return numProcessedBlobs
+	return numProcessedObjects
 }
 
-// processBlob processes a single blob
-func (r *rehydrationReceiver) processBlob(ctx context.Context, blob *BlobInfo) error {
-	// Download the blob
-	data, err := r.storageClient.DownloadBlob(ctx, blob.Name)
+// processObject processes a single object
+func (r *rehydrationReceiver) processObject(ctx context.Context, object *ObjectInfo) error {
+	// Create a buffer for the object data
+	buf := make([]byte, object.Size)
+
+	// Download the object into the buffer
+	bytesRead, err := r.storageClient.DownloadObject(ctx, object.Name, buf)
 	if err != nil {
-		return fmt.Errorf("failed to download blob: %w", err)
+		return fmt.Errorf("failed to download object: %w", err)
+	}
+
+	if bytesRead != object.Size {
+		return fmt.Errorf("expected to read %d bytes but read %d", object.Size, bytesRead)
 	}
 
 	// Process the data
-	if err := r.consumer.Consume(ctx, data); err != nil {
+	if err := r.consumer.Consume(ctx, buf); err != nil {
 		return fmt.Errorf("failed to consume data: %w", err)
 	}
 
 	// Delete the blob if configured
 	if r.cfg.DeleteOnRead {
-		if err := r.storageClient.DeleteBlob(ctx, blob.Name); err != nil {
-			return fmt.Errorf("failed to delete blob: %w", err)
+		if err := r.storageClient.DeleteObject(ctx, object.Name); err != nil {
+			return fmt.Errorf("failed to delete object: %w", err)
 		}
 	}
 
 	// Update checkpoint
 	r.mut.Lock()
-	r.lastBlob = blob
+	r.lastObject = object
 	now := time.Now()
-	r.lastBlobTime = &now
+	r.lastObjectTime = &now
 	r.mut.Unlock()
 
 	return nil
@@ -270,12 +277,12 @@ func (r *rehydrationReceiver) makeCheckpoint(ctx context.Context) error {
 	r.mut.Lock()
 	defer r.mut.Unlock()
 
-	if r.lastBlobTime == nil {
+	if r.lastObjectTime == nil {
 		return nil
 	}
 
 	checkpoint := rehydration.NewCheckpoint()
-	checkpoint.UpdateCheckpoint(*r.lastBlobTime, r.lastBlob.Name)
+	checkpoint.UpdateCheckpoint(*r.lastObjectTime, r.lastObject.Name)
 
 	if err := r.checkpointStore.SaveCheckpoint(ctx, r.checkpointKey(), checkpoint); err != nil {
 		return fmt.Errorf("failed to store checkpoint: %w", err)
