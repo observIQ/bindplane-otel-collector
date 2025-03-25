@@ -261,7 +261,7 @@ func (ctmr *ResettableThroughputMeasurementsRegistry) OTLPMeasurements(extraAttr
 	ctmr.measurements.Range(func(_, value any) bool {
 		tm := value.(*ThroughputMeasurements)
 		// Only include metrics collected after the last report time
-		if tm.LastCollectionTime().After(ctmr.lastReportTime) {
+		if !tm.LastCollectionTime().Before(ctmr.lastReportTime) {
 			OTLPThroughputMeasurements(tm, ctmr.emitCountMetrics, extraAttributes).MoveAndAppendTo(sm.Metrics())
 		}
 		return true
@@ -281,5 +281,5 @@ func (ctmr *ResettableThroughputMeasurementsRegistry) OTLPMeasurements(extraAttr
 // Reset unregisters all throughput measurements in this registry
 func (ctmr *ResettableThroughputMeasurementsRegistry) Reset() {
 	ctmr.measurements = &sync.Map{}
-	ctmr.lastReportTime = time.Now()
+	ctmr.lastReportTime = time.Time{} // Set to zero time to indicate that no metrics have been reported yet
 }

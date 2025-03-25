@@ -163,7 +163,9 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 
 		// First call should include all metrics
 		metrics := reg.OTLPMeasurements(nil)
-		require.Equal(t, 1, metrics.DataPointCount())
+		expectedMetrics, err := golden.ReadMetrics(filepath.Join("testdata", "metrics", "expected-throughput.yaml"))
+		require.NoError(t, err)
+		require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, metrics, pmetrictest.IgnoreTimestamp()))
 
 		// Second call with no new metrics should return empty metrics
 		metrics = reg.OTLPMeasurements(nil)
@@ -174,24 +176,9 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 
 		// Third call should only include the new metrics
 		metrics = reg.OTLPMeasurements(nil)
-		require.Equal(t, 1, metrics.DataPointCount())
-
-		// Verify the values are doubled (since we added the same metrics twice)
-		rm := metrics.ResourceMetrics().At(0)
-		sm := rm.ScopeMetrics().At(0)
-		metric1 := sm.Metrics().At(0)
-
-		// Get the expected values from the golden file
-		expectedMetrics, err := golden.ReadMetrics(filepath.Join("testdata", "metrics", "expected-throughput.yaml"))
+		expectedMetrics, err = golden.ReadMetrics(filepath.Join("testdata", "metrics", "expected-throughput-doubled.yaml"))
 		require.NoError(t, err)
-		expectedRM := expectedMetrics.ResourceMetrics().At(0)
-		expectedSM := expectedRM.ScopeMetrics().At(0)
-		expectedMetric1 := expectedSM.Metrics().At(0)
-
-		// Compare the values (doubled)
-		require.Equal(t,
-			expectedMetric1.Sum().DataPoints().At(0).IntValue()*2,
-			metric1.Sum().DataPoints().At(0).IntValue())
+		require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, metrics, pmetrictest.IgnoreTimestamp()))
 
 		// Fourth call with no new metrics should return empty metrics
 		metrics = reg.OTLPMeasurements(nil)
