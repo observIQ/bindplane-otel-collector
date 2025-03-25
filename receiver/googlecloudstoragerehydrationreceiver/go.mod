@@ -9,8 +9,6 @@ require (
 	go.opentelemetry.io/collector/component v1.28.0
 	go.opentelemetry.io/collector/component/componenttest v0.122.0
 	go.opentelemetry.io/collector/consumer v1.28.0
-	go.opentelemetry.io/collector/consumer/consumertest v0.122.0
-	go.opentelemetry.io/collector/extension/xextension v0.122.0
 	go.opentelemetry.io/collector/pipeline v0.122.0
 	go.opentelemetry.io/collector/receiver v1.28.0
 	go.uber.org/goleak v1.3.0
@@ -50,10 +48,9 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/collector/consumer/xconsumer v0.122.0 // indirect
 	go.opentelemetry.io/collector/extension v1.28.0 // indirect
+	go.opentelemetry.io/collector/extension/xextension v0.122.0 // indirect
 	go.opentelemetry.io/collector/pdata v1.28.0 // indirect
-	go.opentelemetry.io/collector/pdata/pprofile v0.122.0 // indirect
 	go.opentelemetry.io/contrib/detectors/gcp v1.34.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.59.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.59.0 // indirect
