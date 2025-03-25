@@ -292,14 +292,6 @@ func (r *rehydrationReceiver) rehydrateObjects(ctx context.Context, objects []*O
 	return int(processedObjectCount.Load())
 }
 
-// conditionallyDeleteObject deletes the object if DeleteOnRead is enabled
-func (r *rehydrationReceiver) conditionallyDeleteObject(ctx context.Context, object *ObjectInfo) error {
-	if !r.cfg.DeleteOnRead {
-		return nil
-	}
-	return r.storageClient.DeleteObject(ctx, object.Name)
-}
-
 // processObject processes a single object
 func (r *rehydrationReceiver) processObject(ctx context.Context, object *ObjectInfo) error {
 	// Create a buffer for the object data
@@ -353,3 +345,11 @@ func (r *rehydrationReceiver) makeCheckpoint(ctx context.Context) error {
 	r.checkpoint.UpdateCheckpoint(*r.lastObjectTime, r.lastObject.Name)
 	return r.checkpointStore.SaveCheckpoint(ctx, r.checkpointKey(), r.checkpoint)
 } 
+
+// conditionallyDeleteObject deletes the object if DeleteOnRead is enabled
+func (r *rehydrationReceiver) conditionallyDeleteObject(ctx context.Context, object *ObjectInfo) error {
+	if !r.cfg.DeleteOnRead {
+		return nil
+	}
+	return r.storageClient.DeleteObject(ctx, object.Name)
+}
