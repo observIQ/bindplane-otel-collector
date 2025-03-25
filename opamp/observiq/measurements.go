@@ -50,6 +50,8 @@ type measurementsSender struct {
 	isRunning bool
 	done      chan struct{}
 	wg        *sync.WaitGroup
+
+	lastSuccessfulSend time.Time
 }
 
 func newMeasurementsSender(l *zap.Logger, reporter MeasurementsReporter, opampClient client.OpAMPClient, interval time.Duration, extraAttributes map[string]string) *measurementsSender {
@@ -66,6 +68,7 @@ func newMeasurementsSender(l *zap.Logger, reporter MeasurementsReporter, opampCl
 		isRunning:            false,
 		done:                 make(chan struct{}),
 		wg:                   &sync.WaitGroup{},
+		lastSuccessfulSend:   time.Now(),
 	}
 }
 
@@ -160,10 +163,13 @@ func (m *measurementsSender) loop() {
 				Data:       encoded,
 			}
 
+			success := false
 			for i := 0; i < maxSendRetries; i++ {
 				sendingChannel, err := m.opampClient.SendCustomMessage(cm)
 				switch {
 				case err == nil: // OK
+					success = true
+					m.lastSuccessfulSend = time.Now()
 				case errors.Is(err, types.ErrCustomMessagePending):
 					if i == maxSendRetries-1 {
 						// Bail out early, since we aren't going to try to send again
@@ -181,6 +187,10 @@ func (m *measurementsSender) loop() {
 					m.logger.Error("Failed to report measurements", zap.Error(err))
 				}
 				break
+			}
+
+			if !success {
+				m.logger.Warn("Failed to send measurements after all retries")
 			}
 		}
 	}
