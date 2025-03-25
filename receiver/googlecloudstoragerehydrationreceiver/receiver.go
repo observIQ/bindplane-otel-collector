@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -26,7 +27,6 @@ import (
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
-	"go.opentelemetry.io/collector/extension/xextension/storage"
 	"go.opentelemetry.io/collector/pipeline"
 	"go.uber.org/zap"
 )
@@ -103,19 +103,21 @@ func newTracesReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextCon
 
 // newRehydrationReceiver creates a new rehydration receiver
 func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*rehydrationReceiver, error) {
-	startingTime, err := time.Parse(time.RFC3339, cfg.StartingTime)
-	if err != nil {
-		return nil, fmt.Errorf("invalid starting_time: %w", err)
-	}
-
-	endingTime, err := time.Parse(time.RFC3339, cfg.EndingTime)
-	if err != nil {
-		return nil, fmt.Errorf("invalid ending_time: %w", err)
-	}
-
 	storageClient, err := newStorageClient(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create storage client: %w", err)
+	}
+
+	// We should not get an error for either of these time parsings as we check in config validate.
+	// Doing error checking anyways just in case.
+	startingTime, err := time.Parse(rehydration.TimeFormat, cfg.StartingTime)
+	if err != nil {
+		return nil, fmt.Errorf("invalid starting_time timestamp: %w", err)
+	}
+
+	endingTime, err := time.Parse(rehydration.TimeFormat, cfg.EndingTime)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ending_time timestamp: %w", err)
 	}
 
 	return &rehydrationReceiver{
@@ -123,53 +125,30 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 		id:            id,
 		cfg:           cfg,
 		storageClient: storageClient,
-		objectChan:    make(chan []*ObjectInfo, cfg.BatchSize),
-		errChan:       make(chan error, 1),
+		startingTime:  startingTime,
+		endingTime:    endingTime,
+		objectChan:    make(chan []*ObjectInfo),
+		errChan:       make(chan error),
 		doneChan:      make(chan struct{}),
 		mut:           &sync.Mutex{},
 		wg:            &sync.WaitGroup{},
-		startingTime:  startingTime,
-		endingTime:    endingTime,
 	}, nil
 }
 
 // Start starts the receiver
 func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) error {
-	ctx, r.cancelFunc = context.WithCancel(ctx)
-
-	// Get the storage extension
-	extension, ok := host.GetExtensions()[*r.cfg.StorageID]
-	if !ok {
-		return fmt.Errorf("storage extension '%s' not found", r.cfg.StorageID)
-	}
-
-	_, ok = extension.(storage.Extension)
-	if !ok {
-		return fmt.Errorf("non-storage extension '%s' found", r.cfg.StorageID)
-	}
-
-	// Create checkpoint store
-	checkpointStore, err := rehydration.NewCheckpointStorage(ctx, host, *r.cfg.StorageID, r.id, r.supportedTelemetry)
-	if err != nil {
-		return fmt.Errorf("failed to create checkpoint storage: %w", err)
-	}
-	r.checkpointStore = checkpointStore
-
-	// Load checkpoint if it exists
-	checkpoint, err := r.checkpointStore.LoadCheckPoint(ctx, r.checkpointKey())
-	if err != nil {
-		if !errors.Is(err, context.Canceled) {
-			return fmt.Errorf("failed to load checkpoint: %w", err)
+	if r.cfg.StorageID != nil {
+		checkpointStore, err := rehydration.NewCheckpointStorage(ctx, host, *r.cfg.StorageID, r.id, r.supportedTelemetry)
+		if err != nil {
+			return fmt.Errorf("NewCheckpointStorage: %w", err)
 		}
-		checkpoint = rehydration.NewCheckpoint()
+		r.checkpointStore = checkpointStore
 	}
 
-	r.checkpoint = checkpoint
-	r.lastObjectTime = &r.startingTime
+	cancelCtx, cancel := context.WithCancel(ctx)
+	r.cancelFunc = cancel
 
-	// Start the rehydration process
-	go r.streamRehydrateBlobs(ctx)
-
+	go r.streamRehydrateObjects(cancelCtx)
 	return nil
 }
 
@@ -179,43 +158,69 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 		r.cancelFunc()
 	}
 
-	// Wait for all goroutines to finish
-	r.wg.Wait()
+	shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 
-	// Close channels
-	close(r.doneChan)
-	close(r.objectChan)
-	close(r.errChan)
+	// wait for any in-progress operations to finish
+	done := make(chan struct{})
+	go func() {
+		r.wg.Wait()
+		close(done)
+	}()
 
-	// Check for any errors
 	select {
-	case err := <-r.errChan:
-		return fmt.Errorf("error during shutdown: %w", err)
-	default:
-		return nil
+	case <-done:
+	case <-shutdownCtx.Done():
+		return fmt.Errorf("shutdown timeout: %w", shutdownCtx.Err())
 	}
+
+	var errs error
+	if err := r.makeCheckpoint(shutdownCtx); err != nil {
+		errs = errors.Join(errs, fmt.Errorf("error while saving checkpoint: %w", err))
+	}
+
+	r.mut.Lock()
+	defer r.mut.Unlock()
+
+	if err := r.checkpointStore.Close(shutdownCtx); err != nil {
+		errs = errors.Join(errs, fmt.Errorf("error while closing checkpoint store: %w", err))
+	}
+	r.logger.Info("Shutdown complete")
+	return errs
 }
 
-// streamRehydrateBlobs streams blobs from the storage service
-func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
-	r.wg.Add(1)
-	defer r.wg.Done()
+// streamRehydrateObjects streams objects from the storage service
+func (r *rehydrationReceiver) streamRehydrateObjects(ctx context.Context) {
+	checkpoint, err := r.checkpointStore.LoadCheckPoint(ctx, r.checkpointKey())
+	if err != nil {
+		r.logger.Warn("Error loading checkpoint, continuing without a previous checkpoint", zap.Error(err))
+		checkpoint = rehydration.NewCheckpoint()
+	}
+	r.checkpoint = checkpoint
 
-	// Start streaming blobs
+	startTime := time.Now()
+	r.logger.Info("Starting rehydration", zap.Time("startTime", startTime))
+
 	go r.storageClient.StreamObjects(ctx, r.errChan, r.objectChan, r.doneChan)
 
-	// Process blobs as they arrive
 	for {
 		select {
 		case <-ctx.Done():
+			r.logger.Info("Context cancelled, stopping rehydration", zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
 			return
 		case <-r.doneChan:
+			r.logger.Info("Finished rehydrating objects", zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
 			return
-		case batch := <-r.objectChan:
-			r.rehydrateObjects(ctx, batch)
 		case err := <-r.errChan:
-			r.logger.Error("Error streaming objects", zap.Error(err))
+			r.logger.Error("Error streaming objects, stopping rehydration", zap.Error(err), zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
 			return
+		case batch, ok := <-r.objectChan:
+			if !ok {
+				r.logger.Info("Finished rehydrating objects", zap.Int("durationSeconds", int(time.Since(startTime).Seconds())))
+				return
+			}
+			numProcessedObjects := r.rehydrateObjects(ctx, batch)
+			r.logger.Debug("Processed a number of objects", zap.Int("num_processed_objects", numProcessedObjects))
 		}
 	}
 }
@@ -303,55 +308,48 @@ func (r *rehydrationReceiver) processObject(ctx context.Context, object *ObjectI
 	// Download the object into the buffer
 	bytesRead, err := r.storageClient.DownloadObject(ctx, object.Name, buf)
 	if err != nil {
-		return fmt.Errorf("failed to download object: %w", err)
+		return fmt.Errorf("download object: %w", err)
 	}
 
 	if bytesRead != object.Size {
 		return fmt.Errorf("expected to read %d bytes but read %d", object.Size, bytesRead)
 	}
 
-	// Process the data
-	if err := r.consumer.Consume(ctx, buf); err != nil {
-		return fmt.Errorf("failed to consume data: %w", err)
-	}
-
-	// Delete the blob if configured
-	if r.cfg.DeleteOnRead {
-		if err := r.storageClient.DeleteObject(ctx, object.Name); err != nil {
-			return fmt.Errorf("failed to delete object: %w", err)
+	// Check file extension see if we need to decompress
+	ext := filepath.Ext(object.Name)
+	switch {
+	case ext == ".gz":
+		buf, err = rehydration.GzipDecompress(buf[:bytesRead])
+		if err != nil {
+			return fmt.Errorf("gzip: %w", err)
 		}
+	case ext == ".json":
+		// Do nothing for json files
+	default:
+		return fmt.Errorf("unsupported file type: %s", ext)
 	}
 
-	// Update checkpoint
-	r.mut.Lock()
-	r.lastObject = object
-	now := time.Now()
-	r.lastObjectTime = &now
-	r.mut.Unlock()
-
+	if err := r.consumer.Consume(ctx, buf); err != nil {
+		return fmt.Errorf("consume: %w", err)
+	}
 	return nil
 }
 
-// checkpointKey returns the key for the checkpoint
+// checkpointStorageKey the key used for storing the checkpoint
+const checkpointStorageKey = "gcs_checkpoint"
+
+// checkpointKey returns the key used for storing the checkpoint
 func (r *rehydrationReceiver) checkpointKey() string {
-	return fmt.Sprintf("%s-%s", r.id.String(), r.supportedTelemetry.String())
+	return fmt.Sprintf("%s_%s_%s", checkpointStorageKey, r.id, r.supportedTelemetry.String())
 }
 
-// makeCheckpoint creates a checkpoint
 func (r *rehydrationReceiver) makeCheckpoint(ctx context.Context) error {
-	r.mut.Lock()
-	defer r.mut.Unlock()
-
-	if r.lastObjectTime == nil {
+	if r.lastObject == nil || r.lastObjectTime == nil {
 		return nil
 	}
-
-	checkpoint := rehydration.NewCheckpoint()
-	checkpoint.UpdateCheckpoint(*r.lastObjectTime, r.lastObject.Name)
-
-	if err := r.checkpointStore.SaveCheckpoint(ctx, r.checkpointKey(), checkpoint); err != nil {
-		return fmt.Errorf("failed to store checkpoint: %w", err)
-	}
-
-	return nil
+	r.logger.Debug("Making checkpoint", zap.String("object", r.lastObject.Name), zap.Time("time", *r.lastObjectTime))
+	r.mut.Lock()
+	defer r.mut.Unlock()
+	r.checkpoint.UpdateCheckpoint(*r.lastObjectTime, r.lastObject.Name)
+	return r.checkpointStore.SaveCheckpoint(ctx, r.checkpointKey(), r.checkpoint)
 } 
