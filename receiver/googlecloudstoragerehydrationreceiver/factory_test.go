@@ -24,7 +24,6 @@ func Test_createDefaultConfig(t *testing.T) {
 	expectedCfg := &Config{
 		DeleteOnRead: false,
 		BatchSize:    defaultBatchSize,
-		PageSize:     defaultPageSize,
 	}
 
 	componentCfg := createDefaultConfig()
