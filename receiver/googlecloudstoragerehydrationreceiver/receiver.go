@@ -120,18 +120,18 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 	}
 
 	return &rehydrationReceiver{
-		logger:        logger,
-		id:            id,
-		cfg:           cfg,
-		storageClient: storageClient,
+		logger:          logger,
+		id:              id,
+		cfg:             cfg,
+		storageClient:   storageClient,
 		checkpointStore: rehydration.NewNopStorage(),
-		startingTime:  startingTime,
-		endingTime:    endingTime,
-		objectChan:    make(chan []*ObjectInfo),
-		errChan:       make(chan error),
-		doneChan:      make(chan struct{}),
-		mut:           &sync.Mutex{},
-		wg:            &sync.WaitGroup{},
+		startingTime:    startingTime,
+		endingTime:      endingTime,
+		objectChan:      make(chan []*ObjectInfo),
+		errChan:         make(chan error),
+		doneChan:        make(chan struct{}),
+		mut:             &sync.Mutex{},
+		wg:              &sync.WaitGroup{},
 	}, nil
 }
 
