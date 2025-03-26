@@ -12,7 +12,7 @@ import (
 	"go.opentelemetry.io/collector/receiver"
 )
 
-// AttributeOnedriveActivity specifies the value onedriveActivity attribute.
+// AttributeOnedriveActivity specifies the a value onedriveActivity attribute.
 type AttributeOnedriveActivity int
 
 const (
@@ -46,7 +46,7 @@ var MapAttributeOnedriveActivity = map[string]AttributeOnedriveActivity{
 	"external_share": AttributeOnedriveActivityExternalShare,
 }
 
-// AttributeOutlookActivity specifies the value outlookActivity attribute.
+// AttributeOutlookActivity specifies the a value outlookActivity attribute.
 type AttributeOutlookActivity int
 
 const (
@@ -76,7 +76,7 @@ var MapAttributeOutlookActivity = map[string]AttributeOutlookActivity{
 	"received": AttributeOutlookActivityReceived,
 }
 
-// AttributeOutlookApps specifies the value outlookApps attribute.
+// AttributeOutlookApps specifies the a value outlookApps attribute.
 type AttributeOutlookApps int
 
 const (
@@ -126,7 +126,7 @@ var MapAttributeOutlookApps = map[string]AttributeOutlookApps{
 	"other_mobile": AttributeOutlookAppsOtherMobile,
 }
 
-// AttributeOutlookQuotas specifies the value outlookQuotas attribute.
+// AttributeOutlookQuotas specifies the a value outlookQuotas attribute.
 type AttributeOutlookQuotas int
 
 const (
@@ -164,7 +164,7 @@ var MapAttributeOutlookQuotas = map[string]AttributeOutlookQuotas{
 	"indeterminate":           AttributeOutlookQuotasIndeterminate,
 }
 
-// AttributeTeamsDevices specifies the value teamsDevices attribute.
+// AttributeTeamsDevices specifies the a value teamsDevices attribute.
 type AttributeTeamsDevices int
 
 const (
@@ -1237,6 +1237,7 @@ func WithStartTime(startTime pcommon.Timestamp) MetricBuilderOption {
 		mb.startTime = startTime
 	})
 }
+
 func NewMetricsBuilder(mbc MetricsBuilderConfig, settings receiver.Settings, options ...MetricBuilderOption) *MetricsBuilder {
 	mb := &MetricsBuilder{
 		config:                                mbc,
@@ -1337,7 +1338,7 @@ func WithStartTimeOverride(start pcommon.Timestamp) ResourceMetricsOption {
 func (mb *MetricsBuilder) EmitForResource(options ...ResourceMetricsOption) {
 	rm := pmetric.NewResourceMetrics()
 	ils := rm.ScopeMetrics().AppendEmpty()
-	ils.Scope().SetName(ScopeName)
+	ils.Scope().SetName("github.com/observiq/bindplane-otel-collector/receiver/m365receiver")
 	ils.Scope().SetVersion(mb.buildInfo.Version)
 	ils.Metrics().EnsureCapacity(mb.metricsCapacity)
 	mb.metricM365OnedriveFilesActiveCount.emit(ils.Metrics())
