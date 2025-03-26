@@ -9,161 +9,84 @@ dist:
 conf_resolver:
   default_uri_scheme: "env"
 extensions:
-<<<<<<< HEAD
-  - gomod: go.opentelemetry.io/collector/extension/zpagesextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/asapauthextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/awsproxy v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jaegerencodingextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/otlpencodingextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/zipkinencodingextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/headerssetterextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/httpforwarderextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/jaegerremotesampling v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/oauth2clientauthextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/dockerobserver v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/ecsobserver v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/ecstaskobserver v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/hostobserver v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/k8sobserver v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/oidcauthextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/sigv4authextension v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/dbstorage v0.113.0
-  - gomod: github.com/observiq/bindplane-agent/extension/bindplaneextension v1.64.0
+  - gomod: go.opentelemetry.io/collector/extension/zpagesextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/asapauthextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/awsproxy v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jaegerencodingextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/otlpencodingextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/zipkinencodingextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/headerssetterextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/httpforwarderextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/jaegerremotesampling v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/oauth2clientauthextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/dockerobserver v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/ecsobserver v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/ecstaskobserver v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/hostobserver v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/k8sobserver v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/oidcauthextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/sigv4authextension v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/dbstorage v0.121.0
+  - gomod: github.com/observiq/bindplane-otel-collector/extension/bindplaneextension v1.72.0
     path: "./extension/bindplaneextension"
 exporters:
-  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.113.0
-  - gomod: go.opentelemetry.io/collector/exporter/nopexporter v0.113.0
-  - gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.113.0
-  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fileexporter v0.113.0
+  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.121.0
+  - gomod: go.opentelemetry.io/collector/exporter/nopexporter v0.121.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.121.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fileexporter v0.121.0
 processors:
-  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor v0.113.0
-  - gomod: github.com/observiq/bindplane-agent/processor/snapshotprocessor v1.64.0
+  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor v0.121.0
+  - gomod: github.com/observiq/bindplane-otel-collector/processor/snapshotprocessor v1.72.0
     path: "./processor/snapshotprocessor"
-  - gomod: github.com/observiq/bindplane-agent/processor/throughputmeasurementprocessor v1.64.0
+  - gomod: github.com/observiq/bindplane-otel-collector/processor/throughputmeasurementprocessor v1.72.0
     path: "./processor/throughputmeasurementprocessor"
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbyattrsprocessor v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbytraceprocessor v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.113.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbyattrsprocessor v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbytraceprocessor v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.121.0
+  - gomod: github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.72.0
+    path: "./processor/topologyprocessor"
 receivers:
-  - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.113.0
-  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/collectdreceiver v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jmxreceiver v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/saphanareceiver v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/sapmreceiver v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/statsdreceiver v0.113.0
-  - gomod: github.com/observiq/bindplane-agent/receiver/pluginreceiver v1.64.0
+  - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.121.0
+  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/collectdreceiver v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jmxreceiver v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/saphanareceiver v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/sapmreceiver v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/statsdreceiver v0.121.0
+  - gomod: github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.72.0
     path: "./receiver/pluginreceiver"
-  - gomod: github.com/observiq/bindplane-agent/receiver/routereceiver v1.64.0
+  - gomod: github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.72.0
     path: "./receiver/routereceiver"
-  - gomod: github.com/observiq/bindplane-agent/receiver/telemetrygeneratorreceiver v1.64.0
+  - gomod: github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.72.0
     path: "./receiver/telemetrygeneratorreceiver"
 connectors:
-  - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/datadogconnector v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/exceptionsconnector v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/grafanacloudconnector v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector v0.113.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.113.0
+  - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/datadogconnector v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/exceptionsconnector v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/grafanacloudconnector v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector v0.121.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.121.0
 providers:
-  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.19.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.19.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/httpprovider v1.19.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/httpsprovider v1.19.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.19.0
-=======
-  - gomod: go.opentelemetry.io/collector/extension/zpagesextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/asapauthextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/awsproxy v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jaegerencodingextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/otlpencodingextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/zipkinencodingextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/headerssetterextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/httpforwarderextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/jaegerremotesampling v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/oauth2clientauthextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/dockerobserver v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/ecsobserver v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/ecstaskobserver v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/hostobserver v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/k8sobserver v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/oidcauthextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/sigv4authextension v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/dbstorage v0.116.0
-  - gomod: github.com/observiq/bindplane-otel-collector/extension/bindplaneextension v1.68.0
-    path: "./extension/bindplaneextension"
-exporters:
-  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.116.0
-  - gomod: go.opentelemetry.io/collector/exporter/nopexporter v0.116.0
-  - gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.116.0
-  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fileexporter v0.116.0
-processors:
-  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor v0.116.0
-  - gomod: github.com/observiq/bindplane-otel-collector/processor/snapshotprocessor v1.68.0
-    path: "./processor/snapshotprocessor"
-  - gomod: github.com/observiq/bindplane-otel-collector/processor/throughputmeasurementprocessor v1.68.0
-    path: "./processor/throughputmeasurementprocessor"
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbyattrsprocessor v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbytraceprocessor v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.116.0
-receivers:
-  - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.116.0
-  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/collectdreceiver v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jmxreceiver v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/saphanareceiver v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/sapmreceiver v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/statsdreceiver v0.116.0
-  - gomod: github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.68.0
-    path: "./receiver/pluginreceiver"
-  - gomod: github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.68.0
-    path: "./receiver/routereceiver"
-  - gomod: github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.68.0
-    path: "./receiver/telemetrygeneratorreceiver"
-connectors:
-  - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/datadogconnector v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/exceptionsconnector v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/grafanacloudconnector v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector v0.116.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.116.0
-providers:
-  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v0.116.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v0.116.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/httpprovider v0.116.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/httpsprovider v0.116.0
-  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v0.116.0
->>>>>>> 13e3f790 (Update manifest for latest package versions)
+  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v0.121.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v0.121.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/httpprovider v0.121.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/httpsprovider v0.121.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v0.121.0
 # When adding a replace, add a comment before it to document why it's needed and when it can be removed
 replaces:
   # See https://github.com/google/gnostic/issues/262
@@ -175,7 +98,9 @@ replaces:
   # see https://github.com/openshift/api/pull/1515
   - github.com/openshift/api => github.com/openshift/api v0.0.0-20230726162818-81f778f3b3ec
   # replace for datapointcountprocessor
-  - github.com/observiq/bindplane-agent/receiver/routereceiver => ../receiver/routereceiver
+  - github.com/observiq/bindplane-otel-collector/receiver/routereceiver => ../receiver/routereceiver
+  # replace used by bindplaneextension
+  - github.com/observiq/bindplane-otel-collector/processor/topologyprocessor => ../processor/topologyprocessor
   # replace statements for internal imports
   - github.com/observiq/bindplane-agent/internal/expr => ../internal/expr
   - github.com/observiq/bindplane-agent/internal/counter => ../internal/counter
@@ -185,3 +110,8 @@ replaces:
   # Thrift only updates twice a year if we're lucky, and we don't want to wait 6+ months for
   # https://github.com/apache/thrift/pull/3042
   - github.com/apache/thrift => github.com/apache/thrift v0.21.1-0.20240926171305-90af876c67be
+  # Fixed gopsutil for AIX
+  - github.com/shirou/gopsutil/v4 => github.com/shirou/gopsutil/v4 v4.25.3-0.20250310004932-6b9c1447eea6
+  # Fixed core code for AIX
+  - go.opentelemetry.io/collector/service => ../../opentelemetry-collector/service
+  - github.com/open-telemetry/opentelemetry-collector-contrib/cmd/opampsupervisor => ../../github.com/open-telemetry/opentelemetry-collector-contrib/cmd/opampsupervisor
