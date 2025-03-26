@@ -118,7 +118,8 @@ googlecloudstoragerehydration:
 
 ### Authentication Configuration
 
-The previous examples assume Application Default Credentials are used to authenticate to Google Cloud. This configuration shows how to authenticate using credentials from a file:
+The previous examples assume Application Default Credentials are being used to authenticate to Google Cloud.  
+This configuration shows how to authenticate using credentials from a file:
 
 ```yaml
 googlecloudstoragerehydration:
