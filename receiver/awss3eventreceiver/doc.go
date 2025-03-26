@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate mdatagen metadata.yaml
+
 // Package awss3eventreceiver implements a receiver that consumes S3 event notifications
 // from SQS and processes the objects containing OTLP data.
 //
 // The receiver polls an SQS queue for S3 event notifications. When an object creation
 // event is received, the receiver downloads the S3 object and processes it as OTLP data
 // (metrics, logs, or traces).
-//go:generate mdatagen metadata.yaml
-
 package awss3eventreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
