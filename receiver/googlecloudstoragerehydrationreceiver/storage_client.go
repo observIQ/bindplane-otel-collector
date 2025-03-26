@@ -48,10 +48,8 @@ type StorageClient interface {
 
 // GoogleCloudStorageClient implements the StorageClient interface
 type GoogleCloudStorageClient struct {
-	client    *storage.Client
-	bucket    *storage.BucketHandle
-	config    *Config
-	batchSize int
+	client *storage.Client
+	config *Config
 }
 
 // NewStorageClient creates a new Google Cloud Storage client
@@ -105,16 +103,20 @@ func NewStorageClient(cfg *Config) (StorageClient, error) {
 	}
 
 	return &GoogleCloudStorageClient{
-		client:    client,
-		bucket:    client.Bucket(cfg.BucketName),
-		config:    cfg,
-		batchSize: cfg.BatchSize,
+		client: client,
+		config: cfg,
 	}, nil
 }
 
 // StreamObjects streams objects from the bucket within the given time range
 func (g *GoogleCloudStorageClient) StreamObjects(ctx context.Context, errChan chan error, objectChan chan []*ObjectInfo, doneChan chan struct{}) {
-	it := g.bucket.Objects(ctx, &storage.Query{
+	bucket := g.client.Bucket(g.config.BucketName)
+	if bucket == nil {
+		errChan <- fmt.Errorf("failed to get bucket %s", g.config.BucketName)
+		return
+	}
+
+	it := bucket.Objects(ctx, &storage.Query{
 		Prefix: g.config.FolderName,
 	})
 
@@ -146,7 +148,7 @@ func (g *GoogleCloudStorageClient) StreamObjects(ctx context.Context, errChan ch
 		})
 
 		// Send batch when it reaches the batch size
-		if len(batch) == g.batchSize {
+		if len(batch) == g.config.BatchSize {
 			objectChan <- batch
 			batch = []*ObjectInfo{}
 		}
@@ -156,7 +158,12 @@ func (g *GoogleCloudStorageClient) StreamObjects(ctx context.Context, errChan ch
 // DownloadObject downloads the contents of the object into the supplied buffer.
 // It will return the count of bytes used in the buffer.
 func (g *GoogleCloudStorageClient) DownloadObject(ctx context.Context, name string, buf []byte) (int64, error) {
-	obj := g.bucket.Object(name)
+	bucket := g.client.Bucket(g.config.BucketName)
+	if bucket == nil {
+		return 0, fmt.Errorf("failed to get bucket %s", g.config.BucketName)
+	}
+
+	obj := bucket.Object(name)
 	reader, err := obj.NewReader(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("object.NewReader: %w", err)
@@ -173,7 +180,12 @@ func (g *GoogleCloudStorageClient) DownloadObject(ctx context.Context, name stri
 
 // DeleteObject deletes the specified object from the bucket
 func (g *GoogleCloudStorageClient) DeleteObject(ctx context.Context, name string) error {
-	obj := g.bucket.Object(name)
+	bucket := g.client.Bucket(g.config.BucketName)
+	if bucket == nil {
+		return fmt.Errorf("failed to get bucket %s", g.config.BucketName)
+	}
+
+	obj := bucket.Object(name)
 	if err := obj.Delete(ctx); err != nil {
 		return fmt.Errorf("object.Delete: %w", err)
 	}
