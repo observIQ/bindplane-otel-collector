@@ -780,31 +780,31 @@ install_package() {
       ;;
     esac
   elif [ "$SVC_PRE" = "mkssys" ]; then
-    case "$(lssrc -s bindplane-otel-collector | grep collector)" in
+    case "$(lssrc -g bpcollector | grep collector)" in
       *active*)
         # The service is running.
         # We'll want to restart.
         info "Restarting service..."
         # AIX does not support service "restart", so stop and start instead
-        stopsrc -s bindplane-otel-collector
+        stopsrc -g bpcollector
         # Start the service with the proper environment variables
-        startsrc -s bindplane-otel-collector -a start -e "$(cat /etc/bindplane-otel-collector.aix.env)"
+        startsrc -g bpcollector -e "$(cat /etc/bindplane-otel-collector.aix.env)"
         succeeded
         ;;
       *inoperative*)
         info "Starting service..."
         # Start the service with the proper environment variables
-        startsrc -s bindplane-otel-collector -a start -e "$(cat /etc/bindplane-otel-collector.aix.env)"
+        startsrc -g bpcollector-e "$(cat /etc/bindplane-otel-collector.aix.env)"
         succeeded
         ;;
       *)
         info "Creating, enabling and starting service..."
         # Add the service, removing it if it already exists in order
         # to make sure we have the most recent version
-        if lssrc -s bindplane-otel-collector > /dev/null 2>&1; then
-          rmssys -s bindplane-otel-collector
+        if lssrc -g bpcollector > /dev/null 2>&1; then
+          rmssys -g bpcollector
         else
-          mkssys -s bindplane-otel-collector -p /opt/bindplane-otel-collector/opampsupervisor -u "$(id -u bindplane-otel-collector)" -S -n15 -f9 -a '--config supervisor.yaml'
+          mkssys -s bindplane-otel-collector  -G bpcollector -p /opt/bindplane-otel-collector/opampsupervisor -u "$(id -u root)" -S -n15 -f9 -a '--config /opt/bindplane-otel-collector/supervisor.yaml'
         fi
 
         # Install the service to start on boot
@@ -813,11 +813,11 @@ install_package() {
           rmitab bpcollector
         else
           # shellcheck disable=SC2016
-          mkitab 'bpcollector:23456789:respawn:startsrc -s bindplane-otel-collector -a start -e "$(cat /etc/bindplane-otel-collector.aix.env)"'
+          mkitab 'bpcollector:23456789:respawn:startsrc -g bpcollector -e "$(cat /etc/bindplane-otel-collector.aix.env)"'
         fi
 
         # Start the service with the proper environment variables
-        startsrc -s bindplane-otel-collector -a start -e "$(cat /etc/bindplane-otel-collector.aix.env)"
+        startsrc -g bpcollector -e "$(cat /etc/bindplane-otel-collector.aix.env)"
 
         succeeded
         ;;
@@ -952,7 +952,7 @@ display_results() {
     info "Supervisor Stop Command:       $(fg_cyan "sudo service bindplane-otel-collector stop")$(reset)"
     info "Supervisor Status Command:     $(fg_cyan "sudo service bindplane-otel-collector status")$(reset)"
   elif [ "$SVC_PRE" = "mkssys" ]; then
-    info "Supervisor Start Command:      $(fg_cyan "sudo startsrc -s bindplane-otel-collector -a start -e \"\$(cat /etc/bindplane-otel-collector.env)\"")$(reset)"
+    info "Supervisor Start Command:      $(fg_cyan "sudo startsrc -s bindplane-otel-collector -e \"\$(cat /etc/bindplane-otel-collector.env)\"")$(reset)"
     info "Supervisor Stop Command:       $(fg_cyan "sudo stopsrc -s bindplane-otel-collector")$(reset)"
     info "Supervisor Status Command:     $(fg_cyan "sudo lssrc -s bindplane-otel-collector")$(reset)"
   fi
