@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
@@ -32,8 +33,8 @@ func TestFactoryCreateDefaultConfig(t *testing.T) {
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig()
 
-	assert.Equal(t, Type, factory.Type())
-	assert.Equal(t, "awss3event", Type.String())
+	assert.Equal(t, metadata.Type, factory.Type())
+	assert.Equal(t, "awss3event", metadata.Type.String())
 	assert.NotNil(t, cfg)
 
 	assert.NoError(t, componenttest.CheckConfigStruct(cfg))
@@ -59,7 +60,7 @@ func TestFactoryCreateReceivers(t *testing.T) {
 
 	// Create settings
 	params := receiver.Settings{
-		ID:                component.NewID(Type),
+		ID:                component.NewID(metadata.Type),
 		TelemetrySettings: componenttest.NewNopTelemetrySettings(),
 	}
 
@@ -84,7 +85,7 @@ func TestFactoryCreateReceiverErrors(t *testing.T) {
 
 	// Create settings
 	params := receiver.Settings{
-		ID:                component.NewID(Type),
+		ID:                component.NewID(metadata.Type),
 		TelemetrySettings: componenttest.NewNopTelemetrySettings(),
 	}
 

@@ -18,4 +18,6 @@
 // The receiver polls an SQS queue for S3 event notifications. When an object creation
 // event is received, the receiver downloads the S3 object and processes it as OTLP data
 // (metrics, logs, or traces).
+//go:generate mdatagen metadata.yaml
+
 package awss3eventreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"

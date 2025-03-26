@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"
@@ -31,9 +32,9 @@ var errImproperCfgType = errors.New("improper config type")
 // NewFactory creates a new receiver factory
 func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
-		Type,
+		metadata.Type,
 		createDefaultConfig,
-		receiver.WithLogs(createLogsReceiver, component.StabilityLevelDevelopment),
+		receiver.WithLogs(createLogsReceiver, metadata.LogsStability),
 	)
 }
 

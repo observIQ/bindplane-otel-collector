@@ -21,9 +21,8 @@ The AWS S3 Event Receiver consumes S3 event notifications for object creation ev
 | polling_backoff_factor | float    | 2     | `false`  | The factor by which the polling interval is multiplied after an unsuccessful poll |
 | workers                | int      | 5     | `false`  | The number of workers to process messages in parallel |
 | visibility_timeout     | duration | 300s  | `false`  | The visibility timeout for SQS messages |
-| api_max_messages       | int    | 10      | `false`  | The maximum number of messages to retrieve in a single SQS poll |
-| delete_after_processing | bool   | true    | `false`  | Whether to delete SQS messages after processing |
-| preserve_s3_objects    | bool   | false   | `false`  | Whether to preserve S3 objects after processing |
+| max_log_size           | int      | 1048576  | `false`  | The maximum size of a log record in bytes |
+| max_logs_emitted       | int      | 1000  | `false`  | The maximum number of log records to emit |
 
 ## AWS Setup
 

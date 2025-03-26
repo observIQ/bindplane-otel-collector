@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
@@ -47,12 +48,12 @@ func TestLoadConfig(t *testing.T) {
 		expectError bool
 	}{
 		{
-			id:          component.NewID(Type),
+			id:          component.NewID(metadata.Type),
 			expected:    createDefaultConfig(),
 			expectError: true, // Default config doesn't have required fields
 		},
 		{
-			id: component.NewIDWithName(Type, "custom"),
+			id: component.NewIDWithName(metadata.Type, "custom"),
 			expected: &Config{
 				SQSQueueURL:          "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
 				StandardPollInterval: 30 * time.Second,

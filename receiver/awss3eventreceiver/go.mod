@@ -10,6 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.25.12
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.47.3
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.29.3
+	github.com/google/go-cmp v0.6.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v0.120.0
 	go.opentelemetry.io/collector/component/componenttest v0.120.0
@@ -19,6 +20,7 @@ require (
 	go.opentelemetry.io/collector/pdata v1.26.0
 	go.opentelemetry.io/collector/receiver v0.120.0
 	go.opentelemetry.io/collector/receiver/receivertest v0.120.0
+	go.uber.org/goleak v1.3.0
 	go.uber.org/zap v1.27.0
 )
 
