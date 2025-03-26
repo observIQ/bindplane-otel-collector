@@ -90,24 +90,22 @@ func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings, tel
 }
 
 func (m *protoMarshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]*api.BatchCreateLogsRequest, error) {
-	rawLogs, namespace, ingestionLabels, err := m.extractRawLogs(ctx, ld)
+	logGrouper, err := m.extractRawLogs(ctx, ld)
 	if err != nil {
 		return nil, fmt.Errorf("extract raw logs: %w", err)
 	}
-	return m.constructPayloads(rawLogs, namespace, ingestionLabels), nil
+	return m.constructPayloads(logGrouper), nil
 }
 
-func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (map[string][]*api.LogEntry, map[string]string, map[string][]*api.Label, error) {
-	entries := make(map[string][]*api.LogEntry)
-	namespaceMap := make(map[string]string)
-	ingestionLabelsMap := make(map[string][]*api.Label)
-
+func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (*logGrouper, error) {
+	logGrouper := newLogGrouper()
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		resourceLog := ld.ResourceLogs().At(i)
 		for j := 0; j < resourceLog.ScopeLogs().Len(); j++ {
 			scopeLog := resourceLog.ScopeLogs().At(j)
 			for k := 0; k < scopeLog.LogRecords().Len(); k++ {
 				logRecord := scopeLog.LogRecords().At(k)
+
 				rawLog, logType, namespace, ingestionLabels, err := m.processLogRecord(ctx, logRecord, scopeLog, resourceLog)
 
 				if err != nil {
@@ -132,34 +130,12 @@ func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (map[
 					CollectionTime: timestamppb.New(logRecord.ObservedTimestamp().AsTime()),
 					Data:           []byte(rawLog),
 				}
-				entries[logType] = append(entries[logType], entry)
-				// each logType maps to exactly 1 namespace value
-				if namespace != "" {
-					if _, ok := namespaceMap[logType]; !ok {
-						namespaceMap[logType] = namespace
-					}
-				}
-				if len(ingestionLabels) > 0 {
-					// each logType maps to a list of ingestion labels
-					if _, exists := ingestionLabelsMap[logType]; !exists {
-						ingestionLabelsMap[logType] = make([]*api.Label, 0)
-					}
-					existingLabels := make(map[string]struct{})
-					for _, label := range ingestionLabelsMap[logType] {
-						existingLabels[label.Key] = struct{}{}
-					}
-					for _, label := range ingestionLabels {
-						// only add to ingestionLabelsMap if the label is unique
-						if _, ok := existingLabels[label.Key]; !ok {
-							ingestionLabelsMap[logType] = append(ingestionLabelsMap[logType], label)
-							existingLabels[label.Key] = struct{}{}
-						}
-					}
-				}
+				logGrouper.Add(entry, namespace, logType, ingestionLabels)
 			}
 		}
 	}
-	return entries, namespaceMap, ingestionLabelsMap, nil
+
+	return logGrouper, nil
 }
 
 func (m *protoMarshaler) processLogRecord(ctx context.Context, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, string, string, []*api.Label, error) {
@@ -421,28 +397,24 @@ func (m *protoMarshaler) getHTTPRawNestedFields(field string, logRecord plog.Log
 	return nestedFields, nil
 }
 
-func (m *protoMarshaler) constructPayloads(rawLogs map[string][]*api.LogEntry, namespaceMap map[string]string, ingestionLabelsMap map[string][]*api.Label) []*api.BatchCreateLogsRequest {
-	payloads := make([]*api.BatchCreateLogsRequest, 0, len(rawLogs))
+func (m *protoMarshaler) constructPayloads(logGrouper *logGrouper) []*api.BatchCreateLogsRequest {
+	payloads := make([]*api.BatchCreateLogsRequest, 0, len(logGrouper.groups))
 
 	metricCtx := context.Background()
 
-	for logType, entries := range rawLogs {
-		if len(entries) > 0 {
-			namespace, ok := namespaceMap[logType]
-			if !ok {
-				namespace = m.cfg.Namespace
-			}
-			ingestionLabels := ingestionLabelsMap[logType]
-
-			request := m.buildGRPCRequest(entries, logType, namespace, ingestionLabels)
-
-			payloads = append(payloads, m.enforceMaximumsGRPCRequest(request)...)
-			for _, payload := range payloads {
-				m.telemetry.ExporterBatchSize.Record(metricCtx, int64(len(payload.Batch.Entries)))
-				m.telemetry.ExporterPayloadSize.Record(metricCtx, int64(proto.Size(payload)))
-			}
+	logGrouper.ForEach(func(entries []*api.LogEntry, namespace, logType string, ingestionLabels []*api.Label) {
+		if namespace == "" {
+			namespace = m.cfg.Namespace
 		}
-	}
+
+		request := m.buildGRPCRequest(entries, logType, namespace, ingestionLabels)
+
+		payloads = append(payloads, m.enforceMaximumsGRPCRequest(request)...)
+		for _, payload := range payloads {
+			m.telemetry.ExporterBatchSize.Record(metricCtx, int64(len(payload.Batch.Entries)))
+			m.telemetry.ExporterPayloadSize.Record(metricCtx, int64(proto.Size(payload)))
+		}
+	})
 	return payloads
 }
 
