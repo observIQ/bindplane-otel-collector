@@ -31,8 +31,8 @@ func TestConfig_Validate(t *testing.T) {
 			desc: "valid config",
 			cfg: &Config{
 				BucketName:   "test-bucket",
-				StartingTime: "2024-01-01T00:00:00Z",
-				EndingTime:   "2024-01-02T00:00:00Z",
+				StartingTime: "2024-01-01T00:00",
+				EndingTime:   "2024-01-01T00:01",
 				BatchSize:    30,
 				DeleteOnRead: false,
 			},
@@ -41,8 +41,8 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			desc: "missing bucket name",
 			cfg: &Config{
-				StartingTime: "2024-01-01T00:00:00Z",
-				EndingTime:   "2024-01-02T00:00:00Z",
+				StartingTime: "2024-01-01T00:00",
+				EndingTime:   "2024-01-02T00:00",
 				BatchSize:    30,
 			},
 			expectErr: errors.New("bucket_name is required"),
@@ -51,7 +51,7 @@ func TestConfig_Validate(t *testing.T) {
 			desc: "missing starting time",
 			cfg: &Config{
 				BucketName: "test-bucket",
-				EndingTime: "2024-01-02T00:00:00Z",
+				EndingTime: "2024-01-02T00:00",
 				BatchSize:  30,
 			},
 			expectErr: errors.New("starting_time is invalid: missing value"),
@@ -61,7 +61,7 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: &Config{
 				BucketName:   "test-bucket",
 				StartingTime: "invalid",
-				EndingTime:   "2024-01-02T00:00:00Z",
+				EndingTime:   "2024-01-02T00:00",
 				BatchSize:    30,
 			},
 			expectErr: errors.New("starting_time is invalid: invalid timestamp format must be in the form YYYY-MM-DDTHH:MM"),
@@ -70,7 +70,7 @@ func TestConfig_Validate(t *testing.T) {
 			desc: "missing ending time",
 			cfg: &Config{
 				BucketName:   "test-bucket",
-				StartingTime: "2024-01-01T00:00:00Z",
+				StartingTime: "2024-01-01T00:00",
 				BatchSize:    30,
 			},
 			expectErr: errors.New("ending_time is invalid: missing value"),
@@ -79,7 +79,7 @@ func TestConfig_Validate(t *testing.T) {
 			desc: "invalid ending time",
 			cfg: &Config{
 				BucketName:   "test-bucket",
-				StartingTime: "2024-01-01T00:00:00Z",
+				StartingTime: "2024-01-01T00:00",
 				EndingTime:   "invalid",
 				BatchSize:    30,
 			},
@@ -89,8 +89,8 @@ func TestConfig_Validate(t *testing.T) {
 			desc: "ending time before starting time",
 			cfg: &Config{
 				BucketName:   "test-bucket",
-				StartingTime: "2024-01-02T00:00:00Z",
-				EndingTime:   "2024-01-01T00:00:00Z",
+				StartingTime: "2024-01-02T00:00",
+				EndingTime:   "2024-01-01T00:00",
 				BatchSize:    30,
 			},
 			expectErr: errors.New("ending_time must be at least one minute after starting_time"),
@@ -99,8 +99,8 @@ func TestConfig_Validate(t *testing.T) {
 			desc: "ending time too close to starting time",
 			cfg: &Config{
 				BucketName:   "test-bucket",
-				StartingTime: "2024-01-01T00:00:00Z",
-				EndingTime:   "2024-01-01T00:00:30Z",
+				StartingTime: "2024-01-01T00:00",
+				EndingTime:   "2024-01-01T00:00",
 				BatchSize:    30,
 			},
 			expectErr: errors.New("ending_time must be at least one minute after starting_time"),
@@ -109,8 +109,8 @@ func TestConfig_Validate(t *testing.T) {
 			desc: "invalid batch size",
 			cfg: &Config{
 				BucketName:   "test-bucket",
-				StartingTime: "2024-01-01T00:00:00Z",
-				EndingTime:   "2024-01-02T00:00:00Z",
+				StartingTime: "2024-01-01T00:00",
+				EndingTime:   "2024-01-02T00:00",
 				BatchSize:    0,
 			},
 			expectErr: errors.New("batch_size must be greater than 0"),
