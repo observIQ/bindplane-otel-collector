@@ -3,7 +3,7 @@ type: s3event
 status:
   class: receiver
   stability:
-    development: [logs]
+    alpha: [logs]
 
 tests:
   config:
