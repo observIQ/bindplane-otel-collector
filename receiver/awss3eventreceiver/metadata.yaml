@@ -5,6 +5,10 @@ status:
   stability:
     development: [logs]
 
+tests:
+  config:
+    sqs_queue_url: "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
+
 resource_attributes:
   aws.s3.bucket:
     description: The name of the S3 bucket containing the processed object

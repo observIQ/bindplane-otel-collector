@@ -34,7 +34,7 @@ func TestFactoryCreateDefaultConfig(t *testing.T) {
 	cfg := factory.CreateDefaultConfig()
 
 	assert.Equal(t, metadata.Type, factory.Type())
-	assert.Equal(t, "awss3event", metadata.Type.String())
+	assert.Equal(t, "s3event", metadata.Type.String())
 	assert.NotNil(t, cfg)
 
 	assert.NoError(t, componenttest.CheckConfigStruct(cfg))

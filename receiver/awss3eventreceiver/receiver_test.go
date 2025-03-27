@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/receiver/receivertest"
@@ -33,8 +34,10 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/fake"
 )
 
+var typ = component.MustNewType("s3event")
+
 func TestNewS3EventReceiver(t *testing.T) {
-	set := receivertest.NewNopSettings()
+	set := receivertest.NewNopSettings(typ)
 	f := rcvr.NewFactory()
 	cfg := f.CreateDefaultConfig().(*rcvr.Config)
 	cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
@@ -46,7 +49,7 @@ func TestNewS3EventReceiver(t *testing.T) {
 }
 
 func TestNewS3EventReceiverValidationError(t *testing.T) {
-	set := receivertest.NewNopSettings()
+	set := receivertest.NewNopSettings(typ)
 	f := rcvr.NewFactory()
 	cfg := f.CreateDefaultConfig().(*rcvr.Config)
 	cfg.SQSQueueURL = "https://invalid-url"
@@ -59,7 +62,7 @@ func TestNewS3EventReceiverValidationError(t *testing.T) {
 }
 
 func TestRegionExtractionFromSQSURL(t *testing.T) {
-	set := receivertest.NewNopSettings()
+	set := receivertest.NewNopSettings(typ)
 	f := rcvr.NewFactory()
 
 	t.Run("valid SQS URL", func(t *testing.T) {
@@ -94,7 +97,7 @@ func TestStartShutdown(t *testing.T) {
 	defer fake.SetFakeConstructorForTest(t)()
 
 	ctx := context.Background()
-	set := receivertest.NewNopSettings()
+	set := receivertest.NewNopSettings(typ)
 	f := rcvr.NewFactory()
 	cfg := f.CreateDefaultConfig().(*rcvr.Config)
 	cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
@@ -203,7 +206,7 @@ func TestReceiver(t *testing.T) {
 				fakeAWS.CreateObjects(t, objectSet)
 			}
 
-			set := receivertest.NewNopSettings()
+			set := receivertest.NewNopSettings(typ)
 			f := rcvr.NewFactory()
 			cfg := f.CreateDefaultConfig().(*rcvr.Config)
 			cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
@@ -269,7 +272,7 @@ func TestManyObjects(t *testing.T) {
 
 	fakeAWS.CreateObjects(t, objects)
 
-	set := receivertest.NewNopSettings()
+	set := receivertest.NewNopSettings(typ)
 	f := rcvr.NewFactory()
 	cfg := f.CreateDefaultConfig().(*rcvr.Config)
 	cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"

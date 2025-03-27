@@ -129,9 +129,15 @@ func (r *logsReceiver) runWorker(ctx context.Context) {
 
 func (r *logsReceiver) Shutdown(context.Context) error {
 	r.stopOnce.Do(func() {
-		r.pollCancel()
-		<-r.pollDone
-		close(r.msgChan)
+		if r.pollCancel != nil {
+			r.pollCancel()
+		}
+		if r.pollDone != nil {
+			<-r.pollDone
+		}
+		if r.msgChan != nil {
+			close(r.msgChan)
+		}
 		r.workerWg.Wait()
 	})
 	return nil

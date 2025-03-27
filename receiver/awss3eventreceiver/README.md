@@ -39,7 +39,7 @@ To use this receiver, you need to:
 
 ```yaml
 receivers:
-  awss3event:
+  s3event:
     sqs_queue_url: https://sqs.us-west-2.amazonaws.com/123456789012/my-queue
 
 exporters:
@@ -49,6 +49,6 @@ exporters:
 service:
   pipelines:
     logs:
-      receivers: [awss3event]
+      receivers: [s3event]
       exporters: [otlp]
 ```

@@ -1,8 +1,8 @@
 receivers:
-  awss3event:
+  s3event:
     # This is intentionally empty to test the default config validation
 
-  awss3event/custom:
+  s3event/custom:
     sqs_queue_url: "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
     standard_poll_interval: 30s
     max_poll_interval: 60s
