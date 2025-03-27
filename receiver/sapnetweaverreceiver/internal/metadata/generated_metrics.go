@@ -14,7 +14,7 @@ import (
 	"go.opentelemetry.io/collector/receiver"
 )
 
-// AttributeControlState specifies the a value control_state attribute.
+// AttributeControlState specifies the value control_state attribute.
 type AttributeControlState int
 
 const (
@@ -48,7 +48,7 @@ var MapAttributeControlState = map[string]AttributeControlState{
 	"red":    AttributeControlStateRed,
 }
 
-// AttributeResponseType specifies the a value response_type attribute.
+// AttributeResponseType specifies the value response_type attribute.
 type AttributeResponseType int
 
 const (
@@ -2098,7 +2098,6 @@ func WithStartTime(startTime pcommon.Timestamp) MetricBuilderOption {
 		mb.startTime = startTime
 	})
 }
-
 func NewMetricsBuilder(mbc MetricsBuilderConfig, settings receiver.Settings, options ...MetricBuilderOption) *MetricsBuilder {
 	mb := &MetricsBuilder{
 		config:                                        mbc,
@@ -2230,7 +2229,7 @@ func WithStartTimeOverride(start pcommon.Timestamp) ResourceMetricsOption {
 func (mb *MetricsBuilder) EmitForResource(options ...ResourceMetricsOption) {
 	rm := pmetric.NewResourceMetrics()
 	ils := rm.ScopeMetrics().AppendEmpty()
-	ils.Scope().SetName("github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver")
+	ils.Scope().SetName(ScopeName)
 	ils.Scope().SetVersion(mb.buildInfo.Version)
 	ils.Metrics().EnsureCapacity(mb.metricsCapacity)
 	mb.metricSapnetweaverAbapUpdateStatus.emit(ils.Metrics())

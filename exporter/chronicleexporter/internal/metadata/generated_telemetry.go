@@ -4,21 +4,16 @@ package metadata
 
 import (
 	"errors"
+	"sync"
 
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config/configtelemetry"
 )
 
-// Deprecated: [v0.108.0] use LeveledMeter instead.
 func Meter(settings component.TelemetrySettings) metric.Meter {
 	return settings.MeterProvider.Meter("github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter")
-}
-
-func LeveledMeter(settings component.TelemetrySettings, level configtelemetry.Level) metric.Meter {
-	return settings.LeveledMeterProvider(level).Meter("github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter")
 }
 
 func Tracer(settings component.TelemetrySettings) trace.Tracer {
@@ -29,10 +24,11 @@ func Tracer(settings component.TelemetrySettings) trace.Tracer {
 // as defined in metadata and user config.
 type TelemetryBuilder struct {
 	meter                  metric.Meter
+	mu                     sync.Mutex
+	registrations          []metric.Registration
 	ExporterBatchSize      metric.Int64Histogram
 	ExporterPayloadSize    metric.Int64Histogram
 	ExporterRequestLatency metric.Int64Histogram
-	meters                 map[configtelemetry.Level]metric.Meter
 }
 
 // TelemetryBuilderOption applies changes to default builder.
@@ -46,30 +42,39 @@ func (tbof telemetryBuilderOptionFunc) apply(mb *TelemetryBuilder) {
 	tbof(mb)
 }
 
+// Shutdown unregister all registered callbacks for async instruments.
+func (builder *TelemetryBuilder) Shutdown() {
+	builder.mu.Lock()
+	defer builder.mu.Unlock()
+	for _, reg := range builder.registrations {
+		reg.Unregister()
+	}
+}
+
 // NewTelemetryBuilder provides a struct with methods to update all internal telemetry
 // for a component
 func NewTelemetryBuilder(settings component.TelemetrySettings, options ...TelemetryBuilderOption) (*TelemetryBuilder, error) {
-	builder := TelemetryBuilder{meters: map[configtelemetry.Level]metric.Meter{}}
+	builder := TelemetryBuilder{}
 	for _, op := range options {
 		op.apply(&builder)
 	}
-	builder.meters[configtelemetry.LevelBasic] = LeveledMeter(settings, configtelemetry.LevelBasic)
+	builder.meter = Meter(settings)
 	var err, errs error
-	builder.ExporterBatchSize, err = builder.meters[configtelemetry.LevelBasic].Int64Histogram(
+	builder.ExporterBatchSize, err = builder.meter.Int64Histogram(
 		"otelcol_exporter_batch_size",
 		metric.WithDescription("The number of logs in a batch."),
 		metric.WithUnit("{logs}"),
 		metric.WithExplicitBucketBoundaries([]float64{1, 100, 250, 500, 750, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 20000, 30000, 40000, 50000}...),
 	)
 	errs = errors.Join(errs, err)
-	builder.ExporterPayloadSize, err = builder.meters[configtelemetry.LevelBasic].Int64Histogram(
+	builder.ExporterPayloadSize, err = builder.meter.Int64Histogram(
 		"otelcol_exporter_payload_size",
 		metric.WithDescription("The size of the payload in bytes."),
 		metric.WithUnit("B"),
 		metric.WithExplicitBucketBoundaries([]float64{100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1e+06, 2e+06, 3e+06, 4e+06, 5e+06}...),
 	)
 	errs = errors.Join(errs, err)
-	builder.ExporterRequestLatency, err = builder.meters[configtelemetry.LevelBasic].Int64Histogram(
+	builder.ExporterRequestLatency, err = builder.meter.Int64Histogram(
 		"otelcol_exporter_request_latency",
 		metric.WithDescription("The latency of the request in milliseconds."),
 		metric.WithUnit("ms"),
