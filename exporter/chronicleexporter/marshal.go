@@ -243,12 +243,17 @@ func (m *protoMarshaler) getIngestionLabels(logRecord plog.LogRecord) ([]*api.La
 		return []*api.Label{}, fmt.Errorf("get chronicle ingestion labels: %w", err)
 	}
 
-	if len(ingestionLabels) != 0 {
-		return ingestionLabels, nil
-	}
-	// use labels defined in config if needed
+	// merge in labels defined in config, using the labels defined in the log record if they exist
 	configLabels := make([]*api.Label, 0)
 	for key, value := range m.cfg.IngestionLabels {
+		if _, exists := ingestionLabels[key]; !exists {
+			configLabels = append(configLabels, &api.Label{
+				Key:   key,
+				Value: value,
+			})
+		}
+	}
+	for key, value := range ingestionLabels {
 		configLabels = append(configLabels, &api.Label{
 			Key:   key,
 			Value: value,
@@ -346,8 +351,8 @@ func (m *protoMarshaler) getRawField(ctx context.Context, field string, logRecor
 	}
 }
 
-func (m *protoMarshaler) getRawNestedFields(field string, logRecord plog.LogRecord) ([]*api.Label, error) {
-	var nestedFields []*api.Label
+func (m *protoMarshaler) getRawNestedFields(field string, logRecord plog.LogRecord) (map[string]string, error) {
+	nestedFields := make(map[string]string)
 	logRecord.Attributes().Range(func(key string, value pcommon.Value) bool {
 		if !strings.HasPrefix(key, field) {
 			return true
@@ -359,10 +364,10 @@ func (m *protoMarshaler) getRawNestedFields(field string, logRecord plog.LogReco
 		// If needs to be parsed as JSON
 		if err := json.Unmarshal([]byte(value.AsString()), &jsonMap); err == nil {
 			for k, v := range jsonMap {
-				nestedFields = append(nestedFields, &api.Label{Key: k, Value: v})
+				nestedFields[k] = v
 			}
 		} else {
-			nestedFields = append(nestedFields, &api.Label{Key: cleanKey, Value: value.AsString()})
+			nestedFields[cleanKey] = value.AsString()
 		}
 		return true
 	})
