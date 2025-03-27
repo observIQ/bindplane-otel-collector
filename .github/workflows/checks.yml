@@ -4,6 +4,7 @@ on:
 
 jobs:
   setup-tools:
+    if: github.actor != 'dependabot[bot]'
     runs-on: "ubuntu-24.04"
     steps:
       - name: Checkout Sources
@@ -23,6 +24,7 @@ jobs:
         run: make install-tools
 
   check-fmt:
+    if: github.actor != 'dependabot[bot]'
     runs-on: "ubuntu-24.04"
     needs:
       - setup-tools
@@ -46,6 +48,7 @@ jobs:
         run: make check-fmt
 
   check-license:
+    if: github.actor != 'dependabot[bot]'
     runs-on: "ubuntu-24.04"
     needs:
       - setup-tools
@@ -69,6 +72,7 @@ jobs:
         run: make check-license
 
   gosec:
+    if: github.actor != 'dependabot[bot]'
     runs-on: "ubuntu-24.04"
     needs:
       - setup-tools
@@ -92,6 +96,7 @@ jobs:
         run: make gosec
 
   misspell:
+    if: github.actor != 'dependabot[bot]'
     runs-on: "ubuntu-24.04"
     needs:
       - setup-tools
@@ -115,6 +120,7 @@ jobs:
         run: make misspell
 
   lint:
+    if: github.actor != 'dependabot[bot]'
     runs-on: "ubuntu-24.04"
     needs:
       - setup-tools
@@ -139,6 +145,7 @@ jobs:
 
   # Below checks don't need to run `make install-tools`
   check-plugin-docs:
+    if: github.actor != 'dependabot[bot]'
     runs-on: "ubuntu-24.04"
     steps:
       - name: Checkout Sources
