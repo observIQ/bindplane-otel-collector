@@ -772,6 +772,44 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 
 			},
 		},
+		{
+			name: "Destination ingestion labels are merged with config ingestion labels",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "WINEVTLOG",
+				RawLogField:     "body",
+				OverrideLogType: false,
+				IngestionLabels: map[string]string{
+					"key1": "value3",
+					"key2": "value4",
+					"key3": "value5",
+				},
+				BatchRequestSizeLimitGRPC: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				record1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record1.Body().SetStr("First log message")
+				record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				return logs
+			},
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				require.Len(t, requests, 1)
+				batch := requests[0].Batch
+				require.Equal(t, "WINEVTLOGS1", batch.LogType)
+				require.Equal(t, "test1", batch.Source.Namespace)
+				require.Len(t, batch.Entries, 1)
+				require.Equal(t, "First log message", string(batch.Entries[0].Data))
+				expectedLabels := map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+					"key3": "value5",
+				}
+				for _, label := range batch.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
