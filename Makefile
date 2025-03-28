@@ -168,7 +168,7 @@ tidy:
 
 .PHONY: gosec
 gosec:
-	cd exporter; $(MAKE) -f "../Makefile" for-all CMD="gosec ./... -exclude-dir=exporter/chronicleexporter/internal/metadata"
+	cd exporter; $(MAKE) -f "../Makefile" for-all CMD="gosec --exclude-dir=internal/metadata ./..."
 	cd processor; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
 	cd internal; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
 	cd extension; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
