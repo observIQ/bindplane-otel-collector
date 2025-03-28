@@ -13,8 +13,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.21"
-          check-latest: true
+          go-version: 1.23.6
       - name: Install Tools
         run: make install-tools
       # Needed until supervisor binary is released
@@ -79,8 +78,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
-          check-latest: true
+          go-version: 1.23.6
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v2

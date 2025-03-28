@@ -41,8 +41,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.21"
-          check-latest: true
+          go-version: 1.23.6
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
