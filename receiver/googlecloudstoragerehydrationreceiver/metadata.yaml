@@ -1,0 +1,11 @@
+type: googlecloudstoragerehydration
+
+status:
+  class: receiver
+  stability:
+    alpha: [metrics, logs, traces]
+  distributions: [observiq]
+
+tests:
+  skip_lifecycle: true
+  skip_shutdown: true
