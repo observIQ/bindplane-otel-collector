@@ -22,7 +22,7 @@ The AWS S3 Event Receiver consumes S3 event notifications for object creation ev
 | workers                | int      | 5     | `false`  | The number of workers to process messages in parallel |
 | visibility_timeout     | duration | 300s  | `false`  | The visibility timeout for SQS messages |
 | max_log_size           | int      | 1048576  | `false`  | The maximum size of a log record in bytes. Logs exceeding this size will be split |
-| max_logs_emitted       | int      | 1000  | `false`  | The maximum number of log records to emit in a single batch |
+| max_logs_emitted       | int      | 1000  | `false`  | The maximum number of log records to emit in a single batch. A higher number will result in fewer batches, but more memory |
 
 ## AWS Setup
 
