@@ -83,7 +83,7 @@ func NewStorageClient(cfg *Config) (StorageClient, error) {
 		}
 	default:
 		// Find application default credentials from the environment
-		creds, err := google.FindDefaultCredentials(ctx, storage.ScopeReadOnly)
+		creds, err := google.FindDefaultCredentials(ctx, storage.ScopeFullControl)
 		if err != nil {
 			return nil, fmt.Errorf("find default credentials: %w", err)
 		}
