@@ -261,7 +261,7 @@ func (ctmr *ResettableThroughputMeasurementsRegistry) OTLPMeasurements(extraAttr
 	ctmr.measurements.Range(func(_, value any) bool {
 		tm := value.(*ThroughputMeasurements)
 		// Only include metrics collected after the last report time
-		if tm.LastCollectionTime().After(ctmr.lastReportTime) {
+		if !tm.LastCollectionTime().Before(ctmr.lastReportTime) {
 			OTLPThroughputMeasurements(tm, ctmr.emitCountMetrics, extraAttributes).MoveAndAppendTo(sm.Metrics())
 		}
 		return true

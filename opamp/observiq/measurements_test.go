@@ -174,9 +174,6 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		// Add new metrics
 		tm.AddMetrics(context.Background(), m)
 
-		// Wait for the metrics to be collected
-		time.Sleep(200 * time.Millisecond)
-
 		// Third call should only include the new metrics
 		metrics = reg.OTLPMeasurements(nil)
 		expectedMetrics, err = golden.ReadMetrics(filepath.Join("testdata", "metrics", "expected-throughput-doubled.yaml"))
