@@ -143,3 +143,45 @@ func TestMeasurementsSender(t *testing.T) {
 		ms.Stop()
 	})
 }
+
+func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
+	t.Run("Test OTLPMeasurements only reports new metrics", func(t *testing.T) {
+		mp := metric.NewMeterProvider()
+		defer mp.Shutdown(context.Background())
+
+		processorID := "throughputmeasurement/1"
+		tm, err := measurements.NewThroughputMeasurements(mp, processorID, map[string]string{})
+		require.NoError(t, err)
+
+		// Add initial metrics
+		m, err := golden.ReadMetrics(filepath.Join("testdata", "metrics", "host-metrics.yaml"))
+		require.NoError(t, err)
+		tm.AddMetrics(context.Background(), m)
+
+		reg := measurements.NewResettableThroughputMeasurementsRegistry(false)
+		require.NoError(t, reg.RegisterThroughputMeasurements(processorID, tm))
+
+		// First call should include all metrics
+		metrics := reg.OTLPMeasurements(nil)
+		expectedMetrics, err := golden.ReadMetrics(filepath.Join("testdata", "metrics", "expected-throughput.yaml"))
+		require.NoError(t, err)
+		require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, metrics, pmetrictest.IgnoreTimestamp()))
+
+		// Second call with no new metrics should return empty metrics
+		metrics = reg.OTLPMeasurements(nil)
+		require.Equal(t, 0, metrics.DataPointCount())
+
+		// Add new metrics
+		tm.AddMetrics(context.Background(), m)
+
+		// Third call should only include the new metrics
+		metrics = reg.OTLPMeasurements(nil)
+		expectedMetrics, err = golden.ReadMetrics(filepath.Join("testdata", "metrics", "expected-throughput-doubled.yaml"))
+		require.NoError(t, err)
+		require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, metrics, pmetrictest.IgnoreTimestamp()))
+
+		// Fourth call with no new metrics should return empty metrics
+		metrics = reg.OTLPMeasurements(nil)
+		require.Equal(t, 0, metrics.DataPointCount())
+	})
+}
