@@ -256,17 +256,23 @@ func (ctmr *ResettableThroughputMeasurementsRegistry) OTLPMeasurements(extraAttr
 	m := pmetric.NewMetrics()
 	rm := m.ResourceMetrics().AppendEmpty()
 	sm := rm.ScopeMetrics().AppendEmpty()
-	maxSequenceNumber := ctmr.lastReportedSequence.Load()
+	lastReportedSequence := ctmr.lastReportedSequence.Load()
+	maxSequenceNumber := lastReportedSequence
+	defer func() {
+		ctmr.lastReportedSequence.Store(maxSequenceNumber)
+	}()
 	ctmr.measurements.Range(func(_, value any) bool {
 		tm := value.(*ThroughputMeasurements)
 		// Only include metrics collected after the last reported sequence
-		if tm.SequenceNumber() > ctmr.lastReportedSequence.Load() {
+		if tm.SequenceNumber() > lastReportedSequence {
+			OTLPThroughputMeasurements(tm, ctmr.emitCountMetrics, extraAttributes).MoveAndAppendTo(sm.Metrics())
+
+			// Update the max sequence number if the current sequence number is greater
+			// This keeps a high water mark of the sequence number that has been reported
 			if tm.SequenceNumber() > maxSequenceNumber {
-				// Update the max sequence number if the current sequence number is greater
-				// This is to ensure that we only include metrics collected after the last reported sequence
 				maxSequenceNumber = tm.SequenceNumber()
 			}
-			OTLPThroughputMeasurements(tm, ctmr.emitCountMetrics, extraAttributes).MoveAndAppendTo(sm.Metrics())
+
 		}
 		return true
 	})
@@ -277,8 +283,6 @@ func (ctmr *ResettableThroughputMeasurementsRegistry) OTLPMeasurements(extraAttr
 		return pmetric.NewMetrics()
 	}
 
-	// Update the last reported sequence to the current sequence
-	ctmr.lastReportedSequence.Store(maxSequenceNumber)
 	return m
 }
 
