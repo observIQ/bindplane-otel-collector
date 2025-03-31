@@ -1,9 +1,8 @@
 module github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver
 
-go 1.23.6
+go 1.23.7
 
 require (
-	github.com/0xrawsec/golang-etw v1.6.2
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.122.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v1.28.1

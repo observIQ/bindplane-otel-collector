@@ -39,6 +39,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.74.0
+	github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver v1.74.0
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/open-telemetry/opamp-go v0.19.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.122.0
@@ -209,7 +210,6 @@ require (
 require (
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.74.0
-	github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver v1.74.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.122.0
@@ -223,8 +223,6 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.7 // indirect
 	cloud.google.com/go/storage v1.50.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/0xrawsec/golang-etw v1.6.2 // indirect
-	github.com/0xrawsec/golang-utils v1.3.2 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.17.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.2 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.10.0 // indirect

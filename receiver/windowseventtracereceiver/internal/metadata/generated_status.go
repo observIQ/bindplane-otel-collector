@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	Type      = component.MustNewType("windowseventtracereceiver")
+	Type      = component.MustNewType("windowseventtrace")
 	ScopeName = "github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver"
 )
 
