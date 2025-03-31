@@ -18,8 +18,6 @@ import (
 	"context"
 	"errors"
 
-	// Temporarily comment out until metadata package is created
-	// "github.com/observiq/bindplane-otel-collector/exporter/microsoftsentinelexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
@@ -33,7 +31,7 @@ func NewFactory() exporter.Factory {
 	return exporter.NewFactory(
 		typeStr,
 		createDefaultConfig,
-		exporter.WithLogs(createLogsExporter, component.StabilityLevelBeta),
+		exporter.WithLogs(createLogsExporter, component.StabilityLevelAlpha),
 	)
 }
 

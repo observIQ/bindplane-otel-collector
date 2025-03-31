@@ -22,22 +22,24 @@ import (
 
 // Config defines the configuration for the Microsoft Sentinel exporter
 type Config struct {
-	// Endpoint is the Microsoft Sentinel Data Collection Endpoint (DCE)
+	// Endpoint is the DCR or DCE ingestion endpoint
 	Endpoint string `mapstructure:"endpoint"`
 
-	// CredentialPath is the path to the Azure credential file
-	CredentialPath string `mapstructure:"credential_path"`
+	// Authenticaton options
+	ClientID string `mapstructure:"client_id"`
+
+	ClientSecret string `mapstructure:"client_secret"`
+
+	TenantID string `mapstructure:"tenant_id"`
 
 	// RuleID is the Data Collection Rule (DCR) ID or immutableId
 	RuleID string `mapstructure:"rule_id"`
 
-	// StreamName is the name of the custom log table in Microsoft Sentinel
+	// StreamName is the name of the custom log table in Log Analytics workspace
 	StreamName string `mapstructure:"stream_name"`
 
-	// TimeoutSettings configures timeout for the exporter
 	TimeoutSettings exporterhelper.TimeoutConfig `mapstructure:",squash"`
 
-	// QueueSettings configures batching
 	QueueSettings exporterhelper.QueueConfig `mapstructure:",squash"`
 }
 
@@ -47,8 +49,16 @@ func (c *Config) Validate() error {
 		return errors.New("endpoint is required")
 	}
 
-	if c.CredentialPath == "" {
-		return errors.New("credential_path is required")
+	if c.ClientID == "" {
+		return errors.New("client id is required")
+	}
+
+	if c.ClientSecret == "" {
+		return errors.New("client secret is required")
+	}
+
+	if c.TenantID == "" {
+		return errors.New("tenant id is required")
 	}
 
 	if c.RuleID == "" {

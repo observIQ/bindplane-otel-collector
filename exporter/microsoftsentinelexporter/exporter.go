@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
@@ -26,7 +25,6 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter"
-	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 )
@@ -45,17 +43,10 @@ func newExporter(cfg *Config, params exporter.Settings) (*microsoftSentinelExpor
 	logger := params.Logger
 
 	// Create Azure credential
-	var cred *azidentity.DefaultAzureCredential
-	var err error
+	cred, err := azidentity.NewClientSecretCredential(cfg.TenantID, cfg.ClientID, cfg.ClientSecret, nil)
 
-	if cfg.CredentialPath != "" {
-		// If credential path is provided, set the environment variable for DefaultAzureCredential
-		os.Setenv("AZURE_AUTH_LOCATION", cfg.CredentialPath)
-	}
-
-	cred, err = azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Azure credential: %w", err)
+		return nil, fmt.Errorf("failed to verify Azure credential: %w", err)
 	}
 
 	// Create Azure logs client
@@ -88,13 +79,12 @@ func (e *microsoftSentinelExporter) logsDataPusher(ctx context.Context, ld plog.
 	e.logger.Debug("Microsoft Sentinel exporter sending logs", zap.Int("count", logsCount))
 
 	// Convert logs to JSON format expected by Sentinel
-	jsonLogs, err := e.logsToJSON(ld)
+	sentinelLogs, err := e.transformLogsToSentinelFormat(ld)
 	if err != nil {
-		return fmt.Errorf("failed to convert logs to JSON: %w", err)
+		return fmt.Errorf("failed to convert logs to Sentinel format: %w", err)
 	}
 
-	// Upload logs to Microsoft Sentinel
-	_, err = e.client.Upload(ctx, e.ruleID, e.streamName, jsonLogs, nil)
+	_, err = e.client.Upload(ctx, e.ruleID, e.streamName, sentinelLogs, nil)
 	if err != nil {
 		return fmt.Errorf("failed to upload logs to Microsoft Sentinel: %w", err)
 	}
@@ -106,64 +96,71 @@ func (e *microsoftSentinelExporter) logsDataPusher(ctx context.Context, ld plog.
 	return nil
 }
 
-// logsToJSON converts OpenTelemetry logs to JSON format for Microsoft Sentinel
-func (e *microsoftSentinelExporter) logsToJSON(ld plog.Logs) ([]byte, error) {
-	logs := make([]map[string]interface{}, 0, ld.LogRecordCount())
+func (e *microsoftSentinelExporter) transformLogsToSentinelFormat(ld plog.Logs) ([]byte, error) {
+	var sentinelLogs []map[string]interface{}
 
-	resourceLogs := ld.ResourceLogs()
-	for i := range resourceLogs.Len() {
-		rl := resourceLogs.At(i)
-		resource := rl.Resource()
+	for i := 0; i < ld.ResourceLogs().Len(); i++ {
+		rl := ld.ResourceLogs().At(i)
 
-		scopeLogs := rl.ScopeLogs()
-		for j := range scopeLogs.Len() {
-			sl := scopeLogs.At(j)
-			scope := sl.Scope()
+		for j := 0; j < rl.ScopeLogs().Len(); j++ {
+			sl := rl.ScopeLogs().At(j)
 
-			logRecords := sl.LogRecords()
-			for k := range logRecords.Len() {
-				lr := logRecords.At(k)
+			for k := 0; k < sl.LogRecords().Len(); k++ {
+				logRecord := sl.LogRecords().At(k)
 
-				// Create a log entry with all necessary fields
-				logEntry := make(map[string]interface{})
+				// Convert the timestamp to RFC3339 format for TimeGenerated
+				timeGenerated := logRecord.Timestamp().AsTime().Format(time.RFC3339)
 
-				// Add standard fields
-				logEntry["timestamp"] = lr.Timestamp().AsTime().Format(time.RFC3339Nano)
-				logEntry["severity"] = lr.SeverityText()
-				logEntry["severityNumber"] = lr.SeverityNumber()
+				// Create a new single-record logs object to hold just this log
+				singleLogRecord := plog.NewLogs()
+				resourceLog := singleLogRecord.ResourceLogs().AppendEmpty()
 
-				if lr.Body().Type() != pcommon.ValueTypeEmpty {
-					logEntry["body"] = lr.Body().AsString()
+				// Copy resource
+				rl.Resource().CopyTo(resourceLog.Resource())
+
+				// Copy scope
+				scopeLog := resourceLog.ScopeLogs().AppendEmpty()
+				sl.Scope().CopyTo(scopeLog.Scope())
+
+				// Copy log record
+				logRecordCopy := scopeLog.LogRecords().AppendEmpty()
+				logRecord.CopyTo(logRecordCopy)
+
+				// Use the JSONMarshaler to convert to JSON
+				marshaler := plog.JSONMarshaler{}
+				logJSON, err := marshaler.MarshalLogs(singleLogRecord)
+				if err != nil {
+					return nil, fmt.Errorf("failed to marshal log to JSON: %w", err)
 				}
 
-				// Add attributes from the log record
-				attrs := make(map[string]interface{})
-				lr.Attributes().Range(func(k string, v pcommon.Value) bool {
-					attrs[k] = v.AsString()
-					return true
-				})
-				logEntry["attributes"] = attrs
-
-				// Add resource information
-				resourceAttrs := make(map[string]interface{})
-				resource.Attributes().Range(func(k string, v pcommon.Value) bool {
-					resourceAttrs[k] = v.AsString()
-					return true
-				})
-				logEntry["resource"] = resourceAttrs
-
-				// Add instrumentation scope information
-				logEntry["instrumentationScope"] = map[string]string{
-					"name":    scope.Name(),
-					"version": scope.Version(),
+				// Unmarshal the JSON to a map so we can access the inner resourceLogs
+				var logMap map[string]interface{}
+				if err := json.Unmarshal(logJSON, &logMap); err != nil {
+					return nil, fmt.Errorf("failed to unmarshal log JSON: %w", err)
 				}
 
-				logs = append(logs, logEntry)
+				// Extract the inner resourceLogs array directly
+				innerResourceLogs, ok := logMap["resourceLogs"]
+				if !ok {
+					return nil, fmt.Errorf("unexpected structure: resourceLogs not found")
+				}
+
+				// Create the Sentinel format with TimeGenerated and the inner resourceLogs
+				sentinelLog := map[string]interface{}{
+					"TimeGenerated": timeGenerated,
+					"resourceLogs":  innerResourceLogs, // Use the inner content directly
+				}
+
+				sentinelLogs = append(sentinelLogs, sentinelLog)
 			}
 		}
 	}
 
-	return json.Marshal(logs)
+	jsonLogs, err := json.Marshal(sentinelLogs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert logs to JSON: %w", err)
+	}
+	return jsonLogs, nil
 }
 
 // Start starts the exporter
