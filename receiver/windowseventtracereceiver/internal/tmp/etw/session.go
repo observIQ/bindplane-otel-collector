@@ -42,27 +42,6 @@ type Session struct {
 	minimalSession *MinimalSession
 }
 
-type eventTraceProperties struct {
-	// Wnode               WnodeHeader
-	BufferSize          uint32
-	MinimumBuffers      uint32
-	MaximumBuffers      uint32
-	MaximumFileSize     uint32
-	LogFileMode         uint32
-	FlushTimer          uint32
-	EnableFlags         uint32
-	AgeLimit            int32
-	NumberOfBuffers     uint32
-	FreeBuffers         uint32
-	EventsLost          uint32
-	BuffersWritten      uint32
-	LogBuffersLost      uint32
-	RealTimeBuffersLost uint32
-	LoggerThreadId      syscall.Handle
-	LogFileNameOffset   uint32
-	LoggerNameOffset    uint32
-}
-
 func sessionBase() *Session {
 	return &Session{
 		name:        "BindplaneOtelCollector",
@@ -133,28 +112,18 @@ func NewRealTimeSession(name string) *Session {
 	return s
 }
 
-func (s *Session) Start() error {
-	// For backward compatibility, remove context parameter
-	return s.StartWithContext(context.Background())
-}
-
-func (s *Session) StartWithContext(ctx context.Context) error {
+func (s *Session) Start(ctx context.Context) error {
 	if s.handle != 0 {
 		return nil // Session already started
 	}
-
-	// DirectSession worked
-	// DirectSession failed, try the MinimalSession implementation
 	fmt.Printf("Debug: Trying MinimalSession implementation...\n")
 	minimalSession, err := CreateMinimalSession(s.name)
 	if err != nil {
-		// Both implementations failed, return both errors
 		return fmt.Errorf("failed to create session: %v", err)
 	}
 
-	// MinimalSession worked
 	s.minimalSession = minimalSession
-	s.handle = 1 // Placeholder handle to indicate session is started
+	s.handle = 1
 
 	fmt.Printf("Debug: Successfully started trace using MinimalSession\n")
 	return nil
@@ -380,7 +349,7 @@ func utf16BufferToString(buffer []byte, offset uint32) string {
 // }
 
 // Stop stops the session
-func (s *Session) Stop() error {
+func (s *Session) Stop(ctx context.Context) error {
 	if s.handle == 0 {
 		// Session not started
 		return nil
@@ -388,7 +357,7 @@ func (s *Session) Stop() error {
 
 	// Use the MinimalSession if it exists
 	if s.minimalSession != nil {
-		err := s.minimalSession.Stop()
+		err := s.minimalSession.Stop(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to stop minimal session: %w", err)
 		}

@@ -18,7 +18,7 @@ var (
 	controlTraceW  = advapi32.NewProc("ControlTraceW")
 	openTraceW     = advapi32.NewProc("OpenTraceW")
 	enableTraceEx2 = advapi32.NewProc("EnableTraceEx2")
-	processTraceW  = advapi32.NewProc("ProcessTraceW")
+	processTraceW  = advapi32.NewProc("ProcessTrace")
 )
 
 /*
@@ -31,18 +31,16 @@ ULONG WMIAPI StartTraceW(
 
 // StartTrace starts a trace session using the StartTraceW function
 func StartTrace(
-	handle *syscall.Handle,
+	handle syscall.Handle,
 	name *uint16,
 	properties *EventTraceProperties) error {
 	r, _, err := startTraceW.Call(
-		uintptr(unsafe.Pointer(handle)),
+		uintptr(unsafe.Pointer(&handle)),
 		uintptr(unsafe.Pointer(name)),
 		uintptr(unsafe.Pointer(properties)),
 	)
 	if r != 0 {
 		errCode := uint32(r)
-
-		// Translate error code
 		switch errCode {
 		case 5:
 			return fmt.Errorf("access denied (code=%d) - try running as Administrator", errCode)
@@ -69,10 +67,10 @@ const (
 
 type WnodeHeader struct {
 	BufferSize    uint32
-	ProviderId    windows.GUID
+	ProviderId    GUID
 	Union1        uint64
 	Union2        int64
-	Guid          windows.GUID
+	Guid          GUID
 	ClientContext uint32
 	Flags         uint32
 }
@@ -513,6 +511,10 @@ func ProcessTrace(handles []syscall.Handle) error {
 		uintptr(unsafe.Pointer(nil)),
 		uintptr(unsafe.Pointer(nil)),
 	)
+
+	fmt.Printf("Debug: ProcessTrace returned: %d\n", r)
+	fmt.Printf("Debug: ProcessTrace error: %v\n", err)
+	fmt.Printf("Debug: ProcessTrace handles: %v\n", handles)
 	if r != 0 {
 		return fmt.Errorf("ProcessTraceW failed: %w", err)
 	}

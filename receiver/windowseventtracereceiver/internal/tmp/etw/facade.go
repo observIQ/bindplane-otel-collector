@@ -3,6 +3,7 @@
 package etw
 
 import (
+	"context"
 	"fmt"
 )
 
@@ -19,7 +20,7 @@ func CreateMinimalSession(sessionName string) (*MinimalSession, error) {
 	// Enable a basic provider
 	if err := session.EnableDummyProvider(); err != nil {
 		// Try to stop the session before returning the error
-		_ = session.Stop()
+		_ = session.Stop(context.Background())
 		return nil, fmt.Errorf("failed to enable provider: %w", err)
 	}
 

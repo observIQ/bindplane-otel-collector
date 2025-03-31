@@ -39,7 +39,7 @@ type logsReceiver struct {
 	cfg       *Config
 	logger    *zap.Logger
 	consumer  consumer.Logs
-	stopFuncs []func() error
+	stopFuncs []func(ctx context.Context) error
 
 	wg       *sync.WaitGroup
 	doneChan chan struct{}
@@ -61,7 +61,7 @@ func (lr *logsReceiver) Start(ctx context.Context, host component.Host) error {
 	lr.logger.Info("Attempting to create standard ETW session", zap.String("session_name", lr.cfg.SessionName))
 	s := portedetw.NewRealTimeSession(lr.cfg.SessionName)
 
-	if err := s.Start(); err != nil {
+	if err := s.Start(ctx); err != nil {
 		lr.logger.Warn("Failed to start standard ETW session, trying minimal session", zap.Error(err))
 
 		// Try the minimal session as a fallback
@@ -83,7 +83,7 @@ func (lr *logsReceiver) Start(ctx context.Context, host component.Host) error {
 		eventConsumer = eventConsumer.FromMinimalSession(minimalSession)
 
 		// Start the consumer to begin receiving events
-		err = eventConsumer.Start()
+		err = eventConsumer.Start(ctx)
 		if err != nil {
 			lr.logger.Error("Failed to start ETW consumer", zap.Error(err))
 			return fmt.Errorf("failed to start ETW consumer: %w", err)
@@ -122,12 +122,12 @@ func (lr *logsReceiver) Start(ctx context.Context, host component.Host) error {
 	eventConsumer = eventConsumer.FromSessions(s)
 
 	// Start the consumer to begin receiving events
-	err := eventConsumer.Start()
+	err := eventConsumer.Start(ctx)
 	if err != nil {
 		lr.logger.Error("Failed to start ETW consumer", zap.Error(err))
 		return fmt.Errorf("failed to start ETW consumer: %w", err)
 	}
-	lr.stopFuncs = append(lr.stopFuncs, eventConsumer.Stop)
+	lr.stopFuncs = append(lr.stopFuncs, func(ctx context.Context) error { return eventConsumer.Stop(ctx) })
 
 	// Start a single goroutine to listen for events
 	lr.wg.Add(1)
@@ -265,7 +265,7 @@ func (lr *logsReceiver) Shutdown(ctx context.Context) error {
 	close(lr.doneChan)
 	lr.wg.Wait()
 	for _, stopFunc := range lr.stopFuncs {
-		if err := stopFunc(); err != nil {
+		if err := stopFunc(ctx); err != nil {
 			lr.logger.Error("Failed to perform clean shutdown", zap.Error(err))
 		}
 	}

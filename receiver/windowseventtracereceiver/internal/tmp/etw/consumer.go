@@ -20,7 +20,6 @@ var (
 // Consumer handles consuming ETW events from sessions
 type Consumer struct {
 	sync.WaitGroup
-	ctx          context.Context
 	cancel       context.CancelFunc
 	traceHandles []syscall.Handle
 	lastError    error
@@ -39,19 +38,19 @@ type Consumer struct {
 }
 
 // NewRealTimeConsumer creates a new Consumer to consume ETW in RealTime mode
-func NewRealTimeConsumer(ctx context.Context) *Consumer {
+func NewRealTimeConsumer(_ context.Context) *Consumer {
 	c := &Consumer{
 		traceHandles: make([]syscall.Handle, 0, 64),
 		Traces:       make(map[string]bool),
 		Events:       make(chan *Event, 4096),
+		WaitGroup:    sync.WaitGroup{},
 	}
-
-	c.ctx, c.cancel = context.WithCancel(ctx)
 	return c
 }
 
 // eventCallback is called for each event
 func (c *Consumer) eventCallback(eventRecord *windows.EventRecord) uintptr {
+	fmt.Printf("Debug: eventCallback called\n")
 	// Parse the event record using our helper function
 	event, err := parseEventRecord(eventRecord)
 	if err != nil {
@@ -85,7 +84,7 @@ func (c *Consumer) FromMinimalSession(session *MinimalSession) *Consumer {
 }
 
 // Start starts consuming events from all registered traces
-func (c *Consumer) Start() error {
+func (c *Consumer) Start(ctx context.Context) error {
 	// Reset state
 	c.traceHandles = make([]syscall.Handle, 0, len(c.Traces))
 
@@ -137,35 +136,26 @@ func (c *Consumer) Start() error {
 		c.traceHandles = append(c.traceHandles, traceHandle)
 	}
 
-	// Process the traces in a separate goroutine
-	c.Add(1)
-	go func() {
-		defer c.Done()
-		defer func() {
-			if r := recover(); r != nil {
-				c.lastError = fmt.Errorf("panic in consumer: %v", r)
-			}
-		}()
-
-		// Process the traces using the appropriate function
-		// In a real implementation, we would pass all handles here
-		if len(c.traceHandles) > 0 {
-			// ProcessTrace expects a slice of handles
-			fmt.Printf("Debug: Processing %d traces\n", len(c.traceHandles))
-			err := advapi32pkg.ProcessTrace(c.traceHandles)
-			if err != nil {
-				c.lastError = fmt.Errorf("ProcessTrace failed: %w", err)
-			}
+	// Process the traces using the appropriate function
+	// In a real implementation, we would pass all handles here
+	if len(c.traceHandles) > 0 {
+		for _, handle := range c.traceHandles {
+			fmt.Printf("Debug: Processing trace handle: %d\n", handle)
 		}
-	}()
+		// ProcessTrace expects a slice of handles
+		fmt.Printf("Debug: Processing %d traces\n", len(c.traceHandles))
+		err := advapi32pkg.ProcessTrace(c.traceHandles)
+		if err != nil {
+			fmt.Printf("Debug: ProcessTrace failed: %v\n", err)
+			c.lastError = fmt.Errorf("ProcessTrace failed: %w", err)
+		}
+	}
 
 	return nil
 }
 
 // Stop stops the consumer
-func (c *Consumer) Stop() error {
-	// Cancel the context to signal termination
-	c.cancel()
+func (c *Consumer) Stop(ctx context.Context) error {
 
 	// Close all traces
 	var lastErr error
