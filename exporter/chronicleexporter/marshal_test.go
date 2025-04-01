@@ -244,17 +244,40 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 			},
 			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
 				// verify one request for one log type
-				require.Len(t, requests, 1, "Expected a single batch request")
-				batch := requests[0].Batch
-				require.Equal(t, "WINEVTLOG", batch.LogType)
-				require.Equal(t, "", batch.Source.Namespace)
+				require.Len(t, requests, 2, "Expected two batch requests")
+				batch1 := requests[0].Batch
+				batch2 := requests[1].Batch
+				if "First log message" != string(batch1.Entries[0].Data) {
+					batch1 = requests[1].Batch
+					batch2 = requests[0].Batch
+				}
+				require.Len(t, batch1.Entries, 1, "Expected one log entries in the batch")
+				require.Equal(t, "First log message", string(batch1.Entries[0].Data))
+				require.Equal(t, "WINEVTLOG", batch1.LogType)
+				require.Equal(t, "", batch1.Source.Namespace)
 				// verify batch source labels
-				require.Len(t, batch.Source.Labels, 4)
-				require.Len(t, batch.Entries, 2, "Expected two log entries in the batch")
-				// Verifying the first log entry data
-				require.Equal(t, "First log message", string(batch.Entries[0].Data))
+				require.Len(t, batch1.Source.Labels, 2)
+				expectedLabels := map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				}
+				for _, label := range batch1.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
+
 				// Verifying the second log entry data
-				require.Equal(t, "Second log message", string(batch.Entries[1].Data))
+				require.Len(t, batch2.Entries, 1, "Expected one log entries in the batch")
+				require.Equal(t, "Second log message", string(batch2.Entries[0].Data))
+				require.Equal(t, "WINEVTLOG", batch2.LogType)
+				require.Equal(t, "", batch2.Source.Namespace)
+				require.Len(t, batch2.Source.Labels, 2)
+				expectedLabels = map[string]string{
+					"key3": "value3",
+					"key4": "value4",
+				}
+				for _, label := range batch2.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value, "Expected ingestion label to be overridden by attribute")
+				}
 			},
 		},
 		{
@@ -363,38 +386,42 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
 				// verify 2 requests, with 1 batch for different log types
 				require.Len(t, requests, 2, "Expected a two batch request")
-				batch := requests[0].Batch
-				require.Len(t, batch.Entries, 1, "Expected one log entries in the batch")
-				// verify batch for first log
-				require.Contains(t, batch.LogType, "WINEVTLOGS")
-				require.Contains(t, batch.Source.Namespace, "test")
-				require.Len(t, batch.Source.Labels, 2)
-
+				batch1 := requests[0].Batch
 				batch2 := requests[1].Batch
-				require.Len(t, batch2.Entries, 1, "Expected one log entries in the batch")
-				// verify batch for second log
-				require.Contains(t, batch2.LogType, "WINEVTLOGS")
-				require.Contains(t, batch2.Source.Namespace, "test")
-				require.Len(t, batch2.Source.Labels, 2)
-				// verify ingestion labels
-				for _, req := range requests {
-					for _, label := range req.Batch.Source.Labels {
-						require.Contains(t, []string{
-							"key1",
-							"key2",
-							"key3",
-							"key4",
-						}, label.Key)
-						require.Contains(t, []string{
-							"value1",
-							"value2",
-							"value3",
-							"value4",
-						}, label.Value)
-					}
+				if "First log message" != string(batch1.Entries[0].Data) {
+					batch1 = requests[1].Batch
+					batch2 = requests[0].Batch
 				}
+
+				require.Len(t, batch1.Entries, 1, "Expected one log entries in the batch")
+				// verify batch for first log
+				require.Equal(t, "WINEVTLOGS1", batch1.LogType)
+				require.Equal(t, "test1", batch1.Source.Namespace)
+				require.Len(t, batch1.Source.Labels, 2)
+				expectedLabels := map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				}
+				for _, label := range batch1.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value)
+				}
+
+				// verify batch for second log
+				require.Len(t, batch2.Entries, 1, "Expected one log entries in the batch")
+				require.Equal(t, "WINEVTLOGS2", batch2.LogType)
+				require.Equal(t, "test2", batch2.Source.Namespace)
+				require.Len(t, batch2.Source.Labels, 2)
+				expectedLabels = map[string]string{
+					"key3": "value3",
+					"key4": "value4",
+				}
+				for _, label := range batch2.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value)
+				}
+
 			},
 		},
+
 		{
 			name: "Many logs, all one batch",
 			cfg: Config{
@@ -421,26 +448,17 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				batch := requests[0].Batch
 				require.Len(t, batch.Entries, 1000, "Expected 1000 log entries in the batch")
 				// verify batch for first log
-				require.Contains(t, batch.LogType, "WINEVTLOGS")
-				require.Contains(t, batch.Source.Namespace, "test")
+				require.Equal(t, "WINEVTLOGS1", batch.LogType)
+				require.Equal(t, "test1", batch.Source.Namespace)
 				require.Len(t, batch.Source.Labels, 2)
 
 				// verify ingestion labels
-				for _, req := range requests {
-					for _, label := range req.Batch.Source.Labels {
-						require.Contains(t, []string{
-							"key1",
-							"key2",
-							"key3",
-							"key4",
-						}, label.Key)
-						require.Contains(t, []string{
-							"value1",
-							"value2",
-							"value3",
-							"value4",
-						}, label.Value)
-					}
+				expectedLabels := map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				}
+				for _, label := range batch.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value)
 				}
 			},
 		},
@@ -483,22 +501,13 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				require.Contains(t, batch2.Source.Namespace, "test")
 				require.Len(t, batch2.Source.Labels, 2)
 
-				// verify ingestion labels
-				for _, req := range requests {
-					for _, label := range req.Batch.Source.Labels {
-						require.Contains(t, []string{
-							"key1",
-							"key2",
-							"key3",
-							"key4",
-						}, label.Key)
-						require.Contains(t, []string{
-							"value1",
-							"value2",
-							"value3",
-							"value4",
-						}, label.Value)
-					}
+				// verify ingestion labels'
+				expectedLabels := map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				}
+				for _, label := range batch.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value)
 				}
 			},
 		},
@@ -530,47 +539,47 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				batch := requests[0].Batch
 				require.Len(t, batch.Entries, 320, "Expected 320 log entries in the first batch")
 				// verify batch for first log
-				require.Contains(t, batch.LogType, "WINEVTLOGS")
-				require.Contains(t, batch.Source.Namespace, "test")
+				require.Equal(t, "WINEVTLOGS1", batch.LogType)
+				require.Equal(t, "test1", batch.Source.Namespace)
 				require.Len(t, batch.Source.Labels, 2)
 
 				batch2 := requests[1].Batch
 				require.Len(t, batch2.Entries, 320, "Expected 320 log entries in the second batch")
 				// verify batch for first log
-				require.Contains(t, batch2.LogType, "WINEVTLOGS")
-				require.Contains(t, batch2.Source.Namespace, "test")
+				require.Equal(t, "WINEVTLOGS1", batch2.LogType)
+				require.Equal(t, "test1", batch2.Source.Namespace)
 				require.Len(t, batch2.Source.Labels, 2)
 
 				batch3 := requests[2].Batch
 				require.Len(t, batch3.Entries, 320, "Expected 320 log entries in the third batch")
 				// verify batch for first log
-				require.Contains(t, batch3.LogType, "WINEVTLOGS")
-				require.Contains(t, batch3.Source.Namespace, "test")
+				require.Equal(t, "WINEVTLOGS1", batch3.LogType)
+				require.Equal(t, "test1", batch3.Source.Namespace)
 				require.Len(t, batch3.Source.Labels, 2)
 
 				batch4 := requests[3].Batch
 				require.Len(t, batch4.Entries, 320, "Expected 320 log entries in the fourth batch")
 				// verify batch for first log
-				require.Contains(t, batch4.LogType, "WINEVTLOGS")
-				require.Contains(t, batch4.Source.Namespace, "test")
+				require.Equal(t, "WINEVTLOGS1", batch4.LogType)
+				require.Equal(t, "test1", batch4.Source.Namespace)
 				require.Len(t, batch4.Source.Labels, 2)
 
 				// verify ingestion labels
-				for _, req := range requests {
-					for _, label := range req.Batch.Source.Labels {
-						require.Contains(t, []string{
-							"key1",
-							"key2",
-							"key3",
-							"key4",
-						}, label.Key)
-						require.Contains(t, []string{
-							"value1",
-							"value2",
-							"value3",
-							"value4",
-						}, label.Value)
-					}
+				expectedLabels := map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				}
+				for _, label := range batch.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value)
+				}
+				for _, label := range batch2.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value)
+				}
+				for _, label := range batch3.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value)
+				}
+				for _, label := range batch4.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value)
 				}
 			},
 		},
@@ -637,6 +646,170 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				require.Equal(t, "Second log message", string(batch2.Entries[0].Data))
 			},
 		},
+		{
+			name: "Multiple namespace, ingestion labels, and log type",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchRequestSizeLimitGRPC: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				record1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record1.Body().SetStr("First log message")
+				record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+
+				record2 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record2.Body().SetStr("Second log message")
+				record2.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS2", "chronicle_namespace": "test2", `chronicle_ingestion_label["key3"]`: "value3", `chronicle_ingestion_label["key4"]`: "value4"})
+
+				record3 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record3.Body().SetStr("Third log message")
+				record3.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS3", "chronicle_namespace": "test3", `chronicle_ingestion_label["key5"]`: "value5", `chronicle_ingestion_label["key6"]`: "value6"})
+
+				// these two should be grouped
+				record4 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record4.Body().SetStr("Fourth log message")
+				record4.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS4", "chronicle_namespace": "test4", `chronicle_ingestion_label["key7"]`: "value7", `chronicle_ingestion_label["key8"]`: "value8"})
+				record5 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record5.Body().SetStr("Fifth log message")
+				record5.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS4", "chronicle_namespace": "test4", `chronicle_ingestion_label["key7"]`: "value7", `chronicle_ingestion_label["key8"]`: "value8"})
+
+				// same log type as record4, but different namespace
+				record6 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record6.Body().SetStr("Sixth log message")
+				record6.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS4", "chronicle_namespace": "test5", `chronicle_ingestion_label["key7"]`: "value7", `chronicle_ingestion_label["key8"]`: "value8"})
+				return logs
+			},
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				require.Len(t, requests, 5)
+
+				batches := map[string]*api.BatchCreateLogsRequest{}
+				for _, request := range requests {
+					batches[request.Batch.Source.Namespace] = request
+				}
+
+				require.Len(t, batches, 5)
+
+				// test1 namespace
+				batch := batches["test1"].Batch
+				require.Equal(t, "WINEVTLOGS1", batch.LogType)
+				require.Equal(t, "test1", batch.Source.Namespace)
+				require.Len(t, batch.Entries, 1)
+				require.Equal(t, "First log message", string(batch.Entries[0].Data))
+				expectedLabels := map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				}
+				for _, label := range batch.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value)
+				}
+
+				// test2 namespace
+				batch = batches["test2"].Batch
+				require.Equal(t, "WINEVTLOGS2", batch.LogType)
+				require.Equal(t, "test2", batch.Source.Namespace)
+				require.Len(t, batch.Entries, 1)
+				require.Equal(t, "Second log message", string(batch.Entries[0].Data))
+				expectedLabels = map[string]string{
+					"key3": "value3",
+					"key4": "value4",
+				}
+				for _, label := range batch.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value)
+				}
+
+				// test3 namespace
+				batch = batches["test3"].Batch
+				require.Equal(t, "WINEVTLOGS3", batch.LogType)
+				require.Equal(t, "test3", batch.Source.Namespace)
+				require.Len(t, batch.Entries, 1)
+				require.Equal(t, "Third log message", string(batch.Entries[0].Data))
+				expectedLabels = map[string]string{
+					"key5": "value5",
+					"key6": "value6",
+				}
+				for _, label := range batch.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value)
+				}
+
+				// test4 namespace
+				batch = batches["test4"].Batch
+				require.Equal(t, "WINEVTLOGS4", batch.LogType)
+				require.Equal(t, "test4", batch.Source.Namespace)
+				require.Len(t, batch.Entries, 2)
+				firstLog := batch.Entries[0]
+				secondLog := batch.Entries[1]
+
+				if string(firstLog.Data) != "Fourth log message" {
+					firstLog, secondLog = secondLog, firstLog
+				}
+				require.Equal(t, "Fourth log message", string(firstLog.Data))
+				require.Equal(t, "Fifth log message", string(secondLog.Data))
+				expectedLabels = map[string]string{
+					"key7": "value7",
+					"key8": "value8",
+				}
+				for _, label := range batch.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value)
+				}
+
+				// test5 namespace
+				batch = batches["test5"].Batch
+				require.Equal(t, "WINEVTLOGS4", batch.LogType)
+				require.Equal(t, "test5", batch.Source.Namespace)
+				require.Len(t, batch.Entries, 1)
+				require.Equal(t, "Sixth log message", string(batch.Entries[0].Data))
+				expectedLabels = map[string]string{
+					"key7": "value7",
+					"key8": "value8",
+				}
+				for _, label := range batch.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value)
+				}
+
+			},
+		},
+		{
+			name: "Destination ingestion labels are merged with config ingestion labels",
+			cfg: Config{
+				CustomerID:      uuid.New().String(),
+				LogType:         "WINEVTLOG",
+				RawLogField:     "body",
+				OverrideLogType: false,
+				IngestionLabels: map[string]string{
+					"key1": "value3",
+					"key2": "value4",
+					"key3": "value5",
+				},
+				BatchRequestSizeLimitGRPC: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				record1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record1.Body().SetStr("First log message")
+				record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				return logs
+			},
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				require.Len(t, requests, 1)
+				batch := requests[0].Batch
+				require.Equal(t, "WINEVTLOGS1", batch.LogType)
+				require.Equal(t, "test1", batch.Source.Namespace)
+				require.Len(t, batch.Entries, 1)
+				require.Equal(t, "First log message", string(batch.Entries[0].Data))
+				expectedLabels := map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+					"key3": "value5",
+				}
+				for _, label := range batch.Source.Labels {
+					require.Equal(t, expectedLabels[label.Key], label.Value)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -651,6 +824,48 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 
 			tt.expectations(t, requests)
 		})
+	}
+}
+
+func BenchmarkProtoMarshaler_MarshalRawLogs(b *testing.B) {
+	logger := zap.NewNop()
+	startTime := time.Now()
+
+	telemSettings := component.TelemetrySettings{
+		Logger:        logger,
+		MeterProvider: noop.NewMeterProvider(),
+	}
+
+	telemetry, err := metadata.NewTelemetryBuilder(telemSettings)
+	if err != nil {
+		b.Errorf("Error creating telemetry builder: %v", err)
+		b.Fail()
+	}
+
+	cfg := Config{
+		CustomerID:                uuid.New().String(),
+		LogType:                   "WINEVTLOG",
+		RawLogField:               "body",
+		OverrideLogType:           false,
+		BatchRequestSizeLimitGRPC: 5242880,
+	}
+
+	logs := plog.NewLogs()
+	logRecords := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords()
+	for i := 0; i < 1000; i++ {
+		record1 := logRecords.AppendEmpty()
+		record1.Body().SetStr("Log message")
+		record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+	}
+
+	b.ResetTimer()
+	marshaler, err := newProtoMarshaler(cfg, component.TelemetrySettings{Logger: logger}, telemetry)
+	require.NoError(b, err)
+
+	for i := 0; i < b.N; i++ {
+		marshaler.startTime = startTime
+		_, err := marshaler.MarshalRawLogs(context.Background(), logs)
+		require.NoError(b, err)
 	}
 }
 
