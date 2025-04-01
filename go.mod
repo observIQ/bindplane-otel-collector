@@ -45,6 +45,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector v0.122.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/connector/signaltometricsconnector v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/alibabacloudlogserviceexporter v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/awscloudwatchlogsexporter v0.122.0
