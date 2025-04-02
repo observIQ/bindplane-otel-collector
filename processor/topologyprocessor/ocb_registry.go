@@ -24,14 +24,13 @@ import (
 
 // GetTopologyRegistry returns the topology registry that should be registered to based on the component ID.
 // nil, nil may be returned by this function. In this case, the processor should not register it's topology state anywhere.
-func GetTopologyRegistry(host component.Host, bindplane component.ID) (TopoRegistry, error) {
-	var emptyComponentID component.ID
-	if bindplane == emptyComponentID {
+func GetTopologyRegistry(host component.Host, bindplane *component.ID) (TopoRegistry, error) {
+	if bindplane == nil {
 		// No bindplane component referenced, so we won't register our topology state anywhere.
 		return nil, nil
 	}
 
-	ext, ok := host.GetExtensions()[bindplane]
+	ext, ok := host.GetExtensions()[*bindplane]
 	if !ok {
 		return nil, fmt.Errorf("bindplane extension %q does not exist", bindplane)
 	}
