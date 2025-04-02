@@ -5,3 +5,4 @@ status:
   stability:
     alpha: [logs]
   distributions: [contrib]
+  unsupported_platforms: [darwin, linux]
