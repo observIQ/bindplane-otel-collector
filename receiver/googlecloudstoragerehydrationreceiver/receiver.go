@@ -145,7 +145,7 @@ func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) er
 		r.checkpointStore = checkpointStore
 	}
 
-	cancelCtx, cancel := context.WithCancel(ctx)
+	cancelCtx, cancel := context.WithCancel(context.Background())
 	r.cancelFunc = cancel
 
 	go r.streamRehydrateObjects(cancelCtx)
