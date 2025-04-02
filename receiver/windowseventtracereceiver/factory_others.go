@@ -31,5 +31,5 @@ func createLogsReceiver(
 	_ component.Config,
 	_ consumer.Logs,
 ) (receiver.Logs, error) {
-	return nil, errors.New("windows eventlog receiver is only supported on Windows")
+	return nil, errors.New("windows event trace receiver is only supported on Windows")
 }

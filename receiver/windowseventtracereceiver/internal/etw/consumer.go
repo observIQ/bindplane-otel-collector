@@ -113,6 +113,7 @@ func (c *Consumer) defaultEventCallback(eventRecord *advapi32pkg.EventRecord) (r
 	select {
 	case c.Events <- event:
 		rc = 1
+		return
 	case <-c.doneChan:
 		rc = 0
 		return
