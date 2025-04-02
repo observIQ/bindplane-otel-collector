@@ -58,6 +58,7 @@ Below is a list of supported receivers with links to their documentation pages.
 | NGINX Receiver                             | [nginxreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/nginxreceiver/README.md)                                   |
 | Okta Receiver                              | [oktareceiver](../receiver/oktareceiver/README.md)                                                                                                                  |
 | OpenCensus Receiver                        | [opencensusreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/opencensusreceiver/README.md)                         |
+| OTLP JSON Receiver                         | [otlpjsonreceiver] (https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/otlpjsonfilereceiver/README.md)                        |
 | OTLP Receiver                              | [otlpreceiver](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.122.0/receiver/otlpreceiver/README.md)                                             |
 | Plugin Receiver                            | [pluginreceiver](../receiver/pluginreceiver/README.md)                                                                                                              |
 | Podman Stats Receiver                      | [podmanreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/podmanreceiver/README.md)                                 |
