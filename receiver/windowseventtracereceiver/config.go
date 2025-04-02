@@ -20,6 +20,7 @@ import (
 	"go.opentelemetry.io/collector/component"
 )
 
+// Config is the configuration for the windows event trace receiver.
 type Config struct {
 	// SessionName is the name for the ETW session.
 	SessionName string `mapstructure:"session_name"`
@@ -34,6 +35,7 @@ type Config struct {
 	BufferSize int `mapstructure:"buffer_size"`
 }
 
+// Provider is a provider to create a session
 type Provider struct {
 	Name string `mapstructure:"name"`
 }
@@ -46,6 +48,7 @@ func createDefaultConfig() component.Config {
 	}
 }
 
+// Validate validates the config.
 func (cfg *Config) Validate() error {
 	if cfg.SessionName == "" {
 		return fmt.Errorf("session_name cannot be empty")

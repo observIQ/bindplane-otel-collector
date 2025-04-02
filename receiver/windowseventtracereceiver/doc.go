@@ -13,4 +13,6 @@
 // limitations under the License.
 
 //go:generate mdatagen metadata.yaml
+
+// Package windowseventtracereceiver implements a receiver that uses the Windows Event Log API to collect events.
 package windowseventtracereceiver
