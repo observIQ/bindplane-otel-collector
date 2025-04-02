@@ -15,6 +15,7 @@
 package factories
 
 import (
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs"
@@ -112,6 +113,7 @@ var defaultReceivers = []receiver.Factory{
 	awsfirehosereceiver.NewFactory(),
 	awss3receiver.NewFactory(),
 	awss3rehydrationreceiver.NewFactory(),
+	awss3eventreceiver.NewFactory(),
 	awsxrayreceiver.NewFactory(),
 	azureblobreceiver.NewFactory(),
 	azureblobrehydrationreceiver.NewFactory(),

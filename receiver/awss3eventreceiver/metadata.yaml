@@ -1,0 +1,20 @@
+type: s3event
+
+status:
+  class: receiver
+  stability:
+    alpha: [logs]
+
+tests:
+  config:
+    sqs_queue_url: "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
+
+resource_attributes:
+  aws.s3.bucket:
+    description: The name of the S3 bucket containing the processed object
+    enabled: true
+    type: string
+  aws.s3.key:
+    description: The key of the S3 object that was processed
+    enabled: true
+    type: string

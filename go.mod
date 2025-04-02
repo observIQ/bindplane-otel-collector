@@ -2,8 +2,6 @@ module github.com/observiq/bindplane-otel-collector
 
 go 1.23.7
 
-toolchain go1.24.1
-
 require (
 	github.com/google/uuid v1.6.0
 	github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter v1.74.0
@@ -29,6 +27,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/processor/spancountprocessor v1.74.0
 	github.com/observiq/bindplane-otel-collector/processor/throughputmeasurementprocessor v1.74.0
 	github.com/observiq/bindplane-otel-collector/processor/unrollprocessor v1.74.0
+	github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver v1.74.0
@@ -47,6 +46,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector v0.122.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/connector/signaltometricsconnector v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/alibabacloudlogserviceexporter v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/awscloudwatchlogsexporter v0.122.0
@@ -344,11 +344,13 @@ require (
 	github.com/apache/arrow-go/v18 v18.0.0 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
+	github.com/aws/aws-lambda-go v1.47.0 // indirect
 	github.com/aws/aws-msk-iam-sasl-signer-go v1.0.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.66 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.46.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.209.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/servicediscovery v1.35.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.29.3 // indirect
 	github.com/bboreham/go-loser v0.0.0-20230920113527-fcc2c21820a3 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -958,6 +960,8 @@ replace github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrati
 replace github.com/observiq/bindplane-otel-collector/receiver/httpreceiver => ./receiver/httpreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/oktareceiver => ./receiver/oktareceiver
+
+replace github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver => ./receiver/awss3eventreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver => ./receiver/awss3rehydrationreceiver
 
