@@ -38,6 +38,9 @@ type Config struct {
 	// StreamName is the name of the custom log table in Log Analytics workspace
 	StreamName string `mapstructure:"stream_name"`
 
+	// RawLogField is the field name that will be used to send raw logs to the Log Analytics workspace.
+	RawLogField string `mapstructure:"raw_log_field"`
+
 	TimeoutSettings exporterhelper.TimeoutConfig `mapstructure:",squash"`
 
 	QueueSettings exporterhelper.QueueConfig `mapstructure:",squash"`
