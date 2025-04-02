@@ -212,6 +212,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.74.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.122.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/libhoneyreceiver v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver v0.122.0
 	go.opentelemetry.io/collector/extension/extensiontest v0.122.0
@@ -486,6 +487,8 @@ require (
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	github.com/ua-parser/uap-go v0.0.0-20240611065828-3a4781585db6 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
+	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.elastic.co/apm/module/apmzap/v2 v2.6.3 // indirect
@@ -495,17 +498,17 @@ require (
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/collector v0.122.0 // indirect
 	go.opentelemetry.io/collector/client v1.29.0 // indirect
-	go.opentelemetry.io/collector/component/componentstatus v0.122.0 // indirect
+	go.opentelemetry.io/collector/component/componentstatus v0.123.0 // indirect
 	go.opentelemetry.io/collector/component/componenttest v0.123.0 // indirect
-	go.opentelemetry.io/collector/config/configauth v0.122.0 // indirect
-	go.opentelemetry.io/collector/config/configcompression v1.28.0 // indirect
+	go.opentelemetry.io/collector/config/configauth v0.123.0 // indirect
+	go.opentelemetry.io/collector/config/configcompression v1.29.0 // indirect
 	go.opentelemetry.io/collector/config/configgrpc v0.122.0 // indirect
-	go.opentelemetry.io/collector/config/confighttp v0.122.0 // indirect
+	go.opentelemetry.io/collector/config/confighttp v0.123.0 // indirect
 	go.opentelemetry.io/collector/config/confignet v1.28.0 // indirect
-	go.opentelemetry.io/collector/config/configopaque v1.28.0 // indirect
+	go.opentelemetry.io/collector/config/configopaque v1.29.0 // indirect
 	go.opentelemetry.io/collector/config/configretry v1.28.0 // indirect
 	go.opentelemetry.io/collector/config/configtelemetry v0.122.0 // indirect
-	go.opentelemetry.io/collector/config/configtls v1.28.0 // indirect
+	go.opentelemetry.io/collector/config/configtls v1.29.0 // indirect
 	go.opentelemetry.io/collector/confmap/xconfmap v0.122.0 // indirect
 	go.opentelemetry.io/collector/connector/connectortest v0.122.0 // indirect
 	go.opentelemetry.io/collector/connector/xconnector v0.122.0 // indirect
@@ -516,7 +519,7 @@ require (
 	go.opentelemetry.io/collector/exporter/exporterhelper/xexporterhelper v0.122.0 // indirect
 	go.opentelemetry.io/collector/exporter/exportertest v0.122.0 // indirect
 	go.opentelemetry.io/collector/exporter/xexporter v0.122.0 // indirect
-	go.opentelemetry.io/collector/extension/extensionauth v0.122.0 // indirect
+	go.opentelemetry.io/collector/extension/extensionauth v1.29.0 // indirect
 	go.opentelemetry.io/collector/extension/extensioncapabilities v0.122.0 // indirect
 	go.opentelemetry.io/collector/extension/xextension v0.123.0 // indirect
 	go.opentelemetry.io/collector/filter v0.122.0 // indirect
@@ -789,7 +792,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/k8sconfig v0.122.0 // indirect; indi72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/kubelet v0.122.0 // indirect; indi72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/metadataproviders v0.122.0 // indirect; indi72.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/internal/sharedcomponent v0.122.0 // indirect; indi72.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/internal/sharedcomponent v0.123.0 // indirect; indi72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/splunk v0.122.0 // indirect; indi72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/batchperresourceattr v0.122.0 // indirect; indi72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/batchpersignal v0.122.0 // indirect; indi72.0

@@ -66,6 +66,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkametricsreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kubeletstatsreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/libhoneyreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/memcachedreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbatlasreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbreceiver"
@@ -147,6 +148,7 @@ var defaultReceivers = []receiver.Factory{
 	kafkametricsreceiver.NewFactory(),
 	kafkareceiver.NewFactory(),
 	kubeletstatsreceiver.NewFactory(),
+	libhoneyreceiver.NewFactory(),
 	m365receiver.NewFactory(),
 	memcachedreceiver.NewFactory(),
 	mongodbatlasreceiver.NewFactory(),
