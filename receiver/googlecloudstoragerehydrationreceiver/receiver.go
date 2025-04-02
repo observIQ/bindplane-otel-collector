@@ -185,6 +185,11 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 	if err := r.checkpointStore.Close(shutdownCtx); err != nil {
 		errs = errors.Join(errs, fmt.Errorf("error while closing checkpoint store: %w", err))
 	}
+
+	if err := r.storageClient.Close(); err != nil {
+		errs = errors.Join(errs, fmt.Errorf("error while closing storage client: %w", err))
+	}
+
 	r.logger.Info("Shutdown complete")
 	return errs
 }

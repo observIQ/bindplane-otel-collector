@@ -44,6 +44,8 @@ type StorageClient interface {
 	// StreamObjects will stream ObjectInfo to the objectChan and errors to the errChan, generally if an errChan gets an item
 	// then the stream should be stopped
 	StreamObjects(ctx context.Context, errChan chan error, objectChan chan []*ObjectInfo, doneChan chan struct{})
+	// Close closes the storage client and releases any resources
+	Close() error
 }
 
 // GoogleCloudStorageClient implements the StorageClient interface
@@ -190,4 +192,9 @@ func (g *GoogleCloudStorageClient) DeleteObject(ctx context.Context, name string
 		return fmt.Errorf("object.Delete: %w", err)
 	}
 	return nil
+}
+
+// Close closes the storage client and releases any resources
+func (g *GoogleCloudStorageClient) Close() error {
+	return g.client.Close()
 }
