@@ -31,6 +31,9 @@ type Config struct {
 
 	// Attributes is a list of attributes to add to the logs.
 	Attributes map[string]string `mapstructure:"attributes"`
+
+	// BufferSize is the size of the buffer to use for the ETW session.
+	BufferSize int `mapstructure:"buffer_size"`
 }
 
 type Provider struct {
@@ -40,10 +43,8 @@ type Provider struct {
 func createDefaultConfig() component.Config {
 	return &Config{
 		SessionName: "OtelCollectorETW",
-		Providers: []Provider{
-			// Microsoft-Windows-DNS-Client
-			{Name: "Microsoft-Windows-DNS-Client"},
-		},
+		BufferSize:  64,
+		Providers:   []Provider{},
 	}
 }
 
@@ -54,6 +55,10 @@ func (cfg *Config) Validate() error {
 
 	if len(cfg.Providers) == 0 {
 		return fmt.Errorf("providers cannot be empty")
+	}
+
+	if cfg.BufferSize <= 0 {
+		return fmt.Errorf("buffer_size must be greater than 0")
 	}
 
 	return nil

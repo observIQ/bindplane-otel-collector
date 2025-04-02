@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -29,10 +30,7 @@ import (
 	"go.opentelemetry.io/collector/receiver"
 	"go.uber.org/zap"
 
-	// Import the original ETW package
-
-	// Import the ported ETW package
-	portedetw "github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/tmp/etw"
+	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw"
 )
 
 type logsReceiver struct {
@@ -52,73 +50,36 @@ func newLogsReceiver(cfg *Config, c consumer.Logs, logger *zap.Logger) (*logsRec
 }
 
 func (lr *logsReceiver) Start(ctx context.Context, host component.Host) error {
-	lr.logger.Info("Starting Windows ETW receiver", zap.String("session_name", lr.cfg.SessionName))
-
-	// Warn about admin privileges
-	lr.logger.Warn("ETW operations typically require Administrator privileges - run the collector as Administrator")
-
-	// First try the standard real-time session
-	lr.logger.Info("Attempting to create standard ETW session", zap.String("session_name", lr.cfg.SessionName))
-	s := portedetw.NewRealTimeSession(lr.cfg.SessionName)
+	s := etw.
+		NewRealTimeSession(lr.cfg.SessionName, lr.logger).
+		WithBufferSize(lr.cfg.BufferSize)
 
 	if err := s.Start(ctx); err != nil {
-		lr.logger.Warn("Failed to start standard ETW session, trying minimal session", zap.Error(err))
-
-		// Try the minimal session as a fallback
-		lr.logger.Info("Attempting to create minimal ETW session")
-		minimalSession, err := portedetw.CreateMinimalSession(lr.cfg.SessionName)
-		if err != nil {
-			lr.logger.Error("Failed to create minimal ETW session", zap.Error(err))
-			return fmt.Errorf("failed to create any working ETW session (try running as Administrator): %w", err)
-		}
-
-		// Make sure we stop the minimal session when the receiver is shut down
-		lr.logger.Info("Successfully created minimal ETW session")
-		lr.stopFuncs = append(lr.stopFuncs, minimalSession.Stop)
-
-		// The minimal session already has a provider enabled, so we can skip enabling providers
-
-		// Create a consumer that works with the minimal session
-		eventConsumer := portedetw.NewRealTimeConsumer(ctx)
-		eventConsumer = eventConsumer.FromMinimalSession(minimalSession)
-
-		// Start the consumer to begin receiving events
-		err = eventConsumer.Start(ctx)
-		if err != nil {
-			lr.logger.Error("Failed to start ETW consumer", zap.Error(err))
-			return fmt.Errorf("failed to start ETW consumer: %w", err)
-		}
-		lr.stopFuncs = append(lr.stopFuncs, eventConsumer.Stop)
-
-		// Start a single goroutine to listen for events
-		lr.wg.Add(1)
-		go lr.listenForEvents(ctx, eventConsumer)
-
-		return nil
+		lr.logger.Error("Failed to start standard ETW session", zap.Error(err))
+		return fmt.Errorf("failed to start standard ETW session: %w", err)
 	}
+
+	// TODO: Remove this once we have a better way to handle the session start
+	time.Sleep(1 * time.Second)
 
 	// Make sure we stop the session when the receiver is shut down
 	lr.stopFuncs = append(lr.stopFuncs, s.Stop)
 
 	for _, providerConfig := range lr.cfg.Providers {
+		// TODO: Remove this once we have a better way to handle the provider start
+		time.Sleep(2 * time.Second)
 		lr.logger.Info("Enabling provider", zap.String("provider", providerConfig.Name), zap.String("session", lr.cfg.SessionName))
 
 		// Pass the provider name directly to EnableProvider
 		err := s.EnableProvider(providerConfig.Name)
 		if err != nil {
-			// Error code 87 (ERROR_INVALID_PARAMETER) is actually a success case for some providers
-			if err.Error() == "The operation completed successfully." {
-				lr.logger.Info("Enabled provider (with success code 87)", zap.String("provider", providerConfig.Name), zap.String("session", lr.cfg.SessionName))
-				continue
-			}
-			lr.logger.Error("Failed to enable provider", zap.Error(err), zap.String("provider", providerConfig.Name), zap.String("session", lr.cfg.SessionName))
 			return fmt.Errorf("failed to enable provider %s: %w", providerConfig.Name, err)
 		}
 		lr.logger.Info("Enabled provider", zap.String("provider", providerConfig.Name), zap.String("session", lr.cfg.SessionName))
 	}
 
 	// Create a single consumer for the session with all providers
-	eventConsumer := portedetw.NewRealTimeConsumer(ctx)
+	eventConsumer := etw.NewRealTimeConsumer(ctx, lr.logger)
 	eventConsumer = eventConsumer.FromSessions(s)
 
 	// Start the consumer to begin receiving events
@@ -136,7 +97,7 @@ func (lr *logsReceiver) Start(ctx context.Context, host component.Host) error {
 	return nil
 }
 
-func (lr *logsReceiver) listenForEvents(ctx context.Context, eventConsumer *portedetw.Consumer) {
+func (lr *logsReceiver) listenForEvents(ctx context.Context, eventConsumer *etw.Consumer) {
 	defer lr.wg.Done()
 
 	for {
@@ -149,7 +110,6 @@ func (lr *logsReceiver) listenForEvents(ctx context.Context, eventConsumer *port
 			if !ok {
 				return
 			}
-			lr.logger.Info("Received event", zap.Any("event", event))
 			logs, err := lr.parseLogs(ctx, event)
 			if err != nil {
 				lr.logger.Error("Failed to parse logs", zap.Error(err))
@@ -165,7 +125,7 @@ func (lr *logsReceiver) listenForEvents(ctx context.Context, eventConsumer *port
 }
 
 // TODO think about bundling logs into resources
-func (lr *logsReceiver) parseLogs(ctx context.Context, event *portedetw.Event) (plog.Logs, error) {
+func (lr *logsReceiver) parseLogs(ctx context.Context, event *etw.Event) (plog.Logs, error) {
 	logs := plog.NewLogs()
 	resourceLog := logs.ResourceLogs().AppendEmpty()
 
@@ -181,7 +141,7 @@ func (lr *logsReceiver) parseLogs(ctx context.Context, event *portedetw.Event) (
 }
 
 // parseEventData parses the event data and sets the log record with that data
-func (lr *logsReceiver) parseEventData(event *portedetw.Event, record plog.LogRecord) {
+func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) {
 	record.SetTimestamp(pcommon.NewTimestampFromTime(event.System.TimeCreated.SystemTime))
 	record.SetSeverityNumber(parseSeverity(event.System.Level.Name, strconv.FormatUint(uint64(event.System.Level.Value), 10)))
 
@@ -214,7 +174,7 @@ func (lr *logsReceiver) parseEventData(event *portedetw.Event, record plog.LogRe
 	if event.System.Provider.Name != "" {
 		provider := record.Body().Map().PutEmptyMap("provider")
 		provider.PutStr("name", event.System.Provider.Name)
-		provider.PutStr("guid", event.System.Provider.Guid)
+		provider.PutStr("guid", event.System.Provider.GUID)
 	}
 
 	if len(event.EventData) > 0 {
@@ -230,10 +190,10 @@ func (lr *logsReceiver) parseEventData(event *portedetw.Event, record plog.LogRe
 		keywords.PutStr("value", strconv.FormatUint(uint64(event.System.Keywords.Value), 10))
 	}
 
-	if event.System.EventID != 0 {
+	if event.System.EventID != "" {
 		eventID := record.Body().Map().PutEmptyMap("event_id")
-		eventID.PutStr("guid", event.System.EventGuid)
-		eventID.PutStr("id", strconv.FormatUint(uint64(event.System.EventID), 10))
+		eventID.PutStr("guid", event.System.EventGUID)
+		eventID.PutStr("id", event.System.EventID)
 	}
 
 	if event.System.Execution.ProcessID != 0 {

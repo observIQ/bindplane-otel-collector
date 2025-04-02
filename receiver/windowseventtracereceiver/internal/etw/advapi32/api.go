@@ -1,3 +1,17 @@
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 //go:build windows
 
 package advapi32
@@ -9,6 +23,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	windows_ "github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/windows"
 )
 
 // DLL and function references
@@ -19,6 +35,7 @@ var (
 	openTraceW     = advapi32.NewProc("OpenTraceW")
 	enableTraceEx2 = advapi32.NewProc("EnableTraceEx2")
 	processTraceW  = advapi32.NewProc("ProcessTrace")
+	closeTraceW    = advapi32.NewProc("CloseTrace")
 )
 
 /*
@@ -31,29 +48,15 @@ ULONG WMIAPI StartTraceW(
 
 // StartTrace starts a trace session using the StartTraceW function
 func StartTrace(
-	handle syscall.Handle,
+	handle *syscall.Handle,
 	name *uint16,
-	properties *EventTraceProperties) error {
+	properties *EventTraceProperties) (errorCode syscall.Errno, err error) {
 	r, _, err := startTraceW.Call(
-		uintptr(unsafe.Pointer(&handle)),
+		uintptr(unsafe.Pointer(handle)),
 		uintptr(unsafe.Pointer(name)),
 		uintptr(unsafe.Pointer(properties)),
 	)
-	if r != 0 {
-		errCode := uint32(r)
-		switch errCode {
-		case 5:
-			return fmt.Errorf("access denied (code=%d) - try running as Administrator", errCode)
-		case 183:
-			return fmt.Errorf("trace session already exists (code=%d) - check for existing sessions", errCode)
-		case 161:
-			return fmt.Errorf("invalid path (code=%d) - check buffer layout or run as Administrator", errCode)
-		default:
-			return fmt.Errorf("failed to start trace (code=%d): %v", errCode, err)
-		}
-	}
-
-	return nil
+	return syscall.Errno(r), err
 }
 
 type eventTraceControl int
@@ -65,12 +68,33 @@ const (
 	EVENT_TRACE_CONTROL_FLUSH  eventTraceControl = 3
 )
 
+/*
+	  typedef struct _WNODE_HEADER {
+	  ULONG BufferSize;
+	  ULONG ProviderId;
+	  __C89_NAMELESS union {
+	    ULONG64 HistoricalContext;
+	    __C89_NAMELESS struct {
+	      ULONG Version;
+	      ULONG Linkage;
+	    };
+	  };
+	  __C89_NAMELESS union {
+	    ULONG CountLost;
+	    HANDLE KernelHandle;
+	    LARGE_INTEGER TimeStamp;
+	  };
+	  GUID Guid;
+	  ULONG ClientContext;
+	  ULONG Flags;
+	} WNODE_HEADER,*PWNODE_HEADER
+*/
 type WnodeHeader struct {
 	BufferSize    uint32
-	ProviderId    GUID
+	ProviderId    windows_.GUID
 	Union1        uint64
 	Union2        int64
-	Guid          GUID
+	Guid          windows_.GUID
 	ClientContext uint32
 	Flags         uint32
 }
@@ -97,87 +121,9 @@ type EventTraceProperties struct {
 	LoggerNameOffset    uint32
 }
 
-/*
-	typedef struct _EVENT_TRACE_PROPERTIES_V2 {
-	  WNODE_HEADER             Wnode;
-	  ULONG                    BufferSize;
-	  ULONG                    MinimumBuffers;
-	  ULONG                    MaximumBuffers;
-	  ULONG                    MaximumFileSize;
-	  ULONG                    LogFileMode;
-	  ULONG                    FlushTimer;
-	  ULONG                    EnableFlags;
-	  union {
-	    LONG AgeLimit;
-	    LONG FlushThreshold;
-	  } DUMMYUNIONNAME;
-	  ULONG                    NumberOfBuffers;
-	  ULONG                    FreeBuffers;
-	  ULONG                    EventsLost;
-	  ULONG                    BuffersWritten;
-	  ULONG                    LogBuffersLost;
-	  ULONG                    RealTimeBuffersLost;
-	  HANDLE                   LoggerThreadId;
-	  ULONG                    LogFileNameOffset;
-	  ULONG                    LoggerNameOffset;
-	  union {
-	    struct {
-	      ULONG VersionNumber : 8;
-	    } DUMMYSTRUCTNAME;
-	    ULONG V2Control;
-	  } DUMMYUNIONNAME2;
-	  ULONG                    FilterDescCount;
-	  PEVENT_FILTER_DESCRIPTOR FilterDesc;
-	  union {
-	    struct {
-	      ULONG Wow : 1;
-	      ULONG QpcDeltaTracking : 1;
-	      ULONG LargeMdlPages : 1;
-	      ULONG ExcludeKernelStack : 1;
-	    } DUMMYSTRUCTNAME;
-	    ULONG64 V2Options;
-	  } DUMMYUNIONNAME3;
-	} EVENT_TRACE_PROPERTIES_V2, *PEVENT_TRACE_PROPERTIES_V2;
-*/
-type EventTracePropertiesV2 struct {
-	Wnode               WnodeHeader
-	BufferSize          uint32
-	MinimumBuffers      uint32
-	MaximumBuffers      uint32
-	MaximumFileSize     uint32
-	LogFileMode         uint32
-	FlushTimer          uint32
-	EnableFlags         uint32
-	AgeLimit            int32
-	NumberOfBuffers     uint32
-	FreeBuffers         uint32
-	EventsLost          uint32
-	BuffersWritten      uint32
-	LogBuffersLost      uint32
-	RealTimeBuffersLost uint32
-	LoggerThreadId      syscall.Handle
-	LogFileNameOffset   uint32
-	LoggerNameOffset    uint32
-	VersionNumber       uint32
-	V2Control           uint32
-	FilterDescCount     uint32
-	FilterDesc          *EventFilterDescriptor
-	Wow                 uint32
-	QpcDeltaTracking    uint32
-	LargeMdlPages       uint32
-	ExcludeKernelStack  uint32
-	V2Options           uint64
-}
-
-type EventFilterDescriptor struct {
-	Size            uint32
-	Flags           uint32
-	FilterKeyOffset uint32
-	FilterKeySize   uint32
-}
+// https://learn.microsoft.com/en-us/windows/win32/api/evntrace/nf-evntrace-controltracew
 
 /*
-https://learn.microsoft.com/en-us/windows/win32/api/evntrace/nf-evntrace-controltracew
 	ULONG WMIAPI ControlTraceW(
 				CONTROLTRACE_ID         TraceId,
 	[in]      LPCWSTR                 InstanceName,
@@ -186,18 +132,14 @@ https://learn.microsoft.com/en-us/windows/win32/api/evntrace/nf-evntrace-control
 	);
 */
 
-func ControlTrace(handle *syscall.Handle, control eventTraceControl, instanceName *uint16, properties *EventTraceProperties, timeout uintptr) error {
+func ControlTrace(handle *syscall.Handle, control eventTraceControl, instanceName *uint16, properties *EventTraceProperties, timeout uintptr) (errorCode syscall.Errno, err error) {
 	r, _, err := controlTraceW.Call(
 		uintptr(unsafe.Pointer(handle)),
-		uintptr(control),
 		uintptr(unsafe.Pointer(instanceName)),
 		uintptr(unsafe.Pointer(properties)),
-		uintptr(timeout),
+		uintptr(control),
 	)
-	if r != 0 {
-		return fmt.Errorf("ControlTraceW failed: %w", err)
-	}
-	return nil
+	return syscall.Errno(r), err
 }
 
 type eventControlCode int
@@ -251,24 +193,23 @@ type EnableTraceParameters struct {
 }
 
 // enableTrace enables a trace session using the EnableTraceEx2 function
-func EnableTrace(handle syscall.Handle, providerGUID windows.GUID, controlCode eventControlCode, level traceLevel, matchAnyKeyword uintptr, matchAllKeyword uintptr, timeout uintptr, enableParameters EnableTraceParameters) error {
+func EnableTrace(handle syscall.Handle, providerGUID *windows.GUID, controlCode eventControlCode, level traceLevel, matchAnyKeyword uint64, matchAllKeyword uint64, timeout uint32, enableParameters *EnableTraceParameters) (errorCode syscall.Errno, err error) {
 	r, _, err := enableTraceEx2.Call(
 		uintptr(handle),
-		uintptr(unsafe.Pointer(&providerGUID)),
-		uintptr(controlCode),
-		uintptr(level),
+		uintptr(unsafe.Pointer(providerGUID)),
+		uintptr(uint32(controlCode)),
+		uintptr(uint8(level)),
 		uintptr(matchAnyKeyword),
 		uintptr(matchAllKeyword),
-		uintptr(timeout),
-		uintptr(unsafe.Pointer(&enableParameters)),
+		uintptr(unsafe.Pointer(enableParameters)),
 	)
 
-	if r != 0 {
+	if r != 0 && r != uintptr(windows.ERROR_INVALID_PARAMETER) {
 		errCode := uint32(r)
-		return fmt.Errorf("EnableTraceEx2 failed (code=%d): %w", errCode, err)
+		return syscall.Errno(errCode), fmt.Errorf("EnableTraceEx2 failed (code=%d): %w", errCode, err)
 	}
 
-	return nil
+	return 0, nil
 }
 
 // stopTrace stops a trace session using the ControlTraceW function
@@ -284,7 +225,7 @@ func StopTrace(sessionName string) error {
 	props := (*EventTraceProperties)(unsafe.Pointer(&buffer[0]))
 
 	props.Wnode.BufferSize = uint32(totalSize)
-	props.Wnode.Flags = WNODE_FLAG_TRACED_GUID
+	props.Wnode.Flags = WNODE_FLAG_ALL_DATA
 
 	props.LoggerNameOffset = uint32(propSize)
 	props.LogFileNameOffset = uint32(propSize + uintptr(sessionNameSize))
@@ -304,7 +245,8 @@ func StopTrace(sessionName string) error {
 		buffer[offset+1] = byte(ch >> 8)
 	}
 
-	return ControlTrace(nil, EVENT_TRACE_CONTROL_STOP, nil, props, 0)
+	_, err = ControlTrace(nil, EVENT_TRACE_CONTROL_STOP, nil, props, 0)
+	return err
 }
 
 type Event struct {
@@ -356,6 +298,30 @@ type Event struct {
 	ExtendedData []string `json:",omitempty"`
 }
 
+/*
+	typedef struct _EVENT_TRACE_LOGFILEW {
+	  LPWSTR                        LogFileName;
+	  LPWSTR                        LoggerName;
+	  LONGLONG                      CurrentTime;
+	  ULONG                         BuffersRead;
+	  union {
+	    ULONG LogFileMode;
+	    ULONG ProcessTraceMode;
+	  } DUMMYUNIONNAME;
+	  EVENT_TRACE                   CurrentEvent;
+	  TRACE_LOGFILE_HEADER          LogfileHeader;
+	  PEVENT_TRACE_BUFFER_CALLBACKW BufferCallback;
+	  ULONG                         BufferSize;
+	  ULONG                         Filled;
+	  ULONG                         EventsLost;
+	  union {
+	    PEVENT_CALLBACK        EventCallback;
+	    PEVENT_RECORD_CALLBACK EventRecordCallback;
+	  } DUMMYUNIONNAME2;
+	  ULONG                         IsKernelTrace;
+	  PVOID                         Context;
+	} EVENT_TRACE_LOGFILEW, *PEVENT_TRACE_LOGFILEW;
+*/
 type EventTraceLogfile struct {
 	LogFileName   *uint16
 	LoggerName    *uint16
@@ -372,6 +338,10 @@ type EventTraceLogfile struct {
 	Callback       uintptr
 	IsKernelTrace  uint32
 	Context        uintptr
+}
+
+func (e *EventTraceLogfile) SetProcessTraceMode(ptm uint32) {
+	e.Union1 = ptm
 }
 
 /*
@@ -398,6 +368,46 @@ type EventTrace struct {
 	UnionCtx         uint32
 }
 
+/*
+typedef struct _EVENT_TRACE_HEADER {
+  USHORT        Size;
+  union {
+    USHORT FieldTypeFlags;
+    struct {
+      UCHAR HeaderType;
+      UCHAR MarkerFlags;
+    } DUMMYSTRUCTNAME;
+  } DUMMYUNIONNAME;
+  union {
+    ULONG Version;
+    struct {
+      UCHAR  Type;
+      UCHAR  Level;
+      USHORT Version;
+    } Class;
+  } DUMMYUNIONNAME2;
+  ULONG         ThreadId;
+  ULONG         ProcessId;
+  LARGE_INTEGER TimeStamp;
+  union {
+    GUID      Guid;
+    ULONGLONG GuidPtr;
+  } DUMMYUNIONNAME3;
+  union {
+    struct {
+      ULONG KernelTime;
+      ULONG UserTime;
+    } DUMMYSTRUCTNAME; uint64
+    ULONG64 ProcessorTime; uint64
+    struct {
+      ULONG ClientContext;
+      ULONG Flags;
+    } DUMMYSTRUCTNAME2; uint64
+  } DUMMYUNIONNAME4;
+} EVENT_TRACE_HEADER, *PEVENT_TRACE_HEADER;
+*/
+
+// sizeof: 0x30 (48)
 type EventTraceHeader struct {
 	Size      uint16
 	Union1    uint16
@@ -409,6 +419,44 @@ type EventTraceHeader struct {
 	Union4    uint64
 }
 
+/*
+	typedef struct _TRACE_LOGFILE_HEADER {
+	  ULONG                 BufferSize;
+	  union {
+	    ULONG  Version;
+	    struct {
+	      UCHAR MajorVersion;
+	      UCHAR MinorVersion;
+	      UCHAR SubVersion;
+	      UCHAR SubMinorVersion;
+	    } VersionDetail;
+	  };
+	  ULONG                 ProviderVersion;
+	  ULONG                 NumberOfProcessors;
+	  LARGE_INTEGER         EndTime;
+	  ULONG                 TimerResolution;
+	  ULONG                 MaximumFileSize;
+	  ULONG                 LogFileMode;
+	  ULONG                 BuffersWritten;
+	  union {
+	    GUID   LogInstanceGuid;
+	    struct {
+	      ULONG StartBuffers;
+	      ULONG PointerSize;
+	      ULONG EventsLost;
+	      ULONG CpuSpeedInMHz;
+	    };
+	  };
+	  LPWSTR                LoggerName;
+	  LPWSTR                LogFileName;
+	  TIME_ZONE_INFORMATION TimeZone;
+	  LARGE_INTEGER         BootTime;
+	  LARGE_INTEGER         PerfFreq;
+	  LARGE_INTEGER         StartTime;
+	  ULONG                 ReservedFlags;
+	  ULONG                 BuffersLost;
+	} TRACE_LOGFILE_HEADER, *PTRACE_LOGFILE_HEADER;
+*/
 type TraceLogfileHeader struct {
 	BufferSize         uint32
 	VersionUnion       uint32
@@ -485,13 +533,13 @@ ETW_APP_DECLSPEC_DEPRECATED PROCESSTRACE_HANDLE WMIAPI OpenTraceW(
 */
 
 func OpenTrace(logfile *EventTraceLogfile) (syscall.Handle, error) {
-	r1, _, err := openTraceW.Call(
+	r, _, err := openTraceW.Call(
 		uintptr(unsafe.Pointer(logfile)))
-	// This call stores error in lastError so we can keep it like this
+
 	if err.(syscall.Errno) == 0 {
-		return syscall.Handle(r1), nil
+		return syscall.Handle(r), nil
 	}
-	return syscall.Handle(r1), err
+	return syscall.Handle(r), err
 }
 
 /*
@@ -504,29 +552,33 @@ ETW_APP_DECLSPEC_DEPRECATED ULONG WMIAPI ProcessTrace(
 */
 
 // processTrace processes a trace session using the ProcessTraceW function
-func ProcessTrace(handles []syscall.Handle) error {
+func ProcessTrace(handle *syscall.Handle) error {
 	r, _, err := processTraceW.Call(
-		uintptr(unsafe.Pointer(&handles)),
-		uintptr(len(handles)),
+		uintptr(unsafe.Pointer(handle)),
+		uintptr(1),
 		uintptr(unsafe.Pointer(nil)),
 		uintptr(unsafe.Pointer(nil)),
 	)
-
-	fmt.Printf("Debug: ProcessTrace returned: %d\n", r)
-	fmt.Printf("Debug: ProcessTrace error: %v\n", err)
-	fmt.Printf("Debug: ProcessTrace handles: %v\n", handles)
 	if r != 0 {
 		return fmt.Errorf("ProcessTraceW failed: %w", err)
 	}
 	return nil
 }
 
+// CloseTrace closes a trace session using the CloseTraceW given a trace handle from OpenTrace
+func CloseTrace(traceHandle syscall.Handle) error {
+	r, _, err := closeTraceW.Call(
+		uintptr(traceHandle),
+	)
+	// if we're pending a close, we can ignore the error
+	if r != 0 && r != uintptr(windows.ERROR_CTX_CLOSE_PENDING) {
+		return fmt.Errorf("CloseTraceW failed(%d): %w", r, err)
+	}
+	return nil
+}
+
 const (
-	EVENT_TRACE_REAL_TIME_MODE       = 0x00000100
-	EVENT_TRACE_DELAY_OPEN_FILE_MODE = 0x00000200
-	EVENT_TRACE_BUFFERING_MODE       = 0x00000400
-	EVENT_TRACE_PRIVATE_LOGGER_MODE  = 0x00000800
-	EVENT_TRACE_ADD_HEADER_MODE      = 0x00001000
+	EVENT_TRACE_REAL_TIME_MODE = 0x00000100
 )
 
 const (
@@ -549,3 +601,144 @@ const (
 	WNODE_FLAG_SEND_DATA_BLOCK       uint32 = 0x00400000
 	WNODE_FLAG_TRACED_GUID           uint32 = 0x00020000
 )
+
+const (
+	EVENT_HEADER_FLAG_EXTENDED_INFO   = 0x0001
+	EVENT_HEADER_FLAG_PRIVATE_SESSION = 0x0002
+	EVENT_HEADER_FLAG_STRING_ONLY     = 0x0004
+	EVENT_HEADER_FLAG_TRACE_MESSAGE   = 0x0008
+	EVENT_HEADER_FLAG_NO_CPUTIME      = 0x0010
+	EVENT_HEADER_FLAG_32_BIT_HEADER   = 0x0020
+	EVENT_HEADER_FLAG_64_BIT_HEADER   = 0x0040
+	EVENT_HEADER_FLAG_CLASSIC_HEADER  = 0x0100
+	EVENT_HEADER_FLAG_PROCESSOR_INDEX = 0x0200
+)
+
+/*
+	typedef struct _EVENT_RECORD {
+	  EVENT_HEADER                     EventHeader;
+	  ETW_BUFFER_CONTEXT               BufferContext;
+	  USHORT                           ExtendedDataCount;
+	  USHORT                           UserDataLength;
+	  PEVENT_HEADER_EXTENDED_DATA_ITEM ExtendedData;
+	  PVOID                            UserData;
+	  PVOID                            UserContext;
+	} EVENT_RECORD, *PEVENT_RECORD;
+*/
+type EventRecord struct {
+	EventHeader       EventHeader
+	BufferContext     EtwBufferContext
+	ExtendedDataCount uint16
+	UserDataLength    uint16
+	ExtendedData      *EventHeaderExtendedDataItem
+	UserData          uintptr
+	UserContext       uintptr
+}
+
+func (e *EventRecord) PointerSize() uint32 {
+	if e.EventHeader.Flags&EVENT_HEADER_FLAG_32_BIT_HEADER == EVENT_HEADER_FLAG_32_BIT_HEADER {
+		return 4
+	}
+	return 8
+}
+
+/*
+	typedef struct _EVENT_HEADER {
+	  USHORT           Size;
+	  USHORT           HeaderType;
+	  USHORT           Flags;
+	  USHORT           EventProperty;
+	  ULONG            ThreadId;
+	  ULONG            ProcessId;
+	  LARGE_INTEGER    TimeStamp;
+	  GUID             ProviderId;
+	  EVENT_DESCRIPTOR EventDescriptor;
+	  union {
+	    struct {
+	      ULONG KernelTime;
+	      ULONG UserTime;
+	    } DUMMYSTRUCTNAME;
+	    ULONG64 ProcessorTime;
+	  } DUMMYUNIONNAME;
+	  GUID             ActivityId;
+	} EVENT_HEADER, *PEVENT_HEADER;
+*/
+type EventHeader struct {
+	Size            uint16
+	HeaderType      uint16
+	Flags           uint16
+	EventProperty   uint16
+	ThreadId        uint32
+	ProcessId       uint32
+	TimeStamp       int64
+	ProviderId      windows_.GUID
+	EventDescriptor EventDescriptor
+	Time            int64
+	ActivityId      windows_.GUID
+}
+
+func (e *EventHeader) UTC() time.Time {
+	nano := int64(10000000)
+	sec := int64(float64(e.TimeStamp)/float64(nano) - 11644473600.0)
+	nsec := ((e.TimeStamp - 11644473600*nano) - sec*nano) * 100
+	return time.Unix(sec, nsec).UTC()
+}
+
+/*
+	typedef struct _EVENT_DESCRIPTOR {
+	  USHORT    Id;
+	  UCHAR     Version;
+	  UCHAR     Channel;
+	  UCHAR     Level;
+	  UCHAR     Opcode;
+	  USHORT    Task;
+	  ULONGLONG Keyword;
+	} EVENT_DESCRIPTOR, *PEVENT_DESCRIPTOR;
+*/
+type EventDescriptor struct {
+	Id      uint16
+	Version uint8
+	Channel uint8
+	Level   uint8
+	Opcode  uint8
+	Task    uint16
+	Keyword uint64
+}
+
+/*
+	typedef struct _EVENT_HEADER_EXTENDED_DATA_ITEM {
+	  USHORT    Reserved1;
+	  USHORT    ExtType;
+	  struct {
+	    USHORT Linkage : 1;
+	    USHORT Reserved2 : 15;
+	  };
+	  USHORT    DataSize;
+	  ULONGLONG DataPtr;
+	} EVENT_HEADER_EXTENDED_DATA_ITEM, *PEVENT_HEADER_EXTENDED_DATA_ITEM;
+*/
+type EventHeaderExtendedDataItem struct {
+	Reserved1      uint16
+	ExtType        uint16
+	InternalStruct uint16
+	DataSize       uint16
+	DataPtr        uintptr
+}
+
+/*
+typedef struct _ETW_BUFFER_CONTEXT {
+  union {
+    struct {
+      UCHAR ProcessorNumber;
+      UCHAR Alignment;
+    } DUMMYSTRUCTNAME; // siize UCHAR
+    USHORT ProcessorIndex; // USHORT
+  } DUMMYUNIONNAME; // USHORT
+  USHORT LoggerId;
+} ETW_BUFFER_CONTEXT, *PETW_BUFFER_CONTEXT;
+*/
+// sizeof: 0x4 (OK)
+type EtwBufferContext struct {
+	Union    uint16
+	LoggerId uint16
+}

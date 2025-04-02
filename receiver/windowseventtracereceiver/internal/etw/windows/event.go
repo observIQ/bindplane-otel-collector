@@ -1,52 +1,17 @@
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 //go:build windows
 
 package windows
-
-import "golang.org/x/sys/windows"
-
-type EventRecord struct {
-	EventHeader       EventHeader
-	BufferContext     EtwBufferContext
-	ExtendedDataCount uint16
-	UserDataLength    uint16
-	ExtendedData      *EventHeaderExtendedDataItem
-	UserData          uintptr
-	UserContext       uintptr
-}
-
-type EventHeader struct {
-	Size            uint16
-	HeaderType      uint16
-	Flags           uint16
-	EventProperty   uint16
-	ThreadId        uint32
-	ProcessId       uint32
-	TimeStamp       int64
-	ProviderId      windows.GUID
-	EventDescriptor EventDescriptor
-	Time            int64
-	ActivityId      windows.GUID
-}
-
-type EventDescriptor struct {
-	Id      uint16
-	Version uint8
-	Channel uint8
-	Level   uint8
-	Opcode  uint8
-	Task    uint16
-	Keyword uint64
-}
-
-type EventHeaderExtendedDataItem struct {
-	Reserved1      uint16
-	ExtType        uint16
-	InternalStruct uint16
-	DataSize       uint16
-	DataPtr        uintptr
-}
-
-type EtwBufferContext struct {
-	Union    uint16
-	LoggerId uint16
-}

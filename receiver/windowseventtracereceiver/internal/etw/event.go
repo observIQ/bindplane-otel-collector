@@ -1,11 +1,22 @@
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package etw
 
-import (
-	"time"
-)
+import "time"
 
-type EventID uint16
-
+// Event is a struct that represents an event from the ETW session which is pre-parsed into a more usable format
 type Event struct {
 	Flags struct {
 		// Use to flag event as being skippable for performance reason
@@ -17,9 +28,9 @@ type Event struct {
 	System    struct {
 		Channel     string
 		Computer    string
-		EventID     uint16
+		EventID     string `json:",omitempty"`
 		EventType   string `json:",omitempty"`
-		EventGuid   string `json:",omitempty"`
+		EventGUID   string `json:",omitempty"`
 		Correlation struct {
 			ActivityID        string
 			RelatedActivityID string
@@ -45,7 +56,7 @@ type Event struct {
 			Name  string
 		}
 		Provider struct {
-			Guid string
+			GUID string
 			Name string
 		}
 		TimeCreated struct {
@@ -53,38 +64,4 @@ type Event struct {
 		}
 	}
 	ExtendedData []string `json:",omitempty"`
-}
-
-func NewEvent() (e *Event) {
-	e = &Event{}
-	e.EventData = make(map[string]interface{})
-	e.UserData = make(map[string]interface{})
-	e.ExtendedData = make([]string, 0)
-	return e
-}
-
-func (e *Event) GetProperty(name string) (i interface{}, ok bool) {
-
-	if e.EventData != nil {
-		if i, ok = e.EventData[name]; ok {
-			return
-		}
-	}
-
-	if e.UserData != nil {
-		if i, ok = e.UserData[name]; ok {
-			return
-		}
-	}
-
-	return
-}
-
-func (e *Event) GetPropertyString(name string) (string, bool) {
-	if i, ok := e.GetProperty(name); ok {
-		if s, ok := i.(string); ok {
-			return s, ok
-		}
-	}
-	return "", false
 }

@@ -1,5 +1,18 @@
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 //go:build windows
-// +build windows
 
 package etw
 
@@ -10,6 +23,10 @@ import (
 	"strconv"
 	"syscall"
 	"unsafe"
+
+	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/advapi32"
+	tdhpkg "github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/tdh"
+	windows_ "github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/windows"
 )
 
 const (
@@ -25,7 +42,7 @@ var (
 
 type Property struct {
 	evtRecordHelper *EventRecordHelper
-	evtPropInfo     *EventPropertyInfo
+	evtPropInfo     *tdhpkg.EventPropertyInfo
 
 	name   string
 	value  string
@@ -58,7 +75,7 @@ func (p *Property) Value() (string, error) {
 }
 
 func (p *Property) parse() (value string, err error) {
-	var mapInfo *EventMapInfo
+	var mapInfo *tdhpkg.EventMapInfo
 	var udc uint16
 	var buff []uint16
 
@@ -66,9 +83,9 @@ func (p *Property) parse() (value string, err error) {
 
 	// Get the name/value mapping if the property specifies a value map.
 	if p.evtPropInfo.MapNameOffset() > 0 {
-		pMapName := (*uint16)(unsafe.Pointer(p.evtRecordHelper.TraceInfo.pointerOffset(uintptr(p.evtPropInfo.MapNameOffset()))))
+		pMapName := (*uint16)(unsafe.Pointer(p.evtRecordHelper.TraceInfo.PointerOffset(uintptr(p.evtPropInfo.MapNameOffset()))))
 		decSrc := p.evtRecordHelper.TraceInfo.DecodingSource
-		if mapInfo, err = p.evtRecordHelper.EventRec.GetMapInfo(pMapName, uint32(decSrc)); err != nil {
+		if mapInfo, err = getMapInfo(p.evtRecordHelper.EventRec, pMapName, uint32(decSrc)); err != nil {
 			err = fmt.Errorf("failed to get map info: %s", err)
 			return
 		}
@@ -77,7 +94,7 @@ func (p *Property) parse() (value string, err error) {
 	for {
 		buff = make([]uint16, formattedDataSize)
 
-		err = TdhFormatProperty(
+		err = tdhpkg.TdhFormatProperty(
 			p.evtRecordHelper.TraceInfo,
 			mapInfo,
 			p.evtRecordHelper.EventRec.PointerSize(),
@@ -94,7 +111,7 @@ func (p *Property) parse() (value string, err error) {
 			continue
 		}
 
-		if err == ERROR_EVT_INVALID_EVENT_DATA {
+		if err == windows_.ErrorEVTInvalidEventData {
 			if mapInfo == nil {
 				break
 			}
@@ -116,8 +133,8 @@ func (p *Property) parse() (value string, err error) {
 }
 
 type EventRecordHelper struct {
-	EventRec  *EventRecord
-	TraceInfo *TraceEventInfo
+	EventRec  *advapi32.EventRecord
+	TraceInfo *tdhpkg.TraceEventInfo
 
 	Properties      map[string]*Property
 	ArrayProperties map[string][]*Property
@@ -132,11 +149,11 @@ type EventRecordHelper struct {
 	selectedProperties map[string]bool
 }
 
-func newEventRecordHelper(er *EventRecord) (erh *EventRecordHelper, err error) {
+func newEventRecordHelper(er *advapi32.EventRecord) (erh *EventRecordHelper, err error) {
 	erh = &EventRecordHelper{}
 	erh.EventRec = er
 
-	if erh.TraceInfo, err = er.GetEventInformation(); err != nil {
+	if erh.TraceInfo, err = getEventInfo(er); err != nil {
 		return
 	}
 
@@ -157,10 +174,10 @@ func (e *EventRecordHelper) setEventMetadata(event *Event) {
 	event.System.Execution.ProcessID = e.EventRec.EventHeader.ProcessId
 	event.System.Execution.ThreadID = e.EventRec.EventHeader.ThreadId
 	event.System.Correlation.ActivityID = e.EventRec.EventHeader.ActivityId.String()
-	event.System.Correlation.RelatedActivityID = e.EventRec.RelatedActivityID()
-	event.System.EventID = e.TraceInfo.EventID()
+	// event.System.Correlation.RelatedActivityID = e.EventRec.RelatedActivityID()
+
 	event.System.Channel = e.TraceInfo.ChannelName()
-	event.System.Provider.Guid = e.TraceInfo.ProviderGUID.String()
+	event.System.Provider.GUID = e.TraceInfo.ProviderGUID.String()
 	event.System.Provider.Name = e.TraceInfo.ProviderName()
 	event.System.Level.Value = e.TraceInfo.EventDescriptor.Level
 	event.System.Level.Name = e.TraceInfo.LevelName()
@@ -170,17 +187,17 @@ func (e *EventRecordHelper) setEventMetadata(event *Event) {
 	event.System.Keywords.Name = e.TraceInfo.KeywordName()
 	event.System.Task.Value = uint8(e.TraceInfo.EventDescriptor.Task)
 	event.System.Task.Name = e.TraceInfo.TaskName()
-	event.System.TimeCreated.SystemTime = e.EventRec.EventHeader.UTCTimeStamp()
+	event.System.TimeCreated.SystemTime = e.EventRec.EventHeader.UTC()
 
 	if e.TraceInfo.IsMof() {
 		var eventType string
-		if t, ok := MofClassMapping[e.TraceInfo.EventGUID.Data1]; ok {
+		if t, ok := windows_.MofClassMapping[e.TraceInfo.EventGUID.Data1]; ok {
 			eventType = fmt.Sprintf("%s/%s", t.Name, event.System.Opcode.Name)
 		} else {
 			eventType = fmt.Sprintf("UnknownClass/%s", event.System.Opcode.Name)
 		}
 		event.System.EventType = eventType
-		event.System.EventGuid = e.TraceInfo.EventGUID.String()
+		event.System.EventGUID = e.TraceInfo.EventGUID.String()
 	}
 }
 
@@ -193,17 +210,17 @@ func (e *EventRecordHelper) userDataLength() uint16 {
 }
 
 func (e *EventRecordHelper) getPropertyLength(i uint32) (uint32, error) {
-	if epi := e.TraceInfo.GetEventPropertyInfoAt(i); epi.Flags&PropertyParamLength == PropertyParamLength {
+	if epi := e.TraceInfo.GetEventPropertyInfoAt(i); epi.Flags&tdhpkg.PropertyParamLength == tdhpkg.PropertyParamLength {
 		propSize := uint32(0)
 		length := uint32(0)
 		j := uint32(epi.LengthPropertyIndex())
-		pdd := PropertyDataDescriptor{}
-		pdd.PropertyName = uint64(e.TraceInfo.pointer()) + uint64(e.TraceInfo.GetEventPropertyInfoAt(j).NameOffset)
+		pdd := tdhpkg.PropertyDataDescriptor{}
+		pdd.PropertyName = uint64(e.TraceInfo.Pointer()) + uint64(e.TraceInfo.GetEventPropertyInfoAt(j).NameOffset)
 		pdd.ArrayIndex = math.MaxUint32
-		if err := TdhGetPropertySize(e.EventRec, 0, nil, 1, &pdd, &propSize); err != nil {
+		if err := tdhpkg.TdhGetPropertySize(e.EventRec, 0, nil, 1, &pdd, &propSize); err != nil {
 			return 0, fmt.Errorf("failed to get property size: %s", err)
 		} else {
-			if err := TdhGetProperty(e.EventRec, 0, nil, 1, &pdd, propSize, (*byte)(unsafe.Pointer(&length))); err != nil {
+			if err := tdhpkg.TdhGetProperty(e.EventRec, 0, nil, 1, &pdd, propSize, (*byte)(unsafe.Pointer(&length))); err != nil {
 				return 0, fmt.Errorf("failed to get property: %s", err)
 			}
 			return length, nil
@@ -215,18 +232,18 @@ func (e *EventRecordHelper) getPropertyLength(i uint32) (uint32, error) {
 			switch {
 			// if there is an error returned here just try to add a switch case
 			// with the proper in type
-			case epi.InType() == uint16(TdhInTypeBinary) && epi.OutType() == uint16(TdhOutTypeIpv6):
+			case epi.InType() == uint16(tdhpkg.TdhInTypeBinary) && epi.OutType() == uint16(tdhpkg.TdhOutTypeIpv6):
 				// sizeof(IN6_ADDR) == 16
 				return uint32(16), nil
-			case epi.InType() == uint16(TdhInTypeUnicodestring):
+			case epi.InType() == uint16(tdhpkg.TdhInTypeUnicodestring):
 				return uint32(epi.Length()), nil
-			case epi.InType() == uint16(TdhInTypeAnsistring):
+			case epi.InType() == uint16(tdhpkg.TdhInTypeAnsistring):
 				return uint32(epi.Length()), nil
-			case epi.InType() == uint16(TdhInTypeSid):
+			case epi.InType() == uint16(tdhpkg.TdhInTypeSid):
 				return uint32(epi.Length()), nil
-			case epi.InType() == uint16(TdhInTypeWbemsid):
+			case epi.InType() == uint16(tdhpkg.TdhInTypeWbemsid):
 				return uint32(epi.Length()), nil
-			case epi.Flags&PropertyStruct == PropertyStruct:
+			case epi.Flags&tdhpkg.PropertyStruct == tdhpkg.PropertyStruct:
 				return uint32(epi.Length()), nil
 			default:
 				return 0, fmt.Errorf("unexpected length of 0 for intype %d and outtype %d", epi.InType(), epi.OutType())
@@ -236,27 +253,27 @@ func (e *EventRecordHelper) getPropertyLength(i uint32) (uint32, error) {
 }
 
 func (e *EventRecordHelper) getPropertySize(i uint32) (size uint32, err error) {
-	dataDesc := PropertyDataDescriptor{}
+	dataDesc := tdhpkg.PropertyDataDescriptor{}
 	dataDesc.PropertyName = uint64(e.TraceInfo.PropertyNameOffset(i))
 	dataDesc.ArrayIndex = math.MaxUint32
-	err = TdhGetPropertySize(e.EventRec, 0, nil, 1, &dataDesc, &size)
+	err = tdhpkg.TdhGetPropertySize(e.EventRec, 0, nil, 1, &dataDesc, &size)
 	return
 }
 
 func (e *EventRecordHelper) getArraySize(i uint32) (arraySize uint16, err error) {
-	dataDesc := PropertyDataDescriptor{}
+	dataDesc := tdhpkg.PropertyDataDescriptor{}
 	propSz := uint32(0)
 
 	epi := e.TraceInfo.GetEventPropertyInfoAt(i)
-	if (epi.Flags & PropertyParamCount) == PropertyParamCount {
+	if (epi.Flags & tdhpkg.PropertyParamCount) == tdhpkg.PropertyParamCount {
 		count := uint32(0)
 		j := epi.CountUnion
-		dataDesc.PropertyName = uint64(e.TraceInfo.pointer() + uintptr(e.TraceInfo.GetEventPropertyInfoAt(uint32(j)).NameOffset))
+		dataDesc.PropertyName = uint64(e.TraceInfo.Pointer() + uintptr(e.TraceInfo.GetEventPropertyInfoAt(uint32(j)).NameOffset))
 		dataDesc.ArrayIndex = math.MaxUint32
-		if err = TdhGetPropertySize(e.EventRec, 0, nil, 1, &dataDesc, &propSz); err != nil {
+		if err = tdhpkg.TdhGetPropertySize(e.EventRec, 0, nil, 1, &dataDesc, &propSz); err != nil {
 			return
 		}
-		if err = TdhGetProperty(e.EventRec, 0, nil, 1, &dataDesc, propSz, ((*byte)(unsafe.Pointer(&count)))); err != nil {
+		if err = tdhpkg.TdhGetProperty(e.EventRec, 0, nil, 1, &dataDesc, propSz, ((*byte)(unsafe.Pointer(&count)))); err != nil {
 			return
 		}
 		arraySize = uint16(count)
@@ -273,7 +290,7 @@ func (e *EventRecordHelper) prepareProperty(i uint32) (p *Property, err error) {
 
 	p.evtPropInfo = e.TraceInfo.GetEventPropertyInfoAt(i)
 	p.evtRecordHelper = e
-	p.name = UTF16AtOffsetToString(e.TraceInfo.pointer(), uintptr(p.evtPropInfo.NameOffset))
+	p.name = UTF16AtOffsetToString(e.TraceInfo.Pointer(), uintptr(p.evtPropInfo.NameOffset))
 	p.pValue = e.userDataIt
 	p.userDataLength = e.userDataLength()
 
@@ -298,18 +315,7 @@ func (e *EventRecordHelper) prepareProperties() (last error) {
 
 	for i := uint32(0); i < e.TraceInfo.TopLevelPropertyCount; i++ {
 		epi := e.TraceInfo.GetEventPropertyInfoAt(i)
-		isArray := epi.Flags&PropertyParamCount == PropertyParamCount
-
-		switch {
-		case isArray:
-
-		case epi.Flags&PropertyParamLength == PropertyParamLength:
-
-		case epi.Flags&PropertyParamCount == PropertyStruct:
-
-		default:
-			// property is a map
-		}
+		isArray := epi.Flags&tdhpkg.PropertyParamCount == tdhpkg.PropertyParamCount
 
 		if arraySize, last = e.getArraySize(i); last != nil {
 			return
@@ -326,7 +332,7 @@ func (e *EventRecordHelper) prepareProperties() (last error) {
 			for k := uint16(0); k < arraySize; k++ {
 
 				// If the property is a structure
-				if epi.Flags&PropertyStruct == PropertyStruct {
+				if epi.Flags&tdhpkg.PropertyParamCount == tdhpkg.PropertyStruct {
 					propStruct := make(map[string]*Property)
 					lastMember := epi.StructStartIndex() + epi.NumOfStructMembers()
 
@@ -366,69 +372,23 @@ func (e *EventRecordHelper) prepareProperties() (last error) {
 }
 
 func (e *EventRecordHelper) buildEvent() (event *Event, err error) {
-	event = NewEvent()
+	event = newEvent()
 
 	event.Flags.Skippable = e.Flags.Skippable
 
 	if err = e.parseAndSetAllProperties(event); err != nil {
 		return
 	}
-
 	e.setEventMetadata(event)
-
 	return
 }
 
-func (e *EventRecordHelper) parseAndSetProperty(name string, out *Event) (err error) {
-
-	eventData := out.EventData
-
-	// it is a user data property
-	if (e.TraceInfo.Flags & TEMPLATE_USER_DATA) == TEMPLATE_USER_DATA {
-		eventData = out.UserData
-	}
-
-	if p, ok := e.Properties[name]; ok {
-		if eventData[p.name], err = p.Value(); err != nil {
-			return fmt.Errorf("%w %s: %s", ErrPropertyParsing, name, err)
-		}
-	}
-
-	// parsing array
-	if props, ok := e.ArrayProperties[name]; ok {
-		values := make([]string, len(props))
-
-		// iterate over the properties
-		for _, p := range props {
-			var v string
-			if v, err = p.Value(); err != nil {
-				return fmt.Errorf("%w array %s: %s", ErrPropertyParsing, name, err)
-			}
-
-			values = append(values, v)
-		}
-
-		eventData[name] = values
-	}
-
-	// parsing structures
-	if name == StructurePropertyName {
-		if len(e.Structures) > 0 {
-			structs := make([]map[string]string, len(e.Structures))
-			for _, m := range e.Structures {
-				s := make(map[string]string)
-				for field, prop := range m {
-					if s[field], err = prop.Value(); err != nil {
-						return fmt.Errorf("%w %s.%s: %s", ErrPropertyParsing, StructurePropertyName, field, err)
-					}
-				}
-			}
-
-			eventData[StructurePropertyName] = structs
-		}
-	}
-
-	return
+func newEvent() (e *Event) {
+	e = &Event{}
+	e.EventData = make(map[string]interface{})
+	e.UserData = make(map[string]interface{})
+	e.ExtendedData = make([]string, 0)
+	return e
 }
 
 func (e *EventRecordHelper) shouldParse(name string) bool {
@@ -445,7 +405,7 @@ func (e *EventRecordHelper) parseAndSetAllProperties(out *Event) (last error) {
 	eventData := out.EventData
 
 	// it is a user data property
-	if (e.TraceInfo.Flags & TEMPLATE_USER_DATA) == TEMPLATE_USER_DATA {
+	if (e.TraceInfo.Flags & tdhpkg.TEMPLATE_USER_DATA) == tdhpkg.TEMPLATE_USER_DATA {
 		eventData = out.UserData
 	}
 
@@ -454,9 +414,6 @@ func (e *EventRecordHelper) parseAndSetAllProperties(out *Event) (last error) {
 		if !e.shouldParse(pname) {
 			continue
 		}
-		/*if err := e.parseAndSetProperty(pname, out); err != nil {
-			last = err
-		}*/
 		if eventData[p.name], err = p.Value(); err != nil {
 			last = fmt.Errorf("%w %s: %s", ErrPropertyParsing, p.name, err)
 		}
@@ -619,6 +576,66 @@ func (e *EventRecordHelper) Skippable() {
 	e.Flags.Skippable = true
 }
 
-func (e *EventRecordHelper) Skip() {
-	e.Flags.Skip = true
+func getEventInfo(eventRecord *advapi32.EventRecord) (*tdhpkg.TraceEventInfo, error) {
+	bufferSize := uint32(0)
+	tei := &tdhpkg.TraceEventInfo{}
+	err := tdhpkg.TdhGetEventInformation(eventRecord, 0, nil, &bufferSize)
+	if err != nil && err != syscall.ERROR_INSUFFICIENT_BUFFER {
+		buff := make([]byte, bufferSize)
+		tei := (*tdhpkg.TraceEventInfo)(unsafe.Pointer(&buff[0]))
+		err = tdhpkg.TdhGetEventInformation(eventRecord, 0, tei, &bufferSize)
+	}
+	return tei, nil
+}
+
+func getMapInfo(eventRecord *advapi32.EventRecord, pMapName *uint16, decodingSource uint32) (*tdhpkg.EventMapInfo, error) {
+	mapSize := uint32(64)
+	buff := make([]byte, mapSize)
+	pMapInfo := ((*tdhpkg.EventMapInfo)(unsafe.Pointer(&buff[0])))
+	err := tdhpkg.TdhGetEventMapInformation(eventRecord, pMapName, pMapInfo, &mapSize)
+
+	if err == syscall.ERROR_INSUFFICIENT_BUFFER {
+		buff := make([]byte, mapSize)
+		pMapInfo = ((*tdhpkg.EventMapInfo)(unsafe.Pointer(&buff[0])))
+		err = tdhpkg.TdhGetEventMapInformation(eventRecord, pMapName, pMapInfo, &mapSize)
+	}
+
+	if err == nil {
+		if tdhpkg.DecodingSource(decodingSource) == tdhpkg.DecodingSourceXMLFile {
+			pMapInfo.RemoveTrailingSpace()
+		}
+	}
+
+	if err == syscall.ERROR_NOT_FOUND {
+		err = nil
+	}
+	return pMapInfo, err
+}
+
+// // eventLevelToName maps event level values to their corresponding names
+// func eventLevelToName(level uint8) string {
+// 	switch level {
+// 	case 1:
+// 		return "Critical"
+// 	case 2:
+// 		return "Error"
+// 	case 3:
+// 		return "Warning"
+// 	case 4:
+// 		return "Information"
+// 	case 5:
+// 		return "Verbose"
+// 	default:
+// 		return fmt.Sprintf("Level%d", level)
+// 	}
+// }
+
+func UTF16AtOffsetToString(pstruct uintptr, offset uintptr) string {
+	out := make([]uint16, 0, 64)
+	wc := (*uint16)(unsafe.Pointer(pstruct + offset))
+	for i := uintptr(2); *wc != 0; i += 2 {
+		out = append(out, *wc)
+		wc = (*uint16)(unsafe.Pointer(pstruct + offset + i))
+	}
+	return syscall.UTF16ToString(out)
 }

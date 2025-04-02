@@ -3,7 +3,6 @@ module github.com/observiq/bindplane-otel-collector/receiver/windowseventtracere
 go 1.23.7
 
 require (
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.122.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v1.28.1
 	go.opentelemetry.io/collector/component/componenttest v0.122.1
@@ -15,10 +14,10 @@ require (
 	go.opentelemetry.io/collector/receiver/receivertest v0.122.1
 	go.uber.org/goleak v1.3.0
 	go.uber.org/zap v1.27.0
+	golang.org/x/sys v0.31.0
 )
 
 require (
-	github.com/0xrawsec/golang-utils v1.3.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -49,7 +48,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/net v0.37.0 // indirect
-	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect
 	google.golang.org/grpc v1.71.0 // indirect
