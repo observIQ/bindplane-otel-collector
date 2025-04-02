@@ -56,7 +56,7 @@ func (lr *logsReceiver) Start(ctx context.Context, host component.Host) error {
 
 	if err := s.Start(ctx); err != nil {
 		lr.logger.Error("Failed to start standard ETW session", zap.Error(err))
-		return fmt.Errorf("failed to start standard ETW session: %w", err)
+		return fmt.Errorf("failed to start ETW session: %w", err)
 	}
 
 	// TODO: Remove this once we have a better way to handle the session start
@@ -78,11 +78,9 @@ func (lr *logsReceiver) Start(ctx context.Context, host component.Host) error {
 		lr.logger.Info("Enabled provider", zap.String("provider", providerConfig.Name), zap.String("session", lr.cfg.SessionName))
 	}
 
-	// Create a single consumer for the session with all providers
 	eventConsumer := etw.NewRealTimeConsumer(ctx, lr.logger)
 	eventConsumer = eventConsumer.FromSessions(s)
 
-	// Start the consumer to begin receiving events
 	err := eventConsumer.Start(ctx)
 	if err != nil {
 		lr.logger.Error("Failed to start ETW consumer", zap.Error(err))
@@ -90,7 +88,6 @@ func (lr *logsReceiver) Start(ctx context.Context, host component.Host) error {
 	}
 	lr.stopFuncs = append(lr.stopFuncs, func(ctx context.Context) error { return eventConsumer.Stop(ctx) })
 
-	// Start a single goroutine to listen for events
 	lr.wg.Add(1)
 	go lr.listenForEvents(ctx, eventConsumer)
 
