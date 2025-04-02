@@ -2,8 +2,6 @@ module github.com/observiq/bindplane-otel-collector
 
 go 1.23.7
 
-toolchain go1.24.1
-
 require (
 	github.com/google/uuid v1.6.0
 	github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter v1.74.0
@@ -29,8 +27,10 @@ require (
 	github.com/observiq/bindplane-otel-collector/processor/spancountprocessor v1.74.0
 	github.com/observiq/bindplane-otel-collector/processor/throughputmeasurementprocessor v1.74.0
 	github.com/observiq/bindplane-otel-collector/processor/unrollprocessor v1.74.0
+	github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver v1.74.0
+	github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/httpreceiver v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/oktareceiver v1.74.0
@@ -47,6 +47,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector v0.122.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/connector/signaltometricsconnector v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/alibabacloudlogserviceexporter v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/awscloudwatchlogsexporter v0.122.0
@@ -221,7 +222,7 @@ require (
 	cel.dev/expr v0.21.2 // indirect
 	cloud.google.com/go/auth v0.15.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.7 // indirect
-	cloud.google.com/go/storage v1.50.0 // indirect
+	cloud.google.com/go/storage v1.51.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.17.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.2 // indirect
@@ -334,7 +335,7 @@ require (
 	github.com/DataDog/zstd_0 v0.0.0-20210310093942-586c1286621f // indirect
 	github.com/GehirnInc/crypt v0.0.0-20200316065508-bb7000b8a962 // indirect
 	github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.5.2 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.50.0 // indirect
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.51.0 // indirect
 	github.com/IBM/sarama v1.45.1 // indirect
 	github.com/JohnCGriffin/overflow v0.0.0-20211019200055-46fa312c352c // indirect
 	github.com/KimMachineGun/automemlimit v0.7.1 // indirect
@@ -344,11 +345,13 @@ require (
 	github.com/apache/arrow-go/v18 v18.0.0 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
+	github.com/aws/aws-lambda-go v1.47.0 // indirect
 	github.com/aws/aws-msk-iam-sasl-signer-go v1.0.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.66 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.46.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.209.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/servicediscovery v1.35.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.29.3 // indirect
 	github.com/bboreham/go-loser v0.0.0-20230920113527-fcc2c21820a3 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -590,9 +593,9 @@ require (
 require (
 	cloud.google.com/go v0.118.3 // indirect
 	cloud.google.com/go/compute/metadata v0.6.0 // indirect
-	cloud.google.com/go/iam v1.4.0 // indirect
+	cloud.google.com/go/iam v1.4.1 // indirect
 	cloud.google.com/go/logging v1.13.0 // indirect
-	cloud.google.com/go/longrunning v0.6.4 // indirect
+	cloud.google.com/go/longrunning v0.6.5 // indirect
 	cloud.google.com/go/monitoring v1.24.0 // indirect
 	cloud.google.com/go/pubsub v1.47.0 // indirect
 	cloud.google.com/go/spanner v1.77.0 // indirect
@@ -877,7 +880,7 @@ require (
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gonum.org/v1/gonum v0.15.1 // indirect
 	google.golang.org/api v0.226.0 // indirect
-	google.golang.org/genproto v0.0.0-20250224174004-546df14abb99 // indirect
+	google.golang.org/genproto v0.0.0-20250303144028-a0af3efb3deb // indirect
 	google.golang.org/grpc v1.71.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -959,6 +962,8 @@ replace github.com/observiq/bindplane-otel-collector/receiver/httpreceiver => ./
 
 replace github.com/observiq/bindplane-otel-collector/receiver/oktareceiver => ./receiver/oktareceiver
 
+replace github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver => ./receiver/awss3eventreceiver
+
 replace github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver => ./receiver/awss3rehydrationreceiver
 
 replace github.com/observiq/bindplane-otel-collector/internal/rehydration => ./internal/rehydration
@@ -989,3 +994,5 @@ replace github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorage
 
 // This is a temporary replacement to pull in Bomin's PR here: https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/38149
 replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20250319170526-bba46d3e01a9
+
+replace github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver => ./receiver/googlecloudstoragerehydrationreceiver

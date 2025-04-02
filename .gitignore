@@ -29,5 +29,8 @@ logging*.yaml
 config.yaml
 storage
 
+# Don't ignore the mdatagen generated config files
+!**/internal/metadata/testdata/config.yaml
+
 # For those of us switching between V1 and V2 branches
 builder

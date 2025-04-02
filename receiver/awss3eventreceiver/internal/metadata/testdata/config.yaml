@@ -1,0 +1,13 @@
+default:
+all_set:
+  resource_attributes:
+    aws.s3.bucket:
+      enabled: true
+    aws.s3.key:
+      enabled: true
+none_set:
+  resource_attributes:
+    aws.s3.bucket:
+      enabled: false
+    aws.s3.key:
+      enabled: false
