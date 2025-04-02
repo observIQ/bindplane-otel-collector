@@ -34,7 +34,6 @@ func TestProcessor_Logs(t *testing.T) {
 	processorID := component.MustNewIDWithName("topology", "1")
 
 	tmp, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
 		Interval:       time.Second,
 		OrganizationID: "myOrgID",
 		AccountID:      "myAccountID",
@@ -77,7 +76,6 @@ func TestProcessor_Metrics(t *testing.T) {
 	processorID := component.MustNewIDWithName("topology", "1")
 
 	tmp, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
 		Interval:       time.Second,
 		OrganizationID: "myOrgID",
 		AccountID:      "myAccountID",
@@ -121,7 +119,6 @@ func TestProcessor_Traces(t *testing.T) {
 	processorID := component.MustNewIDWithName("topology", "1")
 
 	tmp, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
 		Interval:       time.Second,
 		OrganizationID: "myOrgID",
 		AccountID:      "myAccountID",
@@ -165,7 +162,6 @@ func TestProcessor_MissingHeader(t *testing.T) {
 	processorID := component.MustNewIDWithName("topology", "1")
 
 	tmp, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
 		Interval:       time.Second,
 		OrganizationID: "myOrgID",
 		AccountID:      "myAccountID",
@@ -199,7 +195,6 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 	processorID := component.MustNewIDWithName("topology", "1")
 
 	tmp1, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
 		Interval:       time.Second,
 		OrganizationID: "myOrgID",
 		AccountID:      "myAccountID",
@@ -208,7 +203,6 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 	require.NoError(t, err)
 
 	tmp2, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
 		Interval:       time.Second,
 		OrganizationID: "myOrgID2",
 		AccountID:      "myAccountID2",
@@ -231,7 +225,6 @@ func TestProcessor_Logs_TwoInstancesDifferentID(t *testing.T) {
 	processorID2 := component.MustNewIDWithName("topology", "2")
 
 	tmp1, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
 		Interval:       time.Second,
 		OrganizationID: "myOrgID",
 		AccountID:      "myAccountID",
@@ -240,7 +233,6 @@ func TestProcessor_Logs_TwoInstancesDifferentID(t *testing.T) {
 	require.NoError(t, err)
 
 	tmp2, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
 		Interval:       time.Second,
 		OrganizationID: "myOrgID2",
 		AccountID:      "myAccountID2",
