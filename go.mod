@@ -997,7 +997,4 @@ replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 
 replace github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter => ./exporter/googlecloudstorageexporter
 
-// This is a temporary replacement to pull in Bomin's PR here: https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/38149
-replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20250319170526-bba46d3e01a9
-
 replace github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver => ./receiver/googlecloudstoragerehydrationreceiver
