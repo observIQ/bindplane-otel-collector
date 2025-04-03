@@ -2,6 +2,8 @@ module github.com/observiq/bindplane-otel-collector
 
 go 1.23.7
 
+toolchain go1.24.1
+
 require (
 	github.com/google/uuid v1.6.0
 	github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter v1.74.0
@@ -397,7 +399,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/gofrs/flock v0.12.1 // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
 	github.com/golang/mock v1.7.0-rc.1 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
