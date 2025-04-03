@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	Type = component.MustNewType("googlecloudstoragerehydration")
+	Type      = component.MustNewType("googlecloudstoragerehydration")
+	ScopeName = "github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver"
 )
 
 const (
