@@ -92,6 +92,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/cumulativetodeltaprocessor v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatorateprocessor v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.122.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/processor/geoipprocessor v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbyattrsprocessor v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbytraceprocessor v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/k8sattributesprocessor v0.122.0
@@ -212,7 +213,9 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.74.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.122.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/libhoneyreceiver v0.122.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.122.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver v0.122.0
 	go.opentelemetry.io/collector/extension/extensiontest v0.122.0
 	go.opentelemetry.io/collector/processor/processortest v0.122.0
 )
@@ -378,7 +381,7 @@ require (
 	github.com/elastic/go-windows v1.0.2 // indirect
 	github.com/elastic/lunes v0.1.0 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4 // indirect
-	github.com/expr-lang/expr v1.17.0 // indirect
+	github.com/expr-lang/expr v1.17.2 // indirect
 	github.com/facette/natsort v0.0.0-20181210072756-2cd4dd1e2dcb // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
@@ -456,6 +459,8 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/azurelogs v0.122.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/scraper/zookeeperscraper v0.122.0 // indirect
 	github.com/opencontainers/cgroups v0.0.1 // indirect
+	github.com/oschwald/geoip2-golang v1.11.0 // indirect
+	github.com/oschwald/maxminddb-golang v1.13.0 // indirect
 	github.com/outcaste-io/ristretto v0.2.3 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/paulmach/orb v0.11.1 // indirect
@@ -485,6 +490,8 @@ require (
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	github.com/ua-parser/uap-go v0.0.0-20240611065828-3a4781585db6 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
+	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.elastic.co/apm/module/apmzap/v2 v2.6.3 // indirect
@@ -877,11 +884,11 @@ require (
 	golang.org/x/time v0.11.0 // indirect
 	golang.org/x/tools v0.30.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
-	gonum.org/v1/gonum v0.15.1 // indirect
+	gonum.org/v1/gonum v0.16.0 // indirect
 	google.golang.org/api v0.226.0 // indirect
 	google.golang.org/genproto v0.0.0-20250303144028-a0af3efb3deb // indirect
 	google.golang.org/grpc v1.71.0 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

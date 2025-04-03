@@ -47,6 +47,7 @@ Below is a list of supported receivers with links to their documentation pages.
 | Kubernetes kubelet Stats Receiver          | [kubeletstatsreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/kubeletstatsreceiver/README.md)                     |
 | Kafka Receiver                             | [kafkareceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/kafkareceiver/README.md)                                   |
 | Kafka Metrics Receiver                     | [kafkametricsreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/kafkametricsreceiver/README.md)                     |
+| Libhoney Receiver                          | [libhoneyreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/libhoneyreceiver/README.md)                             |
 | Memcached Receiver                         | [memcachedreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/memcachedreceiver/README.md)                           |
 | Microsoft 365 Receiver                     | [m365receiver](../receiver/m365receiver/README.md)                                                                                                                  |
 | Microsoft IIS Receiver                     | [iisreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/iisreceiver/README.md)                                       |
@@ -58,6 +59,7 @@ Below is a list of supported receivers with links to their documentation pages.
 | NGINX Receiver                             | [nginxreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/nginxreceiver/README.md)                                   |
 | Okta Receiver                              | [oktareceiver](../receiver/oktareceiver/README.md)                                                                                                                  |
 | OpenCensus Receiver                        | [opencensusreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/opencensusreceiver/README.md)                         |
+| OTLP JSON Receiver                         | [otlpjsonreceiver] (https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/otlpjsonfilereceiver/README.md)                        |
 | OTLP Receiver                              | [otlpreceiver](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.122.0/receiver/otlpreceiver/README.md)                                             |
 | Plugin Receiver                            | [pluginreceiver](../receiver/pluginreceiver/README.md)                                                                                                              |
 | Podman Stats Receiver                      | [podmanreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/podmanreceiver/README.md)                                 |
