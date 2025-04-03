@@ -4,7 +4,7 @@ go 1.23.6
 
 require (
 	cloud.google.com/go/storage v1.51.0
-	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.72.0
+	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.74.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v1.29.0
 	go.opentelemetry.io/collector/component/componenttest v0.123.0
@@ -49,8 +49,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/collector/extension v1.28.0 // indirect
-	go.opentelemetry.io/collector/extension/xextension v0.122.0 // indirect
+	go.opentelemetry.io/collector/extension v1.29.0 // indirect
+	go.opentelemetry.io/collector/extension/xextension v0.123.0 // indirect
 	go.opentelemetry.io/collector/featuregate v1.29.0 // indirect
 	go.opentelemetry.io/collector/internal/telemetry v0.123.0 // indirect
 	go.opentelemetry.io/collector/pdata v1.29.0 // indirect
@@ -78,3 +78,7 @@ require (
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/observiq/bindplane-otel-collector/internal/rehydration => ../../internal/rehydration
+
+replace github.com/observiq/bindplane-otel-collector/internal/testutils => ../../internal/testutils
