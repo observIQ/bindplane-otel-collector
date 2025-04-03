@@ -1,0 +1,8 @@
+type: windowseventtrace
+
+status:
+  class: receiver
+  stability:
+    alpha: [logs]
+  distributions: [contrib]
+  unsupported_platforms: [darwin, linux]
