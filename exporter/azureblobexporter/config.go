@@ -40,7 +40,7 @@ const (
 
 // Config the configuration for the azureblob exporter
 type Config struct {
-	TimeoutConfig    exporterhelper.TimeoutConfig    `mapstructure:"timeout"`
+	TimeoutConfig    exporterhelper.TimeoutConfig    `mapstructure:",squash"`
 	QueueBatchConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
 	BackOffConfig    configretry.BackOffConfig       `mapstructure:"retry_on_failure"`
 
