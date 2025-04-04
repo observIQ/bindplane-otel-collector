@@ -29,8 +29,6 @@ import (
 )
 
 type reportPair struct {
-	columns map[string]int //relevant metric name and index for csv file
-
 	endpoint string                                                                     //unique report endpoint
 	indexes  map[int]func(mb *metadata.MetricsBuilder, ts pcommon.Timestamp, val int64) //map of csv file index and recordMetric func
 }
@@ -277,7 +275,7 @@ func newM365Scraper(
 }
 
 func (m *m365Scraper) start(ctx context.Context, host component.Host) error {
-	httpClient, err := m.cfg.ToClient(ctx, host, m.settings)
+	httpClient, err := m.cfg.ClientConfig.ToClient(ctx, host, m.settings)
 	if err != nil {
 		m.logger.Error("error creating HTTP client", zap.Error(err))
 		return err

@@ -24,11 +24,11 @@ import (
 
 func Test_createDefaultConfig(t *testing.T) {
 	expectedCfg := &Config{
-		TimeoutConfig: exporterhelper.NewDefaultTimeoutConfig(),
-		QueueConfig:   exporterhelper.NewDefaultQueueConfig(),
-		BackOffConfig: configretry.NewDefaultBackOffConfig(),
-		Partition:     minutePartition,
-		Compression:   noCompression,
+		TimeoutConfig:    exporterhelper.NewDefaultTimeoutConfig(),
+		QueueBatchConfig: exporterhelper.NewDefaultQueueConfig(),
+		BackOffConfig:    configretry.NewDefaultBackOffConfig(),
+		Partition:        minutePartition,
+		Compression:      noCompression,
 	}
 
 	actual := createDefaultConfig()

@@ -292,6 +292,9 @@ func (m *m365Client) GetJSON(ctx context.Context, endpoint string, end string, s
 		for _, b := range bodies {
 			var log = jsonLog{}
 			err = json.Unmarshal(b, &log)
+			if err != nil {
+				return []logData{}, err
+			}
 			data = append(data, logData{log: log, body: string(b)})
 		}
 	}

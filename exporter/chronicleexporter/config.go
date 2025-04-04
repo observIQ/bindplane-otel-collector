@@ -36,9 +36,9 @@ const (
 
 // Config defines configuration for the Chronicle exporter.
 type Config struct {
-	exporterhelper.TimeoutConfig `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct.
-	exporterhelper.QueueConfig   `mapstructure:"sending_queue"`
-	configretry.BackOffConfig    `mapstructure:"retry_on_failure"`
+	TimeoutConfig    exporterhelper.TimeoutConfig    `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct.
+	QueueBatchConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
+	BackOffConfig    configretry.BackOffConfig       `mapstructure:"retry_on_failure"`
 
 	// Endpoint is the URL where Chronicle data will be sent.
 	Endpoint string `mapstructure:"endpoint"`

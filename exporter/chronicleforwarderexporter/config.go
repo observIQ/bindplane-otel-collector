@@ -37,9 +37,9 @@ const (
 
 // Config defines configuration for the Chronicle exporter.
 type Config struct {
-	exporterhelper.TimeoutConfig `mapstructure:",squash"`
-	exporterhelper.QueueConfig   `mapstructure:"sending_queue"`
-	configretry.BackOffConfig    `mapstructure:"retry_on_failure"`
+	TimeoutConfig    exporterhelper.TimeoutConfig    `mapstructure:",squash"`
+	QueueBatchConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
+	BackOffConfig    configretry.BackOffConfig       `mapstructure:"retry_on_failure"`
 
 	// ExportType is the type of export to use.
 	ExportType string `mapstructure:"export_type"`

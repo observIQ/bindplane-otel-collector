@@ -383,6 +383,5 @@ func httpTestHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	rw.WriteHeader(404)
-	return
 
 }

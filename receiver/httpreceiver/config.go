@@ -25,8 +25,8 @@ import (
 
 // Config defines the configuration for an HTTP receiver
 type Config struct {
-	Path                    string `mapstructure:"path"`
-	confighttp.ServerConfig `mapstructure:",squash"`
+	Path         string                  `mapstructure:"path"`
+	ServerConfig confighttp.ServerConfig `mapstructure:",squash"`
 }
 
 var (
@@ -39,18 +39,18 @@ var (
 
 // Validate ensures an HTTP receiver config is correct
 func (c *Config) Validate() error {
-	if c.Endpoint == "" {
+	if c.ServerConfig.Endpoint == "" {
 		return errNoEndpoint
 	}
 
-	if _, _, err := net.SplitHostPort(c.Endpoint); err != nil {
+	if _, _, err := net.SplitHostPort(c.ServerConfig.Endpoint); err != nil {
 		return errBadEndpoint
 	}
-	if c.TLSSetting != nil {
-		if c.TLSSetting.CertFile == "" && c.TLSSetting.CertPem == "" {
+	if c.ServerConfig.TLSSetting != nil {
+		if c.ServerConfig.TLSSetting.CertFile == "" && c.ServerConfig.TLSSetting.CertPem == "" {
 			return errNoCert
 		}
-		if c.TLSSetting.KeyFile == "" && c.TLSSetting.KeyPem == "" {
+		if c.ServerConfig.TLSSetting.KeyFile == "" && c.ServerConfig.TLSSetting.KeyPem == "" {
 			return errNoKey
 		}
 	}
