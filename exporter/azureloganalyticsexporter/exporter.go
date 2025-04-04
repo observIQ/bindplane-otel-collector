@@ -99,13 +99,13 @@ func (e *azureLogAnalyticsExporter) logsDataPusher(ctx context.Context, ld plog.
 }
 
 // Start starts the exporter
-func (e *azureLogAnalyticsExporter) Start(ctx context.Context, host component.Host) error {
+func (e *azureLogAnalyticsExporter) Start(_ context.Context, _ component.Host) error {
 	e.logger.Info("Starting Azure Log Analytics exporter")
 	return nil
 }
 
 // Shutdown will shutdown the exporter
-func (e *azureLogAnalyticsExporter) Shutdown(ctx context.Context) error {
+func (e *azureLogAnalyticsExporter) Shutdown(_ context.Context) error {
 	e.logger.Info("Shutting down Azure Log Analytics exporter")
 	return nil
 }
