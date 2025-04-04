@@ -14,5 +14,5 @@
 
 //go:generate mdatagen metadata.yaml
 
-// Package microsoftsentinelexporter exports logs to Microsoft Sentinel via Log Ingestion API.
-package microsoftsentinelexporter // import "github.com/observiq/bindplane-otel-collector/exporter/microsoftsentinelexporter"
+// Package azureloganalyticsexporter exports logs to Azure Log Analytics via Log Ingestion API.
+package azureloganalyticsexporter // import "github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter"

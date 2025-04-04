@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	Type = component.MustNewType("microsoftsentinel")
+	Type = component.MustNewType("azureloganalytics")
 )
 
 const (
@@ -17,9 +17,9 @@ const (
 )
 
 func Meter(settings component.TelemetrySettings) metric.Meter {
-	return settings.MeterProvider.Meter("otelcol/microsoftsentinel")
+	return settings.MeterProvider.Meter("otelcol/azureloganalytics")
 }
 
 func Tracer(settings component.TelemetrySettings) trace.Tracer {
-	return settings.TracerProvider.Tracer("otelcol/microsoftsentinel")
+	return settings.TracerProvider.Tracer("otelcol/azureloganalytics")
 }

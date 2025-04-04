@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package microsoftsentinelexporter // import "github.com/observiq/bindplane-otel-collector/exporter/microsoftsentinelexporter"
+package azureloganalyticsexporter // import "github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter"
 
 import (
 	"context"
@@ -24,9 +24,9 @@ import (
 )
 
 // Define type to replace metadata.Type temporarily
-var typeStr = component.MustNewType("microsoftsentinel")
+var typeStr = component.MustNewType("azureloganalytics")
 
-// NewFactory creates a factory for Microsoft Sentinel Exporter
+// NewFactory creates a factory for Azure Log Analytics Exporter
 func NewFactory() exporter.Factory {
 	return exporter.NewFactory(
 		typeStr,
@@ -42,7 +42,7 @@ func createDefaultConfig() component.Config {
 func createLogsExporter(ctx context.Context, params exporter.Settings, config component.Config) (exporter.Logs, error) {
 	cfg, ok := config.(*Config)
 	if !ok {
-		return nil, errors.New("not a Microsoft Sentinel config")
+		return nil, errors.New("not a Azure Log Analytics config")
 	}
 
 	exp, err := newExporter(cfg, params)
