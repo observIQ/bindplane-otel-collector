@@ -46,10 +46,10 @@ func createDefaultConfig() component.Config {
 	dsn, _ := gosnowflake.DSN(sfCfg)
 
 	return &Config{
-		TimeoutConfig: exporterhelper.NewDefaultTimeoutConfig(),
-		QueueConfig:   exporterhelper.NewDefaultQueueConfig(),
-		BackOffConfig: configretry.NewDefaultBackOffConfig(),
-		Database:      defaultDatabase,
+		TimeoutConfig:    exporterhelper.NewDefaultTimeoutConfig(),
+		QueueBatchConfig: exporterhelper.NewDefaultQueueConfig(),
+		BackOffConfig:    configretry.NewDefaultBackOffConfig(),
+		Database:         defaultDatabase,
 		Logs: TelemetryConfig{
 			Schema: defaultLogsSchema,
 			Table:  defaultTable,
@@ -91,7 +91,7 @@ func createLogsExporter(
 		exporterhelper.WithShutdown(e.shutdown),
 		exporterhelper.WithCapabilities(e.Capabilities()),
 		exporterhelper.WithTimeout(e.cfg.TimeoutConfig),
-		exporterhelper.WithQueue(e.cfg.QueueConfig),
+		exporterhelper.WithQueue(e.cfg.QueueBatchConfig),
 		exporterhelper.WithRetry(e.cfg.BackOffConfig),
 	)
 }
@@ -121,7 +121,7 @@ func createMetricsExporter(
 		exporterhelper.WithShutdown(e.shutdown),
 		exporterhelper.WithCapabilities(e.Capabilities()),
 		exporterhelper.WithTimeout(e.cfg.TimeoutConfig),
-		exporterhelper.WithQueue(e.cfg.QueueConfig),
+		exporterhelper.WithQueue(e.cfg.QueueBatchConfig),
 		exporterhelper.WithRetry(e.cfg.BackOffConfig),
 	)
 }
@@ -151,7 +151,7 @@ func createTracesExporter(
 		exporterhelper.WithShutdown(e.shutdown),
 		exporterhelper.WithCapabilities(e.Capabilities()),
 		exporterhelper.WithTimeout(e.cfg.TimeoutConfig),
-		exporterhelper.WithQueue(e.cfg.QueueConfig),
+		exporterhelper.WithQueue(e.cfg.QueueBatchConfig),
 		exporterhelper.WithRetry(e.cfg.BackOffConfig),
 	)
 }

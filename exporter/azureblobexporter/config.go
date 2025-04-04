@@ -40,9 +40,9 @@ const (
 
 // Config the configuration for the azureblob exporter
 type Config struct {
-	exporterhelper.TimeoutConfig `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct.
-	exporterhelper.QueueConfig   `mapstructure:"sending_queue"`
-	configretry.BackOffConfig    `mapstructure:"retry_on_failure"`
+	TimeoutConfig    exporterhelper.TimeoutConfig    `mapstructure:",squash"`
+	QueueBatchConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
+	BackOffConfig    configretry.BackOffConfig       `mapstructure:"retry_on_failure"`
 
 	// ConnectionString is the Azure Blob Storage connection key,
 	// which can be found in the Azure Blob Storage resource on the Azure Portal. (no default)

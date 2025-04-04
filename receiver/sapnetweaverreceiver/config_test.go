@@ -101,7 +101,7 @@ func TestValidate(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			cfg := NewFactory().CreateDefaultConfig().(*Config)
-			cfg.Endpoint = tc.endpoint
+			cfg.ClientConfig.Endpoint = tc.endpoint
 			cfg.Username = tc.username
 			cfg.Password = tc.password
 			err := xconfmap.Validate(cfg)
@@ -126,10 +126,10 @@ func TestLoadConfig(t *testing.T) {
 	require.NoError(t, sub.Unmarshal(cfg))
 
 	expected := factory.CreateDefaultConfig().(*Config)
-	expected.Endpoint = "http://localhost:50013"
+	expected.ClientConfig.Endpoint = "http://localhost:50013"
 	expected.Password = "password"
 	expected.Username = "root"
-	expected.CollectionInterval = 60 * time.Second
+	expected.ControllerConfig.CollectionInterval = 60 * time.Second
 
 	require.Equal(t, expected, cfg)
 }

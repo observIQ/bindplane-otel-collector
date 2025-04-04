@@ -43,8 +43,8 @@ var (
 
 // Config defines configuration for SAP Netweaver metrics receiver.
 type Config struct {
-	scraperhelper.ControllerConfig `mapstructure:",squash"`
-	confighttp.ClientConfig        `mapstructure:"tls,omitempty,squash"`
+	ControllerConfig scraperhelper.ControllerConfig `mapstructure:",squash"`
+	ClientConfig     confighttp.ClientConfig        `mapstructure:"tls,omitempty,squash"`
 	// Metrics defines which metrics to enable for the scraper
 	MetricsBuilderConfig metadata.MetricsBuilderConfig `mapstructure:",squash"`
 	// Endpoint string `mapstructure:"endpoint"`
@@ -64,7 +64,7 @@ func (cfg *Config) Validate() error {
 		errs = multierr.Append(errs, ErrNoPwd)
 	}
 
-	u, err := url.Parse(cfg.Endpoint)
+	u, err := url.Parse(cfg.ClientConfig.Endpoint)
 	if err != nil {
 		errs = multierr.Append(errs, ErrInvalidEndpoint)
 	}

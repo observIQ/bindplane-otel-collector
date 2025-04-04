@@ -25,7 +25,7 @@ import (
 func Test_createDefaultConfig(t *testing.T) {
 	expectedCfg := &Config{
 		TimeoutConfig:             exporterhelper.NewDefaultTimeoutConfig(),
-		QueueConfig:               exporterhelper.NewDefaultQueueConfig(),
+		QueueBatchConfig:          exporterhelper.NewDefaultQueueConfig(),
 		BackOffConfig:             configretry.NewDefaultBackOffConfig(),
 		OverrideLogType:           true,
 		Endpoint:                  "malachiteingestion-pa.googleapis.com",

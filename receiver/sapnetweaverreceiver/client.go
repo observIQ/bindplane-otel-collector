@@ -25,10 +25,10 @@ import (
 )
 
 func newSoapClient(ctx context.Context, cfg *Config, host component.Host, settings component.TelemetrySettings) (*soap.Client, error) {
-	httpClient, err := cfg.ToClient(ctx, host, settings)
+	httpClient, err := cfg.ClientConfig.ToClient(ctx, host, settings)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP Client: %w", err)
 	}
 
-	return soap.NewClient(cfg.Endpoint, soap.WithBasicAuth(cfg.Username, cfg.Password), soap.WithHTTPClient(httpClient)), nil
+	return soap.NewClient(cfg.ClientConfig.Endpoint, soap.WithBasicAuth(cfg.Username, cfg.Password), soap.WithHTTPClient(httpClient)), nil
 }

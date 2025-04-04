@@ -71,13 +71,13 @@ type Config struct {
 	Compression compressionType `mapstructure:"compression"`
 
 	// TimeoutConfig configures timeout settings for exporter operations.
-	exporterhelper.TimeoutConfig `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct.
+	TimeoutConfig exporterhelper.TimeoutConfig `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct.
 
 	// QueueConfig defines the queuing behavior for the exporter.
-	exporterhelper.QueueConfig `mapstructure:"sending_queue"`
+	QueueConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
 
 	// BackOffConfig defines the retry behavior for failed operations.
-	configretry.BackOffConfig `mapstructure:"retry_on_failure"`
+	BackOffConfig configretry.BackOffConfig `mapstructure:"retry_on_failure"`
 }
 
 // Validate validates the config.

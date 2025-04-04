@@ -33,9 +33,9 @@ const (
 
 // Config is the config for the Snowflake exporter
 type Config struct {
-	exporterhelper.TimeoutConfig `mapstructure:",squash"`
-	exporterhelper.QueueConfig   `mapstructure:"sending_queue"`
-	configretry.BackOffConfig    `mapstructure:"retry_on_failure"`
+	TimeoutConfig    exporterhelper.TimeoutConfig    `mapstructure:",squash"`
+	QueueBatchConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
+	BackOffConfig    configretry.BackOffConfig       `mapstructure:"retry_on_failure"`
 
 	AccountIdentifier string             `mapstructure:"account_identifier"`
 	Username          string             `mapstructure:"username"`

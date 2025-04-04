@@ -81,7 +81,7 @@ func TestGRPCExporter(t *testing.T) {
 		cfg.Protocol = protocolGRPC
 		cfg.CustomerID = "00000000-1111-2222-3333-444444444444"
 		cfg.LogType = "FAKE"
-		cfg.QueueConfig.Enabled = false
+		cfg.QueueBatchConfig.Enabled = false
 		cfg.BackOffConfig.Enabled = false
 	}
 

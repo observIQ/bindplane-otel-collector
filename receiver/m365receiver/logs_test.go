@@ -164,7 +164,7 @@ func TestParseOptionalAttributes(t *testing.T) {
 	w, e := m.Get("workload")
 	require.True(t, e)
 	require.Equal(t, "testWorkload", w.AsString())
-	w, e = m.Get("result_status")
+	_, e = m.Get("result_status")
 	require.False(t, e)
 }
 
@@ -203,6 +203,7 @@ func (mc *mockLogsClient) loadTestLogs(t *testing.T, file string) []logData {
 	for _, b := range data {
 		var log = jsonLog{}
 		err = json.Unmarshal([]byte(b), &log)
+		require.NoError(t, err)
 		ret = append(ret, logData{log: log, body: b})
 	}
 

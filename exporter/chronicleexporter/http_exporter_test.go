@@ -72,7 +72,7 @@ func TestHTTPExporter(t *testing.T) {
 		cfg.Project = "fake"
 		cfg.Forwarder = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 		cfg.LogType = "FAKE"
-		cfg.QueueConfig.Enabled = false
+		cfg.QueueBatchConfig.Enabled = false
 		cfg.BackOffConfig.Enabled = false
 	}
 

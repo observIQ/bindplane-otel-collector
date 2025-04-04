@@ -29,9 +29,9 @@ import (
 
 // Config defines configuration for the QRadar exporter.
 type Config struct {
-	exporterhelper.TimeoutConfig `mapstructure:",squash"`
-	exporterhelper.QueueConfig   `mapstructure:"sending_queue"`
-	configretry.BackOffConfig    `mapstructure:"retry_on_failure"`
+	TimeoutConfig    exporterhelper.TimeoutConfig    `mapstructure:",squash"`
+	QueueBatchConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
+	BackOffConfig    configretry.BackOffConfig       `mapstructure:"retry_on_failure"`
 
 	// Syslog is the configuration for the connection to QRadar.
 	Syslog SyslogConfig `mapstructure:"syslog"`

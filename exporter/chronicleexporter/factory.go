@@ -44,7 +44,7 @@ func createDefaultConfig() component.Config {
 	return &Config{
 		Protocol:                  protocolGRPC,
 		TimeoutConfig:             exporterhelper.NewDefaultTimeoutConfig(),
-		QueueConfig:               exporterhelper.NewDefaultQueueConfig(),
+		QueueBatchConfig:          exporterhelper.NewDefaultQueueConfig(),
 		BackOffConfig:             configretry.NewDefaultBackOffConfig(),
 		OverrideLogType:           true,
 		Compression:               noCompression,
@@ -82,7 +82,7 @@ func createLogsExporter(
 		exp.ConsumeLogs,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
 		exporterhelper.WithTimeout(c.TimeoutConfig),
-		exporterhelper.WithQueue(c.QueueConfig),
+		exporterhelper.WithQueue(c.QueueBatchConfig),
 		exporterhelper.WithRetry(c.BackOffConfig),
 		exporterhelper.WithStart(exp.Start),
 		exporterhelper.WithShutdown(exp.Shutdown),
