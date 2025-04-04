@@ -1,11 +1,10 @@
-package microsoftsentinelexporter
+package azureloganalyticsexporter
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/observiq/bindplane-otel-collector/expr"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottllog"
@@ -15,16 +14,16 @@ import (
 	"go.uber.org/zap"
 )
 
-// sentinelMarshaler handles transforming logs for Microsoft Sentinel
-type sentinelMarshaler struct {
+// azureLogAnalyticsMarshaler handles transforming logs for Azure Log Analytics
+type azureLogAnalyticsMarshaler struct {
 	cfg          *Config
 	teleSettings component.TelemetrySettings
 	logger       *zap.Logger
 }
 
-// newMarshaler creates a new instance of the sentinel marshaler
-func newMarshaler(cfg *Config, teleSettings component.TelemetrySettings) *sentinelMarshaler {
-	return &sentinelMarshaler{
+// newMarshaler creates a new instance of the azureLogAnalyticsMarshaler
+func newMarshaler(cfg *Config, teleSettings component.TelemetrySettings) *azureLogAnalyticsMarshaler {
+	return &azureLogAnalyticsMarshaler{
 		cfg:          cfg,
 		teleSettings: teleSettings,
 		logger:       teleSettings.Logger,
@@ -32,7 +31,7 @@ func newMarshaler(cfg *Config, teleSettings component.TelemetrySettings) *sentin
 }
 
 // getRawField extracts a field value using OTTL expression
-func (m *sentinelMarshaler) getRawField(ctx context.Context, field string, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, error) {
+func (m *azureLogAnalyticsMarshaler) getRawField(ctx context.Context, field string, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, error) {
 	lrExpr, err := expr.NewOTTLLogRecordExpression(field, m.teleSettings)
 	if err != nil {
 		return "", fmt.Errorf("raw_log_field is invalid: %s", err)
@@ -63,14 +62,14 @@ func (m *sentinelMarshaler) getRawField(ctx context.Context, field string, logRe
 }
 
 // transformLogsToSentinelFormat transforms logs to Microsoft Sentinel format
-func (m *sentinelMarshaler) transformLogsToSentinelFormat(ctx context.Context, ld plog.Logs) ([]byte, error) {
+func (m *azureLogAnalyticsMarshaler) transformLogsToSentinelFormat(ctx context.Context, ld plog.Logs) ([]byte, error) {
 	// Check if we're using raw log mode
 	if m.cfg.RawLogField != "" {
-		return m.transformRawLogsToSentinelFormat(ctx, ld)
+		return m.transformRawLogsToAzureLogAnalyticsFormat(ctx, ld)
 	}
 
 	// Default transformation logic (follows original code)
-	var sentinelLogs []map[string]interface{}
+	var azureLogAnalyticsLogs []map[string]interface{}
 
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		rl := ld.ResourceLogs().At(i)
@@ -78,9 +77,6 @@ func (m *sentinelMarshaler) transformLogsToSentinelFormat(ctx context.Context, l
 			sl := rl.ScopeLogs().At(j)
 			for k := 0; k < sl.LogRecords().Len(); k++ {
 				logRecord := sl.LogRecords().At(k)
-
-				// Convert the timestamp to RFC3339 format for TimeGenerated
-				timeGenerated := logRecord.Timestamp().AsTime().Format(time.RFC3339)
 
 				// Create a new single-record logs object to hold just this log
 				singleLogRecord := plog.NewLogs()
@@ -117,26 +113,25 @@ func (m *sentinelMarshaler) transformLogsToSentinelFormat(ctx context.Context, l
 				}
 
 				// Create the Sentinel format with TimeGenerated and the inner resourceLogs
-				sentinelLog := map[string]interface{}{
-					"TimeGenerated": timeGenerated,
-					"resourceLogs":  innerResourceLogs, // Use the inner content directly
+				azureLogAnalyticsLog := map[string]interface{}{
+					"resourceLogs": innerResourceLogs, // Use the inner content directly
 				}
 
-				sentinelLogs = append(sentinelLogs, sentinelLog)
+				azureLogAnalyticsLogs = append(azureLogAnalyticsLogs, azureLogAnalyticsLog)
 			}
 		}
 	}
 
-	jsonLogs, err := json.Marshal(sentinelLogs)
+	jsonLogs, err := json.Marshal(azureLogAnalyticsLogs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert logs to JSON: %w", err)
 	}
 	return jsonLogs, nil
 }
 
-// transformRawLogsToSentinelFormat transforms logs to Microsoft Sentinel format using the raw log approach
-func (m *sentinelMarshaler) transformRawLogsToSentinelFormat(ctx context.Context, ld plog.Logs) ([]byte, error) {
-	var sentinelLogs []map[string]interface{}
+// transformRawLogsToAzureLogAnalyticsFormat transforms logs to Azure Log Analytics format using the raw log approach
+func (m *azureLogAnalyticsMarshaler) transformRawLogsToAzureLogAnalyticsFormat(ctx context.Context, ld plog.Logs) ([]byte, error) {
+	var azureLogAnalyticsLogs []map[string]interface{}
 
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		resourceLog := ld.ResourceLogs().At(i)
@@ -165,28 +160,21 @@ func (m *sentinelMarshaler) transformRawLogsToSentinelFormat(ctx context.Context
 					continue
 				}
 
-				// Convert the timestamp to RFC3339 format for TimeGenerated
-				timeGenerated := logRecord.Timestamp().AsTime().Format(time.RFC3339)
-
 				// Try to parse rawLogStr as JSON first
 				var rawLogData map[string]interface{}
 				if err := json.Unmarshal([]byte(rawLogStr), &rawLogData); err != nil {
 					// If not valid JSON, use as raw string
-					sentinelLogs = append(sentinelLogs, map[string]interface{}{
-						"TimeGenerated": timeGenerated,
-						"RawData":       rawLogStr,
+					azureLogAnalyticsLogs = append(azureLogAnalyticsLogs, map[string]interface{}{
+						"RawData": rawLogStr,
 					})
 				} else {
-					// If valid JSON, merge with TimeGenerated
-					rawLogData["TimeGenerated"] = timeGenerated
-					sentinelLogs = append(sentinelLogs, rawLogData)
+					azureLogAnalyticsLogs = append(azureLogAnalyticsLogs, rawLogData)
 				}
 			}
 		}
 	}
 
-	jsonLogs, err := json.Marshal(sentinelLogs)
-	fmt.Println(string(jsonLogs))
+	jsonLogs, err := json.Marshal(azureLogAnalyticsLogs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert logs to JSON: %w", err)
 	}

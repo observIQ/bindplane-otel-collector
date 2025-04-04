@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package microsoftsentinelexporter // import "github.com/observiq/bindplane-otel-collector/exporter/microsoftsentinelexporter"
+package azureloganalyticsexporter // import "github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter"
 
 import (
 	"context"
@@ -27,18 +27,18 @@ import (
 	"go.uber.org/zap"
 )
 
-// microsoftSentinelExporter exports logs to Microsoft Sentinel's Log Analytics API
-type microsoftSentinelExporter struct {
+// azureLogAnalyticsExporter exports logs to Azure Log Analytics
+type azureLogAnalyticsExporter struct {
 	cfg        *Config
 	logger     *zap.Logger
 	client     *azlogs.Client
 	ruleID     string
 	streamName string
-	marshaler  *sentinelMarshaler
+	marshaler  *azureLogAnalyticsMarshaler
 }
 
-// newExporter creates a new Microsoft Sentinel exporter
-func newExporter(cfg *Config, params exporter.Settings) (*microsoftSentinelExporter, error) {
+// newExporter creates a new Azure Log Analytics exporter
+func newExporter(cfg *Config, params exporter.Settings) (*azureLogAnalyticsExporter, error) {
 	logger := params.Logger
 
 	// Create Azure credential
@@ -51,12 +51,12 @@ func newExporter(cfg *Config, params exporter.Settings) (*microsoftSentinelExpor
 	// Create Azure logs client
 	client, err := azlogs.NewClient(cfg.Endpoint, cred, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Microsoft Sentinel client: %w", err)
+		return nil, fmt.Errorf("failed to create Azure Log Analytics client: %w", err)
 	}
 
 	marshaler := newMarshaler(cfg, params.TelemetrySettings)
 
-	return &microsoftSentinelExporter{
+	return &azureLogAnalyticsExporter{
 		cfg:        cfg,
 		logger:     logger,
 		client:     client,
@@ -67,12 +67,12 @@ func newExporter(cfg *Config, params exporter.Settings) (*microsoftSentinelExpor
 }
 
 // Capabilities returns the capabilities of the exporter
-func (e *microsoftSentinelExporter) Capabilities() consumer.Capabilities {
+func (e *azureLogAnalyticsExporter) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: false}
 }
 
-// logsDataPusher pushes log data to Microsoft Sentinel
-func (e *microsoftSentinelExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
+// logsDataPusher pushes log data to Azure Log Analytics
+func (e *azureLogAnalyticsExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
 	logsCount := ld.LogRecordCount()
 	if logsCount == 0 {
 		return nil
@@ -80,18 +80,18 @@ func (e *microsoftSentinelExporter) logsDataPusher(ctx context.Context, ld plog.
 
 	e.logger.Debug("Microsoft Sentinel exporter sending logs", zap.Int("count", logsCount))
 
-	// Convert logs to JSON format expected by Sentinel
-	sentinelLogs, err := e.marshaler.transformLogsToSentinelFormat(ctx, ld)
+	// Convert logs to JSON format expected by Azure Log Analytics
+	azureLogAnalyticsLogs, err := e.marshaler.transformLogsToSentinelFormat(ctx, ld)
 	if err != nil {
-		return fmt.Errorf("failed to convert logs to Sentinel format: %w", err)
+		return fmt.Errorf("failed to convert logs to Azure Log Analytics format: %w", err)
 	}
 
-	_, err = e.client.Upload(ctx, e.ruleID, e.streamName, sentinelLogs, nil)
+	_, err = e.client.Upload(ctx, e.ruleID, e.streamName, azureLogAnalyticsLogs, nil)
 	if err != nil {
-		return fmt.Errorf("failed to upload logs to Microsoft Sentinel: %w", err)
+		return fmt.Errorf("failed to upload logs to Azure Log Analytics: %w", err)
 	}
 
-	e.logger.Debug("Successfully sent logs to Microsoft Sentinel",
+	e.logger.Debug("Successfully sent logs to Azure Log Analytics",
 		zap.Int("count", logsCount),
 	)
 
@@ -99,13 +99,13 @@ func (e *microsoftSentinelExporter) logsDataPusher(ctx context.Context, ld plog.
 }
 
 // Start starts the exporter
-func (e *microsoftSentinelExporter) Start(ctx context.Context, host component.Host) error {
-	e.logger.Info("Starting Microsoft Sentinel exporter")
+func (e *azureLogAnalyticsExporter) Start(ctx context.Context, host component.Host) error {
+	e.logger.Info("Starting Azure Log Analytics exporter")
 	return nil
 }
 
 // Shutdown will shutdown the exporter
-func (e *microsoftSentinelExporter) Shutdown(ctx context.Context) error {
-	e.logger.Info("Shutting down Microsoft Sentinel exporter")
+func (e *azureLogAnalyticsExporter) Shutdown(ctx context.Context) error {
+	e.logger.Info("Shutting down Azure Log Analytics exporter")
 	return nil
 }

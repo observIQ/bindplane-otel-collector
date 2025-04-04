@@ -1,4 +1,4 @@
-package microsoftsentinelexporter
+package azureloganalyticsexporter
 
 import (
 	"testing"

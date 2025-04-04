@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package microsoftsentinelexporter
+package azureloganalyticsexporter
 
 import (
 	"context"
@@ -87,9 +87,8 @@ func TestMarshalRawLogs(t *testing.T) {
 			},
 			expected: []map[string]interface{}{
 				{
-					"TimeGenerated": testTime.Format(time.RFC3339),
-					"key1":          "value1",
-					"body":          "Test body",
+					"key1": "value1",
+					"body": "Test body",
 				},
 			},
 			rawLogField: `{"body": body, "key1": attributes["key1"]}`,
@@ -102,8 +101,7 @@ func TestMarshalRawLogs(t *testing.T) {
 			},
 			expected: []map[string]interface{}{
 				{
-					"TimeGenerated": testTime.Format(time.RFC3339),
-					"nested":        "value",
+					"nested": "value",
 				},
 			},
 			rawLogField: `body`,
@@ -116,8 +114,7 @@ func TestMarshalRawLogs(t *testing.T) {
 			},
 			expected: []map[string]interface{}{
 				{
-					"TimeGenerated": testTime.Format(time.RFC3339),
-					"RawData":       "test",
+					"RawData": "test",
 				},
 			},
 			rawLogField: `body`,
@@ -139,8 +136,7 @@ func TestMarshalRawLogs(t *testing.T) {
 			},
 			expected: []map[string]interface{}{
 				{
-					"TimeGenerated": testTime.Format(time.RFC3339),
-					"RawData":       "info",
+					"RawData": "info",
 				},
 			},
 			rawLogField: `attributes["level"]`,
@@ -153,8 +149,7 @@ func TestMarshalRawLogs(t *testing.T) {
 			},
 			expected: []map[string]interface{}{
 				{
-					"TimeGenerated": testTime.Format(time.RFC3339),
-					"type":          "login",
+					"type": "login",
 				},
 			},
 			rawLogField: `attributes["event"]`,
@@ -176,8 +171,7 @@ func TestMarshalRawLogs(t *testing.T) {
 			},
 			expected: []map[string]interface{}{
 				{
-					"TimeGenerated": testTime.Format(time.RFC3339),
-					"RawData":       "Test \\nbody",
+					"RawData": "Test \\nbody",
 				},
 			},
 			rawLogField: `body`,
@@ -190,8 +184,7 @@ func TestMarshalRawLogs(t *testing.T) {
 			},
 			expected: []map[string]interface{}{
 				{
-					"TimeGenerated": testTime.Format(time.RFC3339),
-					"RawData":       "Test\\n \\nbody",
+					"RawData": "Test\\n \\nbody",
 				},
 			},
 			rawLogField: `body`,
@@ -292,7 +285,6 @@ func TestTransformLogsToSentinelFormat(t *testing.T) {
 
 		// Verify the structure
 		assert.Len(t, result, 1)
-		assert.Contains(t, result[0], "TimeGenerated")
 		assert.Contains(t, result[0], "resourceLogs")
 
 		// Check that there's no nested resourceLogs
@@ -361,11 +353,9 @@ func TestTransformLogsToSentinelFormat(t *testing.T) {
 
 		// Verify the structure
 		assert.Len(t, result, 1)
-		assert.Contains(t, result[0], "TimeGenerated")
 		assert.Contains(t, result[0], "log_type")
 
 		// Verify the content
-		assert.Equal(t, "2023-01-02T03:04:05Z", result[0]["TimeGenerated"])
 		assert.Equal(t, "test-log", result[0]["log_type"])
 	})
 
@@ -394,11 +384,9 @@ func TestTransformLogsToSentinelFormat(t *testing.T) {
 
 		// Verify the structure
 		assert.Len(t, result, 1)
-		assert.Contains(t, result[0], "TimeGenerated")
 		assert.Contains(t, result[0], "RawData")
 
 		// Verify the content
-		assert.Equal(t, "2023-01-02T03:04:05Z", result[0]["TimeGenerated"])
 		assert.Equal(t, "Test log message", result[0]["RawData"])
 	})
 
@@ -427,13 +415,11 @@ func TestTransformLogsToSentinelFormat(t *testing.T) {
 
 		// Verify the structure
 		assert.Len(t, result, 1)
-		assert.Contains(t, result[0], "TimeGenerated")
 		assert.Contains(t, result[0], "message")
 		assert.Contains(t, result[0], "log_level")
 		assert.Contains(t, result[0], "hostname")
 
 		// Verify the content
-		assert.Equal(t, "2023-01-02T03:04:05Z", result[0]["TimeGenerated"])
 		assert.Equal(t, "Test log message", result[0]["message"])
 		assert.Equal(t, "INFO", result[0]["log_level"])
 		assert.Equal(t, "test-host", result[0]["hostname"])

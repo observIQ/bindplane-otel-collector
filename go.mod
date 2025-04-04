@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector
 
-go 1.23.7
+go 1.24.0
 
 require (
 	github.com/google/uuid v1.6.0
@@ -192,7 +192,7 @@ require (
 	go.opentelemetry.io/collector/exporter/otlphttpexporter v0.122.0
 	go.opentelemetry.io/collector/extension v1.28.0
 	go.opentelemetry.io/collector/extension/zpagesextension v0.122.0
-	go.opentelemetry.io/collector/featuregate v1.28.0
+	go.opentelemetry.io/collector/featuregate v1.29.0
 	go.opentelemetry.io/collector/otelcol v0.122.0
 	go.opentelemetry.io/collector/pdata v1.28.0
 	go.opentelemetry.io/collector/processor v0.122.0
@@ -208,6 +208,7 @@ require (
 )
 
 require (
+	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v0.0.0-00010101000000-000000000000
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.74.0
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.74.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.122.0
@@ -226,6 +227,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.17.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.2 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.10.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/monitor/ingestion/azlogs v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5 v5.7.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v4 v4.3.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.0 // indirect
@@ -525,7 +527,7 @@ require (
 	go.opentelemetry.io/collector/internal/telemetry v0.122.0 // indirect
 	go.opentelemetry.io/collector/pdata/pprofile v0.122.0 // indirect
 	go.opentelemetry.io/collector/pdata/testdata v0.122.0 // indirect
-	go.opentelemetry.io/collector/pipeline v0.122.0 // indirect
+	go.opentelemetry.io/collector/pipeline v0.123.0 // indirect
 	go.opentelemetry.io/collector/pipeline/xpipeline v0.122.0 // indirect
 	go.opentelemetry.io/collector/processor/processorhelper/xprocessorhelper v0.122.0 // indirect
 	go.opentelemetry.io/collector/processor/xprocessor v0.122.0 // indirect
@@ -622,7 +624,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/SAP/go-hdb v1.13.4 // indirect
 	github.com/Showmax/go-fqdn v1.0.0 // indirect
-	github.com/alecthomas/participle/v2 v2.1.1 // indirect
+	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/alecthomas/units v0.0.0-20240927000941-0f3dac36c52b // indirect
 	github.com/aliyun/aliyun-log-go-sdk v0.1.83 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
@@ -854,7 +856,7 @@ require (
 	go.mongodb.org/atlas v0.37.0 // indirect
 	go.mongodb.org/mongo-driver v1.17.3 // indirect
 	go.opentelemetry.io/collector/receiver/nopreceiver v0.122.0
-	go.opentelemetry.io/collector/semconv v0.122.0 // indirect; indir7.0
+	go.opentelemetry.io/collector/semconv v0.123.0 // indirect; indir7.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0 // indirect
 	go.opentelemetry.io/contrib/propagators/b3 v1.35.0 // indirect
@@ -881,7 +883,7 @@ require (
 	google.golang.org/api v0.226.0 // indirect
 	google.golang.org/genproto v0.0.0-20250303144028-a0af3efb3deb // indirect
 	google.golang.org/grpc v1.71.0 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -989,7 +991,7 @@ replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 
 replace github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter => ./exporter/googlecloudstorageexporter
 
-replace github.com/observiq/bindplane-otel-collector/exporter/microsoftsentinelexporter => ./exporter/microsoftsentinelexporter
+replace github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter => ./exporter/azureloganalyticsexporter
 
 // This is a temporary replacement to pull in Bomin's PR here: https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/38149
 replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/observiq/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20250319170526-bba46d3e01a9

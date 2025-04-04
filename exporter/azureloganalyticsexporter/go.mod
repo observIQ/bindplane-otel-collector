@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/exporter/microsoftsentinelexporter
+module github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter
 
 go 1.24.0
 
