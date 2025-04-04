@@ -16,6 +16,7 @@ package factories
 
 import (
 	"github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter"
+	"github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleforwarderexporter"
 	"github.com/observiq/bindplane-otel-collector/exporter/googlecloudexporter"
@@ -86,6 +87,7 @@ var defaultExporters = []exporter.Factory{
 	loadbalancingexporter.NewFactory(),
 	logzioexporter.NewFactory(),
 	lokiexporter.NewFactory(),
+	azureloganalyticsexporter.NewFactory(),
 	nopexporter.NewFactory(),
 	opencensusexporter.NewFactory(),
 	otlpexporter.NewFactory(),
