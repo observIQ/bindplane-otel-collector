@@ -123,7 +123,7 @@ func TestGetJSON(t *testing.T) {
 
 	// bad token
 	testClient.token = "bad"
-	testJSON, err = testClient.GetJSON(context.Background(), m365Mock.URL+"/testJSON", "", "")
+	_, err = testClient.GetJSON(context.Background(), m365Mock.URL+"/testJSON", "", "")
 	require.EqualError(t, err, "authorization denied")
 
 	m365Mock.Close()
@@ -183,7 +183,6 @@ func newMockServerCSV() *httptest.Server {
 			return
 		}
 		rw.WriteHeader(404)
-		return
 	}))
 }
 
@@ -267,7 +266,6 @@ func newMockServerSub() *httptest.Server {
 			))
 		}
 		rw.WriteHeader(404)
-		return
 	}))
 }
 
@@ -316,6 +314,5 @@ func newMockServerToken() *httptest.Server {
 			rw.Write([]byte(`{"error": "invalid_request"}`))
 		}
 		rw.WriteHeader(404)
-		return
 	}))
 }

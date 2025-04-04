@@ -63,7 +63,7 @@ func newBindplaneAuditLogsReceiver(cfg *Config, logger *zap.Logger, consumer con
 }
 
 func (r *bindplaneAuditLogsReceiver) Start(ctx context.Context, host component.Host) error {
-	client, err := r.cfg.ToClient(ctx, host, r.settings)
+	client, err := r.cfg.ClientConfig.ToClient(ctx, host, r.settings)
 	if err != nil {
 		return fmt.Errorf("failed to create HTTP client: %w", err)
 	}
@@ -184,7 +184,7 @@ func (r *bindplaneAuditLogsReceiver) processLogEvents(observedTime pcommon.Times
 
 	// Add resource attributes
 	resourceAttrs := resourceLogs.Resource().Attributes()
-	resourceAttrs.PutStr("bindplane_url", r.cfg.Endpoint)
+	resourceAttrs.PutStr("bindplane_url", r.cfg.ClientConfig.Endpoint)
 
 	scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
 
