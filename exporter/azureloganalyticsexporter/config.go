@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package microsoftsentinelexporter
+package azureloganalyticsexporter
 
 import (
 	"errors"
@@ -20,7 +20,7 @@ import (
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
-// Config defines the configuration for the Microsoft Sentinel exporter
+// Config defines the configuration for the Azure Log Analytics exporter
 type Config struct {
 	// Endpoint is the DCR or DCE ingestion endpoint
 	Endpoint string `mapstructure:"endpoint"`
