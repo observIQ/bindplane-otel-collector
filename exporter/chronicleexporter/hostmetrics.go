@@ -59,9 +59,11 @@ func newHostMetricsReporter(cfg *Config, set component.TelemetrySettings, export
 	agentID := uuid.New()
 	if sid, ok := set.Resource.Attributes().Get(semconv.AttributeServiceInstanceID); ok {
 		var err error
-		agentID, err = uuid.Parse(sid.AsString())
+		serviceID, err := uuid.Parse(sid.AsString())
 		if err != nil {
-			return nil, fmt.Errorf("parse collector ID: %w", err)
+			set.Logger.Error("Failed to parse service instance ID, using random ID", zap.String("service_instance_id", sid.AsString()), zap.Error(err))
+		} else {
+			agentID = serviceID
 		}
 	}
 
