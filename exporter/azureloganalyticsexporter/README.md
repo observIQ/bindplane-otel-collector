@@ -1,18 +1,21 @@
 # Azure Log Analytics Exporter
 
-This exporter allows you to export logs to Azure Log Analytics via the Log Analytics Ingestion API. Logs are exported in [OpenTelemetry Protocol JSON format](https://github.com/open-telemetry/opentelemetry-proto) if the raw_log_field is not supplied, otherwise they are supplied in the form 
+This exporter allows you to export logs to Azure Log Analytics via the Log Analytics Ingestion API. Logs are exported in [OpenTelemetry Protocol JSON format](https://github.com/open-telemetry/opentelemetry-proto) if the raw_log_field is not supplied, otherwise they are supplied in the form
+
 ```json
 [
   {
     "RawData": "<log data from field specified in raw_log_field>"
   }
 ]
- ```
+```
 
 ## Minimum Agent Versions
+
 - Introduced: v1.73.1
 
 ## Supported Pipelines
+
 - Logs
 
 ## How It Works
@@ -21,53 +24,56 @@ This exporter sends logs to Azure Log Analytics using the [Log Analytics Ingesti
 
 The required schema for the custom table depends on the `raw_log_field` configuration option:
 
-*   **Default (OTLP JSON Format):** If `raw_log_field` is *not* specified, the exporter sends logs in the standard [OpenTelemetry Protocol (OTLP) JSON format](https://github.com/open-telemetry/opentelemetry-proto). Your custom table must be configured with a schema compatible with this OTLP JSON structure (see the Setup section for an example).
-*   **Raw Log Mode:** If `raw_log_field` *is* specified, the exporter extracts the data from the designated field and sends logs in the following simple JSON format:
-    ```json
-    [
-      {
-        "RawData": "<log data from field specified in raw_log_field>"
-      }
-    ]
-    ```
-    In this case, your custom table must have a column named `RawData` to store the log content.
+- **Default (OTLP JSON Format):** If `raw_log_field` is _not_ specified, the exporter sends logs in the standard [OpenTelemetry Protocol (OTLP) JSON format](https://github.com/open-telemetry/opentelemetry-proto). Your custom table must be configured with a schema compatible with this OTLP JSON structure (see the Setup section for an example).
+- **Raw Log Mode:** If `raw_log_field` _is_ specified, the exporter extracts the data from the designated field and sends logs in the following simple JSON format:
+  ```json
+  [
+    {
+      "RawData": "<log data from field specified in raw_log_field>"
+    }
+  ]
+  ```
+  In this case, your custom table must have a column named `RawData` to store the log content.
 
-  In both cases, a TimeGenerated field will automatically be added to the schema as it is required.
+In both cases, a TimeGenerated field will automatically be added to the schema as it is required.
 
 ## Configuration
-| Field         | Type   | Default | Required | Description                                                |
-|---------------|--------|---------|----------|------------------------------------------------------------|
+
+| Field         | Type   | Default | Required | Description                                                 |
+| ------------- | ------ | ------- | -------- | ----------------------------------------------------------- |
 | endpoint      | string |         | ✓        | Azure Log Analytics DCR or DCE endpoint                     |
-| client_id     | string |         | ✓        | Azure client ID for authentication                         |
-| raw_log_field | string | ""        |         | Name of the log field to specifically send to log analytics|
-| client_secret | string |         | ✓        | Azure client secret for authentication                     |
-| tenant_id     | string |         | ✓        | Azure tenant ID for authentication                         |
-| rule_id       | string |         | ✓        | Data Collection Rule (DCR) ID or immutableId              |
-| stream_name   | string |         | ✓        | Name of the custom log table in Log Analytics       |
+| client_id     | string |         | ✓        | Azure client ID for authentication                          |
+| raw_log_field | string | ""      |          | Name of the log field to specifically send to log analytics |
+| client_secret | string |         | ✓        | Azure client secret for authentication                      |
+| tenant_id     | string |         | ✓        | Azure tenant ID for authentication                          |
+| rule_id       | string |         | ✓        | Data Collection Rule (DCR) ID or immutableId                |
+| stream_name   | string |         | ✓        | Name of the custom log table in Log Analytics               |
 
 ## Example Configurations
+
 ```yaml
 exporters:
   azureloganalytics:
-    endpoint: "<your-log-ingestion-endpoint>"
-    client_id: "<your-client-id>"
-    client_secret: "<your-client-secret>"
-    tenant_id: "<your-tenant-id>"
+    endpoint: '<your-log-ingestion-endpoint>'
+    client_id: '<your-client-id>'
+    client_secret: '<your-client-secret>'
+    tenant_id: '<your-tenant-id>'
     raw_log_field: body
-    rule_id: "<your-dcr-id>"
-    stream_name: "<your-stream-name>"
+    rule_id: '<your-dcr-id>'
+    stream_name: '<your-stream-name>'
 ```
+
 ### Minimal Configuration
 
 ```yaml
 exporters:
   azureloganalytics:
-    endpoint: "<your-log-ingestion-endpoint>"
-    client_id: "<your-client-id>"
-    client_secret: "<your-client-secret>"
-    tenant_id: "<your-tenant-id>"
-    rule_id: "<your-dcr-id>"
-    stream_name: "<your-stream-name>"
+    endpoint: '<your-log-ingestion-endpoint>'
+    client_id: '<your-client-id>'
+    client_secret: '<your-client-secret>'
+    tenant_id: '<your-tenant-id>'
+    rule_id: '<your-dcr-id>'
+    stream_name: '<your-stream-name>'
 ```
 
 This configuration shows the minimum required fields to export logs to Azure Log Analytics. All fields are required for the exporter to function properly.
@@ -181,10 +187,10 @@ Before configuring the exporter, you'll need to set up several components in the
 4. Repeat the same for the Log Analytics workspace resource if needed.
 
 Now you have all the required information to configure the exporter:
+
 - `endpoint`: The DCR Endpoint URL
 - `client_id`: The Application (client) ID
 - `client_secret`: The secret value you created
 - `tenant_id`: The Directory (tenant) ID
 - `rule_id`: The DCR Rule ID
 - `stream_name`: The name of your custom table
-
