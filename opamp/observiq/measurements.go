@@ -50,6 +50,9 @@ type measurementsSender struct {
 	isRunning bool
 	done      chan struct{}
 	wg        *sync.WaitGroup
+
+	lastSuccessfulSend time.Time
+	lastSendMux        *sync.RWMutex
 }
 
 func newMeasurementsSender(l *zap.Logger, reporter MeasurementsReporter, opampClient client.OpAMPClient, interval time.Duration, extraAttributes map[string]string) *measurementsSender {
@@ -66,6 +69,8 @@ func newMeasurementsSender(l *zap.Logger, reporter MeasurementsReporter, opampCl
 		isRunning:            false,
 		done:                 make(chan struct{}),
 		wg:                   &sync.WaitGroup{},
+		lastSuccessfulSend:   time.Time{}, // Set to zero time to indicate that no metrics have been reported yet
+		lastSendMux:          &sync.RWMutex{},
 	}
 }
 
@@ -94,6 +99,12 @@ func (m measurementsSender) SetInterval(d time.Duration) {
 	case <-m.done:
 	}
 
+}
+
+func (m *measurementsSender) SetLastSuccessfulSend(t time.Time) {
+	m.lastSendMux.Lock()
+	defer m.lastSendMux.Unlock()
+	m.lastSuccessfulSend = t
 }
 
 func (m measurementsSender) SetExtraAttributes(extraAttributes map[string]string) {
@@ -160,10 +171,13 @@ func (m *measurementsSender) loop() {
 				Data:       encoded,
 			}
 
+			success := false
 			for i := 0; i < maxSendRetries; i++ {
 				sendingChannel, err := m.opampClient.SendCustomMessage(cm)
 				switch {
 				case err == nil: // OK
+					success = true
+					m.SetLastSuccessfulSend(time.Now())
 				case errors.Is(err, types.ErrCustomMessagePending):
 					if i == maxSendRetries-1 {
 						// Bail out early, since we aren't going to try to send again
@@ -181,6 +195,10 @@ func (m *measurementsSender) loop() {
 					m.logger.Error("Failed to report measurements", zap.Error(err))
 				}
 				break
+			}
+
+			if !success {
+				m.logger.Warn("Failed to send measurements after all retries")
 			}
 		}
 	}
@@ -234,4 +252,11 @@ func (t *ticker) Stop() {
 		t.ticker.Stop()
 		t.ticker = nil
 	}
+}
+
+// GetLastSuccessfulSend returns the time of the last successful send of measurements.
+func (m *measurementsSender) GetLastSuccessfulSend() time.Time {
+	m.lastSendMux.RLock()
+	defer m.lastSendMux.RUnlock()
+	return m.lastSuccessfulSend
 }
