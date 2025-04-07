@@ -316,13 +316,14 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 
 		// Add more metrics to both processors
 		tmp1.AddMetrics(context.Background(), metrics)
+		tmp1.AddMetrics(context.Background(), metrics) // simulate out of sync between processors
 		tmp2.AddMetrics(context.Background(), metrics)
 		reg.OTLPMeasurements(nil)
 
 		reg.measurements.Range(func(key, value any) bool {
 			processorID := key.(string)
 			if processorID == "throughputmeasurement/1" {
-				require.Equal(t, int64(2), value.(*processorMeasurements).lastCollectedSequence)
+				require.Equal(t, int64(3), value.(*processorMeasurements).lastCollectedSequence)
 			}
 			if processorID == "throughputmeasurement/2" {
 				require.Equal(t, int64(2), value.(*processorMeasurements).lastCollectedSequence)
