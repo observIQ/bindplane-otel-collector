@@ -227,17 +227,17 @@ func createMeasurementsAttributeSet(processorID string, extraAttributes map[stri
 
 // ResettableThroughputMeasurementsRegistry is a concrete version of ThroughputMeasurementsRegistry that is able to be reset.
 type ResettableThroughputMeasurementsRegistry struct {
-	measurements         *sync.Map
-	emitCountMetrics     bool
-	lastReportedSequence atomic.Int64
+	measurements           *sync.Map
+	emitCountMetrics       bool
+	lastCollectedSequences map[string]int64
 }
 
 // NewResettableThroughputMeasurementsRegistry creates a new ResettableThroughputMeasurementsRegistry
 func NewResettableThroughputMeasurementsRegistry(emitCountMetrics bool) *ResettableThroughputMeasurementsRegistry {
 	return &ResettableThroughputMeasurementsRegistry{
-		measurements:         &sync.Map{},
-		emitCountMetrics:     emitCountMetrics,
-		lastReportedSequence: atomic.Int64{},
+		measurements:           &sync.Map{},
+		emitCountMetrics:       emitCountMetrics,
+		lastCollectedSequences: make(map[string]int64),
 	}
 }
 
@@ -247,6 +247,7 @@ func (ctmr *ResettableThroughputMeasurementsRegistry) RegisterThroughputMeasurem
 	if alreadyExists {
 		return fmt.Errorf("measurements for processor %q was already registered", processorID)
 	}
+	ctmr.lastCollectedSequences[processorID] = 0
 
 	return nil
 }
@@ -256,23 +257,17 @@ func (ctmr *ResettableThroughputMeasurementsRegistry) OTLPMeasurements(extraAttr
 	m := pmetric.NewMetrics()
 	rm := m.ResourceMetrics().AppendEmpty()
 	sm := rm.ScopeMetrics().AppendEmpty()
-	lastReportedSequence := ctmr.lastReportedSequence.Load()
-	maxSequenceNumber := lastReportedSequence
-	defer func() {
-		ctmr.lastReportedSequence.Store(maxSequenceNumber)
-	}()
-	ctmr.measurements.Range(func(_, value any) bool {
+
+	ctmr.measurements.Range(func(key, value any) bool {
+		processorID := key.(string)
 		tm := value.(*ThroughputMeasurements)
 		// Only include metrics collected after the last reported sequence
-		if tm.SequenceNumber() > lastReportedSequence {
+		if tm.SequenceNumber() > ctmr.lastCollectedSequences[processorID] {
 			OTLPThroughputMeasurements(tm, ctmr.emitCountMetrics, extraAttributes).MoveAndAppendTo(sm.Metrics())
 
 			// Update the max sequence number if the current sequence number is greater
 			// This keeps a high water mark of the sequence number that has been reported
-			if tm.SequenceNumber() > maxSequenceNumber {
-				maxSequenceNumber = tm.SequenceNumber()
-			}
-
+			ctmr.lastCollectedSequences[processorID] = tm.SequenceNumber()
 		}
 		return true
 	})
@@ -289,5 +284,5 @@ func (ctmr *ResettableThroughputMeasurementsRegistry) OTLPMeasurements(extraAttr
 // Reset unregisters all throughput measurements in this registry
 func (ctmr *ResettableThroughputMeasurementsRegistry) Reset() {
 	ctmr.measurements = &sync.Map{}
-	ctmr.lastReportedSequence.Store(0) // Reset the sequence number
+	ctmr.lastCollectedSequences = make(map[string]int64)
 }

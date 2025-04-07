@@ -17,6 +17,7 @@ package observiq
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/golang/snappy"
@@ -51,8 +52,8 @@ type measurementsSender struct {
 	done      chan struct{}
 	wg        *sync.WaitGroup
 
-	lastSuccessfulSend time.Time
-	lastSendMux        *sync.RWMutex
+	lastReportedSequence atomic.Int64
+	lastSendMux          *sync.RWMutex
 }
 
 func newMeasurementsSender(l *zap.Logger, reporter MeasurementsReporter, opampClient client.OpAMPClient, interval time.Duration, extraAttributes map[string]string) *measurementsSender {
@@ -69,7 +70,7 @@ func newMeasurementsSender(l *zap.Logger, reporter MeasurementsReporter, opampCl
 		isRunning:            false,
 		done:                 make(chan struct{}),
 		wg:                   &sync.WaitGroup{},
-		lastSuccessfulSend:   time.Time{}, // Set to zero time to indicate that no metrics have been reported yet
+		lastReportedSequence: atomic.Int64{}, // Set to zero time to indicate that no metrics have been reported yet
 		lastSendMux:          &sync.RWMutex{},
 	}
 }
@@ -93,21 +94,14 @@ func (m *measurementsSender) Start() {
 }
 
 // SetInterval changes the interval of the measurements sender.
-func (m measurementsSender) SetInterval(d time.Duration) {
+func (m *measurementsSender) SetInterval(d time.Duration) {
 	select {
 	case m.changeIntervalChan <- d:
 	case <-m.done:
 	}
-
 }
 
-func (m *measurementsSender) SetLastSuccessfulSend(t time.Time) {
-	m.lastSendMux.Lock()
-	defer m.lastSendMux.Unlock()
-	m.lastSuccessfulSend = t
-}
-
-func (m measurementsSender) SetExtraAttributes(extraAttributes map[string]string) {
+func (m *measurementsSender) SetExtraAttributes(extraAttributes map[string]string) {
 	select {
 	case m.changeAttributesChan <- extraAttributes:
 	case <-m.done:
@@ -177,7 +171,7 @@ func (m *measurementsSender) loop() {
 				switch {
 				case err == nil: // OK
 					success = true
-					m.SetLastSuccessfulSend(time.Now())
+					m.lastReportedSequence.Add(1)
 				case errors.Is(err, types.ErrCustomMessagePending):
 					if i == maxSendRetries-1 {
 						// Bail out early, since we aren't going to try to send again
@@ -252,11 +246,4 @@ func (t *ticker) Stop() {
 		t.ticker.Stop()
 		t.ticker = nil
 	}
-}
-
-// GetLastSuccessfulSend returns the time of the last successful send of measurements.
-func (m *measurementsSender) GetLastSuccessfulSend() time.Time {
-	m.lastSendMux.RLock()
-	defer m.lastSendMux.RUnlock()
-	return m.lastSuccessfulSend
 }
