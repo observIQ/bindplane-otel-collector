@@ -265,7 +265,14 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 
 		// Verify sequence numbers
 		require.Equal(t, int64(2), tmp.SequenceNumber())
-		require.Equal(t, int64(2), reg.lastCollectedSequences["throughputmeasurement/1"])
+
+		reg.measurements.Range(func(key, value any) bool {
+			processorID := key.(string)
+			if processorID == "throughputmeasurement/1" {
+				require.Equal(t, int64(2), value.(*processorMeasurements).lastCollectedSequence)
+			}
+			return true
+		})
 
 		// Verify no new metrics if sequence hasn't changed
 		emptyMetrics := reg.OTLPMeasurements(nil)
@@ -306,8 +313,22 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		// Verify sequence numbers
 		require.Equal(t, int64(1), tmp1.SequenceNumber())
 		require.Equal(t, int64(1), tmp2.SequenceNumber())
-		require.Equal(t, int64(1), reg.lastCollectedSequences["throughputmeasurement/1"])
-		require.Equal(t, int64(1), reg.lastCollectedSequences["throughputmeasurement/2"])
+
+		// Add more metrics to both processors
+		tmp1.AddMetrics(context.Background(), metrics)
+		tmp2.AddMetrics(context.Background(), metrics)
+		reg.OTLPMeasurements(nil)
+
+		reg.measurements.Range(func(key, value any) bool {
+			processorID := key.(string)
+			if processorID == "throughputmeasurement/1" {
+				require.Equal(t, int64(2), value.(*processorMeasurements).lastCollectedSequence)
+			}
+			if processorID == "throughputmeasurement/2" {
+				require.Equal(t, int64(2), value.(*processorMeasurements).lastCollectedSequence)
+			}
+			return true
+		})
 	})
 
 	t.Run("Test registered measurements are in OTLP payload (with count metrics)", func(t *testing.T) {
