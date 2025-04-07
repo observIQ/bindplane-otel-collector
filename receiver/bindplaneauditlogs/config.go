@@ -31,7 +31,7 @@ type Config struct {
 	APIKey string `mapstructure:"api_key"`
 
 	// ClientConfig is the configuration for the HTTP client
-	confighttp.ClientConfig `mapstructure:",squash"`
+	ClientConfig confighttp.ClientConfig `mapstructure:",squash"`
 
 	// PollInterval is the interval at which the receiver polls for new audit logs
 	PollInterval time.Duration `mapstructure:"poll_interval"`
@@ -46,13 +46,13 @@ func (c *Config) Validate() error {
 		return errors.New("api_key cannot be empty")
 	}
 
-	if c.Endpoint == "" {
+	if c.ClientConfig.Endpoint == "" {
 		return errors.New("endpoint cannot be empty")
 	}
 
 	// parse the string into a url
 	var err error
-	c.bindplaneURL, err = url.Parse(c.Endpoint)
+	c.bindplaneURL, err = url.Parse(c.ClientConfig.Endpoint)
 	if err != nil {
 		return fmt.Errorf("error parsing endpoint: %w", err)
 	}

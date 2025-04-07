@@ -24,10 +24,10 @@ import (
 
 func Test_createDefaultConfig(t *testing.T) {
 	expected := &Config{
-		TimeoutConfig: exporterhelper.NewDefaultTimeoutConfig(),
-		QueueConfig:   exporterhelper.NewDefaultQueueConfig(),
-		BackOffConfig: configretry.NewDefaultBackOffConfig(),
-		Database:      defaultDatabase,
+		TimeoutConfig:    exporterhelper.NewDefaultTimeoutConfig(),
+		QueueBatchConfig: exporterhelper.NewDefaultQueueConfig(),
+		BackOffConfig:    configretry.NewDefaultBackOffConfig(),
+		Database:         defaultDatabase,
 		Logs: TelemetryConfig{
 			Schema: defaultLogsSchema,
 			Table:  defaultTable,

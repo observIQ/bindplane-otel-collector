@@ -37,9 +37,9 @@ func NewFactory() exporter.Factory {
 // createDefaultConfig creates the default configuration for the exporter.
 func createDefaultConfig() component.Config {
 	return &Config{
-		TimeoutConfig: exporterhelper.NewDefaultTimeoutConfig(),
-		QueueConfig:   exporterhelper.NewDefaultQueueConfig(),
-		BackOffConfig: configretry.NewDefaultBackOffConfig(),
+		TimeoutConfig:    exporterhelper.NewDefaultTimeoutConfig(),
+		QueueBatchConfig: exporterhelper.NewDefaultQueueConfig(),
+		BackOffConfig:    configretry.NewDefaultBackOffConfig(),
 		Syslog: SyslogConfig{
 			AddrConfig: confignet.AddrConfig{
 				Endpoint:  "127.0.0.1:10514",
@@ -72,7 +72,7 @@ func createLogsExporter(
 		exp.logsDataPusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
 		exporterhelper.WithTimeout(qradarCfg.TimeoutConfig),
-		exporterhelper.WithQueue(qradarCfg.QueueConfig),
+		exporterhelper.WithQueue(qradarCfg.QueueBatchConfig),
 		exporterhelper.WithRetry(qradarCfg.BackOffConfig),
 	)
 }

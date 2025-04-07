@@ -139,7 +139,7 @@ func TestScraperScrape(t *testing.T) {
 	mockService.On("GetInstanceProperties").Return(InstancePropertiesResponse, nil)
 
 	cfg := createDefaultConfig().(*Config)
-	cfg.Endpoint = defaultEndpoint
+	cfg.ClientConfig.Endpoint = defaultEndpoint
 	cfg.Username = "root"
 	cfg.Password = "password"
 	cfg.Profile = "/sapmnt/EPP/profile/EPP_D00_sap-app-1"
@@ -216,7 +216,7 @@ func TestScraperScrapeEmpty(t *testing.T) {
 	mockService.On("DpmonExecute", "echo q | /usr/sap/EPP/D00/exe/dpmon pf=/sapmnt/EPP/profile/EPP_D00_sap-app-1 v").Return("", nil)
 
 	cfg := createDefaultConfig().(*Config)
-	cfg.Endpoint = defaultEndpoint
+	cfg.ClientConfig.Endpoint = defaultEndpoint
 	cfg.Username = "root"
 	cfg.Password = "password"
 	cfg.Profile = "/sapmnt/EPP/profile/EPP_D00_sap-app-1"
@@ -291,7 +291,7 @@ func TestScraperScrapeAPIError(t *testing.T) {
 	mockService.On("GetInstanceProperties").Return(nil, errors.New("unexpected error"))
 
 	cfg := createDefaultConfig().(*Config)
-	cfg.Endpoint = defaultEndpoint
+	cfg.ClientConfig.Endpoint = defaultEndpoint
 	cfg.Username = "root"
 	cfg.Password = "password"
 	cfg.Profile = "/sapmnt/EPP/profile/EPP_D00_sap-app-1"

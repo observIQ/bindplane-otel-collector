@@ -26,10 +26,10 @@ import (
 
 func Test_createDefaultConfig(t *testing.T) {
 	expectedCfg := &Config{
-		TimeoutConfig: exporterhelper.NewDefaultTimeoutConfig(),
-		QueueConfig:   exporterhelper.NewDefaultQueueConfig(),
-		BackOffConfig: configretry.NewDefaultBackOffConfig(),
-		ExportType:    exportTypeSyslog,
+		TimeoutConfig:    exporterhelper.NewDefaultTimeoutConfig(),
+		QueueBatchConfig: exporterhelper.NewDefaultQueueConfig(),
+		BackOffConfig:    configretry.NewDefaultBackOffConfig(),
+		ExportType:       exportTypeSyslog,
 		Syslog: SyslogConfig{
 			AddrConfig: confignet.AddrConfig{
 				Endpoint:  "127.0.0.1:10514",

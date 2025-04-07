@@ -67,6 +67,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkametricsreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kubeletstatsreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/libhoneyreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/memcachedreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbatlasreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbreceiver"
@@ -74,6 +75,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/nginxreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/opencensusreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/podmanreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/postgresqlreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver"
@@ -147,6 +149,7 @@ var defaultReceivers = []receiver.Factory{
 	kafkametricsreceiver.NewFactory(),
 	kafkareceiver.NewFactory(),
 	kubeletstatsreceiver.NewFactory(),
+	libhoneyreceiver.NewFactory(),
 	m365receiver.NewFactory(),
 	memcachedreceiver.NewFactory(),
 	mongodbatlasreceiver.NewFactory(),
@@ -158,6 +161,7 @@ var defaultReceivers = []receiver.Factory{
 	oktareceiver.NewFactory(),
 	opencensusreceiver.NewFactory(),
 	otlpreceiver.NewFactory(),
+	otlpjsonfilereceiver.NewFactory(),
 	pluginreceiver.NewFactory(),
 	podmanreceiver.NewFactory(),
 	postgresqlreceiver.NewFactory(),
