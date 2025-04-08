@@ -17,9 +17,11 @@
 package etw
 
 type Provider struct {
-	Name        string
-	GUID        string
-	EnableLevel uint8
+	Name            string
+	GUID            string
+	EnableLevel     uint8
+	MatchAnyKeyword uint64
+	MatchAllKeyword uint64
 }
 
 func baseNewProvider() *Provider {

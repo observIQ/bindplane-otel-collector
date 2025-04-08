@@ -16,52 +16,81 @@ package etw
 
 import "time"
 
+// EventFlags contains flags for the event
+type EventFlags struct {
+	// Use to flag event as being skippable for performance reason
+	Skippable bool `json:"skippable"`
+}
+
+// EventCorrelation contains correlation information for the event
+type EventCorrelation struct {
+	ActivityID        string `json:"activityID"`
+	RelatedActivityID string `json:"relatedActivityID"`
+}
+
+// EventExecution contains execution information for the event
+type EventExecution struct {
+	ProcessID uint32 `json:"processID"`
+	ThreadID  uint32 `json:"threadID"`
+}
+
+// EventKeywords contains keyword information for the event
+type EventKeywords struct {
+	Value uint64 `json:"value"`
+	Name  string `json:"name"`
+}
+
+// EventLevel contains level information for the event
+type EventLevel struct {
+	Value uint8  `json:"value"`
+	Name  string `json:"name"`
+}
+
+// EventOpcode contains opcode information for the event
+type EventOpcode struct {
+	Value uint8  `json:"value"`
+	Name  string `json:"name"`
+}
+
+// EventTask contains task information for the event
+type EventTask struct {
+	Value uint8  `json:"value"`
+	Name  string `json:"name"`
+}
+
+// EventProvider contains provider information for the event
+type EventProvider struct {
+	GUID string `json:"guid"`
+	Name string `json:"name"`
+}
+
+// EventTimeCreated contains time information for the event
+type EventTimeCreated struct {
+	SystemTime time.Time `json:"systemTime"`
+}
+
+// EventSystem contains system information for the event
+type EventSystem struct {
+	Channel     string           `json:"channel"`
+	Computer    string           `json:"computer"`
+	EventID     string           `json:"eventID,omitempty"`
+	EventType   string           `json:"eventType,omitempty"`
+	EventGUID   string           `json:"eventGuid,omitempty"`
+	Correlation EventCorrelation `json:"correlation"`
+	Execution   EventExecution   `json:"execution"`
+	Keywords    EventKeywords    `json:"keywords"`
+	Level       EventLevel       `json:"level"`
+	Opcode      EventOpcode      `json:"opcode"`
+	Task        EventTask        `json:"task"`
+	Provider    EventProvider    `json:"provider"`
+	TimeCreated EventTimeCreated `json:"timeCreated"`
+}
+
 // Event is a struct that represents an event from the ETW session which is pre-parsed into a more usable format
 type Event struct {
-	Flags struct {
-		// Use to flag event as being skippable for performance reason
-		Skippable bool
-	} `json:"-"`
-
-	EventData map[string]interface{} `json:",omitempty"`
-	UserData  map[string]interface{} `json:",omitempty"`
-	System    struct {
-		Channel     string
-		Computer    string
-		EventID     string `json:",omitempty"`
-		EventType   string `json:",omitempty"`
-		EventGUID   string `json:",omitempty"`
-		Correlation struct {
-			ActivityID        string
-			RelatedActivityID string
-		}
-		Execution struct {
-			ProcessID uint32
-			ThreadID  uint32
-		}
-		Keywords struct {
-			Value uint64
-			Name  string
-		}
-		Level struct {
-			Value uint8
-			Name  string
-		}
-		Opcode struct {
-			Value uint8
-			Name  string
-		}
-		Task struct {
-			Value uint8
-			Name  string
-		}
-		Provider struct {
-			GUID string
-			Name string
-		}
-		TimeCreated struct {
-			SystemTime time.Time
-		}
-	}
-	ExtendedData []string `json:",omitempty"`
+	Flags        EventFlags     `json:"-"`
+	EventData    map[string]any `json:"eventData,omitempty"`
+	UserData     map[string]any `json:"userData,omitempty"`
+	System       EventSystem    `json:"system"`
+	ExtendedData []string       `json:"extendedData,omitempty"`
 }

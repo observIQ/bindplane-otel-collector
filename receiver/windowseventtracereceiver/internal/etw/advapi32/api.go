@@ -59,13 +59,11 @@ func StartTrace(
 	return syscall.Errno(r), err
 }
 
-type eventTraceControl int
-
 const (
-	EVENT_TRACE_CONTROL_QUERY  eventTraceControl = 0
-	EVENT_TRACE_CONTROL_STOP   eventTraceControl = 1
-	EVENT_TRACE_CONTROL_UPDATE eventTraceControl = 2
-	EVENT_TRACE_CONTROL_FLUSH  eventTraceControl = 3
+	EVENT_TRACE_CONTROL_QUERY  uint32 = 0
+	EVENT_TRACE_CONTROL_STOP   uint32 = 1
+	EVENT_TRACE_CONTROL_UPDATE uint32 = 2
+	EVENT_TRACE_CONTROL_FLUSH  uint32 = 3
 )
 
 /*
@@ -132,7 +130,7 @@ type EventTraceProperties struct {
 	);
 */
 
-func ControlTrace(handle *syscall.Handle, control eventTraceControl, instanceName *uint16, properties *EventTraceProperties, timeout uintptr) (errorCode syscall.Errno, err error) {
+func ControlTrace(handle *syscall.Handle, control uint32, instanceName *uint16, properties *EventTraceProperties) (errorCode syscall.Errno, err error) {
 	r, _, err := controlTraceW.Call(
 		uintptr(unsafe.Pointer(handle)),
 		uintptr(unsafe.Pointer(instanceName)),
@@ -142,28 +140,26 @@ func ControlTrace(handle *syscall.Handle, control eventTraceControl, instanceNam
 	return syscall.Errno(r), err
 }
 
-type eventControlCode int
-
 const (
-	EVENT_CONTROL_CODE_DISABLE_PROVIDER eventControlCode = 0
-	EVENT_CONTROL_CODE_ENABLE_PROVIDER  eventControlCode = 1
-	EVENT_CONTROL_CODE_CAPTURE_STATE    eventControlCode = 2
+	EVENT_CONTROL_CODE_DISABLE_PROVIDER uint32 = 0
+	EVENT_CONTROL_CODE_ENABLE_PROVIDER  uint32 = 1
+	EVENT_CONTROL_CODE_CAPTURE_STATE    uint32 = 2
 )
 
-type traceLevel int
+type TraceLevel int
 
 const (
-	TRACE_LEVEL_NONE        traceLevel = 0
-	TRACE_LEVEL_CRITICAL    traceLevel = 1
-	TRACE_LEVEL_FATAL       traceLevel = 1
-	TRACE_LEVEL_ERROR       traceLevel = 2
-	TRACE_LEVEL_WARNING     traceLevel = 3
-	TRACE_LEVEL_INFORMATION traceLevel = 4
-	TRACE_LEVEL_VERBOSE     traceLevel = 5
-	TRACE_LEVEL_RESERVED6   traceLevel = 6
-	TRACE_LEVEL_RESERVED7   traceLevel = 7
-	TRACE_LEVEL_RESERVED8   traceLevel = 8
-	TRACE_LEVEL_RESERVED9   traceLevel = 9
+	TRACE_LEVEL_NONE        TraceLevel = 0
+	TRACE_LEVEL_CRITICAL    TraceLevel = 1
+	TRACE_LEVEL_FATAL       TraceLevel = 1
+	TRACE_LEVEL_ERROR       TraceLevel = 2
+	TRACE_LEVEL_WARNING     TraceLevel = 3
+	TRACE_LEVEL_INFORMATION TraceLevel = 4
+	TRACE_LEVEL_VERBOSE     TraceLevel = 5
+	TRACE_LEVEL_RESERVED6   TraceLevel = 6
+	TRACE_LEVEL_RESERVED7   TraceLevel = 7
+	TRACE_LEVEL_RESERVED8   TraceLevel = 8
+	TRACE_LEVEL_RESERVED9   TraceLevel = 9
 )
 
 type processTraceMode int
@@ -173,34 +169,32 @@ const (
 	PROCESS_TRACE_MODE_EVENT_RECORD processTraceMode = 0x10000000
 )
 
-/*
-https://learn.microsoft.com/en-us/windows/win32/api/evntrace/nf-evntrace-enabletraceex2
-
-ULONG WMIAPI EnableTraceEx2(
-  [in]           CONTROLTRACE_ID          TraceId,
-  [in]           LPCGUID                  ProviderId,
-  [in]           ULONG                    ControlCode,
-  [in]           UCHAR                    Level,
-  [in]           ULONGLONG                MatchAnyKeyword,
-  [in]           ULONGLONG                MatchAllKeyword,
-  [in]           ULONG                    Timeout,
-  [in, optional] PENABLE_TRACE_PARAMETERS EnableParameters
-);
-*/
-
 type EnableTraceParameters struct {
 	Version uint32
 }
 
-// enableTrace enables a trace session using the EnableTraceEx2 function
-func EnableTrace(handle syscall.Handle, providerGUID *windows.GUID, controlCode eventControlCode, level traceLevel, matchAnyKeyword uint64, matchAllKeyword uint64, timeout uint32, enableParameters *EnableTraceParameters) (errorCode syscall.Errno, err error) {
+/*
+EnableTraceEx2 API wrapper generated from prototype
+EXTERN_C ULONG WMIAPI EnableTraceEx2 (
+
+	TRACEHANDLE TraceHandle,
+	LPCGUID ProviderId,
+	ULONG ControlCode,
+	UCHAR Level,
+	ULONGLONG MatchAnyKeyword,
+	ULONGLONG MatchAllKeyword,
+	ULONG Timeout,
+	PENABLE_TRACE_PARAMETERS EnableParameters);
+*/
+func EnableTrace(handle syscall.Handle, providerGUID *windows.GUID, controlCode uint32, level TraceLevel, matchAnyKeyword uint64, matchAllKeyword uint64, timeout uint32, enableParameters *EnableTraceParameters) (errorCode syscall.Errno, err error) {
 	r, _, err := enableTraceEx2.Call(
 		uintptr(handle),
 		uintptr(unsafe.Pointer(providerGUID)),
-		uintptr(uint32(controlCode)),
+		uintptr(controlCode),
 		uintptr(uint8(level)),
 		uintptr(matchAnyKeyword),
 		uintptr(matchAllKeyword),
+		uintptr(timeout),
 		uintptr(unsafe.Pointer(enableParameters)),
 	)
 
@@ -216,7 +210,7 @@ func EnableTrace(handle syscall.Handle, providerGUID *windows.GUID, controlCode 
 func StopTrace(sessionName string) error {
 	// Create a properties structure for stopping
 	sessionNameSize := (len(sessionName) + 1) * 2 // UTF-16 characters plus null terminator
-	logFileNameSize := 2                          // Just null terminator
+	logFileNameSize := 2                          // null terminator
 
 	propSize := unsafe.Sizeof(EventTraceProperties{})
 	totalSize := propSize + uintptr(sessionNameSize) + uintptr(logFileNameSize)
@@ -245,7 +239,7 @@ func StopTrace(sessionName string) error {
 		buffer[offset+1] = byte(ch >> 8)
 	}
 
-	_, err = ControlTrace(nil, EVENT_TRACE_CONTROL_STOP, nil, props, 0)
+	_, err = ControlTrace(nil, EVENT_TRACE_CONTROL_STOP, nil, props)
 	return err
 }
 
@@ -566,15 +560,15 @@ func ProcessTrace(handle *syscall.Handle) error {
 }
 
 // CloseTrace closes a trace session using the CloseTraceW given a trace handle from OpenTrace
-func CloseTrace(traceHandle syscall.Handle) error {
+func CloseTrace(traceHandle syscall.Handle) (errorCode syscall.Errno, err error) {
 	r, _, err := closeTraceW.Call(
 		uintptr(traceHandle),
 	)
 	// if we're pending a close, we can ignore the error
 	if r != 0 && r != uintptr(windows.ERROR_CTX_CLOSE_PENDING) {
-		return fmt.Errorf("CloseTraceW failed(%d): %w", r, err)
+		return syscall.Errno(r), fmt.Errorf("CloseTraceW failed(%d): %w", r, err)
 	}
-	return nil
+	return syscall.Errno(r), nil
 }
 
 const (

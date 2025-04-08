@@ -18,8 +18,14 @@ package windows
 import "syscall"
 
 var (
+	// ErrorInvalidHandle is returned when the handle is invalid
+	ErrorInvalidHandle = syscall.Errno(6)
+	// ErrorInvalidParameter is returned when the parameter is invalid or some other obscure windows error, look up the C++ error code for more details
+	ErrorInvalidParameter = syscall.Errno(87)
 	// ErrorInsufficientBuffer is returned when the buffer is insufficient from windows
 	ErrorInsufficientBuffer = syscall.Errno(122)
+	// ErrorWMIInstanceNotFound is returned when the WMI instance is not found
+	ErrorWMIInstanceNotFound = syscall.Errno(4021)
 	// ErrorEVTInvalidEventData is returned when the event data is invalid
 	ErrorEVTInvalidEventData = syscall.Errno(15005)
 )

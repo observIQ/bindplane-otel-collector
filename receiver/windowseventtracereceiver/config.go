@@ -20,6 +20,17 @@ import (
 	"go.opentelemetry.io/collector/component"
 )
 
+type TraceLevelString string
+
+const (
+	LevelVerbose       TraceLevelString = "verbose"
+	LevelInformational TraceLevelString = "informational"
+	LevelWarning       TraceLevelString = "warning"
+	LevelError         TraceLevelString = "error"
+	LevelCritical      TraceLevelString = "critical"
+	LevelNone          TraceLevelString = "none"
+)
+
 // Config is the configuration for the windows event trace receiver.
 type Config struct {
 	// SessionName is the name for the ETW session.
@@ -37,7 +48,10 @@ type Config struct {
 
 // Provider is a provider to create a session
 type Provider struct {
-	Name string `mapstructure:"name"`
+	Name            string           `mapstructure:"name"`
+	Level           TraceLevelString `mapstructure:"level"`
+	MatchAnyKeyword uint64           `mapstructure:"match_any_keyword"`
+	MatchAllKeyword uint64           `mapstructure:"match_all_keyword"`
 }
 
 func createDefaultConfig() component.Config {
@@ -56,6 +70,12 @@ func (cfg *Config) Validate() error {
 
 	if len(cfg.Providers) == 0 {
 		return fmt.Errorf("providers cannot be empty")
+	}
+
+	for _, provider := range cfg.Providers {
+		if provider.Name == "" {
+			return fmt.Errorf("provider name cannot be empty; it must be a valid ETW provider name or GUID")
+		}
 	}
 
 	if cfg.BufferSize <= 0 {

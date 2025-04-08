@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
-	"time"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -37,7 +36,10 @@ type logsReceiver struct {
 	cfg       *Config
 	logger    *zap.Logger
 	consumer  consumer.Logs
-	stopFuncs []func(ctx context.Context) error
+	stopQueue []func(ctx context.Context) error
+
+	session *etw.Session
+	cancel  context.CancelFunc
 
 	wg       *sync.WaitGroup
 	doneChan chan struct{}
@@ -46,7 +48,13 @@ type logsReceiver struct {
 var _ receiver.Logs = (*logsReceiver)(nil)
 
 func newLogsReceiver(cfg *Config, c consumer.Logs, logger *zap.Logger) (*logsReceiver, error) {
-	return &logsReceiver{cfg: cfg, consumer: c, logger: logger, wg: &sync.WaitGroup{}, doneChan: make(chan struct{})}, nil
+	return &logsReceiver{
+		cfg:      cfg,
+		consumer: c,
+		logger:   logger,
+		wg:       &sync.WaitGroup{},
+		doneChan: make(chan struct{}),
+	}, nil
 }
 
 func (lr *logsReceiver) Start(ctx context.Context, host component.Host) error {
@@ -59,39 +67,68 @@ func (lr *logsReceiver) Start(ctx context.Context, host component.Host) error {
 		return fmt.Errorf("failed to start ETW session: %w", err)
 	}
 
-	// TODO: Remove this once we have a better way to handle the session start
-	time.Sleep(1 * time.Second)
+	lr.session = s
 
-	// Make sure we stop the session when the receiver is shut down
-	lr.stopFuncs = append(lr.stopFuncs, s.Stop)
+	lr.wg.Add(1)
+	cancelCtx, cancel := context.WithCancel(context.Background())
+	lr.cancel = cancel
 
-	for _, providerConfig := range lr.cfg.Providers {
-		// TODO: Remove this once we have a better way to handle the provider start
-		time.Sleep(2 * time.Second)
-		lr.logger.Info("Enabling provider", zap.String("provider", providerConfig.Name), zap.String("session", lr.cfg.SessionName))
+	// async start to not block starting more components
+	go lr.initializeSubscriptions(cancelCtx)
+	return nil
+}
 
-		// Pass the provider name directly to EnableProvider
-		err := s.EnableProvider(providerConfig.Name)
-		if err != nil {
-			return fmt.Errorf("failed to enable provider %s: %w", providerConfig.Name, err)
+func (lr *logsReceiver) initializeSubscriptions(ctx context.Context) {
+	defer lr.wg.Done()
+
+	// Track successful providers
+	successfulProviders := 0
+	totalProviders := len(lr.cfg.Providers)
+
+	// Enable all providers with a substantial delay between each
+	for i, providerConfig := range lr.cfg.Providers {
+		// setting a default level if not provided
+		if providerConfig.Level == "" {
+			providerConfig.Level = LevelInformational
 		}
-		lr.logger.Info("Enabled provider", zap.String("provider", providerConfig.Name), zap.String("session", lr.cfg.SessionName))
+
+		err := lr.session.EnableProvider(
+			providerConfig.Name,
+			providerConfig.Level.toTraceLevel(),
+			providerConfig.MatchAnyKeyword,
+			providerConfig.MatchAllKeyword,
+		)
+
+		if err != nil {
+			lr.logger.Error("Failed to enable provider",
+				zap.String("provider", providerConfig.Name),
+				zap.Error(err),
+				zap.Int("index", i),
+				zap.Int("total", totalProviders))
+			continue
+		}
+		lr.logger.Info("Enabled provider", zap.String("provider", providerConfig.Name))
+		successfulProviders++
+	}
+
+	if successfulProviders == 0 && totalProviders > 0 {
+		lr.logger.Error("Failed to enable any providers",
+			zap.String("session", lr.cfg.SessionName),
+			zap.Int("totalProviders", totalProviders))
+		return
 	}
 
 	eventConsumer := etw.NewRealTimeConsumer(ctx, lr.logger)
-	eventConsumer = eventConsumer.FromSessions(s)
+	eventConsumer = eventConsumer.FromSessions(lr.session)
 
 	err := eventConsumer.Start(ctx)
 	if err != nil {
 		lr.logger.Error("Failed to start ETW consumer", zap.Error(err))
-		return fmt.Errorf("failed to start ETW consumer: %w", err)
+		return
 	}
-	lr.stopFuncs = append(lr.stopFuncs, func(ctx context.Context) error { return eventConsumer.Stop(ctx) })
-
+	lr.stopQueue = append(lr.stopQueue, func(ctx context.Context) error { return eventConsumer.Stop(ctx) })
 	lr.wg.Add(1)
 	go lr.listenForEvents(ctx, eventConsumer)
-
-	return nil
 }
 
 func (lr *logsReceiver) listenForEvents(ctx context.Context, eventConsumer *etw.Consumer) {
@@ -220,12 +257,17 @@ func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) 
 
 func (lr *logsReceiver) Shutdown(ctx context.Context) error {
 	close(lr.doneChan)
-	lr.wg.Wait()
-	for _, stopFunc := range lr.stopFuncs {
+	if lr.cancel != nil {
+		lr.cancel()
+	}
+
+	for _, stopFunc := range lr.stopQueue {
 		if err := stopFunc(ctx); err != nil {
 			lr.logger.Error("Failed to perform clean shutdown", zap.Error(err))
 		}
 	}
+
+	lr.wg.Wait()
 	return nil
 }
 

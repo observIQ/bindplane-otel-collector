@@ -25,7 +25,8 @@ import (
 
 	"go.uber.org/zap"
 
-	advapi32pkg "github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/advapi32"
+	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/advapi32"
+	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/windows"
 )
 
 var (
@@ -35,12 +36,12 @@ var (
 // Consumer handles consuming ETW events from sessions
 type Consumer struct {
 	logger       *zap.Logger
-	traceHandles []syscall.Handle
+	traceHandles []traceHandle
 	lastError    error
 	closed       bool
 
-	eventCallback  func(eventRecord *advapi32pkg.EventRecord) uintptr
-	bufferCallback func(buffer *advapi32pkg.EventTraceLogfile) uintptr
+	eventCallback  func(eventRecord *advapi32.EventRecord) uintptr
+	bufferCallback func(buffer *advapi32.EventTraceLogfile) uintptr
 
 	// Maps trace names to their status
 	Traces map[string]*Session
@@ -58,7 +59,7 @@ type Consumer struct {
 // NewRealTimeConsumer creates a new Consumer to consume ETW in RealTime mode
 func NewRealTimeConsumer(_ context.Context, logger *zap.Logger) *Consumer {
 	c := &Consumer{
-		traceHandles: make([]syscall.Handle, 0, 64),
+		traceHandles: make([]traceHandle, 0, 64),
 		Traces:       make(map[string]*Session),
 		Events:       make(chan *Event),
 		wg:           &sync.WaitGroup{},
@@ -71,7 +72,7 @@ func NewRealTimeConsumer(_ context.Context, logger *zap.Logger) *Consumer {
 }
 
 // eventCallback is called for each event
-func (c *Consumer) defaultEventCallback(eventRecord *advapi32pkg.EventRecord) (rc uintptr) {
+func (c *Consumer) defaultEventCallback(eventRecord *advapi32.EventRecord) (rc uintptr) {
 	c.logger.Debug("Event callback called",
 		zap.Uint16("EventID", eventRecord.EventHeader.EventDescriptor.Id),
 		zap.Uint8("Version", eventRecord.EventHeader.EventDescriptor.Version),
@@ -120,7 +121,7 @@ func (c *Consumer) defaultEventCallback(eventRecord *advapi32pkg.EventRecord) (r
 	}
 }
 
-func (c *Consumer) defaultBufferCallback(buffer *advapi32pkg.EventTraceLogfile) uintptr {
+func (c *Consumer) defaultBufferCallback(buffer *advapi32.EventTraceLogfile) uintptr {
 	if _, ok := <-c.doneChan; ok {
 		return 1
 	}
@@ -128,28 +129,34 @@ func (c *Consumer) defaultBufferCallback(buffer *advapi32pkg.EventTraceLogfile) 
 }
 
 // FromSessions initializes the consumer from sessions
-func (c *Consumer) FromSessions(session *Session) *Consumer {
-	c.Traces[session.name] = session
+func (c *Consumer) FromSessions(sessions ...*Session) *Consumer {
+	for _, session := range sessions {
+		c.Traces[session.name] = session
+	}
 	return c
 }
 
+type traceHandle struct {
+	handle  syscall.Handle
+	session *Session
+}
+
 // Start starts consuming events from all registered traces
-func (c *Consumer) Start(ctx context.Context) error {
+func (c *Consumer) Start(_ context.Context) error {
 	if len(c.traceHandles) == 0 {
-		c.traceHandles = make([]syscall.Handle, 0, len(c.Traces))
+		c.traceHandles = make([]traceHandle, 0, len(c.Traces))
 	}
 
 	// persisting the logfile to avoid memory reallocation
-	logfile := advapi32pkg.EventTraceLogfile{}
-	for name := range c.Traces {
-		logfile = advapi32pkg.EventTraceLogfile{}
+	logfile := advapi32.EventTraceLogfile{}
+	for name, session := range c.Traces {
+		logfile = advapi32.EventTraceLogfile{}
 		c.logger.Info("starting trace for session", zap.String("session", name))
 
-		// logfile.BufferSize = 64
-		// logfile.LogfileHeader = advapi32pkg.TraceLogfileHeader{VersionUnion: 0}
-		logfile.SetProcessTraceMode(PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_EVENT_RECORD)
-		logfile.BufferCallback = syscall.NewCallbackCDecl(c.bufferCallback)
-		logfile.Callback = syscall.NewCallbackCDecl(c.eventCallback)
+		logfile.SetProcessTraceMode(PROCESS_TRACE_MODE_EVENT_RECORD | PROCESS_TRACE_MODE_REAL_TIME)
+		logfile.BufferCallback = syscall.NewCallback(c.bufferCallback)
+		logfile.Callback = syscall.NewCallback(c.eventCallback)
+		logfile.Context = 0
 		loggerName, err := syscall.UTF16PtrFromString(name)
 		if err != nil {
 			c.logger.Error("Failed to convert logger name to UTF-16", zap.Error(err))
@@ -157,47 +164,32 @@ func (c *Consumer) Start(ctx context.Context) error {
 		}
 		logfile.LoggerName = loggerName
 
-		traceHandle, err := advapi32pkg.OpenTrace(&logfile)
+		handle, err := advapi32.OpenTrace(&logfile)
 		if err != nil {
 			c.logger.Error("Failed to open trace", zap.Error(err))
 			return err
 		}
 
-		c.traceHandles = append(c.traceHandles, traceHandle)
+		th := traceHandle{
+			handle:  handle,
+			session: session,
+		}
+		c.traceHandles = append(c.traceHandles, th)
 	}
 
 	// Process the traces using the appropriate function
 	if len(c.traceHandles) > 0 {
-		// Add a health check routine that logs a test event occasionally
-		go func() {
-			ticker := time.NewTicker(1 * time.Minute)
-			defer ticker.Stop()
-
-			for {
-				select {
-				case <-c.doneChan:
-					return
-				case <-ticker.C:
-					c.logger.Debug("ETW consumer health check",
-						zap.Int("trace_handles", len(c.traceHandles)),
-						zap.Uint64("lost_events", c.LostEvents),
-						zap.Uint64("skipped_events", c.Skipped),
-						zap.Int("events", len(c.Events)))
-				}
-			}
-		}()
-
 		for i := range c.traceHandles {
-			handle := c.traceHandles[i]
-			if handle == syscall.InvalidHandle {
-				c.logger.Error("Invalid handle", zap.Uintptr("handle", uintptr(handle)))
+			th := c.traceHandles[i]
+			if th.handle == syscall.InvalidHandle {
+				c.logger.Error("Invalid handle", zap.Uintptr("handle", uintptr(th.handle)))
 				return fmt.Errorf("invalid handle")
 			}
-			c.logger.Debug("Adding trace handle to consumer", zap.Uintptr("handle", uintptr(handle)))
+			c.logger.Debug("Adding trace handle to consumer", zap.Uintptr("handle", uintptr(th.handle)))
 			c.wg.Add(1)
 
 			// persisting the consumer to avoid memory reallocation
-			go func(handle syscall.Handle, logfile advapi32pkg.EventTraceLogfile) {
+			go func(handle syscall.Handle, logfile advapi32.EventTraceLogfile) {
 				defer c.wg.Done()
 				defer func() {
 					if r := recover(); r != nil {
@@ -211,7 +203,7 @@ func (c *Consumer) Start(ctx context.Context) error {
 						return
 					default:
 						// Process trace is a blocking call that will continue to process events until the trace is closed
-						if err := advapi32pkg.ProcessTrace(&handle); err != nil {
+						if err := advapi32.ProcessTrace(&handle); err != nil {
 							c.logger.Error("ProcessTrace failed", zap.Error(err))
 						} else {
 							c.logger.Info("ProcessTrace completed successfully")
@@ -219,7 +211,7 @@ func (c *Consumer) Start(ctx context.Context) error {
 					}
 				}
 
-			}(handle, logfile)
+			}(th.handle, logfile)
 		}
 	}
 	return nil
@@ -227,29 +219,76 @@ func (c *Consumer) Start(ctx context.Context) error {
 
 // Stop stops the consumer
 func (c *Consumer) Stop(ctx context.Context) error {
+	if c.closed {
+		return nil
+	}
+
 	close(c.doneChan)
+
+	var sessionToClose []*Session
 
 	// Close all traces
 	var lastErr error
 	for _, h := range c.traceHandles {
-		c.logger.Debug("Closing trace", zap.Uintptr("handle", uintptr(h)))
-		err := advapi32pkg.CloseTrace(h)
+		if !isValidHandle(h.handle) {
+			continue
+		}
+
+		c.logger.Info("Closing trace", zap.Uintptr("handle", uintptr(h.handle)))
+		_, err := advapi32.CloseTrace(h.handle)
 		if err != nil {
 			c.logger.Error("CloseTrace failed", zap.Error(err))
 		}
+		// add a thread to wait until this trace is closed
+		c.wg.Add(1)
+		go c.waitForTraceToClose(ctx, h.handle, h.session)
+		sessionToClose = append(sessionToClose, h.session)
 	}
 
 	c.logger.Debug("Waiting for processing to complete", zap.Time("start", time.Now()))
 	// Wait for processing to complete
 	c.wg.Wait()
+
+	for _, session := range sessionToClose {
+		err := session.controller.Stop(ctx)
+		if err != nil {
+			c.logger.Error("StopTrace failed", zap.Error(err))
+		}
+	}
+
 	c.logger.Debug("Processing complete", zap.Time("end", time.Now()))
-	// Close the events channel
 	close(c.Events)
 	c.closed = true
 	return lastErr
 }
 
-// Err returns the last error encountered by the consumer
-func (c *Consumer) Err() error {
-	return c.lastError
+func (c *Consumer) waitForTraceToClose(ctx context.Context, handle syscall.Handle, session *Session) {
+	defer c.wg.Done()
+	jitter := 1
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Duration(jitter) * time.Second):
+			r, err := advapi32.CloseTrace(handle)
+			switch r {
+			case 0:
+				jitter++
+			// we've deleted it so return
+			case windows.ErrorInvalidHandle:
+				if jitter > 1 {
+					return
+				}
+				jitter++
+			default:
+				c.logger.Error("StopTrace failed", zap.Error(err))
+			}
+		}
+	}
+}
+
+const INVALID_PROCESSTRACE_HANDLE = 0xFFFFFFFFFFFFFFFF
+
+func isValidHandle(handle syscall.Handle) bool {
+	return handle != INVALID_PROCESSTRACE_HANDLE
 }

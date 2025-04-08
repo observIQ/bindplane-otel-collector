@@ -4,7 +4,7 @@
 
 This receiver is currently in an experimental state and should not be used in production environments. Users may encounter issues, bugs, or unexpected behavior. The component is under active development and its API, configuration, and behavior may change in future releases.
 
-This receiver experimentally collects Event Tracing for Windows (ETW) events from Windows systems. It creates an ETW session and enables specified providers to capture real-time events. ETW is 
+This receiver experimentally collects Event Tracing for Windows (ETW) events from Windows systems. It creates an ETW session and enables specified providers to capture real-time events.
 
 
 

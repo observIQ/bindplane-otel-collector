@@ -25,10 +25,11 @@ import (
 	"unicode/utf16"
 	"unsafe"
 
-	advapi32pkg "github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/advapi32"
-	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/tdh"
 	"go.uber.org/zap"
 	"golang.org/x/sys/windows"
+
+	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/advapi32"
+	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/tdh"
 )
 
 type Session struct {
@@ -37,7 +38,7 @@ type Session struct {
 	logger      *zap.Logger
 	bufferSize  int
 
-	properties *advapi32pkg.EventTraceProperties
+	properties *advapi32.EventTraceProperties
 	handle     syscall.Handle
 
 	// Add a field for the minimal session implementation
@@ -74,7 +75,7 @@ func (s *Session) Start(ctx context.Context) error {
 		return fmt.Errorf("session already started with handle %d", s.handle)
 	}
 
-	c, err := createSessionController(ctx, s.name, s.logger, s.bufferSize)
+	c, err := createSessionController(s.name, s.logger, s.bufferSize)
 	if err != nil {
 		return fmt.Errorf("failed to create session: %v", err)
 	}
@@ -84,7 +85,7 @@ func (s *Session) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *Session) EnableProvider(nameOrGuid string) error {
+func (s *Session) EnableProvider(nameOrGuid string, traceLevel advapi32.TraceLevel, matchAnyKeyword uint64, matchAllKeyword uint64) error {
 	err := s.initializeProviderMap()
 	if err != nil {
 		return fmt.Errorf("failed to initialize provider map: %w", err)
@@ -95,14 +96,11 @@ func (s *Session) EnableProvider(nameOrGuid string) error {
 		if err != nil {
 			return fmt.Errorf("failed to parse provider GUID: %w", err)
 		}
-
 		// Make sure the session is started
 		if s.handle == 0 {
 			return fmt.Errorf("session must be started before enabling providers")
 		}
-
-		s.logger.Debug("Enabling provider", zap.String("name", provider.Name), zap.String("guid", guid.String()))
-		if err := enableProvider(s.handle, &guid); err != nil {
+		if err := s.controller.enableProvider(s.handle, &guid, provider, traceLevel, matchAnyKeyword, matchAllKeyword); err != nil {
 			return fmt.Errorf("failed to enable provider %s: %w", provider.Name, err)
 		}
 
@@ -239,30 +237,16 @@ func utf16BufferToString(buffer []byte, offset uint32) string {
 	return string(utf16.Decode(utf16Chars))
 }
 
-// Stop stops the session
-func (s *Session) Stop(ctx context.Context) error {
-	if s.handle == 0 {
-		// Session not started
-		return nil
+// createSessionController creates a very basic ETW session
+func createSessionController(sessionName string, logger *zap.Logger, bufferSize int) (*SessionController, error) {
+	session := newSessionController(sessionName, bufferSize, logger)
+
+	// Start the session
+	if err := session.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start minimal session: %w", err)
 	}
 
-	err := s.controller.Stop(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to stop session: %w", err)
-	}
-
-	s.handle = 0
-	return nil
-}
-
-// TraceName returns the name of the trace session
-func (s *Session) TraceName() string {
-	return s.name
-}
-
-// GetMinimalSession returns the minimal session if it exists
-func (s *Session) GetMinimalSession() *SessionController {
-	return s.controller
+	return session, nil
 }
 
 // Providers returns the list of providers for this session
@@ -276,16 +260,4 @@ func (s *Session) Providers() []Provider {
 		})
 	}
 	return providers
-}
-
-// createSessionController creates a very basic ETW session
-func createSessionController(ctx context.Context, sessionName string, logger *zap.Logger, bufferSize int) (*SessionController, error) {
-	session := newSessionController(sessionName, bufferSize, logger)
-
-	// Start the session
-	if err := session.Start(ctx); err != nil {
-		return nil, fmt.Errorf("failed to start minimal session: %w", err)
-	}
-
-	return session, nil
 }
