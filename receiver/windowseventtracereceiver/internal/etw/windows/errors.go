@@ -24,6 +24,8 @@ var (
 	ErrorInvalidParameter = syscall.Errno(87)
 	// ErrorInsufficientBuffer is returned when the buffer is insufficient from windows
 	ErrorInsufficientBuffer = syscall.Errno(122)
+	// ErrorNotFound is returned when the resource is not found
+	ErrorNotFound = syscall.Errno(1168)
 	// ErrorWMIInstanceNotFound is returned when the WMI instance is not found
 	ErrorWMIInstanceNotFound = syscall.Errno(4021)
 	// ErrorEVTInvalidEventData is returned when the event data is invalid

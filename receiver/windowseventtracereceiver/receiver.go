@@ -58,9 +58,7 @@ func newLogsReceiver(cfg *Config, c consumer.Logs, logger *zap.Logger) (*logsRec
 }
 
 func (lr *logsReceiver) Start(ctx context.Context, host component.Host) error {
-	s := etw.
-		NewRealTimeSession(lr.cfg.SessionName, lr.logger).
-		WithBufferSize(lr.cfg.BufferSize)
+	s := etw.NewRealTimeSession(lr.cfg.SessionName, lr.logger, lr.cfg.BufferSize)
 
 	if err := s.Start(ctx); err != nil {
 		lr.logger.Error("Failed to start standard ETW session", zap.Error(err))
@@ -111,16 +109,14 @@ func (lr *logsReceiver) initializeSubscriptions(ctx context.Context) {
 		successfulProviders++
 	}
 
-	if successfulProviders == 0 && totalProviders > 0 {
+	if (successfulProviders == 0 && totalProviders > 0) && lr.cfg.RequireAllProviders {
 		lr.logger.Error("Failed to enable any providers",
 			zap.String("session", lr.cfg.SessionName),
 			zap.Int("totalProviders", totalProviders))
 		return
 	}
 
-	eventConsumer := etw.NewRealTimeConsumer(ctx, lr.logger)
-	eventConsumer = eventConsumer.FromSessions(lr.session)
-
+	eventConsumer := etw.NewRealTimeConsumer(ctx, lr.logger, lr.session)
 	err := eventConsumer.Start(ctx)
 	if err != nil {
 		lr.logger.Error("Failed to start ETW consumer", zap.Error(err))
@@ -182,6 +178,7 @@ func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) 
 	record.Body().SetEmptyMap()
 	record.Body().Map().PutStr("channel", event.System.Channel)
 	record.Body().Map().PutStr("computer", event.System.Computer)
+	record.Body().Map().PutStr("session", event.Session)
 
 	if event.System.Execution.ThreadID != 0 {
 		record.Body().Map().PutStr("thread_id", strconv.FormatUint(uint64(event.System.Execution.ThreadID), 10))
@@ -193,16 +190,13 @@ func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) 
 		level.PutStr("value", strconv.FormatUint(uint64(event.System.Level.Value), 10))
 	}
 
-	if event.System.Opcode.Name != "" {
+	if event.System.Opcode != "" {
 		opcode := record.Body().Map().PutEmptyMap("opcode")
-		opcode.PutStr("name", event.System.Opcode.Name)
-		opcode.PutStr("value", strconv.FormatUint(uint64(event.System.Opcode.Value), 10))
+		opcode.PutStr("name", event.System.Opcode)
 	}
 
-	if event.System.Task.Name != "" {
-		task := record.Body().Map().PutEmptyMap("task")
-		task.PutStr("name", event.System.Task.Name)
-		task.PutStr("value", strconv.FormatUint(uint64(event.System.Task.Value), 10))
+	if event.System.Task != "" {
+		record.Body().Map().PutStr("task", event.System.Task)
 	}
 
 	if event.System.Provider.Name != "" {
@@ -218,15 +212,13 @@ func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) 
 		}
 	}
 
-	if event.System.Keywords.Name != "" {
-		keywords := record.Body().Map().PutEmptyMap("keywords")
-		keywords.PutStr("name", event.System.Keywords.Name)
-		keywords.PutStr("value", strconv.FormatUint(uint64(event.System.Keywords.Value), 10))
+	if event.System.Keywords != "" {
+		record.Body().Map().PutStr("keywords", event.System.Keywords)
 	}
 
 	if event.System.EventID != "" {
 		eventID := record.Body().Map().PutEmptyMap("event_id")
-		eventID.PutStr("guid", event.System.EventGUID)
+		// eventID.PutStr("guid", event.System.EventGUID)
 		eventID.PutStr("id", event.System.EventID)
 	}
 
@@ -241,10 +233,6 @@ func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) 
 		for _, data := range event.ExtendedData {
 			extendedData.AppendEmpty().SetStr(data)
 		}
-	}
-
-	if event.System.Task.Name != "" {
-		record.Body().Map().PutStr("task", event.System.Task.Name)
 	}
 
 	if len(event.UserData) > 0 {

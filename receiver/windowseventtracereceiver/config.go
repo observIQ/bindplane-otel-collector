@@ -42,8 +42,11 @@ type Config struct {
 	// Attributes is a list of attributes to add to the logs.
 	Attributes map[string]string `mapstructure:"attributes"`
 
-	// BufferSize is the size of the buffer to use for the ETW session.
+	// BufferSize is the size of bytes buffer to use for creating the ETW session
 	BufferSize int `mapstructure:"buffer_size"`
+
+	// RequireAllProviders is a flag to fail if not all providers are able to be enabled.
+	RequireAllProviders bool `mapstructure:"require_all_providers"`
 }
 
 // Provider is a provider to create a session
@@ -56,9 +59,10 @@ type Provider struct {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		SessionName: "OtelCollectorETW",
-		BufferSize:  64,
-		Providers:   []Provider{},
+		SessionName:         "OtelCollectorETW",
+		BufferSize:          256,
+		Providers:           []Provider{},
+		RequireAllProviders: true,
 	}
 }
 
@@ -68,7 +72,7 @@ func (cfg *Config) Validate() error {
 		return fmt.Errorf("session_name cannot be empty")
 	}
 
-	if len(cfg.Providers) == 0 {
+	if len(cfg.Providers) < 1 {
 		return fmt.Errorf("providers cannot be empty")
 	}
 

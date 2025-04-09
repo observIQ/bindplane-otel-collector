@@ -38,8 +38,8 @@ var (
 )
 
 /*
-TdhGetEventInformation API wrapper generated from prototype
-ULONG __stdcall TdhGetEventInformation(
+GetEventInformation API wrapper generated from prototype
+ULONG __stdcall GetEventInformation(
 	 PEVENT_RECORD pEvent,
 	 ULONG TdhContextCount,
 	 PTDH_CONTEXT pTdhContext,
@@ -48,23 +48,24 @@ ULONG __stdcall TdhGetEventInformation(
 
 Tested: OK
 */
-// TdhGetEventInformation retrieves event information
-func TdhGetEventInformation(event *advapi32.EventRecord, flags uint32, buffer *TraceEventInfo, bufferSize *uint32) error {
-	r1, _, _ := getEventInfo.Call(
+// GetEventInformation retrieves event information
+func GetEventInformation(
+	event *advapi32.EventRecord,
+	tdhContextCount uint32,
+	pTdhContext *TdhContext,
+	pBuffer *TraceEventInfo,
+	pBufferSize *uint32,
+) error {
+	r0, _, _ := getEventInfo.Call(
 		uintptr(unsafe.Pointer(event)),
-		uintptr(flags),
-		uintptr(0),
-		uintptr(unsafe.Pointer(buffer)),
-		uintptr(unsafe.Pointer(bufferSize)),
-	)
-	if r1 != 0 {
-		winErr := windows.Errno(r1)
-		if winErr == windows.ERROR_INSUFFICIENT_BUFFER {
-			return windows.ERROR_INSUFFICIENT_BUFFER
-		}
-		return fmt.Errorf("TdhGetEventInformation failed with error code %d: %s", r1, winErr.Error())
+		uintptr(tdhContextCount),
+		uintptr(unsafe.Pointer(pTdhContext)),
+		uintptr(unsafe.Pointer(pBuffer)),
+		uintptr(unsafe.Pointer(pBufferSize)))
+	if r0 == 0 {
+		return nil
 	}
-	return nil
+	return syscall.Errno(r0)
 }
 
 /*
@@ -363,7 +364,7 @@ typedef struct _PROPERTY_DATA_DESCRIPTOR {
 */
 
 type PropertyDataDescriptor struct {
-	PropertyName uint64
+	PropertyName unsafe.Pointer
 	ArrayIndex   uint32
 	Reserved     uint32
 }
@@ -527,6 +528,19 @@ type TraceEventInfo struct {
 	TopLevelPropertyCount       uint32
 	Flags                       TemplateFlags
 	EventPropertyInfoArray      [1]EventPropertyInfo
+}
+
+// getEventPropertyInfoAtIndex looks for the EventPropertyInfo object at a specified index.
+func (info *TraceEventInfo) GetEventPropertyInfoAtIndex(i uint32) *EventPropertyInfo {
+	if i < info.PropertyCount {
+		// Calculate the address of the first element in EventPropertyInfoArray.
+		eventPropertyInfoPtr := uintptr(unsafe.Pointer(&info.EventPropertyInfoArray[0]))
+		// Adjust the pointer to point to the i-th EventPropertyInfo element.
+		eventPropertyInfoPtr += uintptr(i) * unsafe.Sizeof(EventPropertyInfo{})
+
+		return ((*EventPropertyInfo)(unsafe.Pointer(eventPropertyInfoPtr)))
+	}
+	return nil
 }
 
 /*

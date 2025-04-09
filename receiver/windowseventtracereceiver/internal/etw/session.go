@@ -45,29 +45,14 @@ type Session struct {
 	controller *SessionController
 }
 
-func sessionBase(logger *zap.Logger) *Session {
+func NewRealTimeSession(name string, logger *zap.Logger, bufferSize int) *Session {
 	return &Session{
-		name:        "BindplaneOtelCollector",
+		name:        name,
 		handle:      0,
 		providerMap: make(map[string]*Provider),
 		logger:      logger,
-		bufferSize:  64,
+		bufferSize:  bufferSize,
 	}
-}
-
-func (s *Session) WithBufferSize(bufferSize int) *Session {
-	s.bufferSize = bufferSize
-	return s
-}
-
-func (s *Session) WithSessionName(name string) *Session {
-	s.name = name
-	return s
-}
-
-func NewRealTimeSession(name string, logger *zap.Logger) *Session {
-	s := sessionBase(logger).WithSessionName(name)
-	return s
 }
 
 func (s *Session) Start(ctx context.Context) error {
@@ -82,23 +67,24 @@ func (s *Session) Start(ctx context.Context) error {
 
 	s.controller = c
 	s.handle = c.handle
+
+	err = s.initializeProviderMap()
+	if err != nil {
+		return fmt.Errorf("failed to initialize provider map: %w", err)
+	}
 	return nil
 }
 
 func (s *Session) EnableProvider(nameOrGuid string, traceLevel advapi32.TraceLevel, matchAnyKeyword uint64, matchAllKeyword uint64) error {
-	err := s.initializeProviderMap()
-	if err != nil {
-		return fmt.Errorf("failed to initialize provider map: %w", err)
+	// Make sure the session is started
+	if s.handle == 0 {
+		return fmt.Errorf("session must be started before enabling providers")
 	}
 
 	if provider, ok := s.providerMap[nameOrGuid]; ok {
 		guid, err := windows.GUIDFromString(provider.GUID)
 		if err != nil {
 			return fmt.Errorf("failed to parse provider GUID: %w", err)
-		}
-		// Make sure the session is started
-		if s.handle == 0 {
-			return fmt.Errorf("session must be started before enabling providers")
 		}
 		if err := s.controller.enableProvider(s.handle, &guid, provider, traceLevel, matchAnyKeyword, matchAllKeyword); err != nil {
 			return fmt.Errorf("failed to enable provider %s: %w", provider.Name, err)
@@ -237,27 +223,27 @@ func utf16BufferToString(buffer []byte, offset uint32) string {
 	return string(utf16.Decode(utf16Chars))
 }
 
+func utf16StringAtOffset(pstruct uintptr, offset uintptr) string {
+	stringBuffer := make([]uint16, 0, 64)
+
+	windowChar := (*uint16)(unsafe.Pointer(pstruct + offset))
+
+	for i := uintptr(2); *windowChar != 0; i += 2 {
+		stringBuffer = append(stringBuffer, *windowChar)
+		windowChar = (*uint16)(unsafe.Pointer(pstruct + offset + i))
+	}
+
+	return syscall.UTF16ToString(stringBuffer)
+}
+
 // createSessionController creates a very basic ETW session
 func createSessionController(sessionName string, logger *zap.Logger, bufferSize int) (*SessionController, error) {
 	session := newSessionController(sessionName, bufferSize, logger)
 
 	// Start the session
 	if err := session.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start minimal session: %w", err)
+		return nil, fmt.Errorf("failed to start session: %w", err)
 	}
 
 	return session, nil
-}
-
-// Providers returns the list of providers for this session
-func (s *Session) Providers() []Provider {
-	providers := make([]Provider, 0, len(s.providerMap))
-	for _, p := range s.providerMap {
-		providers = append(providers, Provider{
-			Name:        p.Name,
-			GUID:        p.GUID,
-			EnableLevel: p.EnableLevel,
-		})
-	}
-	return providers
 }

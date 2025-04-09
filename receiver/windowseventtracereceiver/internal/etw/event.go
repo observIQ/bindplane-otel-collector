@@ -71,24 +71,25 @@ type EventTimeCreated struct {
 
 // EventSystem contains system information for the event
 type EventSystem struct {
+	ActivityID  string           `json:"activityID"`
 	Channel     string           `json:"channel"`
 	Computer    string           `json:"computer"`
 	EventID     string           `json:"eventID,omitempty"`
-	EventType   string           `json:"eventType,omitempty"`
-	EventGUID   string           `json:"eventGuid,omitempty"`
 	Correlation EventCorrelation `json:"correlation"`
 	Execution   EventExecution   `json:"execution"`
-	Keywords    EventKeywords    `json:"keywords"`
+	Keywords    string           `json:"keywords"`
 	Level       EventLevel       `json:"level"`
-	Opcode      EventOpcode      `json:"opcode"`
-	Task        EventTask        `json:"task"`
+	Opcode      string           `json:"opcode"`
+	Task        string           `json:"task"`
 	Provider    EventProvider    `json:"provider"`
 	TimeCreated EventTimeCreated `json:"timeCreated"`
+	Version     uint8            `json:"version"`
 }
 
-// Event is a struct that represents an event from the ETW session which is pre-parsed into a more usable format
+// Event is a struct that represents an event from the ETW session which is pre-parsed into a more usable format by the receiver
 type Event struct {
-	Flags        EventFlags     `json:"-"`
+	Session      string         `json:"session"`
+	Flags        string         `json:"flags"`
 	EventData    map[string]any `json:"eventData,omitempty"`
 	UserData     map[string]any `json:"userData,omitempty"`
 	System       EventSystem    `json:"system"`

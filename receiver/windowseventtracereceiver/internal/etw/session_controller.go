@@ -31,20 +31,6 @@ import (
 	windows_ "github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/windows"
 )
 
-// Minimal Windows API constants
-const (
-	WNODE_FLAG_ALL_DATA              = 0x00000001
-	EVENT_TRACE_REAL_TIME_MODE_MIN   = 0x00000100
-	EVENT_TRACE_FILE_MODE_SEQUENTIAL = 0x00000001
-	EVENT_TRACE_CONTROL_STOP         = 1
-)
-
-const (
-	PROCESS_TRACE_MODE_REAL_TIME     = 0x00000100
-	PROCESS_TRACE_MODE_RAW_TIMESTAMP = 0x00001000
-	PROCESS_TRACE_MODE_EVENT_RECORD  = 0x10000000
-)
-
 // SessionController implements the absolute minimum needed to start an ETW session
 type SessionController struct {
 	handle       syscall.Handle
@@ -186,47 +172,18 @@ func allocBuffer(logSessionName string) (propertyBuffer *advapi32.EventTraceProp
 	return (*advapi32.EventTraceProperties)(unsafe.Pointer(&s[0])), uint32(size)
 }
 
-// // FlushTrace attempts to flush the ETW trace buffer
-// // This can help ensure providers are properly registered with the system
-// func (s *SessionController) FlushTrace() error {
-// 	if s.handle == 0 {
-// 		return nil
-// 	}
-
-// 	var namePtrU16 *uint16
-// 	var err error
-
-// 	if namePtrU16, err = syscall.UTF16PtrFromString(s.name); err != nil {
-// 		return fmt.Errorf("failed to convert session name to UTF-16: %w", err)
-// 	}
-
-// 	propsCopy := *s.properties
-// 	r1, err := advapi32.ControlTrace(
-// 		nil,
-// 		advapi32.EVENT_TRACE_CONTROL_FLUSH,
-// 		namePtrU16,
-// 		&propsCopy,
-// 	)
-
-// 	if r1 != 0 {
-// 		return fmt.Errorf("failed to flush trace(%d): %w", r1, err)
-// 	}
-
-// 	return nil
-// }
-
 func (s *SessionController) enableProvider(handle syscall.Handle, providerGUID *windows.GUID, provider *Provider, traceLevel advapi32.TraceLevel, matchAnyKeyword uint64, matchAllKeyword uint64) error {
 	params := advapi32.EnableTraceParameters{
 		Version: 2,
 	}
 
-	var attempts int
 	const maxAttempts = 5
-	var lastErr error
+	// testing with a timeout of 10 seconds
+	const timeout = 10000
 
-	for attempts < maxAttempts {
+	for attempts := 0; attempts < maxAttempts; attempts++ {
 		if attempts > 0 {
-			delay := time.Duration(50*(attempts+1)) * time.Millisecond
+			delay := time.Duration(50*attempts) * time.Millisecond
 			s.logger.Debug("Sleeping before provider enable attempt",
 				zap.String("provider", provider.Name),
 				zap.Duration("delay", delay),
@@ -234,20 +191,15 @@ func (s *SessionController) enableProvider(handle syscall.Handle, providerGUID *
 			time.Sleep(delay)
 		}
 
-		// timeout of 0 means async enablement
-		const timeout = 0
-
-		// Wrap the enableTrace call in a function with defer/recover to prevent process crashes
 		var r1 syscall.Errno
 		var err error
+
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					s.logger.Error("Recovered from EnableTrace panic",
+					s.logger.Warn("Recovered from EnableTrace panic",
 						zap.String("provider", provider.Name),
 						zap.Any("recovered", r))
-					// Set a default error so the retry logic continues
-					r1 = windows.ERROR_INVALID_PARAMETER
 					err = fmt.Errorf("recovered from panic in EnableTrace: %v", r)
 				}
 			}()
@@ -269,6 +221,13 @@ func (s *SessionController) enableProvider(handle syscall.Handle, providerGUID *
 				zap.String("provider", provider.Name),
 				zap.Int("attempt", attempts+1))
 			return nil
+		case windows.ERROR_ALREADY_EXISTS:
+			s.logger.Debug("provider already enabled, will attempt attaching to it",
+				zap.String("provider", provider.Name))
+			return s.attach()
+		case windows.ERROR_NO_SYSTEM_RESOURCES:
+			s.logger.Error("no system resources when enabling provider", zap.Error(err))
+			return fmt.Errorf("no system resources when enabling provider: %w", err)
 		case windows.ERROR_INVALID_PARAMETER:
 			s.logger.Debug("invalid parameters when enabling session trace",
 				zap.String("provider", provider.Name),
@@ -280,20 +239,14 @@ func (s *SessionController) enableProvider(handle syscall.Handle, providerGUID *
 			s.logger.Debug("timeout when enabling provider",
 				zap.String("provider", provider.Name),
 				zap.Int("attempt", attempts+1))
-		case windows.ERROR_NO_SYSTEM_RESOURCES: // return as retrying here is only going to make things worse
-			s.logger.Error("no system resources when enabling provider", zap.Error(err))
-			return fmt.Errorf("no system resources when enabling provider: %w", err)
-		case windows.ERROR_ALREADY_EXISTS:
-			s.logger.Debug("provider already enabled, will attempt attaching to it",
-				zap.String("provider", provider.Name))
-			return s.attach()
 		}
-		lastErr = fmt.Errorf("EnableTrace failed(%d): %w", r1, err)
-		attempts++
+
+		if attempts == maxAttempts-1 {
+			return fmt.Errorf("EnableTrace failed(%d): %w", r1, err)
+		}
 	}
 
-	// Return the last error if all attempts failed
-	return lastErr
+	return fmt.Errorf("failed to enable provider after %d attempts", maxAttempts)
 }
 
 func (s *SessionController) attach() error {

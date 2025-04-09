@@ -19,6 +19,7 @@ package etw
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -39,6 +40,7 @@ type Consumer struct {
 	traceHandles []traceHandle
 	lastError    error
 	closed       bool
+	sessionName  string
 
 	eventCallback  func(eventRecord *advapi32.EventRecord) uintptr
 	bufferCallback func(buffer *advapi32.EventTraceLogfile) uintptr
@@ -57,7 +59,7 @@ type Consumer struct {
 }
 
 // NewRealTimeConsumer creates a new Consumer to consume ETW in RealTime mode
-func NewRealTimeConsumer(_ context.Context, logger *zap.Logger) *Consumer {
+func NewRealTimeConsumer(_ context.Context, logger *zap.Logger, session *Session) *Consumer {
 	c := &Consumer{
 		traceHandles: make([]traceHandle, 0, 64),
 		Traces:       make(map[string]*Session),
@@ -65,50 +67,70 @@ func NewRealTimeConsumer(_ context.Context, logger *zap.Logger) *Consumer {
 		wg:           &sync.WaitGroup{},
 		doneChan:     make(chan struct{}),
 		logger:       logger,
+		sessionName:  session.name,
 	}
 	c.eventCallback = c.defaultEventCallback
 	c.bufferCallback = c.defaultBufferCallback
+	c.fromSessions(session)
 	return c
 }
 
+var zeroGuid = windows.GUID{}
+
 // eventCallback is called for each event
 func (c *Consumer) defaultEventCallback(eventRecord *advapi32.EventRecord) (rc uintptr) {
-	c.logger.Debug("Event callback called",
-		zap.Uint16("EventID", eventRecord.EventHeader.EventDescriptor.Id),
-		zap.Uint8("Version", eventRecord.EventHeader.EventDescriptor.Version),
-		zap.Uint8("Channel", eventRecord.EventHeader.EventDescriptor.Channel),
-		zap.Uint8("Level", eventRecord.EventHeader.EventDescriptor.Level),
-		zap.Uint8("Opcode", eventRecord.EventHeader.EventDescriptor.Opcode),
-		zap.Int64("Timestamp", eventRecord.EventHeader.TimeStamp))
+	if eventRecord == nil {
+		c.logger.Error("Event record is nil")
+		return 1
+	}
 
 	if eventRecord.EventHeader.ProviderId.String() == rtLostEventGuid {
 		c.LostEvents++
 		return 1
 	}
-
-	helper, err := newEventRecordHelper(eventRecord)
+	data, err := GetEventProperties(eventRecord, c.logger.Named("event_record_helper"))
 	if err != nil {
-		c.logger.Error("Failed to create event record helper", zap.Error(err))
+		c.logger.Error("Failed to get event properties", zap.Error(err))
 		c.LostEvents++
 		rc = 1
 		return
 	}
 
-	helper.initialize()
-
-	if err := helper.prepareProperties(); err != nil {
-		c.logger.Error("Failed to prepare properties", zap.Error(err))
-		c.LostEvents++
-		rc = 1
-		return
+	var providerGUID string
+	if eventRecord.EventHeader.ProviderId == zeroGuid {
+		providerGUID = ""
+	} else {
+		providerGUID = eventRecord.EventHeader.ProviderId.String()
 	}
 
-	event, err := helper.buildEvent()
-	if err != nil {
-		c.logger.Info("Failed to build event", zap.Error(err))
-		c.LostEvents++
-		rc = 1
-		return
+	event := &Event{
+		Flags:   strconv.FormatUint(uint64(eventRecord.EventHeader.Flags), 10),
+		Session: c.sessionName,
+
+		System: EventSystem{
+			ActivityID: eventRecord.EventHeader.ActivityId.String(),
+			Channel:    strconv.FormatInt(int64(eventRecord.EventHeader.EventDescriptor.Channel), 10),
+			Keywords:   strconv.FormatUint(eventRecord.EventHeader.EventDescriptor.Keyword, 10),
+			EventID:    fmt.Sprintf("%d", eventRecord.EventHeader.EventDescriptor.Id),
+			Opcode:     strconv.FormatUint(uint64(eventRecord.EventHeader.EventDescriptor.Opcode), 10),
+			Task:       strconv.FormatUint(uint64(eventRecord.EventHeader.EventDescriptor.Task), 10),
+			Provider: EventProvider{
+				GUID: providerGUID,
+			},
+			Computer: hostname,
+			Correlation: EventCorrelation{
+				ActivityID:        eventRecord.EventHeader.ActivityId.String(),
+				RelatedActivityID: eventRecord.RelatedActivityID(),
+			},
+			Execution: EventExecution{
+				ThreadID:  eventRecord.EventHeader.ThreadId,
+				ProcessID: eventRecord.EventHeader.ProcessId,
+			},
+			Version: eventRecord.EventHeader.EventDescriptor.Version,
+		},
+		EventData: data,
+		// UserData:     data,
+		ExtendedData: []string{},
 	}
 
 	select {
@@ -129,7 +151,7 @@ func (c *Consumer) defaultBufferCallback(buffer *advapi32.EventTraceLogfile) uin
 }
 
 // FromSessions initializes the consumer from sessions
-func (c *Consumer) FromSessions(sessions ...*Session) *Consumer {
+func (c *Consumer) fromSessions(sessions ...*Session) *Consumer {
 	for _, session := range sessions {
 		c.Traces[session.name] = session
 	}
@@ -153,7 +175,7 @@ func (c *Consumer) Start(_ context.Context) error {
 		logfile = advapi32.EventTraceLogfile{}
 		c.logger.Info("starting trace for session", zap.String("session", name))
 
-		logfile.SetProcessTraceMode(PROCESS_TRACE_MODE_EVENT_RECORD | PROCESS_TRACE_MODE_REAL_TIME)
+		logfile.SetProcessTraceMode(advapi32.PROCESS_TRACE_MODE_EVENT_RECORD | advapi32.PROCESS_TRACE_MODE_REAL_TIME)
 		logfile.BufferCallback = syscall.NewCallback(c.bufferCallback)
 		logfile.Callback = syscall.NewCallback(c.eventCallback)
 		logfile.Context = 0
@@ -177,47 +199,53 @@ func (c *Consumer) Start(_ context.Context) error {
 		c.traceHandles = append(c.traceHandles, th)
 	}
 
-	// Process the traces using the appropriate function
 	if len(c.traceHandles) > 0 {
 		for i := range c.traceHandles {
 			th := c.traceHandles[i]
-			if th.handle == syscall.InvalidHandle {
+			if !isValidHandle(th.handle) {
 				c.logger.Error("Invalid handle", zap.Uintptr("handle", uintptr(th.handle)))
 				return fmt.Errorf("invalid handle")
 			}
+
 			c.logger.Debug("Adding trace handle to consumer", zap.Uintptr("handle", uintptr(th.handle)))
 			c.wg.Add(1)
 
-			// persisting the consumer to avoid memory reallocation
-			go func(handle syscall.Handle, logfile advapi32.EventTraceLogfile) {
+			go func(handle syscall.Handle) {
 				defer c.wg.Done()
-				defer func() {
-					if r := recover(); r != nil {
-						c.lastError = fmt.Errorf("ProcessTrace panic: %v", r)
+
+				var err error
+
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							err = fmt.Errorf("ProcessTrace panic: %v", r)
+						}
+					}()
+					for {
+						select {
+						case <-c.doneChan:
+							return
+						default:
+							// Process trace is a blocking call that will continue to process events until the trace is closed
+							if err := advapi32.ProcessTrace(&handle); err != nil {
+								c.logger.Error("ProcessTrace failed", zap.Error(err))
+							} else {
+								c.logger.Info("ProcessTrace completed successfully")
+							}
+						}
 					}
 				}()
 
-				for {
-					select {
-					case <-c.doneChan:
-						return
-					default:
-						// Process trace is a blocking call that will continue to process events until the trace is closed
-						if err := advapi32.ProcessTrace(&handle); err != nil {
-							c.logger.Error("ProcessTrace failed", zap.Error(err))
-						} else {
-							c.logger.Info("ProcessTrace completed successfully")
-						}
-					}
+				if err != nil {
+					c.logger.Error("ProcessTrace failed", zap.Error(err))
 				}
-
-			}(th.handle, logfile)
+			}(th.handle)
 		}
 	}
 	return nil
 }
 
-// Stop stops the consumer
+// Stop stops the consumer and closes all opened traces
 func (c *Consumer) Stop(ctx context.Context) error {
 	if c.closed {
 		return nil
@@ -225,32 +253,26 @@ func (c *Consumer) Stop(ctx context.Context) error {
 
 	close(c.doneChan)
 
-	var sessionToClose []*Session
+	var sessionToClose *Session
 
-	// Close all traces
 	var lastErr error
 	for _, h := range c.traceHandles {
 		if !isValidHandle(h.handle) {
 			continue
 		}
-
 		c.logger.Info("Closing trace", zap.Uintptr("handle", uintptr(h.handle)))
-		_, err := advapi32.CloseTrace(h.handle)
-		if err != nil {
-			c.logger.Error("CloseTrace failed", zap.Error(err))
-		}
-		// add a thread to wait until this trace is closed
+		// add a goroutine to close and wait until this trace is closed
 		c.wg.Add(1)
 		go c.waitForTraceToClose(ctx, h.handle, h.session)
-		sessionToClose = append(sessionToClose, h.session)
+		sessionToClose = h.session
 	}
 
 	c.logger.Debug("Waiting for processing to complete", zap.Time("start", time.Now()))
 	// Wait for processing to complete
 	c.wg.Wait()
 
-	for _, session := range sessionToClose {
-		err := session.controller.Stop(ctx)
+	if sessionToClose != nil {
+		err := sessionToClose.controller.Stop(ctx)
 		if err != nil {
 			c.logger.Error("StopTrace failed", zap.Error(err))
 		}
@@ -281,7 +303,7 @@ func (c *Consumer) waitForTraceToClose(ctx context.Context, handle syscall.Handl
 				}
 				jitter++
 			default:
-				c.logger.Error("StopTrace failed", zap.Error(err))
+				c.logger.Debug("StopTrace failed", zap.Error(err))
 			}
 		}
 	}
@@ -290,5 +312,5 @@ func (c *Consumer) waitForTraceToClose(ctx context.Context, handle syscall.Handl
 const INVALID_PROCESSTRACE_HANDLE = 0xFFFFFFFFFFFFFFFF
 
 func isValidHandle(handle syscall.Handle) bool {
-	return handle != INVALID_PROCESSTRACE_HANDLE
+	return handle != 0 && handle != INVALID_PROCESSTRACE_HANDLE
 }

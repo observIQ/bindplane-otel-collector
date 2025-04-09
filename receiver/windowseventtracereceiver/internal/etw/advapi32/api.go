@@ -162,11 +162,9 @@ const (
 	TRACE_LEVEL_RESERVED9   TraceLevel = 9
 )
 
-type processTraceMode int
-
 const (
-	PROCESS_TRACE_MODE_REAL_TIME    processTraceMode = 0x00000100
-	PROCESS_TRACE_MODE_EVENT_RECORD processTraceMode = 0x10000000
+	PROCESS_TRACE_MODE_REAL_TIME    uint32 = 0x00000100
+	PROCESS_TRACE_MODE_EVENT_RECORD uint32 = 0x10000000
 )
 
 type EnableTraceParameters struct {
@@ -634,6 +632,28 @@ func (e *EventRecord) PointerSize() uint32 {
 		return 4
 	}
 	return 8
+}
+
+const (
+	EventHeaderExtTypeRelatedActivityID = 0x0001
+)
+
+func (e *EventRecord) ExtendedDataItem(i uint16) *EventHeaderExtendedDataItem {
+	if i < e.ExtendedDataCount {
+		return (*EventHeaderExtendedDataItem)(unsafe.Pointer((uintptr(unsafe.Pointer(e.ExtendedData)) + (uintptr(i) * unsafe.Sizeof(EventHeaderExtendedDataItem{})))))
+	}
+	return nil
+}
+
+func (e *EventRecord) RelatedActivityID() string {
+	for i := uint16(0); i < e.ExtendedDataCount; i++ {
+		item := e.ExtendedDataItem(i)
+		if item.ExtType == EventHeaderExtTypeRelatedActivityID {
+			g := (*windows_.GUID)(unsafe.Pointer(item.DataPtr))
+			return g.String()
+		}
+	}
+	return "{00000000-0000-0000-0000-000000000000}"
 }
 
 /*

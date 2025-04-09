@@ -18,8 +18,9 @@ func createTestConfig() *Config {
 	}
 }
 
-func TestConfigValidate(t *testing.T) {
-	cfg := createTestConfig()
+func TestDefaultConfig(t *testing.T) {
+	cfg := createDefaultConfig().(*Config)
 	err := cfg.Validate()
-	require.NoError(t, err)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "providers cannot be empty")
 }
