@@ -58,7 +58,7 @@ func newLogsReceiver(cfg *Config, c consumer.Logs, logger *zap.Logger) (*logsRec
 }
 
 func (lr *logsReceiver) Start(ctx context.Context, host component.Host) error {
-	s := etw.NewRealTimeSession(lr.cfg.SessionName, lr.logger, lr.cfg.BufferSize)
+	s := etw.NewRealTimeSession(lr.cfg.SessionName, lr.logger, lr.cfg.SessionBufferSize)
 
 	if err := s.Start(ctx); err != nil {
 		lr.logger.Error("Failed to start standard ETW session", zap.Error(err))

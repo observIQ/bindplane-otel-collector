@@ -10,8 +10,8 @@ import (
 
 func createTestConfig() *Config {
 	return &Config{
-		SessionName: "TestSession",
-		BufferSize:  64,
+		SessionName:       "TestSession",
+		SessionBufferSize: 64,
 		Providers: []Provider{
 			{Name: "TestProvider", Level: LevelInformational},
 		},

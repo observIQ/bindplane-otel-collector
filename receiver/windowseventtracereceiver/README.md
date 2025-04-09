@@ -50,7 +50,7 @@ This command will display a list of all registered ETW providers, including thei
 |-----------------------|-------------------|-------------------|----------|-------------------------------------------------------------------|
 | session_name          | string            | `OtelCollectorETW`| `true`   | The name to use for the ETW session.                              |
 | providers             | []Provider        | `[]`              | `true`   | A list of providers to subscribe to for ETW events.               |
-| buffer_size           | int               | `256`             | `false`  | The size of the buffer in bytes to use for the ETW session.       |
+| session_buffer_size   | int               | `64`              | `false`  | The size of the buffer in KiB to use for the ETW session. This shouldn't really be modified unless you are running into issues creating your `session_name`       |
 | attributes            | map[string]string | `{}`              | `false`  | A list of attributes to add to all logs.                          |
 | require_all_providers | bool              | `true`            | `false`  | If true, the receiver will fail if not all providers can be enabled. |
 | raw                   | bool              | `false`           | `false`  | If true, enables raw event logging.                               |
