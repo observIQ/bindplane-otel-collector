@@ -12,7 +12,7 @@ This exporter allows you to export logs to Azure Log Analytics via the Log Analy
 
 ## Minimum Agent Versions
 
-- Introduced: v1.73.1
+- Introduced: v1.75.0
 
 ## Supported Pipelines
 
