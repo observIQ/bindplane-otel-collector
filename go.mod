@@ -210,6 +210,7 @@ require (
 )
 
 require (
+	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v0.0.0-00010101000000-000000000000
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.75.0
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.75.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.123.0
@@ -924,6 +925,8 @@ replace github.com/observiq/bindplane-otel-collector/receiver/telemetrygenerator
 replace github.com/observiq/bindplane-otel-collector/exporter/googlecloudexporter => ./exporter/googlecloudexporter
 
 replace github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter => ./exporter/azureblobexporter
+
+replace github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter => ./exporter/azureloganalyticsexporter
 
 replace github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter => ./exporter/chronicleexporter
 
