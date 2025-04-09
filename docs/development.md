@@ -25,6 +25,10 @@ CI also does a build of all targets (`make build-all`)
 
 ## Updating to latest OTEL version
 
+Read through the release notes for the versions of contrib and core that are being updated to. If doing multiple versions look at all version included, i.e. if going from v0.120.0 to v0.122.0 look at v0.121.0 as well. Look for any potential deprecations or breaking changes that could affect Bindplane resources (these are typically in the "End User Changelog" but check the "API Changelog" as well). 
+
+If there are any potential issues with the update, raise concerns in the team channel and coordinate an update plan if necessary.
+
 Most of the process for updating the OTEL dependency is automated with scripts. If at any point there is a failure, try running `make tidy` to see if updating the `go.mod` is able to resolve the issue.
 The steps are as follows:
 
