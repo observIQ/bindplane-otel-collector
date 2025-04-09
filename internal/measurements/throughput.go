@@ -43,6 +43,7 @@ type ThroughputMeasurements struct {
 	logSize, metricSize, traceSize      *int64Counter
 	logCount, datapointCount, spanCount *int64Counter
 	attributes                          attribute.Set
+	collectionSequenceNumber            atomic.Int64
 }
 
 // NewThroughputMeasurements initializes a new ThroughputMeasurements, adding metrics for the measurements to the meter provider.
@@ -106,19 +107,21 @@ func NewThroughputMeasurements(mp metric.MeterProvider, processorID string, extr
 	attrs := createMeasurementsAttributeSet(processorID, extraAttributes)
 
 	return &ThroughputMeasurements{
-		logSize:        newInt64Counter(logSize, attrs),
-		logCount:       newInt64Counter(logCount, attrs),
-		metricSize:     newInt64Counter(metricSize, attrs),
-		datapointCount: newInt64Counter(datapointCount, attrs),
-		traceSize:      newInt64Counter(traceSize, attrs),
-		spanCount:      newInt64Counter(spanCount, attrs),
-		attributes:     attrs,
+		logSize:                  newInt64Counter(logSize, attrs),
+		logCount:                 newInt64Counter(logCount, attrs),
+		metricSize:               newInt64Counter(metricSize, attrs),
+		datapointCount:           newInt64Counter(datapointCount, attrs),
+		traceSize:                newInt64Counter(traceSize, attrs),
+		spanCount:                newInt64Counter(spanCount, attrs),
+		attributes:               attrs,
+		collectionSequenceNumber: atomic.Int64{},
 	}, nil
 }
 
 // AddLogs records throughput metrics for the provided logs.
 func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs) {
 	sizer := plog.ProtoMarshaler{}
+	tm.collectionSequenceNumber.Add(1)
 
 	tm.logSize.Add(ctx, int64(sizer.LogsSize(l)))
 	tm.logCount.Add(ctx, int64(l.LogRecordCount()))
@@ -127,6 +130,7 @@ func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs) {
 // AddMetrics records throughput metrics for the provided metrics.
 func (tm *ThroughputMeasurements) AddMetrics(ctx context.Context, m pmetric.Metrics) {
 	sizer := pmetric.ProtoMarshaler{}
+	tm.collectionSequenceNumber.Add(1)
 
 	tm.metricSize.Add(ctx, int64(sizer.MetricsSize(m)))
 	tm.datapointCount.Add(ctx, int64(m.DataPointCount()))
@@ -135,9 +139,15 @@ func (tm *ThroughputMeasurements) AddMetrics(ctx context.Context, m pmetric.Metr
 // AddTraces records throughput metrics for the provided traces.
 func (tm *ThroughputMeasurements) AddTraces(ctx context.Context, t ptrace.Traces) {
 	sizer := ptrace.ProtoMarshaler{}
+	tm.collectionSequenceNumber.Add(1)
 
 	tm.traceSize.Add(ctx, int64(sizer.TracesSize(t)))
 	tm.spanCount.Add(ctx, int64(t.SpanCount()))
+}
+
+// SequenceNumber returns the current sequence number of this ThroughputMeasurements.
+func (tm *ThroughputMeasurements) SequenceNumber() int64 {
+	return tm.collectionSequenceNumber.Load()
 }
 
 // LogSize returns the total size in bytes of all log payloads added to this ThroughputMeasurements.
@@ -215,6 +225,12 @@ func createMeasurementsAttributeSet(processorID string, extraAttributes map[stri
 	return attribute.NewSet(attrs...)
 }
 
+// processorMeasurements holds both the throughput measurements and the last collected sequence number for a processor
+type processorMeasurements struct {
+	measurements          *ThroughputMeasurements
+	lastCollectedSequence int64
+}
+
 // ResettableThroughputMeasurementsRegistry is a concrete version of ThroughputMeasurementsRegistry that is able to be reset.
 type ResettableThroughputMeasurementsRegistry struct {
 	measurements     *sync.Map
@@ -231,17 +247,15 @@ func NewResettableThroughputMeasurementsRegistry(emitCountMetrics bool) *Resetta
 
 // RegisterThroughputMeasurements registers the ThroughputMeasurements with the registry.
 func (ctmr *ResettableThroughputMeasurementsRegistry) RegisterThroughputMeasurements(processorID string, measurements *ThroughputMeasurements) error {
-	_, alreadyExists := ctmr.measurements.LoadOrStore(processorID, measurements)
+	_, alreadyExists := ctmr.measurements.LoadOrStore(processorID, &processorMeasurements{
+		measurements:          measurements,
+		lastCollectedSequence: 0,
+	})
 	if alreadyExists {
 		return fmt.Errorf("measurements for processor %q was already registered", processorID)
 	}
 
 	return nil
-}
-
-// Reset unregisters all throughput measurements in this registry
-func (ctmr *ResettableThroughputMeasurementsRegistry) Reset() {
-	ctmr.measurements = &sync.Map{}
 }
 
 // OTLPMeasurements returns all the measurements in this registry as OTLP metrics.
@@ -251,8 +265,15 @@ func (ctmr *ResettableThroughputMeasurementsRegistry) OTLPMeasurements(extraAttr
 	sm := rm.ScopeMetrics().AppendEmpty()
 
 	ctmr.measurements.Range(func(_, value any) bool {
-		tm := value.(*ThroughputMeasurements)
-		OTLPThroughputMeasurements(tm, ctmr.emitCountMetrics, extraAttributes).MoveAndAppendTo(sm.Metrics())
+		pm := value.(*processorMeasurements)
+		// Only include metrics collected after the last reported sequence
+		if pm.measurements.SequenceNumber() > pm.lastCollectedSequence {
+			OTLPThroughputMeasurements(pm.measurements, ctmr.emitCountMetrics, extraAttributes).MoveAndAppendTo(sm.Metrics())
+
+			// Update the max sequence number if the current sequence number is greater
+			// This keeps a high water mark of the sequence number that has been reported
+			pm.lastCollectedSequence = pm.measurements.SequenceNumber()
+		}
 		return true
 	})
 
@@ -263,4 +284,9 @@ func (ctmr *ResettableThroughputMeasurementsRegistry) OTLPMeasurements(extraAttr
 	}
 
 	return m
+}
+
+// Reset unregisters all throughput measurements in this registry
+func (ctmr *ResettableThroughputMeasurementsRegistry) Reset() {
+	ctmr.measurements = &sync.Map{}
 }

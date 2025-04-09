@@ -236,6 +236,102 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		require.NoError(t, pmetrictest.CompareMetrics(expectedMetrics, actualMetrics, pmetrictest.IgnoreTimestamp()))
 	})
 
+	t.Run("Test sequence tracking", func(t *testing.T) {
+		reg := NewResettableThroughputMeasurementsRegistry(false)
+
+		mp := metric.NewMeterProvider()
+		defer mp.Shutdown(context.Background())
+
+		tmp, err := NewThroughputMeasurements(mp, "throughputmeasurement/1", map[string]string{})
+		require.NoError(t, err)
+
+		metrics, err := golden.ReadMetrics(filepath.Join("testdata", "metrics", "host-metrics.yaml"))
+		require.NoError(t, err)
+
+		// First batch of metrics
+		tmp.AddMetrics(context.Background(), metrics)
+		require.NoError(t, reg.RegisterThroughputMeasurements("throughputmeasurement/1", tmp))
+
+		// Get first batch of measurements
+		firstMetrics := reg.OTLPMeasurements(nil)
+		require.NotEmpty(t, firstMetrics.DataPointCount())
+
+		// Add more metrics
+		tmp.AddMetrics(context.Background(), metrics)
+
+		// Get second batch of measurements
+		secondMetrics := reg.OTLPMeasurements(nil)
+		require.NotEmpty(t, secondMetrics.DataPointCount())
+
+		// Verify sequence numbers
+		require.Equal(t, int64(2), tmp.SequenceNumber())
+
+		reg.measurements.Range(func(key, value any) bool {
+			processorID := key.(string)
+			if processorID == "throughputmeasurement/1" {
+				require.Equal(t, int64(2), value.(*processorMeasurements).lastCollectedSequence)
+			}
+			return true
+		})
+
+		// Verify no new metrics if sequence hasn't changed
+		emptyMetrics := reg.OTLPMeasurements(nil)
+		require.Empty(t, emptyMetrics.DataPointCount())
+	})
+
+	t.Run("Test multiple processors with different sequences", func(t *testing.T) {
+		reg := NewResettableThroughputMeasurementsRegistry(false)
+
+		mp := metric.NewMeterProvider()
+		defer mp.Shutdown(context.Background())
+
+		// Create two processors
+		tmp1, err := NewThroughputMeasurements(mp, "throughputmeasurement/1", map[string]string{})
+		require.NoError(t, err)
+		tmp2, err := NewThroughputMeasurements(mp, "throughputmeasurement/2", map[string]string{})
+		require.NoError(t, err)
+
+		metrics, err := golden.ReadMetrics(filepath.Join("testdata", "metrics", "host-metrics.yaml"))
+		require.NoError(t, err)
+
+		// Add metrics to first processor
+		tmp1.AddMetrics(context.Background(), metrics)
+		require.NoError(t, reg.RegisterThroughputMeasurements("throughputmeasurement/1", tmp1))
+
+		// Get first batch of measurements
+		firstMetrics := reg.OTLPMeasurements(nil)
+		require.NotEmpty(t, firstMetrics.DataPointCount())
+
+		// Add metrics to second processor
+		tmp2.AddMetrics(context.Background(), metrics)
+		require.NoError(t, reg.RegisterThroughputMeasurements("throughputmeasurement/2", tmp2))
+
+		// Get second batch of measurements
+		secondMetrics := reg.OTLPMeasurements(nil)
+		require.NotEmpty(t, secondMetrics.DataPointCount())
+
+		// Verify sequence numbers
+		require.Equal(t, int64(1), tmp1.SequenceNumber())
+		require.Equal(t, int64(1), tmp2.SequenceNumber())
+
+		// Add more metrics to both processors
+		tmp1.AddMetrics(context.Background(), metrics)
+		tmp1.AddMetrics(context.Background(), metrics) // simulate out of sync between processors
+		tmp2.AddMetrics(context.Background(), metrics)
+		reg.OTLPMeasurements(nil)
+
+		reg.measurements.Range(func(key, value any) bool {
+			processorID := key.(string)
+			if processorID == "throughputmeasurement/1" {
+				require.Equal(t, int64(3), value.(*processorMeasurements).lastCollectedSequence)
+			}
+			if processorID == "throughputmeasurement/2" {
+				require.Equal(t, int64(2), value.(*processorMeasurements).lastCollectedSequence)
+			}
+			return true
+		})
+	})
+
 	t.Run("Test registered measurements are in OTLP payload (with count metrics)", func(t *testing.T) {
 		reg := NewResettableThroughputMeasurementsRegistry(true)
 
