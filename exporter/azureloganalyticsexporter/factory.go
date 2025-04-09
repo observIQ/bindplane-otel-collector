@@ -18,20 +18,21 @@ import (
 	"context"
 	"errors"
 
+	"github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
 // Define type to replace metadata.Type temporarily
-var typeStr = component.MustNewType("azureloganalytics")
+var typeStr = metadata.Type
 
 // NewFactory creates a factory for Azure Log Analytics Exporter
 func NewFactory() exporter.Factory {
 	return exporter.NewFactory(
 		typeStr,
 		createDefaultConfig,
-		exporter.WithLogs(createLogsExporter, component.StabilityLevelAlpha),
+		exporter.WithLogs(createLogsExporter, metadata.LogsStability),
 	)
 }
 

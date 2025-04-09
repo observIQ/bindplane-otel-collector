@@ -16,8 +16,6 @@ package azureloganalyticsexporter
 
 import (
 	"errors"
-
-	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
 // Config defines the configuration for the Azure Log Analytics exporter
@@ -40,10 +38,6 @@ type Config struct {
 
 	// RawLogField is the field name that will be used to send raw logs to the Log Analytics workspace.
 	RawLogField string `mapstructure:"raw_log_field"`
-
-	TimeoutSettings exporterhelper.TimeoutConfig `mapstructure:",squash"`
-
-	QueueSettings exporterhelper.QueueConfig `mapstructure:",squash"`
 }
 
 // Validate validates the configuration
