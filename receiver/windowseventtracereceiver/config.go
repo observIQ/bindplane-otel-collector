@@ -25,17 +25,19 @@ import (
 type TraceLevelString string
 
 const (
-	LevelVerbose       TraceLevelString = "verbose"
+	// LevelVerbose is the verbose trace level.
+	LevelVerbose TraceLevelString = "verbose"
+	// LevelInformational is the informational trace level.
 	LevelInformational TraceLevelString = "informational"
-	LevelWarning       TraceLevelString = "warning"
-	LevelError         TraceLevelString = "error"
-	LevelCritical      TraceLevelString = "critical"
-	LevelNone          TraceLevelString = "none"
+	// LevelWarning is the warning trace level.
+	LevelWarning TraceLevelString = "warning"
+	// LevelError is the error trace level.
+	LevelError TraceLevelString = "error"
+	// LevelCritical is the critical trace level.
+	LevelCritical TraceLevelString = "critical"
+	// LevelNone is the none trace level.
+	LevelNone TraceLevelString = "none"
 )
-
-func (l TraceLevelString) String() string {
-	return string(l)
-}
 
 // Config is the configuration for the windows event trace receiver.
 type Config struct {

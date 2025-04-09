@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package etw contains the functionality for interacting with the ETW API.
 package etw
 
 import "time"
