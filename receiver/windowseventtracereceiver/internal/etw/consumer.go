@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -41,6 +42,8 @@ type Consumer struct {
 	lastError    error
 	closed       bool
 	sessionName  string
+	providerMap  map[string]*Provider
+	consumeRaw   bool
 
 	eventCallback  func(eventRecord *advapi32.EventRecord) uintptr
 	bufferCallback func(buffer *advapi32.EventTraceLogfile) uintptr
@@ -59,7 +62,14 @@ type Consumer struct {
 }
 
 // NewRealTimeConsumer creates a new Consumer to consume ETW in RealTime mode
-func NewRealTimeConsumer(_ context.Context, logger *zap.Logger, session *Session) *Consumer {
+func NewRealTimeConsumer(_ context.Context, logger *zap.Logger, session *Session, consumeRaw bool) *Consumer {
+	var providerMap map[string]*Provider
+	if len(session.providerMap) == 0 {
+		providerMap = make(map[string]*Provider)
+	} else {
+		providerMap = session.providerMap
+	}
+
 	c := &Consumer{
 		traceHandles: make([]traceHandle, 0, 64),
 		Traces:       make(map[string]*Session),
@@ -68,6 +78,8 @@ func NewRealTimeConsumer(_ context.Context, logger *zap.Logger, session *Session
 		doneChan:     make(chan struct{}),
 		logger:       logger,
 		sessionName:  session.name,
+		providerMap:  providerMap,
+		consumeRaw:   consumeRaw,
 	}
 	c.eventCallback = c.defaultEventCallback
 	c.bufferCallback = c.defaultBufferCallback
@@ -88,6 +100,80 @@ func (c *Consumer) defaultEventCallback(eventRecord *advapi32.EventRecord) (rc u
 		c.LostEvents++
 		return 1
 	}
+
+	if c.consumeRaw {
+		return c.rawEventCallback(eventRecord)
+	}
+	return c.parsedEventCallback(eventRecord)
+}
+
+// TODO; this is kind of a hack, we should use the wevtapi to get properly render the event properties
+func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) (rc uintptr) {
+	providerGUID := eventRecord.EventHeader.ProviderId.String()
+	var providerName string
+	if provider, ok := c.providerMap[providerGUID]; ok {
+		providerName = provider.Name
+	}
+
+	eventData, err := GetEventProperties(eventRecord, c.logger.Named("event_record_helper"))
+	if err != nil {
+		c.logger.Error("Failed to get event properties", zap.Error(err))
+		return 1
+	}
+
+	// Create an XML-like representation
+	var xmlBuilder strings.Builder
+	xmlBuilder.WriteString("<Event>\n")
+
+	// System section
+	xmlBuilder.WriteString("  <System>\n")
+	xmlBuilder.WriteString(fmt.Sprintf("    <Provider Name=\"%s\" Guid=\"{%s}\"/>\n",
+		providerName, providerGUID))
+	xmlBuilder.WriteString(fmt.Sprintf("    <EventID>%d</EventID>\n",
+		eventRecord.EventHeader.EventDescriptor.Id))
+	xmlBuilder.WriteString(fmt.Sprintf("    <Version>%d</Version>\n",
+		eventRecord.EventHeader.EventDescriptor.Version))
+	xmlBuilder.WriteString(fmt.Sprintf("    <Level>%d</Level>\n",
+		eventRecord.EventHeader.EventDescriptor.Level))
+	xmlBuilder.WriteString(fmt.Sprintf("    <Task>%d</Task>\n",
+		eventRecord.EventHeader.EventDescriptor.Task))
+	xmlBuilder.WriteString(fmt.Sprintf("    <Opcode>%d</Opcode>\n",
+		eventRecord.EventHeader.EventDescriptor.Opcode))
+	xmlBuilder.WriteString(fmt.Sprintf("    <Keywords>0x%x</Keywords>\n",
+		eventRecord.EventHeader.EventDescriptor.Keyword))
+
+	timeStr := eventRecord.EventHeader.UTC().Format(time.RFC3339Nano)
+	xmlBuilder.WriteString(fmt.Sprintf("    <TimeCreated SystemTime=\"%s\"/>\n", timeStr))
+
+	xmlBuilder.WriteString(fmt.Sprintf("    <Execution ProcessID=\"%d\" ThreadID=\"%d\"/>\n",
+		eventRecord.EventHeader.ProcessId, eventRecord.EventHeader.ThreadId))
+	xmlBuilder.WriteString(fmt.Sprintf("    <Computer>%s</Computer>\n", hostname))
+	xmlBuilder.WriteString("  </System>\n")
+
+	// EventData section
+	xmlBuilder.WriteString("  <EventData>\n")
+	for key, value := range eventData {
+		xmlBuilder.WriteString(fmt.Sprintf("    <Data Name=\"%s\">%v</Data>\n", key, value))
+	}
+	xmlBuilder.WriteString("  </EventData>\n")
+
+	xmlBuilder.WriteString("</Event>")
+
+	event := &Event{
+		Raw: xmlBuilder.String(),
+	}
+
+	select {
+	case c.Events <- event:
+		rc = 1
+		return
+	case <-c.doneChan:
+		rc = 0
+		return
+	}
+}
+
+func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) (rc uintptr) {
 	data, err := GetEventProperties(eventRecord, c.logger.Named("event_record_helper"))
 	if err != nil {
 		c.logger.Error("Failed to get event properties", zap.Error(err))
@@ -103,10 +189,15 @@ func (c *Consumer) defaultEventCallback(eventRecord *advapi32.EventRecord) (rc u
 		providerGUID = eventRecord.EventHeader.ProviderId.String()
 	}
 
+	var providerName string
+	if provider, ok := c.providerMap[providerGUID]; ok {
+		providerName = provider.Name
+	}
+	level := eventRecord.EventHeader.EventDescriptor.Level
 	event := &Event{
-		Flags:   strconv.FormatUint(uint64(eventRecord.EventHeader.Flags), 10),
-		Session: c.sessionName,
-
+		Flags:     strconv.FormatUint(uint64(eventRecord.EventHeader.Flags), 10),
+		Session:   c.sessionName,
+		Timestamp: parseTimestamp(uint64(eventRecord.EventHeader.TimeStamp)),
 		System: EventSystem{
 			ActivityID: eventRecord.EventHeader.ActivityId.String(),
 			Channel:    strconv.FormatInt(int64(eventRecord.EventHeader.EventDescriptor.Channel), 10),
@@ -116,7 +207,9 @@ func (c *Consumer) defaultEventCallback(eventRecord *advapi32.EventRecord) (rc u
 			Task:       strconv.FormatUint(uint64(eventRecord.EventHeader.EventDescriptor.Task), 10),
 			Provider: EventProvider{
 				GUID: providerGUID,
+				Name: providerName,
 			},
+			Level:    level,
 			Computer: hostname,
 			Correlation: EventCorrelation{
 				ActivityID:        eventRecord.EventHeader.ActivityId.String(),
@@ -128,8 +221,7 @@ func (c *Consumer) defaultEventCallback(eventRecord *advapi32.EventRecord) (rc u
 			},
 			Version: eventRecord.EventHeader.EventDescriptor.Version,
 		},
-		EventData: data,
-		// UserData:     data,
+		EventData:    data,
 		ExtendedData: []string{},
 	}
 
@@ -171,33 +263,30 @@ func (c *Consumer) Start(_ context.Context) error {
 
 	// persisting the logfile to avoid memory reallocation
 	logfile := advapi32.EventTraceLogfile{}
-	for name, session := range c.Traces {
-		logfile = advapi32.EventTraceLogfile{}
-		c.logger.Info("starting trace for session", zap.String("session", name))
+	c.logger.Info("starting trace for session", zap.String("session", c.sessionName))
 
-		logfile.SetProcessTraceMode(advapi32.PROCESS_TRACE_MODE_EVENT_RECORD | advapi32.PROCESS_TRACE_MODE_REAL_TIME)
-		logfile.BufferCallback = syscall.NewCallback(c.bufferCallback)
-		logfile.Callback = syscall.NewCallback(c.eventCallback)
-		logfile.Context = 0
-		loggerName, err := syscall.UTF16PtrFromString(name)
-		if err != nil {
-			c.logger.Error("Failed to convert logger name to UTF-16", zap.Error(err))
-			return err
-		}
-		logfile.LoggerName = loggerName
-
-		handle, err := advapi32.OpenTrace(&logfile)
-		if err != nil {
-			c.logger.Error("Failed to open trace", zap.Error(err))
-			return err
-		}
-
-		th := traceHandle{
-			handle:  handle,
-			session: session,
-		}
-		c.traceHandles = append(c.traceHandles, th)
+	logfile.SetProcessTraceMode(advapi32.PROCESS_TRACE_MODE_EVENT_RECORD | advapi32.PROCESS_TRACE_MODE_REAL_TIME)
+	logfile.BufferCallback = syscall.NewCallbackCDecl(c.bufferCallback)
+	logfile.Callback = syscall.NewCallback(c.eventCallback)
+	logfile.Context = 0
+	loggerName, err := syscall.UTF16PtrFromString(c.sessionName)
+	if err != nil {
+		c.logger.Error("Failed to convert logger name to UTF-16", zap.Error(err))
+		return err
 	}
+	logfile.LoggerName = loggerName
+
+	handle, err := advapi32.OpenTrace(&logfile)
+	if err != nil {
+		c.logger.Error("Failed to open trace", zap.Error(err))
+		return err
+	}
+
+	th := traceHandle{
+		handle:  handle,
+		session: c.Traces[c.sessionName],
+	}
+	c.traceHandles = append(c.traceHandles, th)
 
 	if len(c.traceHandles) > 0 {
 		for i := range c.traceHandles {
@@ -274,7 +363,7 @@ func (c *Consumer) Stop(ctx context.Context) error {
 	if sessionToClose != nil {
 		err := sessionToClose.controller.Stop(ctx)
 		if err != nil {
-			c.logger.Error("StopTrace failed", zap.Error(err))
+			c.logger.Error("session controller stop failed", zap.Error(err))
 		}
 	}
 

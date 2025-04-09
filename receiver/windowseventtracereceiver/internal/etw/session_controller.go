@@ -28,7 +28,6 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/advapi32"
 	advapi32pkg "github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/advapi32"
-	windows_ "github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver/internal/etw/windows"
 )
 
 // SessionController implements the absolute minimum needed to start an ETW session
@@ -76,43 +75,40 @@ func (s *SessionController) Start() error {
 		s.properties,
 	)
 
-	if r1 != 0 {
-		errCode := uint32(r1)
-		switch r1 {
-		case windows.ERROR_BAD_ARGUMENTS: // ERROR_BAD_ARGUMENTS / ERROR_INVALID_PARAMETER
-			return fmt.Errorf("invalid parameters for StartTraceW(%d): %v", errCode, err)
-		case windows.ERROR_ALREADY_EXISTS: // ERROR_ALREADY_EXISTS
-			s.logger.Debug("Session already exists, attempting to stop and restart")
+	switch r1 {
+	case 0:
+		s.logger.Debug("Successfully started session", zap.String("name", s.name), zap.Uintptr("handle", uintptr(s.handle)))
+	case windows.ERROR_INVALID_PARAMETER:
+		return fmt.Errorf("invalid parameters for starting session trace(%d): %v", r1, err)
+	case windows.ERROR_ALREADY_EXISTS:
+		s.logger.Debug("Session already exists, attempting to stop and restart")
 
-			// We need to aggressively close and reopen the session
-			propsCopy := *s.properties
-			r1, err := advapi32.ControlTrace(
-				nil,
-				advapi32.EVENT_TRACE_CONTROL_STOP,
-				namePtrU16,
-				&propsCopy,
-			)
-			if r1 != 0 {
-				s.logger.Warn("Failed to close existing trace, trying to continue anyway",
-					zap.Uint64("error_code", uint64(r1)),
-					zap.Error(err))
-			} else {
-				s.logger.Debug("Successfully stopped existing session", zap.String("name", s.name))
-			}
-
-			s.initProperties(s.name)
-			r1, err = advapi32.StartTrace(
-				&s.handle,
-				namePtrU16,
-				s.properties,
-			)
-			if r1 != 0 {
-				return fmt.Errorf("failed to restart trace after stopping(%d): %w", r1, err)
-			}
-			s.logger.Debug("Successfully restarted session", zap.String("name", s.name))
-		default:
-			return fmt.Errorf("unexpected error starting trace: error code %d: %v", errCode, err)
+		// We need to aggressively close and reopen the session
+		propsCopy := *s.properties
+		r1, err := advapi32.ControlTrace(
+			nil,
+			advapi32.EVENT_TRACE_CONTROL_STOP,
+			namePtrU16,
+			&propsCopy,
+		)
+		if r1 != 0 {
+			s.logger.Warn("Failed to close existing trace, trying to continue anyway",
+				zap.Uint64("error_code", uint64(r1)),
+				zap.Error(err))
+		} else {
+			s.logger.Debug("Successfully stopped existing session", zap.String("name", s.name))
 		}
+		r1, err = advapi32.StartTrace(
+			&s.handle,
+			namePtrU16,
+			s.properties,
+		)
+		if r1 != 0 {
+			return fmt.Errorf("failed to restart trace after stopping(%d): %w", r1, err)
+		}
+		s.logger.Debug("Successfully restarted session", zap.String("name", s.name))
+	default:
+		return fmt.Errorf("unexpected error starting trace: error code %d: %v", r1, err)
 	}
 	s.logger.Debug("Started session", zap.String("name", s.name), zap.Uintptr("handle", uintptr(s.handle)))
 	return nil
@@ -151,7 +147,7 @@ func (s *SessionController) initProperties(logSessionName string) {
 	props, totalSize := allocBuffer(logSessionName)
 
 	props.Wnode.BufferSize = totalSize
-	props.Wnode.Guid = windows_.GUID{}
+	props.Wnode.Guid = windows.GUID{}
 	props.Wnode.ClientContext = 1
 	props.Wnode.Flags = advapi32.WNODE_FLAG_TRACED_GUID
 	props.LogFileMode = advapi32.EVENT_TRACE_REAL_TIME_MODE
@@ -178,8 +174,6 @@ func (s *SessionController) enableProvider(handle syscall.Handle, providerGUID *
 	}
 
 	const maxAttempts = 5
-	// testing with a timeout of 10 seconds
-	const timeout = 10000
 
 	for attempts := 0; attempts < maxAttempts; attempts++ {
 		if attempts > 0 {
@@ -203,6 +197,7 @@ func (s *SessionController) enableProvider(handle syscall.Handle, providerGUID *
 					err = fmt.Errorf("recovered from panic in EnableTrace: %v", r)
 				}
 			}()
+			const timeout = 0
 			r1, err = s.enableTrace(
 				s.handle,
 				providerGUID,
@@ -217,12 +212,12 @@ func (s *SessionController) enableProvider(handle syscall.Handle, providerGUID *
 
 		switch r1 {
 		case 0:
-			s.logger.Debug("Successfully enabled provider",
+			s.logger.Debug("Successfully enabled with attempt",
 				zap.String("provider", provider.Name),
 				zap.Int("attempt", attempts+1))
 			return nil
 		case windows.ERROR_ALREADY_EXISTS:
-			s.logger.Debug("provider already enabled, will attempt attaching to it",
+			s.logger.Info("provider already enabled, will attempt attaching to it",
 				zap.String("provider", provider.Name))
 			return s.attach()
 		case windows.ERROR_NO_SYSTEM_RESOURCES:
@@ -255,8 +250,8 @@ func (s *SessionController) attach() error {
 		return fmt.Errorf("failed to convert session name to UTF16: %w", err)
 	}
 
-	temphandle := syscall.Handle(0)
-	r1, err := advapi32.ControlTrace(&temphandle, advapi32.EVENT_TRACE_CONTROL_QUERY, sessionNamePtr, s.properties)
+	temporaryHandle := syscall.Handle(0)
+	r1, err := advapi32.ControlTrace(&temporaryHandle, advapi32.EVENT_TRACE_CONTROL_QUERY, sessionNamePtr, s.properties)
 	if err != nil {
 		return fmt.Errorf("failed to attach to provider: %w", err)
 	}

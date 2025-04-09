@@ -27,6 +27,7 @@ func TestComponentConfigStruct(t *testing.T) {
 }
 
 func TestComponentLifecycle(t *testing.T) {
+	// TODO: fix this test
 	t.Skip("Skipping component lifecycle test because it relies on linking to the etw library")
 	factory := NewFactory()
 

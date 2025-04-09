@@ -46,7 +46,6 @@ ULONG __stdcall GetEventInformation(
 	 PTRACE_EVENT_INFO pBuffer,
 	 ULONG *pBufferSize );
 
-Tested: OK
 */
 // GetEventInformation retrieves event information
 func GetEventInformation(
@@ -69,17 +68,15 @@ func GetEventInformation(
 }
 
 /*
-TdhGetEventMapInformation API wrapper generated from prototype
-ULONG __stdcall TdhGetEventMapInformation(
+GetEventMapInformation API wrapper generated from prototype
+ULONG __stdcall GetEventMapInformation(
 
 	PEVENT_RECORD pEvent,
 	LPWSTR pMapName,
 	PEVENT_MAP_INFO pBuffer,
 	ULONG *pBufferSize );
-
-Tested: OK
 */
-func TdhGetEventMapInformation(pEvent *advapi32.EventRecord,
+func GetEventMapInformation(pEvent *advapi32.EventRecord,
 	pMapName *uint16,
 	pBuffer *EventMapInfo,
 	pBufferSize *uint32) error {
@@ -104,8 +101,6 @@ ULONG __stdcall TdhGetPropertySize(
 	ULONG PropertyDataCount,
 	PPROPERTY_DATA_DESCRIPTOR pPropertyData,
 	ULONG *pPropertySize );
-
-Tested: OK
 */
 func TdhGetPropertySize(pEvent *advapi32.EventRecord,
 	tdhContextCount uint32,
@@ -127,8 +122,8 @@ func TdhGetPropertySize(pEvent *advapi32.EventRecord,
 }
 
 /*
-TdhFormatProperty API wrapper generated from prototype
-TDHSTATUS TdhFormatProperty(
+FormatProperty API wrapper generated from prototype
+TDHSTATUS FormatProperty(
 
 	PTRACE_EVENT_INFO EventInfo,
 	PEVENT_MAP_INFO MapInfo,
@@ -141,10 +136,8 @@ TDHSTATUS TdhFormatProperty(
 	PULONG BufferSize,
 	PWCHAR Buffer,
 	PUSHORT UserDataConsumed );
-
-Tested: OK
 */
-func TdhFormatProperty(
+func FormatProperty(
 	eventInfo *TraceEventInfo,
 	mapInfo *EventMapInfo,
 	pointerSize uint32,
@@ -185,8 +178,6 @@ ULONG __stdcall TdhGetProperty(
 	PPROPERTY_DATA_DESCRIPTOR pPropertyData,
 	ULONG BufferSize,
 	PBYTE pBuffer );
-
-Tested: OK
 */
 func TdhGetProperty(pEvent *advapi32.EventRecord,
 	tdhContextCount uint32,
@@ -447,66 +438,64 @@ type TraceProviderInfo struct {
 }
 
 /*
-typedef struct _TRACE_EVENT_INFO {
-  GUID                ProviderGuid;
-  GUID                EventGuid;
-  EVENT_DESCRIPTOR    EventDescriptor;
-  DECODING_SOURCE     DecodingSource;
-  ULONG               ProviderNameOffset;
-  ULONG               LevelNameOffset;
-  ULONG               ChannelNameOffset;
-  ULONG               KeywordsNameOffset;
-  ULONG               TaskNameOffset;
-  ULONG               OpcodeNameOffset;
-  ULONG               EventMessageOffset;
-  ULONG               ProviderMessageOffset;
-  ULONG               BinaryXMLOffset;
-  ULONG               BinaryXMLSize;
-  union {
-    ULONG EventNameOffset;
-    ULONG ActivityIDNameOffset;
-  };
-  union {
-    ULONG EventAttributesOffset;
-    ULONG RelatedActivityIDNameOffset;
-  };
-  ULONG               PropertyCount;
-  ULONG               TopLevelPropertyCount;
-  union {
-    TEMPLATE_FLAGS Flags;
-    struct {
-      ULONG Reserved : 4;
-      ULONG Tags : 28;
-    };
-  };
-  EVENT_PROPERTY_INFO EventPropertyInfoArray[ANYSIZE_ARRAY];
-} TRACE_EVENT_INFO;
+	typedef struct _TRACE_EVENT_INFO {
+	  GUID                ProviderGuid;
+	  GUID                EventGuid;
+	  EVENT_DESCRIPTOR    EventDescriptor;
+	  DECODING_SOURCE     DecodingSource;
+	  ULONG               ProviderNameOffset;
+	  ULONG               LevelNameOffset;
+	  ULONG               ChannelNameOffset;
+	  ULONG               KeywordsNameOffset;
+	  ULONG               TaskNameOffset;
+	  ULONG               OpcodeNameOffset;
+	  ULONG               EventMessageOffset;
+	  ULONG               ProviderMessageOffset;
+	  ULONG               BinaryXMLOffset;
+	  ULONG               BinaryXMLSize;
+	  union {
+	    ULONG EventNameOffset;
+	    ULONG ActivityIDNameOffset;
+	  };
+	  union {
+	    ULONG EventAttributesOffset;
+	    ULONG RelatedActivityIDNameOffset;
+	  };
+	  ULONG               PropertyCount;
+	  ULONG               TopLevelPropertyCount;
+	  union {
+	    TEMPLATE_FLAGS Flags;
+	    struct {
+	      ULONG Reserved : 4;
+	      ULONG Tags : 28;
+	    };
+	  };
+	  EVENT_PROPERTY_INFO EventPropertyInfoArray[ANYSIZE_ARRAY];
+	} TRACE_EVENT_INFO;
 
-typedef struct _TRACE_EVENT_INFO {
-  GUID                ProviderGuid;
-  GUID                EventGuid;
-  EVENT_DESCRIPTOR    EventDescriptor;
-  DECODING_SOURCE     DecodingSource;
-  ULONG               ProviderNameOffset;
-  ULONG               LevelNameOffset;
-  ULONG               ChannelNameOffset;
-  ULONG               KeywordsNameOffset;
-  ULONG               TaskNameOffset;
-  ULONG               OpcodeNameOffset;
-  ULONG               EventMessageOffset;
-  ULONG               ProviderMessageOffset;
-  ULONG               BinaryXMLOffset;
-  ULONG               BinaryXMLSize;
-  ULONG               ActivityIDNameOffset;
-  ULONG               RelatedActivityIDNameOffset;
-  ULONG               PropertyCount;
-  ULONG               TopLevelPropertyCount;
-  TEMPLATE_FLAGS      Flags;
-  EVENT_PROPERTY_INFO EventPropertyInfoArray[ANYSIZE_ARRAY];
-} TRACE_EVENT_INFO, *PTRACE_EVENT_INFO;
-
+	typedef struct _TRACE_EVENT_INFO {
+	  GUID                ProviderGuid;
+	  GUID                EventGuid;
+	  EVENT_DESCRIPTOR    EventDescriptor;
+	  DECODING_SOURCE     DecodingSource;
+	  ULONG               ProviderNameOffset;
+	  ULONG               LevelNameOffset;
+	  ULONG               ChannelNameOffset;
+	  ULONG               KeywordsNameOffset;
+	  ULONG               TaskNameOffset;
+	  ULONG               OpcodeNameOffset;
+	  ULONG               EventMessageOffset;
+	  ULONG               ProviderMessageOffset;
+	  ULONG               BinaryXMLOffset;
+	  ULONG               BinaryXMLSize;
+	  ULONG               ActivityIDNameOffset;
+	  ULONG               RelatedActivityIDNameOffset;
+	  ULONG               PropertyCount;
+	  ULONG               TopLevelPropertyCount;
+	  TEMPLATE_FLAGS      Flags;
+	  EVENT_PROPERTY_INFO EventPropertyInfoArray[ANYSIZE_ARRAY];
+	} TRACE_EVENT_INFO, *PTRACE_EVENT_INFO;
 */
-
 type TraceEventInfo struct {
 	ProviderGUID                windows_.GUID
 	EventGUID                   windows_.GUID

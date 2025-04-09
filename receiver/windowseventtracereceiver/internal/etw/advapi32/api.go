@@ -17,6 +17,7 @@
 package advapi32
 
 import (
+	"errors"
 	"fmt"
 	"syscall"
 	"time"
@@ -89,15 +90,40 @@ const (
 */
 type WnodeHeader struct {
 	BufferSize    uint32
-	ProviderId    windows_.GUID
+	ProviderId    uint32
 	Union1        uint64
 	Union2        int64
-	Guid          windows_.GUID
+	Guid          windows.GUID
 	ClientContext uint32
 	Flags         uint32
 }
 
-// EventTraceProperties is a direct port of the Windows EVENT_TRACE_PROPERTIES struct
+// important that the fields on this struct are the types that they are as otherwise the C code will not properly interpret the values
+/*
+	typedef struct _EVENT_TRACE_PROPERTIES {
+		WNODE_HEADER Wnode;
+		ULONG        BufferSize;
+		ULONG        MinimumBuffers;
+		ULONG        MaximumBuffers;
+		ULONG        MaximumFileSize;
+		ULONG        LogFileMode;
+		ULONG        FlushTimer;
+		ULONG        EnableFlags;
+		union {
+		  LONG AgeLimit;
+		  LONG FlushThreshold;
+		} DUMMYUNIONNAME;
+		ULONG        NumberOfBuffers;
+		ULONG        FreeBuffers;
+		ULONG        EventsLost;
+		ULONG        BuffersWritten;
+		ULONG        LogBuffersLost;
+		ULONG        RealTimeBuffersLost;
+		HANDLE       LoggerThreadId;
+		ULONG        LogFileNameOffset;
+		ULONG        LoggerNameOffset;
+	} EVENT_TRACE_PROPERTIES, *PEVENT_TRACE_PROPERTIES;
+*/
 type EventTraceProperties struct {
 	Wnode               WnodeHeader
 	BufferSize          uint32
@@ -168,7 +194,21 @@ const (
 )
 
 type EnableTraceParameters struct {
-	Version uint32
+	Version          uint32
+	EnableProperty   uint32
+	ControlFlags     uint32
+	SourceId         windows.GUID
+	EnableFilterDesc *EventFilterDescriptor
+	FilterDescrCount uint32
+}
+
+// Defines the filter data that a session passes
+// to the provider's enable callback function
+// https://learn.microsoft.com/en-us/windows/win32/api/evntprov/ns-evntprov-event_filter_descriptor
+type EventFilterDescriptor struct {
+	Ptr  uint64
+	Size uint32
+	Type uint32
 }
 
 /*
@@ -527,8 +567,8 @@ ETW_APP_DECLSPEC_DEPRECATED PROCESSTRACE_HANDLE WMIAPI OpenTraceW(
 func OpenTrace(logfile *EventTraceLogfile) (syscall.Handle, error) {
 	r, _, err := openTraceW.Call(
 		uintptr(unsafe.Pointer(logfile)))
-
-	if err.(syscall.Errno) == 0 {
+	var errno syscall.Errno
+	if errors.As(err, &errno) && errno == 0 {
 		return syscall.Handle(r), nil
 	}
 	return syscall.Handle(r), err

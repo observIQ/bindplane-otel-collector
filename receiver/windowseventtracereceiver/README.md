@@ -46,26 +46,33 @@ This command will display a list of all registered ETW providers, including thei
 4. Consider using attributes to add context to your events (e.g., environment, service name)
 
 ## Configuration
-| Field         | Type     | Default           | Required | Description                                                 |
-|---------------|----------|-------------------|----------|-------------------------------------------------------------|
-| session_name  | string   | `OtelCollectorETW`| `false`  | The name to use for the ETW session.                        |
-| providers     | []Provider | See below        | `false`  | A list of providers to subscribe to for ETW events.         |
-| buffer_size   | int      | `64`             | `false`  | The size of the buffer to use for the ETW session.         |
-| attributes    | map[string]string | See below | `false`  | A list of attributes to add to all logs.                    |
+| Field                 | Type              | Default           | Required | Description                                                       |
+|-----------------------|-------------------|-------------------|----------|-------------------------------------------------------------------|
+| session_name          | string            | `OtelCollectorETW`| `true`   | The name to use for the ETW session.                              |
+| providers             | []Provider        | `[]`              | `true`   | A list of providers to subscribe to for ETW events.               |
+| buffer_size           | int               | `256`             | `false`  | The size of the buffer in bytes to use for the ETW session.       |
+| attributes            | map[string]string | `{}`              | `false`  | A list of attributes to add to all logs.                          |
+| require_all_providers | bool              | `true`            | `false`  | If true, the receiver will fail if not all providers can be enabled. |
+| raw                   | bool              | `false`           | `false`  | If true, enables raw event logging.                               |
 
 ### Provider Configuration
-| Field | Type   | Default | Required | Description                                 |
-|-------|--------|---------|----------|---------------------------------------------|
-| name  | string |         | `true`   | The name or GUID of the ETW provider.       |
+| Field             | Type   | Default | Required | Description                                                                                                                                |
+|-------------------|--------|---------|----------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| name              | string |         | `true`   | The name or GUID of the ETW provider.                                                                                                      |
+| level             | string | `""`    | `false`  | The trace level to collect. Valid values: `verbose`, `informational`, `warning`, `error`, `critical`, `none`. Defaults to provider configuration. |
+| match_any_keyword | uint64 | `0`     | `false`  | Match events with any of the specified keywords.                                                                                           |
+| match_all_keyword | uint64 | `0`     | `false`  | Match events with all of the specified keywords.                                                                                           |
 
 ### Default Configuration
 ```yaml
 receivers:
   windowseventtrace:
     session_name: OtelCollectorETW
-    buffer_size: 64
+    buffer_size: 256
     attributes:
       service.name: "windows-event-trace"
+    require_all_providers: true
+    raw: false
     providers:
       # Microsoft-Windows-Kernel-File
       - name: "{EDD08927-9CC4-4E65-B970-C2560FB5C289}"
@@ -76,15 +83,21 @@ receivers:
 receivers:
   windowseventtrace:
     session_name: CustomETWSession
-    buffer_size: 128
+    buffer_size: 256
     attributes:
       service.name: "custom-etw-service"
       environment: "production"
+    require_all_providers: true
+    raw: false
     providers:
       # Microsoft-Windows-PowerShell
       - name: "{A0C1853B-5C40-4B15-8766-3CF1C58F985A}"
+        level: "informational"
+        match_any_keyword: 0
+        match_all_keyword: 0
       # Microsoft-Windows-Security-Auditing
       - name: "{54849625-5478-4994-A5BA-3E3B0328C30D}"
+        level: "warning"
 exporters:
   googlecloud:
     project: my-gcp-project

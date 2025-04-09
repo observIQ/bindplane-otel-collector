@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package windowseventtracereceiver implements a receiver that uses the Windows Event Trace (ETW) API to collect events.
 package windowseventtracereceiver
 
 import (
@@ -20,6 +21,7 @@ import (
 	"go.opentelemetry.io/collector/component"
 )
 
+// TraceLevelString is a string representation of the trace level.
 type TraceLevelString string
 
 const (
@@ -30,6 +32,10 @@ const (
 	LevelCritical      TraceLevelString = "critical"
 	LevelNone          TraceLevelString = "none"
 )
+
+func (l TraceLevelString) String() string {
+	return string(l)
+}
 
 // Config is the configuration for the windows event trace receiver.
 type Config struct {
@@ -47,6 +53,9 @@ type Config struct {
 
 	// RequireAllProviders is a flag to fail if not all providers are able to be enabled.
 	RequireAllProviders bool `mapstructure:"require_all_providers"`
+
+	// RawEvents is a flag to enable raw event logging.
+	Raw bool `mapstructure:"raw"`
 }
 
 // Provider is a provider to create a session
@@ -63,6 +72,7 @@ func createDefaultConfig() component.Config {
 		BufferSize:          256,
 		Providers:           []Provider{},
 		RequireAllProviders: true,
+		Raw:                 false,
 	}
 }
 

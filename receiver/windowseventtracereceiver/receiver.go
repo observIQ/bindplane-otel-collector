@@ -116,7 +116,7 @@ func (lr *logsReceiver) initializeSubscriptions(ctx context.Context) {
 		return
 	}
 
-	eventConsumer := etw.NewRealTimeConsumer(ctx, lr.logger, lr.session)
+	eventConsumer := etw.NewRealTimeConsumer(ctx, lr.logger, lr.session, lr.cfg.Raw)
 	err := eventConsumer.Start(ctx)
 	if err != nil {
 		lr.logger.Error("Failed to start ETW consumer", zap.Error(err))
@@ -156,43 +156,45 @@ func (lr *logsReceiver) listenForEvents(ctx context.Context, eventConsumer *etw.
 
 // TODO think about bundling logs into resources
 func (lr *logsReceiver) parseLogs(ctx context.Context, event *etw.Event) (plog.Logs, error) {
+	if lr.cfg.Raw {
+		return lr.rawEvent(event)
+	}
+	return lr.parseEvent(event)
+}
+
+func (lr *logsReceiver) rawEvent(event *etw.Event) (plog.Logs, error) {
 	logs := plog.NewLogs()
 	resourceLog := logs.ResourceLogs().AppendEmpty()
+	scopeLog := resourceLog.ScopeLogs().AppendEmpty()
+	record := scopeLog.LogRecords().AppendEmpty()
+	record.Body().SetStr(event.Raw)
+	return logs, nil
+}
+
+func (lr *logsReceiver) parseEvent(event *etw.Event) (plog.Logs, error) {
+	logs := plog.NewLogs()
+	resourceLog := logs.ResourceLogs().AppendEmpty()
+	resourceLog.Resource().Attributes().PutStr("session", event.Session)
+	resourceLog.Resource().Attributes().PutStr("provider", event.System.Provider.Name)
+	resourceLog.Resource().Attributes().PutStr("provider_guid", event.System.Provider.GUID)
+	resourceLog.Resource().Attributes().PutStr("computer", event.System.Computer)
 
 	scopeLog := resourceLog.ScopeLogs().AppendEmpty()
-
 	record := scopeLog.LogRecords().AppendEmpty()
-	for key, value := range lr.cfg.Attributes {
-		record.Attributes().PutStr(key, value)
-	}
-
 	lr.parseEventData(event, record)
 	return logs, nil
 }
 
 // parseEventData parses the event data and sets the log record with that data
 func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) {
-	record.SetTimestamp(pcommon.NewTimestampFromTime(event.System.TimeCreated.SystemTime))
-	record.SetSeverityNumber(parseSeverity(event.System.Level.Name, strconv.FormatUint(uint64(event.System.Level.Value), 10)))
+	record.SetTimestamp(pcommon.NewTimestampFromTime(event.Timestamp))
+	record.SetSeverityNumber(parseSeverity(event.System.Level))
 
 	record.Body().SetEmptyMap()
-	record.Body().Map().PutStr("channel", event.System.Channel)
-	record.Body().Map().PutStr("computer", event.System.Computer)
-	record.Body().Map().PutStr("session", event.Session)
+	record.Body().Map().PutStr("opcode", event.System.Opcode)
 
 	if event.System.Execution.ThreadID != 0 {
 		record.Body().Map().PutStr("thread_id", strconv.FormatUint(uint64(event.System.Execution.ThreadID), 10))
-	}
-
-	if event.System.Level.Name != "" {
-		level := record.Body().Map().PutEmptyMap("level")
-		level.PutStr("name", event.System.Level.Name)
-		level.PutStr("value", strconv.FormatUint(uint64(event.System.Level.Value), 10))
-	}
-
-	if event.System.Opcode != "" {
-		opcode := record.Body().Map().PutEmptyMap("opcode")
-		opcode.PutStr("name", event.System.Opcode)
 	}
 
 	if event.System.Task != "" {
@@ -259,30 +261,29 @@ func (lr *logsReceiver) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// parseRenderedSeverity will parse the severity of the event.
-func parseSeverity(levelName, levelValue string) plog.SeverityNumber {
-	switch levelName {
-	case "":
-		switch levelValue {
-		case "1":
-			return plog.SeverityNumberFatal
-		case "2":
-			return plog.SeverityNumberError
-		case "3":
-			return plog.SeverityNumberWarn
-		case "4":
-			return plog.SeverityNumberInfo
-		default:
-			return plog.SeverityNumberInfo
-		}
-	case "Critical":
-		return plog.SeverityNumberFatal
-	case "Error":
-		return plog.SeverityNumberError
-	case "Warning":
-		return plog.SeverityNumberWarn
-	case "Information":
+/*
+Value	Semantics
+LOG_ALWAYS (0)	Event bypasses level-based event filtering. Events should not use this level.
+CRITICAL (1)	Critical error
+ERROR (2)	Error
+WARNING (3)	Warning
+INFO (4)	Informational
+VERBOSE (5)	Verbose
+*/
+func parseSeverity(level uint8) plog.SeverityNumber {
+	switch level {
+	case 0:
 		return plog.SeverityNumberInfo
+	case 1:
+		return plog.SeverityNumberFatal
+	case 2:
+		return plog.SeverityNumberError
+	case 3:
+		return plog.SeverityNumberWarn
+	case 4:
+		return plog.SeverityNumberInfo
+	case 5:
+		return plog.SeverityNumberTrace
 	default:
 		return plog.SeverityNumberInfo
 	}

@@ -19,8 +19,10 @@ package etw
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"syscall"
+	"time"
 	"unsafe"
 
 	windowsSys "golang.org/x/sys/windows"
@@ -42,35 +44,12 @@ var (
 	ErrUnknownProperty = fmt.Errorf("unknown property")
 )
 
-type Property struct {
-	evtRecordHelper *EventRecordHelper
-	evtPropInfo     *tdh.EventPropertyInfo
-
-	name   string
-	value  string
-	length uint32
-
-	pValue         uintptr
-	userDataLength uint16
-}
-
-type EventRecordHelper struct {
-	EventRec  *advapi32.EventRecord
-	TraceInfo *tdh.TraceEventInfo
-
-	Properties      map[string]*Property
-	ArrayProperties map[string][]*Property
-	Structures      []map[string]*Property
-
-	Flags struct {
-		Skip      bool
-		Skippable bool
-	}
-
-	userDataIt         uintptr
-	selectedProperties map[string]bool
-
-	logger *zap.Logger
+type parser struct {
+	eventRecord *advapi32.EventRecord
+	tei         *tdh.TraceEventInfo
+	ptrSize     uint32
+	data        []byte
+	logger      *zap.Logger
 }
 
 func GetEventProperties(r *advapi32.EventRecord, logger *zap.Logger) (map[string]any, error) {
@@ -90,10 +69,12 @@ func GetEventProperties(r *advapi32.EventRecord, logger *zap.Logger) (map[string
 		eventRecord: r,
 		tei:         ti,
 		ptrSize:     r.PointerSize(),
+		data:        unsafe.Slice((*uint8)(unsafe.Pointer(r.UserData)), r.UserDataLength),
+		logger:      logger,
 	}
 
 	properties := make(map[string]any, ti.TopLevelPropertyCount)
-	for i := 0; i < int(ti.TopLevelPropertyCount); i++ {
+	for i := range ti.TopLevelPropertyCount {
 		namePtr := unsafe.Add(unsafe.Pointer(ti), ti.GetEventPropertyInfoAtIndex(uint32(i)).NameOffset)
 		propName := windowsSys.UTF16PtrToString((*uint16)(namePtr))
 		value, err := p.getPropertyValue(r, ti, uint32(i))
@@ -107,13 +88,6 @@ func GetEventProperties(r *advapi32.EventRecord, logger *zap.Logger) (map[string
 	return properties, nil
 }
 
-type parser struct {
-	eventRecord *advapi32.EventRecord
-	tei         *tdh.TraceEventInfo
-	ptrSize     uint32
-	data        []byte
-}
-
 func (p *parser) getPropertyValue(r *advapi32.EventRecord, propInfo *tdh.TraceEventInfo, i uint32) (any, error) {
 	propertyInfo := propInfo.GetEventPropertyInfoAtIndex(i)
 
@@ -123,13 +97,13 @@ func (p *parser) getPropertyValue(r *advapi32.EventRecord, propInfo *tdh.TraceEv
 	}
 
 	result := make([]any, arraySize)
-	for i := 0; i < int(arraySize); i++ {
+	for i := range arraySize {
 		var (
 			value any
 			err   error
 		)
 		if (propertyInfo.Flags & tdh.PropertyStruct) == tdh.PropertyStruct {
-			value, err = p.parseStruct(propertyInfo)
+			value, err = p.parseObject(propertyInfo)
 		} else {
 			value, err = p.parseSimpleType(r, propertyInfo, uint32(i))
 		}
@@ -143,31 +117,28 @@ func (p *parser) getPropertyValue(r *advapi32.EventRecord, propInfo *tdh.TraceEv
 	return result, nil
 }
 
-// parseStruct extracts and returns the fields from an embedded structure within a property.
-func (p *parser) parseStruct(propertyInfo *tdh.EventPropertyInfo) (map[string]any, error) {
-	// Determine the start and end indexes of the structure members within the property info.
+// parseObject extracts and returns the fields from an embedded structure within a property.
+func (p *parser) parseObject(propertyInfo *tdh.EventPropertyInfo) (map[string]any, error) {
 	startIndex := propertyInfo.StructStartIndex()
 	lastIndex := startIndex + propertyInfo.NumOfStructMembers()
+	diff := lastIndex - startIndex
 
-	// Initialize a map to hold the structure's fields.
-	structure := make(map[string]any, (lastIndex - startIndex))
-	// Iterate through each member of the structure.
+	object := make(map[string]any, diff)
 	for j := startIndex; j < lastIndex; j++ {
 		name := p.getPropertyName(int(j))
 		value, err := p.getPropertyValue(p.eventRecord, p.tei, uint32(j))
 		if err != nil {
 			return nil, fmt.Errorf("failed parse field '%s' of complex property type: %w", name, err)
 		}
-		structure[name] = value // Add the field to the structure map.
+		object[name] = value
 	}
 
-	return structure, nil
+	return object, nil
 }
 
 func (p *parser) parseSimpleType(r *advapi32.EventRecord, propertyInfo *tdh.EventPropertyInfo, i uint32) (any, error) {
 	var mapInfo *tdh.EventMapInfo
 	if propertyInfo.MapNameOffset() > 0 {
-		// If failed retrieving the map information, returns on error
 		var err error
 		mapInfo, err = p.getMapInfo(propertyInfo)
 		if err != nil {
@@ -195,7 +166,7 @@ retryLoop:
 		if len(p.data) > 0 {
 			dataPtr = &p.data[0]
 		}
-		err := tdh.TdhFormatProperty(
+		err := tdh.FormatProperty(
 			p.tei,
 			mapInfo,
 			p.ptrSize,
@@ -211,16 +182,11 @@ retryLoop:
 
 		switch {
 		case err == nil:
-			// If formatting is successful, break out of the loop.
 			break retryLoop
 		case errors.Is(err, windows.ErrorInsufficientBuffer):
-			// Increase the buffer size if it's insufficient.
 			formattedData = make([]byte, formattedDataSize)
 			continue
 		case errors.Is(err, windows.ErrorEVTInvalidEventData):
-			// Handle invalid event data error.
-			// Discarding MapInfo allows us to access
-			// at least the non-interpreted data.
 			if mapInfo != nil {
 				mapInfo = nil
 				continue
@@ -298,17 +264,16 @@ func getEventInformation(r *advapi32.EventRecord) (*tdh.TraceEventInfo, error) {
 
 func (p *parser) getMapInfo(propertyInfo *tdh.EventPropertyInfo) (*tdh.EventMapInfo, error) {
 	var mapSize uint32
-	// Get the name of the map from the property info.
 	mapName := (*uint16)(unsafe.Add(unsafe.Pointer(p.tei), propertyInfo.MapNameOffset()))
 
-	// First call to get the required size of the map info.
-	err := tdh.TdhGetEventMapInformation(p.eventRecord, mapName, nil, &mapSize)
+	// get the size of the map info buffer
+	err := tdh.GetEventMapInformation(p.eventRecord, mapName, nil, &mapSize)
 	switch {
 	case errors.Is(err, windows.ErrorNotFound):
-		// No mapping information available. This is not an error.
+		// return nil if no map info is available
 		return nil, nil
 	case errors.Is(err, windows.ErrorInsufficientBuffer):
-		// Resize the buffer and try again.
+		// expected error, allocate a larger buffer and try once more
 	default:
 		return nil, fmt.Errorf("TdhGetEventMapInformation failed to get size: %w", err)
 	}
@@ -316,13 +281,14 @@ func (p *parser) getMapInfo(propertyInfo *tdh.EventPropertyInfo) (*tdh.EventMapI
 	// Allocate buffer and retrieve the actual map information.
 	buff := make([]byte, int(mapSize))
 	mapInfo := ((*tdh.EventMapInfo)(unsafe.Pointer(&buff[0])))
-	err = tdh.TdhGetEventMapInformation(p.eventRecord, mapName, mapInfo, &mapSize)
+	err = tdh.GetEventMapInformation(p.eventRecord, mapName, mapInfo, &mapSize)
 	if err != nil {
 		return nil, fmt.Errorf("TdhGetEventMapInformation failed: %w", err)
 	}
 
+	// return nil if no entries are available
 	if mapInfo.EntryCount == 0 {
-		return nil, nil // No entries in the map.
+		return nil, nil
 	}
 
 	return mapInfo, nil
@@ -344,13 +310,29 @@ func (p *parser) getPropertyLength(propertyInfo *tdh.EventPropertyInfo) (uint32,
 	// Special handling for properties representing IPv6 addresses.
 	// https://docs.microsoft.com/en-us/windows/win32/api/tdh/nf-tdh-tdhformatproperty#remarks
 	if uint16(tdh.TdhInTypeBinary) == inType && uint16(tdh.TdhOutTypeIpv6) == outType {
-		// Return the fixed size of an IPv6 address.
+		// fixed size of an IPv6 address
 		return 16, nil
 	}
 
 	// Default case: return the length as defined in the property info.
 	// Note: A length of 0 can indicate a variable-length field (e.g., structure, string).
 	return uint32(propertyInfo.Length()), nil
+}
+
+func parseTimestamp(fileTime uint64) time.Time {
+	// Define the offset between Windows epoch (1601) and Unix epoch (1970)
+	const epochDifference = 116444736000000000
+	if fileTime < epochDifference {
+		// Time is before the Unix epoch, adjust accordingly
+		return time.Time{}
+	}
+
+	windowsTime := windowsSys.Filetime{
+		HighDateTime: uint32(fileTime >> 32),
+		LowDateTime:  uint32(fileTime & math.MaxUint32),
+	}
+
+	return time.Unix(0, windowsTime.Nanoseconds()).UTC()
 }
 
 func UTF16AtOffsetToString(pstruct uintptr, offset uintptr) string {

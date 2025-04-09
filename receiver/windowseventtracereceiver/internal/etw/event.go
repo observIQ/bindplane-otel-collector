@@ -40,12 +40,6 @@ type EventKeywords struct {
 	Name  string `json:"name"`
 }
 
-// EventLevel contains level information for the event
-type EventLevel struct {
-	Value uint8  `json:"value"`
-	Name  string `json:"name"`
-}
-
 // EventOpcode contains opcode information for the event
 type EventOpcode struct {
 	Value uint8  `json:"value"`
@@ -78,7 +72,7 @@ type EventSystem struct {
 	Correlation EventCorrelation `json:"correlation"`
 	Execution   EventExecution   `json:"execution"`
 	Keywords    string           `json:"keywords"`
-	Level       EventLevel       `json:"level"`
+	Level       uint8            `json:"level"`
 	Opcode      string           `json:"opcode"`
 	Task        string           `json:"task"`
 	Provider    EventProvider    `json:"provider"`
@@ -88,8 +82,10 @@ type EventSystem struct {
 
 // Event is a struct that represents an event from the ETW session which is pre-parsed into a more usable format by the receiver
 type Event struct {
+	Raw          string         `json:"raw,omitempty"`
 	Session      string         `json:"session"`
 	Flags        string         `json:"flags"`
+	Timestamp    time.Time      `json:"timestamp"`
 	EventData    map[string]any `json:"eventData,omitempty"`
 	UserData     map[string]any `json:"userData,omitempty"`
 	System       EventSystem    `json:"system"`
