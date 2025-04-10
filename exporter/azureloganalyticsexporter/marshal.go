@@ -88,7 +88,7 @@ func (m *azureLogAnalyticsMarshaler) transformLogsToSentinelFormat(ctx context.C
 
 	jsonData, err := td.MarshalJSON()
 	if err != nil {
-    return nil, fmt.Errorf("marshal json: %w", err)
+		return nil, fmt.Errorf("marshal json: %w", err)
 	}
 
 	wrappedData := append([]byte{'['}, append(jsonData, ']')...)
