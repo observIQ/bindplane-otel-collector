@@ -247,7 +247,7 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				require.Len(t, requests, 2, "Expected two batch requests")
 				batch1 := requests[0].Batch
 				batch2 := requests[1].Batch
-				if "First log message" != string(batch1.Entries[0].Data) {
+				if string(batch1.Entries[0].Data) != "First log message" {
 					batch1 = requests[1].Batch
 					batch2 = requests[0].Batch
 				}
@@ -388,7 +388,7 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				require.Len(t, requests, 2, "Expected a two batch request")
 				batch1 := requests[0].Batch
 				batch2 := requests[1].Batch
-				if "First log message" != string(batch1.Entries[0].Data) {
+				if string(batch1.Entries[0].Data) != "First log message" {
 					batch1 = requests[1].Batch
 					batch2 = requests[0].Batch
 				}
