@@ -168,6 +168,12 @@ func allocBuffer(logSessionName string) (propertyBuffer *advapi32.EventTraceProp
 	return (*advapi32.EventTraceProperties)(unsafe.Pointer(&s[0])), uint32(size)
 }
 
+// enableProvider enables a provider with the given trace level and match any/all keywords.
+// we will attempt to enable the provider up to maxAttempts times if we encounter an error. We do this because sometimes the system does not have resources
+// or the provider may not be enabled yet
+// if the provider is already enabled, we will attempt to attach to it.
+// if we encounter an error, we will return an error.
+// if we successfully enable the provider, we will return nil.
 func (s *SessionController) enableProvider(handle syscall.Handle, providerGUID *windows.GUID, provider *Provider, traceLevel advapi32.TraceLevel, matchAnyKeyword uint64, matchAllKeyword uint64) error {
 	params := advapi32.EnableTraceParameters{
 		Version: 2,
@@ -187,6 +193,7 @@ func (s *SessionController) enableProvider(handle syscall.Handle, providerGUID *
 
 		var r1 syscall.Errno
 		var err error
+		var panicErr error
 
 		func() {
 			defer func() {
@@ -194,9 +201,10 @@ func (s *SessionController) enableProvider(handle syscall.Handle, providerGUID *
 					s.logger.Warn("Recovered from EnableTrace panic",
 						zap.String("provider", provider.Name),
 						zap.Any("recovered", r))
-					err = fmt.Errorf("recovered from panic in EnableTrace: %v", r)
+					panicErr = fmt.Errorf("recovered from panic in EnableTrace: %v", r)
 				}
 			}()
+			// timeout is 0 for async enablement
 			const timeout = 0
 			r1, err = s.enableTrace(
 				s.handle,
@@ -209,6 +217,10 @@ func (s *SessionController) enableProvider(handle syscall.Handle, providerGUID *
 				&params,
 			)
 		}()
+
+		if panicErr != nil {
+			return panicErr
+		}
 
 		switch r1 {
 		case 0:

@@ -288,49 +288,48 @@ func (c *Consumer) Start(_ context.Context) error {
 	}
 	c.traceHandles = append(c.traceHandles, th)
 
-	if len(c.traceHandles) > 0 {
-		for i := range c.traceHandles {
-			th := c.traceHandles[i]
-			if !isValidHandle(th.handle) {
-				c.logger.Error("Invalid handle", zap.Uintptr("handle", uintptr(th.handle)))
-				return fmt.Errorf("invalid handle")
-			}
+	for i := range c.traceHandles {
+		th := c.traceHandles[i]
+		if !isValidHandle(th.handle) {
+			c.logger.Error("Invalid handle", zap.Uintptr("handle", uintptr(th.handle)))
+			return fmt.Errorf("invalid handle")
+		}
 
-			c.logger.Debug("Adding trace handle to consumer", zap.Uintptr("handle", uintptr(th.handle)))
-			c.wg.Add(1)
+		c.logger.Debug("Adding trace handle to consumer", zap.Uintptr("handle", uintptr(th.handle)))
+		c.wg.Add(1)
 
-			go func(handle syscall.Handle) {
-				defer c.wg.Done()
+		go func(handle syscall.Handle) {
+			defer c.wg.Done()
 
-				var err error
+			var err error
 
-				func() {
-					defer func() {
-						if r := recover(); r != nil {
-							err = fmt.Errorf("ProcessTrace panic: %v", r)
-						}
-					}()
-					for {
-						select {
-						case <-c.doneChan:
-							return
-						default:
-							// Process trace is a blocking call that will continue to process events until the trace is closed
-							if err := advapi32.ProcessTrace(&handle); err != nil {
-								c.logger.Error("ProcessTrace failed", zap.Error(err))
-							} else {
-								c.logger.Info("ProcessTrace completed successfully")
-							}
-						}
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						err = fmt.Errorf("ProcessTrace panic: %v", r)
 					}
 				}()
-
-				if err != nil {
-					c.logger.Error("ProcessTrace failed", zap.Error(err))
+				for {
+					select {
+					case <-c.doneChan:
+						return
+					default:
+						// Process trace is a blocking call that will continue to process events until the trace is closed
+						if err := advapi32.ProcessTrace(&handle); err != nil {
+							c.logger.Error("ProcessTrace failed", zap.Error(err))
+						} else {
+							c.logger.Info("ProcessTrace completed successfully")
+						}
+					}
 				}
-			}(th.handle)
-		}
+			}()
+
+			if err != nil {
+				c.logger.Error("ProcessTrace failed", zap.Error(err))
+			}
+		}(th.handle)
 	}
+
 	return nil
 }
 

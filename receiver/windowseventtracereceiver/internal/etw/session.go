@@ -81,23 +81,24 @@ func (s *Session) EnableProvider(nameOrGuid string, traceLevel advapi32.TraceLev
 		return fmt.Errorf("session must be started before enabling providers")
 	}
 
-	if provider, ok := s.providerMap[nameOrGuid]; ok {
-		guid, err := windows.GUIDFromString(provider.GUID)
-		if err != nil {
-			return fmt.Errorf("failed to parse provider GUID: %w", err)
+	provider, ok := s.providerMap[nameOrGuid]
+	if !ok {
+		providerNames := make([]string, 0, len(s.providerMap))
+		for name := range s.providerMap {
+			providerNames = append(providerNames, name)
 		}
-		if err := s.controller.enableProvider(s.handle, &guid, provider, traceLevel, matchAnyKeyword, matchAllKeyword); err != nil {
-			return fmt.Errorf("failed to enable provider %s: %w", provider.Name, err)
-		}
-
-		return nil
+		return fmt.Errorf("provider %s not found, available providers: %v", nameOrGuid, strings.Join(providerNames, ", "))
 	}
 
-	providerNames := make([]string, 0, len(s.providerMap))
-	for name := range s.providerMap {
-		providerNames = append(providerNames, name)
+	guid, err := windows.GUIDFromString(provider.GUID)
+	if err != nil {
+		return fmt.Errorf("failed to parse provider GUID: %w", err)
 	}
-	return fmt.Errorf("provider %s not found, available providers: %v", nameOrGuid, strings.Join(providerNames, ", "))
+	if err := s.controller.enableProvider(s.handle, &guid, provider, traceLevel, matchAnyKeyword, matchAllKeyword); err != nil {
+		return fmt.Errorf("failed to enable provider %s: %w", provider.Name, err)
+	}
+	return nil
+
 }
 
 var providerMapOnce sync.Once
