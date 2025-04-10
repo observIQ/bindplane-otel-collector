@@ -288,6 +288,15 @@ func (c *Client) Disconnect(ctx context.Context) error {
 
 	c.safeSetDisconnecting(true)
 	c.collector.Stop(ctx)
+
+	// Reset the measurements registry to prevent resending old metrics on reconnect
+	if c.measurementsSender != nil {
+		c.measurementsSender.Stop()
+	}
+	if c.topologySender != nil {
+		c.topologySender.Stop()
+	}
+
 	return c.opampClient.Stop(ctx)
 }
 
