@@ -6,7 +6,7 @@ DISTRIBUTION=""
 REPOSITORY_URL=""
 INSTALL_DIR="/opt/$DISTRIBUTION"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor-config.yaml"
-PREREQS="curl printf"
+PREREQS="curl printf sed"
 
 usage() {
     echo "Usage: $0 [options]"
@@ -15,6 +15,7 @@ usage() {
     echo "  -d, --distribution NAME  Name of the distribution to install"
     echo ""
     echo "Optional arguments:"
+    echo "  -f, --file PATH         Path to local package file (if provided, --version and --url are ignored)"
     echo "  -u, --url URL           GitHub repository URL (e.g., 'https://github.com/org/repo')"
     echo "  -v, --version VERSION   Specify version to install (default: latest)"
     echo "  -e, --endpoint URL      OpAMP endpoint (default: ws://localhost:3001/v1/opamp)"
@@ -139,29 +140,60 @@ set_os_arch() {
     esac
 }
 
-download_and_install() {
-    set_os_arch
-    local download_url="${repository_url}/releases/download/v${version}/${DISTRIBUTION}_v${version}_linux_${os_arch}.${pkg_type}"
-    echo "Downloading: $download_url"
+# latest_version gets the tag of the latest release, without the v prefix.
+latest_version() {
+    curl -sSL -H"Accept: application/vnd.github.v3+json" "$repository_url/releases/latest" |
+        grep "\"tag_name\"" |
+        sed -E 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
+}
 
-    case "$pkg_type" in
-    tar.gz)
-        mkdir -p "$INSTALL_DIR"
-        curl -L "$download_url" | tar xz -C "$INSTALL_DIR"
-        ;;
-    deb)
-        local tmp_file="/tmp/${DISTRIBUTION}_${version}.deb"
-        curl -L "$download_url" -o "$tmp_file"
-        dpkg -i "$tmp_file"
-        rm -f "$tmp_file"
-        ;;
-    rpm)
-        local tmp_file="/tmp/${DISTRIBUTION}_${version}.rpm"
-        curl -L "$download_url" -o "$tmp_file"
-        rpm -U "$tmp_file"
-        rm -f "$tmp_file"
-        ;;
-    esac
+verify_version() {
+    if [ -z "$version" ]; then
+        version=$(latest_version)
+    fi
+}
+
+download_and_install() {
+    if [ -n "$local_file" ]; then
+        echo "Installing from local file: $local_file"
+
+        case "$pkg_type" in
+        tar.gz)
+            mkdir -p "$INSTALL_DIR"
+            tar xz -C "$INSTALL_DIR"
+            ;;
+        deb)
+            dpkg -i "$local_file"
+            ;;
+        rpm)
+            rpm -U "$local_file"
+            ;;
+        esac
+    else
+        verify_version
+        set_os_arch
+        local download_url="${repository_url}/releases/download/v${version}/${DISTRIBUTION}_v${version}_linux_${os_arch}.${pkg_type}"
+        echo "Downloading: $download_url"
+
+        case "$pkg_type" in
+        tar.gz)
+            mkdir -p "$INSTALL_DIR"
+            curl -L "$download_url" | tar xz -C "$INSTALL_DIR"
+            ;;
+        deb)
+            local tmp_file="/tmp/${DISTRIBUTION}_${version}.deb"
+            curl -L "$download_url" -o "$tmp_file"
+            dpkg -i "$tmp_file"
+            rm -f "$tmp_file"
+            ;;
+        rpm)
+            local tmp_file="/tmp/${DISTRIBUTION}_${version}.rpm"
+            curl -L "$download_url" -o "$tmp_file"
+            rpm -U "$tmp_file"
+            rm -f "$tmp_file"
+            ;;
+        esac
+    fi
 }
 
 detect_package_type() {
@@ -253,12 +285,21 @@ get_repository_url() {
 
 parse_args() {
     # Set default version
-    version="latest"
+    version=""
+    local_file=""
 
     while [ -n "$1" ]; do
         case "$1" in
         -d | --distribution)
             DISTRIBUTION=$2
+            shift 2
+            ;;
+        -f | --file)
+            local_file=$2
+            if [ ! -f "$local_file" ]; then
+                echo "Error: File not found: $local_file"
+                exit 1
+            fi
             shift 2
             ;;
         -u | --url)
@@ -298,8 +339,10 @@ parse_args() {
 
     verify_distribution
 
-    # Determine repository URL to use
-    get_repository_url
+    # Only get repository URL if we're not using a local file
+    if [ -z "$local_file" ]; then
+        get_repository_url
+    fi
 }
 
 check_root() {

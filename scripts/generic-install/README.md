@@ -30,18 +30,19 @@ sudo ./install_unix.sh -d mydistribution -r
 
 ### Command Line Arguments
 
-| Argument             | Description                          | Required |
-| -------------------- | ------------------------------------ | -------- |
-| `-d, --distribution` | Name of the distribution to install  | Yes      |
-| `-v, --version`      | Version to install (default: latest) | No       |
-| `-u, --url`          | GitHub repository URL                | Yes\*    |
-| `-e, --endpoint`     | OpAMP endpoint URL                   | No       |
-| `-s, --secret-key`   | OpAMP secret key                     | No       |
-| `-l, --labels`       | Comma-separated list of labels       | No       |
-| `-r, --uninstall`    | Uninstall the package                | No       |
-| `-h, --help`         | Show help message                    | No       |
+| Argument             | Description                             | Required |
+| -------------------- | --------------------------------------- | -------- |
+| `-d, --distribution` | Name of the distribution to install     | Yes      |
+| `-f, --file`         | Path to a local file package to install | No       |
+| `-u, --url`          | GitHub repository URL                   | No       |
+| `-v, --version`      | Version to install (default: latest)    | No       |
+| `-e, --endpoint`     | OpAMP endpoint URL                      | No       |
+| `-s, --secret-key`   | OpAMP secret key                        | No       |
+| `-l, --labels`       | Comma-separated list of labels          | No       |
+| `-r, --uninstall`    | Uninstall the package                   | No       |
+| `-h, --help`         | Show help message                       | No       |
 
-\* Required unless `REPOSITORY_URL` is set in the script
+- Either `--file` must be provided or `--url` & `--version`.
 
 ### Installation Process
 
