@@ -4,7 +4,7 @@ set -e
 # Constants
 INSTALL_DIR="/opt/$DISTRIBUTION"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor-config.yaml"
-PREREQS="curl printf"
+PREREQS="curl printf sed"
 DISTRIBUTION=""
 REPOSITORY_URL=""
 
@@ -15,7 +15,7 @@ usage() {
     echo "  -d, --distribution NAME  Name of the distribution to install"
     echo ""
     echo "Optional arguments:"
-    echo "  -f, --file PATH         Path to local package file (if provided, --version and --base-url are ignored)"
+    echo "  -f, --file PATH         Path to local package file (if provided, --version and --url are ignored)"
     echo "  -u, --url URL           GitHub repository URL (e.g., 'https://github.com/org/repo')"
     echo "  -v, --version VERSION   Specify version to install (default: latest)"
     echo "  -e, --endpoint URL      OpAMP endpoint (default: ws://localhost:3001/v1/opamp)"
@@ -46,6 +46,11 @@ manage_service() {
     launchctl load "/Library/LaunchDaemons/com.$DISTRIBUTION.plist"
 
     echo "Service has been configured and started"
+}
+
+set_permissions() {
+    echo "Setting permissions..."
+    chown -R "$DISTRIBUTION:$DISTRIBUTION" "$INSTALL_DIR"
 }
 
 create_supervisor_config() {
@@ -109,12 +114,26 @@ set_os_arch() {
     esac
 }
 
+# latest_version gets the tag of the latest release, without the v prefix.
+latest_version() {
+    curl -sSL -H"Accept: application/vnd.github.v3+json" "$repository_url/releases/latest" |
+        grep "\"tag_name\"" |
+        sed -E 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
+}
+
+verify_version() {
+    if [ -z "$version" ]; then
+        version=$(latest_version)
+    fi
+}
+
 download_and_install() {
     if [ -n "$local_file" ]; then
         echo "Installing from local file: $local_file"
         mkdir -p "$INSTALL_DIR"
         tar xzf "$local_file" -C "$INSTALL_DIR"
     else
+        verify_version
         set_os_arch
         local download_url="${repository_url}/releases/download/v${version}/${DISTRIBUTION}_v${version}_darwin_${os_arch}.tar.gz"
         echo "Downloading: $download_url"
@@ -147,6 +166,7 @@ install() {
     dependencies_check
     download_and_install
     create_supervisor_config
+    set_permissions
     manage_service
 
     echo "Installation complete!"
@@ -172,7 +192,7 @@ get_repository_url() {
         repository_url="$REPOSITORY_URL"
     else
         echo "Error: No repository URL specified. Please either:"
-        echo "  1. Use the -b/--base-url option"
+        echo "  1. Use the -u/--url option"
         echo "  2. Set the REPOSITORY_URL constant in the script"
         exit 1
     fi
@@ -192,7 +212,7 @@ verify_distribution() {
 
 parse_args() {
     # Set default version
-    version="latest"
+    version=""
     local_file=""
 
     while [ -n "$1" ]; do
