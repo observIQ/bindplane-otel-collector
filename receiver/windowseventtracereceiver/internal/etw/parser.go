@@ -33,15 +33,8 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	StructurePropertyName = "Structures"
-)
-
 var (
 	hostname, _ = os.Hostname()
-
-	ErrPropertyParsing = fmt.Errorf("error parsing property")
-	ErrUnknownProperty = fmt.Errorf("unknown property")
 )
 
 type parser struct {
@@ -191,7 +184,7 @@ retryLoop:
 				mapInfo = nil
 				continue
 			}
-			return "", fmt.Errorf("TdhFormatProperty failed: %w", err) // Handle unknown error
+			return "", fmt.Errorf("TdhFormatProperty failed: %w", err)
 		default:
 			return "", fmt.Errorf("TdhFormatProperty failed: %w", err)
 		}

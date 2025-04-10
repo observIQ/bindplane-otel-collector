@@ -59,7 +59,7 @@ Below is a list of supported receivers with links to their documentation pages.
 | NGINX Receiver                             | [nginxreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.123.0/receiver/nginxreceiver/README.md)                                   |
 | Okta Receiver                              | [oktareceiver](../receiver/oktareceiver/README.md)                                                                                                                  |
 | OpenCensus Receiver                        | [opencensusreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.123.0/receiver/opencensusreceiver/README.md)                         |
-| OTLP JSON Receiver                         | [otlpjsonreceiver] (https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.123.0/receiver/otlpjsonfilereceiver/README.md)                        |
+| OTLP JSON Receiver                         | [otlpjsonreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.123.0/receiver/otlpjsonfilereceiver/README.md)                        |
 | OTLP Receiver                              | [otlpreceiver](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.123.0/receiver/otlpreceiver/README.md)                                             |
 | Plugin Receiver                            | [pluginreceiver](../receiver/pluginreceiver/README.md)                                                                                                              |
 | Podman Stats Receiver                      | [podmanreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.123.0/receiver/podmanreceiver/README.md)                                 |
@@ -83,5 +83,6 @@ Below is a list of supported receivers with links to their documentation pages.
 | vCenter Receiver                           | [vcenterreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.123.0/receiver/vcenterreceiver/README.md)                               |
 | Webhook Event Receiver                     | [windowseventlogreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.123.0/receiver/webhookeventreceiver/README.md)                  |
 | Windows Event Log Receiver                 | [windowseventlogreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.123.0/receiver/windowseventlogreceiver/README.md)               |
+| Windows Event Trace(ETW) Receiver          | [windowseventtracereceiver](../receiver/windowseventtracereceiver/README.md)                                                                                        |
 | Windows Performance Counters Receiver      | [windowsperfcountersreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.123.0/receiver/windowsperfcountersreceiver/README.md)       |
 | Zipkin Receiver                            | [zipkinreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.123.0/receiver/zipkinreceiver/README.md)                                 |

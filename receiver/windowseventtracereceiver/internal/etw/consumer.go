@@ -386,10 +386,7 @@ func (c *Consumer) waitForTraceToClose(ctx context.Context, handle syscall.Handl
 				jitter++
 			// we've deleted it so return
 			case windows.ErrorInvalidHandle:
-				if jitter > 1 {
-					return
-				}
-				jitter++
+				return
 			default:
 				c.logger.Debug("StopTrace failed", zap.Error(err))
 			}
