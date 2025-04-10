@@ -88,11 +88,11 @@ func (m *azureLogAnalyticsMarshaler) transformLogsToSentinelFormat(ctx context.C
 
 	jsonData, err := td.MarshalJSON()
 	if err != nil {
-		return nil, err
+    return nil, fmt.Errorf("marshal json: %w", err)
 	}
 
 	wrappedData := append([]byte{'['}, append(jsonData, ']')...)
-  return wrappedData, nil
+	return wrappedData, nil
 }
 
 // transformRawLogsToAzureLogAnalyticsFormat transforms logs to Azure Log Analytics format using the raw log approach

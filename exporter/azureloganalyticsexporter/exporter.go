@@ -58,7 +58,7 @@ func newExporter(cfg *Config, params exporter.Settings) (*azureLogAnalyticsExpor
 	marshaler := newMarshaler(cfg, params.TelemetrySettings)
 
 	azlog.SetListener(func(e azlog.Event, s string) {
-		logger.Info("Azure Log Analytics client event", zap.String("event", string(e)), zap.String("message", s))
+		logger.Debug("Azure Log Analytics client event", zap.String("event", string(e)), zap.String("message", s))
 	})
 
 	return &azureLogAnalyticsExporter{
@@ -88,8 +88,6 @@ func (e *azureLogAnalyticsExporter) logsDataPusher(ctx context.Context, ld plog.
 	// Convert logs to JSON format expected by Azure Log Analytics
 	azureLogAnalyticsLogs, err := e.marshaler.transformLogsToSentinelFormat(ctx, ld)
 
-	fmt.Println(string(azureLogAnalyticsLogs))
-	//test, err := json.Marshal("hello")
 	if err != nil {
 		return fmt.Errorf("failed to convert logs to Azure Log Analytics format: %w", err)
 	}
