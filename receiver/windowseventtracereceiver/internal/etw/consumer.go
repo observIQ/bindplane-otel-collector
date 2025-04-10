@@ -90,14 +90,15 @@ func NewRealTimeConsumer(_ context.Context, logger *zap.Logger, session *Session
 var zeroGuid = windows.GUID{}
 
 // eventCallback is called for each event
-func (c *Consumer) defaultEventCallback(eventRecord *advapi32.EventRecord) (rc uintptr) {
+func (c *Consumer) defaultEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	if eventRecord == nil {
-		c.logger.Error("Event record is nil")
+		c.logger.Error("Event record is nil cannot safely continue processing")
 		return 1
 	}
 
 	if eventRecord.EventHeader.ProviderId.String() == rtLostEventGuid {
 		c.LostEvents++
+		c.logger.Error("Lost event", zap.Uint64("total_lost_events", c.LostEvents))
 		return 1
 	}
 
@@ -108,7 +109,7 @@ func (c *Consumer) defaultEventCallback(eventRecord *advapi32.EventRecord) (rc u
 }
 
 // TODO; this is kind of a hack, we should use the wevtapi to get properly render the event properties
-func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) (rc uintptr) {
+func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	providerGUID := eventRecord.EventHeader.ProviderId.String()
 	var providerName string
 	if provider, ok := c.providerMap[providerGUID]; ok {
@@ -165,21 +166,18 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) (rc uintp
 
 	select {
 	case c.Events <- event:
-		rc = 1
-		return
+		return 0
 	case <-c.doneChan:
-		rc = 0
-		return
+		return 1
 	}
 }
 
-func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) (rc uintptr) {
+func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	data, err := GetEventProperties(eventRecord, c.logger.Named("event_record_helper"))
 	if err != nil {
 		c.logger.Error("Failed to get event properties", zap.Error(err))
 		c.LostEvents++
-		rc = 1
-		return
+		return 1
 	}
 
 	var providerGUID string
@@ -227,19 +225,19 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) (rc ui
 
 	select {
 	case c.Events <- event:
-		rc = 1
-		return
+		return 0
 	case <-c.doneChan:
-		rc = 0
-		return
+		return 1
 	}
 }
 
 func (c *Consumer) defaultBufferCallback(buffer *advapi32.EventTraceLogfile) uintptr {
-	if _, ok := <-c.doneChan; ok {
+	select {
+	case <-c.doneChan:
+		return 0
+	default:
 		return 1
 	}
-	return 0
 }
 
 // FromSessions initializes the consumer from sessions
@@ -320,6 +318,7 @@ func (c *Consumer) Start(_ context.Context) error {
 						} else {
 							c.logger.Info("ProcessTrace completed successfully")
 						}
+						return
 					}
 				}
 			}()
