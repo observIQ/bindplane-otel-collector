@@ -17,6 +17,7 @@ package observiq
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/golang/snappy"
@@ -50,6 +51,9 @@ type measurementsSender struct {
 	isRunning bool
 	done      chan struct{}
 	wg        *sync.WaitGroup
+
+	lastReportedSequence atomic.Int64
+	lastSendMux          *sync.RWMutex
 }
 
 func newMeasurementsSender(l *zap.Logger, reporter MeasurementsReporter, opampClient client.OpAMPClient, interval time.Duration, extraAttributes map[string]string) *measurementsSender {
@@ -66,6 +70,8 @@ func newMeasurementsSender(l *zap.Logger, reporter MeasurementsReporter, opampCl
 		isRunning:            false,
 		done:                 make(chan struct{}),
 		wg:                   &sync.WaitGroup{},
+		lastReportedSequence: atomic.Int64{}, // Set to zero time to indicate that no metrics have been reported yet
+		lastSendMux:          &sync.RWMutex{},
 	}
 }
 
@@ -88,15 +94,14 @@ func (m *measurementsSender) Start() {
 }
 
 // SetInterval changes the interval of the measurements sender.
-func (m measurementsSender) SetInterval(d time.Duration) {
+func (m *measurementsSender) SetInterval(d time.Duration) {
 	select {
 	case m.changeIntervalChan <- d:
 	case <-m.done:
 	}
-
 }
 
-func (m measurementsSender) SetExtraAttributes(extraAttributes map[string]string) {
+func (m *measurementsSender) SetExtraAttributes(extraAttributes map[string]string) {
 	select {
 	case m.changeAttributesChan <- extraAttributes:
 	case <-m.done:
@@ -160,10 +165,13 @@ func (m *measurementsSender) loop() {
 				Data:       encoded,
 			}
 
+			success := false
 			for i := 0; i < maxSendRetries; i++ {
 				sendingChannel, err := m.opampClient.SendCustomMessage(cm)
 				switch {
 				case err == nil: // OK
+					success = true
+					m.lastReportedSequence.Add(1)
 				case errors.Is(err, types.ErrCustomMessagePending):
 					if i == maxSendRetries-1 {
 						// Bail out early, since we aren't going to try to send again
@@ -181,6 +189,10 @@ func (m *measurementsSender) loop() {
 					m.logger.Error("Failed to report measurements", zap.Error(err))
 				}
 				break
+			}
+
+			if !success {
+				m.logger.Warn("Failed to send measurements after all retries")
 			}
 		}
 	}
