@@ -87,8 +87,7 @@ func TestMarshalRawLogs(t *testing.T) {
 			},
 			expected: []map[string]interface{}{
 				{
-					"key1": "value1",
-					"body": "Test body",
+					"RawData": `{"body":"Test body","key1":"value1"}`,
 				},
 			},
 			rawLogField: `{"body": body, "key1": attributes["key1"]}`,
@@ -101,7 +100,7 @@ func TestMarshalRawLogs(t *testing.T) {
 			},
 			expected: []map[string]interface{}{
 				{
-					"nested": "value",
+					"RawData": `{"nested":"value"}`,
 				},
 			},
 			rawLogField: `body`,
@@ -149,7 +148,7 @@ func TestMarshalRawLogs(t *testing.T) {
 			},
 			expected: []map[string]interface{}{
 				{
-					"type": "login",
+					"RawData": `{"type":"login"}`,
 				},
 			},
 			rawLogField: `attributes["event"]`,
@@ -236,7 +235,6 @@ func TestMarshalRawLogs(t *testing.T) {
 		})
 	}
 }
-
 func TestTransformLogsToSentinelFormat(t *testing.T) {
 	// Create test logs
 	logs := plog.NewLogs()
@@ -262,7 +260,12 @@ func TestTransformLogsToSentinelFormat(t *testing.T) {
 	// Create logger for tests
 	logger := zap.NewNop()
 
-	t.Run("Default transformation", func(t *testing.T) {
+	// Create expected JSON using standard marshaler for comparison
+	standardMarshaler := plog.JSONMarshaler{}
+	expectedJSON, err := standardMarshaler.MarshalLogs(logs)
+	assert.NoError(t, err)
+
+	t.Run("Standard JSON marshaling", func(t *testing.T) {
 		// Create config with default settings (no raw log field)
 		cfg := &Config{}
 
@@ -278,56 +281,9 @@ func TestTransformLogsToSentinelFormat(t *testing.T) {
 		jsonBytes, err := marshaler.transformLogsToSentinelFormat(context.Background(), logs)
 		assert.NoError(t, err)
 
-		// Parse the resulting JSON
-		var result []map[string]interface{}
-		err = json.Unmarshal(jsonBytes, &result)
-		assert.NoError(t, err)
-
-		// Verify the structure
-		assert.Len(t, result, 1)
-		assert.Contains(t, result[0], "resourceLogs")
-
-		// Check that there's no nested resourceLogs
-		resourceLogs, ok := result[0]["resourceLogs"].([]interface{})
-		assert.True(t, ok, "resourceLogs should be an array, not an object")
-
-		// Verify the content
-		assert.Len(t, resourceLogs, 1)
-		rlMap := resourceLogs[0].(map[string]interface{})
-
-		// Check resource attributes
-		resource := rlMap["resource"].(map[string]interface{})
-		attributes := resource["attributes"].([]interface{})
-
-		// Helper function to find attribute by key
-		findAttr := func(key string) interface{} {
-			for _, attr := range attributes {
-				attrMap := attr.(map[string]interface{})
-				if attrMap["key"] == key {
-					return attrMap["value"]
-				}
-			}
-			return nil
-		}
-
-		serviceAttr := findAttr("service.name")
-		assert.Equal(t, "test-service", serviceAttr.(map[string]interface{})["stringValue"])
-
-		hostAttr := findAttr("host.name")
-		assert.Equal(t, "test-host", hostAttr.(map[string]interface{})["stringValue"])
-
-		// Check log record
-		scopeLogs := rlMap["scopeLogs"].([]interface{})
-		assert.Len(t, scopeLogs, 1)
-
-		logRecords := scopeLogs[0].(map[string]interface{})["logRecords"].([]interface{})
-		assert.Len(t, logRecords, 1)
-
-		logRecord := logRecords[0].(map[string]interface{})
-		assert.Equal(t, "Test log message", logRecord["body"].(map[string]interface{})["stringValue"])
-		assert.Equal(t, "INFO", logRecord["severityText"])
+		// Compare with expected output from standard marshaler
+		assert.JSONEq(t, string(expectedJSON), string(jsonBytes))
 	})
-
 	t.Run("Raw log field transformation using attributes", func(t *testing.T) {
 		// Create config with raw log field
 		cfg := &Config{
@@ -353,10 +309,16 @@ func TestTransformLogsToSentinelFormat(t *testing.T) {
 
 		// Verify the structure
 		assert.Len(t, result, 1)
-		assert.Contains(t, result[0], "log_type")
+		assert.Contains(t, result[0], "RawData")
+
+		// Parse the RawData field which should contain the attributes
+		var rawData map[string]interface{}
+		err = json.Unmarshal([]byte(result[0]["RawData"].(string)), &rawData)
+		assert.NoError(t, err)
 
 		// Verify the content
-		assert.Equal(t, "test-log", result[0]["log_type"])
+		assert.Contains(t, rawData, "log_type")
+		assert.Equal(t, "test-log", rawData["log_type"])
 	})
 
 	t.Run("Raw log field transformation using body", func(t *testing.T) {
@@ -386,7 +348,7 @@ func TestTransformLogsToSentinelFormat(t *testing.T) {
 		assert.Len(t, result, 1)
 		assert.Contains(t, result[0], "RawData")
 
-		// Verify the content
+		// Verify the content is directly the log message (not in JSON format)
 		assert.Equal(t, "Test log message", result[0]["RawData"])
 	})
 
@@ -415,13 +377,19 @@ func TestTransformLogsToSentinelFormat(t *testing.T) {
 
 		// Verify the structure
 		assert.Len(t, result, 1)
-		assert.Contains(t, result[0], "message")
-		assert.Contains(t, result[0], "log_level")
-		assert.Contains(t, result[0], "hostname")
+		assert.Contains(t, result[0], "RawData")
+
+		// Parse the RawData field which should contain the custom JSON
+		var rawData map[string]interface{}
+		err = json.Unmarshal([]byte(result[0]["RawData"].(string)), &rawData)
+		assert.NoError(t, err)
 
 		// Verify the content
-		assert.Equal(t, "Test log message", result[0]["message"])
-		assert.Equal(t, "INFO", result[0]["log_level"])
-		assert.Equal(t, "test-host", result[0]["hostname"])
+		assert.Contains(t, rawData, "message")
+		assert.Contains(t, rawData, "log_level")
+		assert.Contains(t, rawData, "hostname")
+		assert.Equal(t, "Test log message", rawData["message"])
+		assert.Equal(t, "INFO", rawData["log_level"])
+		assert.Equal(t, "test-host", rawData["hostname"])
 	})
 }

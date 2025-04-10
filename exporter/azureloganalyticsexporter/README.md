@@ -194,3 +194,7 @@ Now you have all the required information to configure the exporter:
 - `tenant_id`: The Directory (tenant) ID
 - `rule_id`: The DCR Rule ID
 - `stream_name`: The name of your custom table
+
+## Important note
+
+The first export of logs, may take anywhere from 5-15 minutes on a freshly created table.

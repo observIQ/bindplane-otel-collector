@@ -1,3 +1,17 @@
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package azureloganalyticsexporter
 
 import (
@@ -68,61 +82,9 @@ func (m *azureLogAnalyticsMarshaler) transformLogsToSentinelFormat(ctx context.C
 		return m.transformRawLogsToAzureLogAnalyticsFormat(ctx, ld)
 	}
 
-	// Default transformation logic (follows original code)
-	var azureLogAnalyticsLogs []map[string]interface{}
+	marshaler := plog.JSONMarshaler{}
+	jsonLogs, err := marshaler.MarshalLogs(ld)
 
-	for i := 0; i < ld.ResourceLogs().Len(); i++ {
-		rl := ld.ResourceLogs().At(i)
-		for j := 0; j < rl.ScopeLogs().Len(); j++ {
-			sl := rl.ScopeLogs().At(j)
-			for k := 0; k < sl.LogRecords().Len(); k++ {
-				logRecord := sl.LogRecords().At(k)
-
-				// Create a new single-record logs object to hold just this log
-				singleLogRecord := plog.NewLogs()
-				resourceLog := singleLogRecord.ResourceLogs().AppendEmpty()
-
-				// Copy resource
-				rl.Resource().CopyTo(resourceLog.Resource())
-
-				// Copy scope
-				scopeLog := resourceLog.ScopeLogs().AppendEmpty()
-				sl.Scope().CopyTo(scopeLog.Scope())
-
-				// Copy log record
-				logRecordCopy := scopeLog.LogRecords().AppendEmpty()
-				logRecord.CopyTo(logRecordCopy)
-
-				// Use the JSONMarshaler to convert to JSON
-				marshaler := plog.JSONMarshaler{}
-				logJSON, err := marshaler.MarshalLogs(singleLogRecord)
-				if err != nil {
-					return nil, fmt.Errorf("failed to marshal log to JSON: %w", err)
-				}
-
-				// Unmarshal the JSON to a map
-				var logMap map[string]interface{}
-				if err := json.Unmarshal(logJSON, &logMap); err != nil {
-					return nil, fmt.Errorf("failed to unmarshal log JSON: %w", err)
-				}
-
-				// Extract the inner resourceLogs array directly
-				innerResourceLogs, ok := logMap["resourceLogs"]
-				if !ok {
-					return nil, fmt.Errorf("unexpected structure: resourceLogs not found")
-				}
-
-				// Create the Sentinel format with TimeGenerated and the inner resourceLogs
-				azureLogAnalyticsLog := map[string]interface{}{
-					"resourceLogs": innerResourceLogs, // Use the inner content directly
-				}
-
-				azureLogAnalyticsLogs = append(azureLogAnalyticsLogs, azureLogAnalyticsLog)
-			}
-		}
-	}
-
-	jsonLogs, err := json.Marshal(azureLogAnalyticsLogs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert logs to JSON: %w", err)
 	}
@@ -160,16 +122,10 @@ func (m *azureLogAnalyticsMarshaler) transformRawLogsToAzureLogAnalyticsFormat(c
 					continue
 				}
 
-				// Try to parse rawLogStr as JSON first
-				var rawLogData map[string]interface{}
-				if err := json.Unmarshal([]byte(rawLogStr), &rawLogData); err != nil {
-					// If not valid JSON, use as raw string
-					azureLogAnalyticsLogs = append(azureLogAnalyticsLogs, map[string]interface{}{
-						"RawData": rawLogStr,
-					})
-				} else {
-					azureLogAnalyticsLogs = append(azureLogAnalyticsLogs, rawLogData)
-				}
+				azureLogAnalyticsLogs = append(azureLogAnalyticsLogs, map[string]interface{}{
+					"RawData": rawLogStr,
+				})
+
 			}
 		}
 	}

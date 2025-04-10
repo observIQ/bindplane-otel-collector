@@ -82,6 +82,9 @@ func (e *azureLogAnalyticsExporter) logsDataPusher(ctx context.Context, ld plog.
 
 	// Convert logs to JSON format expected by Azure Log Analytics
 	azureLogAnalyticsLogs, err := e.marshaler.transformLogsToSentinelFormat(ctx, ld)
+
+	fmt.Println(string(azureLogAnalyticsLogs))
+	//test, err := json.Marshal("hello")
 	if err != nil {
 		return fmt.Errorf("failed to convert logs to Azure Log Analytics format: %w", err)
 	}
