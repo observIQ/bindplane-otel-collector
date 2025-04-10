@@ -22,9 +22,12 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/expr"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottllog"
+
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/collector/pdata/plog/plogotlp"
+
 	"go.uber.org/zap"
 )
 
@@ -78,17 +81,18 @@ func (m *azureLogAnalyticsMarshaler) getRawField(ctx context.Context, field stri
 // transformLogsToSentinelFormat transforms logs to Microsoft Sentinel format
 func (m *azureLogAnalyticsMarshaler) transformLogsToSentinelFormat(ctx context.Context, ld plog.Logs) ([]byte, error) {
 	// Check if we're using raw log mode
-	if m.cfg.RawLogField != "" {
+	if m.cfg.RawLogField == "" {
 		return m.transformRawLogsToAzureLogAnalyticsFormat(ctx, ld)
 	}
+	td := plogotlp.NewExportRequestFromLogs(ld)
 
-	marshaler := plog.JSONMarshaler{}
-	jsonLogs, err := marshaler.MarshalLogs(ld)
-
+	jsonData, err := td.MarshalJSON()
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert logs to JSON: %w", err)
+		return nil, err
 	}
-	return jsonLogs, nil
+
+	wrappedData := append([]byte{'['}, append(jsonData, ']')...)
+  return wrappedData, nil
 }
 
 // transformRawLogsToAzureLogAnalyticsFormat transforms logs to Azure Log Analytics format using the raw log approach

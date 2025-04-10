@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 
+	azlog "github.com/Azure/azure-sdk-for-go/sdk/azcore/log"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/monitor/ingestion/azlogs"
 	"go.opentelemetry.io/collector/component"
@@ -55,6 +56,10 @@ func newExporter(cfg *Config, params exporter.Settings) (*azureLogAnalyticsExpor
 	}
 
 	marshaler := newMarshaler(cfg, params.TelemetrySettings)
+
+	azlog.SetListener(func(e azlog.Event, s string) {
+		logger.Info("Azure Log Analytics client event", zap.String("event", string(e)), zap.String("message", s))
+	})
 
 	return &azureLogAnalyticsExporter{
 		cfg:        cfg,
