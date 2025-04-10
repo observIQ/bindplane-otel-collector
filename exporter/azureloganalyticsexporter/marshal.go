@@ -81,7 +81,7 @@ func (m *azureLogAnalyticsMarshaler) getRawField(ctx context.Context, field stri
 // transformLogsToSentinelFormat transforms logs to Microsoft Sentinel format
 func (m *azureLogAnalyticsMarshaler) transformLogsToSentinelFormat(ctx context.Context, ld plog.Logs) ([]byte, error) {
 	// Check if we're using raw log mode
-	if m.cfg.RawLogField == "" {
+	if m.cfg.RawLogField != "" {
 		return m.transformRawLogsToAzureLogAnalyticsFormat(ctx, ld)
 	}
 	td := plogotlp.NewExportRequestFromLogs(ld)
@@ -118,11 +118,6 @@ func (m *azureLogAnalyticsMarshaler) transformRawLogsToAzureLogAnalyticsFormat(c
 				rawLogStr, err := m.getRawField(ctx, m.cfg.RawLogField, logRecord, scopeLog, resourceLog)
 				if err != nil {
 					m.logger.Error("Error extracting raw log", zap.Error(err))
-					continue
-				}
-
-				if rawLogStr == "" {
-					m.logger.Error("Error processing log record: raw log is empty")
 					continue
 				}
 

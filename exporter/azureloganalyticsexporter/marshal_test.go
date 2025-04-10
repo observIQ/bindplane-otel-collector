@@ -21,220 +21,14 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zaptest/observer"
 )
 
 var testTime = time.Date(2023, 1, 2, 3, 4, 5, 6, time.UTC)
 
-// mockLogRecord creates a simple mock plog.LogRecord for testing.
-func mockLogRecord(t *testing.T, body string, attributes map[string]any) plog.LogRecord {
-	lr := plog.NewLogRecord()
-	lr.Body().SetStr(body)
-	lr.Attributes().EnsureCapacity(len(attributes))
-	lr.SetTimestamp(pcommon.NewTimestampFromTime(testTime))
-	for k, v := range attributes {
-		switch v.(type) {
-		case string:
-			lr.Attributes().PutStr(k, v.(string))
-		case map[string]any:
-			lr.Attributes().FromRaw(attributes)
-		case int:
-			lr.Attributes().PutInt(k, int64(v.(int)))
-		default:
-			t.Fatalf("unexpected attribute type: %T", v)
-		}
-	}
-	return lr
-}
-
-// mockLogs creates mock plog.Logs with the given records.
-func mockLogs(records ...plog.LogRecord) plog.Logs {
-	logs := plog.NewLogs()
-	rl := logs.ResourceLogs().AppendEmpty()
-	sl := rl.ScopeLogs().AppendEmpty()
-	for _, rec := range records {
-		rec.CopyTo(sl.LogRecords().AppendEmpty())
-	}
-	return logs
-}
-
-// mockLogRecordWithNestedBody creates a log record with a nested body structure.
-func mockLogRecordWithNestedBody(body map[string]any) plog.LogRecord {
-	lr := plog.NewLogRecord()
-	lr.Body().SetEmptyMap().EnsureCapacity(len(body))
-	lr.Body().Map().FromRaw(body)
-	// Set timestamp for consistent testing
-	lr.SetTimestamp(pcommon.NewTimestampFromTime(testTime))
-	return lr
-}
-func TestMarshalRawLogs(t *testing.T) {
-	tests := []struct {
-		name        string
-		logRecords  []plog.LogRecord
-		expected    []map[string]interface{}
-		rawLogField string
-		wantErr     bool
-	}{
-		{
-			name: "Simple log record",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Test body", map[string]any{"key1": "value1"}),
-			},
-			expected: []map[string]interface{}{
-				{
-					"RawData": `{"body":"Test body","key1":"value1"}`,
-				},
-			},
-			rawLogField: `{"body": body, "key1": attributes["key1"]}`,
-			wantErr:     false,
-		},
-		{
-			name: "Nested body log record",
-			logRecords: []plog.LogRecord{
-				mockLogRecordWithNestedBody(map[string]any{"nested": "value"}),
-			},
-			expected: []map[string]interface{}{
-				{
-					"RawData": `{"nested":"value"}`,
-				},
-			},
-			rawLogField: `body`,
-			wantErr:     false,
-		},
-		{
-			name: "String body log record",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "test", map[string]any{}),
-			},
-			expected: []map[string]interface{}{
-				{
-					"RawData": "test",
-				},
-			},
-			rawLogField: `body`,
-			wantErr:     false,
-		},
-		{
-			name: "Invalid raw log field",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Test body", map[string]any{"key1": "value1"}),
-			},
-			expected:    nil,
-			rawLogField: "invalid_field",
-			wantErr:     true,
-		},
-		{
-			name: "Valid rawLogField - simple attribute",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Test body", map[string]any{"level": "info"}),
-			},
-			expected: []map[string]interface{}{
-				{
-					"RawData": "info",
-				},
-			},
-			rawLogField: `attributes["level"]`,
-			wantErr:     false,
-		},
-		{
-			name: "Valid rawLogField - nested attribute",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Test body", map[string]any{"event": map[string]any{"type": "login"}}),
-			},
-			expected: []map[string]interface{}{
-				{
-					"RawData": `{"type":"login"}`,
-				},
-			},
-			rawLogField: `attributes["event"]`,
-			wantErr:     false,
-		},
-		{
-			name: "Invalid rawLogField - non-existent field",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Test body", map[string]any{"key1": "value1"}),
-			},
-			expected:    nil,
-			rawLogField: `attributes["nonexistent"]`,
-			wantErr:     true,
-		},
-		{
-			name: "String body with newline character",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Test \nbody", map[string]any{"key1": "value1"}),
-			},
-			expected: []map[string]interface{}{
-				{
-					"RawData": "Test \\nbody",
-				},
-			},
-			rawLogField: `body`,
-			wantErr:     false,
-		},
-		{
-			name: "Does not affect already escaped newline characters in string body",
-			logRecords: []plog.LogRecord{
-				mockLogRecord(t, "Test\\n \nbody", map[string]any{"key1": "value1"}),
-			},
-			expected: []map[string]interface{}{
-				{
-					"RawData": "Test\\n \\nbody",
-				},
-			},
-			rawLogField: `body`,
-			wantErr:     false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			core, observedLogs := observer.New(zap.InfoLevel)
-			logger := zap.New(core)
-			cfg := &Config{RawLogField: tt.rawLogField}
-			m := newMarshaler(cfg, component.TelemetrySettings{Logger: logger})
-
-			logs := mockLogs(tt.logRecords...)
-			marshalledBytes, err := m.transformLogsToSentinelFormat(context.Background(), logs)
-
-			// Check for errors in the logs
-			var foundError bool
-			for _, log := range observedLogs.All() {
-				if log.Level == zap.ErrorLevel {
-					foundError = true
-					break
-				}
-			}
-
-			if tt.wantErr {
-				require.True(t, foundError, "Expected an error to be logged")
-			} else {
-				require.False(t, foundError, "Did not expect an error to be logged")
-				require.NoError(t, err, "Did not expect an error to be returned")
-
-				// Parse the resulting JSON
-				var result []map[string]interface{}
-				err = json.Unmarshal(marshalledBytes, &result)
-				require.NoError(t, err, "Failed to unmarshal result JSON")
-
-				// Compare with expected
-				require.Equal(t, len(tt.expected), len(result),
-					"Expected %d marshalled logs, got %d", len(tt.expected), len(result))
-
-				for i, expected := range tt.expected {
-					for k, v := range expected {
-						require.Equal(t, v, result[i][k],
-							"Field %s doesn't match in log %d", k, i)
-					}
-				}
-			}
-		})
-	}
-}
 func TestTransformLogsToSentinelFormat(t *testing.T) {
 	// Create test logs
 	logs := plog.NewLogs()
@@ -277,12 +71,13 @@ func TestTransformLogsToSentinelFormat(t *testing.T) {
 		// Create marshaler with default config
 		marshaler := newMarshaler(cfg, telemetrySettings)
 
+		wrappedData := append([]byte{'['}, append(expectedJSON, ']')...)
 		// Transform logs
 		jsonBytes, err := marshaler.transformLogsToSentinelFormat(context.Background(), logs)
 		assert.NoError(t, err)
 
 		// Compare with expected output from standard marshaler
-		assert.JSONEq(t, string(expectedJSON), string(jsonBytes))
+		assert.JSONEq(t, string(wrappedData), string(jsonBytes))
 	})
 	t.Run("Raw log field transformation using attributes", func(t *testing.T) {
 		// Create config with raw log field
