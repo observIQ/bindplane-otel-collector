@@ -98,69 +98,77 @@ Before configuring the exporter, you'll need to set up several components in the
 
 ### 2. Create a Log Analytics Workspace Table (not needed if you already have one setup)
 
-1. Go to your Log Analytics workspace
-2. Navigate to "Tables" under Settings
-3. Click "New Custom Table"
-4. Configure your table:
-   - Give it a name (this will be the display name in the Azure portal). **Important:** The actual `stream_name` value used in the exporter configuration must be prefixed with `Custom-`. For example, if you name the table `my_logs` in the portal, the `stream_name` configuration value should be `Custom-my_logs`.
-   - Select "JSON" as the data format
-   - Provide an example schema based on your configuration:
-     - **If `raw_log_field` is NOT set (Default):** Use the following OTLP log formatted schema:
-       ```json
-       [
-         {
-           "resourceLogs": [
-             {
-               "resource": {
-                 "attributes": [
-                   {
-                     "key": "service.name",
-                     "value": {
-                       "stringValue": "test-service"
-                     }
-                   },
-                   {
-                     "key": "host.name",
-                     "value": {
-                       "stringValue": "test-host"
-                     }
-                   }
-                 ]
+1.  Go to your Log Analytics workspace
+2.  Navigate to "Tables" under Settings
+3.  Click "New Custom Table"
+4.  Configure your table:
+
+    - Give it a name (this will be the display name in the Azure portal). **Important:** The actual `stream_name` value used in the exporter configuration must be prefixed with `Custom-`. For example, if you name the table `my_logs` in the portal, the `stream_name` configuration value should be `Custom-my_logs`.
+    - Select "JSON" as the data format
+    - Provide an example schema based on your configuration: - **If `raw_log_field` is NOT set (Default):** Use the following OTLP log formatted schema:
+
+      ````json
+      {
+      "resourceLogs":[
+      {
+      "resource":{
                },
-               "scopeLogs": [
-                 {
-                   "logRecords": [
-                     {
-                       "body": {
-                         "stringValue": "Test log message"
-                       },
-                       "severityNumber": 9,
-                       "severityText": "INFO",
-                       "spanId": "",
-                       "timeUnixNano": "1672628645000000000",
-                       "traceId": ""
-                     }
-                   ],
-                   "scope": {
-                     "name": "test-scope",
-                     "version": "v1.0.0"
-                   }
-                 }
+               "scopeLogs":[
+                  {
+                     "scope":{
+
+                     },
+                     "logRecords":[
+                        {
+                           "observedTimeUnixNano":"1744314249480007000",
+                           "body":{
+                              "stringValue":"Tue Mar 04 15:57:06 2020: \u003c14\u003eMar  4 15:53:03 BAR-NG-VF500 BAR-NG-VF500/box_Firewall_Activity:  Info     BAR-NG-VF500 Remove: type=FWD|proto=UDP|srcIF=eth1|srcIP=192.168.70.7|srcPort=35119|srcMAC=08:00:27:da:d7:9c|dstIP=8.8.8.8|dstPort=53|dstService=domain|dstIF=eth0|rule=InternetAccess/\u003cApp\u003e:RestrictTim|info=Balanced Session Idle Timeout|srcNAT=192.168.70.7|dstNAT=8.8.8.8|duration=21132|count=1|receivedBytes=130|sentBytes=62|receivedPackets=1|sentPackets=1|user=|protocol=|application=|target=|content=|urlcat"
+                           },
+                           "attributes":[
+                              {
+                                 "key":"log.file.name",
+                                 "value":{
+                                    "stringValue":"sample.log"
+                                 }
+                              }
+                           ],
+                           "traceId":"",
+                           "spanId":""
+                        },
+                        {
+                           "observedTimeUnixNano":"1744314249480014000",
+                           "body":{
+                              "stringValue":"Tue Mar 04 15:57:06 2020: \u003c14\u003eMar  4 15:53:04 BAR-NG-VF500 BAR-NG-VF500/box_Firewall_Activity:  Info     BAR-NG-VF500 Remove: type=FWD|proto=UDP|srcIF=eth1|srcIP=192.168.70.7|srcPort=38686|srcMAC=08:00:27:da:d7:9c|dstIP=8.8.8.8|dstPort=53|dstService=domain|dstIF=eth0|rule=InternetAccess/\u003cApp\u003e:RestrictTim|info=Session Idle Timeout|srcNAT=192.168.70.7|dstNAT=8.8.8.8|duration=60100|count=1|receivedBytes=0|sentBytes=62|receivedPackets=0|sentPackets=1|user=|protocol=|application=|target=|content=|urlcat="
+                           },
+                           "attributes":[
+                              {
+                                 "key":"log.file.name",
+                                 "value":{
+                                    "stringValue":"sample.log"
+                                 }
+                              }
+                           ],
+                           "traceId":"",
+                           "spanId":""
+                        }
+                     ]
+                  }
                ]
-             }
-           ]
-         }
-       ]
-       ```
-     - **If `raw_log_field` IS set:** Use the following simple schema with a `RawData` field:
-       ```json
-       [
-         {
-           "RawData": "Sample log entry content"
-         }
-       ]
-       ```
-5. Click "Create"
+            }
+      ]
+      }
+             ```
+           - **If `raw_log_field` IS set:** Use the following simple schema with a `RawData` field:
+             ```json
+             [
+               {
+                 "RawData": "Sample log entry content"
+               }
+             ]
+             ```
+      ````
+
+5.  Click "Create"
 
 ### 3. Create a Data Collection Rule (DCR)
 
