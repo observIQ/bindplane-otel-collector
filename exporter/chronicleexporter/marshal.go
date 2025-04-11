@@ -60,11 +60,6 @@ var supportedLogTypes = map[string]string{
 	"sql_server":                "MICROSOFT_SQL",
 }
 
-//go:generate mockery --name logMarshaler --filename mock_log_marshaler.go --structname MockMarshaler --inpackage
-type logMarshaler interface {
-	MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]*api.BatchCreateLogsRequest, error)
-	MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs) (map[string][]*api.ImportLogsRequest, error)
-}
 type protoMarshaler struct {
 	cfg          Config
 	teleSettings component.TelemetrySettings
