@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.16.15
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.53.1
-	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.75.0
+	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.76.0
 	github.com/observiq/bindplane-otel-collector/internal/testutils v1.76.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v1.29.0
