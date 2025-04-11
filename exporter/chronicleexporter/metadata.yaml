@@ -34,17 +34,21 @@ telemetry:
 
 tests:
   config:
-    creds: | # Fake credentials for testing
-      {
-        "type": "service_account",
-        "project_id": "project",
-        "private_key_id": "123456789abcdefghijklmnopqrstuvwxyz12345",
-        "private_key": "-----BEGIN PRIVATE KEY-----\nPrivatekey\nPrivateKey\nprivateKey\n-----END PRIVATE KEY-----\n",
-        "client_email": "account@project.iam.gserviceaccount.com",
-        "client_id": "123456789abcdefghijkl",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs
-      }
+    protocol: "grpc"
+    endpoint: "malachiteingestion-pa.googleapis.com"
+    log_type: "MACOS"
+     # Fake credentials for testing
+    creds: '{   "type": "service_account",   "project_id": "test-project-id",   "private_key_id": "abcdeghijklmnopqrstuvwxyz0123456789abcde",   "private_key": "-----BEGIN PRIVATE KEY-----\nMIICXAIBAAKBgQCEOTE7ZBSMWM4tLqHpbdnsiy931XqGCH0cfd8GoPNt15Kg2Pmu\nJH63HVG7yCA/6/IggW4D7kYOrCZ/KeDleDcd0x+hh/uDhlTv/jrEHOQ6n0VvUfWv\nebqfHwBBYxQv6e2VPttPeGmaqfQNz/F1RWmY/0ql3fbYFElyOR5Kgt8BvwIDAQAB\nAoGAFE30EXq87RB2GNogYwhLfteg4nYV6p9DFyz9Ird0qlmAWtL3BJb2HoiSFJQW\n37oL5JH7ov7kIzysbLqxnotnayLlJJJGIvuWR8Rx7NrHdssxnnUe6zjDMoOe6pbD\nkO4eJyS/gCpllL/OwW5ykY+qdZY4NMpWTOQRJkHR8LG30IECQQDqYC5n1wk3/103\ng+nw0B85RDSjos9dsufL70PWTVLgm4mr3+fxrnmH4M5plQ6hQAO6U6LjbqwiugDd\nu34TLOcjAkEAkGw7leYS4qbjFqVRgXAMRaNf8/yVbxjuGGwz8Vn//sMOWW088nBD\nlzNeZxK8Dazor6deFLRZq5tj2cDAIiZytQJBAK+gFQYAz8qjU2GnOqUV/1+1KVC5\nTnQi/KkHiKjMVl8yje46IR8sI6tbHLFnXYgdZO25gGS2aMy43q9IsMeDrUsCQApp\nAtKHRw03Yl8bg4iE/x117VC1AECF14PDKOtYxW8juEER8ra3COg5N7DOVOfXct5W\nfh2X8m7AQK5NiovroZECQHWNoKkX60mXhNxLdkuYOJg4HTISB/ItLY4cpXP+SNUR\nvNmKpiaw7mTmL4Edxb39piIMUjGyc6RFzhGT0cx1ZxY=\n-----END PRIVATE KEY-----",   "client_email": "ian-dev@test-project.iam.gserviceaccount.com",   "client_id": "000000000000000000000",   "auth_uri": "https://accounts.google.com/o/oauth2/auth",   "token_uri": "https://oauth2.googleapis.com/token",   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/ian-dev%40test-project.iam.gserviceaccount.com",   "universe_domain": "googleapis.com" }'
     customer_id: "123e4567-e89b-12d3-a456-426614174000" # fake customer id
-  skip_lifecycle: true
+    compression: none
+    namespace: null
+    raw_log_field: body
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_elapsed_time: 300s
+      max_interval: 30s
+    sending_queue:
+      enabled: false
+    timeout: 1m30s
+  expect_consumer_error: true 
