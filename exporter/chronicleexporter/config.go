@@ -103,12 +103,16 @@ type Config struct {
 	// The following fields are deprecated and will be removed in a future release.
 	// They are being kept to ensure backwards compatibility with existing configurations.
 
+	// Deprecated: This field is deprecated - it was added to account for a bug with the SecOps raw logs search, but ultimately caused
+	// performance problems for the SecOps backend. The bug remains, but as long as UDM search is used, this field is not needed.
 	// BatchLogCountLimitGRPC is the maximum number of logs that can be sent in a single batch to Chronicle via the GRPC protocol
 	// This field is defaulted to 1000, as that is the default Chronicle backend limit.
 	// All batched logs beyond the backend limit will not be able to be queryable via the Raw Logs Search, but will be queryable via UDM Search.
 	// Any batches with more logs than this limit will be split into multiple batches
 	BatchLogCountLimitGRPC int `mapstructure:"batch_log_count_limit_grpc"`
 
+	// Deprecated: This field is deprecated - it was added to account for a bug with the SecOps raw logs search, but ultimately caused
+	// performance problems for the SecOps backend. The bug remains, but as long as UDM search is used, this field is not needed.
 	// BatchLogCountLimitHTTP is the maximum number of logs that can be sent in a single batch to Chronicle via the HTTP protocol
 	// This field is defaulted to 1000, as that is the default Chronicle backend limit.
 	// All batched logs beyond the backend limit will not be able to be queryable via the Raw Logs Search, but will be queryable via UDM Search.
@@ -120,6 +124,14 @@ type Config struct {
 func (cfg *Config) Validate() error {
 	if cfg.CredsFilePath != "" && cfg.Creds != "" {
 		return errors.New("can only specify creds_file_path or creds")
+	}
+
+	if cfg.BatchLogCountLimitGRPC > 0 {
+		return errors.New("batch_log_count_limit_grpc is deprecated - it was added to account for a bug with the SecOps raw logs search, but ultimately caused performance problems for the SecOps backend. The bug remains, but as long as UDM search is used, this field is not needed")
+	}
+
+	if cfg.BatchLogCountLimitHTTP > 0 {
+		return errors.New("batch_log_count_limit_http is deprecated - it was added to account for a bug with the SecOps raw logs search, but ultimately caused performance problems for the SecOps backend. The bug remains, but as long as UDM search is used, this field is not needed")
 	}
 
 	if cfg.RawLogField != "" {
