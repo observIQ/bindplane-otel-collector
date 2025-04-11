@@ -186,25 +186,25 @@ download_and_install() {
     else
         verify_version
         set_os_arch
-        local download_url="${repository_url}/releases/download/v${version}/${DISTRIBUTION}_v${version}_linux_${os_arch}.${pkg_type}"
-        echo "Downloading: $download_url"
+        download_and_install_url="${repository_url}/releases/download/v${version}/${DISTRIBUTION}_v${version}_linux_${os_arch}.${pkg_type}"
+        echo "Downloading: $download_and_install_url"
 
         case "$pkg_type" in
         tar.gz)
             mkdir -p "$INSTALL_DIR"
-            curl -L "$download_url" | tar xz -C "$INSTALL_DIR"
+            curl -L "$download_and_install_url" | tar xz -C "$INSTALL_DIR"
             ;;
         deb)
-            local tmp_file="/tmp/${DISTRIBUTION}_${version}.deb"
-            curl -L "$download_url" -o "$tmp_file"
-            dpkg -i "$tmp_file"
-            rm -f "$tmp_file"
+            deb_tmp_file="/tmp/${DISTRIBUTION}_${version}.deb"
+            curl -L "$download_and_install_url" -o "$deb_tmp_file"
+            dpkg -i "$deb_tmp_file"
+            rm -f "$deb_tmp_file"
             ;;
         rpm)
-            local tmp_file="/tmp/${DISTRIBUTION}_${version}.rpm"
-            curl -L "$download_url" -o "$tmp_file"
-            rpm -U "$tmp_file"
-            rm -f "$tmp_file"
+            rpm_tmp_file="/tmp/${DISTRIBUTION}_${version}.rpm"
+            curl -L "$download_and_install_url" -o "$rpm_tmp_file"
+            rpm -U "$rpm_tmp_file"
+            rm -f "$rpm_tmp_file"
             ;;
         esac
     fi
@@ -279,7 +279,6 @@ verify_distribution() {
         echo "   1. Use the -d/--distribution option"
         echo "   2. Set the DISTRIBUTION constant in the script"
         usage
-        exit 1
     fi
 }
 

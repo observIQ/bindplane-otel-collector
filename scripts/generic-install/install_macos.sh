@@ -43,15 +43,15 @@ usage() {
 manage_service() {
     echo "Managing service state..."
     # Assuming the plist file is included in the package and copied to INSTALL_DIR
-    local plist_source="$INSTALL_DIR/service/com.$DISTRIBUTION.plist"
+    manage_service_plist_source="$INSTALL_DIR/service/com.$DISTRIBUTION.plist"
 
-    if [ ! -f "$plist_source" ]; then
+    if [ ! -f "$manage_service_plist_source" ]; then
         echo "Error: plist file not found in package"
         exit 1
     fi
 
     # Copy the plist to LaunchDaemons
-    cp "$plist_source" "/Library/LaunchDaemons/"
+    cp "$manage_service_plist_source" "/Library/LaunchDaemons/"
     chown root:wheel "/Library/LaunchDaemons/com.$DISTRIBUTION.plist"
     chmod 644 "/Library/LaunchDaemons/com.$DISTRIBUTION.plist"
 
@@ -149,10 +149,10 @@ download_and_install() {
     else
         verify_version
         set_os_arch
-        local download_url="${repository_url}/releases/download/v${version}/${DISTRIBUTION}_v${version}_darwin_${os_arch}.tar.gz"
-        echo "Downloading: $download_url"
+        download_and_install_url="${repository_url}/releases/download/v${version}/${DISTRIBUTION}_v${version}_darwin_${os_arch}.tar.gz"
+        echo "Downloading: $download_and_install_url"
         mkdir -p "$INSTALL_DIR"
-        curl -L "$download_url" | tar xz -C "$INSTALL_DIR"
+        curl -L "$download_and_install_url" | tar xz -C "$INSTALL_DIR"
     fi
 }
 
@@ -220,7 +220,6 @@ verify_distribution() {
         echo "   1. Use the -d/--distribution option"
         echo "   2. Set the DISTRIBUTION constant in the script"
         usage
-        exit 1
     fi
 }
 
