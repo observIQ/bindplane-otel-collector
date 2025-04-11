@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	runes "github.com/observiq/bindplane-otel-collector/internal/regexmatcher/internal/runes"
+	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/matcher/runes"
 )
 
 // TestFilterSet tests the two-phase filtering approach.

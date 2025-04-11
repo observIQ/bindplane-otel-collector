@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package regexmatcher provides a matcher for regexes that respects order.
-package regexmatcher
+// Package matcher provides a matcher for regexes that respects order.
+package matcher
 
 import (
 	"errors"
@@ -22,7 +22,7 @@ import (
 	"regexp/syntax"
 
 	// Ensure correct import path
-	"github.com/observiq/bindplane-otel-collector/internal/regexmatcher/internal/runes"
+	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/matcher/runes"
 )
 
 // NamedRegex is the input structure for named regular expressions.
@@ -43,8 +43,8 @@ type Matcher struct {
 	runeFilterSet *runes.FilterSet
 }
 
-// NewMatcher creates a new Matcher.
-func NewMatcher(regexes []NamedRegex) (*Matcher, error) {
+// New creates a new Matcher.
+func New(regexes []NamedRegex) (*Matcher, error) {
 	if len(regexes) == 0 {
 		return nil, errors.New("no regexes provided")
 	}

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package regexmatcher_test
+package matcher_test
 
 import (
 	"math/rand/v2"
@@ -22,11 +22,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/observiq/bindplane-otel-collector/internal/regexmatcher"
+	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/matcher"
 )
 
 // testRegexes defines a set of known regexes in order of precedence
-var testRegexes = []regexmatcher.NamedRegex{
+var testRegexes = []matcher.NamedRegex{
 	{
 		Name:  "esxi_syslog",
 		Regex: regexp.MustCompile(`^(?:\d+\s)?<\d+>\d{1,4}-\d{1,2}-\d{1,2}T\d{1,2}:\d{1,2}:\d{1,2}(?:\.\d+)?(?:[+-][\d:]{4,5})?Z?\s+[^\s]+\s+(?:[^\s:]+?\s[^\s:]+?\s[^\s:]+?\s(?:[^\s\[]+|\[[^\[\]]+\])\s+)?(?:[^\s\[]+(?:\[\d+\])?:\s+)?.+$`),
@@ -136,11 +136,11 @@ var testExamples = map[string]string{
 }
 
 func TestMatch(t *testing.T) {
-	regexes := []regexmatcher.NamedRegex{
+	regexes := []matcher.NamedRegex{
 		{Name: "five_digits", Regex: regexp.MustCompile(`\d{5}`)},
 		{Name: "four_letters", Regex: regexp.MustCompile(`[a-zA-Z]{4}`)},
 	}
-	matcher, err := regexmatcher.NewMatcher(regexes)
+	matcher, err := matcher.New(regexes)
 	require.NoError(t, err)
 
 	// Input "no match" contains "matc", which matches four_letters.
@@ -158,7 +158,7 @@ func TestMatch(t *testing.T) {
 }
 
 func TestMatchComplex(t *testing.T) {
-	matcher, err := regexmatcher.NewMatcher(testRegexes)
+	matcher, err := matcher.New(testRegexes)
 	require.NoError(t, err)
 
 	for k, v := range testExamples {
@@ -202,7 +202,7 @@ func BenchmarkMatch(b *testing.B) {
 	// Now let's evaluate the optimized approach
 	b.Run("optimized", func(b *testing.B) {
 		// Setup matcher outside the timer
-		matcher, err := regexmatcher.NewMatcher(testRegexes)
+		matcher, err := matcher.New(testRegexes)
 		require.NoError(b, err)
 
 		b.ResetTimer() // Start timing after setup
