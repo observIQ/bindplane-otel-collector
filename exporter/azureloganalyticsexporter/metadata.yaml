@@ -1,0 +1,7 @@
+type: azureloganalytics
+
+status:
+  class: exporter
+  stability:
+    alpha: [logs]
+  distributions: [observiq]
