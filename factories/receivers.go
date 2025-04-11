@@ -28,6 +28,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/activedirectorydsreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/aerospikereceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/apachereceiver"
@@ -186,6 +187,7 @@ var defaultReceivers = []receiver.Factory{
 	vcenterreceiver.NewFactory(),
 	webhookeventreceiver.NewFactory(),
 	windowseventlogreceiver.NewFactory(),
+	windowseventtracereceiver.NewFactory(),
 	windowsperfcountersreceiver.NewFactory(),
 	zipkinreceiver.NewFactory(),
 	zookeeperreceiver.NewFactory(),
