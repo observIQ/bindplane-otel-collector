@@ -42,6 +42,30 @@ func TestValidate(t *testing.T) {
 			},
 		},
 		{
+			desc: "config with default value",
+			cfgMod: func(cfg *regexmatchprocessor.Config) {
+				cfg.Regexes = []matcher.NamedRegex{
+					{
+						Name:  "test",
+						Regex: regexp.MustCompile("test"),
+					},
+				}
+				cfg.DefaultValue = "default"
+			},
+		},
+		{
+			desc: "config with empty default value",
+			cfgMod: func(cfg *regexmatchprocessor.Config) {
+				cfg.Regexes = []matcher.NamedRegex{
+					{
+						Name:  "test",
+						Regex: regexp.MustCompile("test"),
+					},
+				}
+				cfg.DefaultValue = ""
+			},
+		},
+		{
 			desc:        "config with no regexes",
 			cfgMod:      func(cfg *regexmatchprocessor.Config) {},
 			expectedErr: "at least one regex is required",

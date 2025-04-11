@@ -21,7 +21,6 @@ import (
 	"regexp"
 	"regexp/syntax"
 
-	// Ensure correct import path
 	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/matcher/runes"
 )
 
@@ -41,15 +40,16 @@ type patternInfo struct {
 type Matcher struct {
 	patterns      []patternInfo
 	runeFilterSet *runes.FilterSet
+	defaultValue  string
 }
 
 // New creates a new Matcher.
-func New(regexes []NamedRegex) (*Matcher, error) {
+func New(regexes []NamedRegex, defaultValue string) (*Matcher, error) {
 	if len(regexes) == 0 {
 		return nil, errors.New("no regexes provided")
 	}
 
-	names := map[string]bool{"default": true}
+	names := map[string]bool{}
 	simplifiedTrees := make([]*syntax.Regexp, len(regexes))
 	patternInfos := make([]patternInfo, len(regexes))
 
@@ -83,6 +83,7 @@ func New(regexes []NamedRegex) (*Matcher, error) {
 	matcher := &Matcher{
 		patterns:      patternInfos,
 		runeFilterSet: filterSet,
+		defaultValue:  defaultValue,
 	}
 
 	return matcher, nil
@@ -105,5 +106,5 @@ func (m *Matcher) Match(s string) string {
 			return p.name
 		}
 	}
-	return "default"
+	return m.defaultValue
 }

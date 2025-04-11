@@ -1,11 +1,11 @@
 module github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor
 
-go 1.24.0
+go 1.23.7
 
 require (
-	github.com/observiq/bindplane-otel-collector/internal/regexmatcher v0.0.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v1.29.0
+	go.opentelemetry.io/collector/component/componenttest v0.123.0
 	go.opentelemetry.io/collector/consumer v1.29.0
 	go.opentelemetry.io/collector/consumer/consumertest v0.123.0
 	go.opentelemetry.io/collector/pdata v1.29.0
@@ -27,7 +27,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/collector/component/componentstatus v0.123.0 // indirect
-	go.opentelemetry.io/collector/component/componenttest v0.123.0 // indirect
 	go.opentelemetry.io/collector/consumer/xconsumer v0.123.0 // indirect
 	go.opentelemetry.io/collector/featuregate v1.29.0 // indirect
 	go.opentelemetry.io/collector/internal/telemetry v0.123.0 // indirect

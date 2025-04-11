@@ -16,6 +16,7 @@ package regexmatchprocessor_test
 
 import (
 	"context"
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -24,6 +25,7 @@ import (
 	"go.opentelemetry.io/collector/processor/processortest"
 
 	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor"
+	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/matcher"
 )
 
 func TestNewFactory(t *testing.T) {
@@ -34,9 +36,23 @@ func TestNewFactory(t *testing.T) {
 		AttributeName: "log.type",
 	}
 
-	cfg, ok := f.CreateDefaultConfig().(*regexmatchprocessor.Config)
-	require.True(t, ok)
+	cfg := f.CreateDefaultConfig().(*regexmatchprocessor.Config)
 	require.Equal(t, expectedCfg, cfg)
+
+	cfg.Regexes = []matcher.NamedRegex{
+		{
+			Name:  "test",
+			Regex: regexp.MustCompile("test"),
+		},
+	}
+	cfg.DefaultValue = "default"
+
+	ctx := context.Background()
+	set := processortest.NewNopSettings(f.Type())
+	sink := &consumertest.LogsSink{}
+	proc, err := f.CreateLogs(ctx, set, cfg, sink)
+	require.NoError(t, err)
+	require.NotNil(t, proc)
 }
 
 func TestBadFactory(t *testing.T) {
@@ -45,6 +61,23 @@ func TestBadFactory(t *testing.T) {
 	cfg.AttributeName = "invalid"
 
 	_, err := f.CreateLogs(context.Background(), processortest.NewNopSettings(f.Type()), cfg, &consumertest.LogsSink{})
+	require.Error(t, err)
+	require.ErrorContains(t, err, "invalid config for \"regexmatch\" processor")
+
+	cfg = f.CreateDefaultConfig().(*regexmatchprocessor.Config)
+	cfg.AttributeName = "invalid"
+	cfg.Regexes = []matcher.NamedRegex{
+		{
+			Name:  "test",
+			Regex: regexp.MustCompile("test"),
+		},
+		{
+			Name:  "test",
+			Regex: regexp.MustCompile("test"),
+		},
+	}
+
+	_, err = f.CreateLogs(context.Background(), processortest.NewNopSettings(f.Type()), cfg, &consumertest.LogsSink{})
 	require.Error(t, err)
 	require.ErrorContains(t, err, "invalid config for \"regexmatch\" processor")
 }

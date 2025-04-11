@@ -31,11 +31,7 @@ type regexMatchProcessor struct {
 
 // newRegexmatchProcessor returns a new regexmatchprocessor.
 func newRegexmatchProcessor(config *Config) (*regexMatchProcessor, error) {
-	if err := config.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid configuration: %w", err)
-	}
-
-	matcher, err := matcher.New(config.Regexes)
+	matcher, err := matcher.New(config.Regexes, config.DefaultValue)
 	if err != nil {
 		return nil, fmt.Errorf("problem with regexes: %w", err)
 	}
@@ -49,14 +45,15 @@ func newRegexmatchProcessor(config *Config) (*regexMatchProcessor, error) {
 // ProcessLogs implements the processor interface
 func (p *regexMatchProcessor) ProcessLogs(_ context.Context, ld plog.Logs) (plog.Logs, error) {
 	var errs error
-	// use new All function to iterate over all log records
 	for _, rls := range ld.ResourceLogs().All() {
 		for _, sls := range rls.ScopeLogs().All() {
 			for _, lr := range sls.LogRecords().All() {
 				if lr.Body().Type() != pcommon.ValueTypeStr {
 					continue
 				}
-				lr.Attributes().PutStr(p.cfg.AttributeName, p.matcher.Match(lr.Body().Str()))
+				if result := p.matcher.Match(lr.Body().Str()); result != "" {
+					lr.Attributes().PutStr(p.cfg.AttributeName, result)
+				}
 			}
 		}
 	}

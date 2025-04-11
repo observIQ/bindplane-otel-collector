@@ -1,6 +1,6 @@
 # Regex Matcher
 
-The `regexmatcher` package encapsulates the problem of matching a string to one of many possible regexes. 
+The `matcher` package encapsulates the problem of matching a string to one of many possible regexes. 
 For example, when processing logs of many formats, it can be used to efficiently determine which of several
 expected formats the log matches.
 
@@ -9,8 +9,8 @@ expected formats the log matches.
 ```go
 // Instantate a `Matcher` by providing `[]NamedRegex`. The order of these values is respected
 // so that the name of the first regex to match will be returned.
-matcher := regexmatcher.New(
-	[]regexmatcher.NamedRegex{
+matcher := matcher.New(
+	[]matcher.NamedRegex{
     // use an rfc timestamp format
 		{Name: "five_digits", Regex: regexp.MustCompile(`^<(\d{5})>`)},
 		{Name: "json", Regex: regexp.MustCompile(`^\{.*\}$`)},

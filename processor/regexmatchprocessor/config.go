@@ -26,6 +26,7 @@ import (
 type Config struct {
 	AttributeName string               `mapstructure:"attribute_name"`
 	Regexes       []matcher.NamedRegex `mapstructure:"regexes"`
+	DefaultValue  string               `mapstructure:"default_value"`
 }
 
 // Validate checks the configuration for any issues.
@@ -34,7 +35,7 @@ func (c *Config) Validate() error {
 		return errors.New("at least one regex is required")
 	}
 
-	_, err := matcher.New(c.Regexes)
+	_, err := matcher.New(c.Regexes, c.DefaultValue)
 	if err != nil {
 		return fmt.Errorf("problem with regexes: %w", err)
 	}
