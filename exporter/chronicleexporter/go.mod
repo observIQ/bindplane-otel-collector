@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter
 
-go 1.23.6
+go 1.23.8
 
 require (
 	github.com/golang/mock v1.6.0

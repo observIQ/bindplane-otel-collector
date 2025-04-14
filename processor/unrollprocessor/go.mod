@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/processor/unrollprocessor
 
-go 1.23.6
+go 1.23.8
 
 require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.123.0

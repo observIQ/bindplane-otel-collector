@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver
 
-go 1.23.6
+go 1.23.8
 
 toolchain go1.24.0
 
