@@ -16,8 +16,6 @@
 set -e
 
 # Constants
-INSTALL_DIR="/opt/$DISTRIBUTION"
-SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor-config.yaml"
 PREREQS="curl printf sed"
 DISTRIBUTION=""
 REPOSITORY_URL=""
@@ -43,7 +41,7 @@ usage() {
 manage_service() {
     echo "Managing service state..."
     # Assuming the plist file is included in the package and copied to INSTALL_DIR
-    manage_service_plist_source="$INSTALL_DIR/service/com.$DISTRIBUTION.plist"
+    manage_service_plist_source="$INSTALL_DIR/service/$DISTRIBUTION.plist"
 
     if [ ! -f "$manage_service_plist_source" ]; then
         echo "Error: plist file not found in package"
@@ -52,19 +50,14 @@ manage_service() {
 
     # Copy the plist to LaunchDaemons
     cp "$manage_service_plist_source" "/Library/LaunchDaemons/"
-    chown root:wheel "/Library/LaunchDaemons/com.$DISTRIBUTION.plist"
-    chmod 644 "/Library/LaunchDaemons/com.$DISTRIBUTION.plist"
+    chown root:wheel "/Library/LaunchDaemons/$DISTRIBUTION.plist"
+    chmod 644 "/Library/LaunchDaemons/$DISTRIBUTION.plist"
 
     # Load/reload the service
-    launchctl unload "/Library/LaunchDaemons/com.$DISTRIBUTION.plist" 2>/dev/null || true
-    launchctl load "/Library/LaunchDaemons/com.$DISTRIBUTION.plist"
+    launchctl unload "/Library/LaunchDaemons/$DISTRIBUTION.plist" 2>/dev/null || true
+    launchctl load "/Library/LaunchDaemons/$DISTRIBUTION.plist"
 
     echo "Service has been configured and started"
-}
-
-set_permissions() {
-    echo "Setting permissions..."
-    chown -R "$DISTRIBUTION:$DISTRIBUTION" "$INSTALL_DIR"
 }
 
 create_supervisor_config() {
@@ -130,9 +123,10 @@ set_os_arch() {
 
 # latest_version gets the tag of the latest release, without the v prefix.
 latest_version() {
-    curl -sSL -H"Accept: application/vnd.github.v3+json" "$repository_url/releases/latest" |
-        grep "\"tag_name\"" |
-        sed -E 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
+    lv=$(curl -Ls -o /dev/null -w %{url_effective} $repository_url/releases/latest)
+    lv=${lv##*/} # Remove everything before the last '/'
+    lv=${lv#v}   # Remove the 'v' prefix if it exists
+    echo "$lv"
 }
 
 verify_version() {
@@ -142,16 +136,18 @@ verify_version() {
 }
 
 download_and_install() {
+    if ! mkdir -p "$INSTALL_DIR" 2>/dev/null; then
+        echo "Error: Failed to create installation directory: $INSTALL_DIR"
+        exit 1
+    fi
     if [ -n "$local_file" ]; then
         echo "Installing from local file: $local_file"
-        mkdir -p "$INSTALL_DIR"
         tar xzf "$local_file" -C "$INSTALL_DIR"
     else
         verify_version
         set_os_arch
         download_and_install_url="${repository_url}/releases/download/v${version}/${DISTRIBUTION}_v${version}_darwin_${os_arch}.tar.gz"
         echo "Downloading: $download_and_install_url"
-        mkdir -p "$INSTALL_DIR"
         curl -L "$download_and_install_url" | tar xz -C "$INSTALL_DIR"
     fi
 }
@@ -180,7 +176,6 @@ install() {
     dependencies_check
     download_and_install
     create_supervisor_config
-    set_permissions
     manage_service
 
     echo "Installation complete!"
@@ -191,8 +186,8 @@ install() {
 uninstall() {
     echo "Uninstalling $DISTRIBUTION..."
     # Unload and remove launchd service
-    launchctl unload "/Library/LaunchDaemons/com.$DISTRIBUTION.plist" 2>/dev/null || true
-    rm -f "/Library/LaunchDaemons/com.$DISTRIBUTION.plist"
+    launchctl unload "/Library/LaunchDaemons/$DISTRIBUTION.plist" 2>/dev/null || true
+    rm -f "/Library/LaunchDaemons/$DISTRIBUTION.plist"
 
     # Remove installation directory
     rm -rf "$INSTALL_DIR"
@@ -221,6 +216,10 @@ verify_distribution() {
         echo "   2. Set the DISTRIBUTION constant in the script"
         usage
     fi
+
+    # Set constants dependent on distribution name
+    INSTALL_DIR="/opt/$DISTRIBUTION"
+    SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor-config.yaml"
 }
 
 parse_args() {

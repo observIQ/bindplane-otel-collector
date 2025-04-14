@@ -18,8 +18,6 @@ set -e
 # Constants
 DISTRIBUTION=""
 REPOSITORY_URL=""
-INSTALL_DIR="/opt/$DISTRIBUTION"
-SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor-config.yaml"
 PREREQS="curl printf sed"
 
 usage() {
@@ -73,11 +71,6 @@ manage_service() {
         echo "Warning: Service failed to start. Check status with: systemctl status $DISTRIBUTION"
         exit 1
     fi
-}
-
-set_permissions() {
-    echo "Setting permissions..."
-    chown -R "$DISTRIBUTION:$DISTRIBUTION" "$INSTALL_DIR"
 }
 
 create_supervisor_config() {
@@ -156,9 +149,10 @@ set_os_arch() {
 
 # latest_version gets the tag of the latest release, without the v prefix.
 latest_version() {
-    curl -sSL -H"Accept: application/vnd.github.v3+json" "$repository_url/releases/latest" |
-        grep "\"tag_name\"" |
-        sed -E 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
+    lv=$(curl -Ls -o /dev/null -w %{url_effective} $repository_url/releases/latest)
+    lv=${lv##*/} # Remove everything before the last '/'
+    lv=${lv#v}   # Remove the 'v' prefix if it exists
+    echo "$lv"
 }
 
 verify_version() {
@@ -246,7 +240,6 @@ install() {
     detect_package_type
     download_and_install
     create_supervisor_config
-    set_permissions
     manage_service
 
     echo "Installation complete!"
@@ -280,6 +273,10 @@ verify_distribution() {
         echo "   2. Set the DISTRIBUTION constant in the script"
         usage
     fi
+
+    # Set constants dependent on distribution name
+    INSTALL_DIR="/opt/$DISTRIBUTION"
+    SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor-config.yaml"
 }
 
 get_repository_url() {
