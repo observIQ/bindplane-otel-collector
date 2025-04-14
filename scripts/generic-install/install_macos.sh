@@ -123,7 +123,7 @@ set_os_arch() {
 
 # latest_version gets the tag of the latest release, without the v prefix.
 latest_version() {
-    lv=$(curl -Ls -o /dev/null -w %{url_effective} $repository_url/releases/latest)
+    lv=$(curl -Ls -o /dev/null -w '%{url_effective}' "$repository_url/releases/latest")
     lv=${lv##*/} # Remove everything before the last '/'
     lv=${lv#v}   # Remove the 'v' prefix if it exists
     echo "$lv"
