@@ -276,7 +276,7 @@ verify_distribution() {
 
     # Set constants dependent on distribution name
     INSTALL_DIR="/opt/$DISTRIBUTION"
-    SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor-config.yaml"
+    SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor_config.yaml"
 }
 
 get_repository_url() {
