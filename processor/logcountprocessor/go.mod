@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/processor/logcountprocessor
 
-go 1.23.6
+go 1.23.8
 
 require (
 	github.com/observiq/bindplane-otel-collector/counter v1.76.0

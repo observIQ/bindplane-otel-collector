@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/exporter/chronicleforwarderexporter
 
-go 1.23.6
+go 1.23.8
 
 require (
 	github.com/observiq/bindplane-otel-collector/expr v1.76.0

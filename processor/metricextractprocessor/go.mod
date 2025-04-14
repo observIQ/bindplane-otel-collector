@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/processor/metricextractprocessor
 
-go 1.23.6
+go 1.23.8
 
 require (
 	github.com/observiq/bindplane-otel-collector/expr v1.76.0
