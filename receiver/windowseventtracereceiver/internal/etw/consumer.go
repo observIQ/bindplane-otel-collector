@@ -157,7 +157,8 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	xmlBuilder.WriteString("</Event>")
 
 	event := &Event{
-		Raw: xmlBuilder.String(),
+		Timestamp: parseTimestamp(uint64(eventRecord.EventHeader.TimeStamp)),
+		Raw:       xmlBuilder.String(),
 	}
 
 	select {
