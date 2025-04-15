@@ -3,7 +3,7 @@
 # build in parallel and speed up overall CI time.
 name: Build
 on:
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   build_linux:
