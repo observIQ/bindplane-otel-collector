@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -188,6 +189,7 @@ func (lr *logsReceiver) parseEvent(event *etw.Event) (plog.Logs, error) {
 // parseEventData parses the event data and sets the log record with that data
 func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) {
 	record.SetTimestamp(pcommon.NewTimestampFromTime(event.Timestamp))
+	record.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
 	record.SetSeverityNumber(parseSeverity(event.System.Level))
 
 	record.Body().SetEmptyMap()
