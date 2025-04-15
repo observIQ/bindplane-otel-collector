@@ -168,6 +168,8 @@ func (lr *logsReceiver) rawEvent(event *etw.Event) (plog.Logs, error) {
 	resourceLog := logs.ResourceLogs().AppendEmpty()
 	scopeLog := resourceLog.ScopeLogs().AppendEmpty()
 	record := scopeLog.LogRecords().AppendEmpty()
+	record.SetTimestamp(pcommon.NewTimestampFromTime(event.Timestamp))
+	record.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
 	record.Body().SetStr(event.Raw)
 	return logs, nil
 }
