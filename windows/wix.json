@@ -10,6 +10,7 @@
   "files": [
     {
       "path": "observiq-otel-collector.exe",
+      "overwrite": true,
       "service": {
         "name": "observiq-otel-collector",
         "start": "delayed",
@@ -19,7 +20,8 @@
       }
     },
     {
-      "path": "updater.exe"
+      "path": "updater.exe",
+      "overwrite": true
     },
     {
       "path": "config.yaml",
@@ -30,13 +32,16 @@
       "never_overwrite": true
     },
     {
-      "path": "opentelemetry-java-contrib-jmx-metrics.jar"
+      "path": "opentelemetry-java-contrib-jmx-metrics.jar",
+      "overwrite": true
     },
     {
-      "path": "VERSION.txt"
+      "path": "VERSION.txt",
+      "overwrite": true
     },
     {
-      "path": "LICENSE"
+      "path": "LICENSE",
+      "overwrite": true
     }
   ],
   "directories": [
