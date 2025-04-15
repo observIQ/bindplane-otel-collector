@@ -42,7 +42,7 @@ manage_service() {
     echo "Managing service state..."
     if ! command -v systemctl >/dev/null; then
         echo "Warning: systemd not found, service not enabled"
-        echo "You will need to manually start the service"
+        echo "You will need to manually start the process"
         return
     fi
 
