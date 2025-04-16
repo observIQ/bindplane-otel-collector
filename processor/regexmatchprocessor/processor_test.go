@@ -28,7 +28,7 @@ import (
 	"go.opentelemetry.io/collector/processor/processortest"
 
 	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor"
-	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/matcher"
+	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/named"
 )
 
 func TestProcessor(t *testing.T) {
@@ -36,7 +36,7 @@ func TestProcessor(t *testing.T) {
 	require.Equal(t, component.MustNewType("regexmatch"), f.Type())
 
 	cfg := f.CreateDefaultConfig().(*regexmatchprocessor.Config)
-	cfg.Regexes = []matcher.NamedRegex{
+	cfg.Regexes = []named.Regex{
 		{
 			Name:  "test",
 			Regex: regexp.MustCompile("test"),
@@ -60,7 +60,7 @@ func TestProcessLogs(t *testing.T) {
 	tests := []struct {
 		name          string
 		attributeName string
-		regexes       []matcher.NamedRegex
+		regexes       []named.Regex
 		defaultValue  string
 		entries       []struct {
 			logBody       any
@@ -70,7 +70,7 @@ func TestProcessLogs(t *testing.T) {
 		{
 			name:          "Basic matching",
 			attributeName: "pattern",
-			regexes: []matcher.NamedRegex{
+			regexes: []named.Regex{
 				{
 					Name:  "pattern_a",
 					Regex: regexp.MustCompile("foo"),
@@ -102,7 +102,7 @@ func TestProcessLogs(t *testing.T) {
 		{
 			name:          "Empty default value",
 			attributeName: "pattern",
-			regexes: []matcher.NamedRegex{
+			regexes: []named.Regex{
 				{
 					Name:  "pattern_a",
 					Regex: regexp.MustCompile("foo"),
@@ -130,7 +130,7 @@ func TestProcessLogs(t *testing.T) {
 		{
 			name:          "Mixed body types",
 			attributeName: "pattern",
-			regexes: []matcher.NamedRegex{
+			regexes: []named.Regex{
 				{
 					Name:  "pattern_a",
 					Regex: regexp.MustCompile("foo"),

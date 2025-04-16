@@ -26,7 +26,7 @@ import (
 
 type regexMatchProcessor struct {
 	cfg     *Config
-	matcher *matcher.Matcher
+	matcher matcher.Matcher
 }
 
 // newRegexmatchProcessor returns a new regexmatchprocessor.

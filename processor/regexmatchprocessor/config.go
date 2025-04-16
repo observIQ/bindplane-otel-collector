@@ -20,13 +20,14 @@ import (
 	"fmt"
 
 	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/matcher"
+	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/named"
 )
 
 // Config is the configuration for the regex match processor.
 type Config struct {
-	AttributeName string               `mapstructure:"attribute_name"`
-	Regexes       []matcher.NamedRegex `mapstructure:"regexes"`
-	DefaultValue  string               `mapstructure:"default_value"`
+	AttributeName string        `mapstructure:"attribute_name"`
+	Regexes       []named.Regex `mapstructure:"regexes"`
+	DefaultValue  string        `mapstructure:"default_value"`
 }
 
 // Validate checks the configuration for any issues.

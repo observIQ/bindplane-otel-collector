@@ -25,7 +25,7 @@ import (
 	"go.opentelemetry.io/collector/processor/processortest"
 
 	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor"
-	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/matcher"
+	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/named"
 )
 
 func TestNewFactory(t *testing.T) {
@@ -39,7 +39,7 @@ func TestNewFactory(t *testing.T) {
 	cfg := f.CreateDefaultConfig().(*regexmatchprocessor.Config)
 	require.Equal(t, expectedCfg, cfg)
 
-	cfg.Regexes = []matcher.NamedRegex{
+	cfg.Regexes = []named.Regex{
 		{
 			Name:  "test",
 			Regex: regexp.MustCompile("test"),
@@ -66,7 +66,7 @@ func TestBadFactory(t *testing.T) {
 
 	cfg = f.CreateDefaultConfig().(*regexmatchprocessor.Config)
 	cfg.AttributeName = "invalid"
-	cfg.Regexes = []matcher.NamedRegex{
+	cfg.Regexes = []named.Regex{
 		{
 			Name:  "test",
 			Regex: regexp.MustCompile("test"),

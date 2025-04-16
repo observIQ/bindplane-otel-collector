@@ -21,11 +21,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/benchtest"
 	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/matcher"
+	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/named"
 )
 
 func TestMatch(t *testing.T) {
-	regexes := []matcher.NamedRegex{
+	regexes := []named.Regex{
 		{Name: "five_digits", Regex: regexp.MustCompile(`\d{5}`)},
 		{Name: "four_letters", Regex: regexp.MustCompile(`[a-zA-Z]{4}`)},
 	}
@@ -47,7 +49,7 @@ func TestMatch(t *testing.T) {
 }
 
 func TestDefaultValue(t *testing.T) {
-	regexes := []matcher.NamedRegex{
+	regexes := []named.Regex{
 		{Name: "five_digits", Regex: regexp.MustCompile(`\d{5}`)},
 		{Name: "four_letters", Regex: regexp.MustCompile(`[a-zA-Z]{4}`)},
 	}
@@ -64,10 +66,57 @@ func TestDefaultValue(t *testing.T) {
 }
 
 func TestMatchComplex(t *testing.T) {
-	matcher, err := matcher.New(testRegexes, "default")
+	regexes := make([]named.Regex, 0, len(benchtest.Regexes))
+	for _, r := range benchtest.Regexes {
+		regexes = append(regexes, named.Regex{
+			Name:  r.Name,
+			Regex: r.Regex,
+		})
+	}
+
+	matcher, err := matcher.New(regexes, "default")
 	require.NoError(t, err)
 
-	for k, v := range testExamples {
+	for k, v := range benchtest.Examples {
 		assert.Equal(t, v, matcher.Match(k))
 	}
+}
+
+func TestNoRegexesError(t *testing.T) {
+	regexes := []named.Regex{}
+
+	matcher, err := matcher.New(regexes, "default")
+	require.Error(t, err)
+	require.Nil(t, matcher)
+}
+
+func TestEmptyNameError(t *testing.T) {
+	regexes := []named.Regex{
+		{Name: "", Regex: regexp.MustCompile(`\d{5}`)},
+	}
+
+	matcher, err := matcher.New(regexes, "default")
+	require.Error(t, err)
+	require.Nil(t, matcher)
+}
+
+func TestDuplicateNameError(t *testing.T) {
+	regexes := []named.Regex{
+		{Name: "test", Regex: regexp.MustCompile(`\d{5}`)},
+		{Name: "test", Regex: regexp.MustCompile(`[a-zA-Z]{4}`)},
+	}
+
+	matcher, err := matcher.New(regexes, "default")
+	require.Error(t, err)
+	require.Nil(t, matcher)
+}
+
+func TestNilRegexError(t *testing.T) {
+	regexes := []named.Regex{
+		{Name: "test", Regex: nil},
+	}
+
+	matcher, err := matcher.New(regexes, "default")
+	require.Error(t, err)
+	require.Nil(t, matcher)
 }

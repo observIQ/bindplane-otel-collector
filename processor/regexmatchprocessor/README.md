@@ -4,7 +4,7 @@ This processor will evaluate each log record's body against a set of named regex
 
 ## Supported pipelines
 
-- Logs
+- Logs (in development)
 
 ## Configuration
 | Field     | Type   | Default | Description                                                                                                |

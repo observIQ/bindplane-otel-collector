@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor"
-	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/matcher"
+	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/named"
 )
 
 func TestValidate(t *testing.T) {
@@ -33,7 +33,7 @@ func TestValidate(t *testing.T) {
 		{
 			desc: "valid config",
 			cfgMod: func(cfg *regexmatchprocessor.Config) {
-				cfg.Regexes = []matcher.NamedRegex{
+				cfg.Regexes = []named.Regex{
 					{
 						Name:  "test",
 						Regex: regexp.MustCompile("test"),
@@ -44,7 +44,7 @@ func TestValidate(t *testing.T) {
 		{
 			desc: "config with default value",
 			cfgMod: func(cfg *regexmatchprocessor.Config) {
-				cfg.Regexes = []matcher.NamedRegex{
+				cfg.Regexes = []named.Regex{
 					{
 						Name:  "test",
 						Regex: regexp.MustCompile("test"),
@@ -56,7 +56,7 @@ func TestValidate(t *testing.T) {
 		{
 			desc: "config with empty default value",
 			cfgMod: func(cfg *regexmatchprocessor.Config) {
-				cfg.Regexes = []matcher.NamedRegex{
+				cfg.Regexes = []named.Regex{
 					{
 						Name:  "test",
 						Regex: regexp.MustCompile("test"),
@@ -73,7 +73,7 @@ func TestValidate(t *testing.T) {
 		{
 			desc: "config with empty regex name",
 			cfgMod: func(cfg *regexmatchprocessor.Config) {
-				cfg.Regexes = []matcher.NamedRegex{
+				cfg.Regexes = []named.Regex{
 					{
 						Name:  "",
 						Regex: regexp.MustCompile("test"),
@@ -85,7 +85,7 @@ func TestValidate(t *testing.T) {
 		{
 			desc: "config with duplicate regex name",
 			cfgMod: func(cfg *regexmatchprocessor.Config) {
-				cfg.Regexes = []matcher.NamedRegex{
+				cfg.Regexes = []named.Regex{
 					{
 						Name:  "test",
 						Regex: regexp.MustCompile("test"),

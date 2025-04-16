@@ -21,89 +21,66 @@ import (
 	"regexp"
 	"regexp/syntax"
 
-	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/matcher/runes"
+	"github.com/observiq/bindplane-otel-collector/processor/regexmatchprocessor/internal/named"
 )
 
-// NamedRegex is the input structure for named regular expressions.
-type NamedRegex struct {
-	Name  string
-	Regex *regexp.Regexp
+// Matcher is a type that can match a string against a set of regexes.
+type Matcher interface {
+	Match(s string) string
 }
 
-// patternInfo holds the original regex and name.
-type patternInfo struct {
-	name  string
-	regex *regexp.Regexp
-}
+type matcher struct {
+	// Regexes are stored in a map for efficient lookup.
+	regexMap map[string]*regexp.Regexp
 
-// Matcher holds patterns and the encapsulated rune FilterSet.
-type Matcher struct {
-	patterns      []patternInfo
-	runeFilterSet *runes.FilterSet
-	defaultValue  string
+	// Order of regexes is referred to as needed.
+	regexOrder []string
+
+	// If not empty, the value to return when no regex matches.
+	defaultValue string
 }
 
 // New creates a new Matcher.
-func New(regexes []NamedRegex, defaultValue string) (*Matcher, error) {
+func New(regexes []named.Regex, defaultValue string) (Matcher, error) {
 	if len(regexes) == 0 {
 		return nil, errors.New("no regexes provided")
 	}
 
-	names := map[string]bool{}
-	simplifiedTrees := make([]*syntax.Regexp, len(regexes))
-	patternInfos := make([]patternInfo, len(regexes))
-
-	for i, r := range regexes {
+	regexOrder := make([]string, 0, len(regexes))
+	regexMap := make(map[string]*regexp.Regexp, len(regexes))
+	for _, r := range regexes {
 		if r.Name == "" {
 			return nil, errors.New("regex name cannot be empty")
 		}
-		if names[r.Name] {
+		if _, ok := regexMap[r.Name]; ok {
 			return nil, fmt.Errorf("regex name is duplicated: %s", r.Name)
 		}
 		if r.Regex == nil {
 			return nil, fmt.Errorf("regex '%s' is nil", r.Name)
 		}
-		names[r.Name] = true
 
-		// Parse and simplify for rune analysis
-		parsedRegex, err := syntax.Parse(r.Regex.String(), syntax.Perl)
+		syntaxTree, err := syntax.Parse(r.Regex.String(), syntax.Perl)
 		if err != nil {
-			// This shouldn't happen if input is *regexp.Regexp, but check anyway
-			return nil, fmt.Errorf("internal error: failed to re-parse regex string for '%s': %w", r.Name, err)
+			return nil, fmt.Errorf("error parsing regex '%s': %w", r.Name, err)
 		}
-		simplifiedTrees[i] = parsedRegex.Simplify()
 
-		// Store basic pattern info
-		patternInfos[i] = patternInfo{name: r.Name, regex: r.Regex}
+		regexMap[r.Name] = regexp.MustCompile(syntaxTree.Simplify().String())
+
+		regexOrder = append(regexOrder, r.Name)
 	}
 
-	// Create the encapsulated rune filter set by passing the syntax trees
-	filterSet := runes.NewFilterSet(simplifiedTrees)
-
-	matcher := &Matcher{
-		patterns:      patternInfos,
-		runeFilterSet: filterSet,
-		defaultValue:  defaultValue,
-	}
-
-	return matcher, nil
+	return &matcher{
+		regexOrder:   regexOrder,
+		regexMap:     regexMap,
+		defaultValue: defaultValue,
+	}, nil
 }
 
 // Match finds the name of the first regex that matches the string s, using the FilterSet.
-func (m *Matcher) Match(s string) string {
-	// Perform Phase 1 filtering via the FilterSet
-	preFilterResult := m.runeFilterSet.PreFilter(s)
-
-	// Iterate through patterns and perform Phase 2 check + full match
-	for i, p := range m.patterns {
-		// Check if this pattern passes the rune filter (Phase 2)
-		if !preFilterResult.ShouldAttemptMatch(i) {
-			continue // Skip expensive regex match
-		}
-
-		// If rune filter passed, perform the full regex match
-		if p.regex.MatchString(s) {
-			return p.name
+func (m *matcher) Match(s string) string {
+	for _, p := range m.regexOrder {
+		if m.regexMap[p].MatchString(s) {
+			return p
 		}
 	}
 	return m.defaultValue
