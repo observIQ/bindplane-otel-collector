@@ -634,6 +634,17 @@ release:
     - glob: "./scripts/install/install_unix.sh"
     - glob: "./scripts/install/install_macos.sh"
 
+# https://console.cloud.google.com/storage/browser/bdot-release
+blobs:
+  - provider: gs
+    bucket: bdot-release
+    directory: "{{ .Major }}.{{ .Minor }}.{{ .Patch }}"
+    extra_files:
+      - glob: "./observiq-otel-collector*.msi"
+      - glob: "./observiq-otel-collector*.msi.sig"
+      - glob: "./scripts/install/install_unix.sh"
+      - glob: "./scripts/install/install_macos.sh"
+
 # https://goreleaser.com/customization/changelog/
 changelog:
   use: github
