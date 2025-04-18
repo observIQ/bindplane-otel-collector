@@ -19,12 +19,30 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 )
 
 func TestConfigValidate(t *testing.T) {
-	t.Run("Default config is valid", func(t *testing.T) {
-		err := createDefaultConfig().(*Config).Validate()
-		require.NoError(t, err)
+	t.Run("Valid config", func(t *testing.T) {
+		bindplaneExtensionID := component.MustNewID("bindplane")
+		cfg := Config{
+			Interval:           defaultInterval,
+			AccountID:          "myacct",
+			Configuration:      "myConfig",
+			OrganizationID:     "myorg",
+			BindplaneExtension: &bindplaneExtensionID,
+		}
+		require.NoError(t, cfg.Validate())
+	})
+
+	t.Run("Valid config no BindplaneExtension", func(t *testing.T) {
+		cfg := Config{
+			Interval:       defaultInterval,
+			AccountID:      "myacct",
+			Configuration:  "myConfig",
+			OrganizationID: "myorg",
+		}
+		require.NoError(t, cfg.Validate())
 	})
 
 	t.Run("interval too low", func(t *testing.T) {
