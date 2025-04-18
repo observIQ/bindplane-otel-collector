@@ -74,13 +74,13 @@ jobs:
         with:
           # For goreleaser
           fetch-depth: 0
-      - name: Install Gcloud SDK
-        uses: google-github-actions/setup-gcloud@v2
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
           project_id: ${{ secrets.BDOT_GCS_RELEASE_BUCKET_PROJECT_ID }}
           credentials_json: ${{ secrets.BDOT_GCS_RELEASE_BUCKET_CREDENTIALS }}
+      - name: Install Gcloud SDK
+        uses: google-github-actions/setup-gcloud@v2
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
