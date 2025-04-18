@@ -85,6 +85,14 @@ func (b *bindplaneExtension) RegisterTopologyState(processorID string, topology 
 	return b.topologyRegistry.RegisterTopologyState(processorID, topology)
 }
 
+func (b *bindplaneExtension) SetIntervalChan() chan time.Duration {
+	return b.topologyRegistry.SetIntervalChan()
+}
+
+func (b *bindplaneExtension) Reset() {
+	b.topologyRegistry.Reset()
+}
+
 func (b *bindplaneExtension) setupCustomCapabilities(host component.Host) error {
 	ext, ok := host.GetExtensions()[b.cfg.OpAMP]
 	if !ok {

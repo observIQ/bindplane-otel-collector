@@ -43,11 +43,10 @@ type topologyUpdate struct {
 
 type topologyProcessor struct {
 	logger      *zap.Logger
-	enabled     bool
 	topology    *TopoState
 	interval    time.Duration
 	processorID component.ID
-	bindplane   component.ID
+	bindplane   *component.ID
 
 	startOnce sync.Once
 }
@@ -70,6 +69,7 @@ func newTopologyProcessor(logger *zap.Logger, cfg *Config, processorID component
 		topology:    topology,
 		processorID: processorID,
 		interval:    cfg.Interval,
+		bindplane:   cfg.BindplaneExtension,
 		startOnce:   sync.Once{},
 	}, nil
 }
