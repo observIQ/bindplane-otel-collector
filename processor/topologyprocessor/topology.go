@@ -120,29 +120,35 @@ func (rtsr *ResettableTopologyRegistry) TopologyInfos() []TopoInfo {
 
 	ti := []TopoInfo{}
 	for _, ts := range states {
-		ts.mux.RLock()
-		defer ts.mux.RUnlock()
+		curInfo := getTopoInfoFromState(ts)
 
-		curInfo := TopoInfo{}
-		curInfo.GatewaySource.OrganizationID = ts.GatewaySource.OrganizationID
-		curInfo.GatewaySource.AccountID = ts.GatewaySource.AccountID
-		curInfo.GatewaySource.Configuration = ts.GatewaySource.Configuration
-		curInfo.GatewaySource.GatewayID = ts.GatewaySource.GatewayID
-		for gw, updated := range ts.RouteTable {
-			curInfo.GatewayDestinations = append(curInfo.GatewayDestinations, GatewayRecord{
-				Gateway: GatewayInfo{
-					OrganizationID: gw.OrganizationID,
-					AccountID:      gw.AccountID,
-					Configuration:  gw.Configuration,
-					GatewayID:      gw.GatewayID,
-				},
-				LastUpdated: updated.UTC(),
-			})
-		}
 		if len(curInfo.GatewayDestinations) > 0 {
 			ti = append(ti, curInfo)
 		}
 	}
 
 	return ti
+}
+
+func getTopoInfoFromState(ts *TopoState) TopoInfo {
+	ts.mux.RLock()
+	defer ts.mux.RUnlock()
+	curInfo := TopoInfo{}
+	curInfo.GatewaySource.OrganizationID = ts.GatewaySource.OrganizationID
+	curInfo.GatewaySource.AccountID = ts.GatewaySource.AccountID
+	curInfo.GatewaySource.Configuration = ts.GatewaySource.Configuration
+	curInfo.GatewaySource.GatewayID = ts.GatewaySource.GatewayID
+	for gw, updated := range ts.RouteTable {
+		curInfo.GatewayDestinations = append(curInfo.GatewayDestinations, GatewayRecord{
+			Gateway: GatewayInfo{
+				OrganizationID: gw.OrganizationID,
+				AccountID:      gw.AccountID,
+				Configuration:  gw.Configuration,
+				GatewayID:      gw.GatewayID,
+			},
+			LastUpdated: updated.UTC(),
+		})
+	}
+
+	return curInfo
 }
