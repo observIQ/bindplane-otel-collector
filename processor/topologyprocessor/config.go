@@ -17,12 +17,9 @@ package topologyprocessor
 
 import (
 	"errors"
-	"time"
 
 	"go.opentelemetry.io/collector/component"
 )
-
-const defaultInterval = time.Minute
 
 // Config is the configuration for the processor
 type Config struct {

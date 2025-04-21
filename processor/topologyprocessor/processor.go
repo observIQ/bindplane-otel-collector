@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	"go.opentelemetry.io/collector/client"
 	"go.opentelemetry.io/collector/component"
@@ -39,7 +38,6 @@ const (
 type topologyProcessor struct {
 	logger      *zap.Logger
 	topology    *TopoState
-	interval    time.Duration
 	processorID component.ID
 	bindplane   *component.ID
 
