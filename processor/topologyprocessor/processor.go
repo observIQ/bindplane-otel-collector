@@ -36,11 +36,6 @@ const (
 	resourceNameHeader   = "X-Bindplane-Resource-Name"
 )
 
-type topologyUpdate struct {
-	gw         GatewayInfo
-	routeTable map[GatewayInfo]time.Time
-}
-
 type topologyProcessor struct {
 	logger      *zap.Logger
 	topology    *TopoState
