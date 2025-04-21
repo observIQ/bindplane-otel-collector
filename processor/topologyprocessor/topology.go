@@ -26,7 +26,6 @@ type TopoRegistry interface {
 	// RegisterTopologyState registers the topology state for the given processor.
 	// It should return an error if the processor has already been registered.
 	RegisterTopologyState(processorID string, data *TopoState) error
-	SetIntervalChan() chan time.Duration
 	Reset()
 }
 
@@ -90,15 +89,13 @@ func (ts *TopoState) UpsertRoute(_ context.Context, gw GatewayInfo) {
 
 // ResettableTopologyRegistry is a concrete version of TopologyDataRegistry that is able to be reset.
 type ResettableTopologyRegistry struct {
-	topology        *sync.Map
-	setIntervalChan chan time.Duration
+	topology *sync.Map
 }
 
 // NewResettableTopologyRegistry creates a new ResettableTopologyRegistry
 func NewResettableTopologyRegistry() *ResettableTopologyRegistry {
 	return &ResettableTopologyRegistry{
-		topology:        &sync.Map{},
-		setIntervalChan: make(chan time.Duration, 1),
+		topology: &sync.Map{},
 	}
 }
 
@@ -115,11 +112,6 @@ func (rtsr *ResettableTopologyRegistry) RegisterTopologyState(processorID string
 // Reset unregisters all topology states in this registry
 func (rtsr *ResettableTopologyRegistry) Reset() {
 	rtsr.topology = &sync.Map{}
-}
-
-// SetIntervalChan returns the setIntervalChan
-func (rtsr *ResettableTopologyRegistry) SetIntervalChan() chan time.Duration {
-	return rtsr.setIntervalChan
 }
 
 // TopologyInfos returns all the topology data in this registry.

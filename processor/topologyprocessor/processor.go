@@ -68,7 +68,6 @@ func newTopologyProcessor(logger *zap.Logger, cfg *Config, processorID component
 		logger:      logger,
 		topology:    topology,
 		processorID: processorID,
-		interval:    cfg.Interval,
 		bindplane:   cfg.BindplaneExtension,
 		startOnce:   sync.Once{},
 	}, nil
@@ -88,7 +87,6 @@ func (tp *topologyProcessor) start(_ context.Context, host component.Host) error
 			if registerErr != nil {
 				return
 			}
-			registry.SetIntervalChan() <- tp.interval
 		}
 	})
 

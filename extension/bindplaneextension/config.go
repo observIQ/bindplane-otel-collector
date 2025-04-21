@@ -31,6 +31,9 @@ type Config struct {
 	// MeasurementsInterval is the interval on which to report measurements.
 	// Measurements reporting is disabled if this duration is 0.
 	MeasurementsInterval time.Duration `mapstructure:"measurements_interval"`
+	// TopologyInterval is the interval on which to report topology.
+	// Topology reporting is disabled if this duration is 0.
+	TopologyInterval time.Duration `mapstructure:"topology_interval"`
 	// ExtraMeasurementsAttributes are a map of key-value pairs to add to all reported measurements.
 	ExtraMeasurementsAttributes map[string]string `mapstructure:"extra_measurements_attributes,omitempty"`
 }
@@ -39,6 +42,10 @@ type Config struct {
 func (c Config) Validate() error {
 	if c.MeasurementsInterval < 0 {
 		return errors.New("measurements interval must be postitive or 0")
+	}
+
+	if c.TopologyInterval < 0 {
+		return errors.New("topology interval must be postitive or 0")
 	}
 
 	return nil
