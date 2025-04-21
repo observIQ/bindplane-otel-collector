@@ -28,9 +28,7 @@ func TestNewFactory(t *testing.T) {
 	factory := NewFactory()
 	require.Equal(t, componentType, factory.Type())
 
-	expectedCfg := &Config{
-		Interval: defaultInterval,
-	}
+	expectedCfg := &Config{}
 
 	cfg, ok := factory.CreateDefaultConfig().(*Config)
 	require.True(t, ok)
@@ -66,7 +64,6 @@ func TestCreateProcessorTwice_Logs(t *testing.T) {
 	set.ID = processorID
 
 	cfg := &Config{
-		Interval:           defaultInterval,
 		Configuration:      "myConf",
 		AccountID:          "myAcct",
 		OrganizationID:     "myOrg",
@@ -103,7 +100,6 @@ func TestCreateProcessorTwice_Metrics(t *testing.T) {
 	set.ID = processorID
 
 	cfg := &Config{
-		Interval:           defaultInterval,
 		Configuration:      "myConf",
 		AccountID:          "myAcct",
 		OrganizationID:     "myOrg",
@@ -140,7 +136,6 @@ func TestCreateProcessorTwice_Traces(t *testing.T) {
 	set.ID = processorID
 
 	cfg := &Config{
-		Interval:           defaultInterval,
 		Configuration:      "myConf",
 		AccountID:          "myAcct",
 		OrganizationID:     "myOrg",

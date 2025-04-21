@@ -26,9 +26,6 @@ const defaultInterval = time.Minute
 
 // Config is the configuration for the processor
 type Config struct {
-	// Interval is the interval at which this processor sends topology messages to Bindplane
-	Interval time.Duration `mapstructure:"interval"`
-
 	// Bindplane extension to use in order to report topology. Optional.
 	BindplaneExtension *component.ID `mapstructure:"bindplane_extension"`
 
@@ -44,10 +41,6 @@ type Config struct {
 
 // Validate validates the processor configuration
 func (cfg Config) Validate() error {
-	if cfg.Interval < 10*time.Second {
-		return errors.New("`interval` must be at least 10 seconds")
-	}
-
 	if cfg.Configuration == "" {
 		return errors.New("`configuration` must be specified")
 	}

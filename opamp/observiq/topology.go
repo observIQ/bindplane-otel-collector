@@ -31,7 +31,6 @@ import (
 // TopologyReporter represents an object that reports topology state.
 type TopologyReporter interface {
 	TopologyInfos() []topologyprocessor.TopoInfo
-	SetIntervalChan() chan time.Duration
 }
 
 // topologySender is a struct that handles periodically sending topology state via a custom message to an OpAMP endpoint.
@@ -40,17 +39,23 @@ type topologySender struct {
 	reporter    TopologyReporter
 	opampClient client.OpAMPClient
 
+	interval           time.Duration
+	changeIntervalChan chan time.Duration
+
 	mux       *sync.Mutex
 	isRunning bool
 	done      chan struct{}
 	wg        *sync.WaitGroup
 }
 
-func newTopologySender(l *zap.Logger, reporter TopologyReporter, opampClient client.OpAMPClient) *topologySender {
+func newTopologySender(l *zap.Logger, reporter TopologyReporter, opampClient client.OpAMPClient, interval time.Duration) *topologySender {
 	return &topologySender{
 		logger:      l,
 		reporter:    reporter,
 		opampClient: opampClient,
+		interval:    interval,
+
+		changeIntervalChan: make(chan time.Duration, 1),
 
 		mux:       &sync.Mutex{},
 		isRunning: false,
@@ -77,6 +82,14 @@ func (ts *topologySender) Start() {
 	}()
 }
 
+// SetInterval changes the interval of the topology sender.
+func (ts *topologySender) SetInterval(d time.Duration) {
+	select {
+	case ts.changeIntervalChan <- d:
+	case <-ts.done:
+	}
+}
+
 func (ts *topologySender) Stop() {
 	ts.mux.Lock()
 	defer ts.mux.Unlock()
@@ -93,12 +106,14 @@ func (ts *topologySender) Stop() {
 
 func (ts *topologySender) loop() {
 	t := newTicker()
+	t.SetInterval(ts.interval)
 	defer t.Stop()
 
 	for {
 		select {
-		case setInterval := <-ts.reporter.SetIntervalChan():
-			t.SetInterval(setInterval)
+		case newInterval := <-ts.changeIntervalChan:
+			ts.interval = newInterval
+			t.SetInterval(newInterval)
 		case <-ts.done:
 			return
 		case <-t.Chan():
@@ -129,10 +144,12 @@ func (ts *topologySender) loop() {
 				Data:       encoded,
 			}
 
+			success := false
 			for i := 0; i < maxSendRetries; i++ {
 				sendingChannel, err := ts.opampClient.SendCustomMessage(cm)
 				switch {
 				case err == nil: // OK
+					success = true
 				case errors.Is(err, types.ErrCustomMessagePending):
 					if i == maxSendRetries-1 {
 						// Bail out early, since we aren't going to try to send again
@@ -150,6 +167,10 @@ func (ts *topologySender) loop() {
 					ts.logger.Error("Failed to report topology", zap.Error(err))
 				}
 				break
+			}
+
+			if !success {
+				ts.logger.Warn("Failed to send topology after all retries")
 			}
 		}
 	}
