@@ -41,11 +41,11 @@ type Config struct {
 // Validate returns an error if the config is invalid
 func (c Config) Validate() error {
 	if c.MeasurementsInterval < 0 {
-		return errors.New("measurements interval must be postitive or 0")
+		return errors.New("measurements interval must be positive or 0")
 	}
 
 	if c.TopologyInterval < 0 {
-		return errors.New("topology interval must be postitive or 0")
+		return errors.New("topology interval must be positive or 0")
 	}
 
 	return nil
