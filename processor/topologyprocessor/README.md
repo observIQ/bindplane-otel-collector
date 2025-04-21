@@ -22,7 +22,7 @@ This processor utilizes request headers to provide extended topology functionali
 ```yaml
 receivers:
   filelog:
-    inclucde: ["/var/log/*.log"]
+    include: ["/var/log/*.log"]
 
 processors:
   topology:
