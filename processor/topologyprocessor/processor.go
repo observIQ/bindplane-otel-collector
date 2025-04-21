@@ -106,28 +106,28 @@ func (tp *topologyProcessor) processTopologyHeaders(ctx context.Context) {
 	var configuration, accountID, organizationID, resourceName string
 
 	configurationHeaders := headers.Get(configurationHeader)
-	if configurationHeaders != nil && len(configurationHeaders) > 0 {
+	if len(configurationHeaders) > 0 {
 		configuration = configurationHeaders[0]
 	} else {
 		return
 	}
 
 	accountIDHeaders := headers.Get(accountIDHeader)
-	if accountIDHeaders != nil && len(accountIDHeaders) > 0 {
+	if len(accountIDHeaders) > 0 {
 		accountID = accountIDHeaders[0]
 	} else {
 		return
 	}
 
 	organizationIDHeaders := headers.Get(organizationIDHeader)
-	if organizationIDHeaders != nil && len(organizationIDHeaders) > 0 {
+	if len(organizationIDHeaders) > 0 {
 		organizationID = organizationIDHeaders[0]
 	} else {
 		return
 	}
 
 	resourceNameHeaders := headers.Get(resourceNameHeader)
-	if resourceNameHeaders != nil && len(resourceNameHeaders) > 0 {
+	if len(resourceNameHeaders) > 0 {
 		resourceName = resourceNameHeaders[0]
 	} else {
 		return
