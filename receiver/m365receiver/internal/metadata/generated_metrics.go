@@ -210,6 +210,92 @@ var MapAttributeTeamsDevices = map[string]AttributeTeamsDevices{
 	"Web":       AttributeTeamsDevicesWeb,
 }
 
+var MetricsInfo = metricsInfo{
+	M365OnedriveFilesActiveCount: metricInfo{
+		Name: "m365.onedrive.files.active.count",
+	},
+	M365OnedriveFilesCount: metricInfo{
+		Name: "m365.onedrive.files.count",
+	},
+	M365OnedriveUserActivityCount: metricInfo{
+		Name: "m365.onedrive.user_activity.count",
+	},
+	M365OutlookAppUserCount: metricInfo{
+		Name: "m365.outlook.app.user.count",
+	},
+	M365OutlookEmailActivityCount: metricInfo{
+		Name: "m365.outlook.email_activity.count",
+	},
+	M365OutlookMailboxesActiveCount: metricInfo{
+		Name: "m365.outlook.mailboxes.active.count",
+	},
+	M365OutlookQuotaStatusCount: metricInfo{
+		Name: "m365.outlook.quota_status.count",
+	},
+	M365OutlookStorageUsed: metricInfo{
+		Name: "m365.outlook.storage.used",
+	},
+	M365SharepointFilesActiveCount: metricInfo{
+		Name: "m365.sharepoint.files.active.count",
+	},
+	M365SharepointFilesCount: metricInfo{
+		Name: "m365.sharepoint.files.count",
+	},
+	M365SharepointPagesUniqueCount: metricInfo{
+		Name: "m365.sharepoint.pages.unique.count",
+	},
+	M365SharepointPagesViewedCount: metricInfo{
+		Name: "m365.sharepoint.pages.viewed.count",
+	},
+	M365SharepointSiteStorageUsed: metricInfo{
+		Name: "m365.sharepoint.site.storage.used",
+	},
+	M365SharepointSitesActiveCount: metricInfo{
+		Name: "m365.sharepoint.sites.active.count",
+	},
+	M365TeamsCallsCount: metricInfo{
+		Name: "m365.teams.calls.count",
+	},
+	M365TeamsDeviceUsageUsers: metricInfo{
+		Name: "m365.teams.device_usage.users",
+	},
+	M365TeamsMeetingsCount: metricInfo{
+		Name: "m365.teams.meetings.count",
+	},
+	M365TeamsMessagesPrivateCount: metricInfo{
+		Name: "m365.teams.messages.private.count",
+	},
+	M365TeamsMessagesTeamCount: metricInfo{
+		Name: "m365.teams.messages.team.count",
+	},
+}
+
+type metricsInfo struct {
+	M365OnedriveFilesActiveCount    metricInfo
+	M365OnedriveFilesCount          metricInfo
+	M365OnedriveUserActivityCount   metricInfo
+	M365OutlookAppUserCount         metricInfo
+	M365OutlookEmailActivityCount   metricInfo
+	M365OutlookMailboxesActiveCount metricInfo
+	M365OutlookQuotaStatusCount     metricInfo
+	M365OutlookStorageUsed          metricInfo
+	M365SharepointFilesActiveCount  metricInfo
+	M365SharepointFilesCount        metricInfo
+	M365SharepointPagesUniqueCount  metricInfo
+	M365SharepointPagesViewedCount  metricInfo
+	M365SharepointSiteStorageUsed   metricInfo
+	M365SharepointSitesActiveCount  metricInfo
+	M365TeamsCallsCount             metricInfo
+	M365TeamsDeviceUsageUsers       metricInfo
+	M365TeamsMeetingsCount          metricInfo
+	M365TeamsMessagesPrivateCount   metricInfo
+	M365TeamsMessagesTeamCount      metricInfo
+}
+
+type metricInfo struct {
+	Name string
+}
+
 type metricM365OnedriveFilesActiveCount struct {
 	data     pmetric.Metric // data buffer for generated metric.
 	config   MetricConfig   // metric config provided by user.

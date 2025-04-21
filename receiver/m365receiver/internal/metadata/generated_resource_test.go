@@ -33,7 +33,7 @@ func TestResourceBuilder(t *testing.T) {
 			val, ok := res.Attributes().Get("m365.tenant.id")
 			assert.True(t, ok)
 			if ok {
-				assert.EqualValues(t, "m365.tenant.id-val", val.Str())
+				assert.Equal(t, "m365.tenant.id-val", val.Str())
 			}
 		})
 	}
