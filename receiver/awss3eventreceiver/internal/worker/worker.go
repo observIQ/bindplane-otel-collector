@@ -129,6 +129,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	}
 }
 
+// TODO change to processEvent(ctx context.Context, event CreateEvent) error
 func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord) error {
 	bucket := record.S3.Bucket.Name
 	key := record.S3.Object.Key
@@ -148,6 +149,9 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 
 	now := time.Now()
 
+	// TODO extract file download into a shared place, which multiple interface implmentation can use
+	// TODO crowdstrike implementation may need to download multiple and then unzip w/ gzip
+	// TODO crowdstrike (memory concern? - can it be streamed?)
 	reader := bufio.NewReader(resp.Body)
 
 	ld := plog.NewLogs()
