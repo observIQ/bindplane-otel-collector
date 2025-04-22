@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	"go.opentelemetry.io/collector/client"
 	"go.opentelemetry.io/collector/component"
@@ -36,18 +35,11 @@ const (
 	resourceNameHeader   = "X-Bindplane-Resource-Name"
 )
 
-type topologyUpdate struct {
-	gw         GatewayInfo
-	routeTable map[GatewayInfo]time.Time
-}
-
 type topologyProcessor struct {
 	logger      *zap.Logger
-	enabled     bool
 	topology    *TopoState
-	interval    time.Duration
 	processorID component.ID
-	bindplane   component.ID
+	bindplane   *component.ID
 
 	startOnce sync.Once
 }
@@ -69,7 +61,7 @@ func newTopologyProcessor(logger *zap.Logger, cfg *Config, processorID component
 		logger:      logger,
 		topology:    topology,
 		processorID: processorID,
-		interval:    cfg.Interval,
+		bindplane:   cfg.BindplaneExtension,
 		startOnce:   sync.Once{},
 	}, nil
 }
@@ -88,7 +80,6 @@ func (tp *topologyProcessor) start(_ context.Context, host component.Host) error
 			if registerErr != nil {
 				return
 			}
-			registry.SetIntervalChan() <- tp.interval
 		}
 	})
 
@@ -115,28 +106,28 @@ func (tp *topologyProcessor) processTopologyHeaders(ctx context.Context) {
 	var configuration, accountID, organizationID, resourceName string
 
 	configurationHeaders := headers.Get(configurationHeader)
-	if configurationHeaders != nil && len(configurationHeaders) > 0 {
+	if len(configurationHeaders) > 0 {
 		configuration = configurationHeaders[0]
 	} else {
 		return
 	}
 
 	accountIDHeaders := headers.Get(accountIDHeader)
-	if accountIDHeaders != nil && len(accountIDHeaders) > 0 {
+	if len(accountIDHeaders) > 0 {
 		accountID = accountIDHeaders[0]
 	} else {
 		return
 	}
 
 	organizationIDHeaders := headers.Get(organizationIDHeader)
-	if organizationIDHeaders != nil && len(organizationIDHeaders) > 0 {
+	if len(organizationIDHeaders) > 0 {
 		organizationID = organizationIDHeaders[0]
 	} else {
 		return
 	}
 
 	resourceNameHeaders := headers.Get(resourceNameHeader)
-	if resourceNameHeaders != nil && len(resourceNameHeaders) > 0 {
+	if len(resourceNameHeaders) > 0 {
 		resourceName = resourceNameHeaders[0]
 	} else {
 		return

@@ -12,7 +12,6 @@ This processor utilizes request headers to provide extended topology functionali
 ## Configuration
 | Field                | Type      | Default | Description                                                                                                                                                               |
 |----------------------|-----------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `interval`           | duration  | `1m`    | The interval at which topology data is sent to Bindplane via OpAMP.                                                                                                       |
 | `organizationID`     | string    |         | The Organization ID of the Bindplane configuration where this processor is running.                                                                                       |
 | `accountID`          | string    |         | The Account ID of the Bindplane configuration where this processor is running.                                                                                            |
 | `configuration`      | string    |         | The name of the Bindplane configuration this processor is running on.                                                                                                     |
@@ -23,11 +22,10 @@ This processor utilizes request headers to provide extended topology functionali
 ```yaml
 receivers:
   filelog:
-    inclucde: ["/var/log/*.log"]
+    include: ["/var/log/*.log"]
 
 processors:
   topology:
-    interval: 1m
     organizationID: "myOrganizationID"
     accountID: "myAccountID"
     configuration: "myConfiguration"
