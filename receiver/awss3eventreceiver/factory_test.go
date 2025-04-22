@@ -12,25 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package awss3eventreceiver
+package awss3eventreceiver_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/receiver"
+
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 )
 
 // Test that the factory creates the default configuration correctly
 func TestFactoryCreateDefaultConfig(t *testing.T) {
-	factory := NewFactory()
+	factory := awss3eventreceiver.NewFactory()
 	cfg := factory.CreateDefaultConfig()
 
 	assert.Equal(t, metadata.Type, factory.Type())
@@ -39,7 +41,7 @@ func TestFactoryCreateDefaultConfig(t *testing.T) {
 
 	assert.NoError(t, componenttest.CheckConfigStruct(cfg))
 
-	receiverCfg, ok := cfg.(*Config)
+	receiverCfg, ok := cfg.(*awss3eventreceiver.Config)
 	require.True(t, ok)
 	assert.Equal(t, "", receiverCfg.SQSQueueURL)
 	assert.Equal(t, 15*time.Second, receiverCfg.StandardPollInterval)
@@ -52,10 +54,10 @@ func TestFactoryCreateDefaultConfig(t *testing.T) {
 // Test factory receiver creation methods
 func TestFactoryCreateReceivers(t *testing.T) {
 	ctx := context.Background()
-	factory := NewFactory()
+	factory := awss3eventreceiver.NewFactory()
 
 	// Create valid config
-	cfg := factory.CreateDefaultConfig().(*Config)
+	cfg := factory.CreateDefaultConfig().(*awss3eventreceiver.Config)
 	cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 
 	// Create settings
@@ -77,10 +79,10 @@ func TestFactoryCreateReceivers(t *testing.T) {
 // Test factory error cases
 func TestFactoryCreateReceiverErrors(t *testing.T) {
 	ctx := context.Background()
-	factory := NewFactory()
+	factory := awss3eventreceiver.NewFactory()
 
 	// Create invalid config
-	cfg := factory.CreateDefaultConfig().(*Config)
+	cfg := factory.CreateDefaultConfig().(*awss3eventreceiver.Config)
 	cfg.SQSQueueURL = ""
 
 	// Create settings

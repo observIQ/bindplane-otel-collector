@@ -23,12 +23,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/backoff"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.uber.org/zap"
+
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/backoff"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 )
 
 type logsReceiver struct {
@@ -79,7 +80,9 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 	}, nil
 }
 
-func (r *logsReceiver) Start(ctx context.Context, _ component.Host) error {
+func (r *logsReceiver) Start(_ context.Context, _ component.Host) error {
+	// Context passed to Start is not long running, so we can use a background context
+	ctx := context.Background()
 	r.startOnce.Do(func() {
 		// Create message channel
 		r.msgChan = make(chan workerMessage, r.cfg.Workers*2)
