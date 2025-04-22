@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector
 
-go 1.23.8
+go 1.24.0
 
 require (
 	github.com/google/uuid v1.6.0
@@ -353,13 +353,13 @@ require (
 	github.com/apache/arrow-go/v18 v18.0.0 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
-	github.com/aws/aws-lambda-go v1.47.0 // indirect
+	github.com/aws/aws-lambda-go v1.48.0 // indirect
 	github.com/aws/aws-msk-iam-sasl-signer-go v1.0.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.71 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.47.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.211.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/servicediscovery v1.35.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.29.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.38.5 // indirect
 	github.com/bboreham/go-loser v0.0.0-20230920113527-fcc2c21820a3 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -445,6 +445,7 @@ require (
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/observiq/bindplane-otel-collector/counter v1.76.0 // indirect
 	github.com/observiq/bindplane-otel-collector/expr v1.76.0 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/aws v1.76.0 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.76.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/okta/okta-sdk-golang/v2 v2.20.0 // indirect
@@ -657,7 +658,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/kinesis v1.33.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.79.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.79.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.25.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.18 // indirect
@@ -1007,3 +1008,5 @@ replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 replace github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter => ./exporter/googlecloudstorageexporter
 
 replace github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver => ./receiver/googlecloudstoragerehydrationreceiver
+
+replace github.com/observiq/bindplane-otel-collector/internal/aws => ./internal/aws
