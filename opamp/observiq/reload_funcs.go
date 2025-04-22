@@ -55,6 +55,10 @@ func managerReload(client *Client, managerConfigPath string) opamp.ReloadFunc {
 			updatedKeys = append(updatedKeys, "extra_measurements_attributes")
 		}
 
+		if client.currentConfig.TopologyInterval != newConfig.TopologyInterval {
+			updatedKeys = append(updatedKeys, "topology_interval")
+		}
+
 		client.logger.Info("Manager config update detected", zap.Strings("updated_keys", updatedKeys))
 		// Going to do an update prep a rollback
 		rollbackFunc, cleanupFunc, err := prepRollback(managerConfigPath)
@@ -78,6 +82,7 @@ func managerReload(client *Client, managerConfigPath string) opamp.ReloadFunc {
 		client.currentConfig.Labels = newConfig.Labels
 		client.currentConfig.MeasurementsInterval = newConfig.MeasurementsInterval
 		client.currentConfig.ExtraMeasurementsAttributes = newConfig.ExtraMeasurementsAttributes
+		client.currentConfig.TopologyInterval = newConfig.TopologyInterval
 
 		// Update identity
 		client.ident.agentName = newConfig.AgentName
@@ -121,6 +126,7 @@ func managerReload(client *Client, managerConfigPath string) opamp.ReloadFunc {
 		// Set new measurements interval and attributes
 		client.measurementsSender.SetInterval(client.currentConfig.MeasurementsInterval)
 		client.measurementsSender.SetExtraAttributes(client.currentConfig.ExtraMeasurementsAttributes)
+		client.topologySender.SetInterval(client.currentConfig.TopologyInterval)
 
 		return true, nil
 	}

@@ -23,19 +23,20 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/backoff"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.uber.org/zap"
+
+	"github.com/observiq/bindplane-otel-collector/internal/aws/backoff"
+	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 )
 
 type logsReceiver struct {
 	id        component.ID
 	cfg       *Config
 	telemetry component.TelemetrySettings
-	sqsClient bpaws.SQSClient
+	sqsClient client.SQSClient
 	next      consumer.Logs
 	startOnce sync.Once
 	stopOnce  sync.Once
@@ -55,7 +56,7 @@ type workerMessage struct {
 }
 
 func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Config, next consumer.Logs) (component.Component, error) {
-	region, err := bpaws.ParseRegionFromSQSURL(cfg.SQSQueueURL)
+	region, err := client.ParseRegionFromSQSURL(cfg.SQSQueueURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract region from SQS URL: %w", err)
 	}
@@ -70,7 +71,7 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 		cfg:       cfg,
 		telemetry: tel,
 		next:      next,
-		sqsClient: bpaws.NewClient(awsConfig).SQS(),
+		sqsClient: client.NewClient(awsConfig).SQS(),
 		workerPool: sync.Pool{
 			New: func() any {
 				return worker.New(tel, awsConfig, next, cfg.MaxLogSize, cfg.MaxLogsEmitted)
@@ -79,7 +80,9 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 	}, nil
 }
 
-func (r *logsReceiver) Start(ctx context.Context, _ component.Host) error {
+func (r *logsReceiver) Start(_ context.Context, _ component.Host) error {
+	// Context passed to Start is not long running, so we can use a background context
+	ctx := context.Background()
 	r.startOnce.Do(func() {
 		// Create message channel
 		r.msgChan = make(chan workerMessage, r.cfg.Workers*2)

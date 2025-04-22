@@ -17,23 +17,14 @@ package topologyprocessor
 
 import (
 	"errors"
-	"time"
 
 	"go.opentelemetry.io/collector/component"
 )
 
-const defaultInterval = time.Minute
-
 // Config is the configuration for the processor
 type Config struct {
-	// Enabled controls whether this processor is enabled or not.
-	Enabled bool `mapstructure:"enabled"`
-
-	// Interval is the interval at which this processor sends topology messages to Bindplane
-	Interval time.Duration `mapstructure:"interval"`
-
 	// Bindplane extension to use in order to report topology. Optional.
-	BindplaneExtension component.ID `mapstructure:"bindplane_extension"`
+	BindplaneExtension *component.ID `mapstructure:"bindplane_extension"`
 
 	// Name of the Config where this processor is present
 	Configuration string `mapstructure:"configuration"`
@@ -47,15 +38,6 @@ type Config struct {
 
 // Validate validates the processor configuration
 func (cfg Config) Validate() error {
-	// Processor not enabled no validation needed
-	if !cfg.Enabled {
-		return nil
-	}
-
-	if cfg.Interval < 10*time.Second {
-		return errors.New("`interval` must be at least 10 seconds")
-	}
-
 	if cfg.Configuration == "" {
 		return errors.New("`configuration` must be specified")
 	}
