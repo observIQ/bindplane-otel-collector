@@ -20,10 +20,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"
+
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 )
 
 // errImproperCfgType error for when an invalid config type is passed to receiver creation funcs

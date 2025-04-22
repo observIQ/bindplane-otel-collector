@@ -12,25 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package awss3eventreceiver
+package awss3eventreceiver_test
 
 import (
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/confmap/confmaptest"
+
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 )
 
 func TestValidConfig(t *testing.T) {
 	t.Parallel()
 
-	f := NewFactory()
-	cfg := f.CreateDefaultConfig().(*Config)
+	f := awss3eventreceiver.NewFactory()
+	cfg := f.CreateDefaultConfig().(*awss3eventreceiver.Config)
 	cfg.SQSQueueURL = "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
 
 	assert.NoError(t, cfg.Validate())
@@ -49,12 +51,12 @@ func TestLoadConfig(t *testing.T) {
 	}{
 		{
 			id:          component.NewID(metadata.Type),
-			expected:    createDefaultConfig(),
+			expected:    awss3eventreceiver.NewFactory().CreateDefaultConfig(),
 			expectError: true, // Default config doesn't have required fields
 		},
 		{
 			id: component.NewIDWithName(metadata.Type, "custom"),
-			expected: &Config{
+			expected: &awss3eventreceiver.Config{
 				SQSQueueURL:          "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
 				StandardPollInterval: 30 * time.Second,
 				MaxPollInterval:      60 * time.Second,
@@ -70,7 +72,7 @@ func TestLoadConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.id.String(), func(t *testing.T) {
-			factory := NewFactory()
+			factory := awss3eventreceiver.NewFactory()
 			cfg := factory.CreateDefaultConfig()
 
 			// Get the receivers section from the confmap
@@ -84,12 +86,12 @@ func TestLoadConfig(t *testing.T) {
 			require.NoError(t, sub.Unmarshal(cfg))
 
 			if tt.expectError {
-				require.Error(t, cfg.(*Config).Validate())
+				require.Error(t, cfg.(*awss3eventreceiver.Config).Validate())
 				return
 			}
 
-			require.NoError(t, cfg.(*Config).Validate())
-			if cfgS3, ok := cfg.(*Config); ok {
+			require.NoError(t, cfg.(*awss3eventreceiver.Config).Validate())
+			if cfgS3, ok := cfg.(*awss3eventreceiver.Config); ok {
 				assert.Equal(t, tt.expected, cfgS3)
 			}
 		})
@@ -99,24 +101,24 @@ func TestLoadConfig(t *testing.T) {
 func TestConfigValidate(t *testing.T) {
 	testCases := []struct {
 		desc        string
-		cfgMod      func(*Config)
+		cfgMod      func(*awss3eventreceiver.Config)
 		expectedErr string
 	}{
 		{
 			desc: "Valid config",
-			cfgMod: func(cfg *Config) {
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
 				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 			},
 			expectedErr: "",
 		},
 		{
 			desc:        "Missing SQS queue URL",
-			cfgMod:      func(_ *Config) {},
+			cfgMod:      func(_ *awss3eventreceiver.Config) {},
 			expectedErr: "'sqs_queue_url' is required",
 		},
 		{
 			desc: "Invalid poll interval",
-			cfgMod: func(cfg *Config) {
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
 				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 				cfg.StandardPollInterval = 0
 			},
@@ -124,7 +126,7 @@ func TestConfigValidate(t *testing.T) {
 		},
 		{
 			desc: "Invalid max poll interval",
-			cfgMod: func(cfg *Config) {
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
 				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 				cfg.StandardPollInterval = 15 * time.Second
 				cfg.MaxPollInterval = 10 * time.Second
@@ -133,7 +135,7 @@ func TestConfigValidate(t *testing.T) {
 		},
 		{
 			desc: "Invalid polling backoff factor",
-			cfgMod: func(cfg *Config) {
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
 				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 				cfg.StandardPollInterval = 15 * time.Second
 				cfg.MaxPollInterval = 60 * time.Second
@@ -143,7 +145,7 @@ func TestConfigValidate(t *testing.T) {
 		},
 		{
 			desc: "Invalid visibility timeout",
-			cfgMod: func(cfg *Config) {
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
 				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 				cfg.VisibilityTimeout = 0
 			},
@@ -151,7 +153,7 @@ func TestConfigValidate(t *testing.T) {
 		},
 		{
 			desc: "Invalid workers",
-			cfgMod: func(cfg *Config) {
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
 				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 				cfg.Workers = -1
 			},
@@ -159,7 +161,7 @@ func TestConfigValidate(t *testing.T) {
 		},
 		{
 			desc: "Invalid max log size",
-			cfgMod: func(cfg *Config) {
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
 				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 				cfg.MaxLogSize = 0
 			},
@@ -169,8 +171,8 @@ func TestConfigValidate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			f := NewFactory()
-			cfg := f.CreateDefaultConfig().(*Config)
+			f := awss3eventreceiver.NewFactory()
+			cfg := f.CreateDefaultConfig().(*awss3eventreceiver.Config)
 			tc.cfgMod(cfg)
 			err := cfg.Validate()
 			if tc.expectedErr != "" {
