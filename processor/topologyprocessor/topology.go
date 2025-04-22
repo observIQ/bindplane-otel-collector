@@ -26,21 +26,16 @@ type TopoRegistry interface {
 	// RegisterTopologyState registers the topology state for the given processor.
 	// It should return an error if the processor has already been registered.
 	RegisterTopologyState(processorID string, data *TopoState) error
-	SetIntervalChan() chan time.Duration
 	Reset()
 }
 
 // TopoState represents the data captured through topology processors.
 type TopoState struct {
-	Topology topology
-	mux      sync.Mutex
-}
-
-type topology struct {
 	// GatewaySource is the gateway source that the entries in the route table point to
 	GatewaySource GatewayInfo
 	// RouteTable is a map of gateway destinations to the time at which they were last detected
 	RouteTable map[GatewayInfo]time.Time
+	mux        sync.RWMutex
 }
 
 // GatewayInfo represents a bindplane gateway source or destination
@@ -72,11 +67,9 @@ type TopoInfo struct {
 // NewTopologyState initializes a new TopologyState
 func NewTopologyState(gw GatewayInfo) (*TopoState, error) {
 	return &TopoState{
-		Topology: topology{
-			GatewaySource: gw,
-			RouteTable:    make(map[GatewayInfo]time.Time),
-		},
-		mux: sync.Mutex{},
+		GatewaySource: gw,
+		RouteTable:    make(map[GatewayInfo]time.Time),
+		mux:           sync.RWMutex{},
 	}, nil
 }
 
@@ -85,20 +78,18 @@ func (ts *TopoState) UpsertRoute(_ context.Context, gw GatewayInfo) {
 	ts.mux.Lock()
 	defer ts.mux.Unlock()
 
-	ts.Topology.RouteTable[gw] = time.Now()
+	ts.RouteTable[gw] = time.Now()
 }
 
 // ResettableTopologyRegistry is a concrete version of TopologyDataRegistry that is able to be reset.
 type ResettableTopologyRegistry struct {
-	topology        *sync.Map
-	setIntervalChan chan time.Duration
+	topology *sync.Map
 }
 
 // NewResettableTopologyRegistry creates a new ResettableTopologyRegistry
 func NewResettableTopologyRegistry() *ResettableTopologyRegistry {
 	return &ResettableTopologyRegistry{
-		topology:        &sync.Map{},
-		setIntervalChan: make(chan time.Duration, 1),
+		topology: &sync.Map{},
 	}
 }
 
@@ -117,43 +108,47 @@ func (rtsr *ResettableTopologyRegistry) Reset() {
 	rtsr.topology = &sync.Map{}
 }
 
-// SetIntervalChan returns the setIntervalChan
-func (rtsr *ResettableTopologyRegistry) SetIntervalChan() chan time.Duration {
-	return rtsr.setIntervalChan
-}
-
 // TopologyInfos returns all the topology data in this registry.
 func (rtsr *ResettableTopologyRegistry) TopologyInfos() []TopoInfo {
-	states := []topology{}
+	states := []*TopoState{}
 
 	rtsr.topology.Range(func(_, value any) bool {
 		ts := value.(*TopoState)
-		states = append(states, ts.Topology)
+		states = append(states, ts)
 		return true
 	})
 
 	ti := []TopoInfo{}
 	for _, ts := range states {
-		curInfo := TopoInfo{}
-		curInfo.GatewaySource.OrganizationID = ts.GatewaySource.OrganizationID
-		curInfo.GatewaySource.AccountID = ts.GatewaySource.AccountID
-		curInfo.GatewaySource.Configuration = ts.GatewaySource.Configuration
-		curInfo.GatewaySource.GatewayID = ts.GatewaySource.GatewayID
-		for gw, updated := range ts.RouteTable {
-			curInfo.GatewayDestinations = append(curInfo.GatewayDestinations, GatewayRecord{
-				Gateway: GatewayInfo{
-					OrganizationID: gw.OrganizationID,
-					AccountID:      gw.AccountID,
-					Configuration:  gw.Configuration,
-					GatewayID:      gw.GatewayID,
-				},
-				LastUpdated: updated.UTC(),
-			})
-		}
+		curInfo := getTopoInfoFromState(ts)
+
 		if len(curInfo.GatewayDestinations) > 0 {
 			ti = append(ti, curInfo)
 		}
 	}
 
 	return ti
+}
+
+func getTopoInfoFromState(ts *TopoState) TopoInfo {
+	ts.mux.RLock()
+	defer ts.mux.RUnlock()
+	curInfo := TopoInfo{}
+	curInfo.GatewaySource.OrganizationID = ts.GatewaySource.OrganizationID
+	curInfo.GatewaySource.AccountID = ts.GatewaySource.AccountID
+	curInfo.GatewaySource.Configuration = ts.GatewaySource.Configuration
+	curInfo.GatewaySource.GatewayID = ts.GatewaySource.GatewayID
+	for gw, updated := range ts.RouteTable {
+		curInfo.GatewayDestinations = append(curInfo.GatewayDestinations, GatewayRecord{
+			Gateway: GatewayInfo{
+				OrganizationID: gw.OrganizationID,
+				AccountID:      gw.AccountID,
+				Configuration:  gw.Configuration,
+				GatewayID:      gw.GatewayID,
+			},
+			LastUpdated: updated.UTC(),
+		})
+	}
+
+	return curInfo
 }

@@ -18,7 +18,6 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/plogtest"
@@ -34,8 +33,6 @@ func TestProcessor_Logs(t *testing.T) {
 	processorID := component.MustNewIDWithName("topology", "1")
 
 	tmp, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
-		Interval:       time.Second,
 		OrganizationID: "myOrgID",
 		AccountID:      "myAccountID",
 		Configuration:  "myConfigName",
@@ -60,16 +57,16 @@ func TestProcessor_Logs(t *testing.T) {
 	require.NoError(t, plogtest.CompareLogs(logs, processedLogs))
 
 	// validate that upsert route was performed
-	require.True(t, tmp.topology.Topology.GatewaySource.AccountID == "myAccountID")
-	require.True(t, tmp.topology.Topology.GatewaySource.OrganizationID == "myOrgID")
-	require.True(t, tmp.topology.Topology.GatewaySource.Configuration == "myConfigName")
+	require.True(t, tmp.topology.GatewaySource.AccountID == "myAccountID")
+	require.True(t, tmp.topology.GatewaySource.OrganizationID == "myOrgID")
+	require.True(t, tmp.topology.GatewaySource.Configuration == "myConfigName")
 	ci := GatewayInfo{
 		Configuration:  "myConfigName1",
 		AccountID:      "myAccountID1",
 		OrganizationID: "myOrgID1",
 		GatewayID:      "myResourceName1",
 	}
-	_, ok := tmp.topology.Topology.RouteTable[ci]
+	_, ok := tmp.topology.RouteTable[ci]
 	require.True(t, ok)
 }
 
@@ -77,8 +74,6 @@ func TestProcessor_Metrics(t *testing.T) {
 	processorID := component.MustNewIDWithName("topology", "1")
 
 	tmp, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
-		Interval:       time.Second,
 		OrganizationID: "myOrgID",
 		AccountID:      "myAccountID",
 		Configuration:  "myConfigName",
@@ -104,16 +99,16 @@ func TestProcessor_Metrics(t *testing.T) {
 	require.NoError(t, pmetrictest.CompareMetrics(metrics, processedMetrics))
 
 	// validate that upsert route was performed
-	require.True(t, tmp.topology.Topology.GatewaySource.AccountID == "myAccountID")
-	require.True(t, tmp.topology.Topology.GatewaySource.OrganizationID == "myOrgID")
-	require.True(t, tmp.topology.Topology.GatewaySource.Configuration == "myConfigName")
+	require.True(t, tmp.topology.GatewaySource.AccountID == "myAccountID")
+	require.True(t, tmp.topology.GatewaySource.OrganizationID == "myOrgID")
+	require.True(t, tmp.topology.GatewaySource.Configuration == "myConfigName")
 	ci := GatewayInfo{
 		Configuration:  "myConfigName1",
 		AccountID:      "myAccountID1",
 		OrganizationID: "myOrgID1",
 		GatewayID:      "myResourceName1",
 	}
-	_, ok := tmp.topology.Topology.RouteTable[ci]
+	_, ok := tmp.topology.RouteTable[ci]
 	require.True(t, ok)
 }
 
@@ -121,8 +116,6 @@ func TestProcessor_Traces(t *testing.T) {
 	processorID := component.MustNewIDWithName("topology", "1")
 
 	tmp, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
-		Interval:       time.Second,
 		OrganizationID: "myOrgID",
 		AccountID:      "myAccountID",
 		Configuration:  "myConfigName",
@@ -148,16 +141,16 @@ func TestProcessor_Traces(t *testing.T) {
 	require.NoError(t, ptracetest.CompareTraces(traces, processedTraces))
 
 	// validate that upsert route was performed
-	require.True(t, tmp.topology.Topology.GatewaySource.AccountID == "myAccountID")
-	require.True(t, tmp.topology.Topology.GatewaySource.OrganizationID == "myOrgID")
-	require.True(t, tmp.topology.Topology.GatewaySource.Configuration == "myConfigName")
+	require.True(t, tmp.topology.GatewaySource.AccountID == "myAccountID")
+	require.True(t, tmp.topology.GatewaySource.OrganizationID == "myOrgID")
+	require.True(t, tmp.topology.GatewaySource.Configuration == "myConfigName")
 	ci := GatewayInfo{
 		Configuration:  "myConfigName1",
 		AccountID:      "myAccountID1",
 		OrganizationID: "myOrgID1",
 		GatewayID:      "myResourceName1",
 	}
-	_, ok := tmp.topology.Topology.RouteTable[ci]
+	_, ok := tmp.topology.RouteTable[ci]
 	require.True(t, ok)
 }
 
@@ -165,8 +158,6 @@ func TestProcessor_MissingHeader(t *testing.T) {
 	processorID := component.MustNewIDWithName("topology", "1")
 
 	tmp, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
-		Interval:       time.Second,
 		OrganizationID: "myOrgID",
 		AccountID:      "myAccountID",
 		Configuration:  "myConfigName",
@@ -191,7 +182,7 @@ func TestProcessor_MissingHeader(t *testing.T) {
 	require.NoError(t, ptracetest.CompareTraces(traces, processedTraces))
 
 	// validate that upsert route was not performed
-	require.Equal(t, 0, len(tmp.topology.Topology.RouteTable))
+	require.Equal(t, 0, len(tmp.topology.RouteTable))
 }
 
 // Test 2 instances with the same processor ID
@@ -199,8 +190,6 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 	processorID := component.MustNewIDWithName("topology", "1")
 
 	tmp1, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
-		Interval:       time.Second,
 		OrganizationID: "myOrgID",
 		AccountID:      "myAccountID",
 		Configuration:  "myConfigName",
@@ -208,8 +197,6 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 	require.NoError(t, err)
 
 	tmp2, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
-		Interval:       time.Second,
 		OrganizationID: "myOrgID2",
 		AccountID:      "myAccountID2",
 		Configuration:  "myConfigName2",
@@ -231,8 +218,6 @@ func TestProcessor_Logs_TwoInstancesDifferentID(t *testing.T) {
 	processorID2 := component.MustNewIDWithName("topology", "2")
 
 	tmp1, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
-		Interval:       time.Second,
 		OrganizationID: "myOrgID",
 		AccountID:      "myAccountID",
 		Configuration:  "myConfigName",
@@ -240,8 +225,6 @@ func TestProcessor_Logs_TwoInstancesDifferentID(t *testing.T) {
 	require.NoError(t, err)
 
 	tmp2, err := newTopologyProcessor(zap.NewNop(), &Config{
-		Enabled:        true,
-		Interval:       time.Second,
 		OrganizationID: "myOrgID2",
 		AccountID:      "myAccountID2",
 		Configuration:  "myConfigName2",

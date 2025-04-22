@@ -45,10 +45,7 @@ func NewFactory() processor.Factory {
 }
 
 func createDefaultConfig() component.Config {
-	return &Config{
-		Enabled:  false,
-		Interval: defaultInterval,
-	}
+	return &Config{}
 }
 
 func createTracesProcessor(

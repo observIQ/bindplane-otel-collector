@@ -70,8 +70,10 @@ func (b *bindplaneExtension) Start(_ context.Context, host component.Host) error
 			go b.reportMetricsLoop()
 		}
 
-		b.wg.Add(1)
-		go b.reportTopologyLoop()
+		if b.cfg.TopologyInterval > 0 {
+			b.wg.Add(1)
+			go b.reportTopologyLoop()
+		}
 	}
 
 	return nil
@@ -83,6 +85,10 @@ func (b *bindplaneExtension) RegisterThroughputMeasurements(processorID string, 
 
 func (b *bindplaneExtension) RegisterTopologyState(processorID string, topology *topologyprocessor.TopoState) error {
 	return b.topologyRegistry.RegisterTopologyState(processorID, topology)
+}
+
+func (b *bindplaneExtension) Reset() {
+	b.topologyRegistry.Reset()
 }
 
 func (b *bindplaneExtension) setupCustomCapabilities(host component.Host) error {
@@ -104,9 +110,11 @@ func (b *bindplaneExtension) setupCustomCapabilities(host component.Host) error 
 		}
 	}
 
-	b.customCapabilityHandlerTopology, err = registry.Register(topologyprocessor.ReportTopologyCapability)
-	if err != nil {
-		return fmt.Errorf("register custom topology capability: %w", err)
+	if b.cfg.TopologyInterval > 0 {
+		b.customCapabilityHandlerTopology, err = registry.Register(topologyprocessor.ReportTopologyCapability)
+		if err != nil {
+			return fmt.Errorf("register custom topology capability: %w", err)
+		}
 	}
 
 	return nil
@@ -168,17 +176,7 @@ func (b *bindplaneExtension) reportMetrics() error {
 func (b *bindplaneExtension) reportTopologyLoop() {
 	defer b.wg.Done()
 
-	var topologyInterval time.Duration
-	select {
-	case <-b.doneChan:
-		return
-	case topologyInterval = <-b.topologyRegistry.SetIntervalChan():
-		if topologyInterval <= 0 {
-			return
-		}
-	}
-
-	t := time.NewTicker(topologyInterval)
+	t := time.NewTicker(b.cfg.TopologyInterval)
 	defer t.Stop()
 
 	for {

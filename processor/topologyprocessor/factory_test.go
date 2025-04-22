@@ -28,10 +28,7 @@ func TestNewFactory(t *testing.T) {
 	factory := NewFactory()
 	require.Equal(t, componentType, factory.Type())
 
-	expectedCfg := &Config{
-		Enabled:  false,
-		Interval: defaultInterval,
-	}
+	expectedCfg := &Config{}
 
 	cfg, ok := factory.CreateDefaultConfig().(*Config)
 	require.True(t, ok)
@@ -67,12 +64,10 @@ func TestCreateProcessorTwice_Logs(t *testing.T) {
 	set.ID = processorID
 
 	cfg := &Config{
-		Enabled:            true,
-		Interval:           defaultInterval,
 		Configuration:      "myConf",
 		AccountID:          "myAcct",
 		OrganizationID:     "myOrg",
-		BindplaneExtension: bindplaneExtensionID,
+		BindplaneExtension: &bindplaneExtensionID,
 	}
 
 	l1, err := createLogsProcessor(context.Background(), set, cfg, consumertest.NewNop())
@@ -105,12 +100,10 @@ func TestCreateProcessorTwice_Metrics(t *testing.T) {
 	set.ID = processorID
 
 	cfg := &Config{
-		Enabled:            true,
-		Interval:           defaultInterval,
 		Configuration:      "myConf",
 		AccountID:          "myAcct",
 		OrganizationID:     "myOrg",
-		BindplaneExtension: bindplaneExtensionID,
+		BindplaneExtension: &bindplaneExtensionID,
 	}
 
 	l1, err := createMetricsProcessor(context.Background(), set, cfg, consumertest.NewNop())
@@ -143,12 +136,10 @@ func TestCreateProcessorTwice_Traces(t *testing.T) {
 	set.ID = processorID
 
 	cfg := &Config{
-		Enabled:            true,
-		Interval:           defaultInterval,
 		Configuration:      "myConf",
 		AccountID:          "myAcct",
 		OrganizationID:     "myOrg",
-		BindplaneExtension: bindplaneExtensionID,
+		BindplaneExtension: &bindplaneExtensionID,
 	}
 
 	l1, err := createTracesProcessor(context.Background(), set, cfg, consumertest.NewNop())
