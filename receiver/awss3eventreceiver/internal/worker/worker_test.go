@@ -26,7 +26,7 @@ import (
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/fake"
+	"github.com/observiq/bindplane-otel-collector/internal/aws/fake"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 )
 

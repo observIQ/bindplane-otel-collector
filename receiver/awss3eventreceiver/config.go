@@ -18,7 +18,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
+	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 )
 
 // Config defines the configuration for the AWS S3 Event receiver.
@@ -88,7 +88,7 @@ func (c *Config) Validate() error {
 		return errors.New("'max_log_size' must be greater than 0")
 	}
 
-	if _, err := bpaws.ParseRegionFromSQSURL(c.SQSQueueURL); err != nil {
+	if _, err := client.ParseRegionFromSQSURL(c.SQSQueueURL); err != nil {
 		return err
 	}
 

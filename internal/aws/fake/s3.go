@@ -24,10 +24,11 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
+
+	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 )
 
-var _ bpaws.S3Client = &s3Client{}
+var _ client.S3Client = &s3Client{}
 
 var fakeS3 = struct {
 	mu      sync.Mutex
@@ -37,7 +38,7 @@ var fakeS3 = struct {
 }
 
 // NewS3Client creates a new fake S3 client
-func NewS3Client(_ *testing.T) bpaws.S3Client {
+func NewS3Client(_ *testing.T) client.S3Client {
 	return &s3Client{}
 }
 

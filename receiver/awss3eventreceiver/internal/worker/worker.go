@@ -28,12 +28,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
+
+	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 )
 
 // Worker processes S3 event notifications.
@@ -42,7 +43,7 @@ import (
 // It is designed to be used in a worker pool.
 type Worker struct {
 	tel            component.TelemetrySettings
-	client         bpaws.Client
+	client         client.Client
 	nextConsumer   consumer.Logs
 	maxLogSize     int
 	maxLogsEmitted int
@@ -50,7 +51,7 @@ type Worker struct {
 
 // New creates a new Worker
 func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.Logs, maxLogSize int, maxLogsEmitted int) *Worker {
-	client := bpaws.NewClient(cfg)
+	client := client.NewClient(cfg)
 	return &Worker{
 		tel:            tel,
 		client:         client,

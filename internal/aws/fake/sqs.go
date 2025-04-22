@@ -24,14 +24,15 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
 	"github.com/stretchr/testify/require"
+
+	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 )
 
 // ErrEmptyQueue is an error returned when a queue is empty
 var ErrEmptyQueue = errors.New("queue is empty")
 
-var _ bpaws.SQSClient = &sqsClient{}
+var _ client.SQSClient = &sqsClient{}
 
 var fakeSQS = struct {
 	mu sync.Mutex
@@ -47,7 +48,7 @@ var fakeSQS = struct {
 
 // NewSQSClient creates a new fake SQS client
 // If t is provided, automatically registers message leak checking for test cleanup
-func NewSQSClient(t *testing.T) bpaws.SQSClient {
+func NewSQSClient(t *testing.T) client.SQSClient {
 	// Register leak check if testing.T was provided
 
 	t.Cleanup(func() {
