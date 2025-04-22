@@ -16,55 +16,62 @@
 package fake
 
 import (
-	"encoding/json"
-	"fmt"
-	"sync"
 	"testing"
-	"time"
 
-	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-	"github.com/stretchr/testify/require"
-
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+	"github.com/observiq/bindplane-otel-collector/internal/aws/event"
+	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/component/componenttest"
+	"go.uber.org/zap"
 )
 
 var _ client.Client = &AWS{}
 
 // AWS is a fake AWS client
 type AWS struct {
+	set component.TelemetrySettings
+
 	s3Client  *s3Client
 	sqsClient *sqsClient
 
-	count   int
-	countMu sync.Mutex
+	eventMarshaler event.Marshaler
+}
+
+// ClientOption is a function that modifies the AWS client
+type ClientOption func(*AWS)
+
+// WithFDRBodyMarshaler sets the event marshaler to the FDR marshaler
+func WithFDRBodyMarshaler() ClientOption {
+	return func(f *AWS) {
+		f.eventMarshaler = event.NewFDRMarshaler(f.set)
+	}
 }
 
 // SetFakeConstructorForTest sets the fake constructor for the AWS client
 // It returns a function that restores the original constructor
 // It is intended to be used in a defer statement
 // e.g. defer fake.SetFakeConstructorForTest(t)()
-func SetFakeConstructorForTest(t *testing.T) func() {
+func SetFakeConstructorForTest(t *testing.T, opts ...ClientOption) func() {
 	realNewClient := client.NewClient
+	set := componenttest.NewNopTelemetrySettings()
+	set.Logger = zap.NewNop()
 	client.NewClient = func(_ aws.Config) client.Client {
-		return &AWS{
-			s3Client:  NewS3Client(t).(*s3Client),
-			sqsClient: NewSQSClient(t).(*sqsClient),
+		f := &AWS{
+			set:            set,
+			s3Client:       NewS3Client(t).(*s3Client),
+			sqsClient:      NewSQSClient(t).(*sqsClient),
+			eventMarshaler: event.NewS3Marshaler(set),
 		}
+		for _, opt := range opts {
+			opt(f)
+		}
+		return f
 	}
 
-	return func() {
-		client.NewClient = realNewClient
-	}
-}
-
-// NewClient creates a new fake AWS client
-func NewClient(t *testing.T) client.Client {
-	return &AWS{
-		s3Client:  NewS3Client(t).(*s3Client),
-		sqsClient: NewSQSClient(t).(*sqsClient),
-	}
+	// Caller should defer this function to restore the original constructor
+	return func() { client.NewClient = realNewClient }
 }
 
 // S3 returns the fake S3 client
@@ -79,62 +86,31 @@ func (a *AWS) SQS() client.SQSClient {
 
 // CreateObjects creates objects in the fake S3 client and adds a corresponding message to the fake SQS client
 func (a *AWS) CreateObjects(t *testing.T, objects map[string]map[string]string) {
-	records := make([]events.S3EventRecord, 0, len(objects))
-	for bucket, keys := range objects {
-		for key, body := range keys {
-			a.s3Client.putObject(bucket, key, body)
-			records = append(records, newS3Record(bucket, key, body))
-		}
-	}
-	msg := a.newS3Event(t, records...)
-	a.sqsClient.sendMessage(msg)
+	a.CreateObjectsWithEventType(t, "s3:ObjectCreated:Put", objects)
 }
 
 // CreateObjectsWithEventType creates objects in the fake S3 client and adds a corresponding message
 // to the fake SQS client with the specified event type
 func (a *AWS) CreateObjectsWithEventType(t *testing.T, eventType string, objects map[string]map[string]string) {
-	records := make([]events.S3EventRecord, 0, len(objects))
+	objectCreated := make([]event.S3Object, 0, len(objects))
 	for bucket, keys := range objects {
 		for key, body := range keys {
 			a.s3Client.putObject(bucket, key, body)
-			record := newS3Record(bucket, key, body)
-			record.EventName = eventType
-			records = append(records, record)
+			objectCreated = append(objectCreated, event.S3Object{
+				EventType: eventType,
+				Bucket:    bucket,
+				Key:       key,
+				Size:      int64(len(body)),
+			})
 		}
 	}
-	msg := a.newS3Event(t, records...)
-	a.sqsClient.sendMessage(msg)
+	a.notifySQS(t, objectCreated)
 }
 
-func (a *AWS) newS3Event(t *testing.T, records ...events.S3EventRecord) types.Message {
-	a.countMu.Lock()
-	receiptHandle := aws.String(fmt.Sprintf("receiptHandle-%d", a.count))
-	a.count++
-	a.countMu.Unlock()
-
-	body, err := json.Marshal(events.S3Event{Records: records})
+func (a *AWS) notifySQS(t *testing.T, objectsCreated []event.S3Object) {
+	body, err := a.eventMarshaler.Marshal(objectsCreated)
 	require.NoError(t, err)
-
-	return types.Message{
-		MessageId:     aws.String(fmt.Sprintf("messageId-%d", a.count)),
-		Body:          aws.String(string(body)),
-		ReceiptHandle: receiptHandle,
-	}
-}
-
-func newS3Record(bucket string, key string, body string) events.S3EventRecord {
-	return events.S3EventRecord{
-		EventName:   "s3:ObjectCreated:Put",
-		EventSource: "aws:s3",
-		EventTime:   time.Now(),
-		S3: events.S3Entity{
-			Bucket: events.S3Bucket{
-				Name: bucket,
-			},
-			Object: events.S3Object{
-				Key:  key,
-				Size: int64(len(body)),
-			},
-		},
+	for _, body := range body {
+		a.sqsClient.sendMessage(body)
 	}
 }

@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -196,7 +197,7 @@ func TestReceiver(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			fakeAWS := fake.NewClient(t).(*fake.AWS)
+			fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
 
 			var numObjects int
 			for _, objectSet := range tc.objectSets {
@@ -251,7 +252,7 @@ func TestManyObjects(t *testing.T) {
 	defer fake.SetFakeConstructorForTest(t)()
 
 	ctx := context.Background()
-	fakeAWS := fake.NewClient(t).(*fake.AWS)
+	fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
 
 	numBuckets := 10
 	numObjectsPerBucket := 100

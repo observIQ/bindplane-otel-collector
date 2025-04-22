@@ -1,0 +1,38 @@
+{
+    "Records": [
+        {
+            "eventVersion": "2.1",
+            "eventSource": "aws:s3",
+            "awsRegion": "us-east-1",
+            "eventTime": "2025-03-01T14:23:10.616Z",
+            "eventName": "Replication:OperationCompletedReplication",
+            "userIdentity": {
+                "principalId": "AWS:AIDAXXXXXXXXXXXXXXXXV"
+            },
+            "requestParameters": {
+                "sourceIPAddress": "96.8.135.246"
+            },
+            "responseElements": {
+                "x-amz-request-id": "RMANNDEXSQ7BP0GZ",
+                "x-amz-id-2": "oelm3nELXCwKs59KcgUlPXTSU30ksr/9uoEXLC9uz7+CwARHPGdO4f/zUR5FwJXgqW9YVmTfE09wsDS9+AZQL6O13jB5CX5RdMBHhQ9zxMo="
+            },
+            "s3": {
+                "s3SchemaVersion": "1.0",
+                "configurationId": "OTgyMXU4MjMtN2JiZC00XDMzLWFjN2UtYmJjYWYyNTA0Nzlh",
+                "bucket": {
+                    "name": "s3eventreceiver-dev",
+                    "ownerIdentity": {
+                        "principalId": "A2Q36XOLY4VUGS"
+                    },
+                    "arn": "arn:aws:s3:::s3eventreceiver-dev"
+                },
+                "object": {
+                    "key": "test2.txt",
+                    "size": 25,
+                    "eTag": "a021c14602e4aebf8d8279e885b4bb7c",
+                    "sequencer": "0067X3184E94X0E1A5"
+                }
+            }
+        }
+    ]
+}
