@@ -212,7 +212,7 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("activity")
 					assert.True(t, ok)
-					assert.EqualValues(t, "view_edit", attrVal.Str())
+					assert.Equal(t, "view_edit", attrVal.Str())
 				case "m365.outlook.app.user.count":
 					assert.False(t, validatedMetrics["m365.outlook.app.user.count"], "Found a duplicate in the metrics slice: m365.outlook.app.user.count")
 					validatedMetrics["m365.outlook.app.user.count"] = true
@@ -229,7 +229,7 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("app")
 					assert.True(t, ok)
-					assert.EqualValues(t, "pop3", attrVal.Str())
+					assert.Equal(t, "pop3", attrVal.Str())
 				case "m365.outlook.email_activity.count":
 					assert.False(t, validatedMetrics["m365.outlook.email_activity.count"], "Found a duplicate in the metrics slice: m365.outlook.email_activity.count")
 					validatedMetrics["m365.outlook.email_activity.count"] = true
@@ -246,7 +246,7 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("activity")
 					assert.True(t, ok)
-					assert.EqualValues(t, "read", attrVal.Str())
+					assert.Equal(t, "read", attrVal.Str())
 				case "m365.outlook.mailboxes.active.count":
 					assert.False(t, validatedMetrics["m365.outlook.mailboxes.active.count"], "Found a duplicate in the metrics slice: m365.outlook.mailboxes.active.count")
 					validatedMetrics["m365.outlook.mailboxes.active.count"] = true
@@ -277,7 +277,7 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("state")
 					assert.True(t, ok)
-					assert.EqualValues(t, "under_limit", attrVal.Str())
+					assert.Equal(t, "under_limit", attrVal.Str())
 				case "m365.outlook.storage.used":
 					assert.False(t, validatedMetrics["m365.outlook.storage.used"], "Found a duplicate in the metrics slice: m365.outlook.storage.used")
 					validatedMetrics["m365.outlook.storage.used"] = true
@@ -406,7 +406,7 @@ func TestMetricsBuilder(t *testing.T) {
 					assert.Equal(t, int64(1), dp.IntValue())
 					attrVal, ok := dp.Attributes().Get("device")
 					assert.True(t, ok)
-					assert.EqualValues(t, "Android", attrVal.Str())
+					assert.Equal(t, "Android", attrVal.Str())
 				case "m365.teams.meetings.count":
 					assert.False(t, validatedMetrics["m365.teams.meetings.count"], "Found a duplicate in the metrics slice: m365.teams.meetings.count")
 					validatedMetrics["m365.teams.meetings.count"] = true
