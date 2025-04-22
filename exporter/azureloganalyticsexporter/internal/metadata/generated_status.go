@@ -4,22 +4,13 @@ package metadata
 
 import (
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/trace"
 )
 
 var (
-	Type = component.MustNewType("azureloganalytics")
+	Type      = component.MustNewType("azureloganalytics")
+	ScopeName = "github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter"
 )
 
 const (
 	LogsStability = component.StabilityLevelAlpha
 )
-
-func Meter(settings component.TelemetrySettings) metric.Meter {
-	return settings.MeterProvider.Meter("otelcol/azureloganalytics")
-}
-
-func Tracer(settings component.TelemetrySettings) trace.Tracer {
-	return settings.TracerProvider.Tracer("otelcol/azureloganalytics")
-}
