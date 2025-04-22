@@ -65,12 +65,13 @@ func (u *s3Unmarshaler) Unmarshal(body []byte) ([]S3Object, error) {
 				Key:       record.S3.Object.Key,
 				Size:      record.S3.Object.Size,
 			})
-		} else {
-			u.set.Logger.Warn("unexpected event: expected s3:ObjectCreated:*",
-				zap.String("event_name", record.EventName),
-				zap.String("bucket", record.S3.Bucket.Name),
-				zap.String("key", record.S3.Object.Key))
+			continue
 		}
+		u.set.Logger.Warn("unexpected event: expected s3:ObjectCreated:*",
+			zap.String("event_name", record.EventName),
+			zap.String("bucket", record.S3.Bucket.Name),
+			zap.String("key", record.S3.Object.Key),
+		)
 	}
 	return objects, nil
 }

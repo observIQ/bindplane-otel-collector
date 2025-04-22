@@ -106,20 +106,27 @@ func TestFDRMarshaler(t *testing.T) {
 
 	objects := []event.S3Object{
 		{
-			EventType: "ObjectCreated:Put",
-			Bucket:    "cs-prod-cannon-8-dcba9n8oxpakjtn86o8w11bbthgagusw2b-s3alias",
-			Key:       "abcd11658703038a-xyz593c5/data/61c7b298-bb3a-444f-9806-ef99a96c52a5/part-00000.gz",
-			Size:      13090,
+			Bucket: "cs-prod-cannon-8-dcba9n8oxpakjtn86o8w11bbthgagusw2b-s3alias",
+			Key:    "abcd11658703038a-xyz593c5/data/61c7b298-bb3a-444f-9806-ef99a96c52a5/part-00000.gz",
+			Size:   13090,
 		},
 		{
-			EventType: "ObjectCreated:Put",
-			Bucket:    "cs-prod-cannon-8-dcba9n8oxpakjtn86o8w11bbthgagusw2b-s3alias",
-			Key:       "abcd11658703038a-xyz593c5/data/61c7b298-bb3a-444f-9806-ef99a96c52a5/part-00001.gz",
-			Size:      13092,
+			Bucket: "cs-prod-cannon-8-dcba9n8oxpakjtn86o8w11bbthgagusw2b-s3alias",
+			Key:    "abcd11658703038a-xyz593c5/data/61c7b298-bb3a-444f-9806-ef99a96c52a5/part-00001.gz",
+			Size:   13092,
 		},
 	}
 
-	body, err := marshaler.Marshal(objects)
+	bodies, err := marshaler.Marshal(objects)
 	require.NoError(t, err)
-	require.NotNil(t, body)
+	require.NotNil(t, bodies)
+
+	var recycledObjects []event.S3Object
+	for _, body := range bodies {
+		unmarshaler := event.NewFDRUnmarshaler(set)
+		unmarshaledObjects, err := unmarshaler.Unmarshal(body)
+		require.NoError(t, err)
+		recycledObjects = append(recycledObjects, unmarshaledObjects...)
+	}
+	require.ElementsMatch(t, objects, recycledObjects)
 }

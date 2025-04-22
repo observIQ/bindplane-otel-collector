@@ -146,7 +146,16 @@ func TestS3Marshaler(t *testing.T) {
 		},
 	}
 
-	body, err := marshaler.Marshal(objects)
+	bodies, err := marshaler.Marshal(objects)
 	require.NoError(t, err)
-	require.NotNil(t, body)
+	require.NotNil(t, bodies)
+
+	var recycledObjects []event.S3Object
+	for _, body := range bodies {
+		unmarshaler := event.NewS3Unmarshaler(set)
+		unmarshaledObjects, err := unmarshaler.Unmarshal(body)
+		require.NoError(t, err)
+		recycledObjects = append(recycledObjects, unmarshaledObjects...)
+	}
+	require.ElementsMatch(t, objects, recycledObjects)
 }
