@@ -23,12 +23,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/backoff"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.uber.org/zap"
+
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/backoff"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 )
 
 type logsReceiver struct {
