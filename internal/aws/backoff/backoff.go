@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package backoff provides a backoff calculator for the AWS S3 event receiver.
-package backoff
+package backoff // import "github.com/observiq/bindplane-otel-collector/internal/aws/backoff"
 
 import (
 	"time"

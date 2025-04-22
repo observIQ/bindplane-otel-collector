@@ -1,0 +1,16 @@
+{
+    "cid": "0123456789ABCDEFGHIJKLMNOPQRSTUV-WX",
+    "timestamp": 1662307838018,
+    "fileCount": 1,
+    "totalSize": 13090,
+    "bucket": "cs-prod-cannon-8-dcba9n8oxpakjtn86o8w11bbthgagusw2b-s3alias",
+    "pathPrefix": "abcd11658703038a-xyz593c5/data/61c7b298-bb3a-444f-9806-ef99a96c52a5",
+    "files":
+    [
+        {
+            "path": "abcd11658703038a-xyz593c5/data/61c7b298-bb3a-444f-9806-ef99a96c52a5/part-00000.gz",
+            "size": 13090,
+            "checksum": "272c1d2ff85083a586ccfec4e0cf5b11"
+        }
+    ]
+}
