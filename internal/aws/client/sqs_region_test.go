@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package bpaws_test provides tests for the bpaws package.
-package bpaws_test
+// Package client_test provides tests for the client package.
+package client_test
 
 import (
 	"testing"
@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
+	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 )
 
 func TestParseRegion(t *testing.T) {
@@ -83,7 +83,7 @@ func TestParseRegion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			region, err := bpaws.ParseRegionFromSQSURL(tt.sqsURL)
+			region, err := client.ParseRegionFromSQSURL(tt.sqsURL)
 			if tt.shouldError {
 				require.Error(t, err)
 				assert.Empty(t, region)

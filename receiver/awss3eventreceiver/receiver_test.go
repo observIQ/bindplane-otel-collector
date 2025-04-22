@@ -29,9 +29,9 @@ import (
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/receiver/receivertest"
 
+	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+	"github.com/observiq/bindplane-otel-collector/internal/aws/fake"
 	rcvr "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/fake"
 )
 
 var typ = component.MustNewType("s3event")
@@ -75,7 +75,7 @@ func TestRegionExtractionFromSQSURL(t *testing.T) {
 		assert.NotNil(t, receiver)
 
 		// Verify the region was extracted correctly
-		region, err := bpaws.ParseRegionFromSQSURL(cfg.SQSQueueURL)
+		region, err := client.ParseRegionFromSQSURL(cfg.SQSQueueURL)
 		assert.NoError(t, err)
 		assert.Equal(t, "us-west-2", region)
 	})
