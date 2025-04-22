@@ -998,8 +998,6 @@ replace github.com/observiq/bindplane-otel-collector/receiver/windowseventtracer
 
 replace github.com/observiq/bindplane-otel-collector/extension/awss3eventextension => ./extension/awss3eventextension
 
-replace github.com/observiq/bindplane-otel-collector/internal/aws => ./internal/aws
-
 // Does not build with windows and only used in configschema executable
 // Relevant issue https://github.com/mattn/go-ieproxy/issues/45
 replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1

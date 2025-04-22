@@ -163,7 +163,7 @@ func TestProcessMessage(t *testing.T) {
 			require.Equal(t, testCase.expectLines, numRecords)
 
 			_, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
-			require.ErrorIs(t, err, fake.ErrEmptyQueue)
+			require.Equal(t, fake.ErrEmptyQueue, err)
 		})
 	}
 }
@@ -301,7 +301,7 @@ func TestEventTypeFiltering(t *testing.T) {
 			require.Equal(t, testCase.expectLines, numRecords)
 
 			_, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
-			require.ErrorIs(t, err, fake.ErrEmptyQueue)
+			require.Equal(t, fake.ErrEmptyQueue, err)
 		})
 	}
 }

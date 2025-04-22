@@ -33,8 +33,6 @@ import (
 )
 
 func TestProcessMessage(t *testing.T) {
-	defer fake.SetFakeConstructorForTest(t)()
-
 	testCases := []struct {
 		name string
 		// Test cases are defined as object sets to represent subsequent uploads to s3.
@@ -97,64 +95,99 @@ func TestProcessMessage(t *testing.T) {
 		},
 	}
 
+	formats := []struct {
+		name              string
+		unmarshaler       event.Unmarshaler
+		opts              []fake.ClientOption
+		expectedCallbacks func([]map[string]map[string]string) int
+	}{
+		{
+			name:        "s3",
+			unmarshaler: event.NewS3Unmarshaler(componenttest.NewNopTelemetrySettings()),
+			opts:        []fake.ClientOption{},
+			expectedCallbacks: func(objectSets []map[string]map[string]string) int {
+				return len(objectSets)
+			},
+		},
+		{
+			name:        "fdr",
+			unmarshaler: event.NewFDRUnmarshaler(componenttest.NewNopTelemetrySettings()),
+			opts:        []fake.ClientOption{fake.WithFDRBodyMarshaler()},
+			expectedCallbacks: func(objectSets []map[string]map[string]string) int {
+				var expected int
+				for _, objectSet := range objectSets {
+					for _, objects := range objectSet {
+						expected += len(objects)
+					}
+				}
+				return expected
+			},
+		},
+	}
+
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			ctx := context.Background()
-			fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
+			for _, format := range formats {
+				t.Run(format.name, func(t *testing.T) {
+					defer fake.SetFakeConstructorForTest(t, format.opts...)()
 
-			// overall structure of all object sets
-			expectedDownloads := map[string]map[string]string{}
-			for _, objectSet := range testCase.objectSets {
-				for bucket, objects := range objectSet {
-					expectedDownloads[bucket] = objects
-				}
-				fakeAWS.CreateObjects(t, objectSet)
-			}
+					ctx := context.Background()
+					fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
 
-			set := componenttest.NewNopTelemetrySettings()
-			unmarshaler := event.NewS3Unmarshaler(set)
-			dir := t.TempDir()
-			w := worker.New(set, aws.Config{}, unmarshaler, dir)
+					// overall structure of all object sets
+					expectedDownloads := map[string]map[string]string{}
+					for _, objectSet := range testCase.objectSets {
+						for bucket, objects := range objectSet {
+							expectedDownloads[bucket] = objects
+						}
+						fakeAWS.CreateObjects(t, objectSet)
+					}
 
-			numCallbacks := 0
+					set := componenttest.NewNopTelemetrySettings()
+					dir := t.TempDir()
+					w := worker.New(set, aws.Config{}, format.unmarshaler, dir)
 
-			for {
-				msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
-				if err != nil {
-					require.ErrorIs(t, err, fake.ErrEmptyQueue)
-					break
-				}
-				for _, msg := range msg.Messages {
-					w.ProcessMessage(ctx, msg, "myqueue", func() {
-						numCallbacks++
-					})
-				}
-			}
+					numCallbacks := 0
 
-			require.Equal(t, len(testCase.objectSets), numCallbacks)
+					for {
+						msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+						if err != nil {
+							require.ErrorIs(t, err, fake.ErrEmptyQueue)
+							break
+						}
+						for _, msg := range msg.Messages {
+							w.ProcessMessage(ctx, msg, "myqueue", func() {
+								numCallbacks++
+							})
+						}
+					}
 
-			// Find directories in dir
-			files, err := os.ReadDir(dir)
-			require.NoError(t, err)
-			require.Equal(t, len(expectedDownloads), len(files))
+					require.Equal(t, format.expectedCallbacks(testCase.objectSets), numCallbacks)
 
-			// Verify each directory contains the expected objects
-			for bucket, objects := range expectedDownloads {
-				subdir := filepath.Join(dir, bucket)
-				files, err := os.ReadDir(subdir)
-				require.NoError(t, err)
-				require.Equal(t, len(objects), len(files))
-
-				for _, file := range files {
-					require.Contains(t, objects, file.Name())
-					content, err := os.ReadFile(filepath.Join(subdir, file.Name()))
+					// Find directories in dir
+					files, err := os.ReadDir(dir)
 					require.NoError(t, err)
-					require.Equal(t, objects[file.Name()], string(content))
-				}
-			}
+					require.Equal(t, len(expectedDownloads), len(files))
 
-			_, err = fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
-			require.Equal(t, fake.ErrEmptyQueue, err)
+					// Verify each directory contains the expected objects
+					for bucket, objects := range expectedDownloads {
+						subdir := filepath.Join(dir, bucket)
+						files, err := os.ReadDir(subdir)
+						require.NoError(t, err)
+						require.Equal(t, len(objects), len(files))
+
+						for _, file := range files {
+							require.Contains(t, objects, file.Name())
+							content, err := os.ReadFile(filepath.Join(subdir, file.Name()))
+							require.NoError(t, err)
+							require.Equal(t, objects[file.Name()], string(content))
+						}
+					}
+
+					_, err = fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+					require.Equal(t, fake.ErrEmptyQueue, err)
+				})
+			}
 		})
 	}
 }
