@@ -26,6 +26,7 @@ import (
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 
+	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 	"github.com/observiq/bindplane-otel-collector/internal/aws/fake"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 )
@@ -123,7 +124,7 @@ func TestProcessMessage(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			ctx := context.Background()
-			fakeAWS := fake.NewClient(t).(*fake.AWS)
+			fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
 
 			var totalObjects int
 			for _, objectSet := range testCase.objectSets {
@@ -260,7 +261,7 @@ func TestEventTypeFiltering(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			ctx := context.Background()
-			fakeAWS := fake.NewClient(t).(*fake.AWS)
+			fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
 
 			for _, objectSet := range testCase.objectSets {
 				fakeAWS.CreateObjectsWithEventType(t, testCase.eventType, objectSet)

@@ -22,11 +22,11 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-	"github.com/stretchr/testify/require"
-
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+	"github.com/stretchr/testify/require"
 )
 
 // ErrEmptyQueue is an error returned when a queue is empty
@@ -35,7 +35,8 @@ var ErrEmptyQueue = errors.New("queue is empty")
 var _ client.SQSClient = &sqsClient{}
 
 var fakeSQS = struct {
-	mu sync.Mutex
+	mu           sync.Mutex
+	messageCount int
 
 	messages          []types.Message
 	invisibleMessages map[string]types.Message
@@ -105,8 +106,13 @@ func (f *sqsClient) DeleteMessage(_ context.Context, params *sqs.DeleteMessageIn
 	return &sqs.DeleteMessageOutput{}, nil
 }
 
-func (f *sqsClient) sendMessage(msg types.Message) {
+func (f *sqsClient) sendMessage(body []byte) {
 	fakeSQS.mu.Lock()
 	defer fakeSQS.mu.Unlock()
-	fakeSQS.messages = append(fakeSQS.messages, msg)
+	fakeSQS.messages = append(fakeSQS.messages, types.Message{
+		MessageId:     aws.String(fmt.Sprintf("messageId-%d", fakeSQS.messageCount)),
+		Body:          aws.String(string(body)),
+		ReceiptHandle: aws.String(fmt.Sprintf("receiptHandle-%d", fakeSQS.messageCount)),
+	})
+	fakeSQS.messageCount++
 }
