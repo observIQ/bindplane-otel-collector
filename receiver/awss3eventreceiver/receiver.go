@@ -80,7 +80,9 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 	}, nil
 }
 
-func (r *logsReceiver) Start(ctx context.Context, _ component.Host) error {
+func (r *logsReceiver) Start(_ context.Context, _ component.Host) error {
+	// Context passed to Start is not long running, so we can use a background context
+	ctx := context.Background()
 	r.startOnce.Do(func() {
 		// Create message channel
 		r.msgChan = make(chan workerMessage, r.cfg.Workers*2)
