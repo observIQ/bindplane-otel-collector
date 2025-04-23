@@ -73,7 +73,7 @@ func TestLoadConfig(t *testing.T) {
 				PollingBackoffFactor: 2,
 				VisibilityTimeout:    600 * time.Second,
 				Workers:              5,
-				EventFormat:          "fdr",
+				EventFormat:          "crowdstrike_fdr",
 				Directory:            "/tmp/s3event",
 			},
 			expectError: false,

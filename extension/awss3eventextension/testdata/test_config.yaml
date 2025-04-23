@@ -19,5 +19,5 @@ receivers:
     polling_backoff_factor: 2
     visibility_timeout: 600s
     workers: 5
-    event_format: fdr
+    event_format: crowdstrike_fdr
     directory: /tmp/s3event

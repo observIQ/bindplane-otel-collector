@@ -90,5 +90,9 @@ func (c *Config) Validate() error {
 		return errors.New("'directory' is required")
 	}
 
+	if c.EventFormat != eventFormatAWSS3 && c.EventFormat != eventFormatCrowdstrikeFDR {
+		return errors.New("'event_format' must be either 'aws_s3' or 'crowdstrike_fdr'")
+	}
+
 	return nil
 }
