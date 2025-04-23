@@ -25,7 +25,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/receiver/receivertest"
@@ -33,12 +32,11 @@ import (
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 	"github.com/observiq/bindplane-otel-collector/internal/aws/fake"
 	rcvr "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 )
 
-var typ = component.MustNewType("s3event")
-
 func TestNewS3EventReceiver(t *testing.T) {
-	set := receivertest.NewNopSettings(typ)
+	set := receivertest.NewNopSettings(metadata.Type)
 	f := rcvr.NewFactory()
 	cfg := f.CreateDefaultConfig().(*rcvr.Config)
 	cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
@@ -50,7 +48,7 @@ func TestNewS3EventReceiver(t *testing.T) {
 }
 
 func TestNewS3EventReceiverValidationError(t *testing.T) {
-	set := receivertest.NewNopSettings(typ)
+	set := receivertest.NewNopSettings(metadata.Type)
 	f := rcvr.NewFactory()
 	cfg := f.CreateDefaultConfig().(*rcvr.Config)
 	cfg.SQSQueueURL = "https://invalid-url"
@@ -63,7 +61,7 @@ func TestNewS3EventReceiverValidationError(t *testing.T) {
 }
 
 func TestRegionExtractionFromSQSURL(t *testing.T) {
-	set := receivertest.NewNopSettings(typ)
+	set := receivertest.NewNopSettings(metadata.Type)
 	f := rcvr.NewFactory()
 
 	t.Run("valid SQS URL", func(t *testing.T) {
@@ -98,13 +96,13 @@ func TestStartShutdown(t *testing.T) {
 	defer fake.SetFakeConstructorForTest(t)()
 
 	ctx := context.Background()
-	set := receivertest.NewNopSettings(typ)
 	f := rcvr.NewFactory()
 	cfg := f.CreateDefaultConfig().(*rcvr.Config)
 	cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 	cfg.StandardPollInterval = 10 * time.Millisecond
 	next := consumertest.NewNop()
 
+	set := receivertest.NewNopSettings(metadata.Type)
 	receiver, err := f.CreateLogs(context.Background(), set, cfg, next)
 	require.NoError(t, err)
 
@@ -207,13 +205,13 @@ func TestReceiver(t *testing.T) {
 				fakeAWS.CreateObjects(t, objectSet)
 			}
 
-			set := receivertest.NewNopSettings(typ)
 			f := rcvr.NewFactory()
 			cfg := f.CreateDefaultConfig().(*rcvr.Config)
 			cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 			cfg.StandardPollInterval = 50 * time.Millisecond
 			sink := new(consumertest.LogsSink)
 
+			set := receivertest.NewNopSettings(metadata.Type)
 			receiver, err := f.CreateLogs(context.Background(), set, cfg, sink)
 			require.NoError(t, err)
 			require.NotNil(t, receiver)
@@ -273,13 +271,13 @@ func TestManyObjects(t *testing.T) {
 
 	fakeAWS.CreateObjects(t, objects)
 
-	set := receivertest.NewNopSettings(typ)
 	f := rcvr.NewFactory()
 	cfg := f.CreateDefaultConfig().(*rcvr.Config)
 	cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 	cfg.StandardPollInterval = 50 * time.Millisecond
 	sink := new(consumertest.LogsSink)
 
+	set := receivertest.NewNopSettings(metadata.Type)
 	receiver, err := f.CreateLogs(context.Background(), set, cfg, sink)
 	require.NoError(t, err)
 	require.NotNil(t, receiver)
