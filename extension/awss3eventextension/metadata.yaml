@@ -1,0 +1,11 @@
+type: s3event
+
+status:
+  class: extension
+  stability:
+    alpha: [extension]
+
+tests:
+  config:
+    sqs_queue_url: https://sqs.us-east-1.amazonaws.com/123456789012/test-queue
+    directory: /tmp/s3event
