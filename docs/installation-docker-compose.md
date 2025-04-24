@@ -77,6 +77,8 @@ service:
       level: none
 ```
 
+> This configuration will be modified by Bindplane and should not be edited after the initial deployment.
+
 4. Paste this into your `logging.yaml` file in the storage directory:
 
 ```yaml
@@ -106,7 +108,7 @@ docker compose logs -f
 
 ## Configuring the BDOT Collector
 
-Edit the `config.yaml` and restart Docker Compose. Or, roll out a configuration update from Bindplane.
+Roll out a configuration update from Bindplane.
 
 ## Uninstalling
 
