@@ -15,9 +15,15 @@ The AWS S3 Event Extension downloads newly created S3 objects to a specified dir
 | event_format           | string   | "aws_s3"    | `false`   | The format of the S3 event notifications. Valid values are `aws_s3` (default) and `crowdstrike_fdr`. |
 | directory              | string   | ""    | `true`   | The directory to which objects will be downloaded. |
 
-### Note about `directory`
+### How `directory` is used
 
 The collector must have write access to the directory specified in `directory`. Within this directory, the extension will create new subdirectories to mirror the buckets where new objects are created.
+
+### Disambiguation of temporarily download files
+
+The extension will download files to a temporary file name which ends with `.bptmp`. Once the file has been downloaded and the extension has verified that it is a valid object, the temporary file will be renamed to the actual file name.
+
+If using the `filelog` receiver to read the files, it is recommended that you `exclude` files ending with `.bptmp`. e.g. If using `directory: /tmp/s3event`, you should use `include: /tmp/s3event/**/*` and `exclude: /tmp/s3event/**/*.bptmp`. It is also recommended to set `delete_after_read: true` in the `filelog` receiver so downloaded files are cleaned up after they are consumed.
 
 ## AWS Setup
 
@@ -51,7 +57,8 @@ extensions:
 
 receivers:
   filelog:
-    path: /tmp/s3event/**/*
+    include: /tmp/s3event/**/*
+    exclude: /tmp/s3event/**/*.bptmp
     delete_after_read: true
 
 exporters:
