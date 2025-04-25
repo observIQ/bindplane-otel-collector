@@ -25,7 +25,7 @@ import (
 // Config is the configuration for the processor
 type Config struct {
 	// Interval is the interval at which this processor sends topology messages to Bindplane
-	// This parameter is only used in topology processor v1.75.0 and earlier.
+	// Deprecated: This parameter is only used in topology processor v1.75.0 and earlier.
 	// Leave this in for backwards compatibility with Bindplane < v1.90.0
 	Interval time.Duration `mapstructure:"interval"`
 
