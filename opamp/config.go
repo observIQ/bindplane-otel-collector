@@ -201,7 +201,7 @@ type Config struct {
 	AgentName                   *string           `yaml:"agent_name,omitempty" mapstructure:"agent_name,omitempty"`
 	MeasurementsInterval        time.Duration     `yaml:"measurements_interval,omitempty" mapstructure:"measurements_interval,omitempty"`
 	ExtraMeasurementsAttributes map[string]string `yaml:"extra_measurements_attributes,omitempty" mapstructure:"extra_measurements_attributes,omitempty"`
-	TopologyInterval            *time.Duration    `yaml:"topology_interval,omitempty" mapstructure:"topology_interval,omitempty"`
+	TopologyInterval            *time.Duration    `yaml:"topology_interval" mapstructure:"topology_interval"`
 }
 
 // TLSConfig represents the TLS config to connect to OpAmp server
