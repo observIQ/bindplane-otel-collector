@@ -55,7 +55,7 @@ func managerReload(client *Client, managerConfigPath string) opamp.ReloadFunc {
 			updatedKeys = append(updatedKeys, "extra_measurements_attributes")
 		}
 
-		if client.currentConfig.TopologyInterval != newConfig.TopologyInterval {
+		if !opamp.CmpDurationPtr(client.currentConfig.TopologyInterval, newConfig.TopologyInterval) {
 			updatedKeys = append(updatedKeys, "topology_interval")
 		}
 
@@ -126,7 +126,7 @@ func managerReload(client *Client, managerConfigPath string) opamp.ReloadFunc {
 		// Set new measurements interval and attributes
 		client.measurementsSender.SetInterval(client.currentConfig.MeasurementsInterval)
 		client.measurementsSender.SetExtraAttributes(client.currentConfig.ExtraMeasurementsAttributes)
-		client.topologySender.SetInterval(*client.currentConfig.TopologyInterval)
+		client.topologySender.SetInterval(client.currentConfig.TopologyInterval)
 
 		return true, nil
 	}

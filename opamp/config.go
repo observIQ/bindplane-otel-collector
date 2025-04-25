@@ -282,12 +282,6 @@ func ParseConfig(configLocation string) (*Config, error) {
 		return nil, fmt.Errorf("%s: %w", errPrefixParse, err)
 	}
 
-	// Default topology interval to 1 minute if not specified
-	if config.TopologyInterval == nil {
-		defaultInterval := time.Minute
-		config.TopologyInterval = &defaultInterval
-	}
-
 	// Using Secure TLS check files
 	if config.TLS != nil && !config.TLS.InsecureSkipVerify {
 		// If CA file is specified
