@@ -201,7 +201,7 @@ type Config struct {
 	AgentName                   *string           `yaml:"agent_name,omitempty" mapstructure:"agent_name,omitempty"`
 	MeasurementsInterval        time.Duration     `yaml:"measurements_interval,omitempty" mapstructure:"measurements_interval,omitempty"`
 	ExtraMeasurementsAttributes map[string]string `yaml:"extra_measurements_attributes,omitempty" mapstructure:"extra_measurements_attributes,omitempty"`
-	TopologyInterval            time.Duration     `yaml:"topology_interval,omitempty" mapstructure:"topology_interval,omitempty"`
+	TopologyInterval            *time.Duration    `yaml:"topology_interval" mapstructure:"topology_interval"`
 }
 
 // TLSConfig represents the TLS config to connect to OpAmp server
@@ -317,7 +317,6 @@ func (c Config) Copy() *Config {
 		Endpoint:             c.Endpoint,
 		AgentID:              c.AgentID,
 		MeasurementsInterval: c.MeasurementsInterval,
-		TopologyInterval:     c.TopologyInterval,
 	}
 
 	if c.SecretKey != nil {
@@ -337,6 +336,10 @@ func (c Config) Copy() *Config {
 	}
 	if c.ExtraMeasurementsAttributes != nil {
 		cfgCopy.ExtraMeasurementsAttributes = maps.Clone(c.ExtraMeasurementsAttributes)
+	}
+	if c.TopologyInterval != nil {
+		cfgCopy.TopologyInterval = new(time.Duration)
+		*cfgCopy.TopologyInterval = *c.TopologyInterval
 	}
 
 	return cfgCopy
@@ -382,7 +385,7 @@ func (c Config) CmpUpdatableFields(o Config) (equal bool) {
 		return false
 	}
 
-	if c.TopologyInterval != o.TopologyInterval {
+	if !CmpDurationPtr(c.TopologyInterval, o.TopologyInterval) {
 		return false
 	}
 
@@ -395,6 +398,22 @@ func (c Config) CmpUpdatableFields(o Config) (equal bool) {
 
 // CmpStringPtr compares two string pointers for equality
 func CmpStringPtr(p1, p2 *string) bool {
+	switch {
+	case p1 == nil && p2 == nil:
+		return true
+	case p1 == nil && p2 != nil:
+		fallthrough
+	case p1 != nil && p2 == nil:
+		fallthrough
+	case *p1 != *p2:
+		return false
+	default:
+		return true
+	}
+}
+
+// CmpDurationPtr compares two duration pointers for equality
+func CmpDurationPtr(p1, p2 *time.Duration) bool {
 	switch {
 	case p1 == nil && p2 == nil:
 		return true
