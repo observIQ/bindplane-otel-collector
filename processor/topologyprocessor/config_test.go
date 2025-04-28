@@ -34,7 +34,7 @@ func TestConfigValidate(t *testing.T) {
 		require.NoError(t, cfg.Validate())
 	})
 
-	t.Run("Valid config w/ interval", func(t *testing.T) {
+	t.Run("Valid config with interval", func(t *testing.T) {
 		bindplaneExtensionID := component.MustNewID("bindplane")
 		cfg := Config{
 			AccountID:          "myacct",
