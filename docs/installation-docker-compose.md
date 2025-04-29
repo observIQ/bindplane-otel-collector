@@ -32,7 +32,7 @@ version: '3.8'
 
 services:
   bdot-collector:
-    image: ghcr.io/observiq/bindplane-agent:1.76.2
+    image: ghcr.io/observiq/bindplane-agent:latest
     command: ["--config=/etc/otel/storage/config.yaml"]
     volumes:
       - ./config:/etc/otel/config
