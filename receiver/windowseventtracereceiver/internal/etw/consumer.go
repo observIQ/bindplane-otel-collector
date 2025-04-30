@@ -240,11 +240,11 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 		ExtendedData: []string{},
 	}
 
-	if activityID := eventRecord.EventHeader.ActivityId.String(); activityID != ZeroGUID {
+	if activityID := eventRecord.EventHeader.ActivityId.String(); activityID != zeroGUID {
 		event.System.Correlation.ActivityID = activityID
 	}
 
-	if relatedActivityID := eventRecord.RelatedActivityID(); relatedActivityID != ZeroGUID {
+	if relatedActivityID := eventRecord.RelatedActivityID(); relatedActivityID != zeroGUID {
 		event.System.Correlation.RelatedActivityID = relatedActivityID
 	}
 

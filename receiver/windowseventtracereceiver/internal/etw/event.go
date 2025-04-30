@@ -15,7 +15,11 @@
 // Package etw contains the functionality for interacting with the ETW API.
 package etw
 
-import "time"
+import (
+	"time"
+
+	"golang.org/x/sys/windows"
+)
 
 // EventFlags contains flags for the event
 type EventFlags struct {
@@ -23,7 +27,8 @@ type EventFlags struct {
 	Skippable bool `json:"skippable"`
 }
 
-const ZeroGUID = "{00000000-0000-0000-0000-000000000000}"
+// zeroGUID is a string representation of the zero GUID, which generally indicates that the value is not applicable
+var zeroGUID = windows.GUID{}.String()
 
 // EventCorrelation contains correlation information for the event
 type EventCorrelation struct {
