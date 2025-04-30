@@ -91,4 +91,10 @@ type Event struct {
 	UserData     map[string]any `json:"userData,omitempty"`
 	System       EventSystem    `json:"system"`
 	ExtendedData []string       `json:"extendedData,omitempty"`
+	Security     EventSecurity  `json:"security,omitempty"`
+}
+
+// EventSecurity contains security information for the event
+type EventSecurity struct {
+	SID string `json:"sid"`
 }
