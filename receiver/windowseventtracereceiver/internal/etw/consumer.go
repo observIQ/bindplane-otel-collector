@@ -224,12 +224,9 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 				GUID: providerGUID,
 				Name: providerName,
 			},
-			Level:    level,
-			Computer: hostname,
-			Correlation: EventCorrelation{
-				ActivityID:        eventRecord.EventHeader.ActivityId.String(),
-				RelatedActivityID: eventRecord.RelatedActivityID(),
-			},
+			Level:       level,
+			Computer:    hostname,
+			Correlation: EventCorrelation{},
 			Execution: EventExecution{
 				ThreadID:  eventRecord.EventHeader.ThreadId,
 				ProcessID: eventRecord.EventHeader.ProcessId,
@@ -241,6 +238,14 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 		},
 		EventData:    data,
 		ExtendedData: []string{},
+	}
+
+	if activityID := eventRecord.EventHeader.ActivityId.String(); activityID != ZeroGUID {
+		event.System.Correlation.ActivityID = activityID
+	}
+
+	if relatedActivityID := eventRecord.RelatedActivityID(); relatedActivityID != ZeroGUID {
+		event.System.Correlation.RelatedActivityID = relatedActivityID
 	}
 
 	select {

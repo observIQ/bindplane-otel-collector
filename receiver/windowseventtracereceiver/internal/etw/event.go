@@ -23,6 +23,8 @@ type EventFlags struct {
 	Skippable bool `json:"skippable"`
 }
 
+const ZeroGUID = "{00000000-0000-0000-0000-000000000000}"
+
 // EventCorrelation contains correlation information for the event
 type EventCorrelation struct {
 	ActivityID        string `json:"activityID"`
