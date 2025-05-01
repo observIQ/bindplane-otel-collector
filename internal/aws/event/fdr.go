@@ -18,9 +18,11 @@ package event // import "github.com/observiq/bindplane-otel-collector/internal/a
 import (
 	"encoding/json"
 	"errors"
+	"net/url"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
+	"go.uber.org/zap"
 )
 
 // FDREvent represents a Crowdstrike FDR event.
@@ -67,9 +69,20 @@ func (u *FDRUnmarshaler) Unmarshal(body []byte) ([]S3Object, error) {
 
 	objects := make([]S3Object, len(event.Files))
 	for i, file := range event.Files {
+
+		// Reverse SQS URL escaping to get the original S3 object key
+		path, err := url.PathUnescape(file.Path)
+		if err != nil {
+			u.set.Logger.Error("failed to unescape S3 object key",
+				zap.String("key", file.Path),
+				zap.Error(err),
+			)
+			continue
+		}
+
 		objects[i] = S3Object{
 			Bucket: event.Bucket,
-			Key:    file.Path,
+			Key:    path,
 			Size:   file.Size,
 		}
 	}
