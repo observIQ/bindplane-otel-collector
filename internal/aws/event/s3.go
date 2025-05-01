@@ -17,6 +17,7 @@ package event // import "github.com/observiq/bindplane-otel-collector/internal/a
 
 import (
 	"encoding/json"
+	"net/url"
 	"strings"
 	"time"
 
@@ -59,10 +60,21 @@ func (u *s3Unmarshaler) Unmarshal(body []byte) ([]S3Object, error) {
 	for _, record := range event.Records {
 		// S3 UI shows the prefix as "s3:ObjectCreated:", but the event name is unmarshaled as "ObjectCreated:"
 		if strings.Contains(record.EventName, "ObjectCreated:") {
+
+			// Reverse SQS URL escaping to get the original S3 object key
+			key, err := url.PathUnescape(record.S3.Object.Key)
+			if err != nil {
+				u.set.Logger.Error("failed to unescape S3 object key",
+					zap.String("key", record.S3.Object.Key),
+					zap.Error(err),
+				)
+				continue
+			}
+
 			objects = append(objects, S3Object{
 				EventType: record.EventName,
 				Bucket:    record.S3.Bucket.Name,
-				Key:       record.S3.Object.Key,
+				Key:       key,
 				Size:      record.S3.Object.Size,
 			})
 			continue

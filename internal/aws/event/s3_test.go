@@ -38,7 +38,7 @@ func TestS3EventUnmarshal(t *testing.T) {
 				{
 					EventType: "ObjectCreated:Put",
 					Bucket:    "s3eventreceiver-dev",
-					Key:       "test2.txt",
+					Key:       "year=2025/month=05/day=01/hour=10/minute=32/logs_778496226.json",
 					Size:      25,
 				},
 			},
