@@ -43,6 +43,17 @@ func TestFDREventUnmarshal(t *testing.T) {
 			},
 		},
 		{
+			name:     "single-escaped",
+			fileName: "single-escaped.json",
+			expectObjects: []event.S3Object{
+				{
+					Bucket: "cs-prod-cannon-8-dcba9n8oxpakjtn86o8w11bbthgagusw2b-s3alias",
+					Key:    "year=2025/month=05/day=01/hour=10/minute=32/logs_778496226.json",
+					Size:   13090,
+				},
+			},
+		},
+		{
 			name:     "multiple",
 			fileName: "multiple.json",
 			expectObjects: []event.S3Object{
