@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -91,6 +92,27 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 			zap.String("bucket", object.Bucket),
 			zap.String("key", object.Key),
 		)
+
+		// SQS will query escape S3 object paths, such as
+		// year=2025/month=05/day=01/hour=10/minute=31/logs_117078972.json
+		// and it will look like this: year%3D2025/month%3D05/day%3D01/hour%3D10/minute%3D32/logs_778496226.json
+		// The call to downloadObject will fail if we don't unescape the key.
+		originalKey := object.Key
+		objectStr, err := url.QueryUnescape(originalKey)
+		if err != nil {
+			w.tel.Logger.Error("unescape object key", zap.Error(err),
+				zap.String("bucket", object.Bucket),
+				zap.String("key", object.Key))
+			continue
+		}
+
+		if originalKey != objectStr {
+			object.Key = objectStr
+			w.tel.Logger.Debug("unescaped object key",
+				zap.String("original_key", originalKey),
+				zap.String("unescaped_key", objectStr),
+				zap.String("bucket", object.Bucket))
+		}
 
 		if err := w.downloadObject(ctx, object); err != nil {
 			if strings.Contains(err.Error(), "NoSuchKey") {
