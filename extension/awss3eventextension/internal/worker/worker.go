@@ -123,7 +123,17 @@ func (w *Worker) downloadObject(ctx context.Context, object event.S3Object) erro
 
 	filePath := filepath.Join(bucketDir, object.Key)
 
-	tmpFile, err := os.Create(filepath.Join(filepath.Dir(filePath), filepath.Base(filePath)+".bptmp"))
+	filePathDir := filepath.Dir(filePath)
+	filePathBase := filepath.Base(filePath)
+
+	// The object could be nested in a directory structure
+	if filePathDir != bucketDir {
+		if err := os.MkdirAll(filePathDir, 0700); err != nil {
+			return fmt.Errorf("create object directory: %w", err)
+		}
+	}
+
+	tmpFile, err := os.Create(filepath.Join(filePathDir, filePathBase+".bptmp"))
 	if err != nil {
 		return fmt.Errorf("create temp file: %w", err)
 	}
