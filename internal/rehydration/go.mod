@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/internal/rehydration
 
-go 1.23.8
+go 1.24.2
 
 require (
 	github.com/observiq/bindplane-otel-collector/internal/testutils v1.77.0
