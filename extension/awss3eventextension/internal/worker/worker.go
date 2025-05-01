@@ -133,6 +133,7 @@ func (w *Worker) downloadObject(ctx context.Context, object event.S3Object) erro
 		}
 	}
 
+	// #nosec: G304
 	tmpFile, err := os.Create(filepath.Join(filePathDir, filePathBase+".bptmp"))
 	if err != nil {
 		return fmt.Errorf("create temp file: %w", err)
