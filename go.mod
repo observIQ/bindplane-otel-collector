@@ -444,10 +444,10 @@ require (
 	github.com/netsampler/goflow2/v2 v2.2.2 // indirect
 	github.com/nginx/nginx-prometheus-exporter v1.4.1 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
-	github.com/observiq/bindplane-otel-collector/counter v1.77.0 // indirect
-	github.com/observiq/bindplane-otel-collector/expr v1.77.0 // indirect
-	github.com/observiq/bindplane-otel-collector/internal/aws v1.77.0 // indirect
-	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.77.0 // indirect
+	github.com/observiq/bindplane-otel-collector/counter v1.76.4 // indirect
+	github.com/observiq/bindplane-otel-collector/expr v1.76.4 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/aws v1.76.4 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.76.4 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/okta/okta-sdk-golang/v2 v2.20.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.124.1 // indirect
