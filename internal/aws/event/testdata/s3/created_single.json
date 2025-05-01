@@ -27,7 +27,7 @@
                     "arn": "arn:aws:s3:::s3eventreceiver-dev"
                 },
                 "object": {
-                    "key": "test2.txt",
+                    "key": "year%3D2025/month%3D05/day%3D01/hour%3D10/minute%3D32/logs_778496226.json",
                     "size": 25,
                     "eTag": "a021c14602e4aebf8d8279e885b4bb7c",
                     "sequencer": "0067X3184E94X0E1A5"
