@@ -8,15 +8,12 @@ This extension is used by Bindplane in custom distributions to store Bindplane s
 
 | Field                         | Type   | Default | Required | Description                                                                                                      |
 | ----------------------------- | ------ | ------- | -------- | ---------------------------------------------------------------------------------------------------------------- |
-| labels                        | string |         | `false`  | Labels for the agent, formatted in `k1=v1,k2=v2` format.                                                         |
 | opamp                         | string |         | `false`  | Component ID of an OpAMP extension. Needed to generate custom messages for throughput and topology measurements. |
 | measurements_interval         | time   |         | `false`  | Interval on which to report measurements. Reporting is disabled if the duration is 0.                            |
 | topology_interval             | time   |         | `false`  | Interval on which to report topology. Reporting is disabled if the duration is 0.                                |
 | extra_measurements_attributes | map    |         | `false`  | Key-value pairs to add to all reported measurements.                                                             |
 
-## Examples
-
-### Setting labels for Bindplane
+## Example Configuration
 
 Bindplane expects a single unnamed bindplane extension in the configuration.
 
