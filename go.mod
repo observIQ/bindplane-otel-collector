@@ -4,42 +4,42 @@ go 1.23.8
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter v1.76.0
-	github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter v1.76.0
-	github.com/observiq/bindplane-otel-collector/exporter/chronicleforwarderexporter v1.76.0
-	github.com/observiq/bindplane-otel-collector/exporter/googlecloudexporter v1.76.0
-	github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter v1.76.0
-	github.com/observiq/bindplane-otel-collector/exporter/googlemanagedprometheusexporter v1.76.0
-	github.com/observiq/bindplane-otel-collector/exporter/qradar v1.76.0
-	github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter v1.76.0
-	github.com/observiq/bindplane-otel-collector/internal/measurements v1.76.0
-	github.com/observiq/bindplane-otel-collector/internal/report v1.76.0
-	github.com/observiq/bindplane-otel-collector/packagestate v1.76.0
-	github.com/observiq/bindplane-otel-collector/processor/datapointcountprocessor v1.76.0
-	github.com/observiq/bindplane-otel-collector/processor/logcountprocessor v1.76.0
-	github.com/observiq/bindplane-otel-collector/processor/lookupprocessor v1.76.0
-	github.com/observiq/bindplane-otel-collector/processor/maskprocessor v1.76.0
-	github.com/observiq/bindplane-otel-collector/processor/metricextractprocessor v1.76.0
-	github.com/observiq/bindplane-otel-collector/processor/metricstatsprocessor v1.76.0
-	github.com/observiq/bindplane-otel-collector/processor/removeemptyvaluesprocessor v1.76.0
-	github.com/observiq/bindplane-otel-collector/processor/resourceattributetransposerprocessor v1.76.0
-	github.com/observiq/bindplane-otel-collector/processor/samplingprocessor v1.76.0
-	github.com/observiq/bindplane-otel-collector/processor/spancountprocessor v1.76.0
-	github.com/observiq/bindplane-otel-collector/processor/throughputmeasurementprocessor v1.76.0
-	github.com/observiq/bindplane-otel-collector/processor/unrollprocessor v1.76.0
-	github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver v1.76.0
-	github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver v1.76.0
-	github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver v1.76.0
-	github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver v1.76.0
-	github.com/observiq/bindplane-otel-collector/receiver/httpreceiver v1.76.0
-	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.76.0
-	github.com/observiq/bindplane-otel-collector/receiver/oktareceiver v1.76.0
-	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.76.0
-	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.76.0
-	github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver v1.76.0
-	github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver v1.76.0
-	github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.76.0
-	github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver v1.76.0
+	github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter v1.77.0
+	github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter v1.77.0
+	github.com/observiq/bindplane-otel-collector/exporter/chronicleforwarderexporter v1.77.0
+	github.com/observiq/bindplane-otel-collector/exporter/googlecloudexporter v1.77.0
+	github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter v1.77.0
+	github.com/observiq/bindplane-otel-collector/exporter/googlemanagedprometheusexporter v1.77.0
+	github.com/observiq/bindplane-otel-collector/exporter/qradar v1.77.0
+	github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter v1.77.0
+	github.com/observiq/bindplane-otel-collector/internal/measurements v1.77.0
+	github.com/observiq/bindplane-otel-collector/internal/report v1.77.0
+	github.com/observiq/bindplane-otel-collector/packagestate v1.77.0
+	github.com/observiq/bindplane-otel-collector/processor/datapointcountprocessor v1.77.0
+	github.com/observiq/bindplane-otel-collector/processor/logcountprocessor v1.77.0
+	github.com/observiq/bindplane-otel-collector/processor/lookupprocessor v1.77.0
+	github.com/observiq/bindplane-otel-collector/processor/maskprocessor v1.77.0
+	github.com/observiq/bindplane-otel-collector/processor/metricextractprocessor v1.77.0
+	github.com/observiq/bindplane-otel-collector/processor/metricstatsprocessor v1.77.0
+	github.com/observiq/bindplane-otel-collector/processor/removeemptyvaluesprocessor v1.77.0
+	github.com/observiq/bindplane-otel-collector/processor/resourceattributetransposerprocessor v1.77.0
+	github.com/observiq/bindplane-otel-collector/processor/samplingprocessor v1.77.0
+	github.com/observiq/bindplane-otel-collector/processor/spancountprocessor v1.77.0
+	github.com/observiq/bindplane-otel-collector/processor/throughputmeasurementprocessor v1.77.0
+	github.com/observiq/bindplane-otel-collector/processor/unrollprocessor v1.77.0
+	github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver v1.77.0
+	github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver v1.77.0
+	github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver v1.77.0
+	github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver v1.77.0
+	github.com/observiq/bindplane-otel-collector/receiver/httpreceiver v1.77.0
+	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.77.0
+	github.com/observiq/bindplane-otel-collector/receiver/oktareceiver v1.77.0
+	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.77.0
+	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.77.0
+	github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver v1.77.0
+	github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver v1.77.0
+	github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.77.0
+	github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver v1.77.0
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/open-telemetry/opamp-go v0.19.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.124.1
@@ -210,9 +210,10 @@ require (
 )
 
 require (
-	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.76.0
-	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.76.0
-	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.76.0
+	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.77.0
+	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.77.0
+	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.77.0
+	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.77.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.124.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.124.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/libhoneyreceiver v0.124.1
@@ -225,7 +226,7 @@ require (
 
 require (
 	cel.dev/expr v0.21.2 // indirect
-	cloud.google.com/go/auth v0.15.0 // indirect
+	cloud.google.com/go/auth v0.16.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/storage v1.51.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
@@ -353,13 +354,13 @@ require (
 	github.com/apache/arrow-go/v18 v18.0.0 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
-	github.com/aws/aws-lambda-go v1.47.0 // indirect
+	github.com/aws/aws-lambda-go v1.48.0 // indirect
 	github.com/aws/aws-msk-iam-sasl-signer-go v1.0.1 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.71 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.17.72 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.47.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.211.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/servicediscovery v1.35.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.29.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.38.5 // indirect
 	github.com/bboreham/go-loser v0.0.0-20230920113527-fcc2c21820a3 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -443,9 +444,10 @@ require (
 	github.com/netsampler/goflow2/v2 v2.2.2 // indirect
 	github.com/nginx/nginx-prometheus-exporter v1.4.1 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
-	github.com/observiq/bindplane-otel-collector/counter v1.76.0 // indirect
-	github.com/observiq/bindplane-otel-collector/expr v1.76.0 // indirect
-	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.76.0 // indirect
+	github.com/observiq/bindplane-otel-collector/counter v1.77.0 // indirect
+	github.com/observiq/bindplane-otel-collector/expr v1.77.0 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/aws v1.77.0 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.77.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/okta/okta-sdk-golang/v2 v2.20.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.124.1 // indirect
@@ -490,6 +492,7 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
+	github.com/spiffe/go-spiffe/v2 v2.5.0 // indirect
 	github.com/stormcat24/protodep v0.1.8 // indirect
 	github.com/tg123/go-htpasswd v1.2.3 // indirect
 	github.com/thda/tds v0.1.7 // indirect
@@ -500,6 +503,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
+	github.com/zeebo/errs v1.4.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.elastic.co/apm/module/apmzap/v2 v2.7.0 // indirect
 	go.elastic.co/apm/v2 v2.7.0 // indirect
@@ -575,7 +579,7 @@ require (
 	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/zap/exp v0.3.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250414145226-207652e42e2e // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/zorkian/go-datadog-api.v2 v2.30.0 // indirect
 	howett.net/plist v1.0.1 // indirect
@@ -647,8 +651,8 @@ require (
 	github.com/aws/aws-sdk-go v1.55.6 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.36.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.10 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.29.13 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.66 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.29.14 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.67 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.30 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.34 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.34 // indirect
@@ -657,10 +661,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/kinesis v1.33.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.79.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.79.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.25.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.33.18 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.33.19 // indirect
 	github.com/aws/smithy-go v1.22.3 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
@@ -843,7 +847,7 @@ require (
 	github.com/signalfx/sapm-proto v0.17.0 // indirect
 	github.com/sijms/go-ora/v2 v2.8.24 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/snowflakedb/gosnowflake v1.13.1 // indirect
+	github.com/snowflakedb/gosnowflake v1.13.2 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
@@ -891,9 +895,9 @@ require (
 	golang.org/x/tools v0.31.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gonum.org/v1/gonum v0.16.0 // indirect
-	google.golang.org/api v0.228.0 // indirect
+	google.golang.org/api v0.229.0 // indirect
 	google.golang.org/genproto v0.0.0-20250303144028-a0af3efb3deb // indirect
-	google.golang.org/grpc v1.71.1 // indirect
+	google.golang.org/grpc v1.72.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
@@ -992,6 +996,8 @@ replace github.com/observiq/bindplane-otel-collector/receiver/splunksearchapirec
 
 replace github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver => ./receiver/windowseventtracereceiver
 
+replace github.com/observiq/bindplane-otel-collector/extension/awss3eventextension => ./extension/awss3eventextension
+
 // Does not build with windows and only used in configschema executable
 // Relevant issue https://github.com/mattn/go-ieproxy/issues/45
 replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
@@ -1007,3 +1013,5 @@ replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 replace github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter => ./exporter/googlecloudstorageexporter
 
 replace github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver => ./receiver/googlecloudstoragerehydrationreceiver
+
+replace github.com/observiq/bindplane-otel-collector/internal/aws => ./internal/aws

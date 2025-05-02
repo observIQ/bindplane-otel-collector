@@ -12,17 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package bpaws provides a client for the SQS service.
-package bpaws // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
+// Package event defines the types of events that can be processed by the extension.
+package event // import "github.com/observiq/bindplane-otel-collector/internal/aws/event"
 
-import (
-	"context"
+import "errors"
 
-	"github.com/aws/aws-sdk-go-v2/service/sqs"
-)
+// ErrNoObjects is returned when no objects are found in an event.
+var ErrNoObjects = errors.New("no objects found in event")
 
-// SQSClient is the interface for the SQS client
-type SQSClient interface {
-	ReceiveMessage(ctx context.Context, params *sqs.ReceiveMessageInput, optFns ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error)
-	DeleteMessage(ctx context.Context, params *sqs.DeleteMessageInput, optFns ...func(*sqs.Options)) (*sqs.DeleteMessageOutput, error)
+// Unmarshaler is an interface for unmarshaling SQS events.
+type Unmarshaler interface {
+	Unmarshal(body []byte) ([]S3Object, error)
 }

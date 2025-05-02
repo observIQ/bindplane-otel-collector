@@ -100,7 +100,7 @@ func Test_managerReload(t *testing.T) {
 					ident:              newIdentity(zap.NewNop(), *currConfig, "0.0.0"),
 					currentConfig:      *currConfig,
 					measurementsSender: newMeasurementsSender(zap.NewNop(), nil, mockOpAmpClient, 0, nil),
-					topologySender:     newTopologySender(zap.NewNop(), nil, mockOpAmpClient, 0),
+					topologySender:     newTopologySender(zap.NewNop(), nil, mockOpAmpClient, nil),
 				}
 				reloadFunc := managerReload(client, managerFilePath)
 

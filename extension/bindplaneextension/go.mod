@@ -4,8 +4,8 @@ go 1.23.8
 
 require (
 	github.com/golang/snappy v1.0.0
-	github.com/observiq/bindplane-otel-collector/internal/measurements v1.76.0
-	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.76.0
+	github.com/observiq/bindplane-otel-collector/internal/measurements v1.77.0
+	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.77.0
 	github.com/open-telemetry/opamp-go v0.19.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.124.1
 	github.com/stretchr/testify v1.10.0
@@ -52,7 +52,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect

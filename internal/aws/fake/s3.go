@@ -16,18 +16,22 @@
 package fake
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/bpaws"
+	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 )
 
-var _ bpaws.S3Client = &s3Client{}
+var _ client.S3Client = &s3Client{}
 
 var fakeS3 = struct {
 	mu      sync.Mutex
@@ -37,7 +41,7 @@ var fakeS3 = struct {
 }
 
 // NewS3Client creates a new fake S3 client
-func NewS3Client(_ *testing.T) bpaws.S3Client {
+func NewS3Client(_ *testing.T) client.S3Client {
 	return &s3Client{}
 }
 
@@ -63,11 +67,25 @@ func (f *s3Client) GetObject(_ context.Context, params *s3.GetObjectInput, _ ...
 		return nil, errors.New("key not found")
 	}
 
-	dataCopy := make([]byte, len(object))
-	copy(dataCopy, object)
+	fullData := []byte(object) // Use original full data for total size
+	dataToReturn := make([]byte, len(fullData))
+	copy(dataToReturn, fullData)
+
+	if params.Range == nil {
+		return &s3.GetObjectOutput{
+			Body:          io.NopCloser(strings.NewReader(string(dataToReturn))),
+			ContentLength: aws.Int64(int64(len(dataToReturn))),
+		}, nil
+	}
+
+	start, end := parseRangeHeader(fullData, *params.Range)
+	dataToReturn = fullData[start : end+1]
+	contentRange := fmt.Sprintf("bytes %d-%d/%d", start, end, len(fullData))
 
 	return &s3.GetObjectOutput{
-		Body: io.NopCloser(strings.NewReader(string(dataCopy))),
+		Body:          io.NopCloser(bytes.NewReader(dataToReturn)),
+		ContentLength: aws.Int64(int64(len(dataToReturn))),
+		ContentRange:  aws.String(contentRange),
 	}, nil
 }
 
@@ -78,4 +96,38 @@ func (f *s3Client) putObject(bucket string, key string, body string) {
 		fakeS3.objects[bucket] = make(map[string]string)
 	}
 	fakeS3.objects[bucket][key] = body
+}
+
+func parseRangeHeader(data []byte, rangeStr string) (int, int) { // Renamed from trimRange
+	// Range header format: "bytes=start-end"
+	parts := strings.Split(strings.TrimPrefix(rangeStr, "bytes="), "-")
+	if len(parts) != 2 {
+		return 0, len(data) - 1
+	}
+
+	// Get default start and end values
+	start := 0
+	end := len(data) - 1
+
+	// Parse start position
+	if parts[0] != "" {
+		if parsedStart, err := strconv.Atoi(parts[0]); err == nil && parsedStart >= 0 && parsedStart < len(data) {
+			start = parsedStart
+		}
+	}
+
+	// Parse end position (if provided)
+	if parts[1] != "" {
+		if parsedEnd, err := strconv.Atoi(parts[1]); err == nil && parsedEnd >= start && parsedEnd < len(data) {
+			end = parsedEnd
+		}
+	}
+
+	// Handle range validation
+	if start > end || start >= len(data) {
+		return 0, len(data) - 1
+	}
+
+	// The end index is inclusive in range headers (+1 for slice upper bound)
+	return start, end
 }

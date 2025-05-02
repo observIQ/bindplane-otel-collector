@@ -1,0 +1,23 @@
+receivers:
+  s3event:
+    # This is intentionally empty to test the default config validation
+
+  s3event/s3:
+    sqs_queue_url: "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
+    standard_poll_interval: 30s
+    max_poll_interval: 60s
+    polling_backoff_factor: 2
+    visibility_timeout: 600s
+    workers: 5
+    event_format: aws_s3
+    directory: /tmp/s3event
+
+  s3event/fdr:
+    sqs_queue_url: "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
+    standard_poll_interval: 30s
+    max_poll_interval: 60s
+    polling_backoff_factor: 2
+    visibility_timeout: 600s
+    workers: 5
+    event_format: crowdstrike_fdr
+    directory: /tmp/s3event

@@ -28,6 +28,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const defaultTopologyInterval = time.Minute
+
 // TopologyReporter represents an object that reports topology state.
 type TopologyReporter interface {
 	TopologyInfos() []topologyprocessor.TopoInfo
@@ -48,12 +50,19 @@ type topologySender struct {
 	wg        *sync.WaitGroup
 }
 
-func newTopologySender(l *zap.Logger, reporter TopologyReporter, opampClient client.OpAMPClient, interval time.Duration) *topologySender {
+func newTopologySender(l *zap.Logger, reporter TopologyReporter, opampClient client.OpAMPClient, interval *time.Duration) *topologySender {
+	var topologyInterval time.Duration
+	if interval == nil {
+		topologyInterval = defaultTopologyInterval
+	} else {
+		topologyInterval = *interval
+	}
+
 	return &topologySender{
 		logger:      l,
 		reporter:    reporter,
 		opampClient: opampClient,
-		interval:    interval,
+		interval:    topologyInterval,
 
 		changeIntervalChan: make(chan time.Duration, 1),
 
@@ -83,9 +92,15 @@ func (ts *topologySender) Start() {
 }
 
 // SetInterval changes the interval of the topology sender.
-func (ts *topologySender) SetInterval(d time.Duration) {
+func (ts *topologySender) SetInterval(d *time.Duration) {
+	var interval time.Duration
+	if d == nil {
+		interval = defaultTopologyInterval
+	} else {
+		interval = *d
+	}
 	select {
-	case ts.changeIntervalChan <- d:
+	case ts.changeIntervalChan <- interval:
 	case <-ts.done:
 	}
 }

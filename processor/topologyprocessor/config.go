@@ -17,12 +17,18 @@ package topologyprocessor
 
 import (
 	"errors"
+	"time"
 
 	"go.opentelemetry.io/collector/component"
 )
 
 // Config is the configuration for the processor
 type Config struct {
+	// Interval is the interval at which this processor sends topology messages to Bindplane
+	// Deprecated: This parameter is only used in topology processor v1.75.0 and earlier.
+	// Leave this in for backwards compatibility with Bindplane < v1.90.0
+	Interval time.Duration `mapstructure:"interval"`
+
 	// Bindplane extension to use in order to report topology. Optional.
 	BindplaneExtension *component.ID `mapstructure:"bindplane_extension"`
 

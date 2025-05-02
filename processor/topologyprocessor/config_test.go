@@ -16,6 +16,7 @@ package topologyprocessor
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
@@ -29,6 +30,18 @@ func TestConfigValidate(t *testing.T) {
 			Configuration:      "myConfig",
 			OrganizationID:     "myorg",
 			BindplaneExtension: &bindplaneExtensionID,
+		}
+		require.NoError(t, cfg.Validate())
+	})
+
+	t.Run("Valid config with interval", func(t *testing.T) {
+		bindplaneExtensionID := component.MustNewID("bindplane")
+		cfg := Config{
+			AccountID:          "myacct",
+			Configuration:      "myConfig",
+			OrganizationID:     "myorg",
+			BindplaneExtension: &bindplaneExtensionID,
+			Interval:           time.Minute,
 		}
 		require.NoError(t, cfg.Validate())
 	})

@@ -34,3 +34,6 @@ storage
 
 # For those of us switching between V1 and V2 branches
 builder
+
+# Ignore generated credentials from google-github-actions/auth
+gha-creds-*.json
