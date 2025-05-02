@@ -24,6 +24,7 @@ import (
 // Config is the configuration for the bindplane extension
 type Config struct {
 	// Labels in "k1=v1,k2=v2" format
+	// Deprecated: This was never used and is not supported.
 	Labels string `mapstructure:"labels"`
 	// Component ID of the opamp extension. If not specified, then
 	// this extension will not generate any custom messages for throughput metrics or topology.

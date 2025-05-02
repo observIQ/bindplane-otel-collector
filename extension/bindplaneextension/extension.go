@@ -45,6 +45,10 @@ type bindplaneExtension struct {
 }
 
 func newBindplaneExtension(logger *zap.Logger, cfg *Config) *bindplaneExtension {
+	if cfg.Labels != "" {
+		logger.Warn("labels are not supported and will be ignored - this parameter will be removed in a future release", zap.String("labels", cfg.Labels))
+	}
+
 	return &bindplaneExtension{
 		logger:               logger,
 		cfg:                  cfg,
