@@ -118,6 +118,8 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 		return 1
 	}
 
+	channelName, opcodeName, taskName, eventID := c.getEventInfoFromRecord(eventRecord)
+
 	// Create an XML-like representation
 	var xmlBuilder strings.Builder
 	xmlBuilder.WriteString("<Event>\n")
@@ -127,24 +129,38 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	xmlBuilder.WriteString(fmt.Sprintf("    <Provider Name=\"%s\" Guid=\"{%s}\"/>\n",
 		providerName, providerGUID))
 	xmlBuilder.WriteString(fmt.Sprintf("    <EventID>%d</EventID>\n",
-		eventRecord.EventHeader.EventDescriptor.Id))
+		eventID))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Version>%d</Version>\n",
 		eventRecord.EventHeader.EventDescriptor.Version))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Level>%d</Level>\n",
 		eventRecord.EventHeader.EventDescriptor.Level))
-	xmlBuilder.WriteString(fmt.Sprintf("    <Task>%d</Task>\n",
-		eventRecord.EventHeader.EventDescriptor.Task))
-	xmlBuilder.WriteString(fmt.Sprintf("    <Opcode>%d</Opcode>\n",
-		eventRecord.EventHeader.EventDescriptor.Opcode))
+	xmlBuilder.WriteString(fmt.Sprintf("    <Task>%s</Task>\n",
+		taskName))
+	xmlBuilder.WriteString(fmt.Sprintf("    <Opcode>%s</Opcode>\n",
+		opcodeName))
 	xmlBuilder.WriteString(fmt.Sprintf("    <Keywords>0x%x</Keywords>\n",
 		eventRecord.EventHeader.EventDescriptor.Keyword))
 
 	timeStr := eventRecord.EventHeader.UTC().Format(time.RFC3339Nano)
 	xmlBuilder.WriteString(fmt.Sprintf("    <TimeCreated SystemTime=\"%s\"/>\n", timeStr))
 
+	if !eventRecord.EventHeader.ActivityId.Equals(&windows.GUID{}) {
+		xmlBuilder.WriteString(fmt.Sprintf("    <Correlation ActivityID=\"%s\" RelatedActivityID=\"%s\"/>\n",
+			eventRecord.EventHeader.ActivityId.String(), eventRecord.RelatedActivityID()))
+	} else {
+		xmlBuilder.WriteString("    <Correlation />\n")
+	}
+
 	xmlBuilder.WriteString(fmt.Sprintf("    <Execution ProcessID=\"%d\" ThreadID=\"%d\"/>\n",
 		eventRecord.EventHeader.ProcessId, eventRecord.EventHeader.ThreadId))
+
+	xmlBuilder.WriteString(fmt.Sprintf("    <Channel>%s</Channel>\n", channelName))
+
 	xmlBuilder.WriteString(fmt.Sprintf("    <Computer>%s</Computer>\n", hostname))
+
+	if sid := eventRecord.SID(); sid != "" {
+		xmlBuilder.WriteString(fmt.Sprintf("    <Security UserID=\"%s\"/>\n", sid))
+	}
 	xmlBuilder.WriteString("  </System>\n")
 
 	// EventData section
@@ -188,6 +204,10 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 	if provider, ok := c.providerMap[providerGUID]; ok {
 		providerName = provider.Name
 	}
+
+	// Get event information from TraceEventInfo
+	channelName, opcodeName, taskName, eventID := c.getEventInfoFromRecord(eventRecord)
+
 	level := eventRecord.EventHeader.EventDescriptor.Level
 	event := &Event{
 		Flags:     strconv.FormatUint(uint64(eventRecord.EventHeader.Flags), 10),
@@ -195,29 +215,37 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 		Timestamp: parseTimestamp(uint64(eventRecord.EventHeader.TimeStamp)),
 		System: EventSystem{
 			ActivityID: eventRecord.EventHeader.ActivityId.String(),
-			Channel:    strconv.FormatInt(int64(eventRecord.EventHeader.EventDescriptor.Channel), 10),
-			Keywords:   strconv.FormatUint(eventRecord.EventHeader.EventDescriptor.Keyword, 10),
-			EventID:    fmt.Sprintf("%d", eventRecord.EventHeader.EventDescriptor.Id),
-			Opcode:     strconv.FormatUint(uint64(eventRecord.EventHeader.EventDescriptor.Opcode), 10),
-			Task:       strconv.FormatUint(uint64(eventRecord.EventHeader.EventDescriptor.Task), 10),
+			Channel:    channelName,
+			Keywords:   strconv.FormatUint(uint64(eventRecord.EventHeader.EventDescriptor.Keyword), 10),
+			EventID:    strconv.FormatUint(uint64(eventID), 10),
+			Opcode:     opcodeName,
+			Task:       taskName,
 			Provider: EventProvider{
 				GUID: providerGUID,
 				Name: providerName,
 			},
-			Level:    level,
-			Computer: hostname,
-			Correlation: EventCorrelation{
-				ActivityID:        eventRecord.EventHeader.ActivityId.String(),
-				RelatedActivityID: eventRecord.RelatedActivityID(),
-			},
+			Level:       level,
+			Computer:    hostname,
+			Correlation: EventCorrelation{},
 			Execution: EventExecution{
 				ThreadID:  eventRecord.EventHeader.ThreadId,
 				ProcessID: eventRecord.EventHeader.ProcessId,
 			},
 			Version: eventRecord.EventHeader.EventDescriptor.Version,
 		},
+		Security: EventSecurity{
+			SID: eventRecord.SID(),
+		},
 		EventData:    data,
 		ExtendedData: []string{},
+	}
+
+	if activityID := eventRecord.EventHeader.ActivityId.String(); activityID != zeroGUID {
+		event.System.Correlation.ActivityID = activityID
+	}
+
+	if relatedActivityID := eventRecord.RelatedActivityID(); relatedActivityID != zeroGUID {
+		event.System.Correlation.RelatedActivityID = relatedActivityID
 	}
 
 	select {
@@ -226,6 +254,15 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 	case <-c.doneChan:
 		return 1
 	}
+}
+
+func (c *Consumer) getEventInfoFromRecord(eventRecord *advapi32.EventRecord) (channelName string, opcodeName string, taskName string, eventID uint16) {
+	ti, err := getEventInformation(eventRecord)
+	if err != nil {
+		c.logger.Error("Failed to get event information", zap.Error(err))
+		return "", "", "", 0
+	}
+	return ti.ChannelName(), ti.OpcodeName(), ti.TaskName(), ti.EventID()
 }
 
 func (c *Consumer) defaultBufferCallback(buffer *advapi32.EventTraceLogfile) uintptr {

@@ -181,6 +181,7 @@ func (lr *logsReceiver) parseEvent(event *etw.Event) (plog.Logs, error) {
 	resourceLog.Resource().Attributes().PutStr("provider", event.System.Provider.Name)
 	resourceLog.Resource().Attributes().PutStr("provider_guid", event.System.Provider.GUID)
 	resourceLog.Resource().Attributes().PutStr("computer", event.System.Computer)
+	resourceLog.Resource().Attributes().PutStr("channel", event.System.Channel)
 
 	scopeLog := resourceLog.ScopeLogs().AppendEmpty()
 	record := scopeLog.LogRecords().AppendEmpty()
@@ -224,8 +225,21 @@ func (lr *logsReceiver) parseEventData(event *etw.Event, record plog.LogRecord) 
 
 	if event.System.EventID != "" {
 		eventID := record.Body().Map().PutEmptyMap("event_id")
-		// eventID.PutStr("guid", event.System.EventGUID)
 		eventID.PutStr("id", event.System.EventID)
+	}
+
+	correlation := record.Body().Map().PutEmptyMap("correlation")
+	if event.System.Correlation.ActivityID != "" {
+		correlation.PutStr("activity_id", event.System.Correlation.ActivityID)
+	}
+
+	if event.System.Correlation.RelatedActivityID != "" {
+		correlation.PutStr("related_activity_id", event.System.Correlation.RelatedActivityID)
+	}
+
+	if event.Security.SID != "" {
+		security := record.Body().Map().PutEmptyMap("security")
+		security.PutStr("sid", event.Security.SID)
 	}
 
 	if event.System.Execution.ProcessID != 0 {

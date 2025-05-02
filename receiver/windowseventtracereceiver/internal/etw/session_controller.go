@@ -176,7 +176,8 @@ func allocBuffer(logSessionName string) (propertyBuffer *advapi32.EventTraceProp
 // if we successfully enable the provider, we will return nil.
 func (s *SessionController) enableProvider(handle syscall.Handle, providerGUID *windows.GUID, provider *Provider, traceLevel advapi32.TraceLevel, matchAnyKeyword uint64, matchAllKeyword uint64) error {
 	params := advapi32.EnableTraceParameters{
-		Version: 2,
+		Version:        2,
+		EnableProperty: advapi32.EVENT_ENABLE_PROPERTY_SID,
 	}
 
 	const maxAttempts = 5
