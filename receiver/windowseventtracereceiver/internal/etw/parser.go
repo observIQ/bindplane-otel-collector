@@ -89,8 +89,15 @@ func (p *parser) getPropertyValue(r *advapi32.EventRecord, propInfo *tdh.TraceEv
 		return nil, fmt.Errorf("failed to get array size: %w", err)
 	}
 
+	if arraySize == 1 {
+		if (propertyInfo.Flags & tdh.PropertyStruct) == tdh.PropertyStruct {
+			return p.parseObject(propertyInfo)
+		}
+		return p.parseSimpleType(r, propertyInfo, 0)
+	}
+
 	result := make([]any, arraySize)
-	for i := range arraySize {
+	for idx := range arraySize {
 		var (
 			value any
 			err   error
@@ -98,13 +105,13 @@ func (p *parser) getPropertyValue(r *advapi32.EventRecord, propInfo *tdh.TraceEv
 		if (propertyInfo.Flags & tdh.PropertyStruct) == tdh.PropertyStruct {
 			value, err = p.parseObject(propertyInfo)
 		} else {
-			value, err = p.parseSimpleType(r, propertyInfo, uint32(i))
+			value, err = p.parseSimpleType(r, propertyInfo, uint32(idx))
 		}
 
 		if err != nil {
 			return nil, err
 		}
-		result[i] = value
+		result[idx] = value
 	}
 
 	return result, nil

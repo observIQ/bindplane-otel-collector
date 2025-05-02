@@ -12,16 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build windows
+
 // Package etw contains the functionality for interacting with the ETW API.
 package etw
 
-import "time"
+import (
+	"time"
+
+	"golang.org/x/sys/windows"
+)
 
 // EventFlags contains flags for the event
 type EventFlags struct {
 	// Use to flag event as being skippable for performance reason
 	Skippable bool `json:"skippable"`
 }
+
+// zeroGUID is a string representation of the zero GUID, which generally indicates that the value is not applicable
+var zeroGUID = windows.GUID{}.String()
 
 // EventCorrelation contains correlation information for the event
 type EventCorrelation struct {
@@ -91,4 +100,10 @@ type Event struct {
 	UserData     map[string]any `json:"userData,omitempty"`
 	System       EventSystem    `json:"system"`
 	ExtendedData []string       `json:"extendedData,omitempty"`
+	Security     EventSecurity  `json:"security,omitempty"`
+}
+
+// EventSecurity contains security information for the event
+type EventSecurity struct {
+	SID string `json:"sid"`
 }

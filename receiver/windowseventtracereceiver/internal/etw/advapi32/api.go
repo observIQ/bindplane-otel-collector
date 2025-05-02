@@ -614,6 +614,10 @@ const (
 )
 
 const (
+	EVENT_ENABLE_PROPERTY_SID = 0x00000001
+)
+
+const (
 	WNODE_FLAG_ALL_DATA              uint32 = 0x00000001
 	WNODE_FLAG_SINGLE_INSTANCE       uint32 = 0x00000002
 	WNODE_FLAG_SINGLE_ITEM           uint32 = 0x00000004
@@ -676,6 +680,7 @@ func (e *EventRecord) PointerSize() uint32 {
 
 const (
 	EventHeaderExtTypeRelatedActivityID = 0x0001
+	EventHeaderExtTypeSID               = 0x0002
 )
 
 func (e *EventRecord) ExtendedDataItem(i uint16) *EventHeaderExtendedDataItem {
@@ -688,12 +693,23 @@ func (e *EventRecord) ExtendedDataItem(i uint16) *EventHeaderExtendedDataItem {
 func (e *EventRecord) RelatedActivityID() string {
 	for i := uint16(0); i < e.ExtendedDataCount; i++ {
 		item := e.ExtendedDataItem(i)
-		if item.ExtType == EventHeaderExtTypeRelatedActivityID {
+		if item != nil && item.ExtType == EventHeaderExtTypeRelatedActivityID {
 			g := (*windows_.GUID)(unsafe.Pointer(item.DataPtr))
 			return g.String()
 		}
 	}
-	return "{00000000-0000-0000-0000-000000000000}"
+	return ""
+}
+
+func (e *EventRecord) SID() string {
+	for i := uint16(0); i < e.ExtendedDataCount; i++ {
+		item := e.ExtendedDataItem(i)
+		if item != nil && item.ExtType == EventHeaderExtTypeSID {
+			sid := (*windows.SID)(unsafe.Pointer(item.DataPtr))
+			return sid.String()
+		}
+	}
+	return ""
 }
 
 /*
