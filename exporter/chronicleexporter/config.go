@@ -87,12 +87,12 @@ type Config struct {
 	Forwarder string `mapstructure:"forwarder"`
 
 	// BatchRequestSizeLimitGRPC is the maximum batch request size, in bytes, that can be sent to Chronicle via the GRPC protocol
-	// This field is defaulted to 1048576 as that is the default Chronicle backend limit
+	// This field is defaulted to 4000000 as that is the default Chronicle backend limit
 	// Setting this option to a value above the Chronicle backend limit may result in rejected log batch requests
 	BatchRequestSizeLimitGRPC int `mapstructure:"batch_request_size_limit_grpc"`
 
 	// BatchRequestSizeLimitHTTP is the maximum batch request size, in bytes, that can be sent to Chronicle via the HTTP protocol
-	// This field is defaulted to 1048576 as that is the default Chronicle backend limit
+	// This field is defaulted to 4000000 as that is the default Chronicle backend limit
 	// Setting this option to a value above the Chronicle backend limit may result in rejected log batch requests
 	BatchRequestSizeLimitHTTP int `mapstructure:"batch_request_size_limit_http"`
 

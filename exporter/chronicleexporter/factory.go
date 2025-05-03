@@ -35,8 +35,8 @@ func NewFactory() exporter.Factory {
 
 const (
 	defaultEndpoint                  = "malachiteingestion-pa.googleapis.com"
-	defaultBatchRequestSizeLimitGRPC = 1048576
-	defaultBatchRequestSizeLimitHTTP = 1048576
+	defaultBatchRequestSizeLimitGRPC = 4000000
+	defaultBatchRequestSizeLimitHTTP = 4000000
 )
 
 // createDefaultConfig creates the default configuration for the exporter.
