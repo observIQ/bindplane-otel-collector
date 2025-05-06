@@ -198,8 +198,8 @@ func TestHTTPExporter(t *testing.T) {
 	}
 }
 
-// TestJSONCredentialsError tests that the exporter returns an error when the json credentials are invalid and does not panic during shutdown
-func TestJSONCredentialsError(t *testing.T) {
+// TestHTTPJSONCredentialsError tests that the HTTP exporter returns an error when the json credentials are invalid and does not panic during shutdown
+func TestHTTPJSONCredentialsError(t *testing.T) {
 	defaultCfgMod := func(cfg *Config) {
 		cfg.Protocol = protocolHTTPS
 		cfg.Location = "us"
