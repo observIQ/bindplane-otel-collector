@@ -215,7 +215,7 @@ func TestHTTPJSONCredentialsError(t *testing.T) {
 	f := NewFactory()
 	cfg := f.CreateDefaultConfig().(*Config)
 	defaultCfgMod(cfg)
-	cfg.Creds = "z" // This invalid JSON will cause the token source to error
+	cfg.Creds = "z"                    // This invalid JSON will cause the token source to error
 	require.NoError(t, cfg.Validate()) // TODO: Validate really should fail immediately when given invalid JSON as credentials
 
 	ctx := context.Background()
