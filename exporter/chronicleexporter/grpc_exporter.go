@@ -164,11 +164,9 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 		}
 	}
 
-	exp.telemetry.ExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds(),
+	exp.telemetry.ExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds())
+	exp.telemetry.ExporterRequestCount.Add(ctx, 1,
 		metric.WithAttributeSet(attribute.NewSet(attrErrorNone)))
-
-	// Record request count
-	exp.telemetry.ExporterRequestCount.Add(ctx, 1)
 
 	if exp.metrics != nil {
 		totalLogs := int64(len(request.GetBatch().GetEntries()))
