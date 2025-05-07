@@ -68,23 +68,7 @@ func createLogsExporter(
 
 	c := cfg.(*Config)
 	if c.Protocol == protocolHTTPS {
-		exp, err = newHTTPExporter(c, params, t)
-	} else {
-		exp, err = newGRPCExporter(c, params, t)
+		return newHTTPExporter(ctx, c, params, t)
 	}
-	if err != nil {
-		return nil, err
-	}
-	return exporterhelper.NewLogs(
-		ctx,
-		params,
-		c,
-		exp.ConsumeLogs,
-		exporterhelper.WithCapabilities(exp.Capabilities()),
-		exporterhelper.WithTimeout(c.TimeoutConfig),
-		exporterhelper.WithQueue(c.QueueBatchConfig),
-		exporterhelper.WithRetry(c.BackOffConfig),
-		exporterhelper.WithStart(exp.Start),
-		exporterhelper.WithShutdown(exp.Shutdown),
-	)
+	return newGRPCExporter(ctx, c, params, t)
 }

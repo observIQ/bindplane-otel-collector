@@ -30,6 +30,7 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
+	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -50,17 +51,29 @@ type httpExporter struct {
 	telemetry *metadata.TelemetryBuilder
 }
 
-func newHTTPExporter(cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (*httpExporter, error) {
+func newHTTPExporter(ctx context.Context, cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (exporter.Logs, error) {
 	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings, telemetry)
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}
-	return &httpExporter{
+	exp := &httpExporter{
 		cfg:       cfg,
 		set:       params.TelemetrySettings,
 		marshaler: marshaler,
 		telemetry: telemetry,
-	}, nil
+	}
+	return exporterhelper.NewLogs(
+		ctx,
+		params,
+		cfg,
+		exp.ConsumeLogs,
+		exporterhelper.WithTimeout(cfg.TimeoutConfig),
+		exporterhelper.WithRetry(cfg.BackOffConfig),
+		exporterhelper.WithQueue(cfg.QueueBatchConfig),
+		exporterhelper.WithStart(exp.Start),
+		exporterhelper.WithShutdown(exp.Shutdown),
+		exporterhelper.WithCapabilities(exp.Capabilities()),
+	)
 }
 
 func (exp *httpExporter) Capabilities() consumer.Capabilities {

@@ -26,6 +26,7 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
+	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -53,18 +54,30 @@ type grpcExporter struct {
 	telemetry *metadata.TelemetryBuilder
 }
 
-func newGRPCExporter(cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (*grpcExporter, error) {
+func newGRPCExporter(ctx context.Context, cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (exporter.Logs, error) {
 	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings, telemetry)
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}
-	return &grpcExporter{
+	exp := &grpcExporter{
 		cfg:        cfg,
 		set:        params.TelemetrySettings,
 		exporterID: params.ID.String(),
 		marshaler:  marshaler,
 		telemetry:  telemetry,
-	}, nil
+	}
+	return exporterhelper.NewLogsRequest(
+		ctx,
+		params,
+		exp.logsConverterFunc(),
+		exp.logsConsumeFunc(),
+		exporterhelper.WithTimeout(cfg.TimeoutConfig),
+		exporterhelper.WithRetry(cfg.BackOffConfig),
+		exporterhelper.WithQueueBatch(cfg.QueueBatchConfig, grpcQueueBatchSettings()),
+		exporterhelper.WithStart(exp.Start),
+		exporterhelper.WithShutdown(exp.Shutdown),
+		exporterhelper.WithCapabilities(exp.Capabilities()),
+	)
 }
 
 func (exp *grpcExporter) Capabilities() consumer.Capabilities {
@@ -113,17 +126,51 @@ func (exp *grpcExporter) Shutdown(context.Context) error {
 	return nil
 }
 
-func (exp *grpcExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
-	payloads, err := exp.marshaler.MarshalRawLogs(ctx, ld)
-	if err != nil {
-		return fmt.Errorf("marshal logs: %w", err)
-	}
-	for _, payload := range payloads {
-		if err := exp.uploadToChronicle(ctx, payload); err != nil {
-			return err
+func (exp *grpcExporter) logsConverterFunc() exporterhelper.RequestConverterFunc[plog.Logs] {
+	return func(ctx context.Context, ld plog.Logs) (exporterhelper.Request, error) {
+		payloads, err := exp.marshaler.MarshalRawLogs(ctx, ld)
+		if err != nil {
+			return nil, fmt.Errorf("marshal logs: %w", err)
 		}
+
+		if len(payloads) == 0 {
+			return new(grpcRequest), nil
+		}
+
+		if len(payloads) == 1 {
+			return &grpcRequest{
+				request:  payloads[0],
+				groupKey: computeGroupKey(payloads[0].GetBatch()),
+			}, nil
+		}
+
+		multiRequest := &grpcMultiRequest{
+			requests: make(map[string]grpcRequest, len(payloads)),
+		}
+
+		for _, payload := range payloads {
+			groupKey := computeGroupKey(payload.GetBatch())
+			multiRequest.requests[groupKey] = grpcRequest{
+				request:  payload,
+				groupKey: groupKey,
+			}
+		}
+
+		return multiRequest, nil
 	}
-	return nil
+}
+
+func (exp *grpcExporter) logsConsumeFunc() exporterhelper.RequestConsumeFunc {
+	return func(ctx context.Context, request exporterhelper.Request) error {
+		r, ok := request.(*grpcRequest)
+		if !ok {
+			return fmt.Errorf("invalid request type: expected *grpcRequest, got %T", request)
+		}
+		if r.request == nil || len(r.request.Batch.Entries) == 0 {
+			return nil
+		}
+		return exp.uploadToChronicle(ctx, r.request)
+	}
 }
 
 func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.BatchCreateLogsRequest) error {

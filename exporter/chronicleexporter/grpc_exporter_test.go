@@ -94,7 +94,10 @@ func TestGRPCExporter(t *testing.T) {
 		permanentErr     bool
 	}{
 		{
-			name:             "empty log record",
+			name: "empty log record",
+			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
+				return &api.BatchCreateLogsResponse{}, nil
+			},
 			input:            plog.NewLogs(),
 			expectedRequests: 0,
 		},
