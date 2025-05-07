@@ -78,9 +78,11 @@ func (exp *httpExporter) Start(ctx context.Context, _ component.Host) error {
 
 func (exp *httpExporter) Shutdown(context.Context) error {
 	defer http.DefaultTransport.(*http.Transport).CloseIdleConnections()
-	t := exp.client.Transport.(*oauth2.Transport)
-	if t.Base != nil {
-		t.Base.(*http.Transport).CloseIdleConnections()
+	if exp.client != nil {
+		t := exp.client.Transport.(*oauth2.Transport)
+		if t.Base != nil {
+			t.Base.(*http.Transport).CloseIdleConnections()
+		}
 	}
 	return nil
 }

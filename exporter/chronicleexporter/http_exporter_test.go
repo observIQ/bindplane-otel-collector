@@ -197,3 +197,36 @@ func TestHTTPExporter(t *testing.T) {
 		})
 	}
 }
+
+// TestHTTPJSONCredentialsError tests that the HTTP exporter returns an error when the json credentials are invalid and does not panic during shutdown
+func TestHTTPJSONCredentialsError(t *testing.T) {
+	defaultCfgMod := func(cfg *Config) {
+		cfg.Protocol = protocolHTTPS
+		cfg.Location = "us"
+		cfg.CustomerID = "00000000-1111-2222-3333-444444444444"
+		cfg.Project = "fake"
+		cfg.Forwarder = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		cfg.LogType = "FAKE"
+		cfg.QueueBatchConfig.Enabled = false
+		cfg.BackOffConfig.Enabled = false
+	}
+
+	// Create and configure the exporter
+	f := NewFactory()
+	cfg := f.CreateDefaultConfig().(*Config)
+	defaultCfgMod(cfg)
+	cfg.Creds = "z"                    // This invalid JSON will cause the token source to error
+	require.NoError(t, cfg.Validate()) // TODO: Validate really should fail immediately when given invalid JSON as credentials
+
+	ctx := context.Background()
+	exp, err := f.CreateLogs(ctx, exportertest.NewNopSettings(typ), cfg)
+	require.NoError(t, err)
+
+	// Start should fail with invalid credentials
+	err = exp.Start(ctx, componenttest.NewNopHost())
+	require.Error(t, err)
+	require.EqualError(t, err, "load Google credentials: invalid character 'z' looking for beginning of value")
+
+	// Shutdown should not panic
+	require.NoError(t, exp.Shutdown(ctx))
+}
