@@ -139,14 +139,16 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 
 	resp, err := exp.client.Do(request)
 	if err != nil {
-		errAttr := attribute.String("error", "unknown")
+		errAttr := attribute.String(attrError, "unknown")
 		if errors.Is(err, context.DeadlineExceeded) {
-			errAttr = attribute.String("error", "timeout")
+			errAttr = attribute.String(attrError, "timeout")
 		}
 		exp.telemetry.ExporterRequestLatency.Record(
 			ctx, time.Since(start).Milliseconds(),
 			metric.WithAttributeSet(attribute.NewSet(errAttr)),
 		)
+		exp.telemetry.ExporterRequestCount.Add(ctx, 1,
+			metric.WithAttributeSet(attribute.NewSet(errAttr)))
 		return fmt.Errorf("send request to Chronicle: %w", err)
 	}
 	defer resp.Body.Close()
@@ -156,6 +158,8 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 		ctx, time.Since(start).Milliseconds(),
 		metric.WithAttributeSet(attribute.NewSet(statusAttr)),
 	)
+	exp.telemetry.ExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds(),
+		metric.WithAttributeSet(attribute.NewSet(attrErrorNone)))
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err == nil && resp.StatusCode == http.StatusOK {

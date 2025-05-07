@@ -147,18 +147,28 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 			codes.ResourceExhausted,
 			codes.Aborted:
 
-			errAttr := attribute.String("error", errCode.String())
+			errAttr := attribute.String(attrError, errCode.String())
 			exp.telemetry.ExporterRequestLatency.Record(
 				ctx, time.Since(start).Milliseconds(),
 				metric.WithAttributeSet(attribute.NewSet(errAttr)),
 			)
+			exp.telemetry.ExporterRequestCount.Add(ctx, 1,
+				metric.WithAttributeSet(attribute.NewSet(errAttr)))
+
 			return fmt.Errorf("upload logs to chronicle: %w", err)
 		default:
+			exp.telemetry.ExporterRequestCount.Add(ctx, 1,
+				metric.WithAttributeSet(attribute.NewSet(attrErrorUnknown)))
+
 			return consumererror.NewPermanent(fmt.Errorf("upload logs to chronicle: %w", err))
 		}
 	}
 
-	exp.telemetry.ExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds())
+	exp.telemetry.ExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds(),
+		metric.WithAttributeSet(attribute.NewSet(attrErrorNone)))
+
+	// Record request count
+	exp.telemetry.ExporterRequestCount.Add(ctx, 1)
 
 	if exp.metrics != nil {
 		totalLogs := int64(len(request.GetBatch().GetEntries()))
