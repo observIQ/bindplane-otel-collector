@@ -158,7 +158,7 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 		ctx, time.Since(start).Milliseconds(),
 		metric.WithAttributeSet(attribute.NewSet(statusAttr)),
 	)
-	exp.telemetry.ExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds(),
+	exp.telemetry.ExporterRequestCount.Add(ctx, 1,
 		metric.WithAttributeSet(attribute.NewSet(attrErrorNone)))
 
 	respBody, err := io.ReadAll(resp.Body)
