@@ -20,7 +20,7 @@ import (
 
 func Settings() exporterhelper.QueueBatchSettings {
 	return exporterhelper.QueueBatchSettings{
-		Encoding: &encoding{},
+		Encoding: &Encoding{},
 		Sizers: map[exporterhelper.RequestSizerType]exporterhelper.RequestSizer{
 			exporterhelper.RequestSizerTypeBytes: &byteSizer{},
 		},

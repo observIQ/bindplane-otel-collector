@@ -23,13 +23,13 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type encoding struct{}
+type Encoding struct{}
 
 type storedRequest struct {
 	Requests [][]byte `json:"requests"`
 }
 
-func (e *encoding) Marshal(r exporterhelper.Request) ([]byte, error) {
+func (e *Encoding) Marshal(r exporterhelper.Request) ([]byte, error) {
 	var requests storedRequest
 	switch r := r.(type) {
 	case *Request:
@@ -53,7 +53,7 @@ func (e *encoding) Marshal(r exporterhelper.Request) ([]byte, error) {
 	return json.Marshal(requests)
 }
 
-func (e *encoding) Unmarshal(data []byte) (exporterhelper.Request, error) {
+func (e *Encoding) Unmarshal(data []byte) (exporterhelper.Request, error) {
 	var stored storedRequest
 	if err := json.Unmarshal(data, &stored); err != nil {
 		return nil, err
@@ -69,6 +69,8 @@ func (e *encoding) Unmarshal(data []byte) (exporterhelper.Request, error) {
 		if err := proto.Unmarshal(stored.Requests[0], request); err != nil {
 			return nil, err
 		}
+		// populate sizeCache
+		_ = proto.Size(request)
 		return NewRequest(request), nil
 	}
 
@@ -77,6 +79,8 @@ func (e *encoding) Unmarshal(data []byte) (exporterhelper.Request, error) {
 		if err := proto.Unmarshal(requestBytes, request); err != nil {
 			return nil, err
 		}
+		// populate sizeCache
+		_ = proto.Size(request)
 		requests = append(requests, request)
 	}
 	return NewRequestBundle(requests), nil

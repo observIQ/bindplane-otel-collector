@@ -84,6 +84,8 @@ func (r *Request) mergeSplitSingle(maxSize int, o *Request) []exporterhelper.Req
 	}
 
 	defer func() {
+		// TODO StartTime represents the time the collector started, so do we want to preserve the
+		// original start time of entries which were persisted?
 		if len(o.request.Batch.Entries) == 0 {
 			return
 		}
