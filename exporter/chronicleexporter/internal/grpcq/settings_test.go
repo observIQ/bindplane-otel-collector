@@ -12,17 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package grpcq
+package grpcq_test
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
+
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/grpcq"
 )
 
-func Settings() exporterhelper.QueueBatchSettings {
-	return exporterhelper.QueueBatchSettings{
-		Encoding: &Encoding{},
-		Sizers: map[exporterhelper.RequestSizerType]exporterhelper.RequestSizer{
-			exporterhelper.RequestSizerTypeBytes: &ByteSizer{},
-		},
-	}
+func TestSettings(t *testing.T) {
+	settings := grpcq.Settings()
+
+	assert.IsType(t, &grpcq.Encoding{}, settings.Encoding)
+
+	assert.Len(t, settings.Sizers, 1)
+	sizer, ok := settings.Sizers[exporterhelper.RequestSizerTypeBytes]
+	assert.True(t, ok)
+	assert.IsType(t, &grpcq.ByteSizer{}, sizer)
 }

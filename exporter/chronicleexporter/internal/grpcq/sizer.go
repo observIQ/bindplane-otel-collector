@@ -21,11 +21,11 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var globalByteSizer = &byteSizer{}
+var globalByteSizer = &ByteSizer{}
 
-type byteSizer struct{}
+type ByteSizer struct{}
 
-func (s *byteSizer) Sizeof(r exporterhelper.Request) int64 {
+func (s *ByteSizer) Sizeof(r exporterhelper.Request) int64 {
 	switch r := r.(type) {
 	case *Request:
 		return int64(proto.Size(r.request))

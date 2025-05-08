@@ -16,41 +16,13 @@ package grpcq_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/grpcq"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 )
-
-var now = time.Now()
-
-func newLogEntry(data string) *api.LogEntry {
-	return &api.LogEntry{
-		Timestamp:      timestamppb.New(now),
-		CollectionTime: timestamppb.New(now),
-		Data:           []byte(data),
-	}
-}
-
-func newProto(entries []*api.LogEntry, ingestionLabels []*api.Label) *api.BatchCreateLogsRequest {
-	return &api.BatchCreateLogsRequest{
-		Batch: &api.LogEntryBatch{
-			StartTime: timestamppb.New(now),
-			Entries:   entries,
-			LogType:   "test-log-type",
-			Source: &api.EventSource{
-				Labels:      ingestionLabels,
-				CollectorId: []byte("test-collector-id"),
-				CustomerId:  []byte("test-customer-id"),
-				Namespace:   "test-namespace",
-			},
-		},
-	}
-}
 
 func TestEncodingRoundTrip(t *testing.T) {
 	enc := new(grpcq.Encoding)
