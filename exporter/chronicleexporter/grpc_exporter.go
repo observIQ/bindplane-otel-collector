@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/grpcq"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"go.opentelemetry.io/collector/component"
@@ -73,7 +74,7 @@ func newGRPCExporter(ctx context.Context, cfg *Config, params exporter.Settings,
 		exp.logsConsumeFunc(),
 		exporterhelper.WithTimeout(cfg.TimeoutConfig),
 		exporterhelper.WithRetry(cfg.BackOffConfig),
-		exporterhelper.WithQueueBatch(cfg.QueueBatchConfig, grpcQueueBatchSettings()),
+		exporterhelper.WithQueueBatch(cfg.QueueBatchConfig, grpcq.Settings()),
 		exporterhelper.WithStart(exp.Start),
 		exporterhelper.WithShutdown(exp.Shutdown),
 		exporterhelper.WithCapabilities(exp.Capabilities()),
@@ -134,42 +135,27 @@ func (exp *grpcExporter) logsConverterFunc() exporterhelper.RequestConverterFunc
 		}
 
 		if len(payloads) == 0 {
-			return new(grpcRequest), nil
+			return new(grpcq.Request), nil
 		}
 
 		if len(payloads) == 1 {
-			return &grpcRequest{
-				request:  payloads[0],
-				groupKey: computeGroupKey(payloads[0].GetBatch()),
-			}, nil
+			return grpcq.NewRequest(payloads[0]), nil
 		}
 
-		multiRequest := &grpcMultiRequest{
-			requests: make(map[string]grpcRequest, len(payloads)),
-		}
-
-		for _, payload := range payloads {
-			groupKey := computeGroupKey(payload.GetBatch())
-			multiRequest.requests[groupKey] = grpcRequest{
-				request:  payload,
-				groupKey: groupKey,
-			}
-		}
-
-		return multiRequest, nil
+		return grpcq.NewRequestBundle(payloads), nil
 	}
 }
 
 func (exp *grpcExporter) logsConsumeFunc() exporterhelper.RequestConsumeFunc {
 	return func(ctx context.Context, request exporterhelper.Request) error {
-		r, ok := request.(*grpcRequest)
+		r, ok := request.(*grpcq.Request)
 		if !ok {
-			return fmt.Errorf("invalid request type: expected *grpcRequest, got %T", request)
+			return fmt.Errorf("invalid request type: expected *grpcq.Request, got %T", request)
 		}
-		if r.request == nil || len(r.request.Batch.Entries) == 0 {
+		if r.ItemsCount() == 0 {
 			return nil
 		}
-		return exp.uploadToChronicle(ctx, r.request)
+		return exp.uploadToChronicle(ctx, r.Proto())
 	}
 }
 
