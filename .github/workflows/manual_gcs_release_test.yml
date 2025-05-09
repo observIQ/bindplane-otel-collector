@@ -15,3 +15,5 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
       - name: Test Gsutil
         run: gsutil ls gs://bdot-release
+      - run: gsutil cp LICENSE gs://bdot-release/LICENSE
+      - run: gsutil rm gs://bdot-release/LICENSE
