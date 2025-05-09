@@ -32,6 +32,13 @@ telemetry:
         value_type: int
         bucket_boundaries: [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 10000, 15000, 20000, 30000, 60000]
 
+    exporter_request_count:
+      enabled: true
+      description: "The total number of requests made."
+      unit: "{requests}"
+      sum:
+        value_type: int
+
 tests:
   config:
     protocol: "grpc"

@@ -22,6 +22,14 @@ The size of the payload in bytes.
 | ---- | ----------- | ---------- |
 | B | Histogram | Int |
 
+### otelcol_exporter_request_count
+
+The total number of requests made.
+
+| Unit | Metric Type | Value Type | Monotonic |
+| ---- | ----------- | ---------- | --------- |
+| {requests} | Sum | Int | false |
+
 ### otelcol_exporter_request_latency
 
 The latency of the request in milliseconds.
