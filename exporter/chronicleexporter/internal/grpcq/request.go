@@ -20,6 +20,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var _ exporterhelper.Request = &Request{}
@@ -63,71 +64,73 @@ func (r *Request) MergeSplit(ctx context.Context, maxSize int, sizer exporterhel
 	if sizer != exporterhelper.RequestSizerTypeBytes {
 		return nil, fmt.Errorf("unsupported sizer type: %s", sizer)
 	}
+	maxSize64 := int64(maxSize)
 
-	if maxSize <= 0 {
-		return []exporterhelper.Request{r}, nil
+	if other == nil {
+		result, dropped := split(r, maxSize64)
+		// TODO just emit a metric about this
+		if dropped > 0 {
+			return result, fmt.Errorf("dropped %d entries", dropped)
+		}
+		return result, nil
 	}
 
 	switch o := other.(type) {
 	case *RequestBundle:
-		return append([]exporterhelper.Request{r}, o.expand()...), nil
+		o.mergeSingle(r)
+		return o.expandSplit(maxSize64), nil
 	case *Request:
-		return r.mergeSplitSingle(maxSize, o), nil
+		if r.groupKey != o.groupKey {
+			return []exporterhelper.Request{r, o}, nil
+		}
+		r.merge(o)
+		result, dropped := split(r, maxSize64)
+		// TODO just emit a metric about this
+		if dropped > 0 {
+			return result, fmt.Errorf("dropped %d entries", dropped)
+		}
+		return result, nil
 	default:
 		return nil, fmt.Errorf("invalid request type: expected *RequestBundle or *Request, got %T", other)
 	}
 }
 
-func (r *Request) mergeSplitSingle(maxSize int, o *Request) []exporterhelper.Request {
-	if r.groupKey != o.groupKey {
-		return []exporterhelper.Request{r, o}
+func (r *Request) merge(other *Request) {
+	r.request.Batch.Entries = append(r.request.Batch.Entries, other.request.Batch.Entries...)
+}
+
+// Returns a slice of requests and the number of entries that were dropped.
+// An entry is only dropped if a request containing only that entry exceeds the max size.
+func split(r *Request, maxSize int64) ([]exporterhelper.Request, int) {
+	size := globalByteSizer.Sizeof(r)
+	if size <= int64(maxSize) {
+		return []exporterhelper.Request{r}, 0
 	}
 
-	defer func() {
-		// TODO StartTime represents the time the collector started, so do we want to preserve the
-		// original start time of entries which were persisted?
-		if len(o.request.Batch.Entries) == 0 {
-			return
-		}
-		// Update the StartTime of other since we may have removed the earliest entries from it.
-		earliest := o.request.Batch.Entries[0].GetTimestamp()
-		for _, entry := range r.request.Batch.Entries {
-			if entry.GetTimestamp().AsTime().Before(earliest.AsTime()) {
-				earliest = entry.GetTimestamp()
-			}
-		}
-		o.request.Batch.StartTime = earliest
-	}()
-
-	// Shift entries from o to r until r is just under maxSize or o is empty.
-	// This could be more efficient but the immediate need is to reduce network requests.
-	// Inefficiency in this algorithm is paid in the form of compute, which should be relatively cheap
-	// compared to the network round trip.
-	//
-	// Use this even when purely merging two requests because the size of the merged request is unknown
-	// unless actually measured.
-	for len(o.request.Batch.Entries) > 0 {
-		// Append the first entry of o to r. Do not remove it from o until
-		// it is known that r is not over the maxSize.
-		r.request.Batch.Entries = append(r.request.Batch.Entries, o.request.Batch.Entries[0])
-
-		newSize := globalByteSizer.Sizeof(r)
-		if newSize > int64(maxSize) {
-			// Exceeded the maxSize. Roll back and return the result.
-			r.request.Batch.Entries = r.request.Batch.Entries[:len(r.request.Batch.Entries)-1]
-			return []exporterhelper.Request{r, o}
-		}
-
-		// Size is fine. Update everything else.
-		// Since o.StartTime requires computation, we'll do it once at the end.
-		if o.request.Batch.Entries[0].GetTimestamp().AsTime().Before(r.request.Batch.StartTime.AsTime()) {
-			r.request.Batch.StartTime = o.request.Batch.Entries[0].GetTimestamp()
-		}
-		o.request.Batch.Entries = o.request.Batch.Entries[1:]
+	if len(r.request.Batch.Entries) < 2 {
+		return []exporterhelper.Request{}, 1
 	}
 
-	if len(o.request.Batch.Entries) == 0 {
-		return []exporterhelper.Request{r}
-	}
-	return []exporterhelper.Request{r, o}
+	// split request into two
+	mid := len(r.request.Batch.Entries) / 2
+	other := NewRequest(&api.BatchCreateLogsRequest{
+		Batch: &api.LogEntryBatch{
+			StartTime: timestamppb.New(r.request.Batch.StartTime.AsTime()),
+			Entries:   r.request.Batch.Entries[mid:],
+			LogType:   r.request.Batch.LogType,
+			Source: &api.EventSource{
+				CollectorId: r.request.Batch.Source.CollectorId,
+				CustomerId:  r.request.Batch.Source.CustomerId,
+				Labels:      r.request.Batch.Source.Labels,
+				Namespace:   r.request.Batch.Source.Namespace,
+			},
+		},
+	})
+	r.request.Batch.Entries = r.request.Batch.Entries[:mid]
+
+	// re-enforce max size restriction on each half
+	rSplit, rDropped := split(r, maxSize)
+	otherSplit, otherDropped := split(other, maxSize)
+
+	return append(rSplit, otherSplit...), rDropped + otherDropped
 }

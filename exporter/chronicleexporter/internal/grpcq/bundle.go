@@ -17,7 +17,6 @@ package grpcq
 import (
 	"context"
 	"fmt"
-	"math"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
@@ -31,7 +30,11 @@ func NewRequestBundle(requests []*api.BatchCreateLogsRequest) *RequestBundle {
 	}
 	for _, request := range requests {
 		request := NewRequest(request)
-		bundle.requests[request.groupKey] = request
+		if group, ok := bundle.requests[request.groupKey]; ok {
+			group.merge(request)
+		} else {
+			bundle.requests[request.groupKey] = request
+		}
 	}
 	return bundle
 }
@@ -47,40 +50,57 @@ type RequestBundle struct {
 }
 
 func (r *RequestBundle) ItemsCount() int {
-	return math.MaxInt // Force a conversion to []Request
+	count := 0
+	for _, req := range r.requests {
+		count += req.ItemsCount()
+	}
+	return count
 }
 
 func (r *RequestBundle) MergeSplit(ctx context.Context, maxSize int, sizer exporterhelper.RequestSizerType, other exporterhelper.Request) ([]exporterhelper.Request, error) {
 	if sizer != exporterhelper.RequestSizerTypeBytes {
 		return nil, fmt.Errorf("unsupported sizer type: %s", sizer)
 	}
+	maxSize64 := int64(maxSize)
+
+	if other == nil {
+		return r.expandSplit(maxSize64), nil
+	}
 
 	switch o := other.(type) {
 	case *RequestBundle:
-		// Merge the requests by groupKey and then split into individual requests.
-		for groupKey, req := range o.requests {
-			if rGroup, ok := r.requests[groupKey]; ok {
-				// Merge the requests
-				rGroup.request.Batch.Entries = append(rGroup.request.Batch.Entries, req.request.Batch.Entries...)
-				if req.request.Batch.StartTime.AsTime().Before(rGroup.request.Batch.StartTime.AsTime()) {
-					rGroup.request.Batch.StartTime = req.request.Batch.StartTime
-				}
-			} else {
-				r.requests[groupKey] = req
-			}
-		}
-		return r.MergeSplit(ctx, maxSize, sizer, r)
+		r.mergeBundle(o)
+		return r.expandSplit(maxSize64), nil
 	case *Request:
-		return append([]exporterhelper.Request{o}, r.expand()...), nil
+		r.mergeSingle(o)
+		return r.expandSplit(maxSize64), nil
 	default:
 		return nil, fmt.Errorf("invalid request type: expected *RequestBundle or *Request, got %T", other)
 	}
 }
 
-func (m *RequestBundle) expand() []exporterhelper.Request {
+func (m *RequestBundle) mergeBundle(other *RequestBundle) {
+	for _, req := range other.requests {
+		m.mergeSingle(req)
+	}
+}
+
+func (m *RequestBundle) mergeSingle(other *Request) {
+	if r, ok := m.requests[other.groupKey]; ok {
+		r.merge(other)
+	} else {
+		m.requests[other.groupKey] = other
+	}
+}
+
+func (m *RequestBundle) expandSplit(maxSize int64) []exporterhelper.Request {
 	result := make([]exporterhelper.Request, 0, len(m.requests))
 	for _, req := range m.requests {
-		result = append(result, req)
+		splitRequest, dropped := split(req, maxSize)
+		if dropped > 0 {
+			// TODO emit a metric about this
+		}
+		result = append(result, splitRequest...)
 	}
 	return result
 }

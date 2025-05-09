@@ -397,6 +397,7 @@ func (m *protoMarshaler) getHTTPRawNestedFields(field string, logRecord plog.Log
 	return nestedFields, nil
 }
 
+// TODO move to internal package
 func (m *protoMarshaler) constructPayloads(logGrouper *logGrouper) []*api.BatchCreateLogsRequest {
 	payloads := make([]*api.BatchCreateLogsRequest, 0, len(logGrouper.groups))
 
@@ -418,7 +419,7 @@ func (m *protoMarshaler) constructPayloads(logGrouper *logGrouper) []*api.BatchC
 	return payloads
 }
 
-// deprecated
+// TODO remove in favor or grpcq MergeSplit
 func (m *protoMarshaler) enforceMaximumsGRPCRequest(request *api.BatchCreateLogsRequest) []*api.BatchCreateLogsRequest {
 	size := proto.Size(request)
 	entries := request.Batch.Entries
@@ -448,6 +449,7 @@ func (m *protoMarshaler) enforceMaximumsGRPCRequest(request *api.BatchCreateLogs
 	return append(enforcedRequest, enforcedOtherHalfRequest...)
 }
 
+// TODO remove in favor or grpcq MergeSplit
 func (m *protoMarshaler) buildGRPCRequest(entries []*api.LogEntry, logType, namespace string, ingestionLabels []*api.Label) *api.BatchCreateLogsRequest {
 	return &api.BatchCreateLogsRequest{
 		Batch: &api.LogEntryBatch{
