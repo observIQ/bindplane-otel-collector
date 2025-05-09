@@ -28,6 +28,7 @@ type TelemetryBuilder struct {
 	registrations          []metric.Registration
 	ExporterBatchSize      metric.Int64Histogram
 	ExporterPayloadSize    metric.Int64Histogram
+	ExporterRequestCount   metric.Int64UpDownCounter
 	ExporterRequestLatency metric.Int64Histogram
 }
 
@@ -72,6 +73,12 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 		metric.WithDescription("The size of the payload in bytes."),
 		metric.WithUnit("B"),
 		metric.WithExplicitBucketBoundaries([]float64{100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1e+06, 2e+06, 3e+06, 4e+06, 5e+06}...),
+	)
+	errs = errors.Join(errs, err)
+	builder.ExporterRequestCount, err = builder.meter.Int64UpDownCounter(
+		"otelcol_exporter_request_count",
+		metric.WithDescription("The total number of requests made."),
+		metric.WithUnit("{requests}"),
 	)
 	errs = errors.Join(errs, err)
 	builder.ExporterRequestLatency, err = builder.meter.Int64Histogram(
