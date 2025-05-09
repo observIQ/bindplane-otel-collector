@@ -813,7 +813,7 @@ install_package() {
           rmitab bpcollector
         else
           # shellcheck disable=SC2016
-          mkitab 'bpcollector:23456789:respawn:startsrc -g bpcollector -e "$(cat /etc/bindplane-otel-collector.aix.env)"'
+          mkitab 'bpcollector:23456789:once:startsrc -g bpcollector -e "$(cat /etc/bindplane-otel-collector.aix.env)"'
         fi
 
         # Start the service with the proper environment variables
