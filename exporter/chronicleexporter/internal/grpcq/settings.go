@@ -21,8 +21,14 @@ import (
 func Settings() exporterhelper.QueueBatchSettings {
 	return exporterhelper.QueueBatchSettings{
 		Encoding: &Encoding{},
+		/*
+		 TODO this sizer pretends to measure 'requests' but actually measures 'bytes'
+		 This is a workaround because upstream currently enforces that sizer must be
+		  set to 'requests'. Once this restriction is removed, we should change the key
+		  from RequestSizerTypeRequests to RequestSizerTypeBytes.
+		*/
 		Sizers: map[exporterhelper.RequestSizerType]exporterhelper.RequestSizer{
-			exporterhelper.RequestSizerTypeBytes: &ByteSizer{},
+			exporterhelper.RequestSizerTypeRequests: &ByteSizer{},
 		},
 	}
 }

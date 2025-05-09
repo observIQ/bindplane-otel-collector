@@ -61,7 +61,12 @@ func (r *RequestBundle) MergeSplit(ctx context.Context, maxSize int, sizer expor
 	if sizer != exporterhelper.RequestSizerTypeBytes {
 		return nil, fmt.Errorf("unsupported sizer type: %s", sizer)
 	}
+
+	// TODO pass in maxSize based on cfg.BatchRequestSizeLimitGRPC
 	maxSize64 := int64(maxSize)
+	if maxSize64 == 0 {
+		maxSize64 = 1048576
+	}
 
 	if other == nil {
 		return r.expandSplit(maxSize64), nil

@@ -29,7 +29,8 @@ func TestSettings(t *testing.T) {
 	assert.IsType(t, &grpcq.Encoding{}, settings.Encoding)
 
 	assert.Len(t, settings.Sizers, 1)
-	sizer, ok := settings.Sizers[exporterhelper.RequestSizerTypeBytes]
+	sizer, ok := settings.Sizers[exporterhelper.RequestSizerTypeRequests] // See TODO in settings.go
+	// sizer, ok := settings.Sizers[exporterhelper.RequestSizerTypeBytes] // See TODO in settings.go
 	assert.True(t, ok)
 	assert.IsType(t, &grpcq.ByteSizer{}, sizer)
 }

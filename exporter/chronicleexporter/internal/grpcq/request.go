@@ -64,7 +64,12 @@ func (r *Request) MergeSplit(ctx context.Context, maxSize int, sizer exporterhel
 	if sizer != exporterhelper.RequestSizerTypeBytes {
 		return nil, fmt.Errorf("unsupported sizer type: %s", sizer)
 	}
+
+	// TODO pass in maxSize based on cfg.BatchRequestSizeLimitGRPC
 	maxSize64 := int64(maxSize)
+	if maxSize64 == 0 {
+		maxSize64 = 1048576
+	}
 
 	if other == nil {
 		result, dropped := split(r, maxSize64)
