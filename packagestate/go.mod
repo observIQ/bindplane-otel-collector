@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/packagestate
 
-go 1.23.8
+go 1.24.2
 
 require (
 	github.com/open-telemetry/opamp-go v0.9.0
