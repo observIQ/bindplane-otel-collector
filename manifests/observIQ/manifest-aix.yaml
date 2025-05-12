@@ -112,6 +112,3 @@ replaces:
   - github.com/apache/thrift => github.com/apache/thrift v0.21.1-0.20240926171305-90af876c67be
   # Fixed gopsutil for AIX
   - github.com/shirou/gopsutil/v4 => github.com/shirou/gopsutil/v4 v4.25.3-0.20250310004932-6b9c1447eea6
-  # Fixed core code for AIX
-  - go.opentelemetry.io/collector/service => ../../opentelemetry-collector/service
-  - github.com/open-telemetry/opentelemetry-collector-contrib/cmd/opampsupervisor => ../../github.com/open-telemetry/opentelemetry-collector-contrib/cmd/opampsupervisor
