@@ -75,6 +75,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/nginxreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/opencensusreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otelarrowreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/podmanreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/postgresqlreceiver"
@@ -160,6 +161,7 @@ var defaultReceivers = []receiver.Factory{
 	nopreceiver.NewFactory(),
 	oktareceiver.NewFactory(),
 	opencensusreceiver.NewFactory(),
+	otelarrowreceiver.NewFactory(),
 	otlpreceiver.NewFactory(),
 	otlpjsonfilereceiver.NewFactory(),
 	pluginreceiver.NewFactory(),
