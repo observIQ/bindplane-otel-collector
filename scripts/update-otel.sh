@@ -81,7 +81,7 @@ for local_mod in $LOCAL_MODULES; do
         echo "Updating deps in $local_mod"
         cd "$local_mod" || exit 1
         # go list will not work if module is not tidy, so we tidy first
-        go mod tidy -compat=1.23
+        go mod tidy -compat=1.24
 
         OTEL_MODULES=$(go list -m -f '{{if not (or .Indirect .Main)}}{{.Path}}{{end}}' all |
             grep -E -e '(?:^github.com/open-telemetry/opentelemetry-collector-contrib)|(?:^go.opentelemetry.io/collector)')
