@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/updater
 
-go 1.23.8
+go 1.24.2
 
 require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51

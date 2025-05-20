@@ -1,8 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/exporter/googlemanagedprometheusexporter
 
-go 1.23.8
-
-toolchain go1.24.1
+go 1.24.2
 
 require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.124.1

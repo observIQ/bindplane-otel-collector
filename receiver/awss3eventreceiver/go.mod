@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver
 
-go 1.23.8
+go 1.24.2
 
 require (
 	github.com/aws/aws-lambda-go v1.48.0
