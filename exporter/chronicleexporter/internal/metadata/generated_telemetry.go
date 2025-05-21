@@ -65,14 +65,14 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 		"otelcol_exporter_batch_size",
 		metric.WithDescription("The number of logs in a batch."),
 		metric.WithUnit("{logs}"),
-		metric.WithExplicitBucketBoundaries([]float64{1, 100, 250, 500, 750, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 20000, 30000, 40000, 50000}...),
+		metric.WithExplicitBucketBoundaries([]float64{1, 100, 250, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 20000, 30000, 40000, 50000}...),
 	)
 	errs = errors.Join(errs, err)
 	builder.ExporterPayloadSize, err = builder.meter.Int64Histogram(
 		"otelcol_exporter_payload_size",
 		metric.WithDescription("The size of the payload in bytes."),
 		metric.WithUnit("B"),
-		metric.WithExplicitBucketBoundaries([]float64{100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1e+06, 2e+06, 3e+06, 4e+06, 5e+06}...),
+		metric.WithExplicitBucketBoundaries([]float64{10000, 50000, 100000, 250000, 500000, 750000, 1e+06, 1.25e+06, 1.5e+06, 1.75e+06, 2e+06, 2.25e+06, 2.5e+06, 2.75e+06, 3e+06, 3.25e+06, 3.5e+06, 3.75e+06, 4e+06, 4.25e+06, 4.5e+06, 4.75e+06, 5e+06}...),
 	)
 	errs = errors.Join(errs, err)
 	builder.ExporterRequestCount, err = builder.meter.Int64UpDownCounter(
