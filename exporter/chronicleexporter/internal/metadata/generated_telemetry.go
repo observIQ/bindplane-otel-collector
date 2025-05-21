@@ -65,7 +65,7 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 		"otelcol_exporter_batch_size",
 		metric.WithDescription("The number of logs in a batch."),
 		metric.WithUnit("{logs}"),
-		metric.WithExplicitBucketBoundaries([]float64{1, 100, 250, 500, 750, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 20000, 30000, 40000, 50000}...),
+		metric.WithExplicitBucketBoundaries([]float64{1, 100, 250, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 20000, 30000, 40000, 50000}...),
 	)
 	errs = errors.Join(errs, err)
 	builder.ExporterPayloadSize, err = builder.meter.Int64Histogram(
