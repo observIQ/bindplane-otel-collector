@@ -57,6 +57,25 @@ jobs:
       - name: "Build MSI from Tagged Release"
         run: go-msi.exe make -m observiq-otel-collector.msi --version ${{ github.ref_name }} --arch amd64
         working-directory: C:/build
+      - name: Install DigiCert Client tools from Github Custom Actions marketplace
+        uses: digicert/ssm-code-signing@v1.0.0
+      - name: Set up certificate 
+        run: | 
+          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12 
+        shell: bash
+      - name: Set variables for signing
+        id: variables 
+        run: | 
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT 
+          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV" 
+          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV" 
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
+          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV" 
+        shell: bash
+      - name: Signing using keypair alias
+        run: |
+          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/observiq-otel-collector.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
+        shell: cmd
       - name: "Upload MSI"
         uses: actions/upload-artifact@v4
         with:
@@ -113,25 +132,6 @@ jobs:
         with:
           name: observiq-otel-collector.msi
           path: observiq-otel-collector.msi
-      - name: Install DigiCert Client tools from Github Custom Actions marketplace
-        uses: digicert/ssm-code-signing@v1.0.0
-      - name: Set up certificate 
-        run: | 
-          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12 
-        shell: bash
-      - name: Set variables for signing
-        id: variables 
-        run: | 
-          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT 
-          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV" 
-          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV" 
-          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
-          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV" 
-        shell: bash
-      - name: Signing using keypair alias
-        run: |
-          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/observiq-otel-collector.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
-        shell: cmd
       - name: Install cosign
         run: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
       - name: Build cosign key file
