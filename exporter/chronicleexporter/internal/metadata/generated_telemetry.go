@@ -72,7 +72,7 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 		"otelcol_exporter_payload_size",
 		metric.WithDescription("The size of the payload in bytes."),
 		metric.WithUnit("B"),
-		metric.WithExplicitBucketBoundaries([]float64{100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1e+06, 2e+06, 3e+06, 4e+06, 5e+06}...),
+		metric.WithExplicitBucketBoundaries([]float64{10000, 50000, 100000, 250000, 500000, 750000, 1e+06, 1.25e+06, 1.5e+06, 1.75e+06, 2e+06, 2.25e+06, 2.5e+06, 2.75e+06, 3e+06, 3.25e+06, 3.5e+06, 3.75e+06, 4e+06, 4.25e+06, 4.5e+06, 4.75e+06, 5e+06}...),
 	)
 	errs = errors.Join(errs, err)
 	builder.ExporterRequestCount, err = builder.meter.Int64UpDownCounter(
