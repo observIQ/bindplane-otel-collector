@@ -32,6 +32,7 @@ Below is a list of supported receivers with links to their documentation pages.
 | File Log Receiver                          | [filelogreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.126.0/receiver/filelogreceiver/README.md)                               |
 | File Stats Receiver                        | [filestatsreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.126.0/receiver/filestatsreceiver/README.md)                           |
 | Fluentd Forward Receiver                   | [fluentforwardreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.126.0/receiver/fluentforwardreceiver/README.md)                   |
+| GitHub Receiver                            | [githubreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/githubreceiver/README.md)                                     |
 | Google Cloud Pub/Sub Receiver              | [googlecloudpubsubreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.126.0/receiver/googlecloudpubsubreceiver/README.md)           |
 | Google Cloud Spanner Receiver              | [googlecloudspannerreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.126.0/receiver/googlecloudspannerreceiver/README.md)         |
 | Google Cloud Storage Rehydration Receiver  | [googlecloudstoragerehydrationreceiver](../receiver/googlecloudstoragerehydrationreceiver/README.md)                                                                |
