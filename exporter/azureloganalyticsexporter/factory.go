@@ -20,6 +20,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
@@ -37,7 +38,11 @@ func NewFactory() exporter.Factory {
 }
 
 func createDefaultConfig() component.Config {
-	return &Config{}
+	return &Config{
+		TimeoutConfig: exporterhelper.NewDefaultTimeoutConfig(),
+		QueueConfig:   exporterhelper.NewDefaultQueueConfig(),
+		BackOffConfig: configretry.NewDefaultBackOffConfig(),
+	}
 }
 
 func createLogsExporter(ctx context.Context, params exporter.Settings, config component.Config) (exporter.Logs, error) {
@@ -56,5 +61,8 @@ func createLogsExporter(ctx context.Context, params exporter.Settings, config co
 		cfg,
 		exp.logsDataPusher,
 		exporterhelper.WithCapabilities(exp.Capabilities()),
+		exporterhelper.WithTimeout(cfg.TimeoutConfig),
+		exporterhelper.WithQueue(cfg.QueueConfig),
+		exporterhelper.WithRetry(cfg.BackOffConfig),
 	)
 }

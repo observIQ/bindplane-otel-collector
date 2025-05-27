@@ -16,6 +16,9 @@ package azureloganalyticsexporter
 
 import (
 	"errors"
+
+	"go.opentelemetry.io/collector/config/configretry"
+	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
 // Config defines the configuration for the Azure Log Analytics exporter
@@ -38,6 +41,15 @@ type Config struct {
 
 	// RawLogField is the field name that will be used to send raw logs to the Log Analytics workspace.
 	RawLogField string `mapstructure:"raw_log_field"`
+
+	// TimeoutConfig configures timeout settings for exporter operations.
+	TimeoutConfig exporterhelper.TimeoutConfig `mapstructure:",squash"`
+
+	// QueueConfig defines the queuing behavior for the exporter.
+	QueueConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
+
+	// BackOffConfig defines the retry behavior for failed operations.
+	BackOffConfig configretry.BackOffConfig `mapstructure:"retry_on_failure"`
 }
 
 // Validate validates the configuration
