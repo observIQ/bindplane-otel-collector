@@ -134,7 +134,7 @@ nfpms:
     formats:
       - rpm
       - deb
-    bindir: /opt/observiq-otel-collector
+    bindir: /usr/bin
     contents:
       - dst: /opt/observiq-otel-collector
         type: dir
