@@ -79,6 +79,8 @@ exporters:
     stream_name: "<your-stream-name>"
 ```
 
+This configuration shows the minimum required fields to export logs to Azure Log Analytics. All fields are required for the exporter to function properly.
+
 ### Configuration with Queue and Retry
 
 ```yaml
@@ -100,8 +102,6 @@ exporters:
       max_interval: 30s
       max_elapsed_time: 300s
 ```
-
-This configuration shows the minimum required fields to export logs to Azure Log Analytics. All fields are required for the exporter to function properly.
 
 ## Setup
 
