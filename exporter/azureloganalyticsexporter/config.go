@@ -101,7 +101,7 @@ func (c *Config) Validate() error {
 		teleSettings := component.TelemetrySettings{
 			Logger: zap.NewNop(),
 		}
-		
+
 		// Try to create the OTTL expression to validate it
 		_, err := expr.NewOTTLLogRecordExpression(c.RawLogField, teleSettings)
 		if err != nil {
