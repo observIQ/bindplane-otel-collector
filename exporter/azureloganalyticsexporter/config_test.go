@@ -176,7 +176,7 @@ func TestConfig_Validate(t *testing.T) {
 				RuleID:       "rule123",
 				StreamName:   "stream123",
 			},
-			wantErr: "endpoint is not a valid URL",
+			wantErr: "endpoint must include scheme",
 		},
 	}
 
