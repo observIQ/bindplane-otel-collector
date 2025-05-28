@@ -23,10 +23,10 @@ install() {
     chmod 0750 "${BDOT_CONFIG_HOME}"
     chown observiq-otel-collector:observiq-otel-collector "${BDOT_CONFIG_HOME}"
     cp -r --preserve \
-      /usr/share/bdot/stage/observiq-otel-collector/* \
+      /usr/share/observiq-otel-collector/stage/observiq-otel-collector/* \
       "${BDOT_CONFIG_HOME}"
 
-    rm -rf /usr/share/bdot
+    rm -rf /usr/share/observiq-otel-collector
 }
 
 manage_systemd_service() {
