@@ -760,7 +760,7 @@ release:
     - glob: "./scripts/install/install_unix.sh"
     - glob: "./scripts/install/install_macos.sh"
 
-# https://console.cloud.google.com/storage/browser/observiq-otel-collector-release
+# https://console.cloud.google.com/storage/browser/bdot-release
 blobs:
   - provider: gs
     bucket: bdot-release
