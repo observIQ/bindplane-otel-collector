@@ -92,7 +92,7 @@ manage_service() {
 finish_permissions() {
   # Goreleaser does not set plugin file permissions, so do them here
   # We also change the owner of the binary to observiq-otel-collector
-  chown -R observiq-otel-collector:observiq-otel-collector /usr/bin/observiq-otel-collector /opt/observiq-otel-collector/plugins/*
+  chown -R observiq-otel-collector:observiq-otel-collector /opt/observiq-otel-collector/plugins/*
   chmod 0640 /opt/observiq-otel-collector/plugins/*
 
   # Initialize the log file to ensure it is owned by observiq-otel-collector.
