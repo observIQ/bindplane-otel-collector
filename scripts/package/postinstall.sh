@@ -16,6 +16,19 @@
 
 set -e
 
+BDOT_CONFIG_HOME="/opt/observiq-otel-collector"
+
+install() {
+    mkdir -p "${BDOT_CONFIG_HOME}"
+    chmod 0750 "${BDOT_CONFIG_HOME}"
+    chown observiq-otel-collector:observiq-otel-collector "${BDOT_CONFIG_HOME}"
+    cp -r --preserve \
+      /usr/share/bdot/stage/observiq-otel-collector/* \
+      "${BDOT_CONFIG_HOME}"
+
+    rm -rf /usr/share/bdot
+}
+
 manage_systemd_service() {
   # Ensure sysv script isn't present, and if it is remove it
   if [ -f /etc/init.d/observiq-otel-collector ]; then
@@ -103,6 +116,6 @@ finish_permissions() {
   chown observiq-otel-collector:observiq-otel-collector /opt/observiq-otel-collector/log/collector.log
 }
 
-
+install
 finish_permissions
 manage_service
