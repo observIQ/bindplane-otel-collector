@@ -257,34 +257,34 @@ nfpms:
         type: ghost
       - dst: /opt/observiq-otel-collector/plugins/zookeeper_logs.yaml
         type: ghost
-      - dst: /usr/share/bdot/stage/observiq-otel-collector
+      - dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector
         type: dir
         file_info:
           mode: 0750
           owner: root
           group: root
       - src: release_deps/config.yaml
-        dst: /usr/share/bdot/stage/observiq-otel-collector/config.yaml
+        dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/config.yaml
         file_info:
           mode: 0640
           owner: observiq-otel-collector
           group: observiq-otel-collector
         type: config|noreplace
       - src: release_deps/logging.yaml
-        dst: /usr/share/bdot/stage/observiq-otel-collector/logging.yaml
+        dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/logging.yaml
         file_info:
           mode: 0640
           owner: observiq-otel-collector
           group: observiq-otel-collector
         type: config|noreplace
       - src: LICENSE
-        dst: /usr/share/bdot/stage/observiq-otel-collector/LICENSE
+        dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/LICENSE
         file_info:
           mode: 0644
           owner: observiq-otel-collector
           group: observiq-otel-collector
       - src: release_deps/VERSION.txt
-        dst: /usr/share/bdot/stage/observiq-otel-collector/VERSION.txt
+        dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/VERSION.txt
         file_info:
           mode: 0644
           owner: observiq-otel-collector
@@ -295,7 +295,7 @@ nfpms:
           mode: 0755
           owner: observiq-otel-collector
           group: observiq-otel-collector
-      - dst: /usr/share/bdot/stage/observiq-otel-collector/plugins
+      - dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/plugins
         type: dir
         file_info:
           mode: 0750 # restrict plugins to owner / group only
@@ -305,16 +305,16 @@ nfpms:
       # Attempting to set the permissions here results in the following error:
       # nfpm failed: cannot write header of release_deps/plugins/amazon_eks.yaml to data.tar.gz: archive/tar: missed writing 1736 bytes
       - src: release_deps/plugins/*
-        dst: /usr/share/bdot/stage/observiq-otel-collector/plugins
+        dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/plugins
       # Storage dir is used by stateful receivers, such as filelog receiver. It allows
       # receivers to track their progress and buffer data.
-      - dst: /usr/share/bdot/stage/observiq-otel-collector/storage
+      - dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/storage
         type: dir
         file_info:
           mode: 0750
           owner: observiq-otel-collector
           group: observiq-otel-collector
-      - dst: /usr/share/bdot/stage/observiq-otel-collector/log
+      - dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/log
         type: dir
         file_info:
           mode: 0750
@@ -755,7 +755,7 @@ release:
     - glob: "./scripts/install/install_unix.sh"
     - glob: "./scripts/install/install_macos.sh"
 
-# https://console.cloud.google.com/storage/browser/bdot-release
+# https://console.cloud.google.com/storage/browser/observiq-otel-collector-release
 blobs:
   - provider: gs
     bucket: bdot-release
