@@ -46,7 +46,7 @@ builds:
       - -X github.com/observiq/bindplane-otel-collector/internal/version.date={{ .Date }}
     no_unique_dist_dir: false
   - id: updater
-    binary: updater
+    binary: updater-observiq-otel-collector
     dir: ./updater/
     main: ./cmd/updater
     env:
