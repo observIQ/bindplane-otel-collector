@@ -20,7 +20,7 @@ BDOT_CONFIG_HOME="/opt/observiq-otel-collector"
 
 install() {
     mkdir -p "${BDOT_CONFIG_HOME}"
-    chmod 0750 "${BDOT_CONFIG_HOME}"
+    chmod 0755 "${BDOT_CONFIG_HOME}"
     chown observiq-otel-collector:observiq-otel-collector "${BDOT_CONFIG_HOME}"
     cp -r --preserve \
       /usr/share/observiq-otel-collector/stage/observiq-otel-collector/* \
@@ -105,7 +105,10 @@ manage_service() {
 finish_permissions() {
   # Goreleaser does not set plugin file permissions, so do them here
   # We also change the owner of the binary to observiq-otel-collector
-  chown -R observiq-otel-collector:observiq-otel-collector /opt/observiq-otel-collector/plugins/*
+  chown -R observiq-otel-collector:observiq-otel-collector \
+    /opt/observiq-otel-collector/observiq-otel-collector \
+    /opt/observiq-otel-collector/updater \
+    /opt/observiq-otel-collector/plugins/*
   chmod 0640 /opt/observiq-otel-collector/plugins/*
 
   # Initialize the log file to ensure it is owned by observiq-otel-collector.
