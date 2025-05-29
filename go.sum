@@ -2278,8 +2278,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributespr
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor v0.126.0/go.mod h1:xbMS6tl+zIdD26RQXr6VdP2bDuBCBEdV6pC0WgNKiUI=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/cumulativetodeltaprocessor v0.126.0 h1:FeAqP2RwwjLyXNdZ8zixj/Ul6gfc321HiPlVCMA27y8=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/cumulativetodeltaprocessor v0.126.0/go.mod h1:F3Nc9GyzAliu5v2OX4HsvFOnHCRVqgzGe3418PxydvY=
-github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.127.0 h1:ti7n1evZjVhrb4nfNkz/DoX786Te7K6LIijDrwuJDiI=
-github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.127.0/go.mod h1:T2+yXuRD1SnC7agO/EQYPXHhBe6DKdoWdomGTUMJwyM=
+github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.126.0 h1:IVNmhK7dGslHhzjkI9imQ66Cuoc9pWZXvvnbq7zdc+0=
+github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.126.0/go.mod h1:KU4QBz3mwaXopz2qIMbPULEFEXe1t3XsS7pnjlNVhXs=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatorateprocessor v0.126.0 h1:mamgQa0x8D/IzRb4xgEA8CQxWvWVfTfRhkUvJOZhc2k=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatorateprocessor v0.126.0/go.mod h1:t1K9A3o4tDGkiDYY5S4Vt6FjJ8WsTs7q6YLrMAuhBf0=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.126.0 h1:+7OFOEhSExnzgQv0idSSq/gCCm3RZ7H2ky/bAtrrrFM=
@@ -3562,6 +3562,8 @@ golang.org/x/tools v0.13.0/go.mod h1:HvlwmtVNQAhOuCjW7xxvovg8wbNq7LwfXh/k7wXUl58
 golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d/go.mod h1:aiJjzUbINMkxbQROHiO6hDPo2LHcIPhhQsa9DLh0yGk=
 golang.org/x/tools v0.32.0 h1:Q7N1vhpkQv7ybVzLFtTjvQya2ewbwNDZzUgfXGqtMWU=
 golang.org/x/tools v0.32.0/go.mod h1:ZxrU41P/wAbZD8EDa6dDCa6XfpkhJ7HFMjHJXfBDu8s=
+golang.org/x/tools v0.33.0 h1:4qz2S3zmRxbGIhDIAgjxvFutSvH5EfnsYrRBj0UI0bc=
+golang.org/x/tools v0.33.0/go.mod h1:CIJMaWEY88juyUfo7UbgPqbC8rU2OqfAV1h2Qp0oMYI=
 golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
