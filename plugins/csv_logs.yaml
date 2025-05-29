@@ -56,7 +56,8 @@ template: |
       operators:
       - type: csv_parser
         header: {{ .header }}
-      - type: copy
+      - id: save_log_record_original
+        type: copy
         from: body
         to: attributes["log.record.original"]
   service:

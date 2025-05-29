@@ -27,6 +27,10 @@ template: |
         log_type: 'cisco_catalyst'
       add_attributes: {{.add_attributes}}
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - id: regex_router
           type: router
           default: catalyst_parser
@@ -65,4 +69,3 @@ template: |
     pipelines:
       logs:
         receivers: [udplog]
-

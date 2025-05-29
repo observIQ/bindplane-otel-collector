@@ -27,6 +27,10 @@ template: |
         log_type: couchdb
       start_at: {{ .start_at }}
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - id: id_router
           type: router
           routes:
