@@ -22,6 +22,7 @@ install() {
     mkdir -p "${BDOT_CONFIG_HOME}"
     chmod 0755 "${BDOT_CONFIG_HOME}"
     chown observiq-otel-collector:observiq-otel-collector "${BDOT_CONFIG_HOME}"
+    rm -f "${BDOT_CONFIG_HOME}/observiq-otel-collector" || true
     cp -r --preserve \
       /usr/share/observiq-otel-collector/stage/observiq-otel-collector/* \
       "${BDOT_CONFIG_HOME}"
