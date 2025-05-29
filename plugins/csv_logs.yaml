@@ -56,6 +56,9 @@ template: |
       operators:
       - type: csv_parser
         header: {{ .header }}
+      - type: copy
+        from: body
+        to: attributes["log.record.original"]
   service:
     pipelines:
       logs:

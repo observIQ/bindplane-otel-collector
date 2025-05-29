@@ -79,7 +79,7 @@ template: |
               info2: 3xx
               warn: 4xx
               error: 5xx
-          output: end_filter
+          output: access_protocol_parser
         {{ end }}
 
         - id: access_json_parser
@@ -101,12 +101,12 @@ template: |
           type: regex_parser
           parse_from: attributes.protocol
           regex: '(?P<protocol>[^/]*)/(?P<protocol_version>.*)'
-          output: end_filter
+          output: access_copy_body
 
-        # Noop filter to allow an exit point for other operators
-        - id: end_filter
-          type: filter
-          expr: 'body == ""'
+        - id: access_copy_body
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
     {{ end }}
 
   {{ if .enable_error_log }}
@@ -147,7 +147,7 @@ template: |
                 - trace6
                 - trace7
                 - trace8
-          output: end_filter
+          output: error_message_parser
         {{ end }}
 
         - id: error_json_parser
@@ -178,12 +178,12 @@ template: |
           type: regex_parser
           parse_from: attributes.message
           regex: '(?P<error_code>[^:]*):(?P<message>.*)'
-          output: end_filter
+          output: error_copy_body
 
-        # Noop filter to allow an exit point for other operators
-        - id: end_filter
-          type: filter
-          expr: 'body == ""'
+        - id: error_copy_body
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
   {{ end }}
 
   service:
