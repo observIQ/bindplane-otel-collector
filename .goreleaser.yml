@@ -139,6 +139,10 @@ nfpms:
       - deb
     bindir: /usr/share/observiq-otel-collector/stage/observiq-otel-collector
     contents:
+      - dst: /opt/observiq-otel-collector/observiq-otel-collector
+        type: ghost
+      - dst: /opt/observiq-otel-collector/updater
+        type: ghost
       - dst: /opt/observiq-otel-collector
         type: ghost
       - dst: /opt/observiq-otel-collector/config.yaml
