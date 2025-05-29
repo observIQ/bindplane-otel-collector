@@ -24,6 +24,10 @@ template: |
       operators:
         # Capture relevant journald fields before replacing body
         # with the Aerospike log body
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: move
           from: body._HOSTNAME
           to: resource["host.name"]
@@ -88,4 +92,3 @@ template: |
     pipelines:
       logs:
         receivers: [journald]
-

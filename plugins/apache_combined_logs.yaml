@@ -36,6 +36,10 @@ template: |
       attributes:
         log_type: apache_combined
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy

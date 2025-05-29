@@ -19,6 +19,10 @@ template: |
         log_type: cisco_asa
       add_attributes: true
       operators:
+        - id: save_log_record_original
+            type: copy
+            from: body
+            to: attributes["log.record.original"]
         - id: cisco_parser
           type: regex_parser
           regex: '^(?P<timestamp>[\d\w\s:\-]+?)(?: asa )?: %(?P<message_id>[\w\d-]+):\s(?P<message>.*)'
@@ -30,4 +34,3 @@ template: |
     pipelines:
       logs:
         receivers: [tcplog]
-
