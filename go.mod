@@ -216,6 +216,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.77.2
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.126.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/otelarrowexporter v0.126.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.126.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.126.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/githubreceiver v0.126.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/libhoneyreceiver v0.126.0
@@ -495,6 +496,7 @@ require (
 	github.com/prometheus/alertmanager v0.27.0 // indirect
 	github.com/prometheus/common/assets v0.2.0 // indirect
 	github.com/prometheus/exporter-toolkit v0.14.0 // indirect
+	github.com/puzpuzpuz/xsync/v3 v3.5.1 // indirect
 	github.com/rdforte/gomaxecs v1.1.1 // indirect
 	github.com/redis/go-redis/v9 v9.8.0 // indirect
 	github.com/richardartoul/molecule v1.0.1-0.20240531184615-7ca0df43c0b3 // indirect
@@ -911,7 +913,7 @@ require (
 	golang.org/x/term v0.32.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
-	golang.org/x/tools v0.32.0 // indirect
+	golang.org/x/tools v0.33.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gonum.org/v1/gonum v0.16.0 // indirect
 	google.golang.org/api v0.233.0 // indirect
