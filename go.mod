@@ -217,6 +217,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.126.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/otelarrowexporter v0.126.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.126.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/githubreceiver v0.126.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/libhoneyreceiver v0.126.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.126.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otelarrowreceiver v0.126.0
@@ -349,6 +350,7 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.51.0 // indirect
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/IBM/sarama v1.45.1 // indirect
+	github.com/Khan/genqlient v0.8.0 // indirect
 	github.com/KimMachineGun/automemlimit v0.7.2 // indirect
 	github.com/aerospike/aerospike-client-go/v8 v8.2.2 // indirect
 	github.com/antchfx/xmlquery v1.4.4 // indirect
@@ -416,6 +418,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
 	github.com/golang/mock v1.7.0-rc.1 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
+	github.com/google/go-github/v71 v71.0.0 // indirect
 	github.com/google/go-tpm v0.9.4 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/grafana/loki/pkg/push v0.0.0-20240514112848-a1b1eeb09583 // indirect
@@ -512,6 +515,7 @@ require (
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	github.com/ua-parser/uap-go v0.0.0-20240611065828-3a4781585db6 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
+	github.com/vektah/gqlparser/v2 v2.5.22 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad // indirect
