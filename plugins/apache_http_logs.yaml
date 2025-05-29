@@ -65,6 +65,10 @@ template: |
         log_type: 'apache_http.access'
       operators:
         {{ if eq .log_format "default" }}
+        - id: access_save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - id: access_regex_parser
           type: regex_parser
           regex: '^(?P<remote_addr>[^ ]*) (?P<remote_host>[^ ]*) (?P<remote_user>[^ ]*) \[(?P<timestamp>[^\]]*)\] "(?P<method>\S+) +(?P<path>[^ ]*)( (?P<protocol>[^/]*)/(?P<protocol_version>[^\"]*)|[^\"]*)?" (?P<status>[^ ]*) (?P<body_bytes_sent>[^ ]*)(?: "(?P<http_referer>[^\"]*)" "(?P<http_user_agent>[^\"]*)"(?:\s+(?P<http_x_forwarded_for>[^ ]+))?)?'
@@ -79,7 +83,7 @@ template: |
               info2: 3xx
               warn: 4xx
               error: 5xx
-          output: access_protocol_parser
+          output: end_filter
         {{ end }}
 
         - id: access_json_parser
@@ -101,12 +105,12 @@ template: |
           type: regex_parser
           parse_from: attributes.protocol
           regex: '(?P<protocol>[^/]*)/(?P<protocol_version>.*)'
-          output: access_copy_body
+          output: end_filter
 
-        - id: access_copy_body
-          type: copy
-          from: body
-          to: attributes["log.record.original"]
+        # Noop filter to allow an exit point for other operators
+        - id: end_filter
+          type: filter
+          expr: 'body == ""'
     {{ end }}
 
   {{ if .enable_error_log }}
@@ -124,6 +128,10 @@ template: |
         log_type: 'apache_http.error'
       operators:
         {{ if eq .log_format "default" }}
+        - id: error_save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - id: error_regex_parser
           type: regex_parser
           regex: '^\[(?P<timestamp>\w+ \w+ \d{2} \d{2}:\d{2}:\d{2}\.\d+ \d+)\] \[(?P<module>\w+):(?P<log_level>[\w\d]+)\] \[pid (?P<pid>\d+)(?::tid (?P<tid>[\d]+))?\](?: \[client (?P<client>[^\]]*)\])? (?P<error_code>[^:]+): (?P<message>.*)'
@@ -147,7 +155,7 @@ template: |
                 - trace6
                 - trace7
                 - trace8
-          output: error_message_parser
+          output: end_filter
         {{ end }}
 
         - id: error_json_parser
@@ -178,12 +186,12 @@ template: |
           type: regex_parser
           parse_from: attributes.message
           regex: '(?P<error_code>[^:]*):(?P<message>.*)'
-          output: error_copy_body
+          output: end_filter
 
-        - id: error_copy_body
-          type: copy
-          from: body
-          to: attributes["log.record.original"]
+        # Noop filter to allow an exit point for other operators
+        - id: end_filter
+          type: filter
+          expr: 'body == ""'
   {{ end }}
 
   service:
