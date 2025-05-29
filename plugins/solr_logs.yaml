@@ -36,6 +36,10 @@ template: |
       attributes:
         log_type: solr
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - id: solr_parser
           type: regex_parser
           regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\.\d{3,6})\s(?P<level>[A-z]+)\s{1,5}\((?P<thread>[^\)]+)\)\s\[c?:?(?P<collection>[^\s]*)\ss?:?(?P<shard>[^\s]*)\sr?:?(?P<replica>[^\s]*)\sx?:?(?P<core>[^\]]*)\]\s(?P<source>[^\s]+)\s(?P<message>(?:[\s\S])+)\s?=?>?(?P<exception>[\s\S]*)'

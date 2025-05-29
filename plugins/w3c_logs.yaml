@@ -133,6 +133,7 @@ template: |
       attributes:
         log_type: {{ .log_type }}
       operators:
+        - id: save_log_record_original
         - type: filter
           expr: 'body matches "^#"'
         - type: csv_parser

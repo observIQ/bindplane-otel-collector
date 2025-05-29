@@ -56,6 +56,10 @@ template: |
       multiline:
         line_start_pattern: '\w+\s+\w+\s{1,2}\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4}\s+[-+]\d{2}:\d{2}\n|^Audit [fF]ile '
       operators:
+      - id: save_log_record_original
+        type: copy
+        from: body
+        to: attributes["log.record.original"]
       - type: router
         routes:
           - output: audit_regex_parser_action
@@ -103,6 +107,10 @@ template: |
       multiline:
         line_start_pattern: '^\w+ \w+ \d{2} \d{2}:\d{2}:\d{2} \d{4}|\d{4}-\d{2}-\d{2}T\d{1,}:\d{2}:\d{2}.\d+[+-]\d+:\d+|^<msg time=\D\d{4}-\d{2}-\d{2}T\d{1,}:\d{2}:\d{2}.\d+[+-]\d+:\d+'
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: router
           routes:
             - output: xml_alert_regex_parser
@@ -161,6 +169,10 @@ template: |
       multiline:
         line_start_pattern: '/[\w\d/]+:|\\[\w\d\\]+:|\d{4}-\d{2}-\d{2}T\d{1}:\d{2}:\d{2}.\d+[+-]\d+:\d+|<msg time=\D\d{4}-\d{2}-\d{2}T\d{1,}:\d{2}:\d{2}.\d+[+-]\d+:\d+'
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - id: listener_router
           type: router
           routes:

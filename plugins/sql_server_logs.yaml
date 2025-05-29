@@ -26,6 +26,10 @@ template: |
       poll_interval: '{{ .poll_interval }}'
       start_at: '{{ .start_at }}'
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: router
           routes:
             - output: add_type

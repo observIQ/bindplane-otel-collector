@@ -48,6 +48,10 @@ template: |
       attributes:
         log_type: 'postgresql.general'
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: regex_parser
           regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3,} \w+)\s*\[(?P<tid>\d+)\](?:\s+(?P<role>\S*)@(?P<user>\S*))?\s*(?P<level>\w+):\s+(?P<message>(?:\s*duration:\s*(?P<duration>[\d\.:]*)\s*ms\s*)?.*)'
           timestamp:

@@ -36,6 +36,10 @@ template: |
       operators:
         # Example of log line:
         # 2022-04-18 12:03:53.856675+00:00 [info] <0.230.0> Running boot step rabbit_looking_glass defined by app rabbit
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: regex_parser
           regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+\+\d{2}:\d{2}) \[(?P<severity>[a-z]+)\] \<(?P<process_id>\d+\.\d+\.\d+)\> (?P<message>.*)'
           timestamp:

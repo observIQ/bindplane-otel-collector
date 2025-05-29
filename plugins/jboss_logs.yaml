@@ -39,6 +39,10 @@ template: |
       attributes:
         log_type: jboss
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - id: jboss_parser
           type: regex_parser
           regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}),\d{3}\s*(?P<jboss_severity>\w+)\s*\[(?P<category>[^\]]*)\]\s*\((?P<thread>[^)]*)\)( (?P<id>[^:]*):)? (?P<message>[\s\S]+)'

@@ -48,6 +48,10 @@ template: |
       operators:
         # Example of log line:
         # {"type": "server", "timestamp": "2022-04-19T17:58:52,268Z", "level": "INFO", "component": "o.e.i.g.DatabaseNodeService", "cluster.name": "elasticsearch", "node.name": "elasticsearch-logs", "message": "successfully reloaded changed geoip database file [/tmp/elasticsearch-7402075885842888530/geoip-databases/bHR_rnLGRnWwu_LOSqF38A/GeoLite2-City.mmdb]", "cluster.uuid": "sBvVayeKRsGRKrFe1k0D8g", "node.id": "bHR_rnLGRnWwu_LOSqF38A"  }
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: json_parser
           timestamp:
             parse_from: attributes.timestamp
@@ -83,6 +87,10 @@ template: |
       operators:
         # Example log line:
         # [2022-04-19T18:39:43.710+0000][380][safepoint   ] Safepoint "Cleanup", Time since last: 4000695937 ns, Reaching safepoint: 78114 ns, At safepoint: 5387 ns, Total: 83501 ns
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: regex_parser
           regex: '^\[(?P<timestamp>\d+-\d+-\d+T\d+:\d+:\d+.\d+\+\d+)\]\[\d+\]\[(?P<type>[A-z,]+)\s*\]\s*(?:GC\((?P<gc_run>\d+)\))?\s*(?P<message>.*)'
           timestamp:

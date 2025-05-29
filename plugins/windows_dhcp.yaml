@@ -31,6 +31,10 @@ template: |
       attributes:
         log_type: 'microsoft_dhcp'
       operators: 
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - id: windows_dhcp_router
           type: router
           routes:
