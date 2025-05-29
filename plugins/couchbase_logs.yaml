@@ -18,7 +18,7 @@ parameters:
   - name: debug_log_path
     description: The absolute path to the Couchbase debug logs
     type: "[]string"
-    default: 
+    default:
       - "/opt/couchbase/var/lib/couchbase/logs/debug.log"
   - name: enable_info_log
     description: Enable to collect Couchbase info logs
@@ -27,7 +27,7 @@ parameters:
   - name: info_log_path
     description: The absolute path to the Couchbase information logs
     type: "[]string"
-    default: 
+    default:
       - "/opt/couchbase/var/lib/couchbase/logs/info.log"
   - name: enable_access_log
     description: Enable to collect Couchbase http access logs
@@ -36,7 +36,7 @@ parameters:
   - name: http_access_log_path
     description: The absolute path to the Couchbase http access logs
     type: "[]string"
-    default: 
+    default:
       - "/opt/couchbase/var/lib/couchbase/logs/http_access.log"
   - name: enable_internal_access_log
     description: Enable to collect Couchbase internal http access logs
@@ -45,7 +45,7 @@ parameters:
   - name: http_internal_access_log_path
     description: The absolute path to the Couchbase internal http access logs
     type: "[]string"
-    default: 
+    default:
       - "/opt/couchbase/var/lib/couchbase/logs/http_access_internal.log"
   - name: enable_babysitter_log
     description: Enable to collect Couchbase babysitter logs
@@ -54,7 +54,7 @@ parameters:
   - name: babysitter_log_path
     description: The absolute path to the Couchbase babysitter logs
     type: "[]string"
-    default: 
+    default:
       - "/opt/couchbase/var/lib/couchbase/logs/babysitter.log"
   - name: enable_xdcr_log
     description: Enable to collect Couchbase Cross Datacenter Replication logs
@@ -63,7 +63,7 @@ parameters:
   - name: xdcr_log_path
     description: The absolute path to the Couchbase Cross Datacenter Replication logs
     type: "[]string"
-    default: 
+    default:
       - "/opt/couchbase/var/lib/couchbase/logs/goxdcr.log"
   - name: start_at
     description: At startup, where to start reading logs from the file (`beginning` or `end`)
@@ -86,6 +86,10 @@ template: |
       attributes:
         log_type: 'couchbase.error'
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: regex_parser
           regex: '^\[(?P<type>[^:]*):(?P<couchbase_severity>[^,]*),(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+-\d{2}:\d{2}),(?P<node>[^@]*)@(?P<host>[^:]*):(?P<source>[^\]]+)\](?P<message>(?s).*[^\n\s])[\n\s]*$'
           timestamp:
@@ -107,6 +111,10 @@ template: |
       attributes:
         log_type: 'couchbase.debug'
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: regex_parser
           regex: '^\[(?P<type>[^:]*):(?P<couchbase_severity>[^,]*),(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+-\d{2}:\d{2}),(?P<node>[^@]*)@(?P<host>[^:]*):(?P<source>[^\]]+)\](?P<message>(?s).*[^\n\s])[\n\s]*$'
           timestamp:
@@ -128,6 +136,10 @@ template: |
       attributes:
         log_type: 'couchbase.info'
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: regex_parser
           regex: '^\[(?P<type>[^:]*):(?P<couchbase_severity>[^,]*),(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+-\d{2}:\d{2}),(?P<node>[^@]*)@(?P<host>[^:]*):(?P<source>[^\]]+)\](?P<message>(?s).*[^\n\s])[\n\s]*$'
           timestamp:
@@ -147,6 +159,10 @@ template: |
       attributes:
         log_type: 'couchbase.http.access'
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: regex_parser
           regex: '(?P<ip_address>\d+.\d+.\d+.\d+)\s+(?P<user_identifier>.*) \[(?P<timestamp>\d{2}\/\w+\/\d{4}:\d{2}:\d{2}:\d{2} -\d{4})\] \\*"(?P<request_line>[^"]*)\\*" (?P<status>\d{3}) (?P<size>\d*) *-*(?P<message>.*)'
           timestamp:
@@ -172,6 +188,10 @@ template: |
       attributes:
         log_type: 'couchbase.http.access.internal'
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: regex_parser
           regex: '(?P<ip_address>\d+.\d+.\d+.\d+)\s+(?P<user_identifier>.*) \[(?P<timestamp>\d{2}\/\w+\/\d{4}:\d{2}:\d{2}:\d{2} -\d{4})\] \\*"(?P<request_line>[^"]*)\\*" (?P<status>\d{3}) (?P<size>\d*) *-*(?P<message>.*)'
           timestamp:
@@ -200,6 +220,10 @@ template: |
       attributes:
         log_type: 'couchbase.babysitter'
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: regex_parser
           regex: '^\[(?P<type>[^:]*):(?P<couchbase_severity>[^,]*),(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+-\d{2}:\d{2}),(?P<node>[^@]*)@(?P<host>[^:]*):(?P<source>[^\]]+)\](?P<message>(?s).*[^\n\s])[\n\s]*$'
           timestamp:
@@ -221,6 +245,10 @@ template: |
       attributes:
         log_type: 'couchbase.xdcr'
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: regex_parser
           regex: '(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d*-\d{2}:\d{2}) (?P<couchbase_severity>[^ ]*) (?P<type>[^:]*):* (?P<message>.*)'
           timestamp:
