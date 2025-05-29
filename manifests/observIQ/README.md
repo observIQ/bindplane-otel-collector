@@ -33,6 +33,6 @@ This is a list of components that will be available to use in the resulting coll
 | otlpencodingextension     | loadbalancingexporter          | routingprocessor              | expvarreceiver                 |                       |
 | pprofextension            | loggingexporter                | spanprocessor                 | filelogreceiver                |                       |
 | sigv4authextension        | logicmonitorexporter           | sumologicprocessor            | filestatsreceiver              |                       |
-| zipkinencodingextension   | nopexporter                    | tailsamplingprocessor         | nopreceiver                    |                       |
-|                           | otlpexporter                   | transformprocessor            | otlpreceiver                   |                       |
-|                           | otlphttpexporter               | unrollprocessor               |                                |                       |
+| zipkinencodingextension   | nopexporter                    | tailsamplingprocessor         | githubreceiver                 |                       |
+|                           | otlpexporter                   | transformprocessor            | nopreceiver                    |                       |
+|                           | otlphttpexporter               | unrollprocessor               | otlpreceiver                   |                       |
