@@ -44,6 +44,10 @@ template: |
       operators:
         # Example log line (Redis 3+): 534:M 28 Apr 2020 11:30:29.988 * DB loaded from disk: 0.002 seconds
         # Example log line (Redis <3): [4018] 14 Nov 07:01:22.119 * Background saving terminated with success
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: regex_parser
           regex: '^\[?(?P<pid>\d+):?(?P<role>[A-Z])?\]?\s+(?P<timestamp>\d{2}\s+\w+(?:\s+\d{4})?\s+\d{2}:\d{2}:\d{2}.\d{3})\s+(?P<level>[\*|#|\-|\.])\s+(?P<message>.*)'
           severity:

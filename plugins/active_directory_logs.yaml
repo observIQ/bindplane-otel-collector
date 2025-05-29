@@ -15,7 +15,7 @@ parameters:
     type: bool
     default: false
   - name: poll_interval
-    description: Set the rate that logs are being collected 
+    description: Set the rate that logs are being collected
     type: string
     default: 1s
   - name: max_reads
@@ -38,6 +38,10 @@ template: |
       start_at: '{{ .start_at }}'
       attributes:
         log_type: "active_directory.general"
+      operators:
+        - type: copy
+          from: body
+          to: attributes["log.record.original"]
     windowseventlog/web_services:
       channel: "Active Directory Web Services"
       max_reads: {{ .max_reads }}
@@ -45,6 +49,10 @@ template: |
       start_at: '{{ .start_at }}'
       attributes:
         log_type: "active_directory.web_services"
+      operators:
+        - type: copy
+          from: body
+          to: attributes["log.record.original"]
     {{ if .enable_dns_server }}
     windowseventlog/dns:
       channel: "DNS Server"
@@ -53,6 +61,10 @@ template: |
       start_at: '{{ .start_at }}'
       attributes:
         log_type: "active_directory.dns"
+      operators:
+        - type: copy
+          from: body
+          to: attributes["log.record.original"]
     {{ end }}
     {{ if .enable_dfs_replication }}
     windowseventlog/dfs:
@@ -62,6 +74,10 @@ template: |
       start_at: '{{ .start_at }}'
       attributes:
         log_type: "active_directory.dfs"
+      operators:
+        - type: copy
+          from: body
+          to: attributes["log.record.original"]
     {{ end }}
     {{ if .enable_file_replication }}
     windowseventlog/frs:
@@ -71,6 +87,10 @@ template: |
       start_at: '{{ .start_at }}'
       attributes:
         log_type: "active_directory.frs"
+      operators:
+        - type: copy
+          from: body
+          to: attributes["log.record.original"]
     {{ end }}
 
   service:

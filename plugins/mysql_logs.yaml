@@ -88,6 +88,10 @@ template: |
         # create table stuff (
         # id int
         # );
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - id: slow_query_router
           type: router
           routes:
@@ -335,6 +339,10 @@ template: |
       operators:
         # Example of log line:
         # 2022-04-25T12:06:16.500574Z 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: regex_parser
           regex: '(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z)\s+(?P<tid>\d+)\s+\[(?P<mysql_severity>[^\]]+)]\s+(?P<message>[\d\D\s]+)'
           timestamp:
@@ -370,6 +378,10 @@ template: |
         # Time                 Id Command    Argument
         # 
         # 2020-06-19T13:06:37.479323Z	    1 Query	DROP PREPARE stmt;
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: router
           routes:
             - output: general_regex_parser
@@ -606,6 +618,10 @@ template: |
       operators:
         # Example of log line:
         # 20210317 11:41:24,oiq-int-mysql,root,localhost,4,0,"FAILED ""CONNECT""",,,0
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - id: single_quote_router
           type: router
           default: mariadb_audit_regex_parser_lt

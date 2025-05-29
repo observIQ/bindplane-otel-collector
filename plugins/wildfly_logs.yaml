@@ -79,6 +79,10 @@ template: |
       attributes:
         log_type: wildfly.domain
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - id: wildfly_parser
           type: regex_parser
           regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+(?P<level>\w+)(?:\s+\[(?P<source>.+?)\])?(?:\s+\((?P<thread>.+?)\))?\s+(?P<message>(?:(?P<messageCode>[\d\w]+):)?[^\n]*)'
@@ -101,6 +105,10 @@ template: |
       attributes:
         log_type: wildfly.domain_controller
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - id: wildfly_parser
           type: regex_parser
           regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+(?P<level>\w+)(?:\s+\[(?P<source>.+?)\])?(?:\s+\((?P<thread>.+?)\))?\s+(?P<message>(?:(?P<messageCode>[\d\w]+):)?[^\n]*)'

@@ -76,6 +76,10 @@ template: |
       start_at: {{ .start_at }}
       encoding: {{ .encoding }}
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         {{ if eq .log_format "default" }}
         - type: regex_parser
           regex: '^(?P<http_request_remoteIp>[^ ]*) (?P<host>[^ ]*) (?P<user>[^ ]*) \[(?P<time_local>[^\]]*)\] "(?P<http_request_requestMethod>\S+)(?: +(?P<http_request_requestUrl>[^\"]*?)(?: +(?P<http_request_protocol>\S+))?)?" (?P<http_request_status>[^ ]*) (?P<http_request_responseSize>[^ ]*)(?: "(?P<http_request_referer>[^\"]*)" "(?P<http_request_userAgent>[^\"]*)")?$'
@@ -139,6 +143,10 @@ template: |
       start_at: {{ .start_at }}
       encoding: {{ .encoding }}
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: regex_parser
           regex: '^(?P<time>\d+[./-]\d+[./-]\d+[- ]\d+:\d+:\d+) \[(?P<log_level>[^\]]*)\] (?P<pid>\d+)#(?P<tid>\d+):(?: \*(?P<connection>\d+))? (?P<message>.*?)(?:, client: (?P<client>[^,]+))?(?:, server: (?P<server>[^,]+))?(?:, request: "(?P<request>[^"]*)")?(?:, subrequest: \"(?P<subrequest>[^\"]*)\")?(?:, upstream: \"(?P<upstream>[^"]*)\")?(?:, host: \"(?P<host>[^\"]*)\")?(?:, referrer: \"(?P<referer>[^"]*)\")?$'
           timestamp:

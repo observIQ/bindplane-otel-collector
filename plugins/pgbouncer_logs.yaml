@@ -31,6 +31,10 @@ template: |
         {{end}}
       start_at: {{ .start_at }}
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - id: pgbouncer_parser
           type: regex_parser
           regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}(\s*[^\d\s]{3})?)\s*(\[)?(?P<pid>\d+)(\])? (?P<severity>\w+) (?P<message>.*)'

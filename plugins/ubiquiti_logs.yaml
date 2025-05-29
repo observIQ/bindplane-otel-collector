@@ -21,6 +21,10 @@ template: |
       listen_address: "{{ .listen_ip }}:{{ .listen_port }}"
       add_attributes: true
       operators:
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         - type: router
           default: add_type
           routes:

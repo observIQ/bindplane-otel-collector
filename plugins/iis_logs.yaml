@@ -102,6 +102,10 @@ template: |
       start_at: {{ .start_at }}
       max_concurrent_files: {{ .max_concurrent_files }}
       operators: 
+      - id: save_log_record_original
+        type: copy
+        from: body
+        to: attributes["log.record.original"]
       - type: filter
         expr: 'body matches "^#"'
 
@@ -200,6 +204,10 @@ template: |
       start_at: {{ .start_at }}
       max_concurrent_files: {{ .max_concurrent_files }}
       operators: 
+      - id: save_log_record_original
+        type: copy
+        from: body
+        to: attributes["log.record.original"]
       {{ if .retain_raw_logs }}
       - id: save_raw_log
         type: copy
@@ -276,6 +284,10 @@ template: |
       start_at: {{ .start_at }}
       max_concurrent_files: {{ .max_concurrent_files }}
       operators: 
+      - id: save_log_record_original
+        type: copy
+        from: body
+        to: attributes["log.record.original"]
       {{ if .retain_raw_logs }}
       - id: save_raw_log
         type: copy

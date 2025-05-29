@@ -51,6 +51,10 @@ template: |
       attributes:
          log_type: sap_hana
       operators:
+          - id: save_log_record_original
+            type: copy
+            from: body
+            to: attributes["log.record.original"]
           - id: sap_hana_parser
             type: regex_parser
             regex: '^\[(?P<thread_id>\d+)\]{(?P<connection_id>[^}]+)}\[(?P<transaction_id>[^\/]+)\/(?P<update_transaction_id>[^\]]+)\] (?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+) (?P<sap_severity>[^ ]+) (?P<component>[^ ]+)\s+(?P<source_file>[^ ]+) : (?P<message>.*)'
