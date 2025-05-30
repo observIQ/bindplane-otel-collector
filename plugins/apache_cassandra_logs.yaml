@@ -42,6 +42,10 @@ parameters:
     description: Timezone to use when parsing the timestamp
     type: timezone
     default: UTC
+  - name: save_log_record_original
+    description: When enabled will preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
 template: |
   receivers:
     {{ if .enable_system_logs }}
@@ -56,10 +60,12 @@ template: |
       attributes:
         log_type: 'cassandra.system'
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
         - type: regex_parser
           regex: '(?P<severity>[A-Z]+)\s+\[(?P<type>[^\]]+)\]\s+(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+(?P<message>.*\S)'
           severity:
@@ -82,10 +88,12 @@ template: |
       attributes:
         log_type: 'cassandra.debug'
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
         - type: regex_parser
           regex: '(?P<severity>[A-Z]+)\s+\[(?P<type>[^\]]+)\]\s+(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+(?P<message>.*\S)'
           severity:
@@ -108,10 +116,12 @@ template: |
       attributes:
         log_type: 'cassandra.gc'
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
       - type: regex_parser
         if: 'body matches "[0-9]{4}-[0-9]{2}-[0-9]{2}T"'
         regex: '(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}[+-]\d{4}):\s+.*stopped: (?P<total_stopped_seconds>[\d\.]+).* took: (?P<stopping_threads_seconds>[\d\.]+)'

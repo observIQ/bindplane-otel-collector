@@ -10,6 +10,10 @@ parameters:
     description: A syslog ip address
     type: string
     default: "0.0.0.0"
+  - name: save_log_record_original
+    description: When enabled will preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
 
 template: |
   receivers:
@@ -19,10 +23,12 @@ template: |
         log_type: cisco_asa
       add_attributes: true
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
             type: copy
             from: body
             to: attributes["log.record.original"]
+        {{ end }}
         - id: cisco_parser
           type: regex_parser
           regex: '^(?P<timestamp>[\d\w\s:\-]+?)(?: asa )?: %(?P<message_id>[\w\d-]+):\s(?P<message>.*)'

@@ -29,6 +29,10 @@ parameters:
       - beginning
       - end
     default: end
+  - name: save_log_record_original
+    description: When enabled will preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
 template: |
   receivers:
     windowseventlog/general:
@@ -39,10 +43,12 @@ template: |
       attributes:
         log_type: "active_directory.general"
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
     windowseventlog/web_services:
       channel: "Active Directory Web Services"
       max_reads: {{ .max_reads }}
@@ -51,10 +57,12 @@ template: |
       attributes:
         log_type: "active_directory.web_services"
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
     {{ if .enable_dns_server }}
     windowseventlog/dns:
       channel: "DNS Server"
@@ -64,10 +72,12 @@ template: |
       attributes:
         log_type: "active_directory.dns"
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
     {{ end }}
     {{ if .enable_dfs_replication }}
     windowseventlog/dfs:
@@ -78,10 +88,12 @@ template: |
       attributes:
         log_type: "active_directory.dfs"
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
     {{ end }}
     {{ if .enable_file_replication }}
     windowseventlog/frs:
@@ -92,10 +104,12 @@ template: |
       attributes:
         log_type: "active_directory.frs"
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
     {{ end }}
 
   service:

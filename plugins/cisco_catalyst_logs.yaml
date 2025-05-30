@@ -18,6 +18,10 @@ parameters:
     description: Timezone to use when parsing the timestamp
     type: timezone
     default: UTC
+  - name: save_log_record_original
+    description: When enabled will preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
 
 template: |
   receivers:
@@ -27,10 +31,12 @@ template: |
         log_type: 'cisco_catalyst'
       add_attributes: {{.add_attributes}}
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
         - id: regex_router
           type: router
           default: catalyst_parser
