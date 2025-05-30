@@ -1046,6 +1046,6 @@ replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 
 // Replaces for Justin's SQLQuery Receiver changes: https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/39762
 // See diff here for changes (compared to OTel v0.126.0): https://github.com/open-telemetry/opentelemetry-collector-contrib/compare/v0.126.0...observIQ:opentelemetry-collector-contrib:bdot-sqlquery-replace-05-29-25?expand=1
-replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/sqlqueryreceiver => github.com/observIQ/opentelemetry-collector-contrib/receiver/sqlqueryreceiver v0.0.0-20250529172009-d76d26783a8b
+replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/sqlqueryreceiver => github.com/observIQ/opentelemetry-collector-contrib/receiver/sqlqueryreceiver v0.0.0-20250530122747-d1ad9080b194
 
-replace github.com/open-telemetry/opentelemetry-collector-contrib/internal/sqlquery => github.com/observIQ/opentelemetry-collector-contrib/internal/sqlquery v0.0.0-20250529172009-d76d26783a8b
+replace github.com/open-telemetry/opentelemetry-collector-contrib/internal/sqlquery => github.com/observIQ/opentelemetry-collector-contrib/internal/sqlquery v0.0.0-20250530122747-d1ad9080b194
