@@ -64,11 +64,11 @@ template: |
       attributes:
         log_type: 'apache_http.access'
       operators:
-        {{ if eq .log_format "default" }}
         - id: access_save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ if eq .log_format "default" }}
         - id: access_regex_parser
           type: regex_parser
           regex: '^(?P<remote_addr>[^ ]*) (?P<remote_host>[^ ]*) (?P<remote_user>[^ ]*) \[(?P<timestamp>[^\]]*)\] "(?P<method>\S+) +(?P<path>[^ ]*)( (?P<protocol>[^/]*)/(?P<protocol_version>[^\"]*)|[^\"]*)?" (?P<status>[^ ]*) (?P<body_bytes_sent>[^ ]*)(?: "(?P<http_referer>[^\"]*)" "(?P<http_user_agent>[^\"]*)"(?:\s+(?P<http_x_forwarded_for>[^ ]+))?)?'
@@ -127,11 +127,11 @@ template: |
       attributes:
         log_type: 'apache_http.error'
       operators:
-        {{ if eq .log_format "default" }}
         - id: error_save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ if eq .log_format "default" }}
         - id: error_regex_parser
           type: regex_parser
           regex: '^\[(?P<timestamp>\w+ \w+ \d{2} \d{2}:\d{2}:\d{2}\.\d+ \d+)\] \[(?P<module>\w+):(?P<log_level>[\w\d]+)\] \[pid (?P<pid>\d+)(?::tid (?P<tid>[\d]+))?\](?: \[client (?P<client>[^\]]*)\])? (?P<error_code>[^:]+): (?P<message>.*)'
