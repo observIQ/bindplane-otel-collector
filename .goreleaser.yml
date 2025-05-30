@@ -133,6 +133,14 @@ nfpms:
       - deb
     bindir: /opt/observiq-otel-collector
     contents:
+      # This file was previously managed by the package
+      # therefore it must be marked as a ghost file to
+      # prevent the package manager from deleting it
+      # upon upgrade. This file will continue to be
+      # used by user's to modify the package's install
+      # behavior.
+      - dst: /etc/sysconfig/observiq-otel-collector
+        type: ghost
       - dst: /opt/observiq-otel-collector
         type: dir
         file_info:
