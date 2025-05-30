@@ -57,7 +57,6 @@ EOF
 
 manage_sysv_service() {
   chmod 755 /etc/init.d/observiq-otel-collector
-  chmod 644 /etc/sysconfig/observiq-otel-collector
   echo "configured sysv service"
 }
 
