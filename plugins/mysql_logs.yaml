@@ -65,7 +65,7 @@ parameters:
     type: string
     default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
   - name: save_log_record_original
-    description: When enabled will preserve the original log message in a `log.record.original` key.
+    description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
 template: |
