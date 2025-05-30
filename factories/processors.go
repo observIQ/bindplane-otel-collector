@@ -31,6 +31,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/processor/unrollprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/cumulativetodeltaprocessor"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatorateprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/geoipprocessor"
@@ -60,6 +61,7 @@ var defaultProcessors = []processor.Factory{
 	batchprocessor.NewFactory(),
 	processortest.NewNopFactory(),
 	cumulativetodeltaprocessor.NewFactory(),
+	deltatocumulativeprocessor.NewFactory(),
 	datapointcountprocessor.NewFactory(),
 	deltatorateprocessor.NewFactory(),
 	filterprocessor.NewFactory(),

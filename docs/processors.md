@@ -7,6 +7,7 @@ Below is a list of supported processors with links to their documentation pages.
 | Attributes Processor                    | [attributesprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.126.0/processor/attributesprocessor/README.md)                     |
 | Batch Processor                         | [batchprocessor](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.126.0/processor/batchprocessor/README.md)                                       |
 | Cumulative to Delta Processor           | [cumulativetodeltaprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.126.0/processor/cumulativetodeltaprocessor/README.md)       |
+| Delta to Cumulative Processor           | [deltatocumulativeprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.126.0/processor/deltatocumulativeprocessor/README.md)       |
 | Delta to Rate Processor                 | [deltatorateprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.126.0/processor/deltatorateprocessor/README.md)                   |
 | Filter Processor                        | [filterprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.126.0/processor/filterprocessor/README.md)                             |
 | GeoIP Processor                         | [geoipprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.126.0/processor/geoipprocessor/README.md)                               |
