@@ -66,11 +66,11 @@ template: |
       attributes:
         log_type: tomcat.access
       operators:
-        {{ if .access_retain_raw_logs }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ if .access_retain_raw_logs }}
         - id: save_raw_log
           type: copy
           from: body
@@ -111,11 +111,11 @@ template: |
       attributes:
         log_type: tomcat.catalina
       operators:
-        {{ if .catalina_retain_raw_logs }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ if .catalina_retain_raw_logs }}
         - id: save_raw_log
           type: copy
           from: body
