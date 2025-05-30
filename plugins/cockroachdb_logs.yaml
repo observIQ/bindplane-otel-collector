@@ -76,6 +76,10 @@ parameters:
     description: Timezone to use when parsing the timestamp
     type: timezone
     default: UTC
+  - name: save_log_record_original
+    description: When enabled will preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
   - name: retain_raw_logs
     description: When enabled will preserve the original log message in a `raw_log` key. This will either be in the `body` or `attributes` depending on how `parse_to` is configured.
     type: bool
@@ -109,10 +113,12 @@ template: |
       attributes:
         log_type: 'cockroach.health'
       operators:
+        {{ if .save_log_record_original}}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy
@@ -155,10 +161,12 @@ template: |
       attributes:
         log_type: 'cockroach.dev'
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy
@@ -202,10 +210,12 @@ template: |
       attributes:
         log_type: 'cockroach.error'
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy
@@ -248,10 +258,12 @@ template: |
       attributes:
         log_type: 'cockroach.schema'
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy
@@ -294,10 +306,12 @@ template: |
       attributes:
         log_type: 'cockroach.telemetry'
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy
@@ -340,10 +354,12 @@ template: |
       attributes:
         log_type: 'cockroach.kv.distribution'
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy
@@ -386,10 +402,12 @@ template: |
       attributes:
         log_type: 'cockroach.pebble'
       operators:
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy

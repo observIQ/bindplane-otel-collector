@@ -25,6 +25,10 @@ parameters:
       - beginning
       - end
     default: end
+  - name: save_log_record_original
+    description: When enabled will preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
 
 template: |
   receivers:
@@ -39,11 +43,12 @@ template: |
         {{end}}
       start_at: {{ .start_at }}
       operators:  
+        {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
-          
+        {{ end }}
         - type: regex_parser
           regex: '^(?P<timestamp>\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+((?P<hostname>[^\s]+)\s+)?(?P<cef_headers>[\d\D]+)'
           timestamp:
