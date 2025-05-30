@@ -62,9 +62,15 @@ fi
 # with force-reload (in case signalling is not supported) are
 # considered a success.
 
-# Pull in sysconfig settings
-# shellcheck disable=SC1091
-[ -f /etc/sysconfig/observiq-otel-collector ] && . /etc/sysconfig/observiq-otel-collector
+BINARY=observiq-otel-collector
+PROGRAM=/opt/observiq-otel-collector/"$BINARY"
+START_CMD="nohup /opt/observiq-otel-collector/$BINARY > /dev/null 2>&1 &"
+LOCKFILE=/var/lock/"$BINARY"
+PIDFILE=/var/run/"$BINARY".pid
+
+# Exported variables are used by the collector process.
+export OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
+export OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
 
 RETVAL=0
 start() {
