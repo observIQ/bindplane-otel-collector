@@ -103,6 +103,12 @@ archives:
       - src: release_deps/VERSION.txt
         dst: "."
         strip_parent: true
+      - src: release_deps/com.observiq.collector.plist
+        dst: "install"
+        strip_parent: true
+      - src: release_deps/windows_service.json
+        dst: install
+        strip_parent: true
     format_overrides:
       - goos: windows
         format: zip
