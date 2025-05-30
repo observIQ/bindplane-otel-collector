@@ -1,4 +1,4 @@
-version: 0.0.1
+version: 0.0.2
 title: macOS
 description: Log parser for macOS
 parameters:
@@ -31,6 +31,10 @@ parameters:
     description: The directory that the offset storage file will be created
     type: string
     default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
 template: |
   extensions:
     file_storage:
@@ -49,6 +53,12 @@ template: |
       attributes:
         log_type: 'macos.system'
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         - type: regex_parser
           regex: '^(?P<timestamp>\w{3}\s*\d{1,2} \d{2}:\d{2}:\d{2}) (---|(?P<host>[^ ]*))? ((?P<process>[^\[]*)\[(?P<pid>[^\]]*)\])?( \((?P<subprocess>[^\[]*)(\[(?P<spid>[^\]]*)\])?\))?(: )?(?P<message>[\w\W]*)'
           timestamp:

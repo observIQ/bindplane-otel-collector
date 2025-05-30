@@ -1,4 +1,4 @@
-version: 0.0.1
+version: 0.0.2
 title: Redis
 description: Log parser for Redis
 parameters:
@@ -27,6 +27,10 @@ parameters:
     description: The directory that the offset storage file will be created
     type: string
     default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
 template: |
   extensions:
     file_storage:
@@ -44,6 +48,12 @@ template: |
       operators:
         # Example log line (Redis 3+): 534:M 28 Apr 2020 11:30:29.988 * DB loaded from disk: 0.002 seconds
         # Example log line (Redis <3): [4018] 14 Nov 07:01:22.119 * Background saving terminated with success
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"] 
+        {{ end }}
         - type: regex_parser
           regex: '^\[?(?P<pid>\d+):?(?P<role>[A-Z])?\]?\s+(?P<timestamp>\d{2}\s+\w+(?:\s+\d{4})?\s+\d{2}:\d{2}:\d{2}.\d{3})\s+(?P<level>[\*|#|\-|\.])\s+(?P<message>.*)'
           severity:

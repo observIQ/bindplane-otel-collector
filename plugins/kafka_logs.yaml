@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 title: Apache Kafka
 description: Log parser for Apache Kafka
 parameters:
@@ -53,6 +53,10 @@ parameters:
     description: The directory that the offset storage file will be created
     type: string
     default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
 template: |
   extensions:
     file_storage:
@@ -69,6 +73,12 @@ template: |
         line_start_pattern: '\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}\]'
       start_at: {{ .start_at }}
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         - type: regex_parser
           regex: '^\[(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\] (?P<severity>[^ ]+) (?P<message>.*)'
           severity:
@@ -101,6 +111,12 @@ template: |
         line_start_pattern: '\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}\]'
       start_at: {{ .start_at }}
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         - type: regex_parser
           regex: '^\[(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\] (?P<severity>[^ ]+) (?P<message>.*)'
           severity:
@@ -133,6 +149,12 @@ template: |
         line_start_pattern: '\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}\]'
       start_at: {{ .start_at }}
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         - type: regex_parser
           regex: '^\[(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\] (?P<severity>[^ ]+) (?P<message>.*)'
           severity:
@@ -165,6 +187,12 @@ template: |
         line_start_pattern: '\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}\]'
       start_at: {{ .start_at }}
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         - type: regex_parser
           regex: '^\[(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\] (?P<severity>[^ ]+) (?P<message>.*)'
           severity:

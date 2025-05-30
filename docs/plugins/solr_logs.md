@@ -4,11 +4,12 @@ Log parser for Solr
 
 ## Configuration Parameters
 
-| Name | Description | Type | Default | Required | Values |
-|:-- |:-- |:-- |:-- |:-- |:-- |
-| file_log_path | The absolute path to the Solr logs | []string | `[/var/solr/logs/solr.log]` | false |  |
-| start_at | At startup, where to start reading logs from the file (`beginning` or `end`) | string | `end` | false | `beginning`, `end` |
-| offset_storage_dir | The directory that the offset storage file will be created | string | `${env:OIQ_OTEL_COLLECTOR_HOME}/storage` | false |  |
+| Name                     | Description                                                                  | Type     | Default                                  | Required | Values             |
+| :----------------------- | :--------------------------------------------------------------------------- | :------- | :--------------------------------------- | :------- | :----------------- |
+| file_log_path            | The absolute path to the Solr logs                                           | []string | `[/var/solr/logs/solr.log]`              | false    |                    |
+| start_at                 | At startup, where to start reading logs from the file (`beginning` or `end`) | string   | `end`                                    | false    | `beginning`, `end` |
+| offset_storage_dir       | The directory that the offset storage file will be created                   | string   | `${env:OIQ_OTEL_COLLECTOR_HOME}/storage` | false    |                    |
+| save_log_record_original | Enable to preserve the original log message in a `log.record.original` key.  | string   | `false`                                  | false    |                    |
 
 ## Example Config:
 
@@ -22,4 +23,5 @@ receivers:
       file_log_path: [/var/solr/logs/solr.log]
       start_at: end
       offset_storage_dir: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+      save_log_record_original: false
 ```

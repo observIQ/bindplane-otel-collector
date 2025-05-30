@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 title: Apache Common
 description: Log parser for Apache common format
 parameters:
@@ -25,6 +25,10 @@ parameters:
       - body
       - attributes
     default: body
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
 template: |
   receivers:
     filelog:
@@ -34,6 +38,12 @@ template: |
         {{end}}
       start_at: {{ .start_at }}
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+            type: copy
+            from: body
+            to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy
