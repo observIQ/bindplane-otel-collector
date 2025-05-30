@@ -1,4 +1,32 @@
-#!/bin/sh
+// Package updater provides templates for service files.
+package updater
+
+// Constants for service file templates
+const systemdServiceTemplate = `[Unit]
+Description=observIQ's distribution of the OpenTelemetry collector
+After=network.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+[Service]
+Type=simple
+User=root
+Group=observiq-otel-collector
+Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+Environment=OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
+Environment=OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
+WorkingDirectory=/opt/observiq-otel-collector
+ExecStart=/opt/observiq-otel-collector/observiq-otel-collector --config config.yaml
+LimitNOFILE=65000
+SuccessExitStatus=0
+TimeoutSec=20
+StandardOutput=journal
+Restart=on-failure
+RestartSec=5s
+KillMode=process
+[Install]
+WantedBy=multi-user.target`
+
+const initScriptTemplate = `#!/bin/sh
 # observIQ OTEL daemon
 # chkconfig: 2345 99 05
 # description: observIQ's distribution of the OpenTelemetry collector
@@ -245,4 +273,23 @@ if [ "$RCSTATUS" ]; then
   rc_exit
 fi
 
-exit "$RETVAL"
+exit "$RETVAL"`
+
+const sysconfigTemplate = `# Configuration file for the observiq-otel-collector service.
+# These variables control the behavior of the observiq-otel-collector
+# Disabling the following for shellcheck, because they aren't relevant
+# to this file
+# shellcheck disable=SC2148,SC2034
+
+# Environment variables
+BINARY=observiq-otel-collector
+PROGRAM=/opt/observiq-otel-collector/"$BINARY"
+START_CMD="nohup /opt/observiq-otel-collector/$BINARY > /dev/null 2>&1 &"
+LOCKFILE=/var/lock/"$BINARY"
+PIDFILE=/var/run/"$BINARY".pid
+# Set to true to enable service file debugging (Not currently available)
+DEBUG=false
+
+# These are exported
+export OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
+export OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage`

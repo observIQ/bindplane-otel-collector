@@ -22,6 +22,8 @@ import (
 	"os"
 	"time"
 
+	"path/filepath"
+
 	"github.com/observiq/bindplane-otel-collector/packagestate"
 	"github.com/observiq/bindplane-otel-collector/updater/internal/action"
 	"github.com/observiq/bindplane-otel-collector/updater/internal/install"
@@ -32,6 +34,9 @@ import (
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"go.uber.org/zap"
 )
+
+// Constants for service file templates
+// Removed redeclared constants that are now in templates.go
 
 // Updater is a struct that can be used to perform a collector update
 type Updater struct {
@@ -62,6 +67,32 @@ func NewUpdater(logger *zap.Logger, installDir string) (*Updater, error) {
 	}, nil
 }
 
+// generateServiceFiles writes necessary service files to the install directory.
+func (u *Updater) generateServiceFiles() error {
+	systemdServiceFilePath := filepath.Join(u.installDir, "install", "observiq-otel-collector.service")
+	initServiceFilePath := filepath.Join(u.installDir, "install", "observiq-otel-collector")
+	sysconfigDirPath := filepath.Join(u.installDir, "install", "sysconfig")
+	sysconfigFilePath := filepath.Join(sysconfigDirPath, "observiq-otel-collector")
+
+	if err := os.MkdirAll(sysconfigDirPath, 0750); err != nil {
+		return fmt.Errorf("create sysconfig directory: %w", err)
+	}
+
+	if err := os.WriteFile(systemdServiceFilePath, []byte(systemdServiceTemplate), 0640); err != nil {
+		return fmt.Errorf("write systemd service file: %w", err)
+	}
+
+	if err := os.WriteFile(initServiceFilePath, []byte(initScriptTemplate), 0755); err != nil {
+		return fmt.Errorf("write init.d script file: %w", err)
+	}
+
+	if err := os.WriteFile(sysconfigFilePath, []byte(sysconfigTemplate), 0644); err != nil {
+		return fmt.Errorf("write sysconfig file: %w", err)
+	}
+
+	return nil
+}
+
 // Update performs the update of the collector binary
 func (u *Updater) Update() error {
 	// Stop the service before backing up the install directory;
@@ -76,6 +107,12 @@ func (u *Updater) Update() error {
 	// Now that we stopped the service, it will be our responsibility to cleanup the tmp dir.
 	// We will do this regardless of whether we succeed or fail after this point.
 	defer u.removeTmpDir()
+
+	// Generate service files
+	if err := u.generateServiceFiles(); err != nil {
+		u.logger.Error("Failed to generate service files", zap.Error(err))
+		return fmt.Errorf("failed to generate service files: %w", err)
+	}
 
 	u.logger.Debug("Stopped the service")
 
