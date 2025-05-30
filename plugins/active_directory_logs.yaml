@@ -39,7 +39,8 @@ template: |
       attributes:
         log_type: "active_directory.general"
       operators:
-        - type: copy
+        - id: save_log_record_original
+          type: copy
           from: body
           to: attributes["log.record.original"]
     windowseventlog/web_services:
@@ -50,7 +51,8 @@ template: |
       attributes:
         log_type: "active_directory.web_services"
       operators:
-        - type: copy
+        - id: save_log_record_original
+          type: copy
           from: body
           to: attributes["log.record.original"]
     {{ if .enable_dns_server }}
@@ -62,7 +64,8 @@ template: |
       attributes:
         log_type: "active_directory.dns"
       operators:
-        - type: copy
+        - id: save_log_record_original
+          type: copy
           from: body
           to: attributes["log.record.original"]
     {{ end }}
@@ -75,7 +78,8 @@ template: |
       attributes:
         log_type: "active_directory.dfs"
       operators:
-        - type: copy
+        - id: save_log_record_original
+          type: copy
           from: body
           to: attributes["log.record.original"]
     {{ end }}
@@ -88,7 +92,8 @@ template: |
       attributes:
         log_type: "active_directory.frs"
       operators:
-        - type: copy
+        - id: save_log_record_original
+          type: copy
           from: body
           to: attributes["log.record.original"]
     {{ end }}
