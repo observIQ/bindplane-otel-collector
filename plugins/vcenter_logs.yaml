@@ -1,4 +1,4 @@
-version: 0.2.0
+version: 0.2.1
 title: VMware vCenter
 description: Log parser for VMware vCenter
 parameters:

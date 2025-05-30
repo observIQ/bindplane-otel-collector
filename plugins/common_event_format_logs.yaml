@@ -1,4 +1,4 @@
-version: 0.0.2
+version: 0.0.3
 title: Common Event Format
 description: File Input Common Event Format Parser
 parameters:

@@ -1,4 +1,4 @@
-version: 0.3.0
+version: 0.3.1
 title: Apache Tomcat
 description: Log parser for Apache Tomcat
 parameters:

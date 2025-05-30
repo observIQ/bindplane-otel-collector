@@ -1,4 +1,4 @@
-version: 0.0.1
+version: 0.0.2
 title: Microsoft SQL Server
 description: Log Parser for Microsoft SQL Server Event Logs
 parameters:
