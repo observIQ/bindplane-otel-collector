@@ -106,10 +106,12 @@ template: |
       start_at: {{ .start_at }}
       max_concurrent_files: {{ .max_concurrent_files }}
       operators: 
+      {{ if .save_log_record_original }}
       - id: save_log_record_original
         type: copy
         from: body
         to: attributes["log.record.original"]
+      {{ end }}
       - type: filter
         expr: 'body matches "^#"'
 
