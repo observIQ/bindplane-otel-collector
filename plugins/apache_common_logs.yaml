@@ -34,11 +34,15 @@ template: |
         {{end}}
       start_at: {{ .start_at }}
       operators:
-        {{ if .retain_raw_logs }}
-        - id: save_log_record_original
+       - id: save_log_record_original
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ if .retain_raw_logs }}
+        - id: save_raw_log
+          type: copy
+          from: body
+          to: attributes.raw_log
         {{ end }}
         - type: regex_parser
           regex: '^(?P<remote_addr>[^ ]*) (?P<remote_host>[^ ]*) (?P<remote_user>[^ ]*) \[(?P<time>[^\]]*)\] "(?P<method>\S+) +(?P<path>[^ ]*)( (?P<protocol>[^/]*)/(?P<protocol_version>[^\"]*)|[^\"]*)?" (?P<status>[^ ]*) (?P<body_bytes_sent>[^ ]*)(?: "(?P<http_referer>[^\"]*)" "(?P<http_user_agent>[^\"]*)"(?:\s+(?P<http_x_forwarded_for>[^ ]+))?)?'
