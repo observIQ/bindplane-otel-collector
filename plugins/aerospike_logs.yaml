@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 title: Aerospike
 description: Log parser for Aerospike
 parameters:

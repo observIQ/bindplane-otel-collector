@@ -1,4 +1,4 @@
-version: 0.0.1
+version: 0.0.2
 title: Windows DHCP
 description: Log parser for Windows DHCP
 parameters:
