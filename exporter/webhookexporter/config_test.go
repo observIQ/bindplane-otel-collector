@@ -137,24 +137,27 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "valid config",
 			config: Config{
-				Endpoint: "https://example.com",
-				Verb:     POST,
+				Endpoint:    "https://example.com",
+				Verb:        POST,
+				ContentType: "application/json",
 			},
 			wantErr: false,
 		},
 		{
 			name: "invalid endpoint",
 			config: Config{
-				Endpoint: "ftp://example.com",
-				Verb:     POST,
+				Endpoint:    "ftp://example.com",
+				Verb:        POST,
+				ContentType: "application/json",
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid verb",
 			config: Config{
-				Endpoint: "https://example.com",
-				Verb:     "GET",
+				Endpoint:    "https://example.com",
+				Verb:        "GET",
+				ContentType: "application/json",
 			},
 			wantErr: true,
 		},
