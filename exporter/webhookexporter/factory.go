@@ -54,7 +54,7 @@ func createLogsExporter(ctx context.Context, params exporter.Settings, config co
 		return nil, err
 	}
 
-	e, err := newLogsExporter(ctx, cfg)
+	e, err := newLogsExporter(ctx, cfg, params)
 	if err != nil {
 		return nil, err
 	}
