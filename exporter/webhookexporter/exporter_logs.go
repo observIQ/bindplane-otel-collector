@@ -23,6 +23,7 @@ import (
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 )
@@ -36,6 +37,7 @@ type logsExporter struct {
 func newLogsExporter(
 	ctx context.Context,
 	cfg *Config,
+	params exporter.Settings,
 ) (*logsExporter, error) {
 	client := &http.Client{
 		Timeout: cfg.TimeoutConfig.Timeout,
@@ -43,7 +45,7 @@ func newLogsExporter(
 
 	return &logsExporter{
 		cfg:    cfg,
-		logger: zap.NewNop(),
+		logger: params.Logger,
 		client: client,
 	}, nil
 }
