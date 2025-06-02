@@ -13,3 +13,88 @@
 // limitations under the License.
 
 package webhookexporter
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/pdata/plog"
+	"go.uber.org/zap"
+)
+
+type logsExporter struct {
+	cfg    *Config
+	logger *zap.Logger
+	client *http.Client
+}
+
+func newLogsExporter(
+	ctx context.Context,
+	cfg *Config,
+) (*logsExporter, error) {
+	client := &http.Client{
+		Timeout: cfg.TimeoutConfig.Timeout,
+	}
+
+	return &logsExporter{
+		cfg:    cfg,
+		logger: zap.NewNop(),
+		client: client,
+	}, nil
+}
+
+func (le *logsExporter) Capabilities() consumer.Capabilities {
+	return consumer.Capabilities{MutatesData: false}
+}
+
+func (le *logsExporter) start(ctx context.Context, _ component.Host) error {
+	return nil
+}
+
+func (le *logsExporter) shutdown(_ context.Context) error {
+	return nil
+}
+
+func (le *logsExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
+	le.logger.Debug("begin webhook logsDataPusher")
+
+	logs := make([]map[string]any, 0, ld.ResourceLogs().Len())
+
+	for _, resourceLog := range ld.ResourceLogs().All() {
+		logs = append(logs, map[string]any{
+			"resourceLog": resourceLog,
+		})
+	}
+	body, err := json.Marshal(logs)
+	if err != nil {
+		return fmt.Errorf("failed to marshal logs: %w", err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, string(le.cfg.Verb), string(le.cfg.Endpoint), bytes.NewBuffer(body))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	for key, value := range le.cfg.Headers {
+		request.Header.Set(key, value)
+	}
+
+	request.Header.Set("Content-Type", le.cfg.ContentType)
+
+	response, err := le.client.Do(request)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return fmt.Errorf("failed to send request: %s", response.Status)
+	}
+
+	return nil
+}
