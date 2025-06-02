@@ -14,6 +14,9 @@
 package webhookexporter
 
 import (
+	"context"
+	"errors"
+
 	"github.com/observiq/bindplane-otel-collector/exporter/webhookexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/configretry"
@@ -40,4 +43,32 @@ func createDefaultConfig() component.Config {
 		Headers:          nil,
 		ContentType:      "",
 	}
+}
+
+func createLogsExporter(ctx context.Context, params exporter.Settings, config component.Config) (exporter.Logs, error) {
+	cfg, ok := config.(*Config)
+	if !ok {
+		return nil, errors.New("not a Webhook config")
+	}
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+
+	e, err := newLogsExporter(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return exporterhelper.NewLogs(
+		ctx,
+		params,
+		cfg,
+		e.logsDataPusher,
+		exporterhelper.WithStart(e.start),
+		exporterhelper.WithShutdown(e.shutdown),
+		exporterhelper.WithCapabilities(e.Capabilities()),
+		exporterhelper.WithTimeout(e.cfg.TimeoutConfig),
+		exporterhelper.WithQueue(e.cfg.QueueBatchConfig),
+		exporterhelper.WithRetry(e.cfg.BackOffConfig),
+	)
 }
