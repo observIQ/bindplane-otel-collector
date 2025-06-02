@@ -4,12 +4,12 @@ Log parser for HAProxy
 
 ## Configuration Parameters
 
-| Name                     | Description                                                                                                                                   | Type     | Default                          | Required | Values             |
-| :----------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------- | :------- | :------------------------------- | :------- | :----------------- |
-| file_path                | Specify a single path or multiple paths to read one or many files. You may also use a wildcard (\*) to read multiple files within a directory | []string | `[/var/log/haproxy/haproxy.log]` | false    |                    |
-| start_at                 | At startup, where to start reading logs from the file (`beginning` or `end`)                                                                  | string   | `end`                            | false    | `beginning`, `end` |
-| timezone                 | Timezone to use when parsing the timestamp                                                                                                    | timezone | `UTC`                            | false    |                    |
-| save_log_record_original | Enable to preserve the original log message in a `log.record.original` key.                                                                   | string   | `false`                          | false    |                    |
+| Name | Description | Type | Default | Required | Values |
+|:-- |:-- |:-- |:-- |:-- |:-- |
+| file_path | Specify a single path or multiple paths to read one or many files. You may also use a wildcard (*) to read multiple files within a directory | []string | `[/var/log/haproxy/haproxy.log]` | false |  |
+| start_at | At startup, where to start reading logs from the file (`beginning` or `end`) | string | `end` | false | `beginning`, `end` |
+| timezone | Timezone to use when parsing the timestamp | timezone | `UTC` | false |  |
+| save_log_record_original | Enable to preserve the original log message in a `log.record.original` key. | bool | `false` | false |  |
 
 ## Example Config:
 
