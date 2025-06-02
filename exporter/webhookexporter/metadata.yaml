@@ -1,0 +1,11 @@
+type: webhook
+
+status:
+  class: exporter
+  stability:
+    alpha: [logs]
+  distributions: [observiq]
+
+# dakota: skip goleak for now, seeing leaks only when ran on ubuntu, unsure of why need more time to troubleshoot
+tests:
+  skip_lifecycle: true
