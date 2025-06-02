@@ -27,10 +27,10 @@ template: |
           - '{{ $fp }}'
           {{ end }}
         start_at: {{ .start_at }}
+        {{ if .cluster_name }}
         resource:
-          {{ if .cluster_name }}
           k8s.cluster.name: {{ .cluster_name }}
-          {{ end }}
+        {{ end }}
         operators:
           # Initial log object looks like this:
           # '{"log":"NGINX Ingress controller\n","stream":"stdout","time":"2022-05-18T01:27:30.100955955Z"}'
