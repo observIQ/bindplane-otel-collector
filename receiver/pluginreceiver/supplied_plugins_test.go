@@ -61,7 +61,7 @@ func TestValidateSuppliedPlugins(t *testing.T) {
 	for _, entry := range entries {
 		entryName := entry.Name()
 		t.Run(fmt.Sprintf("Loading %s", entry.Name()), func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel()
 			fullFilePath, err := filepath.Abs(filepath.Join(pluginDirPath, entryName))
 			require.NoError(t, err, "Failed to determine path of file %s", entryName)
 
@@ -109,6 +109,9 @@ func TestValidateSuppliedPlugins(t *testing.T) {
 			configProvider, err := otelcol.NewConfigProvider(*cfgProviderSettings)
 			require.NoError(t, err)
 
+			if entryName == "ingress_nginx_logs.yaml" {
+				t.Logf("Factories: %+v", factories)
+			}
 			_, err = configProvider.Get(context.Background(), *factories)
 			require.NoError(t, err, "Failed to validate config for plugin %s", entryName)
 
