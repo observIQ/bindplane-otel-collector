@@ -42,6 +42,8 @@ type ThroughputMeasurementsRegistry interface {
 type ThroughputMeasurements struct {
 	logSize, metricSize, traceSize      *int64Counter
 	logCount, datapointCount, spanCount *int64Counter
+	rawBytes                            *int64Counter
+	fullBytes                           *int64Counter
 	attributes                          attribute.Set
 	collectionSequenceNumber            atomic.Int64
 }
@@ -104,6 +106,24 @@ func NewThroughputMeasurements(mp metric.MeterProvider, processorID string, extr
 		return nil, fmt.Errorf("create trace_count counter: %w", err)
 	}
 
+	rawBytes, err := meter.Int64Counter(
+		"bp.ingest.raw_bytes",
+		metric.WithDescription("Raw bytes ingested per log record"),
+		metric.WithUnit("By"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create raw_bytes gauge: %w", err)
+	}
+
+	fullBytes, err := meter.Int64Counter(
+		"bp.ingest.full_bytes",
+		metric.WithDescription("Full bytes ingested per log record"),
+		metric.WithUnit("By"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create raw_bytes gauge: %w", err)
+	}
+
 	attrs := createMeasurementsAttributeSet(processorID, extraAttributes)
 
 	return &ThroughputMeasurements{
@@ -113,6 +133,8 @@ func NewThroughputMeasurements(mp metric.MeterProvider, processorID string, extr
 		datapointCount:           newInt64Counter(datapointCount, attrs),
 		traceSize:                newInt64Counter(traceSize, attrs),
 		spanCount:                newInt64Counter(spanCount, attrs),
+		rawBytes:                 newInt64Counter(rawBytes, attrs),
+		fullBytes:                newInt64Counter(fullBytes, attrs),
 		attributes:               attrs,
 		collectionSequenceNumber: atomic.Int64{},
 	}, nil
@@ -120,10 +142,40 @@ func NewThroughputMeasurements(mp metric.MeterProvider, processorID string, extr
 
 // AddLogs records throughput metrics for the provided logs.
 func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs) {
-	sizer := plog.ProtoMarshaler{}
 	tm.collectionSequenceNumber.Add(1)
 
-	tm.logSize.Add(ctx, int64(sizer.LogsSize(l)))
+	// Calculate total size using full log size
+	sizer := plog.ProtoMarshaler{}
+	totalSize := int64(sizer.LogsSize(l))
+	fullBytes := int64(0)
+
+	resourceLogs := l.ResourceLogs()
+	for i := 0; i < resourceLogs.Len(); i++ {
+		resourceLog := resourceLogs.At(i)
+		scopeLogs := resourceLog.ScopeLogs()
+		for j := 0; j < scopeLogs.Len(); j++ {
+			scopeLog := scopeLogs.At(j)
+			logRecords := scopeLog.LogRecords()
+			for k := 0; k < logRecords.Len(); k++ {
+				logRecord := logRecords.At(k)
+
+				// Record raw bytes if log.record.original is present
+				if original, ok := logRecord.Attributes().Get("log.record.original"); ok {
+					rawBytes := int64(len(original.Str()))
+					tm.rawBytes.Add(ctx, rawBytes)
+
+					fullBytes += rawBytes
+
+					// Remove the attribute after measurement
+					logRecord.Attributes().Remove("log.record.original")
+				}
+			}
+		}
+	}
+	// Full bytes is the sum of all raw bytes
+	tm.fullBytes.Add(ctx, fullBytes)
+
+	tm.logSize.Add(ctx, totalSize)
 	tm.logCount.Add(ctx, int64(l.LogRecordCount()))
 }
 
