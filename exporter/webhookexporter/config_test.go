@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/collector/config/configtls"
 )
 
 func TestHTTPVerb_UnmarshalText(t *testing.T) {
@@ -218,6 +219,18 @@ func TestConfig_Validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "valid config with TLS settings",
+			config: Config{
+				LogsConfig: &SignalConfig{
+					Endpoint:    "https://example.com",
+					Verb:        POST,
+					ContentType: "application/json",
+					TLSSetting:  &configtls.ClientConfig{},
+				},
+			},
+			wantErr: false,
 		},
 	}
 
