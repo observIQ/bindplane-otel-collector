@@ -978,6 +978,8 @@ replace github.com/observiq/bindplane-otel-collector/exporter/qradar => ./export
 
 replace github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter => ./exporter/snowflakeexporter
 
+replace github.com/observiq/bindplane-otel-collector/exporter/webhookexporter => ./exporter/webhookexporter
+
 // Processors
 replace github.com/observiq/bindplane-otel-collector/processor/datapointcountprocessor => ./processor/datapointcountprocessor
 
