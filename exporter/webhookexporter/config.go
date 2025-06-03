@@ -59,6 +59,12 @@ func (v *HTTPVerb) unmarshalText(text []byte) error {
 }
 
 type Config struct {
+	LogsConfig    *SignalConfig `mapstructure:"logs,omitempty"`
+	MetricsConfig *SignalConfig `mapstructure:"metrics,omitempty"`
+	TracesConfig  *SignalConfig `mapstructure:"traces,omitempty"`
+}
+
+type SignalConfig struct {
 	// TimeoutConfig contains settings for request timeouts
 	TimeoutConfig exporterhelper.TimeoutConfig `mapstructure:",squash"`
 
@@ -85,7 +91,7 @@ type Config struct {
 }
 
 // Validate checks if the configuration is valid
-func (c *Config) Validate() error {
+func (c *SignalConfig) Validate() error {
 	if c.Endpoint == "" {
 		return fmt.Errorf("endpoint is required")
 	}
@@ -103,5 +109,27 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("invalid verb: %w", err)
 	}
 
+	return nil
+}
+
+func (c *Config) Validate() error {
+	if c.LogsConfig != nil {
+		if err := c.LogsConfig.Validate(); err != nil {
+			return err
+		}
+	}
+	if c.MetricsConfig != nil {
+		if err := c.MetricsConfig.Validate(); err != nil {
+			return err
+		}
+	}
+	if c.TracesConfig != nil {
+		if err := c.TracesConfig.Validate(); err != nil {
+			return err
+		}
+	}
+	if c.LogsConfig == nil && c.MetricsConfig == nil && c.TracesConfig == nil {
+		return fmt.Errorf("at least one signal config is required")
+	}
 	return nil
 }

@@ -48,13 +48,6 @@ func TestComponentLifecycle(t *testing.T) {
 	cm, err := confmaptest.LoadConf("metadata.yaml")
 	require.NoError(t, err)
 	cfg := factory.CreateDefaultConfig()
-	
-	// Set required fields before unmarshaling from metadata.yaml
-	webhookCfg := cfg.(*Config)
-	webhookCfg.Endpoint = "http://localhost:8080"
-	webhookCfg.Verb = POST
-	webhookCfg.ContentType = "application/json"
-	
 	sub, err := cm.Sub("tests::config")
 	require.NoError(t, err)
 	require.NoError(t, sub.Unmarshal(&cfg))

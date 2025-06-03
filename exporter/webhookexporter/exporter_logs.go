@@ -39,8 +39,12 @@ func newLogsExporter(
 	cfg *Config,
 	params exporter.Settings,
 ) (*logsExporter, error) {
+	if cfg.LogsConfig == nil {
+		return nil, fmt.Errorf("logs config is required")
+	}
+
 	client := &http.Client{
-		Timeout: cfg.TimeoutConfig.Timeout,
+		Timeout: cfg.LogsConfig.TimeoutConfig.Timeout,
 	}
 
 	return &logsExporter{
@@ -63,6 +67,10 @@ func (le *logsExporter) shutdown(_ context.Context) error {
 }
 
 func (le *logsExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
+	if le.cfg.LogsConfig == nil {
+		return fmt.Errorf("logs config is required")
+	}
+
 	le.logger.Debug("begin webhook logsDataPusher")
 
 	logs := make([]map[string]any, 0, ld.ResourceLogs().Len())
@@ -77,16 +85,16 @@ func (le *logsExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error 
 		return fmt.Errorf("failed to marshal logs: %w", err)
 	}
 
-	request, err := http.NewRequestWithContext(ctx, string(le.cfg.Verb), string(le.cfg.Endpoint), bytes.NewBuffer(body))
+	request, err := http.NewRequestWithContext(ctx, string(le.cfg.LogsConfig.Verb), string(le.cfg.LogsConfig.Endpoint), bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	for key, value := range le.cfg.Headers {
+	for key, value := range le.cfg.LogsConfig.Headers {
 		request.Header.Set(key, value)
 	}
 
-	request.Header.Set("Content-Type", le.cfg.ContentType)
+	request.Header.Set("Content-Type", le.cfg.LogsConfig.ContentType)
 
 	response, err := le.client.Do(request)
 	if err != nil {
