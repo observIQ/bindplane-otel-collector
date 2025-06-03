@@ -15,4 +15,4 @@
 //go:generate mdatagen metadata.yaml
 
 // Package webhookexporter exports OpenTelemetry data to an HTTP webhook.
-package webhookexporter
+package webhookexporter // import "github.com/observiq/bindplane-otel-collector/exporter/webhookexporter"
