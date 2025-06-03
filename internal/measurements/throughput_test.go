@@ -87,6 +87,100 @@ func TestProcessor_Logs(t *testing.T) {
 	require.Equal(t, int64(16), tmp.LogCount())
 }
 
+func TestProcessor_LogsWithLogRecordOriginal(t *testing.T) {
+	manualReader := metric.NewManualReader()
+	defer manualReader.Shutdown(context.Background())
+
+	mp := metric.NewMeterProvider(
+		metric.WithReader(manualReader),
+	)
+	defer mp.Shutdown(context.Background())
+
+	processorID := "throughputmeasurement/1"
+
+	tmp, err := NewThroughputMeasurements(mp, processorID, map[string]string{})
+	require.NoError(t, err)
+
+	logs, err := golden.ReadLogs(filepath.Join("testdata", "logs", "w3c-logs.yaml"))
+	require.NoError(t, err)
+
+	// Add log.record.original to all log records
+	resourceLogs := logs.ResourceLogs()
+	for i := 0; i < resourceLogs.Len(); i++ {
+		resourceLog := resourceLogs.At(i)
+		scopeLogs := resourceLog.ScopeLogs()
+		for j := 0; j < scopeLogs.Len(); j++ {
+			scopeLog := scopeLogs.At(j)
+			logRecords := scopeLog.LogRecords()
+			for k := 0; k < logRecords.Len(); k++ {
+				logRecord := logRecords.At(k)
+				// Set original to a fixed test value (20 bytes) for all records
+				logRecord.Attributes().PutStr("log.record.original", "12345678901234567890")
+			}
+		}
+	}
+
+	tmp.AddLogs(context.Background(), logs)
+
+	var rm metricdata.ResourceMetrics
+	require.NoError(t, manualReader.Collect(context.Background(), &rm))
+
+	// Extract the metrics we care about from the metrics we collected
+	var logSize, logCount int64
+
+	for _, sm := range rm.ScopeMetrics {
+		for _, metric := range sm.Metrics {
+			switch metric.Name {
+			case "otelcol_processor_throughputmeasurement_log_data_size":
+				sum := metric.Data.(metricdata.Sum[int64])
+				require.Equal(t, 1, len(sum.DataPoints))
+
+				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
+				require.True(t, ok, "processor attribute was not found")
+				require.Equal(t, processorID, processorAttr.AsString())
+
+				logSize = sum.DataPoints[0].Value
+
+			case "otelcol_processor_throughputmeasurement_log_count":
+				sum := metric.Data.(metricdata.Sum[int64])
+				require.Equal(t, 1, len(sum.DataPoints))
+
+				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
+				require.True(t, ok, "processor attribute was not found")
+				require.Equal(t, processorID, processorAttr.AsString())
+
+				logCount = sum.DataPoints[0].Value
+			}
+		}
+	}
+
+	// Verify that the log size is based on the full log content
+	expectedLogSize := int64(4727)
+	// Verify that the full bytes size is based on the original log content
+	expectedFullBytes := int64(16 * 20)
+	require.Equal(t, expectedLogSize, logSize)
+	require.Equal(t, expectedLogSize, tmp.LogSize())
+	require.Equal(t, expectedFullBytes, tmp.fullBytes.Val())
+	require.Equal(t, int64(16), logCount)
+	require.Equal(t, int64(16), tmp.LogCount())
+
+	// Verify that log.record.original was removed
+	resourceLogs = logs.ResourceLogs()
+	for i := 0; i < resourceLogs.Len(); i++ {
+		resourceLog := resourceLogs.At(i)
+		scopeLogs := resourceLog.ScopeLogs()
+		for j := 0; j < scopeLogs.Len(); j++ {
+			scopeLog := scopeLogs.At(j)
+			logRecords := scopeLog.LogRecords()
+			for k := 0; k < logRecords.Len(); k++ {
+				logRecord := logRecords.At(k)
+				_, exists := logRecord.Attributes().Get("log.record.original")
+				require.False(t, exists, "log.record.original attribute should have been removed")
+			}
+		}
+	}
+}
+
 func TestProcessor_Metrics(t *testing.T) {
 	manualReader := metric.NewManualReader()
 	defer manualReader.Shutdown(context.Background())
