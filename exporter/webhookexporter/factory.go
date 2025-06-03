@@ -19,7 +19,6 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/exporter/webhookexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
@@ -35,13 +34,9 @@ func NewFactory() exporter.Factory {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		TimeoutConfig:    exporterhelper.NewDefaultTimeoutConfig(),
-		QueueBatchConfig: exporterhelper.NewDefaultQueueConfig(),
-		BackOffConfig:    configretry.NewDefaultBackOffConfig(),
-		Endpoint:         "",
-		Verb:             "",
-		Headers:          nil,
-		ContentType:      "",
+		LogsConfig:    &SignalConfig{},
+		MetricsConfig: &SignalConfig{},
+		TracesConfig:  &SignalConfig{},
 	}
 }
 
@@ -67,8 +62,8 @@ func createLogsExporter(ctx context.Context, params exporter.Settings, config co
 		exporterhelper.WithStart(e.start),
 		exporterhelper.WithShutdown(e.shutdown),
 		exporterhelper.WithCapabilities(e.Capabilities()),
-		exporterhelper.WithTimeout(e.cfg.TimeoutConfig),
-		exporterhelper.WithQueue(e.cfg.QueueBatchConfig),
-		exporterhelper.WithRetry(e.cfg.BackOffConfig),
+		exporterhelper.WithTimeout(e.cfg.LogsConfig.TimeoutConfig),
+		exporterhelper.WithQueue(e.cfg.LogsConfig.QueueBatchConfig),
+		exporterhelper.WithRetry(e.cfg.LogsConfig.BackOffConfig),
 	)
 }

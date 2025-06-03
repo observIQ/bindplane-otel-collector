@@ -31,12 +31,12 @@ import (
 
 func TestNewLogsExporter(t *testing.T) {
 	cfg := &Config{
-		Endpoint: Endpoint("http://localhost:8080"),
-		Verb:     "POST",
-		Headers: map[string]string{
-			"X-Test": "test-value",
+		LogsConfig: &SignalConfig{
+			Endpoint:    Endpoint("http://localhost:8080"),
+			Verb:        POST,
+			Headers:     map[string]string{"X-Test": "test-value"},
+			ContentType: "application/json",
 		},
-		ContentType: "application/json",
 	}
 
 	exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
@@ -113,10 +113,12 @@ func TestLogsDataPusher(t *testing.T) {
 
 			// Create exporter with test server URL
 			cfg := &Config{
-				Endpoint:    Endpoint(server.URL),
-				Verb:        POST,
-				Headers:     map[string]string{"X-Test": "test-value"},
-				ContentType: "application/json",
+				LogsConfig: &SignalConfig{
+					Endpoint:    Endpoint(server.URL),
+					Verb:        POST,
+					Headers:     map[string]string{"X-Test": "test-value"},
+					ContentType: "application/json",
+				},
 			}
 
 			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
@@ -157,10 +159,12 @@ func TestLogsDataPusherIntegration(t *testing.T) {
 
 	// Create exporter
 	cfg := &Config{
-		Endpoint:    Endpoint(server.URL),
-		Verb:        POST,
-		Headers:     map[string]string{"X-Test": "test-value"},
-		ContentType: "application/json",
+		LogsConfig: &SignalConfig{
+			Endpoint:    Endpoint(server.URL),
+			Verb:        POST,
+			Headers:     map[string]string{"X-Test": "test-value"},
+			ContentType: "application/json",
+		},
 	}
 
 	exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))

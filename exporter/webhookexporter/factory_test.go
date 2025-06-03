@@ -38,13 +38,9 @@ func TestCreateDefaultConfig(t *testing.T) {
 
 	webhookCfg, ok := cfg.(*Config)
 	require.True(t, ok)
-	assert.Equal(t, Endpoint(""), webhookCfg.Endpoint)
-	assert.Equal(t, HTTPVerb(""), webhookCfg.Verb)
-	assert.Nil(t, webhookCfg.Headers)
-	assert.Equal(t, "", webhookCfg.ContentType)
-	assert.NotNil(t, webhookCfg.TimeoutConfig)
-	assert.NotNil(t, webhookCfg.QueueBatchConfig)
-	assert.NotNil(t, webhookCfg.BackOffConfig)
+	assert.Nil(t, webhookCfg.LogsConfig)
+	assert.Nil(t, webhookCfg.MetricsConfig)
+	assert.Nil(t, webhookCfg.TracesConfig)
 }
 
 func TestCreateLogsExporter(t *testing.T) {
@@ -56,9 +52,11 @@ func TestCreateLogsExporter(t *testing.T) {
 		{
 			name: "valid config",
 			config: &Config{
-				Endpoint:    "https://example.com",
-				Verb:        POST,
-				ContentType: "application/json",
+				LogsConfig: &SignalConfig{
+					Endpoint:    Endpoint("https://example.com"),
+					Verb:        POST,
+					ContentType: "application/json",
+				},
 			},
 			wantErr: false,
 		},
@@ -72,17 +70,22 @@ func TestCreateLogsExporter(t *testing.T) {
 		{
 			name: "invalid config validation",
 			config: &Config{
-				Endpoint:    "invalid-url",
-				Verb:        "INVALID",
-				ContentType: "application/json",
+				LogsConfig: &SignalConfig{
+					Endpoint:    Endpoint("invalid-url"),
+					Verb:        "INVALID",
+					ContentType: "application/json",
+				},
 			},
 			wantErr: true,
 		},
 		{
 			name: "missing content type",
 			config: &Config{
-				Endpoint: "https://example.com",
-				Verb:     POST,
+				LogsConfig: &SignalConfig{
+					Endpoint:    Endpoint("https://example.com"),
+					Verb:        POST,
+					ContentType: "application/json",
+				},
 			},
 			wantErr: true,
 		},
