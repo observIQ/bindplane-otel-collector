@@ -21,6 +21,7 @@ Log parser for Couchbase
 | enable_xdcr_log | Enable to collect Couchbase Cross Datacenter Replication logs | bool | `false` | false |  |
 | xdcr_log_path | The absolute path to the Couchbase Cross Datacenter Replication logs | []string | `[/opt/couchbase/var/lib/couchbase/logs/goxdcr.log]` | false |  |
 | start_at | At startup, where to start reading logs from the file (`beginning` or `end`) | string | `end` | false | `beginning`, `end` |
+| save_log_record_original | Enable to preserve the original log message in a `log.record.original` key. | bool | `false` | false |  |
 
 ## Example Config:
 
@@ -46,4 +47,5 @@ receivers:
       enable_xdcr_log: false
       xdcr_log_path: [/opt/couchbase/var/lib/couchbase/logs/goxdcr.log]
       start_at: end
+      save_log_record_original: false
 ```

@@ -8,6 +8,7 @@ Log parser for Cisco ASA
 |:-- |:-- |:-- |:-- |:-- |:-- |
 | listen_port | A port which the agent will listen for syslog messages | int | `5140` | false |  |
 | listen_ip | A syslog ip address | string | `0.0.0.0` | false |  |
+| save_log_record_original | Enable to preserve the original log message in a `log.record.original` key. | bool | `false` | false |  |
 
 ## Example Config:
 
@@ -20,4 +21,5 @@ receivers:
     parameters:
       listen_port: 5140
       listen_ip: 0.0.0.0
+      save_log_record_original: false
 ```

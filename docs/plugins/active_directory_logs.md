@@ -12,6 +12,7 @@ Log parser for Active Directory
 | poll_interval | Set the rate that logs are being collected | string | `1s` | false |  |
 | max_reads | Maximum number of logs collected | int | `1000` | false |  |
 | start_at | At startup, where to start reading logs from the file (`beginning` or `end`) | string | `end` | false | `beginning`, `end` |
+| save_log_record_original | Enable to preserve the original log message in a `log.record.original` key. | bool | `false` | false |  |
 
 ## Example Config:
 
@@ -28,4 +29,5 @@ receivers:
       poll_interval: 1s
       max_reads: 1000
       start_at: end
+      save_log_record_original: false
 ```

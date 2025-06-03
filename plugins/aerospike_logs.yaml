@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 title: Aerospike
 description: Log parser for Aerospike
 parameters:
@@ -13,6 +13,10 @@ parameters:
       - beginning
       - end
     default: end
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
 template: |
   receivers:
     journald:
@@ -24,6 +28,12 @@ template: |
       operators:
         # Capture relevant journald fields before replacing body
         # with the Aerospike log body
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         - type: move
           from: body._HOSTNAME
           to: resource["host.name"]
@@ -88,4 +98,3 @@ template: |
     pipelines:
       logs:
         receivers: [journald]
-

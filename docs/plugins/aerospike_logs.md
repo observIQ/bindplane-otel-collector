@@ -8,6 +8,7 @@ Log parser for Aerospike
 |:-- |:-- |:-- |:-- |:-- |:-- |
 | journald_directory | The absolute path to the general Aerospike logs | string |  | false |  |
 | start_at | At startup, where to start reading logs from the file (`beginning` or `end`) | string | `end` | false | `beginning`, `end` |
+| save_log_record_original | Enable to preserve the original log message in a `log.record.original` key. | bool | `false` | false |  |
 
 ## Example Config:
 
@@ -19,4 +20,5 @@ receivers:
     path: ./plugins/aerospike_logs.yaml
     parameters:
       start_at: end
+      save_log_record_original: false
 ```

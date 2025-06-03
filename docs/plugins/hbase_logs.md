@@ -14,6 +14,7 @@ Log parser for Apache HBase
 | zookeeper_log_path | The absolute path to the HBase zookeeper logs | []string | `[/usr/local/hbase*/logs/hbase*-zookeeper-*.log]` | false |  |
 | timezone | Timezone to use when parsing the timestamp | timezone | `UTC` | false |  |
 | start_at | At startup, where to start reading logs from the file (`beginning` or `end`) | string | `end` | false | `beginning`, `end` |
+| save_log_record_original | Enable to preserve the original log message in a `log.record.original` key. | bool | `false` | false |  |
 
 ## Example Config:
 
@@ -32,4 +33,5 @@ receivers:
       zookeeper_log_path: [/usr/local/hbase*/logs/hbase*-zookeeper-*.log]
       timezone: UTC
       start_at: end
+      save_log_record_original: false
 ```

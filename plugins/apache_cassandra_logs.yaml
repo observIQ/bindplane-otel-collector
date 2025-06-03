@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 title: Apache Cassandra
 description: Log parser for Apache Cassandra
 parameters:
@@ -9,8 +9,8 @@ parameters:
   - name: system_log_path
     description: Path to apache system logs
     type: "[]string"
-    default: 
-    - "/var/log/cassandra/system.log"
+    default:
+      - "/var/log/cassandra/system.log"
   - name: enable_debug_logs
     description: Enable to collect apache debug logs
     type: bool
@@ -19,7 +19,7 @@ parameters:
     description: Path to apache debug logs
     type: "[]string"
     default:
-    - "/var/log/cassandra/debug.log"
+      - "/var/log/cassandra/debug.log"
   - name: enable_gc_logs
     description: Enable to collect apache garbage collection logs
     type: bool
@@ -28,13 +28,13 @@ parameters:
     description: Path to apache garbage collection logs
     type: "[]string"
     default:
-    - "/var/log/cassandra/gc.log"
+      - "/var/log/cassandra/gc.log"
   - name: start_at
     description: At startup, where to start reading logs from the file (`beginning` or `end`)
     type: string
     valid_values:
-     - beginning
-     - end
+      - beginning
+      - end
     default: end
   # Cassandra timestamps do not include a timestamp, so we need to set
   # it explicitly.
@@ -42,6 +42,10 @@ parameters:
     description: Timezone to use when parsing the timestamp
     type: timezone
     default: UTC
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
 template: |
   receivers:
     {{ if .enable_system_logs }}
@@ -56,6 +60,12 @@ template: |
       attributes:
         log_type: 'cassandra.system'
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         - type: regex_parser
           regex: '(?P<severity>[A-Z]+)\s+\[(?P<type>[^\]]+)\]\s+(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+(?P<message>.*\S)'
           severity:
@@ -78,6 +88,12 @@ template: |
       attributes:
         log_type: 'cassandra.debug'
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         - type: regex_parser
           regex: '(?P<severity>[A-Z]+)\s+\[(?P<type>[^\]]+)\]\s+(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+(?P<message>.*\S)'
           severity:
@@ -100,6 +116,12 @@ template: |
       attributes:
         log_type: 'cassandra.gc'
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
       - type: regex_parser
         if: 'body matches "[0-9]{4}-[0-9]{2}-[0-9]{2}T"'
         regex: '(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}[+-]\d{4}):\s+.*stopped: (?P<total_stopped_seconds>[\d\.]+).* took: (?P<stopping_threads_seconds>[\d\.]+)'

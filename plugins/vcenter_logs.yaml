@@ -1,4 +1,4 @@
-version: 0.2.0
+version: 0.2.1
 title: VMware vCenter
 description: Log parser for VMware vCenter
 parameters:
@@ -38,6 +38,10 @@ parameters:
       - body
       - attributes
     default: body
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
 template: |
   receivers:
     tcplog:
@@ -52,6 +56,12 @@ template: |
         key_file: {{ .key_file }}
       {{ end }}
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy

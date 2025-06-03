@@ -26,6 +26,7 @@ ErrorLogFormat "{\"time\":\"%{cu}t\",\"module\":\"%-m\",\"client\":\"%-a\",\"htt
 | error_log_path | Path to error log file | []string | `[/var/log/apache2/error.log]` | false |  |
 | start_at | At startup, where to start reading logs from the file (`beginning` or `end`) | string | `end` | false | `beginning`, `end` |
 | timezone | Timezone to use when parsing the timestamp | timezone | `UTC` | false |  |
+| save_log_record_original | Enable to preserve the original log message in a `log.record.original` key. | bool | `false` | false |  |
 
 ## Example Config:
 
@@ -43,4 +44,5 @@ receivers:
       error_log_path: [/var/log/apache2/error.log]
       start_at: end
       timezone: UTC
+      save_log_record_original: false
 ```

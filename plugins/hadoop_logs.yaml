@@ -1,4 +1,4 @@
-version: 0.0.2
+version: 0.0.3
 title: Apache Hadoop
 description: Log parser for Apache Hadoop
 parameters:
@@ -36,6 +36,10 @@ parameters:
       - beginning
       - end
     default: end
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
 template: |
   receivers:
     filelog:
@@ -59,6 +63,12 @@ template: |
       multiline:
         line_start_pattern: '^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3} [A-Z]+'
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         # Set log_type attribute based on file name
         - type: router
           routes:

@@ -10,6 +10,7 @@ Log parser for Cisco Catalyst
 | listen_ip | A UDP ip address | string | `0.0.0.0` | false |  |
 | add_attributes | Adds net.transport, net.peer.ip, net.peer.port, net.host.ip and net.host.port labels. | bool | `true` | false |  |
 | timezone | Timezone to use when parsing the timestamp | timezone | `UTC` | false |  |
+| save_log_record_original | Enable to preserve the original log message in a `log.record.original` key. | bool | `false` | false |  |
 
 ## Example Config:
 
@@ -24,4 +25,5 @@ receivers:
       listen_ip: 0.0.0.0
       add_attributes: true
       timezone: UTC
+      save_log_record_original: false
 ```

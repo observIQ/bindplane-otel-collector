@@ -1,4 +1,4 @@
-version: 0.0.1
+version: 0.0.2
 title: CSV
 description: Log parser for CSV
 parameters:
@@ -36,6 +36,10 @@ parameters:
     description: Adds the specified 'Type' as a label to each log message
     type: string
     default: csv
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
 template: |
   receivers:
     filelog:
@@ -54,8 +58,14 @@ template: |
       attributes:
         log_type: '{{ .log_type }}'
       operators:
-      - type: csv_parser
-        header: {{ .header }}
+        - type: csv_parser
+          header: {{ .header }}
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
   service:
     pipelines:
       logs:

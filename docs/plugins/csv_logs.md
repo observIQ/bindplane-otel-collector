@@ -12,6 +12,7 @@ Log parser for CSV
 | header | Comma separated header string to be used as keys | string |  | true |  |
 | encoding | Specify the encoding of the file(s) being read. In most cases, you can leave the default option selected | string | `utf-8` | false | `nop`, `utf-8`, `utf-16le`, `utf-16be`, `ascii`, `big5` |
 | log_type | Adds the specified 'Type' as a label to each log message | string | `csv` | false |  |
+| save_log_record_original | Enable to preserve the original log message in a `log.record.original` key. | bool | `false` | false |  |
 
 ## Example Config:
 
@@ -28,4 +29,5 @@ receivers:
       header: $HEADER
       encoding: utf-8
       log_type: csv
+      save_log_record_original: false
 ```
