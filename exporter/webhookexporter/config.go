@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"go.opentelemetry.io/collector/config/configretry"
+	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
@@ -88,6 +89,9 @@ type SignalConfig struct {
 	// ContentType specifies the Content-Type header for the webhook requests
 	// This field is required
 	ContentType string `mapstructure:"content_type"`
+
+	// TLSSetting struct exposes TLS client configuration.
+	TLSSetting *configtls.ClientConfig `mapstructure:"tls"`
 }
 
 // Validate checks if the configuration is valid
@@ -107,6 +111,12 @@ func (c *SignalConfig) Validate() error {
 	}
 	if err := c.Verb.unmarshalText([]byte(c.Verb)); err != nil {
 		return fmt.Errorf("invalid verb: %w", err)
+	}
+
+	if c.TLSSetting != nil {
+		if err := c.TLSSetting.Validate(); err != nil {
+			return fmt.Errorf("invalid tls setting: %w", err)
+		}
 	}
 
 	return nil
