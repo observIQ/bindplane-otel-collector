@@ -34,9 +34,13 @@ func NewFactory() exporter.Factory {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		LogsConfig:    &SignalConfig{},
-		MetricsConfig: &SignalConfig{},
-		TracesConfig:  &SignalConfig{},
+		LogsConfig: &SignalConfig{
+			Endpoint:    Endpoint("https://localhost"),
+			Verb:        POST,
+			ContentType: "application/json",
+		},
+		MetricsConfig: nil,
+		TracesConfig:  nil,
 	}
 }
 

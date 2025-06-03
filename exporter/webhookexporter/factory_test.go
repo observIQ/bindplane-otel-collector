@@ -38,7 +38,11 @@ func TestCreateDefaultConfig(t *testing.T) {
 
 	webhookCfg, ok := cfg.(*Config)
 	require.True(t, ok)
-	assert.Nil(t, webhookCfg.LogsConfig)
+	assert.Equal(t, &SignalConfig{
+		Endpoint:    Endpoint("https://localhost"),
+		Verb:        POST,
+		ContentType: "application/json",
+	}, webhookCfg.LogsConfig)
 	assert.Nil(t, webhookCfg.MetricsConfig)
 	assert.Nil(t, webhookCfg.TracesConfig)
 }
@@ -82,9 +86,8 @@ func TestCreateLogsExporter(t *testing.T) {
 			name: "missing content type",
 			config: &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    Endpoint("https://example.com"),
-					Verb:        POST,
-					ContentType: "application/json",
+					Endpoint: Endpoint("https://example.com"),
+					Verb:     POST,
 				},
 			},
 			wantErr: true,
