@@ -43,7 +43,6 @@ type ThroughputMeasurements struct {
 	logSize, metricSize, traceSize      *int64Counter
 	logCount, datapointCount, spanCount *int64Counter
 	rawBytes                            *int64Counter
-	fullBytes                           *int64Counter
 	attributes                          attribute.Set
 	collectionSequenceNumber            atomic.Int64
 }
@@ -107,15 +106,6 @@ func NewThroughputMeasurements(mp metric.MeterProvider, processorID string, extr
 	}
 
 	rawBytes, err := meter.Int64Counter(
-		"bp.ingest.raw_bytes",
-		metric.WithDescription("Raw bytes ingested per log record"),
-		metric.WithUnit("By"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("create raw_bytes gauge: %w", err)
-	}
-
-	fullBytes, err := meter.Int64Counter(
 		"bp.ingest.full_bytes",
 		metric.WithDescription("Full bytes ingested per log record"),
 		metric.WithUnit("By"),
@@ -134,7 +124,6 @@ func NewThroughputMeasurements(mp metric.MeterProvider, processorID string, extr
 		traceSize:                newInt64Counter(traceSize, attrs),
 		spanCount:                newInt64Counter(spanCount, attrs),
 		rawBytes:                 newInt64Counter(rawBytes, attrs),
-		fullBytes:                newInt64Counter(fullBytes, attrs),
 		attributes:               attrs,
 		collectionSequenceNumber: atomic.Int64{},
 	}, nil
@@ -147,7 +136,7 @@ func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs) {
 	// Calculate total size using full log size
 	sizer := plog.ProtoMarshaler{}
 	totalSize := int64(sizer.LogsSize(l))
-	fullBytes := int64(0)
+	rawBytes := int64(0)
 
 	resourceLogs := l.ResourceLogs()
 	for i := 0; i < resourceLogs.Len(); i++ {
@@ -161,19 +150,15 @@ func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs) {
 
 				// Record raw bytes if log.record.original is present
 				if original, ok := logRecord.Attributes().Get("log.record.original"); ok {
-					rawBytes := int64(len(original.Str()))
-					tm.rawBytes.Add(ctx, rawBytes)
+					logRecordRawBytes := int64(len(original.Str()))
 
-					fullBytes += rawBytes
-
-					// Remove the attribute after measurement
-					logRecord.Attributes().Remove("log.record.original")
+					rawBytes += logRecordRawBytes
 				}
 			}
 		}
 	}
-	// Full bytes is the sum of all raw bytes
-	tm.fullBytes.Add(ctx, fullBytes)
+	// Raw bytes is the sum of all raw bytes
+	tm.rawBytes.Add(ctx, rawBytes)
 
 	tm.logSize.Add(ctx, totalSize)
 	tm.logCount.Add(ctx, int64(l.LogRecordCount()))
