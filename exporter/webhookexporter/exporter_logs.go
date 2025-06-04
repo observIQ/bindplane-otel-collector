@@ -17,7 +17,6 @@ package webhookexporter
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -73,14 +72,65 @@ func (le *logsExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error 
 
 	le.logger.Debug("begin webhook logsDataPusher")
 
-	logs := make([]map[string]any, 0, ld.ResourceLogs().Len())
-
-	for _, resourceLog := range ld.ResourceLogs().All() {
-		logs = append(logs, map[string]any{
-			"resourceLog": resourceLog,
-		})
+	limit := le.cfg.LogsConfig.Limit
+	if limit <= 0 {
+		// If no limit is set, send all logs in one request
+		return le.sendLogs(ctx, ld)
 	}
-	body, err := json.Marshal(logs)
+
+	// Create a new logs object for the current batch
+	currentBatch := plog.NewLogs()
+	batches := []plog.Logs{currentBatch}
+	currentBatchSize := 0
+
+	// Process each resource log
+	for i := 0; i < ld.ResourceLogs().Len(); i++ {
+		resourceLog := ld.ResourceLogs().At(i)
+		newResourceLog := currentBatch.ResourceLogs().AppendEmpty()
+		resourceLog.Resource().CopyTo(newResourceLog.Resource())
+
+		// Process each scope log
+		for j := 0; j < resourceLog.ScopeLogs().Len(); j++ {
+			scopeLog := resourceLog.ScopeLogs().At(j)
+			newScopeLog := newResourceLog.ScopeLogs().AppendEmpty()
+			scopeLog.Scope().CopyTo(newScopeLog.Scope())
+
+			// Process each log record
+			for k := 0; k < scopeLog.LogRecords().Len(); k++ {
+				// If we've reached the limit, create a new batch
+				if currentBatchSize >= limit {
+					currentBatch = plog.NewLogs()
+					batches = append(batches, currentBatch)
+					newResourceLog = currentBatch.ResourceLogs().AppendEmpty()
+					resourceLog.Resource().CopyTo(newResourceLog.Resource())
+					newScopeLog = newResourceLog.ScopeLogs().AppendEmpty()
+					scopeLog.Scope().CopyTo(newScopeLog.Scope())
+					currentBatchSize = 0
+				}
+
+				logRecord := scopeLog.LogRecords().At(k)
+				newLogRecord := newScopeLog.LogRecords().AppendEmpty()
+				logRecord.CopyTo(newLogRecord)
+				currentBatchSize++
+			}
+		}
+	}
+
+	le.logger.Debug("created log batches", zap.Int("num_batches", len(batches)), zap.Int("batch_size", limit))
+
+	// Send each batch
+	for i, batch := range batches {
+		if err := le.sendLogs(ctx, batch); err != nil {
+			return fmt.Errorf("failed to send batch %d: %w", i+1, err)
+		}
+		le.logger.Debug("sent log batch", zap.Int("batch_number", i+1), zap.Int("total_batches", len(batches)))
+	}
+
+	return nil
+}
+
+func (le *logsExporter) sendLogs(ctx context.Context, logs plog.Logs) error {
+	body, err := (&plog.JSONMarshaler{}).MarshalLogs(logs)
 	if err != nil {
 		return fmt.Errorf("failed to marshal logs: %w", err)
 	}
