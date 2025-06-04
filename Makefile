@@ -27,6 +27,10 @@ CURRENT_TAG := $(shell git tag --sort=v:refname --points-at HEAD | grep -E "v[0-
 # Version will be the tag pointing to the current commit, or the previous version tag if there is no such tag
 VERSION ?= $(if $(CURRENT_TAG),$(CURRENT_TAG),$(PREVIOUS_TAG)-SNAPSHOT-$(SNAPSHOT))
 
+.PHONY: version
+version:
+	@printf $(VERSION)
+
 # Build binaries for current GOOS/GOARCH by default
 .DEFAULT_GOAL := build-binaries
 

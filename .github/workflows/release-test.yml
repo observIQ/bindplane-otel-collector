@@ -1,0 +1,47 @@
+name: release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Collector Version"
+        required: true
+        default: "v0.0.1"
+
+jobs:
+  release-test:
+    runs-on: ubuntu-latest-16-cores
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: "**/go.sum"
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        
+      - name: Fake Windows MSI
+        run: touch ./observiq-otel-collector.msi/observiq-otel-collector.msi
+
+      - name: Set VERSION
+        run: echo "VERSION=$(make version)" >> $GITHUB_ENV
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser-pro
+          version: "v2.1.0"
+          args: release --skip=publish --skip=validate --skip=sign --clean --snapshot
+        env:
+          GORELEASER_CURRENT_TAG: $(VERSION)
+          GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
