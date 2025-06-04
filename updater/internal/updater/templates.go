@@ -10,7 +10,7 @@ StartLimitBurst=5
 [Service]
 Type=simple
 User=root
-Group=observiq-otel-collector
+Group=bdot
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
 Environment=OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
