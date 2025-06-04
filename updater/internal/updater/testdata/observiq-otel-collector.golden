@@ -1,46 +1,4 @@
-// Copyright observIQ, Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// Package updater provides templates for service files.
-package updater
-
-// Constants for service file templates
-const systemdServiceTemplate = `[Unit]
-Description=observIQ's distribution of the OpenTelemetry collector
-After=network.target
-StartLimitIntervalSec=120
-StartLimitBurst=5
-[Service]
-Type=simple
-User=root
-Group={{.Group}}
-Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
-Environment=OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
-Environment=OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
-WorkingDirectory=/opt/observiq-otel-collector
-ExecStart=/opt/observiq-otel-collector/observiq-otel-collector --config config.yaml
-LimitNOFILE=65000
-SuccessExitStatus=0
-TimeoutSec=20
-StandardOutput=journal
-Restart=on-failure
-RestartSec=5s
-KillMode=process
-[Install]
-WantedBy=multi-user.target`
-
-const initScriptTemplate = `#!/bin/sh
+#!/bin/sh
 # observIQ OTEL daemon
 # chkconfig: 2345 99 05
 # description: observIQ's distribution of the OpenTelemetry collector
@@ -293,4 +251,4 @@ if [ "$RCSTATUS" ]; then
   rc_exit
 fi
 
-exit "$RETVAL"`
+exit "$RETVAL" 
