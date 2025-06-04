@@ -92,6 +92,9 @@ type SignalConfig struct {
 
 	// TLSSetting struct exposes TLS client configuration.
 	TLSSetting *configtls.ClientConfig `mapstructure:"tls"`
+
+	// Limit specifies the maximum number of signals to send in a single request
+	Limit int `mapstructure:"limit"`
 }
 
 // Validate checks if the configuration is valid
