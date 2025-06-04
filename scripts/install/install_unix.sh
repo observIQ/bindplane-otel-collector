@@ -27,7 +27,7 @@ elif command -v service > /dev/null 2>&1; then
 fi
 
 # Script Constants
-COLLECTOR_USER="observiq-otel-collector"
+COLLECTOR_USER="bdot"
 TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env var
 MANAGEMENT_YML_PATH="/opt/observiq-otel-collector/manager.yaml"
 PREREQS="curl printf $SVC_PRE sed uname cut"
