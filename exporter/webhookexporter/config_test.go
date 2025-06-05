@@ -232,6 +232,42 @@ func TestConfig_Validate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "valid config with limit",
+			config: Config{
+				LogsConfig: &SignalConfig{
+					Endpoint:    "https://example.com",
+					Verb:        POST,
+					ContentType: "application/json",
+					Limit:       20,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid config with zero limit",
+			config: Config{
+				LogsConfig: &SignalConfig{
+					Endpoint:    "https://example.com",
+					Verb:        POST,
+					ContentType: "application/json",
+					Limit:       0,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid config with negative limit",
+			config: Config{
+				LogsConfig: &SignalConfig{
+					Endpoint:    "https://example.com",
+					Verb:        POST,
+					ContentType: "application/json",
+					Limit:       -1,
+				},
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
