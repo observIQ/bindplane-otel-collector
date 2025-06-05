@@ -17,8 +17,10 @@ package webhookexporter
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -75,45 +77,24 @@ func (le *logsExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error 
 	limit := le.cfg.LogsConfig.Limit
 	if limit <= 0 {
 		// If no limit is set, send all logs in one request
-		return le.sendLogs(ctx, ld)
+		return le.sendLogs(ctx, extractLogBodies(ld))
 	}
 
 	// Create a new logs object for the current batch
-	currentBatch := plog.NewLogs()
-	batches := []plog.Logs{currentBatch}
+	logs := extractLogBodies(ld)
+
+	batches := make([][]string, 0)
+	currentBatch := make([]string, 0)
 	currentBatchSize := 0
-
-	// Process each resource log
-	for i := 0; i < ld.ResourceLogs().Len(); i++ {
-		resourceLog := ld.ResourceLogs().At(i)
-		newResourceLog := currentBatch.ResourceLogs().AppendEmpty()
-		resourceLog.Resource().CopyTo(newResourceLog.Resource())
-
-		// Process each scope log
-		for j := 0; j < resourceLog.ScopeLogs().Len(); j++ {
-			scopeLog := resourceLog.ScopeLogs().At(j)
-			newScopeLog := newResourceLog.ScopeLogs().AppendEmpty()
-			scopeLog.Scope().CopyTo(newScopeLog.Scope())
-
-			// Process each log record
-			for k := 0; k < scopeLog.LogRecords().Len(); k++ {
-				// If we've reached the limit, create a new batch
-				if currentBatchSize >= limit {
-					currentBatch = plog.NewLogs()
-					batches = append(batches, currentBatch)
-					newResourceLog = currentBatch.ResourceLogs().AppendEmpty()
-					resourceLog.Resource().CopyTo(newResourceLog.Resource())
-					newScopeLog = newResourceLog.ScopeLogs().AppendEmpty()
-					scopeLog.Scope().CopyTo(newScopeLog.Scope())
-					currentBatchSize = 0
-				}
-
-				logRecord := scopeLog.LogRecords().At(k)
-				newLogRecord := newScopeLog.LogRecords().AppendEmpty()
-				logRecord.CopyTo(newLogRecord)
-				currentBatchSize++
-			}
+	// split logs into batches
+	for _, log := range logs {
+		if currentBatchSize >= limit {
+			batches = append(batches, currentBatch)
+			currentBatch = make([]string, 0)
+			currentBatchSize = 0
 		}
+		currentBatch = append(currentBatch, log)
+		currentBatchSize++
 	}
 
 	le.logger.Debug("created log batches", zap.Int("num_batches", len(batches)), zap.Int("batch_size", limit))
@@ -129,10 +110,48 @@ func (le *logsExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error 
 	return nil
 }
 
-func (le *logsExporter) sendLogs(ctx context.Context, logs plog.Logs) error {
-	body, err := (&plog.JSONMarshaler{}).MarshalLogs(logs)
-	if err != nil {
-		return fmt.Errorf("failed to marshal logs: %w", err)
+func extractLogBodies(ld plog.Logs) []string {
+	return extractLogsFromResourceLogs(ld.ResourceLogs())
+}
+
+func extractLogsFromResourceLogs(resourceLogs plog.ResourceLogsSlice) []string {
+	logs := make([]string, 0)
+	for i := 0; i < resourceLogs.Len(); i++ {
+		logs = append(logs, extractLogsFromScopeLogs(resourceLogs.At(i).ScopeLogs())...)
+	}
+	return logs
+}
+
+func extractLogsFromScopeLogs(scopeLogs plog.ScopeLogsSlice) []string {
+	logs := make([]string, 0)
+	for i := 0; i < scopeLogs.Len(); i++ {
+		logs = append(logs, extractLogsFromLogRecords(scopeLogs.At(i).LogRecords())...)
+	}
+	return logs
+}
+
+func extractLogsFromLogRecords(logRecords plog.LogRecordSlice) []string {
+	logs := make([]string, 0, logRecords.Len())
+	for i := 0; i < logRecords.Len(); i++ {
+		logs = append(logs, logRecords.At(i).Body().AsString())
+	}
+	return logs
+}
+
+func (le *logsExporter) sendLogs(ctx context.Context, logs []string) error {
+	var body []byte
+	var err error
+
+	switch le.cfg.LogsConfig.OutputFormat {
+	case NDJSONFormat:
+		body = []byte(strings.Join(logs, "\n"))
+	case JSONArrayFormat, "": // Default to JSON array if not specified
+		body, err = json.Marshal(logs)
+		if err != nil {
+			return fmt.Errorf("failed to marshal logs to JSON array: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported output format: %s", le.cfg.LogsConfig.OutputFormat)
 	}
 
 	request, err := http.NewRequestWithContext(ctx, string(le.cfg.LogsConfig.Verb), string(le.cfg.LogsConfig.Endpoint), bytes.NewBuffer(body))
