@@ -61,16 +61,6 @@ func (v *HTTPVerb) unmarshalText(text []byte) error {
 	}
 }
 
-// OutputFormat specifies the format of the webhook request body
-type OutputFormat string
-
-const (
-	// NDJSONFormat sends logs as newline-delimited JSON
-	NDJSONFormat OutputFormat = "ndjson"
-	// JSONArrayFormat sends logs as a JSON array
-	JSONArrayFormat OutputFormat = "json_array"
-)
-
 // Config defines the configuration for the webhookexporter
 type Config struct {
 	LogsConfig *SignalConfig `mapstructure:"logs,omitempty"`
@@ -106,11 +96,6 @@ type SignalConfig struct {
 
 	// TLSSetting struct exposes TLS client configuration.
 	TLSSetting *configtls.ClientConfig `mapstructure:"tls"`
-
-	// OutputFormat specifies the format of the webhook request body
-	// Must be one of: ndjson, json_array
-	// Defaults to json_array if not specified
-	OutputFormat OutputFormat `mapstructure:"output_format,omitempty" default:"json_array"`
 }
 
 // Validate checks if the configuration is valid
@@ -136,10 +121,6 @@ func (c *SignalConfig) Validate() error {
 		if err := c.TLSSetting.Validate(); err != nil {
 			return fmt.Errorf("invalid tls setting: %w", err)
 		}
-	}
-
-	if c.OutputFormat != "" && c.OutputFormat != NDJSONFormat && c.OutputFormat != JSONArrayFormat {
-		return fmt.Errorf("output_format must be one of: %s, %s", NDJSONFormat, JSONArrayFormat)
 	}
 
 	return nil

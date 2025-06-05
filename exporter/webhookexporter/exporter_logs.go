@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -87,14 +86,14 @@ func (le *logsExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error 
 	// Create a new logs object for the current batch
 	logs := extractLogBodies(ld)
 
-	batches := make([][]string, 0)
-	currentBatch := make([]string, 0)
+	batches := make([][]any, 0)
+	currentBatch := make([]any, 0)
 	currentBatchSize := 0
 	// split logs into batches
 	for _, log := range logs {
 		if currentBatchSize >= limit {
 			batches = append(batches, currentBatch)
-			currentBatch = make([]string, 0)
+			currentBatch = make([]any, 0)
 			currentBatchSize = 0
 		}
 		currentBatch = append(currentBatch, log)
@@ -118,48 +117,45 @@ func (le *logsExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error 
 	return nil
 }
 
-func extractLogBodies(ld plog.Logs) []string {
+func extractLogBodies(ld plog.Logs) []any {
 	return extractLogsFromResourceLogs(ld.ResourceLogs())
 }
 
-func extractLogsFromResourceLogs(resourceLogs plog.ResourceLogsSlice) []string {
-	logs := make([]string, 0)
+func extractLogsFromResourceLogs(resourceLogs plog.ResourceLogsSlice) []any {
+	logs := make([]any, 0)
 	for i := 0; i < resourceLogs.Len(); i++ {
 		logs = append(logs, extractLogsFromScopeLogs(resourceLogs.At(i).ScopeLogs())...)
 	}
 	return logs
 }
 
-func extractLogsFromScopeLogs(scopeLogs plog.ScopeLogsSlice) []string {
-	logs := make([]string, 0)
+func extractLogsFromScopeLogs(scopeLogs plog.ScopeLogsSlice) []any {
+	logs := make([]any, 0)
 	for i := 0; i < scopeLogs.Len(); i++ {
 		logs = append(logs, extractLogsFromLogRecords(scopeLogs.At(i).LogRecords())...)
 	}
 	return logs
 }
 
-func extractLogsFromLogRecords(logRecords plog.LogRecordSlice) []string {
-	logs := make([]string, 0, logRecords.Len())
+func extractLogsFromLogRecords(logRecords plog.LogRecordSlice) []any {
+	logs := make([]any, 0, logRecords.Len())
 	for i := 0; i < logRecords.Len(); i++ {
-		logs = append(logs, logRecords.At(i).Body().AsString())
+		logStr := logRecords.At(i).Body().AsString()
+		var parsedLog any
+		if err := json.Unmarshal([]byte(logStr), &parsedLog); err != nil {
+			// If the log isn't valid JSON, keep it as a string
+			logs = append(logs, logStr)
+			continue
+		}
+		logs = append(logs, parsedLog)
 	}
 	return logs
 }
 
-func (le *logsExporter) sendLogs(ctx context.Context, logs []string) error {
-	var body []byte
-	var err error
-
-	switch le.cfg.LogsConfig.OutputFormat {
-	case NDJSONFormat:
-		body = []byte(strings.Join(logs, "\n"))
-	case JSONArrayFormat, "": // Default to JSON array if not specified
-		body, err = json.Marshal(logs)
-		if err != nil {
-			return fmt.Errorf("failed to marshal logs to JSON array: %w", err)
-		}
-	default:
-		return fmt.Errorf("unsupported output format: %s", le.cfg.LogsConfig.OutputFormat)
+func (le *logsExporter) sendLogs(ctx context.Context, logs []any) error {
+	body, err := json.Marshal(logs)
+	if err != nil {
+		return fmt.Errorf("failed to marshal logs: %w", err)
 	}
 
 	request, err := http.NewRequestWithContext(ctx, string(le.cfg.LogsConfig.Verb), string(le.cfg.LogsConfig.Endpoint), bytes.NewBuffer(body))
