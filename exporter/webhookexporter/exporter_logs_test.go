@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
+	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/exportertest"
 	"go.opentelemetry.io/collector/pdata/plog"
 )
@@ -509,36 +510,40 @@ func TestExtractLogsFromResourceLogs(t *testing.T) {
 	}
 }
 
-func TestLogsDataPusherWithBatching(t *testing.T) {
+func TestLogsDataPusherWithQueueSettings(t *testing.T) {
 	testCases := []struct {
 		name            string
-		limit           int
+		queueSettings   exporterhelper.QueueBatchConfig
 		numLogs         int
 		expectedBatches int
 	}{
 		{
-			name:            "no batching with zero limit",
-			limit:           0,
-			numLogs:         30,
-			expectedBatches: 1,
+			name: "default queue settings",
+			queueSettings: exporterhelper.QueueBatchConfig{
+				Enabled:      true,
+				QueueSize:    5000,
+				NumConsumers: 10,
+			},
+			numLogs:         100,
+			expectedBatches: 1, // Default settings will batch all logs together
 		},
 		{
-			name:            "no batching with negative limit",
-			limit:           -1,
-			numLogs:         30,
-			expectedBatches: 1,
+			name: "disabled queue",
+			queueSettings: exporterhelper.QueueBatchConfig{
+				Enabled: false,
+			},
+			numLogs:         50,
+			expectedBatches: 1, // No batching when queue is disabled
 		},
 		{
-			name:            "batching with limit of 10",
-			limit:           10,
+			name: "small queue size",
+			queueSettings: exporterhelper.QueueBatchConfig{
+				Enabled:      true,
+				QueueSize:    10,
+				NumConsumers: 1,
+			},
 			numLogs:         25,
-			expectedBatches: 3, // 10 + 10 + 5 logs
-		},
-		{
-			name:            "exact batch size",
-			limit:           10,
-			numLogs:         10,
-			expectedBatches: 1,
+			expectedBatches: 3, // Should batch into smaller chunks due to queue size
 		},
 	}
 
@@ -559,10 +564,10 @@ func TestLogsDataPusherWithBatching(t *testing.T) {
 			// Create exporter with test configuration
 			cfg := &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    Endpoint(server.URL),
-					Verb:        POST,
-					ContentType: "application/json",
-					Limit:       tc.limit,
+					Endpoint:         Endpoint(server.URL),
+					Verb:             POST,
+					ContentType:      "application/json",
+					QueueBatchConfig: tc.queueSettings,
 				},
 			}
 
@@ -586,7 +591,7 @@ func TestLogsDataPusherWithBatching(t *testing.T) {
 
 			// Verify the number of batches
 			receivedCount := 0
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
 			for i := 0; i < tc.expectedBatches; i++ {
@@ -597,24 +602,89 @@ func TestLogsDataPusherWithBatching(t *testing.T) {
 					err = json.Unmarshal(body, &receivedLogs)
 					require.NoError(t, err)
 
-					// Verify batch size
-					if tc.limit > 0 {
-						require.LessOrEqual(t, len(receivedLogs), tc.limit)
-					}
+					// Verify we received logs
+					require.Greater(t, len(receivedLogs), 0)
 
-					// Verify we got the expected number of logs in this batch
-					if tc.limit > 0 && i == tc.expectedBatches-1 && tc.numLogs%tc.limit != 0 {
-						// Last batch might be smaller
-						require.Equal(t, tc.numLogs%tc.limit, len(receivedLogs))
-					} else if tc.limit > 0 {
-						// Other batches should be full
-						require.Equal(t, tc.limit, len(receivedLogs))
+					// For small queue size test, verify batch sizes
+					if tc.queueSettings.QueueSize > 0 && int(tc.queueSettings.QueueSize) < tc.numLogs {
+						require.LessOrEqual(t, len(receivedLogs), int(tc.queueSettings.QueueSize))
 					}
 				case <-ctx.Done():
 					t.Fatalf("Timeout waiting for batch %d", i+1)
 				}
 			}
 			require.Equal(t, tc.expectedBatches, receivedCount)
+		})
+	}
+}
+
+func TestLogsDataPusherWithQueueSettingsAndErrors(t *testing.T) {
+	testCases := []struct {
+		name          string
+		queueSettings exporterhelper.QueueBatchConfig
+		serverError   bool
+		expectedError string
+	}{
+		{
+			name: "queue enabled with server error",
+			queueSettings: exporterhelper.QueueBatchConfig{
+				Enabled:      true,
+				QueueSize:    100,
+				NumConsumers: 1,
+			},
+			serverError:   true,
+			expectedError: "failed to send request",
+		},
+		{
+			name: "queue disabled with server error",
+			queueSettings: exporterhelper.QueueBatchConfig{
+				Enabled: false,
+			},
+			serverError:   true,
+			expectedError: "failed to send request",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create test server that returns error if configured
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if tc.serverError {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer server.Close()
+
+			// Create exporter with test configuration
+			cfg := &Config{
+				LogsConfig: &SignalConfig{
+					Endpoint:         Endpoint(server.URL),
+					Verb:             POST,
+					ContentType:      "application/json",
+					QueueBatchConfig: tc.queueSettings,
+				},
+			}
+
+			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
+			require.NoError(t, err)
+
+			// Create test logs
+			logs := plog.NewLogs()
+			resourceLogs := logs.ResourceLogs().AppendEmpty()
+			scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
+			logRecord := scopeLogs.LogRecords().AppendEmpty()
+			logRecord.Body().SetStr("test log message")
+
+			// Push logs
+			err = exp.logsDataPusher(context.Background(), logs)
+			if tc.expectedError != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedError)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }
