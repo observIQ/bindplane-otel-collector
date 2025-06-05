@@ -17,10 +17,12 @@ package webhookexporter
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
@@ -192,4 +194,126 @@ func TestLogsDataPusherIntegration(t *testing.T) {
 	// Verify the content
 	require.Len(t, receivedLogs, 1)
 	require.Contains(t, receivedLogs[0], "resourceLog")
+}
+
+func TestLogsDataPusherWithBatching(t *testing.T) {
+	testCases := []struct {
+		name            string
+		limit           int
+		numLogs         int
+		expectedBatches int
+	}{
+		{
+			name:            "no batching with zero limit",
+			limit:           0,
+			numLogs:         30,
+			expectedBatches: 1,
+		},
+		{
+			name:            "no batching with negative limit",
+			limit:           -1,
+			numLogs:         30,
+			expectedBatches: 1,
+		},
+		{
+			name:            "batching with limit of 10",
+			limit:           10,
+			numLogs:         25,
+			expectedBatches: 3,
+		},
+		{
+			name:            "exact batch size",
+			limit:           10,
+			numLogs:         10,
+			expectedBatches: 1,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a channel to receive request bodies
+			receivedBodies := make(chan []byte, tc.expectedBatches)
+
+			// Create test server that captures request bodies
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				body, err := io.ReadAll(r.Body)
+				require.NoError(t, err)
+				receivedBodies <- body
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer server.Close()
+
+			// Create exporter with test configuration
+			cfg := &Config{
+				LogsConfig: &SignalConfig{
+					Endpoint:    Endpoint(server.URL),
+					Verb:        POST,
+					ContentType: "application/json",
+					Limit:       tc.limit,
+				},
+			}
+
+			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
+			require.NoError(t, err)
+
+			// Create test logs
+			logs := plog.NewLogs()
+			resourceLogs := logs.ResourceLogs().AppendEmpty()
+			scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
+
+			// Add the specified number of log records
+			for i := 0; i < tc.numLogs; i++ {
+				logRecord := scopeLogs.LogRecords().AppendEmpty()
+				logRecord.Body().SetStr(fmt.Sprintf("test log message %d", i))
+			}
+
+			// Push logs
+			err = exp.logsDataPusher(context.Background(), logs)
+			require.NoError(t, err)
+
+			// Verify the number of batches
+			receivedCount := 0
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			for i := 0; i < tc.expectedBatches; i++ {
+				select {
+				case body := <-receivedBodies:
+					receivedCount++
+					var receivedLogs map[string]interface{}
+					err = json.Unmarshal(body, &receivedLogs)
+					require.NoError(t, err)
+
+					// Verify the structure contains resourceLogs
+					require.Contains(t, receivedLogs, "resourceLogs")
+					resourceLogs, ok := receivedLogs["resourceLogs"].([]interface{})
+					require.True(t, ok)
+
+					// Count the number of log records in this batch
+					var logCount int
+					for _, rl := range resourceLogs {
+						rlMap, ok := rl.(map[string]interface{})
+						require.True(t, ok)
+						scopeLogs, ok := rlMap["scopeLogs"].([]interface{})
+						require.True(t, ok)
+						for _, sl := range scopeLogs {
+							slMap, ok := sl.(map[string]interface{})
+							require.True(t, ok)
+							logRecords, ok := slMap["logRecords"].([]interface{})
+							require.True(t, ok)
+							logCount += len(logRecords)
+						}
+					}
+
+					// Verify batch size
+					if tc.limit > 0 {
+						require.LessOrEqual(t, logCount, tc.limit)
+					}
+				case <-ctx.Done():
+					t.Fatalf("Timeout waiting for batch %d", i+1)
+				}
+			}
+			require.Equal(t, tc.expectedBatches, receivedCount)
+		})
+	}
 }
