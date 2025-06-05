@@ -33,21 +33,48 @@ import (
 )
 
 func TestNewLogsExporter(t *testing.T) {
-	cfg := &Config{
-		LogsConfig: &SignalConfig{
-			Endpoint:    Endpoint("http://localhost:8080"),
-			Verb:        POST,
-			Headers:     map[string]string{"X-Test": "test-value"},
-			ContentType: "application/json",
+	testCases := []struct {
+		name        string
+		cfg         *Config
+		expectError bool
+	}{
+		{
+			name: "valid config",
+			cfg: &Config{
+				LogsConfig: &SignalConfig{
+					Endpoint:    Endpoint("http://localhost:8080"),
+					Verb:        POST,
+					Headers:     map[string]string{"X-Test": "test-value"},
+					ContentType: "application/json",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "nil logs config",
+			cfg: &Config{
+				LogsConfig: nil,
+			},
+			expectError: true,
 		},
 	}
 
-	exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
-	require.NoError(t, err)
-	require.NotNil(t, exp)
-	require.Equal(t, cfg, exp.cfg)
-	require.NotNil(t, exp.logger)
-	require.NotNil(t, exp.client)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			exp, err := newLogsExporter(context.Background(), tc.cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
+			if tc.expectError {
+				require.Error(t, err)
+				require.Nil(t, exp)
+				require.Contains(t, err.Error(), "logs config is required")
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, exp)
+				require.Equal(t, tc.cfg, exp.cfg)
+				require.NotNil(t, exp.logger)
+				require.NotNil(t, exp.client)
+			}
+		})
+	}
 }
 
 func TestLogsExporterCapabilities(t *testing.T) {
