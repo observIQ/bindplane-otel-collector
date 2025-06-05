@@ -181,23 +181,11 @@ func TestLogsDataPusher(t *testing.T) {
 func TestLogsDataPusherIntegration(t *testing.T) {
 	testCases := []struct {
 		name           string
-		outputFormat   OutputFormat
 		expectedFormat string
 	}{
 		{
 			name:           "default json array format",
-			outputFormat:   "", // empty to test default
 			expectedFormat: "json_array",
-		},
-		{
-			name:           "explicit json array format",
-			outputFormat:   JSONArrayFormat,
-			expectedFormat: "json_array",
-		},
-		{
-			name:           "ndjson format",
-			outputFormat:   NDJSONFormat,
-			expectedFormat: "ndjson",
 		},
 	}
 
@@ -218,11 +206,10 @@ func TestLogsDataPusherIntegration(t *testing.T) {
 			// Create exporter
 			cfg := &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:     Endpoint(server.URL),
-					Verb:         POST,
-					Headers:      map[string]string{"X-Test": "test-value"},
-					ContentType:  "application/json",
-					OutputFormat: tc.outputFormat,
+					Endpoint:    Endpoint(server.URL),
+					Verb:        POST,
+					Headers:     map[string]string{"X-Test": "test-value"},
+					ContentType: "application/json",
 				},
 			}
 
@@ -246,66 +233,26 @@ func TestLogsDataPusherIntegration(t *testing.T) {
 			received := <-receivedBody
 
 			// Verify the format
-			switch tc.expectedFormat {
-			case "json_array":
-				var jsonArray []string
-				err = json.Unmarshal(received, &jsonArray)
-				require.NoError(t, err)
-				require.Len(t, jsonArray, 2)
-				require.Equal(t, "test log message", jsonArray[0])
-				require.Equal(t, "test log message 2", jsonArray[1])
-			case "ndjson":
-				// NDJSON should be newline-delimited, with trailing newline removed
-				require.Equal(t, "test log message\ntest log message 2", string(received))
-			}
+			var jsonArray []string
+			err = json.Unmarshal(received, &jsonArray)
+			require.NoError(t, err)
+			require.Len(t, jsonArray, 2)
+			require.Equal(t, "test log message", jsonArray[0])
+			require.Equal(t, "test log message 2", jsonArray[1])
 		})
 	}
-}
-
-func TestLogsDataPusherWithInvalidFormat(t *testing.T) {
-	// Create test server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	// Create exporter with invalid format
-	cfg := &Config{
-		LogsConfig: &SignalConfig{
-			Endpoint:     Endpoint(server.URL),
-			Verb:         POST,
-			Headers:      map[string]string{"X-Test": "test-value"},
-			ContentType:  "application/json",
-			OutputFormat: "invalid_format",
-		},
-	}
-
-	exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
-	require.NoError(t, err)
-
-	// Create test logs
-	logs := plog.NewLogs()
-	resourceLogs := logs.ResourceLogs().AppendEmpty()
-	scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
-	logRecord := scopeLogs.LogRecords().AppendEmpty()
-	logRecord.Body().SetStr("test log message")
-
-	// Push logs should fail with invalid format
-	err = exp.logsDataPusher(context.Background(), logs)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "unsupported output format")
 }
 
 func TestExtractLogBodies(t *testing.T) {
 	tests := []struct {
 		name     string
 		logs     plog.Logs
-		expected []string
+		expected []any
 	}{
 		{
 			name:     "empty logs",
 			logs:     plog.NewLogs(),
-			expected: []string{},
+			expected: []any{},
 		},
 		{
 			name: "single log",
@@ -317,7 +264,7 @@ func TestExtractLogBodies(t *testing.T) {
 				lr.Body().SetStr("test log")
 				return logs
 			}(),
-			expected: []string{"test log"},
+			expected: []any{"test log"},
 		},
 		{
 			name: "multiple logs with different bodies",
@@ -336,7 +283,7 @@ func TestExtractLogBodies(t *testing.T) {
 
 				return logs
 			}(),
-			expected: []string{"first log", "second log"},
+			expected: []any{"first log", "second log"},
 		},
 		{
 			name: "nested structure with multiple resource and scope logs",
@@ -357,7 +304,7 @@ func TestExtractLogBodies(t *testing.T) {
 
 				return logs
 			}(),
-			expected: []string{"resource1 log", "resource2 log"},
+			expected: []any{"resource1 log", "resource2 log"},
 		},
 		{
 			name: "log with map body",
@@ -374,7 +321,25 @@ func TestExtractLogBodies(t *testing.T) {
 
 				return logs
 			}(),
-			expected: []string{`{"key1":"value1","key2":42}`},
+			expected: []any{map[string]any{
+				"key1": "value1",
+				"key2": float64(42), // JSON numbers are unmarshaled as float64
+			}},
+		},
+		{
+			name: "log with JSON string",
+			logs: func() plog.Logs {
+				logs := plog.NewLogs()
+				rl := logs.ResourceLogs().AppendEmpty()
+				sl := rl.ScopeLogs().AppendEmpty()
+				lr := sl.LogRecords().AppendEmpty()
+				lr.Body().SetStr(`{"message": "test", "value": 42}`)
+				return logs
+			}(),
+			expected: []any{map[string]any{
+				"message": "test",
+				"value":   float64(42),
+			}},
 		},
 	}
 
@@ -390,12 +355,12 @@ func TestExtractLogsFromLogRecords(t *testing.T) {
 	tests := []struct {
 		name     string
 		records  plog.LogRecordSlice
-		expected []string
+		expected []any
 	}{
 		{
 			name:     "empty records",
 			records:  plog.NewLogRecordSlice(),
-			expected: []string{},
+			expected: []any{},
 		},
 		{
 			name: "single record",
@@ -405,7 +370,7 @@ func TestExtractLogsFromLogRecords(t *testing.T) {
 				lr.Body().SetStr("test log")
 				return slice
 			}(),
-			expected: []string{"test log"},
+			expected: []any{"test log"},
 		},
 		{
 			name: "multiple records",
@@ -420,7 +385,19 @@ func TestExtractLogsFromLogRecords(t *testing.T) {
 
 				return slice
 			}(),
-			expected: []string{"first log", "second log"},
+			expected: []any{"first log", "second log"},
+		},
+		{
+			name: "record with JSON string",
+			records: func() plog.LogRecordSlice {
+				slice := plog.NewLogRecordSlice()
+				lr := slice.AppendEmpty()
+				lr.Body().SetStr(`{"message": "test"}`)
+				return slice
+			}(),
+			expected: []any{map[string]any{
+				"message": "test",
+			}},
 		},
 	}
 
@@ -436,12 +413,12 @@ func TestExtractLogsFromScopeLogs(t *testing.T) {
 	tests := []struct {
 		name      string
 		scopeLogs plog.ScopeLogsSlice
-		expected  []string
+		expected  []any
 	}{
 		{
 			name:      "empty scope logs",
 			scopeLogs: plog.NewScopeLogsSlice(),
-			expected:  []string{},
+			expected:  []any{},
 		},
 		{
 			name: "single scope log with single record",
@@ -452,7 +429,7 @@ func TestExtractLogsFromScopeLogs(t *testing.T) {
 				lr.Body().SetStr("test log")
 				return slice
 			}(),
-			expected: []string{"test log"},
+			expected: []any{"test log"},
 		},
 		{
 			name: "multiple scope logs with multiple records",
@@ -473,7 +450,20 @@ func TestExtractLogsFromScopeLogs(t *testing.T) {
 
 				return slice
 			}(),
-			expected: []string{"scope1 log1", "scope1 log2", "scope2 log1"},
+			expected: []any{"scope1 log1", "scope1 log2", "scope2 log1"},
+		},
+		{
+			name: "scope log with JSON string",
+			scopeLogs: func() plog.ScopeLogsSlice {
+				slice := plog.NewScopeLogsSlice()
+				sl := slice.AppendEmpty()
+				lr := sl.LogRecords().AppendEmpty()
+				lr.Body().SetStr(`{"message": "test"}`)
+				return slice
+			}(),
+			expected: []any{map[string]any{
+				"message": "test",
+			}},
 		},
 	}
 
@@ -489,12 +479,12 @@ func TestExtractLogsFromResourceLogs(t *testing.T) {
 	tests := []struct {
 		name         string
 		resourceLogs plog.ResourceLogsSlice
-		expected     []string
+		expected     []any
 	}{
 		{
 			name:         "empty resource logs",
 			resourceLogs: plog.NewResourceLogsSlice(),
-			expected:     []string{},
+			expected:     []any{},
 		},
 		{
 			name: "single resource log with single record",
@@ -506,7 +496,7 @@ func TestExtractLogsFromResourceLogs(t *testing.T) {
 				lr.Body().SetStr("test log")
 				return slice
 			}(),
-			expected: []string{"test log"},
+			expected: []any{"test log"},
 		},
 		{
 			name: "multiple resource logs with multiple records",
@@ -529,7 +519,21 @@ func TestExtractLogsFromResourceLogs(t *testing.T) {
 
 				return slice
 			}(),
-			expected: []string{"resource1 log1", "resource1 log2", "resource2 log1"},
+			expected: []any{"resource1 log1", "resource1 log2", "resource2 log1"},
+		},
+		{
+			name: "resource log with JSON string",
+			resourceLogs: func() plog.ResourceLogsSlice {
+				slice := plog.NewResourceLogsSlice()
+				rl := slice.AppendEmpty()
+				sl := rl.ScopeLogs().AppendEmpty()
+				lr := sl.LogRecords().AppendEmpty()
+				lr.Body().SetStr(`{"message": "test"}`)
+				return slice
+			}(),
+			expected: []any{map[string]any{
+				"message": "test",
+			}},
 		},
 	}
 
