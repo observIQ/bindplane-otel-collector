@@ -60,10 +60,14 @@ func (le *logsExporter) Capabilities() consumer.Capabilities {
 }
 
 func (le *logsExporter) start(ctx context.Context, _ component.Host) error {
+	le.logger.Info("starting webhook logs exporter")
 	return nil
 }
 
 func (le *logsExporter) shutdown(_ context.Context) error {
+	le.logger.Info("shutting down webhook logs exporter")
+	le.client.CloseIdleConnections()
+	le.logger.Info("webhook logs exporter shutdown complete")
 	return nil
 }
 
