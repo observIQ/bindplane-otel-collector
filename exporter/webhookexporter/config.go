@@ -75,6 +75,7 @@ type Config struct {
 	TracesConfig  *SignalConfig `mapstructure:"traces,omitempty"`
 }
 
+// SignalConfig defines the configuration for a single signal type (logs, metrics, traces)
 type SignalConfig struct {
 	// TimeoutConfig contains settings for request timeouts
 	TimeoutConfig exporterhelper.TimeoutConfig `mapstructure:",squash"`
@@ -102,9 +103,6 @@ type SignalConfig struct {
 
 	// TLSSetting struct exposes TLS client configuration.
 	TLSSetting *configtls.ClientConfig `mapstructure:"tls"`
-
-	// Limit specifies the maximum number of signals to send in a single request
-	Limit int `mapstructure:"limit"`
 
 	// OutputFormat specifies the format of the webhook request body
 	// Must be one of: ndjson, json_array
