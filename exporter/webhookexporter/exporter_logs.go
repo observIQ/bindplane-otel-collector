@@ -36,7 +36,7 @@ type logsExporter struct {
 }
 
 func newLogsExporter(
-	ctx context.Context,
+	_ context.Context,
 	cfg *Config,
 	params exporter.Settings,
 ) (*logsExporter, error) {
@@ -59,7 +59,7 @@ func (le *logsExporter) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: false}
 }
 
-func (le *logsExporter) start(ctx context.Context, _ component.Host) error {
+func (le *logsExporter) start(_ context.Context, _ component.Host) error {
 	le.logger.Info("starting webhook logs exporter")
 	return nil
 }

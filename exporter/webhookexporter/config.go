@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package webhookexporter implements an OpenTelemetry Logs exporter that sends logs to a webhook.
 package webhookexporter
 
 import (
@@ -69,6 +71,7 @@ const (
 	JSONArrayFormat OutputFormat = "json_array"
 )
 
+// Config defines the configuration for the webhookexporter
 type Config struct {
 	LogsConfig *SignalConfig `mapstructure:"logs,omitempty"`
 	//MetricsConfig *SignalConfig `mapstructure:"metrics,omitempty"`
@@ -142,6 +145,7 @@ func (c *SignalConfig) Validate() error {
 	return nil
 }
 
+// Validate checks if the configuration is valid
 func (c *Config) Validate() error {
 	if c.LogsConfig != nil {
 		if err := c.LogsConfig.Validate(); err != nil {
