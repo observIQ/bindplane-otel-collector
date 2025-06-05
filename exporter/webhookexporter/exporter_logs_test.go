@@ -147,53 +147,366 @@ func TestLogsDataPusher(t *testing.T) {
 
 // Integration test that verifies the actual data being sent matches what's received
 func TestLogsDataPusherIntegration(t *testing.T) {
-	// Create a channel to receive the request body
-	receivedBody := make(chan []byte, 1)
+	testCases := []struct {
+		name           string
+		outputFormat   OutputFormat
+		expectedFormat string
+	}{
+		{
+			name:           "default json array format",
+			outputFormat:   "", // empty to test default
+			expectedFormat: "json_array",
+		},
+		{
+			name:           "explicit json array format",
+			outputFormat:   JSONArrayFormat,
+			expectedFormat: "json_array",
+		},
+		{
+			name:           "ndjson format",
+			outputFormat:   NDJSONFormat,
+			expectedFormat: "ndjson",
+		},
+	}
 
-	// Create test server that captures the request body
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a channel to receive the request body
+			receivedBody := make(chan []byte, 1)
+
+			// Create test server that captures the request body
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				body, err := io.ReadAll(r.Body)
+				require.NoError(t, err)
+				receivedBody <- body
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer server.Close()
+
+			// Create exporter
+			cfg := &Config{
+				LogsConfig: &SignalConfig{
+					Endpoint:     Endpoint(server.URL),
+					Verb:         POST,
+					Headers:      map[string]string{"X-Test": "test-value"},
+					ContentType:  "application/json",
+					OutputFormat: tc.outputFormat,
+				},
+			}
+
+			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
+			require.NoError(t, err)
+
+			// Create test logs with specific content
+			logs := plog.NewLogs()
+			resourceLogs := logs.ResourceLogs().AppendEmpty()
+			scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
+			logRecord := scopeLogs.LogRecords().AppendEmpty()
+			logRecord.Body().SetStr("test log message")
+			logRecord2 := scopeLogs.LogRecords().AppendEmpty()
+			logRecord2.Body().SetStr("test log message 2")
+
+			// Push logs
+			err = exp.logsDataPusher(context.Background(), logs)
+			require.NoError(t, err)
+
+			// Get the received body
+			received := <-receivedBody
+
+			// Verify the format
+			switch tc.expectedFormat {
+			case "json_array":
+				var jsonArray []string
+				err = json.Unmarshal(received, &jsonArray)
+				require.NoError(t, err)
+				require.Len(t, jsonArray, 2)
+				require.Equal(t, "test log message", jsonArray[0])
+				require.Equal(t, "test log message 2", jsonArray[1])
+			case "ndjson":
+				// NDJSON should be newline-delimited, with trailing newline removed
+				require.Equal(t, "test log message\ntest log message 2", string(received))
+			}
+		})
+	}
+}
+
+func TestLogsDataPusherWithInvalidFormat(t *testing.T) {
+	// Create test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-		receivedBody <- body
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
 
-	// Create exporter
+	// Create exporter with invalid format
 	cfg := &Config{
 		LogsConfig: &SignalConfig{
-			Endpoint:    Endpoint(server.URL),
-			Verb:        POST,
-			Headers:     map[string]string{"X-Test": "test-value"},
-			ContentType: "application/json",
+			Endpoint:     Endpoint(server.URL),
+			Verb:         POST,
+			Headers:      map[string]string{"X-Test": "test-value"},
+			ContentType:  "application/json",
+			OutputFormat: "invalid_format",
 		},
 	}
 
 	exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
 	require.NoError(t, err)
 
-	// Create test logs with specific content
+	// Create test logs
 	logs := plog.NewLogs()
 	resourceLogs := logs.ResourceLogs().AppendEmpty()
 	scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
 	logRecord := scopeLogs.LogRecords().AppendEmpty()
 	logRecord.Body().SetStr("test log message")
 
-	// Push logs
+	// Push logs should fail with invalid format
 	err = exp.logsDataPusher(context.Background(), logs)
-	require.NoError(t, err)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "unsupported output format")
+}
 
-	// Get the received body
-	received := <-receivedBody
+func TestExtractLogBodies(t *testing.T) {
+	tests := []struct {
+		name     string
+		logs     plog.Logs
+		expected []string
+	}{
+		{
+			name:     "empty logs",
+			logs:     plog.NewLogs(),
+			expected: []string{},
+		},
+		{
+			name: "single log",
+			logs: func() plog.Logs {
+				logs := plog.NewLogs()
+				rl := logs.ResourceLogs().AppendEmpty()
+				sl := rl.ScopeLogs().AppendEmpty()
+				lr := sl.LogRecords().AppendEmpty()
+				lr.Body().SetStr("test log")
+				return logs
+			}(),
+			expected: []string{"test log"},
+		},
+		{
+			name: "multiple logs with different bodies",
+			logs: func() plog.Logs {
+				logs := plog.NewLogs()
+				rl := logs.ResourceLogs().AppendEmpty()
+				sl := rl.ScopeLogs().AppendEmpty()
 
-	// Unmarshal the received body
-	var receivedLogs []map[string]interface{}
-	err = json.Unmarshal(received, &receivedLogs)
-	require.NoError(t, err)
+				// Add first log
+				lr1 := sl.LogRecords().AppendEmpty()
+				lr1.Body().SetStr("first log")
 
-	// Verify the content
-	require.Len(t, receivedLogs, 1)
-	require.Contains(t, receivedLogs[0], "resourceLog")
+				// Add second log
+				lr2 := sl.LogRecords().AppendEmpty()
+				lr2.Body().SetStr("second log")
+
+				return logs
+			}(),
+			expected: []string{"first log", "second log"},
+		},
+		{
+			name: "nested structure with multiple resource and scope logs",
+			logs: func() plog.Logs {
+				logs := plog.NewLogs()
+
+				// First resource logs
+				rl1 := logs.ResourceLogs().AppendEmpty()
+				sl1 := rl1.ScopeLogs().AppendEmpty()
+				lr1 := sl1.LogRecords().AppendEmpty()
+				lr1.Body().SetStr("resource1 log")
+
+				// Second resource logs
+				rl2 := logs.ResourceLogs().AppendEmpty()
+				sl2 := rl2.ScopeLogs().AppendEmpty()
+				lr2 := sl2.LogRecords().AppendEmpty()
+				lr2.Body().SetStr("resource2 log")
+
+				return logs
+			}(),
+			expected: []string{"resource1 log", "resource2 log"},
+		},
+		{
+			name: "log with map body",
+			logs: func() plog.Logs {
+				logs := plog.NewLogs()
+				rl := logs.ResourceLogs().AppendEmpty()
+				sl := rl.ScopeLogs().AppendEmpty()
+				lr := sl.LogRecords().AppendEmpty()
+
+				// Create a map body
+				bodyMap := lr.Body().SetEmptyMap()
+				bodyMap.PutStr("key1", "value1")
+				bodyMap.PutInt("key2", 42)
+
+				return logs
+			}(),
+			expected: []string{`{"key1":"value1","key2":42}`},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractLogBodies(tt.logs)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestExtractLogsFromLogRecords(t *testing.T) {
+	tests := []struct {
+		name     string
+		records  plog.LogRecordSlice
+		expected []string
+	}{
+		{
+			name:     "empty records",
+			records:  plog.NewLogRecordSlice(),
+			expected: []string{},
+		},
+		{
+			name: "single record",
+			records: func() plog.LogRecordSlice {
+				slice := plog.NewLogRecordSlice()
+				lr := slice.AppendEmpty()
+				lr.Body().SetStr("test log")
+				return slice
+			}(),
+			expected: []string{"test log"},
+		},
+		{
+			name: "multiple records",
+			records: func() plog.LogRecordSlice {
+				slice := plog.NewLogRecordSlice()
+
+				lr1 := slice.AppendEmpty()
+				lr1.Body().SetStr("first log")
+
+				lr2 := slice.AppendEmpty()
+				lr2.Body().SetStr("second log")
+
+				return slice
+			}(),
+			expected: []string{"first log", "second log"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractLogsFromLogRecords(tt.records)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestExtractLogsFromScopeLogs(t *testing.T) {
+	tests := []struct {
+		name      string
+		scopeLogs plog.ScopeLogsSlice
+		expected  []string
+	}{
+		{
+			name:      "empty scope logs",
+			scopeLogs: plog.NewScopeLogsSlice(),
+			expected:  []string{},
+		},
+		{
+			name: "single scope log with single record",
+			scopeLogs: func() plog.ScopeLogsSlice {
+				slice := plog.NewScopeLogsSlice()
+				sl := slice.AppendEmpty()
+				lr := sl.LogRecords().AppendEmpty()
+				lr.Body().SetStr("test log")
+				return slice
+			}(),
+			expected: []string{"test log"},
+		},
+		{
+			name: "multiple scope logs with multiple records",
+			scopeLogs: func() plog.ScopeLogsSlice {
+				slice := plog.NewScopeLogsSlice()
+
+				// First scope log
+				sl1 := slice.AppendEmpty()
+				lr1 := sl1.LogRecords().AppendEmpty()
+				lr1.Body().SetStr("scope1 log1")
+				lr2 := sl1.LogRecords().AppendEmpty()
+				lr2.Body().SetStr("scope1 log2")
+
+				// Second scope log
+				sl2 := slice.AppendEmpty()
+				lr3 := sl2.LogRecords().AppendEmpty()
+				lr3.Body().SetStr("scope2 log1")
+
+				return slice
+			}(),
+			expected: []string{"scope1 log1", "scope1 log2", "scope2 log1"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractLogsFromScopeLogs(tt.scopeLogs)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestExtractLogsFromResourceLogs(t *testing.T) {
+	tests := []struct {
+		name         string
+		resourceLogs plog.ResourceLogsSlice
+		expected     []string
+	}{
+		{
+			name:         "empty resource logs",
+			resourceLogs: plog.NewResourceLogsSlice(),
+			expected:     []string{},
+		},
+		{
+			name: "single resource log with single record",
+			resourceLogs: func() plog.ResourceLogsSlice {
+				slice := plog.NewResourceLogsSlice()
+				rl := slice.AppendEmpty()
+				sl := rl.ScopeLogs().AppendEmpty()
+				lr := sl.LogRecords().AppendEmpty()
+				lr.Body().SetStr("test log")
+				return slice
+			}(),
+			expected: []string{"test log"},
+		},
+		{
+			name: "multiple resource logs with multiple records",
+			resourceLogs: func() plog.ResourceLogsSlice {
+				slice := plog.NewResourceLogsSlice()
+
+				// First resource log
+				rl1 := slice.AppendEmpty()
+				sl1 := rl1.ScopeLogs().AppendEmpty()
+				lr1 := sl1.LogRecords().AppendEmpty()
+				lr1.Body().SetStr("resource1 log1")
+				lr2 := sl1.LogRecords().AppendEmpty()
+				lr2.Body().SetStr("resource1 log2")
+
+				// Second resource log
+				rl2 := slice.AppendEmpty()
+				sl2 := rl2.ScopeLogs().AppendEmpty()
+				lr3 := sl2.LogRecords().AppendEmpty()
+				lr3.Body().SetStr("resource2 log1")
+
+				return slice
+			}(),
+			expected: []string{"resource1 log1", "resource1 log2", "resource2 log1"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractLogsFromResourceLogs(tt.resourceLogs)
+			require.Equal(t, tt.expected, result)
+		})
+	}
 }
 
 func TestLogsDataPusherWithBatching(t *testing.T) {
