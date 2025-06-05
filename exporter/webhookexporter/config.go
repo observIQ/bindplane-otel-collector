@@ -59,6 +59,16 @@ func (v *HTTPVerb) unmarshalText(text []byte) error {
 	}
 }
 
+// OutputFormat specifies the format of the webhook request body
+type OutputFormat string
+
+const (
+	// NDJSONFormat sends logs as newline-delimited JSON
+	NDJSONFormat OutputFormat = "ndjson"
+	// JSONArrayFormat sends logs as a JSON array
+	JSONArrayFormat OutputFormat = "json_array"
+)
+
 type Config struct {
 	LogsConfig    *SignalConfig `mapstructure:"logs,omitempty"`
 	MetricsConfig *SignalConfig `mapstructure:"metrics,omitempty"`
@@ -95,6 +105,11 @@ type SignalConfig struct {
 
 	// Limit specifies the maximum number of signals to send in a single request
 	Limit int `mapstructure:"limit"`
+
+	// OutputFormat specifies the format of the webhook request body
+	// Must be one of: ndjson, json_array
+	// Defaults to json_array if not specified
+	OutputFormat OutputFormat `mapstructure:"output_format,omitempty" default:"json_array"`
 }
 
 // Validate checks if the configuration is valid
@@ -122,13 +137,17 @@ func (c *SignalConfig) Validate() error {
 		}
 	}
 
+	if c.OutputFormat != "" && c.OutputFormat != NDJSONFormat && c.OutputFormat != JSONArrayFormat {
+		return fmt.Errorf("output_format must be one of: %s, %s", NDJSONFormat, JSONArrayFormat)
+	}
+
 	return nil
 }
 
 func (c *Config) Validate() error {
 	if c.LogsConfig != nil {
 		if err := c.LogsConfig.Validate(); err != nil {
-			return err
+			return fmt.Errorf("logs config validation failed: %w", err)
 		}
 	}
 	if c.MetricsConfig != nil {
