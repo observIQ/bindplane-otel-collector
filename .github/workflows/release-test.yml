@@ -33,7 +33,7 @@ jobs:
         run: touch ./observiq-otel-collector.msi
 
       - name: Set VERSION
-        run: echo "VERSION=$(make version)" >> $GITHUB_ENV
+        run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
