@@ -30,6 +30,7 @@ import (
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/exportertest"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.uber.org/zap"
 )
 
 func TestNewLogsExporter(t *testing.T) {
@@ -84,7 +85,10 @@ func TestLogsExporterCapabilities(t *testing.T) {
 }
 
 func TestLogsExporterStartShutdown(t *testing.T) {
-	exp := &logsExporter{}
+	exp := &logsExporter{
+		client: &http.Client{},
+		logger: zap.NewNop(),
+	}
 	err := exp.start(context.Background(), componenttest.NewNopHost())
 	require.NoError(t, err)
 

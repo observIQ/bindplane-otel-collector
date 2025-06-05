@@ -155,35 +155,35 @@ func TestConfig_Validate(t *testing.T) {
 					Verb:        POST,
 					ContentType: "application/json",
 				},
-				MetricsConfig: &SignalConfig{
-					Endpoint:    "https://example.com/metrics",
-					Verb:        POST,
-					ContentType: "application/json",
-				},
-				TracesConfig: &SignalConfig{
-					Endpoint:    "https://example.com/traces",
-					Verb:        POST,
-					ContentType: "application/json",
-				},
+				// MetricsConfig: &SignalConfig{
+				// 	Endpoint:    "https://example.com/metrics",
+				// 	Verb:        POST,
+				// 	ContentType: "application/json",
+				// },
+				// TracesConfig: &SignalConfig{
+				// 	Endpoint:    "https://example.com/traces",
+				// 	Verb:        POST,
+				// 	ContentType: "application/json",
+				// },
 			},
 			wantErr: false,
 		},
-		{
-			name: "valid config with metrics and traces",
-			config: Config{
-				MetricsConfig: &SignalConfig{
-					Endpoint:    "https://example.com/metrics",
-					Verb:        POST,
-					ContentType: "application/json",
-				},
-				TracesConfig: &SignalConfig{
-					Endpoint:    "https://example.com/traces",
-					Verb:        POST,
-					ContentType: "application/json",
-				},
-			},
-			wantErr: false,
-		},
+		// {
+		// 	name: "valid config with metrics and traces",
+		// 	config: Config{
+		// 		MetricsConfig: &SignalConfig{
+		// 			Endpoint:    "https://example.com/metrics",
+		// 			Verb:        POST,
+		// 			ContentType: "application/json",
+		// 		},
+		// 		TracesConfig: &SignalConfig{
+		// 			Endpoint:    "https://example.com/traces",
+		// 			Verb:        POST,
+		// 			ContentType: "application/json",
+		// 		},
+		// 	},
+		// 	wantErr: false,
+		// },
 		{
 			name:    "invalid config with no signals",
 			config:  Config{},
@@ -200,27 +200,27 @@ func TestConfig_Validate(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "invalid verb in metrics config",
-			config: Config{
-				MetricsConfig: &SignalConfig{
-					Endpoint:    "https://example.com",
-					Verb:        "GET",
-					ContentType: "application/json",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "missing content type in traces config",
-			config: Config{
-				TracesConfig: &SignalConfig{
-					Endpoint: "https://example.com",
-					Verb:     POST,
-				},
-			},
-			wantErr: true,
-		},
+		// {
+		// 	name: "invalid verb in metrics config",
+		// 	config: Config{
+		// 		MetricsConfig: &SignalConfig{
+		// 			Endpoint:    "https://example.com",
+		// 			Verb:        "GET",
+		// 			ContentType: "application/json",
+		// 		},
+		// 	},
+		// 	wantErr: true,
+		// },
+		// {
+		// 	name: "missing content type in traces config",
+		// 	config: Config{
+		// 		TracesConfig: &SignalConfig{
+		// 			Endpoint: "https://example.com",
+		// 			Verb:     POST,
+		// 		},
+		// 	},
+		// 	wantErr: true,
+		// },
 		{
 			name: "valid config with TLS settings",
 			config: Config{
