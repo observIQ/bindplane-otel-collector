@@ -532,7 +532,7 @@ func TestLogsDataPusherWithBatching(t *testing.T) {
 			name:            "batching with limit of 10",
 			limit:           10,
 			numLogs:         25,
-			expectedBatches: 3,
+			expectedBatches: 3, // 10 + 10 + 5 logs
 		},
 		{
 			name:            "exact batch size",
@@ -593,34 +593,22 @@ func TestLogsDataPusherWithBatching(t *testing.T) {
 				select {
 				case body := <-receivedBodies:
 					receivedCount++
-					var receivedLogs map[string]interface{}
+					var receivedLogs []string
 					err = json.Unmarshal(body, &receivedLogs)
 					require.NoError(t, err)
 
-					// Verify the structure contains resourceLogs
-					require.Contains(t, receivedLogs, "resourceLogs")
-					resourceLogs, ok := receivedLogs["resourceLogs"].([]interface{})
-					require.True(t, ok)
-
-					// Count the number of log records in this batch
-					var logCount int
-					for _, rl := range resourceLogs {
-						rlMap, ok := rl.(map[string]interface{})
-						require.True(t, ok)
-						scopeLogs, ok := rlMap["scopeLogs"].([]interface{})
-						require.True(t, ok)
-						for _, sl := range scopeLogs {
-							slMap, ok := sl.(map[string]interface{})
-							require.True(t, ok)
-							logRecords, ok := slMap["logRecords"].([]interface{})
-							require.True(t, ok)
-							logCount += len(logRecords)
-						}
-					}
-
 					// Verify batch size
 					if tc.limit > 0 {
-						require.LessOrEqual(t, logCount, tc.limit)
+						require.LessOrEqual(t, len(receivedLogs), tc.limit)
+					}
+
+					// Verify we got the expected number of logs in this batch
+					if tc.limit > 0 && i == tc.expectedBatches-1 && tc.numLogs%tc.limit != 0 {
+						// Last batch might be smaller
+						require.Equal(t, tc.numLogs%tc.limit, len(receivedLogs))
+					} else if tc.limit > 0 {
+						// Other batches should be full
+						require.Equal(t, tc.limit, len(receivedLogs))
 					}
 				case <-ctx.Done():
 					t.Fatalf("Timeout waiting for batch %d", i+1)

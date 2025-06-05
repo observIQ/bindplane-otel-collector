@@ -96,6 +96,10 @@ func (le *logsExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error 
 		currentBatch = append(currentBatch, log)
 		currentBatchSize++
 	}
+	// Append the last batch if it's not empty
+	if len(currentBatch) > 0 {
+		batches = append(batches, currentBatch)
+	}
 
 	le.logger.Debug("created log batches", zap.Int("num_batches", len(batches)), zap.Int("batch_size", limit))
 
