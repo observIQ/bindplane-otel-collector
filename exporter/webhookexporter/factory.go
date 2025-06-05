@@ -17,6 +17,7 @@ package webhookexporter
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/webhookexporter/internal/metadata"
@@ -69,7 +70,25 @@ func createLogsExporter(ctx context.Context, params exporter.Settings, config co
 		exporterhelper.WithShutdown(e.shutdown),
 		exporterhelper.WithCapabilities(e.Capabilities()),
 		exporterhelper.WithTimeout(e.cfg.LogsConfig.TimeoutConfig),
-		exporterhelper.WithQueue(e.cfg.LogsConfig.QueueBatchConfig),
+		exporterhelper.WithQueueBatch(
+			e.cfg.LogsConfig.QueueBatchConfig,
+			exporterhelper.QueueBatchSettings{
+				Encoding: &logsEncoding{},
+			},
+		),
 		exporterhelper.WithRetry(e.cfg.LogsConfig.BackOffConfig),
 	)
+}
+
+// logsEncoding implements QueueBatchEncoding for logs
+type logsEncoding struct{}
+
+func (e *logsEncoding) Marshal(req exporterhelper.Request) ([]byte, error) {
+	return json.Marshal(req)
+}
+
+func (e *logsEncoding) Unmarshal(data []byte) (exporterhelper.Request, error) {
+	var req exporterhelper.Request
+	err := json.Unmarshal(data, &req)
+	return req, err
 }
