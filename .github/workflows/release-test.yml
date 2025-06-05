@@ -1,4 +1,4 @@
-name: release
+name: Release Test
 on:
   workflow_dispatch:
     inputs:
@@ -30,7 +30,7 @@ jobs:
         uses: docker/setup-qemu-action@v2
         
       - name: Fake Windows MSI
-        run: touch ./observiq-otel-collector.msi/observiq-otel-collector.msi
+        run: touch ./observiq-otel-collector.msi
 
       - name: Set VERSION
         run: echo "VERSION=$(make version)" >> $GITHUB_ENV
@@ -42,7 +42,7 @@ jobs:
           version: "v2.1.0"
           args: release --skip=publish --skip=validate --skip=sign --clean --snapshot
         env:
-          GORELEASER_CURRENT_TAG: $(VERSION)
+          GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
 
