@@ -120,14 +120,14 @@ func TestLogsDataPusher(t *testing.T) {
 		},
 		{
 			name: "server error",
-			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+			serverResponse: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			},
 			expectedError: "failed to send request: 500 Internal Server Error",
 		},
 		{
 			name: "connection error",
-			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+			serverResponse: func(w http.ResponseWriter, _ *http.Request) {
 				// Simulate connection error by closing the connection
 				hj, ok := w.(http.Hijacker)
 				if ok {
@@ -264,7 +264,7 @@ func TestLogsDataPusherIntegration(t *testing.T) {
 
 func TestLogsDataPusherWithInvalidFormat(t *testing.T) {
 	// Create test server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
@@ -679,7 +679,7 @@ func TestLogsDataPusherWithQueueSettingsAndErrors(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create test server that returns error if configured
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				if tc.serverError {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
