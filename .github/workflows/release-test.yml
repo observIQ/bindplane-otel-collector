@@ -30,7 +30,7 @@ jobs:
         uses: docker/setup-qemu-action@v2
         
       - name: Fake Windows MSI
-        run: touch ./observiq-otel-collector.msi/observiq-otel-collector.msi
+        run: touch ./observiq-otel-collector.msi
 
       - name: Set VERSION
         run: echo "VERSION=$(make version)" >> $GITHUB_ENV
