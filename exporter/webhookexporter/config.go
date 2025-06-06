@@ -17,25 +17,12 @@ package webhookexporter
 
 import (
 	"fmt"
-	"strings"
+	"net/url"
 
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
-
-// Endpoint represents a validated HTTP/HTTPS endpoint URL
-type Endpoint string
-
-// UnmarshalText implements the encoding.TextUnmarshaler interface
-func (e *Endpoint) unmarshalText(text []byte) error {
-	endpoint := string(text)
-	if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
-		return fmt.Errorf("endpoint must start with http:// or https://, got: %s", endpoint)
-	}
-	*e = Endpoint(endpoint)
-	return nil
-}
 
 // HTTPVerb represents the allowed HTTP methods for the webhook exporter
 type HTTPVerb string
@@ -79,7 +66,7 @@ type SignalConfig struct {
 
 	// Endpoint is the URL where the webhook requests will be sent
 	// Must start with http:// or https://
-	Endpoint Endpoint `mapstructure:"endpoint"`
+	Endpoint url.URL `mapstructure:"endpoint"`
 
 	// Verb specifies the HTTP method to use for the webhook requests
 	// Must be one of: POST, PATCH, PUT
@@ -98,9 +85,13 @@ type SignalConfig struct {
 
 // Validate checks if the configuration is valid
 func (c *SignalConfig) Validate() error {
-	if c.Endpoint == "" {
+	if c.Endpoint.String() == "" {
 		return fmt.Errorf("endpoint is required")
 	}
+	if c.Endpoint.Scheme != "http" && c.Endpoint.Scheme != "https" {
+		return fmt.Errorf("endpoint must start with http:// or https://, got: %s", c.Endpoint.String())
+	}
+
 	if c.Verb == "" {
 		return fmt.Errorf("verb is required")
 	}
@@ -108,9 +99,6 @@ func (c *SignalConfig) Validate() error {
 		return fmt.Errorf("content_type is required")
 	}
 
-	if err := c.Endpoint.unmarshalText([]byte(c.Endpoint)); err != nil {
-		return fmt.Errorf("invalid endpoint: %w", err)
-	}
 	if err := c.Verb.unmarshalText([]byte(c.Verb)); err != nil {
 		return fmt.Errorf("invalid verb: %w", err)
 	}

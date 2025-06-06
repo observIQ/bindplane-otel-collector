@@ -16,6 +16,7 @@ package webhookexporter
 
 import (
 	"context"
+	"net/url"
 	"testing"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/webhookexporter/internal/metadata"
@@ -39,7 +40,7 @@ func TestCreateDefaultConfig(t *testing.T) {
 	webhookCfg, ok := cfg.(*Config)
 	require.True(t, ok)
 	assert.Equal(t, &SignalConfig{
-		Endpoint:    Endpoint("https://localhost"),
+		Endpoint:    url.URL{Scheme: "https", Host: "localhost"},
 		Verb:        POST,
 		ContentType: "application/json",
 	}, webhookCfg.LogsConfig)
@@ -57,7 +58,7 @@ func TestCreateLogsExporter(t *testing.T) {
 			name: "valid config",
 			config: &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    Endpoint("https://example.com"),
+					Endpoint:    url.URL{Scheme: "https", Host: "example.com"},
 					Verb:        POST,
 					ContentType: "application/json",
 				},
@@ -75,7 +76,7 @@ func TestCreateLogsExporter(t *testing.T) {
 			name: "invalid config validation",
 			config: &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    Endpoint("invalid-url"),
+					Endpoint:    url.URL{Scheme: "invalid-url"},
 					Verb:        "INVALID",
 					ContentType: "application/json",
 				},
@@ -86,7 +87,7 @@ func TestCreateLogsExporter(t *testing.T) {
 			name: "missing content type",
 			config: &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint: Endpoint("https://example.com"),
+					Endpoint: url.URL{Scheme: "https", Host: "example.com"},
 					Verb:     POST,
 				},
 			},

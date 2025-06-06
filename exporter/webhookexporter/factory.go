@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/url"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/webhookexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
@@ -38,7 +39,7 @@ func NewFactory() exporter.Factory {
 func createDefaultConfig() component.Config {
 	return &Config{
 		LogsConfig: &SignalConfig{
-			Endpoint:    Endpoint("https://localhost"),
+			Endpoint:    url.URL{Scheme: "https", Host: "localhost"},
 			Verb:        POST,
 			ContentType: "application/json",
 		},

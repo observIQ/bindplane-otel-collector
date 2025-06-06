@@ -21,6 +21,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -43,7 +44,7 @@ func TestNewLogsExporter(t *testing.T) {
 			name: "valid config",
 			cfg: &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    Endpoint("http://localhost:8080"),
+					Endpoint:    url.URL{Scheme: "http", Host: "localhost:8080"},
 					Verb:        POST,
 					Headers:     map[string]string{"X-Test": "test-value"},
 					ContentType: "application/json",
@@ -144,11 +145,13 @@ func TestLogsDataPusher(t *testing.T) {
 			// Create test server
 			server := httptest.NewServer(http.HandlerFunc(tc.serverResponse))
 			defer server.Close()
+			parsedURL, err := url.Parse(server.URL)
+			require.NoError(t, err)
 
 			// Create exporter with test server URL
 			cfg := &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    Endpoint(server.URL),
+					Endpoint:    *parsedURL,
 					Verb:        POST,
 					Headers:     map[string]string{"X-Test": "test-value"},
 					ContentType: "application/json",
@@ -203,10 +206,13 @@ func TestLogsDataPusherIntegration(t *testing.T) {
 			}))
 			defer server.Close()
 
+			parsedURL, err := url.Parse(server.URL)
+			require.NoError(t, err)
+
 			// Create exporter
 			cfg := &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    Endpoint(server.URL),
+					Endpoint:    *parsedURL,
 					Verb:        POST,
 					Headers:     map[string]string{"X-Test": "test-value"},
 					ContentType: "application/json",
@@ -596,10 +602,13 @@ func TestLogsDataPusherWithQueueSettings(t *testing.T) {
 			}))
 			defer server.Close()
 
+			parsedURL, err := url.Parse(server.URL)
+			require.NoError(t, err)
+
 			// Create exporter with test configuration
 			cfg := &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:         Endpoint(server.URL),
+					Endpoint:         *parsedURL,
 					Verb:             POST,
 					ContentType:      "application/json",
 					QueueBatchConfig: tc.queueSettings,
@@ -692,10 +701,13 @@ func TestLogsDataPusherWithQueueSettingsAndErrors(t *testing.T) {
 			}))
 			defer server.Close()
 
+			parsedURL, err := url.Parse(server.URL)
+			require.NoError(t, err)
+
 			// Create exporter with test configuration
 			cfg := &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:         Endpoint(server.URL),
+					Endpoint:         *parsedURL,
 					Verb:             POST,
 					ContentType:      "application/json",
 					QueueBatchConfig: tc.queueSettings,
