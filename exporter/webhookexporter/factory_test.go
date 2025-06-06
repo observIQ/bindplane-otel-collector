@@ -44,8 +44,6 @@ func TestCreateDefaultConfig(t *testing.T) {
 		Verb:        POST,
 		ContentType: "application/json",
 	}, webhookCfg.LogsConfig)
-	//assert.Nil(t, webhookCfg.MetricsConfig)
-	//assert.Nil(t, webhookCfg.TracesConfig)
 }
 
 func TestCreateLogsExporter(t *testing.T) {
