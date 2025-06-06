@@ -20,7 +20,7 @@ jobs:
         with:
           # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser-pro
-          version: "v2.1.0"
+          version: "v2.8.2"
           args: build --single-target --skip=validate --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -148,7 +148,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v5
         with:
           distribution: goreleaser-pro
-          version: "v2.1.0"
+          version: "v2.8.2"
           args: release --clean --timeout 120m
         env:
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
