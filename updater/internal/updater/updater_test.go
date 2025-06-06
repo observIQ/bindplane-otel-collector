@@ -15,7 +15,10 @@
 package updater
 
 import (
+	"bytes"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/observiq/bindplane-otel-collector/packagestate"
@@ -66,12 +69,13 @@ func TestUpdaterUpdate(t *testing.T) {
 		monitor := state_mocks.NewMockMonitor(t)
 
 		updater := &Updater{
-			installDir: installDir,
-			installer:  installer,
-			svc:        svc,
-			rollbacker: rollbacker,
-			monitor:    monitor,
-			logger:     zaptest.NewLogger(t),
+			installDir:          installDir,
+			installer:           installer,
+			svc:                 svc,
+			rollbacker:          rollbacker,
+			monitor:             monitor,
+			logger:              zaptest.NewLogger(t),
+			systemdUnitFilePath: "testdata/observiq-otel-collector.service.golden",
 		}
 
 		svc.On("Stop").Times(1).Return(nil)
@@ -93,12 +97,13 @@ func TestUpdaterUpdate(t *testing.T) {
 		monitor := state_mocks.NewMockMonitor(t)
 
 		updater := &Updater{
-			installDir: installDir,
-			installer:  installer,
-			svc:        svc,
-			rollbacker: rollbacker,
-			monitor:    monitor,
-			logger:     zaptest.NewLogger(t),
+			installDir:          installDir,
+			installer:           installer,
+			svc:                 svc,
+			rollbacker:          rollbacker,
+			monitor:             monitor,
+			logger:              zaptest.NewLogger(t),
+			systemdUnitFilePath: "testdata/observiq-otel-collector.service.golden",
 		}
 
 		svc.On("Stop").Times(1).Return(errors.New("insufficient permissions"))
@@ -116,12 +121,13 @@ func TestUpdaterUpdate(t *testing.T) {
 		monitor := state_mocks.NewMockMonitor(t)
 
 		updater := &Updater{
-			installDir: installDir,
-			installer:  installer,
-			svc:        svc,
-			rollbacker: rollbacker,
-			monitor:    monitor,
-			logger:     zaptest.NewLogger(t),
+			installDir:          installDir,
+			installer:           installer,
+			svc:                 svc,
+			rollbacker:          rollbacker,
+			monitor:             monitor,
+			logger:              zaptest.NewLogger(t),
+			systemdUnitFilePath: "testdata/observiq-otel-collector.service.golden",
 		}
 
 		err := errors.New("insufficient permissions")
@@ -145,12 +151,13 @@ func TestUpdaterUpdate(t *testing.T) {
 		monitor := state_mocks.NewMockMonitor(t)
 
 		updater := &Updater{
-			installDir: installDir,
-			installer:  installer,
-			svc:        svc,
-			rollbacker: rollbacker,
-			monitor:    monitor,
-			logger:     zaptest.NewLogger(t),
+			installDir:          installDir,
+			installer:           installer,
+			svc:                 svc,
+			rollbacker:          rollbacker,
+			monitor:             monitor,
+			logger:              zaptest.NewLogger(t),
+			systemdUnitFilePath: "testdata/observiq-otel-collector.service.golden",
 		}
 
 		err := errors.New("insufficient permissions")
@@ -174,12 +181,13 @@ func TestUpdaterUpdate(t *testing.T) {
 		monitor := state_mocks.NewMockMonitor(t)
 
 		updater := &Updater{
-			installDir: installDir,
-			installer:  installer,
-			svc:        svc,
-			rollbacker: rollbacker,
-			monitor:    monitor,
-			logger:     zaptest.NewLogger(t),
+			installDir:          installDir,
+			installer:           installer,
+			svc:                 svc,
+			rollbacker:          rollbacker,
+			monitor:             monitor,
+			logger:              zaptest.NewLogger(t),
+			systemdUnitFilePath: "testdata/observiq-otel-collector.service.golden",
 		}
 
 		err := errors.New("insufficient permissions")
@@ -204,12 +212,13 @@ func TestUpdaterUpdate(t *testing.T) {
 		monitor := state_mocks.NewMockMonitor(t)
 
 		updater := &Updater{
-			installDir: installDir,
-			installer:  installer,
-			svc:        svc,
-			rollbacker: rollbacker,
-			monitor:    monitor,
-			logger:     zaptest.NewLogger(t),
+			installDir:          installDir,
+			installer:           installer,
+			svc:                 svc,
+			rollbacker:          rollbacker,
+			monitor:             monitor,
+			logger:              zaptest.NewLogger(t),
+			systemdUnitFilePath: "testdata/observiq-otel-collector.service.golden",
 		}
 
 		err := errors.New("insufficient permissions")
@@ -234,12 +243,13 @@ func TestUpdaterUpdate(t *testing.T) {
 		monitor := state_mocks.NewMockMonitor(t)
 
 		updater := &Updater{
-			installDir: installDir,
-			installer:  installer,
-			svc:        svc,
-			rollbacker: rollbacker,
-			monitor:    monitor,
-			logger:     zaptest.NewLogger(t),
+			installDir:          installDir,
+			installer:           installer,
+			svc:                 svc,
+			rollbacker:          rollbacker,
+			monitor:             monitor,
+			logger:              zaptest.NewLogger(t),
+			systemdUnitFilePath: "testdata/observiq-otel-collector.service.golden",
 		}
 
 		err := errors.New("insufficient permissions")
@@ -265,12 +275,13 @@ func TestUpdaterUpdate(t *testing.T) {
 		monitor := state_mocks.NewMockMonitor(t)
 
 		updater := &Updater{
-			installDir: installDir,
-			installer:  installer,
-			svc:        svc,
-			rollbacker: rollbacker,
-			monitor:    monitor,
-			logger:     zaptest.NewLogger(t),
+			installDir:          installDir,
+			installer:           installer,
+			svc:                 svc,
+			rollbacker:          rollbacker,
+			monitor:             monitor,
+			logger:              zaptest.NewLogger(t),
+			systemdUnitFilePath: "testdata/observiq-otel-collector.service.golden",
 		}
 
 		err := errors.New("insufficient permissions")
@@ -296,12 +307,13 @@ func TestUpdaterUpdate(t *testing.T) {
 		monitor := state_mocks.NewMockMonitor(t)
 
 		updater := &Updater{
-			installDir: installDir,
-			installer:  installer,
-			svc:        svc,
-			rollbacker: rollbacker,
-			monitor:    monitor,
-			logger:     zaptest.NewLogger(t),
+			installDir:          installDir,
+			installer:           installer,
+			svc:                 svc,
+			rollbacker:          rollbacker,
+			monitor:             monitor,
+			logger:              zaptest.NewLogger(t),
+			systemdUnitFilePath: "testdata/observiq-otel-collector.service.golden",
 		}
 
 		svc.On("Stop").Times(1).Return(nil)
@@ -313,5 +325,63 @@ func TestUpdaterUpdate(t *testing.T) {
 
 		err := updater.Update()
 		require.ErrorContains(t, err, "failed while monitoring for success")
+	})
+}
+
+func TestGenerateServiceFiles(t *testing.T) {
+	t.Run("Generate service files successfully", func(t *testing.T) {
+		installDir := t.TempDir()
+		logger := zaptest.NewLogger(t)
+		u := &Updater{
+			installDir: installDir,
+			logger:     logger,
+		}
+
+		// Cleanup the directory after test
+		defer os.RemoveAll(installDir)
+
+		// The group from the testdata file will be used when generating
+		// the new service file.
+		systemdUnitFilePath := filepath.Join("testdata", "observiq-otel-collector.service.golden")
+
+		err := u.generateServiceFiles(systemdUnitFilePath)
+		require.NoError(t, err)
+
+		// Compare the generated files with golden files
+		compareFiles(t, systemdUnitFilePath, "testdata/observiq-otel-collector.service.golden")
+
+		// Check file permissions
+		checkFilePermissions(t, filepath.Join(installDir, "install", "observiq-otel-collector.service"), 0640)
+		checkFilePermissions(t, filepath.Join(installDir, "install", "observiq-otel-collector"), 0755)
+	})
+}
+
+func compareFiles(t *testing.T, generatedFile, goldenFile string) {
+	generated, err := os.ReadFile(generatedFile)
+	require.NoError(t, err)
+
+	golden, err := os.ReadFile(goldenFile)
+	require.NoError(t, err)
+
+	// Trim the contents to ignore trailing newlines or spaces
+	generated = bytes.TrimSpace(generated)
+	golden = bytes.TrimSpace(golden)
+
+	assert.Equal(t, string(golden), string(generated))
+}
+
+func checkFilePermissions(t *testing.T, filePath string, expectedPerm os.FileMode) {
+	info, err := os.Stat(filePath)
+	require.NoError(t, err)
+
+	assert.Equal(t, expectedPerm, info.Mode().Perm())
+}
+
+func TestReadGroupFromSystemdFile(t *testing.T) {
+	t.Run("Extract Group from systemd unit file", func(t *testing.T) {
+		goldenFilePath := "testdata/observiq-otel-collector.service.golden"
+		group, err := readGroupFromSystemdFile(goldenFilePath)
+		require.NoError(t, err)
+		assert.Equal(t, "bdot", group)
 	})
 }
