@@ -71,10 +71,6 @@ func (le *logsExporter) shutdown(_ context.Context) error {
 }
 
 func (le *logsExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
-	if le.cfg.LogsConfig == nil {
-		return fmt.Errorf("logs config is required")
-	}
-
 	le.logger.Debug("begin webhook logsDataPusher")
 
 	limit := int(le.cfg.LogsConfig.QueueBatchConfig.QueueSize)
