@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/url"
 
+	"go.opentelemetry.io/collector/config/configauth"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
@@ -81,6 +82,9 @@ type SignalConfig struct {
 
 	// TLS struct exposes TLS client configuration.
 	TLS *configtls.ClientConfig `mapstructure:"tls"`
+
+	// ConfigAuth contains the authentication configuration for the webhook requests
+	ConfigAuth *configauth.Config `mapstructure:"auth"`
 }
 
 // Validate checks if the configuration is valid
