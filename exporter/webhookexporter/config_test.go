@@ -65,7 +65,7 @@ func TestHTTPVerb_UnmarshalText(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var v HTTPVerb
-			err := v.unmarshalText(tt.input)
+			err := v.UnmarshalText(tt.input)
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Empty(t, v)
