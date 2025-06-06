@@ -3,16 +3,34 @@
 The webhook exporter sends telemetry data to a webhook endpoint.
 
 ## Minimum Agent Versions
-
-<!-- TODO: update once released -->
-- Introduced: [vx.xx.x](docslink)
+<!-- Modify this if we decide to patch release -->
+- Introduced: [1.79.0](https://github.com/observIQ/bindplane-otel-collector/releases/tag/v1.79.0)
 
 ## Supported Pipelines
 
 - Logs
-<!-- TODO: update once more pipelines are supported -->
 
 ## How It Works
+
+The webhook exporter sends data to a configured HTTP endpoint. Here's how it processes and sends the data:
+
+1. **Data Collection**: The exporter receives logs from the OpenTelemetry Collector pipeline.
+
+2. **Data Processing**:
+   - Data is extracted from the OpenTelemetry data model
+   - Each entry's body is parsed as JSON if possible, otherwise kept as a string
+   - Entries are organized into batches based on the configured queue size
+
+3. **HTTP Transmission**:
+   - Data is sent to the configured endpoint using the specified HTTP method (POST, PATCH, or PUT)
+   - The configured Content-Type header is applied
+   - Any additional headers specified in the configuration are included
+   - The request body contains the data in JSON format
+
+4. **Error Handling**:
+   - Failed requests are retried according to the sending queue configuration
+   - Non-2xx HTTP responses are treated as errors
+   - Connection timeouts are handled according to the configured timeout settings
 
 ## Configuration
 
