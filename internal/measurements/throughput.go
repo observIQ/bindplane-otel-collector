@@ -106,8 +106,8 @@ func NewThroughputMeasurements(mp metric.MeterProvider, processorID string, extr
 	}
 
 	rawBytes, err := meter.Int64Counter(
-		"bp.ingest.full_bytes",
-		metric.WithDescription("Full bytes ingested per log record"),
+		metricName("raw_bytes"),
+		metric.WithDescription("Size of the original log content in bytes"),
 		metric.WithUnit("By"),
 	)
 	if err != nil {
@@ -220,6 +220,11 @@ func (tm *ThroughputMeasurements) DatapointCount() int64 {
 // SpanCount return the total number of spans that have been added to this ThroughputMeasurements.
 func (tm *ThroughputMeasurements) SpanCount() int64 {
 	return tm.spanCount.Val()
+}
+
+// RawBytes returns the total size in bytes of all raw log content added to this ThroughputMeasurements.
+func (tm *ThroughputMeasurements) RawBytes() int64 {
+	return tm.rawBytes.Val()
 }
 
 // Attributes returns the full set of attributes used on each metric for this ThroughputMeasurements.
