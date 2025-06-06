@@ -37,7 +37,7 @@ const (
 )
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface
-func (v *HTTPVerb) unmarshalText(text []byte) error {
+func (v *HTTPVerb) UnmarshalText(text []byte) error {
 	verb := HTTPVerb(text)
 	switch verb {
 	case POST, PATCH, PUT:
@@ -99,7 +99,7 @@ func (c *SignalConfig) Validate() error {
 		return fmt.Errorf("content_type is required")
 	}
 
-	if err := c.Verb.unmarshalText([]byte(c.Verb)); err != nil {
+	if err := c.Verb.UnmarshalText([]byte(c.Verb)); err != nil {
 		return fmt.Errorf("invalid verb: %w", err)
 	}
 
