@@ -15,6 +15,7 @@
 package webhookexporter
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -76,60 +77,6 @@ func TestHTTPVerb_UnmarshalText(t *testing.T) {
 	}
 }
 
-func TestEndpoint_UnmarshalText(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   []byte
-		want    Endpoint
-		wantErr bool
-	}{
-		{
-			name:    "valid http endpoint",
-			input:   []byte("http://example.com"),
-			want:    Endpoint("http://example.com"),
-			wantErr: false,
-		},
-		{
-			name:    "valid https endpoint",
-			input:   []byte("https://example.com"),
-			want:    Endpoint("https://example.com"),
-			wantErr: false,
-		},
-		{
-			name:    "invalid scheme",
-			input:   []byte("ftp://example.com"),
-			want:    "",
-			wantErr: true,
-		},
-		{
-			name:    "missing scheme",
-			input:   []byte("example.com"),
-			want:    "",
-			wantErr: true,
-		},
-		{
-			name:    "empty endpoint",
-			input:   []byte(""),
-			want:    "",
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var e Endpoint
-			err := e.unmarshalText(tt.input)
-			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Empty(t, e)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.want, e)
-			}
-		})
-	}
-}
-
 func TestConfig_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -140,7 +87,7 @@ func TestConfig_Validate(t *testing.T) {
 			name: "valid config with logs only",
 			config: Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    "https://example.com",
+					Endpoint:    url.URL{Scheme: "https", Host: "example.com"},
 					Verb:        POST,
 					ContentType: "application/json",
 				},
@@ -151,39 +98,13 @@ func TestConfig_Validate(t *testing.T) {
 			name: "valid config with all signals",
 			config: Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    "https://example.com/logs",
+					Endpoint:    url.URL{Scheme: "https", Host: "example.com", Path: "/logs"},
 					Verb:        POST,
 					ContentType: "application/json",
 				},
-				// MetricsConfig: &SignalConfig{
-				// 	Endpoint:    "https://example.com/metrics",
-				// 	Verb:        POST,
-				// 	ContentType: "application/json",
-				// },
-				// TracesConfig: &SignalConfig{
-				// 	Endpoint:    "https://example.com/traces",
-				// 	Verb:        POST,
-				// 	ContentType: "application/json",
-				// },
 			},
 			wantErr: false,
 		},
-		// {
-		// 	name: "valid config with metrics and traces",
-		// 	config: Config{
-		// 		MetricsConfig: &SignalConfig{
-		// 			Endpoint:    "https://example.com/metrics",
-		// 			Verb:        POST,
-		// 			ContentType: "application/json",
-		// 		},
-		// 		TracesConfig: &SignalConfig{
-		// 			Endpoint:    "https://example.com/traces",
-		// 			Verb:        POST,
-		// 			ContentType: "application/json",
-		// 		},
-		// 	},
-		// 	wantErr: false,
-		// },
 		{
 			name:    "invalid config with no signals",
 			config:  Config{},
@@ -193,39 +114,18 @@ func TestConfig_Validate(t *testing.T) {
 			name: "invalid endpoint in logs config",
 			config: Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    "ftp://example.com",
+					Endpoint:    url.URL{Scheme: "ftp", Host: "example.com"},
 					Verb:        POST,
 					ContentType: "application/json",
 				},
 			},
 			wantErr: true,
 		},
-		// {
-		// 	name: "invalid verb in metrics config",
-		// 	config: Config{
-		// 		MetricsConfig: &SignalConfig{
-		// 			Endpoint:    "https://example.com",
-		// 			Verb:        "GET",
-		// 			ContentType: "application/json",
-		// 		},
-		// 	},
-		// 	wantErr: true,
-		// },
-		// {
-		// 	name: "missing content type in traces config",
-		// 	config: Config{
-		// 		TracesConfig: &SignalConfig{
-		// 			Endpoint: "https://example.com",
-		// 			Verb:     POST,
-		// 		},
-		// 	},
-		// 	wantErr: true,
-		// },
 		{
 			name: "valid config with TLS settings",
 			config: Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    "https://example.com",
+					Endpoint:    url.URL{Scheme: "https", Host: "example.com"},
 					Verb:        POST,
 					ContentType: "application/json",
 					TLSSetting:  &configtls.ClientConfig{},
@@ -237,7 +137,7 @@ func TestConfig_Validate(t *testing.T) {
 			name: "valid config with limit",
 			config: Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    "https://example.com",
+					Endpoint:    url.URL{Scheme: "https", Host: "example.com"},
 					Verb:        POST,
 					ContentType: "application/json",
 					QueueBatchConfig: exporterhelper.QueueBatchConfig{
@@ -251,7 +151,7 @@ func TestConfig_Validate(t *testing.T) {
 			name: "valid config with zero limit",
 			config: Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    "https://example.com",
+					Endpoint:    url.URL{Scheme: "https", Host: "example.com"},
 					Verb:        POST,
 					ContentType: "application/json",
 					QueueBatchConfig: exporterhelper.QueueBatchConfig{
@@ -265,7 +165,7 @@ func TestConfig_Validate(t *testing.T) {
 			name: "valid config with negative limit",
 			config: Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    "https://example.com",
+					Endpoint:    url.URL{Scheme: "https", Host: "example.com"},
 					Verb:        POST,
 					ContentType: "application/json",
 					QueueBatchConfig: exporterhelper.QueueBatchConfig{

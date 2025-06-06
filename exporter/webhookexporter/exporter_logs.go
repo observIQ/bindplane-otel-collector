@@ -158,7 +158,7 @@ func (le *logsExporter) sendLogs(ctx context.Context, logs []any) error {
 		return fmt.Errorf("failed to marshal logs: %w", err)
 	}
 
-	request, err := http.NewRequestWithContext(ctx, string(le.cfg.LogsConfig.Verb), string(le.cfg.LogsConfig.Endpoint), bytes.NewBuffer(body))
+	request, err := http.NewRequestWithContext(ctx, string(le.cfg.LogsConfig.Verb), le.cfg.LogsConfig.Endpoint.String(), bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
