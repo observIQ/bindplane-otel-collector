@@ -16,7 +16,13 @@
 
 set -e
 
-BDOT_CONFIG_HOME="/opt/observiq-otel-collector"
+# Read's optional package overrides. Users should deploy the override
+# file before installing BDOT for the first time. The override should
+# not be modified unless uninstalling and re-installing.
+[ -f /etc/default/observiq-otel-collector ] && . /etc/default/observiq-otel-collector
+[ -f /etc/sysconfig/observiq-otel-collector ] && . /etc/sysconfig/observiq-otel-collector
+
+: "${BDOT_CONFIG_HOME:=/opt/observiq-otel-collector}"
 
 install() {
     mkdir -p "${BDOT_CONFIG_HOME}"
@@ -60,10 +66,10 @@ Type=simple
 User=root
 Group=observiq-otel-collector
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
-Environment=OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
-Environment=OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
-WorkingDirectory=/opt/observiq-otel-collector
-ExecStart=/opt/observiq-otel-collector/observiq-otel-collector --config config.yaml
+Environment=OIQ_OTEL_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
+Environment=OIQ_OTEL_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
+WorkingDirectory=${BDOT_CONFIG_HOME}
+ExecStart=${BDOT_CONFIG_HOME}/observiq-otel-collector --config config.yaml
 LimitNOFILE=65000
 SuccessExitStatus=0
 TimeoutSec=20
@@ -156,14 +162,14 @@ fi
 # considered a success.
 
 BINARY=observiq-otel-collector
-PROGRAM=/opt/observiq-otel-collector/"\$BINARY"
-START_CMD="nohup /opt/observiq-otel-collector/\$BINARY > /dev/null 2>&1 &"
+PROGRAM=${BDOT_CONFIG_HOME}/"\$BINARY"
+START_CMD="nohup ${BDOT_CONFIG_HOME}/\$BINARY > /dev/null 2>&1 &"
 LOCKFILE=/var/lock/"\$BINARY"
 PIDFILE=/var/run/"\$BINARY".pid
 
 # Exported variables are used by the collector process.
-export OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
-export OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
+export OIQ_OTEL_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
+export OIQ_OTEL_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
 
 RETVAL=0
 start() {
@@ -366,10 +372,10 @@ manage_systemd_service() {
 The "observiq-otel-collector" service has been configured!
 
 The collector's config file can be found here: 
-  /opt/observiq-otel-collector/config.yaml
+  ${BDOT_CONFIG_HOME}/config.yaml
 
 To view logs from the collector, run:
-  sudo tail -F /opt/observiq-otel-collector/log/collector.log
+  sudo tail -F ${BDOT_CONFIG_HOME}/log/collector.log
 
 For more information on configuring the collector, see the docs:
   https://github.com/observIQ/bindplane-otel-collector/tree/main#observiq-opentelemetry-collector
@@ -426,15 +432,15 @@ manage_service() {
 finish_permissions() {
   # Goreleaser does not set plugin file permissions, so do them here
   # We also change the owner of the binary to observiq-otel-collector
-  chown -R observiq-otel-collector:observiq-otel-collector /opt/observiq-otel-collector/observiq-otel-collector /opt/observiq-otel-collector/plugins/*
-  chmod 0640 /opt/observiq-otel-collector/plugins/*
+  chown -R observiq-otel-collector:observiq-otel-collector ${BDOT_CONFIG_HOME}/observiq-otel-collector ${BDOT_CONFIG_HOME}/plugins/*
+  chmod 0640 ${BDOT_CONFIG_HOME}/plugins/*
 
   # Initialize the log file to ensure it is owned by observiq-otel-collector.
   # This prevents the service (running as root) from assigning ownership to
   # the root user. By doing so, we allow the user to switch to observiq-otel-collector
   # user for 'non root' installs.
-  touch /opt/observiq-otel-collector/log/collector.log
-  chown observiq-otel-collector:observiq-otel-collector /opt/observiq-otel-collector/log/collector.log
+  touch ${BDOT_CONFIG_HOME}/log/collector.log
+  chown observiq-otel-collector:observiq-otel-collector ${BDOT_CONFIG_HOME}/log/collector.log
 }
 
 install
