@@ -21,6 +21,10 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   extensions:
     file_storage:
@@ -46,6 +50,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+\+\d{2}:\d{2}) \[(?P<severity>[a-z]+)\] \<(?P<process_id>\d+\.\d+\.\d+)\> (?P<message>.*)'
           timestamp:
@@ -55,6 +60,7 @@ template: |
             parse_from: attributes.severity
             mapping:
               info2: 'noti'
+        {{ end }}
   service:
     extensions: [file_storage]
     pipelines:

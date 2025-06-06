@@ -35,6 +35,11 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
 template: |
   receivers:
     {{if .enable_json_logs}}
@@ -58,6 +63,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: json_parser
           timestamp:
             parse_from: attributes.timestamp
@@ -79,6 +85,7 @@ template: |
                 - ERROR
                 - CRITICAL
               fatal: FATAL
+        {{ end }}
     {{end}}
 
     {{if .enable_gc_logs}}
@@ -99,11 +106,13 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^\[(?P<timestamp>\d+-\d+-\d+T\d+:\d+:\d+.\d+\+\d+)\]\[\d+\]\[(?P<type>[A-z,]+)\s*\]\s*(?:GC\((?P<gc_run>\d+)\))?\s*(?P<message>.*)'
           timestamp:
             parse_from: attributes.timestamp
             layout: '%Y-%m-%dT%H:%M:%S.%s%z'
+        {{ end }}
     {{end}}
 
   service:

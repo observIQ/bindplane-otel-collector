@@ -57,6 +57,10 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   extensions:
     file_storage:
@@ -79,6 +83,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^\[(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\] (?P<severity>[^ ]+) (?P<message>.*)'
           severity:
@@ -93,6 +98,7 @@ template: |
             parse_from: attributes.time
             layout: '%F %T,%L'
             location: {{ .timezone }}
+        {{ end }}
 
         - id: add_type
           type: add
@@ -117,6 +123,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^\[(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\] (?P<severity>[^ ]+) (?P<message>.*)'
           severity:
@@ -131,6 +138,7 @@ template: |
             parse_from: attributes.time
             layout: '%F %T,%L'
             location: {{ .timezone }}
+        {{ end }}
 
         - id: add_type
           type: add
@@ -155,6 +163,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^\[(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\] (?P<severity>[^ ]+) (?P<message>.*)'
           severity:
@@ -169,6 +178,7 @@ template: |
             parse_from: attributes.time
             layout: '%F %T,%L'
             location: {{ .timezone }}
+        {{ end }}
 
         - id: add_type
           type: add
@@ -193,6 +203,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^\[(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\] (?P<severity>[^ ]+) (?P<message>.*)'
           severity:
@@ -207,6 +218,7 @@ template: |
             parse_from: attributes.time
             layout: '%F %T,%L'
             location: {{ .timezone }}
+        {{ end }}
 
         - id: add_type
           type: add

@@ -44,6 +44,11 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
 template: |
   receivers:
     {{ if .enable_master_log }}
@@ -64,6 +69,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           if:  'body matches "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3}\\s+"'
           regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}),\d{3}\s+(?P<hbase_severity>[A-Z]*)\s*?\[(?P<thread>[^\]]*)\]\s(?P<hbase_source>[^:]*):\s(?P<message>(?s).*)'
@@ -79,6 +85,7 @@ template: |
           timestamp:
             parse_from: attributes.timestamp
             layout: '%a %h %d %H:%M:%S %Z %Y'
+        {{ end }}
     {{ end }}
 
     {{ if .enable_region_log }}
@@ -99,6 +106,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           if:  'body matches "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3}\\s+"'
           regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}),\d{3}\s+(?P<hbase_severity>[A-Z]*)\s*?\[(?P<thread>[^\]]*)\]\s(?P<hbase_source>[^:]*):\s(?P<message>(?s).*)'
@@ -114,6 +122,7 @@ template: |
           timestamp:
             parse_from: attributes.timestamp
             layout: '%a %h %d %H:%M:%S %Z %Y'
+        {{ end }}
     {{ end }}
 
     {{ if .enable_zookeeper_log }}
@@ -134,6 +143,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           if:  'body matches "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3}\\s+"'
           regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}),\d{3}\s+(?P<hbase_severity>[A-Z]*)\s*?\[(?P<thread>[^\]]*)\]\s(?P<hbase_source>[^:]*):\s(?P<message>(?s).*)'
@@ -149,6 +159,7 @@ template: |
           timestamp:
             parse_from: attributes.timestamp
             layout: '%a %h %d %H:%M:%S %Z %Y'
+        {{ end }}
     {{ end }}
 
   service:

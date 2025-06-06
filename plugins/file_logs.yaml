@@ -73,6 +73,11 @@ parameters:
     description: The directory that the offset storage file will be created
     type: string
     default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
 template: |
   extensions:
     file_storage:
@@ -102,12 +107,12 @@ template: |
           from: body
           to: attributes.raw_log
         {{ end }}
-        {{ if (eq .parse_format "json")}}
+        {{ if and .parse (eq .parse_format "json") }}
         - type: json_parser
           parse_to: {{ .parse_to }}
         {{ end }}
 
-        {{ if (eq .parse_format "regex")}}
+        {{ if and .parse (eq .parse_format "regex") }}
         - type: regex_parser
           regex: {{ .regex_pattern }}
           parse_to: {{ .parse_to }}
