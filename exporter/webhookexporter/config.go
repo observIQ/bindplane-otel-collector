@@ -64,8 +64,6 @@ func (v *HTTPVerb) unmarshalText(text []byte) error {
 // Config defines the configuration for the webhookexporter
 type Config struct {
 	LogsConfig *SignalConfig `mapstructure:"logs,omitempty"`
-	//MetricsConfig *SignalConfig `mapstructure:"metrics,omitempty"`
-	//TracesConfig  *SignalConfig `mapstructure:"traces,omitempty"`
 }
 
 // SignalConfig defines the configuration for a single signal type (logs, metrics, traces)
@@ -133,19 +131,7 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("logs config validation failed: %w", err)
 		}
 	}
-	// if c.MetricsConfig != nil {
-	// 	if err := c.MetricsConfig.Validate(); err != nil {
-	// 		return err
-	// 	}
-	// }
-	// if c.TracesConfig != nil {
-	// 	if err := c.TracesConfig.Validate(); err != nil {
-	// 		return err
-	// 	}
-	// }
-	// if c.LogsConfig == nil && c.MetricsConfig == nil && c.TracesConfig == nil {
-	// 	return fmt.Errorf("at least one signal config is required")
-	// }
+	
 	if c.LogsConfig == nil {
 		return fmt.Errorf("logs config is required")
 	}
