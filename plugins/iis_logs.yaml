@@ -72,6 +72,11 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
 template: |
   extensions:
     file_storage:
@@ -122,6 +127,7 @@ template: |
         to: attributes.raw_log
       {{ end }}
 
+      {{ if .parse }}
       - type: csv_parser
         {{ if .w3c_header }}
         header: '{{ .w3c_header }}'
@@ -175,6 +181,7 @@ template: |
         parse_from: {{ .parse_to }}.timestamp
         layout: '%Y-%m-%d %H:%M:%S'
         location: {{.timezone}}
+      {{ end }}
 
       - id: add_log_type
         type: add
@@ -222,6 +229,7 @@ template: |
         from: body
         to: attributes.raw_log
       {{ end }}
+      {{ if .parse }}
       - type: regex_parser
         regex: '^(?P<c_ip>[^,]+), (?P<cs_username>[^,]+), (?P<date>[^,]+), (?P<time>[^,]+), (?P<s_sitename>[^,]+), (?P<s_computername>[^,]+), (?P<s_ip>[^,]+), (?P<time_taken>[^,]+), (?P<cs_bytes>[^,]+), (?P<sc_bytes>[^,]+), (?P<sc_status>[^,]+), (?P<sc_win32_status>[^,]+), (?P<cs_method>[^,]+), (?P<cs_uri_stem>[^,]+), (?P<cs_uri_query>[^,]+),$'
         parse_to: {{ .parse_to }}
@@ -257,18 +265,20 @@ template: |
         parse_from: {{ .parse_to }}.timestamp
         layout: '%q/%g/%Y %H:%M:%S'
         location: {{.timezone}}
+      {{ end }}
 
       - id: add_log_type
         type: add
         field: 'attributes.log_type'
         value: 'microsoft_iis'
-      
+
       {{ if and .retain_raw_logs (eq .parse_to "body")}}
       - id: move_raw_log
         type: move
         from: attributes.raw_log
         to: body.raw_log
       {{ end }}
+
     {{end}}
 
     # NCSA format
@@ -304,6 +314,7 @@ template: |
         from: body
         to: attributes.raw_log
       {{ end }}
+      {{ if .parse }}
       - type: regex_parser
         # Note: The second, uncaptured group here is "Remote log name". This value is always "-" in IIS, so we don't include it
         regex: '^(?P<c_ip>[^\s]+) (?:[^\s]+) (?P<cs_username>[^\s]+) \[(?P<timestamp>[^]]+)\] "(?P<cs_method>[^\s]+) (?P<cs_uri_stem>[^\s?]+)(?:\?(?P<cs_uri_query>[^\s]+))? (?P<cs_version>[^\s]+)" (?P<sc_status>[^\s]+) (?P<sc_bytes>[^\s]+)$'
@@ -318,6 +329,8 @@ template: |
         timestamp:
           parse_from: {{ .parse_to }}.timestamp
           layout: '%d/%b/%Y:%H:%M:%S %z'
+
+      {{ end }}
       
       - id: add_log_type
         type: add

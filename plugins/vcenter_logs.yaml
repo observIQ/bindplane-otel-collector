@@ -42,6 +42,10 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   receivers:
     tcplog:
@@ -68,6 +72,7 @@ template: |
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         # vcenter will (sometimes) prepend an id to the messages, check
         # for the id and drop it if it exists
         # example: '257 <14>1. . . '
@@ -151,6 +156,7 @@ template: |
           type: move
           from: attributes.raw_log
           to: body.raw_log
+        {{ end }}
         {{ end }}
   service:
     pipelines:

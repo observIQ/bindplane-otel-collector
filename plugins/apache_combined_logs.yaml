@@ -30,7 +30,7 @@ parameters:
     type: bool
     default: false
   - name: parse
-    description: When enabled, parses the log fields into structured data. When disabled, sends the raw log message in the body field.
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
     type: bool
     default: true
 
