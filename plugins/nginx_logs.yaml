@@ -63,6 +63,10 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   extensions:
     file_storage:
@@ -86,6 +90,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         {{ if eq .log_format "default" }}
         - type: regex_parser
           regex: '^(?P<http_request_remoteIp>[^ ]*) (?P<host>[^ ]*) (?P<user>[^ ]*) \[(?P<time_local>[^\]]*)\] "(?P<http_request_requestMethod>\S+)(?: +(?P<http_request_requestUrl>[^\"]*?)(?: +(?P<http_request_protocol>\S+))?)?" (?P<http_request_status>[^ ]*) (?P<http_request_responseSize>[^ ]*)(?: "(?P<http_request_referer>[^\"]*)" "(?P<http_request_userAgent>[^\"]*)")?$'
@@ -135,6 +140,7 @@ template: |
             - attributes.http_request_requestUrl
             - attributes.request_time
         {{ end }}
+        {{ end }}
     {{end}} # end access log receiver
 
     {{ if .enable_error_log }}
@@ -155,6 +161,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<time>\d+[./-]\d+[./-]\d+[- ]\d+:\d+:\d+) \[(?P<log_level>[^\]]*)\] (?P<pid>\d+)#(?P<tid>\d+):(?: \*(?P<connection>\d+))? (?P<message>.*?)(?:, client: (?P<client>[^,]+))?(?:, server: (?P<server>[^,]+))?(?:, request: "(?P<request>[^"]*)")?(?:, subrequest: \"(?P<subrequest>[^\"]*)\")?(?:, upstream: \"(?P<upstream>[^"]*)\")?(?:, host: \"(?P<host>[^\"]*)\")?(?:, referrer: \"(?P<referer>[^"]*)\")?$'
           timestamp:
@@ -165,6 +172,7 @@ template: |
             mapping:
               error2: crit
               error3: emerg
+        {{ end }}
     {{end}} # end error log receiver
 
   service:

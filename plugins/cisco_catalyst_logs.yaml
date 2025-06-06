@@ -22,6 +22,10 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 
 template: |
   receivers:
@@ -37,6 +41,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - id: regex_router
           type: router
           default: catalyst_parser
@@ -69,7 +74,7 @@ template: |
               warn: 5
               info: 6
               debug: 7
-
+        {{ end }}
 
   service:
     pipelines:

@@ -27,6 +27,10 @@ parameters:
       - body
       - attributes
     default: body
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   receivers:
     journald:
@@ -51,6 +55,7 @@ template: |
             from: body
             to: attributes.raw_log
           {{ end }}
+          {{ if .parse }}
           # Parse kubelet klog formatted message
           - type: regex_parser
             regex: '(?P<severity>\w)(?P<timestamp>\d{4} \d{2}:\d{2}:\d{2}.\d+)\s+(?P<pid>\d+)\s+(?P<src>[^:]*):(?P<src_line>[^\]]*)\] (?P<message>.*)'
@@ -67,6 +72,7 @@ template: |
               parse_from: {{ .parse_to }}.timestamp
               layout: '%m%d %H:%M:%S.%s'
               location: {{ .timezone }}
+          {{ end }}
           - type: add
             field: attributes.log_type
             value: kubelet

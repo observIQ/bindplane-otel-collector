@@ -55,6 +55,10 @@ parameters:
     description: The directory that the offset storage file will be created
     type: string
     default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 
 template: |
   extensions:
@@ -78,6 +82,7 @@ template: |
           {{end}}
         poll_interval: 500ms
         operators:
+          {{ if .parse }}
           {{ if eq .log_driver "auto" }}
           - type: router
             routes:
@@ -192,6 +197,7 @@ template: |
           - type: move
             from: attributes.container
             to: resource["k8s.container.name"]
+          {{ end }}
     {{ end }}
 
     {{ if eq .log_source "journald" }}
@@ -199,6 +205,7 @@ template: |
       storage: file_storage
       directory: {{ .journald_path }}
       operators:
+        {{ if .parse }}
         - type: router
           routes:
             - expr: 'body._COMM == "dockerd-current" and body.CONTAINER_NAME != nil'
@@ -243,6 +250,7 @@ template: |
         - type: add
           field: attributes.log_type
           value: container
+        {{ end }}
     {{ end }}
 
   service:

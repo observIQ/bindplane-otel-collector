@@ -40,6 +40,11 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the CSV fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
 template: |
   receivers:
     filelog:
@@ -58,8 +63,10 @@ template: |
       attributes:
         log_type: '{{ .log_type }}'
       operators:
+        {{ if .parse }}
         - type: csv_parser
           header: {{ .header }}
+        {{ end }}
         {{ if .save_log_record_original }}
         - id: save_log_record_original
           type: copy

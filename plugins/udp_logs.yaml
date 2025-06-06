@@ -18,13 +18,19 @@ parameters:
     description: Adds net.transport, net.peer.ip, net.peer.port, net.host.ip and net.host.port attributes
     type: bool
     default: true
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   receivers:
     udplog:
       listen_address: '{{ .listen_ip }}:{{ .listen_port}}'
       attributes:
         log_type: {{.log_type}}
+      {{ if .parse }}
       add_attributes: {{.add_attributes}}
+      {{ end }}
 
   service:
     pipelines:

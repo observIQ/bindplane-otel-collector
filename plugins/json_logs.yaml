@@ -30,6 +30,10 @@ parameters:
       - beginning
       - end
     default: end
+  - name: parse
+    description: When enabled, parses the JSON fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   receivers:
     filelog:
@@ -48,8 +52,10 @@ template: |
       attributes:
         log_type: '{{ .log_type }}'
       operators:
+      {{ if .parse }}
       - type: json_parser
         parse_from: body
+      {{ end }}
 
   service:
     pipelines:

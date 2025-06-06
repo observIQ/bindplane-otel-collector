@@ -34,6 +34,10 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   extensions:
     file_storage:
@@ -63,6 +67,7 @@ template: |
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: router
           default: legacy_parser
           routes:
@@ -161,6 +166,7 @@ template: |
           from: {{ .parse_to }}.attr.message
           to: {{ .parse_to }}.message
           output: add_log_type
+        {{ end }}
           
         - id: add_log_type
           type: add

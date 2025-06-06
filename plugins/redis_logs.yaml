@@ -31,6 +31,10 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   extensions:
     file_storage:
@@ -54,6 +58,7 @@ template: |
           from: body
           to: attributes["log.record.original"] 
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^\[?(?P<pid>\d+):?(?P<role>[A-Z])?\]?\s+(?P<timestamp>\d{2}\s+\w+(?:\s+\d{4})?\s+\d{2}:\d{2}:\d{2}.\d{3})\s+(?P<level>[\*|#|\-|\.])\s+(?P<message>.*)'
           severity:
@@ -120,6 +125,7 @@ template: |
           field: attributes.role
           value: 'master'
           output: add_type
+        {{ end }}
 
         - id: add_type
           type: add

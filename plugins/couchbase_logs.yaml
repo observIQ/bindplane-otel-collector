@@ -76,6 +76,11 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
 template: |
   receivers:
     {{ if .enable_error_log}}
@@ -96,6 +101,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^\[(?P<type>[^:]*):(?P<couchbase_severity>[^,]*),(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+-\d{2}:\d{2}),(?P<node>[^@]*)@(?P<host>[^:]*):(?P<source>[^\]]+)\](?P<message>(?s).*[^\n\s])[\n\s]*$'
           timestamp:
@@ -103,6 +109,7 @@ template: |
             layout: '%Y-%m-%dT%H:%M:%S.%L%j'
           severity:
             parse_from: attributes.couchbase_severity
+        {{ end }}
     {{ end }} ## end error log receiver
 
     {{ if .enable_debug_log}}
@@ -123,6 +130,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^\[(?P<type>[^:]*):(?P<couchbase_severity>[^,]*),(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+-\d{2}:\d{2}),(?P<node>[^@]*)@(?P<host>[^:]*):(?P<source>[^\]]+)\](?P<message>(?s).*[^\n\s])[\n\s]*$'
           timestamp:
@@ -130,6 +138,7 @@ template: |
             layout: '%Y-%m-%dT%H:%M:%S.%L%j'
           severity:
             parse_from: attributes.couchbase_severity
+        {{ end }}
     {{ end }} ## end debug log receiver
 
     {{ if .enable_info_log}}
@@ -150,6 +159,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^\[(?P<type>[^:]*):(?P<couchbase_severity>[^,]*),(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+-\d{2}:\d{2}),(?P<node>[^@]*)@(?P<host>[^:]*):(?P<source>[^\]]+)\](?P<message>(?s).*[^\n\s])[\n\s]*$'
           timestamp:
@@ -157,6 +167,7 @@ template: |
             layout: '%Y-%m-%dT%H:%M:%S.%L%j'
           severity:
             parse_from: attributes.couchbase_severity
+        {{ end }}
     {{ end }} ## end info log receiver
 
     {{ if .enable_access_log}}
@@ -175,6 +186,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '(?P<ip_address>\d+.\d+.\d+.\d+)\s+(?P<user_identifier>.*) \[(?P<timestamp>\d{2}\/\w+\/\d{4}:\d{2}:\d{2}:\d{2} -\d{4})\] \\*"(?P<request_line>[^"]*)\\*" (?P<status>\d{3}) (?P<size>\d*) *-*(?P<message>.*)'
           timestamp:
@@ -188,6 +200,7 @@ template: |
               info2: 3xx
               warn: 4xx
               error: 5xx
+        {{ end }}
     {{ end }} ## end http access log receiver
 
     {{ if .enable_internal_access_log}}
@@ -206,6 +219,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '(?P<ip_address>\d+.\d+.\d+.\d+)\s+(?P<user_identifier>.*) \[(?P<timestamp>\d{2}\/\w+\/\d{4}:\d{2}:\d{2}:\d{2} -\d{4})\] \\*"(?P<request_line>[^"]*)\\*" (?P<status>\d{3}) (?P<size>\d*) *-*(?P<message>.*)'
           timestamp:
@@ -219,8 +233,8 @@ template: |
               info2: 3xx
               warn: 4xx
               error: 5xx
+        {{ end }}
     {{ end }} ## end internal access log receiver
-
 
     {{ if .enable_babysitter_log}}
     filelog/babysitter_logs:
@@ -240,6 +254,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^\[(?P<type>[^:]*):(?P<couchbase_severity>[^,]*),(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+-\d{2}:\d{2}),(?P<node>[^@]*)@(?P<host>[^:]*):(?P<source>[^\]]+)\](?P<message>(?s).*[^\n\s])[\n\s]*$'
           timestamp:
@@ -247,6 +262,7 @@ template: |
             layout: '%Y-%m-%dT%H:%M:%S.%L%j'
           severity:
             parse_from: attributes.couchbase_severity
+        {{ end }}
     {{ end }} ## end babysitter log receiver
 
     {{ if .enable_xdcr_logs}}
@@ -267,6 +283,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d*-\d{2}:\d{2}) (?P<couchbase_severity>[^ ]*) (?P<type>[^:]*):* (?P<message>.*)'
           timestamp:
@@ -274,12 +291,13 @@ template: |
             layout: '%Y-%m-%dT%H:%M:%S.%L%j'
           severity:
             parse_from: attributes.couchbase_severity
+        {{ end }}
     {{ end }} ## end xdcr log receiver
 
   service:
     pipelines:
       logs:
-        receivers: 
+        receivers:
           {{ if .enable_error_log }}
           - filelog/error_logs
           {{ end }}

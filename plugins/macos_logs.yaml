@@ -35,6 +35,10 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   extensions:
     file_storage:
@@ -59,12 +63,14 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<timestamp>\w{3}\s*\d{1,2} \d{2}:\d{2}:\d{2}) (---|(?P<host>[^ ]*))? ((?P<process>[^\[]*)\[(?P<pid>[^\]]*)\])?( \((?P<subprocess>[^\[]*)(\[(?P<spid>[^\]]*)\])?\))?(: )?(?P<message>[\w\W]*)'
           timestamp:
             parse_from: attributes.timestamp
             layout_type: gotime
             layout: 'Jan _2 15:04:05'
+        {{ end }}
     {{ end }} ## .enable_system_log
 
     {{ if .enable_install_log }}
@@ -78,6 +84,7 @@ template: |
         line_start_pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}[+-]\d{2}|^\w{3}\s*\d{1,2} \d{2}:\d{2}:\d{2}'
       start_at: {{ .start_at }}
       operators:
+        {{ if .parse }}
         - id: id_router
           type: router
           routes:
@@ -101,6 +108,7 @@ template: |
             layout_type: gotime
             layout: 'Jan _2 15:04:05'
           output: add_type
+        {{ end }}
         - id: add_type
           type: add
           field: attributes.log_type

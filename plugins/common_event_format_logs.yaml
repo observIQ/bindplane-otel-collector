@@ -29,7 +29,10 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
-
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   receivers:
     filelog:
@@ -49,6 +52,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<timestamp>\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+((?P<hostname>[^\s]+)\s+)?(?P<cef_headers>[\d\D]+)'
           timestamp:
@@ -93,7 +97,7 @@ template: |
           type: add
           field: attributes.log_type
           value: {{ .log_type }}
-
+        {{ end }}
   service:
     pipelines:
       logs:

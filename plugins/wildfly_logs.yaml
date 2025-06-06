@@ -44,6 +44,10 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   extensions:
     file_storage:
@@ -61,6 +65,13 @@ template: |
       attributes:
         log_type: wildfly.standalone
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
         - id: wildfly_parser
           type: regex_parser
           regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+(?P<level>\w+)(?:\s+\[(?P<source>.+?)\])?(?:\s+\((?P<thread>.+?)\))?\s+(?P<message>(?:(?P<messageCode>[\d\w]+):)?[^\n]*)'
@@ -70,6 +81,7 @@ template: |
             location: {{ .timezone }}
           severity:
             parse_from: attributes.level
+        {{ end }}
     
     filelog/domain_server:
       storage: file_storage
@@ -89,6 +101,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - id: wildfly_parser
           type: regex_parser
           regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+(?P<level>\w+)(?:\s+\[(?P<source>.+?)\])?(?:\s+\((?P<thread>.+?)\))?\s+(?P<message>(?:(?P<messageCode>[\d\w]+):)?[^\n]*)'
@@ -98,6 +111,7 @@ template: |
             location: {{ .timezone }}
           severity:
             parse_from: attributes.level
+        {{ end }}
 
     filelog/domain_controller:
       storage: file_storage
@@ -117,6 +131,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - id: wildfly_parser
           type: regex_parser
           regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+(?P<level>\w+)(?:\s+\[(?P<source>.+?)\])?(?:\s+\((?P<thread>.+?)\))?\s+(?P<message>(?:(?P<messageCode>[\d\w]+):)?[^\n]*)'
@@ -126,6 +141,7 @@ template: |
             location: {{ .timezone }}
           severity:
             parse_from: attributes.level
+        {{ end }}
 
   service:
     extensions: [file_storage]

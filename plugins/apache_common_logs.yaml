@@ -29,6 +29,10 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   receivers:
     filelog:
@@ -50,6 +54,7 @@ template: |
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<remote_addr>[^ ]*) (?P<remote_host>[^ ]*) (?P<remote_user>[^ ]*) \[(?P<time>[^\]]*)\] "(?P<method>\S+) +(?P<path>[^ ]*)( (?P<protocol>[^/]*)/(?P<protocol_version>[^\"]*)|[^\"]*)?" (?P<status>[^ ]*) (?P<body_bytes_sent>[^ ]*)(?: "(?P<http_referer>[^\"]*)" "(?P<http_user_agent>[^\"]*)"(?:\s+(?P<http_x_forwarded_for>[^ ]+))?)?'
           parse_to: {{ .parse_to }}
@@ -73,6 +78,7 @@ template: |
           type: move
           from: attributes.raw_log
           to: body.raw_log
+        {{ end }}
         {{ end }}
 
   service:
