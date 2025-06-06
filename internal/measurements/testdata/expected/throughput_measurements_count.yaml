@@ -29,6 +29,15 @@ resourceMetrics:
                       value:
                         stringValue: throughputmeasurement/1
                   timeUnixNano: "1000000"
+          - name: otelcol_processor_throughputmeasurement_raw_bytes
+            sum:
+              dataPoints:
+                - asInt: "4746"
+                  attributes:
+                    - key: processor
+                      value:
+                        stringValue: throughputmeasurement/1
+                  timeUnixNano: "1000000"
           - name: otelcol_processor_throughputmeasurement_log_count
             sum:
               dataPoints:
