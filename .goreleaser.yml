@@ -109,12 +109,6 @@ archives:
       - src: release_deps/windows_service.json
         dst: install
         strip_parent: true
-      - src: release_deps/observiq-otel-collector.service
-        dst: "install"
-        strip_parent: true
-      - src: release_deps/observiq-otel-collector
-        dst: "install"
-        strip_parent: true
     format_overrides:
       - goos: windows
         format: zip
@@ -144,6 +138,12 @@ nfpms:
       # behavior.
       - dst: /etc/sysconfig/observiq-otel-collector
         type: ghost
+      # Service files previously managed by the package.
+      - dst: /usr/lib/systemd/system/observiq-otel-collector.service
+        type: ghost
+      - dst: /etc/init.d/observiq-otel-collector
+        type: ghost
+      # All other files previously managed by the package
       - dst: /opt/observiq-otel-collector/observiq-otel-collector
         type: ghost
       - dst: /opt/observiq-otel-collector/updater
@@ -329,20 +329,6 @@ nfpms:
           mode: 0750
           owner: observiq-otel-collector
           group: observiq-otel-collector
-      - src: service/observiq-otel-collector.service
-        dst: /usr/lib/systemd/system/observiq-otel-collector.service
-        type: config|noreplace
-        file_info:
-          mode: 0644
-          owner: root
-          group: root
-      - src: service/observiq-otel-collector
-        dst: /etc/init.d/observiq-otel-collector
-        type: config|noreplace
-        file_info:
-          mode: 0755
-          owner: root
-          group: root
     scripts:
       preinstall: ./scripts/package/preinstall.sh
       postinstall: ./scripts/package/postinstall.sh
