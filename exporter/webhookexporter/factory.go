@@ -43,8 +43,6 @@ func createDefaultConfig() component.Config {
 			Verb:        POST,
 			ContentType: "application/json",
 		},
-		//MetricsConfig: nil,
-		//TracesConfig:  nil,
 	}
 }
 
