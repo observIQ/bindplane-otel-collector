@@ -18,10 +18,12 @@ set -e
 
 BDOT_CONFIG_HOME="/opt/observiq-otel-collector"
 
+username="bdot"
+
 install() {
     mkdir -p "${BDOT_CONFIG_HOME}"
     chmod 0755 "${BDOT_CONFIG_HOME}"
-    chown observiq-otel-collector:observiq-otel-collector "${BDOT_CONFIG_HOME}"
+    chown "$username:$username" "${BDOT_CONFIG_HOME}"
     rm -f "${BDOT_CONFIG_HOME}/observiq-otel-collector" || true
     cp -r --preserve \
       /usr/share/observiq-otel-collector/stage/observiq-otel-collector/* \
@@ -58,7 +60,7 @@ StartLimitBurst=5
 [Service]
 Type=simple
 User=root
-Group=observiq-otel-collector
+Group=${username}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
 Environment=OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
@@ -426,7 +428,7 @@ manage_service() {
 finish_permissions() {
   # Goreleaser does not set plugin file permissions, so do them here
   # We also change the owner of the binary to observiq-otel-collector
-  chown -R observiq-otel-collector:observiq-otel-collector /opt/observiq-otel-collector/observiq-otel-collector /opt/observiq-otel-collector/plugins/*
+  chown -R "$username:$username" /opt/observiq-otel-collector/observiq-otel-collector /opt/observiq-otel-collector/plugins/*
   chmod 0640 /opt/observiq-otel-collector/plugins/*
 
   # Initialize the log file to ensure it is owned by observiq-otel-collector.
@@ -434,7 +436,7 @@ finish_permissions() {
   # the root user. By doing so, we allow the user to switch to observiq-otel-collector
   # user for 'non root' installs.
   touch /opt/observiq-otel-collector/log/collector.log
-  chown observiq-otel-collector:observiq-otel-collector /opt/observiq-otel-collector/log/collector.log
+  chown "$username:$username" /opt/observiq-otel-collector/log/collector.log
 }
 
 install
