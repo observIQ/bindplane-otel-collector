@@ -128,7 +128,7 @@ func TestConfig_Validate(t *testing.T) {
 					Endpoint:    url.URL{Scheme: "https", Host: "example.com"},
 					Verb:        POST,
 					ContentType: "application/json",
-					TLSSetting:  &configtls.ClientConfig{},
+					TLS:         &configtls.ClientConfig{},
 				},
 			},
 			wantErr: false,

@@ -79,8 +79,8 @@ type SignalConfig struct {
 	// This field is required
 	ContentType string `mapstructure:"content_type"`
 
-	// TLSSetting struct exposes TLS client configuration.
-	TLSSetting *configtls.ClientConfig `mapstructure:"tls"`
+	// TLS struct exposes TLS client configuration.
+	TLS *configtls.ClientConfig `mapstructure:"tls"`
 }
 
 // Validate checks if the configuration is valid
@@ -103,8 +103,8 @@ func (c *SignalConfig) Validate() error {
 		return fmt.Errorf("invalid verb: %w", err)
 	}
 
-	if c.TLSSetting != nil {
-		if err := c.TLSSetting.Validate(); err != nil {
+	if c.TLS != nil {
+		if err := c.TLS.Validate(); err != nil {
 			return fmt.Errorf("invalid tls setting: %w", err)
 		}
 	}
