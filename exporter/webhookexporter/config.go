@@ -118,9 +118,7 @@ func (c *Config) Validate() error {
 		if err := c.LogsConfig.Validate(); err != nil {
 			return fmt.Errorf("logs config validation failed: %w", err)
 		}
-	}
-
-	if c.LogsConfig == nil {
+	} else {
 		return fmt.Errorf("logs config is required")
 	}
 	return nil
