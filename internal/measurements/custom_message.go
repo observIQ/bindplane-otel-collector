@@ -15,6 +15,7 @@
 package measurements
 
 import (
+	"fmt"
 	"time"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -55,6 +56,7 @@ func OTLPThroughputMeasurements(tm *ThroughputMeasurements, includeCountMetrics 
 	addOTLPSum(s, "otelcol_processor_throughputmeasurement_log_data_size", tm.LogSize(), attrs, ts)
 	addOTLPSum(s, "otelcol_processor_throughputmeasurement_metric_data_size", tm.MetricSize(), attrs, ts)
 	addOTLPSum(s, "otelcol_processor_throughputmeasurement_trace_data_size", tm.TraceSize(), attrs, ts)
+	addOTLPSum(s, "otelcol_processor_throughputmeasurement_raw_bytes", tm.RawBytes(), attrs, ts)
 
 	if includeCountMetrics {
 		addOTLPSum(s, "otelcol_processor_throughputmeasurement_log_count", tm.LogCount(), attrs, ts)
@@ -80,4 +82,11 @@ func addOTLPSum(ms pmetric.MetricSlice, name string, value int64, attrs pcommon.
 	dp.SetIntValue(value)
 	attrs.CopyTo(dp.Attributes())
 	dp.SetTimestamp(now)
+
+	// Print metric details
+	fmt.Printf("Metric: %s, Value: %d\n", name, value)
+	attrs.Range(func(k string, v pcommon.Value) bool {
+		fmt.Printf("  Attribute: %s = %s\n", k, v.AsString())
+		return true
+	})
 }
