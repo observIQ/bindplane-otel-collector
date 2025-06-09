@@ -32,7 +32,7 @@ resourceMetrics:
           - name: otelcol_processor_throughputmeasurement_raw_bytes
             sum:
               dataPoints:
-                - asInt: "4746"
+                - asInt: "2373"
                   attributes:
                     - key: processor
                       value:

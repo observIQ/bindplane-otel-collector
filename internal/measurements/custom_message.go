@@ -15,7 +15,6 @@
 package measurements
 
 import (
-	"fmt"
 	"time"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -83,10 +82,4 @@ func addOTLPSum(ms pmetric.MetricSlice, name string, value int64, attrs pcommon.
 	attrs.CopyTo(dp.Attributes())
 	dp.SetTimestamp(now)
 
-	// Print metric details
-	fmt.Printf("Metric: %s, Value: %d\n", name, value)
-	attrs.Range(func(k string, v pcommon.Value) bool {
-		fmt.Printf("  Attribute: %s = %s\n", k, v.AsString())
-		return true
-	})
 }
