@@ -18,11 +18,11 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser-pro
-          version: "v2.1.0"
+          version: "v2.8.2"
           args: build --single-target --skip=validate --clean --snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
