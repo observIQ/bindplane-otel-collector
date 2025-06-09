@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"net/url"
 
-	"go.opentelemetry.io/collector/config/configauth"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
@@ -71,9 +70,6 @@ type SignalConfig struct {
 	// ContentType specifies the Content-Type header for the webhook requests
 	// This field is required
 	ContentType string `mapstructure:"content_type"`
-
-	// ConfigAuth contains the authentication configuration for the webhook requests
-	ConfigAuth *configauth.Config `mapstructure:"auth"`
 }
 
 // Validate checks if the configuration is valid
