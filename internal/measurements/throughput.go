@@ -150,14 +150,12 @@ func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs) {
 
 				// Record raw bytes if log.record.original is present
 				if original, ok := logRecord.Attributes().Get("log.record.original"); ok {
-					// fmt.Println("ORIGINAL", original.Str())
 					logRecordRawBytes := int64(len(original.Str()))
 
 					rawBytes += logRecordRawBytes
 				} else {
 					// If log.record.original is not present, use the body as the raw bytes
 					body := logRecord.Body().AsString()
-					// fmt.Println("BODY", body)
 					logRecordRawBytes := int64(len(body))
 					rawBytes += logRecordRawBytes
 				}
