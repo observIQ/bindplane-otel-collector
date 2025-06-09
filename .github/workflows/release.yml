@@ -16,7 +16,7 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: "**/go.sum"
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser-pro
@@ -145,7 +145,7 @@ jobs:
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
           version: "v2.8.2"
