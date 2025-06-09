@@ -51,7 +51,7 @@ func createDefaultConfig() component.Config {
 func createLogsExporter(ctx context.Context, params exporter.Settings, config component.Config) (exporter.Logs, error) {
 	cfg, ok := config.(*Config)
 	if !ok {
-		return nil, errors.New("not a Webhook config")
+		return nil, errors.New("invalid configuration: expected *Config for Webhook exporter, but got a different type")
 	}
 	if err := cfg.Validate(); err != nil {
 		return nil, err
