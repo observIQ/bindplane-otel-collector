@@ -13,6 +13,7 @@ Log parser for CSV
 | encoding | Specify the encoding of the file(s) being read. In most cases, you can leave the default option selected | string | `utf-8` | false | `nop`, `utf-8`, `utf-16le`, `utf-16be`, `ascii`, `big5` |
 | log_type | Adds the specified 'Type' as a label to each log message | string | `csv` | false |  |
 | save_log_record_original | Enable to preserve the original log message in a `log.record.original` key. | bool | `false` | false |  |
+| parse | When enabled, parses the CSV fields into structured attributes. When disabled, sends the raw log message in the body field. | bool | `true` | false |  |
 
 ## Example Config:
 
@@ -30,4 +31,5 @@ receivers:
       encoding: utf-8
       log_type: csv
       save_log_record_original: false
+      parse: true
 ```

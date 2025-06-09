@@ -34,6 +34,10 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   extensions:
     file_storage:
@@ -61,6 +65,7 @@ template: |
             from: body
             to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
           - id: sap_hana_parser
             type: regex_parser
             regex: '^\[(?P<thread_id>\d+)\]{(?P<connection_id>[^}]+)}\[(?P<transaction_id>[^\/]+)\/(?P<update_transaction_id>[^\]]+)\] (?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+) (?P<sap_severity>[^ ]+) (?P<component>[^ ]+)\s+(?P<source_file>[^ ]+) : (?P<message>.*)'
@@ -76,6 +81,7 @@ template: |
                 warn: w
                 error: e
                 fatal: f
+        {{ end }}
 
   service:
     extensions: [file_storage]

@@ -19,6 +19,10 @@ parameters:
     description: Optional cluster name to be included in logs
     type: string
     default: ""
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   receivers:
       filelog:
@@ -42,6 +46,7 @@ template: |
             from: attributes.log
             to: body
 
+          {{ if .parse }}
           # Detect log type
           - type: router
             routes:
@@ -99,6 +104,7 @@ template: |
             regex: '^(?P<pod_name>[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)_(?P<namespace>[^_]+)_(?P<container_name>.+)-(?P<container_id>[a-z0-9]{64})\.log$'
             parse_from: attributes["log.file.name"]
             output: add_type
+          {{ end }}
 
           - id: add_type
             type: add

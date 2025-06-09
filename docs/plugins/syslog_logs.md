@@ -19,6 +19,7 @@ Log receiver for Syslog
 | data_flow | High mode keeps all entries, low mode filters out log entries with a debug severity of (7) | string | `high` | false | `high`, `low` |
 | retain_raw_logs | When enabled will preserve the original log message in a `raw_log` key. This will either be in the `body` or `attributes` depending on how `parse_to` is configured. | bool | `false` | false |  |
 | parse_to | Where to parse structured log parts | string | `body` | false | `body`, `attributes` |
+| parse | When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field. | bool | `true` | false |  |
 
 ## Example Config:
 
@@ -39,4 +40,5 @@ receivers:
       data_flow: high
       retain_raw_logs: false
       parse_to: body
+      parse: true
 ```

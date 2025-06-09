@@ -33,6 +33,11 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
 template: |
   receivers:
     windowseventlog/general:
@@ -49,6 +54,12 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
+        - id: parse_logs
+          type: regex_parser
+          regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
+          parse_from: body
+        {{ end }}
     windowseventlog/web_services:
       channel: "Active Directory Web Services"
       max_reads: {{ .max_reads }}
@@ -62,6 +73,12 @@ template: |
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: parse_logs
+          type: regex_parser
+          regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
+          parse_from: body
         {{ end }}
     {{ if .enable_dns_server }}
     windowseventlog/dns:
@@ -77,6 +94,12 @@ template: |
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: parse_logs
+          type: regex_parser
+          regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
+          parse_from: body
         {{ end }}
     {{ end }}
     {{ if .enable_dfs_replication }}
@@ -94,6 +117,12 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
+        - id: parse_logs
+          type: regex_parser
+          regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
+          parse_from: body
+        {{ end }}
     {{ end }}
     {{ if .enable_file_replication }}
     windowseventlog/frs:
@@ -109,6 +138,12 @@ template: |
           type: copy
           from: body
           to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
+        - id: parse_logs
+          type: regex_parser
+          regex: '^(?P<timestamp>.*?)\s+(?P<level>.*?)\s+(?P<source>.*?)\s+(?P<event_id>.*?)\s+(?P<message>.*)$'
+          parse_from: body
         {{ end }}
     {{ end }}
 
