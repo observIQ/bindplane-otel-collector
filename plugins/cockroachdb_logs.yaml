@@ -381,7 +381,7 @@ template: |
           to: attributes.raw_log
         {{ end }}
         {{ if .parse }}
-          - type: regex_parser
+        - type: regex_parser
           regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
           parse_to: {{ .parse_to }}
           timestamp:

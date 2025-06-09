@@ -17,6 +17,7 @@ Log parser for Apache Tomcat
 | parse_to | Where to parse structured log parts | string | `body` | false | `body`, `attributes` |
 | offset_storage_dir | The directory that the offset storage file will be created | string | `${env:OIQ_OTEL_COLLECTOR_HOME}/storage` | false |  |
 | save_log_record_original | Enable to preserve the original log message in a `log.record.original` key. | bool | `false` | false |  |
+| parse | When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field. | bool | `true` | false |  |
 
 ## Example Config:
 
@@ -38,4 +39,5 @@ receivers:
       parse_to: body
       offset_storage_dir: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
       save_log_record_original: false
+      parse: true
 ```
