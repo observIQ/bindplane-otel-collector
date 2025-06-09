@@ -224,8 +224,10 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otelarrowreceiver v0.127.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver v0.127.0
 	go.opentelemetry.io/collector/component/componenttest v0.127.0
+	go.opentelemetry.io/collector/config/configauth v0.127.0
+	go.opentelemetry.io/collector/config/confighttp v0.127.0
+	go.opentelemetry.io/collector/config/configopaque v1.33.0
 	go.opentelemetry.io/collector/config/configretry v1.33.0
-	go.opentelemetry.io/collector/config/configtls v1.33.0
 	go.opentelemetry.io/collector/exporter/exportertest v0.127.0
 	go.opentelemetry.io/collector/extension/extensiontest v0.127.0
 	go.opentelemetry.io/collector/processor/processorhelper v0.127.0
@@ -543,14 +545,12 @@ require (
 	go.opentelemetry.io/collector v0.127.0 // indirect
 	go.opentelemetry.io/collector/client v1.33.0 // indirect
 	go.opentelemetry.io/collector/component/componentstatus v0.127.0 // indirect
-	go.opentelemetry.io/collector/config/configauth v0.127.0 // indirect
 	go.opentelemetry.io/collector/config/configcompression v1.33.0 // indirect
 	go.opentelemetry.io/collector/config/configgrpc v0.127.0 // indirect
-	go.opentelemetry.io/collector/config/confighttp v0.127.0 // indirect
 	go.opentelemetry.io/collector/config/configmiddleware v0.127.0 // indirect
 	go.opentelemetry.io/collector/config/confignet v1.33.0 // indirect
-	go.opentelemetry.io/collector/config/configopaque v1.33.0 // indirect
 	go.opentelemetry.io/collector/config/configtelemetry v0.127.0 // indirect
+	go.opentelemetry.io/collector/config/configtls v1.33.0 // indirect
 	go.opentelemetry.io/collector/confmap/xconfmap v0.127.0 // indirect
 	go.opentelemetry.io/collector/connector/connectortest v0.127.0 // indirect
 	go.opentelemetry.io/collector/connector/xconnector v0.127.0 // indirect

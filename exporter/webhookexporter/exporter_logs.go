@@ -29,9 +29,10 @@ import (
 )
 
 type logsExporter struct {
-	cfg    *Config
-	logger *zap.Logger
-	client *http.Client
+	cfg      *Config
+	logger   *zap.Logger
+	settings component.TelemetrySettings
+	client   *http.Client
 }
 
 func newLogsExporter(
@@ -43,14 +44,10 @@ func newLogsExporter(
 		return nil, fmt.Errorf("logs config is required")
 	}
 
-	client := &http.Client{
-		Timeout: cfg.LogsConfig.TimeoutConfig.Timeout,
-	}
-
 	return &logsExporter{
-		cfg:    cfg,
-		logger: params.Logger,
-		client: client,
+		cfg:      cfg,
+		logger:   params.Logger,
+		settings: params.TelemetrySettings,
 	}, nil
 }
 
@@ -58,14 +55,22 @@ func (le *logsExporter) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: false}
 }
 
-func (le *logsExporter) start(_ context.Context, _ component.Host) error {
+func (le *logsExporter) start(_ context.Context, host component.Host) error {
 	le.logger.Info("starting webhook logs exporter")
+	client, err := le.cfg.LogsConfig.ClientConfig.ToClient(context.Background(), host, le.settings)
+	if err != nil {
+		return fmt.Errorf("failed to create http client: %w", err)
+	}
+	le.logger.Debug("created http client", zap.String("endpoint", le.cfg.LogsConfig.ClientConfig.Endpoint))
+	le.client = client
 	return nil
 }
 
 func (le *logsExporter) shutdown(_ context.Context) error {
 	le.logger.Info("shutting down webhook logs exporter")
-	le.client.CloseIdleConnections()
+	if le.client != nil {
+		le.client.CloseIdleConnections()
+	}
 	le.logger.Info("webhook logs exporter shutdown complete")
 	return nil
 }
@@ -154,13 +159,13 @@ func (le *logsExporter) sendLogs(ctx context.Context, logs []any) error {
 		return fmt.Errorf("failed to marshal logs: %w", err)
 	}
 
-	request, err := http.NewRequestWithContext(ctx, string(le.cfg.LogsConfig.Verb), le.cfg.LogsConfig.Endpoint.String(), bytes.NewBuffer(body))
+	request, err := http.NewRequestWithContext(ctx, string(le.cfg.LogsConfig.Verb), le.cfg.LogsConfig.ClientConfig.Endpoint, bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	for key, value := range le.cfg.LogsConfig.Headers {
-		request.Header.Set(key, value)
+	for key, value := range le.cfg.LogsConfig.ClientConfig.Headers {
+		request.Header.Set(key, string(value))
 	}
 
 	request.Header.Set("Content-Type", le.cfg.LogsConfig.ContentType)

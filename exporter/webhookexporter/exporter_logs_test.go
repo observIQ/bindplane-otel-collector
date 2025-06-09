@@ -21,13 +21,14 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
+	"go.opentelemetry.io/collector/config/confighttp"
+	"go.opentelemetry.io/collector/config/configopaque"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/exportertest"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -44,9 +45,11 @@ func TestNewLogsExporter(t *testing.T) {
 			name: "valid config",
 			cfg: &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    url.URL{Scheme: "http", Host: "localhost:8080"},
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: "http://localhost:8080",
+						Headers:  map[string]configopaque.String{"X-Test": configopaque.String("test-value")},
+					},
 					Verb:        POST,
-					Headers:     map[string]string{"X-Test": "test-value"},
 					ContentType: "application/json",
 				},
 			},
@@ -73,7 +76,6 @@ func TestNewLogsExporter(t *testing.T) {
 				require.NotNil(t, exp)
 				require.Equal(t, tc.cfg, exp.cfg)
 				require.NotNil(t, exp.logger)
-				require.NotNil(t, exp.client)
 			}
 		})
 	}
@@ -87,8 +89,15 @@ func TestLogsExporterCapabilities(t *testing.T) {
 
 func TestLogsExporterStartShutdown(t *testing.T) {
 	exp := &logsExporter{
-		client: &http.Client{},
-		logger: zap.NewNop(),
+		cfg: &Config{
+			LogsConfig: &SignalConfig{
+				ClientConfig: confighttp.ClientConfig{
+					Endpoint: "http://localhost:8080",
+				},
+			},
+		},
+		logger:   zap.NewNop(),
+		settings: component.TelemetrySettings{},
 	}
 	err := exp.start(context.Background(), componenttest.NewNopHost())
 	require.NoError(t, err)
@@ -145,20 +154,21 @@ func TestLogsDataPusher(t *testing.T) {
 			// Create test server
 			server := httptest.NewServer(http.HandlerFunc(tc.serverResponse))
 			defer server.Close()
-			parsedURL, err := url.Parse(server.URL)
-			require.NoError(t, err)
 
 			// Create exporter with test server URL
 			cfg := &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    *parsedURL,
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: server.URL,
+						Headers:  map[string]configopaque.String{"X-Test": configopaque.String("test-value")},
+					},
 					Verb:        POST,
-					Headers:     map[string]string{"X-Test": "test-value"},
 					ContentType: "application/json",
 				},
 			}
 
 			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
+			exp.start(context.Background(), componenttest.NewNopHost())
 			require.NoError(t, err)
 
 			// Create test logs
@@ -206,20 +216,20 @@ func TestLogsDataPusherIntegration(t *testing.T) {
 			}))
 			defer server.Close()
 
-			parsedURL, err := url.Parse(server.URL)
-			require.NoError(t, err)
-
 			// Create exporter
 			cfg := &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    *parsedURL,
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: server.URL,
+						Headers:  map[string]configopaque.String{"X-Test": configopaque.String("test-value")},
+					},
 					Verb:        POST,
-					Headers:     map[string]string{"X-Test": "test-value"},
 					ContentType: "application/json",
 				},
 			}
 
 			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
+			exp.start(context.Background(), componenttest.NewNopHost())
 			require.NoError(t, err)
 
 			// Create test logs with specific content
@@ -602,13 +612,12 @@ func TestLogsDataPusherWithQueueSettings(t *testing.T) {
 			}))
 			defer server.Close()
 
-			parsedURL, err := url.Parse(server.URL)
-			require.NoError(t, err)
-
 			// Create exporter with test configuration
 			cfg := &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:         *parsedURL,
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: server.URL,
+					},
 					Verb:             POST,
 					ContentType:      "application/json",
 					QueueBatchConfig: tc.queueSettings,
@@ -616,6 +625,7 @@ func TestLogsDataPusherWithQueueSettings(t *testing.T) {
 			}
 
 			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
+			exp.start(context.Background(), componenttest.NewNopHost())
 			require.NoError(t, err)
 
 			// Create test logs
@@ -701,13 +711,12 @@ func TestLogsDataPusherWithQueueSettingsAndErrors(t *testing.T) {
 			}))
 			defer server.Close()
 
-			parsedURL, err := url.Parse(server.URL)
-			require.NoError(t, err)
-
 			// Create exporter with test configuration
 			cfg := &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:         *parsedURL,
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: server.URL,
+					},
 					Verb:             POST,
 					ContentType:      "application/json",
 					QueueBatchConfig: tc.queueSettings,
@@ -715,6 +724,7 @@ func TestLogsDataPusherWithQueueSettingsAndErrors(t *testing.T) {
 			}
 
 			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
+			exp.start(context.Background(), componenttest.NewNopHost())
 			require.NoError(t, err)
 
 			// Create test logs

@@ -15,11 +15,10 @@
 package webhookexporter
 
 import (
-	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.opentelemetry.io/collector/config/configtls"
+	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
@@ -87,7 +86,9 @@ func TestConfig_Validate(t *testing.T) {
 			name: "valid config with logs only",
 			config: Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    url.URL{Scheme: "https", Host: "example.com"},
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: "https://example.com",
+					},
 					Verb:        POST,
 					ContentType: "application/json",
 				},
@@ -98,7 +99,9 @@ func TestConfig_Validate(t *testing.T) {
 			name: "valid config with all signals",
 			config: Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    url.URL{Scheme: "https", Host: "example.com", Path: "/logs"},
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: "https://example.com/logs",
+					},
 					Verb:        POST,
 					ContentType: "application/json",
 				},
@@ -114,7 +117,9 @@ func TestConfig_Validate(t *testing.T) {
 			name: "invalid endpoint in logs config",
 			config: Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    url.URL{Scheme: "ftp", Host: "example.com"},
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: "ftp://example.com",
+					},
 					Verb:        POST,
 					ContentType: "application/json",
 				},
@@ -122,22 +127,12 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "valid config with TLS settings",
-			config: Config{
-				LogsConfig: &SignalConfig{
-					Endpoint:    url.URL{Scheme: "https", Host: "example.com"},
-					Verb:        POST,
-					ContentType: "application/json",
-					TLS:         &configtls.ClientConfig{},
-				},
-			},
-			wantErr: false,
-		},
-		{
 			name: "valid config with limit",
 			config: Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    url.URL{Scheme: "https", Host: "example.com"},
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: "https://example.com",
+					},
 					Verb:        POST,
 					ContentType: "application/json",
 					QueueBatchConfig: exporterhelper.QueueBatchConfig{
@@ -151,7 +146,9 @@ func TestConfig_Validate(t *testing.T) {
 			name: "valid config with zero limit",
 			config: Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    url.URL{Scheme: "https", Host: "example.com"},
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: "https://example.com",
+					},
 					Verb:        POST,
 					ContentType: "application/json",
 					QueueBatchConfig: exporterhelper.QueueBatchConfig{
@@ -165,7 +162,9 @@ func TestConfig_Validate(t *testing.T) {
 			name: "valid config with negative limit",
 			config: Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    url.URL{Scheme: "https", Host: "example.com"},
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: "https://example.com",
+					},
 					Verb:        POST,
 					ContentType: "application/json",
 					QueueBatchConfig: exporterhelper.QueueBatchConfig{

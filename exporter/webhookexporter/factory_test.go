@@ -16,7 +16,6 @@ package webhookexporter
 
 import (
 	"context"
-	"net/url"
 	"testing"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/webhookexporter/internal/metadata"
@@ -24,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
+	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/exporter/exportertest"
 )
 
@@ -40,7 +40,9 @@ func TestCreateDefaultConfig(t *testing.T) {
 	webhookCfg, ok := cfg.(*Config)
 	require.True(t, ok)
 	assert.Equal(t, &SignalConfig{
-		Endpoint:    url.URL{Scheme: "https", Host: "localhost"},
+		ClientConfig: confighttp.ClientConfig{
+			Endpoint: "https://localhost",
+		},
 		Verb:        POST,
 		ContentType: "application/json",
 	}, webhookCfg.LogsConfig)
@@ -56,7 +58,9 @@ func TestCreateLogsExporter(t *testing.T) {
 			name: "valid config",
 			config: &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    url.URL{Scheme: "https", Host: "example.com"},
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: "https://example.com",
+					},
 					Verb:        POST,
 					ContentType: "application/json",
 				},
@@ -74,7 +78,9 @@ func TestCreateLogsExporter(t *testing.T) {
 			name: "invalid config validation",
 			config: &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint:    url.URL{Scheme: "invalid-url"},
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: "invalid-url",
+					},
 					Verb:        "INVALID",
 					ContentType: "application/json",
 				},
@@ -85,8 +91,10 @@ func TestCreateLogsExporter(t *testing.T) {
 			name: "missing content type",
 			config: &Config{
 				LogsConfig: &SignalConfig{
-					Endpoint: url.URL{Scheme: "https", Host: "example.com"},
-					Verb:     POST,
+					ClientConfig: confighttp.ClientConfig{
+						Endpoint: "https://example.com",
+					},
+					Verb: POST,
 				},
 			},
 			wantErr: true,

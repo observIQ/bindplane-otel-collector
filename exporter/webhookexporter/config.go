@@ -20,8 +20,8 @@ import (
 	"net/url"
 
 	"go.opentelemetry.io/collector/config/configauth"
+	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configretry"
-	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
@@ -56,8 +56,7 @@ type Config struct {
 
 // SignalConfig defines the configuration for a single signal type (logs, metrics, traces)
 type SignalConfig struct {
-	// TimeoutConfig contains settings for request timeouts
-	TimeoutConfig exporterhelper.TimeoutConfig `mapstructure:",squash"`
+	confighttp.ClientConfig `mapstructure:",squash"`
 
 	// QueueBatchConfig contains settings for the sending queue and batching
 	QueueBatchConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
@@ -65,23 +64,13 @@ type SignalConfig struct {
 	// BackOffConfig contains settings for retry behavior on failures
 	BackOffConfig configretry.BackOffConfig `mapstructure:"retry_on_failure"`
 
-	// Endpoint is the URL where the webhook requests will be sent
-	// Must start with http:// or https://
-	Endpoint url.URL `mapstructure:"endpoint"`
-
 	// Verb specifies the HTTP method to use for the webhook requests
 	// Must be one of: POST, PATCH, PUT
 	Verb HTTPVerb `mapstructure:"verb"`
 
-	// Headers contains additional HTTP headers to include in the webhook requests
-	Headers map[string]string `mapstructure:"headers"`
-
 	// ContentType specifies the Content-Type header for the webhook requests
 	// This field is required
 	ContentType string `mapstructure:"content_type"`
-
-	// TLS struct exposes TLS client configuration.
-	TLS *configtls.ClientConfig `mapstructure:"tls"`
 
 	// ConfigAuth contains the authentication configuration for the webhook requests
 	ConfigAuth *configauth.Config `mapstructure:"auth"`
@@ -89,11 +78,15 @@ type SignalConfig struct {
 
 // Validate checks if the configuration is valid
 func (c *SignalConfig) Validate() error {
-	if c.Endpoint.String() == "" {
+	endpoint, err := url.Parse(c.ClientConfig.Endpoint)
+	if err != nil {
+		return fmt.Errorf("invalid endpoint: %w", err)
+	}
+	if endpoint.String() == "" {
 		return fmt.Errorf("endpoint is required")
 	}
-	if c.Endpoint.Scheme != "http" && c.Endpoint.Scheme != "https" {
-		return fmt.Errorf("endpoint must start with http:// or https://, got: %s", c.Endpoint.String())
+	if endpoint.Scheme != "http" && endpoint.Scheme != "https" {
+		return fmt.Errorf("endpoint must start with http:// or https://, got: %s", endpoint.String())
 	}
 
 	if c.Verb == "" {
@@ -105,12 +98,6 @@ func (c *SignalConfig) Validate() error {
 
 	if err := c.Verb.UnmarshalText([]byte(c.Verb)); err != nil {
 		return fmt.Errorf("invalid verb: %w", err)
-	}
-
-	if c.TLS != nil {
-		if err := c.TLS.Validate(); err != nil {
-			return fmt.Errorf("invalid tls setting: %w", err)
-		}
 	}
 
 	return nil
