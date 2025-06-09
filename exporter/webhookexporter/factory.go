@@ -57,7 +57,7 @@ func createLogsExporter(ctx context.Context, params exporter.Settings, config co
 		return nil, err
 	}
 
-	e, err := newLogsExporter(ctx, cfg, params)
+	e, err := newLogsExporter(ctx, cfg.LogsConfig, params)
 	if err != nil {
 		return nil, err
 	}
@@ -70,14 +70,14 @@ func createLogsExporter(ctx context.Context, params exporter.Settings, config co
 		exporterhelper.WithStart(e.start),
 		exporterhelper.WithShutdown(e.shutdown),
 		exporterhelper.WithCapabilities(e.Capabilities()),
-		exporterhelper.WithTimeout(exporterhelper.TimeoutConfig{Timeout: e.cfg.LogsConfig.ClientConfig.Timeout}),
+		exporterhelper.WithTimeout(exporterhelper.TimeoutConfig{Timeout: e.cfg.ClientConfig.Timeout}),
 		exporterhelper.WithQueueBatch(
-			e.cfg.LogsConfig.QueueBatchConfig,
+			e.cfg.QueueBatchConfig,
 			exporterhelper.QueueBatchSettings{
 				Encoding: &logsEncoding{},
 			},
 		),
-		exporterhelper.WithRetry(e.cfg.LogsConfig.BackOffConfig),
+		exporterhelper.WithRetry(e.cfg.BackOffConfig),
 	)
 }
 

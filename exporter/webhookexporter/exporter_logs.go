@@ -29,7 +29,7 @@ import (
 )
 
 type logsExporter struct {
-	cfg      *Config
+	cfg      *SignalConfig
 	logger   *zap.Logger
 	settings component.TelemetrySettings
 	client   *http.Client
@@ -37,10 +37,10 @@ type logsExporter struct {
 
 func newLogsExporter(
 	_ context.Context,
-	cfg *Config,
+	cfg *SignalConfig,
 	params exporter.Settings,
 ) (*logsExporter, error) {
-	if cfg.LogsConfig == nil {
+	if cfg == nil {
 		return nil, fmt.Errorf("logs config is required")
 	}
 
@@ -57,11 +57,11 @@ func (le *logsExporter) Capabilities() consumer.Capabilities {
 
 func (le *logsExporter) start(_ context.Context, host component.Host) error {
 	le.logger.Info("starting webhook logs exporter")
-	client, err := le.cfg.LogsConfig.ClientConfig.ToClient(context.Background(), host, le.settings)
+	client, err := le.cfg.ClientConfig.ToClient(context.Background(), host, le.settings)
 	if err != nil {
 		return fmt.Errorf("failed to create http client: %w", err)
 	}
-	le.logger.Debug("created http client", zap.String("endpoint", le.cfg.LogsConfig.ClientConfig.Endpoint))
+	le.logger.Debug("created http client", zap.String("endpoint", le.cfg.ClientConfig.Endpoint))
 	le.client = client
 	return nil
 }
@@ -78,7 +78,7 @@ func (le *logsExporter) shutdown(_ context.Context) error {
 func (le *logsExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
 	le.logger.Debug("begin webhook logsDataPusher")
 
-	limit := int(le.cfg.LogsConfig.QueueBatchConfig.QueueSize)
+	limit := int(le.cfg.QueueBatchConfig.QueueSize)
 	if limit <= 0 {
 		// If no limit is set, send all logs in one request
 		return le.sendLogs(ctx, extractLogBodies(ld))
@@ -159,16 +159,16 @@ func (le *logsExporter) sendLogs(ctx context.Context, logs []any) error {
 		return fmt.Errorf("failed to marshal logs: %w", err)
 	}
 
-	request, err := http.NewRequestWithContext(ctx, string(le.cfg.LogsConfig.Verb), le.cfg.LogsConfig.ClientConfig.Endpoint, bytes.NewBuffer(body))
+	request, err := http.NewRequestWithContext(ctx, string(le.cfg.Verb), le.cfg.ClientConfig.Endpoint, bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	for key, value := range le.cfg.LogsConfig.ClientConfig.Headers {
+	for key, value := range le.cfg.ClientConfig.Headers {
 		request.Header.Set(key, string(value))
 	}
 
-	request.Header.Set("Content-Type", le.cfg.LogsConfig.ContentType)
+	request.Header.Set("Content-Type", le.cfg.ContentType)
 
 	response, err := le.client.Do(request)
 	if err != nil {
