@@ -41,7 +41,7 @@ func TestNewSoapClient(t *testing.T) {
 			cfg: &Config{
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: defaultEndpoint,
-					TLSSetting: configtls.ClientConfig{
+					TLS: configtls.ClientConfig{
 						Config: configtls.Config{
 							CAFile: "/non/existent",
 						},
@@ -59,8 +59,8 @@ func TestNewSoapClient(t *testing.T) {
 				Username: "root",
 				Password: "password",
 				ClientConfig: confighttp.ClientConfig{
-					TLSSetting: configtls.ClientConfig{},
-					Endpoint:   defaultEndpoint,
+					TLS:      configtls.ClientConfig{},
+					Endpoint: defaultEndpoint,
 				},
 			},
 			host:        componenttest.NewNopHost(),

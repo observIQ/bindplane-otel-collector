@@ -125,9 +125,9 @@ func (ce *chronicleForwarderExporter) openSyslogWriter(ctx context.Context) (io.
 	var err error
 	transportStr := string(ce.cfg.Syslog.AddrConfig.Transport)
 
-	if ce.cfg.Syslog.TLSSetting != nil {
+	if ce.cfg.Syslog.TLS != nil {
 		var tlsConfig *tls.Config
-		tlsConfig, err = ce.cfg.Syslog.TLSSetting.LoadTLSConfig(ctx)
+		tlsConfig, err = ce.cfg.Syslog.TLS.LoadTLSConfig(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("load TLS config: %w", err)
 		}
