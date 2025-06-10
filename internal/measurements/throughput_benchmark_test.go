@@ -40,8 +40,8 @@ func generateTestLogs(numRecords int, withOriginal bool) plog.Logs {
 	return logs
 }
 
-// BenchmarkAddLogs benchmarks the AddLogs function with different log volumes
-func BenchmarkAddLogs(b *testing.B) {
+// BenchmarkAddLogsMeasureRawBytes benchmarks the AddLogs function with different log volumes and measureRawBytes set to true
+func BenchmarkAddLogsMeasureRawBytes(b *testing.B) {
 	benchmarks := []struct {
 		name         string
 		numRecords   int
@@ -70,7 +70,43 @@ func BenchmarkAddLogs(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				tm.AddLogs(ctx, logs)
+				tm.AddLogs(ctx, logs, true)
+			}
+		})
+	}
+}
+
+// BenchmarkAddLogsMeasureRawBytesFalse benchmarks the AddLogs function with different log volumes and measureRawBytes set to false
+func BenchmarkAddLogsMeasureRawBytesFalse(b *testing.B) {
+	benchmarks := []struct {
+		name         string
+		numRecords   int
+		withOriginal bool
+	}{
+		{"10Logs_WithOriginal", 10, true},
+		{"100Logs_WithOriginal", 100, true},
+		{"1000Logs_WithOriginal", 1000, true},
+		{"10000Logs_WithOriginal", 10000, true},
+		{"10Logs_WithoutOriginal", 10, false},
+		{"100Logs_WithoutOriginal", 100, false},
+		{"1000Logs_WithoutOriginal", 1000, false},
+		{"10000Logs_WithoutOriginal", 10000, false},
+	}
+
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func(b *testing.B) {
+			mp := noop.NewMeterProvider()
+			tm, err := NewThroughputMeasurements(mp, "test", nil)
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			logs := generateTestLogs(bm.numRecords, bm.withOriginal)
+			ctx := context.Background()
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				tm.AddLogs(ctx, logs, false)
 			}
 		})
 	}
