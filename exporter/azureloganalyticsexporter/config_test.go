@@ -15,6 +15,7 @@
 package azureloganalyticsexporter
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -102,6 +103,81 @@ func TestConfig_Validate(t *testing.T) {
 			},
 			wantErr: "stream_name is required",
 		},
+		{
+			name: "Valid raw_log_field",
+			config: Config{
+				Endpoint:     "https://example.com",
+				ClientID:     "client123",
+				ClientSecret: "secret123",
+				TenantID:     "tenant123",
+				RuleID:       "rule123",
+				StreamName:   "stream123",
+				RawLogField:  "body",
+			},
+			wantErr: "",
+		},
+		{
+			name: "Invalid raw_log_field - invalid OTTL expression",
+			config: Config{
+				Endpoint:     "https://example.com",
+				ClientID:     "client123",
+				ClientSecret: "secret123",
+				TenantID:     "tenant123",
+				RuleID:       "rule123",
+				StreamName:   "stream123",
+				RawLogField:  "invalid_field",
+			},
+			wantErr: "raw_log_field is invalid:",
+		},
+		{
+			name: "Invalid raw_log_field - invalid syntax",
+			config: Config{
+				Endpoint:     "https://example.com",
+				ClientID:     "client123",
+				ClientSecret: "secret123",
+				TenantID:     "tenant123",
+				RuleID:       "rule123",
+				StreamName:   "stream123",
+				RawLogField:  "body(",
+			},
+			wantErr: "raw_log_field is invalid:",
+		},
+		{
+			name: "Invalid endpoint - missing scheme",
+			config: Config{
+				Endpoint:     "example.com",
+				ClientID:     "client123",
+				ClientSecret: "secret123",
+				TenantID:     "tenant123",
+				RuleID:       "rule123",
+				StreamName:   "stream123",
+			},
+			wantErr: "endpoint must include scheme",
+		},
+		{
+			name: "Invalid endpoint - missing host",
+			config: Config{
+				Endpoint:     "https://",
+				ClientID:     "client123",
+				ClientSecret: "secret123",
+				TenantID:     "tenant123",
+				RuleID:       "rule123",
+				StreamName:   "stream123",
+			},
+			wantErr: "endpoint must include host",
+		},
+		{
+			name: "Invalid endpoint - malformed URL",
+			config: Config{
+				Endpoint:     "not a url",
+				ClientID:     "client123",
+				ClientSecret: "secret123",
+				TenantID:     "tenant123",
+				RuleID:       "rule123",
+				StreamName:   "stream123",
+			},
+			wantErr: "endpoint must include scheme",
+		},
 	}
 
 	for _, tt := range tests {
@@ -115,8 +191,8 @@ func TestConfig_Validate(t *testing.T) {
 				if err == nil {
 					t.Error("Validate() expected error but got nil")
 				}
-				if err.Error() != tt.wantErr {
-					t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
+				if !strings.Contains(err.Error(), tt.wantErr) {
+					t.Errorf("Validate() error = %v, want error containing %v", err, tt.wantErr)
 				}
 			}
 		})

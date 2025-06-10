@@ -39,28 +39,31 @@ In both cases, a TimeGenerated field will automatically be added to the schema a
 
 ## Configuration
 
-| Field         | Type   | Default | Required | Description                                                 |
-| ------------- | ------ | ------- | -------- | ----------------------------------------------------------- |
-| endpoint      | string |         | ✓        | Azure Log Analytics DCR or DCE endpoint                     |
-| client_id     | string |         | ✓        | Azure client ID for authentication                          |
-| raw_log_field | string | ""      |          | Name of the log field to specifically send to log analytics |
-| client_secret | string |         | ✓        | Azure client secret for authentication                      |
-| tenant_id     | string |         | ✓        | Azure tenant ID for authentication                          |
-| rule_id       | string |         | ✓        | Data Collection Rule (DCR) ID or immutableId                |
-| stream_name   | string |         | ✓        | Name of the custom log table in Log Analytics               |
+| Field            | Type   | Default | Required | Description                                                                                                                  |
+| ---------------- | ------ | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| endpoint         | string |         | ✓        | Azure Log Analytics DCR or DCE endpoint                                                                                      |
+| client_id        | string |         | ✓        | Azure client ID for authentication                                                                                           |
+| raw_log_field    | string | ""      |          | Name of the log field to specifically send to log analytics                                                                  |
+| client_secret    | string |         | ✓        | Azure client secret for authentication                                                                                       |
+| tenant_id        | string |         | ✓        | Azure tenant ID for authentication                                                                                           |
+| rule_id          | string |         | ✓        | Data Collection Rule (DCR) ID or immutableId                                                                                 |
+| stream_name      | string |         | ✓        | Name of the custom log table in Log Analytics                                                                                |
+| timeout          | string |         |          | See [doc](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md) for details |
+| sending_queue    | map    |         |          | See [doc](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md) for details |
+| retry_on_failure | map    |         |          | See [doc](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md) for details |
 
 ## Example Configurations
 
 ```yaml
 exporters:
   azureloganalytics:
-    endpoint: '<your-log-ingestion-endpoint>'
-    client_id: '<your-client-id>'
-    client_secret: '<your-client-secret>'
-    tenant_id: '<your-tenant-id>'
+    endpoint: "<your-log-ingestion-endpoint>"
+    client_id: "<your-client-id>"
+    client_secret: "<your-client-secret>"
+    tenant_id: "<your-tenant-id>"
     raw_log_field: body
-    rule_id: '<your-dcr-id>'
-    stream_name: '<your-stream-name>'
+    rule_id: "<your-dcr-id>"
+    stream_name: "<your-stream-name>"
 ```
 
 ### Minimal Configuration
@@ -68,15 +71,37 @@ exporters:
 ```yaml
 exporters:
   azureloganalytics:
-    endpoint: '<your-log-ingestion-endpoint>'
-    client_id: '<your-client-id>'
-    client_secret: '<your-client-secret>'
-    tenant_id: '<your-tenant-id>'
-    rule_id: '<your-dcr-id>'
-    stream_name: '<your-stream-name>'
+    endpoint: "<your-log-ingestion-endpoint>"
+    client_id: "<your-client-id>"
+    client_secret: "<your-client-secret>"
+    tenant_id: "<your-tenant-id>"
+    rule_id: "<your-dcr-id>"
+    stream_name: "<your-stream-name>"
 ```
 
 This configuration shows the minimum required fields to export logs to Azure Log Analytics. All fields are required for the exporter to function properly.
+
+### Configuration with Queue and Retry
+
+```yaml
+exporters:
+  azureloganalytics:
+    endpoint: "<your-log-ingestion-endpoint>"
+    client_id: "<your-client-id>"
+    client_secret: "<your-client-secret>"
+    tenant_id: "<your-tenant-id>"
+    rule_id: "<your-dcr-id>"
+    stream_name: "<your-stream-name>"
+    timeout: 30s
+    sending_queue:
+      queue_size: 1000
+      enabled: true
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+```
 
 ## Setup
 
