@@ -223,9 +223,16 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.127.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otelarrowreceiver v0.127.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver v0.127.0
+	go.opentelemetry.io/collector/component/componenttest v0.127.0
+	go.opentelemetry.io/collector/config/configauth v0.127.0
+	go.opentelemetry.io/collector/config/confighttp v0.127.0
+	go.opentelemetry.io/collector/config/configopaque v1.33.0
+	go.opentelemetry.io/collector/config/configretry v1.33.0
+	go.opentelemetry.io/collector/exporter/exportertest v0.127.0
 	go.opentelemetry.io/collector/extension/extensiontest v0.127.0
 	go.opentelemetry.io/collector/processor/processorhelper v0.127.0
 	go.opentelemetry.io/collector/processor/processortest v0.127.0
+	go.uber.org/goleak v1.3.0
 )
 
 require (
@@ -538,15 +545,10 @@ require (
 	go.opentelemetry.io/collector v0.127.0 // indirect
 	go.opentelemetry.io/collector/client v1.33.0 // indirect
 	go.opentelemetry.io/collector/component/componentstatus v0.127.0 // indirect
-	go.opentelemetry.io/collector/component/componenttest v0.127.0 // indirect
-	go.opentelemetry.io/collector/config/configauth v0.127.0 // indirect
 	go.opentelemetry.io/collector/config/configcompression v1.33.0 // indirect
 	go.opentelemetry.io/collector/config/configgrpc v0.127.0 // indirect
-	go.opentelemetry.io/collector/config/confighttp v0.127.0 // indirect
 	go.opentelemetry.io/collector/config/configmiddleware v0.127.0 // indirect
 	go.opentelemetry.io/collector/config/confignet v1.33.0 // indirect
-	go.opentelemetry.io/collector/config/configopaque v1.33.0 // indirect
-	go.opentelemetry.io/collector/config/configretry v1.33.0 // indirect
 	go.opentelemetry.io/collector/config/configtelemetry v0.127.0 // indirect
 	go.opentelemetry.io/collector/config/configtls v1.33.0 // indirect
 	go.opentelemetry.io/collector/confmap/xconfmap v0.127.0 // indirect
@@ -557,7 +559,6 @@ require (
 	go.opentelemetry.io/collector/consumer/consumertest v0.127.0 // indirect
 	go.opentelemetry.io/collector/consumer/xconsumer v0.127.0 // indirect
 	go.opentelemetry.io/collector/exporter/exporterhelper/xexporterhelper v0.127.0 // indirect
-	go.opentelemetry.io/collector/exporter/exportertest v0.127.0 // indirect
 	go.opentelemetry.io/collector/exporter/xexporter v0.127.0 // indirect
 	go.opentelemetry.io/collector/extension/extensionauth v1.33.0 // indirect
 	go.opentelemetry.io/collector/extension/extensioncapabilities v0.127.0 // indirect
@@ -602,7 +603,6 @@ require (
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/dig v1.18.1 // indirect
 	go.uber.org/fx v1.23.0 // indirect
-	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/zap/exp v0.3.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250505200425-f936aa4a68b2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250512202823-5a2f75b736a9 // indirect
@@ -977,6 +977,8 @@ replace github.com/observiq/bindplane-otel-collector/exporter/googlemanagedprome
 replace github.com/observiq/bindplane-otel-collector/exporter/qradar => ./exporter/qradar
 
 replace github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter => ./exporter/snowflakeexporter
+
+replace github.com/observiq/bindplane-otel-collector/exporter/webhookexporter => ./exporter/webhookexporter
 
 // Processors
 replace github.com/observiq/bindplane-otel-collector/processor/datapointcountprocessor => ./processor/datapointcountprocessor
