@@ -12,6 +12,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/exporter/googlemanagedprometheusexporter v1.79.0
 	github.com/observiq/bindplane-otel-collector/exporter/qradar v1.79.0
 	github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter v1.79.0
+	github.com/observiq/bindplane-otel-collector/exporter/webhookexporter v1.79.0
 	github.com/observiq/bindplane-otel-collector/internal/measurements v1.79.0
 	github.com/observiq/bindplane-otel-collector/internal/report v1.79.0
 	github.com/observiq/bindplane-otel-collector/packagestate v1.79.0
