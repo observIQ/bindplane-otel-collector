@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 title: SAP HANA
 description: Log parser for SAP HANA
 parameters:
@@ -30,6 +30,14 @@ parameters:
     description: The directory that the offset storage file will be created
     type: string
     default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   extensions:
     file_storage:
@@ -51,6 +59,13 @@ template: |
       attributes:
          log_type: sap_hana
       operators:
+        {{ if .save_log_record_original }}
+          - id: save_log_record_original
+            type: copy
+            from: body
+            to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
           - id: sap_hana_parser
             type: regex_parser
             regex: '^\[(?P<thread_id>\d+)\]{(?P<connection_id>[^}]+)}\[(?P<transaction_id>[^\/]+)\/(?P<update_transaction_id>[^\]]+)\] (?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+) (?P<sap_severity>[^ ]+) (?P<component>[^ ]+)\s+(?P<source_file>[^ ]+) : (?P<message>.*)'
@@ -66,6 +81,7 @@ template: |
                 warn: w
                 error: e
                 fatal: f
+        {{ end }}
 
   service:
     extensions: [file_storage]

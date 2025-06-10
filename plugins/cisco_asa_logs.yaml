@@ -1,4 +1,4 @@
-version: 0.0.1
+version: 0.0.2
 title: Cisco ASA
 description: Log parser for Cisco ASA
 parameters:
@@ -10,6 +10,14 @@ parameters:
     description: A syslog ip address
     type: string
     default: "0.0.0.0"
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 
 template: |
   receivers:
@@ -19,15 +27,22 @@ template: |
         log_type: cisco_asa
       add_attributes: true
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+            type: copy
+            from: body
+            to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
         - id: cisco_parser
           type: regex_parser
           regex: '^(?P<timestamp>[\d\w\s:\-]+?)(?: asa )?: %(?P<message_id>[\w\d-]+):\s(?P<message>.*)'
           timestamp:
             parse_from: attributes.timestamp
             layout: '%b %d %Y %H:%M:%S'
+        {{ end }}
 
   service:
     pipelines:
       logs:
         receivers: [tcplog]
-

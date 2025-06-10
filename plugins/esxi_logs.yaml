@@ -1,4 +1,4 @@
-version: 0.0.1
+version: 0.0.2
 title: VMware ESXi
 description: Log parser for VMware ESXi
 parameters:
@@ -22,6 +22,14 @@ parameters:
     description: Path to TLS private key file
     type: string
     default: "/opt/key"
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 
 template: |
   receivers: 
@@ -36,6 +44,13 @@ template: |
         key_file: {{ .private_key_file }}
       {{ end }}
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
         - id: timestamp_router
           type: router
           default: severity_parser
@@ -102,7 +117,7 @@ template: |
             info: [6,14,22,30,38,46,54,62,70,78,86,94,102,110,118,126,134,142,150,158,166,174,182,190]
             info2: [5,13,21,29,37,45,53,61,69,77,85,93,101,109,117,125,133,141,149,157,165,173,181,189]
             debug: [7,15,23,31,39,47,55,63,71,79,87,95,103,111,119,127,135,143,151,159,167,175,183,191]
-        
+        {{ end }}
 
   service:
     pipelines:

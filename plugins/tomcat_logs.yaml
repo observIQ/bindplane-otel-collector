@@ -1,4 +1,4 @@
-version: 0.3.0
+version: 0.3.1
 title: Apache Tomcat
 description: Log parser for Apache Tomcat
 parameters:
@@ -50,6 +50,14 @@ parameters:
     description: The directory that the offset storage file will be created
     type: string
     default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   extensions:
     file_storage:
@@ -66,12 +74,19 @@ template: |
       attributes:
         log_type: tomcat.access
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         {{ if .access_retain_raw_logs }}
         - id: save_raw_log
           type: copy
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '(?P<remote_host>[^\s]+) - (?P<remote_user>[^\s]+) \[(?P<timestamp>[^\]]+)\] "(?P<method>[A-Z]+) (?P<path>[^\s]+)[^"]+" (?P<status>\d+) (?P<bytes_sent>[^\s]+)'
           parse_to: {{ .parse_to }}
@@ -92,6 +107,7 @@ template: |
           from: attributes.raw_log
           to: body.raw_log
         {{ end }}
+        {{ end }}
     {{ end }}
 
     {{ if .enable_catalina_log }}
@@ -107,12 +123,19 @@ template: |
       attributes:
         log_type: tomcat.catalina
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         {{ if .catalina_retain_raw_logs }}
         - id: save_raw_log
           type: copy
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '(?P<timestamp>\d{2}-\w{3}-\d{4} \d{2}:\d{2}:\d{2}.\d{3})\s(?P<tomcat_severity>\w+)\s\[(?P<thread>[^\[\]]+(?:\[[\d:]+\])?)\]\s(?P<tc_source>[^ ]+)\s(?P<message>[\s\S]+)'
           parse_to: {{ .parse_to }}
@@ -134,6 +157,7 @@ template: |
           type: move
           from: attributes.raw_log
           to: body.raw_log
+        {{ end }}
         {{ end }}
     {{ end }}
 

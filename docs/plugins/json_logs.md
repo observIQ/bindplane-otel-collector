@@ -11,6 +11,7 @@ Log parser for JSON
 | encoding | Specify the encoding of the file(s) being read. In most cases, you can leave the default option selected. | string | `utf-8` | false | `nop`, `utf-8`, `utf-16le`, `utf-16be` |
 | log_type | Adds the specified 'Type' as a label to each log message | string | `json` | false |  |
 | start_at | At startup, where to start reading logs from the file (`beginning` or `end`) | string | `end` | false | `beginning`, `end` |
+| parse | When enabled, parses the JSON fields into structured attributes. When disabled, sends the raw log message in the body field. | bool | `true` | false |  |
 
 ## Example Config:
 
@@ -26,4 +27,5 @@ receivers:
       encoding: utf-8
       log_type: json
       start_at: end
+      parse: true
 ```

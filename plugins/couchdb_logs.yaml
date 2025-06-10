@@ -1,4 +1,4 @@
-version: 0.0.1
+version: 0.0.2
 title: CouchDB
 description: Log parser for CouchDB
 parameters:
@@ -14,6 +14,15 @@ parameters:
       - beginning
       - end
     default: end
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
 template: |
   receivers:
     filelog:
@@ -27,6 +36,13 @@ template: |
         log_type: couchdb
       start_at: {{ .start_at }}
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
         - id: id_router
           type: router
           routes:
@@ -68,6 +84,7 @@ template: |
         - id: end_filter
           type: filter
           expr: 'body == ""'
+        {{ end }}
   service:
     pipelines:
       logs:

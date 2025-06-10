@@ -1,4 +1,4 @@
-version: 0.0.1
+version: 0.0.2
 title: PgBouncer
 description: Log parser for PgBouncer
 parameters:
@@ -18,6 +18,14 @@ parameters:
     description: The directory that the offset storage file will be created
     type: string
     default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   extensions:
     file_storage:
@@ -31,6 +39,13 @@ template: |
         {{end}}
       start_at: {{ .start_at }}
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
         - id: pgbouncer_parser
           type: regex_parser
           regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}(\s*[^\d\s]{3})?)\s*(\[)?(?P<pid>\d+)(\])? (?P<severity>\w+) (?P<message>.*)'
@@ -84,6 +99,7 @@ template: |
           parse_from: attributes.message
           regex: '^[CS]-\w*:\s\(?(?P<db_name>\w*)\)?\/\(?(?P<user_name>[^@]*)\)?@(?P<host>[^:]*):(?P<port>\d*)\s*'
           output: add_type
+        {{ end }}
 
         - id: add_type
           type: add

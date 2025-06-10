@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 title: Apache HTTP Server
 description: |
   Log parser for Apache HTTP Server
@@ -51,6 +51,14 @@ parameters:
     description: Timezone to use when parsing the timestamp
     type: timezone
     default: UTC
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured data. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 
 template: |
   receivers:
@@ -64,7 +72,13 @@ template: |
       attributes:
         log_type: 'apache_http.access'
       operators:
-        {{ if eq .log_format "default" }}
+        {{ if .save_log_record_original }}
+        - id: access_save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if and .parse (eq .log_format "default") }}
         - id: access_regex_parser
           type: regex_parser
           regex: '^(?P<remote_addr>[^ ]*) (?P<remote_host>[^ ]*) (?P<remote_user>[^ ]*) \[(?P<timestamp>[^\]]*)\] "(?P<method>\S+) +(?P<path>[^ ]*)( (?P<protocol>[^/]*)/(?P<protocol_version>[^\"]*)|[^\"]*)?" (?P<status>[^ ]*) (?P<body_bytes_sent>[^ ]*)(?: "(?P<http_referer>[^\"]*)" "(?P<http_user_agent>[^\"]*)"(?:\s+(?P<http_x_forwarded_for>[^ ]+))?)?'
@@ -82,6 +96,7 @@ template: |
           output: end_filter
         {{ end }}
 
+        {{ if .parse }}
         - id: access_json_parser
           type: json_parser
           timestamp:
@@ -102,6 +117,7 @@ template: |
           parse_from: attributes.protocol
           regex: '(?P<protocol>[^/]*)/(?P<protocol_version>.*)'
           output: end_filter
+        {{ end }}
 
         # Noop filter to allow an exit point for other operators
         - id: end_filter
@@ -123,7 +139,13 @@ template: |
       attributes:
         log_type: 'apache_http.error'
       operators:
-        {{ if eq .log_format "default" }}
+        {{ if .save_log_record_original }}
+        - id: error_save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if and .parse (eq .log_format "default") }}
         - id: error_regex_parser
           type: regex_parser
           regex: '^\[(?P<timestamp>\w+ \w+ \d{2} \d{2}:\d{2}:\d{2}\.\d+ \d+)\] \[(?P<module>\w+):(?P<log_level>[\w\d]+)\] \[pid (?P<pid>\d+)(?::tid (?P<tid>[\d]+))?\](?: \[client (?P<client>[^\]]*)\])? (?P<error_code>[^:]+): (?P<message>.*)'
@@ -150,6 +172,7 @@ template: |
           output: end_filter
         {{ end }}
 
+        {{ if .parse }}
         - id: error_json_parser
           type: json_parser
           timestamp:
@@ -179,6 +202,7 @@ template: |
           parse_from: attributes.message
           regex: '(?P<error_code>[^:]*):(?P<message>.*)'
           output: end_filter
+        {{ end }}
 
         # Noop filter to allow an exit point for other operators
         - id: end_filter

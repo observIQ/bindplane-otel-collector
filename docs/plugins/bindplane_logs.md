@@ -10,6 +10,7 @@ Log parser for Bindplane Observability Pipeline.
 | exclude_file_log_path | A list of file glob patterns to exclude from reading | []string | `[/var/log/bindplane/bindplane-*.log.gz]` | false |  |
 | start_at | At startup, where to start reading logs from the file (`beginning` or `end`) | string | `end` | false | `beginning`, `end` |
 | offset_storage_dir | The directory that the offset storage file will be created | string | `${env:OIQ_OTEL_COLLECTOR_HOME}/storage` | false |  |
+| parse | When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field. | bool | `true` | false |  |
 
 ## Example Config:
 
@@ -24,4 +25,5 @@ receivers:
       exclude_file_log_path: [/var/log/bindplane/bindplane-*.log.gz]
       start_at: end
       offset_storage_dir: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+      parse: true
 ```

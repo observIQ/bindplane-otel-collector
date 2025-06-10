@@ -10,6 +10,7 @@ Log parser for UDP
 | log_type | Adds the specified 'Type' as a label to each log message | string | `udp` | false |  |
 | listen_ip | The local IP address to listen for UDP connections on | string | `0.0.0.0` | false |  |
 | add_attributes | Adds net.transport, net.peer.ip, net.peer.port, net.host.ip and net.host.port attributes | bool | `true` | false |  |
+| parse | When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field. | bool | `true` | false |  |
 
 ## Example Config:
 
@@ -24,4 +25,5 @@ receivers:
       log_type: udp
       listen_ip: 0.0.0.0
       add_attributes: true
+      parse: true
 ```

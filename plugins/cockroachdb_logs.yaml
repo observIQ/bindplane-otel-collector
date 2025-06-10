@@ -1,4 +1,4 @@
-version: 0.0.1
+version: 0.0.2
 title: CockroachDB
 description: Log parser for CockroachDB
 parameters:
@@ -76,6 +76,10 @@ parameters:
     description: Timezone to use when parsing the timestamp
     type: timezone
     default: UTC
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
   - name: retain_raw_logs
     description: When enabled will preserve the original log message in a `raw_log` key. This will either be in the `body` or `attributes` depending on how `parse_to` is configured.
     type: bool
@@ -91,6 +95,10 @@ parameters:
     description: The directory that the offset storage file will be created
     type: string
     default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   extensions:
     file_storage:
@@ -109,12 +117,19 @@ template: |
       attributes:
         log_type: 'cockroach.health'
       operators:
+        {{ if .save_log_record_original}}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
           parse_to: {{ .parse_to }}
@@ -130,6 +145,7 @@ template: |
               warn: W
               error: E
               fatal: F
+        {{ end }}
         {{ if and .retain_raw_logs (eq .parse_to "body")}}
         - id: move_raw_log
           type: move
@@ -151,12 +167,19 @@ template: |
       attributes:
         log_type: 'cockroach.dev'
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
           parse_to: {{ .parse_to }}
@@ -172,6 +195,7 @@ template: |
               warn: W
               error: E
               fatal: F
+        {{ end }}
         {{ if and .retain_raw_logs (eq .parse_to "body")}}
         - id: move_raw_log
           type: move
@@ -194,12 +218,19 @@ template: |
       attributes:
         log_type: 'cockroach.error'
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
           parse_to: {{ .parse_to }}
@@ -215,6 +246,7 @@ template: |
               warn: W
               error: E
               fatal: F
+        {{ end }}
         {{ if and .retain_raw_logs (eq .parse_to "body")}}
         - id: move_raw_log
           type: move
@@ -236,12 +268,19 @@ template: |
       attributes:
         log_type: 'cockroach.schema'
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
           parse_to: {{ .parse_to }}
@@ -257,6 +296,7 @@ template: |
               warn: W
               error: E
               fatal: F
+        {{ end }}
         {{ if and .retain_raw_logs (eq .parse_to "body")}}
         - id: move_raw_log
           type: move
@@ -278,12 +318,19 @@ template: |
       attributes:
         log_type: 'cockroach.telemetry'
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
           parse_to: {{ .parse_to }}
@@ -299,6 +346,7 @@ template: |
               warn: W
               error: E
               fatal: F
+        {{ end }}
         {{ if and .retain_raw_logs (eq .parse_to "body")}}
         - id: move_raw_log
           type: move
@@ -320,12 +368,19 @@ template: |
       attributes:
         log_type: 'cockroach.kv.distribution'
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
           parse_to: {{ .parse_to }}
@@ -341,6 +396,7 @@ template: |
               warn: W
               error: E
               fatal: F
+        {{ end }}
         {{ if and .retain_raw_logs (eq .parse_to "body")}}
         - id: move_raw_log
           type: move
@@ -362,12 +418,19 @@ template: |
       attributes:
         log_type: 'cockroach.pebble'
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
           type: copy
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
           parse_to: {{ .parse_to }}
@@ -383,6 +446,7 @@ template: |
               warn: W
               error: E
               fatal: F
+        {{ end }}
         {{ if and .retain_raw_logs (eq .parse_to "body")}}
         - id: move_raw_log
           type: move

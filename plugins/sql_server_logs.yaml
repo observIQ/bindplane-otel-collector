@@ -1,4 +1,4 @@
-version: 0.0.1
+version: 0.0.2
 title: Microsoft SQL Server
 description: Log Parser for Microsoft SQL Server Event Logs
 parameters:
@@ -17,6 +17,14 @@ parameters:
       - beginning
       - end
     default: end
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 
 template: |
   receivers:
@@ -26,10 +34,18 @@ template: |
       poll_interval: '{{ .poll_interval }}'
       start_at: '{{ .start_at }}'
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
         - type: router
           routes:
             - output: add_type
               expr: 'body.provider.name matches "MSSQLSERVER"'
+        {{ end }}
         - id: add_type
           type: add
           field: attributes.log_type

@@ -11,6 +11,8 @@ Log parser for VMware ESXi
 | enable_tls | Enable TLS for the vCenter listener | bool | `false` | false |  |
 | certificate_file | Path to TLS certificate file | string | `/opt/cert` | false |  |
 | private_key_file | Path to TLS private key file | string | `/opt/key` | false |  |
+| save_log_record_original | Enable to preserve the original log message in a `log.record.original` key. | bool | `false` | false |  |
+| parse | When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field. | bool | `true` | false |  |
 
 ## Example Config:
 
@@ -26,4 +28,6 @@ receivers:
       enable_tls: false
       certificate_file: /opt/cert
       private_key_file: /opt/key
+      save_log_record_original: false
+      parse: true
 ```

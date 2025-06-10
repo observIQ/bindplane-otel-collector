@@ -1,4 +1,4 @@
-version: 0.2.1
+version: 0.2.2
 title: W3C
 description: Log Parser for W3C
 parameters:
@@ -95,6 +95,14 @@ parameters:
     description: The directory that the offset storage file will be created
     type: string
     default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: save_log_record_original
+    description: Enable to preserve the original log message in a `log.record.original` key.
+    type: bool
+    default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   extensions:
     file_storage:
@@ -133,6 +141,13 @@ template: |
       attributes:
         log_type: {{ .log_type }}
       operators:
+        {{ if .save_log_record_original }}
+        - id: save_log_record_original
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
+        {{ end }}
+        {{ if .parse }}
         - type: filter
           expr: 'body matches "^#"'
         - type: csv_parser
@@ -188,6 +203,7 @@ template: |
           layout: '{{ .timestamp_layout }}'
           layout_type: {{ .timestamp_layout_type }}
           location: {{.timezone}}
+        {{ end }}
           
   service:
     extensions: [file_storage]
