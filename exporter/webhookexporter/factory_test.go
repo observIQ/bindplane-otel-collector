@@ -17,6 +17,7 @@ package webhookexporter
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/webhookexporter/internal/metadata"
 	"github.com/stretchr/testify/assert"
@@ -42,6 +43,7 @@ func TestCreateDefaultConfig(t *testing.T) {
 	assert.Equal(t, &SignalConfig{
 		ClientConfig: confighttp.ClientConfig{
 			Endpoint: "https://localhost",
+			Timeout:  30 * time.Second,
 		},
 		Verb:        POST,
 		ContentType: "application/json",

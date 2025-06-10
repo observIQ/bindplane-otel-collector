@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/webhookexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
@@ -41,6 +42,7 @@ func createDefaultConfig() component.Config {
 		LogsConfig: &SignalConfig{
 			ClientConfig: confighttp.ClientConfig{
 				Endpoint: "https://localhost",
+				Timeout:  30 * time.Second,
 			},
 			Verb:        POST,
 			ContentType: "application/json",
