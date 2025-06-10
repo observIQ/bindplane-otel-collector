@@ -24,6 +24,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/exporter/webhookexporter/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
+	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
@@ -44,8 +45,10 @@ func createDefaultConfig() component.Config {
 				Endpoint: "https://localhost",
 				Timeout:  30 * time.Second,
 			},
-			Verb:        POST,
-			ContentType: "application/json",
+			Verb:             POST,
+			ContentType:      "application/json",
+			QueueBatchConfig: exporterhelper.NewDefaultQueueConfig(),
+			BackOffConfig:    configretry.NewDefaultBackOffConfig(),
 		},
 	}
 }

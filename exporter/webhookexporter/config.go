@@ -58,10 +58,10 @@ type SignalConfig struct {
 	confighttp.ClientConfig `mapstructure:",squash"`
 
 	// QueueBatchConfig contains settings for the sending queue and batching
-	QueueBatchConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
+	QueueBatchConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue,omitempty"`
 
 	// BackOffConfig contains settings for retry behavior on failures
-	BackOffConfig configretry.BackOffConfig `mapstructure:"retry_on_failure"`
+	BackOffConfig configretry.BackOffConfig `mapstructure:"retry_on_failure,omitempty"`
 
 	// Verb specifies the HTTP method to use for the webhook requests
 	// Must be one of: POST, PATCH, PUT
