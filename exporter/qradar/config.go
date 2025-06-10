@@ -44,8 +44,8 @@ type Config struct {
 type SyslogConfig struct {
 	confignet.AddrConfig `mapstructure:",squash"`
 
-	// TLSSetting struct exposes TLS client configuration.
-	TLSSetting *configtls.ClientConfig `mapstructure:"tls"`
+	// TLS struct exposes TLS client configuration.
+	TLS *configtls.ClientConfig `mapstructure:"tls"`
 }
 
 // validate validates the Syslog configuration.

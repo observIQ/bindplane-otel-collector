@@ -3,7 +3,9 @@
 The webhook exporter sends telemetry data to a webhook endpoint.
 
 ## Minimum Agent Versions
+
 <!-- Modify this if we decide to patch release -->
+
 - Introduced: [1.79.0](https://github.com/observIQ/bindplane-otel-collector/releases/tag/v1.79.0)
 
 ## Supported Pipelines
@@ -17,11 +19,13 @@ The webhook exporter sends data to a configured HTTP endpoint. Here's how it pro
 1. **Data Collection**: The exporter receives logs from the OpenTelemetry Collector pipeline.
 
 2. **Data Processing**:
+
    - Data is extracted from the OpenTelemetry data model
    - Each entry's body is parsed as JSON if possible, otherwise kept as a string
    - Entries are organized into batches based on the configured queue size
 
 3. **HTTP Transmission**:
+
    - Data is sent to the configured endpoint using the specified HTTP method (POST, PATCH, or PUT)
    - The configured Content-Type header is applied
    - Any additional headers specified in the configuration are included
@@ -36,20 +40,20 @@ The webhook exporter sends data to a configured HTTP endpoint. Here's how it pro
 
 The following configuration options are available:
 
-| Field            | Type              | Default | Required | Description                                                                          |
-|------------------|-------------------|---------|----------|--------------------------------------------------------------------------------------|
-| endpoint         | string            |         | `true`   | The URL where the webhook requests will be sent. Must start with http:// or https:// |
-| verb             | string            |         | `true`   | The HTTP method to use for the webhook requests. Must be one of: POST, PATCH, PUT    |
-| content_type     | string            |         | `true`   | The Content-Type header for the webhook requests                                     |
-| headers          | map[string]string |         | `false`  | Additional HTTP headers to include in the webhook requests                           |
-| sending_queue    | map               |         | `false`  | Determines how telemetry data is buffered before exporting. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.127.0/exporter/exporterhelper/README.md) for more information.                                                                                           |
-| retry_on_failure | map               |         | `false`  | Determines how the exporter will attempt to retry after a failure. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.127.0/exporter/exporterhelper/README.md) for more information.                                                                                           |
-| timeout          | duration          | 30s     | `false`  | Time to wait per individual attempt to send data to a backend. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.127.0/exporter/exporterhelper/README.md) for more information.                                                                                           |
-
+| Field            | Type              | Default | Required | Description                                                                                                                                                                                                                                         |
+| ---------------- | ----------------- | ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| endpoint         | string            |         | `true`   | The URL where the webhook requests will be sent. Must start with http:// or https://                                                                                                                                                                |
+| verb             | string            |         | `true`   | The HTTP method to use for the webhook requests. Must be one of: POST, PATCH, PUT                                                                                                                                                                   |
+| content_type     | string            |         | `true`   | The Content-Type header for the webhook requests                                                                                                                                                                                                    |
+| headers          | map[string]string |         | `false`  | Additional HTTP headers to include in the webhook requests                                                                                                                                                                                          |
+| sending_queue    | map               |         | `false`  | Determines how telemetry data is buffered before exporting. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.128.0/exporter/exporterhelper/README.md) for more information.        |
+| retry_on_failure | map               |         | `false`  | Determines how the exporter will attempt to retry after a failure. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.128.0/exporter/exporterhelper/README.md) for more information. |
+| timeout          | duration          | 30s     | `false`  | Time to wait per individual attempt to send data to a backend. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.128.0/exporter/exporterhelper/README.md) for more information.     |
 
 ### Example Configurations
 
 #### Basic Configuration
+
 ```yaml
 exporters:
   webhook:
@@ -59,6 +63,7 @@ exporters:
 ```
 
 #### Sending Queue Configuration
+
 ```yaml
 exporters:
   webhook:
@@ -78,6 +83,7 @@ exporters:
 ```
 
 #### Mutual TLS Configuration
+
 ```yaml
 exporters:
   webhook:
@@ -91,4 +97,3 @@ exporters:
       cert_file: /path/to/cert.pem
       key_file: /path/to/key.pem
 ```
-
