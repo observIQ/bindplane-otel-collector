@@ -212,7 +212,6 @@ require (
 
 require (
 	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.79.0
-	github.com/observiq/bindplane-otel-collector/exporter/webhookexporter v0.0.0-00010101000000-000000000000
 	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.79.0
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.79.0
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.79.0
