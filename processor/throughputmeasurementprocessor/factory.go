@@ -49,8 +49,9 @@ func NewFactory() processor.Factory {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		Enabled:       true,
-		SamplingRatio: 0.5,
+		Enabled:         true,
+		SamplingRatio:   0.5,
+		MeasureRawBytes: false,
 	}
 }
 
