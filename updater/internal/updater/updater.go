@@ -77,10 +77,12 @@ func (u *Updater) generateServiceFiles() error {
 		return fmt.Errorf("create install directory: %w", err)
 	}
 
+	// #nosec G306 - Systemd service file should have 0640 permissions
 	if err := os.WriteFile(systemdServiceFilePath, []byte(systemdServiceTemplate), 0640); err != nil {
 		return fmt.Errorf("write systemd service file: %w", err)
 	}
 
+	// #nosec G306 - init.d service file should have 0755 permissions
 	if err := os.WriteFile(initServiceFilePath, []byte(initScriptTemplate), 0755); err != nil {
 		return fmt.Errorf("write init.d script file: %w", err)
 	}
