@@ -36,6 +36,9 @@ type Config struct {
 
 	// Extra labels to add to measurements and associate with emitted metrics
 	ExtraLabels map[string]string `mapstructure:"extra_labels"`
+
+	// When true, the processor will measure the raw bytes of the payload in addition to the protobuf size. This is more expensive but provides raw measurements if designated.
+	MeasureRawBytes bool `mapstructure:"measure_raw_bytes"`
 }
 
 // Validate validates the processor configuration

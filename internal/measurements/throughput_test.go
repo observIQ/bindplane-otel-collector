@@ -46,7 +46,7 @@ func TestProcessor_Logs(t *testing.T) {
 	logs, err := golden.ReadLogs(filepath.Join("testdata", "logs", "w3c-logs.yaml"))
 	require.NoError(t, err)
 
-	tmp.AddLogs(context.Background(), logs)
+	tmp.AddLogs(context.Background(), logs, false)
 
 	var rm metricdata.ResourceMetrics
 	require.NoError(t, manualReader.Collect(context.Background(), &rm))
@@ -120,7 +120,7 @@ func TestProcessor_LogsWithLogRecordOriginal(t *testing.T) {
 		}
 	}
 
-	tmp.AddLogs(context.Background(), logs)
+	tmp.AddLogs(context.Background(), logs, true)
 
 	var rm metricdata.ResourceMetrics
 	require.NoError(t, manualReader.Collect(context.Background(), &rm))
@@ -198,7 +198,7 @@ func TestProcessor_LogsWithoutLogRecordOriginal(t *testing.T) {
 		}
 	}
 
-	tmp.AddLogs(context.Background(), logs)
+	tmp.AddLogs(context.Background(), logs, true)
 
 	var rm metricdata.ResourceMetrics
 	require.NoError(t, manualReader.Collect(context.Background(), &rm))
@@ -378,7 +378,7 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		logs, err := golden.ReadLogs(filepath.Join("testdata", "logs", "w3c-logs.yaml"))
 		require.NoError(t, err)
 
-		tmp.AddLogs(context.Background(), logs)
+		tmp.AddLogs(context.Background(), logs, true)
 		tmp.AddMetrics(context.Background(), metrics)
 		tmp.AddTraces(context.Background(), traces)
 
@@ -506,7 +506,7 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		logs, err := golden.ReadLogs(filepath.Join("testdata", "logs", "w3c-logs.yaml"))
 		require.NoError(t, err)
 
-		tmp.AddLogs(context.Background(), logs)
+		tmp.AddLogs(context.Background(), logs, true)
 		tmp.AddMetrics(context.Background(), metrics)
 		tmp.AddTraces(context.Background(), traces)
 
@@ -564,7 +564,7 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		logs, err := golden.ReadLogs(filepath.Join("testdata", "logs", "w3c-logs.yaml"))
 		require.NoError(t, err)
 
-		tmp.AddLogs(context.Background(), logs)
+		tmp.AddLogs(context.Background(), logs, true)
 		tmp.AddMetrics(context.Background(), metrics)
 		tmp.AddTraces(context.Background(), traces)
 
@@ -596,7 +596,7 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		logs, err := golden.ReadLogs(filepath.Join("testdata", "logs", "w3c-logs.yaml"))
 		require.NoError(t, err)
 
-		tmp.AddLogs(context.Background(), logs)
+		tmp.AddLogs(context.Background(), logs, false)
 		tmp.AddMetrics(context.Background(), metrics)
 		tmp.AddTraces(context.Background(), traces)
 

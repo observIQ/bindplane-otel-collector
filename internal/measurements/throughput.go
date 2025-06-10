@@ -130,7 +130,7 @@ func NewThroughputMeasurements(mp metric.MeterProvider, processorID string, extr
 }
 
 // AddLogs records throughput metrics for the provided logs.
-func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs) {
+func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs, measureRawBytes bool) {
 	tm.collectionSequenceNumber.Add(1)
 
 	// Calculate total size using full log size
@@ -138,32 +138,34 @@ func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs) {
 	totalSize := int64(sizer.LogsSize(l))
 	rawBytes := int64(0)
 
-	resourceLogs := l.ResourceLogs()
-	for i := 0; i < resourceLogs.Len(); i++ {
-		resourceLog := resourceLogs.At(i)
-		scopeLogs := resourceLog.ScopeLogs()
-		for j := 0; j < scopeLogs.Len(); j++ {
-			scopeLog := scopeLogs.At(j)
-			logRecords := scopeLog.LogRecords()
-			for k := 0; k < logRecords.Len(); k++ {
-				logRecord := logRecords.At(k)
+	if measureRawBytes {
+		resourceLogs := l.ResourceLogs()
+		for i := 0; i < resourceLogs.Len(); i++ {
+			resourceLog := resourceLogs.At(i)
+			scopeLogs := resourceLog.ScopeLogs()
+			for j := 0; j < scopeLogs.Len(); j++ {
+				scopeLog := scopeLogs.At(j)
+				logRecords := scopeLog.LogRecords()
+				for k := 0; k < logRecords.Len(); k++ {
+					logRecord := logRecords.At(k)
 
-				// Record raw bytes if log.record.original is present
-				if original, ok := logRecord.Attributes().Get("log.record.original"); ok {
-					logRecordRawBytes := int64(len(original.Str()))
+					// Record raw bytes if log.record.original is present
+					if original, ok := logRecord.Attributes().Get("log.record.original"); ok {
+						logRecordRawBytes := int64(len(original.Str()))
 
-					rawBytes += logRecordRawBytes
-				} else {
-					// If log.record.original is not present, use the body as the raw bytes
-					body := logRecord.Body().AsString()
-					logRecordRawBytes := int64(len(body))
-					rawBytes += logRecordRawBytes
+						rawBytes += logRecordRawBytes
+					} else {
+						// If log.record.original is not present, use the body as the raw bytes
+						body := logRecord.Body().AsString()
+						logRecordRawBytes := int64(len(body))
+						rawBytes += logRecordRawBytes
+					}
 				}
 			}
 		}
+		// Raw bytes is the sum of all raw bytes
+		tm.rawBytes.Add(ctx, rawBytes)
 	}
-	// Raw bytes is the sum of all raw bytes
-	tm.rawBytes.Add(ctx, rawBytes)
 
 	tm.logSize.Add(ctx, totalSize)
 	tm.logCount.Add(ctx, int64(l.LogRecordCount()))
