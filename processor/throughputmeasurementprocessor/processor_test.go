@@ -233,14 +233,16 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 	processorID := component.MustNewIDWithName("throughputmeasurement", "1")
 
 	tmp1, err := newThroughputMeasurementProcessor(zap.NewNop(), mp, &Config{
-		Enabled:       true,
-		SamplingRatio: 1,
+		Enabled:         true,
+		SamplingRatio:   1,
+		MeasureRawBytes: true,
 	}, processorID)
 	require.NoError(t, err)
 
 	tmp2, err := newThroughputMeasurementProcessor(zap.NewNop(), mp, &Config{
-		Enabled:       true,
-		SamplingRatio: 1,
+		Enabled:         true,
+		SamplingRatio:   1,
+		MeasureRawBytes: true,
 	}, processorID)
 	require.NoError(t, err)
 
@@ -315,14 +317,16 @@ func TestProcessor_Logs_TwoInstancesDifferentID(t *testing.T) {
 	processorID2 := component.MustNewIDWithName("throughputmeasurement", "2")
 
 	tmp1, err := newThroughputMeasurementProcessor(zap.NewNop(), mp, &Config{
-		Enabled:       true,
-		SamplingRatio: 1,
+		Enabled:         true,
+		SamplingRatio:   1,
+		MeasureRawBytes: true,
 	}, processorID1)
 	require.NoError(t, err)
 
 	tmp2, err := newThroughputMeasurementProcessor(zap.NewNop(), mp, &Config{
-		Enabled:       true,
-		SamplingRatio: 1,
+		Enabled:         true,
+		SamplingRatio:   1,
+		MeasureRawBytes: true,
 	}, processorID2)
 	require.NoError(t, err)
 
