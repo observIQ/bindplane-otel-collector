@@ -22,15 +22,15 @@ import (
 var typ = component.MustNewType("webhook")
 
 func TestComponentFactoryType(t *testing.T) {
-	require.Equal(t, typ, NewFactory().Type())
+	require.Equal(t, typ, NewFactory("v1.2.3").Type())
 }
 
 func TestComponentConfigStruct(t *testing.T) {
-	require.NoError(t, componenttest.CheckConfigStruct(NewFactory().CreateDefaultConfig()))
+	require.NoError(t, componenttest.CheckConfigStruct(NewFactory("v1.2.3").CreateDefaultConfig()))
 }
 
 func TestComponentLifecycle(t *testing.T) {
-	factory := NewFactory()
+	factory := NewFactory("v1.2.3")
 
 	tests := []struct {
 		createFn func(ctx context.Context, set exporter.Settings, cfg component.Config) (component.Component, error)

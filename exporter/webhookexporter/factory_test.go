@@ -25,27 +25,33 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/config/confighttp"
+	"go.opentelemetry.io/collector/config/configopaque"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/exportertest"
 )
 
 func TestNewFactory(t *testing.T) {
-	factory := NewFactory()
+	factory := NewFactory("v1.2.3")
 	assert.Equal(t, metadata.Type, factory.Type())
 	assert.Equal(t, metadata.LogsStability, factory.LogsStability())
 }
 
 func TestCreateDefaultConfig(t *testing.T) {
-	cfg := createDefaultConfig()
+	cfg := createDefaultConfig("v1.2.3")()
 	assert.NotNil(t, cfg)
 
 	webhookCfg, ok := cfg.(*Config)
 	require.True(t, ok)
+
+	expectedUserAgent := "bindplane-otel-collector/v1.2.3"
 	assert.Equal(t, &SignalConfig{
 		ClientConfig: confighttp.ClientConfig{
 			Endpoint: "https://localhost",
 			Timeout:  30 * time.Second,
+			Headers: map[string]configopaque.String{
+				"User-Agent": configopaque.String(expectedUserAgent),
+			},
 		},
 		Verb:             POST,
 		ContentType:      "application/json",
