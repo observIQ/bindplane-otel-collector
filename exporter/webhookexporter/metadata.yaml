@@ -1,0 +1,10 @@
+type: webhook
+
+status:
+  class: exporter
+  stability:
+    alpha: [logs]
+  distributions: [observiq]
+
+tests:
+  skip_lifecycle: true

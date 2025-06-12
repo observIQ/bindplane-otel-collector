@@ -95,6 +95,10 @@ parameters:
     description: The directory that the offset storage file will be created
     type: string
     default: ${env:OIQ_OTEL_COLLECTOR_HOME}/storage
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   extensions:
     file_storage:
@@ -125,6 +129,7 @@ template: |
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
           parse_to: {{ .parse_to }}
@@ -140,6 +145,7 @@ template: |
               warn: W
               error: E
               fatal: F
+        {{ end }}
         {{ if and .retain_raw_logs (eq .parse_to "body")}}
         - id: move_raw_log
           type: move
@@ -173,6 +179,7 @@ template: |
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
           parse_to: {{ .parse_to }}
@@ -188,6 +195,7 @@ template: |
               warn: W
               error: E
               fatal: F
+        {{ end }}
         {{ if and .retain_raw_logs (eq .parse_to "body")}}
         - id: move_raw_log
           type: move
@@ -222,6 +230,7 @@ template: |
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
           parse_to: {{ .parse_to }}
@@ -237,6 +246,7 @@ template: |
               warn: W
               error: E
               fatal: F
+        {{ end }}
         {{ if and .retain_raw_logs (eq .parse_to "body")}}
         - id: move_raw_log
           type: move
@@ -270,6 +280,7 @@ template: |
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
           parse_to: {{ .parse_to }}
@@ -285,6 +296,7 @@ template: |
               warn: W
               error: E
               fatal: F
+        {{ end }}
         {{ if and .retain_raw_logs (eq .parse_to "body")}}
         - id: move_raw_log
           type: move
@@ -318,6 +330,7 @@ template: |
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
           parse_to: {{ .parse_to }}
@@ -333,6 +346,7 @@ template: |
               warn: W
               error: E
               fatal: F
+        {{ end }}
         {{ if and .retain_raw_logs (eq .parse_to "body")}}
         - id: move_raw_log
           type: move
@@ -366,6 +380,7 @@ template: |
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
           parse_to: {{ .parse_to }}
@@ -381,6 +396,7 @@ template: |
               warn: W
               error: E
               fatal: F
+        {{ end }}
         {{ if and .retain_raw_logs (eq .parse_to "body")}}
         - id: move_raw_log
           type: move
@@ -414,6 +430,7 @@ template: |
           from: body
           to: attributes.raw_log
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '^(?P<Type>[IWEF])(?P<timestamp>\d{6}\s+\d{2}:\d{2}:\d{2}\.\d{6})\s+(?P<GoID>\d+)\s*(?:(?P<Channel>\d+)@)?(?P<Location>\S+)\s+(?:)⋮?\s+(?P<Node>\[[^\]]+\])\s+(?:(?P<Counter>\d+\s+)?)(?P<Message>.*)'
           parse_to: {{ .parse_to }}
@@ -429,6 +446,7 @@ template: |
               warn: W
               error: E
               fatal: F
+        {{ end }}
         {{ if and .retain_raw_logs (eq .parse_to "body")}}
         - id: move_raw_log
           type: move

@@ -68,6 +68,10 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   extensions:
     file_storage:
@@ -98,6 +102,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - id: slow_query_router
           type: router
           routes:
@@ -328,15 +333,16 @@ template: |
         - id: end_filter
           type: filter
           expr: 'body == ""'
-    {{end}}
+        {{ end }}
+    {{ end }}
 
-    {{if .enable_error_log}}
+    {{ if .enable_error_log }}
     filelog/error_log:
       storage: file_storage
       include:
         {{ range $fp := .error_log_paths }}
         - '{{ $fp }}'
-        {{end}}
+        {{ end }}
       start_at: {{ .start_at }}
       attributes:
         log_type: 'mysql.error'
@@ -351,6 +357,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: regex_parser
           regex: '(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z)\s+(?P<tid>\d+)\s+\[(?P<mysql_severity>[^\]]+)]\s+(?P<message>[\d\D\s]+)'
           timestamp:
@@ -367,15 +374,16 @@ template: |
                 - system
               info2:
                 - note
-    {{end}}
+        {{ end }}
+    {{ end }}
 
-    {{if .enable_general_log}}
+    {{ if .enable_general_log }}
     filelog/general_log:
       storage: file_storage
       include:
         {{ range $fp := .general_log_paths }}
         - '{{ $fp }}'
-        {{end}}
+        {{ end }}
       start_at: {{ .start_at }}
       multiline:
         line_start_pattern: '\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z|/\w+/\w+/mysqld,'
@@ -392,6 +400,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - type: router
           routes:
             - output: general_regex_parser
@@ -615,15 +624,16 @@ template: |
         - id: end_filter
           type: filter
           expr: 'body == ""'
-    {{end}}
+        {{ end }}
+    {{ end }}
 
-    {{if .enable_mariadb_audit_log}}
+    {{ if .enable_mariadb_audit_log }}
     filelog/mariadb_audit_log:
       storage: file_storage
       include:
         {{ range $fp := .mariadb_audit_log_paths }}
         - '{{ $fp }}'
-        {{end}}
+        {{ end }}
       start_at: {{ .start_at }}
       operators:
         # Example of log line:
@@ -634,6 +644,7 @@ template: |
           from: body
           to: attributes["log.record.original"]
         {{ end }}
+        {{ if .parse }}
         - id: single_quote_router
           type: router
           default: mariadb_audit_regex_parser_lt
@@ -683,7 +694,8 @@ template: |
           type: add
           field: attributes.log_type
           value: 'mysql.audit'
-    {{end}}
+        {{ end }}
+    {{ end }}
 
   service:
     extensions: [file_storage]
@@ -692,13 +704,13 @@ template: |
         receivers:
           {{ if .enable_slow_log }}
           - filelog/slow_log
-          {{end}}
+          {{ end }}
           {{ if .enable_error_log }}
           - filelog/error_log
-          {{end}}
+          {{ end }}
           {{ if .enable_general_log }}
           - filelog/general_log
-          {{end}}
+          {{ end }}
           {{ if .enable_mariadb_audit_log }}
           - filelog/mariadb_audit_log
-          {{end}}
+          {{ end }}

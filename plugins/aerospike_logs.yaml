@@ -17,6 +17,11 @@ parameters:
     description: Enable to preserve the original log message in a `log.record.original` key.
     type: bool
     default: false
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
+
 template: |
   receivers:
     journald:
@@ -56,6 +61,7 @@ template: |
           from: body.MESSAGE
           to: body.message
         
+        {{ if .parse }}
         # Parse Aerospike's log and update the entry's Timestamp and Severity
         # fields with the values from the Aerospike log.
         - type: regex_parser
@@ -89,6 +95,7 @@ template: |
         # capture.
         - type: filter
           expr: 'body.context == "config"'
+        {{ end }}
 
         - type: add
           field: attributes.log_type

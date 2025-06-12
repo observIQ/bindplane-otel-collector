@@ -14,6 +14,7 @@ Log receiver for TCP
 | tls_certificate_path | File path for the X509 TLS certificate chain | string |  | false |  |
 | tls_private_key_path | File path for the X509 TLS private key chain | string |  | false |  |
 | tls_min_version | Minimum version of TLS to use | string | `1.2` | false | `1.0`, `1.1`, `1.2`, `1.3` |
+| parse | When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field. | bool | `true` | false |  |
 
 ## Example Config:
 
@@ -30,4 +31,5 @@ receivers:
       add_attributes: false
       enable_tls: false
       tls_min_version: 1.2
+      parse: true
 ```

@@ -70,6 +70,10 @@ parameters:
       - body
       - attributes
     default: body
+  - name: parse
+    description: When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field.
+    type: bool
+    default: true
 template: |
   receivers:
     syslog:
@@ -98,6 +102,7 @@ template: |
           from: body
           to: {{ .parse_to }}.raw_log
         {{ end }}
+        {{ if .parse }}
         {{ if eq .data_flow "low" }}
         # Filter entries with debug severity (7); There is no actual severity field left by the syslog parser,
         # so we must calculate the severity from the priority
@@ -171,6 +176,7 @@ template: |
           from: attributes.version
           to: body.version
         {{end}}
+        {{ end }}
 
   service:
     pipelines:

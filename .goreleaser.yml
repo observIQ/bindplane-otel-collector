@@ -115,15 +115,15 @@ archives:
       - src: release_deps/observiq-otel-collector
         dst: "install"
         strip_parent: true
-      - src: release_deps/sysconfig/observiq-otel-collector
-        dst: "install/sysconfig"
-        strip_parent: true
     format_overrides:
       - goos: windows
         format: zip
 
 nfpms:
   - id: collector
+    ids:
+      - collector
+      - updater
     file_name_template: "{{ .PackageName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     package_name: observiq-otel-collector
     vendor: observIQ, Inc
@@ -134,36 +134,166 @@ nfpms:
     formats:
       - rpm
       - deb
-    bindir: /opt/observiq-otel-collector
+    bindir: /usr/share/observiq-otel-collector/stage/observiq-otel-collector
     contents:
+      # This file was previously managed by the package
+      # therefore it must be marked as a ghost file to
+      # prevent the package manager from deleting it
+      # upon upgrade. This file will continue to be
+      # used by user's to modify the package's install
+      # behavior.
+      - dst: /etc/sysconfig/observiq-otel-collector
+        type: ghost
+      - dst: /opt/observiq-otel-collector/observiq-otel-collector
+        type: ghost
+      - dst: /opt/observiq-otel-collector/updater
+        type: ghost
       - dst: /opt/observiq-otel-collector
+        type: ghost
+      - dst: /opt/observiq-otel-collector/config.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/logging.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/LICENSE
+        type: ghost
+      - dst: /opt/observiq-otel-collector/VERSION.txt
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/active_directory_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/aerospike_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/apache_cassandra_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/apache_combined_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/apache_common_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/apache_http_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/bindplane_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/cisco_asa_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/cisco_catalyst_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/cisco_meraki_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/cockroachdb_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/cockroachdb_metrics.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/common_event_format_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/container_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/couchbase_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/couchbase_metrics.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/couchdb_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/csv_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/elasticsearch_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/esxi_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/file_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/hadoop_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/haproxy_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/hbase_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/iis_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/ingress_nginx_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/jboss_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/json_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/kafka_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/kubelet_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/macos_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/mongodb_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/mysql_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/nginx_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/oracle_database_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/oracledb_metrics.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/pgbouncer_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/postgresql_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/rabbitmq_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/redis_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/sap_hana_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/solr_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/sql_server_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/syslog_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/tcp_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/tomcat_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/ubiquiti_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/udp_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/vcenter_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/w3c_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/wildfly_logs.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/windows_dhcp.yaml
+        type: ghost
+      - dst: /opt/observiq-otel-collector/plugins/zookeeper_logs.yaml
+        type: ghost
+      - dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector
         type: dir
         file_info:
-          mode: 0755
-          owner: observiq-otel-collector
-          group: observiq-otel-collector
+          mode: 0750
+          owner: root
+          group: root
       - src: release_deps/config.yaml
-        dst: /opt/observiq-otel-collector/config.yaml
+        dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/config.yaml
         file_info:
           mode: 0640
           owner: observiq-otel-collector
           group: observiq-otel-collector
         type: config|noreplace
       - src: release_deps/logging.yaml
-        dst: /opt/observiq-otel-collector/logging.yaml
+        dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/logging.yaml
         file_info:
           mode: 0640
           owner: observiq-otel-collector
           group: observiq-otel-collector
         type: config|noreplace
       - src: LICENSE
-        dst: /opt/observiq-otel-collector/LICENSE
+        dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/LICENSE
         file_info:
           mode: 0644
           owner: observiq-otel-collector
           group: observiq-otel-collector
       - src: release_deps/VERSION.txt
-        dst: /opt/observiq-otel-collector/VERSION.txt
+        dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/VERSION.txt
         file_info:
           mode: 0644
           owner: observiq-otel-collector
@@ -174,7 +304,7 @@ nfpms:
           mode: 0755
           owner: observiq-otel-collector
           group: observiq-otel-collector
-      - dst: /opt/observiq-otel-collector/plugins
+      - dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/plugins
         type: dir
         file_info:
           mode: 0750 # restrict plugins to owner / group only
@@ -184,16 +314,16 @@ nfpms:
       # Attempting to set the permissions here results in the following error:
       # nfpm failed: cannot write header of release_deps/plugins/amazon_eks.yaml to data.tar.gz: archive/tar: missed writing 1736 bytes
       - src: release_deps/plugins/*
-        dst: /opt/observiq-otel-collector/plugins
+        dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/plugins
       # Storage dir is used by stateful receivers, such as filelog receiver. It allows
       # receivers to track their progress and buffer data.
-      - dst: /opt/observiq-otel-collector/storage
+      - dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/storage
         type: dir
         file_info:
           mode: 0750
           owner: observiq-otel-collector
           group: observiq-otel-collector
-      - dst: /opt/observiq-otel-collector/log
+      - dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/log
         type: dir
         file_info:
           mode: 0750
@@ -211,13 +341,6 @@ nfpms:
         type: config|noreplace
         file_info:
           mode: 0755
-          owner: root
-          group: root
-      - src: service/sysconfig/observiq-otel-collector
-        dst: /etc/sysconfig/observiq-otel-collector
-        type: config
-        file_info:
-          mode: 0644
           owner: root
           group: root
     scripts:

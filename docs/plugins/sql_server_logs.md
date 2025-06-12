@@ -10,6 +10,7 @@ Log Parser for Microsoft SQL Server Event Logs
 | max_reads | The maximum number of events read into memory at one time | int | `1000` | false |  |
 | start_at | At startup, where to start reading logs from the file (`beginning` or `end`) | string | `end` | false | `beginning`, `end` |
 | save_log_record_original | Enable to preserve the original log message in a `log.record.original` key. | bool | `false` | false |  |
+| parse | When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field. | bool | `true` | false |  |
 
 ## Example Config:
 
@@ -24,4 +25,5 @@ receivers:
       max_reads: 1000
       start_at: end
       save_log_record_original: false
+      parse: true
 ```

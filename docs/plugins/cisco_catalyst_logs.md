@@ -11,6 +11,7 @@ Log parser for Cisco Catalyst
 | add_attributes | Adds net.transport, net.peer.ip, net.peer.port, net.host.ip and net.host.port labels. | bool | `true` | false |  |
 | timezone | Timezone to use when parsing the timestamp | timezone | `UTC` | false |  |
 | save_log_record_original | Enable to preserve the original log message in a `log.record.original` key. | bool | `false` | false |  |
+| parse | When enabled, parses the log fields into structured attributes. When disabled, sends the raw log message in the body field. | bool | `true` | false |  |
 
 ## Example Config:
 
@@ -26,4 +27,5 @@ receivers:
       add_attributes: true
       timezone: UTC
       save_log_record_original: false
+      parse: true
 ```
