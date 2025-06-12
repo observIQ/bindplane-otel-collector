@@ -160,7 +160,7 @@ func TestProcessor_LogsWithLogRecordOriginal(t *testing.T) {
 	expectedLogRawBytes := int64(16 * 20)
 	require.Equal(t, expectedLogSize, logSize)
 	require.Equal(t, expectedLogSize, tmp.LogSize())
-	require.Equal(t, expectedLogRawBytes, tmp.logLogRawBytes.Val())
+	require.Equal(t, expectedLogRawBytes, tmp.logRawBytes.Val())
 	require.Equal(t, int64(16), logCount)
 	require.Equal(t, int64(16), tmp.LogCount())
 }
@@ -238,7 +238,7 @@ func TestProcessor_LogsWithoutLogRecordOriginal(t *testing.T) {
 	expectedLogRawBytes := int64(16 * 25)
 	require.Equal(t, expectedLogSize, logSize)
 	require.Equal(t, expectedLogSize, tmp.LogSize())
-	require.Equal(t, expectedLogRawBytes, tmp.logLogRawBytes.Val())
+	require.Equal(t, expectedLogRawBytes, tmp.logRawBytes.Val())
 	require.Equal(t, int64(16), logCount)
 	require.Equal(t, int64(16), tmp.LogCount())
 }

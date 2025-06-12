@@ -259,7 +259,7 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 	require.NoError(t, manualReader.Collect(context.Background(), &rm))
 
 	// Extract the metrics we care about from the metrics we collected
-	var logSize, logCount, logLogRawBytesSize int64
+	var logSize, logCount, logRawBytesSize int64
 
 	for _, sm := range rm.ScopeMetrics {
 		for _, metric := range sm.Metrics {
@@ -292,7 +292,7 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 				require.True(t, ok, "processor attribute was not found")
 				require.Equal(t, processorID.String(), processorAttr.AsString())
 
-				logLogRawBytesSize = sum.DataPoints[0].Value
+				logRawBytesSize = sum.DataPoints[0].Value
 			}
 
 		}
@@ -300,7 +300,7 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 
 	require.Equal(t, int64(2*3974), logSize)
 	require.Equal(t, int64(2*16), logCount)
-	require.Equal(t, int64(4746), logLogRawBytesSize)
+	require.Equal(t, int64(4746), logRawBytesSize)
 }
 
 func TestProcessor_Logs_TwoInstancesDifferentID(t *testing.T) {

@@ -42,7 +42,7 @@ type ThroughputMeasurementsRegistry interface {
 type ThroughputMeasurements struct {
 	logSize, metricSize, traceSize      *int64Counter
 	logCount, datapointCount, spanCount *int64Counter
-	logLogRawBytes                      *int64Counter
+	logRawBytes                         *int64Counter
 	attributes                          attribute.Set
 	collectionSequenceNumber            atomic.Int64
 }
@@ -105,7 +105,7 @@ func NewThroughputMeasurements(mp metric.MeterProvider, processorID string, extr
 		return nil, fmt.Errorf("create trace_count counter: %w", err)
 	}
 
-	logLogRawBytes, err := meter.Int64Counter(
+	logRawBytes, err := meter.Int64Counter(
 		metricName("log_raw_bytes"),
 		metric.WithDescription("Size of the original log content in bytes"),
 		metric.WithUnit("By"),
@@ -123,7 +123,7 @@ func NewThroughputMeasurements(mp metric.MeterProvider, processorID string, extr
 		datapointCount:           newInt64Counter(datapointCount, attrs),
 		traceSize:                newInt64Counter(traceSize, attrs),
 		spanCount:                newInt64Counter(spanCount, attrs),
-		logLogRawBytes:           newInt64Counter(logLogRawBytes, attrs),
+		logRawBytes:              newInt64Counter(logRawBytes, attrs),
 		attributes:               attrs,
 		collectionSequenceNumber: atomic.Int64{},
 	}, nil
@@ -164,7 +164,7 @@ func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs, meas
 			}
 		}
 		// logRawBytes is the sum of all log raw bytes
-		tm.logLogRawBytes.Add(ctx, logRawBytes)
+		tm.logRawBytes.Add(ctx, logRawBytes)
 	}
 
 	tm.logSize.Add(ctx, totalSize)
@@ -226,7 +226,7 @@ func (tm *ThroughputMeasurements) SpanCount() int64 {
 
 // LogRawBytes returns the total size in bytes of all raw log content added to this ThroughputMeasurements.
 func (tm *ThroughputMeasurements) LogRawBytes() int64 {
-	return tm.logLogRawBytes.Val()
+	return tm.logRawBytes.Val()
 }
 
 // Attributes returns the full set of attributes used on each metric for this ThroughputMeasurements.
