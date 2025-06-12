@@ -135,17 +135,13 @@ func TestLogsDataPusher(t *testing.T) {
 				require.NotEmpty(t, body)
 
 				// Verify the body is valid JSON
-				var jsonBody []any
+				var jsonBody []map[string]string
 				err = json.Unmarshal(body, &jsonBody)
 				require.NoError(t, err, "body should be valid JSON")
 				require.Len(t, jsonBody, 1, "should have one log entry")
 
 				// Verify the log entry is a JSON object with a message field
-				logEntry, ok := jsonBody[0].(map[string]any)
-				require.True(t, ok, "log entry should be an object")
-				message, ok := logEntry["message"].(string)
-				require.True(t, ok, "log entry should have a message field")
-				require.Equal(t, "test log message", message, "message field should contain the log content")
+				require.Equal(t, "test log message", jsonBody[0]["message"], "message field should contain the log content")
 
 				w.WriteHeader(http.StatusOK)
 			},
@@ -163,7 +159,7 @@ func TestLogsDataPusher(t *testing.T) {
 				require.NotEmpty(t, body)
 
 				// Verify the body is valid JSON
-				var jsonBody []any
+				var jsonBody []map[string]string
 				err = json.Unmarshal(body, &jsonBody)
 				require.NoError(t, err, "body should be valid JSON")
 				require.Len(t, jsonBody, 2, "should have two log entries")
@@ -171,11 +167,7 @@ func TestLogsDataPusher(t *testing.T) {
 				// Verify each log entry is an object with a message field
 				expectedMessages := []string{"first log", "second log"}
 				for i, expected := range expectedMessages {
-					logEntry, ok := jsonBody[i].(map[string]any)
-					require.True(t, ok, "log entry should be an object")
-					message, ok := logEntry["message"].(string)
-					require.True(t, ok, "log entry should have a message field")
-					require.Equal(t, expected, message, "message field should contain the log content")
+					require.Equal(t, expected, jsonBody[i]["message"], "message field should contain the log content")
 				}
 
 				w.WriteHeader(http.StatusOK)
@@ -312,12 +304,12 @@ func TestLogsDataPusherIntegration(t *testing.T) {
 			received := <-receivedBody
 
 			// Verify the format
-			var jsonArray []string
+			var jsonArray []map[string]string
 			err = json.Unmarshal(received, &jsonArray)
 			require.NoError(t, err)
 			require.Len(t, jsonArray, 2)
-			require.Equal(t, "test log message", jsonArray[0])
-			require.Equal(t, "test log message 2", jsonArray[1])
+			require.Equal(t, "test log message", jsonArray[0]["message"])
+			require.Equal(t, "test log message 2", jsonArray[1]["message"])
 		})
 	}
 }
@@ -712,7 +704,7 @@ func TestLogsDataPusherWithQueueSettings(t *testing.T) {
 				select {
 				case body := <-receivedBodies:
 					receivedCount++
-					var receivedLogs []string
+					var receivedLogs []map[string]string
 					err = json.Unmarshal(body, &receivedLogs)
 					require.NoError(t, err)
 
