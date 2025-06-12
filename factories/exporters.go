@@ -104,6 +104,6 @@ var defaultExporters = []exporter.Factory{
 	splunkhecexporter.NewFactory(),
 	sumologicexporter.NewFactory(),
 	syslogexporter.NewFactory(),
-	webhookexporter.NewFactory(),
+	webhookexporter.NewFactory(version.Version()),
 	zipkinexporter.NewFactory(),
 }
