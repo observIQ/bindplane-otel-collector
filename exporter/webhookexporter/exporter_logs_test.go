@@ -106,6 +106,7 @@ func TestLogsDataPusher(t *testing.T) {
 		serverResponse func(w http.ResponseWriter, r *http.Request)
 		expectedError  string
 		expectedBody   string
+		logBody        string
 	}{
 		{
 			name: "successful push",
@@ -121,6 +122,66 @@ func TestLogsDataPusher(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 			},
 			expectedError: "",
+			logBody:       "test log message",
+		},
+		{
+			name: "verify json output for string body",
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				require.Equal(t, "POST", r.Method)
+				require.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+				body, err := io.ReadAll(r.Body)
+				require.NoError(t, err)
+				require.NotEmpty(t, body)
+
+				// Verify the body is valid JSON
+				var jsonBody []any
+				err = json.Unmarshal(body, &jsonBody)
+				require.NoError(t, err, "body should be valid JSON")
+				require.Len(t, jsonBody, 1, "should have one log entry")
+
+				// Verify the log entry is a JSON object with a message field
+				logEntry, ok := jsonBody[0].(map[string]any)
+				require.True(t, ok, "log entry should be an object")
+				message, ok := logEntry["message"].(string)
+				require.True(t, ok, "log entry should have a message field")
+				require.Equal(t, "test log message", message, "message field should contain the log content")
+
+				w.WriteHeader(http.StatusOK)
+			},
+			expectedError: "",
+			logBody:       "test log message",
+		},
+		{
+			name: "verify json output for multiple string bodies",
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				require.Equal(t, "POST", r.Method)
+				require.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+				body, err := io.ReadAll(r.Body)
+				require.NoError(t, err)
+				require.NotEmpty(t, body)
+
+				// Verify the body is valid JSON
+				var jsonBody []any
+				err = json.Unmarshal(body, &jsonBody)
+				require.NoError(t, err, "body should be valid JSON")
+				require.Len(t, jsonBody, 2, "should have two log entries")
+
+				// Verify each log entry is an object with a message field
+				expectedMessages := []string{"first log", "second log"}
+				for i, expected := range expectedMessages {
+					logEntry, ok := jsonBody[i].(map[string]any)
+					require.True(t, ok, "log entry should be an object")
+					message, ok := logEntry["message"].(string)
+					require.True(t, ok, "log entry should have a message field")
+					require.Equal(t, expected, message, "message field should contain the log content")
+				}
+
+				w.WriteHeader(http.StatusOK)
+			},
+			expectedError: "",
+			logBody:       "first log",
 		},
 		{
 			name: "server error",
@@ -128,6 +189,7 @@ func TestLogsDataPusher(t *testing.T) {
 				w.WriteHeader(http.StatusInternalServerError)
 			},
 			expectedError: "failed to send request: 500 Internal Server Error",
+			logBody:       "test log message",
 		},
 		{
 			name: "connection error",
@@ -140,6 +202,7 @@ func TestLogsDataPusher(t *testing.T) {
 				}
 			},
 			expectedError: "failed to send request:",
+			logBody:       "test log message",
 		},
 	}
 
@@ -167,8 +230,18 @@ func TestLogsDataPusher(t *testing.T) {
 			logs := plog.NewLogs()
 			resourceLogs := logs.ResourceLogs().AppendEmpty()
 			scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
-			logRecord := scopeLogs.LogRecords().AppendEmpty()
-			logRecord.Body().SetStr("test log message")
+
+			if tc.name == "verify json output for multiple string bodies" {
+				// Add two log records
+				logRecord1 := scopeLogs.LogRecords().AppendEmpty()
+				logRecord1.Body().SetStr("first log")
+				logRecord2 := scopeLogs.LogRecords().AppendEmpty()
+				logRecord2.Body().SetStr("second log")
+			} else {
+				// Add single log record
+				logRecord := scopeLogs.LogRecords().AppendEmpty()
+				logRecord.Body().SetStr(tc.logBody)
+			}
 
 			// Push logs
 			err = exp.logsDataPusher(context.Background(), logs)

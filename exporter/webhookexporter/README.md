@@ -21,8 +21,10 @@ The webhook exporter sends data to a configured HTTP endpoint. Here's how it pro
 2. **Data Processing**:
 
    - Data is extracted from the OpenTelemetry data model
-   - Each entry's body is parsed as JSON if possible, otherwise kept as a string
+   - Each entry's body is parsed as JSON* if `content_type` is set to `application/json`, otherwise kept as a string
    - Entries are organized into batches based on the configured queue size
+
+  *Incoming strings will be parsed to JSON as [{"message": "\<log data\>"}]
 
 3. **HTTP Transmission**:
 

@@ -154,6 +154,15 @@ func extractLogsFromLogRecords(logRecords plog.LogRecordSlice) []any {
 }
 
 func (le *logsExporter) sendLogs(ctx context.Context, logs []any) error {
+	// If content type is application/json, wrap non-JSON strings in objects
+	if le.cfg.ContentType == "application/json" {
+		for i, log := range logs {
+			if logStr, ok := log.(string); ok {
+				logs[i] = map[string]any{"message": logStr}
+			}
+		}
+	}
+
 	body, err := json.Marshal(logs)
 	if err != nil {
 		return fmt.Errorf("failed to marshal logs: %w", err)
