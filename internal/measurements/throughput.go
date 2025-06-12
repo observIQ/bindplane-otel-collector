@@ -136,9 +136,9 @@ func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs, meas
 	// Calculate total size using full log size
 	sizer := plog.ProtoMarshaler{}
 	totalSize := int64(sizer.LogsSize(l))
-	rawBytes := int64(0)
 
 	if measureRawBytes {
+		rawBytes := int64(0)
 		resourceLogs := l.ResourceLogs()
 		for i := 0; i < resourceLogs.Len(); i++ {
 			resourceLog := resourceLogs.At(i)
