@@ -156,11 +156,11 @@ func TestProcessor_LogsWithLogRecordOriginal(t *testing.T) {
 
 	// Verify that the log size is based on the full log content
 	expectedLogSize := int64(4727)
-	// Verify that the raw bytes size is based on the original log content
-	expectedRawBytes := int64(16 * 20)
+	// Verify that the log raw bytes size is based on the original log content
+	expectedLogRawBytes := int64(16 * 20)
 	require.Equal(t, expectedLogSize, logSize)
 	require.Equal(t, expectedLogSize, tmp.LogSize())
-	require.Equal(t, expectedRawBytes, tmp.rawBytes.Val())
+	require.Equal(t, expectedLogRawBytes, tmp.logLogRawBytes.Val())
 	require.Equal(t, int64(16), logCount)
 	require.Equal(t, int64(16), tmp.LogCount())
 }
@@ -234,11 +234,11 @@ func TestProcessor_LogsWithoutLogRecordOriginal(t *testing.T) {
 
 	// Verify that the log size is based on the full log content
 	expectedLogSize := int64(1792)
-	// Verify that the raw bytes size is based on the log body content (25 bytes per record)
-	expectedRawBytes := int64(16 * 25)
+	// Verify that the log raw bytes size is based on the log body content (25 bytes per record)
+	expectedLogRawBytes := int64(16 * 25)
 	require.Equal(t, expectedLogSize, logSize)
 	require.Equal(t, expectedLogSize, tmp.LogSize())
-	require.Equal(t, expectedRawBytes, tmp.rawBytes.Val())
+	require.Equal(t, expectedLogRawBytes, tmp.logLogRawBytes.Val())
 	require.Equal(t, int64(16), logCount)
 	require.Equal(t, int64(16), tmp.LogCount())
 }

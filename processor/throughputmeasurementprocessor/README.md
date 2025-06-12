@@ -5,9 +5,9 @@ This processor samples OTLP payloads and measures the protobuf size as well as n
 Counters:
 
 - `log_data_size` - The size of the log payload, including all attributes, headers, and metadata
+- `log_raw_bytes` - The raw byte size of the log body payload
 - `metric_data_size` - The size of the metric payload, including all attributes, headers, and metadata
 - `trace_data_size` - The size of the trace payload, including all attributes, headers, and metadata
-- `raw_bytes` - This value is only used for logs. It measures the raw byte size of the log body payload
 - `log_count` - The number of log records in the payload
 - `metric_count` - The number of metric data points in the payload
 - `trace_count` - The number of trace spans in the payload
@@ -24,11 +24,11 @@ Counters:
 
 ## Configuration
 
-| Field               | Type  | Default | Description                                                                                                                                                                |
-| ------------------- | ----- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `enabled`           | bool  | `true`  | When `true` signals that measurements are being taken of data passing through this processor. If false this processor acts as a no-op.                                     |
-| `sampling_ratio`    | float | `0.5`   | The ratio of data payloads that are sampled. Values between `0.0` and `1.0`. Values closer to `1.0` mean any individual payload is more likely to have its size measured.  |
-| `measure_raw_bytes` | bool  | `false` | When `true`, the processor will measure the raw bytes of the payload in addition to the protobuf size. This is more expensive but provides raw measurements if designated. |
+| Field                   | Type  | Default | Description                                                                                                                                                                          |
+| ----------------------- | ----- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `enabled`               | bool  | `true`  | When `true` signals that measurements are being taken of data passing through this processor. If false this processor acts as a no-op.                                               |
+| `sampling_ratio`        | float | `0.5`   | The ratio of data payloads that are sampled. Values between `0.0` and `1.0`. Values closer to `1.0` mean any individual payload is more likely to have its size measured.            |
+| `measure_log_raw_bytes` | bool  | `false` | When `true`, for logs, the processor will measure the raw bytes of the payload in addition to the protobuf size. This is more expensive but provides raw measurements if designated. |
 
 ### Example configuration
 

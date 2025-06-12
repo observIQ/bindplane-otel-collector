@@ -40,8 +40,8 @@ func generateTestLogs(numRecords int, withOriginal bool) plog.Logs {
 	return logs
 }
 
-// BenchmarkAddLogsMeasureRawBytes benchmarks the AddLogs function with different log volumes and measureRawBytes set to true
-func BenchmarkAddLogsMeasureRawBytes(b *testing.B) {
+// BenchmarkAddLogsMeasureLogRawBytes benchmarks the AddLogs function with different log volumes and measureLogRawBytes set to true
+func BenchmarkAddLogsMeasureLogRawBytes(b *testing.B) {
 	benchmarks := []struct {
 		name         string
 		numRecords   int
@@ -76,8 +76,8 @@ func BenchmarkAddLogsMeasureRawBytes(b *testing.B) {
 	}
 }
 
-// BenchmarkAddLogsMeasureRawBytesFalse benchmarks the AddLogs function with different log volumes and measureRawBytes set to false
-func BenchmarkAddLogsMeasureRawBytesFalse(b *testing.B) {
+// BenchmarkAddLogsMeasureLogRawBytesFalse benchmarks the AddLogs function with different log volumes and measureLogRawBytes set to false
+func BenchmarkAddLogsMeasureLogRawBytesFalse(b *testing.B) {
 	benchmarks := []struct {
 		name         string
 		numRecords   int

@@ -37,7 +37,7 @@ type throughputMeasurementProcessor struct {
 	processorID         component.ID
 	bindplane           component.ID
 	startOnce           sync.Once
-	measureRawBytes     bool
+	measureLogRawBytes  bool
 }
 
 func newThroughputMeasurementProcessor(logger *zap.Logger, mp metric.MeterProvider, cfg *Config, processorID component.ID) (*throughputMeasurementProcessor, error) {
@@ -54,7 +54,7 @@ func newThroughputMeasurementProcessor(logger *zap.Logger, mp metric.MeterProvid
 		processorID:         processorID,
 		bindplane:           cfg.BindplaneExtension,
 		startOnce:           sync.Once{},
-		measureRawBytes:     cfg.MeasureRawBytes,
+		measureLogRawBytes:  cfg.MeasureLogRawBytes,
 	}, nil
 }
 
@@ -94,7 +94,7 @@ func (tmp *throughputMeasurementProcessor) processLogs(ctx context.Context, ld p
 	if tmp.enabled {
 		//#nosec G404 -- randomly generated number is not used for security purposes. It's ok if it's weak
 		if rand.Float64() <= tmp.samplingCutOffRatio {
-			tmp.measurements.AddLogs(ctx, ld, tmp.measureRawBytes)
+			tmp.measurements.AddLogs(ctx, ld, tmp.measureLogRawBytes)
 		}
 	}
 
