@@ -4,12 +4,13 @@ This processor samples OTLP payloads and measures the protobuf size as well as n
 
 Counters:
 
-- `log_data_size`
-- `metric_data_size`
-- `trace_data_size`
-- `log_count`
-- `metric_count`
-- `trace_count`
+- `log_data_size` - The size of the log payload, including all attributes, headers, and metadata
+- `metric_data_size` - The size of the metric payload, including all attributes, headers, and metadata
+- `trace_data_size` - The size of the trace payload, including all attributes, headers, and metadata
+- `raw_bytes` - This value is only used for logs. It measures the raw byte size of the log body payload
+- `log_count` - The number of log records in the payload
+- `metric_count` - The number of metric data points in the payload
+- `trace_count` - The number of trace spans in the payload
 
 ## Minimum agent versions
 
