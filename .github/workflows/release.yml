@@ -50,7 +50,7 @@ jobs:
       # Installs go-msi and wix.
       - name: Install Build Tools
         run: |
-          curl -f -L -o go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.2.0/go-msi.exe
+          curl -f -L -o go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.3.0/go-msi.exe
           curl -f -L -o wix310-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix3104rtm/wix310-binaries.zip
           unzip wix310-binaries.zip
         working-directory: C:/build
@@ -59,18 +59,18 @@ jobs:
         working-directory: C:/build
       - name: Install DigiCert Client tools from Github Custom Actions marketplace
         uses: digicert/ssm-code-signing@v1.0.0
-      - name: Set up certificate 
-        run: | 
-          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12 
+      - name: Set up certificate
+        run: |
+          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
         shell: bash
       - name: Set variables for signing
-        id: variables 
-        run: | 
+        id: variables
+        run: |
           echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT 
           echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV" 
           echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV" 
           echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
-          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV" 
+          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
         shell: bash
       - name: Signing using keypair alias
         run: |
