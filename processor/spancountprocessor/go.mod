@@ -3,9 +3,9 @@ module github.com/observiq/bindplane-otel-collector/processor/spancountprocessor
 go 1.24.2
 
 require (
-	github.com/observiq/bindplane-otel-collector/counter v1.78.0
-	github.com/observiq/bindplane-otel-collector/expr v1.78.0
-	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.78.0
+	github.com/observiq/bindplane-otel-collector/counter v1.78.1
+	github.com/observiq/bindplane-otel-collector/expr v1.78.1
+	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.78.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.127.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v1.33.0
