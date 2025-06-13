@@ -118,6 +118,9 @@ type Config struct {
 	// All batched logs beyond the backend limit will not be able to be queryable via the Raw Logs Search, but will be queryable via UDM Search.
 	// Any batches with more logs than this limit will be split into multiple batches
 	BatchLogCountLimitHTTP int `mapstructure:"batch_log_count_limit_http"`
+
+	// LogErroredPayloads is a flag that determines whether or not to log errored payloads.
+	LogErroredPayloads bool `mapstructure:"log_errored_payloads"`
 }
 
 // Validate checks if the configuration is valid.
