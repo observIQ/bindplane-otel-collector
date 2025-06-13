@@ -179,7 +179,9 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 	case http.StatusInternalServerError, http.StatusServiceUnavailable: // potentially transient
 		return statusErr
 	default:
-		exp.set.Logger.Debug("Import request rejected", zap.String("logType", logType), zap.String("rejectedRequest", string(data)))
+		if exp.cfg.LogErroredPayloads {
+			exp.set.Logger.Warn("Import request rejected", zap.String("logType", logType), zap.String("rejectedRequest", string(data)))
+		}
 		return consumererror.NewPermanent(statusErr)
 	}
 }
