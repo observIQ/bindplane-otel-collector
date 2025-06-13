@@ -233,14 +233,16 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 	processorID := component.MustNewIDWithName("throughputmeasurement", "1")
 
 	tmp1, err := newThroughputMeasurementProcessor(zap.NewNop(), mp, &Config{
-		Enabled:       true,
-		SamplingRatio: 1,
+		Enabled:            true,
+		SamplingRatio:      1,
+		MeasureLogRawBytes: true,
 	}, processorID)
 	require.NoError(t, err)
 
 	tmp2, err := newThroughputMeasurementProcessor(zap.NewNop(), mp, &Config{
-		Enabled:       true,
-		SamplingRatio: 1,
+		Enabled:            true,
+		SamplingRatio:      1,
+		MeasureLogRawBytes: true,
 	}, processorID)
 	require.NoError(t, err)
 
@@ -257,7 +259,7 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 	require.NoError(t, manualReader.Collect(context.Background(), &rm))
 
 	// Extract the metrics we care about from the metrics we collected
-	var logSize, logCount int64
+	var logSize, logCount, logRawBytesSize int64
 
 	for _, sm := range rm.ScopeMetrics {
 		for _, metric := range sm.Metrics {
@@ -281,6 +283,16 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 				require.Equal(t, processorID.String(), processorAttr.AsString())
 
 				logCount = sum.DataPoints[0].Value
+
+			case "otelcol_processor_throughputmeasurement_log_raw_bytes":
+				sum := metric.Data.(metricdata.Sum[int64])
+				require.Equal(t, 1, len(sum.DataPoints))
+
+				processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
+				require.True(t, ok, "processor attribute was not found")
+				require.Equal(t, processorID.String(), processorAttr.AsString())
+
+				logRawBytesSize = sum.DataPoints[0].Value
 			}
 
 		}
@@ -288,6 +300,7 @@ func TestProcessor_Logs_TwoInstancesSameID(t *testing.T) {
 
 	require.Equal(t, int64(2*3974), logSize)
 	require.Equal(t, int64(2*16), logCount)
+	require.Equal(t, int64(4746), logRawBytesSize)
 }
 
 func TestProcessor_Logs_TwoInstancesDifferentID(t *testing.T) {
@@ -304,14 +317,16 @@ func TestProcessor_Logs_TwoInstancesDifferentID(t *testing.T) {
 	processorID2 := component.MustNewIDWithName("throughputmeasurement", "2")
 
 	tmp1, err := newThroughputMeasurementProcessor(zap.NewNop(), mp, &Config{
-		Enabled:       true,
-		SamplingRatio: 1,
+		Enabled:            true,
+		SamplingRatio:      1,
+		MeasureLogRawBytes: true,
 	}, processorID1)
 	require.NoError(t, err)
 
 	tmp2, err := newThroughputMeasurementProcessor(zap.NewNop(), mp, &Config{
-		Enabled:       true,
-		SamplingRatio: 1,
+		Enabled:            true,
+		SamplingRatio:      1,
+		MeasureLogRawBytes: true,
 	}, processorID2)
 	require.NoError(t, err)
 

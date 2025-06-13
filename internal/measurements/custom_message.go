@@ -55,6 +55,7 @@ func OTLPThroughputMeasurements(tm *ThroughputMeasurements, includeCountMetrics 
 	addOTLPSum(s, "otelcol_processor_throughputmeasurement_log_data_size", tm.LogSize(), attrs, ts)
 	addOTLPSum(s, "otelcol_processor_throughputmeasurement_metric_data_size", tm.MetricSize(), attrs, ts)
 	addOTLPSum(s, "otelcol_processor_throughputmeasurement_trace_data_size", tm.TraceSize(), attrs, ts)
+	addOTLPSum(s, "otelcol_processor_throughputmeasurement_log_raw_bytes", tm.LogRawBytes(), attrs, ts)
 
 	if includeCountMetrics {
 		addOTLPSum(s, "otelcol_processor_throughputmeasurement_log_count", tm.LogCount(), attrs, ts)
@@ -80,4 +81,5 @@ func addOTLPSum(ms pmetric.MetricSlice, name string, value int64, attrs pcommon.
 	dp.SetIntValue(value)
 	attrs.CopyTo(dp.Attributes())
 	dp.SetTimestamp(now)
+
 }
