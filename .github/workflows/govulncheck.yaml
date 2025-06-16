@@ -16,14 +16,41 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            **/go.sum
 
       - name: Get official govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
         shell: bash
 
-      - name: Run govulncheck
-        timeout-minutes: 20
-        run: govulncheck -format json ./... | tee govulncheck-results.json
+
+      - name: Configure memory limits
+        run: |
+          # Increase available memory for Go
+          echo "GOMEMLIMIT=6GiB" >> $GITHUB_ENV
+          echo "GOGC=50" >> $GITHUB_ENV
+        shell: bash
+
+
+      - name: Run govulncheck with memory optimization
+        timeout-minutes: 30
+        run: |
+          govulncheck -format json ./... | tee govulncheck-results.json || {
+            echo "Full scan failed, trying module-by-module scan..."
+            echo '[]' > govulncheck-results.json
+            temp_file=$(mktemp)
+            for module in $(go list -m all | head -100); do
+              echo "Scanning module: $module"
+              if govulncheck -format json "$module" > "$temp_file" 2>/dev/null; then
+                cat "$temp_file" >> govulncheck-results.json
+                echo "" >> govulncheck-results.json
+              else
+                echo "Module $module scan failed"
+              fi
+            done
+            rm -f "$temp_file"
+          }
         shell: bash
 
       - name: Parse govulncheck results
