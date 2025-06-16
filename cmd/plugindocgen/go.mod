@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/plugindocgen
 
-go 1.24.2
+go 1.24.4
 
 require (
 	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.79.0
