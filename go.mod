@@ -217,6 +217,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.79.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.128.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/otelarrowexporter v0.128.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension v0.128.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.128.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.128.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/githubreceiver v0.128.0
