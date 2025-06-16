@@ -34,10 +34,15 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const logTypeField = `attributes["log_type"]`
-const chronicleLogTypeField = `attributes["chronicle_log_type"]`
-const chronicleNamespaceField = `attributes["chronicle_namespace"]`
-const chronicleIngestionLabelsPrefix = `chronicle_ingestion_label`
+const (
+	logTypeField                   = `attributes["log_type"]`
+	chronicleLogTypeField          = `attributes["chronicle_log_type"]`
+	chronicleNamespaceField        = `attributes["chronicle_namespace"]`
+	chronicleIngestionLabelsPrefix = `chronicle_ingestion_label`
+
+	// catchAllLogType is the log type that is used when the log type is not found in the log types map
+	catchAllLogType = "CATCH_ALL"
+)
 
 // Specific collector IDs for Chronicle used to identify bindplane agents.
 var (
@@ -67,9 +72,11 @@ type protoMarshaler struct {
 	customerID   []byte
 	collectorID  []byte
 	telemetry    *metadata.TelemetryBuilder
+	logTypes     map[string]exists
+	logger       *zap.Logger
 }
 
-func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings, telemetry *metadata.TelemetryBuilder) (*protoMarshaler, error) {
+func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings, telemetry *metadata.TelemetryBuilder, logger *zap.Logger) (*protoMarshaler, error) {
 	customerID, err := uuid.Parse(cfg.CustomerID)
 	if err != nil {
 		return nil, fmt.Errorf("parse customer ID: %w", err)
@@ -81,6 +88,7 @@ func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings, tel
 		customerID:   customerID[:],
 		collectorID:  getCollectorID(cfg.LicenseType),
 		telemetry:    telemetry,
+		logger:       logger,
 	}, nil
 }
 
@@ -193,14 +201,26 @@ func (m *protoMarshaler) getRawLog(ctx context.Context, logRecord plog.LogRecord
 	return m.getRawField(ctx, m.cfg.RawLogField, logRecord, scope, resource)
 }
 
+func (m *protoMarshaler) shouldValidateLogType() bool {
+	return m.cfg.ValidateLogTypes && m.logTypes != nil
+}
+
 func (m *protoMarshaler) getLogType(ctx context.Context, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, error) {
 	// check for attributes in attributes["chronicle_log_type"]
 	logType, err := m.getRawField(ctx, chronicleLogTypeField, logRecord, scope, resource)
 	if err != nil {
 		return "", fmt.Errorf("get chronicle log type: %w", err)
 	}
+
 	if logType != "" {
-		return logType, nil
+		if m.shouldValidateLogType() {
+			if _, ok := m.logTypes[logType]; ok {
+				return logType, nil
+			}
+			m.logger.Warn("Log type could not be validated", zap.String("logType", logType), zap.String("logTypeField", chronicleLogTypeField))
+		} else {
+			return logType, nil
+		}
 	}
 
 	if m.cfg.OverrideLogType {
@@ -216,6 +236,16 @@ func (m *protoMarshaler) getLogType(ctx context.Context, logRecord plog.LogRecor
 		}
 	}
 
+	if m.cfg.LogType == "" {
+		return catchAllLogType, nil
+	}
+
+	if m.shouldValidateLogType() {
+		if _, ok := m.logTypes[m.cfg.LogType]; !ok {
+			m.logger.Warn("Default log type not found in log types map", zap.String("logType", m.cfg.LogType))
+			return catchAllLogType, nil
+		}
+	}
 	return m.cfg.LogType, nil
 }
 
