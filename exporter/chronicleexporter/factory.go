@@ -53,6 +53,7 @@ func createDefaultConfig() component.Config {
 		BatchRequestSizeLimitGRPC: defaultBatchRequestSizeLimitGRPC,
 		BatchRequestSizeLimitHTTP: defaultBatchRequestSizeLimitHTTP,
 		LogErroredPayloads:        false,
+		ValidateLogTypes:          false,
 	}
 }
 
