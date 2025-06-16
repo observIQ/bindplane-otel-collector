@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/receiver/oktareceiver
 
-go 1.24.2
+go 1.24.4
 
 require (
 	github.com/okta/okta-sdk-golang/v2 v2.20.0

@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver
 
-go 1.24.2
+go 1.24.4
 
 require (
 	cloud.google.com/go/storage v1.51.0

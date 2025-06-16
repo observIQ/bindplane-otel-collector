@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/extension/bindplaneextension
 
-go 1.24.2
+go 1.24.4
 
 require (
 	github.com/golang/snappy v1.0.0

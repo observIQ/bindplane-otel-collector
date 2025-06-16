@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter
 
-go 1.24.2
+go 1.24.4
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.1
