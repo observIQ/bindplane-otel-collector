@@ -125,48 +125,6 @@ func TestConfig_Validate(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "valid config with limit",
-			config: Config{
-				LogsConfig: &SignalConfig{
-					ClientConfig: confighttp.ClientConfig{
-						Endpoint: "https://example.com",
-					},
-					Verb:                  POST,
-					ContentType:           "application/json",
-					EventsPerRequestLimit: 20,
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid config with zero limit",
-			config: Config{
-				LogsConfig: &SignalConfig{
-					ClientConfig: confighttp.ClientConfig{
-						Endpoint: "https://example.com",
-					},
-					Verb:                  POST,
-					ContentType:           "application/json",
-					EventsPerRequestLimit: 0,
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid config with negative limit",
-			config: Config{
-				LogsConfig: &SignalConfig{
-					ClientConfig: confighttp.ClientConfig{
-						Endpoint: "https://example.com",
-					},
-					Verb:                  POST,
-					ContentType:           "application/json",
-					EventsPerRequestLimit: -1,
-				},
-			},
-			wantErr: false,
-		},
 	}
 
 	for _, tt := range tests {

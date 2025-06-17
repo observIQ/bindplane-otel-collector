@@ -78,44 +78,8 @@ func (le *logsExporter) shutdown(_ context.Context) error {
 func (le *logsExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
 	le.logger.Debug("begin webhook logsDataPusher")
 
-	limit := le.cfg.EventsPerRequestLimit
-	if limit <= 0 {
-		// If no limit is set, send all logs in one request
-		return le.sendLogs(ctx, extractLogBodies(ld))
-	}
-
-	// Create a new logs object for the current batch
-	logs := extractLogBodies(ld)
-
-	batches := make([][]any, 0)
-	currentBatch := make([]any, 0)
-	currentBatchSize := 0
-	// split logs into batches
-	for _, log := range logs {
-		if currentBatchSize >= limit {
-			batches = append(batches, currentBatch)
-			currentBatch = make([]any, 0)
-			currentBatchSize = 0
-		}
-		currentBatch = append(currentBatch, log)
-		currentBatchSize++
-	}
-	// Append the last batch if it's not empty
-	if len(currentBatch) > 0 {
-		batches = append(batches, currentBatch)
-	}
-
-	le.logger.Debug("created log batches", zap.Int("num_batches", len(batches)), zap.Int("batch_size", limit))
-
-	// Send each batch
-	for i, batch := range batches {
-		if err := le.sendLogs(ctx, batch); err != nil {
-			return fmt.Errorf("failed to send batch %d: %w", i+1, err)
-		}
-		le.logger.Debug("sent log batch", zap.Int("batch_number", i+1), zap.Int("total_batches", len(batches)))
-	}
-
-	return nil
+	// Extract log bodies and send all logs in one request
+	return le.sendLogs(ctx, extractLogBodies(ld))
 }
 
 func extractLogBodies(ld plog.Logs) []any {

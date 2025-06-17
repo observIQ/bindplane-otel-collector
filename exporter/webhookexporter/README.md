@@ -22,7 +22,7 @@ The webhook exporter sends data to a configured HTTP endpoint. Here's how it pro
 
    - Data is extracted from the OpenTelemetry data model
    - Each entry's body is parsed as JSON if possible, otherwise kept as a string
-   - Entries are organized into batches based on the configured `events_per_request_limit`. When this limit is set to 0 or not specified, all events are sent in a single request. When set to a positive value, events are split into multiple requests with at most this many events each.
+   - Batching is handled by the upstream [batch processor](https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/batchprocessor/README.md).
 
 3. **HTTP Transmission**:
 
@@ -40,16 +40,15 @@ The webhook exporter sends data to a configured HTTP endpoint. Here's how it pro
 
 The following configuration options are available:
 
-| Field                   | Type              | Default | Required | Description                                                                                                                                                                                                                                         |
-| ----------------------- | ----------------- | ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| endpoint                | string            |         | `true`   | The URL where the webhook requests will be sent. Must start with http:// or https://                                                                                                                                                                |
-| verb                    | string            |         | `true`   | The HTTP method to use for the webhook requests. Must be one of: POST, PATCH, PUT                                                                                                                                                                   |
-| content_type            | string            |         | `true`   | The Content-Type header for the webhook requests                                                                                                                                                                                                    |
-| events_per_request_limit| int               | 0       | `false`  | Maximum number of log events to send in a single request. When set to 0 or not specified, all events are sent in one request. When set to a positive value, events are batched into separate requests with at most this many events each.        |
-| headers                 | map[string]string |         | `false`  | Additional HTTP headers to include in the webhook requests                                                                                                                                                                                          |
-| sending_queue           | map               |         | `false`  | Determines how telemetry data is buffered before exporting. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.128.0/exporter/exporterhelper/README.md) for more information.        |
-| retry_on_failure        | map               |         | `false`  | Determines how the exporter will attempt to retry after a failure. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.128.0/exporter/exporterhelper/README.md) for more information. |
-| timeout                 | duration          | 30s     | `false`  | Time to wait per individual attempt to send data to a backend. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.128.0/exporter/exporterhelper/README.md) for more information.     |
+| Field            | Type              | Default | Required | Description                                                                                                                                                                                                                                         |
+| ---------------- | ----------------- | ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| endpoint         | string            |         | `true`   | The URL where the webhook requests will be sent. Must start with http:// or https://                                                                                                                                                                |
+| verb             | string            |         | `true`   | The HTTP method to use for the webhook requests. Must be one of: POST, PATCH, PUT                                                                                                                                                                   |
+| content_type     | string            |         | `true`   | The Content-Type header for the webhook requests                                                                                                                                                                                                    |
+| headers          | map[string]string |         | `false`  | Additional HTTP headers to include in the webhook requests                                                                                                                                                                                          |
+| sending_queue    | map               |         | `false`  | Determines how telemetry data is buffered before exporting. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.128.0/exporter/exporterhelper/README.md) for more information.        |
+| retry_on_failure | map               |         | `false`  | Determines how the exporter will attempt to retry after a failure. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.128.0/exporter/exporterhelper/README.md) for more information. |
+| timeout          | duration          | 30s     | `false`  | Time to wait per individual attempt to send data to a backend. See the documentation for the [exporter helper](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.128.0/exporter/exporterhelper/README.md) for more information.     |
 
 ### Example Configurations
 
@@ -81,26 +80,6 @@ exporters:
       initial_interval: 5s
       max_interval: 30s
       max_elapsed_time: 300s
-```
-
-#### Events Per Request Limit Configuration
-
-```yaml
-exporters:
-  webhook:
-    endpoint: https://api.example.com/webhook
-    verb: POST
-    content_type: application/json
-    headers:
-      X-API-Key: "your-api-key"
-    events_per_request_limit: 100  # Send at most 100 log events per request
-    sending_queue:
-      enabled: true
-      queue_size: 1000
-    retry_on_failure:
-      enabled: true
-      initial_interval: 5s
-      max_interval: 30s
 ```
 
 #### Mutual TLS Configuration

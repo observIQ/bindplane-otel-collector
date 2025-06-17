@@ -56,11 +56,10 @@ func createDefaultConfig(collectorVersion string) func() component.Config {
 						"User-Agent": configopaque.String(userAgent),
 					},
 				},
-				Verb:                  POST,
-				ContentType:           "application/json",
-				EventsPerRequestLimit: 0,
-				QueueBatchConfig:      exporterhelper.NewDefaultQueueConfig(),
-				BackOffConfig:         configretry.NewDefaultBackOffConfig(),
+				Verb:             POST,
+				ContentType:      "application/json",
+				QueueBatchConfig: exporterhelper.NewDefaultQueueConfig(),
+				BackOffConfig:    configretry.NewDefaultBackOffConfig(),
 			},
 		}
 	}
