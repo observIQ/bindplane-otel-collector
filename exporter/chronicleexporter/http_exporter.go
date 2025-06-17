@@ -161,16 +161,16 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 	exp.telemetry.ExporterRequestCount.Add(ctx, 1,
 		metric.WithAttributeSet(attribute.NewSet(attrErrorNone)))
 
-	respBody, err := io.ReadAll(resp.Body)
-	if err == nil && resp.StatusCode == http.StatusOK {
+	if resp.StatusCode == http.StatusOK {
 		return nil
 	}
 
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		exp.set.Logger.Warn("Failed to read response body", zap.Error(err))
-	} else {
-		exp.set.Logger.Warn("Received non-OK response from Chronicle", zap.String("status", resp.Status), zap.ByteString("response", respBody))
 	}
+
+	exp.set.Logger.Warn("Received non-OK response from Chronicle", zap.String("status", resp.Status), zap.ByteString("response", respBody))
 
 	// TODO interpret with https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/internal/coreinternal/errorutil/http.go
 	statusErr := errors.New(resp.Status)
