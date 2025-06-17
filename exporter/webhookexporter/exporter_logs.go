@@ -78,7 +78,7 @@ func (le *logsExporter) shutdown(_ context.Context) error {
 func (le *logsExporter) logsDataPusher(ctx context.Context, ld plog.Logs) error {
 	le.logger.Debug("begin webhook logsDataPusher")
 
-	limit := int(le.cfg.QueueBatchConfig.QueueSize)
+	limit := le.cfg.EventsPerRequestLimit
 	if limit <= 0 {
 		// If no limit is set, send all logs in one request
 		return le.sendLogs(ctx, extractLogBodies(ld))

@@ -70,6 +70,9 @@ type SignalConfig struct {
 	// ContentType specifies the Content-Type header for the webhook requests
 	// This field is required
 	ContentType string `mapstructure:"content_type"`
+
+	// EventsPerRequestLimit specifies the maximum number of events to send in a single request
+	EventsPerRequestLimit int `mapstructure:"events_per_request_limit"`
 }
 
 // Validate checks if the configuration is valid

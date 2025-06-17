@@ -19,7 +19,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/collector/config/confighttp"
-	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
 func TestHTTPVerb_UnmarshalText(t *testing.T) {
@@ -133,11 +132,9 @@ func TestConfig_Validate(t *testing.T) {
 					ClientConfig: confighttp.ClientConfig{
 						Endpoint: "https://example.com",
 					},
-					Verb:        POST,
-					ContentType: "application/json",
-					QueueBatchConfig: exporterhelper.QueueBatchConfig{
-						QueueSize: 20,
-					},
+					Verb:                  POST,
+					ContentType:           "application/json",
+					EventsPerRequestLimit: 20,
 				},
 			},
 			wantErr: false,
@@ -149,11 +146,9 @@ func TestConfig_Validate(t *testing.T) {
 					ClientConfig: confighttp.ClientConfig{
 						Endpoint: "https://example.com",
 					},
-					Verb:        POST,
-					ContentType: "application/json",
-					QueueBatchConfig: exporterhelper.QueueBatchConfig{
-						QueueSize: 0,
-					},
+					Verb:                  POST,
+					ContentType:           "application/json",
+					EventsPerRequestLimit: 0,
 				},
 			},
 			wantErr: false,
@@ -165,11 +160,9 @@ func TestConfig_Validate(t *testing.T) {
 					ClientConfig: confighttp.ClientConfig{
 						Endpoint: "https://example.com",
 					},
-					Verb:        POST,
-					ContentType: "application/json",
-					QueueBatchConfig: exporterhelper.QueueBatchConfig{
-						QueueSize: -1,
-					},
+					Verb:                  POST,
+					ContentType:           "application/json",
+					EventsPerRequestLimit: -1,
 				},
 			},
 			wantErr: false,
