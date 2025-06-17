@@ -969,7 +969,7 @@ func TestQueueBatchSettingsWithRetries(t *testing.T) {
 			requestCount := 0
 
 			// Create test server that may return errors
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				requestCount++
 				if tc.serverError {
 					w.WriteHeader(http.StatusInternalServerError)
