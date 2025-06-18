@@ -772,6 +772,7 @@ create_supervisor_config() {
   command printf '  endpoint: "%s"\n' "$OPAMP_ENDPOINT" >>"$supervisor_yml_path"
   command printf '  headers:\n' >>"$supervisor_yml_path"
   [ -n "$OPAMP_SECRET_KEY" ] && command printf '    Authorization: "Secret-Key %s"\n' "$OPAMP_SECRET_KEY" >>"$supervisor_yml_path"
+  command printf '    User-Agent: "bindplane-otel-collector/%s"\n' "$version" >>"$supervisor_yml_path"
   command printf '  tls:\n' >>"$supervisor_yml_path"
   command printf '    insecure: true\n' >>"$supervisor_yml_path"
   command printf '    insecure_skip_verify: true\n' >>"$supervisor_yml_path"
