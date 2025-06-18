@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/observiq/bindplane-otel-collector/packagestate"
@@ -330,6 +331,12 @@ func TestUpdaterUpdate(t *testing.T) {
 }
 
 func TestGenerateServiceFiles(t *testing.T) {
+	// Windows does not use the files tested here, and has
+	// different newline characters that fail the test.
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping test on Windows as it is not applicable")
+		return
+	}
 	t.Run("Generate service files successfully", func(t *testing.T) {
 		installDir := t.TempDir()
 		logger := zaptest.NewLogger(t)
