@@ -19,7 +19,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/collector/config/confighttp"
-	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
 
 func TestHTTPVerb_UnmarshalText(t *testing.T) {
@@ -125,54 +124,6 @@ func TestConfig_Validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-		},
-		{
-			name: "valid config with limit",
-			config: Config{
-				LogsConfig: &SignalConfig{
-					ClientConfig: confighttp.ClientConfig{
-						Endpoint: "https://example.com",
-					},
-					Verb:        POST,
-					ContentType: "application/json",
-					QueueBatchConfig: exporterhelper.QueueBatchConfig{
-						QueueSize: 20,
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid config with zero limit",
-			config: Config{
-				LogsConfig: &SignalConfig{
-					ClientConfig: confighttp.ClientConfig{
-						Endpoint: "https://example.com",
-					},
-					Verb:        POST,
-					ContentType: "application/json",
-					QueueBatchConfig: exporterhelper.QueueBatchConfig{
-						QueueSize: 0,
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid config with negative limit",
-			config: Config{
-				LogsConfig: &SignalConfig{
-					ClientConfig: confighttp.ClientConfig{
-						Endpoint: "https://example.com",
-					},
-					Verb:        POST,
-					ContentType: "application/json",
-					QueueBatchConfig: exporterhelper.QueueBatchConfig{
-						QueueSize: -1,
-					},
-				},
-			},
-			wantErr: false,
 		},
 	}
 

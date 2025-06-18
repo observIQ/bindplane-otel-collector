@@ -22,7 +22,7 @@ The webhook exporter sends data to a configured HTTP endpoint. Here's how it pro
 
    - Data is extracted from the OpenTelemetry data model
    - Each entry's body is parsed as JSON if possible, otherwise kept as a string
-   - Entries are organized into batches based on the configured queue size
+   - Batching is handled by the upstream [batch processor](https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/batchprocessor/README.md).
 
 3. **HTTP Transmission**:
 
