@@ -5,11 +5,13 @@ set "install_dir=%~1"
 set "endpoint=%~2"
 set "secret_key=%~3"
 set "labels=%~4"
+set "version=%~5"
 
 echo %install_dir%
 echo %endpoint%
 echo %secret_key%
 echo %labels%
+echo %version%
 
 if "%endpoint%"=="" (
     echo Endpoint not specified, using default value of 'ws://localhost:3001/v1/opamp'
@@ -25,6 +27,7 @@ set "serverField=server:"
 set "endpointField=  endpoint: "%endpoint%""
 set "headersField=  headers:"
 set "authorizationField=    Authorization: "Secret-Key %secret_key%""
+set "userAgentField=    User-Agent: "bindplane-otel-collector/%version%""
 set "tlsField=  tls:"
 set "insecureField=    insecure: true"
 set "insecureSkipField=    insecure_skip_verify: true"

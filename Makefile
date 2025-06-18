@@ -61,7 +61,7 @@ kill:
 # Stops processes and cleans up
 .PHONY: reset
 reset: kill
-	rm -rf agent.log effective.yaml local/storage/* builder/
+	rm -rf agent.log effective.yaml local/supervisor_storage/ builder/
 
 .PHONY: build-all
 build-all: build-linux build-darwin build-windows
@@ -287,7 +287,7 @@ release:
 
 .PHONY: clean
 clean:
-	rm -rf $(OUTDIR)
+	rm -rf $(OUTDIR) builder/
 
 .PHONY: scan-licenses
 scan-licenses:
