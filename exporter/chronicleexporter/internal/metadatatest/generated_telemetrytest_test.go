@@ -6,7 +6,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata/metricdatatest"
