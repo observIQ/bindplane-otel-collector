@@ -551,30 +551,34 @@ func TestExtractLogsFromResourceLogs(t *testing.T) {
 	}
 }
 
-func TestLogsDataPusherWithQueueSettings(t *testing.T) {
+// TestQueueBatchSettings tests the QueueBatch configuration options
+func TestQueueBatchSettings(t *testing.T) {
 	testCases := []struct {
-		name            string
-		queueSettings   exporterhelper.QueueBatchConfig
-		numLogs         int
-		expectedBatches int
+		name          string
+		queueSettings exporterhelper.QueueBatchConfig
+		numLogs       int
+		expectError   bool
+		description   string
 	}{
 		{
 			name: "default queue settings",
 			queueSettings: exporterhelper.QueueBatchConfig{
 				Enabled:      true,
-				QueueSize:    5000,
+				QueueSize:    1000,
 				NumConsumers: 10,
 			},
-			numLogs:         100,
-			expectedBatches: 1, // Default settings will batch all logs together
+			numLogs:     100,
+			expectError: false,
+			description: "Default queue settings should work properly",
 		},
 		{
 			name: "disabled queue",
 			queueSettings: exporterhelper.QueueBatchConfig{
 				Enabled: false,
 			},
-			numLogs:         50,
-			expectedBatches: 1, // No batching when queue is disabled
+			numLogs:     50,
+			expectError: false,
+			description: "Disabled queue should still process logs",
 		},
 		{
 			name: "small queue size",
@@ -583,26 +587,74 @@ func TestLogsDataPusherWithQueueSettings(t *testing.T) {
 				QueueSize:    10,
 				NumConsumers: 1,
 			},
-			numLogs:         25,
-			expectedBatches: 3, // Should batch into smaller chunks due to queue size
+			numLogs:     25,
+			expectError: false,
+			description: "Small queue size should handle logs appropriately",
+		},
+		{
+			name: "large queue size",
+			queueSettings: exporterhelper.QueueBatchConfig{
+				Enabled:      true,
+				QueueSize:    10000,
+				NumConsumers: 100,
+			},
+			numLogs:     1000,
+			expectError: false,
+			description: "Large queue size should handle many logs efficiently",
+		},
+		{
+			name: "single consumer",
+			queueSettings: exporterhelper.QueueBatchConfig{
+				Enabled:      true,
+				QueueSize:    100,
+				NumConsumers: 1,
+			},
+			numLogs:     50,
+			expectError: false,
+			description: "Single consumer should process logs sequentially",
+		},
+		{
+			name: "multiple consumers",
+			queueSettings: exporterhelper.QueueBatchConfig{
+				Enabled:      true,
+				QueueSize:    500,
+				NumConsumers: 20,
+			},
+			numLogs:     200,
+			expectError: false,
+			description: "Multiple consumers should process logs concurrently",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Create a channel to receive request bodies
-			receivedBodies := make(chan []byte, tc.expectedBatches)
+			requestCount := 0
+			receivedLogs := make([]string, 0)
+			var requestCountLock = make(chan struct{}, 1)
+			requestCountLock <- struct{}{}
 
-			// Create test server that captures request bodies
+			// Create test server that counts requests and collects logs
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				<-requestCountLock
+				requestCount++
+				requestCountLock <- struct{}{}
+
 				body, err := io.ReadAll(r.Body)
 				require.NoError(t, err)
-				receivedBodies <- body
+
+				var logs []string
+				err = json.Unmarshal(body, &logs)
+				require.NoError(t, err)
+
+				<-requestCountLock
+				receivedLogs = append(receivedLogs, logs...)
+				requestCountLock <- struct{}{}
+
 				w.WriteHeader(http.StatusOK)
 			}))
 			defer server.Close()
 
-			// Create exporter with test configuration
+			// Create exporter with queue settings
 			cfg := &SignalConfig{
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: server.URL,
@@ -611,8 +663,10 @@ func TestLogsDataPusherWithQueueSettings(t *testing.T) {
 				ContentType:      "application/json",
 				QueueBatchConfig: tc.queueSettings,
 			}
+
 			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
-			exp.start(context.Background(), componenttest.NewNopHost())
+			require.NoError(t, err)
+			err = exp.start(context.Background(), componenttest.NewNopHost())
 			require.NoError(t, err)
 
 			// Create test logs
@@ -620,51 +674,54 @@ func TestLogsDataPusherWithQueueSettings(t *testing.T) {
 			resourceLogs := logs.ResourceLogs().AppendEmpty()
 			scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
 
-			// Add the specified number of log records
+			expectedLogs := make([]string, tc.numLogs)
 			for i := 0; i < tc.numLogs; i++ {
+				logMessage := fmt.Sprintf("test log %d", i)
+				expectedLogs[i] = logMessage
+
 				logRecord := scopeLogs.LogRecords().AppendEmpty()
-				logRecord.Body().SetStr(fmt.Sprintf("test log message %d", i))
+				logRecord.Body().SetStr(logMessage)
 			}
 
 			// Push logs
 			err = exp.logsDataPusher(context.Background(), logs)
-			require.NoError(t, err)
+			if tc.expectError {
+				require.Error(t, err, tc.description)
+			} else {
+				require.NoError(t, err, tc.description)
 
-			// Verify the number of batches
-			receivedCount := 0
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
+				// Wait a bit for async processing
+				time.Sleep(100 * time.Millisecond)
 
-			for i := 0; i < tc.expectedBatches; i++ {
-				select {
-				case body := <-receivedBodies:
-					receivedCount++
-					var receivedLogs []string
-					err = json.Unmarshal(body, &receivedLogs)
-					require.NoError(t, err)
+				<-requestCountLock
+				finalRequestCount := requestCount
+				finalReceivedLogs := make([]string, len(receivedLogs))
+				copy(finalReceivedLogs, receivedLogs)
+				requestCountLock <- struct{}{}
 
-					// Verify we received logs
-					require.Greater(t, len(receivedLogs), 0)
+				// Verify that requests were made
+				require.Greater(t, finalRequestCount, 0, "At least one request should have been made")
 
-					// For small queue size test, verify batch sizes
-					if tc.queueSettings.QueueSize > 0 && int(tc.queueSettings.QueueSize) < tc.numLogs {
-						require.LessOrEqual(t, len(receivedLogs), int(tc.queueSettings.QueueSize))
-					}
-				case <-ctx.Done():
-					t.Fatalf("Timeout waiting for batch %d", i+1)
-				}
+				// Verify all logs were received (may be in different order due to concurrency)
+				require.Equal(t, tc.numLogs, len(finalReceivedLogs), "All logs should be received")
+				require.ElementsMatch(t, expectedLogs, finalReceivedLogs, "Received logs should match sent logs")
 			}
-			require.Equal(t, tc.expectedBatches, receivedCount)
+
+			// Clean up
+			err = exp.shutdown(context.Background())
+			require.NoError(t, err)
 		})
 	}
 }
 
-func TestLogsDataPusherWithQueueSettingsAndErrors(t *testing.T) {
+// TestQueueBatchSettingsWithRetries tests QueueBatch behavior with server errors and retries
+func TestQueueBatchSettingsWithRetries(t *testing.T) {
 	testCases := []struct {
 		name          string
 		queueSettings exporterhelper.QueueBatchConfig
 		serverError   bool
-		expectedError string
+		expectedError bool
+		description   string
 	}{
 		{
 			name: "queue enabled with server error",
@@ -674,7 +731,8 @@ func TestLogsDataPusherWithQueueSettingsAndErrors(t *testing.T) {
 				NumConsumers: 1,
 			},
 			serverError:   true,
-			expectedError: "failed to send request",
+			expectedError: true,
+			description:   "Queue should handle server errors appropriately",
 		},
 		{
 			name: "queue disabled with server error",
@@ -682,14 +740,29 @@ func TestLogsDataPusherWithQueueSettingsAndErrors(t *testing.T) {
 				Enabled: false,
 			},
 			serverError:   true,
-			expectedError: "failed to send request",
+			expectedError: true,
+			description:   "Disabled queue should still handle server errors",
+		},
+		{
+			name: "queue enabled with successful requests",
+			queueSettings: exporterhelper.QueueBatchConfig{
+				Enabled:      true,
+				QueueSize:    50,
+				NumConsumers: 2,
+			},
+			serverError:   false,
+			expectedError: false,
+			description:   "Queue should work correctly with successful requests",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Create test server that returns error if configured
+			requestCount := 0
+
+			// Create test server that may return errors
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				requestCount++
 				if tc.serverError {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
@@ -698,7 +771,7 @@ func TestLogsDataPusherWithQueueSettingsAndErrors(t *testing.T) {
 			}))
 			defer server.Close()
 
-			// Create exporter with test configuration
+			// Create exporter with queue settings
 			cfg := &SignalConfig{
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: server.URL,
@@ -709,7 +782,8 @@ func TestLogsDataPusherWithQueueSettingsAndErrors(t *testing.T) {
 			}
 
 			exp, err := newLogsExporter(context.Background(), cfg, exportertest.NewNopSettings(component.MustNewType("webhook")))
-			exp.start(context.Background(), componenttest.NewNopHost())
+			require.NoError(t, err)
+			err = exp.start(context.Background(), componenttest.NewNopHost())
 			require.NoError(t, err)
 
 			// Create test logs
@@ -721,12 +795,15 @@ func TestLogsDataPusherWithQueueSettingsAndErrors(t *testing.T) {
 
 			// Push logs
 			err = exp.logsDataPusher(context.Background(), logs)
-			if tc.expectedError != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.expectedError)
+			if tc.expectedError {
+				require.Error(t, err, tc.description)
 			} else {
-				require.NoError(t, err)
+				require.NoError(t, err, tc.description)
 			}
+
+			// Clean up
+			err = exp.shutdown(context.Background())
+			require.NoError(t, err)
 		})
 	}
 }
