@@ -106,7 +106,6 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 		)
 	}
 
-	var noSuchKeyError, consumeError bool
 	for _, record := range objectCreatedRecords {
 		w.tel.Logger.Debug("processing record",
 			zap.String("bucket", record.S3.Bucket.Name),
@@ -114,28 +113,11 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 		)
 
 		if err := w.processRecord(ctx, record); err != nil {
-			if strings.Contains(err.Error(), "NoSuchKey") {
-				noSuchKeyError = true
-				w.tel.Logger.Warn("S3 object not found (404 NoSuchKey), preserving message for retry",
-					zap.Error(err),
-					zap.String("bucket", record.S3.Bucket.Name),
-					zap.String("key", record.S3.Object.Key))
-			} else if strings.Contains(err.Error(), "consume logs") {
-				consumeError = true
-				w.tel.Logger.Warn("error consuming logs, preserving message for retry",
-					zap.Error(err),
-					zap.String("bucket", record.S3.Bucket.Name),
-					zap.String("key", record.S3.Object.Key))
-			}
+			w.tel.Logger.Error("error processing record", zap.Error(err), zap.String("bucket", record.S3.Bucket.Name), zap.String("key", record.S3.Object.Key), zap.String("message_id", *msg.MessageId))
+			return
 		}
 	}
-	if noSuchKeyError {
-		w.tel.Logger.Info("message preserved for retry due to NoSuchKey error", zap.String("message_id", *msg.MessageId))
-	} else if consumeError {
-		w.tel.Logger.Info("message preserved for retry due to consume error", zap.String("message_id", *msg.MessageId))
-	} else {
-		w.deleteMessage(ctx, msg, queueURL)
-	}
+	w.deleteMessage(ctx, msg, queueURL)
 }
 
 func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord) error {
