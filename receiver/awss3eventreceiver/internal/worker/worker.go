@@ -143,19 +143,17 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 	var reader *bufio.Reader
 
 	// Check if content is gzipped and decompress if needed
-	if resp.ContentType != nil {
-		switch *resp.ContentType {
-		case "application/gzip":
+	if resp.ContentEncoding != nil {
+		switch *resp.ContentEncoding {
+		case "gzip":
 			gzipReader, err := gzip.NewReader(resp.Body)
 			if err != nil {
 				w.tel.Logger.Error("failed to create gzip reader", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
 				return err
 			}
 			reader = bufio.NewReader(gzipReader)
-		case "text/plain":
-			reader = bufio.NewReader(resp.Body)
 		default:
-			w.tel.Logger.Warn("unsupported content type", zap.String("content_type", *resp.ContentType), zap.String("bucket", bucket), zap.String("key", key))
+			w.tel.Logger.Warn("unsupported content encoding", zap.String("content_encoding", *resp.ContentEncoding), zap.String("bucket", bucket), zap.String("key", key))
 			reader = bufio.NewReader(resp.Body)
 		}
 	} else {
