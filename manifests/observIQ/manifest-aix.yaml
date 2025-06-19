@@ -33,7 +33,6 @@ extensions:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension v0.125.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/sigv4authextension v0.125.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.125.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/dbstorage v0.125.0
   - gomod: github.com/observiq/bindplane-otel-collector/extension/bindplaneextension v1.76.4
     path: "./extension/bindplaneextension"
 exporters:
