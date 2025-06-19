@@ -19,6 +19,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -105,7 +106,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 		)
 	}
 
-	var noSuchKeyError bool
+	var noSuchKeyError, consumeError bool
 	for _, record := range objectCreatedRecords {
 		w.tel.Logger.Debug("processing record",
 			zap.String("bucket", record.S3.Bucket.Name),
@@ -119,11 +120,19 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 					zap.Error(err),
 					zap.String("bucket", record.S3.Bucket.Name),
 					zap.String("key", record.S3.Object.Key))
+			} else if strings.Contains(err.Error(), "consume logs") {
+				consumeError = true
+				w.tel.Logger.Warn("error consuming logs, preserving message for retry",
+					zap.Error(err),
+					zap.String("bucket", record.S3.Bucket.Name),
+					zap.String("key", record.S3.Object.Key))
 			}
 		}
 	}
 	if noSuchKeyError {
 		w.tel.Logger.Info("message preserved for retry due to NoSuchKey error", zap.String("message_id", *msg.MessageId))
+	} else if consumeError {
+		w.tel.Logger.Info("message preserved for retry due to consume error", zap.String("message_id", *msg.MessageId))
 	} else {
 		w.deleteMessage(ctx, msg, queueURL)
 	}
@@ -184,6 +193,7 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 					zap.String("bucket", bucket),
 					zap.String("key", key),
 				)
+				return fmt.Errorf("consume logs: %w", err)
 			}
 			ld = plog.NewLogs()
 			rls = ld.ResourceLogs().AppendEmpty()
@@ -199,7 +209,7 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 
 	if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
 		w.tel.Logger.Error("consume logs", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
-		return err
+		return fmt.Errorf("consume logs: %w", err)
 	}
 	w.tel.Logger.Debug("processed S3 object", zap.String("bucket", bucket), zap.String("key", key))
 	return nil
