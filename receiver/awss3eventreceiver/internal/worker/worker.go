@@ -17,6 +17,7 @@ package worker // import "github.com/observiq/bindplane-otel-collector/receiver/
 
 import (
 	"bufio"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -139,7 +140,37 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 
 	now := time.Now()
 
-	reader := bufio.NewReader(resp.Body)
+	var reader *bufio.Reader
+
+	// Check if content is gzipped and decompress if needed
+	if resp.ContentType != nil {
+		switch *resp.ContentType {
+		case "application/gzip":
+			gzipReader, err := gzip.NewReader(resp.Body)
+			if err != nil {
+				w.tel.Logger.Error("failed to create gzip reader", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
+				return err
+			}
+			reader = bufio.NewReader(gzipReader)
+		case "text/plain":
+			reader = bufio.NewReader(resp.Body)
+		default:
+			w.tel.Logger.Warn("unsupported content type", zap.String("content_type", *resp.ContentType), zap.String("bucket", bucket), zap.String("key", key))
+			reader = bufio.NewReader(resp.Body)
+		}
+	} else {
+		switch {
+		case strings.HasSuffix(key, ".gz"):
+			gzipReader, err := gzip.NewReader(resp.Body)
+			if err != nil {
+				w.tel.Logger.Error("failed to create gzip reader", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
+				return err
+			}
+			reader = bufio.NewReader(gzipReader)
+		default:
+			reader = bufio.NewReader(resp.Body)
+		}
+	}
 
 	ld := plog.NewLogs()
 	rls := ld.ResourceLogs().AppendEmpty()
