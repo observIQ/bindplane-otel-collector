@@ -113,7 +113,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 		)
 
 		if err := w.processRecord(ctx, record); err != nil {
-			w.tel.Logger.Error("error processing record", zap.Error(err), zap.String("bucket", record.S3.Bucket.Name), zap.String("key", record.S3.Object.Key), zap.String("message_id", *msg.MessageId))
+			w.tel.Logger.Error("error processing record, preserving message in SQS for retry", zap.Error(err), zap.String("bucket", record.S3.Bucket.Name), zap.String("key", record.S3.Object.Key), zap.String("message_id", *msg.MessageId))
 			return
 		}
 	}
