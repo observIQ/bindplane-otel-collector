@@ -50,8 +50,14 @@ error_mode=false
 DEFAULT_SUPERVISOR_CFG_HASH="ac4e6001f1b19d371bba6a2797ba0a55d7ca73151ba6908040598ca275c0efca"
 
 # Require bash for AIX to create a standardized environment
+# Also set up the supervisor timeout values
 if [ "$(uname -s)" != "AIX" ]; then
   PREREQS="bash $PREREQS"
+  config_apply_timeout="150"
+  bootstrap_timeout="15"
+else
+  config_apply_timeout="30"
+  bootstrap_timeout="5"
 fi
 
 # out_file_path is the full path to the downloaded package (e.g. "/tmp/bindplane-otel-collector_{os}_amd64.deb")
@@ -917,8 +923,8 @@ create_supervisor_config() {
   command printf '  reports_available_components: true\n' >>"$supervisor_yml_path"
   command printf 'agent:\n' >>"$supervisor_yml_path"
   command printf '  executable: "%s"\n' "$INSTALL_DIR/bindplane-otel-collector" >>"$supervisor_yml_path"
-  command printf '  config_apply_timeout: 30s\n' >>"$supervisor_yml_path"
-  command printf '  bootstrap_timeout: 5s\n' >>"$supervisor_yml_path"
+  command printf '  config_apply_timeout: %ss\n' $config_apply_timeout >>"$supervisor_yml_path"
+  command printf '  bootstrap_timeout: %ss\n' $bootstrap_timeout >>"$supervisor_yml_path"
   command printf '  args: ["--feature-gates", "service.AllowNoPipelines"]\n' >>"$supervisor_yml_path"
 
   if [ -n "$OPAMP_LABELS" ]; then
@@ -952,7 +958,7 @@ display_results() {
     info "Supervisor Stop Command:       $(fg_cyan "sudo service bindplane-otel-collector stop")$(reset)"
     info "Supervisor Status Command:     $(fg_cyan "sudo service bindplane-otel-collector status")$(reset)"
   elif [ "$SVC_PRE" = "mkssys" ]; then
-    info "Supervisor Start Command:      $(fg_cyan "sudo startsrc -s bindplane-otel-collector -e \"\$(cat /etc/bindplane-otel-collector.env)\"")$(reset)"
+    info "Supervisor Start Command:      $(fg_cyan "sudo startsrc -s bindplane-otel-collector -e \"\$(cat /etc/bindplane-otel-collector.aix.env)\"")$(reset)"
     info "Supervisor Stop Command:       $(fg_cyan "sudo stopsrc -s bindplane-otel-collector")$(reset)"
     info "Supervisor Status Command:     $(fg_cyan "sudo lssrc -s bindplane-otel-collector")$(reset)"
   fi
