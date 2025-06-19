@@ -165,6 +165,7 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 	rls.Resource().Attributes().PutStr("aws.s3.key", key)
 	lrs := rls.ScopeLogs().AppendEmpty().LogRecords()
 
+	batchesConsumedCount := 0
 	for {
 		// ReadLine returns line fragments if the line doesn't fit in the buffer
 		lineBytes, _, err := reader.ReadLine()
@@ -192,9 +193,13 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 				w.tel.Logger.Error("consume logs", zap.Error(err),
 					zap.String("bucket", bucket),
 					zap.String("key", key),
+					zap.Int("batches_consumed_count", batchesConsumedCount),
 				)
 				return fmt.Errorf("consume logs: %w", err)
 			}
+			batchesConsumedCount++
+			w.tel.Logger.Debug("Reached max logs for single batch, starting new batch", zap.String("bucket", bucket), zap.String("key", key), zap.Int("batches_consumed_count", batchesConsumedCount))
+
 			ld = plog.NewLogs()
 			rls = ld.ResourceLogs().AppendEmpty()
 			rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
@@ -208,10 +213,10 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 	}
 
 	if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
-		w.tel.Logger.Error("consume logs", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
+		w.tel.Logger.Error("consume logs", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key), zap.Int("batches_consumed_count", batchesConsumedCount))
 		return fmt.Errorf("consume logs: %w", err)
 	}
-	w.tel.Logger.Debug("processed S3 object", zap.String("bucket", bucket), zap.String("key", key))
+	w.tel.Logger.Debug("processed S3 object", zap.String("bucket", bucket), zap.String("key", key), zap.Int("batches_consumed_count", batchesConsumedCount+1))
 	return nil
 }
 
