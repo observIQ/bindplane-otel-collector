@@ -28,7 +28,7 @@ type lineParser struct {
 }
 
 // NewLineParser creates a new line parser.
-func NewLineParser(reader *bufio.Reader) *lineParser {
+func NewLineParser(reader *bufio.Reader) LogParser {
 	return &lineParser{
 		reader: reader,
 	}

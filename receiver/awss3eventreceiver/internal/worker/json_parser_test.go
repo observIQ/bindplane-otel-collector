@@ -53,15 +53,16 @@ func TestStartsWithJSONObjectOrArray(t *testing.T) {
 
 func TestParseJSONLogs(t *testing.T) {
 	tests := []struct {
-		filePath   string
-		expectLogs int
+		filePath    string
+		expectLogs  int
+		expectError error
 	}{
 		{filePath: "testdata/logs_array_in_records.json", expectLogs: 4},
-		{filePath: "testdata/logs_array_in_records_after_limit.json", expectLogs: 0},
+		{filePath: "testdata/logs_array_in_records_after_limit.json", expectError: worker.ErrNotArrayOrKnownObject},
 		{filePath: "testdata/logs_array.json", expectLogs: 4},
 		{filePath: "testdata/cloudtrail.json", expectLogs: 4},
 		{filePath: "testdata/logs_array_fragment.txt", expectLogs: 1},
-		{filePath: "testdata/json_lines.txt", expectLogs: 0},
+		{filePath: "testdata/json_lines.txt", expectError: worker.ErrNotArrayOrKnownObject},
 	}
 
 	for _, test := range tests {
@@ -74,7 +75,12 @@ func TestParseJSONLogs(t *testing.T) {
 
 			parser := worker.NewJSONParser(bufferedReader)
 			logs, err := parser.Parse(context.Background())
-			require.NoError(t, err, "parse logs")
+			if test.expectError != nil {
+				require.ErrorIs(t, err, test.expectError)
+				return
+			} else {
+				require.NoError(t, err, "parse logs")
+			}
 
 			count := 0
 			for log, err := range logs {

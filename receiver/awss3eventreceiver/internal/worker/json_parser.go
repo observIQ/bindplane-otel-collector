@@ -27,6 +27,8 @@ import (
 )
 
 var (
+	// ErrNotArrayOrKnownObject is returned when the JSON stream is not a valid array or object
+	// with a known key. When this occurs, try to parse as text.
 	ErrNotArrayOrKnownObject = errors.New("expected array or object with known key")
 )
 
@@ -41,10 +43,10 @@ type jsonParser struct {
 	reader *bufio.Reader
 }
 
-var _ logParser = (*jsonParser)(nil)
+var _ LogParser = (*jsonParser)(nil)
 
 // NewJSONParser creates a new JSON parser.
-func NewJSONParser(reader *bufio.Reader) *jsonParser {
+func NewJSONParser(reader *bufio.Reader) LogParser {
 	return &jsonParser{
 		reader: reader,
 	}

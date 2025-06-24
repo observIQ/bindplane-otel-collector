@@ -62,6 +62,7 @@ func TestProcessMessage(t *testing.T) {
 		name        string
 		objectSets  []map[string]map[string]string
 		expectLines int
+		maxLogSize  int
 	}{
 		{
 			name: "single object - single line",
@@ -169,6 +170,22 @@ func TestProcessMessage(t *testing.T) {
 			objectSets:  logsFromFile(t, "testdata/logs_array_fragment.txt"),
 			expectLines: 112,
 		},
+		{
+			name:        "parses as JSON and creates 4 log lines from the Records field ignoring other fields",
+			objectSets:  logsFromFile(t, "testdata/logs_array_in_records_one_line.json"),
+			expectLines: 4,
+		},
+		{
+			name:        "attempts to parse as JSON, but fails and reads 3 log lines because of maxLogSize",
+			objectSets:  logsFromFile(t, "testdata/logs_array_in_records_after_limit_one_line.json"),
+			expectLines: 3,
+		},
+		{
+			name:        "attempts to parse as JSON, but fails and reads 1 log line with maxLogSize = 0",
+			objectSets:  logsFromFile(t, "testdata/logs_array_in_records_after_limit_one_line.json"),
+			expectLines: 1,
+			maxLogSize:  20000,
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -184,9 +201,13 @@ func TestProcessMessage(t *testing.T) {
 				fakeAWS.CreateObjects(t, objectSet)
 			}
 
+			if testCase.maxLogSize == 0 {
+				testCase.maxLogSize = maxLogSize
+			}
+
 			set := componenttest.NewNopTelemetrySettings()
 			sink := new(consumertest.LogsSink)
-			w := worker.New(set, aws.Config{}, sink, maxLogSize, maxLogsEmitted)
+			w := worker.New(set, aws.Config{}, sink, testCase.maxLogSize, maxLogsEmitted)
 
 			numCallbacks := 0
 

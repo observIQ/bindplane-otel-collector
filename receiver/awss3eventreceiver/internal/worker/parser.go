@@ -25,12 +25,14 @@ import (
 	"go.uber.org/zap"
 )
 
-type logParser interface {
+// LogParser is an interface that can parse a log stream into a sequence of log records
+// and can also append a single log body to a LogRecord.
+type LogParser interface {
 	Parse(ctx context.Context) (logs iter.Seq2[any, error], err error)
 	AppendLogBody(ctx context.Context, lr plog.LogRecord, record any) error
 }
 
-func newParser(ctx context.Context, stream logStream, reader *bufio.Reader) (parser logParser, err error) {
+func newParser(ctx context.Context, stream logStream, reader *bufio.Reader) (parser LogParser, err error) {
 	// if we're not trying to parse as JSON, use the line parser
 	if !stream.tryJSON {
 		return NewLineParser(reader), nil
