@@ -16,10 +16,8 @@ package worker
 
 import (
 	"bufio"
-	"compress/gzip"
 	"context"
 	"fmt"
-	"io"
 	"iter"
 	"strings"
 
@@ -32,27 +30,16 @@ type logParser interface {
 	AppendLogBody(ctx context.Context, lr plog.LogRecord, record any) error
 }
 
-type logStream struct {
-	name            string
-	contentEncoding *string
-	contentType     *string
-	body            io.ReadCloser
-	maxLogSize      int
-	logger          *zap.Logger
-	loggerFields    []zap.Field
-}
-
-func newParser(ctx context.Context, stream logStream) (parser logParser, err error) {
-	reader, err := streamReader(ctx, stream)
-	if err != nil {
-		return nil, fmt.Errorf("create stream reader: %w", err)
+func newParser(ctx context.Context, stream logStream, reader *bufio.Reader) (parser logParser, err error) {
+	// if we're not trying to parse as JSON, use the line parser
+	if !stream.tryJSON {
+		return NewLineParser(reader), nil
 	}
 
 	isJSON, err := isJSON(ctx, stream, reader)
 	if err != nil {
 		// don't fail if the file is not json
-		fields := append([]zap.Field{zap.Error(err)}, stream.loggerFields...)
-		stream.logger.Warn("failed to check if is json", fields...)
+		stream.logger.Warn("failed to check if is json", zap.Error(err))
 		isJSON = false
 	}
 
@@ -83,33 +70,4 @@ func isJSONExtension(name string) bool {
 
 func isJSONContentType(contentType *string) bool {
 	return contentType != nil && strings.HasPrefix(*contentType, "application/json")
-}
-
-func streamReader(_ context.Context, stream logStream) (reader *bufio.Reader, err error) {
-	// Check if content is gzipped and decompress if needed
-	if stream.contentEncoding != nil {
-		switch *stream.contentEncoding {
-		case "gzip":
-			gzipReader, err := gzip.NewReader(stream.body)
-			if err != nil {
-				return nil, fmt.Errorf("create gzip reader: %w", err)
-			}
-			return bufio.NewReaderSize(gzipReader, stream.maxLogSize), nil
-
-		default:
-			fields := append([]zap.Field{zap.String("content_encoding", *stream.contentEncoding)}, stream.loggerFields...)
-			stream.logger.Warn("unsupported content encoding", fields...)
-			return bufio.NewReaderSize(stream.body, stream.maxLogSize), nil
-		}
-	}
-
-	if strings.HasSuffix(stream.name, ".gz") {
-		gzipReader, err := gzip.NewReader(stream.body)
-		if err != nil {
-			return nil, fmt.Errorf("create gzip reader: %w", err)
-		}
-		return bufio.NewReaderSize(gzipReader, stream.maxLogSize), nil
-	}
-
-	return bufio.NewReaderSize(stream.body, stream.maxLogSize), nil
 }

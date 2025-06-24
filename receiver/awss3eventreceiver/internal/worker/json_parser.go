@@ -26,6 +26,17 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 )
 
+var (
+	ErrNotArrayOrKnownObject = errors.New("expected array or object with known key")
+)
+
+const (
+	// maxRecordsSearchBytes is the maximum number of bytes to search for a "Records" key in
+	// the first 4096 bytes of the JSON stream. This is to avoid parsing the entire file
+	// looking for a "Records" key and not finding it.
+	maxRecordsSearchBytes = 4096
+)
+
 type jsonParser struct {
 	reader *bufio.Reader
 }
@@ -90,8 +101,8 @@ func (p *jsonParser) Parse(_ context.Context) (logs iter.Seq2[any, error], err e
 		return p.yieldArray(decoder), nil
 
 	case tok == json.Delim('{'):
-		// json structure is an object, find and yield the first key containing an array of
-		// log records
+		// json structure is an object, find and yield the "Records" array containing log
+		// records
 
 		// iterate through key/value pairs
 		for decoder.More() {
@@ -100,13 +111,26 @@ func (p *jsonParser) Parse(_ context.Context) (logs iter.Seq2[any, error], err e
 			if err != nil {
 				return nil, fmt.Errorf("read token: %w", err)
 			}
-			_, ok := tok.(string)
+			key, ok := tok.(string)
 			if !ok {
 				// non-string key?
 				continue
 			}
 
-			// value
+			if key != "Records" {
+				// we only look for Records in the first 4096 bytes
+				if decoder.InputOffset() > maxRecordsSearchBytes {
+					return nil, ErrNotArrayOrKnownObject
+				}
+
+				// skip the non-"Records" value
+				if err := skipValue(decoder, maxRecordsSearchBytes); err != nil {
+					return nil, fmt.Errorf("skip value: %w", err)
+				}
+				continue
+			}
+
+			// "Records" value
 			tok, err = decoder.Token()
 			if err != nil {
 				return nil, fmt.Errorf("read token: %w", err)
@@ -115,40 +139,26 @@ func (p *jsonParser) Parse(_ context.Context) (logs iter.Seq2[any, error], err e
 			case json.Delim('['):
 				return p.yieldArray(decoder), nil
 
-			case json.Delim('{'):
-				if err := skipObject(decoder); err != nil {
-					return nil, fmt.Errorf("skip object: %w", err)
-				}
 			default:
-				// skip non-array/object values
+				// "Records" exists but is not an array
+				return nil, ErrNotArrayOrKnownObject
 			}
 		}
-		return nil, fmt.Errorf("expected array of log records in one of the values")
+
+		// we didn't find a top level array of log records or a "Records" key with an array of
+		// log records
+		return nil, ErrNotArrayOrKnownObject
 
 	default:
 		return nil, fmt.Errorf("expected array or object, got %s", tok)
 	}
 }
 
-func skipObject(decoder *json.Decoder) error {
-	for decoder.More() {
-		// skip the key
-		tok, err := decoder.Token()
-		if err != nil {
-			return fmt.Errorf("read token: %w", err)
-		}
-		fmt.Printf("skipping tok: %s\n", tok)
-		// skip the value
-		if err := skipValue(decoder); err != nil {
-			return err
-		}
+func skipValue(decoder *json.Decoder, maxBytes int64) error {
+	if decoder.InputOffset() > maxBytes {
+		return ErrNotArrayOrKnownObject
 	}
-	// consume the closing brace
-	_, err := decoder.Token()
-	return err
-}
 
-func skipValue(decoder *json.Decoder) error {
 	// Read the next token to determine what we're skipping
 	tok, err := decoder.Token()
 	if err != nil {
@@ -162,7 +172,7 @@ func skipValue(decoder *json.Decoder) error {
 		case '{', '[':
 			// For each opening, keep skipping values until we find the matching closing
 			for decoder.More() {
-				if err := skipValue(decoder); err != nil {
+				if err := skipValue(decoder, maxBytes); err != nil {
 					return err
 				}
 			}

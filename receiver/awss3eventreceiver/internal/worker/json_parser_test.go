@@ -29,11 +29,12 @@ func TestStartsWithJSONObjectOrArray(t *testing.T) {
 		filePath   string
 		expectTrue bool
 	}{
-		{filePath: "testdata/logs_array_in_object.json", expectTrue: true},
+		{filePath: "testdata/logs_array_in_records.json", expectTrue: true},
 		{filePath: "testdata/logs_array.json", expectTrue: true},
 		{filePath: "testdata/cloudtrail.json", expectTrue: true},
 		{filePath: "testdata/logs_array_fragment.txt", expectTrue: true},
 		{filePath: "testdata/text_logs.txt", expectTrue: false},
+		{filePath: "testdata/json_lines.txt", expectTrue: true},
 	}
 
 	for _, test := range tests {
@@ -51,15 +52,16 @@ func TestStartsWithJSONObjectOrArray(t *testing.T) {
 }
 
 func TestParseJSONLogs(t *testing.T) {
-
 	tests := []struct {
 		filePath   string
 		expectLogs int
 	}{
-		{filePath: "testdata/logs_array_in_object.json", expectLogs: 4},
+		{filePath: "testdata/logs_array_in_records.json", expectLogs: 4},
+		{filePath: "testdata/logs_array_in_records_after_limit.json", expectLogs: 0},
 		{filePath: "testdata/logs_array.json", expectLogs: 4},
 		{filePath: "testdata/cloudtrail.json", expectLogs: 4},
 		{filePath: "testdata/logs_array_fragment.txt", expectLogs: 1},
+		{filePath: "testdata/json_lines.txt", expectLogs: 0},
 	}
 
 	for _, test := range tests {
