@@ -3030,8 +3030,8 @@ go.opentelemetry.io/collector/scraper/scrapertest v0.128.0 h1:KEy2Q1lOiQhJDm1JbE
 go.opentelemetry.io/collector/scraper/scrapertest v0.128.0/go.mod h1:skWcfgRLUwlA6ClQWMlQ/rZShHf6MXEKl7eWn7TfVDY=
 go.opentelemetry.io/collector/semconv v0.128.0 h1:MzYOz7Vgb3Kf5D7b49pqqgeUhEmOCuT10bIXb/Cc+k4=
 go.opentelemetry.io/collector/semconv v0.128.0/go.mod h1:OPXer4l43X23cnjLXIZnRj/qQOjSuq4TgBLI76P9hns=
-go.opentelemetry.io/collector/service v0.128.0 h1:q/NbVKevTqlRgj2VKUmFjRhRYgiSA4Bhov5xJnHV4EE=
-go.opentelemetry.io/collector/service v0.128.0/go.mod h1:yjbFqPKhTIfr7qNGIyuQ2lujpSq7QhjkpsfbTea/elo=
+go.opentelemetry.io/collector/service v0.127.0 h1:72JKDcEhTqEsEGrlzX7g459O4HgS8ryczGwIr67T4So=
+go.opentelemetry.io/collector/service v0.127.0/go.mod h1:yL3cVJhbISZZgGOuNFa4inPNS+IeFUfLLJ2FZio5dO8=
 go.opentelemetry.io/collector/service/hostcapabilities v0.128.0 h1:CSHMpQONbEgz5dTW/JKXyAVXd705ufwGJuiJ6gMt7iA=
 go.opentelemetry.io/collector/service/hostcapabilities v0.128.0/go.mod h1:T3XjBe07aHiOD/WUSSSSfEjQAE3WyWHX4NWVM761WxY=
 go.opentelemetry.io/contrib/bridges/otelzap v0.11.0 h1:u2E32P7j1a/gRgZDWhIXC+Shd4rLg70mnE7QLI/Ssnw=
