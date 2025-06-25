@@ -78,9 +78,8 @@ func TestParseJSONLogs(t *testing.T) {
 			if test.expectError != nil {
 				require.ErrorIs(t, err, test.expectError)
 				return
-			} else {
-				require.NoError(t, err, "parse logs")
 			}
+			require.NoError(t, err, "parse logs")
 
 			count := 0
 			for log, err := range logs {

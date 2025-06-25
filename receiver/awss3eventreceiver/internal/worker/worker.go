@@ -145,8 +145,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		logger.Error("get object", zap.Error(err))
-		return err
+		return fmt.Errorf("get object: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -164,14 +163,12 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 
 	reader, err := stream.BufferedReader(ctx)
 	if err != nil {
-		logger.Error("get stream reader", zap.Error(err))
-		return err
+		return fmt.Errorf("get stream reader: %w", err)
 	}
 
 	parser, err := newParser(ctx, stream, reader)
 	if err != nil {
-		logger.Error("create parser", zap.Error(err))
-		return err
+		return fmt.Errorf("create parser: %w", err)
 	}
 
 	ld := plog.NewLogs()
@@ -185,8 +182,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	// Parse logs into a sequence of log records
 	logs, err := parser.Parse(ctx)
 	if err != nil {
-		logger.Error("parse logs", zap.Error(err))
-		return err
+		return fmt.Errorf("parse logs: %w", err)
 	}
 
 	for log, err := range logs {

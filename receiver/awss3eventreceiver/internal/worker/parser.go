@@ -17,7 +17,6 @@ package worker
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"iter"
 	"strings"
 
@@ -60,7 +59,8 @@ func isJSON(_ context.Context, stream logStream, reader *bufio.Reader) (bool, er
 	// check if the stream starts with a json object or array
 	startsWithJSONObjectOrArray, err := StartsWithJSONObjectOrArray(reader)
 	if err != nil {
-		return false, fmt.Errorf("check if starts with json object or array: %w", err)
+		stream.logger.Warn("failed to check if starts with json object or array", zap.Error(err))
+		return false, nil
 	}
 
 	return startsWithJSONObjectOrArray, nil
