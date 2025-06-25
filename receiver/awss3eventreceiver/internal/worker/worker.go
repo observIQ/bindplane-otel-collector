@@ -16,12 +16,10 @@
 package worker // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 
 import (
-	"bufio"
-	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -122,52 +120,55 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 }
 
 func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord) error {
+	err := w.consumeLogsFromS3Object(ctx, record, true)
+	if err != nil {
+		if errors.Is(err, ErrNotArrayOrKnownObject) {
+			// try again without attempting to parse as JSON
+			return w.consumeLogsFromS3Object(ctx, record, false)
+		}
+		return err
+	}
+	return nil
+}
+
+func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3EventRecord, tryJSON bool) error {
 	bucket := record.S3.Bucket.Name
 	key := record.S3.Object.Key
 	size := record.S3.Object.Size
 
-	w.tel.Logger.Debug("reading S3 object", zap.String("bucket", bucket), zap.String("key", key), zap.Int64("size", size))
+	logger := w.tel.Logger.With(zap.String("bucket", bucket), zap.String("key", key))
+
+	logger.Debug("reading S3 object", zap.Int64("size", size))
 
 	resp, err := w.client.S3().GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		w.tel.Logger.Error("get object", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
-		return err
+		return fmt.Errorf("get object: %w", err)
 	}
 	defer resp.Body.Close()
 
 	now := time.Now()
 
-	var reader *bufio.Reader
+	stream := logStream{
+		name:            key,
+		contentEncoding: resp.ContentEncoding,
+		contentType:     resp.ContentType,
+		body:            resp.Body,
+		maxLogSize:      w.maxLogSize,
+		logger:          w.tel.Logger,
+		tryJSON:         tryJSON,
+	}
 
-	// Check if content is gzipped and decompress if needed
-	if resp.ContentEncoding != nil {
-		switch *resp.ContentEncoding {
-		case "gzip":
-			gzipReader, err := gzip.NewReader(resp.Body)
-			if err != nil {
-				w.tel.Logger.Error("failed to create gzip reader", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
-				return err
-			}
-			reader = bufio.NewReader(gzipReader)
-		default:
-			w.tel.Logger.Warn("unsupported content encoding", zap.String("content_encoding", *resp.ContentEncoding), zap.String("bucket", bucket), zap.String("key", key))
-			reader = bufio.NewReader(resp.Body)
-		}
-	} else {
-		switch {
-		case strings.HasSuffix(key, ".gz"):
-			gzipReader, err := gzip.NewReader(resp.Body)
-			if err != nil {
-				w.tel.Logger.Error("failed to create gzip reader", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
-				return err
-			}
-			reader = bufio.NewReader(gzipReader)
-		default:
-			reader = bufio.NewReader(resp.Body)
-		}
+	reader, err := stream.BufferedReader(ctx)
+	if err != nil {
+		return fmt.Errorf("get stream reader: %w", err)
+	}
+
+	parser, err := newParser(ctx, stream, reader)
+	if err != nil {
+		return fmt.Errorf("create parser: %w", err)
 	}
 
 	ld := plog.NewLogs()
@@ -177,19 +178,16 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 	lrs := rls.ScopeLogs().AppendEmpty().LogRecords()
 
 	batchesConsumedCount := 0
-	for {
-		// ReadLine returns line fragments if the line doesn't fit in the buffer
-		lineBytes, _, err := reader.ReadLine()
 
+	// Parse logs into a sequence of log records
+	logs, err := parser.Parse(ctx)
+	if err != nil {
+		return fmt.Errorf("parse logs: %w", err)
+	}
+
+	for log, err := range logs {
 		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			w.tel.Logger.Error("reading object content", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
-			return err
-		}
-
-		if len(lineBytes) == 0 {
+			logger.Error("parse log", zap.Error(err))
 			continue
 		}
 
@@ -197,19 +195,20 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 		lr := lrs.AppendEmpty()
 		lr.SetObservedTimestamp(pcommon.NewTimestampFromTime(now))
 		lr.SetTimestamp(pcommon.NewTimestampFromTime(record.EventTime))
-		lr.Body().SetStr(string(lineBytes))
+
+		err := parser.AppendLogBody(ctx, lr, log)
+		if err != nil {
+			logger.Error("append log body", zap.Error(err))
+			continue
+		}
 
 		if ld.LogRecordCount() >= w.maxLogsEmitted {
 			if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
-				w.tel.Logger.Error("consume logs", zap.Error(err),
-					zap.String("bucket", bucket),
-					zap.String("key", key),
-					zap.Int("batches_consumed_count", batchesConsumedCount),
-				)
+				logger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
 				return fmt.Errorf("consume logs: %w", err)
 			}
 			batchesConsumedCount++
-			w.tel.Logger.Debug("Reached max logs for single batch, starting new batch", zap.String("bucket", bucket), zap.String("key", key), zap.Int("batches_consumed_count", batchesConsumedCount))
+			logger.Debug("Reached max logs for single batch, starting new batch", zap.Int("batches_consumed_count", batchesConsumedCount))
 
 			ld = plog.NewLogs()
 			rls = ld.ResourceLogs().AppendEmpty()
@@ -224,10 +223,10 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 	}
 
 	if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
-		w.tel.Logger.Error("consume logs", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key), zap.Int("batches_consumed_count", batchesConsumedCount))
+		logger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
 		return fmt.Errorf("consume logs: %w", err)
 	}
-	w.tel.Logger.Debug("processed S3 object", zap.String("bucket", bucket), zap.String("key", key), zap.Int("batches_consumed_count", batchesConsumedCount+1))
+	logger.Debug("processed S3 object", zap.Int("batches_consumed_count", batchesConsumedCount+1))
 	return nil
 }
 
