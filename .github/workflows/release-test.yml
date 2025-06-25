@@ -9,7 +9,7 @@ on:
 
 jobs:
   release-test:
-    runs-on: ubuntu-latest-16-cores
+    runs-on: nscloud-ubuntu-22.04-amd64-16x32
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
