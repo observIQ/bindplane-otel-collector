@@ -16,10 +16,10 @@
 package worker // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
-	"io"
+	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -105,7 +105,6 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 		)
 	}
 
-	var noSuchKeyError bool
 	for _, record := range objectCreatedRecords {
 		w.tel.Logger.Debug("processing record",
 			zap.String("bucket", record.S3.Bucket.Name),
@@ -113,42 +112,64 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 		)
 
 		if err := w.processRecord(ctx, record); err != nil {
-			if strings.Contains(err.Error(), "NoSuchKey") {
-				noSuchKeyError = true
-				w.tel.Logger.Warn("S3 object not found (404 NoSuchKey), preserving message for retry",
-					zap.Error(err),
-					zap.String("bucket", record.S3.Bucket.Name),
-					zap.String("key", record.S3.Object.Key))
-			}
+			w.tel.Logger.Error("error processing record, preserving message in SQS for retry", zap.Error(err), zap.String("bucket", record.S3.Bucket.Name), zap.String("key", record.S3.Object.Key), zap.String("message_id", *msg.MessageId))
+			return
 		}
 	}
-	if noSuchKeyError {
-		w.tel.Logger.Info("message preserved for retry due to NoSuchKey error", zap.String("message_id", *msg.MessageId))
-	} else {
-		w.deleteMessage(ctx, msg, queueURL)
-	}
+	w.deleteMessage(ctx, msg, queueURL)
 }
 
 func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord) error {
+	err := w.consumeLogsFromS3Object(ctx, record, true)
+	if err != nil {
+		if errors.Is(err, ErrNotArrayOrKnownObject) {
+			// try again without attempting to parse as JSON
+			return w.consumeLogsFromS3Object(ctx, record, false)
+		}
+		return err
+	}
+	return nil
+}
+
+func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3EventRecord, tryJSON bool) error {
 	bucket := record.S3.Bucket.Name
 	key := record.S3.Object.Key
 	size := record.S3.Object.Size
 
-	w.tel.Logger.Debug("reading S3 object", zap.String("bucket", bucket), zap.String("key", key), zap.Int64("size", size))
+	logger := w.tel.Logger.With(zap.String("bucket", bucket), zap.String("key", key))
+
+	logger.Debug("reading S3 object", zap.Int64("size", size))
 
 	resp, err := w.client.S3().GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		w.tel.Logger.Error("get object", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
-		return err
+		return fmt.Errorf("get object: %w", err)
 	}
 	defer resp.Body.Close()
 
 	now := time.Now()
 
-	reader := bufio.NewReader(resp.Body)
+	stream := logStream{
+		name:            key,
+		contentEncoding: resp.ContentEncoding,
+		contentType:     resp.ContentType,
+		body:            resp.Body,
+		maxLogSize:      w.maxLogSize,
+		logger:          w.tel.Logger,
+		tryJSON:         tryJSON,
+	}
+
+	reader, err := stream.BufferedReader(ctx)
+	if err != nil {
+		return fmt.Errorf("get stream reader: %w", err)
+	}
+
+	parser, err := newParser(ctx, stream, reader)
+	if err != nil {
+		return fmt.Errorf("create parser: %w", err)
+	}
 
 	ld := plog.NewLogs()
 	rls := ld.ResourceLogs().AppendEmpty()
@@ -156,19 +177,17 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 	rls.Resource().Attributes().PutStr("aws.s3.key", key)
 	lrs := rls.ScopeLogs().AppendEmpty().LogRecords()
 
-	for {
-		// ReadLine returns line fragments if the line doesn't fit in the buffer
-		lineBytes, _, err := reader.ReadLine()
+	batchesConsumedCount := 0
 
+	// Parse logs into a sequence of log records
+	logs, err := parser.Parse(ctx)
+	if err != nil {
+		return fmt.Errorf("parse logs: %w", err)
+	}
+
+	for log, err := range logs {
 		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			w.tel.Logger.Error("reading object content", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
-			return err
-		}
-
-		if len(lineBytes) == 0 {
+			logger.Error("parse log", zap.Error(err))
 			continue
 		}
 
@@ -176,15 +195,21 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 		lr := lrs.AppendEmpty()
 		lr.SetObservedTimestamp(pcommon.NewTimestampFromTime(now))
 		lr.SetTimestamp(pcommon.NewTimestampFromTime(record.EventTime))
-		lr.Body().SetStr(string(lineBytes))
+
+		err := parser.AppendLogBody(ctx, lr, log)
+		if err != nil {
+			logger.Error("append log body", zap.Error(err))
+			continue
+		}
 
 		if ld.LogRecordCount() >= w.maxLogsEmitted {
 			if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
-				w.tel.Logger.Error("consume logs", zap.Error(err),
-					zap.String("bucket", bucket),
-					zap.String("key", key),
-				)
+				logger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
+				return fmt.Errorf("consume logs: %w", err)
 			}
+			batchesConsumedCount++
+			logger.Debug("Reached max logs for single batch, starting new batch", zap.Int("batches_consumed_count", batchesConsumedCount))
+
 			ld = plog.NewLogs()
 			rls = ld.ResourceLogs().AppendEmpty()
 			rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
@@ -198,10 +223,10 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord)
 	}
 
 	if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
-		w.tel.Logger.Error("consume logs", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
-		return err
+		logger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
+		return fmt.Errorf("consume logs: %w", err)
 	}
-	w.tel.Logger.Debug("processed S3 object", zap.String("bucket", bucket), zap.String("key", key))
+	logger.Debug("processed S3 object", zap.Int("batches_consumed_count", batchesConsumedCount+1))
 	return nil
 }
 

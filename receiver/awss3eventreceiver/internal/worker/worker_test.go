@@ -17,6 +17,7 @@ package worker_test
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 
@@ -30,6 +31,20 @@ import (
 	"github.com/observiq/bindplane-otel-collector/internal/aws/fake"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 )
+
+func logsFromFile(t *testing.T, filePath string) []map[string]map[string]string {
+	bytes, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("read file: %v", err)
+	}
+	return []map[string]map[string]string{
+		{
+			"mybucket": {
+				filePath: string(bytes),
+			},
+		},
+	}
+}
 
 func TestProcessMessage(t *testing.T) {
 	defer fake.SetFakeConstructorForTest(t)()
@@ -47,6 +62,7 @@ func TestProcessMessage(t *testing.T) {
 		name        string
 		objectSets  []map[string]map[string]string
 		expectLines int
+		maxLogSize  int
 	}{
 		{
 			name: "single object - single line",
@@ -119,6 +135,57 @@ func TestProcessMessage(t *testing.T) {
 			},
 			expectLines: expectedLongLineFragments,
 		},
+		{
+			name:        "parses as JSON and creates 4 log lines from a JSON array in Records",
+			objectSets:  logsFromFile(t, "testdata/logs_array_in_records.json"),
+			expectLines: 4,
+		},
+		{
+			name:        "attempts to parse as JSON, but fails and creates 294 log lines from text",
+			objectSets:  logsFromFile(t, "testdata/logs_array_in_records_after_limit.json"),
+			expectLines: 294,
+		},
+		{
+			name:        "parses as JSON and creates 4 log lines from a JSON array",
+			objectSets:  logsFromFile(t, "testdata/logs_array.json"),
+			expectLines: 4,
+		},
+		{
+			name:        "does not attempt to parse as JSON and creates 4 log lines from text",
+			objectSets:  logsFromFile(t, "testdata/json_lines.txt"),
+			expectLines: 4,
+		},
+		{
+			name:        "attempts to parse as JSON, but fails and creates 4 log lines from text",
+			objectSets:  logsFromFile(t, "testdata/json_lines.json"),
+			expectLines: 4,
+		},
+		{
+			name:        "attempts to parse as JSON, but fails after 1 log line",
+			objectSets:  logsFromFile(t, "testdata/logs_array_fragment.json"),
+			expectLines: 1,
+		},
+		{
+			name:        "does not attempt to parse as JSON and creates 112 log lines",
+			objectSets:  logsFromFile(t, "testdata/logs_array_fragment.txt"),
+			expectLines: 112,
+		},
+		{
+			name:        "parses as JSON and creates 4 log lines from the Records field ignoring other fields",
+			objectSets:  logsFromFile(t, "testdata/logs_array_in_records_one_line.json"),
+			expectLines: 4,
+		},
+		{
+			name:        "attempts to parse as JSON, but fails and reads 3 log lines because of maxLogSize",
+			objectSets:  logsFromFile(t, "testdata/logs_array_in_records_after_limit_one_line.json"),
+			expectLines: 3,
+		},
+		{
+			name:        "attempts to parse as JSON, but fails and reads 1 log line with maxLogSize = 20000",
+			objectSets:  logsFromFile(t, "testdata/logs_array_in_records_after_limit_one_line.json"),
+			expectLines: 1,
+			maxLogSize:  20000,
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -134,9 +201,13 @@ func TestProcessMessage(t *testing.T) {
 				fakeAWS.CreateObjects(t, objectSet)
 			}
 
+			if testCase.maxLogSize == 0 {
+				testCase.maxLogSize = maxLogSize
+			}
+
 			set := componenttest.NewNopTelemetrySettings()
 			sink := new(consumertest.LogsSink)
-			w := worker.New(set, aws.Config{}, sink, maxLogSize, maxLogsEmitted)
+			w := worker.New(set, aws.Config{}, sink, testCase.maxLogSize, maxLogsEmitted)
 
 			numCallbacks := 0
 
