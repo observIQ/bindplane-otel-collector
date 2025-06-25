@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/plugindocgen
 go 1.24.4
 
 require (
-	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.79.1
+	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.79.2
 	github.com/spf13/pflag v1.0.6
 	gopkg.in/yaml.v3 v3.0.1
 )
