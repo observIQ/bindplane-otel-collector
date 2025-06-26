@@ -29,9 +29,9 @@ template: |
       operators:
         {{ if .save_log_record_original }}
         - id: save_log_record_original
-            type: copy
-            from: body
-            to: attributes["log.record.original"]
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         {{ end }}
         {{ if .parse }}
         - id: cisco_parser
