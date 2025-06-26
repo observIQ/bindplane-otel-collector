@@ -1,4 +1,4 @@
-version: 0.0.2
+version: 0.0.3
 title: Cisco ASA
 description: Log parser for Cisco ASA
 parameters:
