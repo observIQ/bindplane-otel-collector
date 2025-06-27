@@ -135,15 +135,20 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	bucket := record.S3.Bucket.Name
 	key := record.S3.Object.Key
 	size := record.S3.Object.Size
+	opts := []func(o *s3.Options){
+		func(o *s3.Options) {
+			o.Region = record.AWSRegion
+		},
+	}
 
-	logger := w.tel.Logger.With(zap.String("bucket", bucket), zap.String("key", key))
+	logger := w.tel.Logger.With(zap.String("bucket", bucket), zap.String("key", key), zap.String("region", record.AWSRegion))
 
 	logger.Debug("reading S3 object", zap.Int64("size", size))
 
 	resp, err := w.client.S3().GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
-	})
+	}, opts...)
 	if err != nil {
 		return fmt.Errorf("get object: %w", err)
 	}
