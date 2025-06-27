@@ -1,4 +1,4 @@
-version: 0.1.1
+version: 0.1.2
 title: Apache Common
 description: Log parser for Apache common format
 parameters:
@@ -44,9 +44,9 @@ template: |
       operators:
         {{ if .save_log_record_original }}
         - id: save_log_record_original
-            type: copy
-            from: body
-            to: attributes["log.record.original"]
+          type: copy
+          from: body
+          to: attributes["log.record.original"]
         {{ end }}
         {{ if .retain_raw_logs }}
         - id: save_raw_log
@@ -69,6 +69,7 @@ template: |
               info2: 3xx
               warn: 4xx
               error: 5xx
+        {{ end }}
         - id: add_type
           type: add
           field: {{ .parse_to }}.log_type
@@ -78,7 +79,6 @@ template: |
           type: move
           from: attributes.raw_log
           to: body.raw_log
-        {{ end }}
         {{ end }}
 
   service:

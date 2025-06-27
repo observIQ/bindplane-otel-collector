@@ -139,16 +139,17 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 
 	resp, err := exp.client.Do(request)
 	if err != nil {
+		logTypeAttr := attribute.String("logType", logType)
 		errAttr := attribute.String(attrError, "unknown")
 		if errors.Is(err, context.DeadlineExceeded) {
 			errAttr = attribute.String(attrError, "timeout")
 		}
 		exp.telemetry.ExporterRequestLatency.Record(
 			ctx, time.Since(start).Milliseconds(),
-			metric.WithAttributeSet(attribute.NewSet(errAttr)),
+			metric.WithAttributeSet(attribute.NewSet(errAttr, logTypeAttr)),
 		)
 		exp.telemetry.ExporterRequestCount.Add(ctx, 1,
-			metric.WithAttributeSet(attribute.NewSet(errAttr)))
+			metric.WithAttributeSet(attribute.NewSet(errAttr, logTypeAttr)))
 		return fmt.Errorf("send request to Chronicle: %w", err)
 	}
 	defer resp.Body.Close()
@@ -161,16 +162,16 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 	exp.telemetry.ExporterRequestCount.Add(ctx, 1,
 		metric.WithAttributeSet(attribute.NewSet(attrErrorNone)))
 
-	respBody, err := io.ReadAll(resp.Body)
-	if err == nil && resp.StatusCode == http.StatusOK {
+	if resp.StatusCode == http.StatusOK {
 		return nil
 	}
 
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		exp.set.Logger.Warn("Failed to read response body", zap.Error(err))
-	} else {
-		exp.set.Logger.Warn("Received non-OK response from Chronicle", zap.String("status", resp.Status), zap.ByteString("response", respBody))
 	}
+
+	exp.set.Logger.Warn("Received non-OK response from Chronicle", zap.String("status", resp.Status), zap.ByteString("response", respBody))
 
 	// TODO interpret with https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/internal/coreinternal/errorutil/http.go
 	statusErr := errors.New(resp.Status)
@@ -178,6 +179,9 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 	case http.StatusInternalServerError, http.StatusServiceUnavailable: // potentially transient
 		return statusErr
 	default:
+		if exp.cfg.LogErroredPayloads {
+			exp.set.Logger.Warn("Import request rejected", zap.String("logType", logType), zap.String("rejectedRequest", string(data)))
+		}
 		return consumererror.NewPermanent(statusErr)
 	}
 }

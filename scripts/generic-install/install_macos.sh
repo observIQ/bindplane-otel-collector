@@ -86,6 +86,7 @@ create_supervisor_config() {
     command printf 'capabilities:\n' >>"$SUPERVISOR_YML_PATH"
     command printf '  accepts_remote_config: true\n' >>"$SUPERVISOR_YML_PATH"
     command printf '  reports_remote_config: true\n' >>"$SUPERVISOR_YML_PATH"
+    command printf '  reports_available_components: true\n' >> "$SUPERVISOR_YML_PATH"
     command printf 'agent:\n' >>"$SUPERVISOR_YML_PATH"
     command printf '  executable: "%s"\n' "$INSTALL_DIR/$DISTRIBUTION" >>"$SUPERVISOR_YML_PATH"
     command printf '  config_apply_timeout: 30s\n' >>"$SUPERVISOR_YML_PATH"
