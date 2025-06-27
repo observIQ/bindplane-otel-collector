@@ -25,6 +25,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/receiver"
+	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/backoff"
@@ -48,6 +50,9 @@ type logsReceiver struct {
 
 	// Channel for distributing messages to worker goroutines
 	msgChan chan workerMessage
+
+	// Telemetry metrics
+	acceptedLogRecords metric.Int64Counter
 }
 
 type workerMessage struct {
@@ -55,7 +60,7 @@ type workerMessage struct {
 	queueURL string
 }
 
-func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Config, next consumer.Logs) (component.Component, error) {
+func newLogsReceiver(params receiver.Settings, cfg *Config, next consumer.Logs) (component.Component, error) {
 	region, err := client.ParseRegionFromSQSURL(cfg.SQSQueueURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract region from SQS URL: %w", err)
@@ -66,17 +71,29 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 		return nil, fmt.Errorf("failed to create AWS config: %w", err)
 	}
 
+	// Initialize telemetry metrics
+	meter := params.TelemetrySettings.MeterProvider.Meter("github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver")
+	acceptedLogRecords, err := meter.Int64Counter(
+		"otelcol_receiver_accepted_log_records_total",
+		metric.WithDescription("The total number of log records accepted by the receiver."),
+		metric.WithUnit("{records}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create accepted log records counter: %w", err)
+	}
+
 	return &logsReceiver{
-		id:        id,
+		id:        params.ID,
 		cfg:       cfg,
-		telemetry: tel,
+		telemetry: params.TelemetrySettings,
 		next:      next,
 		sqsClient: client.NewClient(awsConfig).SQS(),
 		workerPool: sync.Pool{
 			New: func() any {
-				return worker.New(tel, awsConfig, next, cfg.MaxLogSize, cfg.MaxLogsEmitted)
+				return worker.New(params.TelemetrySettings, awsConfig, next, cfg.MaxLogSize, cfg.MaxLogsEmitted, acceptedLogRecords)
 			},
 		},
+		acceptedLogRecords: acceptedLogRecords,
 	}, nil
 }
 

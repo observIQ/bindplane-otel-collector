@@ -32,6 +32,7 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
@@ -42,22 +43,24 @@ import (
 // It also handles deleting messages from the SQS queue after they have been processed.
 // It is designed to be used in a worker pool.
 type Worker struct {
-	tel            component.TelemetrySettings
-	client         client.Client
-	nextConsumer   consumer.Logs
-	maxLogSize     int
-	maxLogsEmitted int
+	tel                component.TelemetrySettings
+	client             client.Client
+	nextConsumer       consumer.Logs
+	maxLogSize         int
+	maxLogsEmitted     int
+	acceptedLogRecords metric.Int64Counter
 }
 
 // New creates a new Worker
-func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.Logs, maxLogSize int, maxLogsEmitted int) *Worker {
+func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.Logs, maxLogSize int, maxLogsEmitted int, acceptedLogRecords metric.Int64Counter) *Worker {
 	client := client.NewClient(cfg)
 	return &Worker{
-		tel:            tel,
-		client:         client,
-		nextConsumer:   nextConsumer,
-		maxLogSize:     maxLogSize,
-		maxLogsEmitted: maxLogsEmitted,
+		tel:                tel,
+		client:             client,
+		nextConsumer:       nextConsumer,
+		maxLogSize:         maxLogSize,
+		maxLogsEmitted:     maxLogsEmitted,
+		acceptedLogRecords: acceptedLogRecords,
 	}
 }
 
@@ -212,6 +215,8 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 				logger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
 				return fmt.Errorf("consume logs: %w", err)
 			}
+			// Record telemetry metrics
+			w.acceptedLogRecords.Add(ctx, int64(ld.LogRecordCount()))
 			batchesConsumedCount++
 			logger.Debug("Reached max logs for single batch, starting new batch", zap.Int("batches_consumed_count", batchesConsumedCount))
 
@@ -231,6 +236,8 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 		logger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
 		return fmt.Errorf("consume logs: %w", err)
 	}
+	// Record telemetry metrics
+	w.acceptedLogRecords.Add(ctx, int64(ld.LogRecordCount()))
 	logger.Debug("processed S3 object", zap.Int("batches_consumed_count", batchesConsumedCount+1))
 	return nil
 }
