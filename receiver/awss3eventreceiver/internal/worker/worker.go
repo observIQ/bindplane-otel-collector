@@ -42,22 +42,28 @@ import (
 // It also handles deleting messages from the SQS queue after they have been processed.
 // It is designed to be used in a worker pool.
 type Worker struct {
-	tel            component.TelemetrySettings
-	client         client.Client
-	nextConsumer   consumer.Logs
-	maxLogSize     int
-	maxLogsEmitted int
+	tel                         component.TelemetrySettings
+	client                      client.Client
+	nextConsumer                consumer.Logs
+	maxLogSize                  int
+	maxLogsEmitted              int
+	visibilityTimeout           time.Duration
+	visibilityExtensionInterval time.Duration
+	maxVisibilityWindow         time.Duration
 }
 
 // New creates a new Worker
-func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.Logs, maxLogSize int, maxLogsEmitted int) *Worker {
+func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.Logs, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration) *Worker {
 	client := client.NewClient(cfg)
 	return &Worker{
-		tel:            tel,
-		client:         client,
-		nextConsumer:   nextConsumer,
-		maxLogSize:     maxLogSize,
-		maxLogsEmitted: maxLogsEmitted,
+		tel:                         tel,
+		client:                      client,
+		nextConsumer:                nextConsumer,
+		maxLogSize:                  maxLogSize,
+		maxLogsEmitted:              maxLogsEmitted,
+		visibilityTimeout:           visibilityTimeout,
+		visibilityExtensionInterval: visibilityExtensionInterval,
+		maxVisibilityWindow:         maxVisibilityWindow,
 	}
 }
 
@@ -67,6 +73,12 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	defer deferThis()
 
 	w.tel.Logger.Debug("processing message", zap.String("message_id", *msg.MessageId), zap.String("body", *msg.Body))
+
+	// Start a goroutine to periodically extend message visibility
+	visibilityCtx, cancelVisibility := context.WithCancel(ctx)
+	defer cancelVisibility()
+
+	go w.extendMessageVisibility(visibilityCtx, msg, queueURL)
 
 	notification := new(events.S3Event)
 	err := json.Unmarshal([]byte(*msg.Body), notification)
@@ -246,4 +258,123 @@ func (w *Worker) deleteMessage(ctx context.Context, msg types.Message, queueURL 
 		return
 	}
 	w.tel.Logger.Debug("deleted message", zap.String("message_id", *msg.MessageId))
+}
+
+func (w *Worker) extendMessageVisibility(ctx context.Context, msg types.Message, queueURL string) {
+	monitor := newVisibilityMonitor(w.tel.Logger, msg, w.visibilityTimeout, w.visibilityExtensionInterval, w.maxVisibilityWindow)
+	defer monitor.stop()
+
+	w.tel.Logger.Debug("starting visibility extension monitoring",
+		zap.String("message_id", *msg.MessageId),
+		zap.Duration("initial_timeout", monitor.visibilityTimeout),
+		zap.Duration("extension_interval", monitor.extensionInterval),
+		zap.Duration("max_window", monitor.maxVisibilityEndTime.Sub(monitor.startTime)),
+		zap.Time("max_end_time", monitor.maxVisibilityEndTime))
+
+	for {
+		select {
+		case <-ctx.Done():
+			w.tel.Logger.Debug("visibility extension stopped due to context cancellation",
+				zap.String("message_id", *msg.MessageId))
+			return
+		case <-monitor.nextExtensionTimer():
+			if monitor.shouldExtendToMax() {
+				w.extendToMaxAndStop(ctx, msg, queueURL, monitor)
+				return
+			}
+			if err := w.extendVisibility(ctx, msg, queueURL, w.visibilityExtensionInterval); err != nil {
+				w.tel.Logger.Error("failed to extend message visibility",
+					zap.Error(err),
+					zap.String("message_id", *msg.MessageId),
+					zap.Duration("attempted_timeout", w.visibilityExtensionInterval))
+				return
+			}
+			w.tel.Logger.Debug("extending message visibility",
+				zap.String("message_id", *msg.MessageId),
+				zap.Duration("extension_interval", monitor.extensionInterval),
+				zap.Duration("total_visibility_time", monitor.getTotalVisibilityTime()))
+			monitor.scheduleNextExtension()
+		}
+	}
+}
+
+type visibilityMonitor struct {
+	logger               *zap.Logger
+	msg                  types.Message
+	startTime            time.Time
+	maxVisibilityEndTime time.Time
+	visibilityTimeout    time.Duration
+	extensionInterval    time.Duration
+	safetyMargin         time.Duration
+	timer                *time.Timer
+}
+
+func newVisibilityMonitor(logger *zap.Logger, msg types.Message, visibilityTimeout, extensionInterval, maxVisibilityWindow time.Duration) *visibilityMonitor {
+	startTime := time.Now()
+	safetyMargin := extensionInterval * 80 / 100
+	firstExtensionTime := startTime.Add(visibilityTimeout - safetyMargin)
+
+	return &visibilityMonitor{
+		logger:               logger,
+		msg:                  msg,
+		startTime:            startTime,
+		maxVisibilityEndTime: startTime.Add(maxVisibilityWindow),
+		visibilityTimeout:    visibilityTimeout,
+		extensionInterval:    extensionInterval,
+		safetyMargin:         safetyMargin,
+		timer:                time.NewTimer(time.Until(firstExtensionTime)),
+	}
+}
+
+func (vm *visibilityMonitor) stop() {
+	vm.timer.Stop()
+}
+
+func (vm *visibilityMonitor) nextExtensionTimer() <-chan time.Time {
+	return vm.timer.C
+}
+
+func (vm *visibilityMonitor) shouldExtendToMax() bool {
+	return !time.Now().Add(vm.extensionInterval).Before(vm.maxVisibilityEndTime)
+}
+
+func (vm *visibilityMonitor) scheduleNextExtension() {
+	now := time.Now()
+	nextExtensionTime := now.Add(vm.extensionInterval - vm.safetyMargin)
+	vm.timer.Reset(time.Until(nextExtensionTime))
+}
+
+func (vm *visibilityMonitor) getRemainingTime() time.Duration {
+	return time.Until(vm.maxVisibilityEndTime)
+}
+
+func (vm *visibilityMonitor) getTotalVisibilityTime() time.Duration {
+	return time.Since(vm.startTime)
+}
+
+func (w *Worker) extendToMaxAndStop(ctx context.Context, msg types.Message, queueURL string, monitor *visibilityMonitor) {
+	remainingTime := monitor.getRemainingTime()
+
+	w.tel.Logger.Info("reached maximum visibility window, extending to max and stopping",
+		zap.String("message_id", *msg.MessageId),
+		zap.Duration("total_visibility_time", monitor.getTotalVisibilityTime()),
+		zap.Duration("remaining_time", remainingTime),
+		zap.Duration("max_window", monitor.maxVisibilityEndTime.Sub(monitor.startTime)))
+
+	if err := w.extendVisibility(ctx, msg, queueURL, remainingTime); err != nil {
+		w.tel.Logger.Error("failed to extend message visibility to max",
+			zap.Error(err),
+			zap.String("message_id", *msg.MessageId),
+			zap.Duration("attempted_timeout", remainingTime))
+	}
+}
+
+func (w *Worker) extendVisibility(ctx context.Context, msg types.Message, queueURL string, timeout time.Duration) error {
+	changeParams := &sqs.ChangeMessageVisibilityInput{
+		QueueUrl:          aws.String(queueURL),
+		ReceiptHandle:     msg.ReceiptHandle,
+		VisibilityTimeout: int32(timeout.Seconds()),
+	}
+	_, err := w.client.SQS().ChangeMessageVisibility(ctx, changeParams)
+	return err
 }

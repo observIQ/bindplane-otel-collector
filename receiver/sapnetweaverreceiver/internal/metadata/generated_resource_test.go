@@ -35,17 +35,17 @@ func TestResourceBuilder(t *testing.T) {
 			val, ok := res.Attributes().Get("sapnetweaver.SID")
 			assert.True(t, ok)
 			if ok {
-				assert.Equal(t, "sapnetweaver.SID-val", val.Str())
+				assert.EqualValues(t, "sapnetweaver.SID-val", val.Str())
 			}
 			val, ok = res.Attributes().Get("sapnetweaver.instance")
 			assert.True(t, ok)
 			if ok {
-				assert.Equal(t, "sapnetweaver.instance-val", val.Str())
+				assert.EqualValues(t, "sapnetweaver.instance-val", val.Str())
 			}
 			val, ok = res.Attributes().Get("sapnetweaver.node")
 			assert.True(t, ok)
 			if ok {
-				assert.Equal(t, "sapnetweaver.node-val", val.Str())
+				assert.EqualValues(t, "sapnetweaver.node-val", val.Str())
 			}
 		})
 	}
