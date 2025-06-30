@@ -446,17 +446,33 @@ func TestMessageVisibilityExtension(t *testing.T) {
 }
 
 func TestVisibilityExtensionLogs(t *testing.T) {
-	defer fake.SetFakeConstructorForTest(t)()
-
 	ctx := context.Background()
-	fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
+	mockSQS := &mocks.MockSQSClient{}
+	mockS3 := &mocks.MockS3Client{}
+	mockClient := &mocks.MockClient{}
+	mockClient.EXPECT().SQS().Return(mockSQS)
+	mockClient.EXPECT().S3().Return(mockS3)
 
-	objectSet := map[string]map[string]string{
-		"mybucket": {
-			"mykey1": "line1\nline2\nline3",
+	// Provide a valid S3 event message
+	validS3Event := `{"Records":[{"eventName":"s3:ObjectCreated:Put","s3":{"bucket":{"name":"mybucket"},"object":{"key":"mykey1","size":15}}}]}`
+
+	mockSQS.EXPECT().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput)).Return(&sqs.ReceiveMessageOutput{
+		Messages: []types.Message{
+			{
+				Body:          aws.String(validS3Event),
+				MessageId:     aws.String("123"),
+				ReceiptHandle: aws.String("receipt-handle"),
+			},
 		},
-	}
-	fakeAWS.CreateObjects(t, objectSet)
+	}, nil)
+
+	// Mock S3 GetObject to return content
+	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).Return(&s3.GetObjectOutput{
+		Body: io.NopCloser(strings.NewReader("line1\nline2\nline3")),
+	}, nil)
+
+	mockSQS.EXPECT().DeleteMessage(mock.Anything, mock.Anything).Return(&sqs.DeleteMessageOutput{}, nil)
+	mockSQS.EXPECT().ChangeMessageVisibility(mock.Anything, mock.Anything).Return(&sqs.ChangeMessageVisibilityOutput{}, nil)
 
 	// Set up zap observer
 	core, recorded := observer.New(zap.DebugLevel)
@@ -465,19 +481,17 @@ func TestVisibilityExtensionLogs(t *testing.T) {
 	set.Logger = logger
 
 	sink := new(consumertest.LogsSink)
-	visibilityExtensionInterval := 50 * time.Millisecond
+	visibilityExtensionInterval := 1 * time.Millisecond
 	visibilityTimeout := 300 * time.Second
-	w := worker.New(set, aws.Config{}, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
+	w := worker.New(set, aws.Config{}, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
 
-	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
 	require.Len(t, msg.Messages, 1)
 
 	done := make(chan struct{})
-	go func() {
-		w.ProcessMessage(ctx, msg.Messages[0], "myqueue", func() { close(done) })
-	}()
 
+	w.ProcessMessage(ctx, msg.Messages[0], "myqueue", func() { close(done) })
 	// Wait for processing to complete
 	<-done
 
