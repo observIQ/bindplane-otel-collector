@@ -8,6 +8,8 @@ receivers:
     max_poll_interval: 60s
     polling_backoff_factor: 2
     visibility_timeout: 600s
+    visibility_extension_interval: 60s
+    max_visibility_window: 4h
     workers: 5
     max_log_size: 4096
     max_logs_emitted: 1000
