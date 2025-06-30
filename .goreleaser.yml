@@ -21,9 +21,10 @@ builds:
     tags:
       - bindplane
     goos:
-      - windows
-      - linux
       - darwin
+      - freebsd
+      - linux
+      - windows
     goarch:
       - amd64
       - arm64
@@ -43,15 +44,18 @@ builds:
         goarch: ppc64
       - goos: darwin
         goarch: ppc64le
+      - goos: freebsd
+        goarch: arm
     prebuilt:
       path: tmp/collector_{{ .Os }}_{{ .Arch }}{{ .Ext }}
   - id: supervisor
     builder: prebuilt
     binary: opampsupervisor
     goos:
-      - windows
-      - linux
       - darwin
+      - freebsd
+      - linux
+      - windows
     goarch:
       - amd64
       - arm64
@@ -71,6 +75,8 @@ builds:
         goarch: ppc64
       - goos: darwin
         goarch: ppc64le
+      - goos: freebsd
+        goarch: arm
     prebuilt:
       path: release_deps/supervisor_bin/opampsupervisor_{{ .Os }}_{{ .Arch }}{{ .Ext }}
 
