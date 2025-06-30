@@ -40,6 +40,12 @@ collector:
 	CGO_ENABLED=0 builder --config="./manifests/observIQ/manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)"
 	mkdir -p $(OUTDIR); cp ./builder/bindplane-otel-collector $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
 
+# Builds the collector for current FreeBSD GOOS/GOARCH pair
+.PHONY: collector-freebsd
+collector-freebsd:
+	CGO_ENABLED=0 builder --config="./manifests/observIQ/freebsd-manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)"
+	mkdir -p $(OUTDIR); cp ./builder/bindplane-otel-collector $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
+
 # Builds a custom distro for the current GOOS/GOARCH pair using the manifest specified
 # MANIFEST = path to the manifest file for the distro to be built
 # Usage: make distro MANIFEST="./manifests/custom/my_distro_manifest.yaml"
@@ -64,13 +70,22 @@ reset: kill
 	rm -rf agent.log effective.yaml local/storage/* builder/
 
 .PHONY: build-all
-build-all: build-linux build-darwin build-windows
+build-all: build-linux build-windows build-unix
 
 .PHONY: build-linux
 build-linux: build-linux-amd64 build-linux-arm64 build-linux-arm build-linux-ppc64 build-linux-ppc64le
 
+.PHONY: build-unix
+build-unix: build-darwin build-bsd
+
+.PHONY: build-bsd
+build-bsd: build-freebsd
+
 .PHONY: build-darwin
 build-darwin: build-darwin-amd64 build-darwin-arm64
+
+.PHONY: build-freebsd
+build-freebsd: build-freebsd-amd64 build-freebsd-arm64
 
 .PHONY: build-windows
 build-windows: build-windows-amd64
@@ -102,6 +117,14 @@ build-darwin-amd64:
 .PHONY: build-darwin-arm64
 build-darwin-arm64:
 	GOOS=darwin GOARCH=arm64 $(MAKE) collector
+
+.PHONY: build-freebsd-amd64
+build-freebsd-amd64:
+	GOOS=freebsd GOARCH=amd64 $(MAKE) collector-freebsd
+
+.PHONY: build-freebsd-arm64
+build-freebsd-arm64:
+	GOOS=freebsd GOARCH=arm64 $(MAKE) collector-freebsd
 
 .PHONY: build-windows-amd64
 build-windows-amd64:
