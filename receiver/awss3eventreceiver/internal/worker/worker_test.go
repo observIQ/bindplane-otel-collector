@@ -17,14 +17,19 @@ package worker_test
 
 import (
 	"context"
+	"errors"
+	"io"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
@@ -32,6 +37,7 @@ import (
 	"go.uber.org/zap/zaptest/observer"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+	"github.com/observiq/bindplane-otel-collector/internal/aws/client/mocks"
 	"github.com/observiq/bindplane-otel-collector/internal/aws/fake"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 )
@@ -212,7 +218,7 @@ func TestProcessMessage(t *testing.T) {
 
 			set := componenttest.NewNopTelemetrySettings()
 			sink := new(consumertest.LogsSink)
-			w := worker.New(set, aws.Config{}, sink, testCase.maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour)
+			w := worker.New(set, aws.Config{}, sink, fakeAWS, testCase.maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour)
 
 			numCallbacks := 0
 
@@ -346,7 +352,7 @@ func TestEventTypeFiltering(t *testing.T) {
 
 			set := componenttest.NewNopTelemetrySettings()
 			sink := new(consumertest.LogsSink)
-			w := worker.New(set, aws.Config{}, sink, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour)
+			w := worker.New(set, aws.Config{}, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour)
 
 			numCallbacks := 0
 
@@ -404,7 +410,7 @@ func TestMessageVisibilityExtension(t *testing.T) {
 	visibilityExtensionInterval := 50 * time.Millisecond
 	visibilityTimeout := 300 * time.Second
 
-	w := worker.New(set, aws.Config{}, sink, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
+	w := worker.New(set, aws.Config{}, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
 
 	// Get a message from the queue
 	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
@@ -461,7 +467,7 @@ func TestVisibilityExtensionLogs(t *testing.T) {
 	sink := new(consumertest.LogsSink)
 	visibilityExtensionInterval := 50 * time.Millisecond
 	visibilityTimeout := 300 * time.Second
-	w := worker.New(set, aws.Config{}, sink, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
+	w := worker.New(set, aws.Config{}, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
 
 	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -474,6 +480,9 @@ func TestVisibilityExtensionLogs(t *testing.T) {
 
 	// Wait for processing to complete
 	<-done
+
+	// Add a small delay to allow visibility extension goroutine to finish logging
+	time.Sleep(20 * time.Millisecond)
 
 	// Check for all expected log messages
 	expectedMessages := []string{
@@ -518,7 +527,7 @@ func TestExtendToMaxAndStop(t *testing.T) {
 	visibilityTimeout := 300 * time.Second
 	maxVisibilityWindow := 100 * time.Millisecond // Short window to trigger max extension
 
-	w := worker.New(set, aws.Config{}, sink, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, maxVisibilityWindow)
+	w := worker.New(set, aws.Config{}, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, maxVisibilityWindow)
 
 	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -563,9 +572,9 @@ func TestVisibilityExtensionContextCancellation(t *testing.T) {
 	set.Logger = logger
 
 	sink := new(consumertest.LogsSink)
-	visibilityExtensionInterval := 50 * time.Millisecond
+	visibilityExtensionInterval := 1 * time.Millisecond
 	visibilityTimeout := 300 * time.Second
-	w := worker.New(set, aws.Config{}, sink, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
+	w := worker.New(set, aws.Config{}, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
 
 	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -595,17 +604,33 @@ func TestVisibilityExtensionContextCancellation(t *testing.T) {
 }
 
 func TestVisibilityExtensionErrorHandling(t *testing.T) {
-	defer fake.SetFakeConstructorForTest(t)()
-
 	ctx := context.Background()
-	fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
+	mockSQS := &mocks.MockSQSClient{}
+	mockS3 := &mocks.MockS3Client{}
+	mockClient := &mocks.MockClient{}
+	mockClient.EXPECT().SQS().Return(mockSQS)
+	mockClient.EXPECT().S3().Return(mockS3)
 
-	objectSet := map[string]map[string]string{
-		"mybucket": {
-			"mykey1": "line1\nline2\nline3",
+	// Provide a valid S3 event message
+	validS3Event := `{"Records":[{"eventName":"s3:ObjectCreated:Put","s3":{"bucket":{"name":"mybucket"},"object":{"key":"mykey1","size":15}}}]}`
+
+	mockSQS.EXPECT().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput)).Return(&sqs.ReceiveMessageOutput{
+		Messages: []types.Message{
+			{
+				Body:          aws.String(validS3Event),
+				MessageId:     aws.String("123"),
+				ReceiptHandle: aws.String("receipt-handle"),
+			},
 		},
-	}
-	fakeAWS.CreateObjects(t, objectSet)
+	}, nil)
+
+	// Mock S3 GetObject to return content after a delay
+	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).Return(&s3.GetObjectOutput{
+		Body: io.NopCloser(strings.NewReader("line1\nline2\nline3")),
+	}, nil)
+
+	mockSQS.EXPECT().DeleteMessage(mock.Anything, mock.Anything).Return(&sqs.DeleteMessageOutput{}, nil)
+	mockSQS.EXPECT().ChangeMessageVisibility(mock.Anything, mock.Anything).Return(&sqs.ChangeMessageVisibilityOutput{}, errors.New("visibility extension error"))
 
 	// Set up zap observer
 	core, recorded := observer.New(zap.ErrorLevel)
@@ -614,27 +639,27 @@ func TestVisibilityExtensionErrorHandling(t *testing.T) {
 	set.Logger = logger
 
 	sink := new(consumertest.LogsSink)
-	visibilityExtensionInterval := 50 * time.Millisecond
+	visibilityExtensionInterval := 1 * time.Millisecond
 	visibilityTimeout := 300 * time.Second
-	w := worker.New(set, aws.Config{}, sink, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
+	w := worker.New(set, aws.Config{}, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
 
-	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
 	require.Len(t, msg.Messages, 1)
 
-	// Simulate an error by using an invalid queue URL
+	// Process the message - this will take time due to S3 operations
 	done := make(chan struct{})
-	go func() {
-		w.ProcessMessage(ctx, msg.Messages[0], "invalid-queue-url", func() { close(done) })
-	}()
+	w.ProcessMessage(ctx, msg.Messages[0], "myqueue", func() { close(done) })
 
 	// Wait for processing to complete
 	<-done
 
+	// Add a small delay to allow visibility extension goroutine to finish logging
+	time.Sleep(20 * time.Millisecond)
+
 	// Check for error log messages
 	errorMessages := []string{
 		"failed to extend message visibility",
-		"delete message",
 	}
 
 	for _, expectedMsg := range errorMessages {

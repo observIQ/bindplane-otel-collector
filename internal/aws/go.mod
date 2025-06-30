@@ -31,6 +31,7 @@ require (
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.13.2-0.20241226121412-a5dc8ff20d0a // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/collector/featuregate v1.34.0 // indirect
 	go.opentelemetry.io/collector/internal/telemetry v0.128.0 // indirect
