@@ -16,10 +16,12 @@
 package updater
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"os"
+	"text/template"
 	"time"
 
 	"path/filepath"
@@ -35,17 +37,21 @@ import (
 	"go.uber.org/zap"
 )
 
-// Constants for service file templates
-// Removed redeclared constants that are now in templates.go
+const (
+	// DefaultSystemdUnitFilePath is the default path to the systemd unit file
+	// for the collector service.
+	DefaultSystemdUnitFilePath = "/usr/lib/systemd/system/observiq-otel-collector.service"
+)
 
 // Updater is a struct that can be used to perform a collector update
 type Updater struct {
-	installDir string
-	installer  install.Installer
-	svc        service.Service
-	rollbacker rollback.Rollbacker
-	monitor    state.Monitor
-	logger     *zap.Logger
+	installDir               string
+	installer                install.Installer
+	svc                      service.Service
+	rollbacker               rollback.Rollbacker
+	monitor                  state.Monitor
+	logger                   *zap.Logger
+	installedSystemdUnitPath string
 }
 
 // NewUpdater creates a new updater which can be used to update the installation based at
@@ -58,16 +64,38 @@ func NewUpdater(logger *zap.Logger, installDir string) (*Updater, error) {
 
 	svc := service.NewService(logger, installDir)
 	return &Updater{
-		installDir: installDir,
-		installer:  install.NewInstaller(logger, installDir, svc),
-		svc:        svc,
-		rollbacker: rollback.NewRollbacker(logger, installDir),
-		monitor:    monitor,
-		logger:     logger,
+		installDir:               installDir,
+		installer:                install.NewInstaller(logger, installDir, svc),
+		svc:                      svc,
+		rollbacker:               rollback.NewRollbacker(logger, installDir),
+		monitor:                  monitor,
+		logger:                   logger,
+		installedSystemdUnitPath: DefaultSystemdUnitFilePath,
 	}, nil
 }
 
-// generateServiceFiles writes necessary service files to the install directory.
+// readGroupFromSystemdFile reads the systemd unit file and extracts the Group value.
+func (u *Updater) readGroupFromSystemdFile() (string, error) {
+	// #nosec G304 - systemdUnitFilePath is not user configurable, and comes
+	// from the constant DefaultSystemdUnitFilePath. Unit tests will override
+	// this path to a test file.
+	fileContent, err := os.ReadFile(u.installedSystemdUnitPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read systemd unit file: %w", err)
+	}
+
+	lines := bytes.Split(fileContent, []byte("\n"))
+	for _, line := range lines {
+		if bytes.HasPrefix(line, []byte("Group=")) {
+			return string(bytes.TrimSpace(bytes.TrimPrefix(line, []byte("Group=")))), nil
+		}
+	}
+
+	return "", errors.New("Group not found in systemd unit file")
+}
+
+// generateServiceFiles writes necessary service files to the install directory
+// to be copied to their final locations by the updater.
 func (u *Updater) generateServiceFiles() error {
 	systemdServiceFilePath := filepath.Join(u.installDir, "install", "observiq-otel-collector.service")
 	initServiceFilePath := filepath.Join(u.installDir, "install", "observiq-otel-collector")
@@ -77,8 +105,25 @@ func (u *Updater) generateServiceFiles() error {
 		return fmt.Errorf("create install directory: %w", err)
 	}
 
+	// Read the Group value from the systemd unit file
+	group, err := u.readGroupFromSystemdFile()
+	if err != nil {
+		return fmt.Errorf("read group from systemd file %s: %w", u.installedSystemdUnitPath, err)
+	}
+
+	// Render the systemd service template with the Group value
+	systemdTemplate, err := template.New("systemdService").Parse(systemdServiceTemplate)
+	if err != nil {
+		return fmt.Errorf("parse systemd service template: %w", err)
+	}
+
+	var systemdServiceContent bytes.Buffer
+	if err := systemdTemplate.Execute(&systemdServiceContent, map[string]string{"Group": group}); err != nil {
+		return fmt.Errorf("execute systemd service template: %w", err)
+	}
+
 	// #nosec G306 - Systemd service file should have 0640 permissions
-	if err := os.WriteFile(systemdServiceFilePath, []byte(systemdServiceTemplate), 0640); err != nil {
+	if err := os.WriteFile(systemdServiceFilePath, systemdServiceContent.Bytes(), 0640); err != nil {
 		return fmt.Errorf("write systemd service file: %w", err)
 	}
 
@@ -95,7 +140,6 @@ func (u *Updater) Update() error {
 	// Generate service files before stopping the service. If
 	// this fails, the collector will still be running.
 	if err := u.generateServiceFiles(); err != nil {
-		u.logger.Error("Failed to generate service files", zap.Error(err))
 		return fmt.Errorf("failed to generate service files: %w", err)
 	}
 
