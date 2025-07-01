@@ -219,6 +219,7 @@ func TestProcessMessage(t *testing.T) {
 			}
 
 			sink := new(consumertest.LogsSink)
+			w := worker.New(set, aws.Config{}, sink, testCase.maxLogSize, maxLogsEmitted, "s3", nil)
 
 			set := componenttest.NewNopTelemetrySettings()
 
@@ -359,9 +360,7 @@ func TestEventTypeFiltering(t *testing.T) {
 
 			set := componenttest.NewNopTelemetrySettings()
 			sink := new(consumertest.LogsSink)
-			b, err := metadata.NewTelemetryBuilder(set)
-			require.NoError(t, err)
-			w := worker.New(set, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(b))
+			w := worker.New(set, aws.Config{}, sink, maxLogSize, maxLogsEmitted, "s3", nil)
 
 			numCallbacks := 0
 

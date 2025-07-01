@@ -110,7 +110,16 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 				if objectKeyFilter != nil {
 					opts = append(opts, worker.WithObjectKeyFilter(objectKeyFilter))
 				}
+                var snsFormat *worker.SNSMessageFormat
+				if cfg.SNSMessageFormat != nil {
+					snsFormat = &worker.SNSMessageFormat{
+						MessageField: cfg.SNSMessageFormat.MessageField,
+						Format:       cfg.SNSMessageFormat.Format,
+					}
+				}
+                //TODO: move SNS stuff to an option
 				return worker.New(tel, next, client.NewClient(awsConfig), cfg.MaxLogSize, cfg.MaxLogsEmitted, cfg.VisibilityTimeout, cfg.VisibilityExtensionInterval, cfg.MaxVisibilityWindow, opts...)
+				
 			},
 		},
 		offsetStorage: storageclient.NewNopStorage(),
