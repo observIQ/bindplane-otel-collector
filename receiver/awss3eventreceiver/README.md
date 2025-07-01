@@ -16,11 +16,11 @@ The receiver implements a sophisticated visibility extension strategy to handle 
 
 1. **Initial Visibility**: When a message is received, it becomes invisible for the duration specified by `visibility_timeout` (default: 5 minutes).
 
-2. **Regular Extensions**: The receiver extends the visibility window by `visibility_extension_interval` (default: 1 minute) before the current window expires, with a 30-second safety margin.
+2. **Regular Extensions**: The receiver extends the visibility window by `visibility_extension_interval` (default: 1 minute) before the current window expires.
 
-3. **Maximum Window**: Extensions stop when the total visibility time reaches `max_visibility_window` (default: 6 hours), preventing messages from being extended indefinitely.
+3. **Maximum Window**: Extensions stop when the total visibility time reaches `max_visibility_window` (default: 6 hours). SQS has a max window of 12 hours, and this allows the receiver to set a shorter maximum window.
 
-4. **Safety Margins**: The receiver always extends visibility 30 seconds before the current window expires to prevent race conditions.
+4. **Safety Margins**: The receiver always extends calls to extend the visibility window 80% of the way through the current window.  This helps prevent race conditions where the message may become visible before the window has been extended.
 
 This approach ensures that:
 
