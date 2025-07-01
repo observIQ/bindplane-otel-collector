@@ -42,22 +42,26 @@ import (
 // It also handles deleting messages from the SQS queue after they have been processed.
 // It is designed to be used in a worker pool.
 type Worker struct {
-	tel            component.TelemetrySettings
-	client         client.Client
-	nextConsumer   consumer.Logs
-	maxLogSize     int
-	maxLogsEmitted int
+	tel              component.TelemetrySettings
+	client           client.Client
+	nextConsumer     consumer.Logs
+	maxLogSize       int
+	maxLogsEmitted   int
+	notificationType string
+	snsMessageFormat *SNSMessageFormat
 }
 
 // New creates a new Worker
-func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.Logs, maxLogSize int, maxLogsEmitted int) *Worker {
+func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.Logs, maxLogSize int, maxLogsEmitted int, notificationType string, snsMessageFormat *SNSMessageFormat) *Worker {
 	client := client.NewClient(cfg)
 	return &Worker{
-		tel:            tel,
-		client:         client,
-		nextConsumer:   nextConsumer,
-		maxLogSize:     maxLogSize,
-		maxLogsEmitted: maxLogsEmitted,
+		tel:              tel,
+		client:           client,
+		nextConsumer:     nextConsumer,
+		maxLogSize:       maxLogSize,
+		maxLogsEmitted:   maxLogsEmitted,
+		notificationType: notificationType,
+		snsMessageFormat: snsMessageFormat,
 	}
 }
 
@@ -68,10 +72,23 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 
 	w.tel.Logger.Debug("processing message", zap.String("message_id", *msg.MessageId), zap.String("body", *msg.Body))
 
-	notification := new(events.S3Event)
-	err := json.Unmarshal([]byte(*msg.Body), notification)
+	// Parse the message based on notification type
+	var notification *events.S3Event
+	var err error
+
+	switch w.notificationType {
+	case "sns":
+		notification, err = ParseSNSToS3Event(*msg.Body, w.snsMessageFormat)
+	case "s3":
+		fallthrough
+	default:
+		// Direct S3 event (original behavior)
+		notification = new(events.S3Event)
+		err = json.Unmarshal([]byte(*msg.Body), notification)
+	}
+
 	if err != nil {
-		w.tel.Logger.Error("unmarshal notification", zap.Error(err))
+		w.tel.Logger.Error("unmarshal notification", zap.Error(err), zap.String("notification_type", w.notificationType))
 		// We can delete messages with unmarshaling errors as they'll never succeed
 		w.deleteMessage(ctx, msg, queueURL)
 		return

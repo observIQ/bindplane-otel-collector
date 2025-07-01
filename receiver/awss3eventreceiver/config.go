@@ -16,6 +16,7 @@ package awss3eventreceiver // import "github.com/observiq/bindplane-otel-collect
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
@@ -56,6 +57,15 @@ type Config struct {
 	// Default is 1000.
 	// TODO Allow 0 to represent no limit?
 	MaxLogsEmitted int `mapstructure:"max_logs_emitted"`
+
+	// NotificationType specifies the format of notifications received in the SQS queue.
+	// Valid values: "s3" (direct S3 events), "sns" (S3 events wrapped in SNS notifications).
+	// Default is "s3".
+	NotificationType string `mapstructure:"notification_type"`
+
+	// SNSMessageFormat specifies how to parse SNS messages when NotificationType is "sns".
+	// This allows customization of the SNS message structure parsing.
+	SNSMessageFormat *SNSMessageFormat `mapstructure:"sns_message_format"`
 }
 
 // Validate checks if all required fields are present and valid.
@@ -90,6 +100,73 @@ func (c *Config) Validate() error {
 
 	if _, err := client.ParseRegionFromSQSURL(c.SQSQueueURL); err != nil {
 		return err
+	}
+
+	if err := c.validateNotificationType(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Config) validateNotificationType() error {
+	// Set default if not specified
+	if c.NotificationType == "" {
+		c.NotificationType = "s3"
+	}
+
+	// Validate notification type
+	switch c.NotificationType {
+	case "s3", "sns":
+		// Valid types
+	default:
+		return fmt.Errorf("invalid notification_type '%s': must be 's3' or 'sns'", c.NotificationType)
+	}
+
+	// If SNS mode, ensure SNS format is configured
+	if c.NotificationType == "sns" {
+		if c.SNSMessageFormat == nil {
+			// Set default SNS format
+			c.SNSMessageFormat = &SNSMessageFormat{
+				MessageField: "Message",
+				Format:       "standard",
+			}
+		}
+		if err := c.SNSMessageFormat.Validate(); err != nil {
+			return fmt.Errorf("invalid sns_message_format: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// SNSMessageFormat defines how to parse SNS messages
+type SNSMessageFormat struct {
+	// MessageField specifies the field name in the SNS notification that contains the S3 event.
+	// Default is "Message".
+	MessageField string `mapstructure:"message_field"`
+
+	// Format specifies the format of the SNS message.
+	// Valid values: "standard" (standard SNS format), "raw" (raw message delivery).
+	// Default is "standard".
+	Format string `mapstructure:"format"`
+}
+
+// Validate checks if the SNS message format configuration is valid
+func (s *SNSMessageFormat) Validate() error {
+	if s.MessageField == "" {
+		s.MessageField = "Message"
+	}
+
+	if s.Format == "" {
+		s.Format = "standard"
+	}
+
+	switch s.Format {
+	case "standard", "raw":
+		// Valid formats
+	default:
+		return fmt.Errorf("invalid format '%s': must be 'standard' or 'raw'", s.Format)
 	}
 
 	return nil

@@ -74,7 +74,15 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 		sqsClient: client.NewClient(awsConfig).SQS(),
 		workerPool: sync.Pool{
 			New: func() any {
-				return worker.New(tel, awsConfig, next, cfg.MaxLogSize, cfg.MaxLogsEmitted)
+				// Convert config SNSMessageFormat to worker format
+				var snsFormat *worker.SNSMessageFormat
+				if cfg.SNSMessageFormat != nil {
+					snsFormat = &worker.SNSMessageFormat{
+						MessageField: cfg.SNSMessageFormat.MessageField,
+						Format:       cfg.SNSMessageFormat.Format,
+					}
+				}
+				return worker.New(tel, awsConfig, next, cfg.MaxLogSize, cfg.MaxLogsEmitted, cfg.NotificationType, snsFormat)
 			},
 		},
 	}, nil
