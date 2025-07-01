@@ -490,8 +490,9 @@ func TestVisibilityExtensionLogs(t *testing.T) {
 	require.Len(t, msg.Messages, 1)
 
 	done := make(chan struct{})
-
-	w.ProcessMessage(ctx, msg.Messages[0], "myqueue", func() { close(done) })
+	go func() {
+		w.ProcessMessage(ctx, msg.Messages[0], "myqueue", func() { close(done) })
+	}()
 	// Wait for processing to complete
 	<-done
 
@@ -663,8 +664,9 @@ func TestVisibilityExtensionErrorHandling(t *testing.T) {
 
 	// Process the message - this will take time due to S3 operations
 	done := make(chan struct{})
-	w.ProcessMessage(ctx, msg.Messages[0], "myqueue", func() { close(done) })
-
+	go func() {
+		w.ProcessMessage(ctx, msg.Messages[0], "myqueue", func() { close(done) })
+	}()
 	// Wait for processing to complete
 	<-done
 
