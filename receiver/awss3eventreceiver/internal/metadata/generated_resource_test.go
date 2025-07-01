@@ -34,12 +34,12 @@ func TestResourceBuilder(t *testing.T) {
 			val, ok := res.Attributes().Get("aws.s3.bucket")
 			assert.True(t, ok)
 			if ok {
-				assert.EqualValues(t, "aws.s3.bucket-val", val.Str())
+				assert.Equal(t, "aws.s3.bucket-val", val.Str())
 			}
 			val, ok = res.Attributes().Get("aws.s3.key")
 			assert.True(t, ok)
 			if ok {
-				assert.EqualValues(t, "aws.s3.key-val", val.Str())
+				assert.Equal(t, "aws.s3.key-val", val.Str())
 			}
 		})
 	}
