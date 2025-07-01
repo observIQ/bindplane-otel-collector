@@ -22,7 +22,7 @@ import (
 )
 
 // SQSClient is the interface for the SQS client
-
+//
 //go:generate mockery --name SQSClient --output ./mocks --with-expecter --filename mock_sqs_client.go --structname MockSQSClient
 type SQSClient interface {
 	ReceiveMessage(ctx context.Context, params *sqs.ReceiveMessageInput, optFns ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error)
