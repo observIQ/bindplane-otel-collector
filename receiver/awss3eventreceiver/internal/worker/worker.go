@@ -53,7 +53,7 @@ type Worker struct {
 }
 
 // New creates a new Worker
-func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.Logs, client client.Client, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration) *Worker {
+func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client client.Client, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration) *Worker {
 	return &Worker{
 		tel:                         tel,
 		client:                      client,
