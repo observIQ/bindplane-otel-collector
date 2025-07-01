@@ -35,13 +35,18 @@ const (
 	defaultUserAgent = "bindplane-otel-collector"
 )
 
-// NewFactory creates a new Webhook exporter factory
-func NewFactory(collectorVersion string) exporter.Factory {
+// NewFactoryWithVersion creates a new Webhook exporter factory
+func NewFactoryWithVersion(collectorVersion string) exporter.Factory {
 	return exporter.NewFactory(
 		metadata.Type,
 		createDefaultConfig(collectorVersion),
 		exporter.WithLogs(createLogsExporter, metadata.LogsStability),
 	)
+}
+
+// NewFactory creates a new Webhook exporter factory with default version for generated tests
+func NewFactory() exporter.Factory {
+	return NewFactoryWithVersion("test-version")
 }
 
 func createDefaultConfig(collectorVersion string) func() component.Config {

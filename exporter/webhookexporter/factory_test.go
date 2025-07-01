@@ -32,7 +32,7 @@ import (
 )
 
 func TestNewFactory(t *testing.T) {
-	factory := NewFactory("v1.2.3")
+	factory := NewFactoryWithVersion("v1.2.3")
 	assert.Equal(t, metadata.Type, factory.Type())
 	assert.Equal(t, metadata.LogsStability, factory.LogsStability())
 }
