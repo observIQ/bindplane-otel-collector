@@ -58,6 +58,8 @@ type Worker struct {
 	metrics                     *metadata.TelemetryBuilder
 	bucketNameFilter            *regexp.Regexp
 	objectKeyFilter             *regexp.Regexp
+	notificationType string
+	snsMessageFormat *SNSMessageFormat
 }
 
 // Option is a functional option for configuring the Worker
@@ -124,9 +126,20 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	defer cancelVisibility()
 
 	go w.extendMessageVisibility(visibilityCtx, msg, queueURL, logger)
+	// Parse the message based on notification type
+	var notification *events.S3Event
+	var err error
 
-	notification := new(events.S3Event)
-	err := json.Unmarshal([]byte(*msg.Body), notification)
+	switch w.notificationType {
+	case "sns":
+		notification, err = ParseSNSToS3Event(*msg.Body, w.snsMessageFormat)
+	case "s3":
+		fallthrough
+	default:
+		// Direct S3 event (original behavior)
+		notification = new(events.S3Event)
+		err = json.Unmarshal([]byte(*msg.Body), notification)
+	}
 	if err != nil {
 		logger.Error("unmarshal notification", zap.Error(err))
 		w.metrics.S3eventFailures.Add(ctx, 1)

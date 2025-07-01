@@ -13,3 +13,11 @@ receivers:
     workers: 5
     max_log_size: 4096
     max_logs_emitted: 1000
+    notification_type: "s3"
+
+  s3event/sns:
+    sqs_queue_url: "https://sqs.us-east-1.amazonaws.com/123456789012/sns-test-queue"
+    notification_type: "sns"
+    sns_message_format:
+      message_field: "Message"
+      format: "standard"
