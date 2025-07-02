@@ -63,6 +63,7 @@ func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.
 	}
 }
 
+// SetOffsetStorage sets the offset storage client
 func (w *Worker) SetOffsetStorage(offsetStorage storageclient.StorageClient) {
 	w.offsetStorage = offsetStorage
 }

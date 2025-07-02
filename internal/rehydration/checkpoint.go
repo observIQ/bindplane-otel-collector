@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package rehydration provides a checkpoint for rehydration receivers that can be stored using an internal/storageclient.StorageClient
 package rehydration //import "github.com/observiq/bindplane-otel-collector/internal/rehydration"
 
 import (

@@ -96,7 +96,7 @@ func NewStorageClient(ctx context.Context, host component.Host, storageID, compo
 	}, nil
 }
 
-// SaveCheckpoint saves the supplied checkpoint
+// SaveStorageData saves the supplied data
 func (c *Storage) SaveStorageData(ctx context.Context, key string, data StorageData) error {
 	bytes, err := data.Marshal()
 	if err != nil {
@@ -106,8 +106,7 @@ func (c *Storage) SaveStorageData(ctx context.Context, key string, data StorageD
 	return c.storageClient.Set(ctx, key, bytes)
 }
 
-// LoadCheckPoint loads a checkpoint for the passed in key.
-// If no checkpoint is found return an empty one
+// LoadStorageData loads data for the passed in key.
 func (c *Storage) LoadStorageData(ctx context.Context, key string, data StorageData) error {
 	bytes, err := c.storageClient.Get(ctx, key)
 	if err != nil {
@@ -121,7 +120,7 @@ func (c *Storage) LoadStorageData(ctx context.Context, key string, data StorageD
 	return nil
 }
 
-// Close closes the checkpoint storage
+// Close closes the storage client
 func (c *Storage) Close(ctx context.Context) error {
 	return c.storageClient.Close(ctx)
 }
