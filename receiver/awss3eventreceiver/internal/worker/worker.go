@@ -156,15 +156,18 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 
 	now := time.Now()
 
-	stream := logStream{
-		name:            key,
-		contentEncoding: resp.ContentEncoding,
-		contentType:     resp.ContentType,
-		body:            resp.Body,
-		maxLogSize:      w.maxLogSize,
-		logger:          w.tel.Logger,
-		tryJSON:         tryJSON,
+	stream := LogStream{
+		Name:            key,
+		ContentEncoding: resp.ContentEncoding,
+		ContentType:     resp.ContentType,
+		Body:            resp.Body,
+		MaxLogSize:      w.maxLogSize,
+		Logger:          w.tel.Logger,
+		TryJSON:         tryJSON,
 	}
+
+	// TODO: read this from storage for the key
+	startOffset := int64(0)
 
 	reader, err := stream.BufferedReader(ctx)
 	if err != nil {
@@ -185,7 +188,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	batchesConsumedCount := 0
 
 	// Parse logs into a sequence of log records
-	logs, err := parser.Parse(ctx)
+	logs, err := parser.Parse(ctx, startOffset)
 	if err != nil {
 		return fmt.Errorf("parse logs: %w", err)
 	}
