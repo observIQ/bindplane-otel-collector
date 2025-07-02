@@ -29,6 +29,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 	"github.com/observiq/bindplane-otel-collector/internal/aws/fake"
+	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 )
 
@@ -208,6 +209,7 @@ func TestProcessMessage(t *testing.T) {
 			set := componenttest.NewNopTelemetrySettings()
 			sink := new(consumertest.LogsSink)
 			w := worker.New(set, aws.Config{}, sink, testCase.maxLogSize, maxLogsEmitted)
+			w.SetOffsetStorage(storageclient.NewNopStorage())
 
 			numCallbacks := 0
 
@@ -341,6 +343,7 @@ func TestEventTypeFiltering(t *testing.T) {
 			set := componenttest.NewNopTelemetrySettings()
 			sink := new(consumertest.LogsSink)
 			w := worker.New(set, aws.Config{}, sink, maxLogSize, maxLogsEmitted)
+			w.SetOffsetStorage(storageclient.NewNopStorage())
 
 			numCallbacks := 0
 

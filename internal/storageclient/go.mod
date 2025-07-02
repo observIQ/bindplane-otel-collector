@@ -3,8 +3,10 @@ module github.com/observiq/bindplane-otel-collector/internal/storageclient
 go 1.24.4
 
 require (
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.129.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v1.35.0
+	go.opentelemetry.io/collector/extension v1.35.0
 	go.opentelemetry.io/collector/extension/xextension v0.129.0
 	go.opentelemetry.io/collector/pipeline v0.129.0
 )
@@ -17,8 +19,8 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	go.etcd.io/bbolt v1.4.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/collector/extension v1.35.0 // indirect
 	go.opentelemetry.io/collector/featuregate v1.35.0 // indirect
 	go.opentelemetry.io/collector/internal/telemetry v0.129.0 // indirect
 	go.opentelemetry.io/collector/pdata v1.35.0 // indirect

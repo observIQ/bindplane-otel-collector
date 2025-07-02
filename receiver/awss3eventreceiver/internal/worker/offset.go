@@ -20,24 +20,32 @@ import (
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 )
 
+// OffsetStorageKey is the key used to store offsets in the storage client made by this receiver type
 const OffsetStorageKey = "aws_s3_event_offset"
 
+// Offset is used to keep track of where in an S3 event stream the receiver has read
 type Offset struct {
+	// Offset is an int64 tracking which byte was last read
 	Offset int64 `json:"offset"`
 }
 
+// Offset implements the StorageData interface
 var _ storageclient.StorageData = &Offset{}
 
+// NewOffset creates a new Offset with the given offset
 func NewOffset(o int64) *Offset {
 	return &Offset{
 		Offset: o,
 	}
 }
 
+// Marshal implements the StorageData interface
 func (o *Offset) Marshal() ([]byte, error) {
 	return json.Marshal(o)
 }
 
+// Unmarshal implements the StorageData interface
+// If the data is empty, it returns nil
 func (o *Offset) Unmarshal(data []byte) error {
 	if len(data) == 0 {
 		return nil

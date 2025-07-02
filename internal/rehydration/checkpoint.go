@@ -31,6 +31,7 @@ type CheckPoint struct {
 	ParsedEntities map[string]struct{} `json:"parsed_entities"`
 }
 
+// CheckPoint implements the StorageData interface
 var _ storageclient.StorageData = &CheckPoint{}
 
 // NewCheckpoint creates a new CheckPoint
@@ -65,10 +66,17 @@ func (c *CheckPoint) UpdateCheckpoint(newTs time.Time, lastEntityName string) {
 	c.ParsedEntities[lastEntityName] = struct{}{}
 }
 
+// Marshal implements the StorageData interface
 func (c *CheckPoint) Marshal() ([]byte, error) {
 	return json.Marshal(c)
 }
 
+// Unmarshal implements the StorageData interface
+// If the data is empty, it returns nil
 func (c *CheckPoint) Unmarshal(data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+
 	return json.Unmarshal(data, c)
 }
