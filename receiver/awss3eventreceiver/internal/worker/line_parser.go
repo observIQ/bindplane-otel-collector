@@ -15,8 +15,8 @@
 package worker
 
 import (
-	"bufio"
 	"context"
+	"fmt"
 	"io"
 	"iter"
 
@@ -24,18 +24,28 @@ import (
 )
 
 type lineParser struct {
-	reader *bufio.Reader
+	reader BufferedReader
 }
 
 // NewLineParser creates a new line parser.
-func NewLineParser(reader *bufio.Reader) LogParser {
+func NewLineParser(reader BufferedReader) LogParser {
 	return &lineParser{
 		reader: reader,
 	}
 }
 
+func (p *lineParser) Offset() int64 {
+	return p.reader.Offset()
+}
+
 // Parse parses the log records from the reader using ReadLine.
-func (p *lineParser) Parse(_ context.Context) (logs iter.Seq2[any, error], err error) {
+func (p *lineParser) Parse(_ context.Context, startOffset int64) (logs iter.Seq2[any, error], err error) {
+	// skip to the start offset
+	_, err = io.CopyN(io.Discard, p.reader, startOffset)
+	if err != nil {
+		return nil, fmt.Errorf("discard to offset: %w", err)
+	}
+
 	// logs is a sequence of log records that can be used with the provided appender
 	return func(yield func(any, error) bool) {
 		for {
