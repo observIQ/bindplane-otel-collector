@@ -15,7 +15,10 @@
 package rehydration //import "github.com/observiq/bindplane-otel-collector/internal/rehydration"
 
 import (
+	"encoding/json"
 	"time"
+
+	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 )
 
 // CheckPoint is the checkpoint used with a storage extension to
@@ -27,6 +30,8 @@ type CheckPoint struct {
 	// ParsedEntities is a lookup of all entities that were parsed in the LastTs path
 	ParsedEntities map[string]struct{} `json:"parsed_entities"`
 }
+
+var _ storageclient.StorageData = &CheckPoint{}
 
 // NewCheckpoint creates a new CheckPoint
 func NewCheckpoint() *CheckPoint {
@@ -58,4 +63,12 @@ func (c *CheckPoint) UpdateCheckpoint(newTs time.Time, lastEntityName string) {
 	}
 
 	c.ParsedEntities[lastEntityName] = struct{}{}
+}
+
+func (c *CheckPoint) Marshal() ([]byte, error) {
+	return json.Marshal(c)
+}
+
+func (c *CheckPoint) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, c)
 }

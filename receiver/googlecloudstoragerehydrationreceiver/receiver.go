@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
+	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pipeline"
@@ -42,7 +43,7 @@ type rehydrationReceiver struct {
 	supportedTelemetry pipeline.Signal
 	consumer           rehydration.Consumer
 	checkpoint         *rehydration.CheckPoint
-	checkpointStore    rehydration.CheckpointStorer
+	checkpointStore    storageclient.StorageClient
 
 	objectChan chan []*ObjectInfo
 	errChan    chan error
@@ -124,7 +125,7 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 		id:              id,
 		cfg:             cfg,
 		storageClient:   storageClient,
-		checkpointStore: rehydration.NewNopStorage(),
+		checkpointStore: storageclient.NewNopStorage(),
 		startingTime:    startingTime,
 		endingTime:      endingTime,
 		objectChan:      make(chan []*ObjectInfo),
@@ -138,7 +139,7 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 // Start starts the receiver
 func (r *rehydrationReceiver) Start(ctx context.Context, host component.Host) error {
 	if r.cfg.StorageID != nil {
-		checkpointStore, err := rehydration.NewCheckpointStorage(ctx, host, *r.cfg.StorageID, r.id, r.supportedTelemetry)
+		checkpointStore, err := storageclient.NewStorageClient(ctx, host, *r.cfg.StorageID, r.id, r.supportedTelemetry)
 		if err != nil {
 			return fmt.Errorf("NewCheckpointStorage: %w", err)
 		}
@@ -196,7 +197,8 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 
 // streamRehydrateObjects streams objects from the storage service
 func (r *rehydrationReceiver) streamRehydrateObjects(ctx context.Context) {
-	checkpoint, err := r.checkpointStore.LoadCheckPoint(ctx, r.checkpointKey())
+	checkpoint := rehydration.NewCheckpoint()
+	err := r.checkpointStore.LoadStorageData(ctx, r.checkpointKey(), checkpoint)
 	if err != nil {
 		r.logger.Warn("Error loading checkpoint, continuing without a previous checkpoint", zap.Error(err))
 		checkpoint = rehydration.NewCheckpoint()
@@ -348,7 +350,7 @@ func (r *rehydrationReceiver) makeCheckpoint(ctx context.Context) error {
 	r.mut.Lock()
 	defer r.mut.Unlock()
 	r.checkpoint.UpdateCheckpoint(*r.lastObjectTime, r.lastObject.Name)
-	return r.checkpointStore.SaveCheckpoint(ctx, r.checkpointKey(), r.checkpoint)
+	return r.checkpointStore.SaveStorageData(ctx, r.checkpointKey(), r.checkpoint)
 }
 
 // conditionallyDeleteObject deletes the object if DeleteOnRead is enabled

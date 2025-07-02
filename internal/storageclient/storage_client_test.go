@@ -12,20 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package rehydration //import "github.com/observiq/bindplane-otel-collector/internal/rehydration"
+package storageclient //import "github.com/observiq/bindplane-otel-collector/internal/storageclient"
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
+type TestStorageData struct {
+	Data string
+}
+
+func (t *TestStorageData) Marshal() ([]byte, error) {
+	return json.Marshal(t)
+}
+
+func (t *TestStorageData) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, t)
+}
+
 func TestNopStorage(t *testing.T) {
 	storage := NewNopStorage()
-	require.NoError(t, storage.SaveCheckpoint(context.Background(), "key", &CheckPoint{}))
 
-	checkpoint, err := storage.LoadCheckPoint(context.Background(), "key")
-	require.Equal(t, &CheckPoint{}, checkpoint)
-	require.NoError(t, err)
+	require.NoError(t, storage.SaveStorageData(context.Background(), "key", &TestStorageData{}))
+
+	checkpoint := &TestStorageData{}
+	require.NoError(t, storage.LoadStorageData(context.Background(), "key", checkpoint))
+	require.Equal(t, &TestStorageData{}, checkpoint)
 }

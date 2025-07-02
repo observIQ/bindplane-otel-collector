@@ -35,6 +35,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 )
 
 // Worker processes S3 event notifications.
@@ -45,6 +46,7 @@ type Worker struct {
 	tel            component.TelemetrySettings
 	client         client.Client
 	nextConsumer   consumer.Logs
+	offsetStorage  storageclient.StorageClient
 	maxLogSize     int
 	maxLogsEmitted int
 }
@@ -59,6 +61,10 @@ func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.
 		maxLogSize:     maxLogSize,
 		maxLogsEmitted: maxLogsEmitted,
 	}
+}
+
+func (w *Worker) SetOffsetStorage(offsetStorage storageclient.StorageClient) {
+	w.offsetStorage = offsetStorage
 }
 
 // ProcessMessage processes a message from the SQS queue
@@ -166,8 +172,16 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 		TryJSON:         tryJSON,
 	}
 
-	// TODO: read this from storage for the key
-	startOffset := int64(0)
+	// Create the offset storage key for this object
+	offsetStorageKey := fmt.Sprintf("%s.%s", OffsetStorageKey, key)
+
+	// Load the offset from storage
+	offset := NewOffset(0)
+	err = w.offsetStorage.LoadStorageData(ctx, offsetStorageKey, offset)
+	if err != nil {
+		return fmt.Errorf("load offset: %w", err)
+	}
+	startOffset := offset.Offset
 
 	reader, err := stream.BufferedReader(ctx)
 	if err != nil {
@@ -218,6 +232,9 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 			batchesConsumedCount++
 			logger.Debug("Reached max logs for single batch, starting new batch", zap.Int("batches_consumed_count", batchesConsumedCount))
 
+			// Save the offset to storage
+			w.offsetStorage.SaveStorageData(ctx, offsetStorageKey, NewOffset(parser.Offset()))
+
 			ld = plog.NewLogs()
 			rls = ld.ResourceLogs().AppendEmpty()
 			rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
@@ -235,6 +252,10 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 		return fmt.Errorf("consume logs: %w", err)
 	}
 	logger.Debug("processed S3 object", zap.Int("batches_consumed_count", batchesConsumedCount+1))
+
+	// Save the offset to storage
+	w.offsetStorage.SaveStorageData(ctx, offsetStorageKey, NewOffset(parser.Offset()))
+
 	return nil
 }
 
