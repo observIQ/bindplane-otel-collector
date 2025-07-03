@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -39,12 +40,18 @@ var fakeSQS = struct {
 	messageCount int
 
 	messages          []types.Message
-	invisibleMessages map[string]types.Message
+	invisibleMessages map[string]invisibleMessage
 	deletedMessages   []string
 }{
 	messages:          []types.Message{},
-	invisibleMessages: make(map[string]types.Message),
+	invisibleMessages: make(map[string]invisibleMessage),
 	deletedMessages:   []string{},
+}
+
+// invisibleMessage tracks a message that is currently invisible with its visibility timeout
+type invisibleMessage struct {
+	message           types.Message
+	visibilityTimeout time.Time
 }
 
 // NewSQSClient creates a new fake SQS client
@@ -69,6 +76,9 @@ func (f *sqsClient) ReceiveMessage(_ context.Context, params *sqs.ReceiveMessage
 	fakeSQS.mu.Lock()
 	defer fakeSQS.mu.Unlock()
 
+	// Check for expired visibility timeouts and move messages back to visible queue
+	f.checkExpiredVisibilityTimeouts()
+
 	if len(fakeSQS.messages) == 0 {
 		return nil, ErrEmptyQueue
 	}
@@ -81,8 +91,18 @@ func (f *sqsClient) ReceiveMessage(_ context.Context, params *sqs.ReceiveMessage
 	messages := fakeSQS.messages[:numMessages]
 	fakeSQS.messages = fakeSQS.messages[numMessages:]
 
+	// Calculate visibility timeout based on the parameter or use a default
+	visibilityTimeout := time.Duration(30) * time.Second // Default 30 seconds
+	if params.VisibilityTimeout > 0 {
+		visibilityTimeout = time.Duration(params.VisibilityTimeout) * time.Second
+	}
+
+	// Move messages to invisible state with timeout
 	for _, msg := range messages {
-		fakeSQS.invisibleMessages[*msg.ReceiptHandle] = msg
+		fakeSQS.invisibleMessages[*msg.ReceiptHandle] = invisibleMessage{
+			message:           msg,
+			visibilityTimeout: time.Now().Add(visibilityTimeout),
+		}
 	}
 
 	copyMessages := make([]types.Message, len(messages))
@@ -104,6 +124,38 @@ func (f *sqsClient) DeleteMessage(_ context.Context, params *sqs.DeleteMessageIn
 	fakeSQS.deletedMessages = append(fakeSQS.deletedMessages, *params.ReceiptHandle)
 
 	return &sqs.DeleteMessageOutput{}, nil
+}
+
+func (f *sqsClient) ChangeMessageVisibility(_ context.Context, params *sqs.ChangeMessageVisibilityInput, _ ...func(*sqs.Options)) (*sqs.ChangeMessageVisibilityOutput, error) {
+	fakeSQS.mu.Lock()
+	defer fakeSQS.mu.Unlock()
+
+	invisibleMsg, exists := fakeSQS.invisibleMessages[*params.ReceiptHandle]
+	if !exists {
+		return nil, fmt.Errorf("attempt to change visibility of message that wasn't received: %s", *params.ReceiptHandle)
+	}
+
+	// Calculate new visibility timeout
+	visibilityTimeout := time.Duration(params.VisibilityTimeout) * time.Second
+	newTimeout := time.Now().Add(visibilityTimeout)
+
+	// Update the visibility timeout for this message
+	invisibleMsg.visibilityTimeout = newTimeout
+	fakeSQS.invisibleMessages[*params.ReceiptHandle] = invisibleMsg
+
+	return &sqs.ChangeMessageVisibilityOutput{}, nil
+}
+
+// checkExpiredVisibilityTimeouts moves messages with expired visibility timeouts back to the visible queue
+func (f *sqsClient) checkExpiredVisibilityTimeouts() {
+	now := time.Now()
+	for receiptHandle, invisibleMsg := range fakeSQS.invisibleMessages {
+		if now.After(invisibleMsg.visibilityTimeout) {
+			// Move message back to visible queue
+			fakeSQS.messages = append(fakeSQS.messages, invisibleMsg.message)
+			delete(fakeSQS.invisibleMessages, receiptHandle)
+		}
+	}
 }
 
 func (f *sqsClient) sendMessage(body []byte) {

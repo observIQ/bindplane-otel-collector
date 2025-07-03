@@ -30,6 +30,8 @@ var NewClient = func(cfg aws.Config) Client {
 }
 
 // Client is a client for AWS services
+//
+//go:generate mockery --name Client --output ./mocks --with-expecter --filename mock_client.go --structname MockClient
 type Client interface {
 	S3() S3Client
 	SQS() SQSClient

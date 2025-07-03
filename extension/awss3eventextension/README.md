@@ -46,7 +46,6 @@ To use this extension with `event_format: crowdstrike_fdr`, you need to:
 2. Ensure the collector has permission to read and delete messages from the SQS queue.
 3. Ensure the collector has permission to read objects from the S3 bucket.
 
-
 ## Example Configuration
 
 ```yaml
