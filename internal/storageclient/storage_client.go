@@ -33,6 +33,9 @@ type StorageClient interface {
 	// If no data is found return an empty one
 	LoadStorageData(ctx context.Context, key string, data StorageData) error
 
+	// DeleteStorageData deletes data for the passed in key.
+	DeleteStorageData(ctx context.Context, key string) error
+
 	// Close closes the storage client
 	Close(ctx context.Context) error
 }
@@ -61,6 +64,11 @@ func (n *NopStorage) SaveStorageData(_ context.Context, _ string, _ StorageData)
 
 // LoadStorageData returns nil
 func (n *NopStorage) LoadStorageData(_ context.Context, _ string, _ StorageData) error {
+	return nil
+}
+
+// DeleteStorageData returns nil
+func (n *NopStorage) DeleteStorageData(_ context.Context, _ string) error {
 	return nil
 }
 
@@ -118,6 +126,11 @@ func (c *Storage) LoadStorageData(ctx context.Context, key string, data StorageD
 	}
 
 	return nil
+}
+
+// DeleteStorageData deletes data for the passed in key.
+func (c *Storage) DeleteStorageData(ctx context.Context, key string) error {
+	return c.storageClient.Delete(ctx, key)
 }
 
 // Close closes the storage client

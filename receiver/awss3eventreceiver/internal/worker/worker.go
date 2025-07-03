@@ -80,7 +80,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	if err != nil {
 		w.tel.Logger.Error("unmarshal notification", zap.Error(err))
 		// We can delete messages with unmarshaling errors as they'll never succeed
-		w.deleteMessage(ctx, msg, queueURL)
+		w.deleteMessage(ctx, msg, queueURL, []string{})
 		return
 	}
 	w.tel.Logger.Debug("processing notification", zap.Int("event.count", len(notification.Records)))
@@ -101,7 +101,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 
 	if len(objectCreatedRecords) == 0 {
 		w.tel.Logger.Debug("no s3:ObjectCreated:* events found in notification, skipping", zap.String("message_id", *msg.MessageId))
-		w.deleteMessage(ctx, msg, queueURL)
+		w.deleteMessage(ctx, msg, queueURL, []string{})
 		return
 	}
 
@@ -112,6 +112,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 		)
 	}
 
+	var keys []string
 	for _, record := range objectCreatedRecords {
 		w.tel.Logger.Debug("processing record",
 			zap.String("bucket", record.S3.Bucket.Name),
@@ -122,8 +123,9 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 			w.tel.Logger.Error("error processing record, preserving message in SQS for retry", zap.Error(err), zap.String("bucket", record.S3.Bucket.Name), zap.String("key", record.S3.Object.Key), zap.String("message_id", *msg.MessageId))
 			return
 		}
+		keys = append(keys, record.S3.Object.Key)
 	}
-	w.deleteMessage(ctx, msg, queueURL)
+	w.deleteMessage(ctx, msg, queueURL, keys)
 }
 
 func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord) error {
@@ -264,7 +266,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	return nil
 }
 
-func (w *Worker) deleteMessage(ctx context.Context, msg types.Message, queueURL string) {
+func (w *Worker) deleteMessage(ctx context.Context, msg types.Message, queueURL string, keys []string) {
 	deleteParams := &sqs.DeleteMessageInput{
 		QueueUrl:      aws.String(queueURL),
 		ReceiptHandle: msg.ReceiptHandle,
@@ -275,4 +277,12 @@ func (w *Worker) deleteMessage(ctx context.Context, msg types.Message, queueURL 
 		return
 	}
 	w.tel.Logger.Debug("deleted message", zap.String("message_id", *msg.MessageId))
+
+	// Delete the offsets for the keys that were processed
+	for _, key := range keys {
+		offsetStorageKey := fmt.Sprintf("%s.%s", OffsetStorageKey, key)
+		if err := w.offsetStorage.DeleteStorageData(ctx, offsetStorageKey); err != nil {
+			w.tel.Logger.Error("Failed to delete offset", zap.Error(err), zap.String("offset_storage_key", offsetStorageKey))
+		}
+	}
 }
