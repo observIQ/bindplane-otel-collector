@@ -234,7 +234,9 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 			logger.Debug("Reached max logs for single batch, starting new batch", zap.Int("batches_consumed_count", batchesConsumedCount))
 
 			// Save the offset to storage
-			w.offsetStorage.SaveStorageData(ctx, offsetStorageKey, NewOffset(parser.Offset()))
+			if err := w.offsetStorage.SaveStorageData(ctx, offsetStorageKey, NewOffset(parser.Offset())); err != nil {
+				logger.Error("Failed to save offset", zap.Error(err), zap.String("offset_storage_key", offsetStorageKey), zap.Int64("offset", parser.Offset()))
+			}
 
 			ld = plog.NewLogs()
 			rls = ld.ResourceLogs().AppendEmpty()
@@ -255,7 +257,9 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	logger.Debug("processed S3 object", zap.Int("batches_consumed_count", batchesConsumedCount+1))
 
 	// Save the offset to storage
-	w.offsetStorage.SaveStorageData(ctx, offsetStorageKey, NewOffset(parser.Offset()))
+	if err := w.offsetStorage.SaveStorageData(ctx, offsetStorageKey, NewOffset(parser.Offset())); err != nil {
+		logger.Error("Failed to save offset", zap.Error(err), zap.String("offset_storage_key", offsetStorageKey), zap.Int64("offset", parser.Offset()))
+	}
 
 	return nil
 }
