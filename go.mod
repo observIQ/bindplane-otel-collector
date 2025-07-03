@@ -1039,8 +1039,6 @@ replace github.com/observiq/bindplane-otel-collector/receiver/telemetrygenerator
 
 replace github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver => ./receiver/windowseventtracereceiver
 
-replace github.com/observiq/bindplane-otel-collector/receiver/sqlqueryreceiver => ./receiver/sqlqueryreceiver
-
 // Special case replaces
 // Does not build with windows and only used in configschema executable
 // Relevant issue https://github.com/mattn/go-ieproxy/issues/45
