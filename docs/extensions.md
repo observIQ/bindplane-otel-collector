@@ -4,6 +4,7 @@ Below is a list of supported extensions with links to their documentation pages.
 
 | Name                                      | GitHub README                                                                                                                                                     |
 | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AVRO Log Encoding                         | [avrologencodingextension](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.129.0/extension/encoding/avrologencodingextension/README.md)        |
 | Authenticator - Basic Extension           | [basicauthextension](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.129.0/extension/basicauthextension/README.md)                      |
 | Authenticator - Bearer Extension          | [bearertokenauthextension](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.129.0/extension/bearertokenauthextension/README.md)          |
 | Authenticator - OAuth2 Client Credentials | [oauth2clientauthextension](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.129.0/extension/oauth2clientauthextension/README.md)        |

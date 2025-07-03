@@ -19,6 +19,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/avrologencodingextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/headerssetterextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension"
@@ -33,6 +34,7 @@ import (
 )
 
 var defaultExtensions = []extension.Factory{
+	avrologencodingextension.NewFactory(),
 	awss3eventextension.NewFactory(),
 	basicauthextension.NewFactory(),
 	bearertokenauthextension.NewFactory(),
