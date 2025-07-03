@@ -1054,9 +1054,6 @@ replace github.com/openshift/api v3.9.0+incompatible => github.com/openshift/api
 // github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension.test is forcing this dep to be updated, but it isn't compatible with the linux build process, so replacing to last stable version
 replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 
-// Replaces for Justin's SQLQuery Receiver changes: https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/39762
-// See diff here for changes (compared to OTel v0.128.0): https://github.com/open-telemetry/opentelemetry-collector-contrib/compare/v0.128.0...observIQ:opentelemetry-collector-contrib:bdot-sqlquery-replace-05-29-25?expand=1
-
 // this is a pair - when the upstream service issues are resolved, we can remove the second replace as well
 replace go.opentelemetry.io/collector/service v0.129.0 => go.opentelemetry.io/collector/service v0.127.0
 
