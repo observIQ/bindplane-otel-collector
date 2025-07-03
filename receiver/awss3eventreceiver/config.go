@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+	"go.opentelemetry.io/collector/component"
 )
 
 // Config defines the configuration for the AWS S3 Event receiver.
@@ -56,6 +57,9 @@ type Config struct {
 	// Default is 1000.
 	// TODO Allow 0 to represent no limit?
 	MaxLogsEmitted int `mapstructure:"max_logs_emitted"`
+
+	// StorageID is the ID of the storage extension to use for storing the offset.
+	StorageID *component.ID `mapstructure:"storage"`
 }
 
 // Validate checks if all required fields are present and valid.

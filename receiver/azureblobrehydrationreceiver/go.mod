@@ -6,6 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.0
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.1
 	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.80.0
+	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.80.0
 	github.com/observiq/bindplane-otel-collector/internal/testutils v1.80.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v1.35.0
@@ -69,5 +70,7 @@ require (
 )
 
 replace github.com/observiq/bindplane-otel-collector/internal/rehydration => ../../internal/rehydration
+
+replace github.com/observiq/bindplane-otel-collector/internal/storageclient => ../../internal/storageclient
 
 replace github.com/observiq/bindplane-otel-collector/internal/testutils => ../../internal/testutils
