@@ -217,6 +217,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.80.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.129.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/otelarrowexporter v0.129.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/avrologencodingextension v0.129.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension v0.129.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.129.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.129.0
@@ -443,6 +444,7 @@ require (
 	github.com/leodido/go-syslog/v4 v4.2.0 // indirect
 	github.com/lestrrat-go/strftime v1.1.0 // indirect
 	github.com/libp2p/go-reuseport v0.4.0 // indirect
+	github.com/linkedin/goavro/v2 v2.14.0 // indirect
 	github.com/magefile/mage v1.15.0 // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/mdlayher/socket v0.4.1 // indirect
