@@ -22,6 +22,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/processor/maskprocessor v1.80.0
 	github.com/observiq/bindplane-otel-collector/processor/metricextractprocessor v1.80.0
 	github.com/observiq/bindplane-otel-collector/processor/metricstatsprocessor v1.80.0
+	github.com/observiq/bindplane-otel-collector/processor/randomfailureprocessor v1.80.0
 	github.com/observiq/bindplane-otel-collector/processor/removeemptyvaluesprocessor v1.80.0
 	github.com/observiq/bindplane-otel-collector/processor/resourceattributetransposerprocessor v1.80.0
 	github.com/observiq/bindplane-otel-collector/processor/samplingprocessor v1.80.0
@@ -997,6 +998,8 @@ replace github.com/observiq/bindplane-otel-collector/processor/maskprocessor => 
 replace github.com/observiq/bindplane-otel-collector/processor/metricextractprocessor => ./processor/metricextractprocessor
 
 replace github.com/observiq/bindplane-otel-collector/processor/metricstatsprocessor => ./processor/metricstatsprocessor
+
+replace github.com/observiq/bindplane-otel-collector/processor/randomfailureprocessor => ./processor/randomfailureprocessor
 
 replace github.com/observiq/bindplane-otel-collector/processor/removeemptyvaluesprocessor => ./processor/removeemptyvaluesprocessor
 
