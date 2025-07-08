@@ -37,11 +37,11 @@ func newRandomFailureProcessor(cfg *Config) *randomFailureProcessor {
 	}
 }
 
-func (p *randomFailureProcessor) start(_ context.Context, host component.Host) error {
+func (p *randomFailureProcessor) start(_ context.Context, _ component.Host) error {
 	return nil
 }
 
-func (p *randomFailureProcessor) stop(ctx context.Context) error {
+func (p *randomFailureProcessor) stop(_ context.Context) error {
 	return nil
 }
 
