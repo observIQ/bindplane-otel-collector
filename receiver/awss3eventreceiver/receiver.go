@@ -25,10 +25,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/pipeline"
 	"go.uber.org/zap"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/backoff"
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 )
 
@@ -45,6 +47,8 @@ type logsReceiver struct {
 	pollDone   chan struct{}
 	workerPool sync.Pool
 	workerWg   sync.WaitGroup
+
+	offsetStorage storageclient.StorageClient
 
 	// Channel for distributing messages to worker goroutines
 	msgChan chan workerMessage
@@ -77,12 +81,25 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 				return worker.New(tel, next, client.NewClient(awsConfig), cfg.MaxLogSize, cfg.MaxLogsEmitted, cfg.VisibilityTimeout, cfg.VisibilityExtensionInterval, cfg.MaxVisibilityWindow)
 			},
 		},
+		offsetStorage: storageclient.NewNopStorage(),
 	}, nil
 }
 
-func (r *logsReceiver) Start(_ context.Context, _ component.Host) error {
+func (r *logsReceiver) Start(_ context.Context, host component.Host) error {
 	// Context passed to Start is not long running, so we can use a background context
 	ctx := context.Background()
+
+	// Create offset storage
+	// TODO: may need a const for the componentID to get proper syncing between collector instances talking to the same redis instance
+	if r.cfg.StorageID != nil {
+		offsetStorage, err := storageclient.NewStorageClient(ctx, host, *r.cfg.StorageID, r.id, pipeline.SignalLogs)
+		if err != nil {
+			return fmt.Errorf("failed to create offset storage: %w", err)
+		}
+		r.offsetStorage = offsetStorage
+	}
+
+	// Start workers on separate goroutines
 	r.startOnce.Do(func() {
 		// Create message channel
 		r.msgChan = make(chan workerMessage, r.cfg.Workers*2)
@@ -108,6 +125,8 @@ func (r *logsReceiver) runWorker(ctx context.Context) {
 	defer r.workerWg.Done()
 	w := r.workerPool.Get().(*worker.Worker)
 
+	w.SetOffsetStorage(r.offsetStorage)
+
 	r.telemetry.Logger.Debug("worker started")
 
 	for {
@@ -130,7 +149,7 @@ func (r *logsReceiver) runWorker(ctx context.Context) {
 	}
 }
 
-func (r *logsReceiver) Shutdown(context.Context) error {
+func (r *logsReceiver) Shutdown(ctx context.Context) error {
 	r.stopOnce.Do(func() {
 		if r.pollCancel != nil {
 			r.pollCancel()
@@ -143,6 +162,12 @@ func (r *logsReceiver) Shutdown(context.Context) error {
 		}
 		r.workerWg.Wait()
 	})
+
+	// close offset storage once workers are stopped
+	if err := r.offsetStorage.Close(ctx); err != nil {
+		return fmt.Errorf("failed to close offset storage: %w", err)
+	}
+
 	return nil
 }
 

@@ -12,10 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package rehydration provides a checkpoint for rehydration receivers that can be stored using an internal/storageclient.StorageClient
 package rehydration //import "github.com/observiq/bindplane-otel-collector/internal/rehydration"
 
 import (
+	"encoding/json"
 	"time"
+
+	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 )
 
 // CheckPoint is the checkpoint used with a storage extension to
@@ -27,6 +31,9 @@ type CheckPoint struct {
 	// ParsedEntities is a lookup of all entities that were parsed in the LastTs path
 	ParsedEntities map[string]struct{} `json:"parsed_entities"`
 }
+
+// CheckPoint implements the StorageData interface
+var _ storageclient.StorageData = &CheckPoint{}
 
 // NewCheckpoint creates a new CheckPoint
 func NewCheckpoint() *CheckPoint {
@@ -58,4 +65,19 @@ func (c *CheckPoint) UpdateCheckpoint(newTs time.Time, lastEntityName string) {
 	}
 
 	c.ParsedEntities[lastEntityName] = struct{}{}
+}
+
+// Marshal implements the StorageData interface
+func (c *CheckPoint) Marshal() ([]byte, error) {
+	return json.Marshal(c)
+}
+
+// Unmarshal implements the StorageData interface
+// If the data is empty, it returns nil
+func (c *CheckPoint) Unmarshal(data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	return json.Unmarshal(data, c)
 }

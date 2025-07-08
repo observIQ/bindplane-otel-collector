@@ -5,6 +5,7 @@ go 1.24.4
 require (
 	cloud.google.com/go/storage v1.51.0
 	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.80.0
+	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.80.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v1.35.0
 	go.opentelemetry.io/collector/component/componenttest v0.129.0
@@ -88,5 +89,7 @@ require (
 )
 
 replace github.com/observiq/bindplane-otel-collector/internal/rehydration => ../../internal/rehydration
+
+replace github.com/observiq/bindplane-otel-collector/internal/storageclient => ../../internal/storageclient
 
 replace github.com/observiq/bindplane-otel-collector/internal/testutils => ../../internal/testutils

@@ -463,6 +463,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/expr v1.80.0 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/aws v1.80.0 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.80.0 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.80.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/okta/okta-sdk-golang/v2 v2.20.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.129.0 // indirect
@@ -959,6 +960,8 @@ replace github.com/observiq/bindplane-otel-collector/internal/measurements => ./
 replace github.com/observiq/bindplane-otel-collector/internal/rehydration => ./internal/rehydration
 
 replace github.com/observiq/bindplane-otel-collector/internal/report => ./internal/report
+
+replace github.com/observiq/bindplane-otel-collector/internal/storageclient => ./internal/storageclient
 
 replace github.com/observiq/bindplane-otel-collector/internal/testutils => ./internal/testutils
 

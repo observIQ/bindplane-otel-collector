@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
+	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver/internal/aws"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -51,7 +52,7 @@ type rehydrationReceiver struct {
 	errChan            chan error
 
 	checkpoint      *rehydration.CheckPoint
-	checkpointStore rehydration.CheckpointStorer
+	checkpointStore storageclient.StorageClient
 	checkpointKey   string
 	checkpointMutex *sync.Mutex
 
@@ -127,7 +128,7 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 		id:              id,
 		cfg:             cfg,
 		awsClient:       awsClient,
-		checkpointStore: rehydration.NewNopStorage(),
+		checkpointStore: storageclient.NewNopStorage(),
 		startingTime:    startingTime,
 		endingTime:      endingTime,
 		doneChan:        make(chan struct{}),
@@ -204,7 +205,7 @@ func (r *rehydrationReceiver) logDeprecationWarnings() {
 func (r *rehydrationReceiver) initCheckpoint(ctx context.Context, host component.Host) error {
 	// init checkpoint storage using storage ext if configured
 	if r.cfg.StorageID != nil {
-		checkpointStore, err := rehydration.NewCheckpointStorage(ctx, host, *r.cfg.StorageID, r.id, r.supportedTelemetry)
+		checkpointStore, err := storageclient.NewStorageClient(ctx, host, *r.cfg.StorageID, r.id, r.supportedTelemetry)
 		if err != nil {
 			return fmt.Errorf("new rehydration checkpoint storage: %w", err)
 		}
@@ -215,7 +216,8 @@ func (r *rehydrationReceiver) initCheckpoint(ctx context.Context, host component
 	r.checkpointKey = fmt.Sprintf("%s_%s_%s", checkpointStorageKey, r.id, r.supportedTelemetry.String())
 
 	// load the previous checkpoint. If not exist should return zero value for time
-	checkpoint, err := r.checkpointStore.LoadCheckPoint(ctx, r.checkpointKey)
+	checkpoint := rehydration.NewCheckpoint()
+	err := r.checkpointStore.LoadStorageData(ctx, r.checkpointKey, checkpoint)
 	if err != nil {
 		r.logger.Warn("Error loading checkpoint, continuing without a previous checkpoint", zap.Error(err))
 		checkpoint = rehydration.NewCheckpoint()
@@ -370,7 +372,7 @@ func (r *rehydrationReceiver) handleCheckpoint(ctx context.Context) error {
 
 	// update && store checkpoint
 	r.checkpoint.UpdateCheckpoint(*r.lastObjectTime, r.lastObjectName)
-	if err := r.checkpointStore.SaveCheckpoint(ctx, r.checkpointKey, r.checkpoint); err != nil {
+	if err := r.checkpointStore.SaveStorageData(ctx, r.checkpointKey, r.checkpoint); err != nil {
 		return fmt.Errorf("save checkpoint: %w", err)
 	}
 	return nil

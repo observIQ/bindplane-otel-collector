@@ -35,6 +35,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 )
 
 // Worker processes S3 event notifications.
@@ -46,6 +47,7 @@ type Worker struct {
 	tel                         component.TelemetrySettings
 	client                      client.Client
 	nextConsumer                consumer.Logs
+	offsetStorage               storageclient.StorageClient
 	maxLogSize                  int
 	maxLogsEmitted              int
 	visibilityTimeout           time.Duration
@@ -60,12 +62,18 @@ func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client cli
 		tel:                         tel,
 		client:                      client,
 		nextConsumer:                nextConsumer,
+		offsetStorage:               storageclient.NewNopStorage(),
 		maxLogSize:                  maxLogSize,
 		maxLogsEmitted:              maxLogsEmitted,
 		visibilityTimeout:           visibilityTimeout,
 		visibilityExtensionInterval: visibilityExtensionInterval,
 		maxVisibilityWindow:         maxVisibilityWindow,
 	}
+}
+
+// SetOffsetStorage sets the offset storage client
+func (w *Worker) SetOffsetStorage(offsetStorage storageclient.StorageClient) {
+	w.offsetStorage = offsetStorage
 }
 
 // ProcessMessage processes a message from the SQS queue
@@ -86,7 +94,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	if err != nil {
 		w.tel.Logger.Error("unmarshal notification", zap.Error(err))
 		// We can delete messages with unmarshaling errors as they'll never succeed
-		w.deleteMessage(ctx, msg, queueURL, logger)
+		w.deleteMessage(ctx, msg, queueURL, []string{}, logger)
 		return
 	}
 	logger.Debug("processing notification", zap.Int("event.count", len(notification.Records)))
@@ -107,7 +115,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 
 	if len(objectCreatedRecords) == 0 {
 		logger.Debug("no s3:ObjectCreated:* events found in notification, skipping")
-		w.deleteMessage(ctx, msg, queueURL, logger)
+		w.deleteMessage(ctx, msg, queueURL, []string{}, logger)
 		return
 	}
 
@@ -115,6 +123,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 		logger.Warn("duplicate logs possible: multiple s3:ObjectCreated:* events found in notification", zap.Int("event.count", len(objectCreatedRecords)))
 	}
 
+	var keys []string
 	for _, record := range objectCreatedRecords {
 		recordLogger := logger.With(zap.String("bucket", record.S3.Bucket.Name), zap.String("key", record.S3.Object.Key))
 		recordLogger.Debug("processing record")
@@ -123,8 +132,9 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 			recordLogger.Error("error processing record, preserving message in SQS for retry", zap.Error(err))
 			return
 		}
+		keys = append(keys, record.S3.Object.Key)
 	}
-	w.deleteMessage(ctx, msg, queueURL, logger)
+	w.deleteMessage(ctx, msg, queueURL, keys, logger)
 }
 
 func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord, recordLogger *zap.Logger) error {
@@ -172,8 +182,16 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 		TryJSON:         tryJSON,
 	}
 
-	// TODO: read this from storage for the key
-	startOffset := int64(0)
+	// Create the offset storage key for this object
+	offsetStorageKey := fmt.Sprintf("%s.%s", OffsetStorageKey, key)
+
+	// Load the offset from storage
+	offset := NewOffset(0)
+	err = w.offsetStorage.LoadStorageData(ctx, offsetStorageKey, offset)
+	if err != nil {
+		return fmt.Errorf("load offset: %w", err)
+	}
+	startOffset := offset.Offset
 
 	reader, err := stream.BufferedReader(ctx)
 	if err != nil {
@@ -224,6 +242,11 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 			batchesConsumedCount++
 			recordLogger.Debug("Reached max logs for single batch, starting new batch", zap.Int("batches_consumed_count", batchesConsumedCount))
 
+			// Save the offset to storage
+			if err := w.offsetStorage.SaveStorageData(ctx, offsetStorageKey, NewOffset(parser.Offset())); err != nil {
+				recordLogger.Error("Failed to save offset", zap.Error(err), zap.String("offset_storage_key", offsetStorageKey), zap.Int64("offset", parser.Offset()))
+			}
+
 			ld = plog.NewLogs()
 			rls = ld.ResourceLogs().AppendEmpty()
 			rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
@@ -241,10 +264,16 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 		return fmt.Errorf("consume logs: %w", err)
 	}
 	recordLogger.Debug("processed S3 object", zap.Int("batches_consumed_count", batchesConsumedCount+1))
+
+	// Save the offset to storage
+	if err := w.offsetStorage.SaveStorageData(ctx, offsetStorageKey, NewOffset(parser.Offset())); err != nil {
+		recordLogger.Error("Failed to save offset", zap.Error(err), zap.String("offset_storage_key", offsetStorageKey), zap.Int64("offset", parser.Offset()))
+	}
+
 	return nil
 }
 
-func (w *Worker) deleteMessage(ctx context.Context, msg types.Message, queueURL string, recordLogger *zap.Logger) {
+func (w *Worker) deleteMessage(ctx context.Context, msg types.Message, queueURL string, keys []string, recordLogger *zap.Logger) {
 	deleteParams := &sqs.DeleteMessageInput{
 		QueueUrl:      aws.String(queueURL),
 		ReceiptHandle: msg.ReceiptHandle,
@@ -255,6 +284,14 @@ func (w *Worker) deleteMessage(ctx context.Context, msg types.Message, queueURL 
 		return
 	}
 	recordLogger.Debug("deleted message")
+
+	// Delete the offsets for the keys that were processed
+	for _, key := range keys {
+		offsetStorageKey := fmt.Sprintf("%s.%s", OffsetStorageKey, key)
+		if err := w.offsetStorage.DeleteStorageData(ctx, offsetStorageKey); err != nil {
+			w.tel.Logger.Error("Failed to delete offset", zap.Error(err), zap.String("offset_storage_key", offsetStorageKey))
+		}
+	}
 }
 
 func (w *Worker) extendMessageVisibility(ctx context.Context, msg types.Message, queueURL string, logger *zap.Logger) {
