@@ -304,29 +304,25 @@ type visibilityMonitor struct {
 	maxVisibilityEndTime time.Time
 	visibilityTimeout    time.Duration
 	extensionInterval    time.Duration
+	safetyMargin         time.Duration
 	timer                *time.Timer
-	isInitialPhase       bool // Track whether we're in initial or extension phase
 }
 
 func newVisibilityMonitor(logger *zap.Logger, msg types.Message, visibilityTimeout, extensionInterval, maxVisibilityWindow time.Duration) *visibilityMonitor {
 	startTime := time.Now()
-	vm := &visibilityMonitor{
+	safetyMargin := extensionInterval * 80 / 100
+	firstExtensionTime := startTime.Add(visibilityTimeout - safetyMargin)
+
+	return &visibilityMonitor{
 		logger:               logger,
 		msg:                  msg,
 		startTime:            startTime,
 		maxVisibilityEndTime: startTime.Add(maxVisibilityWindow),
 		visibilityTimeout:    visibilityTimeout,
 		extensionInterval:    extensionInterval,
-		timer:                nil, // Will be set below
-		isInitialPhase:       true,
+		safetyMargin:         safetyMargin,
+		timer:                time.NewTimer(time.Until(firstExtensionTime)),
 	}
-
-	// Calculate first extension time using initial safety margin
-	initialSafetyMargin := vm.getCurrentSafetyMargin()
-	firstExtensionTime := startTime.Add(visibilityTimeout - initialSafetyMargin)
-	vm.timer = time.NewTimer(time.Until(firstExtensionTime))
-
-	return vm
 }
 
 func (vm *visibilityMonitor) stop() {
@@ -341,19 +337,10 @@ func (vm *visibilityMonitor) shouldExtendToMax() bool {
 	return !time.Now().Add(vm.extensionInterval).Before(vm.maxVisibilityEndTime)
 }
 
-func (vm *visibilityMonitor) getCurrentSafetyMargin() time.Duration {
-	if vm.isInitialPhase {
-		return vm.visibilityTimeout * 80 / 100
-	}
-	return vm.extensionInterval * 80 / 100
-}
-
 func (vm *visibilityMonitor) scheduleNextExtension() {
 	now := time.Now()
-	safetyMargin := vm.getCurrentSafetyMargin()
-	nextExtensionTime := now.Add(vm.extensionInterval - safetyMargin)
+	nextExtensionTime := now.Add(vm.extensionInterval - vm.safetyMargin)
 	vm.timer.Reset(time.Until(nextExtensionTime))
-	vm.isInitialPhase = false // Switch to extension phase after first call
 }
 
 func (vm *visibilityMonitor) getRemainingTime() time.Duration {
