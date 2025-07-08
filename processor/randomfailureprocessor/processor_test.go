@@ -28,24 +28,28 @@ import (
 
 func TestProcess_Logs(t *testing.T) {
 	tests := []struct {
-		name                  string
-		failureRate           float64
-		validateExpectedError func(t *testing.T, errCount int)
+		name               string
+		failureRate        float64
+		errorMessage       string
+		validateErrorCount func(t *testing.T, errCount int)
 	}{
-		{name: "failure_rate_1", failureRate: 1, validateExpectedError: func(t *testing.T, errCount int) {
+		{name: "failure_rate_1", errorMessage: defaultErrorMessage, failureRate: 1, validateErrorCount: func(t *testing.T, errCount int) {
 			require.Equal(t, 1000, errCount)
 		}},
-		{name: "failure_rate_0", failureRate: 0, validateExpectedError: func(t *testing.T, errCount int) {
+		{name: "failure_rate_0", errorMessage: defaultErrorMessage, failureRate: 0, validateErrorCount: func(t *testing.T, errCount int) {
 			require.Equal(t, 0, errCount)
 		}},
 		// technically flaky, but the odds of any one of these tests failing is basically statistically insignificant
-		{name: "failure_rate_0.5", failureRate: 0.5, validateExpectedError: func(t *testing.T, errCount int) {
+		{name: "failure_rate_0.5", errorMessage: defaultErrorMessage, failureRate: 0.5, validateErrorCount: func(t *testing.T, errCount int) {
 			require.False(t, errCount < 400 || errCount > 600, "expected error count to be between 400 and 600, got %d", errCount)
 		}},
-		{name: "failure_rate_0.8", failureRate: 0.8, validateExpectedError: func(t *testing.T, errCount int) {
+		{name: "failure_rate_0.8", errorMessage: defaultErrorMessage, failureRate: 0.8, validateErrorCount: func(t *testing.T, errCount int) {
 			require.False(t, errCount < 700 || errCount > 900, "expected error count to be between 700 and 900, got %d", errCount)
 		}},
-		{name: "failure_rate_0.2", failureRate: 0.2, validateExpectedError: func(t *testing.T, errCount int) {
+		{name: "failure_rate_0.2", errorMessage: defaultErrorMessage, failureRate: 0.2, validateErrorCount: func(t *testing.T, errCount int) {
+			require.False(t, errCount < 100 || errCount > 300, "expected error count to be between 100 and 300, got %d", errCount)
+		}},
+		{name: "custom_error_message", errorMessage: "custom error message", failureRate: 0.2, validateErrorCount: func(t *testing.T, errCount int) {
 			require.False(t, errCount < 100 || errCount > 300, "expected error count to be between 100 and 300, got %d", errCount)
 		}},
 	}
@@ -57,6 +61,7 @@ func TestProcess_Logs(t *testing.T) {
 
 			config := factory.CreateDefaultConfig().(*Config)
 			config.FailureRate = test.failureRate
+			config.ErrorMessage = test.errorMessage
 
 			pSet := processortest.NewNopSettings(componentType)
 			p, err := factory.CreateLogs(context.Background(), pSet, config, sink)
@@ -75,10 +80,11 @@ func TestProcess_Logs(t *testing.T) {
 				err = p.ConsumeLogs(context.Background(), l)
 				if err != nil {
 					errCount++
+					require.Equal(t, test.errorMessage, err.Error())
 				}
 			}
 
-			test.validateExpectedError(t, errCount)
+			test.validateErrorCount(t, errCount)
 			require.Equal(t, 1000-errCount, len(sink.AllLogs()))
 			if len(sink.AllLogs()) > 0 {
 				require.Equal(t, l, sink.AllLogs()[0])
@@ -89,24 +95,28 @@ func TestProcess_Logs(t *testing.T) {
 
 func TestProcess_Metrics(t *testing.T) {
 	tests := []struct {
-		name                  string
-		failureRate           float64
-		validateExpectedError func(t *testing.T, errCount int)
+		name               string
+		failureRate        float64
+		errorMessage       string
+		validateErrorCount func(t *testing.T, errCount int)
 	}{
-		{name: "failure_rate_1", failureRate: 1, validateExpectedError: func(t *testing.T, errCount int) {
+		{name: "failure_rate_1", errorMessage: defaultErrorMessage, failureRate: 1, validateErrorCount: func(t *testing.T, errCount int) {
 			require.Equal(t, 1000, errCount)
 		}},
-		{name: "failure_rate_0", failureRate: 0, validateExpectedError: func(t *testing.T, errCount int) {
+		{name: "failure_rate_0", errorMessage: defaultErrorMessage, failureRate: 0, validateErrorCount: func(t *testing.T, errCount int) {
 			require.Equal(t, 0, errCount)
 		}},
 		// technically flaky, but the odds of any one of these tests failing is basically statistically insignificant
-		{name: "failure_rate_0.5", failureRate: 0.5, validateExpectedError: func(t *testing.T, errCount int) {
+		{name: "failure_rate_0.5", errorMessage: defaultErrorMessage, failureRate: 0.5, validateErrorCount: func(t *testing.T, errCount int) {
 			require.False(t, errCount < 400 || errCount > 600, "expected error count to be between 400 and 600, got %d", errCount)
 		}},
-		{name: "failure_rate_0.8", failureRate: 0.8, validateExpectedError: func(t *testing.T, errCount int) {
+		{name: "failure_rate_0.8", errorMessage: defaultErrorMessage, failureRate: 0.8, validateErrorCount: func(t *testing.T, errCount int) {
 			require.False(t, errCount < 700 || errCount > 900, "expected error count to be between 700 and 900, got %d", errCount)
 		}},
-		{name: "failure_rate_0.2", failureRate: 0.2, validateExpectedError: func(t *testing.T, errCount int) {
+		{name: "failure_rate_0.2", errorMessage: defaultErrorMessage, failureRate: 0.2, validateErrorCount: func(t *testing.T, errCount int) {
+			require.False(t, errCount < 100 || errCount > 300, "expected error count to be between 100 and 300, got %d", errCount)
+		}},
+		{name: "custom_error_message", errorMessage: "custom error message", failureRate: 0.2, validateErrorCount: func(t *testing.T, errCount int) {
 			require.False(t, errCount < 100 || errCount > 300, "expected error count to be between 100 and 300, got %d", errCount)
 		}},
 	}
@@ -118,6 +128,7 @@ func TestProcess_Metrics(t *testing.T) {
 
 			config := factory.CreateDefaultConfig().(*Config)
 			config.FailureRate = test.failureRate
+			config.ErrorMessage = test.errorMessage
 
 			pSet := processortest.NewNopSettings(componentType)
 			p, err := factory.CreateMetrics(context.Background(), pSet, config, sink)
@@ -136,10 +147,11 @@ func TestProcess_Metrics(t *testing.T) {
 				err = p.ConsumeMetrics(context.Background(), m)
 				if err != nil {
 					errCount++
+					require.Equal(t, test.errorMessage, err.Error())
 				}
 			}
 
-			test.validateExpectedError(t, errCount)
+			test.validateErrorCount(t, errCount)
 			require.Equal(t, 1000-errCount, len(sink.AllMetrics()))
 			if len(sink.AllMetrics()) > 0 {
 				require.Equal(t, m, sink.AllMetrics()[0])
@@ -150,24 +162,28 @@ func TestProcess_Metrics(t *testing.T) {
 
 func TestProcess_Traces(t *testing.T) {
 	tests := []struct {
-		name                  string
-		failureRate           float64
-		validateExpectedError func(t *testing.T, errCount int)
+		name               string
+		failureRate        float64
+		errorMessage       string
+		validateErrorCount func(t *testing.T, errCount int)
 	}{
-		{name: "failure_rate_1", failureRate: 1, validateExpectedError: func(t *testing.T, errCount int) {
+		{name: "failure_rate_1", errorMessage: defaultErrorMessage, failureRate: 1, validateErrorCount: func(t *testing.T, errCount int) {
 			require.Equal(t, 1000, errCount)
 		}},
-		{name: "failure_rate_0", failureRate: 0, validateExpectedError: func(t *testing.T, errCount int) {
+		{name: "failure_rate_0", errorMessage: defaultErrorMessage, failureRate: 0, validateErrorCount: func(t *testing.T, errCount int) {
 			require.Equal(t, 0, errCount)
 		}},
 		// technically flaky, but the odds of any one of these tests failing is basically statistically insignificant
-		{name: "failure_rate_0.5", failureRate: 0.5, validateExpectedError: func(t *testing.T, errCount int) {
+		{name: "failure_rate_0.5", errorMessage: defaultErrorMessage, failureRate: 0.5, validateErrorCount: func(t *testing.T, errCount int) {
 			require.False(t, errCount < 400 || errCount > 600, "expected error count to be between 400 and 600, got %d", errCount)
 		}},
-		{name: "failure_rate_0.8", failureRate: 0.8, validateExpectedError: func(t *testing.T, errCount int) {
+		{name: "failure_rate_0.8", errorMessage: defaultErrorMessage, failureRate: 0.8, validateErrorCount: func(t *testing.T, errCount int) {
 			require.False(t, errCount < 700 || errCount > 900, "expected error count to be between 700 and 900, got %d", errCount)
 		}},
-		{name: "failure_rate_0.2", failureRate: 0.2, validateExpectedError: func(t *testing.T, errCount int) {
+		{name: "failure_rate_0.2", errorMessage: defaultErrorMessage, failureRate: 0.2, validateErrorCount: func(t *testing.T, errCount int) {
+			require.False(t, errCount < 100 || errCount > 300, "expected error count to be between 100 and 300, got %d", errCount)
+		}},
+		{name: "custom_error_message", errorMessage: "custom error message", failureRate: 0.2, validateErrorCount: func(t *testing.T, errCount int) {
 			require.False(t, errCount < 100 || errCount > 300, "expected error count to be between 100 and 300, got %d", errCount)
 		}},
 	}
@@ -179,6 +195,7 @@ func TestProcess_Traces(t *testing.T) {
 
 			config := factory.CreateDefaultConfig().(*Config)
 			config.FailureRate = test.failureRate
+			config.ErrorMessage = test.errorMessage
 
 			pSet := processortest.NewNopSettings(componentType)
 			p, err := factory.CreateTraces(context.Background(), pSet, config, sink)
@@ -197,10 +214,11 @@ func TestProcess_Traces(t *testing.T) {
 				err = p.ConsumeTraces(context.Background(), tr)
 				if err != nil {
 					errCount++
+					require.Equal(t, test.errorMessage, err.Error())
 				}
 			}
 
-			test.validateExpectedError(t, errCount)
+			test.validateErrorCount(t, errCount)
 			require.Equal(t, 1000-errCount, len(sink.AllTraces()))
 			if len(sink.AllTraces()) > 0 {
 				require.Equal(t, tr, sink.AllTraces()[0])

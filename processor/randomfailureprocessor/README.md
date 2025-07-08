@@ -15,9 +15,10 @@ The random failure processor is used for testing error resiliency in the collect
 
 ## Configuration
 
-| Field        | Type    | Default | Required | Description                                                                         |
-| ------------ | ------- | ------- | -------- | ----------------------------------------------------------------------------------- |
-| failure_rate | float64 | 0.5     | `false`  | The probability, between 0 and 1, of any given piece of telemetry causing an error. |
+| Field         | Type    | Default          | Required | Description                                                                         |
+| ------------- | ------- | ---------------- | -------- | ----------------------------------------------------------------------------------- |
+| failure_rate  | float64 | 0.5              | `false`  | The probability, between 0 and 1, of any given piece of telemetry causing an error. |
+| error_message | string  | "random failure" | `false`  | The error message that will be returned by the processor.                           |
 
 ## Examples
 
@@ -33,6 +34,7 @@ receivers:
 processors:
   randomfailure:
     failure_rate: 0.1
+    error_message: "10% failure occurred!"
 
 exporters:
   nop:

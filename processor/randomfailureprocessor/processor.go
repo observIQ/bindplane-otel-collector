@@ -47,21 +47,21 @@ func (p *randomFailureProcessor) stop(_ context.Context) error {
 
 func (p *randomFailureProcessor) processTraces(_ context.Context, td ptrace.Traces) (ptrace.Traces, error) {
 	if p.randomChanceGenerator() < p.cfg.FailureRate {
-		return td, errors.New("random failure")
+		return td, errors.New(p.cfg.ErrorMessage)
 	}
 	return td, nil
 }
 
 func (p *randomFailureProcessor) processLogs(_ context.Context, ld plog.Logs) (plog.Logs, error) {
 	if p.randomChanceGenerator() < p.cfg.FailureRate {
-		return ld, errors.New("random failure")
+		return ld, errors.New(p.cfg.ErrorMessage)
 	}
 	return ld, nil
 }
 
 func (p *randomFailureProcessor) processMetrics(_ context.Context, md pmetric.Metrics) (pmetric.Metrics, error) {
 	if p.randomChanceGenerator() < p.cfg.FailureRate {
-		return md, errors.New("random failure")
+		return md, errors.New(p.cfg.ErrorMessage)
 	}
 	return md, nil
 }

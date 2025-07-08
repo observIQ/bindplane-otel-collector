@@ -22,8 +22,12 @@ import (
 )
 
 var (
-	errInvalidFailureRate = errors.New("failure_rate must be between 0 and 1")
+	errInvalidFailureRate  = errors.New("failure_rate must be between 0 and 1")
+	errInvalidErrorMessage = errors.New("error_message must be a non-empty string")
 )
+
+var defaultErrorMessage = "random failure"
+var defaultFailureRate = 0.5
 
 // Config is the config of the processor.
 type Config struct {
@@ -34,11 +38,16 @@ type Config struct {
 	// 0.0 means 0% of the time, a failure will occur.
 	// Default is 0.5.
 	FailureRate float64 `mapstructure:"failure_rate"`
+
+	// ErrorMessage is the message that will be returned when a failure occurs.
+	// Default is "random failure".
+	ErrorMessage string `mapstructure:"error_message"`
 }
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		FailureRate: 0.5,
+		FailureRate:  defaultFailureRate,
+		ErrorMessage: defaultErrorMessage,
 	}
 }
 
@@ -46,6 +55,10 @@ func createDefaultConfig() component.Config {
 func (c Config) Validate() error {
 	if c.FailureRate < 0 || c.FailureRate > 1 {
 		return errInvalidFailureRate
+	}
+
+	if c.ErrorMessage == "" {
+		return errInvalidErrorMessage
 	}
 
 	return nil

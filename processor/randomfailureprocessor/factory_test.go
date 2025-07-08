@@ -28,7 +28,8 @@ func TestNewFactory(t *testing.T) {
 	require.Equal(t, componentType, factory.Type())
 
 	expectedCfg := &Config{
-		FailureRate: 0.5,
+		FailureRate:  defaultFailureRate,
+		ErrorMessage: defaultErrorMessage,
 	}
 
 	cfg, ok := factory.CreateDefaultConfig().(*Config)

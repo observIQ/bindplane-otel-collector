@@ -22,7 +22,8 @@ import (
 
 func TestCreateDefaultConfig(t *testing.T) {
 	cfg := createDefaultConfig().(*Config)
-	require.Equal(t, 0.5, cfg.FailureRate)
+	require.Equal(t, defaultFailureRate, cfg.FailureRate)
+	require.Equal(t, defaultErrorMessage, cfg.ErrorMessage)
 }
 
 func TestConfigValidate(t *testing.T) {
@@ -32,11 +33,12 @@ func TestConfigValidate(t *testing.T) {
 		err  error
 	}{
 		{name: "default", cfg: createDefaultConfig().(*Config), err: nil},
-		{name: "negative_failure_rate", cfg: &Config{FailureRate: -0.1}, err: errInvalidFailureRate},
-		{name: "greater_than_one_failure_rate", cfg: &Config{FailureRate: 1.1}, err: errInvalidFailureRate},
-		{name: "zero_failure_rate", cfg: &Config{FailureRate: 0}, err: nil},
-		{name: "one_failure_rate", cfg: &Config{FailureRate: 1}, err: nil},
-		{name: "intermediate_failure_rate", cfg: &Config{FailureRate: 0.6758}, err: nil},
+		{name: "negative_failure_rate", cfg: &Config{FailureRate: -0.1, ErrorMessage: defaultErrorMessage}, err: errInvalidFailureRate},
+		{name: "greater_than_one_failure_rate", cfg: &Config{FailureRate: 1.1, ErrorMessage: defaultErrorMessage}, err: errInvalidFailureRate},
+		{name: "zero_failure_rate", cfg: &Config{FailureRate: 0, ErrorMessage: defaultErrorMessage}, err: nil},
+		{name: "one_failure_rate", cfg: &Config{FailureRate: 1, ErrorMessage: defaultErrorMessage}, err: nil},
+		{name: "intermediate_failure_rate", cfg: &Config{FailureRate: 0.6758, ErrorMessage: defaultErrorMessage}, err: nil},
+		{name: "empty_error_message", cfg: &Config{FailureRate: 0.5, ErrorMessage: ""}, err: errInvalidErrorMessage},
 	}
 
 	for _, test := range tests {
