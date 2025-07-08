@@ -18,3 +18,33 @@ resource_attributes:
     description: The key of the S3 object that was processed
     enabled: true
     type: string
+telemetry:
+  metrics:
+   
+    s3event.batch_size:
+      enabled: true
+      description: The number of logs in a batch.
+      unit: "{logs}"
+      histogram:
+        value_type: int
+        bucket_boundaries: [1, 100, 250, 500, 750, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000]
+    
+    s3event.objects_handled:
+      enabled: true
+      description: The number of S3 objects processed by the receiver
+      unit: "{objects}"
+      sum:
+        value_type: int
+        monotonic: true
+        aggregation_temporality: cumulative
+      attributes: []
+
+    s3event.failures:
+      enabled: true
+      description: The number of failures encountered while processing S3 objects
+      unit: "{failures}"
+      sum:
+        value_type: int
+        monotonic: true
+        aggregation_temporality: cumulative
+      attributes: []

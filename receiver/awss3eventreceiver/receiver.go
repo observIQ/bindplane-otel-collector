@@ -31,6 +31,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/internal/aws/backoff"
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 )
 
@@ -38,6 +39,7 @@ type logsReceiver struct {
 	id        component.ID
 	cfg       *Config
 	telemetry component.TelemetrySettings
+	metrics   *metadata.TelemetryBuilder
 	sqsClient client.SQSClient
 	next      consumer.Logs
 	startOnce sync.Once
@@ -59,7 +61,7 @@ type workerMessage struct {
 	queueURL string
 }
 
-func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Config, next consumer.Logs) (component.Component, error) {
+func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Config, next consumer.Logs, tb *metadata.TelemetryBuilder) (component.Component, error) {
 	region, err := client.ParseRegionFromSQSURL(cfg.SQSQueueURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract region from SQS URL: %w", err)
@@ -74,11 +76,12 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 		id:        id,
 		cfg:       cfg,
 		telemetry: tel,
+		metrics:   tb,
 		next:      next,
 		sqsClient: client.NewClient(awsConfig).SQS(),
 		workerPool: sync.Pool{
 			New: func() any {
-				return worker.New(tel, next, client.NewClient(awsConfig), cfg.MaxLogSize, cfg.MaxLogsEmitted, cfg.VisibilityTimeout, cfg.VisibilityExtensionInterval, cfg.MaxVisibilityWindow)
+				return worker.New(tel, next, client.NewClient(awsConfig), cfg.MaxLogSize, cfg.MaxLogsEmitted, cfg.VisibilityTimeout, cfg.VisibilityExtensionInterval, cfg.MaxVisibilityWindow, tb)
 			},
 		},
 		offsetStorage: storageclient.NewNopStorage(),
@@ -185,6 +188,7 @@ func (r *logsReceiver) poll(ctx context.Context, deferThis func()) {
 		case <-ticker.C:
 			numMessages := r.receiveMessages(ctx)
 			r.telemetry.Logger.Debug(fmt.Sprintf("received %d messages", numMessages))
+			r.metrics.S3eventObjectsHandled.Add(ctx, int64(numMessages))
 			ticker.Reset(nextInterval.Update(numMessages))
 		}
 	}
@@ -201,33 +205,29 @@ func (r *logsReceiver) receiveMessages(ctx context.Context) int {
 		WaitTimeSeconds:     10, // Use long polling
 	}
 
-	resp, err := r.sqsClient.ReceiveMessage(ctx, params)
-	if err != nil {
-		r.telemetry.Logger.Error("receive messages", zap.Error(err))
-		return numMessages
-	}
-
 	// loop until we get no messages
-	for len(resp.Messages) > 0 {
+	for {
+		resp, err := r.sqsClient.ReceiveMessage(ctx, params)
+		if err != nil {
+			r.telemetry.Logger.Error("receive messages", zap.Error(err))
+			r.metrics.S3eventFailures.Add(ctx, 1)
+			return numMessages
+		}
+		if len(resp.Messages) == 0 {
+			return numMessages
+		}
 		r.telemetry.Logger.Debug("messages received", zap.Int("count", len(resp.Messages)), zap.String("first_message_id", *resp.Messages[0].MessageId))
 
 		for _, msg := range resp.Messages {
 			select {
 			case r.msgChan <- workerMessage{msg: msg, queueURL: queueURL}:
 				r.telemetry.Logger.Debug("queued message", zap.String("message_id", *msg.MessageId))
+				numMessages++
 			case <-ctx.Done():
 				return numMessages
 			}
 		}
 
 		r.telemetry.Logger.Debug(fmt.Sprintf("queued %d messages for processing", len(resp.Messages)))
-
-		resp, err = r.sqsClient.ReceiveMessage(ctx, params)
-		if err != nil {
-			r.telemetry.Logger.Error("receive messages", zap.Error(err))
-			return numMessages
-		}
 	}
-
-	return numMessages
 }
