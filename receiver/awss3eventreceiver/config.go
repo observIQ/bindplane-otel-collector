@@ -94,8 +94,16 @@ func (c *Config) Validate() error {
 		return errors.New("'visibility_extension_interval' must be greater than 0")
 	}
 
+	if c.VisibilityExtensionInterval > c.VisibilityTimeout {
+		return errors.New("'visibility_extension_interval' must be less than 'visibility_timeout'")
+	}
+
 	if c.MaxVisibilityWindow <= 0 {
 		return errors.New("'max_visibility_window' must be greater than 0")
+	}
+
+	if c.MaxVisibilityWindow <= c.VisibilityTimeout {
+		return errors.New("'max_visibility_window' must be greater than 'visibility_timeout'")
 	}
 
 	// SQS has a 12-hour limit
