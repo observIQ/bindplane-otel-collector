@@ -17,6 +17,7 @@ package worker_test
 import (
 	"context"
 	"os"
+	"runtime"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -54,6 +55,7 @@ func TestStartsWithJSONObjectOrArray(t *testing.T) {
 }
 
 func TestParseJSONLogs(t *testing.T) {
+
 	tests := []struct {
 		filePath      string
 		startOffset   int64
@@ -87,6 +89,12 @@ func TestParseJSONLogs(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		// skip tests on windows because git will replace \n with \r\n and the offsets will be
+		// different
+		if runtime.GOOS == "windows" && test.startOffset > 0 {
+			continue
+		}
+
 		t.Run(test.filePath, func(t *testing.T) {
 			file, err := os.Open(test.filePath)
 			require.NoError(t, err, "open log file")
@@ -123,7 +131,9 @@ func TestParseJSONLogs(t *testing.T) {
 
 			require.Equal(t, test.expectLogs, count)
 			if len(test.expectOffsets) > 0 {
-				require.Equal(t, test.expectOffsets, offsets[:len(test.expectOffsets)])
+				if runtime.GOOS != "windows" {
+					require.Equal(t, test.expectOffsets, offsets[:len(test.expectOffsets)])
+				}
 			}
 		})
 	}

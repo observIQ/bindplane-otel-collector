@@ -17,6 +17,7 @@ package worker_test
 import (
 	"context"
 	"os"
+	"runtime"
 	"testing"
 
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
@@ -47,6 +48,12 @@ func TestParseTextLogs(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		// skip tests on windows because git will replace \n with \r\n and the offsets will be
+		// different
+		if runtime.GOOS == "windows" && test.startOffset > 0 {
+			continue
+		}
+
 		t.Run(test.filePath, func(t *testing.T) {
 			file, err := os.Open(test.filePath)
 			require.NoError(t, err, "open log file")
@@ -78,7 +85,9 @@ func TestParseTextLogs(t *testing.T) {
 			}
 
 			require.Equal(t, test.expectLogs, count)
-			require.Equal(t, test.expectOffsets, offsets[:len(test.expectOffsets)])
+			if runtime.GOOS != "windows" {
+				require.Equal(t, test.expectOffsets, offsets[:len(test.expectOffsets)])
+			}
 		})
 	}
 }
