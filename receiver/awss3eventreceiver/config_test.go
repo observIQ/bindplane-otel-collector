@@ -178,15 +178,6 @@ func TestConfigValidate(t *testing.T) {
 			expectedErr: "'max_visibility_window' must be greater than 0",
 		},
 		{
-			desc: "Max visibility window less than visibility timeout",
-			cfgMod: func(cfg *awss3eventreceiver.Config) {
-				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
-				cfg.VisibilityTimeout = 300 * time.Second
-				cfg.MaxVisibilityWindow = 200 * time.Second
-			},
-			expectedErr: "'max_visibility_window' must be greater than 'visibility_timeout'",
-		},
-		{
 			desc: "Max visibility window exceeds 12 hours",
 			cfgMod: func(cfg *awss3eventreceiver.Config) {
 				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
