@@ -57,14 +57,16 @@ func TestLoadConfig(t *testing.T) {
 		{
 			id: component.NewIDWithName(metadata.Type, "custom"),
 			expected: &awss3eventreceiver.Config{
-				SQSQueueURL:          "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
-				StandardPollInterval: 30 * time.Second,
-				MaxPollInterval:      60 * time.Second,
-				PollingBackoffFactor: 2,
-				VisibilityTimeout:    600 * time.Second,
-				Workers:              5,
-				MaxLogSize:           4096,
-				MaxLogsEmitted:       1000,
+				SQSQueueURL:                 "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue",
+				StandardPollInterval:        30 * time.Second,
+				MaxPollInterval:             60 * time.Second,
+				PollingBackoffFactor:        2,
+				VisibilityTimeout:           600 * time.Second,
+				VisibilityExtensionInterval: 60 * time.Second,
+				MaxVisibilityWindow:         4 * time.Hour,
+				Workers:                     5,
+				MaxLogSize:                  4096,
+				MaxLogsEmitted:              1000,
 			},
 			expectError: false,
 		},
@@ -166,6 +168,48 @@ func TestConfigValidate(t *testing.T) {
 				cfg.MaxLogSize = 0
 			},
 			expectedErr: "'max_log_size' must be greater than 0",
+		},
+		{
+			desc: "Invalid max visibility window",
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.MaxVisibilityWindow = 0
+			},
+			expectedErr: "'max_visibility_window' must be greater than 0",
+		},
+		{
+			desc: "Max visibility window less than visibility timeout",
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.VisibilityTimeout = 300 * time.Second
+				cfg.MaxVisibilityWindow = 200 * time.Second
+			},
+			expectedErr: "'max_visibility_window' must be greater than 'visibility_timeout'",
+		},
+		{
+			desc: "Extension interval greater than visibility timeout",
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.VisibilityTimeout = 300 * time.Second
+				cfg.VisibilityExtensionInterval = 400 * time.Second
+			},
+			expectedErr: "'visibility_extension_interval' must be less than 'visibility_timeout'",
+		},
+		{
+			desc: "Max visibility window exceeds 12 hours",
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.MaxVisibilityWindow = 13 * time.Hour
+			},
+			expectedErr: "'max_visibility_window' must be less than or equal to 12 hours",
+		},
+		{
+			desc: "Visibility extension interval less than 10 seconds",
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.VisibilityExtensionInterval = 4 * time.Second
+			},
+			expectedErr: "'visibility_extension_interval' must be greater than 10 seconds",
 		},
 	}
 

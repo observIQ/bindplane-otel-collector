@@ -17,17 +17,27 @@ package worker_test
 
 import (
 	"context"
+	"errors"
+	"io"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+	"github.com/observiq/bindplane-otel-collector/internal/aws/client/mocks"
 	"github.com/observiq/bindplane-otel-collector/internal/aws/fake"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 )
@@ -52,6 +62,7 @@ func TestProcessMessage(t *testing.T) {
 	longLineLength := 100000
 	maxLogSize := 4096
 	maxLogsEmitted := 1000
+	visibilityExtensionInterval := 100 * time.Millisecond
 
 	// Calculate expected fragments for the long line
 	// Need to use ceiling division to handle any remainder correctly
@@ -207,7 +218,7 @@ func TestProcessMessage(t *testing.T) {
 
 			set := componenttest.NewNopTelemetrySettings()
 			sink := new(consumertest.LogsSink)
-			w := worker.New(set, aws.Config{}, sink, testCase.maxLogSize, maxLogsEmitted)
+			w := worker.New(set, sink, fakeAWS, testCase.maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour)
 
 			numCallbacks := 0
 
@@ -254,6 +265,7 @@ func TestEventTypeFiltering(t *testing.T) {
 
 	maxLogSize := 4096
 	maxLogsEmitted := 1000
+	visibilityExtensionInterval := 100 * time.Millisecond
 
 	testCases := []struct {
 		name        string
@@ -340,7 +352,7 @@ func TestEventTypeFiltering(t *testing.T) {
 
 			set := componenttest.NewNopTelemetrySettings()
 			sink := new(consumertest.LogsSink)
-			w := worker.New(set, aws.Config{}, sink, maxLogSize, maxLogsEmitted)
+			w := worker.New(set, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour)
 
 			numCallbacks := 0
 
@@ -374,5 +386,350 @@ func TestEventTypeFiltering(t *testing.T) {
 			_, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 			require.ErrorIs(t, err, fake.ErrEmptyQueue)
 		})
+	}
+}
+
+func TestMessageVisibilityExtension(t *testing.T) {
+	defer fake.SetFakeConstructorForTest(t)()
+
+	ctx := context.Background()
+	fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
+
+	// Create a test object
+	objectSet := map[string]map[string]string{
+		"mybucket": {
+			"mykey1": "line1\nline2\nline3",
+		},
+	}
+	fakeAWS.CreateObjects(t, objectSet)
+
+	set := componenttest.NewNopTelemetrySettings()
+	sink := new(consumertest.LogsSink)
+
+	// Use a short extension interval for faster testing
+	visibilityExtensionInterval := 50 * time.Millisecond
+	visibilityTimeout := 300 * time.Second
+
+	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
+
+	// Get a message from the queue
+	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+	require.NoError(t, err)
+	require.Len(t, msg.Messages, 1)
+
+	// Start processing the message
+	done := make(chan struct{})
+	go func() {
+		w.ProcessMessage(ctx, msg.Messages[0], "myqueue", func() {
+			close(done)
+		})
+	}()
+
+	// Wait for a short time to allow visibility extension to occur
+	time.Sleep(100 * time.Millisecond)
+
+	// Check that ChangeMessageVisibility was called
+	// We can verify this by checking if the message is still invisible
+	// (if visibility wasn't extended, it would be visible again)
+
+	// Try to receive the same message again - it should not be available
+	// because visibility should have been extended
+	_, err2 := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+	require.ErrorIs(t, err2, fake.ErrEmptyQueue, "Message should still be invisible due to visibility extension")
+
+	// Wait for processing to complete
+	<-done
+
+	// Now the message should be deleted and not available
+	_, err3 := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+	require.ErrorIs(t, err3, fake.ErrEmptyQueue, "Message should be deleted after processing")
+}
+
+func TestVisibilityExtensionLogs(t *testing.T) {
+	ctx := context.Background()
+	mockSQS := &mocks.MockSQSClient{}
+	mockS3 := &mocks.MockS3Client{}
+	mockClient := &mocks.MockClient{}
+	mockClient.EXPECT().SQS().Return(mockSQS)
+	mockClient.EXPECT().S3().Return(mockS3)
+
+	// Provide a valid S3 event message
+	validS3Event := `{"Records":[{"eventName":"s3:ObjectCreated:Put","s3":{"bucket":{"name":"mybucket"},"object":{"key":"mykey1","size":15}}}]}`
+
+	mockSQS.EXPECT().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput)).Return(&sqs.ReceiveMessageOutput{
+		Messages: []types.Message{
+			{
+				Body:          aws.String(validS3Event),
+				MessageId:     aws.String("123"),
+				ReceiptHandle: aws.String("receipt-handle"),
+			},
+		},
+	}, nil)
+
+	// Mock S3 GetObject to return content after a delay to trigger visibility extension
+	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ *s3.GetObjectInput, _ ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+		// Add a delay to simulate processing time and trigger visibility extension
+		time.Sleep(10 * time.Millisecond)
+		return &s3.GetObjectOutput{
+			Body: io.NopCloser(strings.NewReader("line1\nline2\nline3")),
+		}, nil
+	})
+
+	mockSQS.EXPECT().DeleteMessage(mock.Anything, mock.Anything).Return(&sqs.DeleteMessageOutput{}, nil)
+	mockSQS.EXPECT().ChangeMessageVisibility(mock.Anything, mock.Anything).Return(&sqs.ChangeMessageVisibilityOutput{}, nil)
+
+	// Set up zap observer
+	core, recorded := observer.New(zap.DebugLevel)
+	logger := zap.New(core)
+	set := componenttest.NewNopTelemetrySettings()
+	set.Logger = logger
+
+	sink := new(consumertest.LogsSink)
+	visibilityExtensionInterval := 1 * time.Millisecond
+	visibilityTimeout := 300 * time.Second
+	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
+
+	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+	require.NoError(t, err)
+	require.Len(t, msg.Messages, 1)
+
+	done := make(chan struct{})
+	go func() {
+		w.ProcessMessage(ctx, msg.Messages[0], "myqueue", func() { close(done) })
+	}()
+	// Wait for processing to complete
+	<-done
+
+	// Add a small delay to allow visibility extension goroutine to finish logging
+	time.Sleep(50 * time.Millisecond)
+
+	t.Logf("recorded logs:")
+	for i, entry := range recorded.All() {
+		t.Logf("  [%d] %s: %s", i, entry.Level, entry.Message)
+	}
+
+	// Check for all expected log messages
+	expectedMessages := []string{
+		"starting visibility extension monitoring",
+		"extending message visibility",
+	}
+
+	for _, expectedMsg := range expectedMessages {
+		found := false
+		for _, entry := range recorded.All() {
+			if entry.Message == expectedMsg {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "expected '%s' log message to be present", expectedMsg)
+	}
+}
+
+func TestExtendToMaxAndStop(t *testing.T) {
+	ctx := context.Background()
+	mockSQS := &mocks.MockSQSClient{}
+	mockS3 := &mocks.MockS3Client{}
+	mockClient := &mocks.MockClient{}
+	mockClient.EXPECT().SQS().Return(mockSQS)
+	mockClient.EXPECT().S3().Return(mockS3)
+
+	// Provide a valid S3 event message
+	validS3Event := `{"Records":[{"eventName":"s3:ObjectCreated:Put","s3":{"bucket":{"name":"mybucket"},"object":{"key":"mykey1","size":15}}}]}`
+
+	mockSQS.EXPECT().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput)).Return(&sqs.ReceiveMessageOutput{
+		Messages: []types.Message{
+			{
+				Body:          aws.String(validS3Event),
+				MessageId:     aws.String("123"),
+				ReceiptHandle: aws.String("receipt-handle"),
+			},
+		},
+	}, nil)
+
+	// Mock S3 GetObject to return content after a delay to trigger visibility extension
+	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ *s3.GetObjectInput, _ ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+		// Add a delay to simulate processing time and trigger visibility extension
+		time.Sleep(100 * time.Millisecond)
+		return &s3.GetObjectOutput{
+			Body: io.NopCloser(strings.NewReader("line1\nline2\nline3")),
+		}, nil
+	})
+
+	mockSQS.EXPECT().DeleteMessage(mock.Anything, mock.Anything).Return(&sqs.DeleteMessageOutput{}, nil)
+	mockSQS.EXPECT().ChangeMessageVisibility(mock.Anything, mock.Anything).Return(&sqs.ChangeMessageVisibilityOutput{}, nil)
+
+	// Set up zap observer
+	core, recorded := observer.New(zap.InfoLevel)
+	logger := zap.New(core)
+	set := componenttest.NewNopTelemetrySettings()
+	set.Logger = logger
+
+	sink := new(consumertest.LogsSink)
+	visibilityExtensionInterval := 1 * time.Millisecond
+	visibilityTimeout := 5 * time.Millisecond
+	maxVisibilityWindow := 100 * time.Millisecond // Short window to trigger max extension
+
+	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, maxVisibilityWindow)
+
+	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+	require.NoError(t, err)
+	require.Len(t, msg.Messages, 1)
+
+	done := make(chan struct{})
+	go func() {
+		w.ProcessMessage(ctx, msg.Messages[0], "myqueue", func() { close(done) })
+	}()
+
+	// Wait for processing to complete
+	<-done
+
+	time.Sleep(50 * time.Millisecond)
+
+	t.Logf("recorded logs:")
+	for i, entry := range recorded.All() {
+		t.Logf("  [%d] %s: %s", i, entry.Level, entry.Message)
+	}
+
+	// Check for the "reaching maximum visibility window" log message
+	found := false
+	for _, entry := range recorded.All() {
+		if strings.Contains(entry.Message, "reaching maximum visibility window, extending to max and stopping") {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "expected 'reaching maximum visibility window' log message to be present")
+}
+
+func TestVisibilityExtensionContextCancellation(t *testing.T) {
+	defer fake.SetFakeConstructorForTest(t)()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
+
+	objectSet := map[string]map[string]string{
+		"mybucket": {
+			"mykey1": "line1\nline2\nline3",
+		},
+	}
+	fakeAWS.CreateObjects(t, objectSet)
+
+	// Set up zap observer
+	core, recorded := observer.New(zap.DebugLevel)
+	logger := zap.New(core)
+	set := componenttest.NewNopTelemetrySettings()
+	set.Logger = logger
+
+	sink := new(consumertest.LogsSink)
+	visibilityExtensionInterval := 1 * time.Millisecond
+	visibilityTimeout := 300 * time.Second
+	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
+
+	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+	require.NoError(t, err)
+	require.Len(t, msg.Messages, 1)
+
+	done := make(chan struct{})
+	go func() {
+		w.ProcessMessage(ctx, msg.Messages[0], "myqueue", func() { close(done) })
+	}()
+
+	// Cancel context after a short delay
+	time.Sleep(10 * time.Millisecond)
+	cancel()
+
+	// Wait for processing to complete
+	<-done
+
+	// Check for context cancellation log message
+	found := false
+	for _, entry := range recorded.All() {
+		if entry.Message == "visibility extension stopped due to context cancellation" {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "expected 'visibility extension stopped due to context cancellation' log message to be present")
+}
+
+func TestVisibilityExtensionErrorHandling(t *testing.T) {
+	ctx := context.Background()
+	mockSQS := &mocks.MockSQSClient{}
+	mockS3 := &mocks.MockS3Client{}
+	mockClient := &mocks.MockClient{}
+	mockClient.EXPECT().SQS().Return(mockSQS)
+	mockClient.EXPECT().S3().Return(mockS3)
+
+	// Provide a valid S3 event message
+	validS3Event := `{"Records":[{"eventName":"s3:ObjectCreated:Put","s3":{"bucket":{"name":"mybucket"},"object":{"key":"mykey1","size":15}}}]}`
+
+	mockSQS.EXPECT().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput)).Return(&sqs.ReceiveMessageOutput{
+		Messages: []types.Message{
+			{
+				Body:          aws.String(validS3Event),
+				MessageId:     aws.String("123"),
+				ReceiptHandle: aws.String("receipt-handle"),
+			},
+		},
+	}, nil)
+
+	// Mock S3 GetObject to return content after a delay
+	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ *s3.GetObjectInput, _ ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+		// Add a delay to simulate processing time and trigger visibility extension
+		time.Sleep(10 * time.Millisecond)
+		return &s3.GetObjectOutput{
+			Body: io.NopCloser(strings.NewReader("line1\nline2\nline3")),
+		}, nil
+	})
+
+	mockSQS.EXPECT().DeleteMessage(mock.Anything, mock.Anything).Return(&sqs.DeleteMessageOutput{}, nil)
+	mockSQS.EXPECT().ChangeMessageVisibility(mock.Anything, mock.Anything).Return(&sqs.ChangeMessageVisibilityOutput{}, errors.New("visibility extension error"))
+
+	// Set up zap observer
+	core, recorded := observer.New(zap.ErrorLevel)
+	logger := zap.New(core)
+	set := componenttest.NewNopTelemetrySettings()
+	set.Logger = logger
+
+	sink := new(consumertest.LogsSink)
+	visibilityExtensionInterval := 1 * time.Millisecond
+	visibilityTimeout := 300 * time.Second
+	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
+
+	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+	require.NoError(t, err)
+	require.Len(t, msg.Messages, 1)
+
+	// Process the message - this will take time due to S3 operations
+	done := make(chan struct{})
+	go func() {
+		w.ProcessMessage(ctx, msg.Messages[0], "myqueue", func() { close(done) })
+	}()
+	// Wait for processing to complete
+	<-done
+
+	// Add a small delay to allow visibility extension goroutine to finish logging
+	time.Sleep(50 * time.Millisecond)
+
+	t.Logf("recorded logs:")
+	for i, entry := range recorded.All() {
+		t.Logf("  [%d] %s: %s", i, entry.Level, entry.Message)
+	}
+
+	// Check for error log messages
+	errorMessages := []string{
+		"failed to extend message visibility",
+	}
+
+	for _, expectedMsg := range errorMessages {
+		found := false
+		for _, entry := range recorded.All() {
+			if strings.Contains(entry.Message, expectedMsg) {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "expected error message containing '%s' to be present", expectedMsg)
 	}
 }

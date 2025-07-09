@@ -10,19 +10,39 @@ The AWS S3 Event Receiver consumes S3 event notifications for object creation ev
 4. Non-object creation events are ignored but removed from the queue.
 5. If an S3 object is not found (404 error), the corresponding SQS message is preserved for retry later.
 
+## Visibility Extension Behavior
+
+The receiver implements a sophisticated visibility extension strategy to handle long-running processing:
+
+1. **Initial Visibility**: When a message is received, it becomes invisible for the duration specified by `visibility_timeout` (default: 5 minutes).
+
+2. **Regular Extensions**: The receiver extends the visibility window by `visibility_extension_interval` (default: 1 minute) before the current window expires.
+
+3. **Maximum Window**: Extensions stop when the total visibility time reaches `max_visibility_window` (default: 1 hour). SQS has a max window of 12 hours, and this allows the receiver to set a shorter maximum window.
+
+4. **Safety Margins**: The receiver always extends calls to extend the visibility window 80% of the way through the current window.  This helps prevent race conditions where the message may become visible before the window has been extended.
+
+This approach ensures that:
+
+- Messages remain invisible during processing
+- Long-running operations don't cause message expiration
+- Messages eventually become visible if processing takes too long
+- The system respects SQS's 12-hour visibility limit
 
 ## Configuration
 
-| Field                  | Type   | Default | Required | Description |
-|------------------------|--------|---------|----------|-------------|
-| sqs_queue_url          | string |         | `true`   | The URL of the SQS queue to poll for S3 event notifications (the AWS region is automatically extracted from this URL) |
-| standard_poll_interval | duration | 15s   | `false`  | The interval at which the SQS queue is polled for messages |
-| max_poll_interval      | duration | 120s   | `false`  | The maximum interval at which the SQS queue is polled for messages |
-| polling_backoff_factor | float    | 2     | `false`  | The factor by which the polling interval is multiplied after an unsuccessful poll |
-| workers                | int      | 5     | `false`  | The number of workers to process messages in parallel |
-| visibility_timeout     | duration | 300s  | `false`  | The visibility timeout for SQS messages |
-| max_log_size           | int      | 1048576  | `false`  | The maximum size of a log record in bytes. Logs exceeding this size will be split |
-| max_logs_emitted       | int      | 1000  | `false`  | The maximum number of log records to emit in a single batch. A higher number will result in fewer batches, but more memory |
+| Field                         | Type   | Default    | Required | Description |
+|-------------------------------|--------|------------|----------|-------------|
+| sqs_queue_url                 | string |            | `true`   | The URL of the SQS queue to poll for S3 event notifications (the AWS region is automatically extracted from this URL) |
+| standard_poll_interval        | duration | 15s      | `false`  | The interval at which the SQS queue is polled for messages |
+| max_poll_interval             | duration | 120s     | `false`  | The maximum interval at which the SQS queue is polled for messages |
+| polling_backoff_factor        | float    | 2        | `false`  | The factor by which the polling interval is multiplied after an unsuccessful poll |
+| workers                       | int      | 5        | `false`  | The number of workers to process messages in parallel |
+| visibility_timeout            | duration | 5m       | `false`  | The visibility timeout for SQS messages |
+| visibility_extension_interval | duration | 1m       | `false`  | How often to extend message visibility during processing. Should be less than visibility_timeout.  Minimum is 10s. |
+| max_visibility_window         | duration | 1h       | `false`  | Maximum total time a message can remain invisible before becoming visible to other consumers. Must be less than SQS's 12-hour limit |
+| max_log_size                  | int      | 1048576  | `false`  | The maximum size of a log record in bytes. Logs exceeding this size will be split |
+| max_logs_emitted              | int      | 1000     | `false`  | The maximum number of log records to emit in a single batch. A higher number will result in fewer batches, but more memory |
 
 ## AWS Setup
 
