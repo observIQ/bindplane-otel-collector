@@ -26,6 +26,7 @@ Below is a list of supported processors with links to their documentation pages.
 | Metric Stats Processor                  | [metricstatsprocessor](../processor/metricstatsprocessor/README.md)                                                                                                |
 | Metrics Transform Processor             | [metricstransformprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.129.0/processor/metricstransformprocessor/README.md)         |
 | Probabilistic Sampling Processor        | [probabilisticsamplerprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.129.0/processor/probabilisticsamplerprocessor/README.md) |
+| Random Failure Processor                | [randomfailureprocessor](../processor/randomfailureprocessor/README.md)                                                                                            |
 | Remove Empty Values Processor           | [removeemptyvaluesprocessor](../processor/removeemptyvaluesprocessor/README.md)                                                                                    |
 | Resource Attribute Transposer Processor | [resourceattributetransposerprocessor](../processor/resourceattributetransposerprocessor/README.md)                                                                |
 | Resource Detection Processor            | [resourcedetectionprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.129.0/processor/resourcedetectionprocessor/README.md)       |
