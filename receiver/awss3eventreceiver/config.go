@@ -101,7 +101,7 @@ func (c *Config) Validate() error {
 	}
 
 	if c.VisibilityExtensionInterval < 10*time.Second {
-		return errors.New("'visibility_extension_interval' must be greater than 5 seconds")
+		return errors.New("'visibility_extension_interval' must be greater than 10 seconds")
 	}
 
 	if c.MaxVisibilityWindow <= 0 {
