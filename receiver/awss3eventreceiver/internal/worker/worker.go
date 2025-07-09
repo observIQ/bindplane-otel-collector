@@ -293,7 +293,7 @@ func (w *Worker) deleteMessage(ctx context.Context, msg types.Message, queueURL 
 
 	// Delete the offsets for the keys that were processed
 	for _, key := range keys {
-		offsetStorageKey := fmt.Sprintf("%s.%s", OffsetStorageKey, key)
+		offsetStorageKey := fmt.Sprintf("%s_%s", OffsetStorageKey, key)
 		if err := w.offsetStorage.DeleteStorageData(ctx, offsetStorageKey); err != nil {
 			recordLogger.Error("Failed to delete offset", zap.Error(err), zap.String("offset_storage_key", offsetStorageKey))
 		}
