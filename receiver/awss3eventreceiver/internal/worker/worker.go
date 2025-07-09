@@ -350,7 +350,6 @@ func (w *Worker) extendToMaxAndStop(ctx context.Context, msg types.Message, queu
 	if err := w.extendVisibility(ctx, msg, queueURL, remainingTime, logger); err != nil {
 		logger.Error("failed to extend message visibility to max", zap.Error(err), zap.Duration("attempted_timeout", remainingTime))
 	}
-	logger.Info("extended message visibility to max")
 }
 
 func (w *Worker) extendVisibility(ctx context.Context, msg types.Message, queueURL string, timeout time.Duration, logger *zap.Logger) error {
@@ -364,6 +363,5 @@ func (w *Worker) extendVisibility(ctx context.Context, msg types.Message, queueU
 	if err != nil {
 		logger.Error("failed to extend message visibility", zap.Error(err), zap.Duration("timeout", timeout))
 	}
-	logger.Debug("extended message visibility", zap.Duration("timeout", timeout))
 	return err
 }
