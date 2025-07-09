@@ -209,7 +209,7 @@ func TestConfigValidate(t *testing.T) {
 				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 				cfg.VisibilityExtensionInterval = 4 * time.Second
 			},
-			expectedErr: "'visibility_extension_interval' must be greater than 5 seconds",
+			expectedErr: "'visibility_extension_interval' must be greater than 10 seconds",
 		},
 	}
 
