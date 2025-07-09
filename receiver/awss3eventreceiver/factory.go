@@ -45,9 +45,9 @@ func createDefaultConfig() component.Config {
 		StandardPollInterval:        15 * time.Second,
 		MaxPollInterval:             120 * time.Second,
 		PollingBackoffFactor:        2,
-		VisibilityTimeout:           300 * time.Second,
-		VisibilityExtensionInterval: 60 * time.Second,
-		MaxVisibilityWindow:         6 * time.Hour, // 6 hours max visibility window
+		VisibilityTimeout:           5 * time.Minute,
+		VisibilityExtensionInterval: 1 * time.Minute,
+		MaxVisibilityWindow:         1 * time.Hour,
 		Workers:                     5,
 		MaxLogSize:                  1024 * 1024,
 		MaxLogsEmitted:              1000,

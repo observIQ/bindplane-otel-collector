@@ -203,6 +203,14 @@ func TestConfigValidate(t *testing.T) {
 			},
 			expectedErr: "'max_visibility_window' must be less than or equal to 12 hours",
 		},
+		{
+			desc: "Visibility extension interval less than 10 seconds",
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.VisibilityExtensionInterval = 4 * time.Second
+			},
+			expectedErr: "'visibility_extension_interval' must be greater than 5 seconds",
+		},
 	}
 
 	for _, tc := range testCases {

@@ -49,6 +49,8 @@ type Config struct {
 	// VisibilityExtensionInterval defines how often to extend the visibility timeout
 	// of messages being processed. This should be less than the VisibilityTimeout
 	// to ensure messages don't become visible to other consumers while being processed.
+	// Default is 1 minute.
+	// Minimum is 10 seconds.
 	VisibilityExtensionInterval time.Duration `mapstructure:"visibility_extension_interval"`
 
 	// MaxVisibilityWindow defines the maximum total time a message can remain invisible
@@ -96,6 +98,10 @@ func (c *Config) Validate() error {
 
 	if c.VisibilityExtensionInterval > c.VisibilityTimeout {
 		return errors.New("'visibility_extension_interval' must be less than 'visibility_timeout'")
+	}
+
+	if c.VisibilityExtensionInterval < 10*time.Second {
+		return errors.New("'visibility_extension_interval' must be greater than 5 seconds")
 	}
 
 	if c.MaxVisibilityWindow <= 0 {

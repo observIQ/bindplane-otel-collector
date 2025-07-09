@@ -18,7 +18,7 @@ The receiver implements a sophisticated visibility extension strategy to handle 
 
 2. **Regular Extensions**: The receiver extends the visibility window by `visibility_extension_interval` (default: 1 minute) before the current window expires.
 
-3. **Maximum Window**: Extensions stop when the total visibility time reaches `max_visibility_window` (default: 6 hours). SQS has a max window of 12 hours, and this allows the receiver to set a shorter maximum window.
+3. **Maximum Window**: Extensions stop when the total visibility time reaches `max_visibility_window` (default: 1 hour). SQS has a max window of 12 hours, and this allows the receiver to set a shorter maximum window.
 
 4. **Safety Margins**: The receiver always extends calls to extend the visibility window 80% of the way through the current window.  This helps prevent race conditions where the message may become visible before the window has been extended.
 
@@ -38,9 +38,9 @@ This approach ensures that:
 | max_poll_interval             | duration | 120s     | `false`  | The maximum interval at which the SQS queue is polled for messages |
 | polling_backoff_factor        | float    | 2        | `false`  | The factor by which the polling interval is multiplied after an unsuccessful poll |
 | workers                       | int      | 5        | `false`  | The number of workers to process messages in parallel |
-| visibility_timeout            | duration | 300s     | `false`  | The visibility timeout for SQS messages |
-| visibility_extension_interval | duration | 60s      | `false`  | How often to extend message visibility during processing. Should be less than visibility_timeout |
-| max_visibility_window         | duration | 6h       | `false`  | Maximum total time a message can remain invisible before becoming visible to other consumers. Must be less than SQS's 12-hour limit |
+| visibility_timeout            | duration | 5m       | `false`  | The visibility timeout for SQS messages |
+| visibility_extension_interval | duration | 1m       | `false`  | How often to extend message visibility during processing. Should be less than visibility_timeout.  Minimum is 10s. |
+| max_visibility_window         | duration | 1h       | `false`  | Maximum total time a message can remain invisible before becoming visible to other consumers. Must be less than SQS's 12-hour limit |
 | max_log_size                  | int      | 1048576  | `false`  | The maximum size of a log record in bytes. Logs exceeding this size will be split |
 | max_logs_emitted              | int      | 1000     | `false`  | The maximum number of log records to emit in a single batch. A higher number will result in fewer batches, but more memory |
 

@@ -304,14 +304,12 @@ type visibilityMonitor struct {
 	maxVisibilityEndTime time.Time
 	visibilityTimeout    time.Duration
 	extensionInterval    time.Duration
-	safetyMargin         time.Duration
 	timer                *time.Timer
 }
 
 func newVisibilityMonitor(logger *zap.Logger, msg types.Message, visibilityTimeout, extensionInterval, maxVisibilityWindow time.Duration) *visibilityMonitor {
 	startTime := time.Now()
-	safetyMargin := extensionInterval * 80 / 100
-	firstExtensionTime := startTime.Add(visibilityTimeout - safetyMargin)
+	firstExtensionTime := startTime.Add(getSafetyMargin(visibilityTimeout))
 
 	return &visibilityMonitor{
 		logger:               logger,
@@ -320,9 +318,12 @@ func newVisibilityMonitor(logger *zap.Logger, msg types.Message, visibilityTimeo
 		maxVisibilityEndTime: startTime.Add(maxVisibilityWindow),
 		visibilityTimeout:    visibilityTimeout,
 		extensionInterval:    extensionInterval,
-		safetyMargin:         safetyMargin,
 		timer:                time.NewTimer(time.Until(firstExtensionTime)),
 	}
+}
+
+func getSafetyMargin(timeout time.Duration) time.Duration {
+	return timeout * 80 / 100 // 80% of the timeout
 }
 
 func (vm *visibilityMonitor) stop() {
@@ -339,7 +340,7 @@ func (vm *visibilityMonitor) shouldExtendToMax() bool {
 
 func (vm *visibilityMonitor) scheduleNextExtension() {
 	now := time.Now()
-	nextExtensionTime := now.Add(vm.extensionInterval - vm.safetyMargin)
+	nextExtensionTime := now.Add(getSafetyMargin(vm.extensionInterval))
 	vm.timer.Reset(time.Until(nextExtensionTime))
 }
 
