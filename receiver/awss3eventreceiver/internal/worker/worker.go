@@ -42,22 +42,29 @@ import (
 // It also handles deleting messages from the SQS queue after they have been processed.
 // It is designed to be used in a worker pool.
 type Worker struct {
-	tel            component.TelemetrySettings
-	client         client.Client
-	nextConsumer   consumer.Logs
-	maxLogSize     int
-	maxLogsEmitted int
+	logger                      *zap.Logger
+	tel                         component.TelemetrySettings
+	client                      client.Client
+	nextConsumer                consumer.Logs
+	maxLogSize                  int
+	maxLogsEmitted              int
+	visibilityTimeout           time.Duration
+	visibilityExtensionInterval time.Duration
+	maxVisibilityWindow         time.Duration
 }
 
 // New creates a new Worker
-func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.Logs, maxLogSize int, maxLogsEmitted int) *Worker {
-	client := client.NewClient(cfg)
+func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client client.Client, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration) *Worker {
 	return &Worker{
-		tel:            tel,
-		client:         client,
-		nextConsumer:   nextConsumer,
-		maxLogSize:     maxLogSize,
-		maxLogsEmitted: maxLogsEmitted,
+		logger:                      tel.Logger.With(zap.String("component", "awss3eventreceiver")),
+		tel:                         tel,
+		client:                      client,
+		nextConsumer:                nextConsumer,
+		maxLogSize:                  maxLogSize,
+		maxLogsEmitted:              maxLogsEmitted,
+		visibilityTimeout:           visibilityTimeout,
+		visibilityExtensionInterval: visibilityExtensionInterval,
+		maxVisibilityWindow:         maxVisibilityWindow,
 	}
 }
 
@@ -66,72 +73,73 @@ func New(tel component.TelemetrySettings, cfg aws.Config, nextConsumer consumer.
 func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL string, deferThis func()) {
 	defer deferThis()
 
-	w.tel.Logger.Debug("processing message", zap.String("message_id", *msg.MessageId), zap.String("body", *msg.Body))
+	logger := w.logger.With(zap.String("message_id", *msg.MessageId), zap.String("queue_url", queueURL))
+
+	// Start a goroutine to periodically extend message visibility
+	visibilityCtx, cancelVisibility := context.WithCancel(ctx)
+	defer cancelVisibility()
+
+	go w.extendMessageVisibility(visibilityCtx, msg, queueURL, logger)
 
 	notification := new(events.S3Event)
 	err := json.Unmarshal([]byte(*msg.Body), notification)
 	if err != nil {
 		w.tel.Logger.Error("unmarshal notification", zap.Error(err))
 		// We can delete messages with unmarshaling errors as they'll never succeed
-		w.deleteMessage(ctx, msg, queueURL)
+		w.deleteMessage(ctx, msg, queueURL, logger)
 		return
 	}
-	w.tel.Logger.Debug("processing notification", zap.Int("event.count", len(notification.Records)))
+	logger.Debug("processing notification", zap.Int("event.count", len(notification.Records)))
 
 	// Filter records to only include s3:ObjectCreated:* events
 	var objectCreatedRecords []events.S3EventRecord
 	for _, record := range notification.Records {
+		recordLogger := logger.With(zap.String("event_name", record.EventName),
+			zap.String("bucket", record.S3.Bucket.Name),
+			zap.String("key", record.S3.Object.Key))
 		// S3 UI shows the prefix as "s3:ObjectCreated:", but the event name is unmarshalled as "ObjectCreated:"
 		if strings.Contains(record.EventName, "ObjectCreated:") {
 			objectCreatedRecords = append(objectCreatedRecords, record)
 		} else {
-			w.tel.Logger.Warn("unexpected event: receiver handles only s3:ObjectCreated:* events",
-				zap.String("event_name", record.EventName),
-				zap.String("bucket", record.S3.Bucket.Name),
-				zap.String("key", record.S3.Object.Key))
+			recordLogger.Warn("unexpected event: receiver handles only s3:ObjectCreated:* events")
 		}
 	}
 
 	if len(objectCreatedRecords) == 0 {
-		w.tel.Logger.Debug("no s3:ObjectCreated:* events found in notification, skipping", zap.String("message_id", *msg.MessageId))
-		w.deleteMessage(ctx, msg, queueURL)
+		logger.Debug("no s3:ObjectCreated:* events found in notification, skipping")
+		w.deleteMessage(ctx, msg, queueURL, logger)
 		return
 	}
 
 	if len(objectCreatedRecords) > 1 {
-		w.tel.Logger.Warn("duplicate logs possible: multiple s3:ObjectCreated:* events found in notification",
-			zap.Int("event.count", len(objectCreatedRecords)),
-			zap.String("message_id", *msg.MessageId),
-		)
+		logger.Warn("duplicate logs possible: multiple s3:ObjectCreated:* events found in notification", zap.Int("event.count", len(objectCreatedRecords)))
 	}
 
 	for _, record := range objectCreatedRecords {
-		w.tel.Logger.Debug("processing record",
-			zap.String("bucket", record.S3.Bucket.Name),
-			zap.String("key", record.S3.Object.Key),
-		)
+		recordLogger := logger.With(zap.String("bucket", record.S3.Bucket.Name), zap.String("key", record.S3.Object.Key))
+		recordLogger.Debug("processing record")
 
-		if err := w.processRecord(ctx, record); err != nil {
-			w.tel.Logger.Error("error processing record, preserving message in SQS for retry", zap.Error(err), zap.String("bucket", record.S3.Bucket.Name), zap.String("key", record.S3.Object.Key), zap.String("message_id", *msg.MessageId))
+		if err := w.processRecord(ctx, record, recordLogger); err != nil {
+			recordLogger.Error("error processing record, preserving message in SQS for retry", zap.Error(err))
 			return
 		}
 	}
-	w.deleteMessage(ctx, msg, queueURL)
+	w.deleteMessage(ctx, msg, queueURL, logger)
 }
 
-func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord) error {
-	err := w.consumeLogsFromS3Object(ctx, record, true)
+func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord, recordLogger *zap.Logger) error {
+	err := w.consumeLogsFromS3Object(ctx, record, true, recordLogger)
 	if err != nil {
 		if errors.Is(err, ErrNotArrayOrKnownObject) {
 			// try again without attempting to parse as JSON
-			return w.consumeLogsFromS3Object(ctx, record, false)
+			return w.consumeLogsFromS3Object(ctx, record, false, recordLogger)
 		}
 		return err
 	}
 	return nil
 }
 
-func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3EventRecord, tryJSON bool) error {
+func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3EventRecord, tryJSON bool, recordLogger *zap.Logger) error {
 	bucket := record.S3.Bucket.Name
 	key := record.S3.Object.Key
 	size := record.S3.Object.Size
@@ -141,9 +149,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 		},
 	}
 
-	logger := w.tel.Logger.With(zap.String("bucket", bucket), zap.String("key", key), zap.String("region", record.AWSRegion))
-
-	logger.Debug("reading S3 object", zap.Int64("size", size))
+	recordLogger.Debug("reading S3 object", zap.Int64("size", size))
 
 	resp, err := w.client.S3().GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
@@ -162,7 +168,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 		contentType:     resp.ContentType,
 		body:            resp.Body,
 		maxLogSize:      w.maxLogSize,
-		logger:          w.tel.Logger,
+		logger:          recordLogger,
 		tryJSON:         tryJSON,
 	}
 
@@ -192,7 +198,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 
 	for log, err := range logs {
 		if err != nil {
-			logger.Error("parse log", zap.Error(err))
+			recordLogger.Error("parse log", zap.Error(err))
 			continue
 		}
 
@@ -203,17 +209,17 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 
 		err := parser.AppendLogBody(ctx, lr, log)
 		if err != nil {
-			logger.Error("append log body", zap.Error(err))
+			recordLogger.Error("append log body", zap.Error(err))
 			continue
 		}
 
 		if ld.LogRecordCount() >= w.maxLogsEmitted {
 			if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
-				logger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
+				recordLogger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
 				return fmt.Errorf("consume logs: %w", err)
 			}
 			batchesConsumedCount++
-			logger.Debug("Reached max logs for single batch, starting new batch", zap.Int("batches_consumed_count", batchesConsumedCount))
+			recordLogger.Debug("Reached max logs for single batch, starting new batch", zap.Int("batches_consumed_count", batchesConsumedCount))
 
 			ld = plog.NewLogs()
 			rls = ld.ResourceLogs().AppendEmpty()
@@ -228,22 +234,131 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	}
 
 	if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
-		logger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
+		recordLogger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
 		return fmt.Errorf("consume logs: %w", err)
 	}
-	logger.Debug("processed S3 object", zap.Int("batches_consumed_count", batchesConsumedCount+1))
+	recordLogger.Debug("processed S3 object", zap.Int("batches_consumed_count", batchesConsumedCount+1))
 	return nil
 }
 
-func (w *Worker) deleteMessage(ctx context.Context, msg types.Message, queueURL string) {
+func (w *Worker) deleteMessage(ctx context.Context, msg types.Message, queueURL string, recordLogger *zap.Logger) {
 	deleteParams := &sqs.DeleteMessageInput{
 		QueueUrl:      aws.String(queueURL),
 		ReceiptHandle: msg.ReceiptHandle,
 	}
 	_, err := w.client.SQS().DeleteMessage(ctx, deleteParams)
 	if err != nil {
-		w.tel.Logger.Error("delete message", zap.Error(err), zap.String("message_id", *msg.MessageId))
+		recordLogger.Error("delete message", zap.Error(err))
 		return
 	}
-	w.tel.Logger.Debug("deleted message", zap.String("message_id", *msg.MessageId))
+	recordLogger.Debug("deleted message")
+}
+
+func (w *Worker) extendMessageVisibility(ctx context.Context, msg types.Message, queueURL string, logger *zap.Logger) {
+	monitor := newVisibilityMonitor(logger, msg, w.visibilityTimeout, w.visibilityExtensionInterval, w.maxVisibilityWindow)
+	defer monitor.stop()
+
+	logger.Debug("starting visibility extension monitoring",
+		zap.Duration("initial_timeout", monitor.visibilityTimeout),
+		zap.Duration("extension_interval", monitor.extensionInterval),
+		zap.Duration("max_window", monitor.maxVisibilityEndTime.Sub(monitor.startTime)),
+		zap.Time("max_end_time", monitor.maxVisibilityEndTime))
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Debug("visibility extension stopped due to context cancellation")
+			return
+		case <-monitor.nextExtensionTimer():
+			if monitor.shouldExtendToMax() {
+				w.extendToMaxAndStop(ctx, msg, queueURL, monitor, logger)
+				return
+			}
+			if err := w.extendVisibility(ctx, msg, queueURL, w.visibilityExtensionInterval, logger); err != nil {
+				logger.Error("failed to extend message visibility", zap.Error(err), zap.Duration("attempted_timeout", w.visibilityExtensionInterval))
+				return
+			}
+			monitor.scheduleNextExtension(logger)
+		}
+	}
+}
+
+type visibilityMonitor struct {
+	logger               *zap.Logger
+	msg                  types.Message
+	startTime            time.Time
+	maxVisibilityEndTime time.Time
+	visibilityTimeout    time.Duration
+	extensionInterval    time.Duration
+	timer                *time.Timer
+}
+
+func newVisibilityMonitor(logger *zap.Logger, msg types.Message, visibilityTimeout, extensionInterval, maxVisibilityWindow time.Duration) *visibilityMonitor {
+	startTime := time.Now()
+	firstExtensionTime := startTime.Add(getSafetyMargin(visibilityTimeout))
+
+	return &visibilityMonitor{
+		logger:               logger.With(zap.String("message_id", *msg.MessageId)),
+		msg:                  msg,
+		startTime:            startTime,
+		maxVisibilityEndTime: startTime.Add(maxVisibilityWindow),
+		visibilityTimeout:    visibilityTimeout,
+		extensionInterval:    extensionInterval,
+		timer:                time.NewTimer(time.Until(firstExtensionTime)),
+	}
+}
+
+func getSafetyMargin(timeout time.Duration) time.Duration {
+	return timeout * 80 / 100 // 80% of the timeout
+}
+
+func (vm *visibilityMonitor) stop() {
+	vm.timer.Stop()
+}
+
+func (vm *visibilityMonitor) nextExtensionTimer() <-chan time.Time {
+	return vm.timer.C
+}
+
+func (vm *visibilityMonitor) shouldExtendToMax() bool {
+	return !time.Now().Add(vm.extensionInterval).Before(vm.maxVisibilityEndTime)
+}
+
+func (vm *visibilityMonitor) scheduleNextExtension(logger *zap.Logger) {
+	now := time.Now()
+	nextExtensionTime := now.Add(getSafetyMargin(vm.extensionInterval))
+	logger.Debug("resetting visibility extension timer", zap.Duration("extension_interval", vm.extensionInterval), zap.Time("next_extension_time", nextExtensionTime))
+	vm.timer.Reset(time.Until(nextExtensionTime))
+}
+
+func (vm *visibilityMonitor) getRemainingTime() time.Duration {
+	return time.Until(vm.maxVisibilityEndTime)
+}
+
+func (vm *visibilityMonitor) getTotalVisibilityTime() time.Duration {
+	return time.Since(vm.startTime)
+}
+
+func (w *Worker) extendToMaxAndStop(ctx context.Context, msg types.Message, queueURL string, monitor *visibilityMonitor, logger *zap.Logger) {
+	remainingTime := monitor.getRemainingTime()
+
+	logger.Info("reaching maximum visibility window, extending to max and stopping",
+		zap.Duration("total_visibility_time", monitor.getTotalVisibilityTime()),
+		zap.Duration("remaining_time", remainingTime),
+		zap.Duration("max_window", monitor.maxVisibilityEndTime.Sub(monitor.startTime)))
+
+	if err := w.extendVisibility(ctx, msg, queueURL, remainingTime, logger); err != nil {
+		logger.Error("failed to extend message visibility to max", zap.Error(err), zap.Duration("attempted_timeout", remainingTime))
+	}
+}
+
+func (w *Worker) extendVisibility(ctx context.Context, msg types.Message, queueURL string, timeout time.Duration, logger *zap.Logger) error {
+	changeParams := &sqs.ChangeMessageVisibilityInput{
+		QueueUrl:          aws.String(queueURL),
+		ReceiptHandle:     msg.ReceiptHandle,
+		VisibilityTimeout: int32(timeout.Seconds()),
+	}
+	logger.Debug("extending message visibility", zap.Duration("timeout", timeout))
+	_, err := w.client.SQS().ChangeMessageVisibility(ctx, changeParams)
+	return err
 }

@@ -46,6 +46,18 @@ type Config struct {
 	// be invisible to other consumers.
 	VisibilityTimeout time.Duration `mapstructure:"visibility_timeout"`
 
+	// VisibilityExtensionInterval defines how often to extend the visibility timeout
+	// of messages being processed. This should be less than the VisibilityTimeout
+	// to ensure messages don't become visible to other consumers while being processed.
+	// Default is 1 minute.
+	// Minimum is 10 seconds.
+	VisibilityExtensionInterval time.Duration `mapstructure:"visibility_extension_interval"`
+
+	// MaxVisibilityWindow defines the maximum total time a message can remain invisible
+	// before it becomes visible to other consumers. This prevents messages from being
+	// extended indefinitely. Must be less than or equal to SQS's 12-hour limit.
+	MaxVisibilityWindow time.Duration `mapstructure:"max_visibility_window"`
+
 	// MaxLogSize defines the maximum size in bytes for a single log record.
 	// Logs exceeding this size will be split into chunks.
 	// Default is 1MB.
@@ -78,6 +90,32 @@ func (c *Config) Validate() error {
 
 	if c.VisibilityTimeout <= 0 {
 		return errors.New("'visibility_timeout' must be greater than 0")
+	}
+
+	if c.VisibilityExtensionInterval <= 0 {
+		return errors.New("'visibility_extension_interval' must be greater than 0")
+	}
+
+	if c.VisibilityExtensionInterval > c.VisibilityTimeout {
+		return errors.New("'visibility_extension_interval' must be less than 'visibility_timeout'")
+	}
+
+	if c.VisibilityExtensionInterval < 10*time.Second {
+		return errors.New("'visibility_extension_interval' must be greater than 10 seconds")
+	}
+
+	if c.MaxVisibilityWindow <= 0 {
+		return errors.New("'max_visibility_window' must be greater than 0")
+	}
+
+	if c.MaxVisibilityWindow <= c.VisibilityTimeout {
+		return errors.New("'max_visibility_window' must be greater than 'visibility_timeout'")
+	}
+
+	// SQS has a 12-hour limit
+	maxAllowedWindow := 12 * time.Hour
+	if c.MaxVisibilityWindow > maxAllowedWindow {
+		return errors.New("'max_visibility_window' must be less than or equal to 12 hours")
 	}
 
 	if c.Workers <= 0 {

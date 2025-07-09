@@ -22,6 +22,8 @@ import (
 )
 
 // S3Client is the interface for the S3 client
+//
+//go:generate mockery --name S3Client --output ./mocks --with-expecter --filename mock_s3_client.go --structname MockS3Client
 type S3Client interface {
 	// GetObject retrieves an object from S3
 	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)

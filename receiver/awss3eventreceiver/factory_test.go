@@ -48,6 +48,8 @@ func TestFactoryCreateDefaultConfig(t *testing.T) {
 	assert.Equal(t, 120*time.Second, receiverCfg.MaxPollInterval)
 	assert.Equal(t, 2.0, receiverCfg.PollingBackoffFactor)
 	assert.Equal(t, 300*time.Second, receiverCfg.VisibilityTimeout)
+	assert.Equal(t, 60*time.Second, receiverCfg.VisibilityExtensionInterval)
+	assert.Equal(t, 1*time.Hour, receiverCfg.MaxVisibilityWindow)
 	assert.Equal(t, 1024*1024, receiverCfg.MaxLogSize)
 }
 

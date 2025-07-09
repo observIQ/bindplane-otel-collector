@@ -42,13 +42,15 @@ func NewFactory() receiver.Factory {
 // createDefaultConfig creates a default configuration
 func createDefaultConfig() component.Config {
 	return &Config{
-		StandardPollInterval: 15 * time.Second,
-		MaxPollInterval:      120 * time.Second,
-		PollingBackoffFactor: 2,
-		VisibilityTimeout:    300 * time.Second,
-		Workers:              5,
-		MaxLogSize:           1024 * 1024,
-		MaxLogsEmitted:       1000,
+		StandardPollInterval:        15 * time.Second,
+		MaxPollInterval:             120 * time.Second,
+		PollingBackoffFactor:        2,
+		VisibilityTimeout:           5 * time.Minute,
+		VisibilityExtensionInterval: 1 * time.Minute,
+		MaxVisibilityWindow:         1 * time.Hour,
+		Workers:                     5,
+		MaxLogSize:                  1024 * 1024,
+		MaxLogsEmitted:              1000,
 	}
 }
 
