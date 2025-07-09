@@ -467,7 +467,7 @@ func TestVisibilityExtensionLogs(t *testing.T) {
 	}, nil)
 
 	// Mock S3 GetObject to return content after a delay to trigger visibility extension
-	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ *s3.GetObjectInput, _ ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
 		// Add a delay to simulate processing time and trigger visibility extension
 		time.Sleep(10 * time.Millisecond)
 		return &s3.GetObjectOutput{
@@ -548,7 +548,7 @@ func TestExtendToMaxAndStop(t *testing.T) {
 	}, nil)
 
 	// Mock S3 GetObject to return content after a delay to trigger visibility extension
-	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ *s3.GetObjectInput, _ ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
 		// Add a delay to simulate processing time and trigger visibility extension
 		time.Sleep(100 * time.Millisecond)
 		return &s3.GetObjectOutput{
@@ -675,7 +675,7 @@ func TestVisibilityExtensionErrorHandling(t *testing.T) {
 	}, nil)
 
 	// Mock S3 GetObject to return content after a delay
-	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ *s3.GetObjectInput, _ ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
 		// Add a delay to simulate processing time and trigger visibility extension
 		time.Sleep(10 * time.Millisecond)
 		return &s3.GetObjectOutput{
