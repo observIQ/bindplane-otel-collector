@@ -220,6 +220,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/otelarrowexporter v0.129.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/avrologencodingextension v0.129.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension v0.129.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/redisstorageextension v0.129.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.129.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.129.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/githubreceiver v0.129.0
