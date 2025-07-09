@@ -183,7 +183,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	}
 
 	// Create the offset storage key for this object
-	offsetStorageKey := fmt.Sprintf("%s.%s", OffsetStorageKey, key)
+	offsetStorageKey := fmt.Sprintf("%s_%s", OffsetStorageKey, key)
 
 	// Load the offset from storage
 	offset := NewOffset(0)
@@ -192,6 +192,12 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 		return fmt.Errorf("load offset: %w", err)
 	}
 	startOffset := offset.Offset
+
+	if startOffset == 0 {
+		logger.Debug("no offset found, starting from beginning", zap.String("offset_storage_key", offsetStorageKey))
+	} else {
+		logger.Debug("loaded offset", zap.String("offset_storage_key", offsetStorageKey), zap.Int64("offset", startOffset))
+	}
 
 	reader, err := stream.BufferedReader(ctx)
 	if err != nil {

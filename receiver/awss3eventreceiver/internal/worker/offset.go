@@ -21,7 +21,7 @@ import (
 )
 
 // OffsetStorageKey is the key used to store offsets in the storage client made by this receiver type
-const OffsetStorageKey = "aws_s3_event_offset"
+const OffsetStorageKey = "_aws_s3_event_offset"
 
 // Offset is used to keep track of where in an S3 event stream the receiver has read
 type Offset struct {
