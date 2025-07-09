@@ -194,9 +194,9 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	startOffset := offset.Offset
 
 	if startOffset == 0 {
-		logger.Debug("no offset found, starting from beginning", zap.String("offset_storage_key", offsetStorageKey))
+		recordLogger.Debug("no offset found, starting from beginning", zap.String("offset_storage_key", offsetStorageKey))
 	} else {
-		logger.Debug("loaded offset", zap.String("offset_storage_key", offsetStorageKey), zap.Int64("offset", startOffset))
+		recordLogger.Debug("loaded offset", zap.String("offset_storage_key", offsetStorageKey), zap.Int64("offset", startOffset))
 	}
 
 	reader, err := stream.BufferedReader(ctx)
