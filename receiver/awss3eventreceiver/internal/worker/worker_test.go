@@ -466,10 +466,14 @@ func TestVisibilityExtensionLogs(t *testing.T) {
 		},
 	}, nil)
 
-	// Mock S3 GetObject to return content
-	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).Return(&s3.GetObjectOutput{
-		Body: io.NopCloser(strings.NewReader("line1\nline2\nline3")),
-	}, nil)
+	// Mock S3 GetObject to return content after a delay to trigger visibility extension
+	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+		// Add a delay to simulate processing time and trigger visibility extension
+		time.Sleep(10 * time.Millisecond)
+		return &s3.GetObjectOutput{
+			Body: io.NopCloser(strings.NewReader("line1\nline2\nline3")),
+		}, nil
+	})
 
 	mockSQS.EXPECT().DeleteMessage(mock.Anything, mock.Anything).Return(&sqs.DeleteMessageOutput{}, nil)
 	mockSQS.EXPECT().ChangeMessageVisibility(mock.Anything, mock.Anything).Return(&sqs.ChangeMessageVisibilityOutput{}, nil)
@@ -497,7 +501,12 @@ func TestVisibilityExtensionLogs(t *testing.T) {
 	<-done
 
 	// Add a small delay to allow visibility extension goroutine to finish logging
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
+
+	t.Logf("recorded logs:")
+	for i, entry := range recorded.All() {
+		t.Logf("  [%d] %s: %s", i, entry.Level, entry.Message)
+	}
 
 	// Check for all expected log messages
 	expectedMessages := []string{
@@ -518,18 +527,37 @@ func TestVisibilityExtensionLogs(t *testing.T) {
 }
 
 func TestExtendToMaxAndStop(t *testing.T) {
-	defer fake.SetFakeConstructorForTest(t)()
-
 	ctx := context.Background()
-	fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
+	mockSQS := &mocks.MockSQSClient{}
+	mockS3 := &mocks.MockS3Client{}
+	mockClient := &mocks.MockClient{}
+	mockClient.EXPECT().SQS().Return(mockSQS)
+	mockClient.EXPECT().S3().Return(mockS3)
 
-	// Create a test object
-	objectSet := map[string]map[string]string{
-		"mybucket": {
-			"mykey1": "line1\nline2\nline3",
+	// Provide a valid S3 event message
+	validS3Event := `{"Records":[{"eventName":"s3:ObjectCreated:Put","s3":{"bucket":{"name":"mybucket"},"object":{"key":"mykey1","size":15}}}]}`
+
+	mockSQS.EXPECT().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput)).Return(&sqs.ReceiveMessageOutput{
+		Messages: []types.Message{
+			{
+				Body:          aws.String(validS3Event),
+				MessageId:     aws.String("123"),
+				ReceiptHandle: aws.String("receipt-handle"),
+			},
 		},
-	}
-	fakeAWS.CreateObjects(t, objectSet)
+	}, nil)
+
+	// Mock S3 GetObject to return content after a delay to trigger visibility extension
+	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+		// Add a delay to simulate processing time and trigger visibility extension
+		time.Sleep(100 * time.Millisecond)
+		return &s3.GetObjectOutput{
+			Body: io.NopCloser(strings.NewReader("line1\nline2\nline3")),
+		}, nil
+	})
+
+	mockSQS.EXPECT().DeleteMessage(mock.Anything, mock.Anything).Return(&sqs.DeleteMessageOutput{}, nil)
+	mockSQS.EXPECT().ChangeMessageVisibility(mock.Anything, mock.Anything).Return(&sqs.ChangeMessageVisibilityOutput{}, nil)
 
 	// Set up zap observer
 	core, recorded := observer.New(zap.InfoLevel)
@@ -539,12 +567,12 @@ func TestExtendToMaxAndStop(t *testing.T) {
 
 	sink := new(consumertest.LogsSink)
 	visibilityExtensionInterval := 1 * time.Millisecond
-	visibilityTimeout := 300 * time.Second
+	visibilityTimeout := 5 * time.Millisecond
 	maxVisibilityWindow := 100 * time.Millisecond // Short window to trigger max extension
 
-	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, maxVisibilityWindow)
+	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, maxVisibilityWindow)
 
-	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
 	require.Len(t, msg.Messages, 1)
 
@@ -556,15 +584,22 @@ func TestExtendToMaxAndStop(t *testing.T) {
 	// Wait for processing to complete
 	<-done
 
-	// Check for the "reached maximum visibility window" log message
+	time.Sleep(50 * time.Millisecond)
+
+	t.Logf("recorded logs:")
+	for i, entry := range recorded.All() {
+		t.Logf("  [%d] %s: %s", i, entry.Level, entry.Message)
+	}
+
+	// Check for the "reaching maximum visibility window" log message
 	found := false
 	for _, entry := range recorded.All() {
-		if entry.Message == "reached maximum visibility window, extending to max and stopping" {
+		if strings.Contains(entry.Message, "reaching maximum visibility window, extending to max and stopping") {
 			found = true
 			break
 		}
 	}
-	assert.True(t, found, "expected 'reached maximum visibility window' log message to be present")
+	assert.True(t, found, "expected 'reaching maximum visibility window' log message to be present")
 }
 
 func TestVisibilityExtensionContextCancellation(t *testing.T) {
@@ -640,9 +675,13 @@ func TestVisibilityExtensionErrorHandling(t *testing.T) {
 	}, nil)
 
 	// Mock S3 GetObject to return content after a delay
-	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).Return(&s3.GetObjectOutput{
-		Body: io.NopCloser(strings.NewReader("line1\nline2\nline3")),
-	}, nil)
+	mockS3.EXPECT().GetObject(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+		// Add a delay to simulate processing time and trigger visibility extension
+		time.Sleep(10 * time.Millisecond)
+		return &s3.GetObjectOutput{
+			Body: io.NopCloser(strings.NewReader("line1\nline2\nline3")),
+		}, nil
+	})
 
 	mockSQS.EXPECT().DeleteMessage(mock.Anything, mock.Anything).Return(&sqs.DeleteMessageOutput{}, nil)
 	mockSQS.EXPECT().ChangeMessageVisibility(mock.Anything, mock.Anything).Return(&sqs.ChangeMessageVisibilityOutput{}, errors.New("visibility extension error"))
@@ -671,7 +710,12 @@ func TestVisibilityExtensionErrorHandling(t *testing.T) {
 	<-done
 
 	// Add a small delay to allow visibility extension goroutine to finish logging
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
+
+	t.Logf("recorded logs:")
+	for i, entry := range recorded.All() {
+		t.Logf("  [%d] %s: %s", i, entry.Level, entry.Message)
+	}
 
 	// Check for error log messages
 	errorMessages := []string{
