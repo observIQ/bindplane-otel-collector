@@ -122,11 +122,11 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 			continue
 		}
 
-		if w.bucketNameFilter != nil && w.bucketNameFilter.MatchString(record.S3.Bucket.Name) {
+		if w.bucketNameFilter != nil && !w.bucketNameFilter.MatchString(record.S3.Bucket.Name) {
 			recordLogger.Debug("skipping record due to bucket name filter", zap.String("bucket", record.S3.Bucket.Name))
 			continue
 		}
-		if w.objectKeyFilter != nil && w.objectKeyFilter.MatchString(record.S3.Object.Key) {
+		if w.objectKeyFilter != nil && !w.objectKeyFilter.MatchString(record.S3.Object.Key) {
 			recordLogger.Debug("skipping record due to object key filter", zap.String("key", record.S3.Object.Key))
 			continue
 		}

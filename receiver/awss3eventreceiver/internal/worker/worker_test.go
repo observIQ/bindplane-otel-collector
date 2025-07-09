@@ -776,7 +776,7 @@ func TestProcessMessageWithFilters(t *testing.T) {
 					},
 				},
 			},
-			expectLines:      0,
+			expectLines:      1,
 			bucketNameFilter: regexp.MustCompile("myb.*et"),
 		},
 		{
@@ -788,7 +788,7 @@ func TestProcessMessageWithFilters(t *testing.T) {
 					},
 				},
 			},
-			expectLines:     0,
+			expectLines:     1,
 			objectKeyFilter: regexp.MustCompile(".*key1"),
 		},
 		{
@@ -800,7 +800,7 @@ func TestProcessMessageWithFilters(t *testing.T) {
 					},
 				},
 			},
-			expectLines:      1,
+			expectLines:      0,
 			bucketNameFilter: regexp.MustCompile("^.*[xyz]+$"),
 		},
 		{
@@ -812,7 +812,7 @@ func TestProcessMessageWithFilters(t *testing.T) {
 					},
 				},
 			},
-			expectLines:     1,
+			expectLines:     0,
 			objectKeyFilter: regexp.MustCompile("^.*[xyz]+$"),
 		},
 		{
@@ -824,20 +824,20 @@ func TestProcessMessageWithFilters(t *testing.T) {
 					},
 				},
 			},
-			expectLines:      1,
+			expectLines:      0,
 			bucketNameFilter: regexp.MustCompile("^.*[xyz]+$"),
 			objectKeyFilter:  regexp.MustCompile("^.*[xyz]+$"),
 		},
 		{
 			name:             "parses as JSON and creates 4 log lines from a JSON array in Records",
 			objectSets:       logsFromFile(t, "testdata/logs_array_in_records.json"),
-			expectLines:      0,
+			expectLines:      4,
 			bucketNameFilter: regexp.MustCompile("bucket"),
 		},
 		{
 			name:             "parses as JSON, bucket filter, no match",
 			objectSets:       logsFromFile(t, "testdata/logs_array_in_records.json"),
-			expectLines:      4,
+			expectLines:      0,
 			bucketNameFilter: regexp.MustCompile("^.*[xz]+$"),
 		},
 		{
@@ -848,7 +848,7 @@ func TestProcessMessageWithFilters(t *testing.T) {
 		{
 			name:             "attempts to parse as JSON, but fails and creates 294 log lines from text, bucket filter",
 			objectSets:       logsFromFile(t, "testdata/logs_array_in_records_after_limit.json"),
-			expectLines:      0,
+			expectLines:      294,
 			bucketNameFilter: regexp.MustCompile("^mybucket$"),
 		},
 		{
@@ -860,32 +860,32 @@ func TestProcessMessageWithFilters(t *testing.T) {
 		{
 			name:            "attempts to parse as JSON, but fails and creates 294 log lines from text, object key filters",
 			objectSets:      logsFromFile(t, "testdata/logs_array_in_records_after_limit.json"),
-			expectLines:     0,
+			expectLines:     294,
 			objectKeyFilter: regexp.MustCompile("testdata/logs_array_in_records_after_limit.json"),
 		},
 
 		{
 			name:             "does not attempt to parse as JSON and creates 4 log lines from text, bucket filter",
 			objectSets:       logsFromFile(t, "testdata/json_lines.txt"),
-			expectLines:      0,
+			expectLines:      4,
 			bucketNameFilter: regexp.MustCompile("^mybucket$"),
 		},
 		{
 			name:             "does not attempt to parse as JSON and creates 4 log lines from text, bucket filter, no match",
 			objectSets:       logsFromFile(t, "testdata/json_lines.txt"),
-			expectLines:      4,
+			expectLines:      0,
 			bucketNameFilter: regexp.MustCompile("^.*[xyz]+$"),
 		},
 		{
 			name:            "does not attempt to parse as JSON and creates 4 log lines from text, object key filter",
 			objectSets:      logsFromFile(t, "testdata/json_lines.txt"),
-			expectLines:     0,
+			expectLines:     4,
 			objectKeyFilter: regexp.MustCompile("testdata/json_lines.txt"),
 		},
 		{
 			name:            "does not attempt to parse as JSON and creates 4 log lines from text, object key filter, no match",
 			objectSets:      logsFromFile(t, "testdata/json_lines.txt"),
-			expectLines:     4,
+			expectLines:     0,
 			objectKeyFilter: regexp.MustCompile("^.*[xyz]+$"),
 		},
 	}
