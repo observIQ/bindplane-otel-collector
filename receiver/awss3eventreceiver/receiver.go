@@ -17,6 +17,7 @@ package awss3eventreceiver // import "github.com/observiq/bindplane-otel-collect
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"sync"
 	"time"
 
@@ -72,6 +73,24 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 		return nil, fmt.Errorf("failed to create AWS config: %w", err)
 	}
 
+	var bucketNameFilter *regexp.Regexp
+	if cfg.BucketNameFilter != "" {
+		bucketNameFilter, err = regexp.Compile(cfg.BucketNameFilter)
+		if err != nil {
+			// config validation should have already caught this
+			return nil, fmt.Errorf("failed to compile regex filter: %w", err)
+		}
+	}
+
+	var objectKeyFilter *regexp.Regexp
+	if cfg.ObjectKeyFilter != "" {
+		objectKeyFilter, err = regexp.Compile(cfg.ObjectKeyFilter)
+		if err != nil {
+			// config validation should have already caught this
+			return nil, fmt.Errorf("failed to compile regex filter: %w", err)
+		}
+	}
+
 	return &logsReceiver{
 		id:        id,
 		cfg:       cfg,
@@ -81,7 +100,7 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 		sqsClient: client.NewClient(awsConfig).SQS(),
 		workerPool: sync.Pool{
 			New: func() any {
-				return worker.New(tel, next, client.NewClient(awsConfig), cfg.MaxLogSize, cfg.MaxLogsEmitted, cfg.VisibilityTimeout, cfg.VisibilityExtensionInterval, cfg.MaxVisibilityWindow, tb)
+				return worker.New(tel, next, client.NewClient(awsConfig), cfg.MaxLogSize, cfg.MaxLogsEmitted, cfg.VisibilityTimeout, cfg.VisibilityExtensionInterval, cfg.MaxVisibilityWindow, tb, bucketNameFilter, objectKeyFilter)
 			},
 		},
 		offsetStorage: storageclient.NewNopStorage(),

@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -55,10 +56,12 @@ type Worker struct {
 	visibilityExtensionInterval time.Duration
 	maxVisibilityWindow         time.Duration
 	metrics                     *metadata.TelemetryBuilder
+	bucketNameFilter            *regexp.Regexp
+	objectKeyFilter             *regexp.Regexp
 }
 
 // New creates a new Worker
-func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client client.Client, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration, tb *metadata.TelemetryBuilder) *Worker {
+func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client client.Client, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration, tb *metadata.TelemetryBuilder, bucketNameFilter *regexp.Regexp, objectKeyFilter *regexp.Regexp) *Worker {
 	return &Worker{
 		logger:                      tel.Logger.With(zap.String("component", "awss3eventreceiver")),
 		tel:                         tel,
@@ -71,6 +74,8 @@ func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client cli
 		visibilityExtensionInterval: visibilityExtensionInterval,
 		maxVisibilityWindow:         maxVisibilityWindow,
 		metrics:                     tb,
+		bucketNameFilter:            bucketNameFilter,
+		objectKeyFilter:             objectKeyFilter,
 	}
 }
 
@@ -109,15 +114,27 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 			zap.String("bucket", record.S3.Bucket.Name),
 			zap.String("key", record.S3.Object.Key))
 		// S3 UI shows the prefix as "s3:ObjectCreated:", but the event name is unmarshalled as "ObjectCreated:"
-		if strings.Contains(record.EventName, "ObjectCreated:") {
-			objectCreatedRecords = append(objectCreatedRecords, record)
-		} else {
-			recordLogger.Warn("unexpected event: receiver handles only s3:ObjectCreated:* events")
+		if !strings.Contains(record.EventName, "ObjectCreated:") {
+			recordLogger.Warn("unexpected event: receiver handles only s3:ObjectCreated:* events",
+				zap.String("event_name", record.EventName),
+				zap.String("bucket", record.S3.Bucket.Name),
+				zap.String("key", record.S3.Object.Key))
+			continue
 		}
+
+		if w.bucketNameFilter != nil && w.bucketNameFilter.MatchString(record.S3.Bucket.Name) {
+			recordLogger.Debug("skipping record due to bucket name filter", zap.String("bucket", record.S3.Bucket.Name))
+			continue
+		}
+		if w.objectKeyFilter != nil && w.objectKeyFilter.MatchString(record.S3.Object.Key) {
+			recordLogger.Debug("skipping record due to object key filter", zap.String("key", record.S3.Object.Key))
+			continue
+		}
+		objectCreatedRecords = append(objectCreatedRecords, record)
 	}
 
 	if len(objectCreatedRecords) == 0 {
-		logger.Debug("no s3:ObjectCreated:* events found in notification, skipping")
+		logger.Debug("no s3:ObjectCreated:* events passed filters, skipping", zap.String("message_id", *msg.MessageId))
 		w.deleteMessage(ctx, msg, queueURL, []string{}, logger)
 		return
 	}

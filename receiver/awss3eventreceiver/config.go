@@ -16,6 +16,8 @@ package awss3eventreceiver // import "github.com/observiq/bindplane-otel-collect
 
 import (
 	"errors"
+	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
@@ -72,6 +74,12 @@ type Config struct {
 
 	// StorageID is the ID of the storage extension to use for storing the offset.
 	StorageID *component.ID `mapstructure:"storage"`
+
+	// BucketNameFilter is a regex filter to apply to the S3 bucket name.
+	BucketNameFilter string `mapstructure:"bucket_name_filter"`
+
+	// ObjectKeyFilter is a regex filter to apply to the S3 object key.
+	ObjectKeyFilter string `mapstructure:"object_key_filter"`
 }
 
 // Validate checks if all required fields are present and valid.
@@ -132,6 +140,20 @@ func (c *Config) Validate() error {
 
 	if _, err := client.ParseRegionFromSQSURL(c.SQSQueueURL); err != nil {
 		return err
+	}
+
+	if c.BucketNameFilter != "" {
+		_, err := regexp.Compile(c.BucketNameFilter)
+		if err != nil {
+			return fmt.Errorf("'bucket_name_filter' %q is invalid: %w", c.BucketNameFilter, err)
+		}
+	}
+
+	if c.ObjectKeyFilter != "" {
+		_, err := regexp.Compile(c.ObjectKeyFilter)
+		if err != nil {
+			return fmt.Errorf("'object_key_filter' %q is invalid: %w", c.ObjectKeyFilter, err)
+		}
 	}
 
 	return nil
