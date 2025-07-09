@@ -92,7 +92,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	notification := new(events.S3Event)
 	err := json.Unmarshal([]byte(*msg.Body), notification)
 	if err != nil {
-		w.tel.Logger.Error("unmarshal notification", zap.Error(err))
+		logger.Error("unmarshal notification", zap.Error(err))
 		// We can delete messages with unmarshaling errors as they'll never succeed
 		w.deleteMessage(ctx, msg, queueURL, []string{}, logger)
 		return
@@ -295,7 +295,7 @@ func (w *Worker) deleteMessage(ctx context.Context, msg types.Message, queueURL 
 	for _, key := range keys {
 		offsetStorageKey := fmt.Sprintf("%s.%s", OffsetStorageKey, key)
 		if err := w.offsetStorage.DeleteStorageData(ctx, offsetStorageKey); err != nil {
-			w.tel.Logger.Error("Failed to delete offset", zap.Error(err), zap.String("offset_storage_key", offsetStorageKey))
+			recordLogger.Error("Failed to delete offset", zap.Error(err), zap.String("offset_storage_key", offsetStorageKey))
 		}
 	}
 }
