@@ -360,8 +360,5 @@ func (w *Worker) extendVisibility(ctx context.Context, msg types.Message, queueU
 	}
 	logger.Debug("extending message visibility", zap.Duration("timeout", timeout))
 	_, err := w.client.SQS().ChangeMessageVisibility(ctx, changeParams)
-	if err != nil {
-		logger.Error("failed to extend message visibility", zap.Error(err), zap.Duration("timeout", timeout))
-	}
 	return err
 }
