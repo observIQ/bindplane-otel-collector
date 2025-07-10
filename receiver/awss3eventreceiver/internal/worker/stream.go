@@ -15,7 +15,6 @@
 package worker
 
 import (
-	"bufio"
 	"compress/gzip"
 	"context"
 	"fmt"
@@ -25,40 +24,43 @@ import (
 	"go.uber.org/zap"
 )
 
-type logStream struct {
-	name            string
-	contentEncoding *string
-	contentType     *string
-	body            io.ReadCloser
-	maxLogSize      int
-	logger          *zap.Logger
-	tryJSON         bool
+// LogStream is a struct containing the information about a stream of logs.
+type LogStream struct {
+	Name            string
+	ContentEncoding *string
+	ContentType     *string
+	Body            io.ReadCloser
+	MaxLogSize      int
+	Logger          *zap.Logger
+	TryJSON         bool
 }
 
-func (stream *logStream) BufferedReader(_ context.Context) (reader *bufio.Reader, err error) {
+// BufferedReader returns a BufferedReader for the log stream. If the content is gzipped
+// (content-encoding: gzip or ends with .gz), it will be decompressed.
+func (stream *LogStream) BufferedReader(_ context.Context) (BufferedReader, error) {
 	// Check if content is gzipped and decompress if needed
-	if stream.contentEncoding != nil {
-		switch *stream.contentEncoding {
+	if stream.ContentEncoding != nil {
+		switch *stream.ContentEncoding {
 		case "gzip":
-			gzipReader, err := gzip.NewReader(stream.body)
+			gzipReader, err := gzip.NewReader(stream.Body)
 			if err != nil {
 				return nil, fmt.Errorf("create gzip reader: %w", err)
 			}
-			return bufio.NewReaderSize(gzipReader, stream.maxLogSize), nil
+			return NewBufferedReader(gzipReader, stream.MaxLogSize), nil
 
 		default:
-			stream.logger.Warn("unsupported content encoding", zap.String("content_encoding", *stream.contentEncoding))
-			return bufio.NewReaderSize(stream.body, stream.maxLogSize), nil
+			stream.Logger.Warn("unsupported content encoding", zap.String("content_encoding", *stream.ContentEncoding))
+			return NewBufferedReader(stream.Body, stream.MaxLogSize), nil
 		}
 	}
 
-	if strings.HasSuffix(stream.name, ".gz") {
-		gzipReader, err := gzip.NewReader(stream.body)
+	if strings.HasSuffix(stream.Name, ".gz") {
+		gzipReader, err := gzip.NewReader(stream.Body)
 		if err != nil {
 			return nil, fmt.Errorf("create gzip reader: %w", err)
 		}
-		return bufio.NewReaderSize(gzipReader, stream.maxLogSize), nil
+		return NewBufferedReader(gzipReader, stream.MaxLogSize), nil
 	}
 
-	return bufio.NewReaderSize(stream.body, stream.maxLogSize), nil
+	return NewBufferedReader(stream.Body, stream.MaxLogSize), nil
 }

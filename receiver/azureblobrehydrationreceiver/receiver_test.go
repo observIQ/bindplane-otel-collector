@@ -34,6 +34,7 @@ import (
 	"go.uber.org/zap/zaptest/observer"
 
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
+	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 	"github.com/observiq/bindplane-otel-collector/internal/testutils"
 	"github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver/internal/azureblob"
 	blobmocks "github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver/internal/azureblob/mocks"
@@ -521,7 +522,7 @@ func TestLogsDeprecationWarnings(t *testing.T) {
 		errChan:         make(chan error),
 		doneChan:        make(chan struct{}),
 		mut:             &sync.Mutex{},
-		checkpointStore: rehydration.NewNopStorage(),
+		checkpointStore: storageclient.NewNopStorage(),
 	}
 	mockClient.On("StreamBlobs", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
 		close(r.doneChan)

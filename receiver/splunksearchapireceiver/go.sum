@@ -80,6 +80,8 @@ github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9G
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage v0.129.0 h1:ubTSai54JpUcP9T6Kpq000KE5PQs0ZJd75Rs/QKtD0o=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage v0.129.0/go.mod h1:q2BKv1ZehdjQoN5D+iTq1h3P80JLSQd/Gn7yH0divP0=
+github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.129.0 h1:jU7pxlFAibbaT53t+d9CeV/er4BdVR9LgWclvJERuYE=
+github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.129.0/go.mod h1:WnY88vtCW4o+G+++bIV48IE17/mgAxOlm+WLS/M/Ig4=
 github.com/open-telemetry/opentelemetry-collector-contrib/internal/common v0.129.0 h1:oM7A/qZBgALjdsIaxsq35Czi09ufqhqIuhwT+Yu/lqY=
 github.com/open-telemetry/opentelemetry-collector-contrib/internal/common v0.129.0/go.mod h1:7LPAdyC0Sfe3Cg+edlUL3wv2C9Vai3i6GAAOJTKLMIg=
 github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.129.0 h1:qwuUfLK8ukEHcoq8CK9HFvnBcOmxNxfMtLkuKN8texM=
@@ -104,6 +106,8 @@ github.com/valyala/fastjson v1.6.4 h1:uAUNq9Z6ymTgGhcm0UynUAB6tlbakBrz6CQFax3BXV
 github.com/valyala/fastjson v1.6.4/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLrsQns1aXY=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
+go.etcd.io/bbolt v1.4.1 h1:5mOV+HWjIPLEAlUGMsveaUvK2+byZMFOzojoi7bh7uI=
+go.etcd.io/bbolt v1.4.1/go.mod h1:c8zu2BnXWTu2XM4XcICtbGSl9cFwsXtcf9zLt2OncM8=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
 go.opentelemetry.io/auto/sdk v1.1.0/go.mod h1:3wSPjt5PWp2RhlCcmmOial7AvC4DQqZb7a7wCow3W8A=
 go.opentelemetry.io/collector/client v1.35.0 h1:0nLRdQKFpxGZp5XkYZoZwIc03+cBqzA8lIakxnQSGwE=
