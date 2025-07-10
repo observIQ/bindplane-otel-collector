@@ -198,7 +198,7 @@ func TestReceiver(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := t.Context()
 			fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
 
 			var numObjects int
@@ -253,7 +253,7 @@ func TestReceiver(t *testing.T) {
 func TestManyObjects(t *testing.T) {
 	defer fake.SetFakeConstructorForTest(t)()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
 
 	numBuckets := 10
