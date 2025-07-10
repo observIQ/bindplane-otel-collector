@@ -8,3 +8,31 @@
 | ---- | ----------- | ------ | ------- |
 | aws.s3.bucket | The name of the S3 bucket containing the processed object | Any Str | true |
 | aws.s3.key | The key of the S3 object that was processed | Any Str | true |
+
+## Internal Telemetry
+
+The following telemetry is emitted by this component.
+
+### otelcol_s3event.batch_size
+
+The number of logs in a batch.
+
+| Unit | Metric Type | Value Type |
+| ---- | ----------- | ---------- |
+| {logs} | Histogram | Int |
+
+### otelcol_s3event.failures
+
+The number of failures encountered while processing S3 objects
+
+| Unit | Metric Type | Value Type | Monotonic |
+| ---- | ----------- | ---------- | --------- |
+| {failures} | Sum | Int | true |
+
+### otelcol_s3event.objects_handled
+
+The number of S3 objects processed by the receiver
+
+| Unit | Metric Type | Value Type | Monotonic |
+| ---- | ----------- | ---------- | --------- |
+| {objects} | Sum | Int | true |

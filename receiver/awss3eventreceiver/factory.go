@@ -56,6 +56,10 @@ func createDefaultConfig() component.Config {
 
 // createLogsReceiver creates a logs receiver
 func createLogsReceiver(_ context.Context, params receiver.Settings, conf component.Config, con consumer.Logs) (receiver.Logs, error) {
+	t, err := metadata.NewTelemetryBuilder(params.TelemetrySettings)
+	if err != nil {
+		return nil, fmt.Errorf("create telemetry builder: %w", err)
+	}
 	cfg, ok := conf.(*Config)
 	if !ok {
 		return nil, errImproperCfgType
@@ -65,5 +69,5 @@ func createLogsReceiver(_ context.Context, params receiver.Settings, conf compon
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
 
-	return newLogsReceiver(params.ID, params.TelemetrySettings, cfg, con)
+	return newLogsReceiver(params.ID, params.TelemetrySettings, cfg, con, t)
 }
