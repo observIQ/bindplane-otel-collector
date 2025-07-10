@@ -30,6 +30,9 @@ func SetFeatureFlags() error {
 	}
 	if err := featuregate.GlobalRegistry().Set("filelog.mtimeSortType", true); err != nil {
 		return fmt.Errorf("failed to enable filelog.mtimeSortType: %w", err)
+	}\
+	if err := featuregate.GlobalRegistry().Set("receiver.kafkareceiver.UseFranzGo", true); err != nil {
+		return fmt.Errorf("failed to enable receiver.kafkareceiver.UseFranzGo: %w", err)
 	}
 
 	return nil
