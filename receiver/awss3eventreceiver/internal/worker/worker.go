@@ -137,6 +137,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 			return
 		}
 		keys = append(keys, record.S3.Object.Key)
+		w.metrics.S3eventObjectsHandled.Add(ctx, 1)
 	}
 	w.deleteMessage(ctx, msg, queueURL, keys, logger)
 }

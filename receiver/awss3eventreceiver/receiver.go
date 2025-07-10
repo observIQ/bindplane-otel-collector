@@ -188,7 +188,6 @@ func (r *logsReceiver) poll(ctx context.Context, deferThis func()) {
 		case <-ticker.C:
 			numMessages := r.receiveMessages(ctx)
 			r.telemetry.Logger.Debug(fmt.Sprintf("received %d messages", numMessages))
-			r.metrics.S3eventObjectsHandled.Add(ctx, int64(numMessages))
 			ticker.Reset(nextInterval.Update(numMessages))
 		}
 	}
