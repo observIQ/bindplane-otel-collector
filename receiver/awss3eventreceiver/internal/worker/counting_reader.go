@@ -12,20 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package rehydration //import "github.com/observiq/bindplane-otel-collector/internal/rehydration"
+package worker
 
-import (
-	"context"
-	"testing"
+import "io"
 
-	"github.com/stretchr/testify/require"
-)
+// countingReader is a reader that counts the number of bytes read.
+type countingReader struct {
+	reader io.Reader
+	offset int64
+}
 
-func TestNopStorage(t *testing.T) {
-	storage := NewNopStorage()
-	require.NoError(t, storage.SaveCheckpoint(context.Background(), "key", &CheckPoint{}))
+// Offset returns the number of bytes read.
+func (r *countingReader) Offset() int64 {
+	return r.offset
+}
 
-	checkpoint, err := storage.LoadCheckPoint(context.Background(), "key")
-	require.Equal(t, &CheckPoint{}, checkpoint)
-	require.NoError(t, err)
+// Read reads the given number of bytes and updates the offset.
+func (r *countingReader) Read(p []byte) (n int, err error) {
+	n, err = r.reader.Read(p)
+	r.offset += int64(n)
+	return n, err
 }
