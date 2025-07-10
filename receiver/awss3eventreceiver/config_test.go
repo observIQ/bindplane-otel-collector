@@ -67,22 +67,25 @@ func TestLoadConfig(t *testing.T) {
 				Workers:                     5,
 				MaxLogSize:                  4096,
 				MaxLogsEmitted:              1000,
-				SNSMessageFormat:     nil,  // Not set for s3 mode
+				NotificationType:            "s3",
+				SNSMessageFormat:            nil, // Not set for s3 mode
 			},
 			expectError: false,
 		},
 		{
 			id: component.NewIDWithName(metadata.Type, "sns"),
 			expected: &awss3eventreceiver.Config{
-				SQSQueueURL:          "https://sqs.us-east-1.amazonaws.com/123456789012/sns-test-queue",
-				StandardPollInterval: 15 * time.Second, // Default values
-				MaxPollInterval:      120 * time.Second,
-				PollingBackoffFactor: 2,
-				VisibilityTimeout:    300 * time.Second,
-				Workers:              5,
-				MaxLogSize:           1048576,
-				MaxLogsEmitted:       1000,
-				NotificationType:     "sns",
+				SQSQueueURL:                 "https://sqs.us-east-1.amazonaws.com/123456789012/sns-test-queue",
+				StandardPollInterval:        30 * time.Second,
+				MaxPollInterval:             60 * time.Second,
+				PollingBackoffFactor:        2,
+				VisibilityTimeout:           600 * time.Second,
+				VisibilityExtensionInterval: 60 * time.Second,
+				MaxVisibilityWindow:         4 * time.Hour,
+				Workers:                     5,
+				MaxLogSize:                  4096,
+				MaxLogsEmitted:              1000,
+				NotificationType:            "sns",
 				SNSMessageFormat: &awss3eventreceiver.SNSMessageFormat{
 					MessageField: "Message",
 					Format:       "standard",
@@ -256,7 +259,7 @@ func TestConfigValidate(t *testing.T) {
 				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 				cfg.NotificationType = "sns"
 				cfg.SNSMessageFormat = &awss3eventreceiver.SNSMessageFormat{
-					Format: "standard",
+					Format:       "standard",
 					MessageField: "Message",
 				}
 			},
