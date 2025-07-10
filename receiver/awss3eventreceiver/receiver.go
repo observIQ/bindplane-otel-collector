@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -74,7 +75,7 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 	}
 
 	var bucketNameFilter *regexp.Regexp
-	if cfg.BucketNameFilter != "" {
+	if strings.TrimSpace(cfg.BucketNameFilter) != "" {
 		bucketNameFilter, err = regexp.Compile(cfg.BucketNameFilter)
 		if err != nil {
 			// config validation should have already caught this
@@ -83,7 +84,7 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 	}
 
 	var objectKeyFilter *regexp.Regexp
-	if cfg.ObjectKeyFilter != "" {
+	if strings.TrimSpace(cfg.ObjectKeyFilter) != "" {
 		objectKeyFilter, err = regexp.Compile(cfg.ObjectKeyFilter)
 		if err != nil {
 			// config validation should have already caught this
