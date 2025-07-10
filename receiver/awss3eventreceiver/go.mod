@@ -9,15 +9,14 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.79.2
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.38.5
 	github.com/google/go-cmp v0.7.0
-	github.com/observiq/bindplane-otel-collector/internal/aws v1.80.0
-	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.80.0
+	github.com/observiq/bindplane-otel-collector/internal/aws v1.80.1
+	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.80.1
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v1.35.0
 	go.opentelemetry.io/collector/component/componenttest v0.129.0
 	go.opentelemetry.io/collector/confmap v1.35.0
 	go.opentelemetry.io/collector/consumer v1.35.0
 	go.opentelemetry.io/collector/consumer/consumertest v0.129.0
-	go.opentelemetry.io/collector/filter v0.129.0
 	go.opentelemetry.io/collector/pdata v1.35.0
 	go.opentelemetry.io/collector/pipeline v0.129.0
 	go.opentelemetry.io/collector/receiver v1.35.0
