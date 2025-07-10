@@ -32,6 +32,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata/metricdatatest"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+
 	"github.com/observiq/bindplane-otel-collector/internal/aws/fake"
 	rcvr "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
@@ -327,7 +328,6 @@ func TestReceiverMetrics(t *testing.T) {
 		expectedBucketCounts   [14]uint64
 		expectedMin            int64
 		expectedMax            int64
-		expectedFailures       int64
 	}{
 		{
 			name: "single object",
@@ -343,7 +343,6 @@ func TestReceiverMetrics(t *testing.T) {
 			expectedBatchSum:       1,
 			expectedBatchCount:     1,
 			expectedBucketCounts:   [14]uint64{1},
-			expectedFailures:       1,
 			expectedMin:            1,
 			expectedMax:            1,
 		},
@@ -366,7 +365,6 @@ func TestReceiverMetrics(t *testing.T) {
 			expectedBatchSum:       4,
 			expectedBatchCount:     4,
 			expectedBucketCounts:   [14]uint64{4},
-			expectedFailures:       1,
 			expectedMin:            1,
 			expectedMax:            1,
 		},
@@ -389,7 +387,6 @@ func TestReceiverMetrics(t *testing.T) {
 			expectedBatchSum:       4,
 			expectedBatchCount:     4,
 			expectedBucketCounts:   [14]uint64{4},
-			expectedFailures:       1,
 			expectedMin:            1,
 			expectedMax:            1,
 		},
@@ -410,7 +407,6 @@ func TestReceiverMetrics(t *testing.T) {
 			expectedBucketCounts:   [14]uint64{0, 2},
 			expectedMin:            2,
 			expectedMax:            2,
-			expectedFailures:       2,
 		},
 		{
 			name: "multiple objects multiple lines with different buckets",
@@ -433,13 +429,12 @@ func TestReceiverMetrics(t *testing.T) {
 			expectedBucketCounts:   [14]uint64{0, 4},
 			expectedMin:            2,
 			expectedMax:            2,
-			expectedFailures:       2,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := t.Context()
 			fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
 
 			for _, objectSet := range tc.objectSets {
@@ -504,10 +499,11 @@ func TestReceiverMetrics(t *testing.T) {
 					Sum:          tc.expectedBatchSum,
 					BucketCounts: tc.expectedBucketCounts[:],
 					Bounds:       []float64{1, 100, 250, 500, 750, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000},
-					Min:          metricdata.NewExtrema[int64](tc.expectedMin),
-					Max:          metricdata.NewExtrema[int64](tc.expectedMax),
+					Min:          metricdata.NewExtrema(tc.expectedMin),
+					Max:          metricdata.NewExtrema(tc.expectedMax),
 				}},
 				metricdatatest.IgnoreTimestamp(), metricdatatest.IgnoreExemplars())
+
 		})
 	}
 }
