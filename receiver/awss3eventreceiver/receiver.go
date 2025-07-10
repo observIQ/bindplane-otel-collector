@@ -87,7 +87,7 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 		objectKeyFilter, err = regexp.Compile(cfg.ObjectKeyFilter)
 		if err != nil {
 			// config validation should have already caught this
-			return nil, fmt.Errorf("failed to compile regex filter: %w", err)
+			return nil, fmt.Errorf("failed to compile object_key_filter regex: %w", err)
 		}
 	}
 
