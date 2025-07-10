@@ -17,6 +17,15 @@ receivers:
 
   s3event/sns:
     sqs_queue_url: "https://sqs.us-east-1.amazonaws.com/123456789012/sns-test-queue"
+    standard_poll_interval: 30s
+    max_poll_interval: 60s
+    polling_backoff_factor: 2
+    visibility_timeout: 600s
+    visibility_extension_interval: 60s
+    max_visibility_window: 4h
+    workers: 5
+    max_log_size: 4096
+    max_logs_emitted: 1000
     notification_type: "sns"
     sns_message_format:
       message_field: "Message"
