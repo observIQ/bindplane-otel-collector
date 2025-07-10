@@ -854,7 +854,7 @@ func TestProcessMessageWithFilters(t *testing.T) {
 		{
 			name:            "attempts to parse as JSON, but fails and creates 294 log lines from text, object key filter, no match",
 			objectSets:      logsFromFile(t, "testdata/logs_array_in_records_after_limit.json"),
-			expectLines:     294,
+			expectLines:     0,
 			objectKeyFilter: regexp.MustCompile("^.*[xyz]+$"),
 		},
 		{
