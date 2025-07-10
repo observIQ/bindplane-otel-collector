@@ -78,7 +78,7 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 		bucketNameFilter, err = regexp.Compile(cfg.BucketNameFilter)
 		if err != nil {
 			// config validation should have already caught this
-			return nil, fmt.Errorf("failed to compile regex filter: %w", err)
+			return nil, fmt.Errorf("failed to compile bucket_name_filter regex: %w", err)
 		}
 	}
 
