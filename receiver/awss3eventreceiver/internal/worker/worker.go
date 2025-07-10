@@ -58,8 +58,8 @@ type Worker struct {
 	metrics                     *metadata.TelemetryBuilder
 	bucketNameFilter            *regexp.Regexp
 	objectKeyFilter             *regexp.Regexp
-	notificationType string
-	snsMessageFormat *SNSMessageFormat
+	notificationType            string
+	snsMessageFormat            *SNSMessageFormat
 }
 
 // Option is a functional option for configuring the Worker
@@ -85,6 +85,13 @@ func WithTelemetryBuilder(tb *metadata.TelemetryBuilder) Option {
 		if tb != nil {
 			w.metrics = tb
 		}
+	}
+}
+
+// WithSNSMessageFormat sets the SNS message format
+func WithSNSMessageFormat(messageField string, format string) Option {
+	return func(w *Worker) {
+		w.snsMessageFormat = &SNSMessageFormat{MessageField: messageField, Format: format}
 	}
 }
 
