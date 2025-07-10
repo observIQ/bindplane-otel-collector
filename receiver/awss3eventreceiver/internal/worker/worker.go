@@ -142,6 +142,7 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord,
 	if err != nil {
 		if errors.Is(err, ErrNotArrayOrKnownObject) {
 			// try again without attempting to parse as JSON
+			recordLogger.Debug("parsing as JSON failed, trying again with line parsing")
 			return w.consumeLogsFromS3Object(ctx, record, false, recordLogger)
 		}
 		return err

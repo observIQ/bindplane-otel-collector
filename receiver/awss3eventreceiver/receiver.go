@@ -90,7 +90,6 @@ func (r *logsReceiver) Start(_ context.Context, host component.Host) error {
 	ctx := context.Background()
 
 	// Create offset storage
-	// TODO: may need a const for the componentID to get proper syncing between collector instances talking to the same redis instance
 	if r.cfg.StorageID != nil {
 		offsetStorage, err := storageclient.NewStorageClient(ctx, host, *r.cfg.StorageID, r.id, pipeline.SignalLogs)
 		if err != nil {
