@@ -20,6 +20,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -224,7 +225,7 @@ func TestProcessMessage(t *testing.T) {
 			b, err := metadata.NewTelemetryBuilder(set)
 			require.NoError(t, err)
 
-			w := worker.New(set, sink, fakeAWS, testCase.maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, b)
+			w := worker.New(set, sink, fakeAWS, testCase.maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 			numCallbacks := 0
 
@@ -360,7 +361,7 @@ func TestEventTypeFiltering(t *testing.T) {
 			sink := new(consumertest.LogsSink)
 			b, err := metadata.NewTelemetryBuilder(set)
 			require.NoError(t, err)
-			w := worker.New(set, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, b)
+			w := worker.New(set, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 			numCallbacks := 0
 
@@ -420,7 +421,7 @@ func TestMessageVisibilityExtension(t *testing.T) {
 
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, b)
+	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	// Get a message from the queue
 	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
@@ -499,7 +500,7 @@ func TestVisibilityExtensionLogs(t *testing.T) {
 	visibilityTimeout := 300 * time.Second
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, b)
+	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -584,7 +585,7 @@ func TestExtendToMaxAndStop(t *testing.T) {
 
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, maxVisibilityWindow, b)
+	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, maxVisibilityWindow, worker.WithTelemetryBuilder(b))
 
 	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -640,7 +641,7 @@ func TestVisibilityExtensionContextCancellation(t *testing.T) {
 	visibilityTimeout := 300 * time.Second
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, b)
+	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -713,7 +714,7 @@ func TestVisibilityExtensionErrorHandling(t *testing.T) {
 	visibilityTimeout := 300 * time.Second
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, b)
+	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -749,5 +750,200 @@ func TestVisibilityExtensionErrorHandling(t *testing.T) {
 			}
 		}
 		assert.True(t, found, "expected error message containing '%s' to be present", expectedMsg)
+	}
+}
+
+func TestProcessMessageWithFilters(t *testing.T) {
+	defer fake.SetFakeConstructorForTest(t)()
+
+	maxLogSize := 4096
+	maxLogsEmitted := 1000
+	visibilityExtensionInterval := 100 * time.Millisecond
+
+	testCases := []struct {
+		name             string
+		objectSets       []map[string]map[string]string
+		expectLines      int
+		bucketNameFilter *regexp.Regexp
+		objectKeyFilter  *regexp.Regexp
+	}{
+		{
+			name: "single object - bucket filter",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket": {
+						"mykey1": "myvalue1",
+					},
+				},
+			},
+			expectLines:      1,
+			bucketNameFilter: regexp.MustCompile("myb.*et"),
+		},
+		{
+			name: "single object - key filter",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket": {
+						"mykey1": "myvalue1",
+					},
+				},
+			},
+			expectLines:     1,
+			objectKeyFilter: regexp.MustCompile(".*key1"),
+		},
+		{
+			name: "single object - bucket filter, no match",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket": {
+						"mykey1": "myvalue1",
+					},
+				},
+			},
+			expectLines:      0,
+			bucketNameFilter: regexp.MustCompile("^.*[xyz]+$"),
+		},
+		{
+			name: "single object - object key filter, no match",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket": {
+						"mykey1": "myvalue1",
+					},
+				},
+			},
+			expectLines:     0,
+			objectKeyFilter: regexp.MustCompile("^.*[xyz]+$"),
+		},
+		{
+			name: "single object - both filters, no match",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket": {
+						"mykey1": "myvalue1",
+					},
+				},
+			},
+			expectLines:      0,
+			bucketNameFilter: regexp.MustCompile("^.*[xyz]+$"),
+			objectKeyFilter:  regexp.MustCompile("^.*[xyz]+$"),
+		},
+		{
+			name:             "parses as JSON and creates 4 log lines from a JSON array in Records",
+			objectSets:       logsFromFile(t, "testdata/logs_array_in_records.json"),
+			expectLines:      4,
+			bucketNameFilter: regexp.MustCompile("bucket"),
+		},
+		{
+			name:             "parses as JSON, bucket filter, no match",
+			objectSets:       logsFromFile(t, "testdata/logs_array_in_records.json"),
+			expectLines:      0,
+			bucketNameFilter: regexp.MustCompile("^.*[xz]+$"),
+		},
+		{
+			name:        "attempts to parse as JSON, but fails and creates 294 log lines from text",
+			objectSets:  logsFromFile(t, "testdata/logs_array_in_records_after_limit.json"),
+			expectLines: 294,
+		},
+		{
+			name:             "attempts to parse as JSON, but fails and creates 294 log lines from text, bucket filter",
+			objectSets:       logsFromFile(t, "testdata/logs_array_in_records_after_limit.json"),
+			expectLines:      294,
+			bucketNameFilter: regexp.MustCompile("^mybucket$"),
+		},
+		{
+			name:            "attempts to parse as JSON, but fails and creates 294 log lines from text, object key filter, no match",
+			objectSets:      logsFromFile(t, "testdata/logs_array_in_records_after_limit.json"),
+			expectLines:     0,
+			objectKeyFilter: regexp.MustCompile("^.*[xyz]+$"),
+		},
+		{
+			name:            "attempts to parse as JSON, but fails and creates 294 log lines from text, object key filters",
+			objectSets:      logsFromFile(t, "testdata/logs_array_in_records_after_limit.json"),
+			expectLines:     294,
+			objectKeyFilter: regexp.MustCompile("testdata/logs_array_in_records_after_limit.json"),
+		},
+
+		{
+			name:             "does not attempt to parse as JSON and creates 4 log lines from text, bucket filter",
+			objectSets:       logsFromFile(t, "testdata/json_lines.txt"),
+			expectLines:      4,
+			bucketNameFilter: regexp.MustCompile("^mybucket$"),
+		},
+		{
+			name:             "does not attempt to parse as JSON and creates 4 log lines from text, bucket filter, no match",
+			objectSets:       logsFromFile(t, "testdata/json_lines.txt"),
+			expectLines:      0,
+			bucketNameFilter: regexp.MustCompile("^.*[xyz]+$"),
+		},
+		{
+			name:            "does not attempt to parse as JSON and creates 4 log lines from text, object key filter",
+			objectSets:      logsFromFile(t, "testdata/json_lines.txt"),
+			expectLines:     4,
+			objectKeyFilter: regexp.MustCompile("testdata/json_lines.txt"),
+		},
+		{
+			name:            "does not attempt to parse as JSON and creates 4 log lines from text, object key filter, no match",
+			objectSets:      logsFromFile(t, "testdata/json_lines.txt"),
+			expectLines:     0,
+			objectKeyFilter: regexp.MustCompile("^.*[xyz]+$"),
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := context.Background()
+			fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
+
+			var totalObjects int
+			for _, objectSet := range testCase.objectSets {
+				for _, bucket := range objectSet {
+					totalObjects += len(bucket)
+				}
+				fakeAWS.CreateObjects(t, objectSet)
+			}
+
+			sink := new(consumertest.LogsSink)
+
+			set := componenttest.NewNopTelemetrySettings()
+
+			b, err := metadata.NewTelemetryBuilder(set)
+			require.NoError(t, err)
+
+			opts := []worker.Option{worker.WithTelemetryBuilder(b)}
+			if testCase.bucketNameFilter != nil {
+				opts = append(opts, worker.WithBucketNameFilter(testCase.bucketNameFilter))
+			}
+			if testCase.objectKeyFilter != nil {
+				opts = append(opts, worker.WithObjectKeyFilter(testCase.objectKeyFilter))
+			}
+			w := worker.New(set, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, opts...)
+
+			numCallbacks := 0
+
+			for {
+				msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+				if err != nil {
+					require.ErrorIs(t, err, fake.ErrEmptyQueue)
+					break
+				}
+				for _, msg := range msg.Messages {
+					w.ProcessMessage(ctx, msg, "myqueue", func() {
+						numCallbacks++
+					})
+				}
+			}
+
+			require.Equal(t, len(testCase.objectSets), numCallbacks)
+
+			var numRecords int
+			for _, logs := range sink.AllLogs() {
+				numRecords += logs.LogRecordCount()
+			}
+			require.Equal(t, testCase.expectLines, numRecords)
+
+			_, err = fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+			require.ErrorIs(t, err, fake.ErrEmptyQueue)
+		})
 	}
 }

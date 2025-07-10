@@ -27,7 +27,7 @@ telemetry:
       unit: "{logs}"
       histogram:
         value_type: int
-        bucket_boundaries: [1, 100, 250, 500, 750, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000]
+        bucket_boundaries: [1, 5, 10, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 1000000]
     
     s3event.objects_handled:
       enabled: true
