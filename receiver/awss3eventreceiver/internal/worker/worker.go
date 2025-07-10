@@ -410,7 +410,7 @@ func newVisibilityMonitor(logger *zap.Logger, msg types.Message, visibilityTimeo
 }
 
 func getSafetyMargin(timeout time.Duration) time.Duration {
-	return timeout * 80 / 100 // 80% of the timeout
+	return timeout * 50 / 100 // 50% of the timeout
 }
 
 func (vm *visibilityMonitor) stop() {
