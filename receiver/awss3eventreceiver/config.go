@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
@@ -142,14 +143,14 @@ func (c *Config) Validate() error {
 		return err
 	}
 
-	if c.BucketNameFilter != "" {
+	if strings.TrimSpace(c.BucketNameFilter) != "" {
 		_, err := regexp.Compile(c.BucketNameFilter)
 		if err != nil {
 			return fmt.Errorf("'bucket_name_filter' %q is invalid: %w", c.BucketNameFilter, err)
 		}
 	}
 
-	if c.ObjectKeyFilter != "" {
+	if strings.TrimSpace(c.ObjectKeyFilter) != "" {
 		_, err := regexp.Compile(c.ObjectKeyFilter)
 		if err != nil {
 			return fmt.Errorf("'object_key_filter' %q is invalid: %w", c.ObjectKeyFilter, err)
