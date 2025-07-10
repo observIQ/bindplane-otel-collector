@@ -36,6 +36,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 )
 
 // Worker processes S3 event notifications.
@@ -53,10 +54,11 @@ type Worker struct {
 	visibilityTimeout           time.Duration
 	visibilityExtensionInterval time.Duration
 	maxVisibilityWindow         time.Duration
+	metrics                     *metadata.TelemetryBuilder
 }
 
 // New creates a new Worker
-func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client client.Client, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration) *Worker {
+func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client client.Client, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration, tb *metadata.TelemetryBuilder) *Worker {
 	return &Worker{
 		logger:                      tel.Logger.With(zap.String("component", "awss3eventreceiver")),
 		tel:                         tel,
@@ -68,6 +70,7 @@ func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client cli
 		visibilityTimeout:           visibilityTimeout,
 		visibilityExtensionInterval: visibilityExtensionInterval,
 		maxVisibilityWindow:         maxVisibilityWindow,
+		metrics:                     tb,
 	}
 }
 
@@ -77,7 +80,6 @@ func (w *Worker) SetOffsetStorage(offsetStorage storageclient.StorageClient) {
 }
 
 // ProcessMessage processes a message from the SQS queue
-// TODO add metric for number of messages processed / deleted / errors, events processed, etc.
 func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL string, deferThis func()) {
 	defer deferThis()
 
@@ -93,6 +95,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	err := json.Unmarshal([]byte(*msg.Body), notification)
 	if err != nil {
 		logger.Error("unmarshal notification", zap.Error(err))
+		w.metrics.S3eventFailures.Add(ctx, 1)
 		// We can delete messages with unmarshaling errors as they'll never succeed
 		w.deleteMessage(ctx, msg, queueURL, []string{}, logger)
 		return
@@ -130,9 +133,11 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 
 		if err := w.processRecord(ctx, record, recordLogger); err != nil {
 			recordLogger.Error("error processing record, preserving message in SQS for retry", zap.Error(err))
+			w.metrics.S3eventFailures.Add(ctx, 1)
 			return
 		}
 		keys = append(keys, record.S3.Object.Key)
+		w.metrics.S3eventObjectsHandled.Add(ctx, 1)
 	}
 	w.deleteMessage(ctx, msg, queueURL, keys, logger)
 }
@@ -246,6 +251,8 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 				recordLogger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
 				return fmt.Errorf("consume logs: %w", err)
 			}
+			w.metrics.S3eventBatchSize.Record(ctx, int64(ld.LogRecordCount()))
+
 			batchesConsumedCount++
 			recordLogger.Debug("Reached max logs for single batch, starting new batch", zap.Int("batches_consumed_count", batchesConsumedCount))
 
@@ -265,6 +272,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	if ld.LogRecordCount() == 0 {
 		return nil
 	}
+	w.metrics.S3eventBatchSize.Record(ctx, int64(ld.LogRecordCount()))
 
 	if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
 		recordLogger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))

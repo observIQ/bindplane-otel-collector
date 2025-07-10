@@ -39,6 +39,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client/mocks"
 	"github.com/observiq/bindplane-otel-collector/internal/aws/fake"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 )
 
@@ -216,9 +217,14 @@ func TestProcessMessage(t *testing.T) {
 				testCase.maxLogSize = maxLogSize
 			}
 
-			set := componenttest.NewNopTelemetrySettings()
 			sink := new(consumertest.LogsSink)
-			w := worker.New(set, sink, fakeAWS, testCase.maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour)
+
+			set := componenttest.NewNopTelemetrySettings()
+
+			b, err := metadata.NewTelemetryBuilder(set)
+			require.NoError(t, err)
+
+			w := worker.New(set, sink, fakeAWS, testCase.maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, b)
 
 			numCallbacks := 0
 
@@ -244,7 +250,7 @@ func TestProcessMessage(t *testing.T) {
 			}
 			require.Equal(t, testCase.expectLines, numRecords)
 
-			_, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+			_, err = fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 			require.ErrorIs(t, err, fake.ErrEmptyQueue)
 		})
 	}
@@ -352,7 +358,9 @@ func TestEventTypeFiltering(t *testing.T) {
 
 			set := componenttest.NewNopTelemetrySettings()
 			sink := new(consumertest.LogsSink)
-			w := worker.New(set, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour)
+			b, err := metadata.NewTelemetryBuilder(set)
+			require.NoError(t, err)
+			w := worker.New(set, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, b)
 
 			numCallbacks := 0
 
@@ -383,7 +391,7 @@ func TestEventTypeFiltering(t *testing.T) {
 			}
 			require.Equal(t, testCase.expectLines, numRecords)
 
-			_, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+			_, err = fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 			require.ErrorIs(t, err, fake.ErrEmptyQueue)
 		})
 	}
@@ -410,7 +418,9 @@ func TestMessageVisibilityExtension(t *testing.T) {
 	visibilityExtensionInterval := 50 * time.Millisecond
 	visibilityTimeout := 300 * time.Second
 
-	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
+	b, err := metadata.NewTelemetryBuilder(set)
+	require.NoError(t, err)
+	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, b)
 
 	// Get a message from the queue
 	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
@@ -487,7 +497,9 @@ func TestVisibilityExtensionLogs(t *testing.T) {
 	sink := new(consumertest.LogsSink)
 	visibilityExtensionInterval := 1 * time.Millisecond
 	visibilityTimeout := 300 * time.Second
-	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
+	b, err := metadata.NewTelemetryBuilder(set)
+	require.NoError(t, err)
+	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, b)
 
 	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -570,7 +582,9 @@ func TestExtendToMaxAndStop(t *testing.T) {
 	visibilityTimeout := 5 * time.Millisecond
 	maxVisibilityWindow := 100 * time.Millisecond // Short window to trigger max extension
 
-	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, maxVisibilityWindow)
+	b, err := metadata.NewTelemetryBuilder(set)
+	require.NoError(t, err)
+	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, maxVisibilityWindow, b)
 
 	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -624,7 +638,9 @@ func TestVisibilityExtensionContextCancellation(t *testing.T) {
 	sink := new(consumertest.LogsSink)
 	visibilityExtensionInterval := 1 * time.Millisecond
 	visibilityTimeout := 300 * time.Second
-	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
+	b, err := metadata.NewTelemetryBuilder(set)
+	require.NoError(t, err)
+	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, b)
 
 	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -695,7 +711,9 @@ func TestVisibilityExtensionErrorHandling(t *testing.T) {
 	sink := new(consumertest.LogsSink)
 	visibilityExtensionInterval := 1 * time.Millisecond
 	visibilityTimeout := 300 * time.Second
-	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour)
+	b, err := metadata.NewTelemetryBuilder(set)
+	require.NoError(t, err)
+	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, b)
 
 	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)

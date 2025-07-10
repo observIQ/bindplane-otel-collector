@@ -28,11 +28,15 @@ import (
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/receiver/receivertest"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata/metricdatatest"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+
 	"github.com/observiq/bindplane-otel-collector/internal/aws/fake"
 	rcvr "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadatatest"
 )
 
 func TestNewS3EventReceiver(t *testing.T) {
@@ -309,4 +313,197 @@ func TestManyObjects(t *testing.T) {
 
 	_, err = fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.Equal(t, fake.ErrEmptyQueue, err)
+}
+
+func TestReceiverMetrics(t *testing.T) {
+	defer fake.SetFakeConstructorForTest(t)()
+
+	testCases := []struct {
+		name                   string
+		objectSets             []map[string]map[string]string
+		expectLines            int
+		expectedObjectsHandled int64
+		expectedBatchSum       int64
+		expectedBatchCount     uint64
+		expectedBucketCounts   [14]uint64
+		expectedMin            int64
+		expectedMax            int64
+	}{
+		{
+			name: "single object",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket": {
+						"mykey1": "myvalue1",
+					},
+				},
+			},
+			expectLines:            1,
+			expectedObjectsHandled: 1,
+			expectedBatchSum:       1,
+			expectedBatchCount:     1,
+			expectedBucketCounts:   [14]uint64{1},
+			expectedMin:            1,
+			expectedMax:            1,
+		},
+		{
+			name: "multiple objects",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket": {
+						"mykey1": "myvalue1",
+						"mykey2": "myvalue2",
+					},
+					"mybucket2": {
+						"mykey3": "myvalue3",
+						"mykey4": "myvalue4",
+					},
+				},
+			},
+			expectLines:            4,
+			expectedObjectsHandled: 4,
+			expectedBatchSum:       4,
+			expectedBatchCount:     4,
+			expectedBucketCounts:   [14]uint64{4},
+			expectedMin:            1,
+			expectedMax:            1,
+		},
+		{
+			name: "multiple objects with different buckets",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket1": {
+						"mykey1": "myvalue1",
+						"mykey2": "myvalue2",
+					},
+					"mybucket2": {
+						"mykey3": "myvalue3",
+						"mykey4": "myvalue4",
+					},
+				},
+			},
+			expectLines:            4,
+			expectedObjectsHandled: 4,
+			expectedBatchSum:       4,
+			expectedBatchCount:     4,
+			expectedBucketCounts:   [14]uint64{4},
+			expectedMin:            1,
+			expectedMax:            1,
+		},
+		{
+			name: "multiple objects multiple lines",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket1": {
+						"mykey1": "myvalue1\nmyvalue2",
+						"mykey2": "myvalue3\nmyvalue4",
+					},
+				},
+			},
+			expectLines:            4,
+			expectedObjectsHandled: 2,
+			expectedBatchSum:       4,
+			expectedBatchCount:     2,
+			expectedBucketCounts:   [14]uint64{0, 2},
+			expectedMin:            2,
+			expectedMax:            2,
+		},
+		{
+			name: "multiple objects multiple lines with different buckets",
+			objectSets: []map[string]map[string]string{
+				{
+					"mybucket1": {
+						"mykey1": "myvalue1\nmyvalue2",
+						"mykey2": "myvalue3\nmyvalue4",
+					},
+					"mybucket2": {
+						"mykey3": "myvalue5\nmyvalue6",
+						"mykey4": "myvalue7\nmyvalue8",
+					},
+				},
+			},
+			expectLines:            8,
+			expectedObjectsHandled: 4,
+			expectedBatchSum:       8,
+			expectedBatchCount:     4,
+			expectedBucketCounts:   [14]uint64{0, 4},
+			expectedMin:            2,
+			expectedMax:            2,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := t.Context()
+			fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
+
+			for _, objectSet := range tc.objectSets {
+				fakeAWS.CreateObjects(t, objectSet)
+			}
+
+			f := rcvr.NewFactory()
+			cfg := f.CreateDefaultConfig().(*rcvr.Config)
+			cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+			cfg.StandardPollInterval = 50 * time.Millisecond
+			sink := new(consumertest.LogsSink)
+
+			// Set up telemetry testing
+			testTel := componenttest.NewTelemetry()
+			defer func() {
+				require.NoError(t, testTel.Shutdown(ctx))
+			}()
+
+			set := metadatatest.NewSettings(testTel)
+			receiver, err := f.CreateLogs(context.Background(), set, cfg, sink)
+			require.NoError(t, err)
+			require.NotNil(t, receiver)
+
+			host := componenttest.NewNopHost()
+			require.NoError(t, receiver.Start(ctx, host))
+
+			defer func() {
+				require.NoError(t, receiver.Shutdown(ctx))
+			}()
+
+			var totalObjects int
+			for _, objSet := range tc.objectSets {
+				for _, bucket := range objSet {
+					totalObjects += len(bucket)
+				}
+			}
+
+			require.Eventually(t, func() bool {
+				return len(sink.AllLogs()) == totalObjects
+			}, time.Second, 100*time.Millisecond)
+
+			var numRecords int
+			for _, logs := range sink.AllLogs() {
+				numRecords += logs.LogRecordCount()
+			}
+			require.Equal(t, tc.expectLines, numRecords)
+
+			_, err = fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+			require.Equal(t, fake.ErrEmptyQueue, err)
+
+			// Test s3event.objects_handled metric
+			// This should equal the number of objects processed
+			metadatatest.AssertEqualS3eventObjectsHandled(t, testTel,
+				[]metricdata.DataPoint[int64]{{Value: tc.expectedObjectsHandled}},
+				metricdatatest.IgnoreTimestamp())
+
+			// Test s3event.batch_size metric
+			// This should record histogram entries for each batch
+			metadatatest.AssertEqualS3eventBatchSize(t, testTel,
+				[]metricdata.HistogramDataPoint[int64]{{
+					Count:        tc.expectedBatchCount,
+					Sum:          tc.expectedBatchSum,
+					BucketCounts: tc.expectedBucketCounts[:],
+					Bounds:       []float64{1, 100, 250, 500, 750, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000},
+					Min:          metricdata.NewExtrema(tc.expectedMin),
+					Max:          metricdata.NewExtrema(tc.expectedMax),
+				}},
+				metricdatatest.IgnoreTimestamp(), metricdatatest.IgnoreExemplars())
+
+		})
+	}
 }
