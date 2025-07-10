@@ -50,7 +50,7 @@ func (builder *TelemetryBuilder) Shutdown() {
 	for _, reg := range builder.registrations {
 		err := reg.Unregister()
 		if err != nil {
-			fmt.Println("failed to unregister metric", err)
+			fmt.Println("Error unregistering metric:", err)
 		}
 	}
 }
@@ -68,7 +68,7 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 		"otelcol_s3event.batch_size",
 		metric.WithDescription("The number of logs in a batch."),
 		metric.WithUnit("{logs}"),
-		metric.WithExplicitBucketBoundaries([]float64{1, 100, 250, 500, 750, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000}...),
+		metric.WithExplicitBucketBoundaries([]float64{1, 5, 10, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 1e+06}...),
 	)
 	errs = errors.Join(errs, err)
 	builder.S3eventFailures, err = builder.meter.Int64Counter(

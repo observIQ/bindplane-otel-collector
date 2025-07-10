@@ -198,7 +198,7 @@ func TestReceiver(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := t.Context()
 			fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
 
 			var numObjects int
@@ -253,7 +253,7 @@ func TestReceiver(t *testing.T) {
 func TestManyObjects(t *testing.T) {
 	defer fake.SetFakeConstructorForTest(t)()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
 
 	numBuckets := 10
@@ -325,7 +325,7 @@ func TestReceiverMetrics(t *testing.T) {
 		expectedObjectsHandled int64
 		expectedBatchSum       int64
 		expectedBatchCount     uint64
-		expectedBucketCounts   [14]uint64
+		expectedBucketCounts   [15]uint64
 		expectedMin            int64
 		expectedMax            int64
 	}{
@@ -342,7 +342,7 @@ func TestReceiverMetrics(t *testing.T) {
 			expectedObjectsHandled: 1,
 			expectedBatchSum:       1,
 			expectedBatchCount:     1,
-			expectedBucketCounts:   [14]uint64{1},
+			expectedBucketCounts:   [15]uint64{1},
 			expectedMin:            1,
 			expectedMax:            1,
 		},
@@ -364,7 +364,7 @@ func TestReceiverMetrics(t *testing.T) {
 			expectedObjectsHandled: 4,
 			expectedBatchSum:       4,
 			expectedBatchCount:     4,
-			expectedBucketCounts:   [14]uint64{4},
+			expectedBucketCounts:   [15]uint64{4},
 			expectedMin:            1,
 			expectedMax:            1,
 		},
@@ -386,7 +386,7 @@ func TestReceiverMetrics(t *testing.T) {
 			expectedObjectsHandled: 4,
 			expectedBatchSum:       4,
 			expectedBatchCount:     4,
-			expectedBucketCounts:   [14]uint64{4},
+			expectedBucketCounts:   [15]uint64{4},
 			expectedMin:            1,
 			expectedMax:            1,
 		},
@@ -404,7 +404,7 @@ func TestReceiverMetrics(t *testing.T) {
 			expectedObjectsHandled: 2,
 			expectedBatchSum:       4,
 			expectedBatchCount:     2,
-			expectedBucketCounts:   [14]uint64{0, 2},
+			expectedBucketCounts:   [15]uint64{0, 2},
 			expectedMin:            2,
 			expectedMax:            2,
 		},
@@ -426,7 +426,7 @@ func TestReceiverMetrics(t *testing.T) {
 			expectedObjectsHandled: 4,
 			expectedBatchSum:       8,
 			expectedBatchCount:     4,
-			expectedBucketCounts:   [14]uint64{0, 4},
+			expectedBucketCounts:   [15]uint64{0, 4},
 			expectedMin:            2,
 			expectedMax:            2,
 		},
@@ -498,7 +498,7 @@ func TestReceiverMetrics(t *testing.T) {
 					Count:        tc.expectedBatchCount,
 					Sum:          tc.expectedBatchSum,
 					BucketCounts: tc.expectedBucketCounts[:],
-					Bounds:       []float64{1, 100, 250, 500, 750, 1000, 2500, 5000, 10000, 20000, 30000, 40000, 50000},
+					Bounds:       []float64{1, 5, 10, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 1000000},
 					Min:          metricdata.NewExtrema(tc.expectedMin),
 					Max:          metricdata.NewExtrema(tc.expectedMax),
 				}},
