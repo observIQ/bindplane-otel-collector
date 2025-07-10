@@ -4,7 +4,6 @@ package metadata
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	"go.opentelemetry.io/otel/metric"
@@ -48,10 +47,7 @@ func (builder *TelemetryBuilder) Shutdown() {
 	builder.mu.Lock()
 	defer builder.mu.Unlock()
 	for _, reg := range builder.registrations {
-		err := reg.Unregister()
-		if err != nil {
-			fmt.Println("failed to unregister metric", err)
-		}
+		reg.Unregister()
 	}
 }
 

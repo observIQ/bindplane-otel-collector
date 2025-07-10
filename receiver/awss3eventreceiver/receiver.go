@@ -100,7 +100,16 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 		sqsClient: client.NewClient(awsConfig).SQS(),
 		workerPool: sync.Pool{
 			New: func() any {
-				return worker.New(tel, next, client.NewClient(awsConfig), cfg.MaxLogSize, cfg.MaxLogsEmitted, cfg.VisibilityTimeout, cfg.VisibilityExtensionInterval, cfg.MaxVisibilityWindow, tb, bucketNameFilter, objectKeyFilter)
+				opts := []worker.Option{
+					worker.WithTelemetryBuilder(tb),
+				}
+				if bucketNameFilter != nil {
+					opts = append(opts, worker.WithBucketNameFilter(bucketNameFilter))
+				}
+				if objectKeyFilter != nil {
+					opts = append(opts, worker.WithObjectKeyFilter(objectKeyFilter))
+				}
+				return worker.New(tel, next, client.NewClient(awsConfig), cfg.MaxLogSize, cfg.MaxLogsEmitted, cfg.VisibilityTimeout, cfg.VisibilityExtensionInterval, cfg.MaxVisibilityWindow, opts...)
 			},
 		},
 		offsetStorage: storageclient.NewNopStorage(),

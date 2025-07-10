@@ -225,7 +225,7 @@ func TestProcessMessage(t *testing.T) {
 			b, err := metadata.NewTelemetryBuilder(set)
 			require.NoError(t, err)
 
-			w := worker.New(set, sink, fakeAWS, testCase.maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, b, nil, nil)
+			w := worker.New(set, sink, fakeAWS, testCase.maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 			numCallbacks := 0
 
@@ -361,7 +361,7 @@ func TestEventTypeFiltering(t *testing.T) {
 			sink := new(consumertest.LogsSink)
 			b, err := metadata.NewTelemetryBuilder(set)
 			require.NoError(t, err)
-			w := worker.New(set, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, b, nil, nil)
+			w := worker.New(set, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 			numCallbacks := 0
 
@@ -421,7 +421,7 @@ func TestMessageVisibilityExtension(t *testing.T) {
 
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, b, nil, nil)
+	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	// Get a message from the queue
 	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
@@ -500,7 +500,7 @@ func TestVisibilityExtensionLogs(t *testing.T) {
 	visibilityTimeout := 300 * time.Second
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, b, nil, nil)
+	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -585,7 +585,7 @@ func TestExtendToMaxAndStop(t *testing.T) {
 
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, maxVisibilityWindow, b, nil, nil)
+	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, maxVisibilityWindow, worker.WithTelemetryBuilder(b))
 
 	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -641,7 +641,7 @@ func TestVisibilityExtensionContextCancellation(t *testing.T) {
 	visibilityTimeout := 300 * time.Second
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, b, nil, nil)
+	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -714,7 +714,7 @@ func TestVisibilityExtensionErrorHandling(t *testing.T) {
 	visibilityTimeout := 300 * time.Second
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, b, nil, nil)
+	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -910,7 +910,14 @@ func TestProcessMessageWithFilters(t *testing.T) {
 			b, err := metadata.NewTelemetryBuilder(set)
 			require.NoError(t, err)
 
-			w := worker.New(set, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, b, testCase.bucketNameFilter, testCase.objectKeyFilter)
+			opts := []worker.Option{worker.WithTelemetryBuilder(b)}
+			if testCase.bucketNameFilter != nil {
+				opts = append(opts, worker.WithBucketNameFilter(testCase.bucketNameFilter))
+			}
+			if testCase.objectKeyFilter != nil {
+				opts = append(opts, worker.WithObjectKeyFilter(testCase.objectKeyFilter))
+			}
+			w := worker.New(set, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, opts...)
 
 			numCallbacks := 0
 

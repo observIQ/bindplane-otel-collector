@@ -60,9 +60,35 @@ type Worker struct {
 	objectKeyFilter             *regexp.Regexp
 }
 
+// Option is a functional option for configuring the Worker
+type Option func(*Worker)
+
+// WithBucketNameFilter sets the bucket name filter regex
+func WithBucketNameFilter(filter *regexp.Regexp) Option {
+	return func(w *Worker) {
+		w.bucketNameFilter = filter
+	}
+}
+
+// WithObjectKeyFilter sets the object key filter regex
+func WithObjectKeyFilter(filter *regexp.Regexp) Option {
+	return func(w *Worker) {
+		w.objectKeyFilter = filter
+	}
+}
+
+// WithTelemetryBuilder sets the telemetry builder
+func WithTelemetryBuilder(tb *metadata.TelemetryBuilder) Option {
+	return func(w *Worker) {
+		if tb != nil {
+			w.metrics = tb
+		}
+	}
+}
+
 // New creates a new Worker
-func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client client.Client, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration, tb *metadata.TelemetryBuilder, bucketNameFilter *regexp.Regexp, objectKeyFilter *regexp.Regexp) *Worker {
-	return &Worker{
+func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client client.Client, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration, opts ...Option) *Worker {
+	w := &Worker{
 		logger:                      tel.Logger.With(zap.String("component", "awss3eventreceiver")),
 		tel:                         tel,
 		client:                      client,
@@ -73,10 +99,13 @@ func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client cli
 		visibilityTimeout:           visibilityTimeout,
 		visibilityExtensionInterval: visibilityExtensionInterval,
 		maxVisibilityWindow:         maxVisibilityWindow,
-		metrics:                     tb,
-		bucketNameFilter:            bucketNameFilter,
-		objectKeyFilter:             objectKeyFilter,
 	}
+
+	for _, opt := range opts {
+		opt(w)
+	}
+
+	return w
 }
 
 // SetOffsetStorage sets the offset storage client
