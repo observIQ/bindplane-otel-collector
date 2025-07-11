@@ -12,27 +12,28 @@ This is a list of components that will be available to use in the resulting coll
 | asapauthextension         | awscloudwatchlogsexporter      | batchprocessor                | aerospikereceiver              | datadogconnector      |
 | awsproxy                  | awsemfexporter                 | cumulativetodeltaprocessor    | apachereceiver                 | exceptionsconnector   |
 | ballastextension          | awskinesisexporter             | datapointcountprocessor       | apachesparkreceiver            | forwardconnector      |
-| basicauthextension        | awss3exporter                  | deltatorateprocessor          | awscloudwatchreceiver          | grafanacloudconnector |
-| bearertokenauthextension  | awsxrayexporter                | filterprocessor               | awscontainerinsightreceiver    | roundrobinconnector   |
-| bindplaneextension        | azuredataexplorerexporter      | groupbyattrsprocessor         | awsecscontainermetricsreceiver | routingconnector      |
-| dbstorage                 | azuremonitorexporter           | groupbytraceprocessor         | awsfirehosereceiver            | servicegraphconnector |
-| dockerobserver            | carbonexporter                 | k8sattributesprocessor        | awsxrayreceiver                | spanmetricsconnector  |
-| ecsobserver               | cassandraexporter              | logcountprocessor             | azureblobreceiver              |                       |
-| ecstaskobserver           | clickhouseexporter             | logdeduplicationprocessor      | azureeventhubreceiver          |                       |
-| filestorage               | coralogixexporter              | lookupprocessor               | azuremonitorreceiver           |                       |
-| headerssetterextension    | datadogexporter                | maskprocessor                 | bigipreceiver                  |                       |
-| healthcheckextension      | datasetexporter                | memorylimiterprocessor        | carbonreceiver                 |                       |
-| hostobserver              | debugexporter                  | metricextractprocessor        | chronyreceiver                 |                       |
-| httpforwarderextension    | elasticsearchexporter          | metricsgenerationprocessor    | cloudflarereceiver             |                       |
-| jaegerencodingextension   | fileexporter                   | metricstransformprocessor     | cloudfoundryreceiver           |                       |
-| jaegerremotesampling      | googlecloudpubsubexporter      | probabilisticsamplerprocessor | collectdreceiver               |                       |
-| k8sobserver               | honeycombmarkerexporter        | redactionprocessor            | couchdbreceiver                |                       |
-| oauth2clientauthextension | influxdbexporter               | remotetapprocessor            | datadogreceiver                |                       |
-| oidcauthextension         | instanaexporter                | resourcedetectionprocessor    | dockerstatsreceiver            |                       |
-| opampextension            | kafkaexporter                  | resourceprocessor             | elasticsearchreceiver          |                       |
-| otlpencodingextension     | loadbalancingexporter          | routingprocessor              | expvarreceiver                 |                       |
-| pprofextension            | loggingexporter                | spanprocessor                 | filelogreceiver                |                       |
-| sigv4authextension        | logicmonitorexporter           | sumologicprocessor            | filestatsreceiver              |                       |
-| zipkinencodingextension   | nopexporter                    | tailsamplingprocessor         | githubreceiver                 |                       |
-|                           | otlpexporter                   | transformprocessor            | nopreceiver                    |                       |
-|                           | otlphttpexporter               | unrollprocessor               | otlpreceiver                   |                       |
+| basicauthextension        | awss3exporter                  | deltatocumulativeprocessor    | awscloudwatchreceiver          | grafanacloudconnector |
+| bearertokenauthextension  | awsxrayexporter                | deltatorateprocessor          | awscontainerinsightreceiver    | roundrobinconnector   |
+| bindplaneextension        | azuredataexplorerexporter      | filterprocessor               | awsecscontainermetricsreceiver | routingconnector      |
+| dbstorage                 | azuremonitorexporter           | groupbyattrsprocessor         | awsfirehosereceiver            | servicegraphconnector |
+| dockerobserver            | carbonexporter                 | groupbytraceprocessor         | awsxrayreceiver                | spanmetricsconnector  |
+| ecsobserver               | cassandraexporter              | k8sattributesprocessor        | azureblobreceiver              |                       |
+| ecstaskobserver           | clickhouseexporter             | logcountprocessor             | azureeventhubreceiver          |                       |
+| filestorage               | coralogixexporter              | logdeduplicationprocessor     | azuremonitorreceiver           |                       |
+| headerssetterextension    | datadogexporter                | lookupprocessor               | bigipreceiver                  |                       |
+| healthcheckextension      | datasetexporter                | maskprocessor                 | carbonreceiver                 |                       |
+| hostobserver              | debugexporter                  | memorylimiterprocessor        | chronyreceiver                 |                       |
+| httpforwarderextension    | elasticsearchexporter          | metricextractprocessor        | cloudflarereceiver             |                       |
+| jaegerencodingextension   | fileexporter                   | metricsgenerationprocessor    | cloudfoundryreceiver           |                       |
+| jaegerremotesampling      | googlecloudpubsubexporter      | metricstransformprocessor     | collectdreceiver               |                       |
+| k8sobserver               | honeycombmarkerexporter        | probabilisticsamplerprocessor | couchdbreceiver                |                       |
+| oauth2clientauthextension | influxdbexporter               | redactionprocessor            | datadogreceiver                |                       |
+| oidcauthextension         | instanaexporter                | remotetapprocessor            | dockerstatsreceiver            |                       |
+| opampextension            | kafkaexporter                  | resourcedetectionprocessor    | elasticsearchreceiver          |                       |
+| otlpencodingextension     | loadbalancingexporter          | resourceprocessor             | expvarreceiver                 |                       |
+| pprofextension            | loggingexporter                | routingprocessor              | filelogreceiver                |                       |
+| sigv4authextension        | logicmonitorexporter           | spanprocessor                 | filestatsreceiver              |                       |
+| zipkinencodingextension   | nopexporter                    | sumologicprocessor            | githubreceiver                 |                       |
+|                           | otlpexporter                   | tailsamplingprocessor         | nopreceiver                    |                       |
+|                           | otlphttpexporter               | transformprocessor            | otlpreceiver                   |                       |
+|                           |                                | unrollprocessor               |                                |                       |
