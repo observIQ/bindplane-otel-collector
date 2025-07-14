@@ -617,8 +617,8 @@ blobs:
     bucket: bdot-release
     directory: "{{ .Major }}.{{ .Minor }}.{{ .Patch }}"
     extra_files:
-      - glob: "./observiq-otel-collector*.msi"
-      - glob: "./observiq-otel-collector*.msi.sig"
+      - glob: "./bindplane-otel-collector*.msi"
+      - glob: "./bindplane-otel-collector*.msi.sig"
       - glob: "./scripts/install/install_unix.sh"
       - glob: "./scripts/install/install_macos.sh"
 

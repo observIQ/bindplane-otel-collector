@@ -433,8 +433,8 @@ manage_service() {
 finish_permissions() {
   # Goreleaser does not set plugin file permissions, so do them here
   # We also change the owner of the binary to bindplane-otel-collector
-  chown -R bindplane-otel-collector:bindplane-otel-collector /opt/bindplane-otel-collector/bindplane-otel-collector /opt/bindplane-otel-collector/opampsupervisor /opt/bindplane-otel-collector/plugins/*
-  chmod 0640 /opt/bindplane-otel-collector/plugins/*
+  chown -R bindplane-otel-collector:bindplane-otel-collector ${BDOT_CONFIG_HOME}/bindplane-otel-collector ${BDOT_CONFIG_HOME}/opampsupervisor ${BDOT_CONFIG_HOME}/plugins/*
+  chmod 0640 ${BDOT_CONFIG_HOME}/plugins/*
 
   # Initialize the log file to ensure it is owned by bindplane-otel-collector.
   # This prevents the service (running as root) from assigning ownership to
