@@ -25,6 +25,11 @@ import (
 	"go.opentelemetry.io/collector/component"
 )
 
+const (
+	NotificationTypeS3  = "s3"
+	NotificationTypeSNS = "sns"
+)
+
 // Config defines the configuration for the AWS S3 Event receiver.
 type Config struct {
 	// SQSQueueURL is the URL of the SQS queue that receives S3 event notifications.
@@ -176,19 +181,19 @@ func (c *Config) Validate() error {
 func (c *Config) validateNotificationType() error {
 	// Set default if not specified
 	if c.NotificationType == "" {
-		c.NotificationType = "s3"
+		c.NotificationType = NotificationTypeS3
 	}
 
 	// Validate notification type
 	switch c.NotificationType {
-	case "s3", "sns":
+	case NotificationTypeS3, NotificationTypeSNS:
 		// Valid types
 	default:
 		return fmt.Errorf("invalid notification_type '%s': must be 's3' or 'sns'", c.NotificationType)
 	}
 
 	// If SNS mode, ensure SNS format is configured
-	if c.NotificationType == "sns" {
+	if c.NotificationType == NotificationTypeSNS {
 		if c.SNSMessageFormat == nil {
 			// Set default SNS format
 			c.SNSMessageFormat = &SNSMessageFormat{
