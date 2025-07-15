@@ -41,7 +41,7 @@ git init
 git remote add -f origin "$SUPERVISOR_REPO"
 git config core.sparseCheckout true
 echo "cmd/opampsupervisor" >> .git/info/sparse-checkout
-git pull origin main
+git pull origin main --depth 1
 
 cd "$DOWNLOAD_DIR/opentelemetry-collector-contrib/cmd/opampsupervisor"
 for PLATFORM in "${PLATFORMS[@]}"; do
