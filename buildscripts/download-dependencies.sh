@@ -19,6 +19,7 @@
 set -e
 
 DOWNLOAD_DIR="${1:-.}"
+SUPERVISOR_VERSION="${2:-0.129.0}"
 BASEDIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 PROJECT_BASE="$BASEDIR/.."
 JAVA_CONTRIB_VERSION="$(cat "$PROJECT_BASE/JAVA_CONTRIB_VERSION")"
@@ -35,9 +36,14 @@ SUPERVISOR_REPO="https://github.com/open-telemetry/opentelemetry-collector-contr
 PLATFORMS=("linux/amd64" "linux/arm64" "linux/arm" "linux/ppc64" "linux/ppc64le" "darwin/amd64" "darwin/arm64" "windows/amd64")
 
 mkdir "$DOWNLOAD_DIR/supervisor_bin"
-$(cd $DOWNLOAD_DIR && git clone --depth 1 "$SUPERVISOR_REPO")
+cd $DOWNLOAD_DIR
+git init
+git remote add -f origin "$SUPERVISOR_REPO"
+git config core.sparseCheckout true
+echo "cmd/opampsupervisor" >> .git/info/sparse-checkout
+git pull origin main
+
 cd "$DOWNLOAD_DIR/opentelemetry-collector-contrib/cmd/opampsupervisor"
-go get github.com/open-telemetry/opentelemetry-collector-contrib/cmd/opampsupervisor/supervisor
 for PLATFORM in "${PLATFORMS[@]}"; do
     # Split the PLATFORM string into GOOS and GOARCH
     IFS="/" read -r GOOS GOARCH <<< "${PLATFORM}"
