@@ -36,14 +36,15 @@ SUPERVISOR_REPO="https://github.com/open-telemetry/opentelemetry-collector-contr
 PLATFORMS=("linux/amd64" "linux/arm64" "linux/arm" "linux/ppc64" "linux/ppc64le" "darwin/amd64" "darwin/arm64" "windows/amd64")
 
 mkdir "$DOWNLOAD_DIR/supervisor_bin"
-cd $DOWNLOAD_DIR
+mkdir "$DOWNLOAD_DIR/opentelemetry-collector-contrib"
+cd $DOWNLOAD_DIR/opentelemetry-collector-contrib
 git init
 git remote add -f origin "$SUPERVISOR_REPO"
 git config core.sparseCheckout true
 echo "cmd/opampsupervisor" >> .git/info/sparse-checkout
 git pull origin main --depth 1
 
-cd "$DOWNLOAD_DIR/opentelemetry-collector-contrib/cmd/opampsupervisor"
+cd "cmd/opampsupervisor"
 for PLATFORM in "${PLATFORMS[@]}"; do
     # Split the PLATFORM string into GOOS and GOARCH
     IFS="/" read -r GOOS GOARCH <<< "${PLATFORM}"
