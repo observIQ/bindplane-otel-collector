@@ -418,7 +418,6 @@ func (m *protoMarshaler) constructPayloads(logGrouper *logGrouper) []*api.BatchC
 	return payloads
 }
 
-// deprecated
 func (m *protoMarshaler) enforceMaximumsGRPCRequest(request *api.BatchCreateLogsRequest) []*api.BatchCreateLogsRequest {
 	size := proto.Size(request)
 	entries := request.Batch.Entries
@@ -536,7 +535,6 @@ func (m *protoMarshaler) constructHTTPPayloads(rawLogs map[string][]*api.Log) ma
 	return payloads
 }
 
-// deprecated
 func (m *protoMarshaler) enforceMaximumsHTTPRequest(request *api.ImportLogsRequest) []*api.ImportLogsRequest {
 	size := proto.Size(request)
 	logs := request.GetInlineSource().Logs
