@@ -110,6 +110,10 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 				if objectKeyFilter != nil {
 					opts = append(opts, worker.WithObjectKeyFilter(objectKeyFilter))
 				}
+				
+				// Set notification type
+				opts = append(opts, worker.WithNotificationType(cfg.NotificationType))
+				
 				if cfg.NotificationType == NotificationTypeSNS && cfg.SNSMessageFormat != nil {
 					opts = append(opts, worker.WithSNSMessageFormat(cfg.SNSMessageFormat.MessageField, cfg.SNSMessageFormat.Format))
 				}

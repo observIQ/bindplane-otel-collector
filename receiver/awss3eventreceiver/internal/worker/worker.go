@@ -88,6 +88,13 @@ func WithTelemetryBuilder(tb *metadata.TelemetryBuilder) Option {
 	}
 }
 
+// WithNotificationType sets the notification type
+func WithNotificationType(notificationType string) Option {
+	return func(w *Worker) {
+		w.notificationType = notificationType
+	}
+}
+
 // WithSNSMessageFormat sets the SNS message format
 func WithSNSMessageFormat(messageField string, format string) Option {
 	return func(w *Worker) {
