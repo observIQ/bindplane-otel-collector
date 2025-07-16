@@ -98,10 +98,9 @@ EOF
   fi
 
   # If BDOT_UNPRIVILEGED is true, add an override to run the service as the
-  # observiq-otel-collector (unprivileged) user.
+  # bdot (unprivileged) user.
   override_user_path="${override_dir}/10-package-customizations-username.conf"
   if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
-    username="observiq-otel-collector"
     cat << EOF > "${override_user_path}"
 [Service]
 User=${username}
