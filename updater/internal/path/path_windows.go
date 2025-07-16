@@ -23,6 +23,10 @@ import (
 
 const defaultProductName = "observIQ Distro for OpenTelemetry Collector"
 
+// DefaultConfigOverrides is not used on Windows, but is required
+// by InstallDir.
+var DefaultConfigOverrides = []string{}
+
 // installDirFromRegistry gets the installation dir of the given product from the Windows Registry
 func installDirFromRegistry(logger *zap.Logger, productName string) (string, error) {
 	// this key is created when installing using the MSI installer
@@ -48,6 +52,6 @@ func installDirFromRegistry(logger *zap.Logger, productName string) (string, err
 }
 
 // InstallDir returns the filepath to the install directory
-func InstallDir(logger *zap.Logger) (string, error) {
+func InstallDir(logger *zap.Logger, _ []string) (string, error) {
 	return installDirFromRegistry(logger, defaultProductName)
 }

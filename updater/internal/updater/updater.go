@@ -94,6 +94,26 @@ func (u *Updater) readGroupFromSystemdFile() (string, error) {
 	return "", errors.New("Group not found in systemd unit file")
 }
 
+// readWorkingDirectoryFromSystemdFile reads the systemd unit file and extracts the WorkingDirectory value.
+func (u *Updater) readWorkingDirectoryFromSystemdFile() (string, error) {
+	// #nosec G304 - systemdUnitFilePath is not user configurable, and comes
+	// from the constant DefaultSystemdUnitFilePath. Unit tests will override
+	// this path to a test file.
+	fileContent, err := os.ReadFile(u.installedSystemdUnitPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read systemd unit file: %w", err)
+	}
+
+	lines := bytes.Split(fileContent, []byte("\n"))
+	for _, line := range lines {
+		if bytes.HasPrefix(line, []byte("WorkingDirectory=")) {
+			return string(bytes.TrimSpace(bytes.TrimPrefix(line, []byte("WorkingDirectory=")))), nil
+		}
+	}
+
+	return "", errors.New("WorkingDirectory not found in systemd unit file")
+}
+
 // generateServiceFiles writes necessary service files to the install directory
 // to be copied to their final locations by the updater.
 func (u *Updater) generateServiceFiles() error {
@@ -111,6 +131,17 @@ func (u *Updater) generateServiceFiles() error {
 		return fmt.Errorf("read group from systemd file %s: %w", u.installedSystemdUnitPath, err)
 	}
 
+	// Read the WorkingDirectory value from the systemd unit file
+	installDir, err := u.readWorkingDirectoryFromSystemdFile()
+	if err != nil {
+		return fmt.Errorf("read working directory from systemd file %s: %w", u.installedSystemdUnitPath, err)
+	}
+
+	params := map[string]string{
+		"Group":      group,
+		"InstallDir": installDir,
+	}
+
 	// Render the systemd service template with the Group value
 	systemdTemplate, err := template.New("systemdService").Parse(systemdServiceTemplate)
 	if err != nil {
@@ -118,7 +149,7 @@ func (u *Updater) generateServiceFiles() error {
 	}
 
 	var systemdServiceContent bytes.Buffer
-	if err := systemdTemplate.Execute(&systemdServiceContent, map[string]string{"Group": group}); err != nil {
+	if err := systemdTemplate.Execute(&systemdServiceContent, params); err != nil {
 		return fmt.Errorf("execute systemd service template: %w", err)
 	}
 
