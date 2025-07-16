@@ -16,12 +16,14 @@ package collector
 
 import (
 	"fmt"
+	"strings"
 
 	"go.opentelemetry.io/collector/featuregate"
+	"go.uber.org/zap"
 )
 
 // SetFeatureFlags sets hardcoded collector feature flags
-func SetFeatureFlags(featureGates []string) error {
+func SetFeatureFlags(featureGates []string, logger *zap.Logger) error {
 	// set hardcoded feature flags first to allow for user overrides
 	if err := setHardcodedFeatureFlags(); err != nil {
 		return fmt.Errorf("failed to set hardcoded feature flags: %w", err)
@@ -30,6 +32,10 @@ func SetFeatureFlags(featureGates []string) error {
 	// set user feature flags
 	if err := setUserFeatureFlags(featureGates); err != nil {
 		return fmt.Errorf("failed to set user feature flags: %w", err)
+	}
+
+	if len(featureGates) > 0 {
+		logger.Info("Feature gates successfully set", zap.String("featureGates", strings.Join(featureGates, ",")))
 	}
 
 	return nil

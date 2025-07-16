@@ -84,7 +84,7 @@ func main() {
 	var runnableService service.RunnableService
 
 	// Set feature flags
-	if err := collector.SetFeatureFlags(*featureGates); err != nil {
+	if err := collector.SetFeatureFlags(*featureGates, logger); err != nil {
 		logger.Fatal("Failed to set feature flags.", zap.Error(err))
 	}
 
