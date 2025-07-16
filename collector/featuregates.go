@@ -21,7 +21,22 @@ import (
 )
 
 // SetFeatureFlags sets hardcoded collector feature flags
-func SetFeatureFlags() error {
+func SetFeatureFlags(featureGates []string) error {
+	// set hardcoded feature flags first to allow for user overrides
+	if err := setHardcodedFeatureFlags(); err != nil {
+		return fmt.Errorf("failed to set hardcoded feature flags: %w", err)
+	}
+
+	// set user feature flags
+	if err := setUserFeatureFlags(featureGates); err != nil {
+		return fmt.Errorf("failed to set user feature flags: %w", err)
+	}
+
+	return nil
+}
+
+// setHardcodedFeatureFlags sets hardcoded feature flags
+func setHardcodedFeatureFlags() error {
 	if err := featuregate.GlobalRegistry().Set("filelog.allowFileDeletion", true); err != nil {
 		return fmt.Errorf("failed to enable filelog.allowFileDeletion: %w", err)
 	}
@@ -32,5 +47,25 @@ func SetFeatureFlags() error {
 		return fmt.Errorf("failed to enable filelog.mtimeSortType: %w", err)
 	}
 
+	return nil
+}
+
+// setUserFeatureFlags sets user feature flags
+// checks for - and + prefixes to indicate negation and enablement of the feature gate
+func setUserFeatureFlags(featureGates []string) error {
+	for _, fg := range featureGates {
+		val := true
+		switch fg[0] {
+		case '-':
+			fg = fg[1:]
+			val = false
+		case '+':
+			fg = fg[1:]
+		}
+
+		if err := featuregate.GlobalRegistry().Set(fg, val); err != nil {
+			return fmt.Errorf("failed to set feature gate %s: %w", fg, err)
+		}
+	}
 	return nil
 }
