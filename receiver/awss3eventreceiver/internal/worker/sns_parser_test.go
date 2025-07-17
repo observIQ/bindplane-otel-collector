@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestParseSNSToS3Event(t *testing.T) {
@@ -189,7 +190,10 @@ func TestParseSNSToS3Event(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := ParseSNSToS3Event(tt.messageBody, tt.format)
+			w := Worker{
+				logger: zap.NewNop(),
+			}
+			result, err := w.ParseSNSToS3Event(tt.messageBody, tt.format)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -258,8 +262,8 @@ func TestParseStandardSNSMessage(t *testing.T) {
 			errorMsg:     "SNS field 'CustomData' is not a string",
 		},
 		{
-			name: "Invalid JSON",
-			messageBody: `invalid-json`,
+			name:         "Invalid JSON",
+			messageBody:  `invalid-json`,
 			messageField: "Message",
 			expectError:  true,
 			errorMsg:     "failed to unmarshal SNS notification",

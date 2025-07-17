@@ -33,6 +33,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/internal/aws/backoff"
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/constants"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 )
@@ -110,11 +111,11 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 				if objectKeyFilter != nil {
 					opts = append(opts, worker.WithObjectKeyFilter(objectKeyFilter))
 				}
-				
+
 				// Set notification type
 				opts = append(opts, worker.WithNotificationType(cfg.NotificationType))
-				
-				if cfg.NotificationType == NotificationTypeSNS && cfg.SNSMessageFormat != nil {
+
+				if cfg.NotificationType == constants.NotificationTypeSNS && cfg.SNSMessageFormat != nil {
 					opts = append(opts, worker.WithSNSMessageFormat(cfg.SNSMessageFormat.MessageField, cfg.SNSMessageFormat.Format))
 				}
 

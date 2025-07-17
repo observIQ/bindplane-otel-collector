@@ -18,6 +18,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"go.uber.org/zap"
+
 	"github.com/aws/aws-lambda-go/events"
 )
 
@@ -39,16 +41,19 @@ type SNSMessageFormat struct {
 }
 
 // ParseSNSToS3Event parses an SNS notification containing an S3 event
-func ParseSNSToS3Event(messageBody string, format *SNSMessageFormat) (*events.S3Event, error) {
+func (w *Worker) ParseSNSToS3Event(messageBody string, format *SNSMessageFormat) (*events.S3Event, error) {
 	if format == nil {
 		return nil, fmt.Errorf("SNS message format configuration is required")
 	}
+	logger := w.logger.With(zap.String("format", format.Format), zap.String("message_field", format.MessageField))
 
 	switch format.Format {
 	case "raw":
+		logger.Debug("parsing raw SNS message")
 		// Raw message delivery - the message body is the S3 event directly
 		return parseS3EventFromJSON(messageBody)
 	case "standard":
+		logger.Debug("parsing standard SNS message")
 		// Standard SNS format - need to extract the Message field
 		return parseStandardSNSMessage(messageBody, format.MessageField)
 	default:
@@ -79,7 +84,7 @@ func parseStandardSNSMessage(messageBody string, messageField string) (*events.S
 		if err := json.Unmarshal([]byte(messageBody), &genericSNS); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal SNS notification for custom field: %w", err)
 		}
-		
+
 		if value, exists := genericSNS[messageField]; exists {
 			if str, ok := value.(string); ok {
 				messageContent = str

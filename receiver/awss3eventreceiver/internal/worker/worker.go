@@ -37,6 +37,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/constants"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 )
 
@@ -145,11 +146,13 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	var err error
 
 	switch w.notificationType {
-	case "sns":
-		notification, err = ParseSNSToS3Event(*msg.Body, w.snsMessageFormat)
-	case "s3":
+	case constants.NotificationTypeSNS:
+		logger.Info("parsing SNS message", zap.String("message_id", *msg.MessageId))
+		notification, err = w.ParseSNSToS3Event(*msg.Body, w.snsMessageFormat)
+	case constants.NotificationTypeS3:
 		fallthrough
 	default:
+		logger.Info("parsing S3 message", zap.String("message_id", *msg.MessageId))
 		// Direct S3 event (original behavior)
 		notification = new(events.S3Event)
 		err = json.Unmarshal([]byte(*msg.Body), notification)

@@ -22,12 +22,8 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/constants"
 	"go.opentelemetry.io/collector/component"
-)
-
-const (
-	NotificationTypeS3  = "s3"
-	NotificationTypeSNS = "sns"
 )
 
 // Config defines the configuration for the AWS S3 Event receiver.
@@ -181,19 +177,19 @@ func (c *Config) Validate() error {
 func (c *Config) validateNotificationType() error {
 	// Set default if not specified
 	if c.NotificationType == "" {
-		c.NotificationType = NotificationTypeS3
+		c.NotificationType = constants.NotificationTypeS3
 	}
 
 	// Validate notification type
 	switch c.NotificationType {
-	case NotificationTypeS3, NotificationTypeSNS:
+	case constants.NotificationTypeS3, constants.NotificationTypeSNS:
 		// Valid types
 	default:
 		return fmt.Errorf("invalid notification_type '%s': must be 's3' or 'sns'", c.NotificationType)
 	}
 
 	// If SNS mode, ensure SNS format is configured
-	if c.NotificationType == NotificationTypeSNS {
+	if c.NotificationType == constants.NotificationTypeSNS {
 		if c.SNSMessageFormat == nil {
 			// Set default SNS format
 			c.SNSMessageFormat = &SNSMessageFormat{
