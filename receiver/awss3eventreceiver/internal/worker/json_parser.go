@@ -15,13 +15,15 @@
 package worker
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"iter"
+	"time"
 
+	"github.com/aws/aws-lambda-go/events"
+	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 )
 
@@ -39,7 +41,6 @@ const (
 )
 
 type jsonParser struct {
-	reader  BufferedReader
 	decoder *json.Decoder
 }
 
@@ -48,7 +49,6 @@ var _ LogParser = (*jsonParser)(nil)
 // NewJSONParser creates a new JSON parser.
 func NewJSONParser(reader BufferedReader) LogParser {
 	return &jsonParser{
-		reader:  reader,
 		decoder: json.NewDecoder(reader),
 	}
 }
@@ -90,7 +90,7 @@ func StartsWithJSONObjectOrArray(reader BufferedReader) (bool, error) {
 // The parser will return an error if the stream is not valid. It will return
 // ErrNotArrayOrKnownObject if the stream does not contain a valid array or object with a
 // "Records" key.
-func (p *jsonParser) Parse(_ context.Context, startOffset int64) (logs iter.Seq2[any, error], err error) {
+func (p *jsonParser) Parse(record events.S3EventRecord, maxLogsEmitted int, startOffset int64) (logs iter.Seq2[plog.Logs, error], err error) {
 	// Read the first object
 	tok, err := p.decoder.Token()
 	if err != nil {
@@ -100,7 +100,7 @@ func (p *jsonParser) Parse(_ context.Context, startOffset int64) (logs iter.Seq2
 	switch {
 	case tok == json.Delim('['):
 		// json structure is an array
-		return p.yieldArray(startOffset), nil
+		return p.yieldArray(record, maxLogsEmitted, startOffset), nil
 
 	case tok == json.Delim('{'):
 		// json structure is an object, find and yield the "Records" array containing log
@@ -139,7 +139,7 @@ func (p *jsonParser) Parse(_ context.Context, startOffset int64) (logs iter.Seq2
 			}
 			switch tok {
 			case json.Delim('['):
-				return p.yieldArray(startOffset), nil
+				return p.yieldArray(record, maxLogsEmitted, startOffset), nil
 
 			default:
 				// "Records" exists but is not an array
@@ -192,8 +192,18 @@ func skipValue(decoder *json.Decoder, maxBytes int64) error {
 	return nil
 }
 
-func (p *jsonParser) yieldArray(startOffset int64) iter.Seq2[any, error] {
-	return func(yield func(any, error) bool) {
+func (p *jsonParser) yieldArray(s3Record events.S3EventRecord, maxLogsEmitted int, startOffset int64) iter.Seq2[plog.Logs, error] {
+	now := time.Now()
+	bucket := s3Record.S3.Bucket.Name
+	key := s3Record.S3.Object.Key
+
+	ld := plog.NewLogs()
+	rls := ld.ResourceLogs().AppendEmpty()
+	rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
+	rls.Resource().Attributes().PutStr("aws.s3.key", key)
+	lrs := rls.ScopeLogs().AppendEmpty().LogRecords()
+
+	return func(yield func(plog.Logs, error) bool) {
 		// Iterate through the array
 		for p.decoder.More() {
 			var record map[string]any
@@ -202,14 +212,14 @@ func (p *jsonParser) yieldArray(startOffset int64) iter.Seq2[any, error] {
 			if err := p.decoder.Decode(&record); err != nil {
 				// normal end of file
 				if errors.Is(err, io.EOF) {
-					return
+					break
 				}
 				// unexpected end of file, not much we can do here
 				if errors.Is(err, io.ErrUnexpectedEOF) {
 					return
 				}
 				// unexpected error, return it
-				if !yield(nil, fmt.Errorf("decode record: %w", err)) {
+				if !yield(plog.NewLogs(), fmt.Errorf("decode record: %w", err)) {
 					return
 				}
 			} else {
@@ -217,15 +227,31 @@ func (p *jsonParser) yieldArray(startOffset int64) iter.Seq2[any, error] {
 				if currentOffset < startOffset {
 					continue
 				}
-				if !yield(record, nil) {
-					return
+
+				// Create a log record for this JSON record
+				lr := lrs.AppendEmpty()
+				lr.SetObservedTimestamp(pcommon.NewTimestampFromTime(now))
+				lr.SetTimestamp(pcommon.NewTimestampFromTime(s3Record.EventTime))
+				lr.Body().FromRaw(record)
+
+				if ld.LogRecordCount() >= maxLogsEmitted {
+					if !yield(ld, nil) {
+						return
+					}
+					// start a new log record batch
+					ld = plog.NewLogs()
+					rls = ld.ResourceLogs().AppendEmpty()
+					rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
+					rls.Resource().Attributes().PutStr("aws.s3.key", key)
+					lrs = rls.ScopeLogs().AppendEmpty().LogRecords()
 				}
 			}
 		}
-	}
-}
 
-// AppendLogBody appends the log record to the log record body using FromRaw.
-func (p *jsonParser) AppendLogBody(_ context.Context, lr plog.LogRecord, record any) error {
-	return lr.Body().FromRaw(record)
+		if ld.LogRecordCount() > 0 {
+			if !yield(ld, nil) {
+				return
+			}
+		}
+	}
 }

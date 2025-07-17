@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 	"go.opentelemetry.io/collector/component"
 )
 
@@ -80,7 +81,8 @@ type Config struct {
 	BucketNameFilter string `mapstructure:"bucket_name_filter"`
 
 	// ObjectKeyFilter is a regex filter to apply to the S3 object key.
-	ObjectKeyFilter string `mapstructure:"object_key_filter"`
+	ObjectKeyFilter string     `mapstructure:"object_key_filter"`
+	Encodings       []Encoding `mapstructure:"encodings"`
 }
 
 // Validate checks if all required fields are present and valid.
@@ -157,5 +159,54 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	for _, encoding := range c.Encodings {
+		if err := encoding.Validate(); err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+// Encoding defines the encoding configuration for the file receiver.
+type Encoding struct {
+	Extension component.ID `mapstructure:"extension"`
+	Suffix    string       `mapstructure:"suffix"`
+	Regex     string       `mapstructure:"regex"`
+}
+
+func (e *Encoding) Validate() error {
+	if e.Extension.String() == "" {
+		return errors.New("'extension' is required")
+	}
+
+	if e.Suffix == "" && e.Regex == "" {
+		return errors.New("'suffix' or 'regex' is required")
+	}
+
+	if e.Regex != "" {
+		_, err := regexp.Compile(e.Regex)
+		if err != nil {
+			return fmt.Errorf("invalid regex: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func getEncodingExtensions(encodings []Encoding, host component.Host) ([]worker.EncodingExtension, error) {
+	encodingExtensions := make([]worker.EncodingExtension, len(encodings))
+	extensions := host.GetExtensions()
+	for i, encoding := range encodings {
+		extension, ok := extensions[encoding.Extension]
+		if !ok {
+			return nil, fmt.Errorf("extension %q not found", encoding.Extension)
+		}
+		encodingExtensions[i] = worker.EncodingExtension{
+			Extension: extension,
+			Suffix:    encoding.Suffix,
+			Regex:     regexp.MustCompile(encoding.Regex), // this is safe because we validate the regex in Validate()
+		}
+	}
+	return encodingExtensions, nil
 }

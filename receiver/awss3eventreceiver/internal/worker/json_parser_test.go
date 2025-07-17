@@ -19,7 +19,9 @@ import (
 	"os"
 	"runtime"
 	"testing"
+	"time"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 	"github.com/stretchr/testify/require"
@@ -57,35 +59,38 @@ func TestStartsWithJSONObjectOrArray(t *testing.T) {
 func TestParseJSONLogs(t *testing.T) {
 
 	tests := []struct {
-		filePath      string
-		startOffset   int64
-		expectLogs    int
-		expectError   error
-		expectOffsets []int64
+		filePath       string
+		startOffset    int64
+		maxLogsEmitted int
+		expectLogs     int
+		expectError    error
+		expectOffsets  []int64
 	}{
-		{filePath: "testdata/logs_array_in_records.json", expectLogs: 4, expectOffsets: []int64{2506, 4497, 6554, 8256}, startOffset: 0},
-		{filePath: "testdata/logs_array_in_records.json", expectLogs: 3, expectOffsets: []int64{4497, 6554, 8256}, startOffset: 2506},
-		{filePath: "testdata/logs_array_in_records.json", expectLogs: 2, expectOffsets: []int64{6554, 8256}, startOffset: 4497},
-		{filePath: "testdata/logs_array_in_records.json", expectLogs: 1, expectOffsets: []int64{8256}, startOffset: 6554},
-		{filePath: "testdata/logs_array_in_records.json", expectLogs: 1, expectOffsets: []int64{8256}, startOffset: 6000}, // in between records
-		{filePath: "testdata/logs_array_in_records.json", expectLogs: 0, expectOffsets: []int64{}, startOffset: 8256},
-		{filePath: "testdata/logs_array_in_records.json", expectLogs: 0, expectOffsets: []int64{}, startOffset: 8257}, // after the end of the array
+		{filePath: "testdata/logs_array_in_records.json", maxLogsEmitted: 1, expectLogs: 4, expectOffsets: []int64{2506, 4497, 6554, 8256}, startOffset: 0},
+		{filePath: "testdata/logs_array_in_records.json", maxLogsEmitted: 1, expectLogs: 3, expectOffsets: []int64{4497, 6554, 8256}, startOffset: 2506},
+		{filePath: "testdata/logs_array_in_records.json", maxLogsEmitted: 1, expectLogs: 2, expectOffsets: []int64{6554, 8256}, startOffset: 4497},
+		{filePath: "testdata/logs_array_in_records.json", maxLogsEmitted: 1, expectLogs: 1, expectOffsets: []int64{8256}, startOffset: 6554},
+		{filePath: "testdata/logs_array_in_records.json", maxLogsEmitted: 1, expectLogs: 1, expectOffsets: []int64{8256}, startOffset: 6000}, // in between records
+		{filePath: "testdata/logs_array_in_records.json", maxLogsEmitted: 1, expectLogs: 0, expectOffsets: []int64{}, startOffset: 8256},
+		{filePath: "testdata/logs_array_in_records.json", maxLogsEmitted: 1, expectLogs: 0, expectOffsets: []int64{}, startOffset: 8257}, // after the end of the array
 		// offsets for gzipped files are the same as the uncompressed files
-		{filePath: "testdata/logs_array_in_records.json.gz", expectLogs: 4, expectOffsets: []int64{2506, 4497, 6554, 8256}, startOffset: 0},
-		{filePath: "testdata/logs_array_in_records.json.gz", expectLogs: 3, expectOffsets: []int64{4497, 6554, 8256}, startOffset: 2506},
-		{filePath: "testdata/logs_array_in_records.json.gz", expectLogs: 2, expectOffsets: []int64{6554, 8256}, startOffset: 4497},
-		{filePath: "testdata/logs_array_in_records.json.gz", expectLogs: 1, expectOffsets: []int64{8256}, startOffset: 6554},
-		{filePath: "testdata/logs_array_in_records.json.gz", expectLogs: 1, expectOffsets: []int64{8256}, startOffset: 6000}, // in between records
-		{filePath: "testdata/logs_array_in_records.json.gz", expectLogs: 0, expectOffsets: []int64{}, startOffset: 8256},
-		{filePath: "testdata/logs_array_in_records.json.gz", expectLogs: 0, expectOffsets: []int64{}, startOffset: 8257}, // after the end of the array
-		{filePath: "testdata/logs_array_in_records_after_limit.json", expectError: worker.ErrNotArrayOrKnownObject},
-		{filePath: "testdata/logs_array.json", expectLogs: 4, expectOffsets: []int64{2018, 3899, 5842, 7452}, startOffset: 0},
-		{filePath: "testdata/logs_array.json", expectLogs: 1, expectOffsets: []int64{7452}, startOffset: 5842},
-		{filePath: "testdata/logs_array.json", expectLogs: 1, expectOffsets: []int64{7452}, startOffset: 5842},
-		{filePath: "testdata/cloudtrail.json", expectLogs: 4},
-		{filePath: "testdata/logs_array_fragment.txt", expectLogs: 1},
-		{filePath: "testdata/json_lines.txt", expectError: worker.ErrNotArrayOrKnownObject},
-		{filePath: "testdata/logs_numbers.txt", expectError: worker.ErrNotArrayOrKnownObject},
+		{filePath: "testdata/logs_array_in_records.json.gz", maxLogsEmitted: 1, expectLogs: 4, expectOffsets: []int64{2506, 4497, 6554, 8256}, startOffset: 0},
+		{filePath: "testdata/logs_array_in_records.json.gz", maxLogsEmitted: 1, expectLogs: 3, expectOffsets: []int64{4497, 6554, 8256}, startOffset: 2506},
+		{filePath: "testdata/logs_array_in_records.json.gz", maxLogsEmitted: 1, expectLogs: 2, expectOffsets: []int64{6554, 8256}, startOffset: 4497},
+		{filePath: "testdata/logs_array_in_records.json.gz", maxLogsEmitted: 1, expectLogs: 1, expectOffsets: []int64{8256}, startOffset: 6554},
+		{filePath: "testdata/logs_array_in_records.json.gz", maxLogsEmitted: 1, expectLogs: 1, expectOffsets: []int64{8256}, startOffset: 6000}, // in between records
+		{filePath: "testdata/logs_array_in_records.json.gz", maxLogsEmitted: 1, expectLogs: 0, expectOffsets: []int64{}, startOffset: 8256},
+		{filePath: "testdata/logs_array_in_records.json.gz", maxLogsEmitted: 1, expectLogs: 0, expectOffsets: []int64{}, startOffset: 8257}, // after the end of the array
+		{filePath: "testdata/logs_array_in_records_after_limit.json", maxLogsEmitted: 1, expectError: worker.ErrNotArrayOrKnownObject},
+		{filePath: "testdata/logs_array.json", maxLogsEmitted: 1, expectLogs: 4, expectOffsets: []int64{2018, 3899, 5842, 7452}, startOffset: 0},
+		{filePath: "testdata/logs_array.json", maxLogsEmitted: 1, expectLogs: 1, expectOffsets: []int64{7452}, startOffset: 5842},
+		{filePath: "testdata/logs_array.json", maxLogsEmitted: 1, expectLogs: 1, expectOffsets: []int64{7452}, startOffset: 5842},
+		{filePath: "testdata/cloudtrail.json", maxLogsEmitted: 1, expectLogs: 4},
+		{filePath: "testdata/logs_array_fragment.txt", maxLogsEmitted: 1, expectLogs: 1},
+		{filePath: "testdata/json_lines.txt", maxLogsEmitted: 1, expectError: worker.ErrNotArrayOrKnownObject},
+		{filePath: "testdata/logs_numbers.txt", maxLogsEmitted: 1, expectError: worker.ErrNotArrayOrKnownObject},
+		{filePath: "testdata/logs_array_in_records.json", maxLogsEmitted: 2, expectLogs: 2, expectOffsets: []int64{4497, 8256}, startOffset: 0},
+		{filePath: "testdata/logs_array_in_records.json", maxLogsEmitted: 2, expectLogs: 1, expectOffsets: []int64{8256}, startOffset: 4497},
 	}
 
 	for _, test := range tests {
@@ -111,8 +116,20 @@ func TestParseJSONLogs(t *testing.T) {
 			bufferedReader, err := stream.BufferedReader(context.Background())
 			require.NoError(t, err, "get buffered reader")
 
+			s3Record := events.S3EventRecord{
+				S3: events.S3Entity{
+					Bucket: events.S3Bucket{
+						Name: "test-bucket",
+					},
+					Object: events.S3Object{
+						Key: "test-key",
+					},
+				},
+				EventTime: time.Now(),
+			}
+
 			parser := worker.NewJSONParser(bufferedReader)
-			logs, err := parser.Parse(context.Background(), test.startOffset)
+			logs, err := parser.Parse(s3Record, test.maxLogsEmitted, test.startOffset)
 			if test.expectError != nil {
 				require.ErrorIs(t, err, test.expectError)
 				return

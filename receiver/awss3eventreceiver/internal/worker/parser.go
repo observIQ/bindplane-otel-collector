@@ -19,6 +19,7 @@ import (
 	"iter"
 	"strings"
 
+	"github.com/aws/aws-lambda-go/events"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 )
@@ -28,22 +29,29 @@ import (
 type LogParser interface {
 	// Parse parses the log stream into a sequence of log records. The parser should return
 	// an error if the stream is not valid.
-	Parse(ctx context.Context, startOffset int64) (logs iter.Seq2[any, error], err error)
-
-	// AppendLogBody appends a single log body to a LogRecord. Different parsers may result
-	// in different log bodies so this is the responsibility of the parser.
-	AppendLogBody(ctx context.Context, lr plog.LogRecord, record any) error
+	Parse(record events.S3EventRecord, maxLogsEmitted int, startOffset int64) (logs iter.Seq2[plog.Logs, error], err error)
 
 	// Offset returns the current offset of the log stream.
 	Offset() int64
 }
 
-func newParser(ctx context.Context, stream LogStream, reader BufferedReader) (parser LogParser, err error) {
+func newParser(ctx context.Context, stream LogStream, reader BufferedReader, encodingExtensions []EncodingExtension) (parser LogParser, err error) {
 	// if we're not trying to parse as JSON, use the line parser
-	if !stream.TryJSON {
+	if !stream.FirstTry {
 		return NewLineParser(reader), nil
 	}
 
+	// first, check if the file name matches any of the encoding extensions
+	for _, encodingExtension := range encodingExtensions {
+		if encodingExtension.Regex != nil && encodingExtension.Regex.MatchString(stream.Name) {
+			return NewExtensionsParser(reader, encodingExtension.Extension), nil
+		}
+		if encodingExtension.Suffix != "" && strings.HasSuffix(stream.Name, encodingExtension.Suffix) {
+			return NewExtensionsParser(reader, encodingExtension.Extension), nil
+		}
+	}
+
+	// if no encoding extension matches, check if the file is json
 	isJSON, err := isJSON(ctx, stream, reader)
 	if err != nil {
 		// don't fail if the file is not json

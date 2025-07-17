@@ -52,7 +52,8 @@ type logsReceiver struct {
 	workerPool sync.Pool
 	workerWg   sync.WaitGroup
 
-	offsetStorage storageclient.StorageClient
+	offsetStorage      storageclient.StorageClient
+	encodingExtensions []worker.EncodingExtension
 
 	// Channel for distributing messages to worker goroutines
 	msgChan chan workerMessage
@@ -130,6 +131,12 @@ func (r *logsReceiver) Start(_ context.Context, host component.Host) error {
 		r.offsetStorage = offsetStorage
 	}
 
+	encodingExtensions, err := getEncodingExtensions(r.cfg.Encodings, host)
+	if err != nil {
+		return fmt.Errorf("failed to get encoding extensions: %w", err)
+	}
+	r.encodingExtensions = encodingExtensions
+
 	// Start workers on separate goroutines
 	r.startOnce.Do(func() {
 		// Create message channel
@@ -157,6 +164,7 @@ func (r *logsReceiver) runWorker(ctx context.Context) {
 	w := r.workerPool.Get().(*worker.Worker)
 
 	w.SetOffsetStorage(r.offsetStorage)
+	w.SetEncodingExtensions(r.encodingExtensions)
 
 	r.telemetry.Logger.Debug("worker started")
 

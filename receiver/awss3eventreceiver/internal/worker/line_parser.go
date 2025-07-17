@@ -15,11 +15,13 @@
 package worker
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"iter"
+	"time"
 
+	"github.com/aws/aws-lambda-go/events"
+	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 )
 
@@ -39,38 +41,61 @@ func (p *lineParser) Offset() int64 {
 }
 
 // Parse parses the log records from the reader using ReadLine.
-func (p *lineParser) Parse(_ context.Context, startOffset int64) (logs iter.Seq2[any, error], err error) {
+func (p *lineParser) Parse(record events.S3EventRecord, maxLogsEmitted int, startOffset int64) (logs iter.Seq2[plog.Logs, error], err error) {
 	// skip to the start offset
 	_, err = io.CopyN(io.Discard, p.reader, startOffset)
 	if err != nil {
 		return nil, fmt.Errorf("discard to offset: %w", err)
 	}
 
+	now := time.Now()
+	bucket := record.S3.Bucket.Name
+	key := record.S3.Object.Key
+
+	ld := plog.NewLogs()
+	rls := ld.ResourceLogs().AppendEmpty()
+	rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
+	rls.Resource().Attributes().PutStr("aws.s3.key", key)
+	lrs := rls.ScopeLogs().AppendEmpty().LogRecords()
+
 	// logs is a sequence of log records that can be used with the provided appender
-	return func(yield func(any, error) bool) {
+	return func(yield func(plog.Logs, error) bool) {
 		for {
 			lineBytes, _, err := p.reader.ReadLine()
 			if err != nil {
 				if err == io.EOF {
-					return
+					break
 				}
-				if !yield(nil, err) {
+				if !yield(plog.NewLogs(), err) {
 					return
 				}
 			}
 
 			// only yield non-empty lines
 			if len(lineBytes) > 0 {
-				if !yield(string(lineBytes), nil) {
+				// Create a log record for this line fragment
+				lr := lrs.AppendEmpty()
+				lr.SetObservedTimestamp(pcommon.NewTimestampFromTime(now))
+				lr.SetTimestamp(pcommon.NewTimestampFromTime(record.EventTime))
+				lr.Body().SetStr(string(lineBytes))
+			}
+
+			if ld.LogRecordCount() >= maxLogsEmitted {
+				if !yield(ld, nil) {
 					return
 				}
+				ld = plog.NewLogs()
+				rls = ld.ResourceLogs().AppendEmpty()
+				rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
+				rls.Resource().Attributes().PutStr("aws.s3.key", key)
+				lrs = rls.ScopeLogs().AppendEmpty().LogRecords()
+			}
+		}
+
+		if ld.LogRecordCount() > 0 {
+			if !yield(ld, nil) {
+				return
 			}
 		}
 	}, nil
-}
-
-// AppendLogBody appends the log record to the log record body using SetStr.
-func (p *lineParser) AppendLogBody(_ context.Context, lr plog.LogRecord, record any) error {
-	lr.Body().SetStr(record.(string))
-	return nil
 }

@@ -19,7 +19,9 @@ import (
 	"os"
 	"runtime"
 	"testing"
+	"time"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -28,23 +30,24 @@ import (
 func TestParseTextLogs(t *testing.T) {
 
 	tests := []struct {
-		filePath      string
-		expectLogs    int
-		startOffset   int64
-		expectOffsets []int64
+		filePath       string
+		expectLogs     int
+		maxLogsEmitted int
+		startOffset    int64
+		expectOffsets  []int64
 	}{
-		{filePath: "testdata/text_logs.txt", expectLogs: 3, startOffset: 0, expectOffsets: []int64{6, 12, 41}},
-		{filePath: "testdata/logs_numbers.txt", expectLogs: 9, startOffset: 0, expectOffsets: []int64{2, 4, 6, 8, 10, 12, 14, 16, 18}},
-		{filePath: "testdata/logs_numbers.txt", expectLogs: 8, startOffset: 2, expectOffsets: []int64{4, 6, 8, 10, 12, 14, 16, 18}},
-		{filePath: "testdata/logs_numbers.txt", expectLogs: 2, startOffset: 14, expectOffsets: []int64{16, 18}},
-		{filePath: "testdata/logs_numbers.txt", expectLogs: 1, startOffset: 16, expectOffsets: []int64{18}},
-		{filePath: "testdata/logs_numbers.txt", expectLogs: 0, startOffset: 18, expectOffsets: []int64{}},
+		{filePath: "testdata/text_logs.txt", expectLogs: 3, maxLogsEmitted: 1, startOffset: 0, expectOffsets: []int64{6, 12, 41}},
+		{filePath: "testdata/logs_numbers.txt", expectLogs: 9, maxLogsEmitted: 1, startOffset: 0, expectOffsets: []int64{2, 4, 6, 8, 10, 12, 14, 16, 18}},
+		{filePath: "testdata/logs_numbers.txt", expectLogs: 8, maxLogsEmitted: 1, startOffset: 2, expectOffsets: []int64{4, 6, 8, 10, 12, 14, 16, 18}},
+		{filePath: "testdata/logs_numbers.txt", expectLogs: 2, maxLogsEmitted: 1, startOffset: 14, expectOffsets: []int64{16, 18}},
+		{filePath: "testdata/logs_numbers.txt", expectLogs: 1, maxLogsEmitted: 1, startOffset: 16, expectOffsets: []int64{18}},
+		{filePath: "testdata/logs_numbers.txt", expectLogs: 0, maxLogsEmitted: 1, startOffset: 18, expectOffsets: []int64{}},
 		// offsets for gzipped files are the same as the uncompressed files
-		{filePath: "testdata/logs_numbers.txt.gz", expectLogs: 9, startOffset: 0, expectOffsets: []int64{2, 4, 6, 8, 10, 12, 14, 16, 18}},
-		{filePath: "testdata/logs_numbers.txt.gz", expectLogs: 8, startOffset: 2, expectOffsets: []int64{4, 6, 8, 10, 12, 14, 16, 18}},
-		{filePath: "testdata/logs_numbers.txt.gz", expectLogs: 2, startOffset: 14, expectOffsets: []int64{16, 18}},
-		{filePath: "testdata/logs_numbers.txt.gz", expectLogs: 1, startOffset: 16, expectOffsets: []int64{18}},
-		{filePath: "testdata/logs_numbers.txt.gz", expectLogs: 0, startOffset: 18, expectOffsets: []int64{}},
+		{filePath: "testdata/logs_numbers.txt.gz", expectLogs: 9, maxLogsEmitted: 1, startOffset: 0, expectOffsets: []int64{2, 4, 6, 8, 10, 12, 14, 16, 18}},
+		{filePath: "testdata/logs_numbers.txt.gz", expectLogs: 8, maxLogsEmitted: 1, startOffset: 2, expectOffsets: []int64{4, 6, 8, 10, 12, 14, 16, 18}},
+		{filePath: "testdata/logs_numbers.txt.gz", expectLogs: 2, maxLogsEmitted: 1, startOffset: 14, expectOffsets: []int64{16, 18}},
+		{filePath: "testdata/logs_numbers.txt.gz", expectLogs: 1, maxLogsEmitted: 1, startOffset: 16, expectOffsets: []int64{18}},
+		{filePath: "testdata/logs_numbers.txt.gz", expectLogs: 0, maxLogsEmitted: 1, startOffset: 18, expectOffsets: []int64{}},
 	}
 
 	for _, test := range tests {
@@ -69,8 +72,20 @@ func TestParseTextLogs(t *testing.T) {
 			bufferedReader, err := stream.BufferedReader(context.Background())
 			require.NoError(t, err, "get buffered reader")
 
+			s3Record := events.S3EventRecord{
+				S3: events.S3Entity{
+					Bucket: events.S3Bucket{
+						Name: "test-bucket",
+					},
+					Object: events.S3Object{
+						Key: "test-key",
+					},
+				},
+				EventTime: time.Now(),
+			}
+
 			parser := worker.NewLineParser(bufferedReader)
-			logs, err := parser.Parse(context.Background(), test.startOffset)
+			logs, err := parser.Parse(s3Record, test.maxLogsEmitted, test.startOffset)
 			require.NoError(t, err, "parse logs")
 
 			offsets := []int64{}

@@ -31,8 +31,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
-	"go.opentelemetry.io/collector/pdata/pcommon"
-	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
@@ -58,6 +56,7 @@ type Worker struct {
 	metrics                     *metadata.TelemetryBuilder
 	bucketNameFilter            *regexp.Regexp
 	objectKeyFilter             *regexp.Regexp
+	encodingExtensions          []EncodingExtension
 }
 
 // Option is a functional option for configuring the Worker
@@ -86,6 +85,12 @@ func WithTelemetryBuilder(tb *metadata.TelemetryBuilder) Option {
 	}
 }
 
+type EncodingExtension struct {
+	Extension component.Component
+	Suffix    string
+	Regex     *regexp.Regexp
+}
+
 // New creates a new Worker
 func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client client.Client, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration, opts ...Option) *Worker {
 	w := &Worker{
@@ -111,6 +116,11 @@ func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client cli
 // SetOffsetStorage sets the offset storage client
 func (w *Worker) SetOffsetStorage(offsetStorage storageclient.StorageClient) {
 	w.offsetStorage = offsetStorage
+}
+
+// SetEncodingExtensions sets the encoding extensions
+func (w *Worker) SetEncodingExtensions(encodingExtensions []EncodingExtension) {
+	w.encodingExtensions = encodingExtensions
 }
 
 // ProcessMessage processes a message from the SQS queue
@@ -201,7 +211,7 @@ func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord,
 	return nil
 }
 
-func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3EventRecord, tryJSON bool, recordLogger *zap.Logger) error {
+func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3EventRecord, firstTry bool, recordLogger *zap.Logger) error {
 	bucket := record.S3.Bucket.Name
 	key := record.S3.Object.Key
 	size := record.S3.Object.Size
@@ -222,8 +232,6 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	}
 	defer resp.Body.Close()
 
-	now := time.Now()
-
 	stream := LogStream{
 		Name:            key,
 		ContentEncoding: resp.ContentEncoding,
@@ -231,7 +239,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 		Body:            resp.Body,
 		MaxLogSize:      w.maxLogSize,
 		Logger:          recordLogger,
-		TryJSON:         tryJSON,
+		FirstTry:        firstTry,
 	}
 
 	// Create the offset storage key for this object
@@ -256,21 +264,15 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 		return fmt.Errorf("get stream reader: %w", err)
 	}
 
-	parser, err := newParser(ctx, stream, reader)
+	parser, err := newParser(ctx, stream, reader, w.encodingExtensions)
 	if err != nil {
 		return fmt.Errorf("create parser: %w", err)
 	}
 
-	ld := plog.NewLogs()
-	rls := ld.ResourceLogs().AppendEmpty()
-	rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
-	rls.Resource().Attributes().PutStr("aws.s3.key", key)
-	lrs := rls.ScopeLogs().AppendEmpty().LogRecords()
-
 	batchesConsumedCount := 0
 
 	// Parse logs into a sequence of log records
-	logs, err := parser.Parse(ctx, startOffset)
+	logs, err := parser.Parse(record, w.maxLogsEmitted, startOffset)
 	if err != nil {
 		return fmt.Errorf("parse logs: %w", err)
 	}
@@ -281,50 +283,20 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 			continue
 		}
 
-		// Create a log record for this line fragment
-		lr := lrs.AppendEmpty()
-		lr.SetObservedTimestamp(pcommon.NewTimestampFromTime(now))
-		lr.SetTimestamp(pcommon.NewTimestampFromTime(record.EventTime))
-
-		err := parser.AppendLogBody(ctx, lr, log)
-		if err != nil {
-			recordLogger.Error("append log body", zap.Error(err))
-			continue
+		if err := w.nextConsumer.ConsumeLogs(ctx, log); err != nil {
+			recordLogger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
+			return fmt.Errorf("consume logs: %w", err)
 		}
+		batchesConsumedCount++
+		recordLogger.Debug("Reached max logs for single batch, starting new batch", zap.Int("batches_consumed_count", batchesConsumedCount))
 
-		if ld.LogRecordCount() >= w.maxLogsEmitted {
-			if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
-				recordLogger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
-				return fmt.Errorf("consume logs: %w", err)
-			}
-			w.metrics.S3eventBatchSize.Record(ctx, int64(ld.LogRecordCount()))
-
-			batchesConsumedCount++
-			recordLogger.Debug("Reached max logs for single batch, starting new batch", zap.Int("batches_consumed_count", batchesConsumedCount))
-
-			// Save the offset to storage
-			if err := w.offsetStorage.SaveStorageData(ctx, offsetStorageKey, NewOffset(parser.Offset())); err != nil {
-				recordLogger.Error("Failed to save offset", zap.Error(err), zap.String("offset_storage_key", offsetStorageKey), zap.Int64("offset", parser.Offset()))
-			}
-
-			ld = plog.NewLogs()
-			rls = ld.ResourceLogs().AppendEmpty()
-			rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
-			rls.Resource().Attributes().PutStr("aws.s3.key", key)
-			lrs = rls.ScopeLogs().AppendEmpty().LogRecords()
+		// Save the offset to storage
+		if err := w.offsetStorage.SaveStorageData(ctx, offsetStorageKey, NewOffset(parser.Offset())); err != nil {
+			recordLogger.Error("Failed to save offset", zap.Error(err), zap.String("offset_storage_key", offsetStorageKey), zap.Int64("offset", parser.Offset()))
 		}
 	}
 
-	if ld.LogRecordCount() == 0 {
-		return nil
-	}
-	w.metrics.S3eventBatchSize.Record(ctx, int64(ld.LogRecordCount()))
-
-	if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
-		recordLogger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
-		return fmt.Errorf("consume logs: %w", err)
-	}
-	recordLogger.Debug("processed S3 object", zap.Int("batches_consumed_count", batchesConsumedCount+1))
+	recordLogger.Debug("processed S3 object", zap.Int("batches_consumed_count", batchesConsumedCount))
 
 	// Save the offset to storage
 	if err := w.offsetStorage.SaveStorageData(ctx, offsetStorageKey, NewOffset(parser.Offset())); err != nil {
