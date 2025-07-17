@@ -101,9 +101,6 @@ archives:
       - src: release_deps/bindplane-otel-collector
         dst: "install"
         strip_parent: true
-      - src: release_deps/sysconfig/bindplane-otel-collector
-        dst: "install/sysconfig"
-        strip_parent: true
     format_overrides:
       - goos: windows
         format: zip
@@ -125,31 +122,31 @@ nfpms:
       - deb
     bindir: /opt/bindplane-otel-collector
     contents:
-      - dst: /opt/bindplane-otel-collector
+      - dst: /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector
         type: dir
         file_info:
-          mode: 0755
-          owner: bindplane-otel-collector
-          group: bindplane-otel-collector
+          mode: 0750
+          owner: root
+          group: root
       - src: LICENSE
-        dst: /opt/bindplane-otel-collector/LICENSE
+        dst: /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector/LICENSE
         file_info:
           mode: 0644
           owner: bindplane-otel-collector
           group: bindplane-otel-collector
       - src: release_deps/VERSION.txt
-        dst: /opt/bindplane-otel-collector/VERSION.txt
+        dst: /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector/VERSION.txt
         file_info:
           mode: 0644
           owner: bindplane-otel-collector
           group: bindplane-otel-collector
       - src: release_deps/opentelemetry-java-contrib-jmx-metrics.jar
-        dst: /opt/bindplane-otel-collector/opentelemetry-java-contrib-jmx-metrics.jar
+        dst: /opt/opentelemetry-java-contrib-jmx-metrics.jar
         file_info:
           mode: 0755
           owner: bindplane-otel-collector
           group: bindplane-otel-collector
-      - dst: /opt/bindplane-otel-collector/plugins
+      - dst: /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector/plugins
         type: dir
         file_info:
           mode: 0750 # restrict plugins to owner / group only
@@ -159,52 +156,31 @@ nfpms:
       # Attempting to set the permissions here results in the following error:
       # nfpm failed: cannot write header of release_deps/plugins/amazon_eks.yaml to data.tar.gz: archive/tar: missed writing 1736 bytes
       - src: release_deps/plugins/*
-        dst: /opt/bindplane-otel-collector/plugins
+        dst: /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector/plugins
       # Storage dir is used by stateful receivers, such as filelog receiver. It allows
       # receivers to track their progress and buffer data.
       - src: config/supervisor-default.yaml
-        dst: /opt/bindplane-otel-collector/supervisor.yaml
+        dst: /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector/supervisor.yaml
         file_info:
           mode: 0750
           owner: bindplane-otel-collector
           group: bindplane-otel-collector
-      - dst: /opt/bindplane-otel-collector/storage
+      - dst: /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector/storage
         type: dir
         file_info:
           mode: 0750
           owner: bindplane-otel-collector
           group: bindplane-otel-collector
-      - dst: /opt/bindplane-otel-collector/supervisor_storage
+      - dst: /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector/supervisor_storage
         type: dir
         file_info:
           mode: 0750
           owner: bindplane-otel-collector
           group: bindplane-otel-collector
-      - dst: /opt/bindplane-otel-collector/supervisor_storage/effective.yaml
+      - dst: /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector/supervisor_storage/effective.yaml
         type: ghost
-      - dst: /opt/bindplane-otel-collector/supervisor_storage/agent.log
+      - dst: /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector/supervisor_storage/agent.log
         type: ghost
-      - src: service/bindplane-otel-collector.service
-        dst: /usr/lib/systemd/system/bindplane-otel-collector.service
-        type: config|noreplace
-        file_info:
-          mode: 0644
-          owner: root
-          group: root
-      - src: service/bindplane-otel-collector
-        dst: /etc/init.d/bindplane-otel-collector
-        type: config|noreplace
-        file_info:
-          mode: 0755
-          owner: root
-          group: root
-      - src: service/sysconfig/bindplane-otel-collector
-        dst: /etc/sysconfig/bindplane-otel-collector
-        type: config
-        file_info:
-          mode: 0644
-          owner: root
-          group: root
     scripts:
       preinstall: ./scripts/package/preinstall.sh
       postinstall: ./scripts/package/postinstall.sh

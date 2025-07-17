@@ -68,14 +68,14 @@ Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
 Environment=OIQ_OTEL_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
 WorkingDirectory=${BDOT_CONFIG_HOME}
-ExecStart=${BDOT_CONFIG_HOME}/bindplane-otel-collector --config config.yaml
+ExecStart=${BDOT_CONFIG_HOME}/opampsupervisor --config supervisor.yaml
 LimitNOFILE=65000
 SuccessExitStatus=0
 TimeoutSec=20
 StandardOutput=journal
 Restart=on-failure
 RestartSec=5s
-KillMode=process
+KillMode=control-group
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -160,7 +160,7 @@ fi
 # with force-reload (in case signalling is not supported) are
 # considered a success.
 
-BINARY=bindplane-otel-collector
+BINARY=opampsupervisor
 PROGRAM=${BDOT_CONFIG_HOME}/"\$BINARY"
 START_CMD="nohup ${BDOT_CONFIG_HOME}/\$BINARY > /dev/null 2>&1 &"
 LOCKFILE=/var/lock/"\$BINARY"
@@ -195,7 +195,7 @@ start() {
 
     # NOTE: startproc return 0, even if service is
     # already running to match LSB spec.
-    nohup "\$PROGRAM" --config config.yaml > /dev/null 2>&1 &
+    nohup "\$PROGRAM" --config supervisor.yaml > /dev/null 2>&1 &
 
     # Remember status and be verbose
     rc_status -v

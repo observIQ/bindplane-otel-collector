@@ -238,7 +238,6 @@ release-prep:
 	@jq ".files[] | select(.service != null)" windows/wix.json >> release_deps/windows_service.json
 	@cp service/bindplane-otel-collector.service release_deps/bindplane-otel-collector.service
 	@cp service/bindplane-otel-collector release_deps/bindplane-otel-collector
-	@cp -r ./service/sysconfig release_deps/
 
 # Build and sign, skip release and ignore dirty git tree
 .PHONY: release-test
