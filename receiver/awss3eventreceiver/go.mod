@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.79.2
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.38.5
 	github.com/google/go-cmp v0.7.0
+	github.com/linkedin/goavro/v2 v2.14.0
 	github.com/observiq/bindplane-otel-collector/internal/aws v1.80.1
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.80.1
 	github.com/stretchr/testify v1.10.0
@@ -50,6 +51,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.3.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
