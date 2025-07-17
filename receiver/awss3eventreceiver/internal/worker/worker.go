@@ -95,7 +95,6 @@ func WithNotificationType(notificationType string) Option {
 	}
 }
 
-
 // New creates a new Worker
 func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client client.Client, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration, opts ...Option) *Worker {
 	w := &Worker{

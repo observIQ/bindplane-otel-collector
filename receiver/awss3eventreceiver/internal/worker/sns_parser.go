@@ -24,7 +24,7 @@ import (
 // SNSNotification represents the structure of an SNS notification
 type SNSNotification struct {
 	Type      string `json:"Type"`
-	MessageId string `json:"MessageId"`
+	MessageID string `json:"MessageId"`
 	TopicArn  string `json:"TopicArn"`
 	Subject   string `json:"Subject"`
 	Message   string `json:"Message"`
@@ -33,6 +33,7 @@ type SNSNotification struct {
 }
 
 const (
+	// StandardSNSMessageField is the name of the field that contains the S3 event in a standard SNS notification
 	StandardSNSMessageField = "Message"
 )
 

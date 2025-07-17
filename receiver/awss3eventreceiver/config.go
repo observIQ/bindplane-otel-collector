@@ -87,7 +87,6 @@ type Config struct {
 	// Valid values: "s3" (direct S3 events), "sns" (S3 events wrapped in SNS notifications).
 	// Default is "s3".
 	NotificationType string `mapstructure:"notification_type"`
-
 }
 
 // Validate checks if all required fields are present and valid.
@@ -164,11 +163,7 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	if err := c.validateNotificationType(); err != nil {
-		return err
-	}
-
-	return nil
+	return c.validateNotificationType()
 }
 
 func (c *Config) validateNotificationType() error {
@@ -185,7 +180,5 @@ func (c *Config) validateNotificationType() error {
 		return fmt.Errorf("invalid notification_type '%s': must be 's3' or 'sns'", c.NotificationType)
 	}
 
-
 	return nil
 }
-
