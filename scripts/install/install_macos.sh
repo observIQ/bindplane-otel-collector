@@ -631,9 +631,13 @@ create_supervisor_config() {
 
   command printf 'server:\n' >"$supervisor_yml_path"
   command printf '  endpoint: "%s"\n' "$OPAMP_ENDPOINT" >>"$supervisor_yml_path"
-  command printf '  headers:\n' >>"$supervisor_yml_path"
-  [ -n "$OPAMP_SECRET_KEY" ] && command printf '    Authorization: "Secret-Key %s"\n' "$OPAMP_SECRET_KEY" >>"$supervisor_yml_path"
-  command printf '    User-Agent: "bindplane-otel-collector/%s"\n' "$version" >>"$supervisor_yml_path"
+
+  if [ -n "$OPAMP_SECRET_KEY" ]; then
+    command printf '  headers:\n' >>"$supervisor_yml_path"
+    command printf '    Authorization: "Secret-Key %s"\n' "$OPAMP_SECRET_KEY" >>"$supervisor_yml_path"
+    command printf '    User-Agent: "bindplane-otel-collector/%s"\n' "$version" >>"$supervisor_yml_path"
+  fi
+
   command printf '  tls:\n' >>"$supervisor_yml_path"
   command printf '    insecure: true\n' >>"$supervisor_yml_path"
   command printf '    insecure_skip_verify: true\n' >>"$supervisor_yml_path"
@@ -645,9 +649,14 @@ create_supervisor_config() {
   command printf '  executable: "%s"\n' "$INSTALL_DIR/bindplane-otel-collector" >>"$supervisor_yml_path"
   command printf '  config_apply_timeout: 30s\n' >>"$supervisor_yml_path"
   command printf '  bootstrap_timeout: 5s\n' >>"$supervisor_yml_path"
-  command printf '  description:\n' >>"$supervisor_yml_path"
-  command printf '    non_identifying_attributes:\n' >>"$supervisor_yml_path"
-  [ -n "$OPAMP_LABELS" ] && command printf '      service.labels: "%s"\n' "$OPAMP_LABELS" >>"$supervisor_yml_path"
+  command printf '  args: ["--feature-gates", "service.AllowNoPipelines"]\n' >>"$supervisor_yml_path"
+
+  if [ -n "$OPAMP_LABELS" ]; then
+    command printf '  description:\n' >>"$supervisor_yml_path"
+    command printf '    non_identifying_attributes:\n' >>"$supervisor_yml_path"
+    command printf '      service.labels: "%s"\n' "$OPAMP_LABELS" >>"$supervisor_yml_path"
+  fi
+
   command printf 'storage:\n' >>"$supervisor_yml_path"
   command printf '  directory: "%s"\n' "$INSTALL_DIR/supervisor_storage" >>"$supervisor_yml_path"
   command printf 'telemetry:\n' >>"$supervisor_yml_path"
@@ -666,7 +675,7 @@ display_results() {
   info "Agent Logs Command:            $(fg_cyan "sudo tail -F $INSTALL_DIR/supervisor_storage/agent.log")$(reset)"
   info "Supervisor Start Command:      $(fg_cyan "sudo launchctl load /Library/LaunchDaemons/$SERVICE_NAME.plist")$(reset)"
   info "Supervisor Stop Command:       $(fg_cyan "sudo launchctl unload /Library/LaunchDaemons/$SERVICE_NAME.plist")$(reset)"
-  info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/install_macos.sh)\" install_macos.sh -r")$(reset)"
+  info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/releases/$version/download/install_macos.sh)\" install_macos.sh -r")$(reset)"
   decrease_indent
 
   banner 'Support'
@@ -720,6 +729,8 @@ main() {
 
   bindplane_banner
   check_prereqs
+
+  version="latest"
 
   if [ $# -ge 1 ]; then
     while [ -n "$1" ]; do
