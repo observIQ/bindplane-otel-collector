@@ -289,6 +289,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 		}
 		batchesConsumedCount++
 		recordLogger.Debug("Reached max logs for single batch, starting new batch", zap.Int("batches_consumed_count", batchesConsumedCount))
+		w.metrics.S3eventBatchSize.Record(ctx, int64(log.LogRecordCount()))
 
 		// Save the offset to storage
 		if err := w.offsetStorage.SaveStorageData(ctx, offsetStorageKey, NewOffset(parser.Offset())); err != nil {
