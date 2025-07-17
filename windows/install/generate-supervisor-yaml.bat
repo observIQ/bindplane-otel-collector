@@ -5,11 +5,13 @@ set "install_dir=%~1"
 set "endpoint=%~2"
 set "secret_key=%~3"
 set "labels=%~4"
+set "version=%~5"
 
 echo %install_dir%
 echo %endpoint%
 echo %secret_key%
 echo %labels%
+echo %version%
 
 if "%endpoint%"=="" (
     echo Endpoint not specified, using default value of 'ws://localhost:3001/v1/opamp'
@@ -25,6 +27,7 @@ set "serverField=server:"
 set "endpointField=  endpoint: "%endpoint%""
 set "headersField=  headers:"
 set "authorizationField=    Authorization: "Secret-Key %secret_key%""
+set "userAgentField=    User-Agent: "bindplane-otel-collector/%version%""
 set "tlsField=  tls:"
 set "insecureField=    insecure: true"
 set "insecureSkipField=    insecure_skip_verify: true"
@@ -41,6 +44,7 @@ set "bootstrapTimeoutField=  bootstrap_timeout: 5s"
 set "descriptionField=  description:"
 set "nonIdentifyingAttributesField=    non_identifying_attributes:"
 set "serviceLabelsField=      service.labels: "%labels%""
+set "featureGateArgs=  args: ['--feature-gates', 'service.AllowNoPipelines']"
 
 set "storageField=storage:"
 set "directoryField=  directory: '%install_dir%supervisor_storage'"
@@ -54,6 +58,7 @@ echo %serverField% >"%supervisorFile%"
 echo %endpointField% >>"%supervisorFile%"
 echo %headersField% >>"%supervisorFile%"
 echo %authorizationField% >>"%supervisorFile%"
+echo %userAgentField% >>"%supervisorFile%"
 echo %tlsField% >>"%supervisorFile%"
 echo %insecureField% >>"%supervisorFile%"
 echo %insecureSkipField% >>"%supervisorFile%"
@@ -67,6 +72,7 @@ echo %executablePathField% >>"%supervisorFile%"
 echo %descriptionField% >>"%supervisorFile%"
 echo %nonIdentifyingAttributesField% >>"%supervisorFile%"
 echo %serviceLabelsField% >>"%supervisorFile%"
+echo %featureGateArgs% >>"%supervisorFile%"
 
 echo %storageField% >>"%supervisorFile%"
 echo %directoryField% >>"%supervisorFile%"

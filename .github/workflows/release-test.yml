@@ -19,8 +19,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
-          cache-dependency-path: "**/go.sum"
+          go-version: 1.24.4
 
       - name: Set up Docker Buildx
         id: buildx
@@ -28,12 +27,15 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
-        
+
       - name: Fake Windows MSI
-        run: touch ./observiq-otel-collector.msi
+        run: touch ./bindplane-otel-collector.msi
 
       - name: Set VERSION
         run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+
+      - name: Install Tools
+        run: make install-tools
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
