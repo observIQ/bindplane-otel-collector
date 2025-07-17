@@ -110,7 +110,12 @@ func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Conf
 				if objectKeyFilter != nil {
 					opts = append(opts, worker.WithObjectKeyFilter(objectKeyFilter))
 				}
+
+				// Set notification type
+				opts = append(opts, worker.WithNotificationType(cfg.NotificationType))
+
 				return worker.New(tel, next, client.NewClient(awsConfig), cfg.MaxLogSize, cfg.MaxLogsEmitted, cfg.VisibilityTimeout, cfg.VisibilityExtensionInterval, cfg.MaxVisibilityWindow, opts...)
+
 			},
 		},
 		offsetStorage: storageclient.NewNopStorage(),
