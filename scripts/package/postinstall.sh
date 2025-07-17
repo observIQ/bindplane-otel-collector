@@ -22,7 +22,11 @@ set -e
 [ -f /etc/default/observiq-otel-collector ] && . /etc/default/observiq-otel-collector
 [ -f /etc/sysconfig/observiq-otel-collector ] && . /etc/sysconfig/observiq-otel-collector
 
+# The collectors installation directory
 : "${BDOT_CONFIG_HOME:=/opt/observiq-otel-collector}"
+
+# Whether or not to run the collector as an unprivileged user.
+: "${BDOT_UNPRIVILEGED:=false}"
 
 username="bdot"
 
@@ -85,6 +89,24 @@ EOF
 
   chown root:root "$config_file"
   chmod 0640 "$config_file"
+
+  # Ensure the override dir exists.
+  override_dir="/etc/systemd/system/observiq-otel-collector.service.d"
+  if [ ! -d "$override_dir" ]; then
+    mkdir -p "$override_dir"
+    echo "Created systemd override directory at $override_dir"
+  fi
+
+  # If BDOT_UNPRIVILEGED is true, add an override to run the service as the
+  # bdot (unprivileged) user.
+  override_user_path="${override_dir}/10-package-customizations-username.conf"
+  if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
+    cat << EOF > "${override_user_path}"
+[Service]
+User=${username}
+EOF
+    echo "Configured systemd service to run as ${username} user in ${override_user_path}"
+  fi
 }
 
 install_initd_service() {
