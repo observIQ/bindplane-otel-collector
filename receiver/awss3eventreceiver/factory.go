@@ -52,7 +52,6 @@ func createDefaultConfig() component.Config {
 		MaxLogSize:                  1024 * 1024,
 		MaxLogsEmitted:              1000,
 		NotificationType:     "s3", // Default to direct S3 events for backward compatibility
-		SNSMessageFormat:     nil,  // Will be set to defaults when NotificationType is "sns"
 	}
 }
 

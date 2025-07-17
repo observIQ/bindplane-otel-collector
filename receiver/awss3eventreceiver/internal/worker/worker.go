@@ -60,7 +60,6 @@ type Worker struct {
 	bucketNameFilter            *regexp.Regexp
 	objectKeyFilter             *regexp.Regexp
 	notificationType            string
-	snsMessageFormat            *SNSMessageFormat
 }
 
 // Option is a functional option for configuring the Worker
@@ -96,12 +95,6 @@ func WithNotificationType(notificationType string) Option {
 	}
 }
 
-// WithSNSMessageFormat sets the SNS message format
-func WithSNSMessageFormat(messageField string, format string) Option {
-	return func(w *Worker) {
-		w.snsMessageFormat = &SNSMessageFormat{MessageField: messageField, Format: format}
-	}
-}
 
 // New creates a new Worker
 func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client client.Client, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration, opts ...Option) *Worker {
@@ -148,7 +141,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	switch w.notificationType {
 	case constants.NotificationTypeSNS:
 		logger.Info("parsing SNS message", zap.String("message_id", *msg.MessageId))
-		notification, err = w.ParseSNSToS3Event(*msg.Body, w.snsMessageFormat)
+		notification, err = w.ParseSNSToS3Event(*msg.Body)
 	case constants.NotificationTypeS3:
 		fallthrough
 	default:

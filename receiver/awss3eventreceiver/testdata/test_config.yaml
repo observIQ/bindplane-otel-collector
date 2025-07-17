@@ -27,6 +27,3 @@ receivers:
     max_log_size: 4096
     max_logs_emitted: 1000
     notification_type: "sns"
-    sns_message_format:
-      message_field: "Message"
-      format: "standard"

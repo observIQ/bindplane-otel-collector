@@ -18,8 +18,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"go.uber.org/zap"
-
 	"github.com/aws/aws-lambda-go/events"
 )
 
@@ -34,35 +32,20 @@ type SNSNotification struct {
 	// Additional fields like Signature, SigningCertURL, UnsubscribeURL can be added if needed
 }
 
-// SNSMessageFormat specifies how to parse SNS messages
-type SNSMessageFormat struct {
-	MessageField string
-	Format       string
-}
+const (
+	StandardSNSMessageField = "Message"
+)
 
 // ParseSNSToS3Event parses an SNS notification containing an S3 event
-func (w *Worker) ParseSNSToS3Event(messageBody string, format *SNSMessageFormat) (*events.S3Event, error) {
-	if format == nil {
-		return nil, fmt.Errorf("SNS message format configuration is required")
-	}
-	logger := w.logger.With(zap.String("format", format.Format), zap.String("message_field", format.MessageField))
+func (w *Worker) ParseSNSToS3Event(messageBody string) (*events.S3Event, error) {
 
-	switch format.Format {
-	case "raw":
-		logger.Debug("parsing raw SNS message")
-		// Raw message delivery - the message body is the S3 event directly
-		return parseS3EventFromJSON(messageBody)
-	case "standard":
-		logger.Debug("parsing standard SNS message")
-		// Standard SNS format - need to extract the Message field
-		return parseStandardSNSMessage(messageBody, format.MessageField)
-	default:
-		return nil, fmt.Errorf("unsupported SNS message format: %s", format.Format)
-	}
+	w.logger.Debug("parsing standard SNS message")
+	// Standard SNS format - extract the Message field
+	return parseStandardSNSMessage(messageBody)
 }
 
 // parseStandardSNSMessage parses a standard SNS notification and extracts the S3 event
-func parseStandardSNSMessage(messageBody string, messageField string) (*events.S3Event, error) {
+func parseStandardSNSMessage(messageBody string) (*events.S3Event, error) {
 	var snsNotification SNSNotification
 	if err := json.Unmarshal([]byte(messageBody), &snsNotification); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal SNS notification: %w", err)
@@ -74,30 +57,9 @@ func parseStandardSNSMessage(messageBody string, messageField string) (*events.S
 	}
 
 	// Extract the message content based on the configured field
-	var messageContent string
-	switch messageField {
-	case "Message":
-		messageContent = snsNotification.Message
-	default:
-		// For custom field names, we need to parse as a generic map
-		var genericSNS map[string]interface{}
-		if err := json.Unmarshal([]byte(messageBody), &genericSNS); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal SNS notification for custom field: %w", err)
-		}
-
-		if value, exists := genericSNS[messageField]; exists {
-			if str, ok := value.(string); ok {
-				messageContent = str
-			} else {
-				return nil, fmt.Errorf("SNS field '%s' is not a string", messageField)
-			}
-		} else {
-			return nil, fmt.Errorf("SNS field '%s' not found in notification", messageField)
-		}
-	}
-
+	messageContent := snsNotification.Message
 	if messageContent == "" {
-		return nil, fmt.Errorf("no message content found in SNS notification field '%s'", messageField)
+		return nil, fmt.Errorf("no message content found in SNS notification field '%s'", StandardSNSMessageField)
 	}
 
 	// Parse the S3 event from the message content

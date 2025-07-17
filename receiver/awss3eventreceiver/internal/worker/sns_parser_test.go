@@ -56,7 +56,6 @@ func TestParseSNSToS3Event(t *testing.T) {
 	tests := []struct {
 		name        string
 		messageBody string
-		format      *SNSMessageFormat
 		expectError bool
 		errorMsg    string
 	}{
@@ -74,37 +73,6 @@ func TestParseSNSToS3Event(t *testing.T) {
 					"Timestamp": "2025-03-01T14:23:11.000Z"
 				}`, string(escapedS3Event))
 			}(),
-			format: &SNSMessageFormat{
-				MessageField: "Message",
-				Format:       "standard",
-			},
-			expectError: false,
-		},
-		{
-			name:        "Raw format",
-			messageBody: string(s3EventJSON),
-			format: &SNSMessageFormat{
-				Format: "raw",
-			},
-			expectError: false,
-		},
-		{
-			name: "Custom message field",
-			messageBody: func() string {
-				// Properly escape the S3 event JSON for inclusion in SNS message
-				escapedS3Event, _ := json.Marshal(string(s3EventJSON))
-				return fmt.Sprintf(`{
-					"Type": "Notification",
-					"MessageId": "test-id",
-					"TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
-					"CustomField": %s,
-					"Timestamp": "2025-03-01T14:23:11.000Z"
-				}`, string(escapedS3Event))
-			}(),
-			format: &SNSMessageFormat{
-				MessageField: "CustomField",
-				Format:       "standard",
-			},
 			expectError: false,
 		},
 		{
@@ -118,10 +86,6 @@ func TestParseSNSToS3Event(t *testing.T) {
 					"Message": %s
 				}`, string(escapedS3Event))
 			}(),
-			format: &SNSMessageFormat{
-				MessageField: "Message",
-				Format:       "standard",
-			},
 			expectError: true,
 			errorMsg:    "expected SNS notification type 'Notification', got 'SubscriptionConfirmation'",
 		},
@@ -132,46 +96,8 @@ func TestParseSNSToS3Event(t *testing.T) {
 				"MessageId": "test-id",
 				"TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic"
 			}`,
-			format: &SNSMessageFormat{
-				MessageField: "Message",
-				Format:       "standard",
-			},
 			expectError: true,
 			errorMsg:    "no message content found in SNS notification field 'Message'",
-		},
-		{
-			name: "Nonexistent custom field",
-			messageBody: func() string {
-				// Properly escape the S3 event JSON for inclusion in SNS message
-				escapedS3Event, _ := json.Marshal(string(s3EventJSON))
-				return fmt.Sprintf(`{
-					"Type": "Notification",
-					"MessageId": "test-id",
-					"Message": %s
-				}`, string(escapedS3Event))
-			}(),
-			format: &SNSMessageFormat{
-				MessageField: "NonexistentField",
-				Format:       "standard",
-			},
-			expectError: true,
-			errorMsg:    "SNS field 'NonexistentField' not found in notification",
-		},
-		{
-			name:        "Nil format",
-			messageBody: string(s3EventJSON),
-			format:      nil,
-			expectError: true,
-			errorMsg:    "SNS message format configuration is required",
-		},
-		{
-			name:        "Unsupported format",
-			messageBody: string(s3EventJSON),
-			format: &SNSMessageFormat{
-				Format: "unsupported",
-			},
-			expectError: true,
-			errorMsg:    "unsupported SNS message format: unsupported",
 		},
 		{
 			name: "Invalid JSON in SNS message",
@@ -180,10 +106,6 @@ func TestParseSNSToS3Event(t *testing.T) {
 				"MessageId": "test-id",
 				"Message": "invalid-json"
 			}`,
-			format: &SNSMessageFormat{
-				MessageField: "Message",
-				Format:       "standard",
-			},
 			expectError: true,
 		},
 	}
@@ -193,7 +115,7 @@ func TestParseSNSToS3Event(t *testing.T) {
 			w := Worker{
 				logger: zap.NewNop(),
 			}
-			result, err := w.ParseSNSToS3Event(tt.messageBody, tt.format)
+			result, err := w.ParseSNSToS3Event(tt.messageBody)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -218,11 +140,10 @@ func TestParseStandardSNSMessage(t *testing.T) {
 	s3EventJSON := `{"Records":[{"eventName":"ObjectCreated:Put","s3":{"bucket":{"name":"test-bucket"},"object":{"key":"test.txt"}}}]}`
 
 	tests := []struct {
-		name         string
-		messageBody  string
-		messageField string
-		expectError  bool
-		errorMsg     string
+		name        string
+		messageBody string
+		expectError bool
+		errorMsg    string
 	}{
 		{
 			name: "Valid standard SNS with Message field",
@@ -234,45 +155,19 @@ func TestParseStandardSNSMessage(t *testing.T) {
 					"Message": %s
 				}`, string(escapedS3Event))
 			}(),
-			messageField: "Message",
-			expectError:  false,
+			expectError: false,
 		},
 		{
-			name: "Custom field name",
-			messageBody: func() string {
-				escapedS3Event, _ := json.Marshal(s3EventJSON)
-				return fmt.Sprintf(`{
-					"Type": "Notification",
-					"MessageId": "test-id",
-					"CustomData": %s
-				}`, string(escapedS3Event))
-			}(),
-			messageField: "CustomData",
-			expectError:  false,
-		},
-		{
-			name: "Non-string custom field",
-			messageBody: `{
-				"Type": "Notification",
-				"MessageId": "test-id",
-				"CustomData": 12345
-			}`,
-			messageField: "CustomData",
-			expectError:  true,
-			errorMsg:     "SNS field 'CustomData' is not a string",
-		},
-		{
-			name:         "Invalid JSON",
-			messageBody:  `invalid-json`,
-			messageField: "Message",
-			expectError:  true,
-			errorMsg:     "failed to unmarshal SNS notification",
+			name:        "Invalid JSON",
+			messageBody: `invalid-json`,
+			expectError: true,
+			errorMsg:    "failed to unmarshal SNS notification",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := parseStandardSNSMessage(tt.messageBody, tt.messageField)
+			result, err := parseStandardSNSMessage(tt.messageBody)
 
 			if tt.expectError {
 				assert.Error(t, err)

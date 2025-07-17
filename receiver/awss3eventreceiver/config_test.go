@@ -68,7 +68,6 @@ func TestLoadConfig(t *testing.T) {
 				MaxLogSize:                  4096,
 				MaxLogsEmitted:              1000,
 				NotificationType:            "s3",
-				SNSMessageFormat:            nil, // Not set for s3 mode
 			},
 			expectError: false,
 		},
@@ -86,10 +85,6 @@ func TestLoadConfig(t *testing.T) {
 				MaxLogSize:                  4096,
 				MaxLogsEmitted:              1000,
 				NotificationType:            "sns",
-				SNSMessageFormat: &awss3eventreceiver.SNSMessageFormat{
-					MessageField: "Message",
-					Format:       "standard",
-				},
 			},
 			expectError: false,
 		},
@@ -243,36 +238,10 @@ func TestConfigValidate(t *testing.T) {
 			expectedErr: "invalid notification_type 'invalid': must be 's3' or 'sns'",
 		},
 		{
-			desc: "Invalid SNS format",
+			desc: "Valid SNS notification type",
 			cfgMod: func(cfg *awss3eventreceiver.Config) {
 				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
 				cfg.NotificationType = "sns"
-				cfg.SNSMessageFormat = &awss3eventreceiver.SNSMessageFormat{
-					Format: "invalid",
-				}
-			},
-			expectedErr: "invalid sns_message_format: invalid format 'invalid': must be 'standard' or 'raw'",
-		},
-		{
-			desc: "Valid SNS standard format",
-			cfgMod: func(cfg *awss3eventreceiver.Config) {
-				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
-				cfg.NotificationType = "sns"
-				cfg.SNSMessageFormat = &awss3eventreceiver.SNSMessageFormat{
-					Format:       "standard",
-					MessageField: "Message",
-				}
-			},
-			expectedErr: "",
-		},
-		{
-			desc: "Valid SNS raw format",
-			cfgMod: func(cfg *awss3eventreceiver.Config) {
-				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
-				cfg.NotificationType = "sns"
-				cfg.SNSMessageFormat = &awss3eventreceiver.SNSMessageFormat{
-					Format: "raw",
-				}
 			},
 			expectedErr: "",
 		},
