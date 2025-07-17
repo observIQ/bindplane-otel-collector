@@ -15,6 +15,15 @@
 
 set -e
 
+# Read's optional package overrides. Users should deploy the override
+# file before installing BDOT for the first time. The override should
+# not be modified unless uninstalling and re-installing.
+[ -f /etc/default/observiq-otel-collector ] && . /etc/default/observiq-otel-collector
+[ -f /etc/sysconfig/observiq-otel-collector ] && . /etc/sysconfig/observiq-otel-collector
+
+# The collectors installation directory
+: "${BDOT_CONFIG_HOME:=/opt/observiq-otel-collector}"
+
 # Agent Constants
 PACKAGE_NAME="observiq-otel-collector"
 DOWNLOAD_BASE="https://github.com/observIQ/bindplane-otel-collector/releases/download"
@@ -29,7 +38,7 @@ fi
 # Script Constants
 COLLECTOR_USER="bdot"
 TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env var
-MANAGEMENT_YML_PATH="/opt/observiq-otel-collector/manager.yaml"
+MANAGEMENT_YML_PATH="${BDOT_CONFIG_HOME}/manager.yaml"
 PREREQS="curl printf $SVC_PRE sed uname cut"
 SCRIPT_NAME="$0"
 INDENT_WIDTH='  '
@@ -665,7 +674,7 @@ install_package()
   info "Installing package..."
   # if target install directory doesn't exist and we're using dpkg ensure a clean state 
   # by checking for the package and running purge if it exists.
-  if [ ! -d "/opt/observiq-otel-collector" ] && [ "$package_type" = "deb" ]; then
+  if [ ! -d "${BDOT_CONFIG_HOME}" ] && [ "$package_type" = "deb" ]; then
     dpkg -s "observiq-otel-collector" > /dev/null 2>&1 && dpkg --purge "observiq-otel-collector" > /dev/null 2>&1
   fi
 
@@ -756,8 +765,8 @@ display_results()
 {
     banner 'Information'
     increase_indent
-    info "Agent Home:         $(fg_cyan "/opt/observiq-otel-collector")$(reset)"
-    info "Agent Config:       $(fg_cyan "/opt/observiq-otel-collector/config.yaml")$(reset)"
+    info "Agent Home:         $(fg_cyan "${BDOT_CONFIG_HOME}")$(reset)"
+    info "Agent Config:       $(fg_cyan "${BDOT_CONFIG_HOME}/config.yaml")$(reset)"
     if [ "$SVC_PRE" = "systemctl" ]; then
       info "Start Command:      $(fg_cyan "sudo systemctl start observiq-otel-collector")$(reset)"
       info "Stop Command:       $(fg_cyan "sudo systemctl stop observiq-otel-collector")$(reset)"
@@ -767,7 +776,7 @@ display_results()
       info "Stop Command:       $(fg_cyan "sudo service observiq-otel-collector stop")$(reset)"
       info "Status Command:     $(fg_cyan "sudo service observiq-otel-collector status")$(reset)"
     fi
-    info "Logs Command:       $(fg_cyan "sudo tail -F /opt/observiq-otel-collector/log/collector.log")$(reset)"
+    info "Logs Command:       $(fg_cyan "sudo tail -F ${BDOT_CONFIG_HOME}/log/collector.log")$(reset)"
     info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/install_unix.sh)\" install_unix.sh -r")$(reset)"
     decrease_indent
 
