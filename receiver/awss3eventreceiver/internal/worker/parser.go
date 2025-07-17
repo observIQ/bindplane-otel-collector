@@ -39,11 +39,22 @@ type LogParser interface {
 }
 
 func newParser(ctx context.Context, stream LogStream, reader BufferedReader) (parser LogParser, err error) {
+	// check for avro first
+	isAvro, err := isAvroOcf(ctx, stream, reader)
+	if err != nil {
+		stream.Logger.Warn("failed to check if is avro", zap.Error(err))
+		isAvro = false
+	}
+	if isAvro {
+		return NewAvroOcfParser(reader, stream.Logger), nil
+	}
+
 	// if we're not trying to parse as JSON, use the line parser
 	if !stream.TryJSON {
 		return NewLineParser(reader), nil
 	}
 
+	// check for json
 	isJSON, err := isJSON(ctx, stream, reader)
 	if err != nil {
 		// don't fail if the file is not json
@@ -73,10 +84,34 @@ func isJSON(_ context.Context, stream LogStream, reader BufferedReader) (bool, e
 	return startsWithJSONObjectOrArray, nil
 }
 
+func isAvroOcf(_ context.Context, stream LogStream, reader BufferedReader) (bool, error) {
+	// check if the file extension or content type is avro
+	if !isAvroExtension(stream.Name) && !isAvroContentType(stream.ContentType) {
+		return false, nil
+	}
+
+	// check if the stream starts with the avro ocf magic string
+	startsWithAvroOcfMagic, err := StartsWithAvroOcfMagic(reader)
+	if err != nil {
+		stream.Logger.Warn("failed to check if starts with avro ocf magic", zap.Error(err))
+		return false, nil
+	}
+
+	return startsWithAvroOcfMagic, nil
+}
+
 func isJSONExtension(name string) bool {
 	return strings.HasSuffix(name, ".json") || strings.HasSuffix(name, ".json.gz")
 }
 
 func isJSONContentType(contentType *string) bool {
 	return contentType != nil && strings.HasPrefix(*contentType, "application/json")
+}
+
+func isAvroExtension(name string) bool {
+	return strings.HasSuffix(name, ".avro") || strings.HasSuffix(name, ".avro.gz")
+}
+
+func isAvroContentType(contentType *string) bool {
+	return contentType != nil && strings.HasPrefix(*contentType, "application/avro")
 }
