@@ -48,16 +48,16 @@ type parseFunc func(messageBody string) (*events.S3Event, error)
 func (w *Worker) getParseFuncForNotificationType(notificationType string) parseFunc {
 	switch notificationType {
 	case constants.NotificationTypeSNS:
-		return w.ParseSNSToS3Event
+		return ParseSNSToS3Event
 	case constants.NotificationTypeS3:
 		fallthrough
 	default:
-		return w.parseS3Event
+		return parseS3Event
 	}
 }
 
 // parseS3Event parses a direct S3 event notification
-func (w *Worker) parseS3Event(messageBody string) (*events.S3Event, error) {
+func parseS3Event(messageBody string) (*events.S3Event, error) {
 	notification := new(events.S3Event)
 	err := json.Unmarshal([]byte(messageBody), notification)
 	return notification, err

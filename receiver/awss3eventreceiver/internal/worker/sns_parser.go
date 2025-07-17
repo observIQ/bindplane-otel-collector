@@ -38,7 +38,7 @@ const (
 )
 
 // ParseSNSToS3Event parses an SNS notification containing an S3 event
-func (w *Worker) ParseSNSToS3Event(messageBody string) (*events.S3Event, error) {
+func ParseSNSToS3Event(messageBody string) (*events.S3Event, error) {
 	// Standard SNS format - extract the Message field
 	return parseStandardSNSMessage(messageBody)
 }
