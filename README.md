@@ -127,8 +127,8 @@ For more installation information, and how to configure OpAMP, see [installing o
 
 With the BDOT Collector installed, it will start collecting basic metrics about the host machine printing them to the log. To further configure your collector edit the `config.yaml` file just like you would an OpenTelemetry Collector. To find your `config.yaml` file based on your operating system, reference the table below:
 
-| OS      | Default Location                                              |
-|:--------|:--------------------------------------------------------------|
+| OS      | Default Location                                                |
+| :------ | :-------------------------------------------------------------- |
 | Linux   | `/opt/observiq-otel-collector/config.yaml`                      |
 | Windows | `C:\Program Files\observIQ OpenTelemetry Collector\config.yaml` |
 | macOS   | `/opt/observiq-otel-collector/config.yaml`                      |
@@ -197,7 +197,7 @@ receivers:
       processes:
 
 # Exporters send the data to a destination, in this case GCP.
-exporters: 
+exporters:
   googlecloud:
 
 # Service specifies how to construct the data pipelines using the configurations above.
@@ -207,6 +207,28 @@ service:
       receivers: [hostmetrics]
       exporters: [googlecloud]
 ```
+
+### Feature Gates
+
+Starting in v1.80.2 of the BDOT collector, OpenTelemetry feature gates can be configured at run time using a program argument or environment variable. To configure via a run time argument, you can do the following:
+
+```sh
+./observiq-otel-collector --config ./path/to/config.yaml --feature-gates otel.SomeFeature,-otel.OtherFeature
+```
+
+This would enable the `otel.SomeFeature` feature gate and disable the `otel.OtherFeature` feature gate.
+
+Use the environment variable `COLLECTOR_FEATURE_GATES` to achieve the same result. The following is an example:
+
+```env
+COLLECTOR_FEATURE_GATES=otel.SomeFeature,-otel.OtherFeature
+```
+
+By default the following feature gates are enabled in BDOT:
+
+- filelog.allowFileDeletion
+- filelog.allowHeaderMetadataParsing
+- filelog.mtimeSortType
 
 ## Connecting to Bindplane Telemetry Pipeline with OpAMP
 

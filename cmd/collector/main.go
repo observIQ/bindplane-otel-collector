@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	_ "time/tzdata"
 
 	"github.com/google/uuid"
@@ -49,12 +50,14 @@ const (
 	configPathENV    = "CONFIG_YAML_PATH"
 	managerPathENV   = "MANAGER_YAML_PATH"
 	loggingPathENV   = "LOGGING_YAML_PATH"
+	featureGatesENV  = "COLLECTOR_FEATURE_GATES"
 )
 
 func main() {
 	collectorConfigPaths := pflag.StringSlice("config", getDefaultCollectorConfigPaths(), "the collector config path")
 	managerConfigPath := pflag.String("manager", getDefaultManagerConfigPath(), "The configuration for remote management")
 	loggingConfigPath := pflag.String("logging", getDefaultLoggingConfigPath(), "the collector logging config path")
+	featureGates := pflag.StringSlice("feature-gates", getDefaultFeatureGates(), "the collector feature gates")
 
 	_ = pflag.String("log-level", "", "not implemented") // TEMP(jsirianni): Required for OTEL k8s operator
 	var showVersion = pflag.BoolP("version", "v", false, "prints the version of the collector")
@@ -81,7 +84,7 @@ func main() {
 	var runnableService service.RunnableService
 
 	// Set feature flags
-	if err := collector.SetFeatureFlags(); err != nil {
+	if err := collector.SetFeatureFlags(*featureGates, logger); err != nil {
 		logger.Fatal("Failed to set feature flags.", zap.Error(err))
 	}
 
@@ -145,6 +148,14 @@ func getDefaultLoggingConfigPath() string {
 		return lp
 	}
 	return logging.DefaultConfigPath
+}
+
+func getDefaultFeatureGates() []string {
+	fg, ok := os.LookupEnv(featureGatesENV)
+	if ok {
+		return strings.Split(fg, ",")
+	}
+	return []string{}
 }
 
 func logOptions(loggingConfigPath *string) ([]zap.Option, error) {
