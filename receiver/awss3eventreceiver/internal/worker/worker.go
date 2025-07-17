@@ -41,6 +41,28 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 )
 
+// parseFunc defines the signature for parsing notification messages into S3 events
+type parseFunc func(messageBody string) (*events.S3Event, error)
+
+// getParseFuncForNotificationType returns the appropriate parse function for the given notification type
+func (w *Worker) getParseFuncForNotificationType(notificationType string) parseFunc {
+	switch notificationType {
+	case constants.NotificationTypeSNS:
+		return w.ParseSNSToS3Event
+	case constants.NotificationTypeS3:
+		fallthrough
+	default:
+		return w.parseS3Event
+	}
+}
+
+// parseS3Event parses a direct S3 event notification
+func (w *Worker) parseS3Event(messageBody string) (*events.S3Event, error) {
+	notification := new(events.S3Event)
+	err := json.Unmarshal([]byte(messageBody), notification)
+	return notification, err
+}
+
 // Worker processes S3 event notifications.
 // It is responsible for processing messages from the SQS queue and sending them to the next consumer.
 // It also handles deleting messages from the SQS queue after they have been processed.
@@ -60,6 +82,7 @@ type Worker struct {
 	bucketNameFilter            *regexp.Regexp
 	objectKeyFilter             *regexp.Regexp
 	notificationType            string
+	parseFunc                   parseFunc
 }
 
 // Option is a functional option for configuring the Worker
@@ -108,11 +131,15 @@ func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client cli
 		visibilityTimeout:           visibilityTimeout,
 		visibilityExtensionInterval: visibilityExtensionInterval,
 		maxVisibilityWindow:         maxVisibilityWindow,
+		notificationType:            constants.NotificationTypeS3, // Default to S3 notification type
 	}
 
 	for _, opt := range opts {
 		opt(w)
 	}
+
+	// Set the parse function based on the notification type
+	w.parseFunc = w.getParseFuncForNotificationType(w.notificationType)
 
 	return w
 }
@@ -133,22 +160,9 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	defer cancelVisibility()
 
 	go w.extendMessageVisibility(visibilityCtx, msg, queueURL, logger)
-	// Parse the message based on notification type
-	var notification *events.S3Event
-	var err error
-
-	switch w.notificationType {
-	case constants.NotificationTypeSNS:
-		logger.Info("parsing SNS message", zap.String("message_id", *msg.MessageId))
-		notification, err = w.ParseSNSToS3Event(*msg.Body)
-	case constants.NotificationTypeS3:
-		fallthrough
-	default:
-		logger.Info("parsing S3 message", zap.String("message_id", *msg.MessageId))
-		// Direct S3 event (original behavior)
-		notification = new(events.S3Event)
-		err = json.Unmarshal([]byte(*msg.Body), notification)
-	}
+	// Parse the message using the configured parse function
+	logger.Debug("parsing message", zap.String("message_id", *msg.MessageId), zap.String("notification_type", w.notificationType))
+	notification, err := w.parseFunc(*msg.Body)
 	if err != nil {
 		logger.Error("unmarshal notification", zap.Error(err))
 		w.metrics.S3eventFailures.Add(ctx, 1)
