@@ -13,8 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 set -e
+
+# Read's optional package overrides. Users should deploy the override
+# file before installing BDOT for the first time. The override should
+# not be modified unless uninstalling and re-installing.
+[ -f /etc/default/observiq-otel-collector ] && . /etc/default/observiq-otel-collector
+[ -f /etc/sysconfig/observiq-otel-collector ] && . /etc/sysconfig/observiq-otel-collector
+
+: "${BDOT_SKIP_RUNTIME_USER_CREATION:=false}"
 
 username="bdot"
 legacy_username="observiq-otel-collector"
@@ -23,6 +30,15 @@ legacy_username="observiq-otel-collector"
 # service. This function is idempotent and safe to call
 # multiple times.
 install() {
+    if [ "$BDOT_SKIP_RUNTIME_USER_CREATION" = "true" ]; then
+        echo "BDOT_SKIP_RUNTIME_USER_CREATION is set to true, skipping user and group creation"
+    else
+        echo "Creating ${username} user and group"
+        install_user
+    fi
+}
+
+install_user() {
     # Return early without output if the user and group already exist.
     # This will help avoid confusion with the output in migrate_user().
     if id "$username" > /dev/null 2>&1 && getent group "$username" > /dev/null 2>&1; then
