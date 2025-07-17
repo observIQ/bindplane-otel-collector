@@ -60,7 +60,7 @@ func TestParseAvroOcfLogs(t *testing.T) {
 
 			stream := worker.LogStream{
 				Name:        test.filePath,
-				ContentType: aws.String("application/json"),
+				ContentType: aws.String("application/avro"),
 				MaxLogSize:  1024,
 				Body:        file,
 				Logger:      zap.NewNop(),
