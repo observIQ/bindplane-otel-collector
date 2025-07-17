@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/constants"
 	"go.opentelemetry.io/collector/component"
 )
 
@@ -81,6 +82,11 @@ type Config struct {
 
 	// ObjectKeyFilter is a regex filter to apply to the S3 object key.
 	ObjectKeyFilter string `mapstructure:"object_key_filter"`
+
+	// NotificationType specifies the format of notifications received in the SQS queue.
+	// Valid values: "s3" (direct S3 events), "sns" (S3 events wrapped in SNS notifications).
+	// Default is "s3".
+	NotificationType string `mapstructure:"notification_type"`
 }
 
 // Validate checks if all required fields are present and valid.
@@ -155,6 +161,23 @@ func (c *Config) Validate() error {
 		if err != nil {
 			return fmt.Errorf("'object_key_filter' %q is invalid: %w", c.ObjectKeyFilter, err)
 		}
+	}
+
+	return c.validateNotificationType()
+}
+
+func (c *Config) validateNotificationType() error {
+	// Set default if not specified
+	if c.NotificationType == "" {
+		c.NotificationType = constants.NotificationTypeS3
+	}
+
+	// Validate notification type
+	switch c.NotificationType {
+	case constants.NotificationTypeS3, constants.NotificationTypeSNS:
+		// Valid types
+	default:
+		return fmt.Errorf("invalid notification_type '%s': must be 's3' or 'sns'", c.NotificationType)
 	}
 
 	return nil

@@ -67,6 +67,24 @@ func TestLoadConfig(t *testing.T) {
 				Workers:                     5,
 				MaxLogSize:                  4096,
 				MaxLogsEmitted:              1000,
+				NotificationType:            "s3",
+			},
+			expectError: false,
+		},
+		{
+			id: component.NewIDWithName(metadata.Type, "sns"),
+			expected: &awss3eventreceiver.Config{
+				SQSQueueURL:                 "https://sqs.us-east-1.amazonaws.com/123456789012/sns-test-queue",
+				StandardPollInterval:        30 * time.Second,
+				MaxPollInterval:             60 * time.Second,
+				PollingBackoffFactor:        2,
+				VisibilityTimeout:           600 * time.Second,
+				VisibilityExtensionInterval: 60 * time.Second,
+				MaxVisibilityWindow:         4 * time.Hour,
+				Workers:                     5,
+				MaxLogSize:                  4096,
+				MaxLogsEmitted:              1000,
+				NotificationType:            "sns",
 			},
 			expectError: false,
 		},
@@ -210,6 +228,31 @@ func TestConfigValidate(t *testing.T) {
 				cfg.VisibilityExtensionInterval = 4 * time.Second
 			},
 			expectedErr: "'visibility_extension_interval' must be greater than 10 seconds",
+		},
+		{
+			desc: "Invalid notification type",
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.NotificationType = "invalid"
+			},
+			expectedErr: "invalid notification_type 'invalid': must be 's3' or 'sns'",
+		},
+		{
+			desc: "Valid SNS notification type",
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.NotificationType = "sns"
+			},
+			expectedErr: "",
+		},
+		{
+			desc: "SNS mode with default format",
+			cfgMod: func(cfg *awss3eventreceiver.Config) {
+				cfg.SQSQueueURL = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue"
+				cfg.NotificationType = "sns"
+				// SNSMessageFormat is nil, should use defaults
+			},
+			expectedErr: "",
 		},
 	}
 

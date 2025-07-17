@@ -51,6 +51,7 @@ func createDefaultConfig() component.Config {
 		Workers:                     5,
 		MaxLogSize:                  1024 * 1024,
 		MaxLogsEmitted:              1000,
+		NotificationType:            "s3", // Default to direct S3 events for backward compatibility
 	}
 }
 
