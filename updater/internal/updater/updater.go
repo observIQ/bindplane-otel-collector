@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"text/template"
 	"time"
 
@@ -94,9 +95,9 @@ func (u *Updater) readGroupFromSystemdFile() (string, error) {
 	return "", errors.New("Group not found in systemd unit file")
 }
 
-// generateServiceFiles writes necessary service files to the install directory
+// generateLinuxServiceFiles writes necessary service files to the install directory
 // to be copied to their final locations by the updater.
-func (u *Updater) generateServiceFiles() error {
+func (u *Updater) generateLinuxServiceFiles() error {
 	systemdServiceFilePath := filepath.Join(u.installDir, "install", "observiq-otel-collector.service")
 	initServiceFilePath := filepath.Join(u.installDir, "install", "observiq-otel-collector")
 
@@ -153,8 +154,10 @@ func (u *Updater) generateServiceFiles() error {
 func (u *Updater) Update() error {
 	// Generate service files before stopping the service. If
 	// this fails, the collector will still be running.
-	if err := u.generateServiceFiles(); err != nil {
-		return fmt.Errorf("failed to generate service files: %w", err)
+	if runtime.GOOS == "linux" {
+		if err := u.generateLinuxServiceFiles(); err != nil {
+			return fmt.Errorf("failed to generate service files: %w", err)
+		}
 	}
 
 	// Stop the service before backing up the install directory;
