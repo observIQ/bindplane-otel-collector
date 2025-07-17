@@ -393,15 +393,3 @@ func TestReadGroupFromSystemdFile(t *testing.T) {
 		require.Equal(t, "bdot", group)
 	})
 }
-
-func TestReadWorkingDirectoryFromSystemdFile(t *testing.T) {
-	t.Run("Extract WorkingDirectory from systemd unit file", func(t *testing.T) {
-		u := &Updater{
-			installedSystemdUnitPath: "testdata/observiq-otel-collector.service.golden",
-		}
-
-		workingDirectory, err := u.readWorkingDirectoryFromSystemdFile()
-		require.NoError(t, err)
-		require.Equal(t, "/opt/observiq-otel-collector", workingDirectory)
-	})
-}

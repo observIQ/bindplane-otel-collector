@@ -94,26 +94,6 @@ func (u *Updater) readGroupFromSystemdFile() (string, error) {
 	return "", errors.New("Group not found in systemd unit file")
 }
 
-// readWorkingDirectoryFromSystemdFile reads the systemd unit file and extracts the WorkingDirectory value.
-func (u *Updater) readWorkingDirectoryFromSystemdFile() (string, error) {
-	// #nosec G304 - systemdUnitFilePath is not user configurable, and comes
-	// from the constant DefaultSystemdUnitFilePath. Unit tests will override
-	// this path to a test file.
-	fileContent, err := os.ReadFile(u.installedSystemdUnitPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read systemd unit file: %w", err)
-	}
-
-	lines := bytes.Split(fileContent, []byte("\n"))
-	for _, line := range lines {
-		if bytes.HasPrefix(line, []byte("WorkingDirectory=")) {
-			return string(bytes.TrimSpace(bytes.TrimPrefix(line, []byte("WorkingDirectory=")))), nil
-		}
-	}
-
-	return "", errors.New("WorkingDirectory not found in systemd unit file")
-}
-
 // generateServiceFiles writes necessary service files to the install directory
 // to be copied to their final locations by the updater.
 func (u *Updater) generateServiceFiles() error {
@@ -131,8 +111,11 @@ func (u *Updater) generateServiceFiles() error {
 		return fmt.Errorf("read group from systemd file %s: %w", u.installedSystemdUnitPath, err)
 	}
 
-	// Read the WorkingDirectory value from the systemd unit file
-	installDir, err := u.readWorkingDirectoryFromSystemdFile()
+	// Get the install directory from path package. This will default
+	// to /opt/observiq-otel-collector unless BDOT_CONFIG_HOME is set
+	// in a package config file such as /etc/default/observiq-otel-collector
+	// or /etc/sysconfig/observiq-otel-collector.
+	installDir, err := path.InstallDir(u.logger, path.DefaultConfigOverrides)
 	if err != nil {
 		return fmt.Errorf("read working directory from systemd file %s: %w", u.installedSystemdUnitPath, err)
 	}

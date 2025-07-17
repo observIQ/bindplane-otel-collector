@@ -43,7 +43,7 @@ var DefaultConfigOverrides = []string{
 }
 
 const (
-	configOverrideEnvVar = "BDOT_CONFIG_HOME"
+	configHomeOverrideKey = "BDOT_CONFIG_HOME"
 )
 
 // InstallDir returns the filepath to the install directory
@@ -104,7 +104,7 @@ func customInstallDir(logger *zap.Logger, config string) (string, error) {
 			continue
 		}
 
-		if strings.HasPrefix(line, configOverrideEnvVar+"=") {
+		if strings.HasPrefix(line, configHomeOverrideKey+"=") {
 			parts := strings.SplitN(line, "=", 2)
 			if len(parts) == 2 {
 				value := strings.TrimSpace(parts[1])
