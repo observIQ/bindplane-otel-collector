@@ -50,11 +50,12 @@ func TestStartsWithAvroOcfMagic(t *testing.T) {
 
 func TestParseAvroOcfLogs(t *testing.T) {
 	tests := []struct {
-		filePath      string
-		startOffset   int64
-		expectLogs    int
-		expectError   error
-		expectOffsets []int64
+		filePath         string
+		startOffset      int64
+		expectLogs       int
+		expectParseError string
+		expectReadError  string
+		expectOffsets    []int64
 	}{
 		{filePath: "testdata/sample_logs.avro", expectLogs: 10, expectOffsets: []int64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
 		{filePath: "testdata/sample_logs.avro", expectLogs: 9, expectOffsets: []int64{2, 3, 4, 5, 6, 7, 8, 9, 10}, startOffset: 1},
@@ -64,6 +65,8 @@ func TestParseAvroOcfLogs(t *testing.T) {
 		{filePath: "testdata/sample_logs.avro.gz", expectLogs: 900, startOffset: 100},
 		{filePath: "testdata/sample_logs.avro.gz", expectLogs: 1, startOffset: 999},
 		{filePath: "testdata/sample_logs.avro.gz", expectLogs: 0, startOffset: 1000},
+		{filePath: "testdata/sample_logs_corrupt.avro", expectLogs: 50}, // no error expected, just aborts
+		{filePath: "testdata/sample_logs_corrupt_schema.avro", expectLogs: 0, expectParseError: "cannot read OCF header with invalid avro.schema"},
 	}
 
 	for _, test := range tests {
@@ -85,20 +88,34 @@ func TestParseAvroOcfLogs(t *testing.T) {
 
 			parser := worker.NewAvroOcfParser(bufferedReader, zap.NewNop())
 			logs, err := parser.Parse(context.Background(), test.startOffset)
-			if test.expectError != nil {
-				require.ErrorIs(t, err, test.expectError)
+			if test.expectParseError != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), test.expectParseError)
 				return
 			}
 			require.NoError(t, err, "parse logs")
+
+			var readError error
 
 			offsets := []int64{}
 			count := 0
 			for log, err := range logs {
 				if err == nil {
-					t.Logf("Log: %v", log)
+					t.Logf("Log %d: %v", count, log)
 					count++
 					offsets = append(offsets, parser.Offset())
+				} else {
+					t.Logf("Error: %v", err)
+					readError = err
 				}
+			}
+
+			t.Logf("count: %d", count)
+
+			if test.expectReadError != "" {
+				require.Error(t, readError)
+				require.Contains(t, readError.Error(), test.expectReadError)
+				return
 			}
 
 			require.Equal(t, test.expectLogs, count)

@@ -39,6 +39,11 @@ type LogParser interface {
 }
 
 func newParser(ctx context.Context, stream LogStream, reader BufferedReader) (parser LogParser, err error) {
+	// if we're not trying to decode, use the line parser
+	if !stream.TryDecoding {
+		return NewLineParser(reader), nil
+	}
+
 	// check for avro first
 	isAvro, err := isAvroOcf(ctx, stream, reader)
 	if err != nil {
@@ -47,11 +52,6 @@ func newParser(ctx context.Context, stream LogStream, reader BufferedReader) (pa
 	}
 	if isAvro {
 		return NewAvroOcfParser(reader, stream.Logger), nil
-	}
-
-	// if we're not trying to parse as JSON, use the line parser
-	if !stream.TryJSON {
-		return NewLineParser(reader), nil
 	}
 
 	// check for json
