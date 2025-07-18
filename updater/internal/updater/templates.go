@@ -26,10 +26,10 @@ Type=simple
 User=root
 Group={{.Group}}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
-Environment=OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
-Environment=OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
-WorkingDirectory=/opt/observiq-otel-collector
-ExecStart=/opt/observiq-otel-collector/observiq-otel-collector --config config.yaml
+Environment=OIQ_OTEL_COLLECTOR_HOME={{.InstallDir}}
+Environment=OIQ_OTEL_COLLECTOR_STORAGE={{.InstallDir}}/storage
+WorkingDirectory={{.InstallDir}}
+ExecStart={{.InstallDir}}/observiq-otel-collector --config config.yaml
 LimitNOFILE=65000
 SuccessExitStatus=0
 TimeoutSec=20

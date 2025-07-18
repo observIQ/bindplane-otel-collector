@@ -330,7 +330,7 @@ func TestUpdaterUpdate(t *testing.T) {
 	})
 }
 
-func TestGenerateServiceFiles(t *testing.T) {
+func TestGenerateLinuxServiceFiles(t *testing.T) {
 	// Windows does not use the files tested here, and has
 	// different newline characters that fail the test.
 	if runtime.GOOS == "windows" {
@@ -349,7 +349,7 @@ func TestGenerateServiceFiles(t *testing.T) {
 		// Cleanup the directory after test
 		defer os.RemoveAll(installDir)
 
-		err := u.generateServiceFiles()
+		err := u.generateLinuxServiceFiles()
 		require.NoError(t, err)
 
 		// Compare the generated files with golden files

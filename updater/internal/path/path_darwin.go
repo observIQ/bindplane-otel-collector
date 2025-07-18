@@ -19,7 +19,11 @@ import "go.uber.org/zap"
 // DarwinInstallDir is the path to the install directory on Darwin.
 const DarwinInstallDir = "/opt/observiq-otel-collector"
 
+// DefaultConfigOverrides is not used on Darwin, but is required
+// by InstallDir.
+var DefaultConfigOverrides = []string{}
+
 // InstallDir returns the filepath to the install directory
-func InstallDir(_ *zap.Logger) (string, error) {
+func InstallDir(_ *zap.Logger, _ []string) (string, error) {
 	return DarwinInstallDir, nil
 }

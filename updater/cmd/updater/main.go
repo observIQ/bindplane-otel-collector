@@ -40,7 +40,7 @@ func main() {
 
 	// We can't create the zap logger yet, because we don't know the install dir, which is needed
 	// to create the logger. So we pass a Nop logger here.
-	installDir, err := path.InstallDir(zap.NewNop())
+	installDir, err := path.InstallDir(zap.NewNop(), path.DefaultConfigOverrides)
 	if err != nil {
 		// Can't use "fail" here since we don't know the install directory
 		log.Fatalf("Failed to determine install directory: %s", err)
