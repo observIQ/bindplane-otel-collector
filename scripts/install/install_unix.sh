@@ -15,7 +15,7 @@
 
 set -e
 
-# Read's optional package overrides. Users should deploy the override
+# Reads optional package overrides. Users should deploy the override
 # file before installing BDOT for the first time. The override should
 # not be modified unless uninstalling and re-installing.
 [ -f /etc/default/observiq-otel-collector ] && . /etc/default/observiq-otel-collector
