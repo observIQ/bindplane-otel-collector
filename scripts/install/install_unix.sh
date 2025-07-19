@@ -26,7 +26,7 @@ set -e
 
 # Agent Constants
 PACKAGE_NAME="observiq-otel-collector"
-DOWNLOAD_BASE="https://github.com/observIQ/bindplane-otel-collector/releases/download"
+DOWNLOAD_BASE="https://bdot.bindplane.com"
 
 # Determine if we need service or systemctl for prereqs
 if command -v systemctl > /dev/null 2>&1; then
@@ -437,24 +437,11 @@ set_package_type()
 set_download_urls()
 {
   if [ -z "$url" ] ; then
-    if [ -z "$version" ] ; then
-      # shellcheck disable=SC2153
-      version=$COLLECTOR_VERSION
-    fi
-
-    if [ -z "$version" ] ; then
-      version=$(latest_version)
-    fi
-
-    if [ -z "$version" ] ; then
-      error_exit "$LINENO" "Could not determine version to install"
-    fi
-
     if [ -z "$base_url" ] ; then
       base_url=$DOWNLOAD_BASE
     fi
 
-    collector_download_url="$base_url/v$version/${PACKAGE_NAME}_v${version}_linux_${os_arch}.${package_type}"
+    collector_download_url="$base_url/$version/${PACKAGE_NAME}_v${version}_linux_${os_arch}.${package_type}"
   else
     collector_download_url="$url"
   fi
@@ -672,9 +659,7 @@ package_type_check()
 # latest_version gets the tag of the latest release, without the v prefix.
 latest_version()
 {
-  curl -sSL -H"Accept: application/vnd.github.v3+json" https://api.github.com/repos/observIQ/observiq-otel-collector/releases/latest | \
-    grep "\"tag_name\"" | \
-    sed -r 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
+  curl -s https://bdot.bindplane.com/latest
 }
 
 # This will install the package by downloading the archived agent,
@@ -809,7 +794,7 @@ display_results()
       info "Status Command:     $(fg_cyan "sudo service observiq-otel-collector status")$(reset)"
     fi
     info "Logs Command:       $(fg_cyan "sudo tail -F ${BDOT_CONFIG_HOME}/log/collector.log")$(reset)"
-    info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/install_unix.sh)\" install_unix.sh -r")$(reset)"
+    info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL https://${DOWNLOAD_BASE}/${version}/install_unix.sh)\" install_unix.sh -r")$(reset)"
     decrease_indent
 
     banner 'Support'
@@ -938,6 +923,19 @@ main()
         ;;
       esac
     done
+  fi
+
+  if [ -z "$version" ] ; then
+    # shellcheck disable=SC2153
+    version=$COLLECTOR_VERSION
+  fi
+
+  if [ -z "$version" ] ; then
+    version=$(latest_version)
+  fi
+
+  if [ -z "$version" ] ; then
+    error_exit "$LINENO" "Could not determine version to install"
   fi
 
   interactive_check
