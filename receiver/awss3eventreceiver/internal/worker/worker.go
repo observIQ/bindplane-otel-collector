@@ -29,7 +29,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-	"github.com/aws/smithy-go"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -71,20 +70,14 @@ func isDLQConditionError(err error) bool {
 
 // isAccessDeniedError checks if the error is an IAM permission (AccessDenied) error
 func isAccessDeniedError(err error) bool {
-	var apiErr smithy.APIError
-	if errors.As(err, &apiErr) {
-		return apiErr.ErrorCode() == "AccessDenied" || apiErr.ErrorCode() == "Forbidden"
-	}
-	return strings.Contains(err.Error(), "AccessDenied") || strings.Contains(err.Error(), "Forbidden")
+	errStr := strings.ToLower(err.Error())
+	return strings.Contains(errStr, "accessdenied") || strings.Contains(errStr, "forbidden")
 }
 
 // isNoSuchKeyError checks if the error is a file not found (NoSuchKey) error
 func isNoSuchKeyError(err error) bool {
-	var apiErr smithy.APIError
-	if errors.As(err, &apiErr) {
-		return apiErr.ErrorCode() == "NoSuchKey"
-	}
-	return strings.Contains(err.Error(), "NoSuchKey")
+	errStr := strings.ToLower(err.Error())
+	return strings.Contains(errStr, "nosuchkey")
 }
 
 // isUnsupportedFileTypeError checks if the error indicates an unsupported file type
