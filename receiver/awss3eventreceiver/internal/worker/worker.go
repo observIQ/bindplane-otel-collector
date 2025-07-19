@@ -63,9 +63,18 @@ func parseS3Event(messageBody string) (*events.S3Event, error) {
 	return notification, err
 }
 
-// isDLQConditionError checks if an error should trigger DLQ behavior
-func isDLQConditionError(err error) bool {
-	return isAccessDeniedError(err) || isNoSuchKeyError(err) || isUnsupportedFileTypeError(err)
+// isDLQConditionError checks if an error should trigger DLQ behavior and returns the specific error type
+func isDLQConditionError(err error) error {
+	if isAccessDeniedError(err) {
+		return &DLQError{Type: "iam_permission_denied", Err: err}
+	}
+	if isNoSuchKeyError(err) {
+		return &DLQError{Type: "file_not_found", Err: err}
+	}
+	if isUnsupportedFileTypeError(err) {
+		return &DLQError{Type: "unsupported_file_type", Err: err}
+	}
+	return nil
 }
 
 // isAccessDeniedError checks if the error is an IAM permission (AccessDenied) error
@@ -83,6 +92,20 @@ func isNoSuchKeyError(err error) bool {
 // isUnsupportedFileTypeError checks if the error indicates an unsupported file type
 func isUnsupportedFileTypeError(err error) bool {
 	return errors.Is(err, ErrNotArrayOrKnownObject)
+}
+
+// DLQError represents an error that should trigger DLQ behavior
+type DLQError struct {
+	Type string
+	Err  error
+}
+
+func (e *DLQError) Error() string {
+	return e.Err.Error()
+}
+
+func (e *DLQError) Unwrap() error {
+	return e.Err
 }
 
 // Worker processes S3 event notifications.
@@ -236,12 +259,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 		recordLogger.Debug("processing record")
 
 		if err := w.processRecord(ctx, record, recordLogger); err != nil {
-			if isDLQConditionError(err) {
-				w.handleDLQCondition(ctx, msg, queueURL, err, recordLogger)
-				return
-			}
-			recordLogger.Error("error processing record, preserving message in SQS for retry", zap.Error(err))
-			w.metrics.S3eventFailures.Add(ctx, 1)
+			w.handleProcessingError(ctx, msg, queueURL, err, recordLogger)
 			return
 		}
 		keys = append(keys, record.S3.Object.Key)
@@ -529,35 +547,48 @@ func (w *Worker) extendVisibility(ctx context.Context, msg types.Message, queueU
 // handleDLQCondition handles messages that should be sent to DLQ by resetting visibility and logging
 func (w *Worker) handleDLQCondition(ctx context.Context, msg types.Message, queueURL string, err error, logger *zap.Logger) {
 	var errorType string
-	if isAccessDeniedError(err) {
-		errorType = "iam_permission_denied"
-		logger.Error("IAM permission denied accessing S3 object, resetting visibility for DLQ processing",
-			zap.Error(err),
-			zap.String("error_type", errorType))
-		if w.metrics != nil {
-			w.metrics.S3eventDlqIamErrors.Add(ctx, 1)
-		}
-	} else if isNoSuchKeyError(err) {
-		errorType = "file_not_found"
-		logger.Error("S3 object not found, resetting visibility for DLQ processing",
-			zap.Error(err),
-			zap.String("error_type", errorType))
-		if w.metrics != nil {
-			w.metrics.S3eventDlqFileNotFoundErrors.Add(ctx, 1)
-		}
-	} else if isUnsupportedFileTypeError(err) {
-		errorType = "unsupported_file_type"
-		logger.Error("unsupported file type, resetting visibility for DLQ processing",
-			zap.Error(err),
-			zap.String("error_type", errorType))
-		if w.metrics != nil {
-			w.metrics.S3eventDlqUnsupportedFileErrors.Add(ctx, 1)
+	if err != nil {
+		if dlqErr, ok := err.(*DLQError); ok {
+			errorType = dlqErr.Type
+			logger.Error("DLQ condition triggered, resetting visibility for DLQ processing",
+				zap.Error(dlqErr.Err),
+				zap.String("error_type", errorType))
+			if w.metrics != nil {
+				switch errorType {
+				case "iam_permission_denied":
+					w.metrics.S3eventDlqIamErrors.Add(ctx, 1)
+				case "file_not_found":
+					w.metrics.S3eventDlqFileNotFoundErrors.Add(ctx, 1)
+				case "unsupported_file_type":
+					w.metrics.S3eventDlqUnsupportedFileErrors.Add(ctx, 1)
+				}
+			}
+		} else {
+			// Fallback for other errors
+			errorType = "unknown_dlq_error"
+			logger.Error("DLQ condition triggered for unknown error, resetting visibility for DLQ processing",
+				zap.Error(err),
+				zap.String("error_type", errorType))
+			// Note: No specific metric for unknown DLQ errors, using general failure metric
+			if w.metrics != nil {
+				w.metrics.S3eventFailures.Add(ctx, 1)
+			}
 		}
 	}
 
 	if err := w.resetVisibilityTimeout(ctx, msg, queueURL, logger); err != nil {
 		logger.Error("failed to reset visibility timeout for DLQ condition", zap.Error(err))
 	}
+}
+
+// handleProcessingError handles errors from processing records, determining if they should trigger DLQ behavior
+func (w *Worker) handleProcessingError(ctx context.Context, msg types.Message, queueURL string, err error, logger *zap.Logger) {
+	if dlqErr := isDLQConditionError(err); dlqErr != nil {
+		w.handleDLQCondition(ctx, msg, queueURL, dlqErr, logger)
+		return
+	}
+	logger.Error("error processing record, preserving message in SQS for retry", zap.Error(err))
+	w.metrics.S3eventFailures.Add(ctx, 1)
 }
 
 // resetVisibilityTimeout resets the message visibility timeout to 0, making it immediately available for DLQ processing
