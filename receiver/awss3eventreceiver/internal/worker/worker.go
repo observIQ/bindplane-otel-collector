@@ -29,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/aws/smithy-go"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -61,6 +62,34 @@ func parseS3Event(messageBody string) (*events.S3Event, error) {
 	notification := new(events.S3Event)
 	err := json.Unmarshal([]byte(messageBody), notification)
 	return notification, err
+}
+
+// isDLQConditionError checks if an error should trigger DLQ behavior
+func isDLQConditionError(err error) bool {
+	return isAccessDeniedError(err) || isNoSuchKeyError(err) || isUnsupportedFileTypeError(err)
+}
+
+// isAccessDeniedError checks if the error is an IAM permission (AccessDenied) error
+func isAccessDeniedError(err error) bool {
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) {
+		return apiErr.ErrorCode() == "AccessDenied" || apiErr.ErrorCode() == "Forbidden"
+	}
+	return strings.Contains(err.Error(), "AccessDenied") || strings.Contains(err.Error(), "Forbidden")
+}
+
+// isNoSuchKeyError checks if the error is a file not found (NoSuchKey) error
+func isNoSuchKeyError(err error) bool {
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) {
+		return apiErr.ErrorCode() == "NoSuchKey"
+	}
+	return strings.Contains(err.Error(), "NoSuchKey")
+}
+
+// isUnsupportedFileTypeError checks if the error indicates an unsupported file type
+func isUnsupportedFileTypeError(err error) bool {
+	return errors.Is(err, ErrNotArrayOrKnownObject)
 }
 
 // Worker processes S3 event notifications.
@@ -214,6 +243,10 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 		recordLogger.Debug("processing record")
 
 		if err := w.processRecord(ctx, record, recordLogger); err != nil {
+			if isDLQConditionError(err) {
+				w.handleDLQCondition(ctx, msg, queueURL, err, recordLogger)
+				return
+			}
 			recordLogger.Error("error processing record, preserving message in SQS for retry", zap.Error(err))
 			w.metrics.S3eventFailures.Add(ctx, 1)
 			return
@@ -496,6 +529,52 @@ func (w *Worker) extendVisibility(ctx context.Context, msg types.Message, queueU
 		VisibilityTimeout: int32(timeout.Seconds()),
 	}
 	logger.Debug("extending message visibility", zap.Duration("timeout", timeout))
+	_, err := w.client.SQS().ChangeMessageVisibility(ctx, changeParams)
+	return err
+}
+
+// handleDLQCondition handles messages that should be sent to DLQ by resetting visibility and logging
+func (w *Worker) handleDLQCondition(ctx context.Context, msg types.Message, queueURL string, err error, logger *zap.Logger) {
+	var errorType string
+	if isAccessDeniedError(err) {
+		errorType = "iam_permission_denied"
+		logger.Error("IAM permission denied accessing S3 object, resetting visibility for DLQ processing",
+			zap.Error(err),
+			zap.String("error_type", errorType))
+		if w.metrics != nil {
+			w.metrics.S3eventDlqIamErrors.Add(ctx, 1)
+		}
+	} else if isNoSuchKeyError(err) {
+		errorType = "file_not_found"
+		logger.Error("S3 object not found, resetting visibility for DLQ processing",
+			zap.Error(err),
+			zap.String("error_type", errorType))
+		if w.metrics != nil {
+			w.metrics.S3eventDlqFileNotFoundErrors.Add(ctx, 1)
+		}
+	} else if isUnsupportedFileTypeError(err) {
+		errorType = "unsupported_file_type"
+		logger.Error("unsupported file type, resetting visibility for DLQ processing",
+			zap.Error(err),
+			zap.String("error_type", errorType))
+		if w.metrics != nil {
+			w.metrics.S3eventDlqUnsupportedFileErrors.Add(ctx, 1)
+		}
+	}
+
+	if err := w.resetVisibilityTimeout(ctx, msg, queueURL, logger); err != nil {
+		logger.Error("failed to reset visibility timeout for DLQ condition", zap.Error(err))
+	}
+}
+
+// resetVisibilityTimeout resets the message visibility timeout to 0, making it immediately available for DLQ processing
+func (w *Worker) resetVisibilityTimeout(ctx context.Context, msg types.Message, queueURL string, logger *zap.Logger) error {
+	changeParams := &sqs.ChangeMessageVisibilityInput{
+		QueueUrl:          aws.String(queueURL),
+		ReceiptHandle:     msg.ReceiptHandle,
+		VisibilityTimeout: 0, // Reset to 0 to make message immediately available
+	}
+	logger.Debug("resetting message visibility timeout for DLQ processing")
 	_, err := w.client.SQS().ChangeMessageVisibility(ctx, changeParams)
 	return err
 }

@@ -21,6 +21,30 @@ The number of logs in a batch.
 | ---- | ----------- | ---------- |
 | {logs} | Histogram | Int |
 
+### otelcol_s3event.dlq_file_not_found_errors
+
+The number of file not found errors that triggered DLQ processing
+
+| Unit | Metric Type | Value Type | Monotonic |
+| ---- | ----------- | ---------- | --------- |
+| {errors} | Sum | Int | true |
+
+### otelcol_s3event.dlq_iam_errors
+
+The number of IAM permission denied errors that triggered DLQ processing
+
+| Unit | Metric Type | Value Type | Monotonic |
+| ---- | ----------- | ---------- | --------- |
+| {errors} | Sum | Int | true |
+
+### otelcol_s3event.dlq_unsupported_file_errors
+
+The number of unsupported file type errors that triggered DLQ processing
+
+| Unit | Metric Type | Value Type | Monotonic |
+| ---- | ----------- | ---------- | --------- |
+| {errors} | Sum | Int | true |
+
 ### otelcol_s3event.failures
 
 The number of failures encountered while processing S3 objects
