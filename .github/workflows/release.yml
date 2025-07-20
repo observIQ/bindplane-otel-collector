@@ -189,3 +189,93 @@ jobs:
           repository: observIQ/otel-collector-installer-testing
           event-type: upstream_prerelease
           client-payload: '{ "version": "${{ github.ref_name }}" }'
+
+      # Linux package uploads to Google Artifact Registry
+
+      # google-github-actions/auth@v2 was used above to install
+      # gcloud sdk. google-github-actions/auth was used as well
+      # but we need to re-authenticate to upload packages to the
+      # correct project.
+      - name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v2"
+        with:
+          credentials_json: "${{ secrets.ORG_BINDPLANE_PUBLIC_LINUX_REPO_JSON_KEY }}"
+
+      - name: Upload Bindplane Linux AMD64 Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload stable-deb \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_amd64.deb
+
+      - name: Upload Bindplane Linux AMD64 RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload stable-rpm \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_amd64.rpm
+
+      - name: Upload Bindplane Linux ARM64 Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload stable-deb \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_arm64.deb
+      - name: Upload Bindplane Linux ARM64 RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload stable-rpm \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_arm64.rpm
+
+      - name: Upload Bindplane Linux ARM32 Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload stable-deb \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_arm.deb
+
+      - name: Upload Bindplane Linux ARM32 RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload stable-rpm \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_arm.rpm
+
+      - name: Upload Bindplane Linux PPC64LE Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload stable-deb \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_ppc64le.deb
+
+      - name: Upload Bindplane Linux PPC64LE RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload stable-rpm \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_ppc64le.rpm
+
+      - name: Upload Bindplane Linux PPC64 Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload stable-deb \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_ppc64.deb
+
+      - name: Upload Bindplane Linux PPC64 RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload stable-rpm \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_ppc64.rpm
