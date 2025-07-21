@@ -50,9 +50,9 @@ func TestStartsWithAvroOcfMagic(t *testing.T) {
 
 func TestParseAvroOcfLogs(t *testing.T) {
 
-	hundredOffsets := []int64{}
-	for i := 0; i < 100; i++ {
-		hundredOffsets = append(hundredOffsets, int64(i))
+	thousandOffsets := []int64{}
+	for i := 0; i < 1000; i++ {
+		thousandOffsets = append(thousandOffsets, int64(i+1))
 	}
 
 	tests := []struct {
@@ -73,7 +73,7 @@ func TestParseAvroOcfLogs(t *testing.T) {
 		{filePath: "testdata/sample_logs.avro.gz", expectLogs: 0, startOffset: 1000},
 		{filePath: "testdata/sample_logs_corrupt.avro", expectLogs: 50}, // no error expected, just aborts
 		{filePath: "testdata/sample_logs_corrupt_schema.avro", expectLogs: 0, expectParseError: "cannot read OCF header with invalid avro.schema"},
-		{filePath: "testdata/sample_logs_corrupt_record.avro", expectLogs: 999, expectReadError: "cannot decode binary record"},
+		{filePath: "testdata/sample_logs_corrupt_record.avro", expectLogs: 999, expectReadError: "cannot decode binary record", expectOffsets: thousandOffsets},
 		{filePath: "testdata/sample_logs_corrupt_block.avro", expectLogs: 982, expectReadError: "cannot decode binary record", expectOffsets: []int64{18, 19, 20, 21}},
 		{filePath: "testdata/sample_logs_corrupt_block.avro", expectLogs: 982, expectReadError: "cannot decode binary record", startOffset: 18},
 	}
