@@ -109,7 +109,7 @@ nfpms:
   - id: collector
     ids:
       - collector
-      - updater
+      - supervisor
     file_name_template: "{{ .PackageName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     package_name: bindplane-otel-collector
     vendor: observIQ, Inc
@@ -120,7 +120,7 @@ nfpms:
     formats:
       - rpm
       - deb
-    bindir: /opt/bindplane-otel-collector
+    bindir: /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector
     contents:
       - dst: /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector
         type: dir

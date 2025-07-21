@@ -445,26 +445,7 @@ finish_permissions() {
   chown bindplane-otel-collector:bindplane-otel-collector /opt/bindplane-otel-collector/supervisor_storage/agent.log
 }
 
-install() {
-  finish_permissions
-  manage_service
-}
-
-# upgrade should perform the same actions as install
-upgrade() {
-  install
-}
-
-action="$1"
-
-case "$action" in
-"0" | "install")
-  install
-  ;;
-"1" | "upgrade")
-  upgrade
-  ;;
-*)
-  install
-  ;;
-esac
+install
+install_service
+finish_permissions
+manage_service
