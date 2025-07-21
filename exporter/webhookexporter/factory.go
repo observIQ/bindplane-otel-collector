@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/webhookexporter/internal/metadata"
+	"github.com/observiq/bindplane-otel-collector/internal/version"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"
@@ -35,22 +36,17 @@ const (
 	defaultUserAgent = "bindplane-otel-collector"
 )
 
-// NewFactoryWithVersion creates a new Webhook exporter factory
-func NewFactoryWithVersion(collectorVersion string) exporter.Factory {
+// NewFactory creates a new Webhook exporter factory
+func NewFactory() exporter.Factory {
 	return exporter.NewFactory(
 		metadata.Type,
-		createDefaultConfig(collectorVersion),
+		createDefaultConfig(),
 		exporter.WithLogs(createLogsExporter, metadata.LogsStability),
 	)
 }
 
-// NewFactory creates a new Webhook exporter factory with default version for generated tests
-func NewFactory() exporter.Factory {
-	return NewFactoryWithVersion("test-version")
-}
-
-func createDefaultConfig(collectorVersion string) func() component.Config {
-	userAgent := fmt.Sprintf("%s/%s", defaultUserAgent, collectorVersion)
+func createDefaultConfig() func() component.Config {
+	userAgent := fmt.Sprintf("%s/%s", defaultUserAgent, version.Version())
 	return func() component.Config {
 		return &Config{
 			LogsConfig: &SignalConfig{

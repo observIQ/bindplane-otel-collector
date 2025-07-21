@@ -203,7 +203,7 @@
 
       <CustomAction Id="CustomExecCreateSupervisorYaml_set"
               Property="CustomExecCreateSupervisorYaml"
-              Value="&quot;[CMDEXE]&quot; /C CALL &quot;[INSTALLDIR]install\generate-supervisor-yaml.bat&quot; &quot;[INSTALLDIR]&quot; &quot;[OPAMPENDPOINT]&quot; &quot;[OPAMPSECRETKEY]&quot; &quot;[OPAMPLABELS]&quot;"
+              Value="&quot;[CMDEXE]&quot; /C CALL &quot;[INSTALLDIR]install\generate-supervisor-yaml.bat&quot; &quot;[INSTALLDIR]&quot; &quot;[OPAMPENDPOINT]&quot; &quot;[OPAMPSECRETKEY]&quot; &quot;[OPAMPLABELS]&quot; &quot;{{.Version.Display}}&quot;"
               Execute="immediate"/>
 
       <CustomAction Id="CustomExecCreateSupervisorYaml" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="check" />
