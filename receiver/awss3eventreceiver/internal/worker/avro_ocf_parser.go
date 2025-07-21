@@ -78,6 +78,8 @@ func (p *avroOcfParser) Parse(_ context.Context, startOffset int64) (logs iter.S
 			record, err := ocfReader.Read()
 
 			if err != nil {
+				p.counter += ocfReader.RemainingBlockItems()
+
 				// if read fails, yield the error and skip the block
 				if !yield(nil, err) {
 					return
@@ -87,7 +89,6 @@ func (p *avroOcfParser) Parse(_ context.Context, startOffset int64) (logs iter.S
 					zap.Int64("offset", p.Offset()),
 					zap.Int64("remaining_block_items", ocfReader.RemainingBlockItems()),
 				)
-				p.counter += ocfReader.RemainingBlockItems() + 1
 				ocfReader.SkipThisBlockAndReset()
 				continue
 			}
