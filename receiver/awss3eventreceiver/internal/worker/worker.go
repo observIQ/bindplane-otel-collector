@@ -79,8 +79,11 @@ func isDLQConditionError(err error) error {
 
 // isAccessDeniedError checks if the error is an IAM permission (AccessDenied) error
 func isAccessDeniedError(err error) bool {
-	errStr := strings.ToLower(err.Error())
-	return strings.Contains(errStr, "accessdenied") || strings.Contains(errStr, "forbidden")
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) {
+		return apiErr.ErrorCode() == "AccessDenied" || apiErr.ErrorCode() == "Forbidden"
+	}
+	return false
 }
 
 // isNoSuchKeyError checks if the error is a file not found (NoSuchKey) error
