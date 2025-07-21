@@ -547,6 +547,24 @@ func (w *Worker) extendVisibility(ctx context.Context, msg types.Message, queueU
 	return err
 }
 
+// recordDLQMetrics records metrics for DLQ conditions based on the error type.
+func (w *Worker) recordDLQMetrics(ctx context.Context, errorType string, err error, logger *zap.Logger) {
+	if w.metrics == nil {
+		return
+	}
+
+	switch errorType {
+	case "iam_permission_denied":
+		w.metrics.S3eventDlqIamErrors.Add(ctx, 1)
+	case "file_not_found":
+		w.metrics.S3eventDlqFileNotFoundErrors.Add(ctx, 1)
+	case "unsupported_file_type":
+		w.metrics.S3eventDlqUnsupportedFileErrors.Add(ctx, 1)
+	default:
+		// General failure metric for unknown errors
+		w.metrics.S3eventFailures.Add(ctx, 1)
+	}
+}
 // handleDLQCondition handles messages that should be sent to DLQ by resetting visibility and logging
 func (w *Worker) handleDLQCondition(ctx context.Context, msg types.Message, queueURL string, err error, logger *zap.Logger) {
 	var errorType string
