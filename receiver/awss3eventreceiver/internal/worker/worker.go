@@ -551,7 +551,8 @@ func (w *Worker) extendVisibility(ctx context.Context, msg types.Message, queueU
 func (w *Worker) handleDLQCondition(ctx context.Context, msg types.Message, queueURL string, err error, logger *zap.Logger) {
 	var errorType string
 	if err != nil {
-		if dlqErr, ok := err.(*DLQError); ok {
+		var dlqErr *DLQError
+		if errors.As(err, &dlqErr) {
 			errorType = dlqErr.Type
 			logger.Error("DLQ condition triggered, resetting visibility for DLQ processing",
 				zap.Error(dlqErr.Err),
