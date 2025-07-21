@@ -27,8 +27,10 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/aws/smithy-go"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -548,7 +550,7 @@ func (w *Worker) extendVisibility(ctx context.Context, msg types.Message, queueU
 }
 
 // recordDLQMetrics records metrics for DLQ conditions based on the error type.
-func (w *Worker) recordDLQMetrics(ctx context.Context, errorType string, err error, logger *zap.Logger) {
+func (w *Worker) recordDLQMetrics(ctx context.Context, errorType string) {
 	if w.metrics == nil {
 		return
 	}
@@ -565,6 +567,7 @@ func (w *Worker) recordDLQMetrics(ctx context.Context, errorType string, err err
 		w.metrics.S3eventFailures.Add(ctx, 1)
 	}
 }
+
 // handleDLQCondition handles messages that should be sent to DLQ by resetting visibility and logging
 func (w *Worker) handleDLQCondition(ctx context.Context, msg types.Message, queueURL string, err error, logger *zap.Logger) {
 	var errorType string
@@ -575,26 +578,14 @@ func (w *Worker) handleDLQCondition(ctx context.Context, msg types.Message, queu
 			logger.Error("DLQ condition triggered, resetting visibility for DLQ processing",
 				zap.Error(dlqErr.Err),
 				zap.String("error_type", errorType))
-			if w.metrics != nil {
-				switch errorType {
-				case "iam_permission_denied":
-					w.metrics.S3eventDlqIamErrors.Add(ctx, 1)
-				case "file_not_found":
-					w.metrics.S3eventDlqFileNotFoundErrors.Add(ctx, 1)
-				case "unsupported_file_type":
-					w.metrics.S3eventDlqUnsupportedFileErrors.Add(ctx, 1)
-				}
-			}
+			w.recordDLQMetrics(ctx, errorType)
 		} else {
 			// Fallback for other errors
 			errorType = "unknown_dlq_error"
 			logger.Error("DLQ condition triggered for unknown error, resetting visibility for DLQ processing",
 				zap.Error(err),
 				zap.String("error_type", errorType))
-			// Note: No specific metric for unknown DLQ errors, using general failure metric
-			if w.metrics != nil {
-				w.metrics.S3eventFailures.Add(ctx, 1)
-			}
+			w.recordDLQMetrics(ctx, errorType)
 		}
 	}
 
