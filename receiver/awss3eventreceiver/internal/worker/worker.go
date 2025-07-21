@@ -88,8 +88,8 @@ func isAccessDeniedError(err error) bool {
 
 // isNoSuchKeyError checks if the error is a file not found (NoSuchKey) error
 func isNoSuchKeyError(err error) bool {
-	errStr := strings.ToLower(err.Error())
-	return strings.Contains(errStr, "nosuchkey")
+	var noSuchKeyErr *s3types.NoSuchKey
+	return errors.As(err, &noSuchKeyErr)
 }
 
 // isUnsupportedFileTypeError checks if the error indicates an unsupported file type
