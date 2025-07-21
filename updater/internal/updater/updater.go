@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"text/template"
 	"time"
 
@@ -94,9 +95,9 @@ func (u *Updater) readGroupFromSystemdFile() (string, error) {
 	return "", errors.New("Group not found in systemd unit file")
 }
 
-// generateServiceFiles writes necessary service files to the install directory
+// generateLinuxServiceFiles writes necessary service files to the install directory
 // to be copied to their final locations by the updater.
-func (u *Updater) generateServiceFiles() error {
+func (u *Updater) generateLinuxServiceFiles() error {
 	systemdServiceFilePath := filepath.Join(u.installDir, "install", "observiq-otel-collector.service")
 	initServiceFilePath := filepath.Join(u.installDir, "install", "observiq-otel-collector")
 
@@ -111,6 +112,20 @@ func (u *Updater) generateServiceFiles() error {
 		return fmt.Errorf("read group from systemd file %s: %w", u.installedSystemdUnitPath, err)
 	}
 
+	// Get the install directory from path package. This will default
+	// to /opt/observiq-otel-collector unless BDOT_CONFIG_HOME is set
+	// in a package config file such as /etc/default/observiq-otel-collector
+	// or /etc/sysconfig/observiq-otel-collector.
+	installDir, err := path.InstallDir(u.logger, path.DefaultConfigOverrides)
+	if err != nil {
+		return fmt.Errorf("read working directory from systemd file %s: %w", u.installedSystemdUnitPath, err)
+	}
+
+	params := map[string]string{
+		"Group":      group,
+		"InstallDir": installDir,
+	}
+
 	// Render the systemd service template with the Group value
 	systemdTemplate, err := template.New("systemdService").Parse(systemdServiceTemplate)
 	if err != nil {
@@ -118,7 +133,7 @@ func (u *Updater) generateServiceFiles() error {
 	}
 
 	var systemdServiceContent bytes.Buffer
-	if err := systemdTemplate.Execute(&systemdServiceContent, map[string]string{"Group": group}); err != nil {
+	if err := systemdTemplate.Execute(&systemdServiceContent, params); err != nil {
 		return fmt.Errorf("execute systemd service template: %w", err)
 	}
 
@@ -139,8 +154,10 @@ func (u *Updater) generateServiceFiles() error {
 func (u *Updater) Update() error {
 	// Generate service files before stopping the service. If
 	// this fails, the collector will still be running.
-	if err := u.generateServiceFiles(); err != nil {
-		return fmt.Errorf("failed to generate service files: %w", err)
+	if runtime.GOOS == "linux" {
+		if err := u.generateLinuxServiceFiles(); err != nil {
+			return fmt.Errorf("failed to generate service files: %w", err)
+		}
 	}
 
 	// Stop the service before backing up the install directory;
