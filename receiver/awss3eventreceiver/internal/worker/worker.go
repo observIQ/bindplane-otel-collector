@@ -43,6 +43,13 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 )
 
+// AWS error codes for DLQ condition detection
+const (
+	AWSErrorCodeAccessDenied = "AccessDenied"
+	AWSErrorCodeForbidden    = "Forbidden"
+	AWSErrorCodeNoSuchKey    = "NoSuchKey"
+)
+
 // parseFunc defines the signature for parsing notification messages into S3 events
 type parseFunc func(messageBody string) (*events.S3Event, error)
 
@@ -83,15 +90,22 @@ func isDLQConditionError(err error) error {
 func isAccessDeniedError(err error) bool {
 	var apiErr smithy.APIError
 	if errors.As(err, &apiErr) {
-		return apiErr.ErrorCode() == "AccessDenied" || apiErr.ErrorCode() == "Forbidden"
+		return apiErr.ErrorCode() == AWSErrorCodeAccessDenied || apiErr.ErrorCode() == AWSErrorCodeForbidden
 	}
-	return false
+	// Also check for string-based errors
+	errStr := err.Error()
+	return strings.Contains(errStr, AWSErrorCodeAccessDenied) || strings.Contains(errStr, AWSErrorCodeForbidden)
 }
 
 // isNoSuchKeyError checks if the error is a file not found (NoSuchKey) error
 func isNoSuchKeyError(err error) bool {
 	var noSuchKeyErr *s3types.NoSuchKey
-	return errors.As(err, &noSuchKeyErr)
+	if errors.As(err, &noSuchKeyErr) {
+		return true
+	}
+	// Also check for string-based errors
+	errStr := err.Error()
+	return strings.Contains(errStr, AWSErrorCodeNoSuchKey)
 }
 
 // isUnsupportedFileTypeError checks if the error indicates an unsupported file type
