@@ -48,3 +48,33 @@ telemetry:
         monotonic: true
         aggregation_temporality: cumulative
       attributes: []
+    
+    s3event.dlq_iam_errors:
+      enabled: true
+      description: The number of IAM permission denied errors that triggered DLQ processing
+      unit: "{errors}"
+      sum:
+        value_type: int
+        monotonic: true
+        aggregation_temporality: cumulative
+      attributes: []
+    
+    s3event.dlq_file_not_found_errors:
+      enabled: true
+      description: The number of file not found errors that triggered DLQ processing
+      unit: "{errors}"
+      sum:
+        value_type: int
+        monotonic: true
+        aggregation_temporality: cumulative
+      attributes: []
+    
+    s3event.dlq_unsupported_file_errors:
+      enabled: true
+      description: The number of unsupported file type errors that triggered DLQ processing
+      unit: "{errors}"
+      sum:
+        value_type: int
+        monotonic: true
+        aggregation_temporality: cumulative
+      attributes: []
