@@ -20,10 +20,22 @@ func TestSetupTelemetry(t *testing.T) {
 	require.NoError(t, err)
 	defer tb.Shutdown()
 	tb.S3eventBatchSize.Record(context.Background(), 1)
+	tb.S3eventDlqFileNotFoundErrors.Add(context.Background(), 1)
+	tb.S3eventDlqIamErrors.Add(context.Background(), 1)
+	tb.S3eventDlqUnsupportedFileErrors.Add(context.Background(), 1)
 	tb.S3eventFailures.Add(context.Background(), 1)
 	tb.S3eventObjectsHandled.Add(context.Background(), 1)
 	AssertEqualS3eventBatchSize(t, testTel,
 		[]metricdata.HistogramDataPoint[int64]{{}}, metricdatatest.IgnoreValue(),
+		metricdatatest.IgnoreTimestamp())
+	AssertEqualS3eventDlqFileNotFoundErrors(t, testTel,
+		[]metricdata.DataPoint[int64]{{Value: 1}},
+		metricdatatest.IgnoreTimestamp())
+	AssertEqualS3eventDlqIamErrors(t, testTel,
+		[]metricdata.DataPoint[int64]{{Value: 1}},
+		metricdatatest.IgnoreTimestamp())
+	AssertEqualS3eventDlqUnsupportedFileErrors(t, testTel,
+		[]metricdata.DataPoint[int64]{{Value: 1}},
 		metricdatatest.IgnoreTimestamp())
 	AssertEqualS3eventFailures(t, testTel,
 		[]metricdata.DataPoint[int64]{{Value: 1}},
