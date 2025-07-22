@@ -330,7 +330,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 		Body:            resp.Body,
 		MaxLogSize:      w.maxLogSize,
 		Logger:          recordLogger,
-		TryJSON:         tryJSON,
+		TryDecoding:     tryJSON,
 	}
 
 	// Create the offset storage key for this object

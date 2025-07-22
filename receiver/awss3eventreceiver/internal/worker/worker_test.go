@@ -888,6 +888,16 @@ func TestProcessMessageWithFilters(t *testing.T) {
 			expectLines:     0,
 			objectKeyFilter: regexp.MustCompile("^.*[xyz]+$"),
 		},
+		{
+			name:        "parses as avro ocf and creates 10 log lines from avro ocf",
+			objectSets:  logsFromFile(t, "testdata/sample_logs.avro"),
+			expectLines: 10,
+		},
+		{
+			name:        "parses as avro ocf and creates 1000 log lines from gzipped avro ocf",
+			objectSets:  logsFromFile(t, "testdata/sample_logs.avro.gz"),
+			expectLines: 1000,
+		},
 	}
 
 	for _, testCase := range testCases {
