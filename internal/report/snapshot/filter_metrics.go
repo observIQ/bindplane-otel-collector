@@ -139,6 +139,10 @@ func filterGauge(g pmetric.Gauge, queryMatchesResource, queryMatchesName bool, s
 func filterSum(s pmetric.Sum, queryMatchesResource, queryMatchesName bool, searchQuery *string, minimumTimestamp *time.Time) pmetric.Sum {
 	filteredSum := pmetric.NewSum()
 
+	// Copy aggregation temporality and monotonic flag from original sum
+	filteredSum.SetAggregationTemporality(s.AggregationTemporality())
+	filteredSum.SetIsMonotonic(s.IsMonotonic())
+
 	dps := s.DataPoints()
 	for i := 0; i < dps.Len(); i++ {
 		dp := dps.At(i)
@@ -153,6 +157,9 @@ func filterSum(s pmetric.Sum, queryMatchesResource, queryMatchesName bool, searc
 func filterHistogram(h pmetric.Histogram, queryMatchesResource, queryMatchesName bool, searchQuery *string, minimumTimestamp *time.Time) pmetric.Histogram {
 	filteredHistogram := pmetric.NewHistogram()
 
+	// Copy aggregation temporality from original histogram
+	filteredHistogram.SetAggregationTemporality(h.AggregationTemporality())
+
 	dps := h.DataPoints()
 	for i := 0; i < dps.Len(); i++ {
 		dp := dps.At(i)
@@ -166,6 +173,9 @@ func filterHistogram(h pmetric.Histogram, queryMatchesResource, queryMatchesName
 
 func filterExponentialHistogram(eh pmetric.ExponentialHistogram, queryMatchesResource, queryMatchesName bool, searchQuery *string, minimumTimestamp *time.Time) pmetric.ExponentialHistogram {
 	filteredExponentialHistogram := pmetric.NewExponentialHistogram()
+
+	// Copy aggregation temporality from original exponential histogram
+	filteredExponentialHistogram.SetAggregationTemporality(eh.AggregationTemporality())
 
 	dps := eh.DataPoints()
 	for i := 0; i < dps.Len(); i++ {
