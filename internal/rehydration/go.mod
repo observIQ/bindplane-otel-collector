@@ -3,8 +3,8 @@ module github.com/observiq/bindplane-otel-collector/internal/rehydration
 go 1.24.4
 
 require (
-	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.80.1
-	github.com/observiq/bindplane-otel-collector/internal/testutils v1.80.1
+	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.81.0
+	github.com/observiq/bindplane-otel-collector/internal/testutils v1.81.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/consumer v1.36.1
 	go.opentelemetry.io/collector/consumer/consumertest v0.130.1
