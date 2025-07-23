@@ -32,6 +32,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumertest"
@@ -93,7 +94,7 @@ func TestPayloadToLogRecord(t *testing.T) {
 				Path: "",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
-					TLS:      &configtls.ServerConfig{},
+					TLS:      configoptional.Some(configtls.ServerConfig{}),
 				},
 			}, &consumertest.LogsSink{})
 			var logs plog.Logs
@@ -152,7 +153,7 @@ func TestServeHTTP(t *testing.T) {
 				Path: "",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
-					TLS:      &configtls.ServerConfig{},
+					TLS:      configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -174,7 +175,7 @@ func TestServeHTTP(t *testing.T) {
 				Path: "/logs",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
-					TLS:      &configtls.ServerConfig{},
+					TLS:      configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -198,7 +199,7 @@ func TestServeHTTP(t *testing.T) {
 				Path: "/logs",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
-					TLS:      &configtls.ServerConfig{},
+					TLS:      configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -222,7 +223,7 @@ func TestServeHTTP(t *testing.T) {
 				Path: "/logs",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
-					TLS:      &configtls.ServerConfig{},
+					TLS:      configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -246,7 +247,7 @@ func TestServeHTTP(t *testing.T) {
 				Path: "/logs",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
-					TLS:      &configtls.ServerConfig{},
+					TLS:      configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -270,7 +271,7 @@ func TestServeHTTP(t *testing.T) {
 				Path: "/logs",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
-					TLS:      &configtls.ServerConfig{},
+					TLS:      configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -294,7 +295,7 @@ func TestServeHTTP(t *testing.T) {
 				Path: "",
 				ServerConfig: confighttp.ServerConfig{
 					Endpoint: "localhost:12345",
-					TLS:      &configtls.ServerConfig{},
+					TLS:      configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{

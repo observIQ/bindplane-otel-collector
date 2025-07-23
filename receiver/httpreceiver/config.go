@@ -46,11 +46,11 @@ func (c *Config) Validate() error {
 	if _, _, err := net.SplitHostPort(c.ServerConfig.Endpoint); err != nil {
 		return errBadEndpoint
 	}
-	if c.ServerConfig.TLS != nil {
-		if c.ServerConfig.TLS.CertFile == "" && c.ServerConfig.TLS.CertPem == "" {
+	if c.ServerConfig.TLS.HasValue() {
+		if c.ServerConfig.TLS.Get().CertFile == "" && c.ServerConfig.TLS.Get().CertPem == "" {
 			return errNoCert
 		}
-		if c.ServerConfig.TLS.KeyFile == "" && c.ServerConfig.TLS.KeyPem == "" {
+		if c.ServerConfig.TLS.Get().KeyFile == "" && c.ServerConfig.TLS.Get().KeyPem == "" {
 			return errNoKey
 		}
 	}
