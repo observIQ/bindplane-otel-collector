@@ -223,6 +223,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/redisstorageextension v0.130.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.130.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.130.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/processor/redactionprocessor v0.130.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/githubreceiver v0.130.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/libhoneyreceiver v0.130.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.130.0

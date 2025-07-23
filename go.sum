@@ -2286,6 +2286,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstrans
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor v0.130.0/go.mod h1:cNava9SNIb4AoEOiwAasSFyRE4khcn0jTezMvEnNFlk=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/probabilisticsamplerprocessor v0.130.0 h1:Pi+WsIAlt7juk24iQBvcNq9gydjK/C8KbSBnZlMiJYM=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/probabilisticsamplerprocessor v0.130.0/go.mod h1:gDNU7ydsh6c1kaQgYt1HouigyD1dcK4z7jAIfsH/Km8=
+github.com/open-telemetry/opentelemetry-collector-contrib/processor/redactionprocessor v0.130.0 h1:uQeUL49vo7wGd0QUNXM0AEUZaLa3ilcjRi5aMBXX5FQ=
+github.com/open-telemetry/opentelemetry-collector-contrib/processor/redactionprocessor v0.130.0/go.mod h1:fRwQx8ELpP9sKrV2lgiP1HxupZk8ZLhpBXz2UNBhwTI=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.130.0 h1:3wab9KhGFrA3qBZ0iAoPcZHMLv5TTDld/+zJZ+9hufs=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.130.0/go.mod h1:iRpASfcgyq/kmWWLfecD7pml29Wrz6jCHc8t1n6WcL8=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.130.0 h1:KBazTsji1uatVXMATsvJ0/QoMRsVE5J77pZopEB4PyM=
