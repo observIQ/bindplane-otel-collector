@@ -45,6 +45,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricsgenerationprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/probabilisticsamplerprocessor"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/redactionprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/routingprocessor"
@@ -82,6 +83,7 @@ var defaultProcessors = []processor.Factory{
 	metricstatsprocessor.NewFactory(),
 	metricstransformprocessor.NewFactory(),
 	probabilisticsamplerprocessor.NewFactory(),
+	redactionprocessor.NewFactory(),
 	randomfailureprocessor.NewFactory(),
 	removeemptyvaluesprocessor.NewFactory(),
 	resourceattributetransposerprocessor.NewFactory(),
