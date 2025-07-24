@@ -1070,3 +1070,5 @@ replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 replace go.opentelemetry.io/collector/service => go.opentelemetry.io/collector/service v0.127.0
 
 replace go.opentelemetry.io/collector/internal/telemetry => go.opentelemetry.io/collector/internal/telemetry v0.127.0
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver => github.com/observiq/opentelemetry-collector-contrib/receiver/kafkareceiver v0.0.0-20250724175407-9f9783337469

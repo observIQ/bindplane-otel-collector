@@ -2014,6 +2014,8 @@ github.com/nxadm/tail v1.4.11 h1:8feyoE3OzPrcshW5/MJ4sGESc5cqmGkGCWlco4l0bqY=
 github.com/nxadm/tail v1.4.11/go.mod h1:OTaG3NK980DZzxbRq6lEuzgU+mug70nY11sMd4JXXHc=
 github.com/oapi-codegen/runtime v1.0.0 h1:P4rqFX5fMFWqRzY9M/3YF9+aPSPPB06IzP2P7oOxrWo=
 github.com/oapi-codegen/runtime v1.0.0/go.mod h1:LmCUMQuPB4M/nLXilQXhHw+BLZdDb18B34OO356yJ/A=
+github.com/observiq/opentelemetry-collector-contrib/receiver/kafkareceiver v0.0.0-20250724175407-9f9783337469 h1:1wNc6m/8xpVi7bQ91eJQDPnKORtRITyjuC8pxA3Qf/g=
+github.com/observiq/opentelemetry-collector-contrib/receiver/kafkareceiver v0.0.0-20250724175407-9f9783337469/go.mod h1:lxagtzEW/JsIcHvZZPQWU4tcfXPPMTFkomSAevF7Jtg=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/ulid v1.3.1 h1:EGfNDEx6MqHz8B3uNV6QAib1UR2Lm97sHi3ocA6ESJ4=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
@@ -2374,8 +2376,6 @@ github.com/open-telemetry/opentelemetry-collector-contrib/receiver/k8seventsrece
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/k8seventsreceiver v0.130.0/go.mod h1:JOwn4Iq8Yp7w0i+jVurx1BfRhFv+gYtrU5OPKNIkKS4=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkametricsreceiver v0.130.0 h1:ofsdyee0bjfjzps6UsLGI8dVOyRKRR4CNuTlS+P6z0E=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkametricsreceiver v0.130.0/go.mod h1:dTuDkonY8C4rPaadrXvdnYbHRZ7Hv6SI7lYBGrhUIRo=
-github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver v0.130.0 h1:+TcSEX1QNxCKUmfkkAGHi0nvj4QYiIS81xy7z8n2HjE=
-github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver v0.130.0/go.mod h1:lxagtzEW/JsIcHvZZPQWU4tcfXPPMTFkomSAevF7Jtg=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kubeletstatsreceiver v0.130.0 h1:ZG4URb37AmAhP9jZDs+5dTF29g18RPwZo35V4zi6Cuo=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kubeletstatsreceiver v0.130.0/go.mod h1:OSir1av/yalzBEqdF71So8end7V5p5QhuxdHPHwIWdE=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/libhoneyreceiver v0.130.0 h1:UKg/sUAZJWpLHlf1l+7V2NfoMu+MuwHUSsMKmu5sIjQ=
