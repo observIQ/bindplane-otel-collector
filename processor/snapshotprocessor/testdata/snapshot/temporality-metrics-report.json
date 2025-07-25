@@ -1,0 +1,81 @@
+{
+  "session_id": "temporality-test-session",
+  "telemetry_type": "metrics",
+  "telemetry_payload": {
+    "resourceMetrics": [
+      {
+        "resource": {
+          "attributes": [
+            { "key": "host.name", "value": { "stringValue": "test-host" } },
+            { "key": "service.name", "value": { "stringValue": "temporality-test" } }
+          ]
+        },
+        "scopeMetrics": [
+          {
+            "scope": {
+              "name": "otelcol/test",
+              "version": "v1.0.0"
+            },
+            "metrics": [
+              {
+                "name": "http.server.requests",
+                "description": "Request count with delta temporality.",
+                "sum": {
+                  "dataPoints": [
+                    {
+                      "attributes": [
+                        { "key": "method", "value": { "stringValue": "GET" } },
+                        { "key": "status_code", "value": { "stringValue": "200" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "42"
+                    }
+                  ],
+                  "aggregationTemporality": 1,
+                  "isMonotonic": true
+                }
+              },
+              {
+                "name": "system.network.io",
+                "description": "Total bytes processed with cumulative temporality.",
+                "sum": {
+                  "dataPoints": [
+                    {
+                      "attributes": [
+                        { "key": "direction", "value": { "stringValue": "transmit" } },
+                        { "key": "device", "value": { "stringValue": "eth0" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asInt": "1024000"
+                    }
+                  ],
+                  "aggregationTemporality": 2,
+                  "isMonotonic": true
+                }
+              },
+              {
+                "name": "system.memory.usage",
+                "description": "Current memory usage.",
+                "gauge": {
+                  "dataPoints": [
+                    {
+                      "attributes": [
+                        { "key": "state", "value": { "stringValue": "used" } }
+                      ],
+                      "startTimeUnixNano": "1000000",
+                      "timeUnixNano": "2000000",
+                      "asDouble": 85.5
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "schemaUrl": "https://opentelemetry.io/schemas/1.9.0"
+      }
+    ]
+  }
+} 

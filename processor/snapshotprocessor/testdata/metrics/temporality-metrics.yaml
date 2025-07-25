@@ -1,0 +1,61 @@
+resourceMetrics:
+  - resource:
+      attributes:
+        - key: host.name
+          value:
+            stringValue: test-host
+        - key: service.name
+          value:
+            stringValue: temporality-test
+    schemaUrl: https://opentelemetry.io/schemas/1.9.0
+    scopeMetrics:
+      - metrics:
+          # Delta temporality metric
+          - description: Request count with delta temporality.
+            name: http.server.requests
+            sum:
+              aggregationTemporality: 1
+              isMonotonic: true
+              dataPoints:
+                - asInt: "42"
+                  attributes:
+                    - key: method
+                      value:
+                        stringValue: GET
+                    - key: status_code
+                      value:
+                        stringValue: "200"
+                  startTimeUnixNano: "1000000"
+                  timeUnixNano: "2000000"
+          # Cumulative temporality metric
+          - description: Total bytes processed with cumulative temporality.
+            name: system.network.io
+            sum:
+              aggregationTemporality: 2
+              isMonotonic: true
+              dataPoints:
+                - asInt: "1024000"
+                  attributes:
+                    - key: direction
+                      value:
+                        stringValue: transmit
+                    - key: device
+                      value:
+                        stringValue: eth0
+                  startTimeUnixNano: "1000000"
+                  timeUnixNano: "2000000"
+          # Gauge metric (no aggregation temporality)
+          - description: Current memory usage.
+            name: system.memory.usage
+            gauge:
+              dataPoints:
+                - asDouble: 85.5
+                  attributes:
+                    - key: state
+                      value:
+                        stringValue: used
+                  startTimeUnixNano: "1000000"
+                  timeUnixNano: "2000000"
+        scope:
+          name: otelcol/test
+          version: v1.0.0 
