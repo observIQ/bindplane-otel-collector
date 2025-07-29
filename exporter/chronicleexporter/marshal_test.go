@@ -1738,12 +1738,12 @@ func Test_getLogType(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		cfg            Config
-		labels         []*api.Label
-		logRecords     func() plog.Logs
-		expectatedType string
-		logTypes       map[string]exists
+		name         string
+		cfg          Config
+		labels       []*api.Label
+		logRecords   func() plog.Logs
+		expectedType string
+		logTypes     map[string]exists
 	}{
 		{
 			name: "Single log record with expected data",
@@ -1764,7 +1764,7 @@ func Test_getLogType(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Test log message", map[string]any{"log_type": "WINEVTLOG", "namespace": "test"}))
 			},
-			expectatedType: "WINEVTLOG",
+			expectedType: "WINEVTLOG",
 		},
 		{
 			name: "Single log record with expected data, with validation",
@@ -1789,7 +1789,7 @@ func Test_getLogType(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Test log message", map[string]any{"log_type": "WINEVTLOG", "namespace": "test"}))
 			},
-			expectatedType: "WINEVTLOG",
+			expectedType: "WINEVTLOG",
 		},
 		{
 			name: "Single log record with expected data, fails validation",
@@ -1813,7 +1813,7 @@ func Test_getLogType(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Test log message", map[string]any{"log_type": "WINEVTLOG", "namespace": "test"}))
 			},
-			expectatedType: "CATCH_ALL",
+			expectedType: "CATCH_ALL",
 		},
 		{
 			name: "Log record with attributes",
@@ -1828,7 +1828,7 @@ func Test_getLogType(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("", map[string]any{"key1": "value1", "log_type": "WINEVTLOG", "namespace": "test", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"}))
 			},
-			expectatedType: "WINEVTLOG",
+			expectedType: "WINEVTLOG",
 		},
 		{
 			name: "No log records",
@@ -1857,7 +1857,7 @@ func Test_getLogType(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("", map[string]any{"key1": "value1", "log_type": "WINEVTLOG", "namespace": "test", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"}))
 			},
-			expectatedType: "DEFAULT",
+			expectedType: "DEFAULT",
 		},
 		{
 			name: "Log type set in config, ignore log_type attribute (OverrideLogType false), validation",
@@ -1876,7 +1876,7 @@ func Test_getLogType(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("", map[string]any{"key1": "value1", "log_type": "WINEVTLOG", "namespace": "test", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"}))
 			},
-			expectatedType: "DEFAULT",
+			expectedType: "DEFAULT",
 		},
 
 		{
@@ -1891,7 +1891,7 @@ func Test_getLogType(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"log_type": "windows_event.application", "namespace": "test", `ingestion_label["realkey1"]`: "realvalue1", `ingestion_label["realkey2"]`: "realvalue2"}))
 			},
-			expectatedType: "WINEVTLOG",
+			expectedType: "WINEVTLOG",
 		},
 		{
 			name: "Override log type with attribute, validation",
@@ -1909,7 +1909,7 @@ func Test_getLogType(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"log_type": "windows_event.application", "namespace": "test", `ingestion_label["realkey1"]`: "realvalue1", `ingestion_label["realkey2"]`: "realvalue2"}))
 			},
-			expectatedType: "WINEVTLOG",
+			expectedType: "WINEVTLOG",
 		},
 		{
 			name: "Override log type with attribute, fails validation",
@@ -1927,7 +1927,7 @@ func Test_getLogType(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"log_type": "windows_event.application", "namespace": "test", `ingestion_label["realkey1"]`: "realvalue1", `ingestion_label["realkey2"]`: "realvalue2"}))
 			},
-			expectatedType: "WINEVTLOG", // the log_type attribute is not validated
+			expectedType: "WINEVTLOG", // the log_type attribute is not validated
 		},
 		{
 			name: "Override log type with chronicle attribute",
@@ -1941,7 +1941,7 @@ func Test_getLogType(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"chronicle_log_type": "ASOC_ALERT", "chronicle_namespace": "test", `chronicle_ingestion_label["realkey1"]`: "realvalue1", `chronicle_ingestion_label["realkey2"]`: "realvalue2"}))
 			},
-			expectatedType: "ASOC_ALERT",
+			expectedType: "ASOC_ALERT",
 		},
 
 		{
@@ -1960,7 +1960,7 @@ func Test_getLogType(t *testing.T) {
 				record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
 				return logs
 			},
-			expectatedType: "WINEVTLOGS1",
+			expectedType: "WINEVTLOGS1",
 		},
 		{
 			name: "Log type unset",
@@ -1971,7 +1971,7 @@ func Test_getLogType(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Log without logtype", map[string]any{"chronicle_namespace": "test", `chronicle_ingestion_label["realkey1"]`: "realvalue1", `chronicle_ingestion_label["realkey2"]`: "realvalue2"}))
 			},
-			expectatedType: "CATCH_ALL",
+			expectedType: "CATCH_ALL",
 		},
 		{
 			name: "Log type unset, validation",
@@ -1986,7 +1986,7 @@ func Test_getLogType(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Log without logtype", map[string]any{"chronicle_namespace": "test", `chronicle_ingestion_label["realkey1"]`: "realvalue1", `chronicle_ingestion_label["realkey2"]`: "realvalue2"}))
 			},
-			expectatedType: "CATCH_ALL",
+			expectedType: "CATCH_ALL",
 		},
 		{
 			name: "Log type set, fails validation",
@@ -2001,7 +2001,7 @@ func Test_getLogType(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Log with logtype", map[string]any{"chronicle_log_type": "MISSING_TYPE", "chronicle_namespace": "test", `chronicle_ingestion_label["realkey1"]`: "realvalue1", `chronicle_ingestion_label["realkey2"]`: "realvalue2"}))
 			},
-			expectatedType: "CATCH_ALL",
+			expectedType: "CATCH_ALL",
 		},
 		{
 			name: "Log type configured, fails validation",
@@ -2017,7 +2017,7 @@ func Test_getLogType(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Log with logtype", map[string]any{"chronicle_namespace": "test", `chronicle_ingestion_label["realkey1"]`: "realvalue1", `chronicle_ingestion_label["realkey2"]`: "realvalue2"}))
 			},
-			expectatedType: "CATCH_ALL",
+			expectedType: "CATCH_ALL",
 		},
 		{
 			name: "Log type override, fails validation",
@@ -2033,7 +2033,7 @@ func Test_getLogType(t *testing.T) {
 			logRecords: func() plog.Logs {
 				return mockLogs(mockLogRecord("Log with logtype", map[string]any{"log_type": "MISSING_TYPE", "chronicle_namespace": "test", `chronicle_ingestion_label["realkey1"]`: "realvalue1", `chronicle_ingestion_label["realkey2"]`: "realvalue2"}))
 			},
-			expectatedType: "CATCH_ALL",
+			expectedType: "CATCH_ALL",
 		},
 	}
 
@@ -2053,7 +2053,7 @@ func Test_getLogType(t *testing.T) {
 						logRecord := scopeLogs.LogRecords().At(k)
 						logType, err := marshaler.getLogType(context.Background(), logRecord, scopeLogs, resourceLogs)
 						require.NoError(t, err)
-						require.Equal(t, tt.expectatedType, logType)
+						require.Equal(t, tt.expectedType, logType)
 					}
 				}
 			}

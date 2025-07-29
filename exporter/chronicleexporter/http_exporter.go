@@ -110,7 +110,6 @@ func (exp *httpExporter) loadLogTypes(ctx context.Context) map[string]exists {
 			exp.set.Logger.Warn("Failed to send request to Chronicle for loading log types", zap.Error(err))
 			return nil
 		}
-		defer resp.Body.Close()
 		// https://cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.logTypes/list
 		type logType struct {
 			Name string `json:"name"`
@@ -124,6 +123,10 @@ func (exp *httpExporter) loadLogTypes(ctx context.Context) map[string]exists {
 		var response logTypeResponse
 
 		respBody, err := io.ReadAll(resp.Body)
+		if err := resp.Body.Close(); err != nil {
+			exp.set.Logger.Warn("Failed to close response body for loading log types", zap.Error(err))
+		}
+
 		if err == nil && resp.StatusCode == http.StatusOK {
 			if err := json.Unmarshal(respBody, &response); err != nil {
 				exp.set.Logger.Warn("Failed to unmarshal response body", zap.Error(err))
