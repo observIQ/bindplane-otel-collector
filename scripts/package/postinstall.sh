@@ -68,14 +68,14 @@ Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
 Environment=OIQ_OTEL_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
 WorkingDirectory=${BDOT_CONFIG_HOME}
-ExecStart=${BDOT_CONFIG_HOME}/bindplane-otel-collector --config config.yaml
+ExecStart=${BDOT_CONFIG_HOME}/opampsupervisor --config supervisor.yaml
 LimitNOFILE=65000
 SuccessExitStatus=0
 TimeoutSec=20
 StandardOutput=journal
 Restart=on-failure
 RestartSec=5s
-KillMode=process
+KillMode=control-group
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -160,7 +160,7 @@ fi
 # with force-reload (in case signalling is not supported) are
 # considered a success.
 
-BINARY=bindplane-otel-collector
+BINARY=opampsupervisor
 PROGRAM=${BDOT_CONFIG_HOME}/"\$BINARY"
 START_CMD="nohup ${BDOT_CONFIG_HOME}/\$BINARY > /dev/null 2>&1 &"
 LOCKFILE=/var/lock/"\$BINARY"
@@ -195,7 +195,7 @@ start() {
 
     # NOTE: startproc return 0, even if service is
     # already running to match LSB spec.
-    nohup "\$PROGRAM" --config config.yaml > /dev/null 2>&1 &
+    nohup "\$PROGRAM" --config supervisor.yaml > /dev/null 2>&1 &
 
     # Remember status and be verbose
     rc_status -v
@@ -371,10 +371,10 @@ manage_systemd_service() {
 The "bindplane-otel-collector" service has been configured!
 
 The collector's config file can be found here: 
-  ${BDOT_CONFIG_HOME}/config.yaml
+  ${BDOT_CONFIG_HOME}/supervisor_storage/effective.yaml
 
 To view logs from the collector, run:
-  sudo tail -F ${BDOT_CONFIG_HOME}/log/collector.log
+  sudo tail -F ${BDOT_CONFIG_HOME}/supervisor_storage/agent.log
 
 For more information on configuring the collector, see the docs:
   https://github.com/observIQ/bindplane-otel-collector/tree/main#observiq-opentelemetry-collector
@@ -433,8 +433,8 @@ manage_service() {
 finish_permissions() {
   # Goreleaser does not set plugin file permissions, so do them here
   # We also change the owner of the binary to bindplane-otel-collector
-  chown -R bindplane-otel-collector:bindplane-otel-collector /opt/bindplane-otel-collector/bindplane-otel-collector /opt/bindplane-otel-collector/opampsupervisor /opt/bindplane-otel-collector/plugins/*
-  chmod 0640 /opt/bindplane-otel-collector/plugins/*
+  chown -R bindplane-otel-collector:bindplane-otel-collector ${BDOT_CONFIG_HOME}/bindplane-otel-collector ${BDOT_CONFIG_HOME}/opampsupervisor ${BDOT_CONFIG_HOME}/plugins/*
+  chmod 0640 ${BDOT_CONFIG_HOME}/plugins/*
 
   # Initialize the log file to ensure it is owned by bindplane-otel-collector.
   # This prevents the service (running as root) from assigning ownership to
@@ -445,26 +445,7 @@ finish_permissions() {
   chown bindplane-otel-collector:bindplane-otel-collector /opt/bindplane-otel-collector/supervisor_storage/agent.log
 }
 
-install() {
-  finish_permissions
-  manage_service
-}
-
-# upgrade should perform the same actions as install
-upgrade() {
-  install
-}
-
-action="$1"
-
-case "$action" in
-"0" | "install")
-  install
-  ;;
-"1" | "upgrade")
-  upgrade
-  ;;
-*)
-  install
-  ;;
-esac
+install
+install_service
+finish_permissions
+manage_service
