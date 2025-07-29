@@ -54,7 +54,7 @@ type grpcExporter struct {
 }
 
 func newGRPCExporter(cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (*grpcExporter, error) {
-	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings, telemetry)
+	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings, telemetry, params.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}

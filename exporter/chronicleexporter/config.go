@@ -49,8 +49,11 @@ type Config struct {
 	// Creds are the Google credentials JSON file.
 	Creds string `mapstructure:"creds"`
 
-	// LogType is the type of log that will be sent to Chronicle.
+	// LogType is the type of log that will be sent to Chronicle if not overridden by `attributes["log_type"]` or `attributes["chronicle_log_type"]`.
 	LogType string `mapstructure:"log_type"`
+
+	// ValidateLogTypes is a flag that determines whether or not to validate the log types using an API call to SecOps.
+	ValidateLogTypes bool `mapstructure:"validate_log_types"`
 
 	// OverrideLogType is a flag that determines whether or not to override the `log_type` in the config with `attributes["log_type"]`.
 	OverrideLogType bool `mapstructure:"override_log_type"`
