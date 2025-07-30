@@ -8,7 +8,7 @@ on:
 jobs:
   build_linux:
     if: github.actor != 'dependabot[bot]'
-    runs-on: nscloud-ubuntu-22.04-amd64-4x16
+    runs-on: nscloud-ubuntu-22.04-amd64-8x16
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
@@ -46,7 +46,7 @@ jobs:
           lichen --config=./license.yaml $(find dist/collector_* dist/updater_*)
   build_windows:
     if: github.actor != 'dependabot[bot]'
-    runs-on: nscloud-ubuntu-22.04-amd64-4x16
+    runs-on: nscloud-ubuntu-22.04-amd64-8x16
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
