@@ -79,6 +79,9 @@ _migrate_user() {
         return
     fi
 
+    # Initialize service_requires_restart to false
+    service_requires_restart=false
+
     # Check if the service is running
     if systemctl is-active --quiet "$service_name"; then
         echo "Service $service_name is running"
@@ -89,21 +92,19 @@ _migrate_user() {
         if [ "$service_user" = "$legacy_username" ]; then
             echo "Service is running as user ${legacy_username}, stopping service before user migration"
             systemctl stop "$service_name"
-            service_was_running=true
+            service_requires_restart=true
         else
             echo "Service is running but not as user ${legacy_username}, proceeding with user migration"
-            service_was_running=false
         fi
     else
         echo "Service $service_name is not running"
-        service_was_running=false
     fi
 
     echo "Renaming user ${legacy_username} to ${username}"
     usermod -l "$username" "$legacy_username"
 
     # Restart the service if it was running before
-    if [ "$service_was_running" = "true" ]; then
+    if [ "$service_requires_restart" = "true" ]; then
         echo "Restarting service $service_name"
         systemctl start "$service_name"
     fi
