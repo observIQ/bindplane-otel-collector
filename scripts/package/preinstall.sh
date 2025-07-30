@@ -25,6 +25,7 @@ set -e
 
 username="bdot"
 legacy_username="observiq-otel-collector"
+service_name="observiq-otel-collector"
 
 # Install creates the user and group for the collector
 # service. This function is idempotent and safe to call
@@ -78,8 +79,34 @@ _migrate_user() {
         return
     fi
 
+    # Check if the service is running
+    if systemctl is-active --quiet "$service_name"; then
+        echo "Service $service_name is running"
+
+        # Check if the service is running as the legacy user
+        service_user=$(ps -o user= -p "$(systemctl show -p MainPID --value "$service_name")" 2>/dev/null || echo "")
+        echo "Service is running as user: $service_user"
+        if [ "$service_user" = "$legacy_username" ]; then
+            echo "Service is running as user ${legacy_username}, stopping service before user migration"
+            systemctl stop "$service_name"
+            service_was_running=true
+        else
+            echo "Service is running but not as user ${legacy_username}, proceeding with user migration"
+            service_was_running=false
+        fi
+    else
+        echo "Service $service_name is not running"
+        service_was_running=false
+    fi
+
     echo "Renaming user ${legacy_username} to ${username}"
     usermod -l "$username" "$legacy_username"
+
+    # Restart the service if it was running before
+    if [ "$service_was_running" = "true" ]; then
+        echo "Restarting service $service_name"
+        systemctl start "$service_name"
+    fi
 }
 
 _migrate_group() {
