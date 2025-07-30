@@ -9,7 +9,7 @@ on:
 
 jobs:
   release-test:
-    runs-on: nscloud-ubuntu-22.04-amd64-16x32
+    runs-on: nscloud-ubuntu-24.04-systemd-amd64-16x32
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
