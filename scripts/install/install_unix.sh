@@ -37,6 +37,7 @@ fi
 
 # Script Constants
 COLLECTOR_USER="bdot"
+COLLECTOR_USER_LEGACY="observiq-otel-collector"
 TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env var
 MANAGEMENT_YML_PATH="${BDOT_CONFIG_HOME}/manager.yaml"
 PREREQS="curl printf $SVC_PRE sed uname cut"
@@ -533,6 +534,7 @@ check_prereqs()
   os_arch_check
   package_type_check
   dependencies_check
+  user_check
   success "Prerequisite check complete!"
   decrease_indent
 }
@@ -620,6 +622,36 @@ dependencies_check()
     failed
     error_exit "$LINENO" "The following dependencies are required by this script: [$FAILED_PREREQS]"
   fi
+  succeeded
+}
+
+# This will check if the required collector user exists when BDOT_SKIP_RUNTIME_USER_CREATION is set to true.
+user_check()
+{
+  if [ "$BDOT_SKIP_RUNTIME_USER_CREATION" != "true" ]; then
+    succeeded
+    return 0
+  fi
+
+  info "BDOT_SKIP_RUNTIME_USER_CREATION is set to true, checking for existing collector users..."
+
+  user_exists=false
+
+  if id "$COLLECTOR_USER" >/dev/null 2>&1; then
+    user_exists=true
+    info "Found collector user: $COLLECTOR_USER"
+  fi
+
+  if id "$COLLECTOR_USER_LEGACY" >/dev/null 2>&1; then
+    user_exists=true
+    info "Found legacy collector user: $COLLECTOR_USER_LEGACY"
+  fi
+
+  if [ "$user_exists" = "false" ]; then
+    failed
+    error_exit "$LINENO" "BDOT_SKIP_RUNTIME_USER_CREATION is set to true, but neither collector user ($COLLECTOR_USER) nor legacy collector user ($COLLECTOR_USER_LEGACY) exists on the system."
+  fi
+
   succeeded
 }
 

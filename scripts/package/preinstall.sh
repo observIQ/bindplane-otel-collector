@@ -32,7 +32,12 @@ service_name="observiq-otel-collector"
 # multiple times.
 install() {
     if [ "$BDOT_SKIP_RUNTIME_USER_CREATION" = "true" ]; then
-        echo "BDOT_SKIP_RUNTIME_USER_CREATION is set to true, skipping user and group creation"
+        echo "BDOT_SKIP_RUNTIME_USER_CREATION is set to true, checking if ${username} user exists"
+        if ! id "$username" > /dev/null 2>&1; then
+            echo "ERROR: BDOT_SKIP_RUNTIME_USER_CREATION is true but user ${username} does not exist"
+            exit 1
+        fi
+        echo "User ${username} exists, skipping user and group creation"
     else
         echo "Creating ${username} user and group"
         install_user
