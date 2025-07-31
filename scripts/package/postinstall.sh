@@ -22,12 +22,18 @@ set -e
 [ -f /etc/default/observiq-otel-collector ] && . /etc/default/observiq-otel-collector
 [ -f /etc/sysconfig/observiq-otel-collector ] && . /etc/sysconfig/observiq-otel-collector
 
+# The collectors installation directory
 : "${BDOT_CONFIG_HOME:=/opt/observiq-otel-collector}"
+
+# Whether or not to run the collector as an unprivileged user.
+: "${BDOT_UNPRIVILEGED:=false}"
+
+username="bdot"
 
 install() {
     mkdir -p "${BDOT_CONFIG_HOME}"
     chmod 0755 "${BDOT_CONFIG_HOME}"
-    chown observiq-otel-collector:observiq-otel-collector "${BDOT_CONFIG_HOME}"
+    chown "$username:$username" "${BDOT_CONFIG_HOME}"
     rm -f "${BDOT_CONFIG_HOME}/observiq-otel-collector" || true
     cp -r --preserve \
       /usr/share/observiq-otel-collector/stage/observiq-otel-collector/* \
@@ -64,7 +70,7 @@ StartLimitBurst=5
 [Service]
 Type=simple
 User=root
-Group=observiq-otel-collector
+Group=${username}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
 Environment=OIQ_OTEL_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
@@ -83,6 +89,24 @@ EOF
 
   chown root:root "$config_file"
   chmod 0640 "$config_file"
+
+  # Ensure the override dir exists.
+  override_dir="/etc/systemd/system/observiq-otel-collector.service.d"
+  if [ ! -d "$override_dir" ]; then
+    mkdir -p "$override_dir"
+    echo "Created systemd override directory at $override_dir"
+  fi
+
+  # If BDOT_UNPRIVILEGED is true, add an override to run the service as the
+  # bdot (unprivileged) user.
+  override_user_path="${override_dir}/10-package-customizations-username.conf"
+  if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
+    cat << EOF > "${override_user_path}"
+[Service]
+User=${username}
+EOF
+    echo "Configured systemd service to run as ${username} user in ${override_user_path}"
+  fi
 }
 
 install_initd_service() {
@@ -432,7 +456,7 @@ manage_service() {
 finish_permissions() {
   # Goreleaser does not set plugin file permissions, so do them here
   # We also change the owner of the binary to observiq-otel-collector
-  chown -R observiq-otel-collector:observiq-otel-collector ${BDOT_CONFIG_HOME}/observiq-otel-collector ${BDOT_CONFIG_HOME}/plugins/*
+  chown -R "$username:$username" ${BDOT_CONFIG_HOME}/observiq-otel-collector ${BDOT_CONFIG_HOME}/plugins/*
   chmod 0640 ${BDOT_CONFIG_HOME}/plugins/*
 
   # Initialize the log file to ensure it is owned by observiq-otel-collector.
@@ -440,7 +464,7 @@ finish_permissions() {
   # the root user. By doing so, we allow the user to switch to observiq-otel-collector
   # user for 'non root' installs.
   touch ${BDOT_CONFIG_HOME}/log/collector.log
-  chown observiq-otel-collector:observiq-otel-collector ${BDOT_CONFIG_HOME}/log/collector.log
+  chown "$username:$username" ${BDOT_CONFIG_HOME}/log/collector.log
 }
 
 install

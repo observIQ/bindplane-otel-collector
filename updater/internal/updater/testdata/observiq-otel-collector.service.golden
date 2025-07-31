@@ -1,0 +1,23 @@
+[Unit]
+Description=observIQ's distribution of the OpenTelemetry collector
+After=network.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+[Service]
+Type=simple
+User=root
+Group=bdot
+Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+Environment=OIQ_OTEL_COLLECTOR_HOME=/opt/observiq-otel-collector
+Environment=OIQ_OTEL_COLLECTOR_STORAGE=/opt/observiq-otel-collector/storage
+WorkingDirectory=/opt/observiq-otel-collector
+ExecStart=/opt/observiq-otel-collector/observiq-otel-collector --config config.yaml
+LimitNOFILE=65000
+SuccessExitStatus=0
+TimeoutSec=20
+StandardOutput=journal
+Restart=on-failure
+RestartSec=5s
+KillMode=process
+[Install]
+WantedBy=multi-user.target 
