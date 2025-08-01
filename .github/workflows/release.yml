@@ -86,7 +86,7 @@ jobs:
 
   release:
     needs: [build-64bit-msi]
-    runs-on: ubuntu-latest-16-cores
+    runs-on: nscloud-ubuntu-24.04-systemd-amd64-32x64
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
