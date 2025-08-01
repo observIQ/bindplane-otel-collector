@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -36,6 +37,10 @@ const (
 
 	// stdOutput is an output option for logging to stdout.
 	stdOutput string = "stdout"
+
+	// apple univeral logging is an output option that will write the logs to Apple Unified Logging: https://developer.apple.com/documentation/os/logging
+	// The unified logging system is available in macOS 10.12 and later
+	appleOutput string = "apple"
 )
 
 // LoggerConfig is the configuration of a logger.
@@ -101,17 +106,8 @@ func (l *LoggerConfig) Options() ([]zap.Option, error) {
 	return []zap.Option{opt}, nil
 }
 
-// core returns the logging core specified in the config.
-// An unknown output will return a nop core.
-func (l *LoggerConfig) core() (zapcore.Core, error) {
-	switch l.Output {
-	case fileOutput:
-		return zapcore.NewCore(newEncoder(), zapcore.AddSync(l.File), l.Level), nil
-	case stdOutput:
-		return zapcore.NewCore(newEncoder(), zapcore.Lock(os.Stdout), l.Level), nil
-	default:
-		return nil, fmt.Errorf("unrecognized output type: %s", l.Output)
-	}
+func (l *LoggerConfig) outputTypes() []string {
+	return strings.Split(strings.TrimSpace(l.Output), "+")
 }
 
 func newEncoder() zapcore.Encoder {

@@ -165,3 +165,112 @@ func chDir(t *testing.T, dir string) {
 		require.NoError(t, err)
 	})
 }
+
+func TestAppleLogging(t *testing.T) {
+	tests := []struct {
+		name          string
+		configPath    string
+		expectError   bool
+		errorContains string
+		expectConfig  *LoggerConfig
+	}{
+		{
+			name:       "apple only output",
+			configPath: filepath.Join("testdata", "apple.yaml"),
+			expectConfig: &LoggerConfig{
+				Output: "apple",
+				Level:  zapcore.InfoLevel,
+			},
+		},
+		{
+			name:       "apple and file output",
+			configPath: filepath.Join("testdata", "apple-multi.yaml"),
+			expectConfig: &LoggerConfig{
+				Output: "apple+file",
+				Level:  zapcore.DebugLevel,
+				File: &lumberjack.Logger{
+					Filename:   "log/collector.log",
+					MaxBackups: 5,
+					MaxSize:    1,
+					MaxAge:     7,
+				},
+			},
+		},
+		{
+			name:       "apple and stdout output",
+			configPath: filepath.Join("testdata", "apple-stdout.yaml"),
+			expectConfig: &LoggerConfig{
+				Output: "apple+stdout",
+				Level:  zapcore.WarnLevel,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conf, err := NewLoggerConfig(tt.configPath)
+			if tt.expectError {
+				require.Error(t, err)
+				if tt.errorContains != "" {
+					require.ErrorContains(t, err, tt.errorContains)
+				}
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.expectConfig, conf)
+
+			// Test that we can get options without error
+			opts, err := conf.Options()
+			require.NoError(t, err)
+			require.NotNil(t, opts)
+			require.Len(t, opts, 1)
+		})
+	}
+}
+
+func TestLoggingOutputTypes(t *testing.T) {
+	tests := []struct {
+		name          string
+		output        string
+		expectedTypes []string
+	}{
+		{
+			name:          "single apple output",
+			output:        "apple",
+			expectedTypes: []string{"apple"},
+		},
+		{
+			name:          "apple and file output",
+			output:        "apple+file",
+			expectedTypes: []string{"apple", "file"},
+		},
+		{
+			name:          "apple and stdout output",
+			output:        "apple+stdout",
+			expectedTypes: []string{"apple", "stdout"},
+		},
+		{
+			name:          "all three outputs",
+			output:        "apple+file+stdout",
+			expectedTypes: []string{"apple", "file", "stdout"},
+		},
+		{
+			name:          "output with spaces",
+			output:        " apple+file ",
+			expectedTypes: []string{"apple", "file"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &LoggerConfig{
+				Output: tt.output,
+				Level:  zapcore.InfoLevel,
+			}
+
+			outputTypes := config.outputTypes()
+			require.Equal(t, tt.expectedTypes, outputTypes)
+		})
+	}
+}
