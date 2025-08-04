@@ -27,12 +27,9 @@ builds:
     goarch:
       - amd64
       - arm64
-      - arm
       - ppc64
       - ppc64le
     ignore:
-      - goos: windows
-        goarch: arm
       - goos: windows
         goarch: arm64
       - goos: windows
@@ -55,12 +52,9 @@ builds:
     goarch:
       - amd64
       - arm64
-      - arm
       - ppc64
       - ppc64le
     ignore:
-      - goos: windows
-        goarch: arm
       - goos: windows
         goarch: arm64
       - goos: windows

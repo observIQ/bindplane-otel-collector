@@ -67,7 +67,7 @@ reset: kill
 build-all: build-linux build-darwin build-windows
 
 .PHONY: build-linux
-build-linux: build-linux-amd64 build-linux-arm64 build-linux-arm build-linux-ppc64 build-linux-ppc64le
+build-linux: build-linux-amd64 build-linux-arm64 build-linux-ppc64 build-linux-ppc64le
 
 .PHONY: build-darwin
 build-darwin: build-darwin-amd64 build-darwin-arm64
