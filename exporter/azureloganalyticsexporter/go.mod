@@ -3,10 +3,10 @@ module github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsex
 go 1.24.4
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.1
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.2
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.2
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.10.1
 	github.com/Azure/azure-sdk-for-go/sdk/monitor/ingestion/azlogs v1.0.0
-	github.com/observiq/bindplane-otel-collector/expr v1.81.0
+	github.com/observiq/bindplane-otel-collector/expr v1.82.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.131.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v1.37.0
@@ -20,7 +20,7 @@ require (
 )
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.4.2 // indirect
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/antchfx/xmlquery v1.4.4 // indirect
