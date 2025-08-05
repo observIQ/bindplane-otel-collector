@@ -120,17 +120,12 @@ func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (*log
 					continue
 				}
 
-				var timestamp time.Time
-
-				if logRecord.Timestamp() != 0 {
-					timestamp = logRecord.Timestamp().AsTime()
-				} else {
-					timestamp = logRecord.ObservedTimestamp().AsTime()
-				}
+				timestamp := getTimestamp(logRecord)
+				collectionTime := getObservedTimestamp(logRecord)
 
 				entry := &api.LogEntry{
 					Timestamp:      timestamppb.New(timestamp),
-					CollectionTime: timestamppb.New(logRecord.ObservedTimestamp().AsTime()),
+					CollectionTime: timestamppb.New(collectionTime),
 					Data:           []byte(rawLog),
 				}
 				logGrouper.Add(entry, namespace, logType, ingestionLabels)
@@ -519,16 +514,12 @@ func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (
 					continue
 				}
 
-				var timestamp time.Time
-				if logRecord.Timestamp() != 0 {
-					timestamp = logRecord.Timestamp().AsTime()
-				} else {
-					timestamp = logRecord.ObservedTimestamp().AsTime()
-				}
+				timestamp := getTimestamp(logRecord)
+				collectionTime := getObservedTimestamp(logRecord)
 
 				entry := &api.Log{
 					LogEntryTime:         timestamppb.New(timestamp),
-					CollectionTime:       timestamppb.New(logRecord.ObservedTimestamp().AsTime()),
+					CollectionTime:       timestamppb.New(collectionTime),
 					Data:                 []byte(rawLog),
 					EnvironmentNamespace: namespace,
 					Labels:               ingestionLabels,
@@ -539,6 +530,23 @@ func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (
 	}
 
 	return entries, nil
+}
+
+func getTimestamp(logRecord plog.LogRecord) time.Time {
+	if logRecord.Timestamp() != 0 {
+		return logRecord.Timestamp().AsTime()
+	}
+	if logRecord.ObservedTimestamp() != 0 {
+		return logRecord.ObservedTimestamp().AsTime()
+	}
+	return time.Now()
+}
+
+func getObservedTimestamp(logRecord plog.LogRecord) time.Time {
+	if logRecord.ObservedTimestamp() != 0 {
+		return logRecord.ObservedTimestamp().AsTime()
+	}
+	return time.Now()
 }
 
 func buildForwarderString(cfg Config) string {
