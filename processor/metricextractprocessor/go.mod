@@ -3,8 +3,8 @@ module github.com/observiq/bindplane-otel-collector/processor/metricextractproce
 go 1.24.4
 
 require (
-	github.com/observiq/bindplane-otel-collector/expr v1.81.0
-	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.81.0
+	github.com/observiq/bindplane-otel-collector/expr v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.82.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.131.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.131.0
 	github.com/stretchr/testify v1.10.0
