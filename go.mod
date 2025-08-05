@@ -4,44 +4,44 @@ go 1.24.4
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter v1.81.0
-	github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter v1.81.0
-	github.com/observiq/bindplane-otel-collector/exporter/chronicleforwarderexporter v1.81.0
-	github.com/observiq/bindplane-otel-collector/exporter/googlecloudexporter v1.81.0
-	github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter v1.81.0
-	github.com/observiq/bindplane-otel-collector/exporter/googlemanagedprometheusexporter v1.81.0
-	github.com/observiq/bindplane-otel-collector/exporter/qradar v1.81.0
-	github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter v1.81.0
-	github.com/observiq/bindplane-otel-collector/exporter/webhookexporter v1.81.0
-	github.com/observiq/bindplane-otel-collector/internal/measurements v1.81.0
-	github.com/observiq/bindplane-otel-collector/internal/report v1.81.0
-	github.com/observiq/bindplane-otel-collector/packagestate v1.81.0
-	github.com/observiq/bindplane-otel-collector/processor/datapointcountprocessor v1.81.0
-	github.com/observiq/bindplane-otel-collector/processor/logcountprocessor v1.81.0
-	github.com/observiq/bindplane-otel-collector/processor/lookupprocessor v1.81.0
-	github.com/observiq/bindplane-otel-collector/processor/maskprocessor v1.81.0
-	github.com/observiq/bindplane-otel-collector/processor/metricextractprocessor v1.81.0
-	github.com/observiq/bindplane-otel-collector/processor/metricstatsprocessor v1.81.0
-	github.com/observiq/bindplane-otel-collector/processor/randomfailureprocessor v1.81.0
-	github.com/observiq/bindplane-otel-collector/processor/removeemptyvaluesprocessor v1.81.0
-	github.com/observiq/bindplane-otel-collector/processor/resourceattributetransposerprocessor v1.81.0
-	github.com/observiq/bindplane-otel-collector/processor/samplingprocessor v1.81.0
-	github.com/observiq/bindplane-otel-collector/processor/spancountprocessor v1.81.0
-	github.com/observiq/bindplane-otel-collector/processor/throughputmeasurementprocessor v1.81.0
-	github.com/observiq/bindplane-otel-collector/processor/unrollprocessor v1.81.0
-	github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver v1.81.0
-	github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver v1.81.0
-	github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver v1.81.0
-	github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver v1.81.0
-	github.com/observiq/bindplane-otel-collector/receiver/httpreceiver v1.81.0
-	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.81.0
-	github.com/observiq/bindplane-otel-collector/receiver/oktareceiver v1.81.0
-	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.81.0
-	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.81.0
-	github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver v1.81.0
-	github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver v1.81.0
-	github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.81.0
-	github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver v1.81.0
+	github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter v1.82.0
+	github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter v1.82.0
+	github.com/observiq/bindplane-otel-collector/exporter/chronicleforwarderexporter v1.82.0
+	github.com/observiq/bindplane-otel-collector/exporter/googlecloudexporter v1.82.0
+	github.com/observiq/bindplane-otel-collector/exporter/googlecloudstorageexporter v1.82.0
+	github.com/observiq/bindplane-otel-collector/exporter/googlemanagedprometheusexporter v1.82.0
+	github.com/observiq/bindplane-otel-collector/exporter/qradar v1.82.0
+	github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter v1.82.0
+	github.com/observiq/bindplane-otel-collector/exporter/webhookexporter v1.82.0
+	github.com/observiq/bindplane-otel-collector/internal/measurements v1.82.0
+	github.com/observiq/bindplane-otel-collector/internal/report v1.82.0
+	github.com/observiq/bindplane-otel-collector/packagestate v1.82.0
+	github.com/observiq/bindplane-otel-collector/processor/datapointcountprocessor v1.82.0
+	github.com/observiq/bindplane-otel-collector/processor/logcountprocessor v1.82.0
+	github.com/observiq/bindplane-otel-collector/processor/lookupprocessor v1.82.0
+	github.com/observiq/bindplane-otel-collector/processor/maskprocessor v1.82.0
+	github.com/observiq/bindplane-otel-collector/processor/metricextractprocessor v1.82.0
+	github.com/observiq/bindplane-otel-collector/processor/metricstatsprocessor v1.82.0
+	github.com/observiq/bindplane-otel-collector/processor/randomfailureprocessor v1.82.0
+	github.com/observiq/bindplane-otel-collector/processor/removeemptyvaluesprocessor v1.82.0
+	github.com/observiq/bindplane-otel-collector/processor/resourceattributetransposerprocessor v1.82.0
+	github.com/observiq/bindplane-otel-collector/processor/samplingprocessor v1.82.0
+	github.com/observiq/bindplane-otel-collector/processor/spancountprocessor v1.82.0
+	github.com/observiq/bindplane-otel-collector/processor/throughputmeasurementprocessor v1.82.0
+	github.com/observiq/bindplane-otel-collector/processor/unrollprocessor v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/httpreceiver v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/oktareceiver v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver v1.82.0
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/open-telemetry/opamp-go v0.20.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.131.0
@@ -212,10 +212,10 @@ require (
 )
 
 require (
-	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.81.0
-	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.81.0
-	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.81.0
-	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.81.0
+	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.82.0
+	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.82.0
+	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.82.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.131.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/otelarrowexporter v0.131.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/avrologencodingextension v0.131.0
@@ -461,11 +461,11 @@ require (
 	github.com/netsampler/goflow2/v2 v2.2.3 // indirect
 	github.com/nginx/nginx-prometheus-exporter v1.4.1 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
-	github.com/observiq/bindplane-otel-collector/counter v1.81.0 // indirect
-	github.com/observiq/bindplane-otel-collector/expr v1.81.0 // indirect
-	github.com/observiq/bindplane-otel-collector/internal/aws v1.81.0 // indirect
-	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.81.0 // indirect
-	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.81.0 // indirect
+	github.com/observiq/bindplane-otel-collector/counter v1.82.0 // indirect
+	github.com/observiq/bindplane-otel-collector/expr v1.82.0 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/aws v1.82.0 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.82.0 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.82.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/okta/okta-sdk-golang/v2 v2.20.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.131.0 // indirect

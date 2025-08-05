@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.2
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.10.1
 	github.com/Azure/azure-sdk-for-go/sdk/monitor/ingestion/azlogs v1.0.0
-	github.com/observiq/bindplane-otel-collector/expr v1.81.0
+	github.com/observiq/bindplane-otel-collector/expr v1.82.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.131.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v1.37.0
