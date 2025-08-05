@@ -1,6 +1,5 @@
 {
   "session_id": "my-session-id",
-  "telemetry_type": "logs",
   "telemetry_payload": {
     "resourceLogs": [
       {
@@ -15,12 +14,18 @@
             { "key": "os.type", "value": { "stringValue": "windows" } }
           ]
         },
+        "schemaUrl": "https://opentelemetry.io/schemas/1.6.1",
         "scopeLogs": [
           {
-            "scope": {},
             "logRecords": [
               {
-                "observedTimeUnixNano": "1706632435103211000",
+                "attributes": [
+                  { "key": "log_type", "value": { "stringValue": "w3c" } },
+                  {
+                    "key": "log.file.name",
+                    "value": { "stringValue": "example.log" }
+                  }
+                ],
                 "body": {
                   "kvlistValue": {
                     "values": [
@@ -48,6 +53,9 @@
                     ]
                   }
                 },
+                "observedTimeUnixNano": "1706632435103211000"
+              },
+              {
                 "attributes": [
                   { "key": "log_type", "value": { "stringValue": "w3c" } },
                   {
@@ -55,24 +63,21 @@
                     "value": { "stringValue": "example.log" }
                   }
                 ],
-                "traceId": "",
-                "spanId": ""
-              },
-              {
-                "observedTimeUnixNano": "1706632435103211000",
                 "body": { "stringValue": "This is a string body" },
+                "observedTimeUnixNano": "1706632435103211000"
+              },
+              {
                 "attributes": [
                   { "key": "log_type", "value": { "stringValue": "w3c" } },
                   {
                     "key": "log.file.name",
                     "value": { "stringValue": "example.log" }
+                  },
+                  {
+                    "key": "unique-attribute",
+                    "value": { "stringValue": "unique-value" }
                   }
                 ],
-                "traceId": "",
-                "spanId": ""
-              },
-              {
-                "observedTimeUnixNano": "1706632435103340000",
                 "body": {
                   "kvlistValue": {
                     "values": [
@@ -100,24 +105,12 @@
                     ]
                   }
                 },
-                "attributes": [
-                  { "key": "log_type", "value": { "stringValue": "w3c" } },
-                  {
-                    "key": "log.file.name",
-                    "value": { "stringValue": "example.log" }
-                  },
-                  {
-                    "key": "unique-attribute",
-                    "value": { "stringValue": "unique-value" }
-                  }
-                ],
-                "traceId": "",
-                "spanId": ""
+                "observedTimeUnixNano": "1706632435103340000"
               }
-            ]
+            ],
+            "scope": {}
           }
-        ],
-        "schemaUrl": "https://opentelemetry.io/schemas/1.6.1"
+        ]
       },
       {
         "resource": {
@@ -126,12 +119,18 @@
             { "key": "os.type", "value": { "stringValue": "darwin" } }
           ]
         },
+        "schemaUrl": "https://opentelemetry.io/schemas/1.6.1",
         "scopeLogs": [
           {
-            "scope": {},
             "logRecords": [
               {
-                "observedTimeUnixNano": "1706632434903385000",
+                "attributes": [
+                  { "key": "log_type", "value": { "stringValue": "w3c" } },
+                  {
+                    "key": "log.file.name",
+                    "value": { "stringValue": "example.log" }
+                  }
+                ],
                 "body": {
                   "kvlistValue": {
                     "values": [
@@ -159,18 +158,16 @@
                     ]
                   }
                 },
+                "observedTimeUnixNano": "1706632434903385000"
+              },
+              {
                 "attributes": [
-                  { "key": "log_type", "value": { "stringValue": "w3c" } },
                   {
                     "key": "log.file.name",
                     "value": { "stringValue": "example.log" }
-                  }
+                  },
+                  { "key": "log_type", "value": { "stringValue": "w3c" } }
                 ],
-                "traceId": "",
-                "spanId": ""
-              },
-              {
-                "observedTimeUnixNano": "1706632434904438000",
                 "body": {
                   "kvlistValue": {
                     "values": [
@@ -195,6 +192,9 @@
                     ]
                   }
                 },
+                "observedTimeUnixNano": "1706632434904438000"
+              },
+              {
                 "attributes": [
                   {
                     "key": "log.file.name",
@@ -202,11 +202,6 @@
                   },
                   { "key": "log_type", "value": { "stringValue": "w3c" } }
                 ],
-                "traceId": "",
-                "spanId": ""
-              },
-              {
-                "observedTimeUnixNano": "1706632434904726000",
                 "body": {
                   "kvlistValue": {
                     "values": [
@@ -231,18 +226,16 @@
                     ]
                   }
                 },
+                "observedTimeUnixNano": "1706632434904726000"
+              },
+              {
                 "attributes": [
+                  { "key": "log_type", "value": { "stringValue": "w3c" } },
                   {
                     "key": "log.file.name",
                     "value": { "stringValue": "example.log" }
-                  },
-                  { "key": "log_type", "value": { "stringValue": "w3c" } }
+                  }
                 ],
-                "traceId": "",
-                "spanId": ""
-              },
-              {
-                "observedTimeUnixNano": "1706632434904962000",
                 "body": {
                   "kvlistValue": {
                     "values": [
@@ -267,6 +260,9 @@
                     ]
                   }
                 },
+                "observedTimeUnixNano": "1706632434904962000"
+              },
+              {
                 "attributes": [
                   { "key": "log_type", "value": { "stringValue": "w3c" } },
                   {
@@ -274,11 +270,6 @@
                     "value": { "stringValue": "example.log" }
                   }
                 ],
-                "traceId": "",
-                "spanId": ""
-              },
-              {
-                "observedTimeUnixNano": "1706632434905371000",
                 "body": {
                   "kvlistValue": {
                     "values": [
@@ -303,6 +294,9 @@
                     ]
                   }
                 },
+                "observedTimeUnixNano": "1706632434905371000"
+              },
+              {
                 "attributes": [
                   { "key": "log_type", "value": { "stringValue": "w3c" } },
                   {
@@ -310,11 +304,6 @@
                     "value": { "stringValue": "example.log" }
                   }
                 ],
-                "traceId": "",
-                "spanId": ""
-              },
-              {
-                "observedTimeUnixNano": "1706632434905657000",
                 "body": {
                   "kvlistValue": {
                     "values": [
@@ -339,6 +328,9 @@
                     ]
                   }
                 },
+                "observedTimeUnixNano": "1706632434905657000"
+              },
+              {
                 "attributes": [
                   { "key": "log_type", "value": { "stringValue": "w3c" } },
                   {
@@ -346,11 +338,6 @@
                     "value": { "stringValue": "example.log" }
                   }
                 ],
-                "traceId": "",
-                "spanId": ""
-              },
-              {
-                "observedTimeUnixNano": "1706632434905918000",
                 "body": {
                   "kvlistValue": {
                     "values": [
@@ -378,6 +365,9 @@
                     ]
                   }
                 },
+                "observedTimeUnixNano": "1706632434905918000"
+              },
+              {
                 "attributes": [
                   { "key": "log_type", "value": { "stringValue": "w3c" } },
                   {
@@ -385,11 +375,6 @@
                     "value": { "stringValue": "example.log" }
                   }
                 ],
-                "traceId": "",
-                "spanId": ""
-              },
-              {
-                "observedTimeUnixNano": "1706632434906183000",
                 "body": {
                   "kvlistValue": {
                     "values": [
@@ -414,6 +399,9 @@
                     ]
                   }
                 },
+                "observedTimeUnixNano": "1706632434906183000"
+              },
+              {
                 "attributes": [
                   { "key": "log_type", "value": { "stringValue": "w3c" } },
                   {
@@ -421,11 +409,6 @@
                     "value": { "stringValue": "example.log" }
                   }
                 ],
-                "traceId": "",
-                "spanId": ""
-              },
-              {
-                "observedTimeUnixNano": "1706632434906304000",
                 "body": {
                   "kvlistValue": {
                     "values": [
@@ -450,6 +433,9 @@
                     ]
                   }
                 },
+                "observedTimeUnixNano": "1706632434906304000"
+              },
+              {
                 "attributes": [
                   { "key": "log_type", "value": { "stringValue": "w3c" } },
                   {
@@ -457,11 +443,6 @@
                     "value": { "stringValue": "example.log" }
                   }
                 ],
-                "traceId": "",
-                "spanId": ""
-              },
-              {
-                "observedTimeUnixNano": "1706632434906407000",
                 "body": {
                   "kvlistValue": {
                     "values": [
@@ -486,6 +467,9 @@
                     ]
                   }
                 },
+                "observedTimeUnixNano": "1706632434906407000"
+              },
+              {
                 "attributes": [
                   { "key": "log_type", "value": { "stringValue": "w3c" } },
                   {
@@ -493,11 +477,6 @@
                     "value": { "stringValue": "example.log" }
                   }
                 ],
-                "traceId": "",
-                "spanId": ""
-              },
-              {
-                "observedTimeUnixNano": "1706632434906539000",
                 "body": {
                   "kvlistValue": {
                     "values": [
@@ -522,18 +501,16 @@
                     ]
                   }
                 },
+                "observedTimeUnixNano": "1706632434906539000"
+              },
+              {
                 "attributes": [
-                  { "key": "log_type", "value": { "stringValue": "w3c" } },
                   {
                     "key": "log.file.name",
                     "value": { "stringValue": "example.log" }
-                  }
+                  },
+                  { "key": "log_type", "value": { "stringValue": "w3c" } }
                 ],
-                "traceId": "",
-                "spanId": ""
-              },
-              {
-                "observedTimeUnixNano": "1706632434906584000",
                 "body": {
                   "kvlistValue": {
                     "values": [
@@ -561,18 +538,16 @@
                     ]
                   }
                 },
+                "observedTimeUnixNano": "1706632434906584000"
+              },
+              {
                 "attributes": [
+                  { "key": "log_type", "value": { "stringValue": "w3c" } },
                   {
                     "key": "log.file.name",
                     "value": { "stringValue": "example.log" }
-                  },
-                  { "key": "log_type", "value": { "stringValue": "w3c" } }
+                  }
                 ],
-                "traceId": "",
-                "spanId": ""
-              },
-              {
-                "observedTimeUnixNano": "1706632434906598000",
                 "body": {
                   "kvlistValue": {
                     "values": [
@@ -600,21 +575,14 @@
                     ]
                   }
                 },
-                "attributes": [
-                  { "key": "log_type", "value": { "stringValue": "w3c" } },
-                  {
-                    "key": "log.file.name",
-                    "value": { "stringValue": "example.log" }
-                  }
-                ],
-                "traceId": "",
-                "spanId": ""
+                "observedTimeUnixNano": "1706632434906598000"
               }
-            ]
+            ],
+            "scope": {}
           }
-        ],
-        "schemaUrl": "https://opentelemetry.io/schemas/1.6.1"
+        ]
       }
     ]
-  }
+  },
+  "telemetry_type": "logs"
 }
