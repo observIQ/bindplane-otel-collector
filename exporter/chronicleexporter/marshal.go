@@ -536,10 +536,7 @@ func getTimestamp(logRecord plog.LogRecord) time.Time {
 	if logRecord.Timestamp() != 0 {
 		return logRecord.Timestamp().AsTime()
 	}
-	if logRecord.ObservedTimestamp() != 0 {
-		return logRecord.ObservedTimestamp().AsTime()
-	}
-	return time.Now()
+	return getObservedTimestamp(logRecord)
 }
 
 func getObservedTimestamp(logRecord plog.LogRecord) time.Time {
