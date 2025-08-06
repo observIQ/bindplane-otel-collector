@@ -172,18 +172,19 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				ts1 := timestamp1.AsTime().Unix()
 				ts2 := timestamp2.AsTime().Unix()
 
-				// Verify timestamps get auto set if they are not
+				// Timestamp gets set with observed timestamp if it is not set
 				require.Equal(t, batch.Entries[0].Timestamp.Seconds, ts1)
 				require.Equal(t, batch.Entries[0].CollectionTime.Seconds, ts1)
 
+				// Collection time gets set to Time.Now() instead of being default 0
 				require.Equal(t, batch.Entries[1].Timestamp.Seconds, ts1)
-				// This gets set to Time.Now() instead of being default 0
 				require.NotEqual(t, batch.Entries[1].CollectionTime.Seconds, 0)
 
+				// Timestamp and collection time get set to their set values
 				require.Equal(t, batch.Entries[2].CollectionTime.Seconds, ts1)
 				require.Equal(t, batch.Entries[2].Timestamp.Seconds, ts2)
 
-				// This gets set to Time.Now() instead of being default 0
+				// Collection time and timestamp get set to Time.Now() instead ofbeing default 0
 				require.NotEqual(t, batch.Entries[3].CollectionTime.Seconds, 0)
 				require.NotEqual(t, batch.Entries[3].Timestamp.Seconds, 0)
 			},
