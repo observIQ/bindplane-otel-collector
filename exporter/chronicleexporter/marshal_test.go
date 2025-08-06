@@ -184,7 +184,7 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				require.Equal(t, batch.Entries[2].CollectionTime.Seconds, ts1)
 				require.Equal(t, batch.Entries[2].Timestamp.Seconds, ts2)
 
-				// Collection time and timestamp get set to Time.Now() instead ofbeing default 0
+				// Collection time and timestamp get set to Time.Now() instead of being default 0
 				require.NotEqual(t, batch.Entries[3].CollectionTime.Seconds, 0)
 				require.NotEqual(t, batch.Entries[3].Timestamp.Seconds, 0)
 			},
