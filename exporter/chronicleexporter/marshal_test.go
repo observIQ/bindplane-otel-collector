@@ -161,7 +161,7 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				record3.SetTimestamp(timestamp2)
 				record3.Body().SetStr("Log 3 with timestamp and collection time set")
 				record4 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-				record4.Body().SetStr("Log 4 with no timestamp set")
+				record4.Body().SetStr("Log 4 with no timestamp or collection time set")
 				return logs
 			},
 			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
