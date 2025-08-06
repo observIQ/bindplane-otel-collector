@@ -185,7 +185,7 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 
 				// This gets set to Time.Now() instead of being default 0
 				require.NotEqual(t, batch.Entries[3].CollectionTime.Seconds, 0)
-				require.NotEqual(t, batch.Entries[3].CollectionTime.Seconds, 0)
+				require.NotEqual(t, batch.Entries[3].Timestamp.Seconds, 0)
 			},
 		},
 		{
