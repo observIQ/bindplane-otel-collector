@@ -309,6 +309,32 @@ failed()
   error "Failed!"
 }
 
+# This will validate that the version is at least v1.82.0
+validate_version()
+{
+  if [ -z "$version" ]; then
+    return 0  # No version specified, let the script handle it
+  fi
+
+  info "Validating version compatibility..."
+
+  # Remove 'v' prefix if present
+  version_clean=$(echo "$version" | sed 's/^v//')
+
+  # Extract major and minor version numbers
+  major=$(echo "$version_clean" | cut -d'.' -f1)
+  minor=$(echo "$version_clean" | cut -d'.' -f2)
+
+  # Check if major version is 1 and minor version is >= 82
+  if [ "$major" = "1" ] && [ "$minor" -ge 82 ] 2>/dev/null; then
+    succeeded
+    return 0
+  else
+    failed
+    error_exit "$LINENO" "Version $version is not supported. This script supports collector v1 version v1.82.0 or newer. Please use the script versioned with your desired collector version."
+  fi
+}
+
 # This will set all installation variables
 # at the beginning of the script.
 setup_installation()
@@ -680,10 +706,10 @@ install_package()
     fi
 
     if [ -n "$proxy" ]; then
-      info "Downloading package using proxy..."
-    fi 
+      info "Downloading package from $collector_download_url using proxy..."
+    fi
 
-    info "Downloading package..."
+    info "Downloading package from $collector_download_url..."
     eval curl -L "$proxy_args" "$collector_download_url" -o "$out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
     succeeded
   fi
@@ -938,6 +964,7 @@ main()
     error_exit "$LINENO" "Could not determine version to install"
   fi
 
+  validate_version
   interactive_check
   connection_check
   setup_installation
