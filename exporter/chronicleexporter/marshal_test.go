@@ -24,6 +24,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/otel/metric/noop"
 	"go.uber.org/zap"
@@ -34,6 +35,9 @@ import (
 func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 	logger := zap.NewNop()
 	startTime := time.Now()
+
+	timestamp1 := pcommon.NewTimestampFromTime(time.Date(1999, time.May, 18, 0, 0, 0, 0, time.UTC))
+	timestamp2 := pcommon.NewTimestampFromTime(time.Date(2015, time.April, 1, 0, 0, 0, 0, time.UTC))
 
 	telemSettings := component.TelemetrySettings{
 		Logger:        logger,
@@ -133,6 +137,56 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 				require.Equal(t, "First log message", string(batch.Entries[0].Data))
 				// Verifying the second log entry data
 				require.Equal(t, "Second log message", string(batch.Entries[1].Data))
+			},
+		},
+		{
+			name: "Multiple log records with and without timestamps",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchRequestSizeLimitGRPC: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				record1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record1.Body().SetStr("Log 1 with collection time set")
+				record1.SetObservedTimestamp(timestamp1)
+				record2 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record2.SetTimestamp(timestamp1)
+				record2.Body().SetStr("Log 2 with timestamp set")
+				record3 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record3.SetObservedTimestamp(timestamp1)
+				record3.SetTimestamp(timestamp2)
+				record3.Body().SetStr("Log 3 with timestamp and collection time set")
+				record4 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record4.Body().SetStr("Log 4 with no timestamp or collection time set")
+				return logs
+			},
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				require.Len(t, requests, 1, "Expected a single batch request")
+				batch := requests[0].Batch
+				require.Len(t, batch.Entries, 4, "Expected four log entries in the batch")
+
+				ts1 := timestamp1.AsTime().Unix()
+				ts2 := timestamp2.AsTime().Unix()
+
+				// Timestamp gets set with observed timestamp if it is not set
+				require.Equal(t, batch.Entries[0].Timestamp.Seconds, ts1)
+				require.Equal(t, batch.Entries[0].CollectionTime.Seconds, ts1)
+
+				// Collection time gets set to Time.Now() instead of being default 0
+				require.Equal(t, batch.Entries[1].Timestamp.Seconds, ts1)
+				require.NotEqual(t, batch.Entries[1].CollectionTime.Seconds, 0)
+
+				// Timestamp and collection time get set to their set values
+				require.Equal(t, batch.Entries[2].CollectionTime.Seconds, ts1)
+				require.Equal(t, batch.Entries[2].Timestamp.Seconds, ts2)
+
+				// Collection time and timestamp get set to Time.Now() instead of being default 0
+				require.NotEqual(t, batch.Entries[3].CollectionTime.Seconds, 0)
+				require.NotEqual(t, batch.Entries[3].Timestamp.Seconds, 0)
 			},
 		},
 		{
