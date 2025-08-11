@@ -179,7 +179,7 @@ Usage:
 
   $(fg_yellow '-l, --url')
       Defines the URL that the components will be downloaded from.
-      If not provided, this will default to Bindplane Agent\'s GitHub releases.
+      If not provided, this will default to '$DOWNLOAD_BASE'.
       Example: '-l http://my.domain.org/observiq-otel-collector' will download from there.
 
   $(fg_yellow '-b, --base-url')
@@ -445,7 +445,7 @@ set_os_arch()
 
 # This will set the urls to use when downloading the agent and its plugins.
 # These urls are constructed based on the --version flag or COLLECTOR_VERSION env variable.
-# If not specified, the version defaults to whatever the latest release on github is.
+# If not specified, the version defaults to whatever the latest release on bdot.bindplane.com is.
 set_download_urls()
 {
   if [ -z "$url" ] ; then
