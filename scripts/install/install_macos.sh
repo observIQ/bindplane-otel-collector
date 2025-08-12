@@ -17,7 +17,7 @@ set -e
 
 # Collector Constants
 SERVICE_NAME="com.observiq.collector"
-DOWNLOAD_BASE="https://github.com/observIQ/bindplane-otel-collector/releases/download"
+DOWNLOAD_BASE="https://bdot.bindplane.com"
 
 # Script Constants
 PREREQS="printf sed uname tr find grep"
@@ -179,7 +179,7 @@ Usage:
 
   $(fg_yellow '-l, --url')
       Defines the URL that the components will be downloaded from.
-      If not provided, this will default to Bindplane Agent\'s GitHub releases.
+      If not provided, this will default to '$DOWNLOAD_BASE'.
       Example: '-l http://my.domain.org/observiq-otel-collector' will download from there.
 
   $(fg_yellow '-b, --base-url')
@@ -382,6 +382,32 @@ dependencies_check()
   succeeded
 }
 
+# This will validate that the version is at least v1.82.0
+validate_version()
+{
+  if [ -z "$version" ]; then
+    return 0  # No version specified, let the script handle it
+  fi
+
+  info "Validating version compatibility..."
+
+  # Remove 'v' prefix if present
+  version_clean=$(echo "$version" | sed 's/^v//')
+
+  # Extract major and minor version numbers
+  major=$(echo "$version_clean" | cut -d'.' -f1)
+  minor=$(echo "$version_clean" | cut -d'.' -f2)
+
+  # Check if major version is 1 and minor version is >= 82
+  if [ "$major" = "1" ] && [ "$minor" -ge 82 ] 2>/dev/null; then
+    succeeded
+    return 0
+  else
+    failed
+    error_exit "$LINENO" "Version $version is not supported. This script supports collector v1 version v1.82.0 or newer. Please use the script versioned with your desired collector version."
+  fi
+}
+
 # This will set all installation variables
 # at the beginning of the script.
 setup_installation()
@@ -419,28 +445,15 @@ set_os_arch()
 
 # This will set the urls to use when downloading the agent and its plugins.
 # These urls are constructed based on the --version flag or COLLECTOR_VERSION env variable.
-# If not specified, the version defaults to whatever the latest release on github is.
+# If not specified, the version defaults to whatever the latest release on bdot.bindplane.com is.
 set_download_urls()
 {
   if [ -z "$url" ] ; then
-    if [ -z "$version" ] ; then
-      # shellcheck disable=SC2153
-      version=$COLLECTOR_VERSION
-    fi
-
-    if [ -z "$version" ] ; then
-      version=$(latest_version)
-    fi
-
-    if [ -z "$version" ] ; then
-      error_exit "$LINENO" "Could not determine version to install"
-    fi
-
     if [ -z "$base_url" ] ; then
       base_url=$DOWNLOAD_BASE
     fi
 
-    collector_download_url="$base_url/v$version/observiq-otel-collector-v${version}-darwin-${os_arch}.tar.gz"
+    collector_download_url="$base_url/$version/observiq-otel-collector-v${version}-darwin-${os_arch}.tar.gz"
   else
     collector_download_url="$url"
   fi
@@ -484,9 +497,7 @@ set_opamp_secret_key()
 # latest_version gets the tag of the latest release, without the v prefix.
 latest_version()
 {
-  curl -sSL -H"Accept: application/vnd.github.v3+json" https://api.github.com/repos/observIQ/bindplane-agent/releases/latest | \
-    grep "\"tag_name\"" | \
-    sed -E 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
+  curl -s https://bdot.bindplane.com/latest
 }
 
 # This will install the package by downloading & unpacking the tarball into the install directory
@@ -619,7 +630,7 @@ display_results()
     info "Start Command:      $(fg_cyan "sudo launchctl load /Library/LaunchDaemons/$SERVICE_NAME.plist")$(reset)"
     info "Stop Command:       $(fg_cyan "sudo launchctl unload /Library/LaunchDaemons/$SERVICE_NAME.plist")$(reset)"
     info "Logs Command:       $(fg_cyan "sudo tail -F $INSTALL_DIR/log/collector.log")$(reset)"
-    info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/install_macos.sh)\" install_macos.sh -r")$(reset)"
+    info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL ${DOWNLOAD_BASE}/${version}/install_macos.sh)\" install_macos.sh -r")$(reset)"
     decrease_indent
 
     banner 'Support'
@@ -729,6 +740,19 @@ main()
         ;;
       esac
     done
+  fi
+
+  if [ -z "$version" ] ; then
+    # shellcheck disable=SC2153
+    version=$COLLECTOR_VERSION
+  fi
+
+  if [ -z "$version" ] ; then
+    version=$(latest_version)
+  fi
+
+  if [ -z "$version" ] ; then
+    error_exit "$LINENO" "Could not determine version to install"
   fi
 
   interactive_check
