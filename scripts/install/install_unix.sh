@@ -26,7 +26,7 @@ set -e
 
 # Agent Constants
 PACKAGE_NAME="observiq-otel-collector"
-DOWNLOAD_BASE="https://github.com/observIQ/bindplane-otel-collector/releases/download"
+DOWNLOAD_BASE="https://bdot.bindplane.com"
 
 # Determine if we need service or systemctl for prereqs
 if command -v systemctl > /dev/null 2>&1; then
@@ -309,6 +309,32 @@ failed()
   error "Failed!"
 }
 
+# This will validate that the version is at least v1.82.0
+validate_version()
+{
+  if [ -z "$version" ]; then
+    return 0  # No version specified, let the script handle it
+  fi
+
+  info "Validating version compatibility..."
+
+  # Remove 'v' prefix if present
+  version_clean=$(echo "$version" | sed 's/^v//')
+
+  # Extract major and minor version numbers
+  major=$(echo "$version_clean" | cut -d'.' -f1)
+  minor=$(echo "$version_clean" | cut -d'.' -f2)
+
+  # Check if major version is 1 and minor version is >= 82
+  if [ "$major" = "1" ] && [ "$minor" -ge 82 ] 2>/dev/null; then
+    succeeded
+    return 0
+  else
+    failed
+    error_exit "$LINENO" "Version $version is not supported. This script supports collector v1 version v1.82.0 or newer. Please use the script versioned with your desired collector version."
+  fi
+}
+
 # This will set all installation variables
 # at the beginning of the script.
 setup_installation()
@@ -437,24 +463,11 @@ set_package_type()
 set_download_urls()
 {
   if [ -z "$url" ] ; then
-    if [ -z "$version" ] ; then
-      # shellcheck disable=SC2153
-      version=$COLLECTOR_VERSION
-    fi
-
-    if [ -z "$version" ] ; then
-      version=$(latest_version)
-    fi
-
-    if [ -z "$version" ] ; then
-      error_exit "$LINENO" "Could not determine version to install"
-    fi
-
     if [ -z "$base_url" ] ; then
       base_url=$DOWNLOAD_BASE
     fi
 
-    collector_download_url="$base_url/v$version/${PACKAGE_NAME}_v${version}_linux_${os_arch}.${package_type}"
+    collector_download_url="$base_url/$version/${PACKAGE_NAME}_v${version}_linux_${os_arch}.${package_type}"
   else
     collector_download_url="$url"
   fi
@@ -672,9 +685,7 @@ package_type_check()
 # latest_version gets the tag of the latest release, without the v prefix.
 latest_version()
 {
-  curl -sSL -H"Accept: application/vnd.github.v3+json" https://api.github.com/repos/observIQ/observiq-otel-collector/releases/latest | \
-    grep "\"tag_name\"" | \
-    sed -r 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
+  curl -s https://bdot.bindplane.com/latest
 }
 
 # This will install the package by downloading the archived agent,
@@ -695,10 +706,10 @@ install_package()
     fi
 
     if [ -n "$proxy" ]; then
-      info "Downloading package using proxy..."
-    fi 
+      info "Downloading package from $collector_download_url using proxy..."
+    fi
 
-    info "Downloading package..."
+    info "Downloading package from $collector_download_url..."
     eval curl -L "$proxy_args" "$collector_download_url" -o "$out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
     succeeded
   fi
@@ -809,7 +820,7 @@ display_results()
       info "Status Command:     $(fg_cyan "sudo service observiq-otel-collector status")$(reset)"
     fi
     info "Logs Command:       $(fg_cyan "sudo tail -F ${BDOT_CONFIG_HOME}/log/collector.log")$(reset)"
-    info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/install_unix.sh)\" install_unix.sh -r")$(reset)"
+    info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL ${DOWNLOAD_BASE}/${version}/install_unix.sh)\" install_unix.sh -r")$(reset)"
     decrease_indent
 
     banner 'Support'
@@ -940,6 +951,20 @@ main()
     done
   fi
 
+  if [ -z "$version" ] ; then
+    # shellcheck disable=SC2153
+    version=$COLLECTOR_VERSION
+  fi
+
+  if [ -z "$version" ] ; then
+    version=$(latest_version)
+  fi
+
+  if [ -z "$version" ] ; then
+    error_exit "$LINENO" "Could not determine version to install"
+  fi
+
+  validate_version
   interactive_check
   connection_check
   setup_installation
