@@ -13,4 +13,34 @@ permissions:
 
 jobs:
   stale:
-    uses: observIQ/gha-workflows/.github/workflows/stale.yaml@main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          delete-branch: false # Default value, but setting explicitly. Don't delete the branch when the PR is closed
+          exempt-pr-labels: 'do-not-merge'
+          stale-pr-message: |
+                ⚠️ **Stale PR Warning**
+
+                This PR has been inactive for 7 days and will be automatically closed in 7 days.
+
+                To keep this PR open:
+                - Add a comment with an update
+                - Push new commits
+                - Request a review
+                - Or add the \`do-not-merge\` label if you need more time
+
+                Let us know if you're still working on this! 🚀
+          stale-pr-label: 'stale'
+          close-pr-message: |
+            🤖 **Auto-closing stale PR**
+
+            This PR has been inactive for 7+ days and is being automatically closed to keep our backlog manageable.
+
+            If you'd like to continue working on this:
+            - Feel free to reopen this PR
+            - Or create a new PR with your latest changes
+
+            Thanks for your contribution! 🙏
+          days-before-stale: '7' # PR is marked as stale after 7 days of inactivity
+          days-before-close: '7' # PR is closed after 7 days of inactivity.  Marking as stale will be activity, so it will be 7 days after marking stale.
