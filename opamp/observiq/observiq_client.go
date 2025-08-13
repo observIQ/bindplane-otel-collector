@@ -70,6 +70,7 @@ type Client struct {
 	reportManager           *report.Manager
 	measurementsSender      *measurementsSender
 	topologySender          *topologySender
+	remoteFileSender        *remoteFilesSender
 
 	// To signal if we are disconnecting already and not take any actions on connection failures
 	disconnecting bool
@@ -155,6 +156,7 @@ func NewClient(args *NewClientArgs) (opamp.Client, error) {
 		Capabilities: []string{
 			measurements.ReportMeasurementsV1Capability,
 			topologyprocessor.ReportTopologyCapability,
+			RemoteFileCapability,
 		},
 	})
 	if err != nil {
@@ -177,6 +179,9 @@ func NewClient(args *NewClientArgs) (opamp.Client, error) {
 		observiqClient.opampClient,
 		args.Config.TopologyInterval,
 	)
+
+	// create remote file sender
+	observiqClient.remoteFileSender = newRemoteFilesSender(observiqClient.opampClient, clientLogger)
 
 	return observiqClient, nil
 }
@@ -355,7 +360,7 @@ func (c *Client) onGetEffectiveConfigHandler(_ context.Context) (*protobufs.Effe
 }
 
 func (c *Client) onMessageFuncHandler(ctx context.Context, msg *types.MessageData) {
-	c.logger.Debug("On message handler")
+	c.logger.Info("On message handler", zap.Any("message", msg))
 	if msg.RemoteConfig != nil {
 		if err := c.onRemoteConfigHandler(ctx, msg.RemoteConfig); err != nil {
 			c.logger.Error("Error while processing Remote Config Change", zap.Error(err))
@@ -380,6 +385,13 @@ func (c *Client) onMessageFuncHandler(ctx context.Context, msg *types.MessageDat
 		} else {
 			c.logger.Info("Server does not support custom topology messages, stopping topology sender.")
 			c.topologySender.Stop()
+		}
+	}
+	if msg.CustomMessage != nil {
+		c.logger.Info("Received custom message", zap.String("message", msg.CustomMessage.String()))
+		if msg.CustomMessage.Type == RemoteFileRequestType {
+			c.logger.Info("Received remote file request message", zap.String("message", string(msg.CustomMessage.Data)))
+			c.remoteFileSender.reportRemoteFile(ctx, msg.CustomMessage.Data)
 		}
 	}
 }
