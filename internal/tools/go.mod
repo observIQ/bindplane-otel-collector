@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/client9/misspell v0.3.4
-	github.com/google/addlicense v1.1.1
+	github.com/google/addlicense v1.2.0
 	github.com/mgechev/revive v1.11.0
 	github.com/securego/gosec/v2 v2.18.2
 	github.com/uw-labs/lichen v0.1.7
