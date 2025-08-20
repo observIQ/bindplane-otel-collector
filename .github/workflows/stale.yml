@@ -17,6 +17,10 @@ jobs:
     steps:
       - uses: actions/stale@v9
         with:
+          # Disable issues by setting days to -1
+          days-before-issue-stale: -1
+          days-before-issue-close: -1
+
           delete-branch: false # Default value, but setting explicitly. Don't delete the branch when the PR is closed
           exempt-pr-labels: 'do-not-merge'
           stale-pr-message: |
