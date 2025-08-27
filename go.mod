@@ -221,6 +221,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/avrologencodingextension v0.133.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension v0.133.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension v0.133.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.133.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/redisstorageextension v0.133.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.133.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.133.0

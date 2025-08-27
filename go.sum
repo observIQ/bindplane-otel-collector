@@ -2120,6 +2120,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jso
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension v0.133.0/go.mod h1:X/obTTmtY22lzFTyBcPffBcIACa2Z1hqdSlWGwfsjhQ=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/otlpencodingextension v0.133.0 h1:LHh0rdhC4/WF6meCclzW9G0NP1aLiZgwW0fsZigAKtY=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/otlpencodingextension v0.133.0/go.mod h1:6pWR9vgpe9pzL+J6xmCkFJFny9Yxrwnj/PCuCQGEF6Y=
+github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.133.0 h1:XEfkkRNWbbOwBHYEyrf/vnJuP5Qvxz8Srowy8jwqVcA=
+github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.133.0/go.mod h1:zuWJ81UlWyIDFPv2iPnWNgv7A1sfKarVUqAQoshoD/o=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/headerssetterextension v0.133.0 h1:G9XgvfgpP40vi2UWsp2Sm3mugzJFcjt4dFYWEAwHH8I=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/headerssetterextension v0.133.0/go.mod h1:zSzl1qUd64k+TndxEVelyvfAo48fptznMFlv+IQR8c8=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.133.0 h1:iQD9dApV+RLj7U7jS360NXM6zTjRkAoeFzwWwJ1V1ag=
