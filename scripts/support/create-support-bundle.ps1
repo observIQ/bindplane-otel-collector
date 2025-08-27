@@ -63,6 +63,29 @@ if ($response -ne "n") {
 # Capture system info
 Get-ComputerInfo | Out-File "$output_dir\systeminfo.txt"
 
+# Capture profiles
+$response = Read-Host -Prompt "Collect go pprof profiles? (Y or n)? "
+
+if ($response -ne "n") {
+    $pprof_port = Read-Host -Prompt "Enter the pprof port (default 13133): "
+    if ([string]::IsNullOrWhiteSpace($pprof_port)) {
+        $pprof_port = 13133
+    }
+
+    $profiles = @("profile", "block", "goroutine", "heap", "mutex", "threadcreate", "trace")
+
+    foreach ($profile in $profiles) {
+        $url = "http://localhost:$pprof_port/debug/pprof/$profile?seconds=30"
+        $output_file = "$output_dir\$profile.txt"
+        Write-Host "Collecting $profile profile from $url"
+        try {
+            Invoke-WebRequest -SkipCertificateCheck -Uri $url -OutFile $output_file -UseBasicParsing -ErrorAction Stop
+        } catch {
+            Write-Host "Failed to collect $profile profile: $_"
+        }
+    }
+}
+
 # Compress the files into a zip archive
 $zip_filename = "$output_dir.zip"
 Compress-Archive -Path "$output_dir\*" -DestinationPath $zip_filename -Force
