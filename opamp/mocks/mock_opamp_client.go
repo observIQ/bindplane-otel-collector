@@ -120,6 +120,24 @@ func (_m *MockOpAMPClient) SetAvailableComponents(components *protobufs.Availabl
 	return r0
 }
 
+// SetCapabilities provides a mock function with given fields: capabilities
+func (_m *MockOpAMPClient) SetCapabilities(capabilities *protobufs.AgentCapabilities) error {
+	ret := _m.Called(capabilities)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetCapabilities")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*protobufs.AgentCapabilities) error); ok {
+		r0 = rf(capabilities)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SetCustomCapabilities provides a mock function with given fields: customCapabilities
 func (_m *MockOpAMPClient) SetCustomCapabilities(customCapabilities *protobufs.CustomCapabilities) error {
 	ret := _m.Called(customCapabilities)
