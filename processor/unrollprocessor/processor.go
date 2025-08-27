@@ -95,6 +95,6 @@ func (p *unrollProcessor) setBody(newLogRecord plog.LogRecord, expansion pcommon
 	case pcommon.ValueTypeBytes:
 		expansion.Bytes().CopyTo(newLogRecord.Body().SetEmptyBytes())
 	case pcommon.ValueTypeEmpty:
-		newLogRecord.Body().FromRaw(nil)
+		_ = newLogRecord.Body().FromRaw(nil)
 	}
 }

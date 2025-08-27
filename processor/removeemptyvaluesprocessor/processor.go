@@ -297,17 +297,17 @@ func cleanLogBody(lr plog.LogRecord, c Config, keys map[string]struct{}) {
 		bodyMap := body.Map()
 		cleanMap(bodyMap, c, keys)
 		if c.RemoveEmptyMaps && bodyMap.Len() == 0 {
-			body.FromRaw(nil)
+			_ = body.FromRaw(nil)
 		}
 	case pcommon.ValueTypeSlice:
 		bodySlice := body.Slice()
 		cleanSlice(bodySlice, c, keys)
 		if c.RemoveEmptyLists && bodySlice.Len() == 0 {
-			body.FromRaw(nil)
+			_ = body.FromRaw(nil)
 		}
 	case pcommon.ValueTypeStr:
 		if shouldFilterString(body.Str(), c.EmptyStringValues) {
-			body.FromRaw(nil)
+			_ = body.FromRaw(nil)
 		}
 	}
 }
