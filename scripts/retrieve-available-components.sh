@@ -135,6 +135,7 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["awss3event"] = "s3event"
   myMap["jsonlogencoding"] = "json_log_encoding"
   myMap["avrologencoding"] = "avro_log_encoding"
+  myMap["googlecloudlogentryencoding"] = "googlecloudlogentry_encoding"
 } {
   split($NF, parts, " ")
   name=parts[1]
