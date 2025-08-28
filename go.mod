@@ -35,6 +35,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver v1.82.0
 	github.com/observiq/bindplane-otel-collector/receiver/httpreceiver v1.82.0
 	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.82.0
+	github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver v1.82.0
 	github.com/observiq/bindplane-otel-collector/receiver/oktareceiver v1.82.0
 	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.82.0
 	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.82.0
@@ -179,7 +180,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zookeeperreceiver v0.133.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/spf13/pflag v1.0.7
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.39.0
 	go.opentelemetry.io/collector/confmap v1.39.0
 	go.opentelemetry.io/collector/confmap/provider/envprovider v1.39.0
@@ -1036,6 +1037,8 @@ replace github.com/observiq/bindplane-otel-collector/receiver/googlecloudstorage
 replace github.com/observiq/bindplane-otel-collector/receiver/httpreceiver => ./receiver/httpreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/m365receiver => ./receiver/m365receiver
+
+replace github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver => ./receiver/macosunifiedloggingreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/oktareceiver => ./receiver/oktareceiver
 

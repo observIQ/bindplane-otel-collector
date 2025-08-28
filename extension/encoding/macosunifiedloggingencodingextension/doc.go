@@ -11,4 +11,4 @@
 // The extension implements the LogsUnmarshalerExtension interface to decode
 // binary log data into structured log records that can be processed by the
 // OpenTelemetry Collector.
-package macosunifiedloggingencodingextension // import "github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/macosunifiedloggingencodingextension"
+package macosunifiedloggingencodingextension // import "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension"

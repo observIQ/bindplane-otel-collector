@@ -5,9 +5,6 @@ status:
   class: extension
   stability:
     alpha: [extension]
-  distributions: [contrib]
-  codeowners:
-    active: []
 
 tests:
   config: 

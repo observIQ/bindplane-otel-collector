@@ -1,4 +1,4 @@
-module github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/macosunifiedloggingencodingextension
+module github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension
 
 go 1.23.0
 
