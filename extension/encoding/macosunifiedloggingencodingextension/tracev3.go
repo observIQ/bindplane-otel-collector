@@ -195,6 +195,11 @@ func ParseTraceV3Header(data []byte) (*TraceV3Header, int, error) {
 
 // ParseTraceV3Data parses tracev3 binary data and extracts individual log entries
 func ParseTraceV3Data(data []byte) ([]*TraceV3Entry, error) {
+	return ParseTraceV3DataWithTimesync(data, nil)
+}
+
+// ParseTraceV3DataWithTimesync parses tracev3 binary data with timesync data for accurate timestamps
+func ParseTraceV3DataWithTimesync(data []byte, timesyncData map[string]*TimesyncBoot) ([]*TraceV3Entry, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("empty data")
 	}
@@ -210,7 +215,7 @@ func ParseTraceV3Data(data []byte) ([]*TraceV3Entry, error) {
 		{
 			Type:      0x0000, // Header info type
 			Size:      uint32(headerSize),
-			Timestamp: uint64(time.Now().UnixNano()),
+			Timestamp: convertMachTimeToUnixNanosWithTimesync(header.ContinuousTime, header.BootUUID, 0, timesyncData),
 			ThreadID:  0,
 			ProcessID: header.LogdPID,
 			Message: fmt.Sprintf("TraceV3 Header: chunk_tag=0x%x, build=%s, hardware=%s, boot_uuid=%s",
@@ -226,7 +231,7 @@ func ParseTraceV3Data(data []byte) ([]*TraceV3Entry, error) {
 
 	// Skip header and try to parse some entries from the remaining data
 	remainingData := data[headerSize:]
-	parsedEntries := parseDataEntries(remainingData, header)
+	parsedEntries := parseDataEntriesWithTimesync(remainingData, header, timesyncData)
 	entries = append(entries, parsedEntries...)
 
 	if len(entries) == 1 {
@@ -234,7 +239,7 @@ func ParseTraceV3Data(data []byte) ([]*TraceV3Entry, error) {
 		entries = append(entries, &TraceV3Entry{
 			Type:      0x0001,
 			Size:      uint32(len(remainingData)),
-			Timestamp: uint64(time.Now().UnixNano()),
+			Timestamp: convertMachTimeToUnixNanosWithTimesync(header.ContinuousTime, header.BootUUID, 0, timesyncData),
 			ThreadID:  0,
 			ProcessID: header.LogdPID,
 			Message: fmt.Sprintf("Data section: %d bytes remaining after %d-byte header",
@@ -260,11 +265,63 @@ func paddingSize8(dataSize uint64) uint64 {
 // parseDataEntries attempts to parse individual entries from the data section
 // Based on the Rust implementation logic from mandiant/macos-UnifiedLogs
 func parseDataEntries(data []byte, header *TraceV3Header) []*TraceV3Entry {
+	return parseDataEntriesWithTimesync(data, header, nil)
+}
+
+// parseDataEntriesWithTimesync attempts to parse individual entries from the data section with timesync support
+// Based on the Rust implementation logic from mandiant/macos-UnifiedLogs
+func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncData map[string]*TimesyncBoot) []*TraceV3Entry {
 	entries := []*TraceV3Entry{}
 	offset := 0
 	entryCount := 0
 	chunkPreambleSize := 16 // Always 16 bytes for preamble
 
+	// First pass: Process catalog chunks to build the global catalog
+	// This is critical for proper subsystem name resolution
+	catalogOffset := 0
+	for catalogOffset < len(data) {
+		if catalogOffset+chunkPreambleSize > len(data) {
+			break
+		}
+
+		chunkTag := binary.LittleEndian.Uint32(data[catalogOffset:])
+		chunkDataSize := binary.LittleEndian.Uint64(data[catalogOffset+8:])
+
+		if chunkDataSize == 0 {
+			catalogOffset += 4
+			continue
+		}
+
+		totalChunkSize := chunkPreambleSize + int(chunkDataSize)
+		if catalogOffset+totalChunkSize > len(data) {
+			break
+		}
+
+		// Process catalog chunks first
+		if chunkTag == 0x600b {
+			catalogEntry := &TraceV3Entry{
+				Type:         chunkTag,
+				ChunkType:    "catalog",
+				Subsystem:    "com.apple.catalog",
+				Category:     "catalog_data",
+				Level:        "DEBUG",
+				MessageType:  "Debug",
+				EventType:    "logEvent",
+				TimezoneName: extractTimezoneName(header.TimezonePath),
+			}
+			ParseCatalogChunk(data[catalogOffset:catalogOffset+totalChunkSize], catalogEntry)
+		}
+
+		catalogOffset += totalChunkSize + int(paddingSize8(chunkDataSize))
+
+		// Safety limit
+		if entryCount >= 1000 {
+			break
+		}
+	}
+
+	// Second pass: Process all chunks including firehose entries
+	// Now GlobalCatalog should be populated for subsystem resolution
 	for offset < len(data) {
 		// Need at least 16 bytes for preamble (matching rust implementation)
 		if offset+chunkPreambleSize > len(data) {
@@ -300,7 +357,7 @@ func parseDataEntries(data []byte, header *TraceV3Header) []*TraceV3Entry {
 		entry := &TraceV3Entry{
 			Type:         chunkTag,
 			Size:         uint32(chunkDataSize),
-			Timestamp:    header.ContinuousTime + uint64(entryCount)*1000000, // Use header time + offset
+			Timestamp:    convertMachTimeToUnixNanosWithTimesync(header.ContinuousTime, header.BootUUID, 0, timesyncData),
 			ThreadID:     0,
 			ProcessID:    header.LogdPID,
 			Level:        "Info",
@@ -341,12 +398,11 @@ func parseDataEntries(data []byte, header *TraceV3Header) []*TraceV3Entry {
 			entry.ChunkType = "simpledump"
 			ParseSimpledumpChunk(data[offset:offset+totalChunkSize], entry)
 		case 0x600b:
-			// Catalog chunk
-			entry.ChunkType = "catalog"
-			entry.Subsystem = "com.apple.catalog"
-			entry.Category = "catalog_data"
-			// Pass data starting from the complete chunk including header
-			ParseCatalogChunk(data[offset:offset+totalChunkSize], entry)
+			// Catalog chunk - Skip in second pass since we already processed it
+			// This prevents catalog metadata from appearing as log entries
+			offset += totalChunkSize
+			entryCount++
+			continue
 		case 0x600d:
 			// ChunkSet chunk - can contain many compressed individual log entries
 			entry.ChunkType = "chunkset"
@@ -382,7 +438,7 @@ func parseDataEntries(data []byte, header *TraceV3Header) []*TraceV3Entry {
 
 				entry.ThreadID = firstProcID
 				entry.ProcessID = secondProcID
-				entry.Timestamp = baseContinuousTime
+				entry.Timestamp = convertMachTimeToUnixNanosWithTimesync(baseContinuousTime, header.BootUUID, 0, timesyncData)
 
 				// Try to extract log type and message information
 				if publicDataSize > 0 && len(entryData) >= int(52+publicDataSize) {
@@ -464,7 +520,7 @@ func parseDataEntries(data []byte, header *TraceV3Header) []*TraceV3Entry {
 		entries = append(entries, &TraceV3Entry{
 			Type:         0x0000,
 			Size:         uint32(len(data)),
-			Timestamp:    header.ContinuousTime,
+			Timestamp:    convertMachTimeToUnixNanosWithTimesync(header.ContinuousTime, header.BootUUID, 0, timesyncData),
 			ThreadID:     0,
 			ProcessID:    header.LogdPID,
 			Message:      fmt.Sprintf("Unparsed data section: %d bytes (no valid firehose entries found)", len(data)),
@@ -478,6 +534,44 @@ func parseDataEntries(data []byte, header *TraceV3Header) []*TraceV3Entry {
 	}
 
 	return entries
+}
+
+// convertMachTimeToUnixNanos converts mach absolute time to Unix epoch nanoseconds (legacy fallback)
+// This is a simplified conversion that approximates the proper timesync-based conversion
+func convertMachTimeToUnixNanos(machTime uint64, numerator uint32, denominator uint32) uint64 {
+	return convertMachTimeToUnixNanosWithTimesync(machTime, "", 0, nil)
+}
+
+// convertMachTimeToUnixNanosWithTimesync converts mach absolute time to Unix epoch nanoseconds using timesync data
+// This implements the proper timestamp conversion algorithm from the Rust implementation
+func convertMachTimeToUnixNanosWithTimesync(machTime uint64, bootUUID string, preambleTime uint64, timesyncData map[string]*TimesyncBoot) uint64 {
+	// If we have timesync data, use it for accurate conversion
+	if timesyncData != nil && bootUUID != "" {
+		normalizedUUID := NormalizeBootUUID(bootUUID)
+		timestamp := GetTimestamp(timesyncData, normalizedUUID, machTime, preambleTime)
+
+		// Debug logging disabled
+		// fmt.Printf("[DEBUG] convertMachTimeToUnixNanosWithTimesync: machTime=%d, bootUUID=%s, preambleTime=%d, timestamp=%f\n",
+		//	machTime, bootUUID, preambleTime, timestamp)
+
+		// Sanity check the result
+		if timestamp > 0 {
+			return uint64(timestamp)
+		}
+	}
+
+	// Fallback to basic mach time conversion if no timesync data available
+	// This is primarily for backward compatibility
+	currentTime := uint64(time.Now().UnixNano())
+
+	// If machTime seems reasonable as nanoseconds since Unix epoch, use it
+	// Otherwise fall back to current time
+	if machTime > 1000000000000000000 && machTime < currentTime+uint64(365*24*time.Hour.Nanoseconds()) {
+		return machTime
+	}
+
+	// Default fallback
+	return currentTime - uint64(time.Hour.Nanoseconds())
 }
 
 // ConvertTraceV3EntriesToLogs converts parsed tracev3 entries to OpenTelemetry log records

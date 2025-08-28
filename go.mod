@@ -212,6 +212,7 @@ require (
 require (
 	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.85.3
 	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.85.3
+	github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension v1.85.3
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.85.3
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.85.3
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.136.0

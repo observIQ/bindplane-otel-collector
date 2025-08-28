@@ -16,6 +16,7 @@ package factories
 
 import (
 	"github.com/observiq/bindplane-otel-collector/extension/awss3eventextension"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension"
@@ -48,6 +49,7 @@ var defaultExtensions = []extension.Factory{
 	healthcheckextension.NewFactory(),
 	googlecloudlogentryencodingextension.NewFactory(),
 	jsonlogencodingextension.NewFactory(),
+	macosunifiedloggingencodingextension.NewFactory(),
 	textencodingextension.NewFactory(),
 	oauth2clientauthextension.NewFactory(),
 	oidcauthextension.NewFactory(),
