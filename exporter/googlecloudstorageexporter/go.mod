@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	cloud.google.com/go/storage v1.50.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 	go.opentelemetry.io/collector/component v1.39.0
 	go.opentelemetry.io/collector/component/componenttest v0.133.0
 	go.opentelemetry.io/collector/config/configretry v1.39.0

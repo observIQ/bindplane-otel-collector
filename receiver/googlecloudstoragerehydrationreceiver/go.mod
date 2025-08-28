@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/storage v1.51.0
 	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.82.0
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.82.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 	go.opentelemetry.io/collector/component v1.39.0
 	go.opentelemetry.io/collector/component/componenttest v0.133.0
 	go.opentelemetry.io/collector/consumer v1.39.0

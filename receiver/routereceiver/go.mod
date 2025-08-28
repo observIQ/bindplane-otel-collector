@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/receiver/routereceiver
 go 1.24.4
 
 require (
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 	go.opentelemetry.io/collector/component v1.39.0
 	go.opentelemetry.io/collector/consumer v1.39.0
 	go.opentelemetry.io/collector/pdata v1.39.0

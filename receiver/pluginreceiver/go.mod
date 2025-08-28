@@ -16,7 +16,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/tcplogreceiver v0.133.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/udplogreceiver v0.133.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.133.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 	go.opentelemetry.io/collector/component v1.39.0
 	go.opentelemetry.io/collector/confmap v1.39.0
 	go.opentelemetry.io/collector/confmap/provider/envprovider v1.39.0
