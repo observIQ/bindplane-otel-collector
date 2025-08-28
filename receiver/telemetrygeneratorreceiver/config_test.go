@@ -306,7 +306,7 @@ func TestValidate(t *testing.T) {
 			desc:        "otlp - malformed otlp_json metrics",
 			payloads:    10,
 			errExpected: true,
-			errText:     "error unmarshalling metrics from otlp_json: ReadObjectCB: expect \" after {, but found n, error found in #2 byte of ...|{not json}|..., bigger context ...|{not json}|...",
+			errText:     "error unmarshalling metrics from otlp_json: ReadObject: expect \" after {, but found n, error found in #2 byte of ...|{not json}|..., bigger context ...|{not json}|...",
 			generators: []GeneratorConfig{
 				{
 					Type: "otlp",
@@ -321,7 +321,7 @@ func TestValidate(t *testing.T) {
 			desc:        "otlp - malformed otlp_json traces",
 			payloads:    10,
 			errExpected: true,
-			errText:     "error unmarshalling traces from otlp_json: ReadObjectCB: expect { or n, but found ?, error found in #1 byte of ...|?(not json)|..., bigger context ...|?(not json)|...",
+			errText:     "error unmarshalling traces from otlp_json: ReadObject: expect { or , or } or n, but found ?, error found in #1 byte of ...|?(not json)|..., bigger context ...|?(not json)|...",
 			generators: []GeneratorConfig{
 				{
 					Type: "otlp",

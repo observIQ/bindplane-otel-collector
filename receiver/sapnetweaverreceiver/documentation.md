@@ -24,9 +24,9 @@ Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Up
 
 #### Attributes
 
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` |
+| Name | Description | Values | Optional |
+| ---- | ----------- | ------ | -------- |
+| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` | false |
 
 ### sapnetweaver.cache.evictions
 
@@ -230,11 +230,11 @@ Collected from SAPControl Web Service Interface > GetProcessList.
 
 #### Attributes
 
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| process_name | The name value from GetProcessList. | Any Str |
-| process_description | The description value from GetProcessList. | Any Str |
-| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` |
+| Name | Description | Values | Optional |
+| ---- | ----------- | ------ | -------- |
+| process_name | The name value from GetProcessList. | Any Str | false |
+| process_description | The description value from GetProcessList. | Any Str | false |
+| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` | false |
 
 ### sapnetweaver.queue.count
 
@@ -248,9 +248,9 @@ Collected from SAPControl Web Service Interface > GetQueueStatistic.
 
 #### Attributes
 
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| wp_type | The work processor type. | Any Str |
+| Name | Description | Values | Optional |
+| ---- | ----------- | ------ | -------- |
+| wp_type | The work processor type. | Any Str | false |
 
 ### sapnetweaver.queue_max.count
 
@@ -264,9 +264,9 @@ Collected from SAPControl Web Service Interface > GetQueueStatistic.
 
 #### Attributes
 
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| wp_type | The work processor type. | Any Str |
+| Name | Description | Values | Optional |
+| ---- | ----------- | ------ | -------- |
+| wp_type | The work processor type. | Any Str | false |
 
 ### sapnetweaver.queue_peak.count
 
@@ -280,9 +280,9 @@ Collected from SAPControl Web Service Interface > GetQueueStatistic.
 
 #### Attributes
 
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| wp_type | The work processor type. | Any Str |
+| Name | Description | Values | Optional |
+| ---- | ----------- | ------ | -------- |
+| wp_type | The work processor type. | Any Str | false |
 
 ### sapnetweaver.request.count
 
@@ -314,9 +314,9 @@ The response time duration.
 
 #### Attributes
 
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| response_type | The response type. | Str: ``transaction``, ``dialog``, ``dialogRFC``, ``http`` |
+| Name | Description | Values | Optional |
+| ---- | ----------- | ------ | -------- |
+| response_type | The response type. | Str: ``transaction``, ``dialog``, ``dialogRFC``, ``http`` | false |
 
 ### sapnetweaver.session.count
 
@@ -410,12 +410,12 @@ Collected from SAPControl Web Service Interface > GetSystemInstanceList.
 
 #### Attributes
 
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| hostname | The SAP hostname. | Any Str |
-| instance_number | The instance number | Any Int |
-| feature | The service availability. | Any Str |
-| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` |
+| Name | Description | Values | Optional |
+| ---- | ----------- | ------ | -------- |
+| hostname | The SAP hostname. | Any Str | false |
+| instance_number | The instance number | Any Int | false |
+| feature | The service availability. | Any Str | false |
+| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` | false |
 
 ### sapnetweaver.work_process.active.count
 
@@ -429,11 +429,11 @@ Collected from SAPControl Web Service Interface > ABAPGetSystemWPTable.
 
 #### Attributes
 
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| instance | The SAP instance name. | Any Str |
-| wp_type | The work processor type. | Any Str |
-| wp_status | The work processor status. | Any Str |
+| Name | Description | Values | Optional |
+| ---- | ----------- | ------ | -------- |
+| instance | The SAP instance name. | Any Str | false |
+| wp_type | The work processor type. | Any Str | false |
+| wp_status | The work processor status. | Any Str | false |
 
 ### sapnetweaver.work_process.job.aborted.status
 
@@ -447,9 +447,9 @@ Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Ba
 
 #### Attributes
 
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` |
+| Name | Description | Values | Optional |
+| ---- | ----------- | ------ | -------- |
+| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` | false |
 
 ## Resource Attributes
 

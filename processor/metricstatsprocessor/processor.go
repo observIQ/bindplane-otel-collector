@@ -144,9 +144,10 @@ func (sp *metricstatsProcessor) metricMetadata(m pmetric.Metric, resKey uint64, 
 	if !ok {
 		// Track the resource information for this resource if we haven't already
 		rma = &resourceMetadata{
-			resource: resAttrs,
+			resource: pcommon.NewMap(),
 			metrics:  make(map[string]*metricMetadata),
 		}
+		resAttrs.CopyTo(rma.resource)
 		sp.statMap[resKey] = rma
 	}
 
@@ -181,9 +182,10 @@ func (sp *metricstatsProcessor) addDatapointToStats(ma *metricMetadata, dp pmetr
 		}
 
 		dpa = &datapointMetadata{
-			attributes: dp.Attributes(),
+			attributes: pcommon.NewMap(),
 			statistics: statistics,
 		}
+		dp.Attributes().CopyTo(dpa.attributes)
 		ma.datapoints[attributeKey] = dpa
 
 		// we don't need to call AddDatapoint, since the statistics are initialized with the first datapoint.

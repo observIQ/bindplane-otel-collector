@@ -25,7 +25,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/shirou/gopsutil/v3/process"
 	"go.opentelemetry.io/collector/component"
-	semconv "go.opentelemetry.io/collector/semconv/v1.5.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -57,7 +57,7 @@ func newHostMetricsReporter(cfg *Config, set component.TelemetrySettings, export
 	}
 
 	agentID := uuid.New()
-	if sid, ok := set.Resource.Attributes().Get(semconv.AttributeServiceInstanceID); ok {
+	if sid, ok := set.Resource.Attributes().Get(string(semconv.ServiceInstanceIDKey)); ok {
 		var err error
 		serviceID, err := uuid.Parse(sid.AsString())
 		if err != nil {
