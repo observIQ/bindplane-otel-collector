@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.2
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.39.0
 	go.opentelemetry.io/collector/component/componenttest v0.133.0
 	go.opentelemetry.io/collector/config/configretry v1.39.0

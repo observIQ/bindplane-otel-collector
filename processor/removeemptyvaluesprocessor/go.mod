@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/processor/removeemptyvaluesp
 go 1.24.4
 
 require (
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 	github.com/tj/assert v0.0.3
 	go.opentelemetry.io/collector/component v1.39.0
 	go.opentelemetry.io/collector/component/componenttest v0.133.0

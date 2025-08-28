@@ -7,7 +7,7 @@ require (
 	github.com/open-telemetry/opamp-go v0.21.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.133.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.133.0
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.39.0
 	go.opentelemetry.io/collector/consumer v1.39.0
 	go.opentelemetry.io/collector/consumer/consumertest v0.133.0
