@@ -20,7 +20,9 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/avrologencodingextension"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/headerssetterextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/oauth2clientauthextension"
@@ -44,7 +46,9 @@ var defaultExtensions = []extension.Factory{
 	filestorage.NewFactory(),
 	headerssetterextension.NewFactory(),
 	healthcheckextension.NewFactory(),
+	googlecloudlogentryencodingextension.NewFactory(),
 	jsonlogencodingextension.NewFactory(),
+	textencodingextension.NewFactory(),
 	oauth2clientauthextension.NewFactory(),
 	oidcauthextension.NewFactory(),
 	pprofextension.NewFactory(),

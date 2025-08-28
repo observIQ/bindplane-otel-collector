@@ -38,9 +38,9 @@ The number of users who have interacted with a OneDrive file, by action, in the 
 
 #### Attributes
 
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| activity | The OneDrive user activity types. | Str: ``view_edit``, ``synced``, ``internal_share``, ``external_share`` |
+| Name | Description | Values | Optional |
+| ---- | ----------- | ------ | -------- |
+| activity | The OneDrive user activity types. | Str: ``view_edit``, ``synced``, ``internal_share``, ``external_share`` | false |
 
 ### m365.outlook.app.user.count
 
@@ -52,9 +52,9 @@ The number of unique users per app over the period of time in the organization O
 
 #### Attributes
 
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| app | The number of users of Outlook apps. | Str: ``pop3``, ``imap4``, ``smtp``, ``windows``, ``mac``, ``web``, ``mobile``, ``other_mobile`` |
+| Name | Description | Values | Optional |
+| ---- | ----------- | ------ | -------- |
+| app | The number of users of Outlook apps. | Str: ``pop3``, ``imap4``, ``smtp``, ``windows``, ``mac``, ``web``, ``mobile``, ``other_mobile`` | false |
 
 ### m365.outlook.email_activity.count
 
@@ -66,9 +66,9 @@ The number of email actions by members over the period of time in the organizati
 
 #### Attributes
 
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| activity | The Outlook user activity types. | Str: ``read``, ``sent``, ``received`` |
+| Name | Description | Values | Optional |
+| ---- | ----------- | ------ | -------- |
+| activity | The Outlook user activity types. | Str: ``read``, ``sent``, ``received`` | false |
 
 ### m365.outlook.mailboxes.active.count
 
@@ -88,9 +88,9 @@ The number of mailboxes in the various quota statuses over the period of time in
 
 #### Attributes
 
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| state | The types of Outlook quota states. | Str: ``under_limit``, ``warning``, ``send_prohibited``, ``send_receive_prohibited``, ``indeterminate`` |
+| Name | Description | Values | Optional |
+| ---- | ----------- | ------ | -------- |
+| state | The types of Outlook quota states. | Str: ``under_limit``, ``warning``, ``send_prohibited``, ``send_receive_prohibited``, ``indeterminate`` | false |
 
 ### m365.outlook.storage.used
 
@@ -166,9 +166,9 @@ The number of unique users by device/platform that have used Teams in the last 7
 
 #### Attributes
 
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| device | The device types. | Str: ``Android``, ``iOS``, ``Mac``, ``Windows``, ``Chrome OS``, ``Linux``, ``Web`` |
+| Name | Description | Values | Optional |
+| ---- | ----------- | ------ | -------- |
+| device | The device types. | Str: ``Android``, ``iOS``, ``Mac``, ``Windows``, ``Chrome OS``, ``Linux``, ``Web`` | false |
 
 ### m365.teams.meetings.count
 
