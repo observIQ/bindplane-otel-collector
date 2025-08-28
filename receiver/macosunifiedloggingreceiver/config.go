@@ -4,6 +4,8 @@
 package macosunifiedloggingreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver"
 
 import (
+	"errors"
+
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/adapter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/fileconsumer"
 )
@@ -44,10 +46,9 @@ func (cfg *Config) getFileConsumerConfig() fileconsumer.Config {
 
 // Validate checks the receiver configuration is valid
 func (cfg Config) Validate() error {
-	// TODO: Uncomment this when the encoding extension is ready
-	// if cfg.Encoding != "macosunifiedloggingencoding" {
-	// 	return errors.New("encoding_extension must be macosunifiedloggingencoding for macOS Unified Logging receiver")
-	// }
+	if cfg.Encoding != "macosunifiedlogencoding" {
+		return errors.New("encoding_extension must be macosunifiedlogencoding for macOS Unified Logging receiver")
+	}
 
 	return nil
 }

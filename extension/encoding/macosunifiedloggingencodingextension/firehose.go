@@ -62,8 +62,8 @@ func ParseFirehoseChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header)
 		entries = append(entries, privateEntries...)
 	}
 
-	// If we have larger public data, try to parse it as well (but focus on private data)
-	if publicDataSize > 24 && len(data) >= int(52+publicDataSize) {
+	// Try to parse public data - lower threshold to catch more entries
+	if publicDataSize > 4 && len(data) >= int(52+publicDataSize) {
 		var actualPublicDataSize uint16
 		var publicDataStart int
 
@@ -123,19 +123,39 @@ func parseIndividualFirehoseEntries(publicData []byte, header *TraceV3Header, fi
 	for offset < len(publicData) {
 		// Each individual firehose entry starts with a 24-byte header (matching rust implementation)
 		// 1+1+2+4+8+4+2+2 = 24 bytes total
-		if offset+24 > len(publicData) {
+		// But try to parse even if we don't have full 24 bytes for debugging
+		minHeaderSize := 8 // Minimum to get activity type, log type, flags, format string location
+		if offset+minHeaderSize > len(publicData) {
 			break
 		}
 
+		// Only require full header if we have enough data
+		needFullHeader := offset+24 <= len(publicData)
+
 		// Parse individual firehose entry header (matches rust parse_firehose structure exactly)
-		logActivityType := publicData[offset]                                          // 1 byte
-		logType := publicData[offset+1]                                                // 1 byte
-		flags := binary.LittleEndian.Uint16(publicData[offset+2:])                     // 2 bytes
-		formatStringLocation := binary.LittleEndian.Uint32(publicData[offset+4:])      // 4 bytes
-		threadID := binary.LittleEndian.Uint64(publicData[offset+8:])                  // 8 bytes
-		continuousTimeDelta := binary.LittleEndian.Uint32(publicData[offset+16:])      // 4 bytes
-		continuousTimeDeltaUpper := binary.LittleEndian.Uint16(publicData[offset+20:]) // 2 bytes
-		dataSize := binary.LittleEndian.Uint16(publicData[offset+22:])                 // 2 bytes
+		logActivityType := publicData[offset]                                     // 1 byte
+		logType := publicData[offset+1]                                           // 1 byte
+		flags := binary.LittleEndian.Uint16(publicData[offset+2:])                // 2 bytes
+		formatStringLocation := binary.LittleEndian.Uint32(publicData[offset+4:]) // 4 bytes
+
+		// Only parse remaining fields if we have enough data
+		var threadID uint64
+		var continuousTimeDelta uint32
+		var continuousTimeDeltaUpper uint16
+		var dataSize uint16
+
+		if needFullHeader {
+			threadID = binary.LittleEndian.Uint64(publicData[offset+8:])                  // 8 bytes
+			continuousTimeDelta = binary.LittleEndian.Uint32(publicData[offset+16:])      // 4 bytes
+			continuousTimeDeltaUpper = binary.LittleEndian.Uint16(publicData[offset+20:]) // 2 bytes
+			dataSize = binary.LittleEndian.Uint16(publicData[offset+22:])                 // 2 bytes
+		} else {
+			// Use defaults for partial header
+			threadID = firstProcID
+			continuousTimeDelta = 0
+			continuousTimeDeltaUpper = 0
+			dataSize = 0
+		}
 
 		// Check for remnant data (rust implementation stops here)
 		if logActivityType == remnantData {
@@ -150,19 +170,19 @@ func parseIndividualFirehoseEntries(publicData []byte, header *TraceV3Header, fi
 		}
 
 		// Check if remaining data is sufficient (rust implementation check)
-		if len(publicData)-offset < 24 {
+		if needFullHeader && len(publicData)-offset < 24 {
 			break
 		}
 
-		// Additional validation: check if data size is reasonable
-		if dataSize > uint16(len(publicData)-offset-24) {
+		// Additional validation: check if data size is reasonable (only for full headers)
+		if needFullHeader && dataSize > uint16(len(publicData)-offset-24) {
 			// Data size exceeds available data, this entry is probably malformed
 			offset += 1
 			continue
 		}
 
-		// Verify we have enough data for this entry
-		if offset+24+int(dataSize) > len(publicData) {
+		// Verify we have enough data for this entry (only for full headers)
+		if needFullHeader && offset+24+int(dataSize) > len(publicData) {
 			// Not enough data for this entry, break out
 			break
 		}
@@ -179,8 +199,8 @@ func parseIndividualFirehoseEntries(publicData []byte, header *TraceV3Header, fi
 			DataSize:             dataSize,
 		}
 
-		// Extract message data if present
-		if dataSize > 0 {
+		// Extract message data if present (only for full headers)
+		if needFullHeader && dataSize > 0 {
 			firehoseEntry.MessageData = publicData[offset+24 : offset+24+int(dataSize)]
 		}
 
@@ -279,17 +299,26 @@ func parseIndividualFirehoseEntries(publicData []byte, header *TraceV3Header, fi
 				logEntry.Message = fmt.Sprintf("Format: %s | Process: %s | Thread: %d | %s%s",
 					formatData.FormatString, formatData.Process, threadID, messageContent, catalogInfo)
 			} else {
-				// Enhanced fallback with activity type details
-				logEntry.Message = fmt.Sprintf("Firehose %s: level=%s flags=0x%x format=0x%x thread=%d delta=%d subsys_id=%d%s | %s",
+				// Enhanced fallback with activity type details and debug info
+				catalogDebug := ""
+				if GlobalCatalog != nil {
+					catalogDebug = fmt.Sprintf(" [catalog_procs=%d]", len(GlobalCatalog.ProcessInfoEntries))
+				}
+				logEntry.Message = fmt.Sprintf("Firehose %s: level=%s flags=0x%x format=0x%x thread=%d delta=%d subsys_id=%d proc_ids=%d/%d resolved_subsys=%s%s%s | %s",
 					mapActivityTypeToString(logActivityType), logEntry.Level, flags, formatStringLocation,
-					threadID, combinedTimeDelta, subsystemID, catalogInfo, messageContent)
+					threadID, combinedTimeDelta, subsystemID, firstProcID, secondProcID, subsystemName, catalogInfo, catalogDebug, messageContent)
 			}
 
 			entries = append(entries, logEntry)
 		}
 
-		// Move to next entry (24-byte header + data_size bytes)
-		offset += 24 + int(dataSize)
+		// Move to next entry (24-byte header + data_size bytes for full headers, or minimum advance for partial)
+		if needFullHeader {
+			offset += 24 + int(dataSize)
+		} else {
+			// For partial headers, advance by minimum amount to continue searching
+			offset += minHeaderSize
+		}
 
 		// Safety check to prevent infinite loops with reasonable limit
 		if len(entries) >= 10000 {
@@ -591,13 +620,13 @@ func parsePrivateData(privateData []byte, privateDataOffset uint16, firstProcID 
 	}
 
 	// Look for strings and other log content in the private data
-	strings := extractStringsFromPrivateData(privateData[offset:])
+	extractedStrings := extractStringsFromPrivateData(privateData[offset:])
 
-	if len(strings) > 0 {
+	if len(extractedStrings) > 0 {
 		// Combine related strings into a single complete log message
 		// instead of creating separate entries for each string fragment
 		var messageParts []string
-		for _, str := range strings {
+		for _, str := range extractedStrings {
 			if len(str) >= 3 && isPrintableString(str) {
 				messageParts = append(messageParts, str)
 			}

@@ -70,15 +70,14 @@ func newMacOSUnifiedLogReceiver(
 func (r *macosUnifiedLogReceiver) Start(ctx context.Context, host component.Host) error {
 	r.set.Logger.Info("Starting macOS Unified Log receiver")
 
-	// TODO: Uncomment this when the encoding extension is ready
 	// Load the encoding extension
-	// encodingExt, err := r.loadEncodingExtension(host)
-	// if err != nil {
-	// 	r.set.Logger.Error("Failed to load encoding extension", zap.Error(err))
-	// 	return err
-	// }
-	// r.encodingExt = encodingExt
-	// r.set.Logger.Info("Encoding extension loaded successfully")
+	encodingExt, err := r.loadEncodingExtension(host)
+	if err != nil {
+		r.set.Logger.Error("Failed to load encoding extension", zap.Error(err))
+		return err
+	}
+	r.encodingExt = encodingExt
+	r.set.Logger.Info("Encoding extension loaded successfully")
 
 	// Create the file consumer
 	fileConsumer, err := r.createFileConsumer(ctx)
@@ -198,39 +197,38 @@ func (r *macosUnifiedLogReceiver) consumeTraceV3Tokens(ctx context.Context, toke
 	var allLogs plog.Logs
 	totalLogRecords := 0
 
-	// TODO: Uncomment this when the encoding extension is ready
-	// for i, token := range tokens {
-	// 	r.set.Logger.Debug("Processing token", zap.Int("tokenIndex", i), zap.Int("tokenSize", len(token)))
+	for i, token := range tokens {
+		r.set.Logger.Debug("Processing token", zap.Int("tokenIndex", i), zap.Int("tokenSize", len(token)))
 
-	// 	// Use the encoding extension to decode the binary token
-	// 	decodedLogs, err := r.encodingExt.UnmarshalLogs(token)
-	// 	if err != nil {
-	// 		r.set.Logger.Error("Failed to decode token with encoding extension",
-	// 			zap.Error(err), zap.Int("tokenIndex", i), zap.Int("tokenSize", len(token)))
-	// 		continue
-	// 	}
+		// Use the encoding extension to decode the binary token
+		decodedLogs, err := r.encodingExt.UnmarshalLogs(token)
+		if err != nil {
+			r.set.Logger.Error("Failed to decode token with encoding extension",
+				zap.Error(err), zap.Int("tokenIndex", i), zap.Int("tokenSize", len(token)))
+			continue
+		}
 
-	// 	// Add file metadata as resource attributes to all decoded logs
-	// 	for j := 0; j < decodedLogs.ResourceLogs().Len(); j++ {
-	// 		resourceLogs := decodedLogs.ResourceLogs().At(j)
-	// 		resource := resourceLogs.Resource()
-	// 		resource.Attributes().PutStr("log.file.path", filePath)
-	// 		resource.Attributes().PutStr("log.file.format", "macos_unified_log_tracev3")
-	// 	}
+		// Add file metadata as resource attributes to all decoded logs
+		for j := 0; j < decodedLogs.ResourceLogs().Len(); j++ {
+			resourceLogs := decodedLogs.ResourceLogs().At(j)
+			resource := resourceLogs.Resource()
+			resource.Attributes().PutStr("log.file.path", filePath)
+			resource.Attributes().PutStr("log.file.format", "macos_unified_log_tracev3")
+		}
 
-	// 	// If this is the first token, initialize allLogs
-	// 	if i == 0 {
-	// 		allLogs = decodedLogs
-	// 	} else {
-	// 		// Append additional logs to the first set
-	// 		for j := 0; j < decodedLogs.ResourceLogs().Len(); j++ {
-	// 			decodedResourceLogs := decodedLogs.ResourceLogs().At(j)
-	// 			decodedResourceLogs.CopyTo(allLogs.ResourceLogs().AppendEmpty())
-	// 		}
-	// 	}
+		// If this is the first token, initialize allLogs
+		if i == 0 {
+			allLogs = decodedLogs
+		} else {
+			// Append additional logs to the first set
+			for j := 0; j < decodedLogs.ResourceLogs().Len(); j++ {
+				decodedResourceLogs := decodedLogs.ResourceLogs().At(j)
+				decodedResourceLogs.CopyTo(allLogs.ResourceLogs().AppendEmpty())
+			}
+		}
 
-	// 	totalLogRecords += decodedLogs.LogRecordCount()
-	// }
+		totalLogRecords += decodedLogs.LogRecordCount()
+	}
 
 	// If no logs were created, create a fallback entry
 	if totalLogRecords == 0 {
