@@ -970,6 +970,8 @@ replace github.com/observiq/bindplane-otel-collector/internal/testutils => ./int
 // Extensions
 replace github.com/observiq/bindplane-otel-collector/extension/awss3eventextension => ./extension/awss3eventextension
 
+replace github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension => ./extension/encoding/macosunifiedloggingencodingextension
+
 // Exporters
 replace github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter => ./exporter/azureblobexporter
 
