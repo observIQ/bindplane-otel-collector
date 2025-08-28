@@ -594,11 +594,18 @@ func parsePrivateData(privateData []byte, privateDataOffset uint16, firstProcID 
 	strings := extractStringsFromPrivateData(privateData[offset:])
 
 	if len(strings) > 0 {
-		// Create log entries from extracted strings
-		for i, str := range strings {
-			if len(str) < 3 || !isPrintableString(str) {
-				continue // Skip very short or non-printable strings
+		// Combine related strings into a single complete log message
+		// instead of creating separate entries for each string fragment
+		var messageParts []string
+		for _, str := range strings {
+			if len(str) >= 3 && isPrintableString(str) {
+				messageParts = append(messageParts, str)
 			}
+		}
+
+		if len(messageParts) > 0 {
+			// Create a single log entry with the combined message
+			combinedMessage := strings.Join(messageParts, " ")
 
 			// Use catalog to resolve process information if available
 			actualPID := secondProcID
@@ -621,8 +628,8 @@ func parsePrivateData(privateData []byte, privateDataOffset uint16, firstProcID 
 
 			logEntry := &TraceV3Entry{
 				Type:         0x6001,
-				Size:         uint32(len(str)),
-				Timestamp:    baseContinuousTime + uint64(i)*1000, // Small time deltas for multiple strings
+				Size:         uint32(len(combinedMessage)),
+				Timestamp:    baseContinuousTime,
 				ThreadID:     0,
 				ProcessID:    actualPID,
 				ChunkType:    "firehose_private",
@@ -632,7 +639,7 @@ func parsePrivateData(privateData []byte, privateDataOffset uint16, firstProcID 
 				MessageType:  "Log",
 				EventType:    "firehose",
 				TimezoneName: extractTimezoneName(header.TimezonePath),
-				Message:      str,
+				Message:      combinedMessage,
 			}
 
 			entries = append(entries, logEntry)

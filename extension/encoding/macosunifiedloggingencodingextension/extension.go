@@ -12,7 +12,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 
-	"github.com/observiq/bindplane-otel-collector/extension/encoding"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding"
 )
 
 var (
