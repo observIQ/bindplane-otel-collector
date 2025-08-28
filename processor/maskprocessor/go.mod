@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/processor/maskprocessor
 go 1.24.4
 
 require (
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.39.0
 	go.opentelemetry.io/collector/consumer v1.39.0
 	go.opentelemetry.io/collector/consumer/consumertest v0.133.0

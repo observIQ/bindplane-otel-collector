@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/internal/testutils
 go 1.24.4
 
 require (
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/pdata v1.39.0
 )
 

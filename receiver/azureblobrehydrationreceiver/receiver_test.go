@@ -524,7 +524,7 @@ func TestLogsDeprecationWarnings(t *testing.T) {
 		mut:             &sync.Mutex{},
 		checkpointStore: storageclient.NewNopStorage(),
 	}
-	mockClient.On("StreamBlobs", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().After(time.Millisecond).Run(func(_ mock.Arguments) {
+	mockClient.EXPECT().StreamBlobs(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).After(time.Millisecond).Run(func(_ mock.Arguments) {
 		close(r.doneChan)
 	})
 
