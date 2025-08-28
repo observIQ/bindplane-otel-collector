@@ -3,12 +3,12 @@ module github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydratio
 go 1.24.4
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.2
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.0
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.2
 	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.82.0
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.82.0
 	github.com/observiq/bindplane-otel-collector/internal/testutils v1.82.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.39.0
 	go.opentelemetry.io/collector/component/componenttest v0.133.0
 	go.opentelemetry.io/collector/confmap v1.39.0
@@ -74,3 +74,7 @@ replace github.com/observiq/bindplane-otel-collector/internal/rehydration => ../
 replace github.com/observiq/bindplane-otel-collector/internal/storageclient => ../../internal/storageclient
 
 replace github.com/observiq/bindplane-otel-collector/internal/testutils => ../../internal/testutils
+
+// Replacing testify so tests can pass. Some weird behavior with latest testify version. Potentially related to: https://github.com/stretchr/testify/issues/1785
+// Recheck during next release.
+replace github.com/stretchr/testify => github.com/stretchr/testify v1.10.0
