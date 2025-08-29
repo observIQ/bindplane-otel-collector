@@ -5,7 +5,7 @@ go 1.24.4
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/jmoiron/sqlx v1.4.0
-	github.com/snowflakedb/gosnowflake v1.16.0
+	github.com/snowflakedb/gosnowflake v1.15.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.39.0
 	go.opentelemetry.io/collector/component/componenttest v0.133.0
@@ -124,3 +124,7 @@ require (
 	google.golang.org/protobuf v1.36.7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+// Panic present in gosnowflake v1.16.0 so replace with v1.15.0
+// https://github.com/snowflakedb/gosnowflake/issues/1533
+replace github.com/snowflakedb/gosnowflake => github.com/snowflakedb/gosnowflake v1.15.0
