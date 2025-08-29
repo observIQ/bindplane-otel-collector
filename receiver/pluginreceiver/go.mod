@@ -385,3 +385,7 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.2 // indirect
 	sigs.k8s.io/yaml v1.5.0 // indirect
 )
+
+// Panic present in gosnowflake v1.16.0 so replace with v1.15.0
+// https://github.com/snowflakedb/gosnowflake/issues/1533
+replace github.com/snowflakedb/gosnowflake => github.com/snowflakedb/gosnowflake v1.15.0

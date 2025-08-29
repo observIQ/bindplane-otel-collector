@@ -1067,3 +1067,7 @@ replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/lokie
 
 // Keep at v0.132.0 since the Routing processor was removed in v0.133.0
 replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/routingprocessor => github.com/open-telemetry/opentelemetry-collector-contrib/processor/routingprocessor v0.132.0
+
+// Panic present in gosnowflake v1.16.0 so replace with v1.15.0
+// https://github.com/snowflakedb/gosnowflake/issues/1533
+replace github.com/snowflakedb/gosnowflake => github.com/snowflakedb/gosnowflake v1.15.0
