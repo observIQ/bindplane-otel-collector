@@ -212,11 +212,34 @@ func GetTimestamp(
 
 	// Apple Intel uses 1/1 as the timebase
 	timebaseAdjustment := 1.0
-	timesync, exists := timesyncData[bootUUID]
-	if !exists {
-		// Fallback if no timesync data found
+
+	// Try different UUID format variations to find a match
+	var foundTimesync *TimesyncBoot
+
+	// Try the lookup with different case variations and format variations
+	testUUIDs := []string{
+		bootUUID,                              // Original format
+		strings.ToUpper(bootUUID),             // Uppercase
+		strings.ToLower(bootUUID),             // Lowercase
+		strings.ReplaceAll(bootUUID, "-", ""), // Remove dashes
+		strings.ToUpper(strings.ReplaceAll(bootUUID, "-", "")), // Uppercase without dashes
+		strings.ToLower(strings.ReplaceAll(bootUUID, "-", "")), // Lowercase without dashes
+	}
+
+	for _, testUUID := range testUUIDs {
+		if ts, ok := timesyncData[testUUID]; ok {
+			foundTimesync = ts
+			break
+		}
+	}
+
+	if foundTimesync == nil {
+		// If no match found, return the raw mach time (which produces 1969/1970 timestamps)
+		// This is better than a hardcoded fallback as it preserves relative timing
 		return float64(firehoseLogDeltaTime)
 	}
+
+	timesync := foundTimesync
 
 	if timesync.TimebaseNumerator == 125 && timesync.TimebaseDenominator == 3 {
 		// For Apple Silicon (ARM) we need to adjust the mach time by multiplying by 125.0/3.0 to get the accurate nanosecond count
@@ -244,8 +267,12 @@ func GetTimestamp(
 	}
 
 	// Calculate the continuous time difference and apply timebase adjustment
-	continuousTime := (float64(firehoseLogDeltaTime) * timebaseAdjustment) - (float64(timesyncContinuousTime) * timebaseAdjustment)
-	return continuousTime + float64(timesyncWallTime)
+	firehoseAdjusted := float64(firehoseLogDeltaTime) * timebaseAdjustment
+	timesyncAdjusted := float64(timesyncContinuousTime) * timebaseAdjustment
+	continuousTime := firehoseAdjusted - timesyncAdjusted
+	result := continuousTime + float64(timesyncWallTime)
+
+	return result
 }
 
 // NormalizeBootUUID normalizes boot UUID format to match timesync data format

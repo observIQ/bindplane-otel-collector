@@ -67,7 +67,7 @@ func extractString(data []byte) string {
 // ParseSimpledumpChunk parses a Simpledump chunk (0x6004) containing simple string data
 // Based on the rust implementation in chunks/simpledump.rs
 // Note: The data passed in includes the complete chunk with 16-byte header (tag, subtag, size)
-func ParseSimpledumpChunk(data []byte, entry *TraceV3Entry) {
+func ParseSimpledumpChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header, timesyncData map[string]*TimesyncBoot) {
 	if len(data) < 84 { // Minimum size: 16-byte header + 68-byte payload
 		entry.Message = fmt.Sprintf("Simpledump chunk too small: %d bytes (need at least 84)", len(data))
 		return
@@ -95,6 +95,7 @@ func ParseSimpledumpChunk(data []byte, entry *TraceV3Entry) {
 	offset += 8
 	chunk.SecondProcID = binary.LittleEndian.Uint64(data[offset : offset+8])
 	offset += 8
+
 	chunk.ContinuousTime = binary.LittleEndian.Uint64(data[offset : offset+8])
 	offset += 8
 	chunk.ThreadID = binary.LittleEndian.Uint64(data[offset : offset+8])
@@ -197,4 +198,15 @@ func ParseSimpledumpChunk(data []byte, entry *TraceV3Entry) {
 
 	// Set category to empty to match expected output format
 	entry.Category = ""
+
+	// Calculate timestamp using simpledump's continuous time directly
+	// According to rust implementation, simpledump uses its own continuous_time field for timestamp calculation
+	if timesyncData != nil && header != nil {
+		// Use simpledump's continuous time directly, not as delta from header
+		// This matches the rust implementation which treats simpledump.continous_time as absolute mach time
+		machTime := chunk.ContinuousTime
+
+		// Convert using timesync conversion with preambleTime=0 for simpledump (rust uses no_firehose_preamble=1)
+		entry.Timestamp = convertMachTimeToUnixNanosWithTimesync(machTime, header.BootUUID, 0, timesyncData)
+	}
 }

@@ -27,15 +27,18 @@ func NewFactory() receiver.Factory {
 
 // createDefaultConfig creates a config with default values
 func createDefaultConfig() component.Config {
-	fcConfig := *fileconsumer.NewConfig()
-	// Set default include patterns for macOS Unified Logging
-	fcConfig.Include = []string{"/var/db/diagnostics/"}
-
 	return &Config{
+		TraceV3Paths: []string{
+			"/var/db/diagnostics/tracev3/Persist/*",
+			"/var/db/diagnostics/tracev3/Special/*",
+			"/var/db/diagnostics/tracev3/HighVolume/*",
+			"/var/db/diagnostics/tracev3/SignPost/*",
+		},
+		TimesyncPaths: []string{"/var/db/diagnostics/timesync/*"},
 		BaseConfig: adapter.BaseConfig{
 			Operators: []operator.Config{},
 		},
-		Config: fcConfig,
+		Config: *fileconsumer.NewConfig(),
 	}
 }
 

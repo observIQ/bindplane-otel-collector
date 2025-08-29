@@ -32,6 +32,13 @@ func (e *MacosUnifiedLoggingExtension) UnmarshalLogs(buf []byte) (plog.Logs, err
 	return e.codec.UnmarshalLogs(buf)
 }
 
+// SetTimesyncData configures the timesync data for accurate timestamp conversion
+func (e *MacosUnifiedLoggingExtension) SetTimesyncData(timesyncData map[string]*TimesyncBoot) {
+	if e.codec != nil {
+		e.codec.timesyncData = timesyncData
+	}
+}
+
 // Start initializes the extension.
 func (e *MacosUnifiedLoggingExtension) Start(_ context.Context, _ component.Host) error {
 	e.codec = &macosUnifiedLoggingCodec{
@@ -47,7 +54,8 @@ func (*MacosUnifiedLoggingExtension) Shutdown(context.Context) error {
 
 // macosUnifiedLoggingCodec handles the actual decoding of macOS Unified Logging binary data.
 type macosUnifiedLoggingCodec struct {
-	debugMode bool
+	debugMode    bool
+	timesyncData map[string]*TimesyncBoot // Timesync data for accurate timestamp conversion
 }
 
 // UnmarshalLogs reads binary data and parses tracev3 entries into individual log records.
@@ -57,8 +65,8 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 		return plog.NewLogs(), nil
 	}
 
-	// Parse the tracev3 binary data into individual entries
-	entries, err := ParseTraceV3Data(buf)
+	// Parse the tracev3 binary data into individual entries using timesync data if available
+	entries, err := ParseTraceV3DataWithTimesync(buf, c.timesyncData)
 	if err != nil {
 		// If parsing fails, fall back to creating a single entry with error info
 		logs := plog.NewLogs()

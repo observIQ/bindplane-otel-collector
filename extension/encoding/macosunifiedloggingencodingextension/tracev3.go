@@ -374,7 +374,7 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 			entry.Subsystem = "com.apple.firehose"
 			entry.Category = "entry"
 			entry.Message = fmt.Sprintf("Firehose chunk found: tag=0x%x sub_tag=0x%x size=%d", chunkTag, chunkSubTag, chunkDataSize)
-			firehoseEntries := ParseFirehoseChunk(data[offset:offset+totalChunkSize], entry, header)
+			firehoseEntries := ParseFirehoseChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
 			// Add all individual firehose entries to our result
 			entries = append(entries, firehoseEntries...)
 			// Continue to next chunk without adding the template entry
@@ -386,7 +386,7 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 			entry.ChunkType = "oversize"
 			entry.Subsystem = "com.apple.oversize"
 			entry.Category = "oversize_data"
-			ParseOversizeChunk(data[offset:offset+int(chunkDataSize)], entry)
+			ParseOversizeChunk(data[offset:offset+int(chunkDataSize)], entry, header, timesyncData)
 		case 0x6003:
 			// Statedump chunk
 			entry.ChunkType = "statedump"
@@ -396,7 +396,7 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 		case 0x6004:
 			// Simpledump chunk
 			entry.ChunkType = "simpledump"
-			ParseSimpledumpChunk(data[offset:offset+totalChunkSize], entry)
+			ParseSimpledumpChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
 		case 0x600b:
 			// Catalog chunk - Skip in second pass since we already processed it
 			// This prevents catalog metadata from appearing as log entries
@@ -408,7 +408,7 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 			entry.ChunkType = "chunkset"
 			entry.Subsystem = "com.apple.chunkset"
 			entry.Category = "chunkset_data"
-			chunksetEntries := ParseChunksetChunk(data[offset:offset+totalChunkSize], entry, header)
+			chunksetEntries := ParseChunksetChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
 			// Add all individual chunkset entries to our result
 			entries = append(entries, chunksetEntries...)
 			// Continue to next chunk without adding the template entry
@@ -438,7 +438,9 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 
 				entry.ThreadID = firstProcID
 				entry.ProcessID = secondProcID
-				entry.Timestamp = convertMachTimeToUnixNanosWithTimesync(baseContinuousTime, header.BootUUID, 0, timesyncData)
+				// For firehose chunk-level entries, use baseContinuousTime as both delta time and preamble time
+				// since this represents the firehose preamble time according to rust implementation
+				entry.Timestamp = convertMachTimeToUnixNanosWithTimesync(baseContinuousTime, header.BootUUID, baseContinuousTime, timesyncData)
 
 				// Try to extract log type and message information
 				if publicDataSize > 0 && len(entryData) >= int(52+publicDataSize) {
@@ -550,9 +552,11 @@ func convertMachTimeToUnixNanosWithTimesync(machTime uint64, bootUUID string, pr
 		normalizedUUID := NormalizeBootUUID(bootUUID)
 		timestamp := GetTimestamp(timesyncData, normalizedUUID, machTime, preambleTime)
 
-		// Debug logging disabled
+		// Debug logging disabled for production
 		// fmt.Printf("[DEBUG] convertMachTimeToUnixNanosWithTimesync: machTime=%d, bootUUID=%s, preambleTime=%d, timestamp=%f\n",
 		//	machTime, bootUUID, preambleTime, timestamp)
+
+		// Debug logging removed for production
 
 		// Sanity check the result
 		if timestamp > 0 {
@@ -583,7 +587,11 @@ func ConvertTraceV3EntriesToLogs(entries []*TraceV3Entry) plog.Logs {
 		scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
 		logRecord := scopeLogs.LogRecords().AppendEmpty()
 
-		// Set timestamps
+		// Debug logging removed for production
+
+		// Set timestamps - convert nanoseconds to ISO format
+		timestampTime := time.Unix(0, int64(entry.Timestamp))
+		isoTimestamp := timestampTime.Format("2006-01-02 15:04:05.000000-0700")
 		logRecord.SetTimestamp(pcommon.Timestamp(entry.Timestamp))
 		logRecord.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
 
@@ -613,6 +621,9 @@ func ConvertTraceV3EntriesToLogs(entries []*TraceV3Entry) plog.Logs {
 		logRecord.Attributes().PutInt("thread.id", int64(entry.ThreadID))
 		logRecord.Attributes().PutInt("process.id", int64(entry.ProcessID))
 		logRecord.Attributes().PutBool("decoded", true)
+
+		// Add ISO formatted timestamp as an attribute to match log command output format
+		logRecord.Attributes().PutStr("timestamp", isoTimestamp)
 
 		// Add new standard fields that match log command output
 		logRecord.Attributes().PutStr("timezoneName", entry.TimezoneName)
