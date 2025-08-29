@@ -7,6 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,6 +23,8 @@ import (
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/fileconsumer"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension"
 )
 
 // macosUnifiedLogReceiver implements receiver.Logs for macOS Unified Logging traceV3 files
@@ -78,6 +83,18 @@ func (r *macosUnifiedLogReceiver) Start(ctx context.Context, host component.Host
 	}
 	r.encodingExt = encodingExt
 	r.set.Logger.Info("Encoding extension loaded successfully")
+
+	// Load timesync data if paths are configured
+	if len(r.config.TimesyncPaths) > 0 {
+		err := r.loadTimesyncData()
+		if err != nil {
+			r.set.Logger.Warn("Failed to load timesync data, timestamps may be inaccurate", zap.Error(err))
+		} else {
+			r.set.Logger.Info("Successfully loaded timesync data for accurate timestamps")
+		}
+	} else {
+		r.set.Logger.Warn("No timesync paths configured, timestamps may be inaccurate")
+	}
 
 	// Create the file consumer
 	fileConsumer, err := r.createFileConsumer(ctx)
@@ -271,4 +288,111 @@ func (*macosUnifiedLogReceiver) setLogRecordAttributes(logRecord *plog.LogRecord
 	logRecord.Attributes().PutInt("file.total.size", int64(totalSize))
 	logRecord.Attributes().PutInt("file.token.count", int64(lenTokens))
 	logRecord.Attributes().PutStr("receiver.name", "macosunifiedlog")
+}
+
+// loadTimesyncData loads timesync files and configures the encoding extension with the data
+func (r *macosUnifiedLogReceiver) loadTimesyncData() error {
+	timesyncData := make(map[string]*macosunifiedloggingencodingextension.TimesyncBoot)
+
+	for _, timesyncPath := range r.config.TimesyncPaths {
+		err := r.loadTimesyncFromPath(timesyncPath, timesyncData)
+		if err != nil {
+			r.set.Logger.Error("Failed to load timesync from path", zap.String("path", timesyncPath), zap.Error(err))
+			continue
+		}
+	}
+
+	if len(timesyncData) == 0 {
+		return fmt.Errorf("no timesync data loaded from any path")
+	}
+
+	// Log all loaded UUIDs for debugging
+	var loadedUUIDs []string
+	for uuid := range timesyncData {
+		loadedUUIDs = append(loadedUUIDs, uuid)
+	}
+
+	// ENHANCED DEBUG LOGGING using proper collector logger
+	r.set.Logger.Info("=== RECEIVER DEBUG: TIMESYNC DATA LOADED ===",
+		zap.Int("totalTimesyncFiles", len(timesyncData)),
+		zap.Strings("loadedUUIDs", loadedUUIDs))
+
+	// Also log the first few entries to see the actual structure
+	count := 0
+	for uuid, boot := range timesyncData {
+		if count >= 3 { // Only show first 3 for brevity
+			break
+		}
+		r.set.Logger.Info("DEBUG: Timesync UUID details",
+			zap.Int("index", count),
+			zap.String("uuid", uuid),
+			zap.Int("bootRecords", len(boot.TimesyncRecords)))
+		count++
+	}
+
+	// Configure the encoding extension with the timesync data
+	if macosExt, ok := r.encodingExt.(*macosunifiedloggingencodingextension.MacosUnifiedLoggingExtension); ok {
+		macosExt.SetTimesyncData(timesyncData)
+		r.set.Logger.Info("Configured encoding extension with timesync data",
+			zap.Int("bootRecords", len(timesyncData)),
+			zap.Strings("loadedUUIDs", loadedUUIDs))
+	} else {
+		return fmt.Errorf("encoding extension is not of expected type")
+	}
+
+	return nil
+}
+
+// loadTimesyncFromPath loads timesync data from a specific path (file or glob pattern)
+func (r *macosUnifiedLogReceiver) loadTimesyncFromPath(path string, timesyncData map[string]*macosunifiedloggingencodingextension.TimesyncBoot) error {
+	// Check if path contains wildcards
+	if strings.Contains(path, "*") {
+		// Handle glob pattern
+		matches, err := filepath.Glob(path)
+		if err != nil {
+			return fmt.Errorf("invalid glob pattern %s: %w", path, err)
+		}
+
+		for _, match := range matches {
+			err := r.loadTimesyncFile(match, timesyncData)
+			if err != nil {
+				r.set.Logger.Warn("Failed to load timesync file", zap.String("file", match), zap.Error(err))
+				continue
+			}
+		}
+	} else {
+		// Handle single file
+		return r.loadTimesyncFile(path, timesyncData)
+	}
+
+	return nil
+}
+
+// loadTimesyncFile loads a single timesync file
+func (r *macosUnifiedLogReceiver) loadTimesyncFile(filePath string, timesyncData map[string]*macosunifiedloggingencodingextension.TimesyncBoot) error {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read timesync file %s: %w", filePath, err)
+	}
+
+	fileTimesyncData, err := macosunifiedloggingencodingextension.ParseTimesyncData(data)
+	if err != nil {
+		return fmt.Errorf("failed to parse timesync file %s: %w", filePath, err)
+	}
+
+	// Merge the timesync data
+	for bootUUID, bootData := range fileTimesyncData {
+		if existing, exists := timesyncData[bootUUID]; exists {
+			// Merge records if boot UUID already exists
+			existing.TimesyncRecords = append(existing.TimesyncRecords, bootData.TimesyncRecords...)
+		} else {
+			timesyncData[bootUUID] = bootData
+		}
+	}
+
+	r.set.Logger.Debug("Loaded timesync file",
+		zap.String("file", filePath),
+		zap.Int("bootRecords", len(fileTimesyncData)))
+
+	return nil
 }

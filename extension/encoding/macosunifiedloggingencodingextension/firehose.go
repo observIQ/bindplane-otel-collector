@@ -11,7 +11,7 @@ import (
 
 // ParseFirehoseChunk parses a Firehose chunk (0x6001 and variants) containing multiple individual log entries
 // Returns a slice of TraceV3Entry representing each individual log event within the chunk
-func ParseFirehoseChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header) []*TraceV3Entry {
+func ParseFirehoseChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header, timesyncData map[string]*TimesyncBoot) []*TraceV3Entry {
 	var entries []*TraceV3Entry
 
 	// Parse firehose chunk with enhanced subsystem/category mapping
@@ -58,7 +58,7 @@ func ParseFirehoseChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header)
 	// Focus on private data parsing since that's where the real log content is
 	if hasPrivateData && len(privateData) > 0 {
 		// Parse private data to extract log messages
-		privateEntries := parsePrivateData(privateData, privateDataOffset, firstProcID, secondProcID, baseContinuousTime, header)
+		privateEntries := parsePrivateData(privateData, privateDataOffset, firstProcID, secondProcID, baseContinuousTime, header, timesyncData)
 		entries = append(entries, privateEntries...)
 	}
 
@@ -77,7 +77,7 @@ func ParseFirehoseChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header)
 
 		if len(data) >= int(publicDataStart)+int(actualPublicDataSize) {
 			publicData := data[publicDataStart : publicDataStart+int(actualPublicDataSize)]
-			publicEntries := parseIndividualFirehoseEntries(publicData, header, firstProcID, secondProcID, baseContinuousTime, ttl, collapsed)
+			publicEntries := parseIndividualFirehoseEntries(publicData, header, firstProcID, secondProcID, baseContinuousTime, ttl, collapsed, timesyncData)
 			entries = append(entries, publicEntries...)
 		}
 	}
@@ -86,7 +86,8 @@ func ParseFirehoseChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header)
 	if len(entries) == 0 {
 		entry.ThreadID = firstProcID
 		entry.ProcessID = secondProcID
-		entry.Timestamp = baseContinuousTime
+		// For summary entry, use baseContinuousTime as both the delta time and preamble time since there's no individual entry delta
+		entry.Timestamp = convertMachTimeToUnixNanosWithTimesync(baseContinuousTime, header.BootUUID, baseContinuousTime, timesyncData)
 
 		privateInfo := "no private data"
 		if hasPrivateData {
@@ -104,7 +105,7 @@ func ParseFirehoseChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header)
 }
 
 // parseIndividualFirehoseEntries parses multiple individual log entries from the firehose public data section
-func parseIndividualFirehoseEntries(publicData []byte, header *TraceV3Header, firstProcID uint64, secondProcID uint32, baseContinuousTime uint64, ttl, collapsed uint8) []*TraceV3Entry {
+func parseIndividualFirehoseEntries(publicData []byte, header *TraceV3Header, firstProcID uint64, secondProcID uint32, baseContinuousTime uint64, ttl, collapsed uint8, timesyncData map[string]*TimesyncBoot) []*TraceV3Entry {
 	var entries []*TraceV3Entry
 	offset := 0
 
@@ -238,10 +239,14 @@ func parseIndividualFirehoseEntries(publicData []byte, header *TraceV3Header, fi
 			}
 
 			// Create individual log entry
+			// According to rust implementation:
+			// firehose_log_delta_time = firehose_preamble_time + firehose_log_entry_continous_time
+			// where firehose_preamble_time = baseContinuousTime and firehose_log_entry_continous_time = combinedTimeDelta
+			firehoseLogDeltaTime := baseContinuousTime + combinedTimeDelta
 			logEntry := &TraceV3Entry{
-				Type:         0x6001,                                 // Firehose chunk type
-				Size:         uint32(24 + dataSize),                  // Header + data size (24-byte header)
-				Timestamp:    baseContinuousTime + combinedTimeDelta, // Calculate actual timestamp using combined delta
+				Type:         0x6001,                                                                                                          // Firehose chunk type
+				Size:         uint32(24 + dataSize),                                                                                           // Header + data size (24-byte header)
+				Timestamp:    convertMachTimeToUnixNanosWithTimesync(firehoseLogDeltaTime, header.BootUUID, baseContinuousTime, timesyncData), // Use proper timesync-converted timestamp with correct parameters
 				ThreadID:     threadID,
 				ProcessID:    actualPID, // Use catalog-resolved PID when available
 				ChunkType:    "firehose",
@@ -602,7 +607,7 @@ func mapActivityTypeToString(activityType uint8) string {
 
 // parsePrivateData extracts log messages from firehose private data sections
 // This is where the actual log content is stored in most firehose chunks
-func parsePrivateData(privateData []byte, privateDataOffset uint16, firstProcID uint64, secondProcID uint32, baseContinuousTime uint64, header *TraceV3Header) []*TraceV3Entry {
+func parsePrivateData(privateData []byte, privateDataOffset uint16, firstProcID uint64, secondProcID uint32, baseContinuousTime uint64, header *TraceV3Header, timesyncData map[string]*TimesyncBoot) []*TraceV3Entry {
 	var entries []*TraceV3Entry
 
 	if len(privateData) == 0 {
@@ -658,7 +663,7 @@ func parsePrivateData(privateData []byte, privateDataOffset uint16, firstProcID 
 			logEntry := &TraceV3Entry{
 				Type:         0x6001,
 				Size:         uint32(len(combinedMessage)),
-				Timestamp:    baseContinuousTime,
+				Timestamp:    convertMachTimeToUnixNanosWithTimesync(baseContinuousTime, header.BootUUID, 0, timesyncData),
 				ThreadID:     0,
 				ProcessID:    actualPID,
 				ChunkType:    "firehose_private",
@@ -680,7 +685,7 @@ func parsePrivateData(privateData []byte, privateDataOffset uint16, firstProcID 
 		logEntry := &TraceV3Entry{
 			Type:         0x6001,
 			Size:         uint32(len(privateData)),
-			Timestamp:    baseContinuousTime,
+			Timestamp:    convertMachTimeToUnixNanosWithTimesync(baseContinuousTime, header.BootUUID, 0, timesyncData),
 			ThreadID:     0,
 			ProcessID:    secondProcID,
 			ChunkType:    "firehose_private",

@@ -11,7 +11,7 @@ import (
 // ParseChunksetChunk parses a Chunkset chunk (0x600d) containing compressed log data
 // Based on the Rust implementation from mandiant/macos-UnifiedLogs
 // Enhanced with subchunk metadata for intelligent decompression
-func ParseChunksetChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header) []*TraceV3Entry {
+func ParseChunksetChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header, timesyncData map[string]*TimesyncBoot) []*TraceV3Entry {
 	if len(data) < 32 { // Need at least 32 bytes for chunkset header
 		entry.Message = fmt.Sprintf("Chunkset chunk too small: %d bytes", len(data))
 		return []*TraceV3Entry{entry}
@@ -80,7 +80,7 @@ func ParseChunksetChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header)
 
 	// Parse individual log entries from decompressed data
 	// The decompressed data contains multiple log chunks that need to be parsed
-	entries := parseDecompressedChunksetData(decompressedData, header, entry)
+	entries := parseDecompressedChunksetData(decompressedData, header, entry, timesyncData)
 
 	// Add decompression information if available
 	if decompressionInfo != nil && len(entries) > 0 {
@@ -97,7 +97,7 @@ func ParseChunksetChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header)
 
 // parseDecompressedChunksetData parses individual log entries from decompressed chunkset data
 // Enhanced with subchunk metadata awareness for better parsing
-func parseDecompressedChunksetData(decompressedData []byte, header *TraceV3Header, templateEntry *TraceV3Entry) []*TraceV3Entry {
+func parseDecompressedChunksetData(decompressedData []byte, header *TraceV3Header, templateEntry *TraceV3Entry, timesyncData map[string]*TimesyncBoot) []*TraceV3Entry {
 	var entries []*TraceV3Entry
 
 	if len(decompressedData) == 0 {
@@ -165,7 +165,7 @@ func parseDecompressedChunksetData(decompressedData []byte, header *TraceV3Heade
 			chunkEntry.Category = "entry"
 
 			// Use enhanced firehose parsing
-			firehoseEntries := ParseFirehoseChunk(chunkData, chunkEntry, header)
+			firehoseEntries := ParseFirehoseChunk(chunkData, chunkEntry, header, timesyncData)
 			entries = append(entries, firehoseEntries...)
 
 		case 0x6002:
@@ -173,7 +173,7 @@ func parseDecompressedChunksetData(decompressedData []byte, header *TraceV3Heade
 			chunkEntry.ChunkType = "oversize"
 			chunkEntry.Subsystem = "com.apple.oversize.decompressed"
 			chunkEntry.Category = "oversize_data"
-			ParseOversizeChunk(chunkData, chunkEntry)
+			ParseOversizeChunk(chunkData, chunkEntry, header, timesyncData)
 			entries = append(entries, chunkEntry)
 
 		case 0x6003:
@@ -187,7 +187,7 @@ func parseDecompressedChunksetData(decompressedData []byte, header *TraceV3Heade
 		case 0x6004:
 			// Simpledump chunk
 			chunkEntry.ChunkType = "simpledump"
-			ParseSimpledumpChunk(chunkData, chunkEntry)
+			ParseSimpledumpChunk(chunkData, chunkEntry, header, timesyncData)
 			entries = append(entries, chunkEntry)
 
 		default:

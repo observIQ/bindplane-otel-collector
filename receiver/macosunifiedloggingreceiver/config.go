@@ -21,6 +21,10 @@ type Config struct {
 
 	// TraceV3Paths specifies an alternate path to TraceV3 files. This can be a single file path or a glob pattern (e.g., "/path/to/logs/*.tracev3").
 	TraceV3Paths []string `mapstructure:"tracev3_paths"`
+
+	// TimesyncPaths specifies the path to timesync files for accurate timestamp conversion. This should point to the timesync directory (e.g., "/path/to/logs.logarchive/timesync/*.timesync").
+	TimesyncPaths []string `mapstructure:"timesync_paths"`
+
 	// prevent unkeyed literal initialization
 	_ struct{}
 }
