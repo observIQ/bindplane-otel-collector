@@ -158,9 +158,9 @@ func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs, meas
 					if measureLogRawFields != nil {
 						for _, rawField := range *measureLogRawFields {
 							rawField := rawField
-							value, found := tm.getRawLogField(rawField.Field, logRecord)
+							value, found := tm.getRawLogField(rawField.Field, logRecord, resourceLog)
 							if !found {
-								value, _ = tm.getRawLogField(rawField.FallbackField, logRecord)
+								value, _ = tm.getRawLogField(rawField.FallbackField, logRecord, resourceLog)
 							}
 							logRecordLogRawBytes := int64(len(value))
 							logRawBytes += logRecordLogRawBytes
@@ -169,9 +169,13 @@ func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs, meas
 						// If no fields are passed but we still want to
 						// measure the raw log bytes, fallback to the
 						// old logic
-						value, found := tm.getRawLogField("attributes.log.record.original", logRecord)
+						value, found := tm.getRawLogField(
+							"attributes.log.record.original",
+							logRecord,
+							resourceLog,
+						)
 						if !found {
-							value, _ = tm.getRawLogField("body", logRecord)
+							value, _ = tm.getRawLogField("body", logRecord, resourceLog)
 						}
 						logRecordLogRawBytes := int64(len(value))
 						logRawBytes += logRecordLogRawBytes
@@ -250,7 +254,10 @@ func (tm *ThroughputMeasurements) Attributes() attribute.Set {
 	return tm.attributes
 }
 
-func (tm *ThroughputMeasurements) getRawLogField(field string, log plog.LogRecord) (value string, found bool) {
+func (tm *ThroughputMeasurements) getRawLogField(field string, log plog.LogRecord, resourceLog plog.ResourceLogs) (value string, found bool) {
+	if field == "body" {
+		return log.Body().AsString(), true
+	}
 	fieldPath, foundPrefix := strings.CutPrefix(field, "attributes.")
 	if foundPrefix {
 		val, found := log.Attributes().Get(fieldPath)
@@ -258,11 +265,16 @@ func (tm *ThroughputMeasurements) getRawLogField(field string, log plog.LogRecor
 			return val.Str(), true
 		}
 		return "", false
-	} else if field == "body" {
-		return log.Body().AsString(), true
-	} else {
-		return log.Body().AsString(), true
 	}
+	fieldPath, foundPrefix = strings.CutPrefix(field, "resource.attributes.")
+	if foundPrefix {
+		val, found := resourceLog.Resource().Attributes().Get(fieldPath)
+		if found {
+			return val.Str(), true
+		}
+		return "", false
+	}
+	return log.Body().AsString(), true
 }
 
 // int64Counter combines a metric.Int64Counter with a atomic.Int64 so that the value of the counter may be

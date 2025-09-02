@@ -91,6 +91,7 @@ func TestProcessor_LogsCountRawWithSpecificFields(t *testing.T) {
 	tests := []struct {
 		fields            *[]RawFieldWithFallback
 		expectedSize      int
+		resourceLogRecord string
 		originalLogRecord string
 		logBody           string
 	}{
@@ -115,6 +116,18 @@ func TestProcessor_LogsCountRawWithSpecificFields(t *testing.T) {
 			expectedSize:      16 * 10,
 			originalLogRecord: "",
 			logBody:           "1234567890",
+		},
+		{
+			fields: &[]RawFieldWithFallback{
+				{
+					Field:         "resource.attributes.host.name",
+					FallbackField: "body",
+				},
+			},
+			expectedSize:      16 * 5,
+			originalLogRecord: "12345678901234567890",
+			logBody:           "1234567890",
+			resourceLogRecord: "12345",
 		},
 		{
 			fields: &[]RawFieldWithFallback{
@@ -186,6 +199,9 @@ func TestProcessor_LogsCountRawWithSpecificFields(t *testing.T) {
 		resourceLogs := logs.ResourceLogs()
 		for i := 0; i < resourceLogs.Len(); i++ {
 			resourceLog := resourceLogs.At(i)
+			if test.resourceLogRecord != "" {
+				resourceLog.Resource().Attributes().PutStr("host.name", test.resourceLogRecord)
+			}
 			scopeLogs := resourceLog.ScopeLogs()
 			for j := 0; j < scopeLogs.Len(); j++ {
 				scopeLog := scopeLogs.At(j)
