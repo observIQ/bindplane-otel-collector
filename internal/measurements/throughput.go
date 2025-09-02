@@ -165,8 +165,8 @@ func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs, meas
 							logRawBytes += value
 						}
 					} else {
-						// If no fields are passed but we still want to
-						// measure the raw log bytes, fallback to the
+						// If no fields are passed we still want to
+						// measure the raw log bytes. Fallback to the
 						// old logic
 						value, found := tm.getRawLogFieldSize(
 							"attributes.log.record.original",

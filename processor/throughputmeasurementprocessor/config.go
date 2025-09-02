@@ -41,7 +41,7 @@ type Config struct {
 	// When true, for logs, the processor will measure the raw bytes of the payload in addition to the protobuf size. This is more expensive but provides raw measurements if designated.
 	MeasureLogRawBytes bool `mapstructure:"measure_log_raw_bytes"`
 
-	// When set, for logs, the processor will measure the raw bytes of the the specified fields. This is more expensive but provides raw measurements if designated. By default the log body will be measured or you can specify attributes. Ex "attributes.log.record.original"
+	// When set, for logs, the processor will measure the raw bytes of the the specified fields. This is more expensive but provides raw measurements if designated. By default the log body will be measured or you can specify attributes\resource attributes. Ex "attributes.log.record.original"
 	MeasureLogRawFields *[]measurements.RawFieldWithFallback `mapstructure:"measure_log_raw_fields"`
 }
 

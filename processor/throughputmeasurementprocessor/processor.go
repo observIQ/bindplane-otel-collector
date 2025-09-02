@@ -38,7 +38,6 @@ type throughputMeasurementProcessor struct {
 	bindplane           component.ID
 	startOnce           sync.Once
 	measureLogRawBytes  bool
-
 	measureLogRawFields *[]measurements.RawFieldWithFallback
 }
 
