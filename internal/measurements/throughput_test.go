@@ -46,7 +46,7 @@ func TestProcessor_Logs(t *testing.T) {
 	logs, err := golden.ReadLogs(filepath.Join("testdata", "logs", "w3c-logs.yaml"))
 	require.NoError(t, err)
 
-	tmp.AddLogs(context.Background(), logs, false)
+	tmp.AddLogs(context.Background(), logs, false, nil)
 
 	var rm metricdata.ResourceMetrics
 	require.NoError(t, manualReader.Collect(context.Background(), &rm))
@@ -87,6 +87,150 @@ func TestProcessor_Logs(t *testing.T) {
 	require.Equal(t, int64(16), tmp.LogCount())
 }
 
+func TestProcessor_LogsCountRawWithSpecificFields(t *testing.T) {
+	tests := []struct {
+		fields            *[]RawFieldWithFallback
+		expectedSize      int
+		originalLogRecord string
+		logBody           string
+	}{
+		{
+			fields: &[]RawFieldWithFallback{
+				{
+					Field:         "attributes.log.record.original",
+					FallbackField: "body",
+				},
+			},
+			expectedSize:      16 * 20,
+			originalLogRecord: "12345678901234567890",
+			logBody:           "1234567890",
+		},
+		{
+			fields: &[]RawFieldWithFallback{
+				{
+					Field:         "attributes.log.record.original",
+					FallbackField: "body",
+				},
+			},
+			expectedSize:      16 * 10,
+			originalLogRecord: "",
+			logBody:           "1234567890",
+		},
+		{
+			fields: &[]RawFieldWithFallback{
+				{
+					Field:         "body",
+					FallbackField: "",
+				},
+			},
+			expectedSize:      16 * 10,
+			originalLogRecord: "12345678901234567890",
+			logBody:           "1234567890",
+		},
+		{
+			// Count multiple fields
+			fields: &[]RawFieldWithFallback{
+				{
+					Field:         "attributes.log.record.original",
+					FallbackField: "",
+				},
+				{
+					Field:         "body",
+					FallbackField: "",
+				},
+			},
+			expectedSize:      (16 * 10) + (16 * 20),
+			originalLogRecord: "12345678901234567890",
+			logBody:           "1234567890",
+		},
+		{
+			// Should fallback to body
+			fields: &[]RawFieldWithFallback{
+				{
+					Field:         "attributes.does.not.exist",
+					FallbackField: "",
+				},
+			},
+			expectedSize:      16 * 10,
+			originalLogRecord: "12345678901234567890",
+			logBody:           "1234567890",
+		},
+		{
+			// Should default to
+			// Field:         "attributes.log.record.original",
+			// FallbackField: "body",
+			expectedSize:      16 * 20,
+			originalLogRecord: "12345678901234567890",
+			logBody:           "1234567890",
+		},
+	}
+
+	for _, test := range tests {
+		manualReader := metric.NewManualReader()
+		defer manualReader.Shutdown(context.Background())
+
+		mp := metric.NewMeterProvider(
+			metric.WithReader(manualReader),
+		)
+		defer mp.Shutdown(context.Background())
+
+		processorID := "throughputmeasurement/1"
+
+		tmp, err := NewThroughputMeasurements(mp, processorID, map[string]string{})
+		require.NoError(t, err)
+
+		logs, err := golden.ReadLogs(filepath.Join("testdata", "logs", "w3c-logs.yaml"))
+		require.NoError(t, err)
+
+		// Add log.record.original to all log records
+		resourceLogs := logs.ResourceLogs()
+		for i := 0; i < resourceLogs.Len(); i++ {
+			resourceLog := resourceLogs.At(i)
+			scopeLogs := resourceLog.ScopeLogs()
+			for j := 0; j < scopeLogs.Len(); j++ {
+				scopeLog := scopeLogs.At(j)
+				logRecords := scopeLog.LogRecords()
+				for k := 0; k < logRecords.Len(); k++ {
+					logRecord := logRecords.At(k)
+					if test.originalLogRecord != "" {
+						logRecord.Attributes().PutStr("log.record.original", test.originalLogRecord)
+					}
+					logRecord.Body().SetStr(test.logBody)
+				}
+			}
+		}
+
+		tmp.AddLogs(context.Background(), logs, true, test.fields)
+
+		var rm metricdata.ResourceMetrics
+		require.NoError(t, manualReader.Collect(context.Background(), &rm))
+
+		// Extract the metrics we care about from the metrics we collected
+		var logCount int64
+
+		for _, sm := range rm.ScopeMetrics {
+			for _, metric := range sm.Metrics {
+				switch metric.Name {
+				case "otelcol_processor_throughputmeasurement_log_count":
+					sum := metric.Data.(metricdata.Sum[int64])
+					require.Equal(t, 1, len(sum.DataPoints))
+
+					processorAttr, ok := sum.DataPoints[0].Attributes.Value(attribute.Key("processor"))
+					require.True(t, ok, "processor attribute was not found")
+					require.Equal(t, processorID, processorAttr.AsString())
+
+					logCount = sum.DataPoints[0].Value
+				}
+			}
+		}
+
+		expectedLogRawBytes := int64(test.expectedSize)
+		require.Equal(t, expectedLogRawBytes, tmp.logRawBytes.Val())
+		require.Equal(t, int64(16), logCount)
+		require.Equal(t, int64(16), tmp.LogCount())
+	}
+}
+
 func TestProcessor_LogsWithLogRecordOriginal(t *testing.T) {
 	manualReader := metric.NewManualReader()
 	defer manualReader.Shutdown(context.Background())
@@ -120,7 +264,7 @@ func TestProcessor_LogsWithLogRecordOriginal(t *testing.T) {
 		}
 	}
 
-	tmp.AddLogs(context.Background(), logs, true)
+	tmp.AddLogs(context.Background(), logs, true, nil)
 
 	var rm metricdata.ResourceMetrics
 	require.NoError(t, manualReader.Collect(context.Background(), &rm))
@@ -198,7 +342,7 @@ func TestProcessor_LogsWithoutLogRecordOriginal(t *testing.T) {
 		}
 	}
 
-	tmp.AddLogs(context.Background(), logs, true)
+	tmp.AddLogs(context.Background(), logs, true, nil)
 
 	var rm metricdata.ResourceMetrics
 	require.NoError(t, manualReader.Collect(context.Background(), &rm))
@@ -378,7 +522,7 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		logs, err := golden.ReadLogs(filepath.Join("testdata", "logs", "w3c-logs.yaml"))
 		require.NoError(t, err)
 
-		tmp.AddLogs(context.Background(), logs, true)
+		tmp.AddLogs(context.Background(), logs, true, nil)
 		tmp.AddMetrics(context.Background(), metrics)
 		tmp.AddTraces(context.Background(), traces)
 
@@ -506,7 +650,7 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		logs, err := golden.ReadLogs(filepath.Join("testdata", "logs", "w3c-logs.yaml"))
 		require.NoError(t, err)
 
-		tmp.AddLogs(context.Background(), logs, true)
+		tmp.AddLogs(context.Background(), logs, true, nil)
 		tmp.AddMetrics(context.Background(), metrics)
 		tmp.AddTraces(context.Background(), traces)
 
@@ -564,7 +708,7 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		logs, err := golden.ReadLogs(filepath.Join("testdata", "logs", "w3c-logs.yaml"))
 		require.NoError(t, err)
 
-		tmp.AddLogs(context.Background(), logs, true)
+		tmp.AddLogs(context.Background(), logs, true, nil)
 		tmp.AddMetrics(context.Background(), metrics)
 		tmp.AddTraces(context.Background(), traces)
 
@@ -596,7 +740,7 @@ func TestResettableThroughputMeasurementsRegistry(t *testing.T) {
 		logs, err := golden.ReadLogs(filepath.Join("testdata", "logs", "w3c-logs.yaml"))
 		require.NoError(t, err)
 
-		tmp.AddLogs(context.Background(), logs, false)
+		tmp.AddLogs(context.Background(), logs, false, nil)
 		tmp.AddMetrics(context.Background(), metrics)
 		tmp.AddTraces(context.Background(), traces)
 

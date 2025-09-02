@@ -19,6 +19,7 @@ package measurements
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -35,6 +36,12 @@ type ThroughputMeasurementsRegistry interface {
 	// RegisterThroughputMeasurements registers the measurements for the given processor.
 	// It should return an error if the processor has already been registered.
 	RegisterThroughputMeasurements(processorID string, measurements *ThroughputMeasurements) error
+}
+
+// RawFieldWithFallback represents the option to collect raw log bytes from a specific field
+type RawFieldWithFallback struct {
+	Field         string `mapstructure:"field"`
+	FallbackField string `mapstructure:"fallback_field"`
 }
 
 // ThroughputMeasurements represents all captured throughput metrics.
@@ -107,7 +114,7 @@ func NewThroughputMeasurements(mp metric.MeterProvider, processorID string, extr
 
 	logRawBytes, err := meter.Int64Counter(
 		metricName("log_raw_bytes"),
-		metric.WithDescription("Size of the original log content in bytes"),
+		metric.WithDescription("Size of the log content in bytes"),
 		metric.WithUnit("By"),
 	)
 	if err != nil {
@@ -130,7 +137,7 @@ func NewThroughputMeasurements(mp metric.MeterProvider, processorID string, extr
 }
 
 // AddLogs records throughput metrics for the provided logs.
-func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs, measureLogRawBytes bool) {
+func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs, measureLogRawBytes bool, measureLogRawFields *[]RawFieldWithFallback) {
 	tm.collectionSequenceNumber.Add(1)
 
 	// Calculate total size using full log size
@@ -148,16 +155,25 @@ func (tm *ThroughputMeasurements) AddLogs(ctx context.Context, l plog.Logs, meas
 				logRecords := scopeLog.LogRecords()
 				for k := 0; k < logRecords.Len(); k++ {
 					logRecord := logRecords.At(k)
-
-					// Record log raw bytes if log.record.original is present
-					if original, ok := logRecord.Attributes().Get("log.record.original"); ok {
-						logRecordLogRawBytes := int64(len(original.Str()))
-
-						logRawBytes += logRecordLogRawBytes
+					if measureLogRawFields != nil {
+						for _, rawField := range *measureLogRawFields {
+							rawField := rawField
+							value, found := tm.getRawLogField(rawField.Field, logRecord)
+							if !found {
+								value, _ = tm.getRawLogField(rawField.FallbackField, logRecord)
+							}
+							logRecordLogRawBytes := int64(len(value))
+							logRawBytes += logRecordLogRawBytes
+						}
 					} else {
-						// If log.record.original is not present, use the body as the raw bytes
-						body := logRecord.Body().AsString()
-						logRecordLogRawBytes := int64(len(body))
+						// If no fields are passed but we still want to
+						// measure the raw log bytes, fallback to the
+						// old logic
+						value, found := tm.getRawLogField("attributes.log.record.original", logRecord)
+						if !found {
+							value, _ = tm.getRawLogField("body", logRecord)
+						}
+						logRecordLogRawBytes := int64(len(value))
 						logRawBytes += logRecordLogRawBytes
 					}
 				}
@@ -232,6 +248,21 @@ func (tm *ThroughputMeasurements) LogRawBytes() int64 {
 // Attributes returns the full set of attributes used on each metric for this ThroughputMeasurements.
 func (tm *ThroughputMeasurements) Attributes() attribute.Set {
 	return tm.attributes
+}
+
+func (tm *ThroughputMeasurements) getRawLogField(field string, log plog.LogRecord) (value string, found bool) {
+	fieldPath, foundPrefix := strings.CutPrefix(field, "attributes.")
+	if foundPrefix {
+		val, found := log.Attributes().Get(fieldPath)
+		if found {
+			return val.Str(), true
+		}
+		return "", false
+	} else if field == "body" {
+		return log.Body().AsString(), true
+	} else {
+		return log.Body().AsString(), true
+	}
 }
 
 // int64Counter combines a metric.Int64Counter with a atomic.Int64 so that the value of the counter may be

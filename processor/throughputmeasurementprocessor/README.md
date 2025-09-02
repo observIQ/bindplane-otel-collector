@@ -24,11 +24,12 @@ Counters:
 
 ## Configuration
 
-| Field                   | Type  | Default | Description                                                                                                                                                                          |
-| ----------------------- | ----- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `enabled`               | bool  | `true`  | When `true` signals that measurements are being taken of data passing through this processor. If false this processor acts as a no-op.                                               |
-| `sampling_ratio`        | float | `0.5`   | The ratio of data payloads that are sampled. Values between `0.0` and `1.0`. Values closer to `1.0` mean any individual payload is more likely to have its size measured.            |
-| `measure_log_raw_bytes` | bool  | `false` | When `true`, for logs, the processor will measure the raw bytes of the payload in addition to the protobuf size. This is more expensive but provides raw measurements if designated. |
+| Field                     | Type                    | Default | Description                                                                                                                                                                          |
+| ------------------------- | ----------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `enabled`                 | bool                    | `true`  | When `true` signals that measurements are being taken of data passing through this processor. If false this processor acts as a no-op.                                               |
+| `sampling_ratio`          | float                   | `0.5`   | The ratio of data payloads that are sampled. Values between `0.0` and `1.0`. Values closer to `1.0` mean any individual payload is more likely to have its size measured.            |
+| `measure_log_raw_bytes`   | bool                    | `false` | When `true`, for logs, the processor will measure the raw bytes of the payload in addition to the protobuf size. This is more expensive but provides raw measurements if designated. |
+| `measure_log_raw_fields`  | []RawFieldWithFallback  | `null`  | When set, for logs, the processor will measure the raw bytes of specific log fields. Each field configuration includes a primary field path and a fallback field path. If the primary field is not present, the fallback field will be measured instead. This is more expensive than standard protobuf measurements but provides granular raw byte measurements for specific log attributes or body content. |
 
 ### Example configuration
 
@@ -43,6 +44,38 @@ processors:
   throughputmeasurement:
     enabled: true
     sampling_ratio: 0.5
+
+exporters:
+  googlecloud:
+
+service:
+  pipelines:
+    logs:
+      receivers:
+        - filelog
+      processors:
+        - throughputmeasurement
+      exporters:
+        - googlecloud
+```
+
+### Advanced configuration with raw field measurement
+
+The example configuration below shows how to measure specific log fields in addition to the standard protobuf size measurements.
+
+```yaml
+receivers:
+  filelog:
+    include: ["/var/log/*.log"]
+
+processors:
+  throughputmeasurement:
+    enabled: true
+    sampling_ratio: 0.5
+    measure_log_raw_bytes: true
+    measure_log_raw_fields:
+      - field: "attributes.log.record.original"
+        fallback_field: "body"
 
 exporters:
   googlecloud:

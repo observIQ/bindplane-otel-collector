@@ -70,7 +70,7 @@ func BenchmarkAddLogsMeasureLogRawBytes(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				tm.AddLogs(ctx, logs, true)
+				tm.AddLogs(ctx, logs, true, nil)
 			}
 		})
 	}
@@ -106,7 +106,7 @@ func BenchmarkAddLogsMeasureLogRawBytesFalse(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				tm.AddLogs(ctx, logs, false)
+				tm.AddLogs(ctx, logs, false, nil)
 			}
 		})
 	}
