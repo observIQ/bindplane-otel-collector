@@ -51,7 +51,8 @@ type httpExporter struct {
 	marshaler *protoMarshaler
 	client    *http.Client
 
-	telemetry *metadata.TelemetryBuilder
+	telemetry        *metadata.TelemetryBuilder
+	metricAttributes attribute.Set
 }
 
 func newHTTPExporter(cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (*httpExporter, error) {
@@ -64,6 +65,10 @@ func newHTTPExporter(cfg *Config, params exporter.Settings, telemetry *metadata.
 		set:       params.TelemetrySettings,
 		marshaler: marshaler,
 		telemetry: telemetry,
+		metricAttributes: attribute.NewSet(attribute.KeyValue{
+			Key:   "exporter",
+			Value: attribute.StringValue(params.ID.String()),
+		}),
 	}, nil
 }
 
@@ -184,13 +189,19 @@ func (exp *httpExporter) Shutdown(context.Context) error {
 }
 
 func (exp *httpExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
-	payloads, err := exp.marshaler.MarshalRawLogsForHTTP(ctx, ld)
+	payloads, totalSize, err := exp.marshaler.MarshalRawLogsForHTTP(ctx, ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
 	}
+	exp.telemetry.ExporterRawBytes.Add(ctx, int64(totalSize), metric.WithAttributeSet(exp.metricAttributes))
 	for logType, logTypePayloads := range payloads {
 		for _, payload := range logTypePayloads {
 			if err := exp.uploadToChronicleHTTP(ctx, payload, logType); err != nil {
+				exp.telemetry.ExporterRawBytes.Add(
+					ctx,
+					-int64(totalSize),
+					metric.WithAttributeSet(exp.metricAttributes),
+				)
 				return fmt.Errorf("upload to chronicle: %w", err)
 			}
 		}

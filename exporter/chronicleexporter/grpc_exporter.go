@@ -50,7 +50,8 @@ type grpcExporter struct {
 	conn    *grpc.ClientConn
 	metrics *hostMetricsReporter
 
-	telemetry *metadata.TelemetryBuilder
+	telemetry        *metadata.TelemetryBuilder
+	metricAttributes attribute.Set
 }
 
 func newGRPCExporter(cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (*grpcExporter, error) {
@@ -64,6 +65,10 @@ func newGRPCExporter(cfg *Config, params exporter.Settings, telemetry *metadata.
 		exporterID: params.ID.String(),
 		marshaler:  marshaler,
 		telemetry:  telemetry,
+		metricAttributes: attribute.NewSet(attribute.KeyValue{
+			Key:   "exporter",
+			Value: attribute.StringValue(params.ID.String()),
+		}),
 	}, nil
 }
 
@@ -114,12 +119,18 @@ func (exp *grpcExporter) Shutdown(context.Context) error {
 }
 
 func (exp *grpcExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
-	payloads, err := exp.marshaler.MarshalRawLogs(ctx, ld)
+	payloads, totalSize, err := exp.marshaler.MarshalRawLogs(ctx, ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
 	}
+	exp.telemetry.ExporterRawBytes.Add(ctx, int64(totalSize), metric.WithAttributeSet(exp.metricAttributes))
 	for _, payload := range payloads {
 		if err := exp.uploadToChronicle(ctx, payload); err != nil {
+			exp.telemetry.ExporterRawBytes.Add(
+				ctx,
+				int64(-totalSize),
+				metric.WithAttributeSet(exp.metricAttributes),
+			)
 			return err
 		}
 	}

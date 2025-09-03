@@ -22,6 +22,14 @@ The size of the payload in bytes.
 | ---- | ----------- | ---------- |
 | B | Histogram | Int |
 
+### otelcol_exporter_raw_bytes
+
+The total number of raw bytes sent.
+
+| Unit | Metric Type | Value Type | Monotonic |
+| ---- | ----------- | ---------- | --------- |
+| B | Sum | Int | false |
+
 ### otelcol_exporter_request_count
 
 The total number of requests made.
