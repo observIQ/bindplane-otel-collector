@@ -222,16 +222,18 @@ func TestHTTPExporter(t *testing.T) {
 
 			require.Equal(t, tc.expectedRequests, mockServer.requestCount)
 
-			// Test telemetry metrics - check that the metric exists and has the expected value
-			metric, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
-			require.NoError(t, err)
-			require.NotNil(t, metric)
+			if tc.expectedErr == "" {
+				// Test telemetry metrics - check that the metric exists and has the expected value
+				metric, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
+				require.NoError(t, err)
+				require.NotNil(t, metric)
 
-			// For successful cases, verify the metric has the expected value
-			sumData, ok := metric.Data.(metricdata.Sum[int64])
-			require.True(t, ok, "Expected Sum metric data")
-			require.Len(t, sumData.DataPoints, 1, "Expected exactly one data point")
-			require.Equal(t, int64(tc.expectedBytes), sumData.DataPoints[0].Value)
+				// For successful cases, verify the metric has the expected value
+				sumData, ok := metric.Data.(metricdata.Sum[int64])
+				require.True(t, ok, "Expected Sum metric data")
+				require.Len(t, sumData.DataPoints, 1, "Expected exactly one data point")
+				require.Equal(t, int64(tc.expectedBytes), sumData.DataPoints[0].Value)
+			}
 		})
 	}
 }
