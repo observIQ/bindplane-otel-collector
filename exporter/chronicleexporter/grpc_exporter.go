@@ -123,17 +123,12 @@ func (exp *grpcExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
 	}
-	exp.telemetry.ExporterRawBytes.Add(ctx, int64(totalSize), metric.WithAttributeSet(exp.metricAttributes))
 	for _, payload := range payloads {
 		if err := exp.uploadToChronicle(ctx, payload); err != nil {
-			exp.telemetry.ExporterRawBytes.Add(
-				ctx,
-				int64(-totalSize),
-				metric.WithAttributeSet(exp.metricAttributes),
-			)
 			return err
 		}
 	}
+	exp.telemetry.ExporterRawBytes.Add(ctx, int64(totalSize), metric.WithAttributeSet(exp.metricAttributes))
 	return nil
 }
 
