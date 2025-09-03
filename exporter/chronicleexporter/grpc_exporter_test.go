@@ -19,12 +19,14 @@ import (
 	"net"
 	"testing"
 
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadatatest"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter/exportertest"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -90,6 +92,7 @@ func TestGRPCExporter(t *testing.T) {
 		handler          mockBatchCreateLogsHandler
 		input            plog.Logs
 		expectedRequests int
+		expectedBytes    int
 		expectedErr      string
 		permanentErr     bool
 	}{
@@ -97,6 +100,7 @@ func TestGRPCExporter(t *testing.T) {
 			name:             "empty log record",
 			input:            plog.NewLogs(),
 			expectedRequests: 0,
+			expectedBytes:    0,
 		},
 		{
 			name: "single log record",
@@ -112,6 +116,26 @@ func TestGRPCExporter(t *testing.T) {
 				return logs
 			}(),
 			expectedRequests: 1,
+			expectedBytes:    56, // JSON: {"attributes":{},"body":"Test","resource_attributes":{}}
+		},
+		{
+			name: "single log record with attributes and resources",
+			handler: func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
+				return &api.BatchCreateLogsResponse{}, nil
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				rls.Resource().Attributes().PutStr("R", "5")
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				lrs.Attributes().PutStr("A", "10")
+				return logs
+			}(),
+			expectedRequests: 1,
+			// JSON: {"attributes":{"A":"10"},"body":"Test","resource_attributes":{"R":"5"}}
+			expectedBytes: 71,
 		},
 		// TODO test splitting large payloads
 		{
@@ -130,6 +154,7 @@ func TestGRPCExporter(t *testing.T) {
 			expectedRequests: 1,
 			expectedErr:      "upload logs to chronicle: rpc error: code = Unavailable desc = Service Unavailable",
 			permanentErr:     false,
+			expectedBytes:    0,
 		},
 		{
 			name: "permanent_error",
@@ -147,6 +172,7 @@ func TestGRPCExporter(t *testing.T) {
 			expectedRequests: 1,
 			expectedErr:      "Permanent error: upload logs to chronicle: rpc error: code = Unauthenticated desc = Unauthorized",
 			permanentErr:     true,
+			expectedBytes:    0,
 		},
 	}
 
@@ -154,6 +180,10 @@ func TestGRPCExporter(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockServer, endpoint := newMockGRPCServer(t, tc.handler)
 			defer mockServer.srv.GracefulStop()
+
+			// Create telemetry for testing metrics
+			testTelemetry := componenttest.NewTelemetry()
+			defer testTelemetry.Shutdown(context.Background())
 
 			// Override the client params for testing to we can connect to the mock server
 			secureGPPCClientParams := grpcClientParams
@@ -172,7 +202,7 @@ func TestGRPCExporter(t *testing.T) {
 			require.NoError(t, cfg.Validate())
 
 			ctx := context.Background()
-			exp, err := f.CreateLogs(ctx, exportertest.NewNopSettings(typ), cfg)
+			exp, err := f.CreateLogs(ctx, metadatatest.NewSettings(testTelemetry), cfg)
 			require.NoError(t, err)
 			require.NoError(t, exp.Start(ctx, componenttest.NewNopHost()))
 			defer func() {
@@ -188,6 +218,17 @@ func TestGRPCExporter(t *testing.T) {
 			}
 
 			require.Equal(t, tc.expectedRequests, mockServer.requests)
+
+			// Test telemetry metrics - check that the metric exists and has the expected value
+			metric, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
+			require.NoError(t, err)
+			require.NotNil(t, metric)
+
+			// For successful cases, verify the metric has the expected value
+			sumData, ok := metric.Data.(metricdata.Sum[int64])
+			require.True(t, ok, "Expected Sum metric data")
+			require.Len(t, sumData.DataPoints, 1, "Expected exactly one data point")
+			require.Equal(t, int64(tc.expectedBytes), sumData.DataPoints[0].Value)
 		})
 	}
 }
