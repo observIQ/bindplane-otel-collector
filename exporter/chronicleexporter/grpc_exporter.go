@@ -119,7 +119,7 @@ func (exp *grpcExporter) Shutdown(context.Context) error {
 }
 
 func (exp *grpcExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
-	payloads, totalSize, err := exp.marshaler.MarshalRawLogs(ctx, ld)
+	payloads, err := exp.marshaler.MarshalRawLogs(ctx, ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
 	}
@@ -127,9 +127,22 @@ func (exp *grpcExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 		if err := exp.uploadToChronicle(ctx, payload); err != nil {
 			return err
 		}
+		batchBytes := exp.countBatchBytes(payload.Batch)
+		exp.telemetry.ExporterRawBytes.Add(
+			ctx,
+			int64(batchBytes),
+			metric.WithAttributeSet(exp.metricAttributes),
+		)
 	}
-	exp.telemetry.ExporterRawBytes.Add(ctx, int64(totalSize), metric.WithAttributeSet(exp.metricAttributes))
 	return nil
+}
+
+func (exp *grpcExporter) countBatchBytes(batch *api.LogEntryBatch) uint {
+	batchBytes := uint(0)
+	for _, entries := range batch.Entries {
+		batchBytes += uint(len(entries.Data))
+	}
+	return batchBytes
 }
 
 func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.BatchCreateLogsRequest) error {
