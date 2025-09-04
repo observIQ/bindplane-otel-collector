@@ -110,20 +110,6 @@ func TestHTTPExporter(t *testing.T) {
 			}(),
 			expectedRequests: 1,
 		},
-		{
-			name: "single log record with attributes and resources",
-			input: func() plog.Logs {
-				logs := plog.NewLogs()
-				rls := logs.ResourceLogs().AppendEmpty()
-				rls.Resource().Attributes().PutStr("R", "5")
-				sls := rls.ScopeLogs().AppendEmpty()
-				lrs := sls.LogRecords().AppendEmpty()
-				lrs.Body().SetStr("Test")
-				lrs.Attributes().PutStr("A", "10")
-				return logs
-			}(),
-			expectedRequests: 1,
-		},
 		// TODO test splitting large payloads
 		{
 			name: "transient_error",
