@@ -373,6 +373,14 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 
 		// Additional safety check for reasonable chunk sizes
 		if chunkDataSize > uint64(100*1024*1024) { // 100MB max per chunk
+			// For very large chunks, try to parse them as individual chunks
+			// This handles cases where the data section contains multiple firehose entries
+			// that weren't properly detected in the main parsing loop
+			chunkEntries := parseLargeDataSectionAsChunks(data[offset:], header, timesyncData)
+			if len(chunkEntries) > 0 {
+				entries = append(entries, chunkEntries...)
+				break // Stop parsing after processing the large data section
+			}
 			offset += 4
 			continue
 		}
@@ -494,21 +502,9 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 						// Determine event type based on activity type
 						entry.EventType = getEventType(logActivityType)
 
-						// Determine entry category based on activity type
-						switch logActivityType {
-						case 0x2:
-							entry.Category = "activity"
-						case 0x4:
-							entry.Category = "log"
-						case 0x6:
-							entry.Category = "signpost"
-						case 0x3:
-							entry.Category = "trace"
-						case 0x7:
-							entry.Category = "loss"
-						default:
-							entry.Category = fmt.Sprintf("unknown(0x%x)", logActivityType)
-						}
+						// Category should come from subsystem data, not be hardcoded based on activity type
+						// For now, set to empty string like the rust implementation does initially
+						entry.Category = ""
 
 						entry.Message = fmt.Sprintf("Firehose entry: type=%s level=%s flags=0x%x format=0x%x thread=%d dataSize=%d",
 							entry.Category, entry.Level, flags, formatStringLocation, threadID, dataSize)
@@ -548,7 +544,32 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 		}
 	}
 
-	// If we didn't find any firehose entries, create a summary entry
+	// Check if we have remaining unparsed data
+	if offset < len(data) && len(data)-offset > 1000 { // Only try to parse if there's a significant amount of data left
+		// Try to parse the remaining data as individual chunks
+		chunkEntries := parseLargeDataSectionAsChunks(data[offset:], header, timesyncData)
+		if len(chunkEntries) > 0 {
+			entries = append(entries, chunkEntries...)
+		} else {
+			// If chunk parsing failed, create a summary entry
+			entries = append(entries, &TraceV3Entry{
+				Type:         0x0000,
+				Size:         uint32(len(data) - offset),
+				Timestamp:    convertMachTimeToUnixNanosWithTimesync(header.ContinuousTime, header.BootUUID, 0, timesyncData),
+				ThreadID:     0,
+				ProcessID:    header.LogdPID,
+				Message:      fmt.Sprintf("Unparsed data section: %d bytes (no valid firehose entries found)", len(data)-offset),
+				Subsystem:    "com.apple.logd",
+				Category:     "unparsed",
+				Level:        "Info",
+				MessageType:  "Info",
+				EventType:    "logEvent",
+				TimezoneName: extractTimezoneName(header.TimezonePath),
+			})
+		}
+	}
+
+	// If we didn't find any firehose entries at all, create a summary entry
 	if len(entries) == 0 && len(data) > 0 {
 		entries = append(entries, &TraceV3Entry{
 			Type:         0x0000,
@@ -564,6 +585,181 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 			EventType:    "logEvent",
 			TimezoneName: extractTimezoneName(header.TimezonePath),
 		})
+	}
+
+	return entries
+}
+
+// parseLargeDataSectionAsChunks attempts to parse a large data section as multiple individual chunks
+// This is used when the main parsing loop fails to detect chunks, but we have a large data section
+// that might contain multiple firehose entries or other chunk types
+func parseLargeDataSectionAsChunks(data []byte, header *TraceV3Header, timesyncData map[string]*TimesyncBoot) []*TraceV3Entry {
+	var entries []*TraceV3Entry
+	offset := 0
+	chunkPreambleSize := 16 // Always 16 bytes for preamble
+
+	// Try to parse the data as a sequence of chunks
+	// This is particularly useful for large firehose data sections that contain multiple entries
+	for offset < len(data) {
+		// Need at least 16 bytes for chunk preamble
+		if offset+chunkPreambleSize > len(data) {
+			break
+		}
+
+		// Parse preamble
+		chunkTag := binary.LittleEndian.Uint32(data[offset:])
+		chunkSubTag := binary.LittleEndian.Uint32(data[offset+4:])
+		chunkDataSize := binary.LittleEndian.Uint64(data[offset+8:])
+
+		// Validate chunk data size
+		if chunkDataSize == 0 {
+			offset += 4
+			continue
+		}
+
+		// Calculate total chunk size (preamble + data)
+		totalChunkSize := chunkPreambleSize + int(chunkDataSize)
+		if offset+totalChunkSize > len(data) {
+			// Not enough data for complete chunk, try to parse as firehose data
+			if chunkTag == 0x6001 || offset == 0 {
+				// This might be firehose data without proper preamble
+				firehoseEntries := parseDataAsFirehoseEntries(data[offset:], header, timesyncData)
+				entries = append(entries, firehoseEntries...)
+			}
+			break
+		}
+
+		// Extract chunk data
+		chunkData := data[offset : offset+totalChunkSize]
+
+		// Create base entry
+		chunkEntry := &TraceV3Entry{
+			Type:         chunkTag,
+			Size:         uint32(chunkDataSize),
+			Timestamp:    convertMachTimeToUnixNanosWithTimesync(header.ContinuousTime, header.BootUUID, 0, timesyncData),
+			ThreadID:     0,
+			ProcessID:    header.LogdPID,
+			Level:        "Info",
+			MessageType:  "Default",
+			EventType:    "logEvent",
+			TimezoneName: extractTimezoneName(header.TimezonePath),
+		}
+
+		// Parse based on chunk type
+		switch chunkTag {
+		case 0x6001:
+			// Firehose chunk - contains individual log entries
+			chunkEntry.ChunkType = "firehose"
+			chunkEntry.Subsystem = "com.apple.firehose.large_data"
+			chunkEntry.Category = "entry"
+			firehoseEntries := ParseFirehoseChunk(chunkData, chunkEntry, header, timesyncData)
+			entries = append(entries, firehoseEntries...)
+		case 0x6002:
+			// Oversize chunk
+			chunkEntry.ChunkType = "oversize"
+			chunkEntry.Subsystem = "com.apple.oversize.large_data"
+			chunkEntry.Category = "oversize_data"
+			oversizeEntries := ParseOversizeChunk(chunkData, chunkEntry, header, timesyncData)
+			entries = append(entries, oversizeEntries...)
+		case 0x600d:
+			// ChunkSet chunk
+			chunkEntry.ChunkType = "chunkset"
+			chunkEntry.Subsystem = "com.apple.chunkset.large_data"
+			chunkEntry.Category = "chunkset_data"
+			chunksetEntries := ParseChunksetChunk(chunkData, chunkEntry, header, timesyncData)
+			entries = append(entries, chunksetEntries...)
+		default:
+			// Unknown chunk type
+			chunkEntry.ChunkType = "unknown_large_data"
+			chunkEntry.Subsystem = "com.apple.unknown.large_data"
+			chunkEntry.Category = fmt.Sprintf("unknown_0x%x", chunkTag)
+			chunkEntry.Message = fmt.Sprintf("Unknown large data chunk: tag=0x%x sub_tag=0x%x size=%d", chunkTag, chunkSubTag, chunkDataSize)
+			entries = append(entries, chunkEntry)
+		}
+
+		// Move to next chunk with 8-byte alignment padding
+		offset += totalChunkSize
+		paddingBytes := (8 - (chunkDataSize & 7)) & 7
+		offset += int(paddingBytes)
+
+		// Safety limit
+		if len(entries) >= 1000 {
+			break
+		}
+	}
+
+	return entries
+}
+
+// parseDataAsFirehoseEntries attempts to parse data as firehose entries without proper chunk preamble
+// This is used when we have data that looks like firehose entries but doesn't have the standard chunk structure
+func parseDataAsFirehoseEntries(data []byte, header *TraceV3Header, timesyncData map[string]*TimesyncBoot) []*TraceV3Entry {
+	var entries []*TraceV3Entry
+	offset := 0
+
+	// Try to parse as multiple firehose entries
+	// Look for firehose entry patterns in the data
+	for offset < len(data) {
+		// Need at least 24 bytes for a firehose entry header
+		if offset+24 > len(data) {
+			break
+		}
+
+		// Check if this looks like a firehose entry
+		// Firehose entries typically start with activity type (0x4 for logs)
+		activityType := data[offset]
+		if activityType != 0x4 && activityType != 0x2 && activityType != 0x6 {
+			offset += 1
+			continue
+		}
+
+		// Parse firehose entry header
+		logType := data[offset+1]
+		flags := binary.LittleEndian.Uint16(data[offset+2:])
+		formatStringLocation := binary.LittleEndian.Uint32(data[offset+4:])
+		threadID := binary.LittleEndian.Uint64(data[offset+8:])
+		continuousTimeDelta := binary.LittleEndian.Uint32(data[offset+16:])
+		continuousTimeDeltaUpper := binary.LittleEndian.Uint16(data[offset+20:])
+		dataSize := binary.LittleEndian.Uint16(data[offset+22:])
+
+		// Validate data size
+		if dataSize > uint16(len(data)-offset-24) || dataSize > 10000 {
+			offset += 1
+			continue
+		}
+
+		// Create FirehoseEntry structure
+		firehoseEntry := &FirehoseEntry{
+			ActivityType:         activityType,
+			LogType:              logType,
+			Flags:                flags,
+			FormatStringLocation: formatStringLocation,
+			ThreadID:             threadID,
+			TimeDelta:            continuousTimeDelta,
+			TimeDeltaUpper:       continuousTimeDeltaUpper,
+			DataSize:             dataSize,
+		}
+
+		// Extract message data if present
+		if dataSize > 0 && offset+24+int(dataSize) <= len(data) {
+			firehoseEntry.MessageData = data[offset+24 : offset+24+int(dataSize)]
+		}
+
+		// Parse the firehose entry
+		entry := parseSingleFirehoseEntry(firehoseEntry, header, 0, 0, header.ContinuousTime, timesyncData)
+		if entry != nil {
+			entry.ChunkType = "firehose_raw_data"
+			entry.Subsystem = "com.apple.firehose.raw_data"
+			entries = append(entries, entry)
+		}
+
+		// Move to next entry
+		offset += 24 + int(dataSize)
+
+		// Safety limit
+		if len(entries) >= 1000 {
+			break
+		}
 	}
 
 	return entries
