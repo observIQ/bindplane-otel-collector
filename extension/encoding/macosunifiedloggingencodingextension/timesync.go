@@ -233,6 +233,16 @@ func GetTimestamp(
 		}
 	}
 
+	// If still no match, try case-insensitive search through all keys
+	if foundTimesync == nil {
+		for uuid, ts := range timesyncData {
+			if strings.EqualFold(uuid, bootUUID) {
+				foundTimesync = ts
+				break
+			}
+		}
+	}
+
 	if foundTimesync == nil {
 		// If no match found, return the raw mach time (which produces 1969/1970 timestamps)
 		// This is better than a hardcoded fallback as it preserves relative timing
@@ -246,11 +256,13 @@ func GetTimestamp(
 		timebaseAdjustment = 125.0 / 3.0
 	}
 
-	// A preamble time of 0 means we need to use the timesync header boot time as our minimum value.
-	// We also set the timesync_continous_time to zero
+	// A preamble time of 0 means we need to find the appropriate timesync correlation point
+	// for the firehoseLogDeltaTime (which is a mach absolute time)
 	if firehosePreambleTime == 0 {
+		// Find the timesync record that correlates with this mach time
+		// We'll search through timesync records to find the right correlation point
 		timesyncContinuousTime = 0
-		timesyncWallTime = timesync.BootTime
+		timesyncWallTime = 0
 	}
 
 	for _, timesyncRecord := range timesync.TimesyncRecords {

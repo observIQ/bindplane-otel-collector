@@ -298,20 +298,50 @@ func parseIndividualFirehoseEntries(publicData []byte, header *TraceV3Header, fi
 				}
 			}
 
+			// Parse message items for format string substitution
+			messageItems := parseFirehoseMessageItems(firehoseEntry.MessageData)
+
 			// Use resolved format string and process information
 			if formatData.FormatString != "" && formatData.FormatString != fmt.Sprintf("raw_format_0x%x", formatStringLocation) {
-				// We have a resolved format string
-				logEntry.Message = fmt.Sprintf("Format: %s | Process: %s | Thread: %d | %s%s",
-					formatData.FormatString, formatData.Process, threadID, messageContent, catalogInfo)
+				// We have a resolved format string - try to format it with message items
+				formattedMessage := formatFirehoseLogMessage(formatData.FormatString, messageItems)
+				if formattedMessage != "" {
+					// Successfully formatted the message
+					logEntry.Message = formattedMessage
+				} else {
+					// Formatting failed, use format string with message content
+					logEntry.Message = fmt.Sprintf("Format: %s | Process: %s | Thread: %d | %s%s",
+						formatData.FormatString, formatData.Process, threadID, messageContent, catalogInfo)
+				}
 			} else {
 				// Enhanced fallback with activity type details and debug info
 				catalogDebug := ""
 				if GlobalCatalog != nil {
 					catalogDebug = fmt.Sprintf(" [catalog_procs=%d]", len(GlobalCatalog.ProcessInfoEntries))
 				}
-				logEntry.Message = fmt.Sprintf("Firehose %s: level=%s flags=0x%x format=0x%x thread=%d delta=%d subsys_id=%d proc_ids=%d/%d resolved_subsys=%s%s%s | %s",
-					mapActivityTypeToString(logActivityType), logEntry.Level, flags, formatStringLocation,
-					threadID, combinedTimeDelta, subsystemID, firstProcID, secondProcID, subsystemName, catalogInfo, catalogDebug, messageContent)
+				// If we have message items but no format string, try to extract meaningful content
+				if len(messageItems) > 0 {
+					// Try to build a meaningful message from the items
+					var messageParts []string
+					for _, item := range messageItems {
+						if item.MessageStrings != "" && item.MessageStrings != "<private>" && isPrintableString(item.MessageStrings) {
+							messageParts = append(messageParts, item.MessageStrings)
+						}
+					}
+					if len(messageParts) > 0 {
+						logEntry.Message = strings.Join(messageParts, " ")
+					} else if messageContent != "" && !strings.Contains(messageContent, "data_size=") {
+						logEntry.Message = messageContent
+					} else {
+						logEntry.Message = fmt.Sprintf("Firehose %s: level=%s flags=0x%x format=0x%x thread=%d delta=%d subsys_id=%d proc_ids=%d/%d resolved_subsys=%s%s%s | %s",
+							mapActivityTypeToString(logActivityType), logEntry.Level, flags, formatStringLocation,
+							threadID, combinedTimeDelta, subsystemID, firstProcID, secondProcID, subsystemName, catalogInfo, catalogDebug, messageContent)
+					}
+				} else {
+					logEntry.Message = fmt.Sprintf("Firehose %s: level=%s flags=0x%x format=0x%x thread=%d delta=%d subsys_id=%d proc_ids=%d/%d resolved_subsys=%s%s%s | %s",
+						mapActivityTypeToString(logActivityType), logEntry.Level, flags, formatStringLocation,
+						threadID, combinedTimeDelta, subsystemID, firstProcID, secondProcID, subsystemName, catalogInfo, catalogDebug, messageContent)
+				}
 			}
 
 			entries = append(entries, logEntry)
@@ -354,14 +384,11 @@ func parseFirehoseMessageData(data []byte) string {
 		return "empty"
 	}
 
-	return fmt.Sprintf("items:%d raw:%x", numberItems, data[:min(len(data), 16)])
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
+	endIdx := len(data)
+	if endIdx > 16 {
+		endIdx = 16
 	}
-	return b
+	return fmt.Sprintf("items:%d raw:%x", numberItems, data[:endIdx])
 }
 
 // parseFirehoseEntrySubsystem extracts subsystem information from firehose entry data
@@ -520,16 +547,45 @@ func shouldUseSharedCache(entry *FirehoseEntry) bool {
 	return false
 }
 
+// FirehoseItemInfo represents a parsed message item from firehose entry data
+// Based on the Rust implementation's FirehoseItemInfo struct
+type FirehoseItemInfo struct {
+	ItemType       uint8  `json:"item_type"`
+	ItemSize       uint16 `json:"item_size"`
+	MessageStrings string `json:"message_strings"`
+	MessageData    []byte `json:"message_data"`
+}
+
 // extractMessageContent extracts readable message content from firehose entry data
+// This is enhanced to parse message items and format them properly
 func extractMessageContent(entry *FirehoseEntry) string {
 	if len(entry.MessageData) == 0 {
 		return "empty"
 	}
 
-	// Try to extract any string data from the message data
-	var parts []string
+	// Parse message items from the firehose entry data
+	items := parseFirehoseMessageItems(entry.MessageData)
 
-	// Look for null-terminated strings in the data
+	// If we have items, try to extract meaningful content
+	if len(items) > 0 {
+		var parts []string
+		for _, item := range items {
+			if item.MessageStrings != "" && isPrintableString(item.MessageStrings) {
+				parts = append(parts, item.MessageStrings)
+			}
+		}
+
+		if len(parts) > 0 {
+			return strings.Join(parts, " | ")
+		}
+
+		// If no string content, return item summary
+		return fmt.Sprintf("items:%d first_type:0x%x first_size:%d",
+			len(items), items[0].ItemType, items[0].ItemSize)
+	}
+
+	// Fallback: try to extract any string data from the message data
+	var parts []string
 	start := 0
 	for i := 0; i < len(entry.MessageData); i++ {
 		if entry.MessageData[i] == 0 {
@@ -551,6 +607,87 @@ func extractMessageContent(entry *FirehoseEntry) string {
 	// Otherwise return size and activity type info
 	return fmt.Sprintf("data_size=%d activity_type=0x%x flags=0x%x",
 		len(entry.MessageData), entry.ActivityType, entry.Flags)
+}
+
+// parseFirehoseMessageItems parses message items from firehose entry data
+// Based on the Rust implementation's collect_items and parse_private_data logic
+// This is a simplified implementation - the full parsing requires public/private data separation
+func parseFirehoseMessageItems(data []byte) []FirehoseItemInfo {
+	var items []FirehoseItemInfo
+
+	if len(data) < 1 {
+		return items
+	}
+
+	// First byte is typically the number of items (based on rust implementation)
+	numItems := data[0]
+	if numItems == 0 || numItems > 100 { // Safety limit
+		return items
+	}
+
+	offset := 1
+
+	// Collect basic item info first (type + size pairs)
+	// Based on rust collect_items function
+	for i := 0; i < int(numItems) && offset < len(data); i++ {
+		if offset+3 > len(data) {
+			break
+		}
+
+		item := FirehoseItemInfo{
+			ItemType: data[offset],
+			ItemSize: binary.LittleEndian.Uint16(data[offset+1 : offset+3]),
+		}
+		offset += 3
+
+		// For now, we'll do basic validation and content extraction
+		// The full rust implementation has more complex parsing with private data
+		if item.ItemSize > 0 && offset+int(item.ItemSize) <= len(data) {
+			item.MessageData = data[offset : offset+int(item.ItemSize)]
+
+			// Try to extract meaningful content based on item type
+			switch item.ItemType {
+			case 0x22, 0x32, 0x42, 0x52: // String item types from rust
+				// Extract null-terminated string
+				nullIndex := -1
+				for i, b := range item.MessageData {
+					if b == 0 {
+						nullIndex = i
+						break
+					}
+				}
+				if nullIndex > 0 {
+					item.MessageStrings = string(item.MessageData[:nullIndex])
+				} else if isPrintableString(string(item.MessageData)) {
+					item.MessageStrings = string(item.MessageData)
+				}
+			case 0x02, 0x12, 0x03, 0x13: // Number item types from rust
+				// Extract number based on size
+				if len(item.MessageData) >= 4 {
+					value := binary.LittleEndian.Uint32(item.MessageData[:4])
+					item.MessageStrings = fmt.Sprintf("%d", value)
+				} else if len(item.MessageData) >= 2 {
+					value := binary.LittleEndian.Uint16(item.MessageData[:2])
+					item.MessageStrings = fmt.Sprintf("%d", value)
+				} else if len(item.MessageData) >= 1 {
+					item.MessageStrings = fmt.Sprintf("%d", item.MessageData[0])
+				}
+			case 0x01, 0x21, 0x31, 0x41: // Private item types from rust
+				item.MessageStrings = "<private>"
+			default:
+				// Unknown item type - try to extract printable content
+				if isPrintableString(string(item.MessageData)) {
+					item.MessageStrings = string(item.MessageData)
+				}
+			}
+
+			offset += int(item.ItemSize)
+		}
+
+		items = append(items, item)
+	}
+
+	return items
 }
 
 // isPrintableString checks if a string contains mostly printable characters
@@ -783,4 +920,106 @@ func isLogString(s string) bool {
 	}
 
 	return false
+}
+
+// formatFirehoseLogMessage formats a log message by substituting format specifiers with message items
+// This is a simplified version of the Rust implementation's format_firehose_log_message function
+func formatFirehoseLogMessage(formatString string, items []FirehoseItemInfo) string {
+	if formatString == "" {
+		return ""
+	}
+
+	// Handle empty format strings or items
+	if len(items) == 0 {
+		// If no items but we have a format string, return it as-is (might be a literal message)
+		return formatString
+	}
+
+	// Simple implementation: substitute common format specifiers
+	// This is a simplified version - the full implementation would handle all C printf formats
+	result := formatString
+	itemIndex := 0
+
+	// Look for common format specifiers and replace them with item values
+	formatSpecifiers := []string{
+		"%u", "%d", "%i", "%ld", "%lu", "%lld", "%llu", "%llx", "%x", "%X",
+		"%s", "%@", "%c", "%f", "%g", "%e",
+		"%{public}s", "%{private}s", "%{public}@", "%{private}@",
+		"%{public}u", "%{private}u", "%{public}d", "%{private}d",
+		"%{public}x", "%{private}x", "%{public}llx", "%{private}llx",
+	}
+
+	for _, spec := range formatSpecifiers {
+		for strings.Contains(result, spec) && itemIndex < len(items) {
+			item := items[itemIndex]
+
+			var replacement string
+
+			// Handle different item types and format specifiers
+			if strings.Contains(spec, "private") {
+				replacement = "<private>"
+			} else if strings.Contains(spec, "s") || strings.Contains(spec, "@") || strings.Contains(spec, "c") {
+				// String types
+				if item.MessageStrings != "" {
+					replacement = item.MessageStrings
+				} else {
+					replacement = fmt.Sprintf("<string_type_0x%x>", item.ItemType)
+				}
+			} else {
+				// Numeric types - try to extract number from item data
+				if len(item.MessageData) >= 4 {
+					switch {
+					case strings.Contains(spec, "llu") || strings.Contains(spec, "llx"):
+						// 64-bit unsigned
+						if len(item.MessageData) >= 8 {
+							value := binary.LittleEndian.Uint64(item.MessageData[:8])
+							if strings.Contains(spec, "llx") {
+								replacement = fmt.Sprintf("0x%x", value)
+							} else {
+								replacement = fmt.Sprintf("%d", value)
+							}
+						} else {
+							replacement = "<missing_64bit_data>"
+						}
+					case strings.Contains(spec, "ld") || strings.Contains(spec, "lu"):
+						// 32-bit or 64-bit depending on platform, assume 32-bit for safety
+						value := binary.LittleEndian.Uint32(item.MessageData[:4])
+						replacement = fmt.Sprintf("%d", value)
+					case strings.Contains(spec, "x") || strings.Contains(spec, "X"):
+						// 32-bit hex
+						value := binary.LittleEndian.Uint32(item.MessageData[:4])
+						replacement = fmt.Sprintf("0x%x", value)
+					default:
+						// Default 32-bit unsigned
+						value := binary.LittleEndian.Uint32(item.MessageData[:4])
+						replacement = fmt.Sprintf("%d", value)
+					}
+				} else {
+					replacement = fmt.Sprintf("<numeric_type_0x%x>", item.ItemType)
+				}
+			}
+
+			// Replace the first occurrence of this format specifier
+			result = strings.Replace(result, spec, replacement, 1)
+			itemIndex++
+
+			// Safety check
+			if itemIndex >= len(items) {
+				break
+			}
+		}
+
+		if itemIndex >= len(items) {
+			break
+		}
+	}
+
+	// If there are still format specifiers but no more items, replace them with placeholder
+	for _, spec := range formatSpecifiers {
+		for strings.Contains(result, spec) {
+			result = strings.Replace(result, spec, "<missing_data>", 1)
+		}
+	}
+
+	return result
 }
