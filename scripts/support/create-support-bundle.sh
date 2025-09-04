@@ -77,13 +77,15 @@ success() { printf "$fg_green$*$reset\\n" ; }
 
 bindplane_banner()
 {
-  fg_cyan " oooooooooo.   o8o                    .o8  ooooooooo.   oooo\\n"
-  fg_cyan " '888'   '88b  '\"'                   \"888  '888   'Y88. '888\\n"
-  fg_cyan "  888     888 oooo  ooo. .oo.    .oooo888   888   .d88'  888   .oooo.   ooo. .oo.    .ooooo.\\n"
-  fg_cyan "  888oooo888' '888  '888P\"Y88b  d88' '888   888ooo88P'   888  'P  )88b  '888P\"Y88b  d88' '88b\\n"
-  fg_cyan "  888    '88b  888   888   888  888   888   888          888   .oP\"888   888   888  888ooo888\\n"
-  fg_cyan "  888    .88P  888   888   888  888   888   888          888  d8(  888   888   888  888    .o\\n"
-  fg_cyan " o888bood8P'  o888o o888o o888o 'Y8bod88P\" o888o        o888o 'Y888\"\"8o o888o o888o '88bod8P'\\n"
+  fg_cyan " oooooooooo.   o8o                    .o8              oooo\\n"
+  fg_cyan " '888'   '88b  '\"'                   \"888              '888\\n"
+  fg_cyan "  888     888 oooo  ooo. .oo.    .oooo888  oooooooo.    888   .oooo.   ooo. .oo.    .ooooo.\\n"
+  fg_cyan "  888oooo888' '888  '888P\"Y88b  d88' '888  '888' 'Y88.  888  'P  )88b  '888P\"Y88b  d88' '88b\\n"
+  fg_cyan "  888    '88b  888   888   888  888   888   888    888  888   .oP\"888   888   888  888ooo888\\n"
+  fg_cyan "  888    .88P  888   888   888  888   888   888   .88'  888  d8(  888   888   888  888    .o\\n"
+  fg_cyan " o888bood8P'  o888o o888o o888o 'Y8bod88P\"  888bod8P'  o888o 'Y888\"\"8o o888o o888o '88bod8P'\\n"
+  fg_cyan "                                            888\\n"
+  fg_cyan "                                           o888o\\n"
 
   reset
 }
