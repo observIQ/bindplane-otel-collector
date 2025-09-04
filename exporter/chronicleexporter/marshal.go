@@ -92,15 +92,16 @@ func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings, tel
 	}, nil
 }
 
-func (m *protoMarshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]*api.BatchCreateLogsRequest, error) {
-	logGrouper, err := m.extractRawLogs(ctx, ld)
+func (m *protoMarshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]*api.BatchCreateLogsRequest, uint, error) {
+	logGrouper, totalBytes, err := m.extractRawLogs(ctx, ld)
 	if err != nil {
-		return nil, fmt.Errorf("extract raw logs: %w", err)
+		return nil, 0, fmt.Errorf("extract raw logs: %w", err)
 	}
-	return m.constructPayloads(logGrouper), nil
+	return m.constructPayloads(logGrouper), totalBytes, nil
 }
 
-func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (*logGrouper, error) {
+func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (*logGrouper, uint, error) {
+	totalBytes := uint(0)
 	logGrouper := newLogGrouper()
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		resourceLog := ld.ResourceLogs().At(i)
@@ -123,17 +124,19 @@ func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (*log
 				timestamp := getTimestamp(logRecord)
 				collectionTime := getObservedTimestamp(logRecord)
 
+				data := []byte(rawLog)
 				entry := &api.LogEntry{
 					Timestamp:      timestamppb.New(timestamp),
 					CollectionTime: timestamppb.New(collectionTime),
-					Data:           []byte(rawLog),
+					Data:           data,
 				}
+				totalBytes += uint(len(data))
 				logGrouper.Add(entry, namespace, logType, ingestionLabels)
 			}
 		}
 	}
 
-	return logGrouper, nil
+	return logGrouper, totalBytes, nil
 }
 
 func (m *protoMarshaler) processLogRecord(ctx context.Context, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, string, string, []*api.Label, error) {
@@ -488,15 +491,16 @@ func (m *protoMarshaler) buildGRPCRequest(entries []*api.LogEntry, logType, name
 	}
 }
 
-func (m *protoMarshaler) MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs) (map[string][]*api.ImportLogsRequest, error) {
-	rawLogs, err := m.extractRawHTTPLogs(ctx, ld)
+func (m *protoMarshaler) MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs) (map[string][]*api.ImportLogsRequest, uint, error) {
+	rawLogs, totalBytes, err := m.extractRawHTTPLogs(ctx, ld)
 	if err != nil {
-		return nil, fmt.Errorf("extract raw logs: %w", err)
+		return nil, 0, fmt.Errorf("extract raw logs: %w", err)
 	}
-	return m.constructHTTPPayloads(rawLogs), nil
+	return m.constructHTTPPayloads(rawLogs), totalBytes, nil
 }
 
-func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (map[string][]*api.Log, error) {
+func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (map[string][]*api.Log, uint, error) {
+	totalBytes := uint(0)
 	entries := make(map[string][]*api.Log)
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		resourceLog := ld.ResourceLogs().At(i)
@@ -517,19 +521,21 @@ func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (
 				timestamp := getTimestamp(logRecord)
 				collectionTime := getObservedTimestamp(logRecord)
 
+				data := []byte(rawLog)
 				entry := &api.Log{
 					LogEntryTime:         timestamppb.New(timestamp),
 					CollectionTime:       timestamppb.New(collectionTime),
-					Data:                 []byte(rawLog),
+					Data:                 data,
 					EnvironmentNamespace: namespace,
 					Labels:               ingestionLabels,
 				}
+				totalBytes += uint(len(data))
 				entries[logType] = append(entries[logType], entry)
 			}
 		}
 	}
 
-	return entries, nil
+	return entries, totalBytes, nil
 }
 
 func getTimestamp(logRecord plog.LogRecord) time.Time {

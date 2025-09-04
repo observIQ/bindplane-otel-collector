@@ -189,33 +189,46 @@ func (exp *httpExporter) Shutdown(context.Context) error {
 }
 
 func (exp *httpExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
-	payloads, err := exp.marshaler.MarshalRawLogsForHTTP(ctx, ld)
+	payloads, totalBytes, err := exp.marshaler.MarshalRawLogsForHTTP(ctx, ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
 	}
+	successfulPayloads := []*api.ImportLogsRequest{}
 	for logType, logTypePayloads := range payloads {
 		for _, payload := range logTypePayloads {
 			if err := exp.uploadToChronicleHTTP(ctx, payload, logType); err != nil {
+				// If there is an error only report
+				// the bytes successfully sent
+				exp.countAndReportBatchBytes(ctx, successfulPayloads)
 				return fmt.Errorf("upload to chronicle: %w", err)
 			}
-			batchBytes := exp.countBatchBytes(payload)
-			exp.telemetry.ExporterRawBytes.Add(
-				ctx,
-				int64(batchBytes),
-				metric.WithAttributeSet(exp.metricAttributes),
-			)
+			successfulPayloads = append(successfulPayloads, payload)
 		}
 	}
+	// If everything sent successfully just report the total bytes
+	exp.telemetry.ExporterRawBytes.Add(
+		ctx,
+		int64(totalBytes),
+		metric.WithAttributeSet(exp.metricAttributes),
+	)
 	return nil
 }
 
-func (exp *httpExporter) countBatchBytes(batch *api.ImportLogsRequest) uint {
-	entries := batch.Source.(*api.ImportLogsRequest_InlineSource).InlineSource.Logs
-	batchBytes := uint(0)
-	for _, entries := range entries {
-		batchBytes += uint(len(entries.Data))
+func (exp *httpExporter) countAndReportBatchBytes(ctx context.Context, payloads []*api.ImportLogsRequest) {
+	totalBytes := uint(0)
+	for _, payload := range payloads {
+		entries := payload.Source.(*api.ImportLogsRequest_InlineSource).InlineSource.Logs
+		for _, entries := range entries {
+			totalBytes += uint(len(entries.Data))
+		}
 	}
-	return batchBytes
+	if totalBytes > 0 {
+		exp.telemetry.ExporterRawBytes.Add(
+			ctx,
+			int64(totalBytes),
+			metric.WithAttributeSet(exp.metricAttributes),
+		)
+	}
 }
 
 func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.ImportLogsRequest, logType string) error {
