@@ -92,7 +92,7 @@ func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings, tel
 	}, nil
 }
 
-func (m *protoMarshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]*api.BatchCreateLogsRequest, int, error) {
+func (m *protoMarshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]*api.BatchCreateLogsRequest, uint, error) {
 	logGrouper, totalSize, err := m.extractRawLogs(ctx, ld)
 	if err != nil {
 		return nil, 0, fmt.Errorf("extract raw logs: %w", err)
@@ -100,8 +100,8 @@ func (m *protoMarshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]*a
 	return m.constructPayloads(logGrouper), totalSize, nil
 }
 
-func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (*logGrouper, int, error) {
-	totalSize := 0
+func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (*logGrouper, uint, error) {
+	totalSize := uint(0)
 	logGrouper := newLogGrouper()
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		resourceLog := ld.ResourceLogs().At(i)
@@ -130,7 +130,7 @@ func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (*log
 					Data:           []byte(rawLog),
 				}
 				logGrouper.Add(entry, namespace, logType, ingestionLabels)
-				totalSize += len(rawLog)
+				totalSize += uint(len(rawLog))
 			}
 		}
 	}
@@ -490,7 +490,7 @@ func (m *protoMarshaler) buildGRPCRequest(entries []*api.LogEntry, logType, name
 	}
 }
 
-func (m *protoMarshaler) MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs) (map[string][]*api.ImportLogsRequest, int, error) {
+func (m *protoMarshaler) MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs) (map[string][]*api.ImportLogsRequest, uint, error) {
 	rawLogs, totalSize, err := m.extractRawHTTPLogs(ctx, ld)
 	if err != nil {
 		return nil, 0, fmt.Errorf("extract raw logs: %w", err)
@@ -498,8 +498,8 @@ func (m *protoMarshaler) MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs
 	return m.constructHTTPPayloads(rawLogs), totalSize, nil
 }
 
-func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (map[string][]*api.Log, int, error) {
-	totalSize := 0
+func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (map[string][]*api.Log, uint, error) {
+	totalSize := uint(0)
 	entries := make(map[string][]*api.Log)
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		resourceLog := ld.ResourceLogs().At(i)
@@ -528,7 +528,7 @@ func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (
 					Labels:               ingestionLabels,
 				}
 				entries[logType] = append(entries[logType], entry)
-				totalSize += len(entry.Data)
+				totalSize += uint(len(entry.Data))
 			}
 		}
 	}
