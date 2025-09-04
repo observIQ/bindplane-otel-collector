@@ -357,26 +357,40 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 				rls1 := logs.ResourceLogs().AppendEmpty()
 				sls1 := rls1.ScopeLogs().AppendEmpty()
 				lrs1 := sls1.LogRecords().AppendEmpty()
-				lrs1.Body().SetStr("Success")
-				lrs1.Attributes().PutStr("chronicle_log_type", "SUCCESS_TYPE")
+				lrs1.Body().SetStr("body data")
+				lrs1.Attributes().PutStr("chronicle_log_type", "TYPE_1")
 
 				rls2 := logs.ResourceLogs().AppendEmpty()
 				sls2 := rls2.ScopeLogs().AppendEmpty()
 				lrs2 := sls2.LogRecords().AppendEmpty()
-				lrs2.Body().SetStr("Failure")
-				lrs2.Attributes().PutStr("chronicle_log_type", "FAILURE_TYPE")
+				lrs2.Body().SetStr("body data")
+				lrs2.Attributes().PutStr("chronicle_log_type", "TYPE_2")
 				return logs
 			}(),
-			expectedBytes: 7, // Data: "Success"
+			expectedBytes: 9, // Data: "body data"
 			rawLogField:   "body",
-			handlers: map[string]http.HandlerFunc{
-				"SUCCESS_TYPE": func(w http.ResponseWriter, _ *http.Request) {
-					w.WriteHeader(http.StatusOK)
-				},
-				"FAILURE_TYPE": func(w http.ResponseWriter, _ *http.Request) {
-					w.WriteHeader(http.StatusInternalServerError)
-				},
-			},
+			// This handler will fail on the 2nd request of either type
+			handlers: func() map[string]http.HandlerFunc {
+				totalCount := 0
+				return map[string]http.HandlerFunc{
+					"TYPE_1": func(w http.ResponseWriter, _ *http.Request) {
+						if totalCount == 0 {
+							w.WriteHeader(http.StatusOK)
+						} else {
+							w.WriteHeader(http.StatusInternalServerError)
+						}
+						totalCount++
+					},
+					"TYPE_2": func(w http.ResponseWriter, _ *http.Request) {
+						if totalCount == 0 {
+							w.WriteHeader(http.StatusOK)
+						} else {
+							w.WriteHeader(http.StatusInternalServerError)
+						}
+						totalCount++
+					},
+				}
+			}(),
 			expectError: true,
 		},
 	}
