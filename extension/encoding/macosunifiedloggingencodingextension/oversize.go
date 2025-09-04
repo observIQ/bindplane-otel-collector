@@ -11,6 +11,7 @@ import (
 
 // ParseOversizeChunk parses an Oversize chunk (0x6002) containing large log entries
 // Returns a slice of individual TraceV3Entry objects for each log message found in the oversize data
+// Based on rust implementation: uses FirehosePreamble::collect_items approach
 func ParseOversizeChunk(data []byte, templateEntry *TraceV3Entry, header *TraceV3Header, timesyncData map[string]*TimesyncBoot) []*TraceV3Entry {
 	if len(data) < 48 { // Need at least 48 bytes for oversize header
 		templateEntry.Message = fmt.Sprintf("Oversize chunk too small: %d bytes", len(data))
@@ -44,93 +45,65 @@ func ParseOversizeChunk(data []byte, templateEntry *TraceV3Entry, header *TraceV
 		return []*TraceV3Entry{templateEntry}
 	}
 
-	// Parse individual log messages from oversize data
-	// Based on Rust implementation: skip first byte, use second byte as item count, then parse like firehose
-	var entries []*TraceV3Entry
-
-	// Parse oversize message items using specialized oversize parsing
-	// Based on rust implementation that shows oversize has similar structure to firehose
-	// but needs specific handling
-	items := parseOversizeMessageItems(messageData)
-
-	// Debug: log parsing results to understand what's happening
-	// fmt.Printf("DEBUG: Oversize parsing - messageData size: %d, items found: %d\n", len(messageData), len(items))
-
-	// Convert parsed items to individual log entries
-	// Relaxed criteria to extract more logs, even if content is limited
-	for _, item := range items {
-		// Create entries for any item that has some content, including debug info
-		var message string
-		if item.MessageStrings != "" && item.MessageStrings != "<private>" {
-			message = item.MessageStrings
-		} else if item.MessageStrings == "<private>" {
-			message = "<private>" // Include private entries to increase log count
-		} else {
-			// Extract any available information even if no proper message string
-			message = fmt.Sprintf("[item_type:0x%x size:%d]", item.ItemType, item.ItemSize)
-			if len(item.MessageData) > 0 {
-				// Add hex dump for small data or brief summary for large data
-				if len(item.MessageData) <= 16 {
-					message += fmt.Sprintf(" data:%x", item.MessageData)
-				} else {
-					message += fmt.Sprintf(" data:%d_bytes", len(item.MessageData))
-				}
-			}
-		}
-
-		// Always create an entry to maximize log output
-		entry := &TraceV3Entry{
-			Type:         templateEntry.Type,
-			Size:         uint32(item.ItemSize),
-			ThreadID:     firstProcID,
-			ProcessID:    secondProcID,
-			Subsystem:    "com.apple.oversize.decompressed", // Match observed output
-			Category:     "oversize_item",                   // More specific category
-			Level:        "Info",
-			MessageType:  "Default",
-			EventType:    "logEvent",
-			ChunkType:    "oversize",
-			TimezoneName: templateEntry.TimezoneName,
-			Message:      message,
-		}
-
-		// Calculate timestamp using oversize's continuous time
-		if timesyncData != nil && header != nil {
-			entry.Timestamp = convertMachTimeToUnixNanosWithTimesync(continuousTime, header.BootUUID, 0, timesyncData)
-		} else {
-			entry.Timestamp = continuousTime
-		}
-
-		entries = append(entries, entry)
+	// Parse individual log messages from oversize data using rust approach
+	// Skip first byte (unknown), second byte is item count, then use firehose item parsing
+	itemCount := messageData[1]
+	if itemCount == 0 {
+		templateEntry.Message = fmt.Sprintf("Oversize chunk: ttl=%d dataRef=%d publicSize=%d privateSize=%d (no items)",
+			ttl, dataRefIndex, publicDataSize, privateDataSize)
+		return []*TraceV3Entry{templateEntry}
 	}
 
-	// Since we now always create entries for all items, this fallback should rarely be used
-	// But keep it as safety net and try to extract more meaningful content
-	if len(entries) == 0 {
-		// Try to extract readable strings directly from the raw message data as last resort
-		readableContent := extractReadableContent(messageData)
+	// Parse firehose items using the same logic as the rust implementation
+	items := parseFirehoseItemsFromOversize(messageData[2:], int(itemCount))
 
-		var message string
-		if readableContent != "" {
-			message = readableContent
-		} else {
-			message = fmt.Sprintf("Oversize chunk: ttl=%d dataRef=%d publicSize=%d privateSize=%d totalSize=%d (no items parsed)",
-				ttl, dataRefIndex, publicDataSize, privateDataSize, totalDataSize)
+	// Convert parsed items to individual log entries
+	var entries []*TraceV3Entry
+	for _, item := range items {
+		// Create entries for items with actual content
+		if item.MessageStrings != "" {
+			entry := &TraceV3Entry{
+				Type:         templateEntry.Type,
+				Size:         uint32(item.ItemSize),
+				ThreadID:     firstProcID,
+				ProcessID:    secondProcID,
+				Subsystem:    "com.apple.oversize.decompressed",
+				Category:     "", // Empty like rust implementation
+				Level:        "Info",
+				MessageType:  "Default",
+				EventType:    "logEvent",
+				ChunkType:    "oversize",
+				TimezoneName: templateEntry.TimezoneName,
+				Message:      item.MessageStrings,
+			}
+
+			// Calculate timestamp using oversize's continuous time
+			if timesyncData != nil && header != nil {
+				entry.Timestamp = convertMachTimeToUnixNanosWithTimesync(continuousTime, header.BootUUID, 0, timesyncData)
+			} else {
+				entry.Timestamp = continuousTime
+			}
+
+			entries = append(entries, entry)
 		}
+	}
 
+	// If no entries were created, create a summary entry
+	if len(entries) == 0 {
 		entry := &TraceV3Entry{
 			Type:         templateEntry.Type,
 			Size:         uint32(totalDataSize),
 			ThreadID:     firstProcID,
 			ProcessID:    secondProcID,
 			Subsystem:    "com.apple.oversize.decompressed",
-			Category:     "oversize_data",
+			Category:     "",
 			Level:        "Info",
 			MessageType:  "Default",
 			EventType:    "logEvent",
 			ChunkType:    "oversize",
 			TimezoneName: templateEntry.TimezoneName,
-			Message:      message,
+			Message: fmt.Sprintf("Oversize chunk: ttl=%d dataRef=%d publicSize=%d privateSize=%d items=%d (no content extracted)",
+				ttl, dataRefIndex, publicDataSize, privateDataSize, itemCount),
 		}
 
 		// Calculate timestamp using oversize's continuous time
@@ -146,95 +119,111 @@ func ParseOversizeChunk(data []byte, templateEntry *TraceV3Entry, header *TraceV
 	return entries
 }
 
-// parseOversizeMessageItems parses message items from oversize data specifically
-// Based on the Rust implementation's collect_items logic but specialized for oversize structure
-func parseOversizeMessageItems(data []byte) []FirehoseItemInfo {
+// parseFirehoseItemsFromOversize parses firehose items from oversize data using rust implementation approach
+// Based on FirehosePreamble::collect_items logic
+func parseFirehoseItemsFromOversize(data []byte, itemCount int) []FirehoseItemInfo {
 	var items []FirehoseItemInfo
+	offset := 0
 
-	if len(data) < 2 {
-		return items
+	// String item types from rust implementation
+	stringItems := map[uint8]bool{
+		0x20: true, 0x21: true, 0x22: true, 0x25: true, 0x40: true, 0x41: true, 0x42: true,
+		0x30: true, 0x31: true, 0x32: true, 0xf2: true, 0x35: true, 0x81: true, 0xf1: true,
 	}
 
-	// Skip the first byte (unknown in rust implementation)
-	// Second byte is the item count
-	itemCount := data[1]
-	if itemCount == 0 {
-		return items
-	}
-	// Increased safety limit to extract more potential logs
-	if itemCount > 200 { // Allow more items than before
-		itemCount = 200 // Cap at reasonable limit but don't skip entirely
+	// Number item types
+	numberItems := map[uint8]bool{
+		0x0: true, 0x2: true,
 	}
 
-	offset := 2 // Start after the 2-byte header
+	// Private number item
+	privateNumber := uint8(0x1)
+
+	// Object items
+	objectItems := map[uint8]bool{
+		0x40: true, 0x42: true,
+	}
 
 	// Parse each item following the firehose item structure
-	// Each item has: type (1 byte) + size (2 bytes) + data
-	for i := 0; i < int(itemCount) && offset < len(data); i++ {
-		if offset+3 > len(data) {
+	for i := 0; i < itemCount && offset < len(data); i++ {
+		if offset+2 > len(data) {
 			break
 		}
 
 		item := FirehoseItemInfo{
 			ItemType: data[offset],
-			ItemSize: binary.LittleEndian.Uint16(data[offset+1 : offset+3]),
+			ItemSize: uint16(data[offset+1]),
 		}
-		offset += 3
+		offset += 2
 
-		// Extract the actual data if size is reasonable
-		if item.ItemSize > 0 && offset+int(item.ItemSize) <= len(data) {
-			item.MessageData = data[offset : offset+int(item.ItemSize)]
-
-			// Parse content based on item type (following rust patterns)
-			switch item.ItemType {
-			case 0x22, 0x32, 0x42, 0x52, 0x62: // String item types from rust (public strings)
-				// Extract null-terminated string or full content
-				messageBytes := item.MessageData
-				// Remove null terminators
-				for len(messageBytes) > 0 && messageBytes[len(messageBytes)-1] == 0 {
-					messageBytes = messageBytes[:len(messageBytes)-1]
-				}
-				if len(messageBytes) > 0 {
-					item.MessageStrings = string(messageBytes)
-				}
-
-			case 0x00, 0x01, 0x02, 0x03: // Number item types
-				// Extract number based on size
-				if len(item.MessageData) >= 8 {
-					value := binary.LittleEndian.Uint64(item.MessageData[:8])
-					item.MessageStrings = fmt.Sprintf("%d", value)
-				} else if len(item.MessageData) >= 4 {
-					value := binary.LittleEndian.Uint32(item.MessageData[:4])
-					item.MessageStrings = fmt.Sprintf("%d", value)
-				} else if len(item.MessageData) >= 2 {
-					value := binary.LittleEndian.Uint16(item.MessageData[:2])
-					item.MessageStrings = fmt.Sprintf("%d", value)
-				} else if len(item.MessageData) >= 1 {
-					item.MessageStrings = fmt.Sprintf("%d", item.MessageData[0])
-				}
-
-			case 0x21, 0x31, 0x41, 0x51: // Private item types
-				item.MessageStrings = "<private>"
-
-			default:
-				// Unknown item type - try to extract printable content or provide useful debug info
-				messageBytes := item.MessageData
-				// Remove null terminators
-				for len(messageBytes) > 0 && messageBytes[len(messageBytes)-1] == 0 {
-					messageBytes = messageBytes[:len(messageBytes)-1]
-				}
-				if len(messageBytes) > 0 && isPrintableString(string(messageBytes)) {
-					item.MessageStrings = string(messageBytes)
-				} else {
-					// Provide debug information to increase log output
-					item.MessageStrings = fmt.Sprintf("[unknown_item:0x%x size:%d]", item.ItemType, item.ItemSize)
-				}
+		// String and private number items have 4 bytes of metadata (offset + size)
+		if stringItems[item.ItemType] || item.ItemType == privateNumber {
+			if offset+4 > len(data) {
+				break
 			}
+			messageOffset := binary.LittleEndian.Uint16(data[offset : offset+2])
+			messageSize := binary.LittleEndian.Uint16(data[offset+2 : offset+4])
+			offset += 4
 
-			offset += int(item.ItemSize)
+			// Store offset and size for later string extraction
+			item.MessageOffset = messageOffset
+			item.MessageStringSize = messageSize
 		}
 
 		items = append(items, item)
+	}
+
+	// Now extract the actual string data from the end of the buffer
+	// The rust implementation shows that string data comes after all item metadata
+	stringDataStart := offset
+	for i := range items {
+		item := &items[i]
+
+		// Handle string items
+		if stringItems[item.ItemType] || item.ItemType == privateNumber {
+			if item.MessageOffset < uint16(len(data)-stringDataStart) &&
+				item.MessageOffset+item.MessageStringSize <= uint16(len(data)-stringDataStart) {
+				stringStart := stringDataStart + int(item.MessageOffset)
+				stringEnd := stringStart + int(item.MessageStringSize)
+				if stringEnd <= len(data) {
+					messageBytes := data[stringStart:stringEnd]
+					// Remove null terminators
+					for len(messageBytes) > 0 && messageBytes[len(messageBytes)-1] == 0 {
+						messageBytes = messageBytes[:len(messageBytes)-1]
+					}
+					if len(messageBytes) > 0 {
+						item.MessageStrings = string(messageBytes)
+					}
+				}
+			}
+		} else if numberItems[item.ItemType] {
+			// Number items - extract the number value
+			if offset < len(data) {
+				// Parse number based on item size
+				if item.ItemSize >= 8 && offset+8 <= len(data) {
+					value := binary.LittleEndian.Uint64(data[offset : offset+8])
+					item.MessageStrings = fmt.Sprintf("%d", value)
+					offset += 8
+				} else if item.ItemSize >= 4 && offset+4 <= len(data) {
+					value := binary.LittleEndian.Uint32(data[offset : offset+4])
+					item.MessageStrings = fmt.Sprintf("%d", value)
+					offset += 4
+				} else if item.ItemSize >= 2 && offset+2 <= len(data) {
+					value := binary.LittleEndian.Uint16(data[offset : offset+2])
+					item.MessageStrings = fmt.Sprintf("%d", value)
+					offset += 2
+				} else if item.ItemSize >= 1 && offset+1 <= len(data) {
+					item.MessageStrings = fmt.Sprintf("%d", data[offset])
+					offset++
+				}
+			}
+		} else if objectItems[item.ItemType] && item.ItemSize == 0 {
+			// Object items with size 0 are "(null)"
+			item.MessageStrings = "(null)"
+		} else {
+			// Private or unknown items
+			item.MessageStrings = "<private>"
+		}
 	}
 
 	return items

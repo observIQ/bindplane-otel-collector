@@ -164,8 +164,32 @@ func parseDecompressedChunksetData(decompressedData []byte, header *TraceV3Heade
 			chunkEntry.Subsystem = "com.apple.firehose.decompressed"
 			chunkEntry.Category = "entry"
 
-			// Use enhanced firehose parsing
+			// Use enhanced firehose parsing with debugging
 			firehoseEntries := ParseFirehoseChunk(chunkData, chunkEntry, header, timesyncData)
+
+			// Add debug information if no entries were extracted
+			if len(firehoseEntries) == 0 {
+				debugEntry := &TraceV3Entry{
+					Type:         chunkTag,
+					Size:         uint32(chunkDataSize),
+					Timestamp:    header.ContinuousTime + uint64(chunkCount)*1000000,
+					ThreadID:     0,
+					ProcessID:    header.LogdPID,
+					Level:        "Debug",
+					MessageType:  "Debug",
+					EventType:    "logEvent",
+					TimezoneName: extractTimezoneName(header.TimezonePath),
+					ChunkType:    "firehose_debug",
+					Subsystem:    "com.apple.firehose.debug",
+					Category:     "parsing_debug",
+					Message:      fmt.Sprintf("Firehose chunk debug: size=%d data_preview=%x", chunkDataSize, chunkData[:min(32, len(chunkData))]),
+				}
+				entries = append(entries, debugEntry)
+			} else {
+				// Return only individual entries, no summary entry
+				// This replaces summary entries with actual log entries as requested
+			}
+
 			entries = append(entries, firehoseEntries...)
 
 		case 0x6002:

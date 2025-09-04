@@ -62,7 +62,7 @@ func ParseFirehoseChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header,
 		entries = append(entries, privateEntries...)
 	}
 
-	// Try to parse public data - lower threshold to catch more entries
+	// Try to parse public data - enhanced to handle multiple firehose entries
 	if publicDataSize > 4 && len(data) >= int(52+publicDataSize) {
 		var actualPublicDataSize uint16
 		var publicDataStart int
@@ -77,7 +77,9 @@ func ParseFirehoseChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header,
 
 		if len(data) >= int(publicDataStart)+int(actualPublicDataSize) {
 			publicData := data[publicDataStart : publicDataStart+int(actualPublicDataSize)]
-			publicEntries := parseIndividualFirehoseEntries(publicData, header, firstProcID, secondProcID, baseContinuousTime, ttl, collapsed, timesyncData)
+			// Enhanced parsing to handle multiple firehose entries in the public data section
+			// This matches the rust implementation's approach of processing all entries in a loop
+			publicEntries := parseMultipleFirehoseEntries(publicData, header, firstProcID, secondProcID, baseContinuousTime, ttl, collapsed, timesyncData)
 			entries = append(entries, publicEntries...)
 		}
 	}
@@ -89,34 +91,246 @@ func ParseFirehoseChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header,
 		// For summary entry, use baseContinuousTime as both the delta time and preamble time since there's no individual entry delta
 		entry.Timestamp = convertMachTimeToUnixNanosWithTimesync(baseContinuousTime, header.BootUUID, baseContinuousTime, timesyncData)
 
-		privateInfo := "no private data"
-		if hasPrivateData {
-			privateInfo = fmt.Sprintf("private data: %d bytes", len(privateData))
-		}
-
-		entry.Message = fmt.Sprintf("Firehose chunk: ttl=%d collapsed=%d publicSize=%d privateOffset=0x%x (%s)",
-			ttl, collapsed, publicDataSize, privateDataOffset, privateInfo)
+		entry.Message = fmt.Sprintf("Firehose chunk parsed: size=%d entries=%d", len(data), len(entries))
 		entry.Level = "Info"
-		entry.Category = "firehose_chunk"
+		entry.Category = "parsing_summary"
+		entry.Subsystem = "com.apple.firehose.summary"
 		entries = []*TraceV3Entry{entry}
+	} else {
+		// Return only the individual entries, no summary entry
+		// This replaces summary entries with actual log entries as requested
 	}
 
 	return entries
 }
 
+// parseMultipleFirehoseEntries parses multiple individual firehose entries from the public data section
+// This implements the rust approach of processing all entries in a loop until the data is exhausted
+func parseMultipleFirehoseEntries(publicData []byte, header *TraceV3Header, firstProcID uint64, secondProcID uint32, baseContinuousTime uint64, ttl, collapsed uint8, timesyncData map[string]*TimesyncBoot) []*TraceV3Entry {
+	var entries []*TraceV3Entry
+	offset := 0
+
+	// Process all firehose entries in the public data section
+	// This matches the rust implementation's while loop approach
+	for offset < len(publicData) {
+		// Need at least 24 bytes for a complete firehose entry header
+		if offset+24 > len(publicData) {
+			break
+		}
+
+		// Parse individual firehose entry header (24 bytes)
+		logActivityType := publicData[offset]
+		logType := publicData[offset+1]
+		flags := binary.LittleEndian.Uint16(publicData[offset+2:])
+		formatStringLocation := binary.LittleEndian.Uint32(publicData[offset+4:])
+		threadID := binary.LittleEndian.Uint64(publicData[offset+8:])
+		continuousTimeDelta := binary.LittleEndian.Uint32(publicData[offset+16:])
+		continuousTimeDeltaUpper := binary.LittleEndian.Uint16(publicData[offset+20:])
+		dataSize := binary.LittleEndian.Uint16(publicData[offset+22:])
+
+		// Check for remnant data (rust implementation stops here)
+		const remnantData = 0x0
+		if logActivityType == remnantData {
+			break
+		}
+
+		// Validate data size
+		if dataSize > uint16(len(publicData)-offset-24) {
+			// Data size exceeds available data, this entry is probably malformed
+			offset += 1
+			continue
+		}
+
+		// Verify we have enough data for this entry
+		if offset+24+int(dataSize) > len(publicData) {
+			// Not enough data for this entry, break out
+			break
+		}
+
+		// Create FirehoseEntry structure
+		firehoseEntry := &FirehoseEntry{
+			ActivityType:         logActivityType,
+			LogType:              logType,
+			Flags:                flags,
+			FormatStringLocation: formatStringLocation,
+			ThreadID:             threadID,
+			TimeDelta:            continuousTimeDelta,
+			TimeDeltaUpper:       continuousTimeDeltaUpper,
+			DataSize:             dataSize,
+		}
+
+		// Extract message data if present
+		if dataSize > 0 {
+			firehoseEntry.MessageData = publicData[offset+24 : offset+24+int(dataSize)]
+		}
+
+		// Parse the individual firehose entry
+		entry := parseSingleFirehoseEntry(firehoseEntry, header, firstProcID, secondProcID, baseContinuousTime, timesyncData)
+		if entry != nil {
+			entries = append(entries, entry)
+		}
+
+		// Move to next entry (24-byte header + data_size bytes)
+		offset += 24 + int(dataSize)
+
+		// Safety check to prevent infinite loops
+		if len(entries) >= 10000 {
+			break
+		}
+	}
+
+	return entries
+}
+
+// parseSingleFirehoseEntry parses a single firehose entry and returns a TraceV3Entry
+func parseSingleFirehoseEntry(firehoseEntry *FirehoseEntry, header *TraceV3Header, firstProcID uint64, secondProcID uint32, baseContinuousTime uint64, timesyncData map[string]*TimesyncBoot) *TraceV3Entry {
+	// Extract number of items from firehose data
+	var itemCount uint8 = 0
+	if len(firehoseEntry.MessageData) >= 2 {
+		// The number of items is the second byte in the message data
+		itemCount = firehoseEntry.MessageData[1]
+	}
+
+	// Calculate the combined continuous time (6 bytes total: 4 + 2)
+	combinedTimeDelta := uint64(firehoseEntry.TimeDelta) | (uint64(firehoseEntry.TimeDeltaUpper) << 32)
+
+	// Parse subsystem ID using enhanced parsing
+	subsystemID := parseSubsystemFromEntry(firehoseEntry)
+	firehoseEntry.SubsystemID = subsystemID
+
+	// Use the original parsing as fallback
+	_, actualSubsystemName, actualCategoryName, useSharedCache := parseFirehoseEntrySubsystem(firehoseEntry.MessageData, firehoseEntry.Flags, firstProcID, secondProcID)
+
+	// Use catalog to resolve process information if available
+	actualPID := secondProcID
+	subsystemName := actualSubsystemName // Use parsed subsystem name as default
+	categoryName := actualCategoryName   // Use parsed category name as default
+
+	if GlobalCatalog != nil {
+		// Try to resolve using the chunk's process IDs
+		if resolvedPID := GlobalCatalog.GetPID(firstProcID, secondProcID); resolvedPID != 0 {
+			actualPID = resolvedPID
+		}
+
+		// Try to resolve subsystem information using the actual subsystem ID from the log entry
+		if subsystemID != 0 { // Only lookup if we have a valid subsystem ID
+			if subsysInfo := GlobalCatalog.GetSubsystem(subsystemID, firstProcID, secondProcID); subsysInfo.Subsystem != "Unknown subsystem" && subsysInfo.Subsystem != "" {
+				subsystemName = subsysInfo.Subsystem
+				if subsysInfo.Category != "" {
+					categoryName = subsysInfo.Category
+				}
+			}
+		}
+	}
+
+	// Create individual log entry
+	// According to rust implementation:
+	// firehose_log_delta_time = firehose_preamble_time + firehose_log_entry_continous_time
+	// where firehose_preamble_time = baseContinuousTime and firehose_log_entry_continous_time = combinedTimeDelta
+	firehoseLogDeltaTime := baseContinuousTime + combinedTimeDelta
+	logEntry := &TraceV3Entry{
+		Type:         0x6001,                                                                                                          // Firehose chunk type
+		Size:         uint32(24 + firehoseEntry.DataSize),                                                                             // Header + data size (24-byte header)
+		Timestamp:    convertMachTimeToUnixNanosWithTimesync(firehoseLogDeltaTime, header.BootUUID, baseContinuousTime, timesyncData), // Use proper timesync-converted timestamp with correct parameters
+		ThreadID:     firehoseEntry.ThreadID,
+		ProcessID:    actualPID, // Use catalog-resolved PID when available
+		ChunkType:    "firehose",
+		Subsystem:    subsystemName, // Use catalog-resolved subsystem when available
+		Category:     categoryName,  // Use catalog-resolved category when available
+		TimezoneName: extractTimezoneName(header.TimezonePath),
+	}
+
+	// Determine log level and message type based on log type and activity type
+	logEntry.MessageType = getLogType(firehoseEntry.LogType, firehoseEntry.ActivityType)
+	logEntry.Level = logEntry.MessageType // Keep Level for backward compatibility
+
+	// Determine event type based on activity type
+	logEntry.EventType = getEventType(firehoseEntry.ActivityType)
+
+	// Category should come from subsystem data, not be hardcoded based on activity type
+	// For now, set to empty string like the rust implementation does initially
+	// The category will be populated from subsystem data if available
+	logEntry.Category = ""
+
+	// Determine shared cache usage with enhanced method
+	useSharedCacheEnhanced := shouldUseSharedCache(firehoseEntry)
+	if !useSharedCacheEnhanced {
+		useSharedCacheEnhanced = useSharedCache // Fallback to original logic
+	}
+
+	// Resolve format string using UUID references (with enhanced shared cache detection)
+	formatData := GetFormatString(firehoseEntry.FormatStringLocation, firstProcID, secondProcID, useSharedCacheEnhanced)
+
+	// Extract message content using enhanced parsing
+	messageContent := extractMessageContent(firehoseEntry)
+
+	// Create descriptive message with resolved format string
+	catalogInfo := ""
+	if GlobalCatalog != nil {
+		if euid := GlobalCatalog.GetEUID(firstProcID, secondProcID); euid != 0 {
+			catalogInfo = fmt.Sprintf(" uid=%d", euid)
+		}
+	}
+
+	// Parse message items for format string substitution
+	messageItems := parseFirehoseMessageItems(firehoseEntry.MessageData, itemCount)
+
+	// Use resolved format string and process information
+	if formatData.FormatString != "" && formatData.FormatString != fmt.Sprintf("raw_format_0x%x", firehoseEntry.FormatStringLocation) {
+		// We have a resolved format string - try to format it with message items
+		formattedMessage := formatFirehoseLogMessage(formatData.FormatString, messageItems)
+		if formattedMessage != "" {
+			// Successfully formatted the message
+			logEntry.Message = formattedMessage
+		} else {
+			// Formatting failed, use format string with message content
+			logEntry.Message = fmt.Sprintf("Format: %s | Process: %s | Thread: %d | %s%s",
+				formatData.FormatString, formatData.Process, firehoseEntry.ThreadID, messageContent, catalogInfo)
+		}
+	} else {
+		// Enhanced fallback with activity type details and debug info
+		catalogDebug := ""
+		if GlobalCatalog != nil {
+			catalogDebug = fmt.Sprintf(" [catalog_procs=%d]", len(GlobalCatalog.ProcessInfoEntries))
+		}
+		// If we have message items but no format string, try to extract meaningful content
+		if len(messageItems) > 0 {
+			// Try to build a meaningful message from the items
+			var messageParts []string
+			for _, item := range messageItems {
+				if item.MessageStrings != "" && item.MessageStrings != "<private>" && isPrintableString(item.MessageStrings) {
+					messageParts = append(messageParts, item.MessageStrings)
+				}
+			}
+			if len(messageParts) > 0 {
+				logEntry.Message = strings.Join(messageParts, " ")
+			} else if messageContent != "" && !strings.Contains(messageContent, "data_size=") {
+				logEntry.Message = messageContent
+			} else {
+				logEntry.Message = fmt.Sprintf("Firehose %s: level=%s flags=0x%x format=0x%x thread=%d delta=%d subsys_id=%d proc_ids=%d/%d resolved_subsys=%s%s%s | %s",
+					mapActivityTypeToString(firehoseEntry.ActivityType), logEntry.Level, firehoseEntry.Flags, firehoseEntry.FormatStringLocation,
+					firehoseEntry.ThreadID, combinedTimeDelta, subsystemID, firstProcID, secondProcID, subsystemName, catalogInfo, catalogDebug, messageContent)
+			}
+		} else {
+			logEntry.Message = fmt.Sprintf("Firehose %s: level=%s flags=0x%x format=0x%x thread=%d delta=%d subsys_id=%d proc_ids=%d/%d resolved_subsys=%s%s%s | %s",
+				mapActivityTypeToString(firehoseEntry.ActivityType), logEntry.Level, firehoseEntry.Flags, firehoseEntry.FormatStringLocation,
+				firehoseEntry.ThreadID, combinedTimeDelta, subsystemID, firstProcID, secondProcID, subsystemName, catalogInfo, catalogDebug, messageContent)
+		}
+	}
+
+	return logEntry
+}
+
 // parseIndividualFirehoseEntries parses multiple individual log entries from the firehose public data section
+// This is the legacy function - kept for backward compatibility
 func parseIndividualFirehoseEntries(publicData []byte, header *TraceV3Header, firstProcID uint64, secondProcID uint32, baseContinuousTime uint64, ttl, collapsed uint8, timesyncData map[string]*TimesyncBoot) []*TraceV3Entry {
 	var entries []*TraceV3Entry
 	offset := 0
 
-	// Valid log types from rust implementation
-	validLogTypes := map[uint8]bool{
-		0x2: true, // Activity
-		0x4: true, // Non-activity (logs)
-		0x6: true, // Signpost
-		0x7: true, // Loss
-		0x3: true, // Trace
-	}
+	// Debug entries removed - return only actual log entries
+
+	// Remove restrictive log type validation - let the rust implementation handle this
+	// The rust implementation processes all log types and maps them appropriately
 
 	const remnantData = 0x0 // When we encounter this, stop parsing
 
@@ -163,12 +377,10 @@ func parseIndividualFirehoseEntries(publicData []byte, header *TraceV3Header, fi
 			break
 		}
 
-		// Validate log activity type (rust implementation validation)
-		if !validLogTypes[logActivityType] {
-			// Invalid log type, skip this entry
-			offset += 1 // More conservative - advance by 1 byte only
-			continue
-		}
+		// Debug entries removed - return only actual log entries
+
+		// Process all log types - let the rust implementation handle the mapping
+		// No need to skip entries based on log type
 
 		// Check if remaining data is sufficient (rust implementation check)
 		if needFullHeader && len(publicData)-offset < 24 {
@@ -203,6 +415,14 @@ func parseIndividualFirehoseEntries(publicData []byte, header *TraceV3Header, fi
 		// Extract message data if present (only for full headers)
 		if needFullHeader && dataSize > 0 {
 			firehoseEntry.MessageData = publicData[offset+24 : offset+24+int(dataSize)]
+		}
+
+		// Extract number of items from firehose data (rust implementation approach)
+		var itemCount uint8 = 0
+		if needFullHeader && len(firehoseEntry.MessageData) >= 2 {
+			// The number of items is the second byte in the message data
+			// (first byte is unknown_item, second byte is number_items)
+			itemCount = firehoseEntry.MessageData[1]
 		}
 
 		// Calculate the combined continuous time (6 bytes total: 4 + 2)
@@ -262,21 +482,10 @@ func parseIndividualFirehoseEntries(publicData []byte, header *TraceV3Header, fi
 			// Determine event type based on activity type
 			logEntry.EventType = getEventType(logActivityType)
 
-			// Determine entry category based on activity type
-			switch logActivityType {
-			case 0x2:
-				logEntry.Category = "activity"
-			case 0x4:
-				logEntry.Category = "log"
-			case 0x6:
-				logEntry.Category = "signpost"
-			case 0x3:
-				logEntry.Category = "trace"
-			case 0x7:
-				logEntry.Category = "loss"
-			default:
-				logEntry.Category = fmt.Sprintf("unknown(0x%x)", logActivityType)
-			}
+			// Category should come from subsystem data, not be hardcoded based on activity type
+			// For now, set to empty string like the rust implementation does initially
+			// The category will be populated from subsystem data if available
+			logEntry.Category = ""
 
 			// Determine shared cache usage with enhanced method
 			useSharedCacheEnhanced := shouldUseSharedCache(firehoseEntry)
@@ -299,7 +508,7 @@ func parseIndividualFirehoseEntries(publicData []byte, header *TraceV3Header, fi
 			}
 
 			// Parse message items for format string substitution
-			messageItems := parseFirehoseMessageItems(firehoseEntry.MessageData)
+			messageItems := parseFirehoseMessageItems(firehoseEntry.MessageData, itemCount)
 
 			// Use resolved format string and process information
 			if formatData.FormatString != "" && formatData.FormatString != fmt.Sprintf("raw_format_0x%x", formatStringLocation) {
@@ -345,6 +554,30 @@ func parseIndividualFirehoseEntries(publicData []byte, header *TraceV3Header, fi
 			}
 
 			entries = append(entries, logEntry)
+		} else {
+			// Even if structured parsing failed, try to extract any readable content
+			if len(publicData) > offset+24 {
+				// Try to extract any readable strings from the data
+				readableContent := extractReadableContentFromBytes(publicData[offset:min(offset+200, len(publicData))])
+				if readableContent != "" {
+					fallbackEntry := &TraceV3Entry{
+						Type:         0x6001,
+						Size:         uint32(min(200, len(publicData)-offset)),
+						Timestamp:    header.ContinuousTime + uint64(len(entries))*1000000,
+						ThreadID:     0,
+						ProcessID:    header.LogdPID,
+						Level:        "Info",
+						MessageType:  "Info",
+						EventType:    "logEvent",
+						TimezoneName: extractTimezoneName(header.TimezonePath),
+						ChunkType:    "firehose_fallback",
+						Subsystem:    "com.apple.firehose.fallback",
+						Category:     "extracted_content",
+						Message:      fmt.Sprintf("Fallback extraction: %s", readableContent),
+					}
+					entries = append(entries, fallbackEntry)
+				}
+			}
 		}
 
 		// Move to next entry (24-byte header + data_size bytes for full headers, or minimum advance for partial)
@@ -362,6 +595,52 @@ func parseIndividualFirehoseEntries(publicData []byte, header *TraceV3Header, fi
 	}
 
 	return entries
+}
+
+// extractReadableContentFromBytes attempts to extract readable strings from raw bytes
+func extractReadableContentFromBytes(data []byte) string {
+	if len(data) == 0 {
+		return ""
+	}
+
+	var readableParts []string
+
+	// Look for printable ASCII strings
+	currentString := ""
+	for _, b := range data {
+		if b >= 32 && b <= 126 { // Printable ASCII range
+			currentString += string(b)
+		} else {
+			if len(currentString) >= 4 { // Only keep strings of 4+ characters
+				readableParts = append(readableParts, currentString)
+			}
+			currentString = ""
+		}
+	}
+
+	// Add the last string if it's long enough
+	if len(currentString) >= 4 {
+		readableParts = append(readableParts, currentString)
+	}
+
+	// Return the first few readable parts
+	if len(readableParts) > 0 {
+		maxParts := 3
+		if len(readableParts) < maxParts {
+			maxParts = len(readableParts)
+		}
+		return strings.Join(readableParts[:maxParts], " | ")
+	}
+
+	return ""
+}
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // parseFirehoseMessageData attempts to extract readable message data from firehose entry data
@@ -550,10 +829,12 @@ func shouldUseSharedCache(entry *FirehoseEntry) bool {
 // FirehoseItemInfo represents a parsed message item from firehose entry data
 // Based on the Rust implementation's FirehoseItemInfo struct
 type FirehoseItemInfo struct {
-	ItemType       uint8  `json:"item_type"`
-	ItemSize       uint16 `json:"item_size"`
-	MessageStrings string `json:"message_strings"`
-	MessageData    []byte `json:"message_data"`
+	ItemType          uint8  `json:"item_type"`
+	ItemSize          uint16 `json:"item_size"`
+	MessageStrings    string `json:"message_strings"`
+	MessageData       []byte `json:"message_data"`
+	MessageOffset     uint16 `json:"message_offset"`
+	MessageStringSize uint16 `json:"message_string_size"`
 }
 
 // extractMessageContent extracts readable message content from firehose entry data
@@ -564,7 +845,12 @@ func extractMessageContent(entry *FirehoseEntry) string {
 	}
 
 	// Parse message items from the firehose entry data
-	items := parseFirehoseMessageItems(entry.MessageData)
+	// Extract item count from message data (second byte)
+	var itemCount uint8 = 0
+	if len(entry.MessageData) >= 2 {
+		itemCount = entry.MessageData[1]
+	}
+	items := parseFirehoseMessageItems(entry.MessageData, itemCount)
 
 	// If we have items, try to extract meaningful content
 	if len(items) > 0 {
@@ -612,79 +898,135 @@ func extractMessageContent(entry *FirehoseEntry) string {
 // parseFirehoseMessageItems parses message items from firehose entry data
 // Based on the Rust implementation's collect_items and parse_private_data logic
 // This is a simplified implementation - the full parsing requires public/private data separation
-func parseFirehoseMessageItems(data []byte) []FirehoseItemInfo {
+func parseFirehoseMessageItems(data []byte, itemCount uint8) []FirehoseItemInfo {
 	var items []FirehoseItemInfo
+	offset := 0
 
-	if len(data) < 1 {
-		return items
+	// Item type constants from rust implementation
+	stringItems := map[uint8]bool{
+		0x20: true, 0x21: true, 0x22: true, 0x25: true, 0x40: true, 0x41: true, 0x42: true,
+		0x30: true, 0x31: true, 0x32: true, 0xf2: true, 0x35: true, 0x81: true, 0xf1: true,
 	}
 
-	// First byte is typically the number of items (based on rust implementation)
-	numItems := data[0]
-	if numItems == 0 || numItems > 100 { // Safety limit
-		return items
+	numberItems := map[uint8]bool{
+		0x0: true, 0x2: true,
 	}
 
-	offset := 1
+	precisionItems := map[uint8]bool{
+		0x10: true, 0x12: true,
+	}
 
-	// Collect basic item info first (type + size pairs)
-	// Based on rust collect_items function
-	for i := 0; i < int(numItems) && offset < len(data); i++ {
-		if offset+3 > len(data) {
+	sensitiveItems := map[uint8]bool{
+		0x5: true, 0x45: true, 0x85: true,
+	}
+
+	objectItems := map[uint8]bool{
+		0x40: true, 0x42: true,
+	}
+
+	privateNumber := uint8(0x1)
+
+	// First pass: parse item metadata
+	for i := uint8(0); i < itemCount && offset < len(data); i++ {
+		if offset+2 > len(data) {
 			break
 		}
 
 		item := FirehoseItemInfo{
 			ItemType: data[offset],
-			ItemSize: binary.LittleEndian.Uint16(data[offset+1 : offset+3]),
+			ItemSize: uint16(data[offset+1]),
 		}
-		offset += 3
+		offset += 2
 
-		// For now, we'll do basic validation and content extraction
-		// The full rust implementation has more complex parsing with private data
-		if item.ItemSize > 0 && offset+int(item.ItemSize) <= len(data) {
-			item.MessageData = data[offset : offset+int(item.ItemSize)]
-
-			// Try to extract meaningful content based on item type
-			switch item.ItemType {
-			case 0x22, 0x32, 0x42, 0x52: // String item types from rust
-				// Extract null-terminated string
-				nullIndex := -1
-				for i, b := range item.MessageData {
-					if b == 0 {
-						nullIndex = i
-						break
-					}
-				}
-				if nullIndex > 0 {
-					item.MessageStrings = string(item.MessageData[:nullIndex])
-				} else if isPrintableString(string(item.MessageData)) {
-					item.MessageStrings = string(item.MessageData)
-				}
-			case 0x02, 0x12, 0x03, 0x13: // Number item types from rust
-				// Extract number based on size
-				if len(item.MessageData) >= 4 {
-					value := binary.LittleEndian.Uint32(item.MessageData[:4])
-					item.MessageStrings = fmt.Sprintf("%d", value)
-				} else if len(item.MessageData) >= 2 {
-					value := binary.LittleEndian.Uint16(item.MessageData[:2])
-					item.MessageStrings = fmt.Sprintf("%d", value)
-				} else if len(item.MessageData) >= 1 {
-					item.MessageStrings = fmt.Sprintf("%d", item.MessageData[0])
-				}
-			case 0x01, 0x21, 0x31, 0x41: // Private item types from rust
-				item.MessageStrings = "<private>"
-			default:
-				// Unknown item type - try to extract printable content
-				if isPrintableString(string(item.MessageData)) {
-					item.MessageStrings = string(item.MessageData)
-				}
+		// String and private number items have 4 bytes of metadata (offset + size)
+		if stringItems[item.ItemType] || item.ItemType == privateNumber {
+			if offset+4 > len(data) {
+				break
 			}
+			item.MessageOffset = binary.LittleEndian.Uint16(data[offset : offset+2])
+			item.MessageStringSize = binary.LittleEndian.Uint16(data[offset+2 : offset+4])
+			offset += 4
+		}
 
-			offset += int(item.ItemSize)
+		// Precision items just contain the length for the actual item
+		if precisionItems[item.ItemType] {
+			if offset+int(item.ItemSize) <= len(data) {
+				offset += int(item.ItemSize)
+			}
+		}
+
+		// Sensitive items have 4 bytes of metadata
+		if sensitiveItems[item.ItemType] {
+			if offset+4 > len(data) {
+				break
+			}
+			item.MessageOffset = binary.LittleEndian.Uint16(data[offset : offset+2])
+			item.MessageStringSize = binary.LittleEndian.Uint16(data[offset+2 : offset+4])
+			offset += 4
 		}
 
 		items = append(items, item)
+	}
+
+	// Second pass: extract number values immediately (they follow the item metadata)
+	for i := range items {
+		item := &items[i]
+
+		if numberItems[item.ItemType] {
+			// Parse number based on item size
+			if offset+int(item.ItemSize) <= len(data) {
+				if item.ItemSize >= 8 {
+					value := binary.LittleEndian.Uint64(data[offset : offset+8])
+					item.MessageStrings = fmt.Sprintf("%d", value)
+					offset += 8
+				} else if item.ItemSize >= 4 {
+					value := binary.LittleEndian.Uint32(data[offset : offset+4])
+					item.MessageStrings = fmt.Sprintf("%d", value)
+					offset += 4
+				} else if item.ItemSize >= 2 {
+					value := binary.LittleEndian.Uint16(data[offset : offset+2])
+					item.MessageStrings = fmt.Sprintf("%d", value)
+					offset += 2
+				} else if item.ItemSize >= 1 {
+					item.MessageStrings = fmt.Sprintf("%d", data[offset])
+					offset++
+				}
+			}
+		}
+	}
+
+	// Third pass: extract string data from the end of the buffer
+	stringDataStart := offset
+	for i := range items {
+		item := &items[i]
+
+		// Handle string items
+		if stringItems[item.ItemType] || item.ItemType == privateNumber {
+			if item.MessageOffset < uint16(len(data)-stringDataStart) &&
+				item.MessageOffset+item.MessageStringSize <= uint16(len(data)-stringDataStart) {
+				stringStart := stringDataStart + int(item.MessageOffset)
+				stringEnd := stringStart + int(item.MessageStringSize)
+				if stringEnd <= len(data) {
+					messageBytes := data[stringStart:stringEnd]
+					// Remove null terminators
+					for len(messageBytes) > 0 && messageBytes[len(messageBytes)-1] == 0 {
+						messageBytes = messageBytes[:len(messageBytes)-1]
+					}
+					if len(messageBytes) > 0 {
+						item.MessageStrings = string(messageBytes)
+					}
+				}
+			}
+		} else if sensitiveItems[item.ItemType] {
+			// Sensitive items are private
+			item.MessageStrings = "<private>"
+		} else if objectItems[item.ItemType] && item.MessageStringSize == 0 {
+			// Object items with size 0 are "(null)"
+			item.MessageStrings = "(null)"
+		} else if precisionItems[item.ItemType] {
+			// Precision items just contain the length
+			item.MessageStrings = fmt.Sprintf("%d", item.ItemSize)
+		}
 	}
 
 	return items
@@ -704,24 +1046,6 @@ func isPrintableString(s string) bool {
 	}
 
 	return float64(printableCount)/float64(len(s)) > 0.7 // At least 70% printable
-}
-
-// mapActivityTypeToCategory maps activity type to a human-readable category
-func mapActivityTypeToCategory(activityType uint8) string {
-	switch activityType {
-	case 0x2:
-		return "activity"
-	case 0x4:
-		return "log"
-	case 0x6:
-		return "signpost"
-	case 0x7:
-		return "loss"
-	case 0x3:
-		return "trace"
-	default:
-		return fmt.Sprintf("unknown_0x%x", activityType)
-	}
 }
 
 // mapActivityTypeToString maps activity type to a descriptive string
