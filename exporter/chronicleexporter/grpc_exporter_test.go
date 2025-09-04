@@ -261,11 +261,17 @@ func TestGRPCExporterTelemetry(t *testing.T) {
 		cfg.BackOffConfig.Enabled = false
 	}
 
+	defaultHandler := func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
+		return &api.BatchCreateLogsResponse{}, nil
+	}
+
 	testCases := []struct {
 		name          string
 		input         plog.Logs
 		expectedBytes int
 		rawLogField   string
+		handler       mockBatchCreateLogsHandler
+		expectError   bool
 	}{
 		{
 			name: "single log record",
@@ -280,6 +286,8 @@ func TestGRPCExporterTelemetry(t *testing.T) {
 			// JSON: {"attributes":{},"body":"Test","resource_attributes":{}}
 			expectedBytes: 56,
 			rawLogField:   "",
+			handler:       defaultHandler,
+			expectError:   false,
 		},
 		{
 			name: "single log record with attributes and resources",
@@ -296,6 +304,8 @@ func TestGRPCExporterTelemetry(t *testing.T) {
 			// JSON: {"attributes":{"A":"10"},"body":"Test","resource_attributes":{"R":"5"}}
 			expectedBytes: 71,
 			rawLogField:   "",
+			handler:       defaultHandler,
+			expectError:   false,
 		},
 		{
 			name: "single log record with RawLogField set to body",
@@ -312,15 +322,68 @@ func TestGRPCExporterTelemetry(t *testing.T) {
 			// When RawLogField is set to "body", only the body content "Test" is sent
 			expectedBytes: 4,
 			rawLogField:   "body",
+			handler:       defaultHandler,
+			expectError:   false,
+		},
+		{
+			name: "multiple payloads",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls1 := logs.ResourceLogs().AppendEmpty()
+				sls1 := rls1.ScopeLogs().AppendEmpty()
+				lrs1 := sls1.LogRecords().AppendEmpty()
+				lrs1.Body().SetStr("type1")
+				lrs1.Attributes().PutStr("chronicle_log_type", "TYPE_1")
+
+				rls2 := logs.ResourceLogs().AppendEmpty()
+				sls2 := rls2.ScopeLogs().AppendEmpty()
+				lrs2 := sls2.LogRecords().AppendEmpty()
+				lrs2.Body().SetStr("type2")
+				lrs2.Attributes().PutStr("chronicle_log_type", "TYPE_2")
+				return logs
+			}(),
+			expectedBytes: 10, // Data: "type1type2"
+			rawLogField:   "body",
+			handler:       defaultHandler,
+			expectError:   false,
+		},
+		{
+			name: "multiple payloads with one failure - should not count bytes for failed payload",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls1 := logs.ResourceLogs().AppendEmpty()
+				sls1 := rls1.ScopeLogs().AppendEmpty()
+				lrs1 := sls1.LogRecords().AppendEmpty()
+				lrs1.Body().SetStr("Success")
+				lrs1.Attributes().PutStr("chronicle_log_type", "SUCCESS_TYPE")
+
+				rls2 := logs.ResourceLogs().AppendEmpty()
+				sls2 := rls2.ScopeLogs().AppendEmpty()
+				lrs2 := sls2.LogRecords().AppendEmpty()
+				lrs2.Body().SetStr("Failure")
+				lrs2.Attributes().PutStr("chronicle_log_type", "FAILURE_TYPE")
+				return logs
+			}(),
+			expectedBytes: 7, // Data: "Success"
+			rawLogField:   "body",
+			handler: func() mockBatchCreateLogsHandler {
+				requestCount := 0
+				return func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
+					requestCount++
+					// Fail on the second request
+					if requestCount == 2 {
+						return nil, status.Error(codes.Internal, "Simulated failure")
+					}
+					return &api.BatchCreateLogsResponse{}, nil
+				}
+			}(),
+			expectError: true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			handler := func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
-				return &api.BatchCreateLogsResponse{}, nil
-			}
-			mockServer, endpoint := newMockGRPCServer(t, handler)
+			mockServer, endpoint := newMockGRPCServer(t, tc.handler)
 			defer mockServer.srv.GracefulStop()
 
 			// Create telemetry for testing metrics
@@ -355,7 +418,14 @@ func TestGRPCExporterTelemetry(t *testing.T) {
 			}()
 
 			err = exp.ConsumeLogs(ctx, tc.input)
-			require.NoError(t, err)
+
+			// Check error expectations based on test case
+			if tc.expectError {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "upload logs to chronicle")
+			} else {
+				require.NoError(t, err)
+			}
 
 			// Test telemetry metrics - check that the metric exists and has the expected value
 			metric, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
