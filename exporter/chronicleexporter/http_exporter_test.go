@@ -283,12 +283,6 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 		rawLogField   string
 	}{
 		{
-			name:          "empty log record",
-			input:         plog.NewLogs(),
-			expectedBytes: 0,
-			rawLogField:   "",
-		},
-		{
 			name: "single log record",
 			input: func() plog.Logs {
 				logs := plog.NewLogs()

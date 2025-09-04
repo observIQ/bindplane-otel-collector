@@ -92,16 +92,15 @@ func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings, tel
 	}, nil
 }
 
-func (m *protoMarshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]*api.BatchCreateLogsRequest, uint, error) {
-	logGrouper, totalSize, err := m.extractRawLogs(ctx, ld)
+func (m *protoMarshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]*api.BatchCreateLogsRequest, error) {
+	logGrouper, err := m.extractRawLogs(ctx, ld)
 	if err != nil {
-		return nil, 0, fmt.Errorf("extract raw logs: %w", err)
+		return nil, fmt.Errorf("extract raw logs: %w", err)
 	}
-	return m.constructPayloads(logGrouper), totalSize, nil
+	return m.constructPayloads(logGrouper), nil
 }
 
-func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (*logGrouper, uint, error) {
-	totalSize := uint(0)
+func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (*logGrouper, error) {
 	logGrouper := newLogGrouper()
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		resourceLog := ld.ResourceLogs().At(i)
@@ -130,12 +129,11 @@ func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (*log
 					Data:           []byte(rawLog),
 				}
 				logGrouper.Add(entry, namespace, logType, ingestionLabels)
-				totalSize += uint(len(rawLog))
 			}
 		}
 	}
 
-	return logGrouper, totalSize, nil
+	return logGrouper, nil
 }
 
 func (m *protoMarshaler) processLogRecord(ctx context.Context, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, string, string, []*api.Label, error) {
@@ -490,16 +488,15 @@ func (m *protoMarshaler) buildGRPCRequest(entries []*api.LogEntry, logType, name
 	}
 }
 
-func (m *protoMarshaler) MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs) (map[string][]*api.ImportLogsRequest, uint, error) {
-	rawLogs, totalSize, err := m.extractRawHTTPLogs(ctx, ld)
+func (m *protoMarshaler) MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs) (map[string][]*api.ImportLogsRequest, error) {
+	rawLogs, err := m.extractRawHTTPLogs(ctx, ld)
 	if err != nil {
-		return nil, 0, fmt.Errorf("extract raw logs: %w", err)
+		return nil, fmt.Errorf("extract raw logs: %w", err)
 	}
-	return m.constructHTTPPayloads(rawLogs), totalSize, nil
+	return m.constructHTTPPayloads(rawLogs), nil
 }
 
-func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (map[string][]*api.Log, uint, error) {
-	totalSize := uint(0)
+func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (map[string][]*api.Log, error) {
 	entries := make(map[string][]*api.Log)
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		resourceLog := ld.ResourceLogs().At(i)
@@ -528,12 +525,11 @@ func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (
 					Labels:               ingestionLabels,
 				}
 				entries[logType] = append(entries[logType], entry)
-				totalSize += uint(len(entry.Data))
 			}
 		}
 	}
 
-	return entries, totalSize, nil
+	return entries, nil
 }
 
 func getTimestamp(logRecord plog.LogRecord) time.Time {

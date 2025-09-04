@@ -189,7 +189,7 @@ func (exp *httpExporter) Shutdown(context.Context) error {
 }
 
 func (exp *httpExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
-	payloads, totalSize, err := exp.marshaler.MarshalRawLogsForHTTP(ctx, ld)
+	payloads, err := exp.marshaler.MarshalRawLogsForHTTP(ctx, ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
 	}
@@ -198,10 +198,24 @@ func (exp *httpExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 			if err := exp.uploadToChronicleHTTP(ctx, payload, logType); err != nil {
 				return fmt.Errorf("upload to chronicle: %w", err)
 			}
+			batchBytes := exp.countBatchBytes(payload)
+			exp.telemetry.ExporterRawBytes.Add(
+				ctx,
+				int64(batchBytes),
+				metric.WithAttributeSet(exp.metricAttributes),
+			)
 		}
 	}
-	exp.telemetry.ExporterRawBytes.Add(ctx, int64(totalSize), metric.WithAttributeSet(exp.metricAttributes))
 	return nil
+}
+
+func (exp *httpExporter) countBatchBytes(batch *api.ImportLogsRequest) uint {
+	entries := batch.Source.(*api.ImportLogsRequest_InlineSource).InlineSource.Logs
+	batchBytes := uint(0)
+	for _, entries := range entries {
+		batchBytes += uint(len(entries.Data))
+	}
+	return batchBytes
 }
 
 func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.ImportLogsRequest, logType string) error {
