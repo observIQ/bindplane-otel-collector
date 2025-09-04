@@ -90,7 +90,6 @@ func TestHTTPExporter(t *testing.T) {
 		handlers         map[string]http.HandlerFunc
 		input            plog.Logs
 		expectedRequests int
-		expectedBytes    int
 		expectedErr      string
 		permanentErr     bool
 	}{
@@ -98,7 +97,6 @@ func TestHTTPExporter(t *testing.T) {
 			name:             "empty log record",
 			input:            plog.NewLogs(),
 			expectedRequests: 0,
-			expectedBytes:    0,
 		},
 		{
 			name: "single log record",
@@ -111,7 +109,6 @@ func TestHTTPExporter(t *testing.T) {
 				return logs
 			}(),
 			expectedRequests: 1,
-			expectedBytes:    56, // JSON: {"attributes":{},"body":"Test","resource_attributes":{}}
 		},
 		{
 			name: "single log record with attributes and resources",
@@ -126,8 +123,6 @@ func TestHTTPExporter(t *testing.T) {
 				return logs
 			}(),
 			expectedRequests: 1,
-			// JSON: {"attributes":{"A":"10"},"body":"Test","resource_attributes":{"R":"5"}}
-			expectedBytes: 71,
 		},
 		// TODO test splitting large payloads
 		{
@@ -148,7 +143,6 @@ func TestHTTPExporter(t *testing.T) {
 			expectedRequests: 1,
 			expectedErr:      "upload to chronicle: 503 Service Unavailable",
 			permanentErr:     false,
-			expectedBytes:    0,
 		},
 		{
 			name: "permanent_error",
@@ -168,7 +162,6 @@ func TestHTTPExporter(t *testing.T) {
 			expectedRequests: 1,
 			expectedErr:      "upload to chronicle: Permanent error: 401 Unauthorized",
 			permanentErr:     true,
-			expectedBytes:    0,
 		},
 	}
 
@@ -191,10 +184,6 @@ func TestHTTPExporter(t *testing.T) {
 				return fmt.Sprintf("%s/logTypes/%s/logs:import", mockServer.srv.URL, logType)
 			}
 
-			// Create telemetry for testing metrics
-			testTelemetry := componenttest.NewTelemetry()
-			defer testTelemetry.Shutdown(context.Background())
-
 			f := NewFactory()
 			cfg := f.CreateDefaultConfig().(*Config)
 			if tc.cfgMod != nil {
@@ -205,7 +194,7 @@ func TestHTTPExporter(t *testing.T) {
 			require.NoError(t, cfg.Validate())
 
 			ctx := context.Background()
-			exp, err := f.CreateLogs(ctx, metadatatest.NewSettings(testTelemetry), cfg)
+			exp, err := f.CreateLogs(ctx, exportertest.NewNopSettings(typ), cfg)
 			require.NoError(t, err)
 			require.NoError(t, exp.Start(ctx, componenttest.NewNopHost()))
 			defer func() {
@@ -221,19 +210,6 @@ func TestHTTPExporter(t *testing.T) {
 			}
 
 			require.Equal(t, tc.expectedRequests, mockServer.requestCount)
-
-			if tc.expectedErr == "" {
-				// Test telemetry metrics - check that the metric exists and has the expected value
-				metric, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
-				require.NoError(t, err)
-				require.NotNil(t, metric)
-
-				// For successful cases, verify the metric has the expected value
-				sumData, ok := metric.Data.(metricdata.Sum[int64])
-				require.True(t, ok, "Expected Sum metric data")
-				require.Len(t, sumData.DataPoints, 1, "Expected exactly one data point")
-				require.Equal(t, int64(tc.expectedBytes), sumData.DataPoints[0].Value)
-			}
 		})
 	}
 }
@@ -269,4 +245,144 @@ func TestHTTPJSONCredentialsError(t *testing.T) {
 
 	// Shutdown should not panic
 	require.NoError(t, exp.Shutdown(ctx))
+}
+
+// TestHTTPExporterTelemetry tests the telemetry metrics functionality of the HTTP exporter
+func TestHTTPExporterTelemetry(t *testing.T) {
+	// Override the token source so that we don't have to provide real credentials
+	secureTokenSource := tokenSource
+	defer func() {
+		tokenSource = secureTokenSource
+	}()
+	tokenSource = func(context.Context, *Config) (oauth2.TokenSource, error) {
+		return &emptyTokenSource{}, nil
+	}
+
+	// By default, tests will apply the following changes to NewFactory.CreateDefaultConfig()
+	defaultCfgMod := func(cfg *Config) {
+		cfg.Protocol = protocolHTTPS
+		cfg.Location = "us"
+		cfg.CustomerID = "00000000-1111-2222-3333-444444444444"
+		cfg.Project = "fake"
+		cfg.Forwarder = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		cfg.LogType = "FAKE"
+		cfg.QueueBatchConfig.Enabled = false
+		cfg.BackOffConfig.Enabled = false
+	}
+
+	defaultHandlers := map[string]http.HandlerFunc{
+		"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		},
+	}
+
+	testCases := []struct {
+		name          string
+		input         plog.Logs
+		expectedBytes int
+		rawLogField   string
+	}{
+		{
+			name:          "empty log record",
+			input:         plog.NewLogs(),
+			expectedBytes: 0,
+			rawLogField:   "",
+		},
+		{
+			name: "single log record",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedBytes: 56, // JSON: {"attributes":{},"body":"Test","resource_attributes":{}}
+			rawLogField:   "",
+		},
+		{
+			name: "single log record with attributes and resources",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				rls.Resource().Attributes().PutStr("R", "5")
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				lrs.Attributes().PutStr("A", "10")
+				return logs
+			}(),
+			// JSON: {"attributes":{"A":"10"},"body":"Test","resource_attributes":{"R":"5"}}
+			expectedBytes: 71,
+			rawLogField:   "",
+		},
+		{
+			name: "single log record with RawLogField set to body",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				rls.Resource().Attributes().PutStr("R", "5")
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				lrs.Attributes().PutStr("A", "10")
+				return logs
+			}(),
+			// When RawLogField is set to "body", only the body content "Test" is sent
+			expectedBytes: 4,
+			rawLogField:   "body",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a mock server so we are not dependent on the actual Chronicle service
+			mockServer := newMockHTTPServer(defaultHandlers)
+			defer mockServer.srv.Close()
+
+			// Override the endpoint builder so that we can point to the mock server
+			secureHTTPEndpoint := httpEndpoint
+			defer func() {
+				httpEndpoint = secureHTTPEndpoint
+			}()
+			httpEndpoint = func(_ *Config, logType string) string {
+				return fmt.Sprintf("%s/logTypes/%s/logs:import", mockServer.srv.URL, logType)
+			}
+
+			// Create telemetry for testing metrics
+			testTelemetry := componenttest.NewTelemetry()
+			defer testTelemetry.Shutdown(context.Background())
+
+			f := NewFactory()
+			cfg := f.CreateDefaultConfig().(*Config)
+			defaultCfgMod(cfg)
+			if tc.rawLogField != "" {
+				cfg.RawLogField = tc.rawLogField
+			}
+			require.NoError(t, cfg.Validate())
+
+			ctx := context.Background()
+			exp, err := f.CreateLogs(ctx, metadatatest.NewSettings(testTelemetry), cfg)
+			require.NoError(t, err)
+			require.NoError(t, exp.Start(ctx, componenttest.NewNopHost()))
+			defer func() {
+				require.NoError(t, exp.Shutdown(ctx))
+			}()
+
+			err = exp.ConsumeLogs(ctx, tc.input)
+			require.NoError(t, err)
+
+			// Test telemetry metrics - check that the metric exists and has the expected value
+			metric, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
+			require.NoError(t, err)
+			require.NotNil(t, metric)
+
+			// For successful cases, verify the metric has the expected value
+			sumData, ok := metric.Data.(metricdata.Sum[int64])
+			require.True(t, ok, "Expected Sum metric data")
+			require.Len(t, sumData.DataPoints, 1, "Expected exactly one data point")
+			require.Equal(t, int64(tc.expectedBytes), sumData.DataPoints[0].Value)
+		})
+	}
 }
