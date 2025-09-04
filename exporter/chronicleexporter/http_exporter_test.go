@@ -281,6 +281,8 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 		input         plog.Logs
 		expectedBytes int
 		rawLogField   string
+		handlers      map[string]http.HandlerFunc
+		expectError   bool
 	}{
 		{
 			name: "single log record",
@@ -292,8 +294,11 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 				lrs.Body().SetStr("Test")
 				return logs
 			}(),
-			expectedBytes: 56, // JSON: {"attributes":{},"body":"Test","resource_attributes":{}}
+			// JSON: {"attributes":{},"body":"Test","resource_attributes":{}}
+			expectedBytes: 56,
 			rawLogField:   "",
+			handlers:      nil,
+			expectError:   false,
 		},
 		{
 			name: "single log record with attributes and resources",
@@ -310,6 +315,8 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 			// JSON: {"attributes":{"A":"10"},"body":"Test","resource_attributes":{"R":"5"}}
 			expectedBytes: 71,
 			rawLogField:   "",
+			handlers:      nil,
+			expectError:   false,
 		},
 		{
 			name: "single log record with RawLogField set to body",
@@ -323,16 +330,79 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 				lrs.Attributes().PutStr("A", "10")
 				return logs
 			}(),
-			// When RawLogField is set to "body", only the body content "Test" is sent
-			expectedBytes: 4,
+			expectedBytes: 4, // Data: "Test"
 			rawLogField:   "body",
+			handlers:      nil,
+			expectError:   false,
+		},
+		{
+			name: "multiple payloads",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls1 := logs.ResourceLogs().AppendEmpty()
+				sls1 := rls1.ScopeLogs().AppendEmpty()
+				lrs1 := sls1.LogRecords().AppendEmpty()
+				lrs1.Body().SetStr("type1")
+				lrs1.Attributes().PutStr("chronicle_log_type", "TYPE_1")
+
+				rls2 := logs.ResourceLogs().AppendEmpty()
+				sls2 := rls2.ScopeLogs().AppendEmpty()
+				lrs2 := sls2.LogRecords().AppendEmpty()
+				lrs2.Body().SetStr("type2")
+				lrs2.Attributes().PutStr("chronicle_log_type", "TYPE_2")
+				return logs
+			}(),
+			expectedBytes: 10, // Data: "type1type2"
+			rawLogField:   "body",
+			handlers: map[string]http.HandlerFunc{
+				"TYPE_1": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+				},
+				"TYPE_2": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "multiple payloads with one failure - should not count bytes for failed payload",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls1 := logs.ResourceLogs().AppendEmpty()
+				sls1 := rls1.ScopeLogs().AppendEmpty()
+				lrs1 := sls1.LogRecords().AppendEmpty()
+				lrs1.Body().SetStr("Success")
+				lrs1.Attributes().PutStr("chronicle_log_type", "SUCCESS_TYPE")
+
+				rls2 := logs.ResourceLogs().AppendEmpty()
+				sls2 := rls2.ScopeLogs().AppendEmpty()
+				lrs2 := sls2.LogRecords().AppendEmpty()
+				lrs2.Body().SetStr("Failure")
+				lrs2.Attributes().PutStr("chronicle_log_type", "FAILURE_TYPE")
+				return logs
+			}(),
+			expectedBytes: 7, // Data: "Success"
+			rawLogField:   "body",
+			handlers: map[string]http.HandlerFunc{
+				"SUCCESS_TYPE": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusOK)
+				},
+				"FAILURE_TYPE": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusInternalServerError)
+				},
+			},
+			expectError: true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create a mock server so we are not dependent on the actual Chronicle service
-			mockServer := newMockHTTPServer(defaultHandlers)
+			handlers := defaultHandlers
+			if tc.handlers != nil {
+				handlers = tc.handlers
+			}
+			mockServer := newMockHTTPServer(handlers)
 			defer mockServer.srv.Close()
 
 			// Override the endpoint builder so that we can point to the mock server
@@ -365,7 +435,14 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 			}()
 
 			err = exp.ConsumeLogs(ctx, tc.input)
-			require.NoError(t, err)
+
+			// Check error expectations based on test case
+			if tc.expectError {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "upload to chronicle")
+			} else {
+				require.NoError(t, err)
+			}
 
 			// Test telemetry metrics - check that the metric exists and has the expected value
 			metric, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
@@ -375,6 +452,7 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 			// For successful cases, verify the metric has the expected value
 			sumData, ok := metric.Data.(metricdata.Sum[int64])
 			require.True(t, ok, "Expected Sum metric data")
+
 			require.Len(t, sumData.DataPoints, 1, "Expected exactly one data point")
 			require.Equal(t, int64(tc.expectedBytes), sumData.DataPoints[0].Value)
 		})
