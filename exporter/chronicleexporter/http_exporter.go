@@ -217,9 +217,13 @@ func (exp *httpExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 func (exp *httpExporter) countAndReportBatchBytes(ctx context.Context, payloads []*api.ImportLogsRequest) {
 	totalBytes := uint(0)
 	for _, payload := range payloads {
-		entries := payload.Source.(*api.ImportLogsRequest_InlineSource).InlineSource.Logs
-		for _, entries := range entries {
-			totalBytes += uint(len(entries.Data))
+		inlineSource := payload.GetInlineSource()
+		if inlineSource == nil {
+			exp.set.Logger.Warn("Payload source is not InlineSource, skipping bytes calculation")
+			continue
+		}
+		for _, entry := range inlineSource.Logs {
+			totalBytes += uint(len(entry.Data))
 		}
 	}
 	if totalBytes > 0 {
