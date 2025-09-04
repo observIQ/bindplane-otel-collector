@@ -105,10 +105,10 @@ func ParseTraceV3Header(data []byte) (*TraceV3Header, int, error) {
 	header.UnknownFlags = binary.LittleEndian.Uint32(data[offset:])
 	offset += 4
 
-	// Validate basic magic numbers
-	if header.ChunkTag != 0x1000 && header.ChunkTag != 0x1001 {
-		return nil, 0, fmt.Errorf("invalid chunk tag: expected 0x1000 or 0x1001, got 0x%x", header.ChunkTag)
-	}
+	// Unlike the previous approach, we follow the Rust implementation which does not validate
+	// chunk tags in the header parsing. Invalid chunk tags are handled in the main parsing loop.
+	// This allows processing of files that may have non-standard header chunk tags but contain
+	// valid data in other chunks.
 
 	// Parse sub-chunks if there's enough data
 	if offset+8 <= len(data) {
@@ -204,30 +204,48 @@ func ParseTraceV3DataWithTimesync(data []byte, timesyncData map[string]*Timesync
 		return nil, fmt.Errorf("empty data")
 	}
 
-	// Parse the header first
+	// Parse the header first - use error recovery for corrupted headers
 	header, headerSize, err := ParseTraceV3Header(data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse header: %w", err)
+		// If header parsing still fails completely, create a fallback entry
+		fallbackEntry := &TraceV3Entry{
+			Type:         0xFFFF, // Fallback type
+			Size:         uint32(len(data)),
+			ThreadID:     0,
+			ProcessID:    0,
+			Subsystem:    "com.apple.tracev3.unparseable",
+			Category:     "total_failure",
+			Level:        "Error",
+			MessageType:  "Default",
+			EventType:    "logEvent",
+			ChunkType:    "unparseable",
+			TimezoneName: "Unknown",
+			Message:      fmt.Sprintf("Completely unparseable tracev3 data (%d bytes): %v", len(data), err),
+		}
+		return []*TraceV3Entry{fallbackEntry}, nil
 	}
 
 	// Create a header info entry with the parsed details
-	entries := []*TraceV3Entry{
-		{
-			Type:      0x0000, // Header info type
-			Size:      uint32(headerSize),
-			Timestamp: convertMachTimeToUnixNanosWithTimesync(header.ContinuousTime, header.BootUUID, 0, timesyncData),
-			ThreadID:  0,
-			ProcessID: header.LogdPID,
-			Message: fmt.Sprintf("TraceV3 Header: chunk_tag=0x%x, build=%s, hardware=%s, boot_uuid=%s",
-				header.ChunkTag, header.BuildVersionString, header.HardwareModelString, header.BootUUID),
-			Subsystem:    "com.apple.logd",
-			Category:     "header",
-			Level:        "Info",
-			MessageType:  "Info",
-			EventType:    "logEvent",
-			TimezoneName: extractTimezoneName(header.TimezonePath),
-		},
-	}
+	// headerEntry := &TraceV3Entry{
+	// 	Type:         0x0000, // Header info type
+	// 	Size:         uint32(headerSize),
+	// 	Timestamp:    convertMachTimeToUnixNanosWithTimesync(header.ContinuousTime, header.BootUUID, 0, timesyncData),
+	// 	ThreadID:     0,
+	// 	ProcessID:    header.LogdPID,
+	// 	Subsystem:    "com.apple.logd",
+	// 	Category:     "header",
+	// 	Level:        "Info",
+	// 	MessageType:  "Info",
+	// 	EventType:    "logEvent",
+	// 	TimezoneName: extractTimezoneName(header.TimezonePath),
+	// }
+
+	// Create a standard header info entry (no special handling for non-standard chunk tags)
+	// headerEntry.Message = fmt.Sprintf("TraceV3 Header: chunk_tag=0x%x, build=%s, hardware=%s, boot_uuid=%s",
+	// 	header.ChunkTag, header.BuildVersionString, header.HardwareModelString, header.BootUUID)
+
+	// entries := []*TraceV3Entry{headerEntry}
+	entries := []*TraceV3Entry{}
 
 	// Skip header and try to parse some entries from the remaining data
 	remainingData := data[headerSize:]
@@ -288,6 +306,12 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 		chunkDataSize := binary.LittleEndian.Uint64(data[catalogOffset+8:])
 
 		if chunkDataSize == 0 {
+			catalogOffset += 4
+			continue
+		}
+
+		// Validate chunk size is reasonable to prevent infinite loops on corrupted data
+		if chunkDataSize > uint64(len(data)) || chunkDataSize > 100*1024*1024 { // 100MB max
 			catalogOffset += 4
 			continue
 		}
@@ -386,7 +410,14 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 			entry.ChunkType = "oversize"
 			entry.Subsystem = "com.apple.oversize"
 			entry.Category = "oversize_data"
-			ParseOversizeChunk(data[offset:offset+int(chunkDataSize)], entry, header, timesyncData)
+			entry.Message = fmt.Sprintf("Oversize chunk found: tag=0x%x sub_tag=0x%x size=%d", chunkTag, chunkSubTag, chunkDataSize)
+			oversizeEntries := ParseOversizeChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
+			// Add all individual oversize entries to our result
+			entries = append(entries, oversizeEntries...)
+			// Continue to next chunk without adding the template entry
+			offset += totalChunkSize + int(paddingSize8(chunkDataSize))
+			entryCount++
+			continue
 		case 0x6003:
 			// Statedump chunk
 			entry.ChunkType = "statedump"
@@ -550,11 +581,14 @@ func convertMachTimeToUnixNanosWithTimesync(machTime uint64, bootUUID string, pr
 	// If we have timesync data, use it for accurate conversion
 	if timesyncData != nil && bootUUID != "" {
 		normalizedUUID := NormalizeBootUUID(bootUUID)
-		timestamp := GetTimestamp(timesyncData, normalizedUUID, machTime, preambleTime)
+		// Calculate firehose_log_delta_time as per Rust implementation:
+		// firehose_log_delta_time = firehose_preamble_time + firehose_log_entry_continous_time
+		firehoseLogDeltaTime := preambleTime + machTime
+		timestamp := GetTimestamp(timesyncData, normalizedUUID, firehoseLogDeltaTime, preambleTime)
 
 		// Debug logging disabled for production
-		// fmt.Printf("[DEBUG] convertMachTimeToUnixNanosWithTimesync: machTime=%d, bootUUID=%s, preambleTime=%d, timestamp=%f\n",
-		//	machTime, bootUUID, preambleTime, timestamp)
+		// fmt.Printf("[DEBUG] convertMachTimeToUnixNanosWithTimesync: machTime=%d, bootUUID=%s, preambleTime=%d, firehoseLogDeltaTime=%d, timestamp=%f\n",
+		//	machTime, bootUUID, preambleTime, firehoseLogDeltaTime, timestamp)
 
 		// Debug logging removed for production
 
