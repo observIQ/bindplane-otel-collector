@@ -65,10 +65,16 @@ func newHTTPExporter(cfg *Config, params exporter.Settings, telemetry *metadata.
 		set:       params.TelemetrySettings,
 		marshaler: marshaler,
 		telemetry: telemetry,
-		metricAttributes: attribute.NewSet(attribute.KeyValue{
-			Key:   "exporter",
-			Value: attribute.StringValue(params.ID.String()),
-		}),
+		metricAttributes: attribute.NewSet(
+			attribute.KeyValue{
+				Key:   "exporter",
+				Value: attribute.StringValue(params.ID.String()),
+			},
+			attribute.KeyValue{
+				Key:   "exporter_type",
+				Value: attribute.StringValue(params.ID.Type().String()),
+			},
+		),
 	}, nil
 }
 
