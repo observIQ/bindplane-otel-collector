@@ -24,6 +24,10 @@ set -e
 # The collectors installation directory
 : "${BDOT_CONFIG_HOME:=/opt/observiq-otel-collector}"
 
+# Allow configurable runtime user/group (used for permissions and manager.yaml)
+: "${BDOT_USER:=bdot}"
+: "${BDOT_GROUP:=bdot}"
+
 # Agent Constants
 PACKAGE_NAME="observiq-otel-collector"
 DOWNLOAD_BASE="https://bdot.bindplane.com"
@@ -36,7 +40,8 @@ elif command -v service > /dev/null 2>&1; then
 fi
 
 # Script Constants
-COLLECTOR_USER="bdot"
+COLLECTOR_USER="${BDOT_USER}"
+COLLECTOR_GROUP="${BDOT_GROUP}"
 COLLECTOR_USER_LEGACY="observiq-otel-collector"
 TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env var
 MANAGEMENT_YML_PATH="${BDOT_CONFIG_HOME}/manager.yaml"
@@ -795,7 +800,7 @@ create_manager_yml()
     # file is readable by anyone other than the agent & root
     command printf '' >> "$manager_yml_path"
 
-    chgrp "$COLLECTOR_USER" "$manager_yml_path"
+    chgrp "$COLLECTOR_GROUP" "$manager_yml_path"
     chown "$COLLECTOR_USER" "$manager_yml_path"
     chmod 0640 "$manager_yml_path"
 
