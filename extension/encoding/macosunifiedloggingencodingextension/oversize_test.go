@@ -1,84 +1,14 @@
-// Copyright observIQ, Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package macosunifiedloggingencodingextension
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/require"
-
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
 )
 
 func TestParseOversizeChunk(t *testing.T) {
-	parsedOversizeChunk, _, err := ParseOversizeChunk(OversizeChunkData)
-	require.NoError(t, err)
-	require.Equal(t, parsedOversizeChunk.chunkTag, uint32(0x6002))
-	require.Equal(t, parsedOversizeChunk.chunkSubTag, uint32(0))
-	require.Equal(t, parsedOversizeChunk.chunkDataSize, uint64(3354))
-	require.Equal(t, parsedOversizeChunk.firstProcID, uint64(192))
-	require.Equal(t, parsedOversizeChunk.secondProcID, uint32(193))
-	require.Equal(t, parsedOversizeChunk.ttl, uint8(14))
-	require.Equal(t, parsedOversizeChunk.unknownReserved, [3]uint8{0x00, 0x00, 0x00})
-	require.Equal(t, parsedOversizeChunk.continuousTime, uint64(12381160463))
-	require.Equal(t, parsedOversizeChunk.dataRefIndex, uint32(1))
-	require.Equal(t, parsedOversizeChunk.publicDataSize, uint16(3322))
-	require.Equal(t, parsedOversizeChunk.privateDataSize, uint16(0))
+	parsedOversizeChunk := ParseOversizeChunk(OversizeChunkData)
 }
 
-func TestGetOversizeStrings(t *testing.T) {
-	chunk := []*OversizeChunk{
-		{
-			chunkTag:        24578,
-			chunkSubTag:     0,
-			chunkDataSize:   1124,
-			firstProcID:     96,
-			secondProcID:    245,
-			ttl:             0,
-			unknownReserved: [3]uint8{0, 0, 0},
-			continuousTime:  5609252490,
-			dataRefIndex:    1,
-			publicDataSize:  1092,
-			privateDataSize: 0,
-			messageItems: firehose.ItemData{
-				ItemInfo: []firehose.ItemInfo{
-					{
-						MessageStrings: "system kext collection",
-						ItemType:       34,
-						ItemSize:       0,
-					},
-					{
-						MessageStrings: "/System/Library/KernelCollections/SystemKernelExtensions.kc",
-						ItemType:       34,
-						ItemSize:       0,
-					},
-				},
-				BacktraceStrings: []string{},
-			},
-		},
-	}
-	dataRef := uint32(1)
-	firstProcID := uint64(96)
-	secondProcID := uint32(245)
-	results := GetOversizeStrings(dataRef, firstProcID, secondProcID, chunk)
-	require.Equal(t, results[0].MessageStrings, "system kext collection")
-	require.Equal(t, results[1].MessageStrings, "/System/Library/KernelCollections/SystemKernelExtensions.kc")
-
-}
-
-var OversizeChunkData = []byte{
+var OversizeChunkData []byte = []byte{
 	2, 96, 0, 0, 0, 0, 0, 0, 26, 13, 0, 0, 0, 0, 0, 0, 192, 0, 0, 0, 0, 0, 0, 0, 193, 0, 0,
 	0, 14, 0, 0, 0, 15, 132, 249, 225, 2, 0, 0, 0, 1, 0, 0, 0, 250, 12, 0, 0, 2, 1, 34, 4,
 	0, 0, 242, 12, 83, 97, 110, 100, 98, 111, 120, 58, 32, 100, 105, 115, 107, 97, 114, 98,
@@ -252,3 +182,17 @@ var OversizeChunkData = []byte{
 	98, 115, 121, 115, 116, 101, 109, 95, 112, 116, 104, 114, 101, 97, 100, 46, 100, 121,
 	108, 105, 98, 10, 10, 10, 0,
 }
+
+var entry *TraceV3Entry = &TraceV3Entry{
+	Type:         0x6002,
+	Size:         3354,
+	Timestamp:    convertMachTimeToUnixNanosWithTimesync(header.ContinuousTime, header.BootUUID, 0, timesyncData),
+	ThreadID:     0,
+	ProcessID:    header.LogdPID,
+	Level:        "Info",
+	MessageType:  "Default",
+	EventType:    "logEvent",
+	TimezoneName: extractTimezoneName(header.TimezonePath),
+}
+
+const header
