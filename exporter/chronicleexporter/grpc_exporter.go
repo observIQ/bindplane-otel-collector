@@ -50,7 +50,8 @@ type grpcExporter struct {
 	conn    *grpc.ClientConn
 	metrics *hostMetricsReporter
 
-	telemetry *metadata.TelemetryBuilder
+	telemetry        *metadata.TelemetryBuilder
+	metricAttributes attribute.Set
 }
 
 func newGRPCExporter(cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (*grpcExporter, error) {
@@ -64,6 +65,16 @@ func newGRPCExporter(cfg *Config, params exporter.Settings, telemetry *metadata.
 		exporterID: params.ID.String(),
 		marshaler:  marshaler,
 		telemetry:  telemetry,
+		metricAttributes: attribute.NewSet(
+			attribute.KeyValue{
+				Key:   "exporter",
+				Value: attribute.StringValue(params.ID.String()),
+			},
+			attribute.KeyValue{
+				Key:   "exporter_type",
+				Value: attribute.StringValue(params.ID.Type().String()),
+			},
+		),
 	}, nil
 }
 
@@ -114,16 +125,43 @@ func (exp *grpcExporter) Shutdown(context.Context) error {
 }
 
 func (exp *grpcExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
-	payloads, err := exp.marshaler.MarshalRawLogs(ctx, ld)
+	payloads, totalBytes, err := exp.marshaler.MarshalRawLogs(ctx, ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
 	}
+	successfulPayloads := []*api.BatchCreateLogsRequest{}
 	for _, payload := range payloads {
 		if err := exp.uploadToChronicle(ctx, payload); err != nil {
+			// If there is an error only report
+			// the bytes successfully sent
+			exp.countAndReportBatchBytes(ctx, successfulPayloads)
 			return err
 		}
+		successfulPayloads = append(successfulPayloads, payload)
 	}
+	// If everything sent successfully just report the total bytes
+	exp.telemetry.ExporterRawBytes.Add(
+		ctx,
+		int64(totalBytes),
+		metric.WithAttributeSet(exp.metricAttributes),
+	)
 	return nil
+}
+
+func (exp *grpcExporter) countAndReportBatchBytes(ctx context.Context, payloads []*api.BatchCreateLogsRequest) {
+	totalBytes := uint(0)
+	for _, payload := range payloads {
+		for _, entries := range payload.Batch.Entries {
+			totalBytes += uint(len(entries.Data))
+		}
+	}
+	if totalBytes > 0 {
+		exp.telemetry.ExporterRawBytes.Add(
+			ctx,
+			int64(totalBytes),
+			metric.WithAttributeSet(exp.metricAttributes),
+		)
+	}
 }
 
 func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.BatchCreateLogsRequest) error {
