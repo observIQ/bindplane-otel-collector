@@ -44,3 +44,13 @@ func ExtractStringSize(data []byte, messageSize uint64) ([]byte, string, error) 
 
 	return input, pathString, nil
 }
+
+// paddingSizeFour calculates 4-byte alignment padding (equivalent to Rust's padding_size_four)
+func paddingSizeFour(dataSize uint64) uint64 {
+	return paddingSize(dataSize, 4)
+}
+
+// paddingSize calculates padding based on alignment (equivalent to Rust's padding_size)
+func paddingSize(dataSize uint64, alignment uint64) uint64 {
+	return (alignment - (dataSize & (alignment - 1))) & (alignment - 1)
+}

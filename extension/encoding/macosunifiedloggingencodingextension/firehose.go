@@ -295,24 +295,335 @@ func ParsePrivateData(data []byte, firehoseItemData *FirehoseItemData) ([]byte, 
 }
 
 // TODO: Add test for this function
-func ParseItemNumber(data []byte, itemSize uint16) ([]byte, uint64) {
-	switch itemSize {
-	case 4:
-		value := int64(binary.LittleEndian.Uint32(data[:4]))
-		return data[4:], uint64(value)
-	case 2:
-		value := int64(binary.LittleEndian.Uint16(data[:2]))
-		return data[2:], uint64(value)
-	case 8:
-		value := binary.LittleEndian.Uint64(data[:8])
-		return data[8:], value
-	case 1:
-		value := int64(data[0])
-		return data[1:], uint64(value)
-	default:
-		return data, uint64(0) // Unknown size
+// Parse Backtrace data for log entry (chunk). This only exists if `has_context_data` flag is set
+func GetBacktraceData(data []byte) ([]byte, []string, error) {
+	// Skip 3 unknown bytes
+	_, input, _ := Take(data, 3)
+
+	// Read counts
+	uuidCountBytes, input, _ := Take(input, 1)
+	offsetCountBytes, input, _ := Take(input, 2)
+	uuidCount := int(uuidCountBytes[0])
+	offsetCount := int(binary.LittleEndian.Uint16(offsetCountBytes))
+
+	// Read UUID vector (128-bit big-endian UUIDs)
+	var uuidVec []uint64
+	for i := 0; i < uuidCount; i++ {
+		uuidBytes, remaining, _ := Take(input, 16) // 128 bits = 16 bytes
+		input = remaining
+		// Convert 128-bit UUID to two 64-bit values (big-endian)
+		uuidHigh := binary.BigEndian.Uint64(uuidBytes[:8])
+		_ = binary.BigEndian.Uint64(uuidBytes[8:])
+		// For simplicity, we'll use the high part as the main UUID
+		uuidVec = append(uuidVec, uuidHigh)
 	}
+
+	// Read offsets vector (32-bit little-endian)
+	var offsetsVec []uint32
+	for i := 0; i < offsetCount; i++ {
+		offsetBytes, remaining, _ := Take(input, 4)
+		input = remaining
+		offset := binary.LittleEndian.Uint32(offsetBytes)
+		offsetsVec = append(offsetsVec, offset)
+	}
+
+	// Read indexes (8-bit)
+	var indexes []uint8
+	for i := 0; i < offsetCount; i++ {
+		indexBytes, remaining, _ := Take(input, 1)
+		input = remaining
+		indexes = append(indexes, indexBytes[0])
+	}
+
+	// Build backtrace strings
+	var backtraceData []string
+	for i, idx := range indexes {
+		var uuid uint64
+		if int(idx) < len(uuidVec) {
+			uuid = uuidVec[idx]
+		}
+		var offset uint32
+		if i < len(offsetsVec) {
+			offset = offsetsVec[i]
+		}
+
+		backtraceStr := fmt.Sprintf("\"%X\" +0x%x", uuid, offset)
+		backtraceData = append(backtraceData, backtraceStr)
+	}
+
+	// Calculate padding size (align to 4-byte boundary)
+	paddingSize := paddingSizeFour(uint64(offsetCount))
+	if paddingSize > uint64(^uint(0)>>1) { // Check if larger than max int
+		return input, backtraceData, fmt.Errorf("u64 is bigger than system int")
+	}
+
+	// Skip padding bytes
+	_, backtraceInput, _ := Take(input, int(paddingSize))
+	input = backtraceInput
+
+	return input, backtraceData, nil
 }
+
+func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (FirehoseItemData, []byte) {
+	itemCount := 0
+	itemsData := []FirehoseItemType{}
+
+	firehoseInput := data
+	firehoseItemData := FirehoseItemData{}
+	numberItemType := []uint8{0x0, 0x2}
+	precisionItems := []uint8{0x10, 0x12}
+	sensitiveItems := []uint8{0x5, 0x45, 0x85}
+	objectItems := []uint8{0x40, 0x42}
+
+	for itemCount < int(numItems) {
+		item, itemInput := GetFirehoseItems(firehoseInput)
+		firehoseInput = itemInput
+
+		if contains(precisionItems, item.ItemType) {
+			itemsData = append(itemsData, item)
+			itemCount += 1
+			continue
+		}
+
+		if contains(numberItemType, item.ItemType) {
+			itemValueInput, messageNumber := ParseItemNumber(firehoseInput, uint16(item.ItemSize))
+			item.MessageStrings = fmt.Sprintf("%d", messageNumber)
+			firehoseInput = itemValueInput
+			itemCount += 1
+			itemsData = append(itemsData, item)
+			continue
+		}
+
+		if item.MessageStringSize == 0 && contains(objectItems, item.ItemType) {
+			item.MessageStrings = "(null)"
+		}
+		itemsData = append(itemsData, item)
+		itemCount += 1
+	}
+
+	// Backtrace data appears before Firehose item strings
+	// It only exists if log entry has_context_data flag set
+	// Backtrace data can also exist in Oversize log entries. However, Oversize entries do not have has_context_data flags. Instead we check for possible signature
+	hasContextData := uint16(0x1000)
+	backtraceSignatureSize := 3
+
+	if (flags & hasContextData) != 0 {
+		backtraceInput, backtraceData, _ := GetBacktraceData(firehoseInput)
+		firehoseInput = backtraceInput
+		firehoseItemData.BacktraceStrings = backtraceData
+	} else if len(firehoseInput) > backtraceSignatureSize {
+		backtraceSignature := []uint8{1, 0, 18}
+		parsedBacktraceSig, _, _ := Take(firehoseInput, backtraceSignatureSize)
+		if len(parsedBacktraceSig) == len(backtraceSignature) &&
+			parsedBacktraceSig[0] == backtraceSignature[0] &&
+			parsedBacktraceSig[1] == backtraceSignature[1] &&
+			parsedBacktraceSig[2] == backtraceSignature[2] {
+			backtraceInput, backtraceData, _ := GetBacktraceData(firehoseInput)
+			firehoseInput = backtraceInput
+			firehoseItemData.BacktraceStrings = backtraceData
+		}
+	}
+
+	for _, item := range itemsData {
+		if contains(numberItemType, item.ItemType) {
+			continue
+		}
+
+		if contains(PrivateStrings[:], item.ItemType) || contains(sensitiveItems, item.ItemType) {
+			item.MessageStrings = "<private>"
+			continue
+		}
+
+		if item.ItemType == PrivateNumber {
+			continue
+		}
+
+		if contains(precisionItems, item.ItemType) {
+			continue
+		}
+
+		if item.MessageStringSize == 0 && len(item.MessageStrings) != 0 {
+			continue
+		}
+
+		if len(firehoseInput) == 0 {
+			break
+		}
+
+		if contains(StringItem[:], item.ItemType) {
+			itemValueInput, messageString := ParseItemString(firehoseInput, item.ItemType, item.MessageStringSize)
+			firehoseInput = itemValueInput
+			item.MessageStrings = messageString
+		} else {
+			// TODO: error
+		}
+	}
+
+	for _, item := range itemsData {
+		firehoseItemData.ItemInfo = append(firehoseItemData.ItemInfo, FirehoseItemInfo{
+			MessageStrings: item.MessageStrings,
+			ItemType:       item.ItemType,
+			ItemSize:       item.ItemSize,
+		})
+	}
+	return firehoseItemData, firehoseInput
+}
+
+// // parseFirehoseMessageItems parses message items from firehose entry data
+// // Based on the Rust implementation's collect_items and parse_private_data logic
+// func ParseFirehoseMessageItemsv1(data []byte, itemCount uint8) []FirehoseItemInfo {
+// 	var items []FirehoseItemInfo
+// 	offset := 0
+
+// 	// Item type constants from rust implementation
+// 	stringItems := map[uint8]bool{
+// 		0x20: true, 0x21: true, 0x22: true, 0x25: true, 0x40: true, 0x41: true, 0x42: true,
+// 		0x30: true, 0x31: true, 0x32: true, 0xf2: true, 0x35: true, 0x81: true, 0xf1: true,
+// 	}
+
+// 	numberItems := map[uint8]bool{
+// 		0x0: true, 0x2: true,
+// 	}
+
+// 	precisionItems := map[uint8]bool{
+// 		0x10: true, 0x12: true,
+// 	}
+
+// 	sensitiveItems := map[uint8]bool{
+// 		0x5: true, 0x45: true, 0x85: true,
+// 	}
+
+// 	objectItems := map[uint8]bool{
+// 		0x40: true, 0x42: true,
+// 	}
+
+// 	privateNumber := uint8(0x1)
+
+// 	// First pass: parse item metadata
+// 	for i := uint8(0); i < itemCount && offset < len(data); i++ {
+// 		if offset+2 > len(data) {
+// 			break
+// 		}
+
+// 		item := FirehoseItemInfo{
+// 			ItemType: data[offset],
+// 			ItemSize: uint16(data[offset+1]),
+// 		}
+// 		offset += 2
+
+// 		// String and private number items have 4 bytes of metadata (offset + size)
+// 		if stringItems[item.ItemType] || item.ItemType == privateNumber {
+// 			if offset+4 > len(data) {
+// 				break
+// 			}
+// 			item.MessageOffset = binary.LittleEndian.Uint16(data[offset : offset+2])
+// 			item.MessageStringSize = binary.LittleEndian.Uint16(data[offset+2 : offset+4])
+// 			offset += 4
+// 		}
+
+// 		// Precision items just contain the length for the actual item
+// 		if precisionItems[item.ItemType] {
+// 			if offset+int(item.ItemSize) <= len(data) {
+// 				offset += int(item.ItemSize)
+// 			}
+// 		}
+
+// 		// Sensitive items have 4 bytes of metadata
+// 		if sensitiveItems[item.ItemType] {
+// 			if offset+4 > len(data) {
+// 				break
+// 			}
+// 			item.MessageOffset = binary.LittleEndian.Uint16(data[offset : offset+2])
+// 			item.MessageStringSize = binary.LittleEndian.Uint16(data[offset+2 : offset+4])
+// 			offset += 4
+// 		}
+
+// 		items = append(items, item)
+// 	}
+
+// 	// Second pass: extract number values immediately (they follow the item metadata)
+// 	for i := range items {
+// 		item := &items[i]
+
+// 		if numberItems[item.ItemType] {
+// 			// Parse number based on item size
+// 			if offset+int(item.ItemSize) <= len(data) {
+// 				if item.ItemSize >= 8 {
+// 					value := binary.LittleEndian.Uint64(data[offset : offset+8])
+// 					item.MessageStrings = fmt.Sprintf("%d", value)
+// 					offset += 8
+// 				} else if item.ItemSize >= 4 {
+// 					value := binary.LittleEndian.Uint32(data[offset : offset+4])
+// 					item.MessageStrings = fmt.Sprintf("%d", value)
+// 					offset += 4
+// 				} else if item.ItemSize >= 2 {
+// 					value := binary.LittleEndian.Uint16(data[offset : offset+2])
+// 					item.MessageStrings = fmt.Sprintf("%d", value)
+// 					offset += 2
+// 				} else if item.ItemSize >= 1 {
+// 					item.MessageStrings = fmt.Sprintf("%d", data[offset])
+// 					offset++
+// 				}
+// 			}
+// 		}
+// 	}
+
+// 	// Third pass: extract string data from the end of the buffer
+// 	stringDataStart := offset
+// 	for i := range items {
+// 		item := &items[i]
+
+// 		// Handle string items
+// 		if stringItems[item.ItemType] || item.ItemType == privateNumber {
+// 			if item.MessageOffset < uint16(len(data)-stringDataStart) &&
+// 				item.MessageOffset+item.MessageStringSize <= uint16(len(data)-stringDataStart) {
+// 				stringStart := stringDataStart + int(item.MessageOffset)
+// 				stringEnd := stringStart + int(item.MessageStringSize)
+// 				if stringEnd <= len(data) {
+// 					messageBytes := data[stringStart:stringEnd]
+// 					// Remove null terminators
+// 					for len(messageBytes) > 0 && messageBytes[len(messageBytes)-1] == 0 {
+// 						messageBytes = messageBytes[:len(messageBytes)-1]
+// 					}
+// 					if len(messageBytes) > 0 {
+// 						item.MessageStrings = string(messageBytes)
+// 					}
+// 				}
+// 			}
+// 		} else if sensitiveItems[item.ItemType] {
+// 			// Sensitive items are private
+// 			item.MessageStrings = "<private>"
+// 		} else if objectItems[item.ItemType] && item.MessageStringSize == 0 {
+// 			// Object items with size 0 are "(null)"
+// 			item.MessageStrings = "(null)"
+// 		} else if precisionItems[item.ItemType] {
+// 			// Precision items just contain the length
+// 			item.MessageStrings = fmt.Sprintf("%d", item.ItemSize)
+// 		}
+// 	}
+
+// 	return items
+// }
+
+// // TODO: Add test for this function
+// func ParseItemNumber(data []byte, itemSize uint16) ([]byte, uint64) {
+// 	switch itemSize {
+// 	case 4:
+// 		value := int64(binary.LittleEndian.Uint32(data[:4]))
+// 		return data[4:], uint64(value)
+// 	case 2:
+// 		value := int64(binary.LittleEndian.Uint16(data[:2]))
+// 		return data[2:], uint64(value)
+// 	case 8:
+// 		value := binary.LittleEndian.Uint64(data[:8])
+// 		return data[8:], value
+// 	case 1:
+// 		value := int64(data[0])
+// 		return data[1:], uint64(value)
+// 	default:
+// 		return data, uint64(0) // Unknown size
+// 	}
+// }
 
 // // ParseFirehoseChunk parses a Firehose chunk (0x6001 and variants) containing multiple individual log entries
 // // Returns a slice of TraceV3Entry representing each individual log event within the chunk
@@ -973,343 +1284,6 @@ func ParseItemNumber(data []byte, itemSize uint16) ([]byte, uint64) {
 // 		endIdx = 16
 // 	}
 // 	return fmt.Sprintf("items:%d raw:%x", numberItems, data[:endIdx])
-// }
-
-// // parseFirehoseEntrySubsystem extracts subsystem information from firehose entry data
-// // This implements the logic from the Rust FirehoseNonActivity parser to extract subsystem_value
-// func parseFirehoseEntrySubsystem(entryData []byte, flags uint16, firstProcID uint64, secondProcID uint32) (uint16, string, string, bool) {
-// 	// Default values
-// 	subsystemID := uint16(0)
-// 	subsystemName := "com.apple.firehose"
-// 	categoryName := "log"
-// 	useSharedCache := false
-
-// 	if len(entryData) == 0 {
-// 		return subsystemID, subsystemName, categoryName, useSharedCache
-// 	}
-
-// 	offset := 0
-
-// 	// Parse based on firehose flags following the Rust implementation pattern
-// 	// Check for has_current_aid flag (0x0001)
-// 	const activityIDCurrent = 0x0001
-// 	if (flags & activityIDCurrent) != 0 {
-// 		// Skip unknown_activity_id (4 bytes) and unknown_sentinel (4 bytes)
-// 		offset += 8
-// 		if offset > len(entryData) {
-// 			return subsystemID, subsystemName, categoryName, useSharedCache
-// 		}
-// 	}
-
-// 	// Check for has_private_data flag (0x0100)
-// 	const privateStringRange = 0x0100
-// 	if (flags & privateStringRange) != 0 {
-// 		// Skip private_strings_offset (2 bytes) and private_strings_size (2 bytes)
-// 		offset += 4
-// 		if offset > len(entryData) {
-// 			return subsystemID, subsystemName, categoryName, useSharedCache
-// 		}
-// 	}
-
-// 	// Skip unknown_pc_id (4 bytes) - always present
-// 	offset += 4
-// 	if offset > len(entryData) {
-// 		return subsystemID, subsystemName, categoryName, useSharedCache
-// 	}
-
-// 	// Parse formatter flags to determine if shared cache is used
-// 	// Based on the rust implementation's FirehoseFormatters logic
-// 	if offset < len(entryData) {
-// 		// Check for shared cache or main executable flags in the formatter
-// 		// This is a simplified implementation - full parsing would be more complex
-// 		if offset+1 < len(entryData) {
-// 			formatterByte := entryData[offset]
-// 			// Check for shared_cache flag (bit 0) or main_exe flag
-// 			useSharedCache = (formatterByte & 0x01) != 0
-// 			offset += 1 // Skip formatter data for now
-// 		}
-// 	}
-
-// 	// Check for has_subsystem flag (0x0200) - this is what we need!
-// 	const hasSubsystem = 0x0200
-// 	if (flags & hasSubsystem) != 0 {
-// 		// The subsystem_value is stored as a uint16 at this position
-// 		if offset+2 <= len(entryData) {
-// 			subsystemID = binary.LittleEndian.Uint16(entryData[offset : offset+2])
-// 		}
-// 	}
-
-// 	return subsystemID, subsystemName, categoryName, useSharedCache
-// }
-
-// // parseSubsystemFromEntry extracts subsystem ID from firehose entry data based on activity type
-// func parseSubsystemFromEntry(entry *FirehoseEntry) uint16 {
-// 	if len(entry.MessageData) < 8 {
-// 		return 0
-// 	}
-
-// 	offset := 0
-
-// 	// Parse based on activity type (following rust implementation patterns)
-// 	switch entry.ActivityType {
-// 	case 0x4: // Non-activity (regular logs)
-// 		// Skip activity ID and sentinel if present
-// 		if (entry.Flags & 0x0001) != 0 { // has_current_aid
-// 			offset += 8 // unknown_activity_id (4) + unknown_sentinel (4)
-// 		}
-
-// 		// Skip private data offsets if present
-// 		if (entry.Flags & 0x0100) != 0 { // has_private_data
-// 			offset += 4 // private_strings_offset (2) + private_strings_size (2)
-// 		}
-
-// 		// Skip unknown_pc_id (4 bytes) - always present
-// 		offset += 4
-
-// 		// Parse formatter data (simplified)
-// 		if offset < len(entry.MessageData) {
-// 			offset += 1 // Skip formatter for now
-// 		}
-
-// 		// Check for subsystem flag
-// 		if (entry.Flags&0x0200) != 0 && offset+2 <= len(entry.MessageData) { // has_subsystem
-// 			return binary.LittleEndian.Uint16(entry.MessageData[offset : offset+2])
-// 		}
-
-// 	case 0x2: // Activity
-// 		// Activity parsing would be more complex, for now return 0
-// 		return 0
-
-// 	case 0x6: // Signpost
-// 		// Signpost parsing would be different, for now return 0
-// 		return 0
-// 	}
-
-// 	return 0
-// }
-
-// // shouldUseSharedCache determines if shared cache should be used for format string resolution
-// func shouldUseSharedCache(entry *FirehoseEntry) bool {
-// 	if len(entry.MessageData) < 8 {
-// 		return false
-// 	}
-
-// 	offset := 0
-
-// 	// Skip to formatter section based on flags
-// 	if (entry.Flags & 0x0001) != 0 { // has_current_aid
-// 		offset += 8
-// 	}
-
-// 	if (entry.Flags & 0x0100) != 0 { // has_private_data
-// 		offset += 4
-// 	}
-
-// 	offset += 4 // Skip unknown_pc_id
-
-// 	// Check formatter flags (simplified)
-// 	if offset < len(entry.MessageData) {
-// 		formatterByte := entry.MessageData[offset]
-// 		// Check for shared_cache flag (bit 0)
-// 		return (formatterByte & 0x01) != 0
-// 	}
-
-// 	return false
-// }
-
-// // extractMessageContent extracts readable message content from firehose entry data
-// // This is enhanced to parse message items and format them properly
-// func extractMessageContent(entry *FirehoseEntry) string {
-// 	if len(entry.MessageData) == 0 {
-// 		return "empty"
-// 	}
-
-// 	// Parse message items from the firehose entry data
-// 	// Extract item count from message data (second byte)
-// 	var itemCount uint8 = 0
-// 	if len(entry.MessageData) >= 2 {
-// 		itemCount = entry.MessageData[1]
-// 	}
-// 	items := parseFirehoseMessageItems(entry.MessageData, itemCount)
-
-// 	// If we have items, try to extract meaningful content
-// 	if len(items) > 0 {
-// 		var parts []string
-// 		for _, item := range items {
-// 			if item.MessageStrings != "" && isPrintableString(item.MessageStrings) {
-// 				parts = append(parts, item.MessageStrings)
-// 			}
-// 		}
-
-// 		if len(parts) > 0 {
-// 			return strings.Join(parts, " | ")
-// 		}
-
-// 		// If no string content, return item summary
-// 		return fmt.Sprintf("items:%d first_type:0x%x first_size:%d",
-// 			len(items), items[0].ItemType, items[0].ItemSize)
-// 	}
-
-// 	// Fallback: try to extract any string data from the message data
-// 	var parts []string
-// 	start := 0
-// 	for i := 0; i < len(entry.MessageData); i++ {
-// 		if entry.MessageData[i] == 0 {
-// 			if i > start {
-// 				str := string(entry.MessageData[start:i])
-// 				if isPrintableString(str) && len(str) > 2 {
-// 					parts = append(parts, str)
-// 				}
-// 			}
-// 			start = i + 1
-// 		}
-// 	}
-
-// 	// If we found strings, return them
-// 	if len(parts) > 0 {
-// 		return strings.Join(parts, " | ")
-// 	}
-
-// 	// Otherwise return size and activity type info
-// 	return fmt.Sprintf("data_size=%d activity_type=0x%x flags=0x%x",
-// 		len(entry.MessageData), entry.ActivityType, entry.Flags)
-// }
-
-// // parseFirehoseMessageItems parses message items from firehose entry data
-// // Based on the Rust implementation's collect_items and parse_private_data logic
-// // This is a simplified implementation - the full parsing requires public/private data separation
-// func ParseFirehoseMessageItems(data []byte, itemCount uint8) []FirehoseItemInfo {
-// 	var items []FirehoseItemInfo
-// 	offset := 0
-
-// 	// Item type constants from rust implementation
-// 	stringItems := map[uint8]bool{
-// 		0x20: true, 0x21: true, 0x22: true, 0x25: true, 0x40: true, 0x41: true, 0x42: true,
-// 		0x30: true, 0x31: true, 0x32: true, 0xf2: true, 0x35: true, 0x81: true, 0xf1: true,
-// 	}
-
-// 	numberItems := map[uint8]bool{
-// 		0x0: true, 0x2: true,
-// 	}
-
-// 	precisionItems := map[uint8]bool{
-// 		0x10: true, 0x12: true,
-// 	}
-
-// 	sensitiveItems := map[uint8]bool{
-// 		0x5: true, 0x45: true, 0x85: true,
-// 	}
-
-// 	objectItems := map[uint8]bool{
-// 		0x40: true, 0x42: true,
-// 	}
-
-// 	privateNumber := uint8(0x1)
-
-// 	// First pass: parse item metadata
-// 	for i := uint8(0); i < itemCount && offset < len(data); i++ {
-// 		if offset+2 > len(data) {
-// 			break
-// 		}
-
-// 		item := FirehoseItemInfo{
-// 			ItemType: data[offset],
-// 			ItemSize: uint16(data[offset+1]),
-// 		}
-// 		offset += 2
-
-// 		// String and private number items have 4 bytes of metadata (offset + size)
-// 		if stringItems[item.ItemType] || item.ItemType == privateNumber {
-// 			if offset+4 > len(data) {
-// 				break
-// 			}
-// 			item.MessageOffset = binary.LittleEndian.Uint16(data[offset : offset+2])
-// 			item.MessageStringSize = binary.LittleEndian.Uint16(data[offset+2 : offset+4])
-// 			offset += 4
-// 		}
-
-// 		// Precision items just contain the length for the actual item
-// 		if precisionItems[item.ItemType] {
-// 			if offset+int(item.ItemSize) <= len(data) {
-// 				offset += int(item.ItemSize)
-// 			}
-// 		}
-
-// 		// Sensitive items have 4 bytes of metadata
-// 		if sensitiveItems[item.ItemType] {
-// 			if offset+4 > len(data) {
-// 				break
-// 			}
-// 			item.MessageOffset = binary.LittleEndian.Uint16(data[offset : offset+2])
-// 			item.MessageStringSize = binary.LittleEndian.Uint16(data[offset+2 : offset+4])
-// 			offset += 4
-// 		}
-
-// 		items = append(items, item)
-// 	}
-
-// 	// Second pass: extract number values immediately (they follow the item metadata)
-// 	for i := range items {
-// 		item := &items[i]
-
-// 		if numberItems[item.ItemType] {
-// 			// Parse number based on item size
-// 			if offset+int(item.ItemSize) <= len(data) {
-// 				if item.ItemSize >= 8 {
-// 					value := binary.LittleEndian.Uint64(data[offset : offset+8])
-// 					item.MessageStrings = fmt.Sprintf("%d", value)
-// 					offset += 8
-// 				} else if item.ItemSize >= 4 {
-// 					value := binary.LittleEndian.Uint32(data[offset : offset+4])
-// 					item.MessageStrings = fmt.Sprintf("%d", value)
-// 					offset += 4
-// 				} else if item.ItemSize >= 2 {
-// 					value := binary.LittleEndian.Uint16(data[offset : offset+2])
-// 					item.MessageStrings = fmt.Sprintf("%d", value)
-// 					offset += 2
-// 				} else if item.ItemSize >= 1 {
-// 					item.MessageStrings = fmt.Sprintf("%d", data[offset])
-// 					offset++
-// 				}
-// 			}
-// 		}
-// 	}
-
-// 	// Third pass: extract string data from the end of the buffer
-// 	stringDataStart := offset
-// 	for i := range items {
-// 		item := &items[i]
-
-// 		// Handle string items
-// 		if stringItems[item.ItemType] || item.ItemType == privateNumber {
-// 			if item.MessageOffset < uint16(len(data)-stringDataStart) &&
-// 				item.MessageOffset+item.MessageStringSize <= uint16(len(data)-stringDataStart) {
-// 				stringStart := stringDataStart + int(item.MessageOffset)
-// 				stringEnd := stringStart + int(item.MessageStringSize)
-// 				if stringEnd <= len(data) {
-// 					messageBytes := data[stringStart:stringEnd]
-// 					// Remove null terminators
-// 					for len(messageBytes) > 0 && messageBytes[len(messageBytes)-1] == 0 {
-// 						messageBytes = messageBytes[:len(messageBytes)-1]
-// 					}
-// 					if len(messageBytes) > 0 {
-// 						item.MessageStrings = string(messageBytes)
-// 					}
-// 				}
-// 			}
-// 		} else if sensitiveItems[item.ItemType] {
-// 			// Sensitive items are private
-// 			item.MessageStrings = "<private>"
-// 		} else if objectItems[item.ItemType] && item.MessageStringSize == 0 {
-// 			// Object items with size 0 are "(null)"
-// 			item.MessageStrings = "(null)"
-// 		} else if precisionItems[item.ItemType] {
-// 			// Precision items just contain the length
-// 			item.MessageStrings = fmt.Sprintf("%d", item.ItemSize)
-// 		}
-// 	}
-
-// 	return items
 // }
 
 // // isPrintableString checks if a string contains mostly printable characters
