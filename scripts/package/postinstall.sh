@@ -28,6 +28,7 @@ install() {
   chmod 0755 "${BDOT_CONFIG_HOME}"
   chown bindplane-otel-collector:bindplane-otel-collector "${BDOT_CONFIG_HOME}"
   rm -f "${BDOT_CONFIG_HOME}/bindplane-otel-collector" || true
+  chown -R bindplane-otel-collector:bindplane-otel-collector /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector
   cp -r --preserve \
     /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector/* \
     "${BDOT_CONFIG_HOME}"
