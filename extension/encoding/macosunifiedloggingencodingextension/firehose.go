@@ -4,7 +4,9 @@
 package macosunifiedloggingencodingextension
 
 import (
+	"encoding/base64"
 	"encoding/binary"
+	"fmt"
 )
 
 type FirehosePreamble struct {
@@ -67,6 +69,18 @@ type FirehoseItemData struct {
 	ItemInfo         []FirehoseItemInfo
 	BacktraceStrings []string
 }
+
+// Dummy types for testing
+type FirehoseNonActivity struct {
+	PrivateStringsSize   uint16
+	PrivateStringsOffset uint16
+}
+
+type FirehoseLoss struct{}
+
+type FirehoseSignpost struct{}
+
+type FirehoseTrace struct{}
 
 // FirehoseItemInfo represents a parsed message item from firehose entry data
 // Based on the Rust implementation's FirehoseItemInfo struct
@@ -249,20 +263,20 @@ func ParsePrivateData(data []byte, firehoseItemData *FirehoseItemData) ([]byte, 
 				if len(privateStringStart) < int(firehoseInfo.ItemSize) {
 					pointerObject, privateData, _ := Take(privateStringStart, len(privateStringStart))
 					privateStringStart = privateData
-					firehoseInfo.MessageStrings = encodeStandard(pointerObject)
+					firehoseInfo.MessageStrings = base64.StdEncoding.EncodeToString(pointerObject)
 					continue
 				}
 
 				pointerObject, privateData, _ := Take(privateStringStart, int(firehoseInfo.ItemSize))
 				privateStringStart = privateData
-				firehoseInfo.MessageStrings = encodeStandard(pointerObject)
+				firehoseInfo.MessageStrings = base64.StdEncoding.EncodeToString(pointerObject)
 				continue
 			}
 			nullPrivate := uint16(0)
 			if firehoseInfo.ItemSize == nullPrivate {
 				firehoseInfo.MessageStrings = "<private>"
 			} else {
-				messageString, privateData, _ := ExtractStringSize(privateStringStart, uint64(firehoseInfo.ItemSize))
+				privateData, messageString, _ := ExtractStringSize(privateStringStart, uint64(firehoseInfo.ItemSize))
 				privateStringStart = privateData
 				firehoseInfo.MessageStrings = messageString
 			}
@@ -271,13 +285,33 @@ func ParsePrivateData(data []byte, firehoseItemData *FirehoseItemData) ([]byte, 
 			if firehoseInfo.ItemSize == nullPrivate {
 				firehoseInfo.MessageStrings = "<private>"
 			} else {
-				privateData, privateString := ParseItemNumber(privateStringStart, firehoseInfo.ItemSize)
+				privateData, privateNumber := ParseItemNumber(privateStringStart, firehoseInfo.ItemSize)
 				privateStringStart = privateData
-				firehoseInfo.MessageStrings = privateString
+				firehoseInfo.MessageStrings = fmt.Sprintf("%d", privateNumber)
 			}
 		}
 	}
 	return privateStringStart, nil
+}
+
+// TODO: Add test for this function
+func ParseItemNumber(data []byte, itemSize uint16) ([]byte, uint64) {
+	switch itemSize {
+	case 4:
+		value := int64(binary.LittleEndian.Uint32(data[:4]))
+		return data[4:], uint64(value)
+	case 2:
+		value := int64(binary.LittleEndian.Uint16(data[:2]))
+		return data[2:], uint64(value)
+	case 8:
+		value := binary.LittleEndian.Uint64(data[:8])
+		return data[8:], value
+	case 1:
+		value := int64(data[0])
+		return data[1:], uint64(value)
+	default:
+		return data, uint64(0) // Unknown size
+	}
 }
 
 // // ParseFirehoseChunk parses a Firehose chunk (0x6001 and variants) containing multiple individual log entries

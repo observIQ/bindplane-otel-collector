@@ -687,8 +687,8 @@ func parseLargeDataSectionAsChunks(data []byte, header *TraceV3Header, timesyncD
 			chunkEntry.ChunkType = "oversize"
 			chunkEntry.Subsystem = "com.apple.oversize.large_data"
 			chunkEntry.Category = "oversize_data"
-			// oversizeEntries := ParseOversizeChunk(chunkData)
-			// entries = append(entries, oversizeEntries...)
+			oversizeEntries := ParseOversizeChunkV2(chunkData, chunkEntry, header, timesyncData)
+			entries = append(entries, oversizeEntries...)
 		case 0x600d:
 			// ChunkSet chunk
 			chunkEntry.ChunkType = "chunkset"
