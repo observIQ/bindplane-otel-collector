@@ -9,6 +9,66 @@ import (
 	"strings"
 )
 
+type OversizeChunk struct {
+	chunkTag        uint32
+	chunkSubTag     uint32
+	chunkDataSize   uint64
+	firstProcID     uint64
+	secondProcID    uint32
+	ttl             uint8
+	unknownReserved [3]uint8
+	continuousTime  uint64
+	dataRefIndex    uint32
+	publicDataSize  uint16
+	privateDataSize uint16
+	messageItems    FirehoseItemData
+}
+
+func ParseOversizeChunkV2(data []byte) []*TraceV3Entry {
+	var oversizeResult OversizeChunk
+
+	chunkTag, data, _ := Take(data, 4)
+	chunkSubTag, data, _ := Take(data, 4)
+	chunkDataSize, data, _ := Take(data, 8)
+	firstProcID, data, _ := Take(data, 8)
+	secondProcID, data, _ := Take(data, 4)
+	ttl, data, _ := Take(data, 1)
+	unknownReserved, data, _ := Take(data, 3)
+	continuousTime, data, _ := Take(data, 8)
+	dataRefIndex, data, _ := Take(data, 4)
+	publicDataSize, data, _ := Take(data, 2)
+	privateDataSize, data, _ := Take(data, 2)
+
+	oversizeResult.chunkTag = binary.LittleEndian.Uint32(chunkTag)
+	oversizeResult.chunkSubTag = binary.LittleEndian.Uint32(chunkSubTag)
+	oversizeResult.chunkDataSize = binary.LittleEndian.Uint64(chunkDataSize)
+	oversizeResult.firstProcID = binary.LittleEndian.Uint64(firstProcID)
+	oversizeResult.secondProcID = binary.LittleEndian.Uint32(secondProcID)
+	oversizeResult.ttl = ttl[0]
+	copy(oversizeResult.unknownReserved[:], unknownReserved)
+	oversizeResult.continuousTime = binary.LittleEndian.Uint64(continuousTime)
+	oversizeResult.dataRefIndex = binary.LittleEndian.Uint32(dataRefIndex)
+	oversizeResult.publicDataSize = binary.LittleEndian.Uint16(publicDataSize)
+	oversizeResult.privateDataSize = binary.LittleEndian.Uint16(privateDataSize)
+
+	oversizeDataSize := int(oversizeResult.publicDataSize + oversizeResult.privateDataSize)
+	if oversizeDataSize > len(data) {
+		fmt.Printf("Oversize data size greater than Oversize remaining string size. Using remaining string size\n")
+		oversizeDataSize = len(data)
+	}
+
+	publicData, data, _ := Take(data, oversizeDataSize)
+	messageData, _, _ := Take(publicData, 1)
+	messageData, itemCount, _ := Take(messageData, 1)
+	oversizeItemCount := itemCount[0]
+
+	emptyFlags := 0
+	// Grab all message items from oversize data
+	oversizePrivateData, firehoseItemData := ParseFirehoseMessageItems(messageData, oversizeItemCount, emptyFlags)
+	firehoseItemData, _ = parsePrivateData(oversizePrivateData, firehoseItemData)
+	oversizeResult.messageItems = firehoseItemData
+}
+
 // ParseOversizeChunk parses an Oversize chunk (0x6002) containing large log entries
 // Returns a slice of individual TraceV3Entry objects for each log message found in the oversize data
 // Based on rust implementation: uses FirehosePreamble::collect_items approach
