@@ -34,20 +34,20 @@ type OversizeChunk struct {
 	messageItems    FirehoseItemData
 }
 
-func ParseOversizeChunkV2(data []byte) []*TraceV3Entry {
+func ParseOversizeChunk(data []byte) (OversizeChunk, []byte) {
 	var oversizeResult OversizeChunk
 
-	chunkTag, data, _ := Take(data, 4)
-	chunkSubTag, data, _ := Take(data, 4)
-	chunkDataSize, data, _ := Take(data, 8)
-	firstProcID, data, _ := Take(data, 8)
-	secondProcID, data, _ := Take(data, 4)
-	ttl, data, _ := Take(data, 1)
-	unknownReserved, data, _ := Take(data, 3)
-	continuousTime, data, _ := Take(data, 8)
-	dataRefIndex, data, _ := Take(data, 4)
-	publicDataSize, data, _ := Take(data, 2)
-	privateDataSize, data, _ := Take(data, 2)
+	data, chunkTag, _ := Take(data, 4)
+	data, chunkSubTag, _ := Take(data, 4)
+	data, chunkDataSize, _ := Take(data, 8)
+	data, firstProcID, _ := Take(data, 8)
+	data, secondProcID, _ := Take(data, 4)
+	data, ttl, _ := Take(data, 1)
+	data, unknownReserved, _ := Take(data, 3)
+	data, continuousTime, _ := Take(data, 8)
+	data, dataRefIndex, _ := Take(data, 4)
+	data, publicDataSize, _ := Take(data, 2)
+	data, privateDataSize, _ := Take(data, 2)
 
 	oversizeResult.chunkTag = binary.LittleEndian.Uint32(chunkTag)
 	oversizeResult.chunkSubTag = binary.LittleEndian.Uint32(chunkSubTag)
@@ -67,16 +67,42 @@ func ParseOversizeChunkV2(data []byte) []*TraceV3Entry {
 		oversizeDataSize = len(data)
 	}
 
-	publicData, data, _ := Take(data, oversizeDataSize)
+	data, publicData, _ := Take(data, oversizeDataSize)
 	messageData, _, _ := Take(publicData, 1)
 	messageData, itemCount, _ := Take(messageData, 1)
 	oversizeItemCount := itemCount[0]
 
-	emptyFlags := 0
+	emptyFlags := uint16(0)
 	// Grab all message items from oversize data
-	oversizePrivateData, firehoseItemData := ParseFirehoseMessageItems(messageData, oversizeItemCount, emptyFlags)
-	firehoseItemData, _ = ParsePrivateData(oversizePrivateData, firehoseItemData)
+	firehoseItemData, oversizePrivateData := ParseFirehoseMessageItems(messageData, oversizeItemCount, emptyFlags)
+	_, err := ParsePrivateData(oversizePrivateData, &firehoseItemData)
+	if err != nil {
+		// TODO: better error handling
+		fmt.Printf("Error parsing private data: %v\n", err)
+	}
 	oversizeResult.messageItems = firehoseItemData
+
+	return oversizeResult, data
+}
+
+// get the firehose item info from the oversize log entry based on oversize (data ref) id, first proc id, and second proc id
+func GetOversizeStrings(dataRef uint32, firstProcID uint64, secondProcID uint32, oversizeData []*OversizeChunk) []FirehoseItemInfo {
+	messageStrings := []FirehoseItemInfo{}
+	for _, oversize := range oversizeData {
+		if oversize.dataRefIndex == dataRef && oversize.firstProcID == firstProcID && oversize.secondProcID == secondProcID {
+			for _, message := range oversize.messageItems.ItemInfo {
+				oversizeFirehose := FirehoseItemInfo{
+					MessageStrings: message.MessageStrings,
+					ItemType:       message.ItemType,
+					ItemSize:       message.ItemSize,
+				}
+				messageStrings = append(messageStrings, oversizeFirehose)
+			}
+			return messageStrings
+		}
+	}
+	// TODO: Log that we didn't find any oversize data
+	return messageStrings
 }
 
 // // ParseOversizeChunk parses an Oversize chunk (0x6002) containing large log entries
