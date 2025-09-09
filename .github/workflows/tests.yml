@@ -11,17 +11,31 @@ jobs:
         os: [namespace-profile-bindplane-default-ubuntu-24-04, namespace-profile-bindplane-default-macos-15, windows-2022-8-cores]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout Sources
+      - name: Checkout Sources (Linux/macOS)
+        if: matrix.os != 'windows-2022-8-cores'
         uses: namespacelabs/nscloud-checkout-action@v7
-      - name: Set up Go
+      - name: Checkout Sources (Windows)
+        if: matrix.os == 'windows-2022-8-cores'
+        uses: actions/checkout@v4
+      - name: Setup Go (Linux/macOS)
+        if: matrix.os != 'windows-2022-8-cores'
         uses: actions/setup-go@v5
         with:
-          go-version-file: "go.mod"
-          cache: false
-      - name: Set up Go cache
+          go-version-file: go.mod
+          cache: false # Use Namespace caching instead
+      - name: Set up Go cache (Linux/macOS)
+        if: matrix.os != 'windows-2022-8-cores'
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           cache: go
+      - name: Setup Go (Windows)
+        if: matrix.os == 'windows-2022-8-cores'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            **/go.sum
       - name: Run Tests
         run: make test
       - name: Run Updater Integration Tests (non-linux)
