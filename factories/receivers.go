@@ -84,7 +84,6 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/redisreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/riakreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/saphanareceiver"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/sapmreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/simpleprometheusreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/snmpreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/splunkhecreceiver"
@@ -173,7 +172,6 @@ var defaultReceivers = []receiver.Factory{
 	riakreceiver.NewFactory(),
 	routereceiver.NewFactory(),
 	saphanareceiver.NewFactory(),
-	sapmreceiver.NewFactory(),
 	sapnetweaverreceiver.NewFactory(),
 	simpleprometheusreceiver.NewFactory(),
 	snmpreceiver.NewFactory(),
