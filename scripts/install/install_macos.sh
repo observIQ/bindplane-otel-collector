@@ -429,7 +429,7 @@ set_download_urls()
       base_url=$DOWNLOAD_BASE
     fi
 
-    collector_download_url="$base_url/$version/observiq-otel-collector-v${version}-darwin-${os_arch}.tar.gz"
+    collector_download_url="$base_url/v$version/observiq-otel-collector-v${version}-darwin-${os_arch}.tar.gz"
   else
     collector_download_url="$url"
   fi
