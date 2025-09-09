@@ -8,28 +8,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [namespace-profile-bindplane-default-ubuntu-24-04, namespace-profile-bindplane-default-macos-15, windows-2022-8-cores]
+        os: [namespace-profile-bindplane-default-ubuntu-24-04, macos-13, windows-2022-8-cores]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout Sources (Linux/macOS)
-        if: matrix.os != 'windows-2022-8-cores'
+      - name: Checkout Sources (Linux)
+        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04'
         uses: namespacelabs/nscloud-checkout-action@v7
-      - name: Checkout Sources (Windows)
-        if: matrix.os == 'windows-2022-8-cores'
+      - name: Checkout Sources (Non-Linux)
+        if: matrix.os != 'namespace-profile-bindplane-default-ubuntu-24-04'
         uses: actions/checkout@v4
-      - name: Setup Go (Linux/macOS)
-        if: matrix.os != 'windows-2022-8-cores'
+      - name: Setup Go (Linux)
+        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04'
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: false # Use Namespace caching instead
-      - name: Set up Go cache (Linux/macOS)
-        if: matrix.os != 'windows-2022-8-cores'
+      - name: Set up Go cache (Linux)
+        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04'
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           cache: go
-      - name: Setup Go (Windows)
-        if: matrix.os == 'windows-2022-8-cores'
+      - name: Setup Go (Non-Linux)
+        if: matrix.os != 'namespace-profile-bindplane-default-ubuntu-24-04'
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
