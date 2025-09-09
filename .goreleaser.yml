@@ -276,28 +276,28 @@ nfpms:
         dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/config.yaml
         file_info:
           mode: 0640
-          owner: bdot
-          group: bdot
+          owner: root
+          group: root
         type: config|noreplace
       - src: release_deps/logging.yaml
         dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/logging.yaml
         file_info:
           mode: 0640
-          owner: bdot
-          group: bdot
+          owner: root
+          group: root
         type: config|noreplace
       - src: LICENSE
         dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/LICENSE
         file_info:
           mode: 0644
-          owner: bdot
-          group: bdot
+          owner: root
+          group: root
       - src: release_deps/VERSION.txt
         dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/VERSION.txt
         file_info:
           mode: 0644
-          owner: bdot
-          group: bdot
+          owner: root
+          group: root
       - src: release_deps/opentelemetry-java-contrib-jmx-metrics.jar
         dst: /opt/opentelemetry-java-contrib-jmx-metrics.jar
         file_info:
@@ -308,8 +308,8 @@ nfpms:
         type: dir
         file_info:
           mode: 0750 # restrict plugins to owner / group only
-          owner: bdot
-          group: bdot
+          owner: root
+          group: root
       # Note: plugins owner/group/mode is set in the post-install script
       # Attempting to set the permissions here results in the following error:
       # nfpm failed: cannot write header of release_deps/plugins/amazon_eks.yaml to data.tar.gz: archive/tar: missed writing 1736 bytes
@@ -321,14 +321,14 @@ nfpms:
         type: dir
         file_info:
           mode: 0750
-          owner: bdot
-          group: bdot
+          owner: root
+          group: root
       - dst: /usr/share/observiq-otel-collector/stage/observiq-otel-collector/log
         type: dir
         file_info:
           mode: 0750
-          owner: bdot
-          group: bdot
+          owner: root
+          group: root
     scripts:
       preinstall: ./scripts/package/preinstall.sh
       postinstall: ./scripts/package/postinstall.sh
