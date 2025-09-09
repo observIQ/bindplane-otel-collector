@@ -13,7 +13,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/exporter/qradar v1.83.1
 	github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter v1.83.1
 	github.com/observiq/bindplane-otel-collector/exporter/webhookexporter v1.83.1
-	github.com/observiq/bindplane-otel-collector/internal/measurements v1.83.1
+	github.com/observiq/bindplane-otel-collector/internal/measurements v1.84.0
 	github.com/observiq/bindplane-otel-collector/internal/report v1.83.1
 	github.com/observiq/bindplane-otel-collector/packagestate v1.83.1
 	github.com/observiq/bindplane-otel-collector/processor/datapointcountprocessor v1.83.1
@@ -37,7 +37,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.83.1
 	github.com/observiq/bindplane-otel-collector/receiver/oktareceiver v1.83.1
 	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.83.1
-	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.83.1
+	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.84.0
 	github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver v1.83.1
 	github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver v1.83.1
 	github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.83.1
@@ -458,11 +458,11 @@ require (
 	github.com/netsampler/goflow2/v2 v2.2.3 // indirect
 	github.com/nginx/nginx-prometheus-exporter v1.4.1 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
-	github.com/observiq/bindplane-otel-collector/counter v1.83.1 // indirect
-	github.com/observiq/bindplane-otel-collector/expr v1.83.1 // indirect
-	github.com/observiq/bindplane-otel-collector/internal/aws v1.83.1 // indirect
-	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.83.1 // indirect
-	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.83.1 // indirect
+	github.com/observiq/bindplane-otel-collector/counter v1.84.0 // indirect
+	github.com/observiq/bindplane-otel-collector/expr v1.84.0 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/aws v1.84.0 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.84.0 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.84.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/okta/okta-sdk-golang/v2 v2.20.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.135.0 // indirect
