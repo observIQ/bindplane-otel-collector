@@ -75,7 +75,6 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mysqlreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/nginxreceiver"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/opencensusreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otelarrowreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/podmanreceiver"
@@ -85,7 +84,6 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/redisreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/riakreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/saphanareceiver"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/sapmreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/simpleprometheusreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/snmpreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/splunkhecreceiver"
@@ -162,7 +160,6 @@ var defaultReceivers = []receiver.Factory{
 	nginxreceiver.NewFactory(),
 	nopreceiver.NewFactory(),
 	oktareceiver.NewFactory(),
-	opencensusreceiver.NewFactory(),
 	otelarrowreceiver.NewFactory(),
 	otlpreceiver.NewFactory(),
 	otlpjsonfilereceiver.NewFactory(),
@@ -175,7 +172,6 @@ var defaultReceivers = []receiver.Factory{
 	riakreceiver.NewFactory(),
 	routereceiver.NewFactory(),
 	saphanareceiver.NewFactory(),
-	sapmreceiver.NewFactory(),
 	sapnetweaverreceiver.NewFactory(),
 	simpleprometheusreceiver.NewFactory(),
 	snmpreceiver.NewFactory(),
