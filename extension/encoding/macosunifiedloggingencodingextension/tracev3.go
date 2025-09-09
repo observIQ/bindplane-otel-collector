@@ -592,7 +592,8 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 
 // parseLargeDataSectionAsChunks attempts to parse a large data section as multiple individual chunks
 // This is used when the main parsing loop fails to detect chunks, but we have a large data section
-// that might contain multiple firehose entries or other chunk types
+// that might contain multiple firehose entries or other chunk types.
+// The function includes overflow protection to prevent integer overflow when processing very large chunks.
 func parseLargeDataSectionAsChunks(data []byte, header *TraceV3Header, timesyncData map[string]*TimesyncBoot) []*TraceV3Entry {
 	var entries []*TraceV3Entry
 	offset := 0
@@ -611,8 +612,9 @@ func parseLargeDataSectionAsChunks(data []byte, header *TraceV3Header, timesyncD
 		chunkSubTag := binary.LittleEndian.Uint32(data[offset+4:])
 		chunkDataSize := binary.LittleEndian.Uint64(data[offset+8:])
 
-		// Validate chunk data size
-		if chunkDataSize == 0 {
+		// Validate chunk data size and prevent integer overflow
+		maxSafeInt := uint64(^uint(0) >> 1) // Maximum safe int value
+		if chunkDataSize == 0 || chunkDataSize > maxSafeInt {
 			offset += 4
 			continue
 		}
