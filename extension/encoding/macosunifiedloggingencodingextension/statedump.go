@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+// StateDump represents a Statedump log entry
+// this is also known as a "stateEvent" type of log entry
 type StateDump struct {
 	ChunkTag        uint32
 	ChunkSubtag     uint32
