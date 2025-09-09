@@ -74,18 +74,6 @@ type FirehoseItemData struct {
 	BacktraceStrings []string
 }
 
-// Dummy types for testing
-type FirehoseNonActivity struct {
-	PrivateStringsSize   uint16
-	PrivateStringsOffset uint16
-}
-
-type FirehoseLoss struct{}
-
-type FirehoseSignpost struct{}
-
-type FirehoseTrace struct{}
-
 // FirehoseItemInfo represents a parsed message item from firehose entry data
 // Based on the Rust implementation's FirehoseItemInfo struct
 type FirehoseItemInfo struct {
@@ -238,19 +226,19 @@ func ParseFirehoseEntry(data []byte) (FirehoseEntry, []byte) {
 		firehoseResult.FirehoseActivity = activity
 
 	} else if unknownLogActivityType[0] == nonactivity {
-		nonActivity, nonActivityData := ParseFirehoseNonActivity(firehoseData, firehoseResult.Flags, unknownLogType[0])
+		nonActivity, nonActivityData := ParseFirehoseNonActivity(firehoseData, firehoseResult.Flags)
 		firehoseData = nonActivityData
 		firehoseResult.FirehoseNonActivity = nonActivity
 	} else if unknownLogActivityType[0] == signpost {
-		signpost, signpostData := ParseFirehoseSignpost(firehoseData, firehoseResult.Flags, unknownLogType[0])
+		signpost, signpostData := ParseFirehoseSignpost(firehoseData, firehoseResult.Flags)
 		firehoseData = signpostData
 		firehoseResult.FirehoseSignpost = signpost
 	} else if unknownLogActivityType[0] == loss {
-		loss, lossData := ParseFirehoseLoss(firehoseData, unknownLogType[0])
+		loss, lossData := ParseFirehoseLoss(firehoseData)
 		firehoseData = lossData
 		firehoseResult.FirehoseLoss = loss
 	} else if unknownLogActivityType[0] == trace {
-		trace, traceData := ParseFirehoseTrace(firehoseData, unknownLogType[0])
+		trace, traceData := ParseFirehoseTrace(firehoseData)
 		firehoseData = traceData
 		firehoseResult.FirehoseTrace = trace
 	}
