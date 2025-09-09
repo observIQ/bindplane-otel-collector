@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// take returns the first n bytes from data, along with the remainder.
+// take returns the first n bytes from data, along with the remainder (remainder is the first returned value).
 // It mimics nom::take(n) from rust
 func Take(data []byte, n int) ([]byte, []byte, error) {
 	if len(data) < n {
@@ -31,7 +31,7 @@ func ExtractStringSize(data []byte, messageSize uint64) ([]byte, string, error) 
 	size := int(messageSize)
 	if len(data) < size {
 		// Not enough data, take what we have
-		path, input, _ := Take(data, len(data))
+		input, path, _ := Take(data, len(data))
 		pathString := string(path)
 		return input, strings.TrimRight(pathString, "\x00"), nil
 	}

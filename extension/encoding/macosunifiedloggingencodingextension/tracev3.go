@@ -654,14 +654,14 @@ func parseLargeDataSectionAsChunks(data []byte, header *TraceV3Header, timesyncD
 			chunkEntry.ChunkType = "firehose"
 			chunkEntry.Subsystem = "com.apple.firehose.large_data"
 			chunkEntry.Category = "entry"
-			firehoseEntries := ParseFirehoseChunk(chunkData, chunkEntry, header, timesyncData)
+			firehoseEntries := ParseFirehoseChunk(chunkData)
 			entries = append(entries, firehoseEntries...)
 		case 0x6002:
 			// Oversize chunk
 			chunkEntry.ChunkType = "oversize"
 			chunkEntry.Subsystem = "com.apple.oversize.large_data"
 			chunkEntry.Category = "oversize_data"
-			oversizeEntries := ParseOversizeChunkV2(chunkData, chunkEntry, header, timesyncData)
+			oversizeEntries := ParseOversizeChunk(chunkData)
 			entries = append(entries, oversizeEntries...)
 		case 0x600d:
 			// ChunkSet chunk

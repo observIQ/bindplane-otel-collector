@@ -63,7 +63,7 @@ type FirehoseEntry struct {
 
 type FirehoseItemType struct {
 	ItemType          uint8
-	ItemSize          uint16
+	ItemSize          uint8
 	Offset            uint16
 	MessageStringSize uint16
 	MessageStrings    string
@@ -79,25 +79,25 @@ type FirehoseItemData struct {
 type FirehoseItemInfo struct {
 	MessageStrings string
 	ItemType       uint8
-	ItemSize       uint16
+	ItemSize       uint8
 }
 
 func ParseFirehosePreamble(data []byte) (FirehosePreamble, []byte) {
 	var preamble FirehosePreamble
 
-	chunkTag, data, _ := Take(data, 4)
-	chunkSubTag, data, _ := Take(data, 4)
-	chunkDataSize, data, _ := Take(data, 8)
-	firstProcID, data, _ := Take(data, 8)
-	secondProcID, data, _ := Take(data, 4)
-	ttl, data, _ := Take(data, 1)
-	collapsed, data, _ := Take(data, 1)
-	unknown, data, _ := Take(data, 2)
-	publicDataSize, data, _ := Take(data, 2)
-	privateDataVirtualOffset, data, _ := Take(data, 2)
-	unknown2, data, _ := Take(data, 2)
-	unknown3, data, _ := Take(data, 2)
-	baseContinuousTime, logData, _ := Take(data, 8)
+	data, chunkTag, _ := Take(data, 4)
+	data, chunkSubTag, _ := Take(data, 4)
+	data, chunkDataSize, _ := Take(data, 8)
+	data, firstProcID, _ := Take(data, 8)
+	data, secondProcID, _ := Take(data, 4)
+	data, ttl, _ := Take(data, 1)
+	data, collapsed, _ := Take(data, 1)
+	data, unknown, _ := Take(data, 2)
+	data, publicDataSize, _ := Take(data, 2)
+	data, privateDataVirtualOffset, _ := Take(data, 2)
+	data, unknown2, _ := Take(data, 2)
+	data, unknown3, _ := Take(data, 2)
+	logData, baseContinuousTime, _ := Take(data, 8)
 
 	preamble.chunkTag = binary.LittleEndian.Uint32(chunkTag)
 	preamble.chunkSubTag = binary.LittleEndian.Uint32(chunkSubTag)
@@ -115,11 +115,11 @@ func ParseFirehosePreamble(data []byte) (FirehosePreamble, []byte) {
 
 	// firehose_public_data_size includes the 16 bytes before the public data offset
 	publicDataSizeOffset := 16
-	publicData, data, _ := Take(logData, int(preamble.publicDataSize)-publicDataSizeOffset)
+	data, publicData, _ := Take(logData, int(preamble.publicDataSize)-publicDataSizeOffset)
 
 	// Go through all the public data associated with log Firehose entry
 	for len(publicData) > 0 {
-		firehosePublicData, firehoseInput := ParseFirehoseEntry(publicData)
+		firehosePublicData, firehoseInput, _ := ParseFirehoseEntry(publicData)
 		publicData = firehoseInput
 
 		if contains(LogTypes[:], firehosePublicData.ActivityType) || len(publicData) < 24 {
@@ -132,7 +132,7 @@ func ParseFirehosePreamble(data []byte) (FirehosePreamble, []byte) {
 
 				if len(data) > int(privateDataOffset) && len(publicData) == 0 {
 					leftoverDataSize := len(data) - int(privateDataOffset)
-					privateData, _, _ := Take(data, leftoverDataSize)
+					_, privateData, _ := Take(data, leftoverDataSize)
 					data = privateData
 				} else {
 					// If log data and public data are the same size, use private data offset to calculate the private data
@@ -190,17 +190,17 @@ func contains(slice []uint8, value uint8) bool {
 	return false
 }
 
-func ParseFirehoseEntry(data []byte) (FirehoseEntry, []byte) {
+func ParseFirehoseEntry(data []byte) (FirehoseEntry, []byte, error) {
 	firehoseResult := FirehoseEntry{}
 
-	unknownLogActivityType, data, _ := Take(data, 1)
-	unknownLogType, data, _ := Take(data, 1)
-	flags, data, _ := Take(data, 2)
-	formatStringLocation, data, _ := Take(data, 4)
-	threadID, data, _ := Take(data, 8)
-	continousTimeDelta, data, _ := Take(data, 4)
-	continousTimeDeltaUpper, data, _ := Take(data, 2)
-	dataSize, data, _ := Take(data, 2)
+	data, unknownLogActivityType, _ := Take(data, 1)
+	data, unknownLogType, _ := Take(data, 1)
+	data, flags, _ := Take(data, 2)
+	data, formatStringLocation, _ := Take(data, 4)
+	data, threadID, _ := Take(data, 8)
+	data, continousTimeDelta, _ := Take(data, 4)
+	data, continousTimeDeltaUpper, _ := Take(data, 2)
+	data, dataSize, _ := Take(data, 2)
 
 	firehoseResult.ActivityType = unknownLogActivityType[0]
 	firehoseResult.LogType = unknownLogType[0]
@@ -211,7 +211,7 @@ func ParseFirehoseEntry(data []byte) (FirehoseEntry, []byte) {
 	firehoseResult.ContinousTimeDeltaUpper = binary.LittleEndian.Uint16(continousTimeDeltaUpper)
 	firehoseResult.DataSize = binary.LittleEndian.Uint16(dataSize)
 
-	firehoseData, data, _ := Take(data, int(firehoseResult.DataSize))
+	data, firehoseData, _ := Take(data, int(firehoseResult.DataSize))
 
 	// Activity type
 	const activity uint8 = 0x2
@@ -241,9 +241,49 @@ func ParseFirehoseEntry(data []byte) (FirehoseEntry, []byte) {
 		trace, traceData := ParseFirehoseTrace(firehoseData)
 		firehoseData = traceData
 		firehoseResult.FirehoseTrace = trace
+		firehoseResult.Message = trace.MessageData
+	} else if unknownLogActivityType[0] == UnknownRemnantData {
+		return firehoseResult, data, nil
+	} else {
+		// TODO: Handle this warning
+		// fmt.Sprintf("Unknown log activity type: %d", unknownLogActivityType[0])
 	}
 
-	return firehoseResult, data
+	// Minimum item size is 6 bytes
+	if len(firehoseData) < 6 {
+		// Skip any zero padding
+		offset := 0
+		for offset < len(data) && data[offset] == 0 {
+			offset++
+		}
+		data = data[offset:]
+		return firehoseResult, data, nil
+	}
+
+	firehoseData, unknownItem, _ := Take(firehoseData, 1)
+	firehoseData, numberItems, _ := Take(firehoseData, 1)
+	firehoseResult.UnknownItem = unknownItem[0]
+	firehoseResult.NumberItems = numberItems[0]
+	firehoseResult.Message, _ = ParseFirehoseMessageItems(firehoseData, numberItems[0], firehoseResult.Flags)
+
+	// Skip any zero padding
+	offset := 0
+	for offset < len(data) && data[offset] == 0 {
+		offset++
+	}
+	remainingData := data[offset:]
+
+	// Verify we didn't remove padding into remnant/junk data
+	paddingData := paddingSize(uint64(firehoseResult.DataSize), 8)
+	if paddingData > uint64(^uint(0)>>1) {
+		return firehoseResult, data, fmt.Errorf("u64 is bigger than system int")
+	}
+	data, _, _ = Take(data, int(paddingData))
+	if int(paddingData) > len(remainingData) {
+		data = remainingData
+	}
+
+	return firehoseResult, data, nil
 }
 
 func ParsePrivateData(data []byte, firehoseItemData *FirehoseItemData) ([]byte, error) {
@@ -253,18 +293,18 @@ func ParsePrivateData(data []byte, firehoseItemData *FirehoseItemData) ([]byte, 
 		if contains(PrivateStrings[:], firehoseInfo.ItemType) {
 			if firehoseInfo.ItemType == PrivateStrings[3] || firehoseInfo.ItemType == PrivateStrings[4] {
 				if len(privateStringStart) < int(firehoseInfo.ItemSize) {
-					pointerObject, privateData, _ := Take(privateStringStart, len(privateStringStart))
+					privateData, pointerObject, _ := Take(privateStringStart, len(privateStringStart))
 					privateStringStart = privateData
 					firehoseInfo.MessageStrings = base64.StdEncoding.EncodeToString(pointerObject)
 					continue
 				}
 
-				pointerObject, privateData, _ := Take(privateStringStart, int(firehoseInfo.ItemSize))
+				privateData, pointerObject, _ := Take(privateStringStart, int(firehoseInfo.ItemSize))
 				privateStringStart = privateData
 				firehoseInfo.MessageStrings = base64.StdEncoding.EncodeToString(pointerObject)
 				continue
 			}
-			nullPrivate := uint16(0)
+			nullPrivate := uint8(0)
 			if firehoseInfo.ItemSize == nullPrivate {
 				firehoseInfo.MessageStrings = "<private>"
 			} else {
@@ -273,11 +313,11 @@ func ParsePrivateData(data []byte, firehoseItemData *FirehoseItemData) ([]byte, 
 				firehoseInfo.MessageStrings = messageString
 			}
 		} else if firehoseInfo.ItemType == PrivateNumber {
-			nullPrivate := uint16(0x8000)
+			nullPrivate := uint8(0x80)
 			if firehoseInfo.ItemSize == nullPrivate {
 				firehoseInfo.MessageStrings = "<private>"
 			} else {
-				privateData, privateNumber := ParseItemNumber(privateStringStart, firehoseInfo.ItemSize)
+				privateData, privateNumber := ParseItemNumber(privateStringStart, uint8(firehoseInfo.ItemSize))
 				privateStringStart = privateData
 				firehoseInfo.MessageStrings = fmt.Sprintf("%d", privateNumber)
 			}
@@ -290,18 +330,18 @@ func ParsePrivateData(data []byte, firehoseItemData *FirehoseItemData) ([]byte, 
 // Parse Backtrace data for log entry (chunk). This only exists if `has_context_data` flag is set
 func GetBacktraceData(data []byte) ([]byte, []string, error) {
 	// Skip 3 unknown bytes
-	_, input, _ := Take(data, 3)
+	input, _, _ := Take(data, 3)
 
 	// Read counts
-	uuidCountBytes, input, _ := Take(input, 1)
-	offsetCountBytes, input, _ := Take(input, 2)
+	input, uuidCountBytes, _ := Take(input, 1)
+	input, offsetCountBytes, _ := Take(input, 2)
 	uuidCount := int(uuidCountBytes[0])
 	offsetCount := int(binary.LittleEndian.Uint16(offsetCountBytes))
 
 	// Read UUID vector (128-bit big-endian UUIDs)
 	var uuidVec []uint64
 	for i := 0; i < uuidCount; i++ {
-		uuidBytes, remaining, _ := Take(input, 16) // 128 bits = 16 bytes
+		remaining, uuidBytes, _ := Take(input, 16) // 128 bits = 16 bytes
 		input = remaining
 		// Convert 128-bit UUID to two 64-bit values (big-endian)
 		uuidHigh := binary.BigEndian.Uint64(uuidBytes[:8])
@@ -313,7 +353,7 @@ func GetBacktraceData(data []byte) ([]byte, []string, error) {
 	// Read offsets vector (32-bit little-endian)
 	var offsetsVec []uint32
 	for i := 0; i < offsetCount; i++ {
-		offsetBytes, remaining, _ := Take(input, 4)
+		remaining, offsetBytes, _ := Take(input, 4)
 		input = remaining
 		offset := binary.LittleEndian.Uint32(offsetBytes)
 		offsetsVec = append(offsetsVec, offset)
@@ -322,7 +362,7 @@ func GetBacktraceData(data []byte) ([]byte, []string, error) {
 	// Read indexes (8-bit)
 	var indexes []uint8
 	for i := 0; i < offsetCount; i++ {
-		indexBytes, remaining, _ := Take(input, 1)
+		remaining, indexBytes, _ := Take(input, 1)
 		input = remaining
 		indexes = append(indexes, indexBytes[0])
 	}
@@ -350,7 +390,7 @@ func GetBacktraceData(data []byte) ([]byte, []string, error) {
 	}
 
 	// Skip padding bytes
-	_, backtraceInput, _ := Take(input, int(paddingSize))
+	backtraceInput, _, _ := Take(input, int(paddingSize))
 	input = backtraceInput
 
 	return input, backtraceData, nil
@@ -376,7 +416,7 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 		}
 
 		if contains(numberItemType, item.ItemType) {
-			itemValueInput, messageNumber := ParseItemNumber(firehoseInput, uint16(item.ItemSize))
+			itemValueInput, messageNumber := ParseItemNumber(firehoseInput, item.ItemSize)
 			item.MessageStrings = fmt.Sprintf("%d", messageNumber)
 			firehoseInput = itemValueInput
 			itemCount += 1
@@ -403,7 +443,7 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 		firehoseItemData.BacktraceStrings = backtraceData
 	} else if len(firehoseInput) > backtraceSignatureSize {
 		backtraceSignature := []uint8{1, 0, 18}
-		parsedBacktraceSig, _, _ := Take(firehoseInput, backtraceSignatureSize)
+		_, parsedBacktraceSig, _ := Take(firehoseInput, backtraceSignatureSize)
 		if len(parsedBacktraceSig) == len(backtraceSignature) &&
 			parsedBacktraceSig[0] == backtraceSignature[0] &&
 			parsedBacktraceSig[1] == backtraceSignature[1] &&
@@ -460,28 +500,28 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 }
 
 func GetFirehoseItems(data []byte) (FirehoseItemType, []byte) {
-	itemType, firehoseInput, _ := Take(data, 1)
-	itemSize, firehoseInput, _ := Take(firehoseInput, 1)
+	firehoseInput, itemType, _ := Take(data, 1)
+	firehoseInput, itemSize, _ := Take(firehoseInput, 1)
 	item := FirehoseItemType{
 		ItemType: itemType[0],
-		ItemSize: binary.LittleEndian.Uint16(itemSize),
+		ItemSize: itemSize[0],
 	}
 
 	if contains(StringItem[:], item.ItemType) || item.ItemType == PrivateNumber {
-		messageOffset, firehoseInput, _ := Take(firehoseInput, 2)
-		messageSize, firehoseInput, _ := Take(firehoseInput, 2)
+		firehoseInput, messageOffset, _ := Take(firehoseInput, 2)
+		firehoseInput, messageSize, _ := Take(firehoseInput, 2)
 		item.Offset = binary.LittleEndian.Uint16(messageOffset)
 		item.MessageStringSize = binary.LittleEndian.Uint16(messageSize)
 	}
 
 	// Precision items just contain the length for the actual item. Ex: %*s
 	if contains(PrecisionItems, item.ItemType) {
-		_, firehoseInput, _ = Take(firehoseInput, int(item.ItemSize))
+		firehoseInput, _, _ = Take(firehoseInput, int(item.ItemSize))
 	}
 
 	if contains(SensitiveItems, item.ItemType) {
-		messageOffset, firehoseInput, _ := Take(firehoseInput, 2)
-		messageSize, firehoseInput, _ := Take(firehoseInput, 2)
+		firehoseInput, messageOffset, _ := Take(firehoseInput, 2)
+		firehoseInput, messageSize, _ := Take(firehoseInput, 2)
 		item.Offset = binary.LittleEndian.Uint16(messageOffset)
 		item.MessageStringSize = binary.LittleEndian.Uint16(messageSize)
 	}
@@ -494,7 +534,7 @@ func ParseItemString(data []byte, itemType uint8, messageSize uint16) ([]byte, s
 	if messageSize > uint16(len(data)) {
 		return ExtractStringSize(data, uint64(messageSize))
 	}
-	messageData, data, _ := Take(data, int(messageSize))
+	data, messageData, _ := Take(data, int(messageSize))
 
 	// 0x30, 0x31, and 0x32 represent arbitrary data, need to be decoded again
 	if contains(Arbitrary, itemType) {
@@ -510,7 +550,7 @@ func ParseItemString(data []byte, itemType uint8, messageSize uint16) ([]byte, s
 }
 
 // TODO: Add test for this function
-func ParseItemNumber(data []byte, itemSize uint16) ([]byte, uint64) {
+func ParseItemNumber(data []byte, itemSize uint8) ([]byte, uint64) {
 	switch itemSize {
 	case 4:
 		value := int64(binary.LittleEndian.Uint32(data[:4]))
