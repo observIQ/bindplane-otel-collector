@@ -9,10 +9,10 @@ on:
 
 jobs:
   release-test:
-    runs-on: nscloud-ubuntu-24.04-systemd-amd64-32x64
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x64
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: namespacelabs/nscloud-checkout-action@v7
         with:
           fetch-depth: 0
 
@@ -20,11 +20,15 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          cache-dependency-path: "**/go.sum"
+          cache: false # Use Namespace caching instead
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v2
+        uses: namespacelabs/nscloud-setup-buildx-action@v0
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -34,6 +38,11 @@ jobs:
 
       - name: Set VERSION
         run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+
+      - name: Cache Goreleaser Build
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: ~/.cache/goreleaser
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
@@ -47,7 +56,7 @@ jobs:
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: namespace-actions/upload-artifact@v1
         with:
           name: dist-artifacts
           path: dist/

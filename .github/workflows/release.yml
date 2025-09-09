@@ -86,10 +86,10 @@ jobs:
 
   release:
     needs: [build-64bit-msi]
-    runs-on: nscloud-ubuntu-24.04-systemd-amd64-32x64
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x64
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: namespacelabs/nscloud-checkout-action@v7
         with:
           # For goreleaser
           fetch-depth: 0
@@ -104,10 +104,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          cache-dependency-path: "**/go.sum"
+          cache: false # Use Namespace caching instead
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v2
+        uses: namespacelabs/nscloud-setup-buildx-action@v0
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Login to DockerHub
@@ -139,6 +143,10 @@ jobs:
         shell: bash
         env:
           COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
+      - name: Cache Goreleaser Build
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: ~/.cache/goreleaser
       - name: Sign MSI
         run: cosign sign-blob --key=cosign.key --output-signature ./observiq-otel-collector.msi/observiq-otel-collector.msi.sig ./observiq-otel-collector.msi/observiq-otel-collector.msi
         shell: bash

@@ -8,23 +8,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [nscloud-ubuntu-24.04-systemd-amd64-4x8, macos-13, windows-2022-8-cores]
+        os: [namespace-profile-bindplane-default-ubuntu-24-04, namespace-profile-bindplane-default-macos-15, windows-2022-8-cores]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Sources
-        uses: actions/checkout@v4
-      - name: Setup Go
+        uses: namespacelabs/nscloud-checkout-action@v7
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
-            **/go.sum
+          go-version-file: "go.mod"
+          cache: false
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
       - name: Run Tests
         run: make test
       - name: Run Updater Integration Tests (non-linux)
-        if: matrix.os != 'nscloud-ubuntu-24.04-systemd-amd64-4x8'
+        if: matrix.os != 'namespace-profile-bindplane-default-ubuntu-24-04'
         run: make test-updater-integration
       - name: Run Updater Integration Tests (linux)
-        if: matrix.os == 'nscloud-ubuntu-24.04-systemd-amd64-4x8'
+        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04'
         run: sudo make test-updater-integration
