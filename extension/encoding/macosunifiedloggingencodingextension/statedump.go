@@ -142,7 +142,9 @@ func ParseStateDumpPlist(plistData []byte) string {
 func ParseStateDumpObject(objectData []byte, name string) string {
 	switch name {
 	case "CLClientManagerStateTracker":
-		return getStateTrackerData(objectData)
+		return getClientManagerStateTrackerData(objectData)
+	case "CLDaemonStatusStateTracker":
+		return getDaemonStatusStateTrackerData(objectData)
 	case "CLLocationManagerStateTracker":
 		return getLocationTrackerState(objectData)
 	case "DNS Configuration":
@@ -160,9 +162,9 @@ func formatUUID(uuidBytes []byte) string {
 		return hex.EncodeToString(uuidBytes)
 	}
 
-	// Format as standard UUID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+	// Format as uppercase hex string without dashes (Rust-compatible format)
 	// Using big-endian for proper UUID formatting
-	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
+	return fmt.Sprintf("%08X%04X%04X%04X%012X",
 		binary.BigEndian.Uint32(uuidBytes[0:4]),
 		binary.BigEndian.Uint16(uuidBytes[4:6]),
 		binary.BigEndian.Uint16(uuidBytes[6:8]),
@@ -175,7 +177,7 @@ func encodeStandard(data []byte) string {
 	return hex.EncodeToString(data)
 }
 
-func getStateTrackerData(data []byte) string {
+func getClientManagerStateTrackerData(data []byte) string {
 	if len(data) == 0 {
 		return "Empty CLClientManagerStateTracker data"
 	}
@@ -188,7 +190,15 @@ func getStateTrackerData(data []byte) string {
 		return fmt.Sprintf("CLClientManagerStateTracker: count=%d flags=0x%x data_size=%d", count, flags, len(data))
 	}
 
-	return fmt.Sprintf("CLClientManagerStateTracker data (%d bytes): %x", len(data), data)
+	return string(data)
+}
+
+func getDaemonStatusStateTrackerData(data []byte) string {
+	if len(data) == 0 {
+		return "Empty CLDaemonStatusStateTracker data"
+	}
+
+	return string(data)
 }
 
 func getLocationTrackerState(data []byte) string {
@@ -215,7 +225,7 @@ func getLocationTrackerState(data []byte) string {
 		return result
 	}
 
-	return fmt.Sprintf("CLLocationManagerStateTracker data (%d bytes): %x", len(data), data)
+	return string(data)
 }
 
 func getDNSConfig(data []byte) string {

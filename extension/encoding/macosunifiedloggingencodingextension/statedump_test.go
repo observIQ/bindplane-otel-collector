@@ -4,6 +4,7 @@
 package macosunifiedloggingencodingextension
 
 import (
+	"encoding/binary"
 	"os"
 	"path/filepath"
 	"testing"
@@ -21,16 +22,14 @@ func TestParseStateDump(t *testing.T) {
 	// Verify basic structure
 	require.Equal(t, uint32(0x6003), statedump.ChunkTag)
 	require.Equal(t, uint32(0x0001), statedump.ChunkSubtag)
-	require.Equal(t, uint32(1), statedump.UnknownDataType) // Plist type
+	require.Equal(t, uint32(1), statedump.UnknownDataType)
 	require.Equal(t, "Test Plist", statedump.TitleName)
 
-	// Verify the actual data pattern (0xaa, 0xab, 0xac... repeating)
 	require.Equal(t, 50, len(statedump.Data))
 	require.Equal(t, byte(0xaa), statedump.Data[0])
 	require.Equal(t, byte(0xab), statedump.Data[1])
 	require.Equal(t, byte(0xac), statedump.Data[2])
 
-	// Verify the repeating pattern
 	for i := 0; i < len(statedump.Data); i++ {
 		expected := byte(0xaa + (i % 10))
 		require.Equal(t, expected, statedump.Data[i], "Data mismatch at index %d", i)
@@ -44,7 +43,6 @@ func TestParseStateDumpCustomObject(t *testing.T) {
 	statedump, err := ParseStateDump(data)
 	require.NoError(t, err)
 
-	// Verify basic structure
 	require.Equal(t, uint32(0x6003), statedump.ChunkTag)
 	require.Equal(t, uint32(0x0002), statedump.ChunkSubtag)
 	require.Equal(t, uint32(3), statedump.UnknownDataType) // Custom object type
@@ -52,7 +50,6 @@ func TestParseStateDumpCustomObject(t *testing.T) {
 	require.Equal(t, "TestLibrary", statedump.DecoderLibrary)
 	require.Equal(t, "TestType", statedump.DecoderType)
 
-	// Verify the actual data pattern (0, 1, 2, 3... repeating)
 	require.Equal(t, 100, len(statedump.Data))
 	for i := 0; i < len(statedump.Data); i++ {
 		expected := byte(i % 256)
@@ -136,4 +133,109 @@ func TestExpectedStructsFromTestData(t *testing.T) {
 
 	require.Greater(t, collection.Timestamp, uint64(0))
 	require.GreaterOrEqual(t, len(collection.Statedumps), 1)
+}
+
+func TestParseStateDumpDaemonStatus(t *testing.T) {
+	testData := []byte{
+		3, 96, 0, 0, 0, 0, 0, 0, 32, 1, 0, 0, 0, 0, 0, 0, 113, 0, 0, 0, 0, 0, 0, 0, 208, 1, 0,
+		0, 14, 0, 0, 0, 13, 179, 213, 232, 0, 0, 0, 0, 118, 4, 0, 0, 0, 0, 0, 128, 92, 216,
+		221, 238, 4, 56, 58, 56, 136, 119, 16, 34, 124, 90, 10, 86, 3, 0, 0, 0, 40, 0, 0, 0,
+		108, 111, 99, 97, 116, 105, 111, 110, 0, 0, 187, 44, 255, 127, 0, 0, 42, 144, 225, 173,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 83, 78, 41, 126, 255, 127,
+		0, 0, 6, 144, 225, 173, 0, 0, 0, 0, 148, 242, 123, 124, 255, 127, 0, 0, 95, 67, 76, 68,
+		97, 101, 109, 111, 110, 83, 116, 97, 116, 117, 115, 83, 116, 97, 116, 101, 84, 114, 97,
+		99, 107, 101, 114, 83, 116, 97, 116, 101, 0, 144, 225, 173, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 78, 41, 126, 255, 127, 0, 0, 67, 76, 68, 97, 101,
+		109, 111, 110, 83, 116, 97, 116, 117, 115, 83, 116, 97, 116, 101, 84, 114, 97, 99, 107,
+		101, 114, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 240, 191, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0,
+	}
+
+	statedump, err := ParseStateDump(testData)
+	require.NoError(t, err)
+
+	require.Equal(t, uint32(24579), statedump.ChunkTag) // 0x6003
+	require.Equal(t, uint32(0), statedump.ChunkSubtag)
+	require.Equal(t, uint64(288), statedump.ChunkDataSize)
+	require.Equal(t, uint64(113), statedump.FirstProcID)
+	require.Equal(t, uint32(464), statedump.SecondProcID)
+	require.Equal(t, uint8(14), statedump.TTL)
+	require.Equal(t, []uint8{0, 0, 0}, statedump.UnknownReserved)
+	require.Equal(t, uint64(3906319117), statedump.ContinuousTime)
+	require.Equal(t, uint64(9223372036854776950), statedump.ActivityID)
+	require.Equal(t, "5CD8DDEE04383A38887710227C5A0A56", statedump.UUID)
+	require.Equal(t, uint32(3), statedump.UnknownDataType) // Custom object
+	require.Equal(t, uint32(40), statedump.UnknownDataSize)
+	require.Equal(t, "location", statedump.DecoderLibrary)
+	require.Equal(t, "_CLDaemonStatusStateTrackerState", statedump.DecoderType)
+	require.Equal(t, "CLDaemonStatusStateTracker", statedump.TitleName)
+
+	expectedData := []byte{
+		0, 0, 0, 0, 0, 0, 240, 191, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0,
+		0, 0, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0,
+	}
+	require.Equal(t, expectedData, statedump.Data)
+}
+
+func TestParseStateDumpPlist(t *testing.T) {
+	testData := make([]byte, 300)
+	binary.LittleEndian.PutUint32(testData[0:4], 0x6003) // ChunkTag
+	binary.LittleEndian.PutUint32(testData[4:8], 0)      // ChunkSubtag
+	binary.LittleEndian.PutUint64(testData[8:16], 7859)  // ChunkDataSize
+	binary.LittleEndian.PutUint64(testData[16:24], 1771) // FirstProcID
+	binary.LittleEndian.PutUint32(testData[24:28], 1772) // SecondProcID
+	testData[28] = 14                                    // TTL
+	testData[29] = 0
+	testData[30] = 0
+	testData[31] = 0 // UnknownReserved
+
+	binary.LittleEndian.PutUint64(testData[32:40], 10048439123292)      // ContinuousTime
+	binary.LittleEndian.PutUint64(testData[40:48], 9223372036854833248) // ActivityID
+
+	uuidBytes := []byte{0x7E, 0x5D, 0x98, 0x55, 0xD1, 0xCC, 0x38, 0x2D, 0xB8, 0xEB, 0x25, 0xA0, 0x30, 0xD4, 0xB2, 0xFA}
+	copy(testData[48:64], uuidBytes)
+
+	binary.LittleEndian.PutUint32(testData[64:68], 1)  // UnknownDataType (plist)
+	binary.LittleEndian.PutUint32(testData[68:72], 20) // UnknownDataSize (smaller for test)
+
+	titleStart := 72 + 128
+	copy(testData[titleStart:titleStart+16], []byte("WebContent state"))
+
+	dataStart := titleStart + 64
+	copy(testData[dataStart:dataStart+20], []byte("bplist00testdata123")) // 20 bytes of dummy plist data
+
+	statedump, err := ParseStateDump(testData)
+	require.NoError(t, err)
+
+	require.Equal(t, uint32(0x6003), statedump.ChunkTag)
+	require.Equal(t, uint32(0), statedump.ChunkSubtag)
+	require.Equal(t, uint64(7859), statedump.ChunkDataSize)
+	require.Equal(t, uint64(1771), statedump.FirstProcID)
+	require.Equal(t, uint32(1772), statedump.SecondProcID)
+	require.Equal(t, uint8(14), statedump.TTL)
+	require.Equal(t, []uint8{0, 0, 0}, statedump.UnknownReserved)
+	require.Equal(t, uint64(10048439123292), statedump.ContinuousTime)
+	require.Equal(t, uint64(9223372036854833248), statedump.ActivityID)
+	require.Equal(t, "7E5D9855D1CC382DB8EB25A030D4B2FA", statedump.UUID)
+	require.Equal(t, uint32(1), statedump.UnknownDataType)
+	require.Equal(t, uint32(20), statedump.UnknownDataSize)
+	require.Equal(t, "", statedump.DecoderLibrary)
+	require.Equal(t, "", statedump.DecoderType)
+	require.Contains(t, statedump.TitleName, "WebContent state")
+	require.Equal(t, 20, len(statedump.Data))
+}
+
+func TestParseStateDumpObject(t *testing.T) {
+	testData := []byte{
+		0, 0, 0, 0, 0, 0, 240, 191, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0,
+		255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0,
+	}
+
+	result := ParseStateDumpObject(testData, "CLDaemonStatusStateTracker")
+
+	require.Contains(t, result, "CLClientManagerStateTracker")
+	require.NotEmpty(t, result)
+
+	require.NotContains(t, result, "Unsupported Statedump object")
 }
