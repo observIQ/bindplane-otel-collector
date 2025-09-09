@@ -78,7 +78,7 @@ func ParseStateDump(data []byte) (*StateDump, error) {
 	if err := binary.Read(reader, binary.LittleEndian, &uuidBytes); err != nil {
 		return nil, fmt.Errorf("failed to read uuid: %w", err)
 	}
-	result.UUID = cleanUUID(fmt.Sprintf("%02X", uuidBytes))
+	result.UUID = formatUUID(uuidBytes[:])
 
 	if err := binary.Read(reader, binary.LittleEndian, &result.UnknownDataType); err != nil {
 		return nil, fmt.Errorf("failed to read unknown data type: %w", err)
@@ -141,8 +141,6 @@ func ParseStateDumpPlist(plistData []byte) string {
 // ParseStateDumpObject parses custom Apple objects
 func ParseStateDumpObject(objectData []byte, name string) string {
 	switch name {
-	case "CLDaemonStatusStateTracker":
-		return "TODO"
 	case "CLClientManagerStateTracker":
 		return getStateTrackerData(objectData)
 	case "CLLocationManagerStateTracker":
@@ -156,13 +154,20 @@ func ParseStateDumpObject(objectData []byte, name string) string {
 	}
 }
 
-// cleanUUID formats a UUID string by removing brackets and formatting properly
-func cleanUUID(uuidString string) string {
-	// Remove any brackets and clean up the string
-	cleaned := strings.ReplaceAll(uuidString, "[", "")
-	cleaned = strings.ReplaceAll(cleaned, "]", "")
-	cleaned = strings.ReplaceAll(cleaned, " ", "")
-	return cleaned
+// formatUUID formats a UUID byte array into standard UUID string format
+func formatUUID(uuidBytes []byte) string {
+	if len(uuidBytes) != 16 {
+		return hex.EncodeToString(uuidBytes)
+	}
+
+	// Format as standard UUID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+	// Using big-endian for proper UUID formatting
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
+		binary.BigEndian.Uint32(uuidBytes[0:4]),
+		binary.BigEndian.Uint16(uuidBytes[4:6]),
+		binary.BigEndian.Uint16(uuidBytes[6:8]),
+		binary.BigEndian.Uint16(uuidBytes[8:10]),
+		uuidBytes[10:16])
 }
 
 // encodeStandard provides hex encoding for unsupported objects
@@ -171,19 +176,128 @@ func encodeStandard(data []byte) string {
 }
 
 func getStateTrackerData(data []byte) string {
-	return fmt.Sprintf("StateTracker data: %x", data)
+	if len(data) == 0 {
+		return "Empty CLClientManagerStateTracker data"
+	}
+
+	// Try to parse basic structure
+	if len(data) >= 8 {
+		// Common pattern: first 4 bytes might be a count or type indicator
+		count := binary.LittleEndian.Uint32(data[0:4])
+		flags := binary.LittleEndian.Uint32(data[4:8])
+		return fmt.Sprintf("CLClientManagerStateTracker: count=%d flags=0x%x data_size=%d", count, flags, len(data))
+	}
+
+	return fmt.Sprintf("CLClientManagerStateTracker data (%d bytes): %x", len(data), data)
 }
 
 func getLocationTrackerState(data []byte) string {
-	return fmt.Sprintf("LocationTracker state: %x", data)
+	if len(data) == 0 {
+		return "Empty CLLocationManagerStateTracker data"
+	}
+
+	// Try to parse location manager state structure
+	if len(data) >= 16 {
+		// Location managers often have status flags and coordinates
+		status := binary.LittleEndian.Uint32(data[0:4])
+		accuracy := binary.LittleEndian.Uint32(data[4:8])
+		timestamp := binary.LittleEndian.Uint64(data[8:16])
+
+		result := fmt.Sprintf("CLLocationManagerStateTracker: status=0x%x accuracy=%d timestamp=%d", status, accuracy, timestamp)
+
+		// Try to extract more location data if available
+		if len(data) >= 32 {
+			lat := binary.LittleEndian.Uint64(data[16:24])
+			lon := binary.LittleEndian.Uint64(data[24:32])
+			result += fmt.Sprintf(" lat_raw=0x%x lon_raw=0x%x", lat, lon)
+		}
+
+		return result
+	}
+
+	return fmt.Sprintf("CLLocationManagerStateTracker data (%d bytes): %x", len(data), data)
 }
 
 func getDNSConfig(data []byte) string {
-	return fmt.Sprintf("DNS config: %x", data)
+	if len(data) == 0 {
+		return "Empty DNS Configuration data"
+	}
+
+	// DNS configurations often contain string data
+	dnsInfo := make([]string, 0)
+	offset := 0
+
+	// Try to extract null-terminated strings from the data
+	for offset < len(data) {
+		// Look for null-terminated strings
+		end := offset
+		for end < len(data) && data[end] != 0 {
+			end++
+		}
+
+		if end > offset {
+			str := string(data[offset:end])
+			// Check if this looks like a DNS server or domain
+			if strings.Contains(str, ".") || strings.Contains(str, ":") {
+				dnsInfo = append(dnsInfo, str)
+			}
+		}
+
+		offset = end + 1
+
+		// Safety limit
+		if len(dnsInfo) >= 10 {
+			break
+		}
+	}
+
+	if len(dnsInfo) > 0 {
+		return fmt.Sprintf("DNS Configuration: servers/domains=%s", strings.Join(dnsInfo, ", "))
+	}
+
+	return fmt.Sprintf("DNS Configuration data (%d bytes): %x", len(data), data)
 }
 
 func getNetworkInterface(data []byte) string {
-	return fmt.Sprintf("Network interface: %x", data)
+	if len(data) == 0 {
+		return "Empty Network information data"
+	}
+
+	// Network interface data often contains interface names and addresses
+	interfaces := make([]string, 0)
+	offset := 0
+
+	// Try to extract interface information
+	for offset < len(data) {
+		// Look for null-terminated strings
+		end := offset
+		for end < len(data) && data[end] != 0 {
+			end++
+		}
+
+		if end > offset {
+			str := string(data[offset:end])
+			// Check if this looks like an interface name (en0, lo0, etc.) or IP address
+			if (len(str) >= 2 && len(str) <= 16) &&
+				(strings.HasPrefix(str, "en") || strings.HasPrefix(str, "lo") ||
+					strings.HasPrefix(str, "wlan") || strings.Contains(str, ".") || strings.Contains(str, ":")) {
+				interfaces = append(interfaces, str)
+			}
+		}
+
+		offset = end + 1
+
+		// Safety limit
+		if len(interfaces) >= 20 {
+			break
+		}
+	}
+
+	if len(interfaces) > 0 {
+		return fmt.Sprintf("Network information: interfaces=%s", strings.Join(interfaces, ", "))
+	}
+
+	return fmt.Sprintf("Network information data (%d bytes): %x", len(data), data)
 }
 
 // ParseStatedumpChunk parses a Statedump chunk (0x6003) containing system state information
@@ -207,4 +321,120 @@ func ParseStatedumpChunk(data []byte, entry *TraceV3Entry) {
 
 	entry.Message = fmt.Sprintf("Statedump [%s]: %s", statedump.TitleName, message)
 	entry.Level = "Debug"
+
+	// Add statedump-specific attributes
+	entry.Subsystem = "com.apple.statedump"
+	entry.Category = statedump.TitleName
+
+	// Set additional statedump metadata as attributes if needed
+	// This can be used by consumers to filter or process statedumps specifically
+}
+
+// StatedumpCollection represents a collection of statedumps loaded from tracev3 files
+type StatedumpCollection struct {
+	Statedumps []StateDump
+	BootUUID   string
+	Timestamp  uint64
+}
+
+// LoadStatedumpsFromTraceV3 loads all statedumps from a tracev3 file
+// This function specifically targets statedump chunks (0x6003) for extraction
+func LoadStatedumpsFromTraceV3(data []byte) (*StatedumpCollection, error) {
+	if len(data) == 0 {
+		return nil, fmt.Errorf("empty tracev3 data")
+	}
+
+	// Parse the header first to get boot UUID and timing info
+	header, headerSize, err := ParseTraceV3Header(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse tracev3 header: %w", err)
+	}
+
+	collection := &StatedumpCollection{
+		Statedumps: make([]StateDump, 0),
+		BootUUID:   header.BootUUID,
+		Timestamp:  header.ContinuousTime,
+	}
+
+	// Skip header and parse data section looking specifically for statedump chunks
+	remainingData := data[headerSize:]
+	offset := 0
+	chunkPreambleSize := 16
+
+	for offset < len(remainingData) {
+		// Need at least 16 bytes for preamble
+		if offset+chunkPreambleSize > len(remainingData) {
+			break
+		}
+
+		// Parse preamble
+		chunkTag := binary.LittleEndian.Uint32(remainingData[offset:])
+		chunkDataSize := binary.LittleEndian.Uint64(remainingData[offset+8:])
+
+		// Validate chunk data size
+		if chunkDataSize == 0 || chunkDataSize > uint64(len(remainingData)) {
+			offset += 4
+			continue
+		}
+
+		totalChunkSize := chunkPreambleSize + int(chunkDataSize)
+		if offset+totalChunkSize > len(remainingData) {
+			break
+		}
+
+		// Check if this is a statedump chunk (0x6003)
+		if chunkTag == 0x6003 {
+			// Extract the statedump data (skip the 16-byte preamble)
+			statedumpData := remainingData[offset+chunkPreambleSize : offset+totalChunkSize]
+
+			statedump, err := ParseStateDump(statedumpData)
+			if err == nil {
+				collection.Statedumps = append(collection.Statedumps, *statedump)
+			}
+		}
+
+		// Move to next chunk with 8-byte alignment padding
+		offset += totalChunkSize
+		paddingBytes := paddingSize8(chunkDataSize)
+		offset += int(paddingBytes)
+
+		// Safety limit
+		if len(collection.Statedumps) >= 1000 {
+			break
+		}
+	}
+
+	return collection, nil
+}
+
+// GetStatedumpsByType filters statedumps by their data type
+func (sc *StatedumpCollection) GetStatedumpsByType(dataType uint32) []StateDump {
+	var filtered []StateDump
+	for _, sd := range sc.Statedumps {
+		if sd.UnknownDataType == dataType {
+			filtered = append(filtered, sd)
+		}
+	}
+	return filtered
+}
+
+// GetStatedumpsByTitle filters statedumps by their title name
+func (sc *StatedumpCollection) GetStatedumpsByTitle(title string) []StateDump {
+	var filtered []StateDump
+	for _, sd := range sc.Statedumps {
+		if sd.TitleName == title {
+			filtered = append(filtered, sd)
+		}
+	}
+	return filtered
+}
+
+// GetPlistStatedumps returns all statedumps containing plist data (type 1)
+func (sc *StatedumpCollection) GetPlistStatedumps() []StateDump {
+	return sc.GetStatedumpsByType(1)
+}
+
+// GetCustomObjectStatedumps returns all statedumps containing custom objects (type 3)
+func (sc *StatedumpCollection) GetCustomObjectStatedumps() []StateDump {
+	return sc.GetStatedumpsByType(3)
 }
