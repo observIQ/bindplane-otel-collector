@@ -29,12 +29,16 @@ type FirehosePreamble struct {
 const (
 	UnknownRemnantData uint8 = 0x0
 	PrivateNumber      uint8 = 0x1
+	Base64Raw          uint8 = 0xf2
 )
 
 var (
 	LogTypes       = [5]uint8{0x2, 0x6, 0x4, 0x7, 0x3}
 	StringItem     = [8]uint8{0x20, 0x22, 0x40, 0x42, 0x30, 0x31, 0x32, 0xf2}
 	PrivateStrings = [7]uint8{0x21, 0x25, 0x35, 0x31, 0x41, 0x81, 0xf1}
+	PrecisionItems = []uint8{0x10, 0x12}
+	SensitiveItems = []uint8{0x5, 0x45, 0x85}
+	Arbitrary      = []uint8{0x30, 0x31, 0x32}
 )
 
 // FirehoseEntry represents a parsed firehose log entry
@@ -371,15 +375,13 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 	firehoseInput := data
 	firehoseItemData := FirehoseItemData{}
 	numberItemType := []uint8{0x0, 0x2}
-	precisionItems := []uint8{0x10, 0x12}
-	sensitiveItems := []uint8{0x5, 0x45, 0x85}
 	objectItems := []uint8{0x40, 0x42}
 
 	for itemCount < int(numItems) {
 		item, itemInput := GetFirehoseItems(firehoseInput)
 		firehoseInput = itemInput
 
-		if contains(precisionItems, item.ItemType) {
+		if contains(PrecisionItems, item.ItemType) {
 			itemsData = append(itemsData, item)
 			itemCount += 1
 			continue
@@ -429,7 +431,7 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 			continue
 		}
 
-		if contains(PrivateStrings[:], item.ItemType) || contains(sensitiveItems, item.ItemType) {
+		if contains(PrivateStrings[:], item.ItemType) || contains(SensitiveItems, item.ItemType) {
 			item.MessageStrings = "<private>"
 			continue
 		}
@@ -438,7 +440,7 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 			continue
 		}
 
-		if contains(precisionItems, item.ItemType) {
+		if contains(PrecisionItems, item.ItemType) {
 			continue
 		}
 
@@ -451,7 +453,7 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 		}
 
 		if contains(StringItem[:], item.ItemType) {
-			itemValueInput, messageString := ParseItemString(firehoseInput, item.ItemType, item.MessageStringSize)
+			itemValueInput, messageString, _ := ParseItemString(firehoseInput, item.ItemType, item.MessageStringSize)
 			firehoseInput = itemValueInput
 			item.MessageStrings = messageString
 		} else {
@@ -467,6 +469,76 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 		})
 	}
 	return firehoseItemData, firehoseInput
+}
+
+func GetFirehoseItems(data []byte) (FirehoseItemType, []byte) {
+	itemType, firehoseInput, _ := Take(data, 1)
+	itemSize, firehoseInput, _ := Take(firehoseInput, 1)
+	item := FirehoseItemType{
+		ItemType: itemType[0],
+		ItemSize: binary.LittleEndian.Uint16(itemSize),
+	}
+
+	if contains(StringItem[:], item.ItemType) || item.ItemType == PrivateNumber {
+		messageOffset, firehoseInput, _ := Take(firehoseInput, 2)
+		messageSize, firehoseInput, _ := Take(firehoseInput, 2)
+		item.Offset = binary.LittleEndian.Uint16(messageOffset)
+		item.MessageStringSize = binary.LittleEndian.Uint16(messageSize)
+	}
+
+	// Precision items just contain the length for the actual item. Ex: %*s
+	if contains(PrecisionItems, item.ItemType) {
+		_, firehoseInput, _ = Take(firehoseInput, int(item.ItemSize))
+	}
+
+	if contains(SensitiveItems, item.ItemType) {
+		messageOffset, firehoseInput, _ := Take(firehoseInput, 2)
+		messageSize, firehoseInput, _ := Take(firehoseInput, 2)
+		item.Offset = binary.LittleEndian.Uint16(messageOffset)
+		item.MessageStringSize = binary.LittleEndian.Uint16(messageSize)
+	}
+
+	return item, firehoseInput
+}
+
+// TODO: Add test for this function
+func ParseItemString(data []byte, itemType uint8, messageSize uint16) ([]byte, string, error) {
+	if messageSize > uint16(len(data)) {
+		return ExtractStringSize(data, uint64(messageSize))
+	}
+	messageData, data, _ := Take(data, int(messageSize))
+
+	// 0x30, 0x31, and 0x32 represent arbitrary data, need to be decoded again
+	if contains(Arbitrary, itemType) {
+		return data, base64.StdEncoding.EncodeToString(messageData), nil
+	}
+
+	if itemType == Base64Raw {
+		return data, base64.StdEncoding.EncodeToString(messageData), nil
+	}
+
+	_, messageString, _ := ExtractStringSize(messageData, uint64(messageSize))
+	return data, messageString, nil
+}
+
+// TODO: Add test for this function
+func ParseItemNumber(data []byte, itemSize uint16) ([]byte, uint64) {
+	switch itemSize {
+	case 4:
+		value := int64(binary.LittleEndian.Uint32(data[:4]))
+		return data[4:], uint64(value)
+	case 2:
+		value := int64(binary.LittleEndian.Uint16(data[:2]))
+		return data[2:], uint64(value)
+	case 8:
+		value := binary.LittleEndian.Uint64(data[:8])
+		return data[8:], value
+	case 1:
+		value := int64(data[0])
+		return data[1:], uint64(value)
+	default:
+		return data, uint64(0) // Unknown size
+	}
 }
 
 // // parseFirehoseMessageItems parses message items from firehose entry data
@@ -603,26 +675,6 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 // 	}
 
 // 	return items
-// }
-
-// // TODO: Add test for this function
-// func ParseItemNumber(data []byte, itemSize uint16) ([]byte, uint64) {
-// 	switch itemSize {
-// 	case 4:
-// 		value := int64(binary.LittleEndian.Uint32(data[:4]))
-// 		return data[4:], uint64(value)
-// 	case 2:
-// 		value := int64(binary.LittleEndian.Uint16(data[:2]))
-// 		return data[2:], uint64(value)
-// 	case 8:
-// 		value := binary.LittleEndian.Uint64(data[:8])
-// 		return data[8:], value
-// 	case 1:
-// 		value := int64(data[0])
-// 		return data[1:], uint64(value)
-// 	default:
-// 		return data, uint64(0) // Unknown size
-// 	}
 // }
 
 // // ParseFirehoseChunk parses a Firehose chunk (0x6001 and variants) containing multiple individual log entries
