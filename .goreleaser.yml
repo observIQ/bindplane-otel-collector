@@ -663,7 +663,7 @@ release:
 blobs:
   - provider: gs
     bucket: bdot-release
-    directory: "{{ .Version }}"
+    directory: "v{{ .Version }}"
     extra_files:
       - glob: "./observiq-otel-collector*.msi"
       - glob: "./observiq-otel-collector*.msi.sig"
