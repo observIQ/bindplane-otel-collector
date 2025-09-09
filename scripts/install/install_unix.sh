@@ -474,7 +474,7 @@ set_download_urls()
       base_url=$DOWNLOAD_BASE
     fi
 
-    collector_download_url="$base_url/$version/${PACKAGE_NAME}_v${version}_linux_${os_arch}.${package_type}"
+    collector_download_url="$base_url/v$version/${PACKAGE_NAME}_v${version}_linux_${os_arch}.${package_type}"
   else
     collector_download_url="$url"
   fi
