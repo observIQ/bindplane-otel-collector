@@ -8,12 +8,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [nscloud-ubuntu-24.04-systemd-amd64-4x8, macos-13, windows-2022-8-cores]
+        os: [namespace-profile-bindplane-default-ubuntu-24-04, macos-13, windows-2022-8-cores]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout Sources
+      - name: Checkout Sources (Linux)
+        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04'
+        uses: namespacelabs/nscloud-checkout-action@v7
+      - name: Checkout Sources (Non-Linux)
+        if: matrix.os != 'namespace-profile-bindplane-default-ubuntu-24-04'
         uses: actions/checkout@v4
-      - name: Setup Go
+      - name: Setup Go (Linux)
+        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false # Use Namespace caching instead
+      - name: Set up Go cache (Linux)
+        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04'
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
+      - name: Setup Go (Non-Linux)
+        if: matrix.os != 'namespace-profile-bindplane-default-ubuntu-24-04'
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -23,8 +39,8 @@ jobs:
       - name: Run Tests
         run: make test
       - name: Run Updater Integration Tests (non-linux)
-        if: matrix.os != 'nscloud-ubuntu-24.04-systemd-amd64-4x8'
+        if: matrix.os != 'namespace-profile-bindplane-default-ubuntu-24-04'
         run: make test-updater-integration
       - name: Run Updater Integration Tests (linux)
-        if: matrix.os == 'nscloud-ubuntu-24.04-systemd-amd64-4x8'
+        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04'
         run: sudo make test-updater-integration

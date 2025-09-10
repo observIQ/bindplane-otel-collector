@@ -5,140 +5,158 @@ on:
 jobs:
   setup-tools:
     if: github.actor != 'dependabot[bot]'
-    runs-on: "ubuntu-24.04"
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
     steps:
       - name: Checkout Sources
-        uses: actions/checkout@v4
+        uses: namespacelabs/nscloud-checkout-action@v7
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: false # Use Namespace caching instead
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
       - name: Cache Tools
         id: tool-cache
-        uses: actions/cache@v3
+        uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./Makefile') }}
       - name: Install Tools
-        if: steps.tool-cache.outputs.cache-hit != 'true'
         run: make install-tools
 
   check-fmt:
     if: github.actor != 'dependabot[bot]'
-    runs-on: "ubuntu-24.04"
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
     needs:
       - setup-tools
     steps:
       - name: Checkout Sources
-        uses: actions/checkout@v4
+        uses: namespacelabs/nscloud-checkout-action@v7
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: false # Use Namespace caching instead
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
       - name: Cache Tools
         id: tool-cache
-        uses: actions/cache@v3
+        uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./Makefile') }}
       - name: Install Tools
-        if: steps.tool-cache.outputs.cache-hit != 'true'
         run: make install-tools
       - name: Check Formatting
         run: make check-fmt
 
   check-license:
     if: github.actor != 'dependabot[bot]'
-    runs-on: "ubuntu-24.04"
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
     needs:
       - setup-tools
     steps:
       - name: Checkout Sources
-        uses: actions/checkout@v4
+        uses: namespacelabs/nscloud-checkout-action@v7
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: false # Use Namespace caching instead
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
       - name: Cache Tools
         id: tool-cache
-        uses: actions/cache@v3
+        uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./Makefile') }}
       - name: Install Tools
-        if: steps.tool-cache.outputs.cache-hit != 'true'
         run: make install-tools
       - name: Check License Headers
         run: make check-license
 
   gosec:
     if: github.actor != 'dependabot[bot]'
-    runs-on: "ubuntu-24.04"
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
     needs:
       - setup-tools
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: namespacelabs/nscloud-checkout-action@v7
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: false # Use Namespace caching instead
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
       - name: Cache Tools
         id: tool-cache
-        uses: actions/cache@v3
+        uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./Makefile') }}
       - name: Install Tools
-        if: steps.tool-cache.outputs.cache-hit != 'true'
         run: make install-tools
       - name: Run Gosec Security Scanner
         run: make gosec
 
   misspell:
     if: github.actor != 'dependabot[bot]'
-    runs-on: "ubuntu-24.04"
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
     needs:
       - setup-tools
     steps:
       - name: Checkout Sources
-        uses: actions/checkout@v4
+        uses: namespacelabs/nscloud-checkout-action@v7
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: false # Use Namespace caching instead
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
       - name: Cache Tools
         id: tool-cache
-        uses: actions/cache@v3
+        uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./Makefile') }}
       - name: Install Tools
-        if: steps.tool-cache.outputs.cache-hit != 'true'
         run: make install-tools
       - name: Check for Misspelled Words in Doc Files
         run: make misspell
 
   lint:
     if: github.actor != 'dependabot[bot]'
-    runs-on: "ubuntu-24.04"
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
     needs:
       - setup-tools
     steps:
       - name: Checkout Sources
-        uses: actions/checkout@v4
+        uses: namespacelabs/nscloud-checkout-action@v7
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: false # Use Namespace caching instead
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
       - name: Cache Tools
         id: tool-cache
-        uses: actions/cache@v3
+        uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./Makefile') }}
       - name: Install Tools
-        if: steps.tool-cache.outputs.cache-hit != 'true'
         run: make install-tools
       - name: Run Revive Linter
         run: make lint
@@ -146,14 +164,19 @@ jobs:
   # Below checks don't need to run `make install-tools`
   check-plugin-docs:
     if: github.actor != 'dependabot[bot]'
-    runs-on: "ubuntu-24.04"
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
     steps:
       - name: Checkout Sources
-        uses: actions/checkout@v4
+        uses: namespacelabs/nscloud-checkout-action@v7
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: false # Use Namespace caching instead
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
       - name: Plugin Doc Generation
         run: make create-plugin-docs
       - name: Check Changed Plugin Docs
