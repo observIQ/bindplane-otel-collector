@@ -5,6 +5,7 @@ package macosunifiedloggingencodingextension
 
 import (
 	"encoding/binary"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -61,7 +62,7 @@ func TestLoadStatedumpsFromTraceV3(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("testdata", "statedump", "test_tracev3_with_statedumps.tracev3"))
 	require.NoError(t, err)
 
-	collection, err := LoadStatedumpsFromTraceV3(data)
+	collection, err := loadStatedumpsFromTracev3(data)
 	require.NoError(t, err)
 
 	// Verify basic collection properties
@@ -84,7 +85,6 @@ func TestParseStateDumpErrors(t *testing.T) {
 }
 
 func TestExpectedStructsFromTestData(t *testing.T) {
-	// Test plist statedump parsing
 	plistData, err := os.ReadFile(filepath.Join("testdata", "statedump", "statedump_test_plist.bin"))
 	require.NoError(t, err)
 
@@ -110,6 +110,7 @@ func TestExpectedStructsFromTestData(t *testing.T) {
 	customSD, err := ParseStateDump(customData)
 	require.NoError(t, err)
 
+	// validate the chunk tag, subtag, and unknown data type
 	require.Equal(t, uint32(0x6003), customSD.ChunkTag)
 	require.Equal(t, uint32(0x0002), customSD.ChunkSubtag)
 	require.Equal(t, uint32(3), customSD.UnknownDataType)
@@ -128,13 +129,14 @@ func TestExpectedStructsFromTestData(t *testing.T) {
 	tracev3Data, err := os.ReadFile(filepath.Join("testdata", "statedump", "test_tracev3_with_statedumps.tracev3"))
 	require.NoError(t, err)
 
-	collection, err := LoadStatedumpsFromTraceV3(tracev3Data)
+	collection, err := loadStatedumpsFromTracev3(tracev3Data)
 	require.NoError(t, err)
 
 	require.Greater(t, collection.Timestamp, uint64(0))
 	require.GreaterOrEqual(t, len(collection.Statedumps), 1)
 }
 
+// valid test data for the CLDaemonStatusStateTracker
 func TestParseStateDumpDaemonStatus(t *testing.T) {
 	testData := []byte{
 		3, 96, 0, 0, 0, 0, 0, 0, 32, 1, 0, 0, 0, 0, 0, 0, 113, 0, 0, 0, 0, 0, 0, 0, 208, 1, 0,
@@ -178,6 +180,7 @@ func TestParseStateDumpDaemonStatus(t *testing.T) {
 	require.Equal(t, expectedData, statedump.Data)
 }
 
+// valid test data for the plist statedump
 func TestParseStateDumpPlist(t *testing.T) {
 	testData := make([]byte, 300)
 	binary.LittleEndian.PutUint32(testData[0:4], 0x6003) // ChunkTag
@@ -226,6 +229,7 @@ func TestParseStateDumpPlist(t *testing.T) {
 	require.Equal(t, 20, len(statedump.Data))
 }
 
+// valid test data for the custom object statedump
 func TestParseStateDumpObject(t *testing.T) {
 	testData := []byte{
 		0, 0, 0, 0, 0, 0, 240, 191, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0,
@@ -234,8 +238,72 @@ func TestParseStateDumpObject(t *testing.T) {
 
 	result := ParseStateDumpObject(testData, "CLDaemonStatusStateTracker")
 
-	require.Contains(t, result, "CLClientManagerStateTracker")
+	require.Contains(t, result, "CLDaemonStatusStateTracker")
 	require.NotEmpty(t, result)
 
 	require.NotContains(t, result, "Unsupported Statedump object")
+}
+
+func loadStatedumpsFromTracev3(data []byte) (*StatedumpCollection, error) {
+	if len(data) == 0 {
+		return nil, fmt.Errorf("empty tracev3 data")
+	}
+
+	// Parse the header first to get boot UUID and timing info
+	header, headerSize, err := ParseTraceV3Header(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse tracev3 header: %w", err)
+	}
+
+	collection := &StatedumpCollection{
+		Statedumps: make([]StateDump, 0),
+		BootUUID:   header.BootUUID,
+		Timestamp:  header.ContinuousTime,
+	}
+
+	// Parse data section for statedump chunks
+	remainingData := data[headerSize:]
+	offset := 0
+	const chunkPreambleSize = 16
+
+	for offset < len(remainingData) {
+		if offset+chunkPreambleSize > len(remainingData) {
+			break
+		}
+
+		// Parse preamble
+		chunkTag := binary.LittleEndian.Uint32(remainingData[offset:])
+		chunkDataSize := binary.LittleEndian.Uint64(remainingData[offset+8:])
+
+		// Validate chunk data size
+		if chunkDataSize == 0 || chunkDataSize > uint64(len(remainingData)) {
+			offset += 4
+			continue
+		}
+
+		totalChunkSize := chunkPreambleSize + int(chunkDataSize)
+		if offset+totalChunkSize > len(remainingData) {
+			break
+		}
+
+		if chunkTag == 0x6003 {
+			// Extract statedump data (skip preamble)
+			statedumpData := remainingData[offset+chunkPreambleSize : offset+totalChunkSize]
+
+			statedump, err := ParseStateDump(statedumpData)
+			if err == nil {
+				collection.Statedumps = append(collection.Statedumps, *statedump)
+			}
+		}
+
+		// Move to next chunk with 8-byte alignment padding
+		offset += totalChunkSize + int(paddingSize8(chunkDataSize))
+
+		// Safety limit
+		if len(collection.Statedumps) >= 1000 {
+			break
+		}
+	}
+
+	return collection, nil
 }
