@@ -23,16 +23,91 @@ import (
 	"github.com/pierrec/lz4/v4"
 )
 
-// ChunksetChunk represents a parsed chunkset chunk
-type ChunksetChunk struct {
-	ChunkTag         uint32
-	ChunkSubtag      uint32
-	ChunkDataSize    uint64
-	Signature        uint32
-	UncompressedSize uint32
-	BlockSize        uint32
-	DecompressedData []byte
-	Footer           uint32
+// ParseChunksetChunk parses a Chunkset chunk (0x600d) containing compressed log data
+// Based on the Rust implementation from mandiant/macos-UnifiedLogs
+// Enhanced with subchunk metadata for intelligent decompression
+func ParseChunksetChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header, timesyncData map[string]*TimesyncBoot) []*TraceV3Entry {
+	if len(data) < 32 { // Need at least 32 bytes for chunkset header
+		entry.Message = fmt.Sprintf("Chunkset chunk too small: %d bytes", len(data))
+		return []*TraceV3Entry{entry}
+	}
+
+	// Parse chunkset header structure (similar to rust parse_chunkset)
+	offset := 16 // Skip preamble which was already parsed
+	signature := binary.LittleEndian.Uint32(data[offset:])
+	uncompressSize := binary.LittleEndian.Uint32(data[offset+4:])
+	blockSize := binary.LittleEndian.Uint32(data[offset+8:])
+
+	offset += 12
+
+	// Validate chunkset signature using enhanced validation
+	isCompressed, isValid, err := ValidateChunksetSignature(signature)
+	if !isValid {
+		entry.Message = fmt.Sprintf("Invalid chunkset signature: %v", err)
+		return []*TraceV3Entry{entry}
+	}
+
+	var decompressedData []byte
+	var decompressionInfo *SubchunkDecompressionInfo
+
+	if !isCompressed {
+		// Data is already uncompressed
+		if len(data) < offset+int(uncompressSize) {
+			entry.Message = fmt.Sprintf("Chunkset uncompressed data too small: need %d, have %d",
+				offset+int(uncompressSize), len(data))
+			return []*TraceV3Entry{entry}
+		}
+		decompressedData = data[offset : offset+int(uncompressSize)]
+
+		// Update statistics for uncompressed data
+		GlobalCompressionStats.UncompressedChunks++
+		GlobalCompressionStats.TotalBytesDecompressed += uint64(len(decompressedData))
+
+	} else {
+		// Data is compressed, need to decompress using enhanced LZ4 decompression
+		if len(data) < offset+int(blockSize) {
+			entry.Message = fmt.Sprintf("Chunkset compressed data too small: need %d, have %d",
+				offset+int(blockSize), len(data))
+			return []*TraceV3Entry{entry}
+		}
+
+		compressedData := data[offset : offset+int(blockSize)]
+
+		// Use enhanced decompression with subchunk metadata if available
+		relevantSubchunk := findRelevantSubchunkForSize(uncompressSize)
+		if relevantSubchunk != nil {
+			var err error
+			decompressedData, decompressionInfo, err = DecompressWithSubchunkInfo(compressedData, relevantSubchunk)
+			if err != nil {
+				entry.Message = fmt.Sprintf("Failed to decompress chunkset data with subchunk info: %v", err)
+				return []*TraceV3Entry{entry}
+			}
+		} else {
+			// Fallback to standard decompression
+			const lz4Compression = 0x100
+			decompressedData, err = DecompressChunksetData(compressedData, uncompressSize, lz4Compression)
+			if err != nil {
+				entry.Message = fmt.Sprintf("Failed to decompress chunkset data: %v", err)
+				return []*TraceV3Entry{entry}
+			}
+		}
+	}
+
+	// Parse individual log entries from decompressed data
+	// The decompressed data contains multiple log chunks that need to be parsed
+	entries := parseDecompressedChunksetData(decompressedData, header, entry, timesyncData)
+
+	// Add decompression information if available
+	if decompressionInfo != nil && len(entries) > 0 {
+		// Update the first entry with decompression details
+		firstEntry := entries[0]
+		if firstEntry.ChunkType == "chunkset_summary" {
+			firstEntry.Message += fmt.Sprintf(" | Decompression: success=%t time=%v actual_size=%d",
+				decompressionInfo.DecompressionSuccess, decompressionInfo.DecompressionTime, decompressionInfo.ActualSize)
+		}
+	}
+
+	return entries
 }
 
 const (
@@ -250,5 +325,40 @@ func getChunksetData(data []byte, chunkTag uint32, ulData *UnifiedLogData) error
 	default:
 		return fmt.Errorf("unknown chunk tag: %x", chunkTag)
 	}
-	return nil
+
+	// If no exact match, find the closest one
+	var bestMatch *CatalogSubchunk
+	var smallestDiff = ^uint32(0) // Max uint32
+
+	for _, subchunk := range GlobalCatalog.CatalogSubchunks {
+		diff := uint32(0)
+		if subchunk.UncompressedSize > dataSize {
+			diff = subchunk.UncompressedSize - dataSize
+		} else {
+			diff = dataSize - subchunk.UncompressedSize
+		}
+
+		if diff < smallestDiff {
+			smallestDiff = diff
+			bestMatch = &subchunk
+		}
+	}
+
+	return bestMatch
+}
+
+// findRelevantSubchunkForSize finds a catalog subchunk that matches the given uncompressed size
+func findRelevantSubchunkForSize(uncompressedSize uint32) *CatalogSubchunk {
+	if GlobalCatalog == nil || len(GlobalCatalog.CatalogSubchunks) == 0 {
+		return nil
+	}
+
+	// Find exact match first
+	for _, subchunk := range GlobalCatalog.CatalogSubchunks {
+		if subchunk.UncompressedSize == uncompressedSize {
+			return &subchunk
+		}
+	}
+
+	return nil // Return nil if no exact match (could enhance with fuzzy matching if needed)
 }

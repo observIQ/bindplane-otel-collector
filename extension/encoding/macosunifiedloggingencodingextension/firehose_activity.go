@@ -19,6 +19,7 @@ import (
 	"fmt"
 )
 
+// FirehoseActivity represents a parsed firehose activity entry
 type FirehoseActivity struct {
 	ActivityID         uint32
 	Sentinel           uint32
@@ -32,6 +33,7 @@ type FirehoseActivity struct {
 	FirehoseFormatters FirehoseFormatters
 }
 
+// FirehoseFormatters represents a parsed firehose formatter flags
 type FirehoseFormatters struct {
 	MainExe          bool
 	SharedCache      bool
@@ -42,6 +44,7 @@ type FirehoseFormatters struct {
 	MainExeAltIndex  uint16 // If log entry uses an alternative uuid file index (ex: absolute). This value gets prepended to the unknown_pc_id/offset
 }
 
+// ParseFirehoseActivity parses a firehose activity entry
 func ParseFirehoseActivity(data []byte, flags uint16, firehoseLogType uint8) (FirehoseActivity, []byte) {
 	var activity FirehoseActivity
 	entry := data
@@ -92,10 +95,11 @@ func ParseFirehoseActivity(data []byte, flags uint16, firehoseLogType uint8) (Fi
 	return activity, entry
 }
 
+// firehoseFormatterFlags parses firehose formatter flags
 func firehoseFormatterFlags(data []byte, flags uint16) (FirehoseFormatters, []byte) {
 	var formatterFlags FirehoseFormatters
 
-	var messageStringsUuid uint16 = 0x2 // main_exe flag
+	var messageStringsUUID uint16 = 0x2 // main_exe flag
 	var largeSharedCache uint16 = 0xc   // large_shared_cache flag
 	var largeOffset uint16 = 0x20       // has_large_offset flag
 	var flagCheck uint16 = 0xe
@@ -130,7 +134,7 @@ func firehoseFormatterFlags(data []byte, flags uint16) (FirehoseFormatters, []by
 		input = firehoseData
 	case 0x8:
 		formatterFlags.Absolute = true
-		if (flags & messageStringsUuid) == 0 {
+		if (flags & messageStringsUUID) == 0 {
 			firehoseData, uuidFileIndex, _ := Take(input, 2)
 			formatterFlags.MainExeAltIndex = binary.LittleEndian.Uint16(uuidFileIndex)
 			input = firehoseData

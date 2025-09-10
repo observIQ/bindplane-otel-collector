@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// take returns the first n bytes from data, along with the remainder (remainder is the first returned value).
+// Take returns the first n bytes from data, along with the remainder (remainder is the first returned value).
 // It mimics nom::take(n) from rust
 func Take(data []byte, n int) ([]byte, []byte, error) {
 	if len(data) < n {
@@ -17,9 +17,11 @@ func Take(data []byte, n int) ([]byte, []byte, error) {
 	return data[n:], data[:n], nil
 }
 
+// ExtractStringSize extracts a string from the data based on the message size
+// Returns the remaining data, the string, and an error if the string is not found or if the message size is too large
 func ExtractStringSize(data []byte, messageSize uint64) ([]byte, string, error) {
-	const NULL_STRING = uint64(0)
-	if messageSize == NULL_STRING {
+	const nullString = uint64(0)
+	if messageSize == nullString {
 		return data, "(null)", nil
 	}
 
