@@ -3,6 +3,7 @@ package macosunifiedloggingencodingextension
 import "encoding/binary"
 
 type FirehoseLoss struct {
+	// TODO: consider using time.Time instead of uint64 once timesync is re-examined
 	StartTime uint64
 	EndTime   uint64
 	Count     uint64
