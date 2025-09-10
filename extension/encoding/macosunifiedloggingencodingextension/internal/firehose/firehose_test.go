@@ -110,8 +110,7 @@ func TestParseFirehoseMessageItems(t *testing.T) {
 	data := []byte{65, 4, 0, 0, 0, 0}
 	firehoseNumItems := uint8(1)
 	firehoseFlags := uint16(513)
-	parsedFirehoseMessageItems, _, err := ParseFirehoseMessageItems(data, firehoseNumItems, firehoseFlags)
-	require.NoError(t, err)
+	parsedFirehoseMessageItems, _ := ParseFirehoseMessageItems(data, firehoseNumItems, firehoseFlags)
 	require.Equal(t, "<private>", parsedFirehoseMessageItems.ItemInfo[0].MessageStrings)
 	require.Equal(t, uint8(65), parsedFirehoseMessageItems.ItemInfo[0].ItemType)
 	require.Equal(t, 0, len(parsedFirehoseMessageItems.BacktraceStrings))

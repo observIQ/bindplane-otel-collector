@@ -20,8 +20,8 @@ import (
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
 )
 
-// Loss represents a parsed firehose loss entry
-type Loss struct {
+// FirehoseLoss represents a parsed firehose loss entry
+type FirehoseLoss struct {
 	// TODO: consider using time.Time instead of uint64 once timesync is re-examined
 	StartTime uint64
 	EndTime   uint64
@@ -29,8 +29,8 @@ type Loss struct {
 }
 
 // ParseFirehoseLoss parses a firehose loss entry
-func ParseFirehoseLoss(data []byte) (Loss, []byte) {
-	firehoseLoss := Loss{}
+func ParseFirehoseLoss(data []byte) (FirehoseLoss, []byte) {
+	firehoseLoss := FirehoseLoss{}
 
 	data, startTime, _ := utils.Take(data, 8)
 	data, endTime, _ := utils.Take(data, 8)

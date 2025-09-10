@@ -21,8 +21,8 @@ import (
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
 )
 
-// Activity represents a parsed firehose activity entry
-type Activity struct {
+// FirehoseActivity represents a parsed firehose activity entry
+type FirehoseActivity struct {
 	ActivityID         uint32
 	Sentinel           uint32
 	PID                uint64
@@ -32,11 +32,11 @@ type Activity struct {
 	Sentinel3          uint32
 	MessageStringRef   uint32
 	PCID               uint32
-	FirehoseFormatters Formatters
+	FirehoseFormatters FirehoseFormatters
 }
 
-// Formatters represents a parsed firehose formatter flags
-type Formatters struct {
+// FirehoseFormatters represents a parsed firehose formatter flags
+type FirehoseFormatters struct {
 	MainExe          bool
 	SharedCache      bool
 	HasLargeOffset   uint16
@@ -47,8 +47,8 @@ type Formatters struct {
 }
 
 // ParseFirehoseActivity parses a firehose activity entry
-func ParseFirehoseActivity(data []byte, flags uint16, firehoseLogType uint8) (Activity, []byte) {
-	var activity Activity
+func ParseFirehoseActivity(data []byte, flags uint16, firehoseLogType uint8) (FirehoseActivity, []byte) {
+	var activity FirehoseActivity
 	entry := data
 
 	// Useraction activity type does not have first Activity ID or sentinel
@@ -98,8 +98,8 @@ func ParseFirehoseActivity(data []byte, flags uint16, firehoseLogType uint8) (Ac
 }
 
 // firehoseFormatterFlags parses firehose formatter flags
-func firehoseFormatterFlags(data []byte, flags uint16) (Formatters, []byte) {
-	var formatterFlags Formatters
+func firehoseFormatterFlags(data []byte, flags uint16) (FirehoseFormatters, []byte) {
+	var formatterFlags FirehoseFormatters
 
 	var messageStringsUUID uint16 = 0x2 // main_exe flag
 	var largeSharedCache uint16 = 0xc   // large_shared_cache flag

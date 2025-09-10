@@ -1,18 +1,7 @@
-// Copyright observIQ, Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Copyright The OpenTelemetry Authors
+// SPDX-License-Identifier: Apache-2.0
 
-package utils // import "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+package utils
 
 import (
 	"fmt"
@@ -58,38 +47,12 @@ func ExtractStringSize(data []byte, messageSize uint64) ([]byte, string, error) 
 	return input, pathString, nil
 }
 
-// ExtractString extracts a string from the data
-func ExtractString(data []byte) (string, error) {
-	if len(data) == 0 {
-		return "", fmt.Errorf("cannot extract string: Empty input")
-	}
-
-	// If message data does not end with null terminator (0)
-	// just grab everything and convert what we have to string
-	lastByte := data[len(data)-1]
-	if lastByte != 0 {
-		// Convert entire data to string
-		return string(data), nil
-	}
-
-	// Find the null terminator
-	for i, b := range data {
-		if b == 0 {
-			// Return string up to (but not including) the null terminator
-			return string(data[:i]), nil
-		}
-	}
-
-	// Fallback (shouldn't reach here given the check above)
-	return "", fmt.Errorf("could not extract string %s", data)
-}
-
-// PaddingSizeFour calculates 4-byte alignment padding (equivalent to Rust's padding_size_four)
+// paddingSizeFour calculates 4-byte alignment padding (equivalent to Rust's padding_size_four)
 func PaddingSizeFour(dataSize uint64) uint64 {
 	return PaddingSize(dataSize, 4)
 }
 
-// PaddingSize calculates padding based on alignment (equivalent to Rust's padding_size)
+// paddingSize calculates padding based on alignment (equivalent to Rust's padding_size)
 func PaddingSize(dataSize uint64, alignment uint64) uint64 {
 	return (alignment - (dataSize & (alignment - 1))) & (alignment - 1)
 }

@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils // import "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+package utils
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 func TestExtractStringSize(t *testing.T) {
@@ -30,17 +28,4 @@ func TestExtractStringSize(t *testing.T) {
 	if result != "796.100" {
 		t.Fatalf("expected '796.100', got '%s'", result)
 	}
-}
-
-func TestExtractString(t *testing.T) {
-	data := []byte{55, 57, 54, 46, 49, 48, 48, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	result, err := ExtractString(data)
-	require.NoError(t, err)
-	require.Equal(t, result, "796.100")
-
-	data = []byte{}
-	result, err = ExtractString(data)
-	require.Error(t, err)
-	require.Equal(t, "cannot extract string: Empty input", err.Error())
-	require.Equal(t, "", result)
 }
