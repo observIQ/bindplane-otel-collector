@@ -36,12 +36,18 @@ jobs:
           cache-dependency-path: |
             go.sum
             **/go.sum
-      - name: Cache Tools
-        if: startsWith(matrix.os, 'namespace-profile-')
-        id: tool-cache
+      - name: Cache Tools (Ubuntu)
+        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04-large'
+        id: tool-cache-ubuntu
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /home/runner/go/bin
+      - name: Cache Tools (macOS)
+        if: matrix.os == 'namespace-profile-bindplane-default-macos-15'
+        id: tool-cache-macos
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: /Users/runner/go/bin
       - name: Install Tools
         run: make install-tools
       - name: Run Tests
