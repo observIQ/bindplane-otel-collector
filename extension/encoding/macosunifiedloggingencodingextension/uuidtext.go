@@ -104,7 +104,7 @@ func (u *UUIDText) ExtractFormatString(stringOffset uint64) (MessageData, error)
 	}
 
 	// Search through entry descriptors to find the correct range
-	var stringStart uint32 = 0
+	var stringStart uint32
 	for _, entry := range u.EntryDescriptors {
 		// Check if offset falls within this entry's range
 		if entry.RangeStartOffset > uint32(stringOffset) {

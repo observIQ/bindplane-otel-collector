@@ -345,8 +345,8 @@ func parseCatalogSubchunks(data []byte, numberSubChunks uint16) []CatalogSubchun
 		offset += 4
 
 		// Validate compression algorithm (should be LZ4 = 0x100)
-		const LZ4_COMPRESSION = 0x100
-		if subchunk.CompressionAlgorithm != LZ4_COMPRESSION {
+		const lz4Compression = 0x100
+		if subchunk.CompressionAlgorithm != lz4Compression {
 			// Skip invalid subchunk
 			offset += 4 // Skip remaining field
 			continue

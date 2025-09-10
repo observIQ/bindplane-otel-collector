@@ -69,8 +69,8 @@ func ParseChunksetChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header,
 			}
 		} else {
 			// Fallback to standard decompression
-			const LZ4_COMPRESSION = 0x100
-			decompressedData, err = DecompressChunksetData(compressedData, uncompressSize, LZ4_COMPRESSION)
+			const lz4Compression = 0x100
+			decompressedData, err = DecompressChunksetData(compressedData, uncompressSize, lz4Compression)
 			if err != nil {
 				entry.Message = fmt.Sprintf("Failed to decompress chunkset data: %v", err)
 				return []*TraceV3Entry{entry}
@@ -279,7 +279,7 @@ func findRelevantSubchunk(decompressedData []byte) *CatalogSubchunk {
 
 	// If no exact match, find the closest one
 	var bestMatch *CatalogSubchunk
-	var smallestDiff uint32 = ^uint32(0) // Max uint32
+	var smallestDiff = ^uint32(0) // Max uint32
 
 	for _, subchunk := range GlobalCatalog.CatalogSubchunks {
 		diff := uint32(0)

@@ -35,11 +35,11 @@ func DecompressChunksetData(compressedData []byte, uncompressedSize uint32, algo
 	}()
 
 	// Validate compression algorithm
-	const LZ4_COMPRESSION = 0x100
-	if algorithm != LZ4_COMPRESSION {
+	const lz4Compression = 0x100
+	if algorithm != lz4Compression {
 		GlobalCompressionStats.FailedDecompressions++
 		return nil, fmt.Errorf("unsupported compression algorithm: 0x%x (expected LZ4 0x%x)",
-			algorithm, LZ4_COMPRESSION)
+			algorithm, lz4Compression)
 	}
 
 	// Validate input parameters

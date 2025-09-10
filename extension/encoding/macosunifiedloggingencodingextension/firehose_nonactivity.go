@@ -14,11 +14,13 @@
 
 package macosunifiedloggingencodingextension
 
+// FirehoseNonActivity represents a parsed firehose non activity entry
 type FirehoseNonActivity struct {
 	PrivateStringsSize   uint16
 	PrivateStringsOffset uint16
 }
 
+// ParseFirehoseNonActivity parses a firehose non activity entry
 func ParseFirehoseNonActivity(data []byte, flags uint16) (FirehoseNonActivity, []byte) {
 	return FirehoseNonActivity{}, data
 }

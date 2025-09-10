@@ -8,6 +8,7 @@ import (
 	"fmt"
 )
 
+// OversizeChunk represents a parsed oversize chunk
 type OversizeChunk struct {
 	chunkTag        uint32
 	chunkSubTag     uint32
@@ -23,6 +24,8 @@ type OversizeChunk struct {
 	messageItems    FirehoseItemData
 }
 
+// ParseOversizeChunk parses an oversize chunk
+// Returns the parsed oversize chunk and the remaining data
 func ParseOversizeChunk(data []byte) (OversizeChunk, []byte) {
 	var oversizeResult OversizeChunk
 
@@ -74,7 +77,7 @@ func ParseOversizeChunk(data []byte) (OversizeChunk, []byte) {
 	return oversizeResult, data
 }
 
-// get the firehose item info from the oversize log entry based on oversize (data ref) id, first proc id, and second proc id
+// GetOversizeStrings gets the firehose item info from the oversize log entry based on oversize (data ref) id, first proc id, and second proc id
 func GetOversizeStrings(dataRef uint32, firstProcID uint64, secondProcID uint32, oversizeData []*OversizeChunk) []FirehoseItemInfo {
 	messageStrings := []FirehoseItemInfo{}
 	for _, oversize := range oversizeData {

@@ -14,10 +14,12 @@
 
 package macosunifiedloggingencodingextension
 
+// FirehoseTrace represents a parsed firehose trace entry
 type FirehoseTrace struct {
 	MessageData FirehoseItemData
 }
 
+// ParseFirehoseTrace parses a firehose trace entry
 func ParseFirehoseTrace(data []byte) (FirehoseTrace, []byte) {
 	return FirehoseTrace{}, data
 }

@@ -622,12 +622,6 @@ func parseLargeDataSectionAsChunks(data []byte, header *TraceV3Header, timesyncD
 		// Calculate total chunk size (preamble + data)
 		totalChunkSize := chunkPreambleSize + int(chunkDataSize)
 		if offset+totalChunkSize > len(data) {
-			// Not enough data for complete chunk, try to parse as firehose data
-			if chunkTag == 0x6001 || offset == 0 {
-				// This might be firehose data without proper preamble
-				firehoseEntries := parseDataAsFirehoseEntries(data[offset:], header, timesyncData)
-				entries = append(entries, firehoseEntries...)
-			}
 			break
 		}
 
@@ -691,86 +685,6 @@ func parseLargeDataSectionAsChunks(data []byte, header *TraceV3Header, timesyncD
 	}
 
 	return entries
-}
-
-// parseDataAsFirehoseEntries attempts to parse data as firehose entries without proper chunk preamble
-// This is used when we have data that looks like firehose entries but doesn't have the standard chunk structure
-func parseDataAsFirehoseEntries(data []byte, header *TraceV3Header, timesyncData map[string]*TimesyncBoot) []*TraceV3Entry {
-	var entries []*TraceV3Entry
-	offset := 0
-
-	// Try to parse as multiple firehose entries
-	// Look for firehose entry patterns in the data
-	for offset < len(data) {
-		// Need at least 24 bytes for a firehose entry header
-		if offset+24 > len(data) {
-			break
-		}
-
-		// Check if this looks like a firehose entry
-		// Firehose entries typically start with activity type (0x4 for logs)
-		activityType := data[offset]
-		if activityType != 0x4 && activityType != 0x2 && activityType != 0x6 {
-			offset += 1
-			continue
-		}
-
-		// Parse firehose entry header
-		// logType := data[offset+1]
-		// flags := binary.LittleEndian.Uint16(data[offset+2:])
-		// formatStringLocation := binary.LittleEndian.Uint32(data[offset+4:])
-		// threadID := binary.LittleEndian.Uint64(data[offset+8:])
-		// continuousTimeDelta := binary.LittleEndian.Uint32(data[offset+16:])
-		// continuousTimeDeltaUpper := binary.LittleEndian.Uint16(data[offset+20:])
-		dataSize := binary.LittleEndian.Uint16(data[offset+22:])
-
-		// Validate data size
-		if dataSize > uint16(len(data)-offset-24) || dataSize > 10000 {
-			offset += 1
-			continue
-		}
-
-		// Create FirehoseEntry structure
-		// firehoseEntry := &FirehoseEntry{
-		// 	ActivityType:         activityType,
-		// 	LogType:              logType,
-		// 	Flags:                flags,
-		// 	FormatStringLocation: formatStringLocation,
-		// 	ThreadID:             threadID,
-		// 	// TimeDelta:            continuousTimeDelta,
-		// 	// TimeDeltaUpper:       continuousTimeDeltaUpper,
-		// 	DataSize: dataSize,
-		// }
-
-		// Extract message data if present
-		if dataSize > 0 && offset+24+int(dataSize) <= len(data) {
-			// firehoseEntry.MessageData = data[offset+24 : offset+24+int(dataSize)]
-		}
-
-		// Parse the firehose entry
-		// entry := parseSingleFirehoseEntry(firehoseEntry, header, 0, 0, header.ContinuousTime, timesyncData)
-		// if entry != nil {
-		// 	entry.ChunkType = "firehose_raw_data"
-		// 	entry.Subsystem = "com.apple.firehose.raw_data"
-		// 	entries = append(entries, entry)
-		// }
-
-		// Move to next entry
-		offset += 24 + int(dataSize)
-
-		// Safety limit
-		if len(entries) >= 1000 {
-			break
-		}
-	}
-
-	return entries
-}
-
-// convertMachTimeToUnixNanos converts mach absolute time to Unix epoch nanoseconds (legacy fallback)
-// This is a simplified conversion that approximates the proper timesync-based conversion
-func convertMachTimeToUnixNanos(machTime uint64, numerator uint32, denominator uint32) uint64 {
-	return convertMachTimeToUnixNanosWithTimesync(machTime, "", 0, nil)
 }
 
 // convertMachTimeToUnixNanosWithTimesync converts mach absolute time to Unix epoch nanoseconds using timesync data

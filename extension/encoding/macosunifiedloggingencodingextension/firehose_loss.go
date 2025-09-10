@@ -16,6 +16,7 @@ package macosunifiedloggingencodingextension
 
 import "encoding/binary"
 
+// FirehoseLoss represents a parsed firehose loss entry
 type FirehoseLoss struct {
 	// TODO: consider using time.Time instead of uint64 once timesync is re-examined
 	StartTime uint64
@@ -23,6 +24,7 @@ type FirehoseLoss struct {
 	Count     uint64
 }
 
+// ParseFirehoseLoss parses a firehose loss entry
 func ParseFirehoseLoss(data []byte) (FirehoseLoss, []byte) {
 	firehoseLoss := FirehoseLoss{}
 

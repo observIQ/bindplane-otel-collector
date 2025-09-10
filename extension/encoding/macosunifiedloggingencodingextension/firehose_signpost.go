@@ -14,8 +14,10 @@
 
 package macosunifiedloggingencodingextension
 
+// FirehoseSignpost represents a parsed firehose signpost entry
 type FirehoseSignpost struct{}
 
+// ParseFirehoseSignpost parses a firehose signpost entry
 func ParseFirehoseSignpost(data []byte, flags uint16) (FirehoseSignpost, []byte) {
 	return FirehoseSignpost{}, data
 }
