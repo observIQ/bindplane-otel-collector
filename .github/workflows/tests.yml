@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [namespace-profile-bindplane-default-ubuntu-24-04-large, namespace-profile-bindplane-default-macos-15, namespace-profile-bindplane-default-windows-2022-16x32]
+        os: [namespace-profile-bindplane-default-ubuntu-24-04-large, namespace-profile-bindplane-default-macos-15, namespace-profile-bindplane-default-windows-2022-8x16]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Sources
@@ -34,18 +34,12 @@ jobs:
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /Users/runner/go/bin
-      - name: Cache Tools (Windows)
-        if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-16x32'
-        id: tool-cache-windows
-        uses: namespacelabs/nscloud-cache-action@v1
-        with:
-          path: C:\Users\runner\go\bin
       - name: Install Tools
         run: make install-tools
       - name: Run Tests
         run: make test
       - name: Run Updater Integration Tests (Windows and macOS)
-        if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-16x32' || matrix.os == 'namespace-profile-bindplane-default-macos-15'
+        if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-8x16' || matrix.os == 'namespace-profile-bindplane-default-macos-15'
         run: make test-updater-integration
       - name: Run Updater Integration Tests (Ubuntu)
         if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04-large'
