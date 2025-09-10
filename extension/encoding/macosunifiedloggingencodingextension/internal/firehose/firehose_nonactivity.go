@@ -12,12 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package macosunifiedloggingencodingextension
+package firehose
 
-// FirehoseSignpost represents a parsed firehose signpost entry
-type FirehoseSignpost struct{}
+// FirehoseNonActivity represents a parsed firehose non activity entry
+type FirehoseNonActivity struct {
+	PrivateStringsSize   uint16
+	PrivateStringsOffset uint16
+}
 
-// ParseFirehoseSignpost parses a firehose signpost entry
-func ParseFirehoseSignpost(data []byte, flags uint16) (FirehoseSignpost, []byte) {
-	return FirehoseSignpost{}, data
+// ParseFirehoseNonActivity parses a firehose non activity entry
+func ParseFirehoseNonActivity(data []byte, flags uint16) (FirehoseNonActivity, []byte) {
+	return FirehoseNonActivity{}, data
 }

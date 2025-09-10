@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package macosunifiedloggingencodingextension
+package firehose
 
 import (
 	"encoding/binary"
 	"fmt"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
 )
 
 // FirehoseActivity represents a parsed firehose activity entry
@@ -52,8 +54,8 @@ func ParseFirehoseActivity(data []byte, flags uint16, firehoseLogType uint8) (Fi
 	// Useraction activity type does not have first Activity ID or sentinel
 	const useraction uint8 = 0x3
 	if firehoseLogType != useraction {
-		firehoseData, activityID, _ := Take(data, 4)
-		firehoseData, sentinel, _ := Take(firehoseData, 4)
+		firehoseData, activityID, _ := utils.Take(data, 4)
+		firehoseData, sentinel, _ := utils.Take(firehoseData, 4)
 
 		activity.ActivityID = binary.LittleEndian.Uint32(activityID)
 		activity.Sentinel = binary.LittleEndian.Uint32(sentinel)
@@ -62,15 +64,15 @@ func ParseFirehoseActivity(data []byte, flags uint16, firehoseLogType uint8) (Fi
 
 	const uniquePid uint16 = 0x10 // has_unique_pid flag
 	if (flags & uniquePid) != 0 {
-		firehoseData, pid, _ := Take(entry, 8)
+		firehoseData, pid, _ := utils.Take(entry, 8)
 		activity.PID = binary.LittleEndian.Uint64(pid)
 		entry = firehoseData
 	}
 
 	const activityIDCurrent uint16 = 0x1 // has_current_aid flag
 	if (flags & activityIDCurrent) != 0 {
-		firehoseData, activityID, _ := Take(entry, 4)
-		firehoseData, sentinel, _ := Take(firehoseData, 4)
+		firehoseData, activityID, _ := utils.Take(entry, 4)
+		firehoseData, sentinel, _ := utils.Take(firehoseData, 4)
 		activity.ActivityID2 = binary.LittleEndian.Uint32(activityID)
 		activity.Sentinel2 = binary.LittleEndian.Uint32(sentinel)
 		entry = firehoseData
@@ -78,14 +80,14 @@ func ParseFirehoseActivity(data []byte, flags uint16, firehoseLogType uint8) (Fi
 
 	const activityIDOther uint16 = 0x200 // has_other_current_aid flag
 	if (flags & activityIDOther) != 0 {
-		firehoseData, activityID, _ := Take(entry, 4)
-		firehoseData, sentinel, _ := Take(firehoseData, 4)
+		firehoseData, activityID, _ := utils.Take(entry, 4)
+		firehoseData, sentinel, _ := utils.Take(firehoseData, 4)
 		activity.ActivityID3 = binary.LittleEndian.Uint32(activityID)
 		activity.Sentinel3 = binary.LittleEndian.Uint32(sentinel)
 		entry = firehoseData
 	}
 
-	firehoseData, pcID, _ := Take(entry, 4)
+	firehoseData, pcID, _ := utils.Take(entry, 4)
 	activity.PCID = binary.LittleEndian.Uint32(pcID)
 
 	formatters, firehoseData := firehoseFormatterFlags(firehoseData, flags)
@@ -115,27 +117,27 @@ func firehoseFormatterFlags(data []byte, flags uint16) (FirehoseFormatters, []by
 	*/
 	switch flags & flagCheck {
 	case 0x20:
-		firehoseData, largeOffsetData, _ := Take(input, 2)
+		firehoseData, largeOffsetData, _ := utils.Take(input, 2)
 		formatterFlags.HasLargeOffset = binary.LittleEndian.Uint16(largeOffsetData)
 		input = firehoseData
 		if (flags & largeSharedCache) != 0 {
-			firehoseData, largeSharedCacheData, _ := Take(firehoseData, 2)
+			firehoseData, largeSharedCacheData, _ := utils.Take(firehoseData, 2)
 			formatterFlags.LargeSharedCache = binary.LittleEndian.Uint16(largeSharedCacheData)
 			input = firehoseData
 		}
 	case 0xc:
 		if (flags & largeOffset) != 0 {
-			firehoseData, largeOffsetData, _ := Take(input, 2)
+			firehoseData, largeOffsetData, _ := utils.Take(input, 2)
 			formatterFlags.HasLargeOffset = binary.LittleEndian.Uint16(largeOffsetData)
 			input = firehoseData
 		}
-		firehoseData, largeSharedCacheData, _ := Take(input, 2)
+		firehoseData, largeSharedCacheData, _ := utils.Take(input, 2)
 		formatterFlags.LargeSharedCache = binary.LittleEndian.Uint16(largeSharedCacheData)
 		input = firehoseData
 	case 0x8:
 		formatterFlags.Absolute = true
 		if (flags & messageStringsUUID) == 0 {
-			firehoseData, uuidFileIndex, _ := Take(input, 2)
+			firehoseData, uuidFileIndex, _ := utils.Take(input, 2)
 			formatterFlags.MainExeAltIndex = binary.LittleEndian.Uint16(uuidFileIndex)
 			input = firehoseData
 		}
@@ -144,12 +146,12 @@ func firehoseFormatterFlags(data []byte, flags uint16) (FirehoseFormatters, []by
 	case 0x4:
 		formatterFlags.SharedCache = true
 		if (flags & largeOffset) != 0 {
-			firehoseData, largeOffsetData, _ := Take(input, 2)
+			firehoseData, largeOffsetData, _ := utils.Take(input, 2)
 			formatterFlags.HasLargeOffset = binary.LittleEndian.Uint16(largeOffsetData)
 			input = firehoseData
 		}
 	case 0xa:
-		firehoseData, uuidRelative, _ := Take(input, 16)
+		firehoseData, uuidRelative, _ := utils.Take(input, 16)
 		formatterFlags.UUIDRelative = fmt.Sprintf("%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
 			uuidRelative[0], uuidRelative[1], uuidRelative[2], uuidRelative[3],
 			uuidRelative[4], uuidRelative[5], uuidRelative[6], uuidRelative[7],

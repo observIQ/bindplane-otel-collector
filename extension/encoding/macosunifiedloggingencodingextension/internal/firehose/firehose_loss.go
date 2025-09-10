@@ -12,9 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package macosunifiedloggingencodingextension
+package firehose
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+)
 
 // FirehoseLoss represents a parsed firehose loss entry
 type FirehoseLoss struct {
@@ -28,9 +32,9 @@ type FirehoseLoss struct {
 func ParseFirehoseLoss(data []byte) (FirehoseLoss, []byte) {
 	firehoseLoss := FirehoseLoss{}
 
-	data, startTime, _ := Take(data, 8)
-	data, endTime, _ := Take(data, 8)
-	data, count, _ := Take(data, 8)
+	data, startTime, _ := utils.Take(data, 8)
+	data, endTime, _ := utils.Take(data, 8)
+	data, count, _ := utils.Take(data, 8)
 
 	firehoseLoss.StartTime = binary.LittleEndian.Uint64(startTime)
 	firehoseLoss.EndTime = binary.LittleEndian.Uint64(endTime)

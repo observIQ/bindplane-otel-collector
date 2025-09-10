@@ -18,6 +18,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
 )
 
 func TestParseOversizeChunk(t *testing.T) {
@@ -49,8 +51,8 @@ func TestGetOversizeStrings(t *testing.T) {
 			dataRefIndex:    1,
 			publicDataSize:  1092,
 			privateDataSize: 0,
-			messageItems: FirehoseItemData{
-				ItemInfo: []FirehoseItemInfo{
+			messageItems: firehose.FirehoseItemData{
+				ItemInfo: []firehose.FirehoseItemInfo{
 					{
 						MessageStrings: "system kext collection",
 						ItemType:       34,

@@ -1,7 +1,7 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
-package macosunifiedloggingencodingextension
+package utils
 
 import (
 	"fmt"
@@ -48,11 +48,11 @@ func ExtractStringSize(data []byte, messageSize uint64) ([]byte, string, error) 
 }
 
 // paddingSizeFour calculates 4-byte alignment padding (equivalent to Rust's padding_size_four)
-func paddingSizeFour(dataSize uint64) uint64 {
-	return paddingSize(dataSize, 4)
+func PaddingSizeFour(dataSize uint64) uint64 {
+	return PaddingSize(dataSize, 4)
 }
 
 // paddingSize calculates padding based on alignment (equivalent to Rust's padding_size)
-func paddingSize(dataSize uint64, alignment uint64) uint64 {
+func PaddingSize(dataSize uint64, alignment uint64) uint64 {
 	return (alignment - (dataSize & (alignment - 1))) & (alignment - 1)
 }

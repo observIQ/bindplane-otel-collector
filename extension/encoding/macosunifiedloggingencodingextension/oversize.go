@@ -6,6 +6,9 @@ package macosunifiedloggingencodingextension // import "github.com/observiq/bind
 import (
 	"encoding/binary"
 	"fmt"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
 )
 
 // OversizeChunk represents a parsed oversize chunk
@@ -21,7 +24,7 @@ type OversizeChunk struct {
 	dataRefIndex    uint32
 	publicDataSize  uint16
 	privateDataSize uint16
-	messageItems    FirehoseItemData
+	messageItems    firehose.FirehoseItemData
 }
 
 // ParseOversizeChunk parses an oversize chunk
@@ -29,17 +32,17 @@ type OversizeChunk struct {
 func ParseOversizeChunk(data []byte) (OversizeChunk, []byte) {
 	var oversizeResult OversizeChunk
 
-	data, chunkTag, _ := Take(data, 4)
-	data, chunkSubTag, _ := Take(data, 4)
-	data, chunkDataSize, _ := Take(data, 8)
-	data, firstProcID, _ := Take(data, 8)
-	data, secondProcID, _ := Take(data, 4)
-	data, ttl, _ := Take(data, 1)
-	data, unknownReserved, _ := Take(data, 3)
-	data, continuousTime, _ := Take(data, 8)
-	data, dataRefIndex, _ := Take(data, 4)
-	data, publicDataSize, _ := Take(data, 2)
-	data, privateDataSize, _ := Take(data, 2)
+	data, chunkTag, _ := utils.Take(data, 4)
+	data, chunkSubTag, _ := utils.Take(data, 4)
+	data, chunkDataSize, _ := utils.Take(data, 8)
+	data, firstProcID, _ := utils.Take(data, 8)
+	data, secondProcID, _ := utils.Take(data, 4)
+	data, ttl, _ := utils.Take(data, 1)
+	data, unknownReserved, _ := utils.Take(data, 3)
+	data, continuousTime, _ := utils.Take(data, 8)
+	data, dataRefIndex, _ := utils.Take(data, 4)
+	data, publicDataSize, _ := utils.Take(data, 2)
+	data, privateDataSize, _ := utils.Take(data, 2)
 
 	oversizeResult.chunkTag = binary.LittleEndian.Uint32(chunkTag)
 	oversizeResult.chunkSubTag = binary.LittleEndian.Uint32(chunkSubTag)
@@ -59,15 +62,15 @@ func ParseOversizeChunk(data []byte) (OversizeChunk, []byte) {
 		oversizeDataSize = len(data)
 	}
 
-	data, publicData, _ := Take(data, oversizeDataSize)
-	messageData, _, _ := Take(publicData, 1)
-	messageData, itemCount, _ := Take(messageData, 1)
+	data, publicData, _ := utils.Take(data, oversizeDataSize)
+	messageData, _, _ := utils.Take(publicData, 1)
+	messageData, itemCount, _ := utils.Take(messageData, 1)
 	oversizeItemCount := itemCount[0]
 
 	emptyFlags := uint16(0)
 	// Grab all message items from oversize data
-	firehoseItemData, oversizePrivateData := ParseFirehoseMessageItems(messageData, oversizeItemCount, emptyFlags)
-	_, err := ParsePrivateData(oversizePrivateData, &firehoseItemData)
+	firehoseItemData, oversizePrivateData := firehose.ParseFirehoseMessageItems(messageData, oversizeItemCount, emptyFlags)
+	_, err := firehose.ParsePrivateData(oversizePrivateData, &firehoseItemData)
 	if err != nil {
 		// TODO: better error handling
 		fmt.Printf("Error parsing private data: %v\n", err)
@@ -78,12 +81,12 @@ func ParseOversizeChunk(data []byte) (OversizeChunk, []byte) {
 }
 
 // GetOversizeStrings gets the firehose item info from the oversize log entry based on oversize (data ref) id, first proc id, and second proc id
-func GetOversizeStrings(dataRef uint32, firstProcID uint64, secondProcID uint32, oversizeData []*OversizeChunk) []FirehoseItemInfo {
-	messageStrings := []FirehoseItemInfo{}
+func GetOversizeStrings(dataRef uint32, firstProcID uint64, secondProcID uint32, oversizeData []*OversizeChunk) []firehose.FirehoseItemInfo {
+	messageStrings := []firehose.FirehoseItemInfo{}
 	for _, oversize := range oversizeData {
 		if oversize.dataRefIndex == dataRef && oversize.firstProcID == firstProcID && oversize.secondProcID == secondProcID {
 			for _, message := range oversize.messageItems.ItemInfo {
-				oversizeFirehose := FirehoseItemInfo{
+				oversizeFirehose := firehose.FirehoseItemInfo{
 					MessageStrings: message.MessageStrings,
 					ItemType:       message.ItemType,
 					ItemSize:       message.ItemSize,
