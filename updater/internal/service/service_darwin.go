@@ -106,6 +106,11 @@ func (d darwinService) install() error {
 		return fmt.Errorf("failed to open input file: %w", err)
 	}
 
+	// Ensure the parent directory exists
+	if err := os.MkdirAll(filepath.Dir(d.installedServiceFilePath), 0755); err != nil {
+		return fmt.Errorf("failed to create service directory: %w", err)
+	}
+
 	expandedServiceFileBytes := replaceInstallDir(serviceFileBytes, d.installDir)
 	if err := os.WriteFile(d.installedServiceFilePath, expandedServiceFileBytes, 0600); err != nil {
 		return fmt.Errorf("failed to write service file: %w", err)
