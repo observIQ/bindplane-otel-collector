@@ -135,47 +135,47 @@ func ParseChunksetData(data []byte, ulData *UnifiedLogData) ([]*TraceV3Entry, er
 
 		// Parse based on chunk type with enhanced processing
 		switch chunkTag {
-		case 0x6001:
-			// Firehose chunk - contains individual log entries
-			chunkEntry.ChunkType = "firehose"
-			chunkEntry.Subsystem = "com.apple.firehose.decompressed"
-			chunkEntry.Category = "entry"
+		// case 0x6001:
+		// 	// Firehose chunk - contains individual log entries
+		// 	chunkEntry.ChunkType = "firehose"
+		// 	chunkEntry.Subsystem = "com.apple.firehose.decompressed"
+		// 	chunkEntry.Category = "entry"
 
-			// Use enhanced firehose parsing with debugging
-			firehoseEntries := ParseFirehoseChunk(chunkData, chunkEntry, header, timesyncData)
+		// 	// Use enhanced firehose parsing with debugging
+		// 	firehoseEntries := ParseFirehoseChunk(chunkData, chunkEntry, header, timesyncData)
 
-			// Add debug information if no entries were extracted
-			if len(firehoseEntries) == 0 {
-				debugEntry := &TraceV3Entry{
-					Type:         chunkTag,
-					Size:         uint32(chunkDataSize),
-					Timestamp:    header.ContinuousTime + uint64(chunkCount)*1000000,
-					ThreadID:     0,
-					ProcessID:    header.LogdPID,
-					Level:        "Debug",
-					MessageType:  "Debug",
-					EventType:    "logEvent",
-					TimezoneName: extractTimezoneName(header.TimezonePath),
-					ChunkType:    "firehose_debug",
-					Subsystem:    "com.apple.firehose.debug",
-					Category:     "parsing_debug",
-					Message:      fmt.Sprintf("Firehose chunk debug: size=%d data_preview=%x", chunkDataSize, chunkData[:min(32, len(chunkData))]),
-				}
-				entries = append(entries, debugEntry)
-			} else {
-				// Return only individual entries, no summary entry
-				// This replaces summary entries with actual log entries as requested
-			}
+		// 	// Add debug information if no entries were extracted
+		// 	if len(firehoseEntries) == 0 {
+		// 		debugEntry := &TraceV3Entry{
+		// 			Type:         chunkTag,
+		// 			Size:         uint32(chunkDataSize),
+		// 			Timestamp:    header.ContinuousTime + uint64(chunkCount)*1000000,
+		// 			ThreadID:     0,
+		// 			ProcessID:    header.LogdPID,
+		// 			Level:        "Debug",
+		// 			MessageType:  "Debug",
+		// 			EventType:    "logEvent",
+		// 			TimezoneName: extractTimezoneName(header.TimezonePath),
+		// 			ChunkType:    "firehose_debug",
+		// 			Subsystem:    "com.apple.firehose.debug",
+		// 			Category:     "parsing_debug",
+		// 			Message:      fmt.Sprintf("Firehose chunk debug: size=%d data_preview=%x", chunkDataSize, chunkData[:min(32, len(chunkData))]),
+		// 		}
+		// 		entries = append(entries, debugEntry)
+		// 	} else {
+		// 		// Return only individual entries, no summary entry
+		// 		// This replaces summary entries with actual log entries as requested
+		// 	}
 
-			entries = append(entries, firehoseEntries...)
+		// 	entries = append(entries, firehoseEntries...)
 
-		case 0x6002:
-			// Oversize chunk
-			chunkEntry.ChunkType = "oversize"
-			chunkEntry.Subsystem = "com.apple.oversize.decompressed"
-			chunkEntry.Category = "oversize_data"
-			ParseOversizeChunk(chunkData, chunkEntry, header, timesyncData)
-			entries = append(entries, chunkEntry)
+		// case 0x6002:
+		// 	// Oversize chunk
+		// 	chunkEntry.ChunkType = "oversize"
+		// 	chunkEntry.Subsystem = "com.apple.oversize.decompressed"
+		// 	chunkEntry.Category = "oversize_data"
+		// 	ParseOversizeChunk(chunkData, chunkEntry, header, timesyncData)
+		// 	entries = append(entries, chunkEntry)
 
 		case 0x6003:
 			// Statedump chunk
