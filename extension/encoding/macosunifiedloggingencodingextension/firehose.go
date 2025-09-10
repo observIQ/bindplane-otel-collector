@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"fmt"
+	"slices"
 )
 
 // FirehosePreamble represents a parsed firehose preamble
@@ -81,7 +82,6 @@ type FirehoseItemData struct {
 }
 
 // FirehoseItemInfo represents a parsed message item from firehose entry data
-// Based on the Rust implementation's FirehoseItemInfo struct
 type FirehoseItemInfo struct {
 	MessageStrings string
 	ItemType       uint8
@@ -129,7 +129,7 @@ func ParseFirehosePreamble(data []byte) (FirehosePreamble, []byte) {
 		firehosePublicData, firehoseInput, _ := ParseFirehoseEntry(publicData)
 		publicData = firehoseInput
 
-		if contains(logTypes[:], firehosePublicData.ActivityType) || len(publicData) < 24 {
+		if slices.Contains(logTypes[:], firehosePublicData.ActivityType) || len(publicData) < 24 {
 			// If the activity type is unknown remnant data, break
 			if firehosePublicData.ActivityType == UnknownRemnantData {
 				break
@@ -173,7 +173,6 @@ func ParseFirehosePreamble(data []byte) (FirehosePreamble, []byte) {
 		}
 
 		for _, data := range preamble.publicData {
-			// Rust implementation claims that only non-activity firehose entries have private strings
 			if data.FirehoseNonActivity.PrivateStringsSize == 0 {
 				continue
 			}
@@ -185,16 +184,6 @@ func ParseFirehosePreamble(data []byte) (FirehosePreamble, []byte) {
 	}
 
 	return preamble, data
-}
-
-// contains checks if a slice contains a specific value
-func contains(slice []uint8, value uint8) bool {
-	for _, v := range slice {
-		if v == value {
-			return true
-		}
-	}
-	return false
 }
 
 // ParseFirehoseEntry parses a firehose entry
@@ -300,7 +289,7 @@ func ParsePrivateData(data []byte, firehoseItemData *FirehoseItemData) ([]byte, 
 	privateStringStart := data
 
 	for _, firehoseInfo := range firehoseItemData.ItemInfo {
-		if contains(privateStrings[:], firehoseInfo.ItemType) {
+		if slices.Contains(privateStrings[:], firehoseInfo.ItemType) {
 			if firehoseInfo.ItemType == privateStrings[3] || firehoseInfo.ItemType == privateStrings[4] {
 				if len(privateStringStart) < int(firehoseInfo.ItemSize) {
 					privateData, pointerObject, _ := Take(privateStringStart, len(privateStringStart))
@@ -421,13 +410,13 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 		item, itemInput := GetFirehoseItems(firehoseInput)
 		firehoseInput = itemInput
 
-		if contains(precisionItems, item.ItemType) {
+		if slices.Contains(precisionItems, item.ItemType) {
 			itemsData = append(itemsData, item)
 			itemCount++
 			continue
 		}
 
-		if contains(numberItemType, item.ItemType) {
+		if slices.Contains(numberItemType, item.ItemType) {
 			itemValueInput, messageNumber := ParseItemNumber(firehoseInput, item.ItemSize)
 			item.MessageStrings = fmt.Sprintf("%d", messageNumber)
 			firehoseInput = itemValueInput
@@ -436,7 +425,7 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 			continue
 		}
 
-		if item.MessageStringSize == 0 && contains(objectItems, item.ItemType) {
+		if item.MessageStringSize == 0 && slices.Contains(objectItems, item.ItemType) {
 			item.MessageStrings = "(null)"
 		}
 		itemsData = append(itemsData, item)
@@ -467,11 +456,11 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 	}
 
 	for i, item := range itemsData {
-		if contains(numberItemType, item.ItemType) {
+		if slices.Contains(numberItemType, item.ItemType) {
 			continue
 		}
 
-		if contains(privateStrings, uint8(item.ItemType)) || contains(sensitiveItems, uint8(item.ItemType)) {
+		if slices.Contains(privateStrings, uint8(item.ItemType)) || slices.Contains(sensitiveItems, uint8(item.ItemType)) {
 			itemsData[i].MessageStrings = "<private>"
 			continue
 		}
@@ -480,7 +469,7 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 			continue
 		}
 
-		if contains(precisionItems, uint8(item.ItemType)) {
+		if slices.Contains(precisionItems, uint8(item.ItemType)) {
 			continue
 		}
 
@@ -492,7 +481,7 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 			break
 		}
 
-		if contains(stringItem[:], uint8(item.ItemType)) {
+		if slices.Contains(stringItem[:], uint8(item.ItemType)) {
 			itemValueInput, messageString, _ := ParseItemString(firehoseInput, item.ItemType, item.MessageStringSize)
 			firehoseInput = itemValueInput
 			itemsData[i].MessageStrings = messageString
@@ -520,7 +509,7 @@ func GetFirehoseItems(data []byte) (FirehoseItemType, []byte) {
 		ItemSize: itemSize[0],
 	}
 
-	if contains(stringItem[:], uint8(item.ItemType)) || uint8(item.ItemType) == PrivateNumber {
+	if slices.Contains(stringItem[:], uint8(item.ItemType)) || uint8(item.ItemType) == PrivateNumber {
 		firehoseInput, messageOffset, _ := Take(firehoseInput, 2)
 		firehoseInput, messageSize, _ := Take(firehoseInput, 2)
 		item.Offset = binary.LittleEndian.Uint16(messageOffset)
@@ -528,11 +517,11 @@ func GetFirehoseItems(data []byte) (FirehoseItemType, []byte) {
 	}
 
 	// Precision items just contain the length for the actual item. Ex: %*s
-	if contains(precisionItems, item.ItemType) {
+	if slices.Contains(precisionItems, item.ItemType) {
 		firehoseInput, _, _ = Take(firehoseInput, int(item.ItemSize))
 	}
 
-	if contains(sensitiveItems, item.ItemType) {
+	if slices.Contains(sensitiveItems, item.ItemType) {
 		firehoseInput, messageOffset, _ := Take(firehoseInput, 2)
 		firehoseInput, messageSize, _ := Take(firehoseInput, 2)
 		item.Offset = binary.LittleEndian.Uint16(messageOffset)
@@ -550,7 +539,7 @@ func ParseItemString(data []byte, itemType uint8, messageSize uint16) ([]byte, s
 	data, messageData, _ := Take(data, int(messageSize))
 
 	// 0x30, 0x31, and 0x32 represent arbitrary data, need to be decoded again
-	if contains(arbitrary, itemType) {
+	if slices.Contains(arbitrary, itemType) {
 		return data, base64.StdEncoding.EncodeToString(messageData), nil
 	}
 
