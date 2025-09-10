@@ -106,6 +106,7 @@ install-tools:
 	cd $(TOOLS_MOD_DIR) && go install github.com/uw-labs/lichen
 	cd $(TOOLS_MOD_DIR) && go install github.com/vektra/mockery/v2
 	cd $(TOOLS_MOD_DIR) && go install golang.org/x/tools/cmd/goimports
+	cd $(TOOLS_MOD_DIR) && go install gotest.tools/gotestsum
 
 .PHONY: lint
 lint:
@@ -121,11 +122,11 @@ misspell-fix:
 
 .PHONY: test
 test:
-	$(MAKE) for-all CMD="go test -race ./..."
+	$(MAKE) for-all CMD="gotestsum --rerun-fails --packages="./..." -- -race"
 
 .PHONY: test-no-race
 test-no-race:
-	$(MAKE) for-all CMD="go test ./..."
+	$(MAKE) for-all CMD="gotestsum --rerun-fails --packages="./..." "
 
 .PHONY: test-with-cover
 test-with-cover:
@@ -134,7 +135,8 @@ test-with-cover:
 
 .PHONY: test-updater-integration
 test-updater-integration:
-	cd updater; go test $(INTEGRATION_TEST_ARGS) -race ./...
+	cd updater; gotestsum --rerun-fails --packages="./..." -- \
+		$(INTEGRATION_TEST_ARGS) -race
 
 .PHONY: bench
 bench:
