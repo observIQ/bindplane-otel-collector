@@ -406,9 +406,9 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 			entry.Subsystem = "com.apple.firehose"
 			entry.Category = "entry"
 			entry.Message = fmt.Sprintf("Firehose chunk found: tag=0x%x sub_tag=0x%x size=%d", chunkTag, chunkSubTag, chunkDataSize)
-			firehoseEntries := ParseFirehoseChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
-			// Add all individual firehose entries to our result
-			entries = append(entries, firehoseEntries...)
+			// firehoseEntries := ParseFirehoseChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
+			// // Add all individual firehose entries to our result
+			// entries = append(entries, firehoseEntries...)
 			// Continue to next chunk without adding the template entry
 			offset += totalChunkSize
 			entryCount++
@@ -419,9 +419,9 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 			entry.Subsystem = "com.apple.oversize"
 			entry.Category = "oversize_data"
 			entry.Message = fmt.Sprintf("Oversize chunk found: tag=0x%x sub_tag=0x%x size=%d", chunkTag, chunkSubTag, chunkDataSize)
-			oversizeEntries := ParseOversizeChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
-			// Add all individual oversize entries to our result
-			entries = append(entries, oversizeEntries...)
+			// oversizeEntries := ParseOversizeChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
+			// // Add all individual oversize entries to our result
+			// entries = append(entries, oversizeEntries...)
 			// Continue to next chunk without adding the template entry
 			offset += totalChunkSize + int(paddingSize8(chunkDataSize))
 			entryCount++
@@ -654,15 +654,15 @@ func parseLargeDataSectionAsChunks(data []byte, header *TraceV3Header, timesyncD
 			chunkEntry.ChunkType = "firehose"
 			chunkEntry.Subsystem = "com.apple.firehose.large_data"
 			chunkEntry.Category = "entry"
-			firehoseEntries := ParseFirehoseChunk(chunkData)
-			entries = append(entries, firehoseEntries...)
+			// firehoseEntries := ParseFirehoseChunk(chunkData)
+			// entries = append(entries, firehoseEntries...)
 		case 0x6002:
 			// Oversize chunk
 			chunkEntry.ChunkType = "oversize"
 			chunkEntry.Subsystem = "com.apple.oversize.large_data"
 			chunkEntry.Category = "oversize_data"
-			oversizeEntries := ParseOversizeChunk(chunkData)
-			entries = append(entries, oversizeEntries...)
+			// oversizeEntries := ParseOversizeChunk(chunkData)
+			// entries = append(entries, oversizeEntries...)
 		case 0x600d:
 			// ChunkSet chunk
 			chunkEntry.ChunkType = "chunkset"
@@ -716,12 +716,12 @@ func parseDataAsFirehoseEntries(data []byte, header *TraceV3Header, timesyncData
 		}
 
 		// Parse firehose entry header
-		logType := data[offset+1]
-		flags := binary.LittleEndian.Uint16(data[offset+2:])
-		formatStringLocation := binary.LittleEndian.Uint32(data[offset+4:])
-		threadID := binary.LittleEndian.Uint64(data[offset+8:])
-		continuousTimeDelta := binary.LittleEndian.Uint32(data[offset+16:])
-		continuousTimeDeltaUpper := binary.LittleEndian.Uint16(data[offset+20:])
+		// logType := data[offset+1]
+		// flags := binary.LittleEndian.Uint16(data[offset+2:])
+		// formatStringLocation := binary.LittleEndian.Uint32(data[offset+4:])
+		// threadID := binary.LittleEndian.Uint64(data[offset+8:])
+		// continuousTimeDelta := binary.LittleEndian.Uint32(data[offset+16:])
+		// continuousTimeDeltaUpper := binary.LittleEndian.Uint16(data[offset+20:])
 		dataSize := binary.LittleEndian.Uint16(data[offset+22:])
 
 		// Validate data size
@@ -731,29 +731,29 @@ func parseDataAsFirehoseEntries(data []byte, header *TraceV3Header, timesyncData
 		}
 
 		// Create FirehoseEntry structure
-		firehoseEntry := &FirehoseEntry{
-			ActivityType:         activityType,
-			LogType:              logType,
-			Flags:                flags,
-			FormatStringLocation: formatStringLocation,
-			ThreadID:             threadID,
-			TimeDelta:            continuousTimeDelta,
-			TimeDeltaUpper:       continuousTimeDeltaUpper,
-			DataSize:             dataSize,
-		}
+		// firehoseEntry := &FirehoseEntry{
+		// 	ActivityType:         activityType,
+		// 	LogType:              logType,
+		// 	Flags:                flags,
+		// 	FormatStringLocation: formatStringLocation,
+		// 	ThreadID:             threadID,
+		// 	// TimeDelta:            continuousTimeDelta,
+		// 	// TimeDeltaUpper:       continuousTimeDeltaUpper,
+		// 	DataSize: dataSize,
+		// }
 
 		// Extract message data if present
 		if dataSize > 0 && offset+24+int(dataSize) <= len(data) {
-			firehoseEntry.MessageData = data[offset+24 : offset+24+int(dataSize)]
+			// firehoseEntry.MessageData = data[offset+24 : offset+24+int(dataSize)]
 		}
 
 		// Parse the firehose entry
-		entry := parseSingleFirehoseEntry(firehoseEntry, header, 0, 0, header.ContinuousTime, timesyncData)
-		if entry != nil {
-			entry.ChunkType = "firehose_raw_data"
-			entry.Subsystem = "com.apple.firehose.raw_data"
-			entries = append(entries, entry)
-		}
+		// entry := parseSingleFirehoseEntry(firehoseEntry, header, 0, 0, header.ContinuousTime, timesyncData)
+		// if entry != nil {
+		// 	entry.ChunkType = "firehose_raw_data"
+		// 	entry.Subsystem = "com.apple.firehose.raw_data"
+		// 	entries = append(entries, entry)
+		// }
 
 		// Move to next entry
 		offset += 24 + int(dataSize)

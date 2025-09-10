@@ -33,9 +33,9 @@ const (
 )
 
 var (
-	LogTypes       = [5]uint8{0x2, 0x6, 0x4, 0x7, 0x3}
-	StringItem     = [8]uint8{0x20, 0x22, 0x40, 0x42, 0x30, 0x31, 0x32, 0xf2}
-	PrivateStrings = [7]uint8{0x21, 0x25, 0x35, 0x31, 0x41, 0x81, 0xf1}
+	LogTypes       = []uint8{0x2, 0x6, 0x4, 0x7, 0x3}
+	StringItem     = []uint8{0x20, 0x22, 0x40, 0x42, 0x30, 0x31, 0x32, 0xf2}
+	PrivateStrings = []uint8{0x21, 0x25, 0x35, 0x31, 0x41, 0x81, 0xf1}
 	PrecisionItems = []uint8{0x10, 0x12}
 	SensitiveItems = []uint8{0x5, 0x45, 0x85}
 	Arbitrary      = []uint8{0x30, 0x31, 0x32}
@@ -338,15 +338,17 @@ func GetBacktraceData(data []byte) ([]byte, []string, error) {
 	offsetCount := int(binary.LittleEndian.Uint16(offsetCountBytes))
 
 	// Read UUID vector (128-bit big-endian UUIDs)
-	var uuidVec []uint64
+	var uuidVec []string
 	for i := 0; i < uuidCount; i++ {
 		remaining, uuidBytes, _ := Take(input, 16) // 128 bits = 16 bytes
 		input = remaining
-		// Convert 128-bit UUID to two 64-bit values (big-endian)
-		uuidHigh := binary.BigEndian.Uint64(uuidBytes[:8])
-		_ = binary.BigEndian.Uint64(uuidBytes[8:])
-		// For simplicity, we'll use the high part as the main UUID
-		uuidVec = append(uuidVec, uuidHigh)
+		// Convert 128-bit UUID to uppercase hex string (big-endian)
+		uuidStr := fmt.Sprintf("%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+			uuidBytes[0], uuidBytes[1], uuidBytes[2], uuidBytes[3],
+			uuidBytes[4], uuidBytes[5], uuidBytes[6], uuidBytes[7],
+			uuidBytes[8], uuidBytes[9], uuidBytes[10], uuidBytes[11],
+			uuidBytes[12], uuidBytes[13], uuidBytes[14], uuidBytes[15])
+		uuidVec = append(uuidVec, uuidStr)
 	}
 
 	// Read offsets vector (32-bit little-endian)
@@ -369,16 +371,16 @@ func GetBacktraceData(data []byte) ([]byte, []string, error) {
 	// Build backtrace strings
 	var backtraceData []string
 	for i, idx := range indexes {
-		var uuid uint64
+		var uuidStr string
 		if int(idx) < len(uuidVec) {
-			uuid = uuidVec[idx]
+			uuidStr = uuidVec[idx]
 		}
 		var offset uint32
 		if i < len(offsetsVec) {
 			offset = offsetsVec[i]
 		}
 
-		backtraceStr := fmt.Sprintf("\"%X\" +0x%x", uuid, offset)
+		backtraceStr := fmt.Sprintf("\"%s\" +0x%x", uuidStr, offset)
 		backtraceData = append(backtraceData, backtraceStr)
 	}
 
@@ -453,21 +455,21 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 		}
 	}
 
-	for _, item := range itemsData {
+	for i, item := range itemsData {
 		if contains(numberItemType, item.ItemType) {
 			continue
 		}
 
-		if contains(PrivateStrings[:], item.ItemType) || contains(SensitiveItems, item.ItemType) {
-			item.MessageStrings = "<private>"
+		if contains(PrivateStrings, uint8(item.ItemType)) || contains(SensitiveItems, uint8(item.ItemType)) {
+			itemsData[i].MessageStrings = "<private>"
 			continue
 		}
 
-		if item.ItemType == PrivateNumber {
+		if uint8(item.ItemType) == PrivateNumber {
 			continue
 		}
 
-		if contains(PrecisionItems, item.ItemType) {
+		if contains(PrecisionItems, uint8(item.ItemType)) {
 			continue
 		}
 
@@ -479,10 +481,10 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 			break
 		}
 
-		if contains(StringItem[:], item.ItemType) {
+		if contains(StringItem[:], uint8(item.ItemType)) {
 			itemValueInput, messageString, _ := ParseItemString(firehoseInput, item.ItemType, item.MessageStringSize)
 			firehoseInput = itemValueInput
-			item.MessageStrings = messageString
+			itemsData[i].MessageStrings = messageString
 		} else {
 			// TODO: error
 		}
@@ -506,7 +508,7 @@ func GetFirehoseItems(data []byte) (FirehoseItemType, []byte) {
 		ItemSize: itemSize[0],
 	}
 
-	if contains(StringItem[:], item.ItemType) || item.ItemType == PrivateNumber {
+	if contains(StringItem[:], uint8(item.ItemType)) || uint8(item.ItemType) == PrivateNumber {
 		firehoseInput, messageOffset, _ := Take(firehoseInput, 2)
 		firehoseInput, messageSize, _ := Take(firehoseInput, 2)
 		item.Offset = binary.LittleEndian.Uint16(messageOffset)
