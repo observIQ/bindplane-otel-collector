@@ -106,9 +106,12 @@ func (d darwinService) install() error {
 		return fmt.Errorf("failed to open input file: %w", err)
 	}
 
-	// Ensure the parent directory exists
-	if err := os.MkdirAll(filepath.Dir(d.installedServiceFilePath), 0755); err != nil {
-		return fmt.Errorf("failed to create service directory: %w", err)
+	// Ensure the parent directory exists, but only for standard LaunchAgents path
+	parentDir := filepath.Dir(d.installedServiceFilePath)
+	if filepath.Base(parentDir) == "LaunchAgents" {
+		if err := os.MkdirAll(parentDir, 0755); err != nil {
+			return fmt.Errorf("failed to create service directory: %w", err)
+		}
 	}
 
 	expandedServiceFileBytes := replaceInstallDir(serviceFileBytes, d.installDir)
@@ -121,6 +124,14 @@ func (d darwinService) install() error {
 
 // Uninstalls the service
 func (d darwinService) uninstall() error {
+	// Check if service file exists first
+	if _, err := os.Stat(d.installedServiceFilePath); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("failed to stat installed service file: service file does not exist")
+		}
+		return fmt.Errorf("failed to stat installed service file: %w", err)
+	}
+
 	if err := d.Stop(); err != nil {
 		return err
 	}
