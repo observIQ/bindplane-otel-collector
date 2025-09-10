@@ -11,38 +11,44 @@ jobs:
         os: [namespace-profile-bindplane-default-ubuntu-24-04-large, namespace-profile-bindplane-default-macos-15, windows-2022-8-cores]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout Sources (Linux)
-        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04'
+      - name: Checkout Sources (Namespace runners)
+        if: startsWith(matrix.os, 'namespace-profile-')
         uses: namespacelabs/nscloud-checkout-action@v7
-      - name: Checkout Sources (Non-Linux)
-        if: matrix.os != 'namespace-profile-bindplane-default-ubuntu-24-04'
+      - name: Checkout Sources (Windows)
+        if: matrix.os == 'windows-2022-8-cores'
         uses: actions/checkout@v4
-      - name: Setup Go (Linux)
-        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04'
+      - name: Setup Go (Namespace runners)
+        if: startsWith(matrix.os, 'namespace-profile-')
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: false # Use Namespace caching instead
-      - name: Set up Go cache (Linux)
-        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04'
+      - name: Set up Go cache (Namespace runners)
+        if: startsWith(matrix.os, 'namespace-profile-')
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           cache: go
-      - name: Setup Go (Non-Linux)
-        if: matrix.os != 'namespace-profile-bindplane-default-ubuntu-24-04'
+      - name: Setup Go (Windows)
+        if: matrix.os == 'windows-2022-8-cores'
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache-dependency-path: |
             go.sum
             **/go.sum
+      - name: Cache Tools
+        if: startsWith(matrix.os, 'namespace-profile-')
+        id: tool-cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: /home/runner/go/bin
       - name: Install Tools
         run: make install-tools
       - name: Run Tests
         run: make test
-      - name: Run Updater Integration Tests (non-linux)
-        if: matrix.os != 'namespace-profile-bindplane-default-ubuntu-24-04'
+      - name: Run Updater Integration Tests (Windows and macOS)
+        if: matrix.os == 'windows-2022-8-cores' || matrix.os == 'namespace-profile-bindplane-default-macos-15'
         run: make test-updater-integration
-      - name: Run Updater Integration Tests (linux)
-        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04'
+      - name: Run Updater Integration Tests (Ubuntu)
+        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04-large'
         run: sudo make test-updater-integration
