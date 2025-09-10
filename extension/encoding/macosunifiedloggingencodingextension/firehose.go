@@ -326,7 +326,6 @@ func ParsePrivateData(data []byte, firehoseItemData *FirehoseItemData) ([]byte, 
 	return privateStringStart, nil
 }
 
-// TODO: Add test for this function
 // Parse Backtrace data for log entry (chunk). This only exists if `has_context_data` flag is set
 func GetBacktraceData(data []byte) ([]byte, []string, error) {
 	// Skip 3 unknown bytes
@@ -549,7 +548,6 @@ func ParseItemString(data []byte, itemType uint8, messageSize uint16) ([]byte, s
 	return data, messageString, nil
 }
 
-// TODO: Add test for this function
 func ParseItemNumber(data []byte, itemSize uint8) ([]byte, uint64) {
 	switch itemSize {
 	case 4:
