@@ -36,6 +36,8 @@ jobs:
           cache-dependency-path: |
             go.sum
             **/go.sum
+      - name: Install Tools
+        run: make install-tools
       - name: Run Tests
         run: make test
       - name: Run Updater Integration Tests (non-linux)
