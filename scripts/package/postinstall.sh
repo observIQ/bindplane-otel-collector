@@ -441,9 +441,9 @@ finish_permissions() {
   # This prevents the service (running as root) from assigning ownership to
   # the root user. By doing so, we allow the user to switch to bindplane-otel-collector
   # user for 'non root' installs.
-  mkdir -p /opt/bindplane-otel-collector/supervisor_storage
-  touch /opt/bindplane-otel-collector/supervisor_storage/agent.log
-  chown bindplane-otel-collector:bindplane-otel-collector /opt/bindplane-otel-collector/supervisor_storage/agent.log
+  mkdir -p ${BDOT_CONFIG_HOME}/supervisor_storage
+  touch ${BDOT_CONFIG_HOME}/supervisor_storage/agent.log
+  chown bindplane-otel-collector:bindplane-otel-collector ${BDOT_CONFIG_HOME}/supervisor_storage/agent.log
 }
 
 install
