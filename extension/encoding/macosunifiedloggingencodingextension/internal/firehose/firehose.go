@@ -237,7 +237,10 @@ func ParseFirehoseEntry(data []byte) (FirehoseEntry, []byte, error) {
 		firehoseData = lossData
 		firehoseResult.FirehoseLoss = loss
 	} else if unknownLogActivityType[0] == trace {
-		trace, traceData := ParseFirehoseTrace(firehoseData)
+		trace, traceData, err := ParseFirehoseTrace(firehoseData)
+		if err != nil {
+			return firehoseResult, data, err
+		}
 		firehoseData = traceData
 		firehoseResult.FirehoseTrace = trace
 		firehoseResult.Message = trace.MessageData
