@@ -42,7 +42,7 @@ jobs:
         if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-16x32'
         uses: actions/cache@v4
         with:
-          path: C:\Users\runner\go\pkg\mod
+          path: C:\Users\runneradmin\go\pkg\mod
           key: ${{ runner.os }}-go-modules-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-modules-
@@ -71,7 +71,7 @@ jobs:
         id: tool-cache-windows
         uses: actions/cache@v4
         with:
-          path: C:\Users\runner\go\bin
+          path: C:\Users\runneradmin\go\bin
           key: ${{ runner.os }}-go-tools-${{ hashFiles('internal/tools/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-tools-
