@@ -1,5 +1,16 @@
-// Copyright The OpenTelemetry Authors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package macosunifiedloggingencodingextension
 
@@ -77,23 +88,6 @@ func DecompressChunksetData(compressedData []byte, uncompressedSize uint32, algo
 	GlobalCompressionStats.TotalBytesDecompressed += uint64(n)
 
 	return decompressedData[:n], nil
-}
-
-// ValidateChunksetSignature validates the chunkset compression signature
-func ValidateChunksetSignature(signature uint32) (bool, bool, error) {
-	const bv41 = 825521762             // "bv41" signature for compressed data
-	const bv41Uncompressed = 758412898 // "bv41-" signature for uncompressed data
-
-	switch signature {
-	case bv41:
-		return true, true, nil // compressed, valid
-	case bv41Uncompressed:
-		GlobalCompressionStats.UncompressedChunks++
-		return false, true, nil // uncompressed, valid
-	default:
-		return false, false, fmt.Errorf("invalid chunkset signature: 0x%x (expected 0x%x or 0x%x)",
-			signature, bv41, bv41Uncompressed)
-	}
 }
 
 // GetCompressionStats returns the current compression statistics
