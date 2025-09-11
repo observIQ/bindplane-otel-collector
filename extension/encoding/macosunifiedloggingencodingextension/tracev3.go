@@ -88,7 +88,7 @@ type TraceV3Entry struct {
 // Eventual replacement for TraceV3 header/entry structs
 type UnifiedLogData struct {
 	CatalogData  CatalogChunk
-	FirehoseData []firehose.FirehosePreamble
+	FirehoseData []firehose.Preamble
 	OversizeData []OversizeChunk
 	// StatedumpData  []StatedumpChunk
 	// SimpledumpData []SimpledumpChunk

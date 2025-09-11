@@ -23,8 +23,8 @@ import (
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
 )
 
-// FirehosePreamble represents a parsed firehose preamble
-type FirehosePreamble struct {
+// Preamble represents a parsed firehose preamble
+type Preamble struct {
 	chunkTag                 uint32
 	chunkSubTag              uint32
 	chunkDataSize            uint64
@@ -38,7 +38,7 @@ type FirehosePreamble struct {
 	unknown2                 uint16
 	unknown3                 uint16
 	baseContinuousTime       uint64
-	publicData               []FirehoseEntry
+	publicData               []Entry
 }
 
 const (
@@ -59,8 +59,8 @@ var (
 	arbitrary      = []uint8{0x30, 0x31, 0x32}
 )
 
-// FirehoseEntry represents a parsed firehose log entry
-type FirehoseEntry struct {
+// Entry represents a parsed firehose log entry
+type Entry struct {
 	ActivityType            uint8
 	LogType                 uint8
 	Flags                   uint16
@@ -76,11 +76,11 @@ type FirehoseEntry struct {
 	FirehoseTrace           FirehoseTrace
 	UnknownItem             uint8
 	NumberItems             uint8
-	Message                 FirehoseItemData
+	Message                 ItemData
 }
 
-// FirehoseItemType represents a parsed firehose item type
-type FirehoseItemType struct {
+// ItemType represents a parsed firehose item type
+type ItemType struct {
 	ItemType          uint8
 	ItemSize          uint8
 	Offset            uint16
@@ -88,22 +88,22 @@ type FirehoseItemType struct {
 	MessageStrings    string
 }
 
-// FirehoseItemData represents a parsed firehose item data
-type FirehoseItemData struct {
-	ItemInfo         []FirehoseItemInfo
+// ItemData represents a parsed firehose item data
+type ItemData struct {
+	ItemInfo         []ItemInfo
 	BacktraceStrings []string
 }
 
-// FirehoseItemInfo represents a parsed message item from firehose entry data
-type FirehoseItemInfo struct {
+// ItemInfo represents a parsed message item from firehose entry data
+type ItemInfo struct {
 	MessageStrings string
 	ItemType       uint8
 	ItemSize       uint8
 }
 
 // ParseFirehosePreamble parses a firehose chunk preamble
-func ParseFirehosePreamble(data []byte) (FirehosePreamble, []byte) {
-	var preamble FirehosePreamble
+func ParseFirehosePreamble(data []byte) (Preamble, []byte) {
+	var preamble Preamble
 
 	data, chunkTag, _ := utils.Take(data, 4)
 	data, chunkSubTag, _ := utils.Take(data, 4)
@@ -200,8 +200,8 @@ func ParseFirehosePreamble(data []byte) (FirehosePreamble, []byte) {
 }
 
 // ParseFirehoseEntry parses a firehose entry
-func ParseFirehoseEntry(data []byte) (FirehoseEntry, []byte, error) {
-	firehoseResult := FirehoseEntry{}
+func ParseFirehoseEntry(data []byte) (Entry, []byte, error) {
+	firehoseResult := Entry{}
 
 	data, unknownLogActivityType, _ := utils.Take(data, 1)
 	data, unknownLogType, _ := utils.Take(data, 1)
@@ -301,7 +301,7 @@ func ParseFirehoseEntry(data []byte) (FirehoseEntry, []byte, error) {
 
 // ParsePrivateData parses private data for log entry
 // Returns the remaining data and an error if the private data is not found
-func ParsePrivateData(data []byte, firehoseItemData *FirehoseItemData) ([]byte, error) {
+func ParsePrivateData(data []byte, firehoseItemData *ItemData) ([]byte, error) {
 	privateStringStart := data
 
 	for _, firehoseInfo := range firehoseItemData.ItemInfo {
@@ -413,12 +413,12 @@ func GetBacktraceData(data []byte) ([]byte, []string, error) {
 }
 
 // ParseFirehoseMessageItems parses message items from firehose entry data
-func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (FirehoseItemData, []byte) {
+func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (ItemData, []byte) {
 	itemCount := 0
-	itemsData := []FirehoseItemType{}
+	itemsData := []ItemType{}
 
 	firehoseInput := data
-	firehoseItemData := FirehoseItemData{}
+	firehoseItemData := ItemData{}
 	numberItemType := []uint8{0x0, 0x2}
 	objectItems := []uint8{0x40, 0x42}
 
@@ -507,7 +507,7 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 	}
 
 	for _, item := range itemsData {
-		firehoseItemData.ItemInfo = append(firehoseItemData.ItemInfo, FirehoseItemInfo{
+		firehoseItemData.ItemInfo = append(firehoseItemData.ItemInfo, ItemInfo{
 			MessageStrings: item.MessageStrings,
 			ItemType:       item.ItemType,
 			ItemSize:       item.ItemSize,
@@ -517,10 +517,10 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (Fireh
 }
 
 // GetFirehoseItems gets the firehose item type and size
-func GetFirehoseItems(data []byte) (FirehoseItemType, []byte) {
+func GetFirehoseItems(data []byte) (ItemType, []byte) {
 	firehoseInput, itemType, _ := utils.Take(data, 1)
 	firehoseInput, itemSize, _ := utils.Take(firehoseInput, 1)
-	item := FirehoseItemType{
+	item := ItemType{
 		ItemType: itemType[0],
 		ItemSize: itemSize[0],
 	}
