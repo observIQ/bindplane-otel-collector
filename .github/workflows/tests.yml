@@ -11,33 +11,29 @@ jobs:
         include:
           - os: ubuntu
             runner: namespace-profile-bindplane-default-ubuntu-24-04-32x64
-            use_namespace: true
-            checkout_action: namespacelabs/nscloud-checkout-action@v7
-            cache_action: namespacelabs/nscloud-cache-action@v1
             go_mod_path: /home/runner/go/pkg/mod
             go_bin_path: /home/runner/go/bin
             test_cmd: sudo make test-updater-integration
           - os: macos
             runner: namespace-profile-bindplane-default-macos-15
-            use_namespace: true
-            checkout_action: namespacelabs/nscloud-checkout-action@v7
-            cache_action: namespacelabs/nscloud-cache-action@v1
             go_mod_path: /Users/runner/go/pkg/mod
             go_bin_path: /Users/runner/go/bin
             test_cmd: make test-updater-integration
           - os: windows
             runner: namespace-profile-bindplane-default-windows-2022-32x64
-            use_namespace: false
-            checkout_action: actions/checkout@v4
-            cache_action: actions/cache@v4
             go_mod_path: C:\Users\runneradmin\go\pkg\mod
             go_bin_path: C:\Users\runneradmin\go\bin
             go_build_path: C:\Users\runneradmin\AppData\Local\go-build
             test_cmd: make test-updater-integration
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Checkout Sources
-        uses: ${{ matrix.checkout_action }}
+      - name: Checkout Sources (Namespace)
+        if: matrix.os != 'windows'
+        uses: namespacelabs/nscloud-checkout-action@v7
+
+      - name: Checkout Sources (Windows)
+        if: matrix.os == 'windows'
+        uses: actions/checkout@v4
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -46,20 +42,26 @@ jobs:
           cache: false
 
       - name: Cache Go (Namespace)
-        if: matrix.use_namespace
-        uses: ${{ matrix.cache_action }}
+        if: matrix.os != 'windows'
+        uses: namespacelabs/nscloud-cache-action@v1
         with:
           cache: go
 
-      - name: Cache Go modules
-        if: matrix.use_namespace
-        uses: ${{ matrix.cache_action }}
+      - name: Cache Go modules (Ubuntu)
+        if: matrix.os == 'ubuntu'
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: ${{ matrix.go_mod_path }}
+
+      - name: Cache Go modules (macOS)
+        if: matrix.os == 'macos'
+        uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: ${{ matrix.go_mod_path }}
 
       - name: Cache Go modules (Windows)
         if: matrix.os == 'windows'
-        uses: ${{ matrix.cache_action }}
+        uses: actions/cache@v4
         with:
           path: ${{ matrix.go_mod_path }}
           key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
@@ -68,22 +70,28 @@ jobs:
 
       - name: Cache Go build cache (Windows)
         if: matrix.os == 'windows'
-        uses: ${{ matrix.cache_action }}
+        uses: actions/cache@v4
         with:
           path: ${{ matrix.go_build_path }}
           key: ${{ runner.os }}-go-build-${{ hashFiles('**/*.go') }}
           restore-keys: |
             ${{ runner.os }}-go-build-
 
-      - name: Cache Tools (Namespace)
-        if: matrix.use_namespace
-        uses: ${{ matrix.cache_action }}
+      - name: Cache Tools (Ubuntu)
+        if: matrix.os == 'ubuntu'
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: ${{ matrix.go_bin_path }}
+
+      - name: Cache Tools (macOS)
+        if: matrix.os == 'macos'
+        uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: ${{ matrix.go_bin_path }}
 
       - name: Cache Tools (Windows)
         if: matrix.os == 'windows'
-        uses: ${{ matrix.cache_action }}
+        uses: actions/cache@v4
         with:
           path: ${{ matrix.go_bin_path }}
           key: ${{ runner.os }}-go-tools-${{ hashFiles('internal/tools/go.sum') }}
