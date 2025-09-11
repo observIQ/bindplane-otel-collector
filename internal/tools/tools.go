@@ -25,4 +25,5 @@ import (
 	_ "github.com/vektra/mockery/v2"
 	_ "go.opentelemetry.io/collector/cmd/mdatagen"
 	_ "golang.org/x/tools/cmd/goimports"
+	_ "gotest.tools/gotestsum"
 )
