@@ -16,7 +16,11 @@ package firehose
 
 import (
 	"encoding/binary"
+	"fmt"
+	"strconv"
 
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/sharedcache"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
 )
 
@@ -103,6 +107,36 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte) {
 	return signpost, data
 }
 
-// func getFirehoseSignpost(signpost Signpost) (Signpost, []byte) {
-
-// }
+func getFirehoseSignpost(signpost Signpost, provider types.FileProvider, stringOffset uint64, firstProcID uint64, secondProcID uint32, catalogs types.CatalogChunk) (types.MessageData, error) {
+	if signpost.FirehoseFormatters.SharedCache || (signpost.FirehoseFormatters.LargeSharedCache != 0 && signpost.FirehoseFormatters.HasLargeOffset != 0) {
+		if signpost.FirehoseFormatters.HasLargeOffset != 0 {
+			largeOffset := signpost.FirehoseFormatters.HasLargeOffset
+			var extraOffsetValue string
+			// large_shared_cache should be double the value of has_large_offset
+			// Ex: has_large_offset = 1, large_shared_cache = 2
+			// If the value do not match then there is an issue with shared string offset
+			// Can recover by using large_shared_cache
+			// Apple records this as an error: "error: ~~> <Invalid shared cache code pointer offset>"
+			//   But is still able to get string formatter
+			if largeOffset != signpost.FirehoseFormatters.LargeSharedCache/2 && !signpost.FirehoseFormatters.SharedCache {
+				largeOffset = signpost.FirehoseFormatters.LargeSharedCache / 2
+				extraOffsetValue = fmt.Sprintf("%x%x", largeOffset, stringOffset)
+			} else if signpost.FirehoseFormatters.SharedCache {
+				largeOffset = 8
+				extraOffsetValue = fmt.Sprintf("%x%x", largeOffset, stringOffset)
+			} else {
+				extraOffsetValue = fmt.Sprintf("%x%x", largeOffset, stringOffset)
+			}
+			extraOffsetValueResult, err := strconv.ParseUint(extraOffsetValue, 16, 64)
+			if err != nil {
+				return types.MessageData{}, fmt.Errorf("error parsing extra offset value: %w", err)
+			}
+			messageData, err := sharedcache.GetSharedFormatString(uint32(extraOffsetValueResult), firstProcID, secondProcID)
+			if err != nil {
+				return messageData, fmt.Errorf("error getting shared format string: %w", err)
+			}
+			return messageData, nil
+		}
+	}
+	return types.MessageData{}, nil
+}

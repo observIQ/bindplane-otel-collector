@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/sharedcache"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
 )
 
 // UUIDText represents a parsed UUID text file containing format strings
@@ -92,8 +95,8 @@ func ParseUUIDText(data []byte, uuid string) (*UUIDText, error) {
 
 // ExtractFormatString extracts a format string from UUID text using the given offset
 // Based on the rust implementation's extract_normal_strings method
-func (u *UUIDText) ExtractFormatString(stringOffset uint64) (MessageData, error) {
-	messageData := MessageData{
+func (u *UUIDText) ExtractFormatString(stringOffset uint64) (types.MessageData, error) {
+	messageData := types.MessageData{
 		ProcessUUID: u.UUID,
 	}
 
@@ -140,11 +143,11 @@ func (u *UUIDText) ExtractFormatString(stringOffset uint64) (MessageData, error)
 			messageData.Process = processPath
 			messageData.Library = processPath
 
-			return messageData, nil
+			return messageData, fmt.Errorf("format string not found at offset %d", stringOffset)
 		}
 	}
 
-	return messageData, fmt.Errorf("format string not found at offset %d", stringOffset)
+	return messageData, nil
 }
 
 // extractImagePath extracts the process/library path from the footer data
@@ -190,21 +193,21 @@ func (u *UUIDText) extractImagePath() string {
 // GetFormatString resolves a format string using the catalog and UUID references
 // This is the main entry point for format string resolution
 // Based on the rust implementation's get_firehose_nonactivity_strings method
-func GetFormatString(formatStringLocation uint32, firstProcID uint64, secondProcID uint32, useSharedCache bool) MessageData {
-	messageData := MessageData{
+func GetFormatString(formatStringLocation uint32, firstProcID uint64, secondProcID uint32, useSharedCache bool) (types.MessageData, error) {
+	messageData := types.MessageData{
 		FormatString: fmt.Sprintf("raw_format_0x%x", formatStringLocation),
 		Process:      "unknown",
 		Library:      "unknown",
 	}
 
 	if GlobalCatalog == nil {
-		return messageData
+		return messageData, nil
 	}
 
 	// Determine whether to use shared cache or UUID text based on flags
 	if useSharedCache {
 		// Use shared cache (DSC) for format string resolution
-		return GetSharedFormatString(formatStringLocation, firstProcID, secondProcID)
+		return sharedcache.GetSharedFormatString(formatStringLocation, firstProcID, secondProcID)
 	}
 
 	// Get the process entry from catalog to find the main UUID
@@ -219,7 +222,7 @@ func GetFormatString(formatStringLocation uint32, firstProcID uint64, secondProc
 	}
 
 	if mainUUID == "" {
-		return messageData
+		return messageData, nil
 	}
 
 	// Check if we have the UUID text file cached
@@ -228,14 +231,14 @@ func GetFormatString(formatStringLocation uint32, firstProcID uint64, secondProc
 		// In a full implementation, we would load the UUID text file here
 		// For now, return what we have
 		messageData.FormatString = fmt.Sprintf("uuid_%s_offset_0x%x", mainUUID[:8], formatStringLocation)
-		return messageData
+		return messageData, fmt.Errorf("UUID text file not found for main UUID: %s", mainUUID)
 	}
 
 	// Extract the format string using the location offset
 	resolvedData, err := uuidText.ExtractFormatString(uint64(formatStringLocation))
 	if err != nil {
 		messageData.FormatString = fmt.Sprintf("error_%s", err.Error())
-		return messageData
+		return messageData, fmt.Errorf("error extracting format string: %w", err)
 	}
 
 	// Merge the resolved data
@@ -249,7 +252,7 @@ func GetFormatString(formatStringLocation uint32, firstProcID uint64, secondProc
 		messageData.Library = resolvedData.Library
 	}
 
-	return messageData
+	return messageData, nil
 }
 
 // LoadUUIDTextFile loads and parses a UUID text file into the cache

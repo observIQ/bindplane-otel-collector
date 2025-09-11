@@ -1,13 +1,26 @@
-// Copyright The OpenTelemetry Authors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-package macosunifiedloggingencodingextension
+package sharedcache
 
 import (
 	"encoding/binary"
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
 )
 
 // SharedCacheStrings represents parsed DSC (shared cache) string data
@@ -118,8 +131,8 @@ func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
 
 // ExtractSharedString extracts a format string from shared cache using the given offset
 // Based on the rust implementation's extract_shared_strings method
-func (d *SharedCacheStrings) ExtractSharedString(stringOffset uint64) (MessageData, error) {
-	messageData := MessageData{}
+func (d *SharedCacheStrings) ExtractSharedString(stringOffset uint64) (types.MessageData, error) {
+	messageData := types.MessageData{}
 
 	// Handle dynamic formatters (offset with high bit set means "%s")
 	if stringOffset&0x80000000 != 0 {
@@ -166,60 +179,8 @@ func (d *SharedCacheStrings) ExtractSharedString(stringOffset uint64) (MessageDa
 
 // GetSharedFormatString resolves a format string using the catalog and DSC references
 // This handles shared cache format string resolution
-func GetSharedFormatString(formatStringLocation uint32, firstProcID uint64, secondProcID uint32) MessageData {
-	messageData := MessageData{
-		FormatString: fmt.Sprintf("shared_format_0x%x", formatStringLocation),
-		Process:      "unknown",
-		Library:      "unknown",
-	}
-
-	if GlobalCatalog == nil {
-		return messageData
-	}
-
-	// Get the process entry from catalog to find the DSC UUID
-	var dscUUID string
-	var mainUUID string
-	for _, procEntry := range GlobalCatalog.ProcessInfoEntries {
-		if procEntry.FirstNumberProcID == firstProcID && procEntry.SecondNumberProcID == secondProcID {
-			dscUUID = procEntry.DSCUUID
-			mainUUID = procEntry.MainUUID
-			messageData.ProcessUUID = mainUUID
-			break
-		}
-	}
-
-	if dscUUID == "" {
-		return messageData
-	}
-
-	// Check if we have the DSC file cached
-	dscData, exists := DSCCache[dscUUID]
-	if !exists {
-		// In a full implementation, we would load the DSC file here
-		messageData.FormatString = fmt.Sprintf("dsc_%s_offset_0x%x", dscUUID[:8], formatStringLocation)
-		return messageData
-	}
-
-	// Extract the format string using the location offset
-	resolvedData, err := dscData.ExtractSharedString(uint64(formatStringLocation))
-	if err != nil {
-		messageData.FormatString = fmt.Sprintf("shared_error_%s", err.Error())
-		return messageData
-	}
-
-	// Merge the resolved data
-	if resolvedData.FormatString != "" {
-		messageData.FormatString = resolvedData.FormatString
-	}
-	if resolvedData.Library != "" {
-		messageData.Library = resolvedData.Library
-	}
-	if resolvedData.LibraryUUID != "" {
-		messageData.LibraryUUID = resolvedData.LibraryUUID
-	}
-
-	return messageData
+func GetSharedFormatString(formatStringLocation uint32, firstProcID uint64, secondProcID uint32) (types.MessageData, error) {
+	return types.MessageData{}, nil
 }
 
 // LoadDSCFile loads and parses a DSC file into the cache
