@@ -1,5 +1,16 @@
-// Copyright The OpenTelemetry Authors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package macosunifiedloggingencodingextension // import "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension"
 
@@ -9,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 )
@@ -70,6 +82,16 @@ type TraceV3Entry struct {
 	MessageType  string // Message type based on log level (Default, Debug, Info, Error, Fault, etc.)
 	EventType    string // Event type (logEvent, activityEvent, traceEvent, signpostEvent, lossEvent)
 	TimezoneName string // Timezone name extracted from header timezone path
+}
+
+// UnifiedLogData represents the complete unified log data
+// Eventual replacement for TraceV3 header/entry structs
+type UnifiedLogData struct {
+	CatalogData  CatalogChunk
+	FirehoseData []firehose.FirehosePreamble
+	OversizeData []OversizeChunk
+	// StatedumpData  []StatedumpChunk
+	// SimpledumpData []SimpledumpChunk
 }
 
 // ParseTraceV3Header parses the tracev3 file header
@@ -447,9 +469,9 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 			entry.ChunkType = "chunkset"
 			entry.Subsystem = "com.apple.chunkset"
 			entry.Category = "chunkset_data"
-			chunksetEntries := ParseChunksetChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
+			// chunksetEntries := ParseChunksetChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
 			// Add all individual chunkset entries to our result
-			entries = append(entries, chunksetEntries...)
+			// entries = append(entries, chunksetEntries...)
 			// Continue to next chunk without adding the template entry
 			offset += totalChunkSize
 			entryCount++
@@ -626,7 +648,7 @@ func parseLargeDataSectionAsChunks(data []byte, header *TraceV3Header, timesyncD
 		}
 
 		// Extract chunk data
-		chunkData := data[offset : offset+totalChunkSize]
+		// chunkData := data[offset : offset+totalChunkSize]
 
 		// Create base entry
 		chunkEntry := &TraceV3Entry{
@@ -662,8 +684,8 @@ func parseLargeDataSectionAsChunks(data []byte, header *TraceV3Header, timesyncD
 			chunkEntry.ChunkType = "chunkset"
 			chunkEntry.Subsystem = "com.apple.chunkset.large_data"
 			chunkEntry.Category = "chunkset_data"
-			chunksetEntries := ParseChunksetChunk(chunkData, chunkEntry, header, timesyncData)
-			entries = append(entries, chunksetEntries...)
+			// chunksetEntries := ParseChunksetChunk(chunkData, chunkEntry, header, timesyncData)
+			// entries = append(entries, chunksetEntries...)
 		default:
 			// Unknown chunk type
 			chunkEntry.ChunkType = "unknown_large_data"
