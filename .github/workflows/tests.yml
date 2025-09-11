@@ -8,28 +8,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [namespace-profile-bindplane-default-ubuntu-24-04-large, namespace-profile-bindplane-default-macos-15, namespace-profile-bindplane-default-windows-2022-16x32]
+        os: [namespace-profile-bindplane-default-ubuntu-24-04-32x64, namespace-profile-bindplane-default-macos-15, namespace-profile-bindplane-default-windows-2022-32x64]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Sources (Namespace runners)
-        if: startsWith(matrix.os, 'namespace-profile-') && matrix.os != 'namespace-profile-bindplane-default-windows-2022-16x32'
+        if: startsWith(matrix.os, 'namespace-profile-') && matrix.os != 'namespace-profile-bindplane-default-windows-2022-32x64'
         uses: namespacelabs/nscloud-checkout-action@v7
       - name: Checkout Sources (Windows)
-        if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-16x32'
+        if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-32x64'
         uses: actions/checkout@v4
       - name: Setup Go (Namespace runners)
-        if: startsWith(matrix.os, 'namespace-profile-') && matrix.os != 'namespace-profile-bindplane-default-windows-2022-16x32'
+        if: startsWith(matrix.os, 'namespace-profile-') && matrix.os != 'namespace-profile-bindplane-default-windows-2022-32x64'
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: false # Use Namespace caching instead
       - name: Set up Go cache (Namespace runners)
-        if: startsWith(matrix.os, 'namespace-profile-') && matrix.os != 'namespace-profile-bindplane-default-windows-2022-16x32'
+        if: startsWith(matrix.os, 'namespace-profile-') && matrix.os != 'namespace-profile-bindplane-default-windows-2022-32x64'
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           cache: go
       - name: Cache Go modules (Ubuntu)
-        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04-large'
+        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04-32x64'
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /home/runner/go/pkg/mod
@@ -38,8 +38,14 @@ jobs:
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /Users/runner/go/pkg/mod
+      - name: Setup Go (Windows)
+        if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-32x64'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
       - name: Cache Go modules (Windows)
-        if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-16x32'
+        if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-32x64'
         uses: actions/cache@v4
         with:
           path: |
@@ -48,16 +54,8 @@ jobs:
           key: ${{ runner.os }}-go-modules-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-modules-
-      - name: Setup Go (Windows)
-        if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-16x32'
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
-            **/go.sum
       - name: Cache Tools (Ubuntu)
-        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04-large'
+        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04-32x64'
         id: tool-cache-ubuntu
         uses: namespacelabs/nscloud-cache-action@v1
         with:
@@ -69,7 +67,7 @@ jobs:
         with:
           path: /Users/runner/go/bin
       - name: Cache Tools (Windows)
-        if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-16x32'
+        if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-32x64'
         id: tool-cache-windows
         uses: actions/cache@v4
         with:
@@ -82,8 +80,8 @@ jobs:
       - name: Run Tests
         run: make test
       - name: Run Updater Integration Tests (Windows and macOS)
-        if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-16x32' || matrix.os == 'namespace-profile-bindplane-default-macos-15'
+        if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-32x64' || matrix.os == 'namespace-profile-bindplane-default-macos-15'
         run: make test-updater-integration
       - name: Run Updater Integration Tests (Ubuntu)
-        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04-large'
+        if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04-32x64'
         run: sudo make test-updater-integration
