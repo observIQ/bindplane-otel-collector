@@ -42,7 +42,9 @@ jobs:
         if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-16x32'
         uses: actions/cache@v4
         with:
-          path: C:\Users\runneradmin\go\pkg\mod
+          path: |
+            C:\Users\runneradmin\go\pkg\mod
+            C:\Users\runneradmin\AppData\Local\go-build
           key: ${{ runner.os }}-go-modules-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-modules-
