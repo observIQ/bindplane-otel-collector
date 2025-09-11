@@ -17,17 +17,13 @@ package macosunifiedloggingencodingextension
 import (
 	"encoding/binary"
 	"fmt"
-	"strings"
 )
 
-// SimpleDumpChunk represents a parsed Simpledump chunk
-type SimpleDumpChunk struct {
-	// Header fields (16 bytes)
-	ChunkTag      uint32
-	ChunkSubtag   uint32
-	ChunkDataSize uint64
-
-	// Payload fields (matching rust implementation)
+// SimpledumpChunk represents the parsed data from a simpledump chunk
+type SimpledumpChunk struct {
+	ChunkTag                    uint32
+	ChunkSubTag                 uint32
+	ChunkDataSize               uint64
 	FirstProcID                 uint64
 	SecondProcID                uint64
 	ContinuousTime              uint64
@@ -78,35 +74,21 @@ func extractString(data []byte) string {
 // ParseSimpledumpChunk parses a Simpledump chunk (0x6004) containing simple string data
 // Based on the rust implementation in chunks/simpledump.rs
 // Note: The data passed in includes the complete chunk with 16-byte header (tag, subtag, size)
-func ParseSimpledumpChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header, timesyncData map[string]*TimesyncBoot) {
-	if len(data) < 84 { // Minimum size: 16-byte header + 68-byte payload
-		entry.Message = fmt.Sprintf("Simpledump chunk too small: %d bytes (need at least 84)", len(data))
-		return
-	}
-
-	var chunk SimpleDumpChunk
+func ParseSimpledumpChunk(data []byte, chunk *SimpledumpChunk) {
 	offset := 0
 
 	// Parse chunk header (16 bytes total)
 	chunk.ChunkTag = binary.LittleEndian.Uint32(data[offset : offset+4])
 	offset += 4
-	chunk.ChunkSubtag = binary.LittleEndian.Uint32(data[offset : offset+4])
+	chunk.ChunkSubTag = binary.LittleEndian.Uint32(data[offset : offset+4])
 	offset += 4
 	chunk.ChunkDataSize = binary.LittleEndian.Uint64(data[offset : offset+8])
 	offset += 8
-
-	// Validate chunk tag
-	if chunk.ChunkTag != 0x6004 {
-		entry.Message = fmt.Sprintf("Invalid simpledump chunk tag: expected 0x6004, got 0x%x", chunk.ChunkTag)
-		return
-	}
-
 	// Parse simpledump payload fields
 	chunk.FirstProcID = binary.LittleEndian.Uint64(data[offset : offset+8])
 	offset += 8
 	chunk.SecondProcID = binary.LittleEndian.Uint64(data[offset : offset+8])
 	offset += 8
-
 	chunk.ContinuousTime = binary.LittleEndian.Uint64(data[offset : offset+8])
 	offset += 8
 	chunk.ThreadID = binary.LittleEndian.Uint64(data[offset : offset+8])
@@ -117,107 +99,18 @@ func ParseSimpledumpChunk(data []byte, entry *TraceV3Entry, header *TraceV3Heade
 	offset += 2
 	chunk.UnknownType = binary.LittleEndian.Uint16(data[offset : offset+2])
 	offset += 2
-
-	// Parse UUIDs (16 bytes each)
-	if len(data) < offset+32 {
-		entry.Message = fmt.Sprintf("Simpledump chunk too small for UUIDs: %d bytes", len(data))
-		return
-	}
 	chunk.SenderUUID = parseUUID(data[offset : offset+16])
 	offset += 16
 	chunk.DSCSharedCacheUUID = parseUUID(data[offset : offset+16])
 	offset += 16
-
-	// Parse string metadata
-	if len(data) < offset+12 {
-		entry.Message = fmt.Sprintf("Simpledump chunk too small for string metadata: %d bytes", len(data))
-		return
-	}
 	chunk.UnknownNumberMessageStrings = binary.LittleEndian.Uint32(data[offset : offset+4])
 	offset += 4
 	chunk.UnknownSizeSubsystemString = binary.LittleEndian.Uint32(data[offset : offset+4])
 	offset += 4
 	chunk.UnknownSizeMessageString = binary.LittleEndian.Uint32(data[offset : offset+4])
 	offset += 4
-
-	// Validate string sizes are reasonable
-	if chunk.UnknownSizeSubsystemString > 1024 || chunk.UnknownSizeMessageString > 1024 {
-		entry.Message = fmt.Sprintf("Simpledump string sizes too large: subsystem=%d, message=%d",
-			chunk.UnknownSizeSubsystemString, chunk.UnknownSizeMessageString)
-		return
-	}
-
-	// Parse subsystem string
-	if chunk.UnknownSizeSubsystemString > 0 {
-		if len(data) < offset+int(chunk.UnknownSizeSubsystemString) {
-			entry.Message = fmt.Sprintf("Simpledump chunk too small for subsystem string: %d bytes", len(data))
-			return
-		}
-		chunk.Subsystem = extractString(data[offset : offset+int(chunk.UnknownSizeSubsystemString)])
-		offset += int(chunk.UnknownSizeSubsystemString)
-	}
-
-	// Parse message string
-	if chunk.UnknownSizeMessageString > 0 {
-		if len(data) < offset+int(chunk.UnknownSizeMessageString) {
-			entry.Message = fmt.Sprintf("Simpledump chunk too small for message string: %d bytes", len(data))
-			return
-		}
-		chunk.MessageString = extractString(data[offset : offset+int(chunk.UnknownSizeMessageString)])
-		offset += int(chunk.UnknownSizeMessageString)
-	}
-
-	// Use catalog to enhance process information if available
-	actualPID := uint32(chunk.FirstProcID)
-	subsystemName := chunk.Subsystem
-
-	if GlobalCatalog != nil {
-		// Try to resolve using the chunk's process IDs for validation
-		if resolvedPID := GlobalCatalog.GetPID(chunk.FirstProcID, uint32(chunk.SecondProcID)); resolvedPID != 0 {
-			actualPID = resolvedPID
-		}
-
-		// Cross-validate subsystem information from catalog
-		if subsysInfo := GlobalCatalog.GetSubsystem(0, chunk.FirstProcID, uint32(chunk.SecondProcID)); subsysInfo.Subsystem != "Unknown subsystem" && subsysInfo.Subsystem != "" {
-			// If we have a good catalog match and no subsystem from simpledump, use catalog
-			if strings.TrimSpace(chunk.Subsystem) == "" {
-				subsystemName = subsysInfo.Subsystem
-			}
-		}
-	}
-
-	// Update entry with parsed data (enhanced with catalog information)
-	entry.ProcessID = actualPID
-	entry.ThreadID = chunk.ThreadID
-	entry.Level = "Default"
-	entry.MessageType = "Default"
-	entry.EventType = "Simpledump"
-
-	// Set subsystem - clean up the format to match expected output
-	if strings.TrimSpace(subsystemName) != "" {
-		entry.Subsystem = strings.TrimSpace(subsystemName)
-	} else {
-		entry.Subsystem = "com.apple.simpledump"
-	}
-
-	// Set message
-	if chunk.MessageString != "" {
-		entry.Message = strings.TrimSpace(chunk.MessageString)
-	} else {
-		entry.Message = fmt.Sprintf("Simpledump entry: subsystem=%s thread=%d", entry.Subsystem, chunk.ThreadID)
-	}
-
-	// Set category to empty to match expected output format
-	entry.Category = ""
-
-	// Calculate timestamp using simpledump's continuous time directly
-	// According to rust implementation, simpledump uses its own continuous_time field for timestamp calculation
-	if timesyncData != nil && header != nil {
-		// Use simpledump's continuous time directly, not as delta from header
-		// This matches the rust implementation which treats simpledump.continous_time as absolute mach time
-		machTime := chunk.ContinuousTime
-
-		// Convert using timesync conversion with preambleTime=0 for simpledump (rust uses no_firehose_preamble=1)
-		entry.Timestamp = convertMachTimeToUnixNanosWithTimesync(machTime, header.BootUUID, 0, timesyncData)
-	}
+	chunk.Subsystem = extractString(data[offset : offset+int(chunk.UnknownSizeSubsystemString)])
+	offset += int(chunk.UnknownSizeSubsystemString)
+	chunk.MessageString = extractString(data[offset : offset+int(chunk.UnknownSizeMessageString)])
+	offset += int(chunk.UnknownSizeMessageString)
 }

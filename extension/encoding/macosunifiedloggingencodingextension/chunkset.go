@@ -111,9 +111,106 @@ func ParseChunksetData(data []byte, ulData *UnifiedLogData) ([]*TraceV3Entry, er
 			return entries, err
 		}
 
-		// skip zero padding
-		offset := 0
-		for offset < len(data) && data[offset] == 0 {
+		// Calculate total chunk size (preamble + data)
+		totalChunkSize := 16 + int(chunkDataSize)
+		if offset+totalChunkSize > len(decompressedData) {
+			break
+		}
+
+		// Extract chunk data
+		chunkData := decompressedData[offset : offset+totalChunkSize]
+
+		// Create base entry
+		chunkEntry := &TraceV3Entry{
+			Type:         chunkTag,
+			Size:         uint32(chunkDataSize),
+			Timestamp:    header.ContinuousTime + uint64(chunkCount)*1000000,
+			ThreadID:     0,
+			ProcessID:    header.LogdPID,
+			Level:        "Info",
+			MessageType:  "Default",
+			EventType:    "logEvent",
+			TimezoneName: extractTimezoneName(header.TimezonePath),
+		}
+
+		// Parse based on chunk type with enhanced processing
+		switch chunkTag {
+		case 0x6001:
+			// Firehose chunk - contains individual log entries
+			chunkEntry.ChunkType = "firehose"
+			chunkEntry.Subsystem = "com.apple.firehose.decompressed"
+			chunkEntry.Category = "entry"
+
+			// Use enhanced firehose parsing with debugging
+			firehoseEntries := ParseFirehoseChunk(chunkData, chunkEntry, header, timesyncData)
+
+			// Add debug information if no entries were extracted
+			if len(firehoseEntries) == 0 {
+				debugEntry := &TraceV3Entry{
+					Type:         chunkTag,
+					Size:         uint32(chunkDataSize),
+					Timestamp:    header.ContinuousTime + uint64(chunkCount)*1000000,
+					ThreadID:     0,
+					ProcessID:    header.LogdPID,
+					Level:        "Debug",
+					MessageType:  "Debug",
+					EventType:    "logEvent",
+					TimezoneName: extractTimezoneName(header.TimezonePath),
+					ChunkType:    "firehose_debug",
+					Subsystem:    "com.apple.firehose.debug",
+					Category:     "parsing_debug",
+					Message:      fmt.Sprintf("Firehose chunk debug: size=%d data_preview=%x", chunkDataSize, chunkData[:min(32, len(chunkData))]),
+				}
+				entries = append(entries, debugEntry)
+			} else {
+				// Return only individual entries, no summary entry
+				// This replaces summary entries with actual log entries as requested
+			}
+
+			entries = append(entries, firehoseEntries...)
+
+		case 0x6002:
+			// Oversize chunk
+			chunkEntry.ChunkType = "oversize"
+			chunkEntry.Subsystem = "com.apple.oversize.decompressed"
+			chunkEntry.Category = "oversize_data"
+			ParseOversizeChunk(chunkData, chunkEntry, header, timesyncData)
+			entries = append(entries, chunkEntry)
+
+		case 0x6003:
+			// Statedump chunk
+			chunkEntry.ChunkType = "statedump"
+			chunkEntry.Subsystem = "com.apple.statedump.decompressed"
+			chunkEntry.Category = "system_state"
+			ParseStatedumpChunk(chunkData, chunkEntry)
+			entries = append(entries, chunkEntry)
+
+		case 0x6004:
+			// Simpledump chunk
+			simpleDumpChunk := &SimpledumpChunk{}
+
+			ParseSimpledumpChunk(chunkData, simpleDumpChunk)
+			// TODO: Update chunckEntry with simpledump data
+			// chunkEntry.ChunkType = "simpledump"
+			// entries = append(entries, chunkEntry)
+
+		default:
+			// Unknown chunk type
+			chunkEntry.ChunkType = "unknown_decompressed"
+			chunkEntry.Subsystem = "com.apple.unknown.decompressed"
+			chunkEntry.Category = fmt.Sprintf("unknown_0x%x", chunkTag)
+			chunkEntry.Message = fmt.Sprintf("Unknown decompressed chunk: tag=0x%x sub_tag=0x%x size=%d",
+				chunkTag, chunkSubTag, chunkDataSize)
+			entries = append(entries, chunkEntry)
+		}
+
+		// Move to next chunk with 8-byte alignment padding
+		offset += totalChunkSize
+		paddingBytes := (8 - (chunkDataSize & 7)) & 7
+		offset += int(paddingBytes)
+
+		// Skip any zero padding
+		for offset < len(decompressedData) && decompressedData[offset] == 0 {
 			offset++
 		}
 		remainingData := data[offset:]

@@ -458,7 +458,16 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 		case 0x6004:
 			// Simpledump chunk
 			entry.ChunkType = "simpledump"
-			ParseSimpledumpChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
+			// Parse into SimpledumpChunk and map relevant fields to entry
+			simple := &SimpledumpChunk{}
+			ParseSimpledumpChunk(data[offset:offset+totalChunkSize], simple)
+
+			entry.Subsystem = simple.Subsystem
+			entry.Message = simple.MessageString
+			entry.ThreadID = simple.ThreadID
+			entry.ProcessID = uint32(simple.FirstProcID)
+			// Use simpledump's continuous time directly for timestamp conversion
+			entry.Timestamp = convertMachTimeToUnixNanosWithTimesync(simple.ContinuousTime, header.BootUUID, 0, timesyncData)
 		case 0x600b:
 			// Catalog chunk - Skip in second pass since we already processed it
 			// This prevents catalog metadata from appearing as log entries
