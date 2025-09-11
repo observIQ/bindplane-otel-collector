@@ -21,7 +21,14 @@ set -e
 [ -f /etc/default/bindplane-otel-collector ] && . /etc/default/bindplane-otel-collector
 [ -f /etc/sysconfig/bindplane-otel-collector ] && . /etc/sysconfig/bindplane-otel-collector
 
+# The collectors installation directory
 : "${BDOT_CONFIG_HOME:=/opt/bindplane-otel-collector}"
+
+# Whether or not to run the collector as an unprivileged user.
+: "${BDOT_UNPRIVILEGED:=false}"
+
+# TOOD(jsirianni): Migrate to `bdot` username.
+username="bindplane-otel-collector"
 
 install() {
   mkdir -p "${BDOT_CONFIG_HOME}"
@@ -83,6 +90,24 @@ EOF
 
   chown root:root "$config_file"
   chmod 0640 "$config_file"
+
+  # Ensure the override dir exists.
+  override_dir="/etc/systemd/system/bindplane-otel-collector.service.d"
+  if [ ! -d "$override_dir" ]; then
+    mkdir -p "$override_dir"
+    echo "Created systemd override directory at $override_dir"
+  fi
+
+  # If BDOT_UNPRIVILEGED is true, add an override to run the service as the
+  # bdot (unprivileged) user.
+  override_user_path="${override_dir}/10-package-customizations-username.conf"
+  if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
+    cat << EOF > "${override_user_path}"
+[Service]
+User=${username}
+EOF
+    echo "Configured systemd service to run as ${username} user in ${override_user_path}"
+  fi
 }
 
 install_initd_service() {
