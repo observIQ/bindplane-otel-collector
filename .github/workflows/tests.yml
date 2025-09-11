@@ -48,12 +48,18 @@ jobs:
         if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-32x64'
         uses: actions/cache@v4
         with:
-          path: |
-            C:\Users\runneradmin\go\pkg\mod
-            C:\Users\runneradmin\AppData\Local\go-build
-          key: ${{ runner.os }}-go-modules-${{ hashFiles('**/go.sum') }}
+          path: C:\Users\runneradmin\go\pkg\mod
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-modules-
+            ${{ runner.os }}-go-mod-
+      - name: Cache Go build cache (Windows)
+        if: matrix.os == 'namespace-profile-bindplane-default-windows-2022-32x64'
+        uses: actions/cache@v4
+        with:
+          path: C:\Users\runneradmin\AppData\Local\go-build
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/*.go') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-
       - name: Cache Tools (Ubuntu)
         if: matrix.os == 'namespace-profile-bindplane-default-ubuntu-24-04-32x64'
         id: tool-cache-ubuntu
@@ -76,7 +82,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-tools-
       - name: Install Tools
-        run: make install-tools
+        run: make install-tools-ci
       - name: Run Tests
         run: make test
       - name: Run Updater Integration Tests (Windows and macOS)
