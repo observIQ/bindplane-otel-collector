@@ -210,9 +210,12 @@ func parseDecompressedChunksetData(decompressedData []byte, header *TraceV3Heade
 
 		case 0x6004:
 			// Simpledump chunk
-			chunkEntry.ChunkType = "simpledump"
-			ParseSimpledumpChunk(chunkData, chunkEntry, header, timesyncData)
-			entries = append(entries, chunkEntry)
+			simpleDumpChunk := &SimpledumpChunk{}
+
+			ParseSimpledumpChunk(chunkData, simpleDumpChunk)
+			// TODO: Update chunckEntry with simpledump data
+			// chunkEntry.ChunkType = "simpledump"
+			// entries = append(entries, chunkEntry)
 
 		default:
 			// Unknown chunk type
