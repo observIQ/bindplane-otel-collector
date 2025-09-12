@@ -25,31 +25,38 @@ import (
 
 // SharedCacheStrings represents parsed DSC (shared cache) string data
 type SharedCacheStrings struct {
-	DSCUUID   string             `json:"dsc_uuid"`
-	Signature uint32             `json:"signature"`
-	UUIDs     []SharedCacheUUID  `json:"uuids"`
-	Ranges    []SharedCacheRange `json:"ranges"`
+	Signature    uint32
+	MajorVersion uint16
+	MinorVersion uint16
+	NumberRanges uint32
+	NumberUUIDs  uint32
+	DSCUUID      string
+	UUIDs        []UUIDDescriptor
+	Ranges       []RangeDescriptor
 }
 
-// SharedCacheUUID represents a UUID entry in the shared cache
-type SharedCacheUUID struct {
-	UUID       string `json:"uuid"`
-	PathString string `json:"path_string"`
+// RangeDescriptor represents a string range in the shared cache
+type RangeDescriptor struct {
+	RangeOffset      uint64 // In Major version 2 (Monterey+) this is 8 bytes, in version 1 (up to Big Sur) its 4 bytes
+	DataOffset       uint32
+	RangeSize        uint32
+	UnknownUUIDIndex uint64 // Unknown value, added in Major version: 2. Appears to be UUID index. In version 1 the index is 4 bytes and is at the start of the range descriptor
+	Strings          []byte
 }
 
-// SharedCacheRange represents a string range in the shared cache
-type SharedCacheRange struct {
-	RangeOffset      uint64 `json:"range_offset"`
-	RangeSize        uint32 `json:"range_size"`
-	UnknownUUIDIndex uint32 `json:"unknown_uuid_index"`
-	Strings          []byte `json:"strings"`
+// UUIDDescriptor represents a UUID entry in the shared cache
+type UUIDDescriptor struct {
+	TextOffset uint64 // Size appears to be 8 bytes in Major version: 2. 4 bytes in Major Version 1
+	TextSize   uint32
+	UUID       string
+	PathOffset uint32
+	PathString string // Not part of format
 }
 
 // DSCCache stores parsed DSC files for shared string resolution
 var DSCCache = make(map[string]*SharedCacheStrings)
 
 // ParseDSC parses a DSC (shared cache) file containing shared format strings
-// Based on the rust implementation in dsc.rs
 func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
 	if len(data) < 8 {
 		return nil, fmt.Errorf("DSC file too small: %d bytes", len(data))
