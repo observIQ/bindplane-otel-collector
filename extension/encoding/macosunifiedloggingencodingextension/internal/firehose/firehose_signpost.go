@@ -17,11 +17,10 @@ package firehose
 import (
 	"encoding/binary"
 	"fmt"
-	"strconv"
 
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/sharedcache"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 )
 
 // Signpost represents a parsed firehose signpost entry
@@ -107,6 +106,7 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte) {
 	return signpost, data
 }
 
+// TODO: Update this to use the new uuidtext package methods
 func getFirehoseSignpost(signpost Signpost, provider types.FileProvider, stringOffset uint64, firstProcID uint64, secondProcID uint32, catalogs types.CatalogChunk) (types.MessageData, error) {
 	if signpost.FirehoseFormatters.SharedCache || (signpost.FirehoseFormatters.LargeSharedCache != 0 && signpost.FirehoseFormatters.HasLargeOffset != 0) {
 		if signpost.FirehoseFormatters.HasLargeOffset != 0 {
@@ -127,11 +127,8 @@ func getFirehoseSignpost(signpost Signpost, provider types.FileProvider, stringO
 			} else {
 				extraOffsetValue = fmt.Sprintf("%x%x", largeOffset, stringOffset)
 			}
-			extraOffsetValueResult, err := strconv.ParseUint(extraOffsetValue, 16, 64)
-			if err != nil {
-				return types.MessageData{}, fmt.Errorf("error parsing extra offset value: %w", err)
-			}
-			messageData, err := sharedcache.GetSharedFormatString(uint32(extraOffsetValueResult), firstProcID, secondProcID)
+			extraOffsetValueResult, err := uuidtext.ExtractSharedStrings(provider, uint32(extraOffsetValue), firstProcID, secondProcID, catalogs, stringOffset)
+			messageData, err := uuidtext.GetSharedFormatString(uint32(extraOffsetValueResult), firstProcID, secondProcID)
 			if err != nil {
 				return messageData, fmt.Errorf("error getting shared format string: %w", err)
 			}

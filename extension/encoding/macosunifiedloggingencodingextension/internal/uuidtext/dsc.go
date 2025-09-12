@@ -1,0 +1,239 @@
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package uuidtext
+
+import (
+	"encoding/binary"
+	"fmt"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+)
+
+// SharedCacheStrings represents parsed DSC (shared cache) string data
+type SharedCacheStrings struct {
+	Signature    uint32
+	MajorVersion uint16
+	MinorVersion uint16
+	NumberRanges uint32
+	NumberUUIDs  uint32
+	DSCUUID      string
+	UUIDs        []UUIDDescriptor
+	Ranges       []RangeDescriptor
+}
+
+// RangeDescriptor represents a string range in the shared cache
+type RangeDescriptor struct {
+	RangeOffset      uint64 // In Major version 2 (Monterey+) this is 8 bytes, in version 1 (up to Big Sur) its 4 bytes
+	DataOffset       uint32
+	RangeSize        uint32
+	UnknownUUIDIndex uint64 // Unknown value, added in Major version: 2. Appears to be UUID index. In version 1 the index is 4 bytes and is at the start of the range descriptor
+	Strings          []byte
+}
+
+// UUIDDescriptor represents a UUID entry in the shared cache
+type UUIDDescriptor struct {
+	TextOffset uint64 // Size appears to be 8 bytes in Major version: 2. 4 bytes in Major Version 1
+	TextSize   uint32
+	UUID       string
+	PathOffset uint32
+	PathString string // Not part of format
+}
+
+const expectedSignature = 0x68736964 // "dsih" in little endian
+
+// DSCCache stores parsed DSC files for shared string resolution
+var DSCCache = make(map[string]*SharedCacheStrings)
+
+func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
+	sharedCacheStrings := &SharedCacheStrings{}
+	data, signature, _ := utils.Take(data, 4)
+	if binary.LittleEndian.Uint32(signature) != expectedSignature {
+		return nil, fmt.Errorf("invalid DSC signature: expected 0x%x, got 0x%x", expectedSignature, signature)
+	}
+	sharedCacheStrings.Signature = binary.LittleEndian.Uint32(signature)
+	data, majorVersion, _ := utils.Take(data, 2)
+	sharedCacheStrings.MajorVersion = binary.LittleEndian.Uint16(majorVersion)
+	data, minorVersion, _ := utils.Take(data, 2)
+	sharedCacheStrings.MinorVersion = binary.LittleEndian.Uint16(minorVersion)
+	data, numberRanges, _ := utils.Take(data, 4)
+	sharedCacheStrings.NumberRanges = binary.LittleEndian.Uint32(numberRanges)
+	data, numberUUIDs, _ := utils.Take(data, 4)
+	sharedCacheStrings.NumberUUIDs = binary.LittleEndian.Uint32(numberUUIDs)
+
+	for rangeCount := 0; rangeCount < int(sharedCacheStrings.NumberRanges); rangeCount++ {
+		data, rangeData, _ := getRanges(data, sharedCacheStrings.MajorVersion)
+		sharedCacheStrings.Ranges = append(sharedCacheStrings.Ranges, rangeData)
+	}
+
+	// for uuidCount := 0; uuidCount < int(sharedCacheStrings.NumberUUIDs); uuidCount++ {
+	// 	data, uuidDescriptor, _ := utils.Take(data, 16)
+	// 	sharedCacheStrings.UUIDs = append(sharedCacheStrings.UUIDs, uuidDescriptor)
+	// }
+
+}
+
+func getRanges(data []byte, version uint16) ([]byte, RangeDescriptor, error) {
+	return nil, RangeDescriptor{}, nil
+}
+
+// ParseDSC parses a DSC (shared cache) file containing shared format strings
+// func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
+// 	if len(data) < 8 {
+// 		return nil, fmt.Errorf("DSC file too small: %d bytes", len(data))
+// 	}
+
+// 	dsc := &SharedCacheStrings{DSCUUID: uuid}
+// 	offset := 0
+
+// 	// Parse signature
+// 	dsc.Signature = binary.LittleEndian.Uint32(data[offset : offset+4])
+// 	offset += 4
+
+// 	// Validate signature
+// 	const expectedSignature = 0x68736964 // "dsih" in little endian
+// 	if dsc.Signature != expectedSignature {
+// 		return nil, fmt.Errorf("invalid DSC signature: expected 0x%x, got 0x%x",
+// 			expectedSignature, dsc.Signature)
+// 	}
+
+// 	// Parse number of UUIDs
+// 	if len(data) < offset+4 {
+// 		return nil, fmt.Errorf("DSC file too small for UUID count")
+// 	}
+// 	numUUIDs := binary.LittleEndian.Uint32(data[offset : offset+4])
+// 	offset += 4
+
+// 	// Parse UUIDs
+// 	dsc.UUIDs = make([]UUIDDescriptor, numUUIDs)
+// 	for i := uint32(0); i < numUUIDs; i++ {
+// 		if len(data) < offset+16 {
+// 			return nil, fmt.Errorf("DSC file too small for UUID %d", i)
+// 		}
+
+// 		// Parse UUID (16 bytes)
+// 		uuidBytes := data[offset : offset+16]
+// 		uuid := fmt.Sprintf("%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+// 			uuidBytes[0], uuidBytes[1], uuidBytes[2], uuidBytes[3],
+// 			uuidBytes[4], uuidBytes[5], uuidBytes[6], uuidBytes[7],
+// 			uuidBytes[8], uuidBytes[9], uuidBytes[10], uuidBytes[11],
+// 			uuidBytes[12], uuidBytes[13], uuidBytes[14], uuidBytes[15])
+// 		offset += 16
+
+// 		dsc.UUIDs[i] = UUIDDescriptor{UUID: uuid}
+// 	}
+
+// 	// Parse path strings for UUIDs
+// 	for i := range dsc.UUIDs {
+// 		if offset >= len(data) {
+// 			break
+// 		}
+
+// 		// Find null terminator
+// 		end := offset
+// 		for end < len(data) && data[end] != 0 {
+// 			end++
+// 		}
+
+// 		if end > offset {
+// 			dsc.UUIDs[i].PathString = string(data[offset:end])
+// 		}
+// 		offset = end + 1 // Skip null terminator
+// 	}
+
+// 	// Parse ranges (simplified - in full implementation would parse all range data)
+// 	// For now, create a single range covering remaining data
+// 	if offset < len(data) {
+// 		remainingData := data[offset:]
+// 		dscRange := RangeDescriptor{
+// 			RangeOffset:      0,
+// 			RangeSize:        uint32(len(remainingData)),
+// 			UnknownUUIDIndex: 0,
+// 			Strings:          remainingData,
+// 		}
+// 		dsc.Ranges = append(dsc.Ranges, dscRange)
+// 	}
+
+// 	return dsc, nil
+// }
+
+// // ExtractSharedString extracts a format string from shared cache using the given offset
+// func (d *SharedCacheStrings) ExtractSharedString(stringOffset uint64) (types.MessageData, error) {
+// 	messageData := types.MessageData{}
+
+// 	// Handle dynamic formatters (offset with high bit set means "%s")
+// 	if stringOffset&0x80000000 != 0 {
+// 		messageData.FormatString = "%s"
+// 		if len(d.UUIDs) > 0 {
+// 			messageData.Library = d.UUIDs[0].PathString
+// 			messageData.LibraryUUID = d.UUIDs[0].UUID
+// 		}
+// 		return messageData, nil
+// 	}
+
+// 	// Search through ranges to find the correct string
+// 	for _, r := range d.Ranges {
+// 		if stringOffset >= r.RangeOffset && stringOffset < (r.RangeOffset+uint64(r.RangeSize)) {
+// 			offset := stringOffset - r.RangeOffset
+
+// 			if int(offset) >= len(r.Strings) {
+// 				continue
+// 			}
+
+// 			// Extract the format string
+// 			startIdx := int(offset)
+// 			endIdx := startIdx
+// 			for endIdx < len(r.Strings) && r.Strings[endIdx] != 0 {
+// 				endIdx++
+// 			}
+
+// 			if endIdx > startIdx {
+// 				messageData.FormatString = string(r.Strings[startIdx:endIdx])
+
+// 				// Get library information from UUID
+// 				if int(r.UnknownUUIDIndex) < len(d.UUIDs) {
+// 					messageData.Library = d.UUIDs[r.UnknownUUIDIndex].PathString
+// 					messageData.LibraryUUID = d.UUIDs[r.UnknownUUIDIndex].UUID
+// 				}
+
+// 				return messageData, nil
+// 			}
+// 		}
+// 	}
+
+// 	return messageData, fmt.Errorf("shared string not found at offset %d", stringOffset)
+// }
+
+// // GetSharedFormatString resolves a format string using the catalog and DSC references
+// func GetSharedFormatString(formatStringLocation uint32, firstProcID uint64, secondProcID uint32) (types.MessageData, error) {
+// 	return types.MessageData{}, nil
+// }
+
+// // LoadDSCFile loads and parses a DSC file into the cache
+// // This would be called when scanning a logarchive directory structure
+// func LoadDSCFile(filePath string, data []byte) error {
+// 	// Extract UUID from filename
+// 	filename := strings.TrimSuffix(strings.ToUpper(filepath.Base(filePath)), ".DSC")
+
+// 	// Parse the DSC file
+// 	dscData, err := ParseDSC(data, filename)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to parse DSC file %s: %w", filePath, err)
+// 	}
+
+// 	// Cache the parsed data
+// 	DSCCache[filename] = dscData
+
+// 	return nil
+// }
