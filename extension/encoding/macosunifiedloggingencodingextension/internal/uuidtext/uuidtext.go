@@ -25,19 +25,19 @@ import (
 
 // UUIDText represents a parsed UUID text file containing format strings
 type UUIDText struct {
-	UUID                string          `json:"uuid"`
-	Signature           uint32          `json:"signature"`
-	UnknownMajorVersion uint32          `json:"unknown_major_version"`
-	UnknownMinorVersion uint32          `json:"unknown_minor_version"`
-	NumberEntries       uint32          `json:"number_entries"`
-	EntryDescriptors    []UUIDTextEntry `json:"entry_descriptors"`
-	FooterData          []byte          `json:"footer_data"` // Collection of strings containing format strings
+	UUID                string
+	Signature           uint32
+	UnknownMajorVersion uint32
+	UnknownMinorVersion uint32
+	NumberEntries       uint32
+	EntryDescriptors    []UUIDTextEntry
+	FooterData          []byte // Collection of strings containing format strings
 }
 
 // UUIDTextEntry represents an entry descriptor in a UUID text file
 type UUIDTextEntry struct {
-	RangeStartOffset uint32 `json:"range_start_offset"`
-	EntrySize        uint32 `json:"entry_size"`
+	RangeStartOffset uint32
+	EntrySize        uint32
 }
 
 // UUIDTextCache stores parsed UUID text files for format string resolution
@@ -208,7 +208,7 @@ func GetFormatString(formatStringLocation uint32, firstProcID uint64, secondProc
 	// Determine whether to use shared cache or UUID text based on flags
 	if useSharedCache {
 		// Use shared cache (DSC) for format string resolution
-		return sharedcache.GetSharedFormatString(formatStringLocation, firstProcID, secondProcID)
+		return GetSharedFormatString(formatStringLocation, firstProcID, secondProcID)
 	}
 
 	// Get the process entry from catalog to find the main UUID
