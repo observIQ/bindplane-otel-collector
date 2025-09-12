@@ -84,7 +84,7 @@ func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
 	offset += 4
 
 	// Parse UUIDs
-	dsc.UUIDs = make([]SharedCacheUUID, numUUIDs)
+	dsc.UUIDs = make([]UUIDDescriptor, numUUIDs)
 	for i := uint32(0); i < numUUIDs; i++ {
 		if len(data) < offset+16 {
 			return nil, fmt.Errorf("DSC file too small for UUID %d", i)
@@ -99,7 +99,7 @@ func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
 			uuidBytes[12], uuidBytes[13], uuidBytes[14], uuidBytes[15])
 		offset += 16
 
-		dsc.UUIDs[i] = SharedCacheUUID{UUID: uuid}
+		dsc.UUIDs[i] = UUIDDescriptor{UUID: uuid}
 	}
 
 	// Parse path strings for UUIDs
@@ -124,7 +124,7 @@ func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
 	// For now, create a single range covering remaining data
 	if offset < len(data) {
 		remainingData := data[offset:]
-		dscRange := SharedCacheRange{
+		dscRange := RangeDescriptor{
 			RangeOffset:      0,
 			RangeSize:        uint32(len(remainingData)),
 			UnknownUUIDIndex: 0,
@@ -137,7 +137,6 @@ func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
 }
 
 // ExtractSharedString extracts a format string from shared cache using the given offset
-// Based on the rust implementation's extract_shared_strings method
 func (d *SharedCacheStrings) ExtractSharedString(stringOffset uint64) (types.MessageData, error) {
 	messageData := types.MessageData{}
 
@@ -185,7 +184,6 @@ func (d *SharedCacheStrings) ExtractSharedString(stringOffset uint64) (types.Mes
 }
 
 // GetSharedFormatString resolves a format string using the catalog and DSC references
-// This handles shared cache format string resolution
 func GetSharedFormatString(formatStringLocation uint32, firstProcID uint64, secondProcID uint32) (types.MessageData, error) {
 	return types.MessageData{}, nil
 }
