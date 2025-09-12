@@ -73,167 +73,96 @@ func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
 	sharedCacheStrings.NumberUUIDs = binary.LittleEndian.Uint32(numberUUIDs)
 
 	for rangeCount := 0; rangeCount < int(sharedCacheStrings.NumberRanges); rangeCount++ {
-		data, rangeData, _ := getRanges(data, sharedCacheStrings.MajorVersion)
+		rangeData := RangeDescriptor{}
+		data, rangeData, _ = getRanges(data, sharedCacheStrings.MajorVersion)
 		sharedCacheStrings.Ranges = append(sharedCacheStrings.Ranges, rangeData)
 	}
 
-	// for uuidCount := 0; uuidCount < int(sharedCacheStrings.NumberUUIDs); uuidCount++ {
-	// 	data, uuidDescriptor, _ := utils.Take(data, 16)
-	// 	sharedCacheStrings.UUIDs = append(sharedCacheStrings.UUIDs, uuidDescriptor)
-	// }
+	for uuidCount := 0; uuidCount < int(sharedCacheStrings.NumberUUIDs); uuidCount++ {
+		uuidDescriptor := UUIDDescriptor{}
+		data, uuidDescriptor, _ = getUUIDs(data, sharedCacheStrings.MajorVersion)
+		sharedCacheStrings.UUIDs = append(sharedCacheStrings.UUIDs, uuidDescriptor)
+	}
+
+	for i, uuids := range sharedCacheStrings.UUIDs {
+		data, sharedCacheStrings.UUIDs[i].PathString, _ = getPaths(data, uuids.PathOffset)
+	}
+
+	for i, rangeItem := range sharedCacheStrings.Ranges {
+		data, sharedCacheStrings.Ranges[i].Strings, _ = getStrings(data, rangeItem.DataOffset, rangeItem.RangeSize)
+	}
+
+	return sharedCacheStrings, nil
 
 }
 
 func getRanges(data []byte, version uint16) ([]byte, RangeDescriptor, error) {
-	return nil, RangeDescriptor{}, nil
+	versionNumber := uint16(2)
+	rangeData := RangeDescriptor{}
+	dscRangeOffset := []byte{}
+	uuidDescriptorIndex := []byte{}
+	// Version 2 (Monterey+): range offset is 8 bytes, in version 1 (up to Big Sur) its 4 bytes
+	// The uuid index was moved to end
+	if version == versionNumber {
+		data, dscRangeOffset, _ = utils.Take(data, 8)
+		rangeData.RangeOffset = binary.LittleEndian.Uint64(dscRangeOffset)
+	} else {
+		data, uuidDescriptorIndex, _ = utils.Take(data, 4)
+		rangeData.UnknownUUIDIndex = binary.LittleEndian.Uint64(uuidDescriptorIndex)
+		data, dscRangeOffset, _ = utils.Take(data, 4)
+		rangeData.RangeOffset = binary.LittleEndian.Uint64(dscRangeOffset)
+	}
+
+	data, dataOffset, _ := utils.Take(data, 4)
+	rangeData.DataOffset = binary.LittleEndian.Uint32(dataOffset)
+	data, rangeSize, _ := utils.Take(data, 4)
+	rangeData.RangeSize = binary.LittleEndian.Uint32(rangeSize)
+
+	if version == versionNumber {
+		unknown := []byte{}
+		data, unknown, _ = utils.Take(data, 8)
+		rangeData.UnknownUUIDIndex = binary.LittleEndian.Uint64(unknown)
+	}
+
+	return data, rangeData, nil
 }
 
-// ParseDSC parses a DSC (shared cache) file containing shared format strings
-// func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
-// 	if len(data) < 8 {
-// 		return nil, fmt.Errorf("DSC file too small: %d bytes", len(data))
-// 	}
+func getUUIDs(data []byte, version uint16) ([]byte, UUIDDescriptor, error) {
+	uuidDescriptor := UUIDDescriptor{}
+	versionNumber := uint16(2)
+	textOffset := []byte{}
 
-// 	dsc := &SharedCacheStrings{DSCUUID: uuid}
-// 	offset := 0
+	if version == versionNumber {
+		data, textOffset, _ = utils.Take(data, 8)
+		uuidDescriptor.TextOffset = binary.LittleEndian.Uint64(textOffset)
+	} else {
+		data, textOffset, _ = utils.Take(data, 4)
+		uuidDescriptor.TextOffset = binary.LittleEndian.Uint64(textOffset)
+	}
 
-// 	// Parse signature
-// 	dsc.Signature = binary.LittleEndian.Uint32(data[offset : offset+4])
-// 	offset += 4
+	data, textSize, _ := utils.Take(data, 4)
+	data, uuid, _ := utils.Take(data, 16)
+	data, pathOffset, _ := utils.Take(data, 4)
 
-// 	// Validate signature
-// 	const expectedSignature = 0x68736964 // "dsih" in little endian
-// 	if dsc.Signature != expectedSignature {
-// 		return nil, fmt.Errorf("invalid DSC signature: expected 0x%x, got 0x%x",
-// 			expectedSignature, dsc.Signature)
-// 	}
+	uuidDescriptor.TextSize = binary.LittleEndian.Uint32(textSize)
+	uuidDescriptor.UUID = fmt.Sprintf("%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+		uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15])
+	uuidDescriptor.PathOffset = binary.LittleEndian.Uint32(pathOffset)
 
-// 	// Parse number of UUIDs
-// 	if len(data) < offset+4 {
-// 		return nil, fmt.Errorf("DSC file too small for UUID count")
-// 	}
-// 	numUUIDs := binary.LittleEndian.Uint32(data[offset : offset+4])
-// 	offset += 4
+	return data, uuidDescriptor, nil
+}
 
-// 	// Parse UUIDs
-// 	dsc.UUIDs = make([]UUIDDescriptor, numUUIDs)
-// 	for i := uint32(0); i < numUUIDs; i++ {
-// 		if len(data) < offset+16 {
-// 			return nil, fmt.Errorf("DSC file too small for UUID %d", i)
-// 		}
+func getPaths(data []byte, pathOffset uint32) ([]byte, string, error) {
+	data, offset, _ := utils.Take(data, int(pathOffset))
+	path, err := utils.ExtractString(offset)
+	if err != nil {
+		return data, "", err
+	}
+	return data, path, nil
+}
 
-// 		// Parse UUID (16 bytes)
-// 		uuidBytes := data[offset : offset+16]
-// 		uuid := fmt.Sprintf("%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-// 			uuidBytes[0], uuidBytes[1], uuidBytes[2], uuidBytes[3],
-// 			uuidBytes[4], uuidBytes[5], uuidBytes[6], uuidBytes[7],
-// 			uuidBytes[8], uuidBytes[9], uuidBytes[10], uuidBytes[11],
-// 			uuidBytes[12], uuidBytes[13], uuidBytes[14], uuidBytes[15])
-// 		offset += 16
-
-// 		dsc.UUIDs[i] = UUIDDescriptor{UUID: uuid}
-// 	}
-
-// 	// Parse path strings for UUIDs
-// 	for i := range dsc.UUIDs {
-// 		if offset >= len(data) {
-// 			break
-// 		}
-
-// 		// Find null terminator
-// 		end := offset
-// 		for end < len(data) && data[end] != 0 {
-// 			end++
-// 		}
-
-// 		if end > offset {
-// 			dsc.UUIDs[i].PathString = string(data[offset:end])
-// 		}
-// 		offset = end + 1 // Skip null terminator
-// 	}
-
-// 	// Parse ranges (simplified - in full implementation would parse all range data)
-// 	// For now, create a single range covering remaining data
-// 	if offset < len(data) {
-// 		remainingData := data[offset:]
-// 		dscRange := RangeDescriptor{
-// 			RangeOffset:      0,
-// 			RangeSize:        uint32(len(remainingData)),
-// 			UnknownUUIDIndex: 0,
-// 			Strings:          remainingData,
-// 		}
-// 		dsc.Ranges = append(dsc.Ranges, dscRange)
-// 	}
-
-// 	return dsc, nil
-// }
-
-// // ExtractSharedString extracts a format string from shared cache using the given offset
-// func (d *SharedCacheStrings) ExtractSharedString(stringOffset uint64) (types.MessageData, error) {
-// 	messageData := types.MessageData{}
-
-// 	// Handle dynamic formatters (offset with high bit set means "%s")
-// 	if stringOffset&0x80000000 != 0 {
-// 		messageData.FormatString = "%s"
-// 		if len(d.UUIDs) > 0 {
-// 			messageData.Library = d.UUIDs[0].PathString
-// 			messageData.LibraryUUID = d.UUIDs[0].UUID
-// 		}
-// 		return messageData, nil
-// 	}
-
-// 	// Search through ranges to find the correct string
-// 	for _, r := range d.Ranges {
-// 		if stringOffset >= r.RangeOffset && stringOffset < (r.RangeOffset+uint64(r.RangeSize)) {
-// 			offset := stringOffset - r.RangeOffset
-
-// 			if int(offset) >= len(r.Strings) {
-// 				continue
-// 			}
-
-// 			// Extract the format string
-// 			startIdx := int(offset)
-// 			endIdx := startIdx
-// 			for endIdx < len(r.Strings) && r.Strings[endIdx] != 0 {
-// 				endIdx++
-// 			}
-
-// 			if endIdx > startIdx {
-// 				messageData.FormatString = string(r.Strings[startIdx:endIdx])
-
-// 				// Get library information from UUID
-// 				if int(r.UnknownUUIDIndex) < len(d.UUIDs) {
-// 					messageData.Library = d.UUIDs[r.UnknownUUIDIndex].PathString
-// 					messageData.LibraryUUID = d.UUIDs[r.UnknownUUIDIndex].UUID
-// 				}
-
-// 				return messageData, nil
-// 			}
-// 		}
-// 	}
-
-// 	return messageData, fmt.Errorf("shared string not found at offset %d", stringOffset)
-// }
-
-// // GetSharedFormatString resolves a format string using the catalog and DSC references
-// func GetSharedFormatString(formatStringLocation uint32, firstProcID uint64, secondProcID uint32) (types.MessageData, error) {
-// 	return types.MessageData{}, nil
-// }
-
-// // LoadDSCFile loads and parses a DSC file into the cache
-// // This would be called when scanning a logarchive directory structure
-// func LoadDSCFile(filePath string, data []byte) error {
-// 	// Extract UUID from filename
-// 	filename := strings.TrimSuffix(strings.ToUpper(filepath.Base(filePath)), ".DSC")
-
-// 	// Parse the DSC file
-// 	dscData, err := ParseDSC(data, filename)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to parse DSC file %s: %w", filePath, err)
-// 	}
-
-// 	// Cache the parsed data
-// 	DSCCache[filename] = dscData
-
-// 	return nil
-// }
+func getStrings(data []byte, stringOffset uint32, stringRange uint32) ([]byte, []byte, error) {
+	data, _, _ = utils.Take(data, int(stringOffset))
+	_, strings, _ := utils.Take(data, int(stringRange))
+	return data, strings, nil
+}
