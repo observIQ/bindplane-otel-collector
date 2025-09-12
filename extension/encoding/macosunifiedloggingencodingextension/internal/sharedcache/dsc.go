@@ -137,7 +137,6 @@ func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
 }
 
 // ExtractSharedString extracts a format string from shared cache using the given offset
-// Based on the rust implementation's extract_shared_strings method
 func (d *SharedCacheStrings) ExtractSharedString(stringOffset uint64) (types.MessageData, error) {
 	messageData := types.MessageData{}
 
