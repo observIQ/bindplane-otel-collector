@@ -18,9 +18,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
-	"github.com/pierrec/lz4/v4"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
 )
 
 // ParseChunksetChunk parses a Chunkset chunk (0x600d) containing compressed log data
@@ -144,8 +142,11 @@ func parseChunkset(data []byte) (chunk ChunksetChunk, remainingData []byte, err 
 		return chunk, data, nil
 	}
 
-	if chunk.Signature != bv41 {
-		return chunk, data, fmt.Errorf("invalid chunkset signature: %x, expected %x", chunk.Signature, bv41)
+	// Use subchunk metadata if available to optimize parsing
+	var subchunkInfo *types.CatalogSubchunk
+	if GlobalCatalog != nil && len(GlobalCatalog.CatalogSubchunks) > 0 {
+		// Find the relevant subchunk for this data
+		subchunkInfo = findRelevantSubchunk(decompressedData)
 	}
 
 	data, blockSize, _ := utils.Take(data, 4)
@@ -301,15 +302,18 @@ func ParseChunksetData(data []byte, ulData *UnifiedLogData) ([]*TraceV3Entry, er
 	return entries, nil
 }
 
-func getChunksetData(data []byte, chunkTag uint32, ulData *UnifiedLogData) error {
-	switch chunkTag {
-	case firehoseChunk:
-		firehosePreamble, _ := firehose.ParseFirehosePreamble(data)
-		ulData.FirehoseData = append(ulData.FirehoseData, firehosePreamble)
-	case oversizeChunk:
-		oversizeChunk, _, err := ParseOversizeChunk(data)
-		if err != nil {
-			return err
+// findRelevantSubchunk finds the catalog subchunk that matches the decompressed data
+func findRelevantSubchunk(decompressedData []byte) *types.CatalogSubchunk {
+	if GlobalCatalog == nil || len(GlobalCatalog.CatalogSubchunks) == 0 {
+		return nil
+	}
+
+	dataSize := uint32(len(decompressedData))
+
+	// Find subchunk with matching uncompressed size
+	for _, subchunk := range GlobalCatalog.CatalogSubchunks {
+		if subchunk.UncompressedSize == dataSize {
+			return &subchunk
 		}
 		ulData.OversizeData = append(ulData.OversizeData, oversizeChunk)
 	// TODO: uncomment once statedump and simpledump are merged
@@ -327,7 +331,7 @@ func getChunksetData(data []byte, chunkTag uint32, ulData *UnifiedLogData) error
 	}
 
 	// If no exact match, find the closest one
-	var bestMatch *CatalogSubchunk
+	var bestMatch *types.CatalogSubchunk
 	var smallestDiff = ^uint32(0) // Max uint32
 
 	for _, subchunk := range GlobalCatalog.CatalogSubchunks {
@@ -348,7 +352,7 @@ func getChunksetData(data []byte, chunkTag uint32, ulData *UnifiedLogData) error
 }
 
 // findRelevantSubchunkForSize finds a catalog subchunk that matches the given uncompressed size
-func findRelevantSubchunkForSize(uncompressedSize uint32) *CatalogSubchunk {
+func findRelevantSubchunkForSize(uncompressedSize uint32) *types.CatalogSubchunk {
 	if GlobalCatalog == nil || len(GlobalCatalog.CatalogSubchunks) == 0 {
 		return nil
 	}
