@@ -14,7 +14,10 @@
 
 package types
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // CatalogChunk represents a parsed Catalog chunk (0x600b)
 type CatalogChunk struct {
@@ -36,6 +39,7 @@ type CatalogChunk struct {
 	CatalogUUIDs            []string
 	CatalogSubsystemStrings []byte
 	ProcessInfoEntries      []ProcessInfoEntry
+	ProcessInfoMap          map[string]*ProcessInfoEntry
 	CatalogSubchunks        []CatalogSubchunk
 }
 
@@ -105,6 +109,15 @@ func (c *CatalogChunk) GetEUID(firstProcID uint64, secondProcID uint32) uint32 {
 	return 0
 }
 
+// BuildProcessInfoMap builds a hash map for fast process lookups
+func (c *CatalogChunk) BuildProcessInfoMap() {
+	c.ProcessInfoMap = make(map[string]*ProcessInfoEntry)
+	for i := range c.ProcessInfoEntries {
+		key := fmt.Sprintf("%d_%d", c.ProcessInfoEntries[i].FirstNumberProcID, c.ProcessInfoEntries[i].SecondNumberProcID)
+		c.ProcessInfoMap[key] = &c.ProcessInfoEntries[i]
+	}
+}
+
 // ProcessInfoEntry represents process information in the catalog
 type ProcessInfoEntry struct {
 	Index                uint16
@@ -168,11 +181,6 @@ type MessageData struct {
 	Library      string
 	LibraryUUID  string
 	ProcessUUID  string
-}
-
-// FileProvider represents a file provider interface
-type FileProvider interface {
-	// Add methods as needed
 }
 
 // extractStringAtOffset extracts a null-terminated string from a byte array at a specific offset

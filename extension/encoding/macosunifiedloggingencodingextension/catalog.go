@@ -255,6 +255,8 @@ func ParseCatalogChunk(data []byte, entry *TraceV3Entry) {
 		catalog.CatalogSubchunks = parseCatalogSubchunks(subchunksData, catalog.NumberSubChunks)
 	}
 
+	catalog.BuildProcessInfoMap()
+
 	// Store this catalog globally for use by other parsers
 	GlobalCatalog = &catalog
 }

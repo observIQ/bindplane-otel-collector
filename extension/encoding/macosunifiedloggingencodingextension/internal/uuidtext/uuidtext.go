@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package macosunifiedloggingencodingextension
+package uuidtext
 
 import (
 	"encoding/binary"
@@ -20,7 +20,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/sharedcache"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
 )
 
@@ -39,15 +38,6 @@ type UUIDText struct {
 type UUIDTextEntry struct {
 	RangeStartOffset uint32 `json:"range_start_offset"`
 	EntrySize        uint32 `json:"entry_size"`
-}
-
-// MessageData holds resolved format string information
-type MessageData struct {
-	Library      string `json:"library"`
-	FormatString string `json:"format_string"`
-	Process      string `json:"process"`
-	LibraryUUID  string `json:"library_uuid"`
-	ProcessUUID  string `json:"process_uuid"`
 }
 
 // UUIDTextCache stores parsed UUID text files for format string resolution
