@@ -1,5 +1,16 @@
-// Copyright The OpenTelemetry Authors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package macosunifiedloggingencodingextension // import "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension"
 
@@ -24,7 +35,7 @@ type OversizeChunk struct {
 	dataRefIndex    uint32
 	publicDataSize  uint16
 	privateDataSize uint16
-	messageItems    firehose.FirehoseItemData
+	messageItems    firehose.ItemData
 }
 
 // ParseOversizeChunk parses an oversize chunk
@@ -81,12 +92,12 @@ func ParseOversizeChunk(data []byte) (OversizeChunk, []byte) {
 }
 
 // GetOversizeStrings gets the firehose item info from the oversize log entry based on oversize (data ref) id, first proc id, and second proc id
-func GetOversizeStrings(dataRef uint32, firstProcID uint64, secondProcID uint32, oversizeData []*OversizeChunk) []firehose.FirehoseItemInfo {
-	messageStrings := []firehose.FirehoseItemInfo{}
+func GetOversizeStrings(dataRef uint32, firstProcID uint64, secondProcID uint32, oversizeData []*OversizeChunk) []firehose.ItemInfo {
+	messageStrings := []firehose.ItemInfo{}
 	for _, oversize := range oversizeData {
 		if oversize.dataRefIndex == dataRef && oversize.firstProcID == firstProcID && oversize.secondProcID == secondProcID {
 			for _, message := range oversize.messageItems.ItemInfo {
-				oversizeFirehose := firehose.FirehoseItemInfo{
+				oversizeFirehose := firehose.ItemInfo{
 					MessageStrings: message.MessageStrings,
 					ItemType:       message.ItemType,
 					ItemSize:       message.ItemSize,
