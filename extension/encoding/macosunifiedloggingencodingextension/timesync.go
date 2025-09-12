@@ -207,8 +207,8 @@ func GetTimestamp(
 	   Final results is unix epoch timestamp in nano seconds
 	*/
 
-	var timesyncContinuousTime uint64 = 0
-	var timesyncWallTime int64 = 0
+	var timesyncContinuousTime uint64
+	var timesyncWallTime int64
 
 	// Apple Intel uses 1/1 as the timebase
 	timebaseAdjustment := 1.0

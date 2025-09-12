@@ -6,6 +6,8 @@ package macosunifiedloggingencodingextension
 import (
 	"encoding/binary"
 	"fmt"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
 )
 
 // ParseChunksetChunk parses a Chunkset chunk (0x600d) containing compressed log data
@@ -69,8 +71,8 @@ func ParseChunksetChunk(data []byte, entry *TraceV3Entry, header *TraceV3Header,
 			}
 		} else {
 			// Fallback to standard decompression
-			const LZ4_COMPRESSION = 0x100
-			decompressedData, err = DecompressChunksetData(compressedData, uncompressSize, LZ4_COMPRESSION)
+			const lz4Compression = 0x100
+			decompressedData, err = DecompressChunksetData(compressedData, uncompressSize, lz4Compression)
 			if err != nil {
 				entry.Message = fmt.Sprintf("Failed to decompress chunkset data: %v", err)
 				return []*TraceV3Entry{entry}
@@ -106,7 +108,7 @@ func parseDecompressedChunksetData(decompressedData []byte, header *TraceV3Heade
 	}
 
 	// Use subchunk metadata if available to optimize parsing
-	var subchunkInfo *CatalogSubchunk
+	var subchunkInfo *types.CatalogSubchunk
 	if GlobalCatalog != nil && len(GlobalCatalog.CatalogSubchunks) > 0 {
 		// Find the relevant subchunk for this data
 		subchunkInfo = findRelevantSubchunk(decompressedData)
@@ -158,47 +160,47 @@ func parseDecompressedChunksetData(decompressedData []byte, header *TraceV3Heade
 
 		// Parse based on chunk type with enhanced processing
 		switch chunkTag {
-		case 0x6001:
-			// Firehose chunk - contains individual log entries
-			chunkEntry.ChunkType = "firehose"
-			chunkEntry.Subsystem = "com.apple.firehose.decompressed"
-			chunkEntry.Category = "entry"
+		// case 0x6001:
+		// 	// Firehose chunk - contains individual log entries
+		// 	chunkEntry.ChunkType = "firehose"
+		// 	chunkEntry.Subsystem = "com.apple.firehose.decompressed"
+		// 	chunkEntry.Category = "entry"
 
-			// Use enhanced firehose parsing with debugging
-			firehoseEntries := ParseFirehoseChunk(chunkData, chunkEntry, header, timesyncData)
+		// 	// Use enhanced firehose parsing with debugging
+		// 	firehoseEntries := ParseFirehoseChunk(chunkData, chunkEntry, header, timesyncData)
 
-			// Add debug information if no entries were extracted
-			if len(firehoseEntries) == 0 {
-				debugEntry := &TraceV3Entry{
-					Type:         chunkTag,
-					Size:         uint32(chunkDataSize),
-					Timestamp:    header.ContinuousTime + uint64(chunkCount)*1000000,
-					ThreadID:     0,
-					ProcessID:    header.LogdPID,
-					Level:        "Debug",
-					MessageType:  "Debug",
-					EventType:    "logEvent",
-					TimezoneName: extractTimezoneName(header.TimezonePath),
-					ChunkType:    "firehose_debug",
-					Subsystem:    "com.apple.firehose.debug",
-					Category:     "parsing_debug",
-					Message:      fmt.Sprintf("Firehose chunk debug: size=%d data_preview=%x", chunkDataSize, chunkData[:min(32, len(chunkData))]),
-				}
-				entries = append(entries, debugEntry)
-			} else {
-				// Return only individual entries, no summary entry
-				// This replaces summary entries with actual log entries as requested
-			}
+		// 	// Add debug information if no entries were extracted
+		// 	if len(firehoseEntries) == 0 {
+		// 		debugEntry := &TraceV3Entry{
+		// 			Type:         chunkTag,
+		// 			Size:         uint32(chunkDataSize),
+		// 			Timestamp:    header.ContinuousTime + uint64(chunkCount)*1000000,
+		// 			ThreadID:     0,
+		// 			ProcessID:    header.LogdPID,
+		// 			Level:        "Debug",
+		// 			MessageType:  "Debug",
+		// 			EventType:    "logEvent",
+		// 			TimezoneName: extractTimezoneName(header.TimezonePath),
+		// 			ChunkType:    "firehose_debug",
+		// 			Subsystem:    "com.apple.firehose.debug",
+		// 			Category:     "parsing_debug",
+		// 			Message:      fmt.Sprintf("Firehose chunk debug: size=%d data_preview=%x", chunkDataSize, chunkData[:min(32, len(chunkData))]),
+		// 		}
+		// 		entries = append(entries, debugEntry)
+		// 	} else {
+		// 		// Return only individual entries, no summary entry
+		// 		// This replaces summary entries with actual log entries as requested
+		// 	}
 
-			entries = append(entries, firehoseEntries...)
+		// 	entries = append(entries, firehoseEntries...)
 
-		case 0x6002:
-			// Oversize chunk
-			chunkEntry.ChunkType = "oversize"
-			chunkEntry.Subsystem = "com.apple.oversize.decompressed"
-			chunkEntry.Category = "oversize_data"
-			ParseOversizeChunk(chunkData, chunkEntry, header, timesyncData)
-			entries = append(entries, chunkEntry)
+		// case 0x6002:
+		// 	// Oversize chunk
+		// 	chunkEntry.ChunkType = "oversize"
+		// 	chunkEntry.Subsystem = "com.apple.oversize.decompressed"
+		// 	chunkEntry.Category = "oversize_data"
+		// 	ParseOversizeChunk(chunkData, chunkEntry, header, timesyncData)
+		// 	entries = append(entries, chunkEntry)
 
 		case 0x6003:
 			// Statedump chunk
@@ -263,7 +265,7 @@ func parseDecompressedChunksetData(decompressedData []byte, header *TraceV3Heade
 }
 
 // findRelevantSubchunk finds the catalog subchunk that matches the decompressed data
-func findRelevantSubchunk(decompressedData []byte) *CatalogSubchunk {
+func findRelevantSubchunk(decompressedData []byte) *types.CatalogSubchunk {
 	if GlobalCatalog == nil || len(GlobalCatalog.CatalogSubchunks) == 0 {
 		return nil
 	}
@@ -278,8 +280,8 @@ func findRelevantSubchunk(decompressedData []byte) *CatalogSubchunk {
 	}
 
 	// If no exact match, find the closest one
-	var bestMatch *CatalogSubchunk
-	var smallestDiff uint32 = ^uint32(0) // Max uint32
+	var bestMatch *types.CatalogSubchunk
+	var smallestDiff = ^uint32(0) // Max uint32
 
 	for _, subchunk := range GlobalCatalog.CatalogSubchunks {
 		diff := uint32(0)
@@ -299,7 +301,7 @@ func findRelevantSubchunk(decompressedData []byte) *CatalogSubchunk {
 }
 
 // findRelevantSubchunkForSize finds a catalog subchunk that matches the given uncompressed size
-func findRelevantSubchunkForSize(uncompressedSize uint32) *CatalogSubchunk {
+func findRelevantSubchunkForSize(uncompressedSize uint32) *types.CatalogSubchunk {
 	if GlobalCatalog == nil || len(GlobalCatalog.CatalogSubchunks) == 0 {
 		return nil
 	}
