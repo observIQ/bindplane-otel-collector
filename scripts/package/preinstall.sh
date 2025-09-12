@@ -15,9 +15,10 @@
 
 set -e
 
-install() {
-    username="bindplane-otel-collector"
+username="bdot"
+legacy_username="bindplane-otel-collector"
 
+install() {
     if getent group "$username" >/dev/null 2>&1; then
         echo "Group ${username} already exists."
     else
@@ -37,7 +38,49 @@ upgrade() {
     install
 }
 
+# migrate_user migrates the legacy user to the new username.
+migrate_user() {
+    _migrate_user
+    _migrate_group
+
+    echo "User migration complete."
+}
+
+_migrate_user() {
+    if ! id "$legacy_username" > /dev/null 2>&1; then
+        echo "Skipping user migration: Legacy user ${legacy_username} does not exist."
+        return
+    fi
+
+    if id "$username" > /dev/null 2>&1; then
+        echo "Skipping user migration: User ${username} already exists."
+        return
+    fi
+
+    echo "Renaming user ${legacy_username} to ${username}"
+    usermod -l "$username" "$legacy_username"
+}
+
+_migrate_group() {
+    if ! getent group "$legacy_username" > /dev/null 2>&1; then
+        echo "Skipping group migration: Legacy group ${legacy_username} does not exist."
+        return
+    fi
+
+    if getent group "$username" > /dev/null 2>&1; then
+        echo "Skipping group migration: Group ${username} already exists."
+        return
+    fi
+
+    echo "Renaming group ${legacy_username} to ${username}"
+    groupmod -n "$username" "$legacy_username"
+}
+
 action="$1"
+
+# Migrate user before proceeding with package
+# operation.
+migrate_user
 
 case "$action" in
 "0" | "install")
