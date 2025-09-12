@@ -27,6 +27,7 @@ elif command -v service >/dev/null 2>&1; then
 fi
 
 # Script Constants
+COLLECTOR_USER="bindplane-otel-collector"
 TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env var
 INSTALL_DIR="/opt/bindplane-otel-collector"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor.yaml"
@@ -765,7 +766,7 @@ create_supervisor_config() {
   # We do this because the file contains the secret key.
   # We do not want the file readable by anyone other than root/obseriq-otel-collector.
   command printf '' >>"$supervisor_yml_path"
-  chown bindplane-otel-collector:bindplane-otel-collector "$supervisor_yml_path"
+  chown "${COLLECTOR_USER}:${COLLECTOR_USER}" "$supervisor_yml_path"
   chmod 0600 "$supervisor_yml_path"
 
   command printf 'server:\n' >"$supervisor_yml_path"
