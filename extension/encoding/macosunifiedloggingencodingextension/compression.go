@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/pierrec/lz4/v4"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
 )
 
 // CompressionStats tracks decompression statistics
@@ -145,7 +147,7 @@ type SubchunkDecompressionInfo struct {
 }
 
 // DecompressWithSubchunkInfo decompresses data and returns detailed subchunk information
-func DecompressWithSubchunkInfo(compressedData []byte, subchunk *CatalogSubchunk) ([]byte, *SubchunkDecompressionInfo, error) {
+func DecompressWithSubchunkInfo(compressedData []byte, subchunk *types.CatalogSubchunk) ([]byte, *SubchunkDecompressionInfo, error) {
 	startTime := time.Now()
 
 	info := &SubchunkDecompressionInfo{

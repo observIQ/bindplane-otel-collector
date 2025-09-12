@@ -1,42 +1,62 @@
-// Copyright The OpenTelemetry Authors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-package macosunifiedloggingencodingextension
+package sharedcache
 
 import (
 	"encoding/binary"
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
 )
 
 // SharedCacheStrings represents parsed DSC (shared cache) string data
 type SharedCacheStrings struct {
-	DSCUUID   string             `json:"dsc_uuid"`
-	Signature uint32             `json:"signature"`
-	UUIDs     []SharedCacheUUID  `json:"uuids"`
-	Ranges    []SharedCacheRange `json:"ranges"`
+	Signature    uint32
+	MajorVersion uint16
+	MinorVersion uint16
+	NumberRanges uint32
+	NumberUUIDs  uint32
+	DSCUUID      string
+	UUIDs        []UUIDDescriptor
+	Ranges       []RangeDescriptor
 }
 
-// SharedCacheUUID represents a UUID entry in the shared cache
-type SharedCacheUUID struct {
-	UUID       string `json:"uuid"`
-	PathString string `json:"path_string"`
+// RangeDescriptor represents a string range in the shared cache
+type RangeDescriptor struct {
+	RangeOffset      uint64 // In Major version 2 (Monterey+) this is 8 bytes, in version 1 (up to Big Sur) its 4 bytes
+	DataOffset       uint32
+	RangeSize        uint32
+	UnknownUUIDIndex uint64 // Unknown value, added in Major version: 2. Appears to be UUID index. In version 1 the index is 4 bytes and is at the start of the range descriptor
+	Strings          []byte
 }
 
-// SharedCacheRange represents a string range in the shared cache
-type SharedCacheRange struct {
-	RangeOffset      uint64 `json:"range_offset"`
-	RangeSize        uint32 `json:"range_size"`
-	UnknownUUIDIndex uint32 `json:"unknown_uuid_index"`
-	Strings          []byte `json:"strings"`
+// UUIDDescriptor represents a UUID entry in the shared cache
+type UUIDDescriptor struct {
+	TextOffset uint64 // Size appears to be 8 bytes in Major version: 2. 4 bytes in Major Version 1
+	TextSize   uint32
+	UUID       string
+	PathOffset uint32
+	PathString string // Not part of format
 }
 
 // DSCCache stores parsed DSC files for shared string resolution
 var DSCCache = make(map[string]*SharedCacheStrings)
 
 // ParseDSC parses a DSC (shared cache) file containing shared format strings
-// Based on the rust implementation in dsc.rs
 func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
 	if len(data) < 8 {
 		return nil, fmt.Errorf("DSC file too small: %d bytes", len(data))
@@ -64,7 +84,7 @@ func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
 	offset += 4
 
 	// Parse UUIDs
-	dsc.UUIDs = make([]SharedCacheUUID, numUUIDs)
+	dsc.UUIDs = make([]UUIDDescriptor, numUUIDs)
 	for i := uint32(0); i < numUUIDs; i++ {
 		if len(data) < offset+16 {
 			return nil, fmt.Errorf("DSC file too small for UUID %d", i)
@@ -79,7 +99,7 @@ func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
 			uuidBytes[12], uuidBytes[13], uuidBytes[14], uuidBytes[15])
 		offset += 16
 
-		dsc.UUIDs[i] = SharedCacheUUID{UUID: uuid}
+		dsc.UUIDs[i] = UUIDDescriptor{UUID: uuid}
 	}
 
 	// Parse path strings for UUIDs
@@ -104,7 +124,7 @@ func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
 	// For now, create a single range covering remaining data
 	if offset < len(data) {
 		remainingData := data[offset:]
-		dscRange := SharedCacheRange{
+		dscRange := RangeDescriptor{
 			RangeOffset:      0,
 			RangeSize:        uint32(len(remainingData)),
 			UnknownUUIDIndex: 0,
@@ -117,9 +137,8 @@ func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
 }
 
 // ExtractSharedString extracts a format string from shared cache using the given offset
-// Based on the rust implementation's extract_shared_strings method
-func (d *SharedCacheStrings) ExtractSharedString(stringOffset uint64) (MessageData, error) {
-	messageData := MessageData{}
+func (d *SharedCacheStrings) ExtractSharedString(stringOffset uint64) (types.MessageData, error) {
+	messageData := types.MessageData{}
 
 	// Handle dynamic formatters (offset with high bit set means "%s")
 	if stringOffset&0x80000000 != 0 {
@@ -165,61 +184,8 @@ func (d *SharedCacheStrings) ExtractSharedString(stringOffset uint64) (MessageDa
 }
 
 // GetSharedFormatString resolves a format string using the catalog and DSC references
-// This handles shared cache format string resolution
-func GetSharedFormatString(formatStringLocation uint32, firstProcID uint64, secondProcID uint32) MessageData {
-	messageData := MessageData{
-		FormatString: fmt.Sprintf("shared_format_0x%x", formatStringLocation),
-		Process:      "unknown",
-		Library:      "unknown",
-	}
-
-	if GlobalCatalog == nil {
-		return messageData
-	}
-
-	// Get the process entry from catalog to find the DSC UUID
-	var dscUUID string
-	var mainUUID string
-	for _, procEntry := range GlobalCatalog.ProcessInfoEntries {
-		if procEntry.FirstNumberProcID == firstProcID && procEntry.SecondNumberProcID == secondProcID {
-			dscUUID = procEntry.DSCUUID
-			mainUUID = procEntry.MainUUID
-			messageData.ProcessUUID = mainUUID
-			break
-		}
-	}
-
-	if dscUUID == "" {
-		return messageData
-	}
-
-	// Check if we have the DSC file cached
-	dscData, exists := DSCCache[dscUUID]
-	if !exists {
-		// In a full implementation, we would load the DSC file here
-		messageData.FormatString = fmt.Sprintf("dsc_%s_offset_0x%x", dscUUID[:8], formatStringLocation)
-		return messageData
-	}
-
-	// Extract the format string using the location offset
-	resolvedData, err := dscData.ExtractSharedString(uint64(formatStringLocation))
-	if err != nil {
-		messageData.FormatString = fmt.Sprintf("shared_error_%s", err.Error())
-		return messageData
-	}
-
-	// Merge the resolved data
-	if resolvedData.FormatString != "" {
-		messageData.FormatString = resolvedData.FormatString
-	}
-	if resolvedData.Library != "" {
-		messageData.Library = resolvedData.Library
-	}
-	if resolvedData.LibraryUUID != "" {
-		messageData.LibraryUUID = resolvedData.LibraryUUID
-	}
-
-	return messageData
+func GetSharedFormatString(formatStringLocation uint32, firstProcID uint64, secondProcID uint32) (types.MessageData, error) {
+	return types.MessageData{}, nil
 }
 
 // LoadDSCFile loads and parses a DSC file into the cache

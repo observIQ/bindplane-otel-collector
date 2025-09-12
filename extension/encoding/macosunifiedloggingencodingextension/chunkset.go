@@ -6,6 +6,8 @@ package macosunifiedloggingencodingextension
 import (
 	"encoding/binary"
 	"fmt"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
 )
 
 // ParseChunksetChunk parses a Chunkset chunk (0x600d) containing compressed log data
@@ -106,7 +108,7 @@ func parseDecompressedChunksetData(decompressedData []byte, header *TraceV3Heade
 	}
 
 	// Use subchunk metadata if available to optimize parsing
-	var subchunkInfo *CatalogSubchunk
+	var subchunkInfo *types.CatalogSubchunk
 	if GlobalCatalog != nil && len(GlobalCatalog.CatalogSubchunks) > 0 {
 		// Find the relevant subchunk for this data
 		subchunkInfo = findRelevantSubchunk(decompressedData)
@@ -263,7 +265,7 @@ func parseDecompressedChunksetData(decompressedData []byte, header *TraceV3Heade
 }
 
 // findRelevantSubchunk finds the catalog subchunk that matches the decompressed data
-func findRelevantSubchunk(decompressedData []byte) *CatalogSubchunk {
+func findRelevantSubchunk(decompressedData []byte) *types.CatalogSubchunk {
 	if GlobalCatalog == nil || len(GlobalCatalog.CatalogSubchunks) == 0 {
 		return nil
 	}
@@ -278,7 +280,7 @@ func findRelevantSubchunk(decompressedData []byte) *CatalogSubchunk {
 	}
 
 	// If no exact match, find the closest one
-	var bestMatch *CatalogSubchunk
+	var bestMatch *types.CatalogSubchunk
 	var smallestDiff = ^uint32(0) // Max uint32
 
 	for _, subchunk := range GlobalCatalog.CatalogSubchunks {
@@ -299,7 +301,7 @@ func findRelevantSubchunk(decompressedData []byte) *CatalogSubchunk {
 }
 
 // findRelevantSubchunkForSize finds a catalog subchunk that matches the given uncompressed size
-func findRelevantSubchunkForSize(uncompressedSize uint32) *CatalogSubchunk {
+func findRelevantSubchunkForSize(uncompressedSize uint32) *types.CatalogSubchunk {
 	if GlobalCatalog == nil || len(GlobalCatalog.CatalogSubchunks) == 0 {
 		return nil
 	}
