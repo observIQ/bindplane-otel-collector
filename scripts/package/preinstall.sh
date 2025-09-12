@@ -18,18 +18,31 @@ set -e
 username="bdot"
 legacy_username="bindplane-otel-collector"
 
+# Read's optional package overrides. Users should deploy the override
+# file before installing BDOT for the first time. The override should
+# not be modified unless uninstalling and re-installing.
+[ -f /etc/default/bindplane-otel-collector ] && . /etc/default/bindplane-otel-collector
+[ -f /etc/sysconfig/bindplane-otel-collector ] && . /etc/sysconfig/bindplane-otel-collector
+
+# Configurable username and group for BDOT
+: "${BDOT_USER:=bdot}"
+: "${BDOT_GROUP:=bdot}"
+
 install() {
-    if getent group "$username" >/dev/null 2>&1; then
-        echo "Group ${username} already exists."
+    username="${BDOT_USER}"
+    groupname="${BDOT_GROUP}"
+
+    if getent group "$groupname" >/dev/null 2>&1; then
+        echo "Group ${groupname} already exists."
     else
-        groupadd "$username"
+        groupadd "$groupname"
     fi
 
     if id "$username" >/dev/null 2>&1; then
         echo "User ${username} already exists"
         exit 0
     else
-        useradd --shell /sbin/nologin --system "$username" -g "$username"
+        useradd --shell /sbin/nologin --system "$username" -g "$groupname"
     fi
 }
 

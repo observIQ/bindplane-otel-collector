@@ -27,7 +27,6 @@ elif command -v service >/dev/null 2>&1; then
 fi
 
 # Script Constants
-COLLECTOR_USER="bdot"
 TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env var
 INSTALL_DIR="/opt/bindplane-otel-collector"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor.yaml"
@@ -37,6 +36,10 @@ INDENT_WIDTH='  '
 indent=""
 non_interactive=false
 error_mode=false
+
+# Configurable username and group for BDOT
+: "${BDOT_USER:=bdot}"
+: "${BDOT_GROUP:=bdot}"
 
 # Default Supervisor Config Hash
 DEFAULT_SUPERVISOR_CFG_HASH="ac4e6001f1b19d371bba6a2797ba0a55d7ca73151ba6908040598ca275c0efca"
@@ -764,9 +767,9 @@ create_supervisor_config() {
 
   # Note here: We create the file and change permissions of the file here BEFORE writing info to it.
   # We do this because the file contains the secret key.
-  # We do not want the file readable by anyone other than root/obseriq-otel-collector.
+  # We do not want the file readable by anyone other than root/configured user.
   command printf '' >>"$supervisor_yml_path"
-  chown "${COLLECTOR_USER}:${COLLECTOR_USER}" "$supervisor_yml_path"
+  chown ${BDOT_USER}:${BDOT_GROUP} "$supervisor_yml_path"
   chmod 0600 "$supervisor_yml_path"
 
   command printf 'server:\n' >"$supervisor_yml_path"
