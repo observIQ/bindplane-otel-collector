@@ -27,15 +27,18 @@ set -e
 # Whether or not to run the collector as an unprivileged user.
 : "${BDOT_UNPRIVILEGED:=false}"
 
-# TOOD(jsirianni): Migrate to `bdot` username.
-username="bindplane-otel-collector"
+# Configurable username and group for BDOT
+: "${BDOT_USER:=bdot}"
+: "${BDOT_GROUP:=bdot}"
+
+username="${BDOT_USER}"
 
 install() {
   mkdir -p "${BDOT_CONFIG_HOME}"
   chmod 0755 "${BDOT_CONFIG_HOME}"
-  chown bindplane-otel-collector:bindplane-otel-collector "${BDOT_CONFIG_HOME}"
+  chown ${username}:${BDOT_GROUP} "${BDOT_CONFIG_HOME}"
   rm -f "${BDOT_CONFIG_HOME}/bindplane-otel-collector" || true
-  chown -R bindplane-otel-collector:bindplane-otel-collector /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector
+  chown -R ${username}:${BDOT_GROUP} /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector
   cp -r --preserve \
     /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector/* \
     "${BDOT_CONFIG_HOME}"
@@ -71,7 +74,7 @@ StartLimitBurst=5
 [Service]
 Type=simple
 User=root
-Group=bindplane-otel-collector
+Group=${BDOT_GROUP}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
 Environment=OIQ_OTEL_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
@@ -458,17 +461,17 @@ manage_service() {
 
 finish_permissions() {
   # Goreleaser does not set plugin file permissions, so do them here
-  # We also change the owner of the binary to bindplane-otel-collector
-  chown -R bindplane-otel-collector:bindplane-otel-collector ${BDOT_CONFIG_HOME}/bindplane-otel-collector ${BDOT_CONFIG_HOME}/opampsupervisor ${BDOT_CONFIG_HOME}/plugins/*
+  # We also change the owner of the binary to the configured user
+  chown -R ${username}:${BDOT_GROUP} ${BDOT_CONFIG_HOME}/bindplane-otel-collector ${BDOT_CONFIG_HOME}/opampsupervisor ${BDOT_CONFIG_HOME}/plugins/*
   chmod 0640 ${BDOT_CONFIG_HOME}/plugins/*
 
-  # Initialize the log file to ensure it is owned by bindplane-otel-collector.
+  # Initialize the log file to ensure it is owned by the configured user.
   # This prevents the service (running as root) from assigning ownership to
-  # the root user. By doing so, we allow the user to switch to bindplane-otel-collector
+  # the root user. By doing so, we allow the user to switch to the configured
   # user for 'non root' installs.
   mkdir -p ${BDOT_CONFIG_HOME}/supervisor_storage
   touch ${BDOT_CONFIG_HOME}/supervisor_storage/agent.log
-  chown bindplane-otel-collector:bindplane-otel-collector ${BDOT_CONFIG_HOME}/supervisor_storage/agent.log
+  chown ${username}:${BDOT_GROUP} ${BDOT_CONFIG_HOME}/supervisor_storage/agent.log
 }
 
 install
