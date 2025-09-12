@@ -33,7 +33,7 @@ func TestParseFirehoseNonActivity(t *testing.T) {
 	require.False(t, parsedFirehoseNonActivity.FirehoseFormatters.MainExe)
 	require.False(t, parsedFirehoseNonActivity.FirehoseFormatters.Absolute)
 	require.Equal(t, uint16(41), parsedFirehoseNonActivity.SubsystemValue)
-	require.Equal(t, uint8(0), parsedFirehoseNonActivity.TTLValue)
+	require.Equal(t, uint8(0), parsedFirehoseNonActivity.TtlValue)
 	require.Equal(t, uint32(0), parsedFirehoseNonActivity.DataRefValue)
 	require.Equal(t, uint16(4), parsedFirehoseNonActivity.FirehoseFormatters.LargeSharedCache)
 	require.Equal(t, uint16(2), parsedFirehoseNonActivity.FirehoseFormatters.HasLargeOffset)
