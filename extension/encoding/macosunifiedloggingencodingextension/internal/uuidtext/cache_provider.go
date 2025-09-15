@@ -43,7 +43,7 @@ func (c *CacheProvider) CachedUUIDText(uuid string) (*UUIDText, bool) {
 }
 
 // UpdateUUID updates the cached UUID text for the given UUID
-func (c *CacheProvider) UpdateUUID(uuid string, uuid2 string, data *UUIDText) {
+func (c *CacheProvider) UpdateUUID(uuid string, uuid2 string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -72,7 +72,7 @@ func (c *CacheProvider) CachedDSC(uuid string) (*sharedcache.SharedCacheStrings,
 	return data, exists
 }
 
-func (c *CacheProvider) UpdateDSC(uuid string, uuid2 string, data *sharedcache.SharedCacheStrings) {
+func (c *CacheProvider) UpdateDSC(uuid string, uuid2 string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
