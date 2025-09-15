@@ -17,7 +17,7 @@ set -e
 
 # Collector Constants
 SERVICE_NAME="com.bindplane.otel.collector"
-DOWNLOAD_BASE="https://github.com/observIQ/bindplane-otel-collector/releases/download"
+DOWNLOAD_BASE="https://bdot.bindplane.com"
 
 # Script Constants
 PREREQS="printf sed uname tr find grep"
@@ -424,19 +424,6 @@ set_os_arch() {
 # If not specified, the version defaults to whatever the latest release on github is.
 set_download_urls() {
   if [ -z "$url" ]; then
-    if [ -z "$version" ]; then
-      # shellcheck disable=SC2153
-      version=$COLLECTOR_VERSION
-    fi
-
-    if [ -z "$version" ]; then
-      version=$(latest_version)
-    fi
-
-    if [ -z "$version" ]; then
-      error_exit "$LINENO" "Could not determine version to install"
-    fi
-
     if [ -z "$base_url" ]; then
       base_url=$DOWNLOAD_BASE
     fi
@@ -518,9 +505,7 @@ ask_clean_install() {
 
 # latest_version gets the tag of the latest release, without the v prefix.
 latest_version() {
-  curl -sSL -H"Accept: application/vnd.github.v3+json" https://api.github.com/repos/observIQ/bindplane-otel-collector/releases/latest |
-    grep "\"tag_name\"" |
-    sed -E 's/ *"tag_name": "v([0-9]+\.[0-9]+\.[0-9+])",/\1/'
+  curl -s 'https://bdot.bindplane.com/api/v1/version/bindplane-otel-collector/latest?plain=1'
 }
 
 # This will install the package by downloading & unpacking the tarball into the install directory
@@ -675,7 +660,7 @@ display_results() {
   info "Agent Logs Command:            $(fg_cyan "sudo tail -F $INSTALL_DIR/supervisor_storage/agent.log")$(reset)"
   info "Supervisor Start Command:      $(fg_cyan "sudo launchctl load /Library/LaunchDaemons/$SERVICE_NAME.plist")$(reset)"
   info "Supervisor Stop Command:       $(fg_cyan "sudo launchctl unload /Library/LaunchDaemons/$SERVICE_NAME.plist")$(reset)"
-  info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/releases/$version/download/install_macos.sh)\" install_macos.sh -r")$(reset)"
+  info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL ${DOWNLOAD_BASE}/${version}/install_macos.sh)\" install_macos.sh -r")$(reset)"
   decrease_indent
 
   banner 'Support'
@@ -798,6 +783,19 @@ main() {
         ;;
       esac
     done
+  fi
+
+  if [ -z "$version" ]; then
+    # shellcheck disable=SC2153
+    version=$COLLECTOR_VERSION
+  fi
+
+  if [ -z "$version" ]; then
+    version=$(latest_version)
+  fi
+
+  if [ -z "$version" ]; then
+    error_exit "$LINENO" "Could not determine version to install"
   fi
 
   interactive_check
