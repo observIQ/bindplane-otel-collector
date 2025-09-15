@@ -30,14 +30,31 @@ set -e
 username="bdot"
 
 install() {
+  stage_dir="/usr/share/bindplane-otel-collector/stage/bindplane-otel-collector"
+
   mkdir -p "${BDOT_CONFIG_HOME}"
   chmod 0755 "${BDOT_CONFIG_HOME}"
   chown "${username}:${username}" "${BDOT_CONFIG_HOME}"
-  rm -f "${BDOT_CONFIG_HOME}/bindplane-otel-collector" || true
-  chown -R "${username}:${username}" /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector
+  chown -R "${username}:${username}" "${stage_dir}"
+
+  # Remove supervisor.yaml from staging if it already exists in target
+  # to avoid overwriting the existing file.
+  if [ -f "${BDOT_CONFIG_HOME}/supervisor.yaml" ]; then
+    rm -f "${stage_dir}/supervisor.yaml" || true
+  fi
+
+  # Rename binaries in staging directory to avoid Linux binary locking issues
+  # during copy operation
+  mv "${stage_dir}/opampsupervisor" "${stage_dir}/opampsupervisor.new"
+  mv "${stage_dir}/bindplane-otel-collector" "${stage_dir}/bindplane-otel-collector.new"
+
   cp -r --preserve \
-    /usr/share/bindplane-otel-collector/stage/bindplane-otel-collector/* \
+    "${stage_dir}/"* \
     "${BDOT_CONFIG_HOME}"
+
+  # Perform atomic moves for binary files to replace running binaries
+  mv "${BDOT_CONFIG_HOME}/opampsupervisor.new" "${BDOT_CONFIG_HOME}/opampsupervisor"
+  mv "${BDOT_CONFIG_HOME}/bindplane-otel-collector.new" "${BDOT_CONFIG_HOME}/bindplane-otel-collector"
 
   rm -rf /usr/share/bindplane-otel-collector
 }
@@ -70,7 +87,7 @@ StartLimitBurst=5
 [Service]
 Type=simple
 User=root
-Group=bindplane-otel-collector
+Group=${username}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
 Environment=OIQ_OTEL_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
@@ -457,13 +474,13 @@ manage_service() {
 
 finish_permissions() {
   # Goreleaser does not set plugin file permissions, so do them here
-  # We also change the owner of the binary to bindplane-otel-collector
+  # We also change the owner of the binary to bdot
   chown -R "${username}:${username}" ${BDOT_CONFIG_HOME}/bindplane-otel-collector ${BDOT_CONFIG_HOME}/opampsupervisor ${BDOT_CONFIG_HOME}/plugins/*
   chmod 0640 ${BDOT_CONFIG_HOME}/plugins/*
 
-  # Initialize the log file to ensure it is owned by bindplane-otel-collector.
+  # Initialize the log file to ensure it is owned by bdot.
   # This prevents the service (running as root) from assigning ownership to
-  # the root user. By doing so, we allow the user to switch to bindplane-otel-collector
+  # the root user. By doing so, we allow the user to switch to bdot
   # user for 'non root' installs.
   mkdir -p ${BDOT_CONFIG_HOME}/supervisor_storage
   touch ${BDOT_CONFIG_HOME}/supervisor_storage/agent.log
