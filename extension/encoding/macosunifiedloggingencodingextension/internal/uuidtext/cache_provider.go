@@ -12,26 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package uuidtext // import "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
+package uuidtext
 
-import (
-	"sync"
-
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/sharedcache"
-)
+import "sync"
 
 // CacheProvider handles caching of parsed UUID text and DSC data
 type CacheProvider struct {
 	uuidTextCache map[string]*UUIDText
-	dscCache      map[string]*sharedcache.Strings
+	dscCache      map[string]*SharedCacheStrings
 	mu            sync.RWMutex
 }
 
-// NewCacheProvider creates a new CacheProvider
 func NewCacheProvider() *CacheProvider {
 	return &CacheProvider{
 		uuidTextCache: make(map[string]*UUIDText),
-		dscCache:      make(map[string]*sharedcache.Strings),
+		dscCache:      make(map[string]*SharedCacheStrings),
 	}
 }
 
@@ -43,8 +38,8 @@ func (c *CacheProvider) CachedUUIDText(uuid string) (*UUIDText, bool) {
 	return data, exists
 }
 
-// UpdateUUID updates the cached UUID text for the given UUID with actual data
-func (c *CacheProvider) UpdateUUID(uuid string, uuid2 string, data *UUIDText) {
+// UpdateUUID updates the cached UUID text for the given UUID
+func (c *CacheProvider) UpdateUUID(uuid string, uuid2 string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -66,15 +61,14 @@ func (c *CacheProvider) UpdateUUID(uuid string, uuid2 string, data *UUIDText) {
 }
 
 // CachedDSC returns the cached DSC for the given UUID
-func (c *CacheProvider) CachedDSC(uuid string) (*sharedcache.Strings, bool) {
+func (c *CacheProvider) CachedDSC(uuid string) (*SharedCacheStrings, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	data, exists := c.dscCache[uuid]
 	return data, exists
 }
 
-// UpdateDSC updates the cached DSC for the given UUID with actual data
-func (c *CacheProvider) UpdateDSC(uuid string, uuid2 string, data *sharedcache.Strings) {
+func (c *CacheProvider) UpdateDSC(uuid string, uuid2 string, data *SharedCacheStrings) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
