@@ -14,19 +14,23 @@
 
 package uuidtext
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/sharedcache"
+)
 
 // CacheProvider handles caching of parsed UUID text and DSC data
 type CacheProvider struct {
 	uuidTextCache map[string]*UUIDText
-	dscCache      map[string]*SharedCacheStrings
+	dscCache      map[string]*sharedcache.SharedCacheStrings
 	mu            sync.RWMutex
 }
 
 func NewCacheProvider() *CacheProvider {
 	return &CacheProvider{
 		uuidTextCache: make(map[string]*UUIDText),
-		dscCache:      make(map[string]*SharedCacheStrings),
+		dscCache:      make(map[string]*sharedcache.SharedCacheStrings),
 	}
 }
 
@@ -39,7 +43,7 @@ func (c *CacheProvider) CachedUUIDText(uuid string) (*UUIDText, bool) {
 }
 
 // UpdateUUID updates the cached UUID text for the given UUID
-func (c *CacheProvider) UpdateUUID(uuid string, uuid2 string) {
+func (c *CacheProvider) UpdateUUID(uuid string, uuid2 string, data *UUIDText) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -61,14 +65,14 @@ func (c *CacheProvider) UpdateUUID(uuid string, uuid2 string) {
 }
 
 // CachedDSC returns the cached DSC for the given UUID
-func (c *CacheProvider) CachedDSC(uuid string) (*SharedCacheStrings, bool) {
+func (c *CacheProvider) CachedDSC(uuid string) (*sharedcache.SharedCacheStrings, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	data, exists := c.dscCache[uuid]
 	return data, exists
 }
 
-func (c *CacheProvider) UpdateDSC(uuid string, uuid2 string, data *SharedCacheStrings) {
+func (c *CacheProvider) UpdateDSC(uuid string, uuid2 string, data *sharedcache.SharedCacheStrings) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

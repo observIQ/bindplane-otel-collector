@@ -76,6 +76,24 @@ func (e *MacosUnifiedLoggingExtension) SetDSCRawData(dscRawData map[string][]byt
 	}
 }
 
+// SetUUIDTextRawData configures the UUID text raw data for accurate message parsing
+func (e *MacosUnifiedLoggingExtension) SetUUIDTextRawData(uuidTextRawData map[string][]byte) {
+	if e.codec != nil {
+		e.codec.uuidTextRawData = uuidTextRawData
+		// Parse the raw data and store as structured data
+		e.codec.parseUUIDTextRawData()
+	}
+}
+
+// SetDSCRawData configures the DSC (Dynamic Shared Cache) raw data for shared string parsing
+func (e *MacosUnifiedLoggingExtension) SetDSCRawData(dscRawData map[string][]byte) {
+	if e.codec != nil {
+		e.codec.dscRawData = dscRawData
+		// Parse the raw data and store as structured data
+		e.codec.parseDSCRawData()
+	}
+}
+
 // GetCacheProvider returns the cache provider for accessing parsed DSC and UUID data
 func (e *MacosUnifiedLoggingExtension) GetCacheProvider() *uuidtext.CacheProvider {
 	if e.codec != nil {
@@ -87,9 +105,8 @@ func (e *MacosUnifiedLoggingExtension) GetCacheProvider() *uuidtext.CacheProvide
 // Start initializes the extension.
 func (e *MacosUnifiedLoggingExtension) Start(_ context.Context, _ component.Host) error {
 	e.codec = &macosUnifiedLoggingCodec{
-		logger:        e.logger,
-		debugMode:     e.config.DebugMode,
-		cacheProvider: uuidtext.NewCacheProvider(),
+		logger:    e.logger,
+		debugMode: e.config.DebugMode,
 	}
 	return nil
 }
@@ -103,13 +120,12 @@ func (*MacosUnifiedLoggingExtension) Shutdown(context.Context) error {
 type macosUnifiedLoggingCodec struct {
 	logger          *zap.Logger
 	debugMode       bool
-	timesyncRawData map[string][]byte               // Raw timesync data from files
-	timesyncData    map[string]*TimesyncBoot        // Parsed timesync data for accurate timestamp conversion
-	uuidTextRawData map[string][]byte               // Raw UUID text data from files
-	uuidTextData    map[string]*uuidtext.UUIDText   // Parsed UUID text data for accurate message parsing
-	dscRawData      map[string][]byte               // Raw DSC data from files
-	dscData         map[string]*sharedcache.Strings // Parsed DSC data for shared string parsing
-	cacheProvider   *uuidtext.CacheProvider         // Cache provider for accessing parsed data
+	timesyncRawData map[string][]byte                          // Raw timesync data from files
+	timesyncData    map[string]*TimesyncBoot                   // Parsed timesync data for accurate timestamp conversion
+	uuidTextRawData map[string][]byte                          // Raw UUID text data from files
+	uuidTextData    map[string]*uuidtext.UUIDText              // Parsed UUID text data for accurate message parsing
+	dscRawData      map[string][]byte                          // Raw DSC data from files
+	dscData         map[string]*sharedcache.SharedCacheStrings // Parsed DSC data for shared string parsing
 }
 
 // UnmarshalLogs reads binary data and parses tracev3 entries into individual log records.
@@ -181,7 +197,7 @@ func (c *macosUnifiedLoggingCodec) parseDSCRawData() {
 	}
 
 	if c.dscData == nil {
-		c.dscData = make(map[string]*sharedcache.Strings)
+		c.dscData = make(map[string]*sharedcache.SharedCacheStrings)
 	}
 
 	for filePath, rawData := range c.dscRawData {
@@ -203,11 +219,6 @@ func (c *macosUnifiedLoggingCodec) parseDSCRawData() {
 
 		// Store parsed data
 		c.dscData[uuid] = parsedDSC
-
-		// Update cache provider with parsed data
-		if c.cacheProvider != nil {
-			c.cacheProvider.UpdateDSC(uuid, "", parsedDSC)
-		}
 
 		c.logger.Debug("Parsed DSC data",
 			zap.String("file", filePath),
@@ -299,7 +310,7 @@ func (c *macosUnifiedLoggingCodec) parseUUIDTextRawData() {
 		uuid := extractUUIDFromPath(filePath)
 
 		// Parse the raw data
-		parsedUUIDText, err := uuidtext.ParseUUIDText(rawData)
+		parsedUUIDText, err := uuidtext.ParseUUIDText(rawData, uuid)
 		if err != nil {
 			c.logger.Error("Failed to parse UUID text data",
 				zap.String("file", filePath),
@@ -313,11 +324,6 @@ func (c *macosUnifiedLoggingCodec) parseUUIDTextRawData() {
 
 		// Store parsed data
 		c.uuidTextData[uuid] = parsedUUIDText
-
-		// Update cache provider with parsed data
-		if c.cacheProvider != nil {
-			c.cacheProvider.UpdateUUID(uuid, "", parsedUUIDText)
-		}
 
 		c.logger.Debug("Parsed UUID text data",
 			zap.String("file", filePath),

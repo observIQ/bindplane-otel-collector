@@ -433,6 +433,11 @@ func (r *macosUnifiedLogReceiver) loadUUIDTextData() error {
 		totalBytes += len(data)
 	}
 
+	r.set.Logger.Info("=== RECEIVER DEBUG: UUID TEXT RAW DATA LOADED ===",
+		zap.Int("totalUUIDTextFiles", len(uuidTextRawData)),
+		zap.Strings("loadedFiles", loadedFiles),
+		zap.Int("totalBytes", totalBytes))
+
 	// Configure the encoding extension with the raw UUID text data
 	if macosExt, ok := r.encodingExt.(*macosunifiedloggingencodingextension.MacosUnifiedLoggingExtension); ok {
 		macosExt.SetUUIDTextRawData(uuidTextRawData)
