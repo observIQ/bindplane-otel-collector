@@ -22,7 +22,14 @@ import (
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 )
 
-func ExtractSharedStrings(provider *uuidtext.CacheProvider, stringOffset uint64, firstProcID uint64, secondProcID uint32, catalogs *types.CatalogChunk, originalOffset uint64) (types.MessageData, error) {
+func ExtractSharedStrings(
+	provider *uuidtext.CacheProvider,
+	stringOffset uint64,
+	firstProcID uint64,
+	secondProcID uint32,
+	catalogs *types.CatalogChunk,
+	originalOffset uint64,
+) (types.MessageData, error) {
 	messageData := types.MessageData{}
 	// Get shared string file (DSC) associated with log entry from Catalog
 	dscUUID, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
@@ -45,7 +52,10 @@ func ExtractSharedStrings(provider *uuidtext.CacheProvider, stringOffset uint64,
 				messageData.LibraryUUID = sharedString.UUIDs[ranges.UnknownUUIDIndex].UUID
 				messageData.ProcessUUID = mainUUID
 
-				processString := getUUIDImagePath(messageData.ProcessUUID, provider)
+				processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+				if err != nil {
+					return messageData, err
+				}
 				messageData.Process = processString
 
 				return messageData, nil
@@ -70,7 +80,10 @@ func ExtractSharedStrings(provider *uuidtext.CacheProvider, stringOffset uint64,
 
 				messageData.ProcessUUID = mainUUID
 
-				processString := getUUIDImagePath(messageData.ProcessUUID, provider)
+				processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+				if err != nil {
+					return messageData, err
+				}
 				messageData.Process = processString
 
 				return messageData, nil
@@ -87,7 +100,10 @@ func ExtractSharedStrings(provider *uuidtext.CacheProvider, stringOffset uint64,
 			messageData.FormatString = "Error: Invalid shared string offset"
 			messageData.ProcessUUID = mainUUID
 
-			processString := getUUIDImagePath(messageData.ProcessUUID, provider)
+			processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+			if err != nil {
+				return messageData, err
+			}
 			messageData.Process = processString
 			return messageData, nil
 		}
@@ -98,10 +114,118 @@ func ExtractSharedStrings(provider *uuidtext.CacheProvider, stringOffset uint64,
 	return messageData, nil
 }
 
+func ExtractFormatStrings(
+	provider *uuidtext.CacheProvider,
+	stringOffset uint64,
+	firstProcID uint64,
+	secondProcID uint32,
+	catalogs *types.CatalogChunk,
+	originalOffset uint64,
+) (types.MessageData, error) {
+	_, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
+
+	messageData := types.MessageData{
+		LibraryUUID: mainUUID,
+		ProcessUUID: mainUUID,
+	}
+
+	if _, exists := provider.CachedUUIDText(mainUUID); !exists {
+		provider.UpdateUUID(mainUUID, mainUUID)
+	}
+
+	if originalOffset&0x80000000 != 0 {
+		if data, exists := provider.CachedUUIDText(mainUUID); exists {
+			// Footer data is a collection of strings that ends with the image path/library associated with strings
+			processString, err := uuidTextImagePath(data.FooterData, data.EntryDescriptors)
+			if err != nil {
+				return messageData, err
+			}
+			messageData.Process = processString
+			messageData.Library = processString
+			messageData.FormatString = "%s"
+
+			return messageData, nil
+		}
+	}
+
+	if data, exists := provider.CachedUUIDText(mainUUID); exists {
+		stringStart := uint32(0)
+		for _, entry := range data.EntryDescriptors {
+			if entry.RangeStartOffset > uint32(stringOffset) {
+				stringStart += entry.EntrySize
+				continue
+			}
+
+			offset := uint32(stringOffset) - entry.RangeStartOffset
+			if len(data.FooterData) < int(offset+stringStart) || offset > entry.EntrySize {
+				stringStart += entry.EntrySize
+				continue
+			}
+
+			messageStart, _, _ := utils.Take(data.FooterData, int(offset+stringStart))
+			messageFormatString, err := utils.ExtractString(messageStart)
+			if err != nil {
+				return messageData, err
+			}
+
+			processString, err := uuidTextImagePath(data.FooterData, data.EntryDescriptors)
+			if err != nil {
+				return messageData, err
+			}
+
+			messageData.FormatString = messageFormatString
+			messageData.Process = processString
+			messageData.Library = processString
+
+			return messageData, nil
+		}
+	}
+
+	// There is a chance the log entry does not have a valid offset
+	// Apple reports as "~~> <Invalid shared cache code pointer offset>" or <Invalid shared cache format string offset>
+	if data, exists := provider.CachedUUIDText(mainUUID); exists {
+		processString, err := uuidTextImagePath(data.FooterData, data.EntryDescriptors)
+		if err != nil {
+			return messageData, err
+		}
+		messageData.Process = processString
+		messageData.Library = processString
+		messageData.FormatString = fmt.Sprintf("Error: Invalid offset %d for UUID %s", stringOffset, mainUUID)
+		return messageData, nil
+	}
+
+	// logger.Warn("Failed to get message string from UUIDText file")
+	messageData.FormatString = fmt.Sprintf("Failed to get message string from UUIDText file: %s", mainUUID)
+	return messageData, nil
+}
+
 func getCatalogDSC(catalogs *types.CatalogChunk, firstProcID uint64, secondProcID uint32) (string, string) {
 	return "", ""
 }
 
-func getUUIDImagePath(uuid string, provider *uuidtext.CacheProvider) string {
-	return ""
+func getUUIDImagePath(uuid string, provider *uuidtext.CacheProvider) (string, error) {
+	// An UUID of all zeros is possible in the Catalog, if this happens there is no process path
+	if uuid == "00000000000000000000000000000000" {
+		// logger.Info("Got UUID of all zeros fom Catalog")
+		return "", nil
+	}
+
+	if data, exists := provider.CachedUUIDText(uuid); exists {
+		return uuidTextImagePath(data.FooterData, data.EntryDescriptors)
+	}
+
+	// logger.Warn("Failed to get path string from UUIDText file for entry: %s", uuid)
+	return fmt.Sprintf("Failed to get path string from UUIDText file for entry: %s", uuid), nil
+}
+
+func uuidTextImagePath(data []byte, entries []uuidtext.UUIDTextEntry) (string, error) {
+	// Add up all entry range offset sizes to get image library offset
+	imageLibraryOffset := uint32(0)
+
+	for _, entry := range entries {
+		imageLibraryOffset += entry.EntrySize
+	}
+
+	libraryStart, _, _ := utils.Take(data, int(imageLibraryOffset))
+	return utils.ExtractString(libraryStart)
 }
