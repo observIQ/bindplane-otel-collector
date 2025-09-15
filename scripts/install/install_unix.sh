@@ -27,7 +27,7 @@ elif command -v service >/dev/null 2>&1; then
 fi
 
 # Script Constants
-COLLECTOR_USER="bindplane-otel-collector"
+COLLECTOR_USER="bdot"
 TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env var
 INSTALL_DIR="/opt/bindplane-otel-collector"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor.yaml"
