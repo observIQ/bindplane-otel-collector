@@ -21,7 +21,8 @@ import (
 )
 
 func TestParseChunkset(t *testing.T) {
-	parsedChunkset, _, _ := parseChunkset(chunksetTestData)
+	parsedChunkset, _, err := parseChunkset(chunksetTestData)
+	require.NoError(t, err)
 	require.Equal(t, parsedChunkset.ChunkTag, uint32(0x600d))
 	require.Equal(t, parsedChunkset.ChunkSubtag, uint32(17))
 	require.Equal(t, parsedChunkset.ChunkDataSize, uint64(21703))
