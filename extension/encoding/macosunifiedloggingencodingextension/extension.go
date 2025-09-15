@@ -76,11 +76,20 @@ func (e *MacosUnifiedLoggingExtension) SetDSCRawData(dscRawData map[string][]byt
 	}
 }
 
+// GetCacheProvider returns the cache provider for accessing parsed DSC and UUID data
+func (e *MacosUnifiedLoggingExtension) GetCacheProvider() *uuidtext.CacheProvider {
+	if e.codec != nil {
+		return e.codec.cacheProvider
+	}
+	return nil
+}
+
 // Start initializes the extension.
 func (e *MacosUnifiedLoggingExtension) Start(_ context.Context, _ component.Host) error {
 	e.codec = &macosUnifiedLoggingCodec{
-		logger:    e.logger,
-		debugMode: e.config.DebugMode,
+		logger:        e.logger,
+		debugMode:     e.config.DebugMode,
+		cacheProvider: uuidtext.NewCacheProvider(),
 	}
 	return nil
 }
@@ -100,6 +109,7 @@ type macosUnifiedLoggingCodec struct {
 	uuidTextData    map[string]*uuidtext.UUIDText              // Parsed UUID text data for accurate message parsing
 	dscRawData      map[string][]byte                          // Raw DSC data from files
 	dscData         map[string]*sharedcache.SharedCacheStrings // Parsed DSC data for shared string parsing
+	cacheProvider   *uuidtext.CacheProvider                    // Cache provider for accessing parsed data
 }
 
 // UnmarshalLogs reads binary data and parses tracev3 entries into individual log records.
@@ -193,6 +203,11 @@ func (c *macosUnifiedLoggingCodec) parseDSCRawData() {
 
 		// Store parsed data
 		c.dscData[uuid] = parsedDSC
+
+		// Update cache provider with parsed data
+		if c.cacheProvider != nil {
+			c.cacheProvider.UpdateDSC(uuid, "", parsedDSC)
+		}
 
 		c.logger.Debug("Parsed DSC data",
 			zap.String("file", filePath),
@@ -298,6 +313,11 @@ func (c *macosUnifiedLoggingCodec) parseUUIDTextRawData() {
 
 		// Store parsed data
 		c.uuidTextData[uuid] = parsedUUIDText
+
+		// Update cache provider with parsed data
+		if c.cacheProvider != nil {
+			c.cacheProvider.UpdateUUID(uuid, "", parsedUUIDText)
+		}
 
 		c.logger.Debug("Parsed UUID text data",
 			zap.String("file", filePath),
