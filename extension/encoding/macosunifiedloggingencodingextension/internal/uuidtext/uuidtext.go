@@ -38,6 +38,7 @@ type UUIDTextEntry struct {
 	EntrySize        uint32
 }
 
+// ParseUUIDText parses a UUID text file and returns a UUIDText struct
 func ParseUUIDText(data []byte, uuid string) (*UUIDText, error) {
 	uuidText := &UUIDText{}
 	expectedSignature := uint32(0x66778899)

@@ -30,7 +30,7 @@ type MessageData struct {
 }
 
 func ExtractSharedStrings(
-	provider types.FileProvider,
+	provider *CacheProvider,
 	stringOffset uint32,
 	firstProcID uint64,
 	secondProcID uint32,
@@ -38,9 +38,27 @@ func ExtractSharedStrings(
 	originalOffset uint64,
 ) (types.MessageData, error) {
 	messageData := MessageData{}
-
 	dscUUID, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
 	// ensure our cache is up to date
+	stringData, ok := provider.CachedDSC(dscUUID)
+	if !ok {
+		provider.UpdateDSC(dscUUID, mainUUID)
+	}
+	uuidTextData, ok := provider.CachedUUIDText(mainUUID)
+	if !ok {
+		provider.UpdateUUID(mainUUID, mainUUID)
+	}
+
+	if originalOffset & 0x80000000 != 0 {
+		if stringData, ok := provider.CachedDSC(dscUUID); ok {
+			// stringData is available here
+			
+			// Rust: if let Some(ranges) = shared_string.ranges.first()
+			if len(stringData.Ranges) > 0 {
+					ranges := stringData.Ranges[0] // Get first range
+					// Use ranges here
+			}
+	}
 
 }
 
