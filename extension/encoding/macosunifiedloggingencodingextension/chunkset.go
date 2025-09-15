@@ -44,7 +44,8 @@ const (
 	simpledumpChunk = 0x6004
 )
 
-func parseChunkset(data []byte) (ChunksetChunk, []byte, error) {
+func parseChunkset(data []byte) (chunk ChunksetChunk, remainingData []byte, err error) {
+	chunk = ChunksetChunk{}
 	chunk := ChunksetChunk{}
 
 	data, chunkTag, _ := utils.Take(data, 4)
