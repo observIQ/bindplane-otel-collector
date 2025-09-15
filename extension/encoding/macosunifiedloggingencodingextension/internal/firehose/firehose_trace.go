@@ -52,8 +52,8 @@ func ParseFirehoseTrace(data []byte) (FirehoseTrace, []byte, error) {
 	return firehoseTrace, data, nil
 }
 
-func GetMessage(data []byte) ([]byte, FirehoseItemData, error) {
-	itemData := FirehoseItemData{}
+func GetMessage(data []byte) ([]byte, ItemData, error) {
+	itemData := ItemData{}
 
 	if len(data) < minimumMessageSize {
 		return data, itemData, nil
@@ -70,7 +70,7 @@ func GetMessage(data []byte) ([]byte, FirehoseItemData, error) {
 	}
 
 	for _, size := range sizesCount {
-		itemInfo := FirehoseItemInfo{}
+		itemInfo := ItemInfo{}
 		remainder, messageData, _ := utils.Take(remainingData, int(size))
 		switch size {
 		case 1:

@@ -36,6 +36,12 @@ type Config struct {
 	// TimesyncPaths specifies the path to timesync files for accurate timestamp conversion. This should point to the timesync directory (e.g., "/path/to/logs.logarchive/timesync/*.timesync").
 	TimesyncPaths []string `mapstructure:"timesync_paths"`
 
+	// UUIDTextPaths specifies the path to UUID text files for accurate message parsing. This should point to the UUID text directory (e.g., "/path/to/logs.logarchive/*/*").
+	UUIDTextPaths []string `mapstructure:"uuidtext_paths"`
+
+	// DSCPaths specifies the path to DSC (Dynamic Shared Cache) files for shared string parsing. This should point to the DSC directory (e.g., "/path/to/logs.logarchive/dsc/*").
+	DSCPaths []string `mapstructure:"dsc_paths"`
+
 	// prevent unkeyed literal initialization
 	_ struct{}
 }

@@ -17,12 +17,17 @@ package macosunifiedloggingencodingextension // import "github.com/observiq/bind
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.uber.org/zap"
 
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/sharedcache"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding"
 )
 
@@ -33,6 +38,7 @@ var (
 // MacosUnifiedLoggingExtension implements the LogsUnmarshalerExtension interface
 // for decoding macOS Unified Logging binary data.
 type MacosUnifiedLoggingExtension struct {
+	logger *zap.Logger
 	config *Config
 	codec  *macosUnifiedLoggingCodec
 }
@@ -43,16 +49,37 @@ func (e *MacosUnifiedLoggingExtension) UnmarshalLogs(buf []byte) (plog.Logs, err
 	return e.codec.UnmarshalLogs(buf)
 }
 
-// SetTimesyncData configures the timesync data for accurate timestamp conversion
-func (e *MacosUnifiedLoggingExtension) SetTimesyncData(timesyncData map[string]*TimesyncBoot) {
+// SetTimesyncRawData configures the timesync raw data for accurate timestamp conversion
+func (e *MacosUnifiedLoggingExtension) SetTimesyncRawData(timesyncRawData map[string][]byte) {
 	if e.codec != nil {
-		e.codec.timesyncData = timesyncData
+		e.codec.timesyncRawData = timesyncRawData
+		// Parse the raw data and store as structured data
+		e.codec.parseTimesyncRawData()
+	}
+}
+
+// SetUUIDTextRawData configures the UUID text raw data for accurate message parsing
+func (e *MacosUnifiedLoggingExtension) SetUUIDTextRawData(uuidTextRawData map[string][]byte) {
+	if e.codec != nil {
+		e.codec.uuidTextRawData = uuidTextRawData
+		// Parse the raw data and store as structured data
+		e.codec.parseUUIDTextRawData()
+	}
+}
+
+// SetDSCRawData configures the DSC (Dynamic Shared Cache) raw data for shared string parsing
+func (e *MacosUnifiedLoggingExtension) SetDSCRawData(dscRawData map[string][]byte) {
+	if e.codec != nil {
+		e.codec.dscRawData = dscRawData
+		// Parse the raw data and store as structured data
+		e.codec.parseDSCRawData()
 	}
 }
 
 // Start initializes the extension.
 func (e *MacosUnifiedLoggingExtension) Start(_ context.Context, _ component.Host) error {
 	e.codec = &macosUnifiedLoggingCodec{
+		logger:    e.logger,
 		debugMode: e.config.DebugMode,
 	}
 	return nil
@@ -65,8 +92,14 @@ func (*MacosUnifiedLoggingExtension) Shutdown(context.Context) error {
 
 // macosUnifiedLoggingCodec handles the actual decoding of macOS Unified Logging binary data.
 type macosUnifiedLoggingCodec struct {
-	debugMode    bool
-	timesyncData map[string]*TimesyncBoot // Timesync data for accurate timestamp conversion
+	logger          *zap.Logger
+	debugMode       bool
+	timesyncRawData map[string][]byte                          // Raw timesync data from files
+	timesyncData    map[string]*TimesyncBoot                   // Parsed timesync data for accurate timestamp conversion
+	uuidTextRawData map[string][]byte                          // Raw UUID text data from files
+	uuidTextData    map[string]*uuidtext.UUIDText              // Parsed UUID text data for accurate message parsing
+	dscRawData      map[string][]byte                          // Raw DSC data from files
+	dscData         map[string]*sharedcache.SharedCacheStrings // Parsed DSC data for shared string parsing
 }
 
 // UnmarshalLogs reads binary data and parses tracev3 entries into individual log records.
@@ -129,4 +162,174 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 	}
 
 	return logs, nil
+}
+
+// parseDSCRawData parses raw DSC data into structured format
+func (c *macosUnifiedLoggingCodec) parseDSCRawData() {
+	if c.dscRawData == nil {
+		return
+	}
+
+	if c.dscData == nil {
+		c.dscData = make(map[string]*sharedcache.SharedCacheStrings)
+	}
+
+	for filePath, rawData := range c.dscRawData {
+		// Extract UUID from file path
+		uuid := extractDSCUUIDFromPath(filePath)
+
+		// Parse the raw data
+		parsedDSC, err := sharedcache.ParseDSC(rawData, uuid)
+		if err != nil {
+			c.logger.Error("Failed to parse DSC data",
+				zap.String("file", filePath),
+				zap.String("uuid", uuid),
+				zap.Error(err))
+			continue
+		}
+
+		// Set the DSC UUID from the file path
+		parsedDSC.DSCUUID = uuid
+
+		// Store parsed data
+		c.dscData[uuid] = parsedDSC
+
+		c.logger.Debug("Parsed DSC data",
+			zap.String("file", filePath),
+			zap.String("uuid", uuid),
+			zap.Int("numberRanges", int(parsedDSC.NumberRanges)),
+			zap.Int("numberUUIDs", int(parsedDSC.NumberUUIDs)))
+	}
+
+	c.logger.Info("Completed DSC data parsing",
+		zap.Int("totalFiles", len(c.dscRawData)),
+		zap.Int("successfullyParsed", len(c.dscData)))
+}
+
+// extractDSCUUIDFromPath extracts the UUID from a DSC file path
+func extractDSCUUIDFromPath(filePath string) string {
+	// Get the base filename (last component of the path)
+	filename := filepath.Base(filePath)
+
+	// Remove any extension if present
+	filename = strings.TrimSuffix(filename, filepath.Ext(filename))
+
+	// The filename should be the UUID (32 hex characters)
+	if len(filename) == 32 {
+		// Check if it's all hex (A-F, 0-9)
+		for _, char := range filename {
+			if !((char >= '0' && char <= '9') || (char >= 'A' && char <= 'F') || (char >= 'a' && char <= 'f')) {
+				return filename
+			}
+		}
+		return strings.ToUpper(filename) // Normalize to uppercase
+	}
+
+	// If not a standard UUID format, return as-is
+	return filename
+}
+
+// parseTimesyncRawData parses raw timesync data into structured format
+func (c *macosUnifiedLoggingCodec) parseTimesyncRawData() {
+	if c.timesyncRawData == nil {
+		return
+	}
+
+	if c.timesyncData == nil {
+		c.timesyncData = make(map[string]*TimesyncBoot)
+	}
+
+	for filePath, rawData := range c.timesyncRawData {
+		// Parse the raw data
+		fileTimesyncData, err := ParseTimesyncData(rawData)
+		if err != nil {
+			c.logger.Error("Failed to parse timesync data",
+				zap.String("file", filePath),
+				zap.Error(err))
+			continue
+		}
+
+		// Merge the timesync data (same logic as before)
+		for bootUUID, bootData := range fileTimesyncData {
+			if existing, exists := c.timesyncData[bootUUID]; exists {
+				// Merge records if boot UUID already exists
+				existing.TimesyncRecords = append(existing.TimesyncRecords, bootData.TimesyncRecords...)
+			} else {
+				c.timesyncData[bootUUID] = bootData
+			}
+		}
+
+		c.logger.Debug("Parsed timesync data",
+			zap.String("file", filePath),
+			zap.Int("bootRecords", len(fileTimesyncData)))
+	}
+
+	c.logger.Info("Completed timesync data parsing",
+		zap.Int("totalFiles", len(c.timesyncRawData)),
+		zap.Int("bootUUIDs", len(c.timesyncData)))
+}
+
+// parseUUIDTextRawData parses raw UUID text data into structured format
+func (c *macosUnifiedLoggingCodec) parseUUIDTextRawData() {
+	if c.uuidTextRawData == nil {
+		return
+	}
+
+	if c.uuidTextData == nil {
+		c.uuidTextData = make(map[string]*uuidtext.UUIDText)
+	}
+
+	for filePath, rawData := range c.uuidTextRawData {
+		// Extract UUID from file path
+		uuid := extractUUIDFromPath(filePath)
+
+		// Parse the raw data
+		parsedUUIDText, err := uuidtext.ParseUUIDText(rawData, uuid)
+		if err != nil {
+			c.logger.Error("Failed to parse UUID text data",
+				zap.String("file", filePath),
+				zap.String("uuid", uuid),
+				zap.Error(err))
+			continue
+		}
+
+		// Set the UUID from the file path
+		parsedUUIDText.UUID = uuid
+
+		// Store parsed data
+		c.uuidTextData[uuid] = parsedUUIDText
+
+		c.logger.Debug("Parsed UUID text data",
+			zap.String("file", filePath),
+			zap.String("uuid", uuid),
+			zap.Int("numberEntries", int(parsedUUIDText.NumberEntries)),
+			zap.Int("footerDataSize", len(parsedUUIDText.FooterData)))
+	}
+
+	c.logger.Info("Completed UUID text data parsing",
+		zap.Int("totalFiles", len(c.uuidTextRawData)),
+		zap.Int("successfullyParsed", len(c.uuidTextData)))
+}
+
+// extractUUIDFromPath extracts the UUID from a UUID text file path
+func extractUUIDFromPath(filePath string) string {
+	// Get the base filename (last component of the path)
+	filename := filepath.Base(filePath)
+
+	// Remove any extension if present
+	filename = strings.TrimSuffix(filename, filepath.Ext(filename))
+
+	// The filename should be the UUID (32 hex characters)
+	if len(filename) == 32 {
+		// Check if it's all hex (A-F, 0-9)
+		for _, char := range filename {
+			if !((char >= '0' && char <= '9') || (char >= 'A' && char <= 'F') || (char >= 'a' && char <= 'f')) {
+				return filename
+			}
+		}
+		return strings.ToUpper(filename) // Normalize to uppercase
+	}
+
+	// If not a standard UUID format, return as-is
+	return filename
 }
