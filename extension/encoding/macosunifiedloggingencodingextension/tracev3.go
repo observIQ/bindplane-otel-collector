@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 )
@@ -88,7 +87,7 @@ type TraceV3Entry struct {
 // UnifiedLogData represents the complete unified log data
 // Eventual replacement for TraceV3 header/entry structs
 type UnifiedLogData struct {
-	CatalogData  types.CatalogChunk
+	CatalogData  CatalogChunk
 	FirehoseData []firehose.Preamble
 	OversizeData []OversizeChunk
 	// StatedumpData  []StatedumpChunk
