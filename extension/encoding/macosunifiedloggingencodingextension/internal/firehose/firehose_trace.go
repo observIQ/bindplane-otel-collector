@@ -23,7 +23,7 @@ import (
 
 type FirehoseTrace struct {
 	UnknownPCID uint32
-	MessageData FirehoseItemData
+	MessageData ItemData
 }
 
 const minimumMessageSize = 4

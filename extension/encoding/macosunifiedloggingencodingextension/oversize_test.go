@@ -51,8 +51,8 @@ func TestGetOversizeStrings(t *testing.T) {
 			dataRefIndex:    1,
 			publicDataSize:  1092,
 			privateDataSize: 0,
-			messageItems: firehose.FirehoseItemData{
-				ItemInfo: []firehose.FirehoseItemInfo{
+			messageItems: firehose.ItemData{
+				ItemInfo: []firehose.ItemInfo{
 					{
 						MessageStrings: "system kext collection",
 						ItemType:       34,
