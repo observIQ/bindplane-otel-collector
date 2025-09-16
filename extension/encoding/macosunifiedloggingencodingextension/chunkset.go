@@ -46,7 +46,6 @@ const (
 
 func parseChunkset(data []byte) (chunk ChunksetChunk, remainingData []byte, err error) {
 	chunk = ChunksetChunk{}
-	chunk := ChunksetChunk{}
 
 	data, chunkTag, _ := utils.Take(data, 4)
 	data, chunkSubtag, _ := utils.Take(data, 4)
