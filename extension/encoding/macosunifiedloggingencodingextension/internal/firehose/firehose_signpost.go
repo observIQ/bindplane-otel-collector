@@ -17,8 +17,8 @@ package firehose
 import (
 	"encoding/binary"
 	"fmt"
+	"strconv"
 
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/sharedcache"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
@@ -107,8 +107,8 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte) {
 	return signpost, data
 }
 
-// TODO: Update this to use the new uuidtext package methods
-func getFirehoseSignpost(signpost Signpost, provider uuidtext.CacheProvider, stringOffset uint64, firstProcID uint64, secondProcID uint32, catalogs types.CatalogChunk) (types.MessageData, error) {
+// GetFirehoseSignpost gets the message data for a signpost firehose entry
+func GetFirehoseSignpost(signpost Signpost, provider *uuidtext.CacheProvider, stringOffset uint64, firstProcID uint64, secondProcID uint32, catalogs types.CatalogChunk) (types.MessageData, error) {
 	if signpost.FirehoseFormatters.SharedCache || (signpost.FirehoseFormatters.LargeSharedCache != 0 && signpost.FirehoseFormatters.HasLargeOffset != 0) {
 		if signpost.FirehoseFormatters.HasLargeOffset != 0 {
 			largeOffset := signpost.FirehoseFormatters.HasLargeOffset
@@ -128,13 +128,28 @@ func getFirehoseSignpost(signpost Signpost, provider uuidtext.CacheProvider, str
 			} else {
 				extraOffsetValue = fmt.Sprintf("%x%x", largeOffset, stringOffset)
 			}
-			extraOffsetValueResult, err := uuidtext.ExtractSharedStrings(&provider, uint32(extraOffsetValue), firstProcID, secondProcID, catalogs, stringOffset)
-			messageData, err := sharedcache.GetSharedFormatString(uint32(extraOffsetValueResult), firstProcID, secondProcID)
+
+			extraOffsetValueResult, err := strconv.ParseUint(extraOffsetValue, 16, 64)
 			if err != nil {
-				return messageData, fmt.Errorf("error getting shared format string: %w", err)
+				return types.MessageData{}, fmt.Errorf("failed to get shared string offset to format string for signpost firehose entry: %w", err)
 			}
-			return messageData, nil
+			return ExtractSharedStrings(provider, uint64(extraOffsetValueResult), firstProcID, secondProcID, &catalogs, stringOffset)
 		}
+
+		return ExtractSharedStrings(provider, stringOffset, firstProcID, secondProcID, &catalogs, stringOffset)
 	}
-	return types.MessageData{}, nil
+	if signpost.FirehoseFormatters.Absolute {
+		extraOffsetValue := fmt.Sprintf("%x%x", signpost.FirehoseFormatters.MainExeAltIndex, signpost.UnknownPCID)
+		extraOffsetValueResult, err := strconv.ParseUint(extraOffsetValue, 16, 64)
+		if err != nil {
+			return types.MessageData{}, fmt.Errorf("failed to get absolute offset to format string for signpost firehose entry: %w", err)
+		}
+		return ExtractAbsoluteStrings(provider, extraOffsetValueResult, stringOffset, firstProcID, secondProcID, &catalogs, stringOffset)
+	}
+
+	if len(signpost.FirehoseFormatters.UUIDRelative) != 0 {
+		return ExtractAltUUIDStrings(provider, stringOffset, signpost.FirehoseFormatters.UUIDRelative, firstProcID, secondProcID, &catalogs, stringOffset)
+	}
+
+	return ExtractFormatStrings(provider, stringOffset, firstProcID, secondProcID, &catalogs, stringOffset)
 }
