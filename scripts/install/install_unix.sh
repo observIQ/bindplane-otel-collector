@@ -892,8 +892,6 @@ main() {
   bindplane_banner
   check_prereqs
 
-  version="latest"
-
   if [ $# -ge 1 ]; then
     while [ -n "$1" ]; do
       case "$1" in
