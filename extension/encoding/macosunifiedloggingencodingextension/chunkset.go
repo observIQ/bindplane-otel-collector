@@ -186,10 +186,10 @@ func ParseChunksetData(data []byte, ulData *UnifiedLogData) ([]*TraceV3Entry, er
 			entries = append(entries, chunkEntry)
 
 		case 0x6004:
-			// Simpledump chunk
-			simpleDumpChunk := &SimpledumpChunk{}
+			// SimpleDump chunk
+			simpleDumpChunk := &SimpleDumpChunk{}
 
-			ParseSimpledumpChunk(chunkData, simpleDumpChunk)
+			ParseSimpleDumpChunk(chunkData, simpleDumpChunk)
 			// TODO: Update chunckEntry with simpledump data
 			// chunkEntry.ChunkType = "simpledump"
 			// entries = append(entries, chunkEntry)

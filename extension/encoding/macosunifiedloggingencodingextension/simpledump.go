@@ -19,8 +19,8 @@ import (
 	"fmt"
 )
 
-// SimpledumpChunk represents the parsed data from a simpledump chunk
-type SimpledumpChunk struct {
+// SimpleDumpChunk represents the parsed data from a SimpleDump chunk
+type SimpleDumpChunk struct {
 	ChunkTag                    uint32
 	ChunkSubTag                 uint32
 	ChunkDataSize               uint64
@@ -40,14 +40,13 @@ type SimpledumpChunk struct {
 	MessageString               string
 }
 
-// parseUUID converts a 16-byte UUID to string format matching the rust implementation
+// parseUUID converts a 16-byte UUID to string format
 func parseUUID(data []byte) string {
 	if len(data) < 16 {
 		return ""
 	}
 
-	// Format as uppercase hex string to match rust implementation
-	// The rust code does format!("{uuid:02X?}") which creates a debug format with uppercase hex
+	// Format as uppercase hex string
 	return fmt.Sprintf("%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
 		data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
 		data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15])
@@ -71,10 +70,9 @@ func extractString(data []byte) string {
 	return string(data[:end])
 }
 
-// ParseSimpledumpChunk parses a Simpledump chunk (0x6004) containing simple string data
-// Based on the rust implementation in chunks/simpledump.rs
+// ParseSimpleDumpChunk parses a SimpleDump Chunk (0x6004) containing simple string data
 // Note: The data passed in includes the complete chunk with 16-byte header (tag, subtag, size)
-func ParseSimpledumpChunk(data []byte, chunk *SimpledumpChunk) {
+func ParseSimpleDumpChunk(data []byte, chunk *SimpleDumpChunk) {
 	offset := 0
 
 	// Parse chunk header (16 bytes total)
@@ -84,7 +82,7 @@ func ParseSimpledumpChunk(data []byte, chunk *SimpledumpChunk) {
 	offset += 4
 	chunk.ChunkDataSize = binary.LittleEndian.Uint64(data[offset : offset+8])
 	offset += 8
-	// Parse simpledump payload fields
+	// Parse SimpleDump payload fields
 	chunk.FirstProcID = binary.LittleEndian.Uint64(data[offset : offset+8])
 	offset += 8
 	chunk.SecondProcID = binary.LittleEndian.Uint64(data[offset : offset+8])

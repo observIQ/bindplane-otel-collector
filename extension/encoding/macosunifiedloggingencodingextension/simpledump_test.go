@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Base prefix for a simpledump chunk up to and including UnknownNumberMessageStrings (sizes come after)
-var baseSimpledumpPrefix = []byte{
+// Base prefix for a SimpleDump Chunk up to and including UnknownNumberMessageStrings (sizes come after)
+var baseSimpleDumpPrefix = []byte{
 	4, 96, 0, 0, // ChunkTag
 	5, 0, 0, 0, // ChunkSubTag
 	219, 0, 0, 0, 0, 0, 0, 0, // ChunkDataSize
@@ -42,10 +42,10 @@ var defaultMessageBytes = []byte{
 	32, 49, 0, 0, 0, 0, 0, 0, // MessageString
 }
 
-// BuildSimpledumpTestData concatenates prefix, subsystem, and message slices and
+// BuildSimpleDumpTestData concatenates prefix, subsystem, and message slices and
 // updates the little-endian size fields for subsystem and message within the prefix.
 // Expected size field offsets (bytes): 96..99 = subsystem length, 100..103 = message length.
-func BuildSimpledumpTestData(prefix, subsystemSize, subsystem, messageSize, message []byte) []byte {
+func BuildSimpleDumpTestData(prefix, subsystemSize, subsystem, messageSize, message []byte) []byte {
 	out := make([]byte, len(prefix))
 	copy(out, prefix)
 
@@ -57,7 +57,7 @@ func BuildSimpledumpTestData(prefix, subsystemSize, subsystem, messageSize, mess
 	return out
 }
 
-func validateBaseData(t *testing.T, chunk *SimpledumpChunk) {
+func validateBaseData(t *testing.T, chunk *SimpleDumpChunk) {
 	require.Equal(t, uint32(24580), chunk.ChunkTag, "ChunkTag value incorrect")
 	require.Equal(t, uint32(5), chunk.ChunkSubTag, "ChunkSubTag value incorrect")
 	require.Equal(t, uint64(219), chunk.ChunkDataSize, "ChunkDataSize value incorrect")
@@ -73,53 +73,51 @@ func validateBaseData(t *testing.T, chunk *SimpledumpChunk) {
 	require.Equal(t, uint32(1), chunk.UnknownNumberMessageStrings, "UnknownNumberMessageStrings value incorrect")
 }
 
-func TestParseSimpledump(t *testing.T) {
-	testData := BuildSimpledumpTestData(baseSimpledumpPrefix,
-		defaultSizeSubsystemString,
-		defaultSubsystemBytes,
-		defaultSizeMessageString,
-		defaultMessageBytes,
-	)
-	// Create a SimpledumpChunk to populate
-	chunk := &SimpledumpChunk{}
-	ParseSimpledumpChunk(testData, chunk)
-
-	// Test the parsed Header values using testify assertions
-	validateBaseData(t, chunk)
-	require.Equal(t, uint32(79), chunk.UnknownSizeSubsystemString, "UnknownSizeSubsystemString value incorrect")
-	require.Equal(t, uint32(56), chunk.UnknownSizeMessageString, "UnknownSizeMessageString value incorrect")
-	require.Equal(t, "user/501/com.apple.mdworker.shared.0B000000-0000-0000-0000-000000000000 [4229]", chunk.Subsystem, "Subsystem value incorrect")
-	require.Equal(t, "service exited: dirty = 0, supported pressured-exit = 1", chunk.MessageString, "MessageString value incorrect")
-}
-
-func TestParseSimpledump_EmptySubsystemString(t *testing.T) {
-	testData := BuildSimpledumpTestData(baseSimpledumpPrefix, []byte{0, 0, 0, 0}, []byte{}, defaultSizeMessageString, defaultMessageBytes)
-
-	// Create a SimpledumpChunk to populate
-	chunk := &SimpledumpChunk{}
-
-	ParseSimpledumpChunk(testData, chunk)
-
-	// Test the parsed Header values using testify assertions
-	validateBaseData(t, chunk)
-	require.Equal(t, uint32(0), chunk.UnknownSizeSubsystemString, "UnknownSizeSubsystemString value incorrect")
-	require.Equal(t, uint32(56), chunk.UnknownSizeMessageString, "UnknownSizeMessageString value incorrect")
-	require.Equal(t, "", chunk.Subsystem, "Subsystem value incorrect")
-	require.Equal(t, "service exited: dirty = 0, supported pressured-exit = 1", chunk.MessageString, "MessageString value incorrect")
-}
-
-func TestParseSimpledump_EmptyMessageString(t *testing.T) {
-	testData := BuildSimpledumpTestData(baseSimpledumpPrefix, defaultSizeSubsystemString, defaultSubsystemBytes, []byte{0, 0, 0, 0}, []byte{})
-
-	// Create a SimpledumpChunk to populate
-	chunk := &SimpledumpChunk{}
-
-	ParseSimpledumpChunk(testData, chunk)
-
-	// Test the parsed Header values using testify assertions
-	validateBaseData(t, chunk)
-	require.Equal(t, uint32(79), chunk.UnknownSizeSubsystemString, "UnknownSizeSubsystemString value incorrect")
-	require.Equal(t, uint32(0), chunk.UnknownSizeMessageString, "UnknownSizeMessageString value incorrect")
-	require.Equal(t, "user/501/com.apple.mdworker.shared.0B000000-0000-0000-0000-000000000000 [4229]", chunk.Subsystem, "Subsystem value incorrect")
-	require.Equal(t, "", chunk.MessageString, "MessageString value incorrect")
+func TestParseSimpleDump(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		data     []byte
+		validate func(*testing.T, *SimpleDumpChunk)
+	}{
+		{
+			desc: "base",
+			data: BuildSimpleDumpTestData(baseSimpleDumpPrefix, defaultSizeSubsystemString, defaultSubsystemBytes, defaultSizeMessageString, defaultMessageBytes),
+			validate: func(t *testing.T, chunk *SimpleDumpChunk) {
+				validateBaseData(t, chunk)
+				require.Equal(t, uint32(79), chunk.UnknownSizeSubsystemString, "UnknownSizeSubsystemString value incorrect")
+				require.Equal(t, uint32(56), chunk.UnknownSizeMessageString, "UnknownSizeMessageString value incorrect")
+				require.Equal(t, "user/501/com.apple.mdworker.shared.0B000000-0000-0000-0000-000000000000 [4229]", chunk.Subsystem, "Subsystem value incorrect")
+				require.Equal(t, "service exited: dirty = 0, supported pressured-exit = 1", chunk.MessageString, "MessageString value incorrect")
+			},
+		},
+		{
+			desc: "empty",
+			data: BuildSimpleDumpTestData(baseSimpleDumpPrefix, []byte{0, 0, 0, 0}, []byte{}, defaultSizeMessageString, defaultMessageBytes),
+			validate: func(t *testing.T, chunk *SimpleDumpChunk) {
+				validateBaseData(t, chunk)
+				require.Equal(t, uint32(0), chunk.UnknownSizeSubsystemString, "UnknownSizeSubsystemString value incorrect")
+				require.Equal(t, uint32(56), chunk.UnknownSizeMessageString, "UnknownSizeMessageString value incorrect")
+				require.Equal(t, "", chunk.Subsystem, "Subsystem value incorrect")
+				require.Equal(t, "service exited: dirty = 0, supported pressured-exit = 1", chunk.MessageString, "MessageString value incorrect")
+			},
+		},
+		{
+			desc: "empty message",
+			data: BuildSimpleDumpTestData(baseSimpleDumpPrefix, defaultSizeSubsystemString, defaultSubsystemBytes, []byte{0, 0, 0, 0}, []byte{}),
+			validate: func(t *testing.T, chunk *SimpleDumpChunk) {
+				validateBaseData(t, chunk)
+				require.Equal(t, uint32(79), chunk.UnknownSizeSubsystemString, "UnknownSizeSubsystemString value incorrect")
+				require.Equal(t, uint32(0), chunk.UnknownSizeMessageString, "UnknownSizeMessageString value incorrect")
+				require.Equal(t, "user/501/com.apple.mdworker.shared.0B000000-0000-0000-0000-000000000000 [4229]", chunk.Subsystem, "Subsystem value incorrect")
+				require.Equal(t, "", chunk.MessageString, "MessageString value incorrect")
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			chunk := &SimpleDumpChunk{}
+			ParseSimpleDumpChunk(tc.data, chunk)
+			tc.validate(t, chunk)
+		})
+	}
 }
