@@ -15,8 +15,12 @@ package firehose
 
 import (
 	"encoding/binary"
+	"fmt"
+	"strconv"
 
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 )
 
 type FirehoseNonActivity struct {
@@ -82,60 +86,57 @@ func ParseFirehoseNonActivity(data []byte, flags uint16) (FirehoseNonActivity, [
 	return nonActivity, data
 }
 
-// TODO: Fix this up after merge + signpost merge + dsc rewrite
-// func GetFirehoseNonActivityStrings(
-// 	nonActivity FirehoseNonActivity,
-// 	provider FileProvider,
-// 	stringOffset uint64,
-// 	firstProcID uint64,
-// 	secondProcID uint32,
-// 	catalogs *CatalogChunk,
-// ) (MessageData, []byte) {
-// 	if nonActivity.FirehoseFormatters.SharedCache || nonActivity.FirehoseFormatters.LargeSharedCache != 0 {
-// 		if nonActivity.FirehoseFormatters.HasLargeOffset != 0 {
-// 			largeOffset := nonActivity.FirehoseFormatters.HasLargeOffset
-// 			extraOffsetValue := ""
-// 			// large_shared_cache should be double the value of has_large_offset
-// 			// Ex: has_large_offset = 1, large_shared_cache = 2
-// 			// If the value do not match then there is an issue with shared string offset
-// 			// Can recover by using large_shared_cache
-// 			// Apple/log records this as an error: "error: ~~> <Invalid shared cache code pointer offset>"
-// 			// But is still able to get string formatter
-// 			if largeOffset != nonActivity.FirehoseFormatters.LargeSharedCache/2 && !nonActivity.FirehoseFormatters.SharedCache {
-// 				largeOffset = nonActivity.FirehoseFormatters.LargeSharedCache / 2
-// 				// Combine large offset value with current string offset to get the true offset
-// 				extraOffsetValue = fmt.Sprintf("%x%x", largeOffset, stringOffset)
-// 			} else if nonActivity.FirehoseFormatters.SharedCache {
-// 				// Large offset is 8 if shared_cache flag is set
-// 				largeOffset = 8
-// 				extraOffsetValue = fmt.Sprintf("%x", 0x10000000*uint64(largeOffset)+stringOffset)
-// 			} else {
-// 				extraOffsetValue = fmt.Sprintf("%x%x", largeOffset, stringOffset)
-// 			}
+func GetFirehoseNonActivityStrings(
+	firehose FirehoseNonActivity,
+	provider *uuidtext.CacheProvider,
+	stringOffset uint64,
+	firstProcID uint64,
+	secondProcID uint32,
+	catalogs *types.CatalogChunk,
+) (types.MessageData, error) {
+	if firehose.FirehoseFormatters.SharedCache || firehose.FirehoseFormatters.LargeSharedCache != 0 {
+		if firehose.FirehoseFormatters.HasLargeOffset != 0 {
+			largeOffset := firehose.FirehoseFormatters.HasLargeOffset
+			var extraOffsetValue string
+			// large_shared_cache should be double the value of has_large_offset
+			// Ex: has_large_offset = 1, large_shared_cache = 2
+			// If the value do not match then there is an issue with shared string offset
+			// Can recover by using large_shared_cache
+			// Apple/log records this as an error: "error: ~~> <Invalid shared cache code pointer offset>"
+			// But is still able to get string formatter
+			if largeOffset != firehose.FirehoseFormatters.LargeSharedCache/2 && !firehose.FirehoseFormatters.SharedCache {
+				largeOffset = firehose.FirehoseFormatters.LargeSharedCache / 2
+				extraOffsetValue = fmt.Sprintf("%x%x", largeOffset, stringOffset)
+			} else if firehose.FirehoseFormatters.SharedCache {
+				largeOffset = 8
+				addOffset := uint64(0x10000000) * uint64(largeOffset)
+				extraOffsetValue = fmt.Sprintf("%x", addOffset+stringOffset)
+			} else {
+				extraOffsetValue = fmt.Sprintf("%x%x", largeOffset, stringOffset)
+			}
 
-// 			extraOffsetValueResult, err := strconv.ParseUint(extraOffsetValue, 16, 64)
-// 			if err != nil {
-// 				// TODO: error
-// 			}
+			extraOffsetValueResult, err := strconv.ParseUint(extraOffsetValue, 16, 64)
+			if err != nil {
+				return types.MessageData{}, fmt.Errorf("failed to get shared string offset to format string for non-activity firehose entry: %w", err)
+			}
+			return ExtractSharedStrings(provider, uint64(extraOffsetValueResult), firstProcID, secondProcID, catalogs, stringOffset)
+		}
 
-// 			return ExtractSharedStrings(provider, extraOffsetValueResult, firstProcID, secondProcID, catalogs, stringOffset)
-// 		}
+		return ExtractSharedStrings(provider, stringOffset, firstProcID, secondProcID, catalogs, stringOffset)
+	}
 
-// 		return ExtractSharedStrings(provider, stringOffset, firstProcID, secondProcID, catalogs, stringOffset)
-// 	} else {
-// 		if nonActivity.FirehoseFormatters.Absolute {
-// 			extraOffsetValue := fmt.Sprintf("%x%x", nonActivity.FirehoseFormatters.MainExeAltIndex, nonActivity.UnknownPCID)
-// 			extraOffsetValueResult, err := strconv.ParseUint(extraOffsetValue, 16, 64)
-// 			if err != nil {
-// 				// TODO: error
-// 			}
-// 			return ExtractAbsoluteStrings(provider, extraOffsetValueResult, firstProcID, secondProcID, catalogs, stringOffset)
-// 		}
+	if firehose.FirehoseFormatters.Absolute {
+		extraOffsetValue := fmt.Sprintf("%x%x", firehose.FirehoseFormatters.MainExeAltIndex, firehose.UnknownPCID)
+		extraOffsetValueResult, err := strconv.ParseUint(extraOffsetValue, 16, 64)
+		if err != nil {
+			return types.MessageData{}, fmt.Errorf("failed to get absolute offset to format string for non-activity firehose entry: %w", err)
+		}
+		return ExtractAbsoluteStrings(provider, extraOffsetValueResult, stringOffset, firstProcID, secondProcID, catalogs, stringOffset)
+	}
 
-// 		if len(nonActivity.FirehoseFormatters.UUIDRelative) != 0 {
-// 			return ExtractAltUuidStrings(provider, stringOffset, nonActivity.FirehoseFormatters.UUIDRelative, firstProcID, secondProcID, catalogs, stringOffset)
-// 		}
+	if firehose.FirehoseFormatters.UUIDRelative != "" {
+		return ExtractAltUUIDStrings(provider, stringOffset, firehose.FirehoseFormatters.UUIDRelative, firstProcID, secondProcID, catalogs, stringOffset)
+	}
 
-// 		return ExtractFormatStrings(provider, stringOffset, firstProcID, secondProcID, catalogs, stringOffset)
-// 	}
-// }
+	return ExtractFormatStrings(provider, stringOffset, firstProcID, secondProcID, catalogs, stringOffset)
+}
