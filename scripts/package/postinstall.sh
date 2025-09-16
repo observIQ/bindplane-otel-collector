@@ -27,15 +27,17 @@ set -e
 # Whether or not to run the collector as an unprivileged user.
 : "${BDOT_UNPRIVILEGED:=false}"
 
-username="bdot"
+# Configurable username and group for BDOT
+: "${BDOT_USER:=bdot}"
+: "${BDOT_GROUP:=bdot}"
 
 install() {
   stage_dir="/usr/share/bindplane-otel-collector/stage/bindplane-otel-collector"
 
   mkdir -p "${BDOT_CONFIG_HOME}"
   chmod 0755 "${BDOT_CONFIG_HOME}"
-  chown "${username}:${username}" "${BDOT_CONFIG_HOME}"
-  chown -R "${username}:${username}" "${stage_dir}"
+  chown "${BDOT_USER}:${BDOT_GROUP}" "${BDOT_CONFIG_HOME}"
+  chown -R "${BDOT_USER}:${BDOT_GROUP}" "${stage_dir}"
 
   # Remove supervisor.yaml from staging if it already exists in target
   # to avoid overwriting the existing file.
@@ -87,7 +89,7 @@ StartLimitBurst=5
 [Service]
 Type=simple
 User=root
-Group=${username}
+Group=${BDOT_GROUP}
 Environment=PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 Environment=OIQ_OTEL_COLLECTOR_HOME=${BDOT_CONFIG_HOME}
 Environment=OIQ_OTEL_COLLECTOR_STORAGE=${BDOT_CONFIG_HOME}/storage
@@ -120,9 +122,9 @@ EOF
   if [ "${BDOT_UNPRIVILEGED}" = "true" ]; then
     cat << EOF > "${override_user_path}"
 [Service]
-User=${username}
+User=${BDOT_USER}
 EOF
-    echo "Configured systemd service to run as ${username} user in ${override_user_path}"
+    echo "Configured systemd service to run as ${BDOT_USER} user in ${override_user_path}"
   fi
 }
 
@@ -474,17 +476,17 @@ manage_service() {
 
 finish_permissions() {
   # Goreleaser does not set plugin file permissions, so do them here
-  # We also change the owner of the binary to bdot
-  chown -R "${username}:${username}" ${BDOT_CONFIG_HOME}/bindplane-otel-collector ${BDOT_CONFIG_HOME}/opampsupervisor ${BDOT_CONFIG_HOME}/plugins/*
+  # We also change the owner of the binary to the configured user
+  chown -R ${BDOT_USER}:${BDOT_GROUP} ${BDOT_CONFIG_HOME}/bindplane-otel-collector ${BDOT_CONFIG_HOME}/opampsupervisor ${BDOT_CONFIG_HOME}/plugins/*
   chmod 0640 ${BDOT_CONFIG_HOME}/plugins/*
 
-  # Initialize the log file to ensure it is owned by bdot.
+  # Initialize the log file to ensure it is owned by the configured user.
   # This prevents the service (running as root) from assigning ownership to
-  # the root user. By doing so, we allow the user to switch to bdot
+  # the root user. By doing so, we allow the user to switch to the configured
   # user for 'non root' installs.
   mkdir -p ${BDOT_CONFIG_HOME}/supervisor_storage
   touch ${BDOT_CONFIG_HOME}/supervisor_storage/agent.log
-  chown "${username}:${username}" ${BDOT_CONFIG_HOME}/supervisor_storage/agent.log
+  chown ${BDOT_USER}:${BDOT_GROUP} ${BDOT_CONFIG_HOME}/supervisor_storage/agent.log
 }
 
 install
