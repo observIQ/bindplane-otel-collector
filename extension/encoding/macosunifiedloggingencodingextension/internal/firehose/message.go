@@ -315,6 +315,102 @@ func ExtractAbsoluteStrings(
 	return messageData, nil
 }
 
+func ExtractAltUUIDStrings(
+	provider *uuidtext.CacheProvider,
+	stringOffset uint64,
+	uuid string,
+	firstProcID uint64,
+	secondProcID uint32,
+	catalogs *types.CatalogChunk,
+	originalOffset uint64,
+) (types.MessageData, error) {
+	_, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
+	messageData := types.MessageData{
+		LibraryUUID: uuid,
+		ProcessUUID: mainUUID,
+	}
+
+	if _, exists := provider.CachedUUIDText(messageData.LibraryUUID); !exists {
+		provider.UpdateUUID(messageData.LibraryUUID, messageData.ProcessUUID)
+	}
+	if _, exists := provider.CachedUUIDText(messageData.ProcessUUID); !exists {
+		provider.UpdateUUID(messageData.ProcessUUID, messageData.LibraryUUID)
+	}
+
+	if originalOffset&0x80000000 != 0 {
+		if data, exists := provider.CachedUUIDText(uuid); exists {
+			libraryString, err := uuidTextImagePath(data.FooterData, data.EntryDescriptors)
+			if err != nil {
+				return messageData, err
+			}
+			messageData.Library = libraryString
+			processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+			if err != nil {
+				return messageData, err
+			}
+			messageData.Process = processString
+			messageData.FormatString = "%s"
+			return messageData, nil
+		}
+	}
+
+	if data, exists := provider.CachedUUIDText(uuid); exists {
+		stringStart := uint32(0)
+		for _, entry := range data.EntryDescriptors {
+			if entry.RangeStartOffset > uint32(stringOffset) {
+				stringStart += entry.EntrySize
+				continue
+			}
+
+			offset := uint32(stringOffset) - entry.RangeStartOffset
+			if len(data.FooterData) < int(offset) || offset > entry.EntrySize {
+				stringStart += entry.EntrySize
+				continue
+			}
+
+			messageStart, _, _ := utils.Take(data.FooterData, int(offset+stringStart))
+			messageFormatString, err := utils.ExtractString(messageStart)
+			if err != nil {
+				return messageData, err
+			}
+			libraryString, err := uuidTextImagePath(data.FooterData, data.EntryDescriptors)
+			if err != nil {
+				return messageData, err
+			}
+			processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+			if err != nil {
+				return messageData, err
+			}
+			messageData.Library = libraryString
+			messageData.Process = processString
+			messageData.FormatString = messageFormatString
+			return messageData, nil
+		}
+	}
+
+	// There is a chance the log entry does not have a valid offset
+	// Apple labels as "error: ~~> Invalid bounds 4334340 for E502E11E-518F-38A7-9F0B-E129168338E7"
+	if data, exists := provider.CachedUUIDText(uuid); exists {
+		libraryString, err := uuidTextImagePath(data.FooterData, data.EntryDescriptors)
+		if err != nil {
+			return messageData, err
+		}
+		messageData.Library = libraryString
+		messageData.FormatString = fmt.Sprintf("Error: Invalid offset %d for UUID %s", stringOffset, uuid)
+		processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+		if err != nil {
+			return messageData, err
+		}
+		messageData.Process = processString
+		return messageData, nil
+	}
+
+	// logger.Warn("Failed to get message string from UUIDText file")
+	messageData.FormatString = fmt.Sprintf("Failed to get message string from alternative UUIDText file: %s", uuid)
+	return messageData, nil
+
+}
+
 func getCatalogDSC(catalogs *types.CatalogChunk, firstProcID uint64, secondProcID uint32) (string, string) {
 	return "", ""
 }
