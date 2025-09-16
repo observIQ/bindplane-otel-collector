@@ -108,7 +108,7 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte) {
 }
 
 // GetFirehoseSignpost gets the message data for a signpost firehose entry
-func GetFirehoseSignpost(signpost Signpost, provider *uuidtext.CacheProvider, stringOffset uint64, firstProcID uint64, secondProcID uint32, catalogs types.CatalogChunk) (types.MessageData, error) {
+func GetFirehoseSignpostStrings(signpost Signpost, provider *uuidtext.CacheProvider, stringOffset uint64, firstProcID uint64, secondProcID uint32, catalogs types.CatalogChunk) (types.MessageData, error) {
 	if signpost.FirehoseFormatters.SharedCache || (signpost.FirehoseFormatters.LargeSharedCache != 0 && signpost.FirehoseFormatters.HasLargeOffset != 0) {
 		if signpost.FirehoseFormatters.HasLargeOffset != 0 {
 			largeOffset := signpost.FirehoseFormatters.HasLargeOffset
