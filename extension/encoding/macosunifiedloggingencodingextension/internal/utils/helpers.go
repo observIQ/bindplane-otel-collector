@@ -58,6 +58,7 @@ func ExtractStringSize(data []byte, messageSize uint64) ([]byte, string, error) 
 	return input, pathString, nil
 }
 
+// ExtractString extracts a string from the data
 func ExtractString(data []byte) (string, error) {
 	if len(data) == 0 {
 		return "", fmt.Errorf("cannot extract string: Empty input")
