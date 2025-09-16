@@ -37,10 +37,13 @@ install() {
     mkdir -p "${BDOT_CONFIG_HOME}"
     chmod 0755 "${BDOT_CONFIG_HOME}"
     chown "$BDOT_USER:$BDOT_GROUP" "${BDOT_CONFIG_HOME}"
-    rm -f "${BDOT_CONFIG_HOME}/observiq-otel-collector" || true
 
     share_dir="/usr/share/observiq-otel-collector"
     stage_dir="${share_dir}/stage/observiq-otel-collector"
+
+    # Rename binaries in staging directory to avoid Linux binary locking issues
+    # during copy operation
+    mv "${stage_dir}/observiq-otel-collector" "${stage_dir}/observiq-otel-collector.new"
 
     # Prepare staged files with runtime ownership so destination does not need
     # post-copy ownership changes. This helps to ensure permissions do not flap
@@ -53,6 +56,9 @@ install() {
     cp -r --preserve \
       "$stage_dir"/* \
       "${BDOT_CONFIG_HOME}"
+
+    # Perform atomic moves for binary files to replace running binaries
+    mv "${BDOT_CONFIG_HOME}/observiq-otel-collector.new" "${BDOT_CONFIG_HOME}/observiq-otel-collector"
 
     rm -rf "$share_dir"
 }
