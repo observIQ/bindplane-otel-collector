@@ -34,19 +34,13 @@ func ExtractSharedStrings(
 	// Get shared string file (DSC) associated with log entry from Catalog
 	dscUUID, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
 
-	// Check if we have the DSC data cached
-	if _, exists := provider.CachedDSC(dscUUID); !exists {
-		provider.UpdateDSC(dscUUID, mainUUID)
-	}
-
-	// Check if we have the UUID text data cached
-	if _, exists := provider.CachedUUIDText(mainUUID); !exists {
-		provider.UpdateUUID(mainUUID, mainUUID)
-	}
+	// DSC and UUID data should already be loaded by the receiver and cached by the extension
+	// If data is missing, it means the files weren't found during initialization
 
 	if originalOffset&0x80000000 != 0 {
 		if sharedString, exists := provider.CachedDSC(dscUUID); exists {
-			if ranges, exists := sharedString.Ranges[0]; exists {
+			if len(sharedString.Ranges) > 0 {
+				ranges := sharedString.Ranges[0]
 				messageData.FormatString = "%s"
 				messageData.Library = sharedString.UUIDs[ranges.UnknownUUIDIndex].PathString
 				messageData.LibraryUUID = sharedString.UUIDs[ranges.UnknownUUIDIndex].UUID
@@ -94,7 +88,8 @@ func ExtractSharedStrings(
 	// There is a chance the log entry does not have a valid offset
 	// Apple reports as "~~> <Invalid shared cache code pointer offset>" or <Invalid shared cache format string offset>
 	if sharedString, exists := provider.CachedDSC(dscUUID); exists {
-		if ranges, exists := sharedString.Ranges[0]; exists {
+		if len(sharedString.Ranges) > 0 {
+			ranges := sharedString.Ranges[0]
 			messageData.Library = sharedString.UUIDs[ranges.UnknownUUIDIndex].PathString
 			messageData.LibraryUUID = sharedString.UUIDs[ranges.UnknownUUIDIndex].UUID
 			messageData.FormatString = "Error: Invalid shared string offset"
@@ -129,9 +124,7 @@ func ExtractFormatStrings(
 		ProcessUUID: mainUUID,
 	}
 
-	if _, exists := provider.CachedUUIDText(mainUUID); !exists {
-		provider.UpdateUUID(mainUUID, mainUUID)
-	}
+	// UUID data should already be loaded by the receiver and cached by the extension
 
 	if originalOffset&0x80000000 != 0 {
 		if data, exists := provider.CachedUUIDText(mainUUID); exists {
@@ -230,12 +223,7 @@ func ExtractAbsoluteStrings(
 		ProcessUUID: mainUUID,
 	}
 
-	if _, exists := provider.CachedUUIDText(messageData.ProcessUUID); !exists {
-		provider.UpdateUUID(messageData.ProcessUUID, messageData.LibraryUUID)
-	}
-	if _, exists := provider.CachedUUIDText(messageData.LibraryUUID); !exists {
-		provider.UpdateUUID(messageData.LibraryUUID, messageData.ProcessUUID)
-	}
+	// UUID data should already be loaded by the receiver and cached by the extension
 	if originalOffset&0x80000000 != 0 {
 		if data, exists := provider.CachedUUIDText(messageData.LibraryUUID); exists {
 			libraryString, err := uuidTextImagePath(data.FooterData, data.EntryDescriptors)
@@ -330,12 +318,7 @@ func ExtractAltUUIDStrings(
 		ProcessUUID: mainUUID,
 	}
 
-	if _, exists := provider.CachedUUIDText(messageData.LibraryUUID); !exists {
-		provider.UpdateUUID(messageData.LibraryUUID, messageData.ProcessUUID)
-	}
-	if _, exists := provider.CachedUUIDText(messageData.ProcessUUID); !exists {
-		provider.UpdateUUID(messageData.ProcessUUID, messageData.LibraryUUID)
-	}
+	// UUID data should already be loaded by the receiver and cached by the extension
 
 	if originalOffset&0x80000000 != 0 {
 		if data, exists := provider.CachedUUIDText(uuid); exists {
@@ -412,6 +395,11 @@ func ExtractAltUUIDStrings(
 }
 
 func getCatalogDSC(catalogs *types.CatalogChunk, firstProcID uint64, secondProcID uint32) (string, string) {
+	key := fmt.Sprintf("%d_%d", firstProcID, secondProcID)
+	if entry, exists := catalogs.ProcessInfoMap[key]; exists {
+		return entry.DSCUUID, entry.MainUUID
+	}
+	// TODO: log warning
 	return "", ""
 }
 
