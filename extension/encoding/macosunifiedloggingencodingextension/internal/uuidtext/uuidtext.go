@@ -28,18 +28,18 @@ type UUIDText struct {
 	UnknownMajorVersion uint32
 	UnknownMinorVersion uint32
 	NumberEntries       uint32
-	EntryDescriptors    []UUIDTextEntry
+	EntryDescriptors    []Entry
 	FooterData          []byte // Collection of strings containing format strings
 }
 
-// UUIDTextEntry represents an entry descriptor in a UUID text file
-type UUIDTextEntry struct {
+// Entry represents an entry descriptor in a UUID text file
+type Entry struct {
 	RangeStartOffset uint32
 	EntrySize        uint32
 }
 
 // ParseUUIDText parses a UUID text file and returns a UUIDText struct
-func ParseUUIDText(data []byte, uuid string) (*UUIDText, error) {
+func ParseUUIDText(data []byte) (*UUIDText, error) {
 	uuidText := &UUIDText{}
 	expectedSignature := uint32(0x66778899)
 
@@ -57,11 +57,11 @@ func ParseUUIDText(data []byte, uuid string) (*UUIDText, error) {
 	uuidText.UnknownMinorVersion = binary.LittleEndian.Uint32(unknownMinorVersion)
 	uuidText.NumberEntries = binary.LittleEndian.Uint32(numberEntries)
 
-	uuidText.EntryDescriptors = make([]UUIDTextEntry, uuidText.NumberEntries)
+	uuidText.EntryDescriptors = make([]Entry, uuidText.NumberEntries)
 	for i := 0; i < int(uuidText.NumberEntries); i++ {
 		data, rangeStartOffset, _ := utils.Take(data, 4)
 		data, entrySize, _ := utils.Take(data, 4)
-		entryData := UUIDTextEntry{
+		entryData := Entry{
 			RangeStartOffset: binary.LittleEndian.Uint32(rangeStartOffset),
 			EntrySize:        binary.LittleEndian.Uint32(entrySize),
 		}

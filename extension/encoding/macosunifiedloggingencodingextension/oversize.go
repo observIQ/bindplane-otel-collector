@@ -16,7 +16,6 @@ package macosunifiedloggingencodingextension // import "github.com/observiq/bind
 
 import (
 	"encoding/binary"
-	"fmt"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
@@ -40,7 +39,7 @@ type OversizeChunk struct {
 
 // ParseOversizeChunk parses an oversize chunk
 // Returns the parsed oversize chunk and the remaining data
-func ParseOversizeChunk(data []byte) (OversizeChunk, []byte) {
+func ParseOversizeChunk(data []byte) (OversizeChunk, []byte, error) {
 	var oversizeResult OversizeChunk
 
 	data, chunkTag, _ := utils.Take(data, 4)
@@ -69,7 +68,8 @@ func ParseOversizeChunk(data []byte) (OversizeChunk, []byte) {
 
 	oversizeDataSize := int(oversizeResult.publicDataSize + oversizeResult.privateDataSize)
 	if oversizeDataSize > len(data) {
-		fmt.Printf("Oversize data size greater than Oversize remaining string size. Using remaining string size\n")
+		// TODO: Log this warning
+		// fmt.Printf("Oversize data size greater than Oversize remaining string size. Using remaining string size\n")
 		oversizeDataSize = len(data)
 	}
 
@@ -80,15 +80,17 @@ func ParseOversizeChunk(data []byte) (OversizeChunk, []byte) {
 
 	emptyFlags := uint16(0)
 	// Grab all message items from oversize data
-	firehoseItemData, oversizePrivateData := firehose.ParseFirehoseMessageItems(messageData, oversizeItemCount, emptyFlags)
-	_, err := firehose.ParsePrivateData(oversizePrivateData, &firehoseItemData)
+	firehoseItemData, oversizePrivateData, err := firehose.ParseFirehoseMessageItems(messageData, oversizeItemCount, emptyFlags)
 	if err != nil {
-		// TODO: better error handling
-		fmt.Printf("Error parsing private data: %v\n", err)
+		return oversizeResult, data, err
+	}
+	_, err = firehose.ParsePrivateData(oversizePrivateData, &firehoseItemData)
+	if err != nil {
+		return oversizeResult, data, err
 	}
 	oversizeResult.messageItems = firehoseItemData
 
-	return oversizeResult, data
+	return oversizeResult, data, nil
 }
 
 // GetOversizeStrings gets the firehose item info from the oversize log entry based on oversize (data ref) id, first proc id, and second proc id

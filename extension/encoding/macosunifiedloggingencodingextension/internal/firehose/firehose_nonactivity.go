@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package firehose
 
 import (
@@ -23,21 +24,23 @@ import (
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 )
 
-type FirehoseNonActivity struct {
+// NonActivity represents a parsed firehose non-activity entry
+type NonActivity struct {
 	UnknownActivityID       uint32
 	UnknownSentinel         uint32
 	PrivateStringsOffset    uint16
 	PrivateStringsSize      uint16
 	UnknownMessageStringRef uint32
 	SubsystemValue          uint16
-	TtlValue                uint8
+	TTLValue                uint8
 	DataRefValue            uint32
 	UnknownPCID             uint32
-	FirehoseFormatters      FirehoseFormatters
+	FirehoseFormatters      Formatters
 }
 
-func ParseFirehoseNonActivity(data []byte, flags uint16) (FirehoseNonActivity, []byte) {
-	var nonActivity FirehoseNonActivity
+// ParseFirehoseNonActivity parses a firehose non-activity entry
+func ParseFirehoseNonActivity(data []byte, flags uint16) (NonActivity, []byte) {
+	var nonActivity NonActivity
 	activityIDCurrent := uint16(0x1) // has_current_aid flag
 	if (flags & activityIDCurrent) != 0 {
 		firehoseData, unknownActivityID, _ := utils.Take(data, 4)
@@ -72,7 +75,7 @@ func ParseFirehoseNonActivity(data []byte, flags uint16) (FirehoseNonActivity, [
 	ttl := uint16(0x400) // has_rules flag
 	if (flags & ttl) != 0 {
 		firehoseData, ttlValue, _ := utils.Take(data, 1)
-		nonActivity.TtlValue = ttlValue[0]
+		nonActivity.TTLValue = ttlValue[0]
 		data = firehoseData
 	}
 
@@ -86,8 +89,9 @@ func ParseFirehoseNonActivity(data []byte, flags uint16) (FirehoseNonActivity, [
 	return nonActivity, data
 }
 
+// GetFirehoseNonActivityStrings gets the message data for a non-activity firehose entry
 func GetFirehoseNonActivityStrings(
-	firehose FirehoseNonActivity,
+	firehose NonActivity,
 	provider *uuidtext.CacheProvider,
 	stringOffset uint64,
 	firstProcID uint64,

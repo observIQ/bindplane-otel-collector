@@ -69,11 +69,11 @@ type Entry struct {
 	ContinousTimeDelta      uint32
 	ContinousTimeDeltaUpper uint16
 	DataSize                uint16
-	FirehoseActivity        FirehoseActivity
-	FirehoseNonActivity     FirehoseNonActivity
-	FirehoseLoss            FirehoseLoss
+	FirehoseActivity        Activity
+	FirehoseNonActivity     NonActivity
+	FirehoseLoss            Loss
 	FirehoseSignpost        Signpost
-	FirehoseTrace           FirehoseTrace
+	FirehoseTrace           Trace
 	UnknownItem             uint8
 	NumberItems             uint8
 	Message                 ItemData
@@ -277,7 +277,11 @@ func ParseFirehoseEntry(data []byte) (Entry, []byte, error) {
 	firehoseData, numberItems, _ := utils.Take(firehoseData, 1)
 	firehoseResult.UnknownItem = unknownItem[0]
 	firehoseResult.NumberItems = numberItems[0]
-	firehoseResult.Message, _ = ParseFirehoseMessageItems(firehoseData, numberItems[0], firehoseResult.Flags)
+	messageData, _, err := ParseFirehoseMessageItems(firehoseData, numberItems[0], firehoseResult.Flags)
+	if err != nil {
+		return firehoseResult, data, err
+	}
+	firehoseResult.Message = messageData
 
 	// Skip any zero padding
 	offset := 0
@@ -413,7 +417,7 @@ func GetBacktraceData(data []byte) ([]byte, []string, error) {
 }
 
 // ParseFirehoseMessageItems parses message items from firehose entry data
-func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (ItemData, []byte) {
+func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (ItemData, []byte, error) {
 	itemCount := 0
 	itemsData := []ItemType{}
 
@@ -502,7 +506,7 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (ItemD
 			firehoseInput = itemValueInput
 			itemsData[i].MessageStrings = messageString
 		} else {
-			// TODO: error
+			return firehoseItemData, firehoseInput, fmt.Errorf("unknown item type: %d", item.ItemType)
 		}
 	}
 
@@ -513,7 +517,7 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (ItemD
 			ItemSize:       item.ItemSize,
 		})
 	}
-	return firehoseItemData, firehoseInput
+	return firehoseItemData, firehoseInput, nil
 }
 
 // GetFirehoseItems gets the firehose item type and size

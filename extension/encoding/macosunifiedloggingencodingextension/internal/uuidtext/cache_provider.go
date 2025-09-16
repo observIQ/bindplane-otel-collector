@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package uuidtext
+package uuidtext // import "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 
 import (
 	"sync"
@@ -23,14 +23,15 @@ import (
 // CacheProvider handles caching of parsed UUID text and DSC data
 type CacheProvider struct {
 	uuidTextCache map[string]*UUIDText
-	dscCache      map[string]*sharedcache.SharedCacheStrings
+	dscCache      map[string]*sharedcache.Strings
 	mu            sync.RWMutex
 }
 
+// NewCacheProvider creates a new CacheProvider
 func NewCacheProvider() *CacheProvider {
 	return &CacheProvider{
 		uuidTextCache: make(map[string]*UUIDText),
-		dscCache:      make(map[string]*sharedcache.SharedCacheStrings),
+		dscCache:      make(map[string]*sharedcache.Strings),
 	}
 }
 
@@ -42,7 +43,7 @@ func (c *CacheProvider) CachedUUIDText(uuid string) (*UUIDText, bool) {
 	return data, exists
 }
 
-// UpdateUUIDWithData updates the cached UUID text for the given UUID with actual data
+// UpdateUUID updates the cached UUID text for the given UUID with actual data
 func (c *CacheProvider) UpdateUUID(uuid string, uuid2 string, data *UUIDText) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -65,7 +66,7 @@ func (c *CacheProvider) UpdateUUID(uuid string, uuid2 string, data *UUIDText) {
 }
 
 // CachedDSC returns the cached DSC for the given UUID
-func (c *CacheProvider) CachedDSC(uuid string) (*sharedcache.SharedCacheStrings, bool) {
+func (c *CacheProvider) CachedDSC(uuid string) (*sharedcache.Strings, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	data, exists := c.dscCache[uuid]
@@ -73,7 +74,7 @@ func (c *CacheProvider) CachedDSC(uuid string) (*sharedcache.SharedCacheStrings,
 }
 
 // UpdateDSC updates the cached DSC for the given UUID with actual data
-func (c *CacheProvider) UpdateDSC(uuid string, uuid2 string, data *sharedcache.SharedCacheStrings) {
+func (c *CacheProvider) UpdateDSC(uuid string, uuid2 string, data *sharedcache.Strings) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
