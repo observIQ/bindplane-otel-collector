@@ -36,7 +36,7 @@ type Signpost struct {
 	PrivateStringsSize   uint16
 	TTLValue             uint8
 	DataRefValue         uint32
-	FirehoseFormatters   FirehoseFormatters
+	FirehoseFormatters   Formatters
 }
 
 // ParseFirehoseSignpost parses a firehose signpost entry
@@ -107,7 +107,7 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte) {
 	return signpost, data
 }
 
-// GetFirehoseSignpost gets the message data for a signpost firehose entry
+// GetFirehoseSignpostStrings gets the message data for a signpost firehose entry
 func GetFirehoseSignpostStrings(signpost Signpost, provider *uuidtext.CacheProvider, stringOffset uint64, firstProcID uint64, secondProcID uint32, catalogs types.CatalogChunk) (types.MessageData, error) {
 	if signpost.FirehoseFormatters.SharedCache || (signpost.FirehoseFormatters.LargeSharedCache != 0 && signpost.FirehoseFormatters.HasLargeOffset != 0) {
 		if signpost.FirehoseFormatters.HasLargeOffset != 0 {

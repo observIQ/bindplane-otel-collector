@@ -103,13 +103,13 @@ func (*MacosUnifiedLoggingExtension) Shutdown(context.Context) error {
 type macosUnifiedLoggingCodec struct {
 	logger          *zap.Logger
 	debugMode       bool
-	timesyncRawData map[string][]byte                          // Raw timesync data from files
-	timesyncData    map[string]*TimesyncBoot                   // Parsed timesync data for accurate timestamp conversion
-	uuidTextRawData map[string][]byte                          // Raw UUID text data from files
-	uuidTextData    map[string]*uuidtext.UUIDText              // Parsed UUID text data for accurate message parsing
-	dscRawData      map[string][]byte                          // Raw DSC data from files
-	dscData         map[string]*sharedcache.SharedCacheStrings // Parsed DSC data for shared string parsing
-	cacheProvider   *uuidtext.CacheProvider                    // Cache provider for accessing parsed data
+	timesyncRawData map[string][]byte               // Raw timesync data from files
+	timesyncData    map[string]*TimesyncBoot        // Parsed timesync data for accurate timestamp conversion
+	uuidTextRawData map[string][]byte               // Raw UUID text data from files
+	uuidTextData    map[string]*uuidtext.UUIDText   // Parsed UUID text data for accurate message parsing
+	dscRawData      map[string][]byte               // Raw DSC data from files
+	dscData         map[string]*sharedcache.Strings // Parsed DSC data for shared string parsing
+	cacheProvider   *uuidtext.CacheProvider         // Cache provider for accessing parsed data
 }
 
 // UnmarshalLogs reads binary data and parses tracev3 entries into individual log records.
@@ -181,7 +181,7 @@ func (c *macosUnifiedLoggingCodec) parseDSCRawData() {
 	}
 
 	if c.dscData == nil {
-		c.dscData = make(map[string]*sharedcache.SharedCacheStrings)
+		c.dscData = make(map[string]*sharedcache.Strings)
 	}
 
 	for filePath, rawData := range c.dscRawData {
@@ -299,7 +299,7 @@ func (c *macosUnifiedLoggingCodec) parseUUIDTextRawData() {
 		uuid := extractUUIDFromPath(filePath)
 
 		// Parse the raw data
-		parsedUUIDText, err := uuidtext.ParseUUIDText(rawData, uuid)
+		parsedUUIDText, err := uuidtext.ParseUUIDText(rawData)
 		if err != nil {
 			c.logger.Error("Failed to parse UUID text data",
 				zap.String("file", filePath),

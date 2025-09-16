@@ -22,6 +22,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 )
 
+// ExtractSharedStrings extracts the message data for a shared string firehose entry
 func ExtractSharedStrings(
 	provider *uuidtext.CacheProvider,
 	stringOffset uint64,
@@ -109,6 +110,7 @@ func ExtractSharedStrings(
 	return messageData, nil
 }
 
+// ExtractFormatStrings extracts the message data for a format UUID firehose entry
 func ExtractFormatStrings(
 	provider *uuidtext.CacheProvider,
 	stringOffset uint64,
@@ -192,6 +194,7 @@ func ExtractFormatStrings(
 	return messageData, nil
 }
 
+// ExtractAbsoluteStrings extracts the message data for an absolute UUID firehose entry
 func ExtractAbsoluteStrings(
 	provider *uuidtext.CacheProvider,
 	absoluteOffset uint64,
@@ -303,6 +306,7 @@ func ExtractAbsoluteStrings(
 	return messageData, nil
 }
 
+// ExtractAltUUIDStrings extracts the message data for an alternative UUID firehose entry
 func ExtractAltUUIDStrings(
 	provider *uuidtext.CacheProvider,
 	stringOffset uint64,
@@ -418,7 +422,7 @@ func getUUIDImagePath(uuid string, provider *uuidtext.CacheProvider) (string, er
 	return fmt.Sprintf("Failed to get path string from UUIDText file for entry: %s", uuid), nil
 }
 
-func uuidTextImagePath(data []byte, entries []uuidtext.UUIDTextEntry) (string, error) {
+func uuidTextImagePath(data []byte, entries []uuidtext.Entry) (string, error) {
 	// Add up all entry range offset sizes to get image library offset
 	imageLibraryOffset := uint32(0)
 
