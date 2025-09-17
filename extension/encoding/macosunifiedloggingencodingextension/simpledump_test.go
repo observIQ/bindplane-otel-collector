@@ -115,9 +115,8 @@ func TestParseSimpleDump(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			chunk := &SimpleDumpChunk{}
-			ParseSimpleDumpChunk(tc.data, chunk)
-			tc.validate(t, chunk)
+			parsedChunk, _ := ParseSimpleDumpChunk(tc.data)
+			tc.validate(t, &parsedChunk)
 		})
 	}
 }

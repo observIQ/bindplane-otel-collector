@@ -17,6 +17,8 @@ package macosunifiedloggingencodingextension
 import (
 	"encoding/binary"
 	"fmt"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
 )
 
 // SimpleDumpChunk represents the parsed data from a SimpleDump chunk
@@ -70,45 +72,48 @@ func extractString(data []byte) string {
 	return string(data[:end])
 }
 
-// ParseSimpleDumpChunk parses a SimpleDump Chunk (0x6004) containing simple string data
+// ParseSimpleDumpChunk parses a SimpleDump Chunk containing simple string data
+// Returns the parsed SimpleDump chunk and the remaining data
 // Note: The data passed in includes the complete chunk with 16-byte header (tag, subtag, size)
-func ParseSimpleDumpChunk(data []byte, chunk *SimpleDumpChunk) {
-	offset := 0
+func ParseSimpleDumpChunk(data []byte) (SimpleDumpChunk, []byte) {
+	var simpleDumpResult SimpleDumpChunk
 
-	// Parse chunk header (16 bytes total)
-	chunk.ChunkTag = binary.LittleEndian.Uint32(data[offset : offset+4])
-	offset += 4
-	chunk.ChunkSubTag = binary.LittleEndian.Uint32(data[offset : offset+4])
-	offset += 4
-	chunk.ChunkDataSize = binary.LittleEndian.Uint64(data[offset : offset+8])
-	offset += 8
-	// Parse SimpleDump payload fields
-	chunk.FirstProcID = binary.LittleEndian.Uint64(data[offset : offset+8])
-	offset += 8
-	chunk.SecondProcID = binary.LittleEndian.Uint64(data[offset : offset+8])
-	offset += 8
-	chunk.ContinuousTime = binary.LittleEndian.Uint64(data[offset : offset+8])
-	offset += 8
-	chunk.ThreadID = binary.LittleEndian.Uint64(data[offset : offset+8])
-	offset += 8
-	chunk.UnknownOffset = binary.LittleEndian.Uint32(data[offset : offset+4])
-	offset += 4
-	chunk.UnknownTTL = binary.LittleEndian.Uint16(data[offset : offset+2])
-	offset += 2
-	chunk.UnknownType = binary.LittleEndian.Uint16(data[offset : offset+2])
-	offset += 2
-	chunk.SenderUUID = parseUUID(data[offset : offset+16])
-	offset += 16
-	chunk.DSCSharedCacheUUID = parseUUID(data[offset : offset+16])
-	offset += 16
-	chunk.UnknownNumberMessageStrings = binary.LittleEndian.Uint32(data[offset : offset+4])
-	offset += 4
-	chunk.UnknownSizeSubsystemString = binary.LittleEndian.Uint32(data[offset : offset+4])
-	offset += 4
-	chunk.UnknownSizeMessageString = binary.LittleEndian.Uint32(data[offset : offset+4])
-	offset += 4
-	chunk.Subsystem = extractString(data[offset : offset+int(chunk.UnknownSizeSubsystemString)])
-	offset += int(chunk.UnknownSizeSubsystemString)
-	chunk.MessageString = extractString(data[offset : offset+int(chunk.UnknownSizeMessageString)])
-	offset += int(chunk.UnknownSizeMessageString)
+	// Parse SimpleDump Chunk chunk header (16 bytes total)
+	data, chunkTag, _ := utils.Take(data, 4)
+	data, chunkSubTag, _ := utils.Take(data, 4)
+	data, chunkDataSize, _ := utils.Take(data, 8)
+	data, firstProcID, _ := utils.Take(data, 8)
+	data, secondProcID, _ := utils.Take(data, 8)
+	data, continuousTime, _ := utils.Take(data, 8)
+	data, threadID, _ := utils.Take(data, 8)
+	data, unknownOffset, _ := utils.Take(data, 4)
+	data, unknownTTL, _ := utils.Take(data, 2)
+	data, unknownType, _ := utils.Take(data, 2)
+	data, senderUUID, _ := utils.Take(data, 16)
+	data, dSCSharedCacheUUID, _ := utils.Take(data, 16)
+	data, unknownNumberMessageStrings, _ := utils.Take(data, 4)
+	data, unknownSizeSubsystemString, _ := utils.Take(data, 4)
+	data, unknownSizeMessageString, _ := utils.Take(data, 4)
+	data, subsystem, _ := utils.Take(data, int(binary.LittleEndian.Uint32(unknownSizeSubsystemString)))
+	data, messageString, _ := utils.Take(data, int(binary.LittleEndian.Uint32(unknownSizeMessageString)))
+
+	simpleDumpResult.ChunkTag = binary.LittleEndian.Uint32(chunkTag)
+	simpleDumpResult.ChunkSubTag = binary.LittleEndian.Uint32(chunkSubTag)
+	simpleDumpResult.ChunkDataSize = binary.LittleEndian.Uint64(chunkDataSize)
+	simpleDumpResult.FirstProcID = binary.LittleEndian.Uint64(firstProcID)
+	simpleDumpResult.SecondProcID = binary.LittleEndian.Uint64(secondProcID)
+	simpleDumpResult.ContinuousTime = binary.LittleEndian.Uint64(continuousTime)
+	simpleDumpResult.ThreadID = binary.LittleEndian.Uint64(threadID)
+	simpleDumpResult.UnknownOffset = binary.LittleEndian.Uint32(unknownOffset)
+	simpleDumpResult.UnknownTTL = binary.LittleEndian.Uint16(unknownTTL)
+	simpleDumpResult.UnknownType = binary.LittleEndian.Uint16(unknownType)
+	simpleDumpResult.SenderUUID = parseUUID(senderUUID)
+	simpleDumpResult.DSCSharedCacheUUID = parseUUID(dSCSharedCacheUUID)
+	simpleDumpResult.UnknownNumberMessageStrings = binary.LittleEndian.Uint32(unknownNumberMessageStrings)
+	simpleDumpResult.UnknownSizeSubsystemString = binary.LittleEndian.Uint32(unknownSizeSubsystemString)
+	simpleDumpResult.UnknownSizeMessageString = binary.LittleEndian.Uint32(unknownSizeMessageString)
+	simpleDumpResult.Subsystem = extractString(subsystem)
+	simpleDumpResult.MessageString = extractString(messageString)
+
+	return simpleDumpResult, data
 }
