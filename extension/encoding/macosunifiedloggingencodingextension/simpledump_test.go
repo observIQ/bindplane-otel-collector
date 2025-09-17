@@ -97,7 +97,7 @@ func TestParseSimpleDump(t *testing.T) {
 				validateBaseData(t, chunk)
 				require.Equal(t, uint32(0), chunk.UnknownSizeSubsystemString, "UnknownSizeSubsystemString value incorrect")
 				require.Equal(t, uint32(56), chunk.UnknownSizeMessageString, "UnknownSizeMessageString value incorrect")
-				require.Equal(t, "", chunk.Subsystem, "Subsystem value incorrect")
+				require.Equal(t, "(null)", chunk.Subsystem, "Subsystem value incorrect")
 				require.Equal(t, "service exited: dirty = 0, supported pressured-exit = 1", chunk.MessageString, "MessageString value incorrect")
 			},
 		},
@@ -109,7 +109,7 @@ func TestParseSimpleDump(t *testing.T) {
 				require.Equal(t, uint32(79), chunk.UnknownSizeSubsystemString, "UnknownSizeSubsystemString value incorrect")
 				require.Equal(t, uint32(0), chunk.UnknownSizeMessageString, "UnknownSizeMessageString value incorrect")
 				require.Equal(t, "user/501/com.apple.mdworker.shared.0B000000-0000-0000-0000-000000000000 [4229]", chunk.Subsystem, "Subsystem value incorrect")
-				require.Equal(t, "", chunk.MessageString, "MessageString value incorrect")
+				require.Equal(t, "(null)", chunk.MessageString, "MessageString value incorrect")
 			},
 		},
 	}

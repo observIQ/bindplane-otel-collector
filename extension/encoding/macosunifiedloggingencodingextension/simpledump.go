@@ -54,24 +54,6 @@ func parseUUID(data []byte) string {
 		data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15])
 }
 
-// extractString extracts a null-terminated string from binary data
-func extractString(data []byte) string {
-	if len(data) == 0 {
-		return ""
-	}
-
-	// Find null terminator
-	end := len(data)
-	for i, b := range data {
-		if b == 0 {
-			end = i
-			break
-		}
-	}
-
-	return string(data[:end])
-}
-
 // ParseSimpleDumpChunk parses a SimpleDump Chunk containing simple string data
 // Returns the parsed SimpleDump chunk and the remaining data
 // Note: The data passed in includes the complete chunk with 16-byte header (tag, subtag, size)
@@ -94,8 +76,8 @@ func ParseSimpleDumpChunk(data []byte) (SimpleDumpChunk, []byte) {
 	data, unknownNumberMessageStrings, _ := utils.Take(data, 4)
 	data, unknownSizeSubsystemString, _ := utils.Take(data, 4)
 	data, unknownSizeMessageString, _ := utils.Take(data, 4)
-	data, subsystem, _ := utils.Take(data, int(binary.LittleEndian.Uint32(unknownSizeSubsystemString)))
-	data, messageString, _ := utils.Take(data, int(binary.LittleEndian.Uint32(unknownSizeMessageString)))
+	data, subsystem, _ := utils.ExtractStringSize(data, uint64(binary.LittleEndian.Uint32(unknownSizeSubsystemString)))
+	data, messageString, _ := utils.ExtractStringSize(data, uint64(binary.LittleEndian.Uint32(unknownSizeMessageString)))
 
 	simpleDumpResult.ChunkTag = binary.LittleEndian.Uint32(chunkTag)
 	simpleDumpResult.ChunkSubTag = binary.LittleEndian.Uint32(chunkSubTag)
@@ -112,8 +94,8 @@ func ParseSimpleDumpChunk(data []byte) (SimpleDumpChunk, []byte) {
 	simpleDumpResult.UnknownNumberMessageStrings = binary.LittleEndian.Uint32(unknownNumberMessageStrings)
 	simpleDumpResult.UnknownSizeSubsystemString = binary.LittleEndian.Uint32(unknownSizeSubsystemString)
 	simpleDumpResult.UnknownSizeMessageString = binary.LittleEndian.Uint32(unknownSizeMessageString)
-	simpleDumpResult.Subsystem = extractString(subsystem)
-	simpleDumpResult.MessageString = extractString(messageString)
+	simpleDumpResult.Subsystem = subsystem
+	simpleDumpResult.MessageString = messageString
 
 	return simpleDumpResult, data
 }
