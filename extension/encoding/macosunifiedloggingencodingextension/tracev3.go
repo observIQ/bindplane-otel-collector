@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 )
@@ -87,7 +88,7 @@ type TraceV3Entry struct {
 // UnifiedLogData represents the complete unified log data
 // Eventual replacement for TraceV3 header/entry structs
 type UnifiedLogData struct {
-	CatalogData  CatalogChunk
+	CatalogData  types.CatalogChunk
 	FirehoseData []firehose.Preamble
 	OversizeData []OversizeChunk
 	// StatedumpData  []StatedumpChunk
@@ -458,8 +459,7 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 			// SimpleDump chunk
 			entry.ChunkType = "simpledump"
 			// Parse into SimpleDumpChunk and map relevant fields to entry
-			simple := &SimpleDumpChunk{}
-			ParseSimpleDumpChunk(data[offset:offset+totalChunkSize], simple)
+			simple, _ := ParseSimpleDumpChunk(data[offset : offset+totalChunkSize])
 
 			entry.Subsystem = simple.Subsystem
 			entry.Message = simple.MessageString
