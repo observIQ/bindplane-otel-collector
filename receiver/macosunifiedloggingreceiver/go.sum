@@ -77,6 +77,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal 
 github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.133.0/go.mod h1:0P77+HcOI9SXAw17nXJ5A5DEiZdOAJW4IqNdlcoeX7I=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.133.0 h1:2xdEvVBs/ejeKDBFkMaMiKrqjFylWmwzfn2iqn/GDyc=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.133.0/go.mod h1:E3PzA6fPMeykKkGHP/C5nOwbRgIgjTYFHDfF5HVVm2Q=
+github.com/pierrec/lz4/v4 v4.1.22 h1:cKFw6uJDK+/gfw5BcDL0JL5aBsAFdsIT18eRtLj7VIU=
+github.com/pierrec/lz4/v4 v4.1.22/go.mod h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFuRQyBid4=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
@@ -110,6 +112,8 @@ go.opentelemetry.io/collector/consumer/xconsumer v0.133.0 h1:Xx4Yna/We4qDlbAla1n
 go.opentelemetry.io/collector/consumer/xconsumer v0.133.0/go.mod h1:he874Md/0uAS2Fs+TDHAy10OBLRSw8233LdREizVvG4=
 go.opentelemetry.io/collector/extension v1.39.0 h1:NOh2MQ8ETY2qx4Yd97HWAviwKVD5a65x5CV9LNujPII=
 go.opentelemetry.io/collector/extension v1.39.0/go.mod h1:KRrzszfycxesfnKQZMNKm6ggZ4nb2jDs0hYcJFBGG2Q=
+go.opentelemetry.io/collector/extension/extensiontest v0.131.1-0.20250801020258-8b73477b9810 h1:tl2Pdmk7hxDZ4vMA/RA2QuX42sK7RY29DGIbVIcxQzw=
+go.opentelemetry.io/collector/extension/extensiontest v0.131.1-0.20250801020258-8b73477b9810/go.mod h1:HYaQHWAWqkRf5kAI2U8A5d63/d4xQYk8H/+5n9hs1j0=
 go.opentelemetry.io/collector/extension/xextension v0.133.0 h1:hkf0t4N1jQqsBN0nKKXD0syCPfGo/LMOiFPFjgFEPbc=
 go.opentelemetry.io/collector/extension/xextension v0.133.0/go.mod h1:gXBMp9dnAnivVUT1hoHwlGkVZcY6lgYYR99gOKD2KHc=
 go.opentelemetry.io/collector/featuregate v1.39.0 h1:OlXZWW+WUP8cgKh2mnwgWXUJO/29irb0hG6jvwscRKM=
