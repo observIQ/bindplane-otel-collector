@@ -16,7 +16,6 @@
 package models // import "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -39,8 +38,7 @@ type CatalogChunk struct {
 	// Parsed data
 	CatalogUUIDs            []string
 	CatalogSubsystemStrings []byte
-	ProcessInfoEntries      []ProcessInfoEntry
-	ProcessInfoMap          map[string]*ProcessInfoEntry
+	ProcessInfoEntries      map[string]*ProcessInfoEntry
 	CatalogSubchunks        []CatalogSubchunk
 }
 
@@ -108,15 +106,6 @@ func (c *CatalogChunk) GetEUID(firstProcID uint64, secondProcID uint32) uint32 {
 	}
 
 	return 0
-}
-
-// BuildProcessInfoMap builds a hash map for fast process lookups
-func (c *CatalogChunk) BuildProcessInfoMap() {
-	c.ProcessInfoMap = make(map[string]*ProcessInfoEntry)
-	for i := range c.ProcessInfoEntries {
-		key := fmt.Sprintf("%d_%d", c.ProcessInfoEntries[i].FirstNumberProcID, c.ProcessInfoEntries[i].SecondNumberProcID)
-		c.ProcessInfoMap[key] = &c.ProcessInfoEntries[i]
-	}
 }
 
 // ProcessInfoEntry represents process information in the catalog
