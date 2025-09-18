@@ -93,3 +93,9 @@ func PaddingSizeFour(dataSize uint64) uint64 {
 func PaddingSize(dataSize uint64, alignment uint64) uint64 {
 	return (alignment - (dataSize & (alignment - 1))) & (alignment - 1)
 }
+
+// AnticipatedPaddingSize8 calculates 8-byte alignment padding
+func AnticipatedPaddingSize(dataCount uint64, dataSize uint64, alignment uint64) uint64 {
+	totalSize := dataCount * dataSize
+	return PaddingSize(totalSize, alignment)
+}

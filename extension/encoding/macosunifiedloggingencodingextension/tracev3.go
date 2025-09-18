@@ -346,17 +346,17 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 
 		// Process catalog chunks first
 		if chunkTag == 0x600b {
-			catalogEntry := &TraceV3Entry{
-				Type:         chunkTag,
-				ChunkType:    "catalog",
-				Subsystem:    "com.apple.catalog",
-				Category:     "catalog_data",
-				Level:        "DEBUG",
-				MessageType:  "Debug",
-				EventType:    "logEvent",
-				TimezoneName: extractTimezoneName(header.TimezonePath),
-			}
-			ParseCatalogChunk(data[catalogOffset:catalogOffset+totalChunkSize], catalogEntry)
+			// catalogEntry := &TraceV3Entry{
+			// 	Type:         chunkTag,
+			// 	ChunkType:    "catalog",
+			// 	Subsystem:    "com.apple.catalog",
+			// 	Category:     "catalog_data",
+			// 	Level:        "DEBUG",
+			// 	MessageType:  "Debug",
+			// 	EventType:    "logEvent",
+			// 	TimezoneName: extractTimezoneName(header.TimezonePath),
+			// }
+			ParseCatalogChunk(data[catalogOffset : catalogOffset+totalChunkSize])
 		}
 
 		catalogOffset += totalChunkSize + int(paddingSize8(chunkDataSize))
