@@ -12,19 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package macosunifiedloggingencodingextension
+package sharedcache // import "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/sharedcache"
 
 import (
 	"encoding/binary"
 	"fmt"
-	"path/filepath"
-	"strings"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
 )
 
-// SharedCacheStrings represents parsed DSC (shared cache) string data
-type SharedCacheStrings struct {
+// Strings represents parsed DSC (shared cache) string data
+type Strings struct {
 	Signature    uint32
 	MajorVersion uint16
 	MinorVersion uint16
@@ -54,90 +53,68 @@ type UUIDDescriptor struct {
 }
 
 // DSCCache stores parsed DSC files for shared string resolution
-var DSCCache = make(map[string]*SharedCacheStrings)
+var DSCCache = make(map[string]*Strings)
 
 // ParseDSC parses a DSC (shared cache) file containing shared format strings
-func ParseDSC(data []byte, uuid string) (*SharedCacheStrings, error) {
-	if len(data) < 8 {
-		return nil, fmt.Errorf("DSC file too small: %d bytes", len(data))
+func ParseDSC(data []byte, uuid string) (*Strings, error) {
+	input, signature, _ := utils.Take(data, 4)
+	if binary.LittleEndian.Uint32(signature) != 0x64736368 {
+		return nil, fmt.Errorf("invalid DSC signature: expected 0x%x, got 0x%x", 0x64736368, binary.LittleEndian.Uint32(signature))
 	}
 
-	dsc := &SharedCacheStrings{DSCUUID: uuid}
-	offset := 0
-
-	// Parse signature
-	dsc.Signature = binary.LittleEndian.Uint32(data[offset : offset+4])
-	offset += 4
-
-	// Validate signature
-	const expectedSignature = 0x68736964 // "dsih" in little endian
-	if dsc.Signature != expectedSignature {
-		return nil, fmt.Errorf("invalid DSC signature: expected 0x%x, got 0x%x",
-			expectedSignature, dsc.Signature)
+	sharedCacheStrings := &Strings{
+		Signature: binary.LittleEndian.Uint32(signature),
 	}
 
-	// Parse number of UUIDs
-	if len(data) < offset+4 {
-		return nil, fmt.Errorf("DSC file too small for UUID count")
-	}
-	numUUIDs := binary.LittleEndian.Uint32(data[offset : offset+4])
-	offset += 4
+	input, major, _ := utils.Take(input, 2)
+	input, minor, _ := utils.Take(input, 2)
+	input, numberRanges, _ := utils.Take(input, 4)
+	input, numberUUIDs, _ := utils.Take(input, 4)
 
-	// Parse UUIDs
-	dsc.UUIDs = make([]UUIDDescriptor, numUUIDs)
-	for i := uint32(0); i < numUUIDs; i++ {
-		if len(data) < offset+16 {
-			return nil, fmt.Errorf("DSC file too small for UUID %d", i)
+	sharedCacheStrings.MajorVersion = binary.LittleEndian.Uint16(major)
+	sharedCacheStrings.MinorVersion = binary.LittleEndian.Uint16(minor)
+	sharedCacheStrings.NumberRanges = binary.LittleEndian.Uint32(numberRanges)
+	sharedCacheStrings.NumberUUIDs = binary.LittleEndian.Uint32(numberUUIDs)
+
+	for i := 0; i < int(sharedCacheStrings.NumberRanges); i++ {
+		remainingInput, rangeData, err := getRanges(input, &sharedCacheStrings.MajorVersion)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get ranges while parsing DSC: %w", err)
 		}
-
-		// Parse UUID (16 bytes)
-		uuidBytes := data[offset : offset+16]
-		uuid := fmt.Sprintf("%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-			uuidBytes[0], uuidBytes[1], uuidBytes[2], uuidBytes[3],
-			uuidBytes[4], uuidBytes[5], uuidBytes[6], uuidBytes[7],
-			uuidBytes[8], uuidBytes[9], uuidBytes[10], uuidBytes[11],
-			uuidBytes[12], uuidBytes[13], uuidBytes[14], uuidBytes[15])
-		offset += 16
-
-		dsc.UUIDs[i] = UUIDDescriptor{UUID: uuid}
+		sharedCacheStrings.Ranges = append(sharedCacheStrings.Ranges, rangeData)
+		input = remainingInput
 	}
 
-	// Parse path strings for UUIDs
-	for i := range dsc.UUIDs {
-		if offset >= len(data) {
-			break
+	for i := 0; i < int(sharedCacheStrings.NumberUUIDs); i++ {
+		remainingInput, uuidData, err := getUUIDs(input, &sharedCacheStrings.MajorVersion)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get UUIDs while parsing DSC: %w", err)
 		}
-
-		// Find null terminator
-		end := offset
-		for end < len(data) && data[end] != 0 {
-			end++
-		}
-
-		if end > offset {
-			dsc.UUIDs[i].PathString = string(data[offset:end])
-		}
-		offset = end + 1 // Skip null terminator
+		sharedCacheStrings.UUIDs = append(sharedCacheStrings.UUIDs, uuidData)
+		input = remainingInput
 	}
 
-	// Parse ranges (simplified - in full implementation would parse all range data)
-	// For now, create a single range covering remaining data
-	if offset < len(data) {
-		remainingData := data[offset:]
-		dscRange := RangeDescriptor{
-			RangeOffset:      0,
-			RangeSize:        uint32(len(remainingData)),
-			UnknownUUIDIndex: 0,
-			Strings:          remainingData,
+	for _, uuid := range sharedCacheStrings.UUIDs {
+		pathString, err := getPaths(input, uuid.PathOffset)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get paths while parsing DSC: %w", err)
 		}
-		dsc.Ranges = append(dsc.Ranges, dscRange)
+		uuid.PathString = pathString
 	}
 
-	return dsc, nil
+	for _, rangeData := range sharedCacheStrings.Ranges {
+		strings, err := getEntryStrings(input, rangeData.DataOffset, rangeData.RangeSize)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get strings while parsing DSC: %w", err)
+		}
+		rangeData.Strings = strings
+	}
+
+	return sharedCacheStrings, nil
 }
 
 // ExtractSharedString extracts a format string from shared cache using the given offset
-func (d *SharedCacheStrings) ExtractSharedString(stringOffset uint64) (types.MessageData, error) {
+func (d *Strings) ExtractSharedString(stringOffset uint64) (types.MessageData, error) {
 	messageData := types.MessageData{}
 
 	// Handle dynamic formatters (offset with high bit set means "%s")
@@ -183,25 +160,119 @@ func (d *SharedCacheStrings) ExtractSharedString(stringOffset uint64) (types.Mes
 	return messageData, fmt.Errorf("shared string not found at offset %d", stringOffset)
 }
 
-// GetSharedFormatString resolves a format string using the catalog and DSC references
-func GetSharedFormatString(formatStringLocation uint32, firstProcID uint64, secondProcID uint32) (types.MessageData, error) {
-	return types.MessageData{}, nil
-}
+func getRanges(input []byte, major *uint16) ([]byte, RangeDescriptor, error) {
+	versionNumber := uint16(2)
+	rangeData := RangeDescriptor{}
 
-// LoadDSCFile loads and parses a DSC file into the cache
-// This would be called when scanning a logarchive directory structure
-func LoadDSCFile(filePath string, data []byte) error {
-	// Extract UUID from filename
-	filename := strings.TrimSuffix(strings.ToUpper(filepath.Base(filePath)), ".DSC")
+	if major == &versionNumber {
+		remainingInput, valueRangeOffset, err := utils.Take(input, 8)
+		if err != nil {
+			return nil, rangeData, err
+		}
+		rangeData.RangeOffset = binary.LittleEndian.Uint64(valueRangeOffset)
+		input = remainingInput
+	} else {
+		input, uuidDescriptorIndex, err := utils.Take(input, 4)
+		if err != nil {
+			return nil, rangeData, err
+		}
+		rangeData.UnknownUUIDIndex = uint64(binary.LittleEndian.Uint32(uuidDescriptorIndex))
 
-	// Parse the DSC file
-	dscData, err := ParseDSC(data, filename)
-	if err != nil {
-		return fmt.Errorf("failed to parse DSC file %s: %w", filePath, err)
+		input, valueRangeOffset, err := utils.Take(input, 4)
+		if err != nil {
+			return nil, rangeData, err
+		}
+		rangeData.RangeOffset = uint64(binary.LittleEndian.Uint32(valueRangeOffset))
 	}
 
-	// Cache the parsed data
-	DSCCache[filename] = dscData
+	input, dataOffset, err := utils.Take(input, 4)
+	if err != nil {
+		return nil, rangeData, err
+	}
+	rangeData.DataOffset = binary.LittleEndian.Uint32(dataOffset)
 
-	return nil
+	input, rangeSize, err := utils.Take(input, 4)
+	if err != nil {
+		return nil, rangeData, err
+	}
+	rangeData.RangeSize = binary.LittleEndian.Uint32(rangeSize)
+
+	if major == &versionNumber {
+		remainingInput, unknown, err := utils.Take(input, 8)
+		if err != nil {
+			return nil, rangeData, err
+		}
+		rangeData.UnknownUUIDIndex = binary.LittleEndian.Uint64(unknown)
+		input = remainingInput
+	}
+
+	return input, rangeData, nil
+}
+
+func getUUIDs(input []byte, major *uint16) ([]byte, UUIDDescriptor, error) {
+	versionNumber := uint16(2)
+	uuidData := UUIDDescriptor{}
+
+	if major == &versionNumber {
+		remainingInput, valueTextOffset, err := utils.Take(input, 8)
+		if err != nil {
+			return nil, uuidData, err
+		}
+		uuidData.TextOffset = binary.LittleEndian.Uint64(valueTextOffset)
+		input = remainingInput
+	} else {
+		remainingInput, valueTextOffset, err := utils.Take(input, 4)
+		if err != nil {
+			return nil, uuidData, err
+		}
+		uuidData.TextOffset = uint64(binary.LittleEndian.Uint32(valueTextOffset))
+		input = remainingInput
+	}
+
+	input, valueTextSize, err := utils.Take(input, 4)
+	if err != nil {
+		return nil, uuidData, err
+	}
+	uuidData.TextSize = binary.LittleEndian.Uint32(valueTextSize)
+
+	input, valueUUID, err := utils.Take(input, 16)
+	if err != nil {
+		return nil, uuidData, err
+	}
+	uuidData.UUID = fmt.Sprintf("%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+		valueUUID[0], valueUUID[1], valueUUID[2], valueUUID[3], valueUUID[4], valueUUID[5], valueUUID[6], valueUUID[7],
+		valueUUID[8], valueUUID[9], valueUUID[10], valueUUID[11], valueUUID[12], valueUUID[13], valueUUID[14], valueUUID[15])
+
+	input, valuePathOffset, err := utils.Take(input, 4)
+	if err != nil {
+		return nil, uuidData, err
+	}
+	uuidData.PathOffset = binary.LittleEndian.Uint32(valuePathOffset)
+
+	return input, uuidData, nil
+}
+
+func getPaths(input []byte, pathOffset uint32) (string, error) {
+	pathData, _, err := utils.Take(input, int(pathOffset))
+	if err != nil {
+		return "", err
+	}
+	pathString, err := utils.ExtractString(pathData)
+	if err != nil {
+		return "", err
+	}
+	return pathString, nil
+}
+
+// getEntryStrings gets the base log entry strings after the ranges and UUIDs are parsed out
+func getEntryStrings(input []byte, stringOffset uint32, stringRange uint32) ([]byte, error) {
+	stringsData, _, err := utils.Take(input, int(stringOffset))
+	if err != nil {
+		return nil, err
+	}
+	_, strings, err := utils.Take(stringsData, int(stringRange))
+	if err != nil {
+		return nil, err
+	}
+	return strings, nil
 }

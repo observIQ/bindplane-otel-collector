@@ -46,6 +46,7 @@ func createDefaultConfig() component.Config {
 			"/var/db/diagnostics/tracev3/SignPost/*",
 		},
 		TimesyncPaths: []string{"/var/db/diagnostics/timesync/*"},
+		UUIDTextPaths: []string{"/var/db/uuidtext/*"},
 		BaseConfig: adapter.BaseConfig{
 			Operators: []operator.Config{},
 		},

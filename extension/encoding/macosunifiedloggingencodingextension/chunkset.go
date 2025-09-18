@@ -23,6 +23,7 @@ import (
 	"github.com/pierrec/lz4/v4"
 )
 
+// ChunksetChunk represents a parsed chunkset chunk
 type ChunksetChunk struct {
 	ChunkTag         uint32
 	ChunkSubtag      uint32
@@ -46,7 +47,6 @@ const (
 
 func parseChunkset(data []byte) (chunk ChunksetChunk, remainingData []byte, err error) {
 	chunk = ChunksetChunk{}
-	chunk := ChunksetChunk{}
 
 	data, chunkTag, _ := utils.Take(data, 4)
 	data, chunkSubtag, _ := utils.Take(data, 4)
@@ -135,7 +135,10 @@ func getChunksetData(data []byte, chunkTag uint32, ulData *UnifiedLogData) error
 		firehosePreamble, _ := firehose.ParseFirehosePreamble(data)
 		ulData.FirehoseData = append(ulData.FirehoseData, firehosePreamble)
 	case oversizeChunk:
-		oversizeChunk, _ := ParseOversizeChunk(data)
+		oversizeChunk, _, err := ParseOversizeChunk(data)
+		if err != nil {
+			return err
+		}
 		ulData.OversizeData = append(ulData.OversizeData, oversizeChunk)
 	// TODO: uncomment once statedump and simpledump are merged
 	// case statedumpChunk:

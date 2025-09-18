@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package firehose
 
 import (
@@ -21,15 +22,17 @@ import (
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
 )
 
-type FirehoseTrace struct {
+// Trace represents a parsed firehose trace entry
+type Trace struct {
 	UnknownPCID uint32
 	MessageData ItemData
 }
 
 const minimumMessageSize = 4
 
-func ParseFirehoseTrace(data []byte) (FirehoseTrace, []byte, error) {
-	firehoseTrace := FirehoseTrace{}
+// ParseFirehoseTrace parses a firehose trace entry
+func ParseFirehoseTrace(data []byte) (Trace, []byte, error) {
+	firehoseTrace := Trace{}
 
 	data, unknownPCID, _ := utils.Take(data, 4)
 	firehoseTrace.UnknownPCID = binary.LittleEndian.Uint32(unknownPCID)
@@ -43,17 +46,18 @@ func ParseFirehoseTrace(data []byte) (FirehoseTrace, []byte, error) {
 	// But the data is stored differently from other log entries
 	// The data appears to be stored backwards? Ex: Data value, Data size, number of data entries, instead normal: number of data entries, data size, data value
 	slices.Reverse(data)
-	data, message, error := GetMessage(data)
-	if error != nil {
-		return firehoseTrace, data, error
+	data, message, err := GetMessage(data)
+	if err != nil {
+		return firehoseTrace, data, err
 	}
 	firehoseTrace.MessageData = message
 
 	return firehoseTrace, data, nil
 }
 
-func GetMessage(data []byte) ([]byte, FirehoseItemData, error) {
-	itemData := FirehoseItemData{}
+// GetMessage gets the message data for a firehose trace entry
+func GetMessage(data []byte) ([]byte, ItemData, error) {
+	itemData := ItemData{}
 
 	if len(data) < minimumMessageSize {
 		return data, itemData, nil
@@ -70,7 +74,7 @@ func GetMessage(data []byte) ([]byte, FirehoseItemData, error) {
 	}
 
 	for _, size := range sizesCount {
-		itemInfo := FirehoseItemInfo{}
+		itemInfo := ItemInfo{}
 		remainder, messageData, _ := utils.Take(remainingData, int(size))
 		switch size {
 		case 1:

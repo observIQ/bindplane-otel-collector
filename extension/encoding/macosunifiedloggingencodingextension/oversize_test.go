@@ -23,7 +23,8 @@ import (
 )
 
 func TestParseOversizeChunk(t *testing.T) {
-	parsedOversizeChunk, _ := ParseOversizeChunk(OversizeChunkData)
+	parsedOversizeChunk, _, err := ParseOversizeChunk(OversizeChunkData)
+	require.NoError(t, err)
 	require.Equal(t, parsedOversizeChunk.chunkTag, uint32(0x6002))
 	require.Equal(t, parsedOversizeChunk.chunkSubTag, uint32(0))
 	require.Equal(t, parsedOversizeChunk.chunkDataSize, uint64(3354))
