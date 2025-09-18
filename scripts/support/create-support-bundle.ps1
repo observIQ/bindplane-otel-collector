@@ -85,7 +85,7 @@ if ($response -ne "n") {
     $profiles = @("profile", "block", "goroutine", "heap", "mutex", "threadcreate", "trace")
 
     foreach ($profile in $profiles) {
-        $url = "http://localhost:$pprof_port/debug/pprof/$profile?seconds=30"
+        $url = "http://localhost:$pprof_port/debug/pprof/$($profile)?seconds=30"
         $output_file = "$output_dir\$profile.txt"
         Write-Host "Collecting $profile profile from $url"
         try {
