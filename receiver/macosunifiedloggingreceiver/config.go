@@ -1,5 +1,16 @@
-// Copyright The OpenTelemetry Authors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package macosunifiedloggingreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver"
 
@@ -24,6 +35,12 @@ type Config struct {
 
 	// TimesyncPaths specifies the path to timesync files for accurate timestamp conversion. This should point to the timesync directory (e.g., "/path/to/logs.logarchive/timesync/*.timesync").
 	TimesyncPaths []string `mapstructure:"timesync_paths"`
+
+	// UUIDTextPaths specifies the path to UUID text files for accurate message parsing. This should point to the UUID text directory (e.g., "/path/to/logs.logarchive/*/*").
+	UUIDTextPaths []string `mapstructure:"uuidtext_paths"`
+
+	// DSCPaths specifies the path to DSC (Dynamic Shared Cache) files for shared string parsing. This should point to the DSC directory (e.g., "/path/to/logs.logarchive/dsc/*").
+	DSCPaths []string `mapstructure:"dsc_paths"`
 
 	// prevent unkeyed literal initialization
 	_ struct{}
