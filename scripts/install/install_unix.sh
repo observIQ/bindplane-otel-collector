@@ -15,6 +15,19 @@
 
 set -e
 
+# Read's optional package overrides. Users should deploy the override
+# file before installing BDOT for the first time. The override should
+# not be modified unless uninstalling and re-installing.
+[ -f /etc/default/bindplane-otel-collector ] && . /etc/default/bindplane-otel-collector
+[ -f /etc/sysconfig/bindplane-otel-collector ] && . /etc/sysconfig/bindplane-otel-collector
+
+# Configurable username and group for BDOT
+: "${BDOT_USER:=bdot}"
+: "${BDOT_GROUP:=bdot}"
+
+# Configurable installation directory for BDOT
+: "${BDOT_CONFIG_HOME:=/opt/bindplane-otel-collector}"
+
 # Agent Constants
 PACKAGE_NAME="bindplane-otel-collector"
 DOWNLOAD_BASE="https://bdot.bindplane.com"
@@ -28,7 +41,7 @@ fi
 
 # Script Constants
 TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env var
-INSTALL_DIR="/opt/bindplane-otel-collector"
+INSTALL_DIR="${BDOT_CONFIG_HOME}"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor.yaml"
 PREREQS="curl printf $SVC_PRE sed uname cut"
 SCRIPT_NAME="$0"
@@ -37,9 +50,7 @@ indent=""
 non_interactive=false
 error_mode=false
 
-# Configurable username and group for BDOT
-: "${BDOT_USER:=bdot}"
-: "${BDOT_GROUP:=bdot}"
+
 
 # Default Supervisor Config Hash
 DEFAULT_SUPERVISOR_CFG_HASH="ac4e6001f1b19d371bba6a2797ba0a55d7ca73151ba6908040598ca275c0efca"
