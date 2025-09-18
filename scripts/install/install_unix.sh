@@ -810,7 +810,7 @@ display_results() {
     info "Supervisor Stop Command:       $(fg_cyan "sudo service bindplane-otel-collector stop")$(reset)"
     info "Status Command:     $(fg_cyan "sudo service bindplane-otel-collector status")$(reset)"
   fi
-  info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL ${DOWNLOAD_BASE}/${version}/install_unix.sh)\" install_unix.sh -r")$(reset)"
+  info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL ${DOWNLOAD_BASE}/v${version}/install_unix.sh)\" install_unix.sh -r")$(reset)"
   decrease_indent
 
   banner 'Support'
