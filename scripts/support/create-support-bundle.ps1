@@ -70,9 +70,13 @@ if ($response -ne "n") {
 Get-ComputerInfo | Out-File "$output_dir\systeminfo.txt"
 
 # Capture profiles
-$response = Read-Host -Prompt "Collect go pprof profiles? (Y or n)? "
+$response = Read-Host -Prompt "Collect go pprof profiles [requires PowerShell 6.0.0 or greater]? (Y or n)? "
 
 if ($response -ne "n") {
+    if ($PSVersionTable.PSVersion.Major -lt 6) {
+        Write-Host "PowerShell 6.0.0 or greater is required to collect pprof profiles. Aborting pprof collection."
+        exit
+    }
     $pprof_port = Read-Host -Prompt "Enter the pprof port (default 13133): "
     if ([string]::IsNullOrWhiteSpace($pprof_port)) {
         $pprof_port = 13133
