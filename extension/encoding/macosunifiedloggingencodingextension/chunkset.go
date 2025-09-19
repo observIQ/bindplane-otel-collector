@@ -93,7 +93,7 @@ func parseChunkset(data []byte) (chunk ChunksetChunk, remainingData []byte, err 
 }
 
 // ParseChunksetData parses each log in the decompressed Chunkset data
-func ParseChunksetData(data []byte, ulData *UnifiedLogData) ([]*TraceV3Entry, error) {
+func ParseChunksetData(data []byte, ulData *UnifiedLogCatalogData) ([]*TraceV3Entry, error) {
 	entries := []*TraceV3Entry{}
 
 	for len(data) > 0 {
@@ -129,7 +129,7 @@ func ParseChunksetData(data []byte, ulData *UnifiedLogData) ([]*TraceV3Entry, er
 	return entries, nil
 }
 
-func getChunksetData(data []byte, chunkTag uint32, ulData *UnifiedLogData) error {
+func getChunksetData(data []byte, chunkTag uint32, ulData *UnifiedLogCatalogData) error {
 	switch chunkTag {
 	case firehoseChunk:
 		firehosePreamble, _ := firehose.ParseFirehosePreamble(data)
