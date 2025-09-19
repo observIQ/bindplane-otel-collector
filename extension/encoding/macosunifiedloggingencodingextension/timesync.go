@@ -18,6 +18,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"strings"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
 )
 
 // TimesyncBoot represents a timesync boot record containing time correlation data
@@ -76,7 +78,7 @@ func ParseTimesyncData(data []byte) (map[string]*TimesyncBoot, error) {
 
 		} else {
 			// Try to parse as boot record
-			boot, newOffset, err := parseTimesyncBoot(data, offset)
+			boot, err := ParseTimesyncBoot(data)
 			if err != nil {
 				// Skip this data and continue
 				offset += 4
@@ -94,7 +96,6 @@ func ParseTimesyncData(data []byte) (map[string]*TimesyncBoot, error) {
 			}
 
 			currentBoot = boot
-			offset = newOffset
 		}
 	}
 
@@ -110,53 +111,48 @@ func ParseTimesyncData(data []byte) (map[string]*TimesyncBoot, error) {
 	return timesyncData, nil
 }
 
-// parseTimesyncBoot parses a timesync boot record
-func parseTimesyncBoot(data []byte, offset int) (*TimesyncBoot, int, error) {
-	if offset+48 > len(data) { // Minimum size for boot record
-		return nil, offset, fmt.Errorf("insufficient data for boot record")
-	}
-
-	signature := binary.LittleEndian.Uint16(data[offset:])
-	if signature != 0xbbb0 {
-		return nil, offset, fmt.Errorf("invalid boot signature: expected 0xbbb0, got 0x%x", signature)
-	}
-
+// ParseTimesyncBoot parses a timesync boot record
+func ParseTimesyncBoot(data []byte) (*TimesyncBoot, error) {
 	boot := &TimesyncBoot{}
-	boot.Signature = signature
-	offset += 2
-
-	boot.HeaderSize = binary.LittleEndian.Uint16(data[offset:])
-	offset += 2
-	boot.Unknown = binary.LittleEndian.Uint32(data[offset:])
-	offset += 4
-
-	// Boot UUID (16 bytes, big endian)
-	if offset+16 > len(data) {
-		return nil, offset, fmt.Errorf("insufficient data for boot UUID")
+	expectedSignature := uint16(0xbbb0)
+	data, signature, _ := utils.Take(data, 2)
+	if binary.LittleEndian.Uint16(signature) != expectedSignature {
+		return nil, fmt.Errorf("invalid boot signature: expected 0x%x, got 0x%x", expectedSignature, signature)
 	}
-	bootUUIDBytes := data[offset : offset+16]
-	boot.BootUUID = fmt.Sprintf("%08X-%04X-%04X-%04X-%012X",
-		binary.BigEndian.Uint32(bootUUIDBytes[0:4]),
-		binary.BigEndian.Uint16(bootUUIDBytes[4:6]),
-		binary.BigEndian.Uint16(bootUUIDBytes[6:8]),
-		binary.BigEndian.Uint16(bootUUIDBytes[8:10]),
-		bootUUIDBytes[10:16])
-	offset += 16
+	boot.Signature = binary.LittleEndian.Uint16(signature)
 
-	boot.TimebaseNumerator = binary.LittleEndian.Uint32(data[offset:])
-	offset += 4
-	boot.TimebaseDenominator = binary.LittleEndian.Uint32(data[offset:])
-	offset += 4
-	boot.BootTime = int64(binary.LittleEndian.Uint64(data[offset:]))
-	offset += 8
-	boot.TimezoneOffsetMins = binary.LittleEndian.Uint32(data[offset:])
-	offset += 4
-	boot.DaylightSavings = binary.LittleEndian.Uint32(data[offset:])
-	offset += 4
+	data, headerSize, _ := utils.Take(data, 2)
+	boot.HeaderSize = binary.LittleEndian.Uint16(headerSize)
+
+	data, unknown, _ := utils.Take(data, 4)
+	boot.Unknown = binary.LittleEndian.Uint32(unknown)
+
+	data, bootUUID, _ := utils.Take(data, 16)
+	boot.BootUUID = fmt.Sprintf("%08X%04X%04X%04X%012X",
+		binary.BigEndian.Uint32(bootUUID[0:4]),
+		binary.BigEndian.Uint16(bootUUID[4:6]),
+		binary.BigEndian.Uint16(bootUUID[6:8]),
+		binary.BigEndian.Uint16(bootUUID[8:10]),
+		bootUUID[10:16])
+
+	data, timebaseNumerator, _ := utils.Take(data, 4)
+	boot.TimebaseNumerator = binary.LittleEndian.Uint32(timebaseNumerator)
+
+	data, timebaseDenominator, _ := utils.Take(data, 4)
+	boot.TimebaseDenominator = binary.LittleEndian.Uint32(timebaseDenominator)
+
+	data, bootTime, _ := utils.Take(data, 8)
+	boot.BootTime = int64(binary.LittleEndian.Uint64(bootTime))
+
+	data, timezoneOffsetMins, _ := utils.Take(data, 4)
+	boot.TimezoneOffsetMins = binary.LittleEndian.Uint32(timezoneOffsetMins)
+
+	data, daylightSavings, _ := utils.Take(data, 4)
+	boot.DaylightSavings = binary.LittleEndian.Uint32(daylightSavings)
 
 	boot.TimesyncRecords = make([]TimesyncRecord, 0)
 
-	return boot, offset, nil
+	return boot, nil
 }
 
 // parseTimesyncRecord parses a timesync record
