@@ -124,8 +124,9 @@ func ParseHeaderChunk(data []byte) (*HeaderChunk, error) {
 
 	// Convert UUID from big-endian bytes to formatted hex string
 	if len(bootUUID) >= 16 {
-		uuidValue := binary.BigEndian.Uint64(bootUUID[:8])<<64 | binary.BigEndian.Uint64(bootUUID[8:16])
-		header.BootUUID = fmt.Sprintf("%032X", uuidValue)
+		upper := binary.BigEndian.Uint64(bootUUID[:8])
+		lower := binary.BigEndian.Uint64(bootUUID[8:16])
+		header.BootUUID = fmt.Sprintf("%016X%016X", upper, lower)
 	}
 
 	return header, nil
