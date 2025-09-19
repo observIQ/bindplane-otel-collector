@@ -45,7 +45,7 @@ const (
 	simpledumpChunk = 0x6004
 )
 
-func parseChunkset(data []byte) (chunk ChunksetChunk, remainingData []byte, err error) {
+func ParseChunkset(data []byte) (chunk ChunksetChunk, remainingData []byte, err error) {
 	chunk = ChunksetChunk{}
 
 	data, chunkTag, err := helpers.Take(data, 4)
@@ -123,9 +123,7 @@ func parseChunkset(data []byte) (chunk ChunksetChunk, remainingData []byte, err 
 }
 
 // ParseChunksetData parses each log in the decompressed Chunkset data
-func ParseChunksetData(data []byte, ulData *UnifiedLogCatalogData) ([]*TraceV3Entry, error) {
-	entries := []*TraceV3Entry{}
-
+func ParseChunksetData(data []byte, ulData *UnifiedLogCatalogData) error {
 	for len(data) > 0 {
 		// read preamble
 		data, chunkTag, err := helpers.Take(data, 4)
@@ -142,7 +140,7 @@ func ParseChunksetData(data []byte, ulData *UnifiedLogCatalogData) ([]*TraceV3En
 		}
 
 		if uint64(chunkDataSize[0]) > uint64(^uint(0)>>1) { // Check if larger than max int
-			return entries, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
+			return fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 		}
 
 		data, chunkData, err := helpers.Take(data, int(chunkDataSize[0]))
@@ -150,7 +148,7 @@ func ParseChunksetData(data []byte, ulData *UnifiedLogCatalogData) ([]*TraceV3En
 			return entries, fmt.Errorf("failed to read chunk data: %w", err)
 		}
 		if err := getChunksetData(chunkData, binary.LittleEndian.Uint32(chunkTag), ulData); err != nil {
-			return entries, err
+			return err
 		}
 
 		// skip zero padding
@@ -168,7 +166,7 @@ func ParseChunksetData(data []byte, ulData *UnifiedLogCatalogData) ([]*TraceV3En
 			break
 		}
 	}
-	return entries, nil
+	return nil
 }
 
 func getChunksetData(data []byte, chunkTag uint32, ulData *UnifiedLogCatalogData) error {
