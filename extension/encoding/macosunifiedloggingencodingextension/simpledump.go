@@ -215,9 +215,9 @@ func ParseSimpledumpChunk(data []byte, entry *TraceV3Entry, header *TraceV3Heade
 	if timesyncData != nil && header != nil {
 		// Use simpledump's continuous time directly, not as delta from header
 		// This matches the rust implementation which treats simpledump.continous_time as absolute mach time
-		machTime := chunk.ContinuousTime
+		// machTime := chunk.ContinuousTime
 
 		// Convert using timesync conversion with preambleTime=0 for simpledump (rust uses no_firehose_preamble=1)
-		entry.Timestamp = convertMachTimeToUnixNanosWithTimesync(machTime, header.BootUUID, 0, timesyncData)
+		// entry.Timestamp = convertMachTimeToUnixNanosWithTimesync(machTime, header.BootUUID, 0, timesyncData)
 	}
 }

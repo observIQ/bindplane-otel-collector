@@ -21,29 +21,29 @@ import (
 )
 
 func TestParseChunkset(t *testing.T) {
-	parsedChunkset, _, err := parseChunkset(chunksetTestData)
+	parsedChunkset, _, err := ParseChunkset(chunksetTestData)
 	require.NoError(t, err)
-	require.Equal(t, parsedChunkset.ChunkTag, uint32(0x600d))
-	require.Equal(t, parsedChunkset.ChunkSubtag, uint32(17))
-	require.Equal(t, parsedChunkset.ChunkDataSize, uint64(21703))
-	require.Equal(t, parsedChunkset.Signature, uint32(825521762))
-	require.Equal(t, parsedChunkset.UncompressedSize, uint32(63560))
-	require.Equal(t, parsedChunkset.BlockSize, uint32(21687))
-	require.Equal(t, len(parsedChunkset.DecompressedData), 63560)
-	require.Equal(t, parsedChunkset.Footer, uint32(607417954))
+	require.Equal(t, uint32(0x600d), parsedChunkset.ChunkTag)
+	require.Equal(t, uint32(17), parsedChunkset.ChunkSubtag)
+	require.Equal(t, uint64(21703), parsedChunkset.ChunkDataSize)
+	require.Equal(t, uint32(825521762), parsedChunkset.Signature)
+	require.Equal(t, uint32(63560), parsedChunkset.UncompressedSize)
+	require.Equal(t, uint32(21687), parsedChunkset.BlockSize)
+	require.Equal(t, 63560, len(parsedChunkset.DecompressedData))
+	require.Equal(t, uint32(607417954), parsedChunkset.Footer)
 }
 
 func TestChunksetWithOversize(t *testing.T) {
-	parsedChunkset, _, err := parseChunkset(chunksetWithOversizeTestData)
+	parsedChunkset, _, err := ParseChunkset(chunksetWithOversizeTestData)
 	require.NoError(t, err)
-	require.Equal(t, parsedChunkset.ChunkTag, uint32(0x600d))
-	require.Equal(t, parsedChunkset.ChunkSubtag, uint32(17))
-	require.Equal(t, parsedChunkset.ChunkDataSize, uint64(20758))
-	require.Equal(t, parsedChunkset.Signature, uint32(825521762))
-	require.Equal(t, parsedChunkset.UncompressedSize, uint32(62592))
-	require.Equal(t, parsedChunkset.BlockSize, uint32(20742))
-	require.Equal(t, len(parsedChunkset.DecompressedData), 62592)
-	require.Equal(t, parsedChunkset.Footer, uint32(607417954))
+	require.Equal(t, uint32(0x600d), parsedChunkset.ChunkTag)
+	require.Equal(t, uint32(17), parsedChunkset.ChunkSubtag)
+	require.Equal(t, uint64(20758), parsedChunkset.ChunkDataSize)
+	require.Equal(t, uint32(825521762), parsedChunkset.Signature)
+	require.Equal(t, uint32(62592), parsedChunkset.UncompressedSize)
+	require.Equal(t, uint32(20742), parsedChunkset.BlockSize)
+	require.Equal(t, 62592, len(parsedChunkset.DecompressedData))
+	require.Equal(t, uint32(607417954), parsedChunkset.Footer)
 }
 
 var chunksetTestData = []byte{
