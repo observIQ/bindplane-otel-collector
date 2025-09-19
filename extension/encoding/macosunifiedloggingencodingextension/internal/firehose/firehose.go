@@ -38,7 +38,7 @@ type Preamble struct {
 	unknown2                 uint16
 	unknown3                 uint16
 	baseContinuousTime       uint64
-	publicData               []Entry
+	PublicData               []Entry
 }
 
 const (
@@ -220,10 +220,10 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 					}
 				}
 			}
-			preamble.publicData = append(preamble.publicData, firehosePublicData)
+			preamble.PublicData = append(preamble.PublicData, firehosePublicData)
 			break
 		}
-		preamble.publicData = append(preamble.publicData, firehosePublicData)
+		preamble.PublicData = append(preamble.PublicData, firehosePublicData)
 	}
 
 	// If there is private data, go through and update any logs that have private data items
@@ -239,8 +239,8 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 			privateInput = data
 		}
 
-		for i := range preamble.publicData {
-			publicData := &preamble.publicData[i] // Use index to avoid memory aliasing
+		for i := range preamble.PublicData {
+			publicData := &preamble.PublicData[i] // Use index to avoid memory aliasing
 			if publicData.FirehoseNonActivity.PrivateStringsSize == 0 {
 				continue
 			}

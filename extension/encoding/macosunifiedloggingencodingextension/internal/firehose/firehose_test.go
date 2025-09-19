@@ -38,11 +38,11 @@ func TestParseFirehosePreamble(t *testing.T) {
 	require.Equal(t, uint16(768), parsedFirehosePreamble.unknown3)
 	require.Equal(t, uint64(4197166166425), parsedFirehosePreamble.baseContinuousTime)
 
-	resultCount := len(parsedFirehosePreamble.publicData)
+	resultCount := len(parsedFirehosePreamble.PublicData)
 	for len(data) > 0 {
 		parsedFirehosePreamble, data, err = ParseFirehosePreamble(data)
 		require.NoError(t, err)
-		resultCount += len(parsedFirehosePreamble.publicData)
+		resultCount += len(parsedFirehosePreamble.PublicData)
 	}
 	require.Equal(t, 371, resultCount)
 }

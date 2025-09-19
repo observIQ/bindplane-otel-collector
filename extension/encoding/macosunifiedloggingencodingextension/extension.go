@@ -116,61 +116,33 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 		return plog.NewLogs(), nil
 	}
 
-	return plog.NewLogs(), nil
+	// Parse the unified log data
+	logDataResults, err := ParseUnifiedLog(buf)
+	if err != nil {
+		return plog.NewLogs(), err
+	}
 
-	// Parse the tracev3 binary data into individual entries using timesync data if available
-	// entries, err := ParseTraceV3DataWithTimesync(buf, c.timesyncData)
-	// if err != nil {
-	// 	// If parsing fails, fall back to creating a single entry with error info
-	// 	logs := plog.NewLogs()
-	// 	resourceLogs := logs.ResourceLogs().AppendEmpty()
-	// 	scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
-	// 	logRecord := scopeLogs.LogRecords().AppendEmpty()
+	otelLogs := plog.NewLogs()
+	// Convert the log data results to OpenTelemetry log records
+	// Log structure should be minimal, preserve the log body and attributes
+	for _, logData := range logDataResults.CatalogData {
+		for _, firehose := range logData.FirehoseData {
+			for _, firehoseEntry := range firehose.PublicData {
+				for _, item := range firehoseEntry.Message.ItemInfo {
+					otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(item.MessageStrings)
+				}
+			}
+		}
+		for _, simpledump := range logData.SimpledumpData {
+			otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(simpledump.MessageString)
+		}
+		for _, statedump := range logData.StatedumpData {
+			otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(statedump.MessageString)
 
-	// 	logRecord.SetTimestamp(pcommon.NewTimestampFromTime(time.Now()))
-	// 	logRecord.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
-	// 	logRecord.SetSeverityNumber(plog.SeverityNumberError)
-	// 	logRecord.SetSeverityText("ERROR")
+		}
+	}
 
-	// 	message := fmt.Sprintf("Failed to parse tracev3 data (%d bytes): %v", len(buf), err)
-	// 	if c.debugMode && len(buf) >= 16 {
-	// 		message += fmt.Sprintf(" (first 16 bytes: %x)", buf[:16])
-	// 	}
-
-	// 	logRecord.Body().SetStr(message)
-	// 	logRecord.Attributes().PutStr("source", "macos_unified_logging")
-	// 	logRecord.Attributes().PutInt("data_size", int64(len(buf)))
-	// 	logRecord.Attributes().PutBool("decoded", false)
-	// 	logRecord.Attributes().PutStr("error", err.Error())
-
-	// 	return logs, nil
-	// }
-
-	// // Convert parsed entries to OpenTelemetry logs
-	// logs := ConvertTraceV3EntriesToLogs(entries)
-
-	// Add debug information if requested
-	// if c.debugMode && len(buf) >= 16 {
-	// 	// Add a debug entry showing raw binary data
-	// 	resourceLogs := logs.ResourceLogs().AppendEmpty()
-	// 	scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
-	// 	logRecord := scopeLogs.LogRecords().AppendEmpty()
-
-	// 	logRecord.SetTimestamp(pcommon.NewTimestampFromTime(time.Now()))
-	// 	logRecord.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
-	// 	logRecord.SetSeverityNumber(plog.SeverityNumberDebug)
-	// 	logRecord.SetSeverityText("DEBUG")
-
-	// 	message := fmt.Sprintf("Raw tracev3 data: %d bytes, %d entries parsed (first 16 bytes: %x)",
-	// 		len(buf), len(entries), buf[:16])
-	// 	logRecord.Body().SetStr(message)
-	// 	logRecord.Attributes().PutStr("source", "macos_unified_logging_debug")
-	// 	logRecord.Attributes().PutInt("data_size", int64(len(buf)))
-	// 	logRecord.Attributes().PutInt("parsed_entries", int64(len(entries)))
-	// 	logRecord.Attributes().PutBool("decoded", true)
-	// }
-
-	// return logs, nil
+	return otelLogs, nil
 }
 
 // parseDSCRawData parses raw DSC data into structured format
