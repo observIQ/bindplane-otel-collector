@@ -36,10 +36,10 @@ func TestParseFirehosePreamble(t *testing.T) {
 	require.Equal(t, parsedFirehosePreamble.unknown3, uint16(768))
 	require.Equal(t, parsedFirehosePreamble.baseContinuousTime, uint64(4197166166425))
 
-	resultCount := len(parsedFirehosePreamble.publicData)
+	resultCount := len(parsedFirehosePreamble.PublicData)
 	for len(data) > 0 {
 		parsedFirehosePreamble, data = ParseFirehosePreamble(data)
-		resultCount += len(parsedFirehosePreamble.publicData)
+		resultCount += len(parsedFirehosePreamble.PublicData)
 	}
 	require.Equal(t, resultCount, 371)
 }
@@ -94,7 +94,7 @@ func TestParseFirehosePrivateDataZero(t *testing.T) {
 	require.Equal(t, parsedFirehosePreamble.secondProcID, uint32(2685254))
 	require.Equal(t, parsedFirehosePreamble.baseContinuousTime, uint64(2686068189033091))
 	require.Equal(t, parsedFirehosePreamble.publicDataSize, uint16(664))
-	require.Equal(t, len(parsedFirehosePreamble.publicData), 10)
+	require.Equal(t, len(parsedFirehosePreamble.PublicData), 10)
 	require.Equal(t, parsedFirehosePreamble.collapsed, uint8(1))
 }
 
