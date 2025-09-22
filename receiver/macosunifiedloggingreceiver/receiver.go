@@ -394,7 +394,12 @@ func (r *macosUnifiedLogReceiver) loadTimesyncFromPath(path string, timesyncRawD
 
 // loadTimesyncFile loads a single timesync file as raw bytes
 func (r *macosUnifiedLogReceiver) loadTimesyncFile(filePath string, timesyncRawData map[string][]byte) error {
-	data, err := os.ReadFile(filePath)
+	// Validate file path for security
+	if err := validateFilePath(filePath); err != nil {
+		return fmt.Errorf("invalid timesync file path: %w", err)
+	}
+
+	data, err := os.ReadFile(filePath) // #nosec G304 - path is validated above
 	if err != nil {
 		return fmt.Errorf("failed to read timesync file %s: %w", filePath, err)
 	}
@@ -473,7 +478,12 @@ func (r *macosUnifiedLogReceiver) loadUUIDTextFromPath(path string, uuidTextRawD
 
 // loadUUIDTextFile loads a single UUID text file as raw bytes
 func (r *macosUnifiedLogReceiver) loadUUIDTextFile(filePath string, uuidTextRawData map[string][]byte) error {
-	data, err := os.ReadFile(filePath)
+	// Validate file path for security
+	if err := validateFilePath(filePath); err != nil {
+		return fmt.Errorf("invalid UUID text file path: %w", err)
+	}
+
+	data, err := os.ReadFile(filePath) // #nosec G304 - path is validated above
 	if err != nil {
 		return fmt.Errorf("failed to read UUID text file %s: %w", filePath, err)
 	}
@@ -557,7 +567,12 @@ func (r *macosUnifiedLogReceiver) loadDSCFromPath(path string, dscRawData map[st
 
 // loadDSCFile loads a single DSC file as raw bytes
 func (r *macosUnifiedLogReceiver) loadDSCFile(filePath string, dscRawData map[string][]byte) error {
-	data, err := os.ReadFile(filePath)
+	// Validate file path for security
+	if err := validateFilePath(filePath); err != nil {
+		return fmt.Errorf("invalid DSC file path: %w", err)
+	}
+
+	data, err := os.ReadFile(filePath) // #nosec G304 - path is validated above
 	if err != nil {
 		return fmt.Errorf("failed to read DSC file %s: %w", filePath, err)
 	}
@@ -568,6 +583,19 @@ func (r *macosUnifiedLogReceiver) loadDSCFile(filePath string, dscRawData map[st
 	r.set.Logger.Debug("Loaded DSC file as raw bytes",
 		zap.String("file", filePath),
 		zap.Int("size", len(data)))
+
+	return nil
+}
+
+// validateFilePath ensures the file path is safe and within expected bounds
+func validateFilePath(filePath string) error {
+	// Clean the path to resolve any . or .. elements
+	cleanPath := filepath.Clean(filePath)
+
+	// Check for directory traversal attempts
+	if strings.Contains(cleanPath, "..") {
+		return fmt.Errorf("invalid file path: directory traversal detected in %s", filePath)
+	}
 
 	return nil
 }

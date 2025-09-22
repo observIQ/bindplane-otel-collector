@@ -239,7 +239,8 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 			privateInput = data
 		}
 
-		for _, publicData := range preamble.publicData {
+		for i := range preamble.publicData {
+			publicData := &preamble.publicData[i] // Use index to avoid memory aliasing
 			if publicData.FirehoseNonActivity.PrivateStringsSize == 0 {
 				continue
 			}
