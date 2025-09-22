@@ -459,7 +459,7 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 			// SimpleDump chunk
 			entry.ChunkType = "simpledump"
 			// Parse into SimpleDumpChunk and map relevant fields to entry
-			simple, _ := ParseSimpleDumpChunk(data[offset : offset+totalChunkSize])
+			simple, _, _ := ParseSimpleDumpChunk(data[offset : offset+totalChunkSize])
 
 			entry.Subsystem = simple.Subsystem
 			entry.Message = simple.MessageString

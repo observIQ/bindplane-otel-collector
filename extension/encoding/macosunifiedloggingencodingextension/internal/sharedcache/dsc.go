@@ -57,7 +57,10 @@ var DSCCache = make(map[string]*Strings)
 
 // ParseDSC parses a DSC (shared cache) file containing shared format strings
 func ParseDSC(data []byte, uuid string) (*Strings, error) {
-	input, signature, _ := utils.Take(data, 4)
+	input, signature, err := utils.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read signature: %w", err)
+	}
 	if binary.LittleEndian.Uint32(signature) != 0x64736368 {
 		return nil, fmt.Errorf("invalid DSC signature: expected 0x%x, got 0x%x", 0x64736368, binary.LittleEndian.Uint32(signature))
 	}
@@ -66,10 +69,22 @@ func ParseDSC(data []byte, uuid string) (*Strings, error) {
 		Signature: binary.LittleEndian.Uint32(signature),
 	}
 
-	input, major, _ := utils.Take(input, 2)
-	input, minor, _ := utils.Take(input, 2)
-	input, numberRanges, _ := utils.Take(input, 4)
-	input, numberUUIDs, _ := utils.Take(input, 4)
+	input, major, err := utils.Take(input, 2)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read major version: %w", err)
+	}
+	input, minor, err := utils.Take(input, 2)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read minor version: %w", err)
+	}
+	input, numberRanges, err := utils.Take(input, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read number ranges: %w", err)
+	}
+	input, numberUUIDs, err := utils.Take(input, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read number UUIDs: %w", err)
+	}
 
 	sharedCacheStrings.MajorVersion = binary.LittleEndian.Uint16(major)
 	sharedCacheStrings.MinorVersion = binary.LittleEndian.Uint16(minor)

@@ -463,18 +463,30 @@ func ParsePrivateData(data []byte, firehoseItemData *ItemData) ([]byte, error) {
 // GetBacktraceData parses backtrace data for log entry (chunk). This only exists if `has_context_data` flag is set
 func GetBacktraceData(data []byte) ([]byte, []string, error) {
 	// Skip 3 unknown bytes
-	input, _, _ := utils.Take(data, 3)
+	input, _, err := utils.Take(data, 3)
+	if err != nil {
+		return data, nil, fmt.Errorf("failed to read backtrace data: %w", err)
+	}
 
 	// Read counts
-	input, uuidCountBytes, _ := utils.Take(input, 1)
-	input, offsetCountBytes, _ := utils.Take(input, 2)
+	input, uuidCountBytes, err := utils.Take(input, 1)
+	if err != nil {
+		return data, nil, fmt.Errorf("failed to read uuid count: %w", err)
+	}
+	input, offsetCountBytes, err := utils.Take(input, 2)
+	if err != nil {
+		return data, nil, fmt.Errorf("failed to read offset count: %w", err)
+	}
 	uuidCount := int(uuidCountBytes[0])
 	offsetCount := int(binary.LittleEndian.Uint16(offsetCountBytes))
 
 	// Read UUID vector (128-bit big-endian UUIDs)
 	var uuidVec []string
 	for i := 0; i < uuidCount; i++ {
-		remaining, uuidBytes, _ := utils.Take(input, 16) // 128 bits = 16 bytes
+		remaining, uuidBytes, err := utils.Take(input, 16) // 128 bits = 16 bytes
+		if err != nil {
+			return data, nil, fmt.Errorf("failed to read uuid bytes: %w", err)
+		}
 		input = remaining
 		// Convert 128-bit UUID to uppercase hex string (big-endian)
 		uuidStr := fmt.Sprintf("%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
@@ -488,7 +500,10 @@ func GetBacktraceData(data []byte) ([]byte, []string, error) {
 	// Read offsets vector (32-bit little-endian)
 	var offsetsVec []uint32
 	for i := 0; i < offsetCount; i++ {
-		remaining, offsetBytes, _ := utils.Take(input, 4)
+		remaining, offsetBytes, err := utils.Take(input, 4)
+		if err != nil {
+			return data, nil, fmt.Errorf("failed to read offset bytes: %w", err)
+		}
 		input = remaining
 		offset := binary.LittleEndian.Uint32(offsetBytes)
 		offsetsVec = append(offsetsVec, offset)
@@ -497,7 +512,10 @@ func GetBacktraceData(data []byte) ([]byte, []string, error) {
 	// Read indexes (8-bit)
 	var indexes []uint8
 	for i := 0; i < offsetCount; i++ {
-		remaining, indexBytes, _ := utils.Take(input, 1)
+		remaining, indexBytes, err := utils.Take(input, 1)
+		if err != nil {
+			return data, nil, fmt.Errorf("failed to read index bytes: %w", err)
+		}
 		input = remaining
 		indexes = append(indexes, indexBytes[0])
 	}
@@ -525,7 +543,10 @@ func GetBacktraceData(data []byte) ([]byte, []string, error) {
 	}
 
 	// Skip padding bytes
-	backtraceInput, _, _ := utils.Take(input, int(paddingSize))
+	backtraceInput, _, err := utils.Take(input, int(paddingSize))
+	if err != nil {
+		return data, nil, fmt.Errorf("failed to read padding bytes: %w", err)
+	}
 	input = backtraceInput
 
 	return input, backtraceData, nil
@@ -574,17 +595,26 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (ItemD
 	backtraceSignatureSize := 3
 
 	if (flags & hasContextData) != 0 {
-		backtraceInput, backtraceData, _ := GetBacktraceData(firehoseInput)
+		backtraceInput, backtraceData, err := GetBacktraceData(firehoseInput)
+		if err != nil {
+			return firehoseItemData, firehoseInput, fmt.Errorf("failed to get backtrace data: %w", err)
+		}
 		firehoseInput = backtraceInput
 		firehoseItemData.BacktraceStrings = backtraceData
 	} else if len(firehoseInput) > backtraceSignatureSize {
 		backtraceSignature := []uint8{1, 0, 18}
-		_, parsedBacktraceSig, _ := utils.Take(firehoseInput, backtraceSignatureSize)
+		_, parsedBacktraceSig, err := utils.Take(firehoseInput, backtraceSignatureSize)
+		if err != nil {
+			return firehoseItemData, firehoseInput, fmt.Errorf("failed to read backtrace signature: %w", err)
+		}
 		if len(parsedBacktraceSig) == len(backtraceSignature) &&
 			parsedBacktraceSig[0] == backtraceSignature[0] &&
 			parsedBacktraceSig[1] == backtraceSignature[1] &&
 			parsedBacktraceSig[2] == backtraceSignature[2] {
-			backtraceInput, backtraceData, _ := GetBacktraceData(firehoseInput)
+			backtraceInput, backtraceData, err := GetBacktraceData(firehoseInput)
+			if err != nil {
+				return firehoseItemData, firehoseInput, fmt.Errorf("failed to get backtrace data: %w", err)
+			}
 			firehoseInput = backtraceInput
 			firehoseItemData.BacktraceStrings = backtraceData
 		}
@@ -637,30 +667,53 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (ItemD
 
 // GetFirehoseItems gets the firehose item type and size
 func GetFirehoseItems(data []byte) (ItemType, []byte) {
-	remainingData, itemTypeBytes, _ := utils.Take(data, 1)
-	remainingData, itemSizeBytes, _ := utils.Take(remainingData, 1)
-	item := ItemType{
+	var err error
+	item := ItemType{}
+	remainingData, itemTypeBytes, err := utils.Take(data, 1)
+	if err != nil {
+		return item, remainingData
+	}
+	remainingData, itemSizeBytes, err := utils.Take(remainingData, 1)
+	if err != nil {
+		return item, remainingData
+	}
+	item = ItemType{
 		ItemType: itemTypeBytes[0],
 		ItemSize: itemSizeBytes[0],
 	}
 
 	if slices.Contains(stringItem[:], uint8(item.ItemType)) || uint8(item.ItemType) == PrivateNumber {
 		var offsetBytes, sizeBytes []byte
-		remainingData, offsetBytes, _ = utils.Take(remainingData, 2)
-		remainingData, sizeBytes, _ = utils.Take(remainingData, 2)
+		remainingData, offsetBytes, err = utils.Take(remainingData, 2)
+		if err != nil {
+			return item, remainingData
+		}
+		remainingData, sizeBytes, err = utils.Take(remainingData, 2)
+		if err != nil {
+			return item, remainingData
+		}
 		item.Offset = binary.LittleEndian.Uint16(offsetBytes)
 		item.MessageStringSize = binary.LittleEndian.Uint16(sizeBytes)
 	}
 
 	// Precision items just contain the length for the actual item. Ex: %*s
 	if slices.Contains(precisionItems, item.ItemType) {
-		remainingData, _, _ = utils.Take(remainingData, int(item.ItemSize))
+		remainingData, _, err = utils.Take(remainingData, int(item.ItemSize))
+		if err != nil {
+			return item, remainingData
+		}
 	}
 
 	if slices.Contains(sensitiveItems, item.ItemType) {
 		var sensitiveOffsetBytes, sensitiveSizeBytes []byte
-		remainingData, sensitiveOffsetBytes, _ = utils.Take(remainingData, 2)
-		remainingData, sensitiveSizeBytes, _ = utils.Take(remainingData, 2)
+		remainingData, sensitiveOffsetBytes, err = utils.Take(remainingData, 2)
+		if err != nil {
+			return item, remainingData
+		}
+		remainingData, sensitiveSizeBytes, err = utils.Take(remainingData, 2)
+		if err != nil {
+			return item, remainingData
+		}
 		item.Offset = binary.LittleEndian.Uint16(sensitiveOffsetBytes)
 		item.MessageStringSize = binary.LittleEndian.Uint16(sensitiveSizeBytes)
 	}
@@ -673,7 +726,10 @@ func ParseItemString(data []byte, itemType uint8, messageSize uint16) ([]byte, s
 	if messageSize > uint16(len(data)) {
 		return utils.ExtractStringSize(data, uint64(messageSize))
 	}
-	data, messageData, _ := utils.Take(data, int(messageSize))
+	data, messageData, err := utils.Take(data, int(messageSize))
+	if err != nil {
+		return data, "", err
+	}
 
 	// 0x30, 0x31, and 0x32 represent arbitrary data, need to be decoded again
 	if slices.Contains(arbitrary, itemType) {
@@ -684,7 +740,10 @@ func ParseItemString(data []byte, itemType uint8, messageSize uint16) ([]byte, s
 		return data, base64.StdEncoding.EncodeToString(messageData), nil
 	}
 
-	_, messageString, _ := utils.ExtractStringSize(messageData, uint64(messageSize))
+	_, messageString, err := utils.ExtractStringSize(messageData, uint64(messageSize))
+	if err != nil {
+		return data, "", err
+	}
 	return data, messageString, nil
 }
 

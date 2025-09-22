@@ -67,7 +67,10 @@ func ExtractSharedStrings(
 					return messageData, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 				}
 
-				messageStart, _, _ := utils.Take(r.Strings, int(offset))
+				messageStart, _, err := utils.Take(r.Strings, int(offset))
+				if err != nil {
+					return messageData, err
+				}
 				messageData.FormatString, _ = utils.ExtractString(messageStart)
 
 				messageData.Library = sharedString.UUIDs[r.UnknownUUIDIndex].PathString
@@ -157,7 +160,10 @@ func ExtractFormatStrings(
 				continue
 			}
 
-			messageStart, _, _ := utils.Take(data.FooterData, int(offset+stringStart))
+			messageStart, _, err := utils.Take(data.FooterData, int(offset+stringStart))
+			if err != nil {
+				return messageData, err
+			}
 			messageFormatString, err := utils.ExtractString(messageStart)
 			if err != nil {
 				return messageData, err
@@ -263,7 +269,10 @@ func ExtractAbsoluteStrings(
 				return messageData, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 			}
 
-			messageStart, _, _ := utils.Take(data.FooterData, int(offset+uint64(stringStart)))
+			messageStart, _, err := utils.Take(data.FooterData, int(offset+uint64(stringStart)))
+			if err != nil {
+				return messageData, err
+			}
 			messageFormatString, err := utils.ExtractString(messageStart)
 			if err != nil {
 				return messageData, err
@@ -355,7 +364,10 @@ func ExtractAltUUIDStrings(
 				continue
 			}
 
-			messageStart, _, _ := utils.Take(data.FooterData, int(offset+stringStart))
+			messageStart, _, err := utils.Take(data.FooterData, int(offset+stringStart))
+			if err != nil {
+				return messageData, err
+			}
 			messageFormatString, err := utils.ExtractString(messageStart)
 			if err != nil {
 				return messageData, err
@@ -430,6 +442,9 @@ func uuidTextImagePath(data []byte, entries []uuidtext.Entry) (string, error) {
 		imageLibraryOffset += entry.EntrySize
 	}
 
-	libraryStart, _, _ := utils.Take(data, int(imageLibraryOffset))
+	libraryStart, _, err := utils.Take(data, int(imageLibraryOffset))
+	if err != nil {
+		return "", err
+	}
 	return utils.ExtractString(libraryStart)
 }

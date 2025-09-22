@@ -129,7 +129,7 @@ func TestParseSimpleDump(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			parsedChunk, _ := ParseSimpleDumpChunk(tc.data)
+			parsedChunk, _, _ := ParseSimpleDumpChunk(tc.data)
 			tc.validate(t, &parsedChunk)
 		})
 	}

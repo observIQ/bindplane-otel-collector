@@ -43,15 +43,27 @@ func ParseUUIDText(data []byte) (*UUIDText, error) {
 	uuidText := &UUIDText{}
 	expectedSignature := uint32(0x66778899)
 
-	data, signature, _ := utils.Take(data, 4)
+	data, signature, err := utils.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read signature: %w", err)
+	}
 	if binary.LittleEndian.Uint32(signature) != expectedSignature {
 		return nil, fmt.Errorf("invalid UUID text signature: expected 0x%x, got 0x%x", expectedSignature, signature)
 	}
 	uuidText.Signature = binary.LittleEndian.Uint32(signature)
 
-	data, unknownMajorVersion, _ := utils.Take(data, 4)
-	data, unknownMinorVersion, _ := utils.Take(data, 4)
-	data, numberEntries, _ := utils.Take(data, 4)
+	data, unknownMajorVersion, err := utils.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read unknown major version: %w", err)
+	}
+	data, unknownMinorVersion, err := utils.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read unknown minor version: %w", err)
+	}
+	data, numberEntries, err := utils.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read number entries: %w", err)
+	}
 
 	uuidText.UnknownMajorVersion = binary.LittleEndian.Uint32(unknownMajorVersion)
 	uuidText.UnknownMinorVersion = binary.LittleEndian.Uint32(unknownMinorVersion)
@@ -59,8 +71,14 @@ func ParseUUIDText(data []byte) (*UUIDText, error) {
 
 	uuidText.EntryDescriptors = make([]Entry, uuidText.NumberEntries)
 	for i := 0; i < int(uuidText.NumberEntries); i++ {
-		data, rangeStartOffset, _ := utils.Take(data, 4)
-		data, entrySize, _ := utils.Take(data, 4)
+		data, rangeStartOffset, err := utils.Take(data, 4)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read range start offset: %w", err)
+		}
+		data, entrySize, err := utils.Take(data, 4)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read entry size: %w", err)
+		}
 		entryData := Entry{
 			RangeStartOffset: binary.LittleEndian.Uint32(rangeStartOffset),
 			EntrySize:        binary.LittleEndian.Uint32(entrySize),
