@@ -341,18 +341,10 @@ func (r *macosUnifiedLogReceiver) loadTimesyncData() error {
 		return fmt.Errorf("no timesync data loaded from any path")
 	}
 
-	// Log all loaded timesync files for debugging
-	var loadedFiles []string
 	totalBytes := 0
-	for filePath, data := range timesyncRawData {
-		loadedFiles = append(loadedFiles, filePath)
+	for _, data := range timesyncRawData {
 		totalBytes += len(data)
 	}
-
-	r.set.Logger.Info("=== RECEIVER DEBUG: TIMESYNC RAW DATA LOADED ===",
-		zap.Int("totalTimesyncFiles", len(timesyncRawData)),
-		zap.Strings("loadedFiles", loadedFiles),
-		zap.Int("totalBytes", totalBytes))
 
 	// Configure the encoding extension with the raw timesync data
 	if macosExt, ok := r.encodingExt.(*macosunifiedloggingencodingextension.MacosUnifiedLoggingExtension); ok {
@@ -430,11 +422,8 @@ func (r *macosUnifiedLogReceiver) loadUUIDTextData() error {
 		return fmt.Errorf("no UUID text data loaded from any path")
 	}
 
-	// Log all loaded UUID text files for debugging
-	var loadedFiles []string
 	totalBytes := 0
-	for filePath, data := range uuidTextRawData {
-		loadedFiles = append(loadedFiles, filePath)
+	for _, data := range uuidTextRawData {
 		totalBytes += len(data)
 	}
 
@@ -514,18 +503,10 @@ func (r *macosUnifiedLogReceiver) loadDSCData() error {
 		return fmt.Errorf("no DSC data loaded from any path")
 	}
 
-	// Log all loaded DSC files for debugging
-	var loadedFiles []string
 	totalBytes := 0
-	for filePath, data := range dscRawData {
-		loadedFiles = append(loadedFiles, filePath)
+	for _, data := range dscRawData {
 		totalBytes += len(data)
 	}
-
-	r.set.Logger.Info("=== RECEIVER DEBUG: DSC RAW DATA LOADED ===",
-		zap.Int("totalDSCFiles", len(dscRawData)),
-		zap.Strings("loadedFiles", loadedFiles),
-		zap.Int("totalBytes", totalBytes))
 
 	// Configure the encoding extension with the raw DSC data
 	if macosExt, ok := r.encodingExt.(*macosunifiedloggingencodingextension.MacosUnifiedLoggingExtension); ok {
