@@ -33,24 +33,21 @@ jobs:
         shell: bash
 
 
-      - name: Run govulncheck with memory optimization
+      - name: Run govulncheck module-by-module
         timeout-minutes: 30
         run: |
-          govulncheck -format json ./... | tee govulncheck-results.json || {
-            echo "Full scan failed, trying module-by-module scan..."
-            echo '[]' > govulncheck-results.json
-            temp_file=$(mktemp)
-            for module in $(go list -m all | head -100); do
-              echo "Scanning module: $module"
-              if govulncheck -format json "$module" > "$temp_file" 2>/dev/null; then
-                cat "$temp_file" >> govulncheck-results.json
-                echo "" >> govulncheck-results.json
-              else
-                echo "Module $module scan failed"
-              fi
-            done
-            rm -f "$temp_file"
-          }
+          echo '[]' > govulncheck-results.json
+          temp_file=$(mktemp)
+          for module in $(go list -m all | head -100); do
+            echo "Scanning module: $module"
+            if govulncheck -format json "$module" > "$temp_file" 2>/dev/null; then
+              cat "$temp_file" >> govulncheck-results.json
+              echo "" >> govulncheck-results.json
+            else
+              echo "Module $module scan failed"
+            fi
+          done
+          rm -f "$temp_file"
         shell: bash
 
       - name: Parse govulncheck results
