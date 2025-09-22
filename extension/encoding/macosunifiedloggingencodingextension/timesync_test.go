@@ -41,7 +41,7 @@ func TestParseTimesyncBoot(t *testing.T) {
 		123, 92, 29, 1, 0, 0, 0, 1, 0, 0, 0, 168, 167, 19, 176, 114, 158, 131, 22, 0, 0, 0, 0,
 		0, 0, 0, 0,
 	}
-	boot, err := ParseTimesyncBoot(testData)
+	boot, _, err := ParseTimesyncBoot(testData)
 	require.NoError(t, err)
 	require.Equal(t, uint16(0xbbb0), boot.Signature)
 	require.Equal(t, uint16(48), boot.HeaderSize)

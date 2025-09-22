@@ -51,75 +51,49 @@ type TimesyncRecord struct {
 const expectedTimesyncSignature = 0x207354
 
 // ParseTimesyncData parses timesync files and returns a map of boot UUIDs to TimesyncBoot records
-// Based on the Rust implementation logic
 func ParseTimesyncData(data []byte) (map[string]*TimesyncBoot, error) {
 	timesyncData := make(map[string]*TimesyncBoot)
-	offset := 0
-	var currentBoot *TimesyncBoot
+	timesyncBoot := &TimesyncBoot{}
+	var err error
 
-	for offset < len(data) {
-		if offset+4 > len(data) {
-			break
-		}
-
-		// Check the signature to determine record type
-		signature := binary.LittleEndian.Uint32(data[offset:])
-
-		if signature == 0x207354 { // Timesync record signature
-			record, err := ParseTimesyncRecord(data)
+	for len(data) > 0 {
+		_, signature, _ := utils.Take(data, 4)
+		if binary.LittleEndian.Uint32(signature) == expectedTimesyncSignature {
+			timesyncBoot, remainingData, err := ParseTimesyncBoot(data)
 			if err != nil {
-				// Skip this record and continue
-				offset += 4
-				continue
+				return timesyncData, err
 			}
-
-			if currentBoot != nil {
-				currentBoot.TimesyncRecords = append(currentBoot.TimesyncRecords, *record)
-			}
-			offset = offset + 4
-
+			timesyncBoot.TimesyncRecords = append(timesyncBoot.TimesyncRecords, timesyncBoot.TimesyncRecords...)
+			data = remainingData
 		} else {
-			// Try to parse as boot record
-			boot, err := ParseTimesyncBoot(data)
-			if err != nil {
-				// Skip this data and continue
-				offset += 4
-				continue
-			}
-
-			// Save previous boot record if it exists
-			if currentBoot != nil {
-				if existing, exists := timesyncData[currentBoot.BootUUID]; exists {
-					// Merge records if boot UUID already exists
-					existing.TimesyncRecords = append(existing.TimesyncRecords, currentBoot.TimesyncRecords...)
+			if timesyncBoot.Signature != 0 {
+				if existing, exists := timesyncData[timesyncBoot.BootUUID]; exists {
+					existing.TimesyncRecords = append(existing.TimesyncRecords, timesyncBoot.TimesyncRecords...)
 				} else {
-					timesyncData[currentBoot.BootUUID] = currentBoot
+					timesyncData[timesyncBoot.BootUUID] = timesyncBoot
 				}
 			}
-
-			currentBoot = boot
+			timesyncBoot, data, err = ParseTimesyncBoot(data)
+			if err != nil {
+				return timesyncData, err
+			}
 		}
 	}
-
-	// Save the last boot record
-	if currentBoot != nil {
-		if existing, exists := timesyncData[currentBoot.BootUUID]; exists {
-			existing.TimesyncRecords = append(existing.TimesyncRecords, currentBoot.TimesyncRecords...)
-		} else {
-			timesyncData[currentBoot.BootUUID] = currentBoot
-		}
+	if existing, exists := timesyncData[timesyncBoot.BootUUID]; exists {
+		existing.TimesyncRecords = append(existing.TimesyncRecords, timesyncBoot.TimesyncRecords...)
+	} else {
+		timesyncData[timesyncBoot.BootUUID] = timesyncBoot
 	}
-
 	return timesyncData, nil
 }
 
 // ParseTimesyncBoot parses a timesync boot record
-func ParseTimesyncBoot(data []byte) (*TimesyncBoot, error) {
+func ParseTimesyncBoot(data []byte) (*TimesyncBoot, []byte, error) {
 	boot := &TimesyncBoot{}
 	expectedSignature := uint16(0xbbb0)
 	data, signature, _ := utils.Take(data, 2)
 	if binary.LittleEndian.Uint16(signature) != expectedSignature {
-		return nil, fmt.Errorf("invalid boot signature: expected 0x%x, got 0x%x", expectedSignature, signature)
+		return nil, nil, fmt.Errorf("invalid boot signature: expected 0x%x, got 0x%x", expectedSignature, signature)
 	}
 	boot.Signature = binary.LittleEndian.Uint16(signature)
 
@@ -154,7 +128,7 @@ func ParseTimesyncBoot(data []byte) (*TimesyncBoot, error) {
 
 	boot.TimesyncRecords = make([]TimesyncRecord, 0)
 
-	return boot, nil
+	return boot, data, nil
 }
 
 // ParseTimesyncRecord parses a timesync record
@@ -190,7 +164,7 @@ func GetTimestamp(
 	firehoseLogDeltaTime uint64,
 	firehosePreambleTime uint64,
 ) float64 {
-	/*  Timestamp calculation logic (from Rust implementation):
+	/*  Timestamp calculation logic:
 		Firehose Log entry timestamp is calculated by using firehose_preamble_time, firehose.continous_time_delta, and timesync timestamps
 		Firehose log header/preample contains a base timestamp
 		  Ex: Firehose header base time is 2022-01-01 00:00:00
@@ -212,84 +186,34 @@ func GetTimestamp(
 	   Final results is unix epoch timestamp in nano seconds
 	*/
 
-	var timesyncContinuousTime uint64
-	var timesyncWallTime int64
+	var timebaseAdjustment float64 = 1.0
+	var timesyncContinousTime uint64
+	var timesyncWalltime int64
 
-	// Apple Intel uses 1/1 as the timebase
-	timebaseAdjustment := 1.0
-
-	// Try different UUID format variations to find a match
-	var foundTimesync *TimesyncBoot
-
-	// Try the lookup with different case variations and format variations
-	testUUIDs := []string{
-		bootUUID,                              // Original format
-		strings.ToUpper(bootUUID),             // Uppercase
-		strings.ToLower(bootUUID),             // Lowercase
-		strings.ReplaceAll(bootUUID, "-", ""), // Remove dashes
-		strings.ToUpper(strings.ReplaceAll(bootUUID, "-", "")), // Uppercase without dashes
-		strings.ToLower(strings.ReplaceAll(bootUUID, "-", "")), // Lowercase without dashes
-	}
-
-	for _, testUUID := range testUUIDs {
-		if ts, ok := timesyncData[testUUID]; ok {
-			foundTimesync = ts
-			break
+	if timesync, exists := timesyncData[bootUUID]; exists {
+		if timesync.TimebaseNumerator == 125 && timesync.TimebaseDenominator == 3 {
+			timebaseAdjustment = 125.0 / 3.0
 		}
-	}
-
-	// If still no match, try case-insensitive search through all keys
-	if foundTimesync == nil {
-		for uuid, ts := range timesyncData {
-			if strings.EqualFold(uuid, bootUUID) {
-				foundTimesync = ts
+		// A preamble time of 0 means we need to use the timesync header boot time as our minimum value.
+		// We also set the timesync_continous_time to zero
+		if firehosePreambleTime == 0 {
+			timesyncContinousTime = 0
+			timesyncWalltime = timesync.BootTime
+		}
+		for _, timesyncRecord := range timesync.TimesyncRecords {
+			if timesyncRecord.KernelTime > firehoseLogDeltaTime {
+				if timesyncContinousTime == 0 && timesyncWalltime == 0 {
+					timesyncContinousTime = timesyncRecord.KernelTime
+					timesyncWalltime = timesyncRecord.WallTime
+				}
 				break
 			}
+			timesyncContinousTime = timesyncRecord.KernelTime
+			timesyncWalltime = timesyncRecord.WallTime
 		}
 	}
-
-	if foundTimesync == nil {
-		// If no match found, return the raw mach time (which produces 1969/1970 timestamps)
-		// This is better than a hardcoded fallback as it preserves relative timing
-		return float64(firehoseLogDeltaTime)
-	}
-
-	timesync := foundTimesync
-
-	if timesync.TimebaseNumerator == 125 && timesync.TimebaseDenominator == 3 {
-		// For Apple Silicon (ARM) we need to adjust the mach time by multiplying by 125.0/3.0 to get the accurate nanosecond count
-		timebaseAdjustment = 125.0 / 3.0
-	}
-
-	// A preamble time of 0 means we need to find the appropriate timesync correlation point
-	// for the firehoseLogDeltaTime (which is a mach absolute time)
-	if firehosePreambleTime == 0 {
-		// Find the timesync record that correlates with this mach time
-		// We'll search through timesync records to find the right correlation point
-		timesyncContinuousTime = 0
-		timesyncWallTime = 0
-	}
-
-	for _, timesyncRecord := range timesync.TimesyncRecords {
-		if timesyncRecord.KernelTime > firehoseLogDeltaTime {
-			if timesyncContinuousTime == 0 && timesyncWallTime == 0 {
-				timesyncContinuousTime = timesyncRecord.KernelTime
-				timesyncWallTime = timesyncRecord.WallTime
-			}
-			break
-		}
-
-		timesyncContinuousTime = timesyncRecord.KernelTime
-		timesyncWallTime = timesyncRecord.WallTime
-	}
-
-	// Calculate the continuous time difference and apply timebase adjustment
-	firehoseAdjusted := float64(firehoseLogDeltaTime) * timebaseAdjustment
-	timesyncAdjusted := float64(timesyncContinuousTime) * timebaseAdjustment
-	continuousTime := firehoseAdjusted - timesyncAdjusted
-	result := continuousTime + float64(timesyncWallTime)
-
-	return result
+	continousTime := float64(firehoseLogDeltaTime)*timebaseAdjustment - float64(timesyncContinousTime)*timebaseAdjustment
+	return continousTime + float64(timesyncWalltime)
 }
 
 // NormalizeBootUUID normalizes boot UUID format to match timesync data format
