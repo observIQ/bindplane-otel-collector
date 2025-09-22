@@ -7,7 +7,7 @@ on:
 jobs:
   vulncheck:
     name: Go Vulnerability Scan
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
     timeout-minutes: 20
     steps:
       - name: Check out source code
