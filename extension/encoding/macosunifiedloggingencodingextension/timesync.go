@@ -48,6 +48,8 @@ type TimesyncRecord struct {
 	DaylightSavings uint32 // Daylight savings flag
 }
 
+const expectedTimesyncSignature = 0x207354
+
 // ParseTimesyncData parses timesync files and returns a map of boot UUIDs to TimesyncBoot records
 // Based on the Rust implementation logic
 func ParseTimesyncData(data []byte) (map[string]*TimesyncBoot, error) {
@@ -64,7 +66,7 @@ func ParseTimesyncData(data []byte) (map[string]*TimesyncBoot, error) {
 		signature := binary.LittleEndian.Uint32(data[offset:])
 
 		if signature == 0x207354 { // Timesync record signature
-			record, newOffset, err := parseTimesyncRecord(data, offset)
+			record, err := ParseTimesyncRecord(data)
 			if err != nil {
 				// Skip this record and continue
 				offset += 4
@@ -74,7 +76,7 @@ func ParseTimesyncData(data []byte) (map[string]*TimesyncBoot, error) {
 			if currentBoot != nil {
 				currentBoot.TimesyncRecords = append(currentBoot.TimesyncRecords, *record)
 			}
-			offset = newOffset
+			offset = offset + 4
 
 		} else {
 			// Try to parse as boot record
@@ -155,33 +157,29 @@ func ParseTimesyncBoot(data []byte) (*TimesyncBoot, error) {
 	return boot, nil
 }
 
-// parseTimesyncRecord parses a timesync record
-func parseTimesyncRecord(data []byte, offset int) (*TimesyncRecord, int, error) {
-	if offset+32 > len(data) { // Minimum size for timesync record
-		return nil, offset, fmt.Errorf("insufficient data for timesync record")
-	}
-
-	signature := binary.LittleEndian.Uint32(data[offset:])
-	if signature != 0x207354 {
-		return nil, offset, fmt.Errorf("invalid timesync signature: expected 0x207354, got 0x%x", signature)
-	}
-
+// ParseTimesyncRecord parses a timesync record
+func ParseTimesyncRecord(data []byte) (*TimesyncRecord, error) {
 	record := &TimesyncRecord{}
-	record.Signature = signature
-	offset += 4
+	data, signature, _ := utils.Take(data, 4)
 
-	record.UnknownFlags = binary.LittleEndian.Uint32(data[offset:])
-	offset += 4
-	record.KernelTime = binary.LittleEndian.Uint64(data[offset:])
-	offset += 8
-	record.WallTime = int64(binary.LittleEndian.Uint64(data[offset:]))
-	offset += 8
-	record.Timezone = binary.LittleEndian.Uint32(data[offset:])
-	offset += 4
-	record.DaylightSavings = binary.LittleEndian.Uint32(data[offset:])
-	offset += 4
+	if binary.LittleEndian.Uint32(signature) != expectedTimesyncSignature {
+		return record, fmt.Errorf("invalid timesync signature: expected 0x%x, got 0x%x", expectedTimesyncSignature, signature)
+	}
 
-	return record, offset, nil
+	data, unknownFlags, _ := utils.Take(data, 4)
+	data, kernelTime, _ := utils.Take(data, 8)
+	data, wallTime, _ := utils.Take(data, 8)
+	data, timezone, _ := utils.Take(data, 4)
+	data, daylightSavings, _ := utils.Take(data, 4)
+
+	record.Signature = binary.LittleEndian.Uint32(signature)
+	record.UnknownFlags = binary.LittleEndian.Uint32(unknownFlags)
+	record.KernelTime = binary.LittleEndian.Uint64(kernelTime)
+	record.WallTime = int64(binary.LittleEndian.Uint64(wallTime))
+	record.Timezone = binary.LittleEndian.Uint32(timezone)
+	record.DaylightSavings = binary.LittleEndian.Uint32(daylightSavings)
+
+	return record, nil
 }
 
 // GetTimestamp calculates a Unix epoch timestamp from mach time using timesync data

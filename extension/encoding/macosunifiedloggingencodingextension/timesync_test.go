@@ -20,7 +20,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTimestampBoot(t *testing.T) {
+func TestParseTimesyncRecord(t *testing.T) {
+	testData := []byte{
+		84, 115, 32, 0, 0, 0, 0, 0, 165, 196, 104, 252, 1, 0, 0, 0, 216, 189, 100, 108, 116,
+		158, 131, 22, 0, 0, 0, 0, 0, 0, 0, 0,
+	}
+	record, err := ParseTimesyncRecord(testData)
+	require.NoError(t, err)
+	require.Equal(t, uint32(0x207354), record.Signature)
+	require.Equal(t, uint32(0), record.UnknownFlags)
+	require.Equal(t, uint64(8529691813), record.KernelTime)
+	require.Equal(t, int64(1622314513655447000), record.WallTime)
+	require.Equal(t, uint32(0), record.Timezone)
+	require.Equal(t, uint32(0), record.DaylightSavings)
+}
+
+func TestParseTimesyncBoot(t *testing.T) {
 	testData := []byte{
 		176, 187, 48, 0, 0, 0, 0, 0, 132, 91, 13, 213, 1, 96, 69, 62, 172, 224, 56, 118, 12,
 		123, 92, 29, 1, 0, 0, 0, 1, 0, 0, 0, 168, 167, 19, 176, 114, 158, 131, 22, 0, 0, 0, 0,
