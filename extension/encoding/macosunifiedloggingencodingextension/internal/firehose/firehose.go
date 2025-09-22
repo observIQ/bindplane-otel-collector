@@ -142,7 +142,7 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte) {
 		firehosePublicData, firehoseInput, _ := ParseFirehoseEntry(publicData)
 		publicData = firehoseInput
 
-		if slices.Contains(logTypes[:], firehosePublicData.ActivityType) || len(publicData) < 24 {
+		if !slices.Contains(logTypes[:], firehosePublicData.ActivityType) || len(publicData) < 24 {
 			// If the activity type is unknown remnant data, break
 			if firehosePublicData.ActivityType == UnknownRemnantData {
 				break
@@ -523,33 +523,35 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (ItemD
 
 // GetFirehoseItems gets the firehose item type and size
 func GetFirehoseItems(data []byte) (ItemType, []byte) {
-	firehoseInput, itemType, _ := utils.Take(data, 1)
-	firehoseInput, itemSize, _ := utils.Take(firehoseInput, 1)
+	remainingData, itemTypeBytes, _ := utils.Take(data, 1)
+	remainingData, itemSizeBytes, _ := utils.Take(remainingData, 1)
 	item := ItemType{
-		ItemType: itemType[0],
-		ItemSize: itemSize[0],
+		ItemType: itemTypeBytes[0],
+		ItemSize: itemSizeBytes[0],
 	}
 
 	if slices.Contains(stringItem[:], uint8(item.ItemType)) || uint8(item.ItemType) == PrivateNumber {
-		firehoseInput, messageOffset, _ := utils.Take(firehoseInput, 2)
-		firehoseInput, messageSize, _ := utils.Take(firehoseInput, 2)
-		item.Offset = binary.LittleEndian.Uint16(messageOffset)
-		item.MessageStringSize = binary.LittleEndian.Uint16(messageSize)
+		var offsetBytes, sizeBytes []byte
+		remainingData, offsetBytes, _ = utils.Take(remainingData, 2)
+		remainingData, sizeBytes, _ = utils.Take(remainingData, 2)
+		item.Offset = binary.LittleEndian.Uint16(offsetBytes)
+		item.MessageStringSize = binary.LittleEndian.Uint16(sizeBytes)
 	}
 
 	// Precision items just contain the length for the actual item. Ex: %*s
 	if slices.Contains(precisionItems, item.ItemType) {
-		firehoseInput, _, _ = utils.Take(firehoseInput, int(item.ItemSize))
+		remainingData, _, _ = utils.Take(remainingData, int(item.ItemSize))
 	}
 
 	if slices.Contains(sensitiveItems, item.ItemType) {
-		firehoseInput, messageOffset, _ := utils.Take(firehoseInput, 2)
-		firehoseInput, messageSize, _ := utils.Take(firehoseInput, 2)
-		item.Offset = binary.LittleEndian.Uint16(messageOffset)
-		item.MessageStringSize = binary.LittleEndian.Uint16(messageSize)
+		var sensitiveOffsetBytes, sensitiveSizeBytes []byte
+		remainingData, sensitiveOffsetBytes, _ = utils.Take(remainingData, 2)
+		remainingData, sensitiveSizeBytes, _ = utils.Take(remainingData, 2)
+		item.Offset = binary.LittleEndian.Uint16(sensitiveOffsetBytes)
+		item.MessageStringSize = binary.LittleEndian.Uint16(sensitiveSizeBytes)
 	}
 
-	return item, firehoseInput
+	return item, remainingData
 }
 
 // ParseItemString parses a string from the firehose data based on the item type and message size
