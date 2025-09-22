@@ -23,7 +23,6 @@ import (
 )
 
 // TimesyncBoot represents a timesync boot record containing time correlation data
-// Based on the Rust implementation from mandiant/macos-UnifiedLogs
 type TimesyncBoot struct {
 	Signature           uint16           // Boot record signature (0xbbb0)
 	HeaderSize          uint16           // Size of the header
@@ -38,7 +37,6 @@ type TimesyncBoot struct {
 }
 
 // TimesyncRecord represents a single timesync record correlating mach time to wall time
-// Based on the Rust implementation from mandiant/macos-UnifiedLogs
 type TimesyncRecord struct {
 	Signature       uint32 // Record signature (0x207354)
 	UnknownFlags    uint32 // Unknown flags
@@ -59,11 +57,11 @@ func ParseTimesyncData(data []byte) (map[string]*TimesyncBoot, error) {
 	for len(data) > 0 {
 		_, signature, _ := utils.Take(data, 4)
 		if binary.LittleEndian.Uint32(signature) == expectedTimesyncSignature {
-			timesyncBoot, remainingData, err := ParseTimesyncBoot(data)
+			timesyncRecord, remainingData, err := ParseTimesyncRecord(data)
 			if err != nil {
 				return timesyncData, err
 			}
-			timesyncBoot.TimesyncRecords = append(timesyncBoot.TimesyncRecords, timesyncBoot.TimesyncRecords...)
+			timesyncBoot.TimesyncRecords = append(timesyncBoot.TimesyncRecords, *timesyncRecord)
 			data = remainingData
 		} else {
 			if timesyncBoot.Signature != 0 {
@@ -132,12 +130,12 @@ func ParseTimesyncBoot(data []byte) (*TimesyncBoot, []byte, error) {
 }
 
 // ParseTimesyncRecord parses a timesync record
-func ParseTimesyncRecord(data []byte) (*TimesyncRecord, error) {
+func ParseTimesyncRecord(data []byte) (*TimesyncRecord, []byte, error) {
 	record := &TimesyncRecord{}
 	data, signature, _ := utils.Take(data, 4)
 
 	if binary.LittleEndian.Uint32(signature) != expectedTimesyncSignature {
-		return record, fmt.Errorf("invalid timesync signature: expected 0x%x, got 0x%x", expectedTimesyncSignature, signature)
+		return record, data, fmt.Errorf("invalid timesync signature: expected 0x%x, got 0x%x", expectedTimesyncSignature, signature)
 	}
 
 	data, unknownFlags, _ := utils.Take(data, 4)
@@ -153,11 +151,10 @@ func ParseTimesyncRecord(data []byte) (*TimesyncRecord, error) {
 	record.Timezone = binary.LittleEndian.Uint32(timezone)
 	record.DaylightSavings = binary.LittleEndian.Uint32(daylightSavings)
 
-	return record, nil
+	return record, data, nil
 }
 
 // GetTimestamp calculates a Unix epoch timestamp from mach time using timesync data
-// This implements the complex timestamp calculation logic from the Rust parser
 func GetTimestamp(
 	timesyncData map[string]*TimesyncBoot,
 	bootUUID string,
@@ -185,7 +182,6 @@ func GetTimestamp(
 	   Add results to timesync_walltime (unix epoch in nanoseconds)
 	   Final results is unix epoch timestamp in nano seconds
 	*/
-
 	var timebaseAdjustment float64 = 1.0
 	var timesyncContinousTime uint64
 	var timesyncWalltime int64
