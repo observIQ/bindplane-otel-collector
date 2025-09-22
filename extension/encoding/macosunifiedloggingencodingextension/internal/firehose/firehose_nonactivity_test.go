@@ -22,7 +22,8 @@ import (
 
 func TestParseFirehoseNonActivity(t *testing.T) {
 	testFlags := uint16(556)
-	parsedFirehoseNonActivity, _ := ParseFirehoseNonActivity(firehoseNonActivityTestData, testFlags)
+	parsedFirehoseNonActivity, _, err := ParseFirehoseNonActivity(firehoseNonActivityTestData, testFlags)
+	require.NoError(t, err)
 	require.Equal(t, uint32(0), parsedFirehoseNonActivity.UnknownActivityID)
 	require.Equal(t, uint32(0), parsedFirehoseNonActivity.UnknownSentinel)
 	require.Equal(t, uint16(0), parsedFirehoseNonActivity.PrivateStringsOffset)

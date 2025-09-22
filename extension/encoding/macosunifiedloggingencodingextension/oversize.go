@@ -16,6 +16,7 @@ package macosunifiedloggingencodingextension // import "github.com/observiq/bind
 
 import (
 	"encoding/binary"
+	"fmt"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
@@ -42,17 +43,50 @@ type OversizeChunk struct {
 func ParseOversizeChunk(data []byte) (OversizeChunk, []byte, error) {
 	var oversizeResult OversizeChunk
 
-	data, chunkTag, _ := utils.Take(data, 4)
-	data, chunkSubTag, _ := utils.Take(data, 4)
-	data, chunkDataSize, _ := utils.Take(data, 8)
-	data, firstProcID, _ := utils.Take(data, 8)
-	data, secondProcID, _ := utils.Take(data, 4)
-	data, ttl, _ := utils.Take(data, 1)
-	data, unknownReserved, _ := utils.Take(data, 3)
-	data, continuousTime, _ := utils.Take(data, 8)
-	data, dataRefIndex, _ := utils.Take(data, 4)
-	data, publicDataSize, _ := utils.Take(data, 2)
-	data, privateDataSize, _ := utils.Take(data, 2)
+	data, chunkTag, err := utils.Take(data, 4)
+	if err != nil {
+		return oversizeResult, data, fmt.Errorf("failed to read chunk tag: %w", err)
+	}
+	data, chunkSubTag, err := utils.Take(data, 4)
+	if err != nil {
+		return oversizeResult, data, fmt.Errorf("failed to read chunk sub tag: %w", err)
+	}
+	data, chunkDataSize, err := utils.Take(data, 8)
+	if err != nil {
+		return oversizeResult, data, fmt.Errorf("failed to read chunk data size: %w", err)
+	}
+	data, firstProcID, err := utils.Take(data, 8)
+	if err != nil {
+		return oversizeResult, data, fmt.Errorf("failed to read first proc ID: %w", err)
+	}
+	data, secondProcID, err := utils.Take(data, 4)
+	if err != nil {
+		return oversizeResult, data, fmt.Errorf("failed to read second proc ID: %w", err)
+	}
+	data, ttl, err := utils.Take(data, 1)
+	if err != nil {
+		return oversizeResult, data, fmt.Errorf("failed to read TTL: %w", err)
+	}
+	data, unknownReserved, err := utils.Take(data, 3)
+	if err != nil {
+		return oversizeResult, data, fmt.Errorf("failed to read unknown reserved: %w", err)
+	}
+	data, continuousTime, err := utils.Take(data, 8)
+	if err != nil {
+		return oversizeResult, data, fmt.Errorf("failed to read continuous time: %w", err)
+	}
+	data, dataRefIndex, err := utils.Take(data, 4)
+	if err != nil {
+		return oversizeResult, data, fmt.Errorf("failed to read data ref index: %w", err)
+	}
+	data, publicDataSize, err := utils.Take(data, 2)
+	if err != nil {
+		return oversizeResult, data, fmt.Errorf("failed to read public data size: %w", err)
+	}
+	data, privateDataSize, err := utils.Take(data, 2)
+	if err != nil {
+		return oversizeResult, data, fmt.Errorf("failed to read private data size: %w", err)
+	}
 
 	oversizeResult.chunkTag = binary.LittleEndian.Uint32(chunkTag)
 	oversizeResult.chunkSubTag = binary.LittleEndian.Uint32(chunkSubTag)
@@ -73,9 +107,18 @@ func ParseOversizeChunk(data []byte) (OversizeChunk, []byte, error) {
 		oversizeDataSize = len(data)
 	}
 
-	data, publicData, _ := utils.Take(data, oversizeDataSize)
-	messageData, _, _ := utils.Take(publicData, 1)
-	messageData, itemCount, _ := utils.Take(messageData, 1)
+	data, publicData, err := utils.Take(data, oversizeDataSize)
+	if err != nil {
+		return oversizeResult, data, fmt.Errorf("failed to read public data: %w", err)
+	}
+	messageData, _, err := utils.Take(publicData, 1)
+	if err != nil {
+		return oversizeResult, data, fmt.Errorf("failed to read message data header: %w", err)
+	}
+	messageData, itemCount, err := utils.Take(messageData, 1)
+	if err != nil {
+		return oversizeResult, data, fmt.Errorf("failed to read item count: %w", err)
+	}
 	oversizeItemCount := itemCount[0]
 
 	emptyFlags := uint16(0)

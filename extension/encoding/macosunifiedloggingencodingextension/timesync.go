@@ -52,10 +52,12 @@ const expectedTimesyncSignature = 0x207354
 func ParseTimesyncData(data []byte) (map[string]*TimesyncBoot, error) {
 	timesyncData := make(map[string]*TimesyncBoot)
 	timesyncBoot := &TimesyncBoot{}
-	var err error
 
 	for len(data) > 0 {
-		_, signature, _ := utils.Take(data, 4)
+		_, signature, err := utils.Take(data, 4)
+		if err != nil {
+			return timesyncData, fmt.Errorf("failed to read timesync signature: %w", err)
+		}
 		if binary.LittleEndian.Uint32(signature) == expectedTimesyncSignature {
 			timesyncRecord, remainingData, err := ParseTimesyncRecord(data)
 			if err != nil {
@@ -89,19 +91,31 @@ func ParseTimesyncData(data []byte) (map[string]*TimesyncBoot, error) {
 func ParseTimesyncBoot(data []byte) (*TimesyncBoot, []byte, error) {
 	boot := &TimesyncBoot{}
 	expectedSignature := uint16(0xbbb0)
-	data, signature, _ := utils.Take(data, 2)
+	data, signature, err := utils.Take(data, 2)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read boot signature: %w", err)
+	}
 	if binary.LittleEndian.Uint16(signature) != expectedSignature {
 		return nil, nil, fmt.Errorf("invalid boot signature: expected 0x%x, got 0x%x", expectedSignature, signature)
 	}
 	boot.Signature = binary.LittleEndian.Uint16(signature)
 
-	data, headerSize, _ := utils.Take(data, 2)
+	data, headerSize, err := utils.Take(data, 2)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read header size: %w", err)
+	}
 	boot.HeaderSize = binary.LittleEndian.Uint16(headerSize)
 
-	data, unknown, _ := utils.Take(data, 4)
+	data, unknown, err := utils.Take(data, 4)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read unknown field: %w", err)
+	}
 	boot.Unknown = binary.LittleEndian.Uint32(unknown)
 
-	data, bootUUID, _ := utils.Take(data, 16)
+	data, bootUUID, err := utils.Take(data, 16)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read boot UUID: %w", err)
+	}
 	boot.BootUUID = fmt.Sprintf("%08X%04X%04X%04X%012X",
 		binary.BigEndian.Uint32(bootUUID[0:4]),
 		binary.BigEndian.Uint16(bootUUID[4:6]),
@@ -109,19 +123,34 @@ func ParseTimesyncBoot(data []byte) (*TimesyncBoot, []byte, error) {
 		binary.BigEndian.Uint16(bootUUID[8:10]),
 		bootUUID[10:16])
 
-	data, timebaseNumerator, _ := utils.Take(data, 4)
+	data, timebaseNumerator, err := utils.Take(data, 4)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read timebase numerator: %w", err)
+	}
 	boot.TimebaseNumerator = binary.LittleEndian.Uint32(timebaseNumerator)
 
-	data, timebaseDenominator, _ := utils.Take(data, 4)
+	data, timebaseDenominator, err := utils.Take(data, 4)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read timebase denominator: %w", err)
+	}
 	boot.TimebaseDenominator = binary.LittleEndian.Uint32(timebaseDenominator)
 
-	data, bootTime, _ := utils.Take(data, 8)
+	data, bootTime, err := utils.Take(data, 8)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read boot time: %w", err)
+	}
 	boot.BootTime = int64(binary.LittleEndian.Uint64(bootTime))
 
-	data, timezoneOffsetMins, _ := utils.Take(data, 4)
+	data, timezoneOffsetMins, err := utils.Take(data, 4)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read timezone offset: %w", err)
+	}
 	boot.TimezoneOffsetMins = binary.LittleEndian.Uint32(timezoneOffsetMins)
 
-	data, daylightSavings, _ := utils.Take(data, 4)
+	data, daylightSavings, err := utils.Take(data, 4)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read daylight savings: %w", err)
+	}
 	boot.DaylightSavings = binary.LittleEndian.Uint32(daylightSavings)
 
 	boot.TimesyncRecords = make([]TimesyncRecord, 0)
@@ -132,17 +161,35 @@ func ParseTimesyncBoot(data []byte) (*TimesyncBoot, []byte, error) {
 // ParseTimesyncRecord parses a timesync record
 func ParseTimesyncRecord(data []byte) (*TimesyncRecord, []byte, error) {
 	record := &TimesyncRecord{}
-	data, signature, _ := utils.Take(data, 4)
+	data, signature, err := utils.Take(data, 4)
+	if err != nil {
+		return record, data, fmt.Errorf("failed to read timesync record signature: %w", err)
+	}
 
 	if binary.LittleEndian.Uint32(signature) != expectedTimesyncSignature {
 		return record, data, fmt.Errorf("invalid timesync signature: expected 0x%x, got 0x%x", expectedTimesyncSignature, signature)
 	}
 
-	data, unknownFlags, _ := utils.Take(data, 4)
-	data, kernelTime, _ := utils.Take(data, 8)
-	data, wallTime, _ := utils.Take(data, 8)
-	data, timezone, _ := utils.Take(data, 4)
-	data, daylightSavings, _ := utils.Take(data, 4)
+	data, unknownFlags, err := utils.Take(data, 4)
+	if err != nil {
+		return record, data, fmt.Errorf("failed to read unknown flags: %w", err)
+	}
+	data, kernelTime, err := utils.Take(data, 8)
+	if err != nil {
+		return record, data, fmt.Errorf("failed to read kernel time: %w", err)
+	}
+	data, wallTime, err := utils.Take(data, 8)
+	if err != nil {
+		return record, data, fmt.Errorf("failed to read wall time: %w", err)
+	}
+	data, timezone, err := utils.Take(data, 4)
+	if err != nil {
+		return record, data, fmt.Errorf("failed to read timezone: %w", err)
+	}
+	data, daylightSavings, err := utils.Take(data, 4)
+	if err != nil {
+		return record, data, fmt.Errorf("failed to read daylight savings: %w", err)
+	}
 
 	record.Signature = binary.LittleEndian.Uint32(signature)
 	record.UnknownFlags = binary.LittleEndian.Uint32(unknownFlags)

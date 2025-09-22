@@ -22,7 +22,8 @@ import (
 )
 
 func TestParseFirehosePreamble(t *testing.T) {
-	parsedFirehosePreamble, data := ParseFirehosePreamble(firehosePreambleTestData)
+	parsedFirehosePreamble, data, err := ParseFirehosePreamble(firehosePreambleTestData)
+	require.NoError(t, err)
 	require.Equal(t, uint32(0x6001), parsedFirehosePreamble.chunkTag)
 	require.Equal(t, uint32(0), parsedFirehosePreamble.chunkSubTag)
 	require.Equal(t, uint64(4032), parsedFirehosePreamble.chunkDataSize)
@@ -39,7 +40,8 @@ func TestParseFirehosePreamble(t *testing.T) {
 
 	resultCount := len(parsedFirehosePreamble.publicData)
 	for len(data) > 0 {
-		parsedFirehosePreamble, data = ParseFirehosePreamble(data)
+		parsedFirehosePreamble, data, err = ParseFirehosePreamble(data)
+		require.NoError(t, err)
 		resultCount += len(parsedFirehosePreamble.publicData)
 	}
 	require.Equal(t, 371, resultCount)
@@ -117,7 +119,8 @@ func TestGetBacktraceData(t *testing.T) {
 }
 
 func TestParseFirehosePrivateDataZero(t *testing.T) {
-	parsedFirehosePreamble, _ := ParseFirehosePreamble(firehosePrivateDataZeroTestData)
+	parsedFirehosePreamble, _, err := ParseFirehosePreamble(firehosePrivateDataZeroTestData)
+	require.NoError(t, err)
 	require.Equal(t, uint16(4094), parsedFirehosePreamble.privateDataVirtualOffset)
 	require.Equal(t, uint64(1189179), parsedFirehosePreamble.firstProcID)
 	require.Equal(t, uint32(2685254), parsedFirehosePreamble.secondProcID)
@@ -215,7 +218,8 @@ func TestParseFirehosePrivateNumberString(t *testing.T) {
 }
 
 func TestParseFirehoseHeaderContinuousTimeZero(t *testing.T) {
-	firehosePreamble, data := ParseFirehosePreamble(firehoseHeaderContinuousTimeZeroTestData)
+	firehosePreamble, data, err := ParseFirehosePreamble(firehoseHeaderContinuousTimeZeroTestData)
+	require.NoError(t, err)
 	require.Equal(t, uint32(0x6001), firehosePreamble.chunkTag)
 	require.Equal(t, uint32(0), firehosePreamble.chunkSubTag)
 	require.Equal(t, uint64(4104), firehosePreamble.chunkDataSize)
@@ -232,7 +236,8 @@ func TestParseFirehoseHeaderContinuousTimeZero(t *testing.T) {
 
 	resultCount := len(firehosePreamble.publicData)
 	for len(data) > 0 {
-		firehosePublicData, firehoseInput := ParseFirehosePreamble(data)
+		firehosePublicData, firehoseInput, err := ParseFirehosePreamble(data)
+		require.NoError(t, err)
 		data = firehoseInput
 		resultCount += len(firehosePublicData.publicData)
 	}
@@ -240,7 +245,8 @@ func TestParseFirehoseHeaderContinuousTimeZero(t *testing.T) {
 }
 
 func TestParseFirehosePreambleHasPrivateStringsBigSur(t *testing.T) {
-	firehosePreamble, _ := ParseFirehosePreamble(firehosePreambleHasPrivateStringsBigSurTestData)
+	firehosePreamble, _, err := ParseFirehosePreamble(firehosePreambleHasPrivateStringsBigSurTestData)
+	require.NoError(t, err)
 	require.Equal(t, uint32(0x6001), firehosePreamble.chunkTag)
 	require.Equal(t, uint32(0), firehosePreamble.chunkSubTag)
 	require.Equal(t, uint64(163), firehosePreamble.chunkDataSize)

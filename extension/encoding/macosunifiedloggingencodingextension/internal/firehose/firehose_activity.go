@@ -47,15 +47,21 @@ type Formatters struct {
 }
 
 // ParseFirehoseActivity parses a firehose activity entry
-func ParseFirehoseActivity(data []byte, flags uint16, firehoseLogType uint8) (Activity, []byte) {
+func ParseFirehoseActivity(data []byte, flags uint16, firehoseLogType uint8) (Activity, []byte, error) {
 	var activity Activity
 	entry := data
 
 	// Useraction activity type does not have first Activity ID or sentinel
 	const useraction uint8 = 0x3
 	if firehoseLogType != useraction {
-		firehoseData, activityID, _ := utils.Take(data, 4)
-		firehoseData, sentinel, _ := utils.Take(firehoseData, 4)
+		firehoseData, activityID, err := utils.Take(data, 4)
+		if err != nil {
+			return activity, data, fmt.Errorf("failed to read activity ID: %w", err)
+		}
+		firehoseData, sentinel, err := utils.Take(firehoseData, 4)
+		if err != nil {
+			return activity, data, fmt.Errorf("failed to read sentinel: %w", err)
+		}
 
 		activity.ActivityID = binary.LittleEndian.Uint32(activityID)
 		activity.Sentinel = binary.LittleEndian.Uint32(sentinel)
@@ -64,15 +70,24 @@ func ParseFirehoseActivity(data []byte, flags uint16, firehoseLogType uint8) (Ac
 
 	const uniquePid uint16 = 0x10 // has_unique_pid flag
 	if (flags & uniquePid) != 0 {
-		firehoseData, pid, _ := utils.Take(entry, 8)
+		firehoseData, pid, err := utils.Take(entry, 8)
+		if err != nil {
+			return activity, data, fmt.Errorf("failed to read pid: %w", err)
+		}
 		activity.PID = binary.LittleEndian.Uint64(pid)
 		entry = firehoseData
 	}
 
 	const activityIDCurrent uint16 = 0x1 // has_current_aid flag
 	if (flags & activityIDCurrent) != 0 {
-		firehoseData, activityID, _ := utils.Take(entry, 4)
-		firehoseData, sentinel, _ := utils.Take(firehoseData, 4)
+		firehoseData, activityID, err := utils.Take(entry, 4)
+		if err != nil {
+			return activity, data, fmt.Errorf("failed to read activity ID: %w", err)
+		}
+		firehoseData, sentinel, err := utils.Take(firehoseData, 4)
+		if err != nil {
+			return activity, data, fmt.Errorf("failed to read sentinel: %w", err)
+		}
 		activity.ActivityID2 = binary.LittleEndian.Uint32(activityID)
 		activity.Sentinel2 = binary.LittleEndian.Uint32(sentinel)
 		entry = firehoseData
@@ -80,25 +95,37 @@ func ParseFirehoseActivity(data []byte, flags uint16, firehoseLogType uint8) (Ac
 
 	const activityIDOther uint16 = 0x200 // has_other_current_aid flag
 	if (flags & activityIDOther) != 0 {
-		firehoseData, activityID, _ := utils.Take(entry, 4)
-		firehoseData, sentinel, _ := utils.Take(firehoseData, 4)
+		firehoseData, activityID, err := utils.Take(entry, 4)
+		if err != nil {
+			return activity, data, fmt.Errorf("failed to read activity ID: %w", err)
+		}
+		firehoseData, sentinel, err := utils.Take(firehoseData, 4)
+		if err != nil {
+			return activity, data, fmt.Errorf("failed to read sentinel: %w", err)
+		}
 		activity.ActivityID3 = binary.LittleEndian.Uint32(activityID)
 		activity.Sentinel3 = binary.LittleEndian.Uint32(sentinel)
 		entry = firehoseData
 	}
 
-	firehoseData, pcID, _ := utils.Take(entry, 4)
+	firehoseData, pcID, err := utils.Take(entry, 4)
+	if err != nil {
+		return activity, data, fmt.Errorf("failed to read pc ID: %w", err)
+	}
 	activity.PCID = binary.LittleEndian.Uint32(pcID)
 
-	formatters, firehoseData := firehoseFormatterFlags(firehoseData, flags)
+	formatters, firehoseData, err := firehoseFormatterFlags(firehoseData, flags)
+	if err != nil {
+		return activity, data, fmt.Errorf("failed to parse firehose formatter flags: %w", err)
+	}
 	activity.FirehoseFormatters = formatters
 	entry = firehoseData
 
-	return activity, entry
+	return activity, entry, nil
 }
 
 // firehoseFormatterFlags parses firehose formatter flags
-func firehoseFormatterFlags(data []byte, flags uint16) (Formatters, []byte) {
+func firehoseFormatterFlags(data []byte, flags uint16) (Formatters, []byte, error) {
 	var formatterFlags Formatters
 
 	var messageStringsUUID uint16 = 0x2 // main_exe flag
@@ -117,27 +144,42 @@ func firehoseFormatterFlags(data []byte, flags uint16) (Formatters, []byte) {
 	*/
 	switch flags & flagCheck {
 	case 0x20:
-		firehoseData, largeOffsetData, _ := utils.Take(input, 2)
+		firehoseData, largeOffsetData, err := utils.Take(input, 2)
+		if err != nil {
+			return formatterFlags, input, fmt.Errorf("failed to read large offset data: %w", err)
+		}
 		formatterFlags.HasLargeOffset = binary.LittleEndian.Uint16(largeOffsetData)
 		input = firehoseData
 		if (flags & largeSharedCache) != 0 {
-			firehoseData, largeSharedCacheData, _ := utils.Take(firehoseData, 2)
+			firehoseData, largeSharedCacheData, err := utils.Take(firehoseData, 2)
+			if err != nil {
+				return formatterFlags, input, fmt.Errorf("failed to read large shared cache data: %w", err)
+			}
 			formatterFlags.LargeSharedCache = binary.LittleEndian.Uint16(largeSharedCacheData)
 			input = firehoseData
 		}
 	case 0xc:
 		if (flags & largeOffset) != 0 {
-			firehoseData, largeOffsetData, _ := utils.Take(input, 2)
+			firehoseData, largeOffsetData, err := utils.Take(input, 2)
+			if err != nil {
+				return formatterFlags, input, fmt.Errorf("failed to read large offset data: %w", err)
+			}
 			formatterFlags.HasLargeOffset = binary.LittleEndian.Uint16(largeOffsetData)
 			input = firehoseData
 		}
-		firehoseData, largeSharedCacheData, _ := utils.Take(input, 2)
+		firehoseData, largeSharedCacheData, err := utils.Take(input, 2)
+		if err != nil {
+			return formatterFlags, input, fmt.Errorf("failed to read large shared cache data: %w", err)
+		}
 		formatterFlags.LargeSharedCache = binary.LittleEndian.Uint16(largeSharedCacheData)
 		input = firehoseData
 	case 0x8:
 		formatterFlags.Absolute = true
 		if (flags & messageStringsUUID) == 0 {
-			firehoseData, uuidFileIndex, _ := utils.Take(input, 2)
+			firehoseData, uuidFileIndex, err := utils.Take(input, 2)
+			if err != nil {
+				return formatterFlags, input, fmt.Errorf("failed to read uuid file index: %w", err)
+			}
 			formatterFlags.MainExeAltIndex = binary.LittleEndian.Uint16(uuidFileIndex)
 			input = firehoseData
 		}
@@ -146,12 +188,18 @@ func firehoseFormatterFlags(data []byte, flags uint16) (Formatters, []byte) {
 	case 0x4:
 		formatterFlags.SharedCache = true
 		if (flags & largeOffset) != 0 {
-			firehoseData, largeOffsetData, _ := utils.Take(input, 2)
+			firehoseData, largeOffsetData, err := utils.Take(input, 2)
+			if err != nil {
+				return formatterFlags, input, fmt.Errorf("failed to read large offset data: %w", err)
+			}
 			formatterFlags.HasLargeOffset = binary.LittleEndian.Uint16(largeOffsetData)
 			input = firehoseData
 		}
 	case 0xa:
-		firehoseData, uuidRelative, _ := utils.Take(input, 16)
+		firehoseData, uuidRelative, err := utils.Take(input, 16)
+		if err != nil {
+			return formatterFlags, input, fmt.Errorf("failed to read uuid relative: %w", err)
+		}
 		formatterFlags.UUIDRelative = fmt.Sprintf("%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
 			uuidRelative[0], uuidRelative[1], uuidRelative[2], uuidRelative[3],
 			uuidRelative[4], uuidRelative[5], uuidRelative[6], uuidRelative[7],
@@ -159,9 +207,9 @@ func firehoseFormatterFlags(data []byte, flags uint16) (Formatters, []byte) {
 			uuidRelative[12], uuidRelative[13], uuidRelative[14], uuidRelative[15])
 		input = firehoseData
 	default:
-		// TODO: error
+		return formatterFlags, input, fmt.Errorf("unknown flags: %x", flags&flagCheck)
 	}
 
-	return formatterFlags, input
+	return formatterFlags, input, nil
 
 }

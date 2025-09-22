@@ -34,8 +34,9 @@ func NewFactory() extension.Factory {
 }
 
 // createExtension creates a new instance of the macOS Unified Logging encoding extension.
-func createExtension(_ context.Context, _ extension.Settings, config component.Config) (extension.Extension, error) {
+func createExtension(_ context.Context, settings extension.Settings, config component.Config) (extension.Extension, error) {
 	return &MacosUnifiedLoggingExtension{
+		logger: settings.Logger,
 		config: config.(*Config),
 	}, nil
 }

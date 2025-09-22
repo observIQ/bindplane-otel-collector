@@ -40,7 +40,7 @@ type Signpost struct {
 }
 
 // ParseFirehoseSignpost parses a firehose signpost entry
-func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte) {
+func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte, error) {
 	signpost := Signpost{}
 	var unknownActivityID []byte
 	var unknownSentinel []byte
@@ -50,61 +50,98 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte) {
 	var ttlValue []byte
 	var dataRefValue []byte
 	var signpostName []byte
+	var err error
 
 	activityIDCurrentFlag := uint16(0x1)
 	if (flags & activityIDCurrentFlag) != 0 {
-		data, unknownActivityID, _ = utils.Take(data, 4)
+		data, unknownActivityID, err = utils.Take(data, 4)
+		if err != nil {
+			return signpost, data, fmt.Errorf("failed to read unknown activity ID: %w", err)
+		}
 		signpost.UnknownActivityID = binary.LittleEndian.Uint32(unknownActivityID)
-		data, unknownSentinel, _ = utils.Take(data, 4)
+		data, unknownSentinel, err = utils.Take(data, 4)
+		if err != nil {
+			return signpost, data, fmt.Errorf("failed to read unknown sentinel: %w", err)
+		}
 		signpost.UnknownSentinel = binary.LittleEndian.Uint32(unknownSentinel)
 	}
 	privateStringRangeFlag := uint16(0x100)
 	if (flags & privateStringRangeFlag) != 0 {
-		data, privateStringsOffset, _ = utils.Take(data, 2)
+		data, privateStringsOffset, err = utils.Take(data, 2)
+		if err != nil {
+			return signpost, data, fmt.Errorf("failed to read private strings offset: %w", err)
+		}
 		signpost.PrivateStringsOffset = binary.LittleEndian.Uint16(privateStringsOffset)
-		data, privateStringsSize, _ = utils.Take(data, 2)
+		data, privateStringsSize, err = utils.Take(data, 2)
+		if err != nil {
+			return signpost, data, fmt.Errorf("failed to read private strings size: %w", err)
+		}
 		signpost.PrivateStringsSize = binary.LittleEndian.Uint16(privateStringsSize)
 	}
 
-	data, unknownPCID, _ := utils.Take(data, 4)
+	data, unknownPCID, err := utils.Take(data, 4)
+	if err != nil {
+		return signpost, data, fmt.Errorf("failed to read unknown PC ID: %w", err)
+	}
 	signpost.UnknownPCID = binary.LittleEndian.Uint32(unknownPCID)
 
-	formatters, data := firehoseFormatterFlags(data, flags)
+	formatters, data, err := firehoseFormatterFlags(data, flags)
+	if err != nil {
+		return signpost, data, fmt.Errorf("failed to parse firehose formatter flags: %w", err)
+	}
 	signpost.FirehoseFormatters = formatters
 
 	subsystemFlag := uint16(0x200)
 	if (flags & subsystemFlag) != 0 {
-		data, subsystem, _ = utils.Take(data, 2)
+		data, subsystem, err = utils.Take(data, 2)
+		if err != nil {
+			return signpost, data, fmt.Errorf("failed to read subsystem value: %w", err)
+		}
 		signpost.Subsystem = binary.LittleEndian.Uint16(subsystem)
 	}
 
-	data, signpostID, _ := utils.Take(data, 8)
+	data, signpostID, err := utils.Take(data, 8)
+	if err != nil {
+		return signpost, data, fmt.Errorf("failed to read signpost ID: %w", err)
+	}
 	signpost.SignpostID = binary.LittleEndian.Uint64(signpostID)
 
 	hasRulesFlag := uint16(0x400)
 	if (flags & hasRulesFlag) != 0 {
-		data, ttlValue, _ = utils.Take(data, 1)
+		data, ttlValue, err = utils.Take(data, 1)
+		if err != nil {
+			return signpost, data, fmt.Errorf("failed to read TTL value: %w", err)
+		}
 		signpost.TTLValue = ttlValue[0]
 	}
 
 	dataRefFlag := uint16(0x800)
 	if (flags & dataRefFlag) != 0 {
-		data, dataRefValue, _ = utils.Take(data, 4)
+		data, dataRefValue, err = utils.Take(data, 4)
+		if err != nil {
+			return signpost, data, fmt.Errorf("failed to read data ref value: %w", err)
+		}
 		signpost.DataRefValue = binary.LittleEndian.Uint32(dataRefValue)
 	}
 
 	hasNameFlag := uint16(0x8000)
 	if (flags & hasNameFlag) != 0 {
-		data, signpostName, _ = utils.Take(data, 4)
+		data, signpostName, err = utils.Take(data, 4)
+		if err != nil {
+			return signpost, data, fmt.Errorf("failed to read signpost name: %w", err)
+		}
 		signpost.SignpostName = binary.LittleEndian.Uint32(signpostName)
 		// If the signpost log has large_shared_cache flag
 		// Then the signpost name has the same value after as the large_shared_cache
 		if signpost.FirehoseFormatters.LargeSharedCache != 0 {
-			data, _, _ = utils.Take(data, 2)
+			data, _, err = utils.Take(data, 2)
+			if err != nil {
+				return signpost, data, fmt.Errorf("failed to read large shared cache: %w", err)
+			}
 		}
 	}
 
-	return signpost, data
+	return signpost, data, nil
 }
 
 // GetFirehoseSignpostStrings gets the message data for a signpost firehose entry

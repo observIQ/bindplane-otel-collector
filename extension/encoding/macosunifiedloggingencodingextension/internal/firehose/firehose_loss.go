@@ -16,6 +16,7 @@ package firehose
 
 import (
 	"encoding/binary"
+	"fmt"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
 )
@@ -29,16 +30,25 @@ type Loss struct {
 }
 
 // ParseFirehoseLoss parses a firehose loss entry
-func ParseFirehoseLoss(data []byte) (Loss, []byte) {
+func ParseFirehoseLoss(data []byte) (Loss, []byte, error) {
 	firehoseLoss := Loss{}
 
-	data, startTime, _ := utils.Take(data, 8)
-	data, endTime, _ := utils.Take(data, 8)
-	data, count, _ := utils.Take(data, 8)
+	data, startTime, err := utils.Take(data, 8)
+	if err != nil {
+		return firehoseLoss, data, fmt.Errorf("failed to read start time: %w", err)
+	}
+	data, endTime, err := utils.Take(data, 8)
+	if err != nil {
+		return firehoseLoss, data, fmt.Errorf("failed to read end time: %w", err)
+	}
+	data, count, err := utils.Take(data, 8)
+	if err != nil {
+		return firehoseLoss, data, fmt.Errorf("failed to read count: %w", err)
+	}
 
 	firehoseLoss.StartTime = binary.LittleEndian.Uint64(startTime)
 	firehoseLoss.EndTime = binary.LittleEndian.Uint64(endTime)
 	firehoseLoss.Count = binary.LittleEndian.Uint64(count)
 
-	return firehoseLoss, data
+	return firehoseLoss, data, nil
 }

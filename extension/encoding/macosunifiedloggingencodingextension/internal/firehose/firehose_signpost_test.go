@@ -22,7 +22,8 @@ import (
 func TestParseFirehoseSignpost(t *testing.T) {
 	testData := []byte{225, 244, 2, 0, 1, 0, 238, 238, 178, 178, 181, 176, 238, 238, 176, 63, 27, 0, 0, 0}
 	testFlags := uint16(33282)
-	signpost, _ := ParseFirehoseSignpost(testData, testFlags)
+	signpost, _, err := ParseFirehoseSignpost(testData, testFlags)
+	require.NoError(t, err)
 	require.Equal(t, uint32(193761), signpost.UnknownPCID)
 	require.Equal(t, uint32(0), signpost.UnknownActivityID)
 	require.Equal(t, uint32(0), signpost.UnknownSentinel)

@@ -250,6 +250,11 @@ func (c *macosUnifiedLoggingCodec) parseTimesyncRawData() {
 		return
 	}
 
+	// Ensure logger is available for debug logging
+	if c.logger == nil {
+		return
+	}
+
 	if c.timesyncData == nil {
 		c.timesyncData = make(map[string]*TimesyncBoot)
 	}

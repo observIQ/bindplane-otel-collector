@@ -132,7 +132,10 @@ func ParseChunksetData(data []byte, ulData *UnifiedLogData) ([]*TraceV3Entry, er
 func getChunksetData(data []byte, chunkTag uint32, ulData *UnifiedLogData) error {
 	switch chunkTag {
 	case firehoseChunk:
-		firehosePreamble, _ := firehose.ParseFirehosePreamble(data)
+		firehosePreamble, _, err := firehose.ParseFirehosePreamble(data)
+		if err != nil {
+			return fmt.Errorf("failed to parse firehose preamble: %w", err)
+		}
 		ulData.FirehoseData = append(ulData.FirehoseData, firehosePreamble)
 	case oversizeChunk:
 		oversizeChunk, _, err := ParseOversizeChunk(data)
