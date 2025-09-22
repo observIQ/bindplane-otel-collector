@@ -19,11 +19,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
 )
 
 // GlobalCatalog stores catalog data for use by other chunk parsers
-var GlobalCatalog *types.CatalogChunk
+var GlobalCatalog *models.CatalogChunk
 
 // ParseCatalogChunk parses a Catalog chunk (0x600b) containing catalog metadata
 // Based on the rust implementation in catalog.rs
@@ -33,7 +33,7 @@ func ParseCatalogChunk(data []byte, entry *TraceV3Entry) {
 		return
 	}
 
-	var catalog types.CatalogChunk
+	var catalog models.CatalogChunk
 	offset := 0
 
 	// Parse chunk header (16 bytes total)
@@ -107,7 +107,7 @@ func ParseCatalogChunk(data []byte, entry *TraceV3Entry) {
 	}
 
 	// Parse process info entries with complete subsystem parsing
-	catalog.ProcessInfoEntries = make([]types.ProcessInfoEntry, 0, catalog.NumberProcessInformationEntries)
+	catalog.ProcessInfoEntries = make([]models.ProcessInfoEntry, 0, catalog.NumberProcessInformationEntries)
 
 	// Parse all process entries to build complete subsystem mapping
 	for i := 0; i < int(catalog.NumberProcessInformationEntries); i++ {
@@ -115,7 +115,7 @@ func ParseCatalogChunk(data []byte, entry *TraceV3Entry) {
 			break
 		}
 
-		var procEntry types.ProcessInfoEntry
+		var procEntry models.ProcessInfoEntry
 
 		// Parse basic process info fields (44 bytes)
 		procEntry.Index = binary.LittleEndian.Uint16(data[offset : offset+2])
@@ -142,13 +142,13 @@ func ParseCatalogChunk(data []byte, entry *TraceV3Entry) {
 		offset += 4
 
 		// Parse UUID info entries
-		procEntry.UUIDInfoEntries = make([]types.ProcessUUIDEntry, procEntry.NumberUUIDsEntries)
+		procEntry.UUIDInfoEntries = make([]models.ProcessUUIDEntry, procEntry.NumberUUIDsEntries)
 		for j := 0; j < int(procEntry.NumberUUIDsEntries); j++ {
 			if len(data) < offset+20 { // UUID entry size: 4+4+2+8+2=20 bytes
 				break
 			}
 
-			var uuidEntry types.ProcessUUIDEntry
+			var uuidEntry models.ProcessUUIDEntry
 			uuidEntry.Size = binary.LittleEndian.Uint32(data[offset : offset+4])
 			offset += 4
 			uuidEntry.Unknown = binary.LittleEndian.Uint32(data[offset : offset+4])
@@ -176,13 +176,13 @@ func ParseCatalogChunk(data []byte, entry *TraceV3Entry) {
 		offset += 4
 
 		// Parse subsystem entries - this is critical for proper subsystem/category mapping
-		procEntry.SubsystemEntries = make([]types.ProcessInfoSubsystem, procEntry.NumberSubsystems)
+		procEntry.SubsystemEntries = make([]models.ProcessInfoSubsystem, procEntry.NumberSubsystems)
 		for j := 0; j < int(procEntry.NumberSubsystems); j++ {
 			if len(data) < offset+6 { // Subsystem entry size: 2+2+2=6 bytes
 				break
 			}
 
-			var subsysEntry types.ProcessInfoSubsystem
+			var subsysEntry models.ProcessInfoSubsystem
 			subsysEntry.Identifier = binary.LittleEndian.Uint16(data[offset : offset+2])
 			offset += 2
 			subsysEntry.SubsystemOffset = binary.LittleEndian.Uint16(data[offset : offset+2])
@@ -263,8 +263,8 @@ func ParseCatalogChunk(data []byte, entry *TraceV3Entry) {
 
 // parseCatalogSubchunks parses the subchunk metadata used for decompression
 // Based on the rust implementation's parse_catalog_subchunk method
-func parseCatalogSubchunks(data []byte, numberSubChunks uint16) []types.CatalogSubchunk {
-	subchunks := make([]types.CatalogSubchunk, 0, numberSubChunks)
+func parseCatalogSubchunks(data []byte, numberSubChunks uint16) []models.CatalogSubchunk {
+	subchunks := make([]models.CatalogSubchunk, 0, numberSubChunks)
 	offset := 0
 
 	for i := 0; i < int(numberSubChunks) && i < 10; i++ { // Limit for performance
@@ -272,7 +272,7 @@ func parseCatalogSubchunks(data []byte, numberSubChunks uint16) []types.CatalogS
 			break
 		}
 
-		var subchunk types.CatalogSubchunk
+		var subchunk models.CatalogSubchunk
 
 		// Parse basic subchunk fields (32 bytes)
 		subchunk.Start = binary.LittleEndian.Uint64(data[offset : offset+8])

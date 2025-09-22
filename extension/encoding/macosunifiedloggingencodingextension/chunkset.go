@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 	"github.com/pierrec/lz4/v4"
 )
 
@@ -48,23 +48,23 @@ const (
 func parseChunkset(data []byte) (chunk ChunksetChunk, remainingData []byte, err error) {
 	chunk = ChunksetChunk{}
 
-	data, chunkTag, err := utils.Take(data, 4)
+	data, chunkTag, err := helpers.Take(data, 4)
 	if err != nil {
 		return chunk, data, fmt.Errorf("failed to read chunk tag: %w", err)
 	}
-	data, chunkSubtag, err := utils.Take(data, 4)
+	data, chunkSubtag, err := helpers.Take(data, 4)
 	if err != nil {
 		return chunk, data, fmt.Errorf("failed to read chunk subtag: %w", err)
 	}
-	data, chunkDataSize, err := utils.Take(data, 8)
+	data, chunkDataSize, err := helpers.Take(data, 8)
 	if err != nil {
 		return chunk, data, fmt.Errorf("failed to read chunk data size: %w", err)
 	}
-	data, signature, err := utils.Take(data, 4)
+	data, signature, err := helpers.Take(data, 4)
 	if err != nil {
 		return chunk, data, fmt.Errorf("failed to read signature: %w", err)
 	}
-	data, uncompressedSize, err := utils.Take(data, 4)
+	data, uncompressedSize, err := helpers.Take(data, 4)
 	if err != nil {
 		return chunk, data, fmt.Errorf("failed to read uncompressed size: %w", err)
 	}
@@ -77,12 +77,12 @@ func parseChunkset(data []byte) (chunk ChunksetChunk, remainingData []byte, err 
 
 	// Data is already uncompressed
 	if chunk.Signature == bv41Uncompressed {
-		data, decompressedData, err := utils.Take(data, int(chunk.UncompressedSize))
+		data, decompressedData, err := helpers.Take(data, int(chunk.UncompressedSize))
 		if err != nil {
 			return chunk, data, fmt.Errorf("failed to read decompressed data: %w", err)
 		}
 		chunk.DecompressedData = decompressedData
-		data, footer, err := utils.Take(data, 4)
+		data, footer, err := helpers.Take(data, 4)
 		if err != nil {
 			return chunk, data, fmt.Errorf("failed to read footer: %w", err)
 		}
@@ -94,12 +94,12 @@ func parseChunkset(data []byte) (chunk ChunksetChunk, remainingData []byte, err 
 		return chunk, data, fmt.Errorf("invalid chunkset signature: %x, expected %x", chunk.Signature, bv41)
 	}
 
-	data, blockSize, err := utils.Take(data, 4)
+	data, blockSize, err := helpers.Take(data, 4)
 	if err != nil {
 		return chunk, data, fmt.Errorf("failed to read block size: %w", err)
 	}
 	chunk.BlockSize = binary.LittleEndian.Uint32(blockSize)
-	data, compressedData, err := utils.Take(data, int(chunk.BlockSize))
+	data, compressedData, err := helpers.Take(data, int(chunk.BlockSize))
 	if err != nil {
 		return chunk, data, fmt.Errorf("failed to read compressed data: %w", err)
 	}
@@ -113,7 +113,7 @@ func parseChunkset(data []byte) (chunk ChunksetChunk, remainingData []byte, err 
 	}
 
 	chunk.DecompressedData = decompressedData[:n]
-	data, footer, err := utils.Take(data, 4)
+	data, footer, err := helpers.Take(data, 4)
 	if err != nil {
 		return chunk, data, fmt.Errorf("failed to read footer: %w", err)
 	}
@@ -128,15 +128,15 @@ func ParseChunksetData(data []byte, ulData *UnifiedLogData) ([]*TraceV3Entry, er
 
 	for len(data) > 0 {
 		// read preamble
-		data, chunkTag, err := utils.Take(data, 4)
+		data, chunkTag, err := helpers.Take(data, 4)
 		if err != nil {
 			return entries, fmt.Errorf("failed to read chunk tag: %w", err)
 		}
-		data, _, err = utils.Take(data, 4) // chunkSubTag
+		data, _, err = helpers.Take(data, 4) // chunkSubTag
 		if err != nil {
 			return entries, fmt.Errorf("failed to read chunk sub tag: %w", err)
 		}
-		data, chunkDataSize, err := utils.Take(data, 8)
+		data, chunkDataSize, err := helpers.Take(data, 8)
 		if err != nil {
 			return entries, fmt.Errorf("failed to read chunk data size: %w", err)
 		}
@@ -145,7 +145,7 @@ func ParseChunksetData(data []byte, ulData *UnifiedLogData) ([]*TraceV3Entry, er
 			return entries, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 		}
 
-		data, chunkData, err := utils.Take(data, int(chunkDataSize[0]))
+		data, chunkData, err := helpers.Take(data, int(chunkDataSize[0]))
 		if err != nil {
 			return entries, fmt.Errorf("failed to read chunk data: %w", err)
 		}

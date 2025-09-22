@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package sharedcache provides parsing for DSC (shared cache) data
 package sharedcache // import "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/sharedcache"
 
 import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
 )
 
 // Strings represents parsed DSC (shared cache) string data
@@ -56,8 +57,8 @@ type UUIDDescriptor struct {
 var DSCCache = make(map[string]*Strings)
 
 // ParseDSC parses a DSC (shared cache) file containing shared format strings
-func ParseDSC(data []byte, uuid string) (*Strings, error) {
-	input, signature, err := utils.Take(data, 4)
+func ParseDSC(data []byte) (*Strings, error) {
+	input, signature, err := helpers.Take(data, 4)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read signature: %w", err)
 	}
@@ -69,19 +70,19 @@ func ParseDSC(data []byte, uuid string) (*Strings, error) {
 		Signature: binary.LittleEndian.Uint32(signature),
 	}
 
-	input, major, err := utils.Take(input, 2)
+	input, major, err := helpers.Take(input, 2)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read major version: %w", err)
 	}
-	input, minor, err := utils.Take(input, 2)
+	input, minor, err := helpers.Take(input, 2)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read minor version: %w", err)
 	}
-	input, numberRanges, err := utils.Take(input, 4)
+	input, numberRanges, err := helpers.Take(input, 4)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read number ranges: %w", err)
 	}
-	input, numberUUIDs, err := utils.Take(input, 4)
+	input, numberUUIDs, err := helpers.Take(input, 4)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read number UUIDs: %w", err)
 	}
@@ -129,8 +130,8 @@ func ParseDSC(data []byte, uuid string) (*Strings, error) {
 }
 
 // ExtractSharedString extracts a format string from shared cache using the given offset
-func (d *Strings) ExtractSharedString(stringOffset uint64) (types.MessageData, error) {
-	messageData := types.MessageData{}
+func (d *Strings) ExtractSharedString(stringOffset uint64) (models.MessageData, error) {
+	messageData := models.MessageData{}
 
 	// Handle dynamic formatters (offset with high bit set means "%s")
 	if stringOffset&0x80000000 != 0 {
@@ -180,40 +181,40 @@ func getRanges(input []byte, major *uint16) ([]byte, RangeDescriptor, error) {
 	rangeData := RangeDescriptor{}
 
 	if major == &versionNumber {
-		remainingInput, valueRangeOffset, err := utils.Take(input, 8)
+		remainingInput, valueRangeOffset, err := helpers.Take(input, 8)
 		if err != nil {
 			return nil, rangeData, err
 		}
 		rangeData.RangeOffset = binary.LittleEndian.Uint64(valueRangeOffset)
 		input = remainingInput
 	} else {
-		input, uuidDescriptorIndex, err := utils.Take(input, 4)
+		input, uuidDescriptorIndex, err := helpers.Take(input, 4)
 		if err != nil {
 			return nil, rangeData, err
 		}
 		rangeData.UnknownUUIDIndex = uint64(binary.LittleEndian.Uint32(uuidDescriptorIndex))
 
-		input, valueRangeOffset, err := utils.Take(input, 4)
+		input, valueRangeOffset, err := helpers.Take(input, 4)
 		if err != nil {
 			return nil, rangeData, err
 		}
 		rangeData.RangeOffset = uint64(binary.LittleEndian.Uint32(valueRangeOffset))
 	}
 
-	input, dataOffset, err := utils.Take(input, 4)
+	input, dataOffset, err := helpers.Take(input, 4)
 	if err != nil {
 		return nil, rangeData, err
 	}
 	rangeData.DataOffset = binary.LittleEndian.Uint32(dataOffset)
 
-	input, rangeSize, err := utils.Take(input, 4)
+	input, rangeSize, err := helpers.Take(input, 4)
 	if err != nil {
 		return nil, rangeData, err
 	}
 	rangeData.RangeSize = binary.LittleEndian.Uint32(rangeSize)
 
 	if major == &versionNumber {
-		remainingInput, unknown, err := utils.Take(input, 8)
+		remainingInput, unknown, err := helpers.Take(input, 8)
 		if err != nil {
 			return nil, rangeData, err
 		}
@@ -229,14 +230,14 @@ func getUUIDs(input []byte, major *uint16) ([]byte, UUIDDescriptor, error) {
 	uuidData := UUIDDescriptor{}
 
 	if major == &versionNumber {
-		remainingInput, valueTextOffset, err := utils.Take(input, 8)
+		remainingInput, valueTextOffset, err := helpers.Take(input, 8)
 		if err != nil {
 			return nil, uuidData, err
 		}
 		uuidData.TextOffset = binary.LittleEndian.Uint64(valueTextOffset)
 		input = remainingInput
 	} else {
-		remainingInput, valueTextOffset, err := utils.Take(input, 4)
+		remainingInput, valueTextOffset, err := helpers.Take(input, 4)
 		if err != nil {
 			return nil, uuidData, err
 		}
@@ -244,13 +245,13 @@ func getUUIDs(input []byte, major *uint16) ([]byte, UUIDDescriptor, error) {
 		input = remainingInput
 	}
 
-	input, valueTextSize, err := utils.Take(input, 4)
+	input, valueTextSize, err := helpers.Take(input, 4)
 	if err != nil {
 		return nil, uuidData, err
 	}
 	uuidData.TextSize = binary.LittleEndian.Uint32(valueTextSize)
 
-	input, valueUUID, err := utils.Take(input, 16)
+	input, valueUUID, err := helpers.Take(input, 16)
 	if err != nil {
 		return nil, uuidData, err
 	}
@@ -258,7 +259,7 @@ func getUUIDs(input []byte, major *uint16) ([]byte, UUIDDescriptor, error) {
 		valueUUID[0], valueUUID[1], valueUUID[2], valueUUID[3], valueUUID[4], valueUUID[5], valueUUID[6], valueUUID[7],
 		valueUUID[8], valueUUID[9], valueUUID[10], valueUUID[11], valueUUID[12], valueUUID[13], valueUUID[14], valueUUID[15])
 
-	input, valuePathOffset, err := utils.Take(input, 4)
+	input, valuePathOffset, err := helpers.Take(input, 4)
 	if err != nil {
 		return nil, uuidData, err
 	}
@@ -268,11 +269,11 @@ func getUUIDs(input []byte, major *uint16) ([]byte, UUIDDescriptor, error) {
 }
 
 func getPaths(input []byte, pathOffset uint32) (string, error) {
-	pathData, _, err := utils.Take(input, int(pathOffset))
+	pathData, _, err := helpers.Take(input, int(pathOffset))
 	if err != nil {
 		return "", err
 	}
-	pathString, err := utils.ExtractString(pathData)
+	pathString, err := helpers.ExtractString(pathData)
 	if err != nil {
 		return "", err
 	}
@@ -281,11 +282,11 @@ func getPaths(input []byte, pathOffset uint32) (string, error) {
 
 // getEntryStrings gets the base log entry strings after the ranges and UUIDs are parsed out
 func getEntryStrings(input []byte, stringOffset uint32, stringRange uint32) ([]byte, error) {
-	stringsData, _, err := utils.Take(input, int(stringOffset))
+	stringsData, _, err := helpers.Take(input, int(stringOffset))
 	if err != nil {
 		return nil, err
 	}
-	_, strings, err := utils.Take(stringsData, int(stringRange))
+	_, strings, err := helpers.Take(stringsData, int(stringRange))
 	if err != nil {
 		return nil, err
 	}

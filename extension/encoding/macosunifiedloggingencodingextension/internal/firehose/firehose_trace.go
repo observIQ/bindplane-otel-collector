@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 )
 
@@ -37,14 +37,14 @@ func ParseFirehoseTrace(data []byte) (Trace, []byte, error) {
 	firehoseTrace := Trace{}
 	var err error
 
-	data, unknownPCID, err := utils.Take(data, 4)
+	data, unknownPCID, err := helpers.Take(data, 4)
 	if err != nil {
 		return firehoseTrace, data, err
 	}
 	firehoseTrace.UnknownPCID = binary.LittleEndian.Uint32(unknownPCID)
 
 	if len(data) < minimumMessageSize {
-		data, _, err = utils.Take(data, len(data))
+		data, _, err = helpers.Take(data, len(data))
 		if err != nil {
 			return firehoseTrace, data, err
 		}
@@ -72,14 +72,14 @@ func GetMessage(data []byte) ([]byte, ItemData, error) {
 		return data, itemData, nil
 	}
 
-	remainingData, entries, err := utils.Take(data, 1)
+	remainingData, entries, err := helpers.Take(data, 1)
 	if err != nil {
 		return data, itemData, err
 	}
 	count := 0
 	sizesCount := []uint8{}
 	for count < int(entries[0]) {
-		remainder, size, err := utils.Take(remainingData, 1)
+		remainder, size, err := helpers.Take(remainingData, 1)
 		if err != nil {
 			return data, itemData, err
 		}
@@ -90,7 +90,7 @@ func GetMessage(data []byte) ([]byte, ItemData, error) {
 
 	for _, size := range sizesCount {
 		itemInfo := ItemInfo{}
-		remainder, messageData, err := utils.Take(remainingData, int(size))
+		remainder, messageData, err := helpers.Take(remainingData, int(size))
 		if err != nil {
 			return data, itemData, err
 		}
@@ -118,10 +118,10 @@ func GetMessage(data []byte) ([]byte, ItemData, error) {
 }
 
 // GetFirehoseTraceStrings gets the message data for a firehose trace entry
-func GetFirehoseTraceStrings(provider *uuidtext.CacheProvider, stringOffset uint64, firstProcID uint64, secondProcID uint32, catalogs *types.CatalogChunk) (types.MessageData, error) {
+func GetFirehoseTraceStrings(provider *uuidtext.CacheProvider, stringOffset uint64, firstProcID uint64, secondProcID uint32, catalogs *models.CatalogChunk) (models.MessageData, error) {
 	messageData, err := ExtractFormatStrings(provider, stringOffset, firstProcID, secondProcID, catalogs, 0)
 	if err != nil {
-		return types.MessageData{}, err
+		return models.MessageData{}, err
 	}
 	return messageData, nil
 }

@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils // import "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+// Package helpers provides helper functions for parsing Unified Log data
+package helpers // import "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 
 import (
 	"fmt"
@@ -20,7 +21,6 @@ import (
 )
 
 // Take returns the first n bytes from data, along with the remainder (remainder is the first returned value).
-// It mimics nom::take(n) from rust
 func Take(data []byte, n int) ([]byte, []byte, error) {
 	if len(data) < n {
 		return nil, nil, fmt.Errorf("not enough bytes")

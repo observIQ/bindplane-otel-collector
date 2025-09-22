@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 )
 
 // TimesyncBoot represents a timesync boot record containing time correlation data
@@ -54,7 +54,7 @@ func ParseTimesyncData(data []byte) (map[string]*TimesyncBoot, error) {
 	timesyncBoot := &TimesyncBoot{}
 
 	for len(data) > 0 {
-		_, signature, err := utils.Take(data, 4)
+		_, signature, err := helpers.Take(data, 4)
 		if err != nil {
 			return timesyncData, fmt.Errorf("failed to read timesync signature: %w", err)
 		}
@@ -91,7 +91,7 @@ func ParseTimesyncData(data []byte) (map[string]*TimesyncBoot, error) {
 func ParseTimesyncBoot(data []byte) (*TimesyncBoot, []byte, error) {
 	boot := &TimesyncBoot{}
 	expectedSignature := uint16(0xbbb0)
-	data, signature, err := utils.Take(data, 2)
+	data, signature, err := helpers.Take(data, 2)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read boot signature: %w", err)
 	}
@@ -100,19 +100,19 @@ func ParseTimesyncBoot(data []byte) (*TimesyncBoot, []byte, error) {
 	}
 	boot.Signature = binary.LittleEndian.Uint16(signature)
 
-	data, headerSize, err := utils.Take(data, 2)
+	data, headerSize, err := helpers.Take(data, 2)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read header size: %w", err)
 	}
 	boot.HeaderSize = binary.LittleEndian.Uint16(headerSize)
 
-	data, unknown, err := utils.Take(data, 4)
+	data, unknown, err := helpers.Take(data, 4)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read unknown field: %w", err)
 	}
 	boot.Unknown = binary.LittleEndian.Uint32(unknown)
 
-	data, bootUUID, err := utils.Take(data, 16)
+	data, bootUUID, err := helpers.Take(data, 16)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read boot UUID: %w", err)
 	}
@@ -123,31 +123,31 @@ func ParseTimesyncBoot(data []byte) (*TimesyncBoot, []byte, error) {
 		binary.BigEndian.Uint16(bootUUID[8:10]),
 		bootUUID[10:16])
 
-	data, timebaseNumerator, err := utils.Take(data, 4)
+	data, timebaseNumerator, err := helpers.Take(data, 4)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read timebase numerator: %w", err)
 	}
 	boot.TimebaseNumerator = binary.LittleEndian.Uint32(timebaseNumerator)
 
-	data, timebaseDenominator, err := utils.Take(data, 4)
+	data, timebaseDenominator, err := helpers.Take(data, 4)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read timebase denominator: %w", err)
 	}
 	boot.TimebaseDenominator = binary.LittleEndian.Uint32(timebaseDenominator)
 
-	data, bootTime, err := utils.Take(data, 8)
+	data, bootTime, err := helpers.Take(data, 8)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read boot time: %w", err)
 	}
 	boot.BootTime = int64(binary.LittleEndian.Uint64(bootTime))
 
-	data, timezoneOffsetMins, err := utils.Take(data, 4)
+	data, timezoneOffsetMins, err := helpers.Take(data, 4)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read timezone offset: %w", err)
 	}
 	boot.TimezoneOffsetMins = binary.LittleEndian.Uint32(timezoneOffsetMins)
 
-	data, daylightSavings, err := utils.Take(data, 4)
+	data, daylightSavings, err := helpers.Take(data, 4)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read daylight savings: %w", err)
 	}
@@ -161,7 +161,7 @@ func ParseTimesyncBoot(data []byte) (*TimesyncBoot, []byte, error) {
 // ParseTimesyncRecord parses a timesync record
 func ParseTimesyncRecord(data []byte) (*TimesyncRecord, []byte, error) {
 	record := &TimesyncRecord{}
-	data, signature, err := utils.Take(data, 4)
+	data, signature, err := helpers.Take(data, 4)
 	if err != nil {
 		return record, data, fmt.Errorf("failed to read timesync record signature: %w", err)
 	}
@@ -170,23 +170,23 @@ func ParseTimesyncRecord(data []byte) (*TimesyncRecord, []byte, error) {
 		return record, data, fmt.Errorf("invalid timesync signature: expected 0x%x, got 0x%x", expectedTimesyncSignature, signature)
 	}
 
-	data, unknownFlags, err := utils.Take(data, 4)
+	data, unknownFlags, err := helpers.Take(data, 4)
 	if err != nil {
 		return record, data, fmt.Errorf("failed to read unknown flags: %w", err)
 	}
-	data, kernelTime, err := utils.Take(data, 8)
+	data, kernelTime, err := helpers.Take(data, 8)
 	if err != nil {
 		return record, data, fmt.Errorf("failed to read kernel time: %w", err)
 	}
-	data, wallTime, err := utils.Take(data, 8)
+	data, wallTime, err := helpers.Take(data, 8)
 	if err != nil {
 		return record, data, fmt.Errorf("failed to read wall time: %w", err)
 	}
-	data, timezone, err := utils.Take(data, 4)
+	data, timezone, err := helpers.Take(data, 4)
 	if err != nil {
 		return record, data, fmt.Errorf("failed to read timezone: %w", err)
 	}
-	data, daylightSavings, err := utils.Take(data, 4)
+	data, daylightSavings, err := helpers.Take(data, 4)
 	if err != nil {
 		return record, data, fmt.Errorf("failed to read daylight savings: %w", err)
 	}
@@ -229,7 +229,8 @@ func GetTimestamp(
 	   Add results to timesync_walltime (unix epoch in nanoseconds)
 	   Final results is unix epoch timestamp in nano seconds
 	*/
-	var timebaseAdjustment float64 = 1.0
+
+	var timebaseAdjustment = 1.0
 	var timesyncContinousTime uint64
 	var timesyncWalltime int64
 

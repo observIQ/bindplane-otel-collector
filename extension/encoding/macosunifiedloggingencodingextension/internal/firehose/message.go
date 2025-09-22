@@ -17,8 +17,8 @@ package firehose
 import (
 	"fmt"
 
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 )
 
@@ -28,10 +28,10 @@ func ExtractSharedStrings(
 	stringOffset uint64,
 	firstProcID uint64,
 	secondProcID uint32,
-	catalogs *types.CatalogChunk,
+	catalogs *models.CatalogChunk,
 	originalOffset uint64,
-) (types.MessageData, error) {
-	messageData := types.MessageData{}
+) (models.MessageData, error) {
+	messageData := models.MessageData{}
 	// Get shared string file (DSC) associated with log entry from Catalog
 	dscUUID, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
 
@@ -67,11 +67,11 @@ func ExtractSharedStrings(
 					return messageData, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 				}
 
-				messageStart, _, err := utils.Take(r.Strings, int(offset))
+				messageStart, _, err := helpers.Take(r.Strings, int(offset))
 				if err != nil {
 					return messageData, err
 				}
-				messageData.FormatString, _ = utils.ExtractString(messageStart)
+				messageData.FormatString, _ = helpers.ExtractString(messageStart)
 
 				messageData.Library = sharedString.UUIDs[r.UnknownUUIDIndex].PathString
 				messageData.LibraryUUID = sharedString.UUIDs[r.UnknownUUIDIndex].UUID
@@ -119,12 +119,12 @@ func ExtractFormatStrings(
 	stringOffset uint64,
 	firstProcID uint64,
 	secondProcID uint32,
-	catalogs *types.CatalogChunk,
+	catalogs *models.CatalogChunk,
 	originalOffset uint64,
-) (types.MessageData, error) {
+) (models.MessageData, error) {
 	_, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
 
-	messageData := types.MessageData{
+	messageData := models.MessageData{
 		LibraryUUID: mainUUID,
 		ProcessUUID: mainUUID,
 	}
@@ -160,11 +160,11 @@ func ExtractFormatStrings(
 				continue
 			}
 
-			messageStart, _, err := utils.Take(data.FooterData, int(offset+stringStart))
+			messageStart, _, err := helpers.Take(data.FooterData, int(offset+stringStart))
 			if err != nil {
 				return messageData, err
 			}
-			messageFormatString, err := utils.ExtractString(messageStart)
+			messageFormatString, err := helpers.ExtractString(messageStart)
 			if err != nil {
 				return messageData, err
 			}
@@ -207,9 +207,9 @@ func ExtractAbsoluteStrings(
 	stringOffset uint64,
 	firstProcID uint64,
 	secondProcID uint32,
-	catalogs *types.CatalogChunk,
+	catalogs *models.CatalogChunk,
 	originalOffset uint64,
-) (types.MessageData, error) {
+) (models.MessageData, error) {
 	key := fmt.Sprintf("%d_%d", firstProcID, secondProcID)
 	uuid := ""
 
@@ -227,7 +227,7 @@ func ExtractAbsoluteStrings(
 	}
 
 	_, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
-	messageData := types.MessageData{
+	messageData := models.MessageData{
 		LibraryUUID: uuid,
 		ProcessUUID: mainUUID,
 	}
@@ -269,11 +269,11 @@ func ExtractAbsoluteStrings(
 				return messageData, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 			}
 
-			messageStart, _, err := utils.Take(data.FooterData, int(offset+uint64(stringStart)))
+			messageStart, _, err := helpers.Take(data.FooterData, int(offset+uint64(stringStart)))
 			if err != nil {
 				return messageData, err
 			}
-			messageFormatString, err := utils.ExtractString(messageStart)
+			messageFormatString, err := helpers.ExtractString(messageStart)
 			if err != nil {
 				return messageData, err
 			}
@@ -322,11 +322,11 @@ func ExtractAltUUIDStrings(
 	uuid string,
 	firstProcID uint64,
 	secondProcID uint32,
-	catalogs *types.CatalogChunk,
+	catalogs *models.CatalogChunk,
 	originalOffset uint64,
-) (types.MessageData, error) {
+) (models.MessageData, error) {
 	_, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
-	messageData := types.MessageData{
+	messageData := models.MessageData{
 		LibraryUUID: uuid,
 		ProcessUUID: mainUUID,
 	}
@@ -364,11 +364,11 @@ func ExtractAltUUIDStrings(
 				continue
 			}
 
-			messageStart, _, err := utils.Take(data.FooterData, int(offset+stringStart))
+			messageStart, _, err := helpers.Take(data.FooterData, int(offset+stringStart))
 			if err != nil {
 				return messageData, err
 			}
-			messageFormatString, err := utils.ExtractString(messageStart)
+			messageFormatString, err := helpers.ExtractString(messageStart)
 			if err != nil {
 				return messageData, err
 			}
@@ -410,7 +410,7 @@ func ExtractAltUUIDStrings(
 
 }
 
-func getCatalogDSC(catalogs *types.CatalogChunk, firstProcID uint64, secondProcID uint32) (string, string) {
+func getCatalogDSC(catalogs *models.CatalogChunk, firstProcID uint64, secondProcID uint32) (string, string) {
 	key := fmt.Sprintf("%d_%d", firstProcID, secondProcID)
 	if entry, exists := catalogs.ProcessInfoMap[key]; exists {
 		return entry.DSCUUID, entry.MainUUID
@@ -442,9 +442,9 @@ func uuidTextImagePath(data []byte, entries []uuidtext.Entry) (string, error) {
 		imageLibraryOffset += entry.EntrySize
 	}
 
-	libraryStart, _, err := utils.Take(data, int(imageLibraryOffset))
+	libraryStart, _, err := helpers.Take(data, int(imageLibraryOffset))
 	if err != nil {
 		return "", err
 	}
-	return utils.ExtractString(libraryStart)
+	return helpers.ExtractString(libraryStart)
 }

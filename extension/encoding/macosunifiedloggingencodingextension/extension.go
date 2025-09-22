@@ -189,7 +189,7 @@ func (c *macosUnifiedLoggingCodec) parseDSCRawData() {
 		uuid := extractDSCUUIDFromPath(filePath)
 
 		// Parse the raw data
-		parsedDSC, err := sharedcache.ParseDSC(rawData, uuid)
+		parsedDSC, err := sharedcache.ParseDSC(rawData)
 		if err != nil {
 			c.logger.Error("Failed to parse DSC data",
 				zap.String("file", filePath),

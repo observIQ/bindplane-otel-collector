@@ -18,7 +18,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 )
 
 // UUIDText represents a parsed UUID text file containing format strings
@@ -43,7 +43,7 @@ func ParseUUIDText(data []byte) (*UUIDText, error) {
 	uuidText := &UUIDText{}
 	expectedSignature := uint32(0x66778899)
 
-	data, signature, err := utils.Take(data, 4)
+	data, signature, err := helpers.Take(data, 4)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read signature: %w", err)
 	}
@@ -52,15 +52,15 @@ func ParseUUIDText(data []byte) (*UUIDText, error) {
 	}
 	uuidText.Signature = binary.LittleEndian.Uint32(signature)
 
-	data, unknownMajorVersion, err := utils.Take(data, 4)
+	data, unknownMajorVersion, err := helpers.Take(data, 4)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read unknown major version: %w", err)
 	}
-	data, unknownMinorVersion, err := utils.Take(data, 4)
+	data, unknownMinorVersion, err := helpers.Take(data, 4)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read unknown minor version: %w", err)
 	}
-	data, numberEntries, err := utils.Take(data, 4)
+	data, numberEntries, err := helpers.Take(data, 4)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read number entries: %w", err)
 	}
@@ -71,11 +71,11 @@ func ParseUUIDText(data []byte) (*UUIDText, error) {
 
 	uuidText.EntryDescriptors = make([]Entry, uuidText.NumberEntries)
 	for i := 0; i < int(uuidText.NumberEntries); i++ {
-		data, rangeStartOffset, err := utils.Take(data, 4)
+		data, rangeStartOffset, err := helpers.Take(data, 4)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read range start offset: %w", err)
 		}
-		data, entrySize, err := utils.Take(data, 4)
+		data, entrySize, err := helpers.Take(data, 4)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read entry size: %w", err)
 		}

@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 )
 
@@ -54,12 +54,12 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte, error) 
 
 	activityIDCurrentFlag := uint16(0x1)
 	if (flags & activityIDCurrentFlag) != 0 {
-		data, unknownActivityID, err = utils.Take(data, 4)
+		data, unknownActivityID, err = helpers.Take(data, 4)
 		if err != nil {
 			return signpost, data, fmt.Errorf("failed to read unknown activity ID: %w", err)
 		}
 		signpost.UnknownActivityID = binary.LittleEndian.Uint32(unknownActivityID)
-		data, unknownSentinel, err = utils.Take(data, 4)
+		data, unknownSentinel, err = helpers.Take(data, 4)
 		if err != nil {
 			return signpost, data, fmt.Errorf("failed to read unknown sentinel: %w", err)
 		}
@@ -67,19 +67,19 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte, error) 
 	}
 	privateStringRangeFlag := uint16(0x100)
 	if (flags & privateStringRangeFlag) != 0 {
-		data, privateStringsOffset, err = utils.Take(data, 2)
+		data, privateStringsOffset, err = helpers.Take(data, 2)
 		if err != nil {
 			return signpost, data, fmt.Errorf("failed to read private strings offset: %w", err)
 		}
 		signpost.PrivateStringsOffset = binary.LittleEndian.Uint16(privateStringsOffset)
-		data, privateStringsSize, err = utils.Take(data, 2)
+		data, privateStringsSize, err = helpers.Take(data, 2)
 		if err != nil {
 			return signpost, data, fmt.Errorf("failed to read private strings size: %w", err)
 		}
 		signpost.PrivateStringsSize = binary.LittleEndian.Uint16(privateStringsSize)
 	}
 
-	data, unknownPCID, err := utils.Take(data, 4)
+	data, unknownPCID, err := helpers.Take(data, 4)
 	if err != nil {
 		return signpost, data, fmt.Errorf("failed to read unknown PC ID: %w", err)
 	}
@@ -93,14 +93,14 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte, error) 
 
 	subsystemFlag := uint16(0x200)
 	if (flags & subsystemFlag) != 0 {
-		data, subsystem, err = utils.Take(data, 2)
+		data, subsystem, err = helpers.Take(data, 2)
 		if err != nil {
 			return signpost, data, fmt.Errorf("failed to read subsystem value: %w", err)
 		}
 		signpost.Subsystem = binary.LittleEndian.Uint16(subsystem)
 	}
 
-	data, signpostID, err := utils.Take(data, 8)
+	data, signpostID, err := helpers.Take(data, 8)
 	if err != nil {
 		return signpost, data, fmt.Errorf("failed to read signpost ID: %w", err)
 	}
@@ -108,7 +108,7 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte, error) 
 
 	hasRulesFlag := uint16(0x400)
 	if (flags & hasRulesFlag) != 0 {
-		data, ttlValue, err = utils.Take(data, 1)
+		data, ttlValue, err = helpers.Take(data, 1)
 		if err != nil {
 			return signpost, data, fmt.Errorf("failed to read TTL value: %w", err)
 		}
@@ -117,7 +117,7 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte, error) 
 
 	dataRefFlag := uint16(0x800)
 	if (flags & dataRefFlag) != 0 {
-		data, dataRefValue, err = utils.Take(data, 4)
+		data, dataRefValue, err = helpers.Take(data, 4)
 		if err != nil {
 			return signpost, data, fmt.Errorf("failed to read data ref value: %w", err)
 		}
@@ -126,7 +126,7 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte, error) 
 
 	hasNameFlag := uint16(0x8000)
 	if (flags & hasNameFlag) != 0 {
-		data, signpostName, err = utils.Take(data, 4)
+		data, signpostName, err = helpers.Take(data, 4)
 		if err != nil {
 			return signpost, data, fmt.Errorf("failed to read signpost name: %w", err)
 		}
@@ -134,7 +134,7 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte, error) 
 		// If the signpost log has large_shared_cache flag
 		// Then the signpost name has the same value after as the large_shared_cache
 		if signpost.FirehoseFormatters.LargeSharedCache != 0 {
-			data, _, err = utils.Take(data, 2)
+			data, _, err = helpers.Take(data, 2)
 			if err != nil {
 				return signpost, data, fmt.Errorf("failed to read large shared cache: %w", err)
 			}
@@ -145,7 +145,7 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte, error) 
 }
 
 // GetFirehoseSignpostStrings gets the message data for a signpost firehose entry
-func GetFirehoseSignpostStrings(signpost Signpost, provider *uuidtext.CacheProvider, stringOffset uint64, firstProcID uint64, secondProcID uint32, catalogs types.CatalogChunk) (types.MessageData, error) {
+func GetFirehoseSignpostStrings(signpost Signpost, provider *uuidtext.CacheProvider, stringOffset uint64, firstProcID uint64, secondProcID uint32, catalogs models.CatalogChunk) (models.MessageData, error) {
 	if signpost.FirehoseFormatters.SharedCache || (signpost.FirehoseFormatters.LargeSharedCache != 0 && signpost.FirehoseFormatters.HasLargeOffset != 0) {
 		if signpost.FirehoseFormatters.HasLargeOffset != 0 {
 			largeOffset := signpost.FirehoseFormatters.HasLargeOffset
@@ -168,7 +168,7 @@ func GetFirehoseSignpostStrings(signpost Signpost, provider *uuidtext.CacheProvi
 
 			extraOffsetValueResult, err := strconv.ParseUint(extraOffsetValue, 16, 64)
 			if err != nil {
-				return types.MessageData{}, fmt.Errorf("failed to get shared string offset to format string for signpost firehose entry: %w", err)
+				return models.MessageData{}, fmt.Errorf("failed to get shared string offset to format string for signpost firehose entry: %w", err)
 			}
 			return ExtractSharedStrings(provider, uint64(extraOffsetValueResult), firstProcID, secondProcID, &catalogs, stringOffset)
 		}
@@ -179,7 +179,7 @@ func GetFirehoseSignpostStrings(signpost Signpost, provider *uuidtext.CacheProvi
 		extraOffsetValue := fmt.Sprintf("%x%x", signpost.FirehoseFormatters.MainExeAltIndex, signpost.UnknownPCID)
 		extraOffsetValueResult, err := strconv.ParseUint(extraOffsetValue, 16, 64)
 		if err != nil {
-			return types.MessageData{}, fmt.Errorf("failed to get absolute offset to format string for signpost firehose entry: %w", err)
+			return models.MessageData{}, fmt.Errorf("failed to get absolute offset to format string for signpost firehose entry: %w", err)
 		}
 		return ExtractAbsoluteStrings(provider, extraOffsetValueResult, stringOffset, firstProcID, secondProcID, &catalogs, stringOffset)
 	}
