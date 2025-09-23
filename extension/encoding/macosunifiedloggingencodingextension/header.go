@@ -172,7 +172,7 @@ func ParseHeaderChunk(data []byte) (*HeaderChunk, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read sub chunk data size 4: %w", err)
 	}
-	data, timezonePath, err = helpers.Take(data, 48)
+	_, timezonePath, err = helpers.Take(data, timezonePathSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read timezone path: %w", err)
 	}

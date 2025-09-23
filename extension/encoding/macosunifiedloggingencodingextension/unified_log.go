@@ -72,8 +72,8 @@ type UnifiedLogCatalogData struct {
 	CatalogData  models.CatalogChunk
 	FirehoseData []firehose.Preamble
 	OversizeData []OversizeChunk
-	// StatedumpData  []StatedumpChunk
-	// SimpledumpData []SimpledumpChunk
+	// StatedumpData  []StatedumpLog
+	// SimpledumpData []SimpledumpLog
 }
 
 func ParseUnifiedLog(data []byte) (*UnifiedLogData, error) {
@@ -82,21 +82,26 @@ func ParseUnifiedLog(data []byte) (*UnifiedLogData, error) {
 	var chunkData []byte
 
 	for len(data) > 0 {
+
+		if len(data) < chunkPreambleSize {
+			break
+		}
+
 		preamble, err := DetectPreamble(data)
 		if err != nil {
-			return nil, err
+			return unifiedLogData, err
 		}
 		chunkDataSize := preamble.ChunkDataSize
 		if chunkDataSize > uint64(^uint(0)>>1) {
-			return nil, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
+			return unifiedLogData, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 		}
-		data, chunkData, _ = helpers.Take(data, int(chunkDataSize))
+		data, chunkData, _ = helpers.Take(data, int(chunkDataSize)+chunkPreambleSize)
 
 		switch preamble.ChunkTag {
 		case headerChunk:
 			err := getULHeaderData(chunkData, unifiedLogData)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get header data: %w", err)
+				return unifiedLogData, fmt.Errorf("failed to get header data: %w", err)
 			}
 		case catalogChunk:
 			if catalogData.CatalogData.ChunkTag != 0 {
@@ -105,28 +110,27 @@ func ParseUnifiedLog(data []byte) (*UnifiedLogData, error) {
 			catalogData = &UnifiedLogCatalogData{}
 			err := getULCatalogData(chunkData, catalogData)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get catalog data: %w", err)
+				return unifiedLogData, fmt.Errorf("failed to get catalog data: %w", err)
 			}
 		case chunksetChunk:
 			err := getULChunksetData(chunkData, catalogData, unifiedLogData)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get chunkset data: %w", err)
+				return unifiedLogData, fmt.Errorf("failed to get chunkset data: %w", err)
 			}
 		default:
-			return nil, fmt.Errorf("unknown chunk tag: %x", preamble.ChunkTag)
+			return unifiedLogData, fmt.Errorf("unknown chunk tag: %x", preamble.ChunkTag)
 		}
 
+		// Calculate and consume padding
 		paddingSize := helpers.PaddingSize(chunkDataSize, 8)
 		if len(data) < int(paddingSize) {
 			break
 		}
 		if paddingSize > uint64(^uint(0)>>1) {
-			return nil, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
+			return unifiedLogData, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 		}
 		data, _, _ = helpers.Take(data, int(paddingSize))
-		if len(data) == 0 {
-			break
-		}
+		// Check if we have enough data for a preamble
 		if len(data) < chunkPreambleSize {
 			// TODO: Log this warning
 			// fmt.Printf("Not enough data for preamble header, needed 16 bytes. Got: %d\n", len(data))
@@ -150,11 +154,11 @@ func getULHeaderData(data []byte, unifiedLogData *UnifiedLogData) error {
 
 func getULCatalogData(data []byte, catalogData *UnifiedLogCatalogData) error {
 	// TODO: make sure this is correct once the catalog chunk PR is merged
-	// catalogResults, err := ParseCatalogChunk(data, catalogData)
-	// if err != nil {
-	// 	return err
-	// }
-	// catalogData.CatalogData = *catalogResults
+	catalogResults, _, err := ParseCatalogChunk(data)
+	if err != nil {
+		return err
+	}
+	catalogData.CatalogData = catalogResults
 	return nil
 }
 

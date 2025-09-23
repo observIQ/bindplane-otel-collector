@@ -125,14 +125,61 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 	otelLogs := plog.NewLogs()
 	// Convert the log data results to OpenTelemetry log records
 	// Log structure should be minimal, preserve the log body and attributes
-	for _, logData := range logDataResults.CatalogData {
-		for _, firehose := range logData.FirehoseData {
+
+	// Debug: Check what we found
+	if c.debugMode {
+		c.logger.Info("Parsing results",
+			zap.Int("catalogDataCount", len(logDataResults.CatalogData)),
+			zap.Int("headerDataCount", len(logDataResults.HeaderData)),
+			zap.Int("oversizeDataCount", len(logDataResults.OversizeData)))
+	}
+
+	for i, logData := range logDataResults.CatalogData {
+		if c.debugMode {
+			c.logger.Info("Processing catalog data",
+				zap.Int("catalogIndex", i),
+				zap.Int("firehoseDataCount", len(logData.FirehoseData)),
+				zap.Int("oversizeDataCount", len(logData.OversizeData)))
+		}
+
+		for j, firehose := range logData.FirehoseData {
+			if c.debugMode {
+				c.logger.Info("Processing firehose data",
+					zap.Int("firehoseIndex", j),
+					zap.Int("publicDataCount", len(firehose.PublicData)))
+			}
+
 			for _, firehoseEntry := range firehose.PublicData {
 				for _, item := range firehoseEntry.Message.ItemInfo {
+					if c.debugMode {
+						c.logger.Info("Found log message", zap.String("message", item.MessageStrings))
+					}
 					otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(item.MessageStrings)
 				}
 			}
 		}
+
+		// Process Oversize data - these contain log messages or string data
+		for j, oversize := range logData.OversizeData {
+			if c.debugMode {
+				c.logger.Info("Processing oversize data",
+					zap.Int("oversizeIndex", j),
+					zap.Uint32("dataRefIndex", oversize.dataRefIndex),
+					zap.Int("itemInfoCount", len(oversize.messageItems.ItemInfo)))
+			}
+
+			// Extract messages from the oversize chunk's message items
+			for _, item := range oversize.messageItems.ItemInfo {
+				if len(item.MessageStrings) > 0 {
+					if c.debugMode {
+						c.logger.Info("Found oversize log message", zap.String("message", item.MessageStrings))
+					}
+					otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(item.MessageStrings)
+				}
+			}
+		}
+
+		// TODO: uncomment once simpledump and statedump are merged
 		// for _, simpledump := range logData.SimpledumpData {
 		// 	otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(simpledump.MessageString)
 		// }

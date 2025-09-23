@@ -20,6 +20,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 )
 
 // StateDump represents a Statedump log entry (also known as a "stateEvent" type of log entry)
@@ -44,6 +46,7 @@ type StateDump struct {
 
 // ParseStateDump parses a Statedump log entry. Statedumps are special log entries that may contain a plist file, custom object, or protocol buffer
 func ParseStateDump(data []byte) (*StateDump, error) {
+	var err error
 	if len(data) < 72 { // Minimum size for basic structure
 		return nil, fmt.Errorf("statedump data too small: %d bytes", len(data))
 	}
@@ -114,13 +117,17 @@ func ParseStateDump(data []byte) (*StateDump, error) {
 		if _, err := reader.Read(libraryData); err != nil {
 			return nil, fmt.Errorf("failed to read library data: %w", err)
 		}
-		result.DecoderLibrary = extractString(libraryData)
+		if result.DecoderLibrary, err = helpers.ExtractString(libraryData); err != nil {
+			return nil, fmt.Errorf("failed to extract library data: %w", err)
+		}
 
 		typeData := make([]byte, stringSize)
 		if _, err := reader.Read(typeData); err != nil {
 			return nil, fmt.Errorf("failed to read type data: %w", err)
 		}
-		result.DecoderType = extractString(typeData)
+		if result.DecoderType, err = helpers.ExtractString(typeData); err != nil {
+			return nil, fmt.Errorf("failed to extract type data: %w", err)
+		}
 	}
 
 	// Read title data
@@ -128,7 +135,10 @@ func ParseStateDump(data []byte) (*StateDump, error) {
 	if _, err := reader.Read(titleData); err != nil {
 		return nil, fmt.Errorf("failed to read title data: %w", err)
 	}
-	result.TitleName = extractString(titleData)
+	result.TitleName, err = helpers.ExtractString(titleData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract title data: %w", err)
+	}
 
 	// Read the actual statedump data
 	if result.UnknownDataSize > 0 {
@@ -315,31 +325,6 @@ func getNetworkInterface(data []byte) string {
 	}
 
 	return fmt.Sprintf("Network information data (%d bytes): %x", len(data), data)
-}
-
-// ParseStatedumpChunk parses a Statedump chunk (0x6003) containing system state information
-func ParseStatedumpChunk(data []byte, entry *TraceV3Entry) {
-	statedump, err := ParseStateDump(data)
-	if err != nil {
-		entry.Message = fmt.Sprintf("Failed to parse statedump: %v", err)
-		entry.Level = "Error"
-		return
-	}
-
-	var message string
-	switch statedump.UnknownDataType {
-	case 1: // plist
-		message = ParseStateDumpPlist(statedump.Data)
-	case 3: // custom object
-		message = ParseStateDumpObject(statedump.Data, statedump.TitleName)
-	default:
-		message = fmt.Sprintf("Unknown statedump type %d: %x", statedump.UnknownDataType, statedump.Data)
-	}
-
-	entry.Message = fmt.Sprintf("Statedump [%s]: %s", statedump.TitleName, message)
-	entry.Level = "Debug"
-	entry.Subsystem = "com.apple.statedump"
-	entry.Category = statedump.TitleName
 }
 
 // StatedumpCollection represents a collection of statedumps loaded from tracev3 files

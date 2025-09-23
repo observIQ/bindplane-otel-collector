@@ -18,6 +18,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
 )
 
 func TestGetULHeaderData(t *testing.T) {
@@ -49,10 +51,14 @@ func TestGetULCatalogData(t *testing.T) {
 		110, 103, 46, 115, 116, 97, 108, 108, 115, 0, 0, 0,
 	}, data.CatalogData.CatalogSubsystemStrings)
 	require.Equal(t, 1, len(data.CatalogData.ProcessInfoEntries))
+	var processEntry *models.ProcessInfoEntry
 	for _, entry := range data.CatalogData.ProcessInfoEntries {
-		require.Equal(t, "2BEFD20C18EC3838814F2B4E5AF3BCEC", entry.MainUUID)
-		require.Equal(t, "3D05845F3F65358F9EBF2236E772AC01", entry.DSCUUID)
+		processEntry = entry
+		break
 	}
+	require.NotNil(t, processEntry)
+	require.Equal(t, "2BEFD20C18EC3838814F2B4E5AF3BCEC", processEntry.MainUUID)
+	require.Equal(t, "3D05845F3F65358F9EBF2236E772AC01", processEntry.DSCUUID)
 	require.Equal(t, 7, len(data.CatalogData.CatalogSubchunks))
 }
 
