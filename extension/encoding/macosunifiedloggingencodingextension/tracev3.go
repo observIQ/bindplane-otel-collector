@@ -1,5 +1,16 @@
-// Copyright The OpenTelemetry Authors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package macosunifiedloggingencodingextension // import "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension"
 
@@ -9,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 )
@@ -70,6 +83,16 @@ type TraceV3Entry struct {
 	MessageType  string // Message type based on log level (Default, Debug, Info, Error, Fault, etc.)
 	EventType    string // Event type (logEvent, activityEvent, traceEvent, signpostEvent, lossEvent)
 	TimezoneName string // Timezone name extracted from header timezone path
+}
+
+// UnifiedLogData represents the complete unified log data
+// Eventual replacement for TraceV3 header/entry structs
+type UnifiedLogData struct {
+	CatalogData  models.CatalogChunk
+	FirehoseData []firehose.Preamble
+	OversizeData []OversizeChunk
+	// StatedumpData  []StatedumpChunk
+	// SimpledumpData []SimpledumpChunk
 }
 
 // ParseTraceV3Header parses the tracev3 file header
@@ -323,17 +346,17 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 
 		// Process catalog chunks first
 		if chunkTag == 0x600b {
-			catalogEntry := &TraceV3Entry{
-				Type:         chunkTag,
-				ChunkType:    "catalog",
-				Subsystem:    "com.apple.catalog",
-				Category:     "catalog_data",
-				Level:        "DEBUG",
-				MessageType:  "Debug",
-				EventType:    "logEvent",
-				TimezoneName: extractTimezoneName(header.TimezonePath),
-			}
-			ParseCatalogChunk(data[catalogOffset:catalogOffset+totalChunkSize], catalogEntry)
+			// catalogEntry := &TraceV3Entry{
+			// 	Type:         chunkTag,
+			// 	ChunkType:    "catalog",
+			// 	Subsystem:    "com.apple.catalog",
+			// 	Category:     "catalog_data",
+			// 	Level:        "DEBUG",
+			// 	MessageType:  "Debug",
+			// 	EventType:    "logEvent",
+			// 	TimezoneName: extractTimezoneName(header.TimezonePath),
+			// }
+			ParseCatalogChunk(data[catalogOffset : catalogOffset+totalChunkSize])
 		}
 
 		catalogOffset += totalChunkSize + int(paddingSize8(chunkDataSize))
@@ -406,9 +429,9 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 			entry.Subsystem = "com.apple.firehose"
 			entry.Category = "entry"
 			entry.Message = fmt.Sprintf("Firehose chunk found: tag=0x%x sub_tag=0x%x size=%d", chunkTag, chunkSubTag, chunkDataSize)
-			firehoseEntries := ParseFirehoseChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
-			// Add all individual firehose entries to our result
-			entries = append(entries, firehoseEntries...)
+			// firehoseEntries := ParseFirehoseChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
+			// // Add all individual firehose entries to our result
+			// entries = append(entries, firehoseEntries...)
 			// Continue to next chunk without adding the template entry
 			offset += totalChunkSize
 			entryCount++
@@ -419,9 +442,9 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 			entry.Subsystem = "com.apple.oversize"
 			entry.Category = "oversize_data"
 			entry.Message = fmt.Sprintf("Oversize chunk found: tag=0x%x sub_tag=0x%x size=%d", chunkTag, chunkSubTag, chunkDataSize)
-			oversizeEntries := ParseOversizeChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
-			// Add all individual oversize entries to our result
-			entries = append(entries, oversizeEntries...)
+			// oversizeEntries := ParseOversizeChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
+			// // Add all individual oversize entries to our result
+			// entries = append(entries, oversizeEntries...)
 			// Continue to next chunk without adding the template entry
 			offset += totalChunkSize + int(paddingSize8(chunkDataSize))
 			entryCount++
@@ -433,9 +456,17 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 			entry.Category = "system_state"
 			ParseStatedumpChunk(data[offset:offset+int(chunkDataSize)], entry)
 		case 0x6004:
-			// Simpledump chunk
+			// SimpleDump chunk
 			entry.ChunkType = "simpledump"
-			ParseSimpledumpChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
+			// Parse into SimpleDumpChunk and map relevant fields to entry
+			simple, _, _ := ParseSimpleDumpChunk(data[offset : offset+totalChunkSize])
+
+			entry.Subsystem = simple.Subsystem
+			entry.Message = simple.MessageString
+			entry.ThreadID = simple.ThreadID
+			entry.ProcessID = uint32(simple.FirstProcID)
+			// Use SimpleDump's continuous time directly for timestamp conversion
+			entry.Timestamp = convertMachTimeToUnixNanosWithTimesync(simple.ContinuousTime, header.BootUUID, 0, timesyncData)
 		case 0x600b:
 			// Catalog chunk - Skip in second pass since we already processed it
 			// This prevents catalog metadata from appearing as log entries
@@ -447,9 +478,9 @@ func parseDataEntriesWithTimesync(data []byte, header *TraceV3Header, timesyncDa
 			entry.ChunkType = "chunkset"
 			entry.Subsystem = "com.apple.chunkset"
 			entry.Category = "chunkset_data"
-			chunksetEntries := ParseChunksetChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
+			// chunksetEntries := ParseChunksetChunk(data[offset:offset+totalChunkSize], entry, header, timesyncData)
 			// Add all individual chunkset entries to our result
-			entries = append(entries, chunksetEntries...)
+			// entries = append(entries, chunksetEntries...)
 			// Continue to next chunk without adding the template entry
 			offset += totalChunkSize
 			entryCount++
@@ -622,17 +653,11 @@ func parseLargeDataSectionAsChunks(data []byte, header *TraceV3Header, timesyncD
 		// Calculate total chunk size (preamble + data)
 		totalChunkSize := chunkPreambleSize + int(chunkDataSize)
 		if offset+totalChunkSize > len(data) {
-			// Not enough data for complete chunk, try to parse as firehose data
-			if chunkTag == 0x6001 || offset == 0 {
-				// This might be firehose data without proper preamble
-				firehoseEntries := parseDataAsFirehoseEntries(data[offset:], header, timesyncData)
-				entries = append(entries, firehoseEntries...)
-			}
 			break
 		}
 
 		// Extract chunk data
-		chunkData := data[offset : offset+totalChunkSize]
+		// chunkData := data[offset : offset+totalChunkSize]
 
 		// Create base entry
 		chunkEntry := &TraceV3Entry{
@@ -654,22 +679,22 @@ func parseLargeDataSectionAsChunks(data []byte, header *TraceV3Header, timesyncD
 			chunkEntry.ChunkType = "firehose"
 			chunkEntry.Subsystem = "com.apple.firehose.large_data"
 			chunkEntry.Category = "entry"
-			firehoseEntries := ParseFirehoseChunk(chunkData, chunkEntry, header, timesyncData)
-			entries = append(entries, firehoseEntries...)
+			// firehoseEntries := ParseFirehoseChunk(chunkData)
+			// entries = append(entries, firehoseEntries...)
 		case 0x6002:
 			// Oversize chunk
 			chunkEntry.ChunkType = "oversize"
 			chunkEntry.Subsystem = "com.apple.oversize.large_data"
 			chunkEntry.Category = "oversize_data"
-			oversizeEntries := ParseOversizeChunk(chunkData, chunkEntry, header, timesyncData)
-			entries = append(entries, oversizeEntries...)
+			// oversizeEntries := ParseOversizeChunk(chunkData)
+			// entries = append(entries, oversizeEntries...)
 		case 0x600d:
 			// ChunkSet chunk
 			chunkEntry.ChunkType = "chunkset"
 			chunkEntry.Subsystem = "com.apple.chunkset.large_data"
 			chunkEntry.Category = "chunkset_data"
-			chunksetEntries := ParseChunksetChunk(chunkData, chunkEntry, header, timesyncData)
-			entries = append(entries, chunksetEntries...)
+			// chunksetEntries := ParseChunksetChunk(chunkData, chunkEntry, header, timesyncData)
+			// entries = append(entries, chunksetEntries...)
 		default:
 			// Unknown chunk type
 			chunkEntry.ChunkType = "unknown_large_data"
@@ -691,86 +716,6 @@ func parseLargeDataSectionAsChunks(data []byte, header *TraceV3Header, timesyncD
 	}
 
 	return entries
-}
-
-// parseDataAsFirehoseEntries attempts to parse data as firehose entries without proper chunk preamble
-// This is used when we have data that looks like firehose entries but doesn't have the standard chunk structure
-func parseDataAsFirehoseEntries(data []byte, header *TraceV3Header, timesyncData map[string]*TimesyncBoot) []*TraceV3Entry {
-	var entries []*TraceV3Entry
-	offset := 0
-
-	// Try to parse as multiple firehose entries
-	// Look for firehose entry patterns in the data
-	for offset < len(data) {
-		// Need at least 24 bytes for a firehose entry header
-		if offset+24 > len(data) {
-			break
-		}
-
-		// Check if this looks like a firehose entry
-		// Firehose entries typically start with activity type (0x4 for logs)
-		activityType := data[offset]
-		if activityType != 0x4 && activityType != 0x2 && activityType != 0x6 {
-			offset += 1
-			continue
-		}
-
-		// Parse firehose entry header
-		logType := data[offset+1]
-		flags := binary.LittleEndian.Uint16(data[offset+2:])
-		formatStringLocation := binary.LittleEndian.Uint32(data[offset+4:])
-		threadID := binary.LittleEndian.Uint64(data[offset+8:])
-		continuousTimeDelta := binary.LittleEndian.Uint32(data[offset+16:])
-		continuousTimeDeltaUpper := binary.LittleEndian.Uint16(data[offset+20:])
-		dataSize := binary.LittleEndian.Uint16(data[offset+22:])
-
-		// Validate data size
-		if dataSize > uint16(len(data)-offset-24) || dataSize > 10000 {
-			offset += 1
-			continue
-		}
-
-		// Create FirehoseEntry structure
-		firehoseEntry := &FirehoseEntry{
-			ActivityType:         activityType,
-			LogType:              logType,
-			Flags:                flags,
-			FormatStringLocation: formatStringLocation,
-			ThreadID:             threadID,
-			TimeDelta:            continuousTimeDelta,
-			TimeDeltaUpper:       continuousTimeDeltaUpper,
-			DataSize:             dataSize,
-		}
-
-		// Extract message data if present
-		if dataSize > 0 && offset+24+int(dataSize) <= len(data) {
-			firehoseEntry.MessageData = data[offset+24 : offset+24+int(dataSize)]
-		}
-
-		// Parse the firehose entry
-		entry := parseSingleFirehoseEntry(firehoseEntry, header, 0, 0, header.ContinuousTime, timesyncData)
-		if entry != nil {
-			entry.ChunkType = "firehose_raw_data"
-			entry.Subsystem = "com.apple.firehose.raw_data"
-			entries = append(entries, entry)
-		}
-
-		// Move to next entry
-		offset += 24 + int(dataSize)
-
-		// Safety limit
-		if len(entries) >= 1000 {
-			break
-		}
-	}
-
-	return entries
-}
-
-// convertMachTimeToUnixNanos converts mach absolute time to Unix epoch nanoseconds (legacy fallback)
-// This is a simplified conversion that approximates the proper timesync-based conversion
-func convertMachTimeToUnixNanos(machTime uint64, numerator uint32, denominator uint32) uint64 {
-	return convertMachTimeToUnixNanosWithTimesync(machTime, "", 0, nil)
 }
 
 // convertMachTimeToUnixNanosWithTimesync converts mach absolute time to Unix epoch nanoseconds using timesync data

@@ -1,5 +1,16 @@
-// Copyright The OpenTelemetry Authors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package macosunifiedloggingreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver"
 
@@ -94,6 +105,30 @@ func (r *macosUnifiedLogReceiver) Start(ctx context.Context, host component.Host
 		}
 	} else {
 		r.set.Logger.Warn("No timesync paths configured, timestamps may be inaccurate")
+	}
+
+	// Load UUID text data if paths are configured
+	if len(r.config.UUIDTextPaths) > 0 {
+		err := r.loadUUIDTextData()
+		if err != nil {
+			r.set.Logger.Warn("Failed to load UUID text data, message parsing may be inaccurate", zap.Error(err))
+		} else {
+			r.set.Logger.Info("Successfully loaded UUID text data for accurate message parsing")
+		}
+	} else {
+		r.set.Logger.Warn("No UUID text paths configured, message parsing may be inaccurate")
+	}
+
+	// Load DSC data if paths are configured
+	if len(r.config.DSCPaths) > 0 {
+		err := r.loadDSCData()
+		if err != nil {
+			r.set.Logger.Warn("Failed to load DSC data, shared string parsing may be inaccurate", zap.Error(err))
+		} else {
+			r.set.Logger.Info("Successfully loaded DSC data for accurate shared string parsing")
+		}
+	} else {
+		r.set.Logger.Warn("No DSC paths configured, shared string parsing may be inaccurate")
 	}
 
 	// Create the file consumer
@@ -290,52 +325,33 @@ func (*macosUnifiedLogReceiver) setLogRecordAttributes(logRecord *plog.LogRecord
 	logRecord.Attributes().PutStr("receiver.name", "macosunifiedlog")
 }
 
-// loadTimesyncData loads timesync files and configures the encoding extension with the data
+// loadTimesyncData loads timesync files and configures the encoding extension with the raw data
 func (r *macosUnifiedLogReceiver) loadTimesyncData() error {
-	timesyncData := make(map[string]*macosunifiedloggingencodingextension.TimesyncBoot)
+	timesyncRawData := make(map[string][]byte)
 
 	for _, timesyncPath := range r.config.TimesyncPaths {
-		err := r.loadTimesyncFromPath(timesyncPath, timesyncData)
+		err := r.loadTimesyncFromPath(timesyncPath, timesyncRawData)
 		if err != nil {
 			r.set.Logger.Error("Failed to load timesync from path", zap.String("path", timesyncPath), zap.Error(err))
 			continue
 		}
 	}
 
-	if len(timesyncData) == 0 {
+	if len(timesyncRawData) == 0 {
 		return fmt.Errorf("no timesync data loaded from any path")
 	}
 
-	// Log all loaded UUIDs for debugging
-	var loadedUUIDs []string
-	for uuid := range timesyncData {
-		loadedUUIDs = append(loadedUUIDs, uuid)
+	totalBytes := 0
+	for _, data := range timesyncRawData {
+		totalBytes += len(data)
 	}
 
-	// ENHANCED DEBUG LOGGING using proper collector logger
-	r.set.Logger.Info("=== RECEIVER DEBUG: TIMESYNC DATA LOADED ===",
-		zap.Int("totalTimesyncFiles", len(timesyncData)),
-		zap.Strings("loadedUUIDs", loadedUUIDs))
-
-	// Also log the first few entries to see the actual structure
-	count := 0
-	for uuid, boot := range timesyncData {
-		if count >= 3 { // Only show first 3 for brevity
-			break
-		}
-		r.set.Logger.Info("DEBUG: Timesync UUID details",
-			zap.Int("index", count),
-			zap.String("uuid", uuid),
-			zap.Int("bootRecords", len(boot.TimesyncRecords)))
-		count++
-	}
-
-	// Configure the encoding extension with the timesync data
+	// Configure the encoding extension with the raw timesync data
 	if macosExt, ok := r.encodingExt.(*macosunifiedloggingencodingextension.MacosUnifiedLoggingExtension); ok {
-		macosExt.SetTimesyncData(timesyncData)
-		r.set.Logger.Info("Configured encoding extension with timesync data",
-			zap.Int("bootRecords", len(timesyncData)),
-			zap.Strings("loadedUUIDs", loadedUUIDs))
+		macosExt.SetTimesyncRawData(timesyncRawData)
+		r.set.Logger.Info("Configured encoding extension with timesync raw data",
+			zap.Int("timesyncFiles", len(timesyncRawData)),
+			zap.Int("totalBytes", totalBytes))
 	} else {
 		return fmt.Errorf("encoding extension is not of expected type")
 	}
@@ -344,7 +360,7 @@ func (r *macosUnifiedLogReceiver) loadTimesyncData() error {
 }
 
 // loadTimesyncFromPath loads timesync data from a specific path (file or glob pattern)
-func (r *macosUnifiedLogReceiver) loadTimesyncFromPath(path string, timesyncData map[string]*macosunifiedloggingencodingextension.TimesyncBoot) error {
+func (r *macosUnifiedLogReceiver) loadTimesyncFromPath(path string, timesyncRawData map[string][]byte) error {
 	// Check if path contains wildcards
 	if strings.Contains(path, "*") {
 		// Handle glob pattern
@@ -354,7 +370,7 @@ func (r *macosUnifiedLogReceiver) loadTimesyncFromPath(path string, timesyncData
 		}
 
 		for _, match := range matches {
-			err := r.loadTimesyncFile(match, timesyncData)
+			err := r.loadTimesyncFile(match, timesyncRawData)
 			if err != nil {
 				r.set.Logger.Warn("Failed to load timesync file", zap.String("file", match), zap.Error(err))
 				continue
@@ -362,37 +378,205 @@ func (r *macosUnifiedLogReceiver) loadTimesyncFromPath(path string, timesyncData
 		}
 	} else {
 		// Handle single file
-		return r.loadTimesyncFile(path, timesyncData)
+		return r.loadTimesyncFile(path, timesyncRawData)
 	}
 
 	return nil
 }
 
-// loadTimesyncFile loads a single timesync file
-func (r *macosUnifiedLogReceiver) loadTimesyncFile(filePath string, timesyncData map[string]*macosunifiedloggingencodingextension.TimesyncBoot) error {
-	data, err := os.ReadFile(filePath)
+// loadTimesyncFile loads a single timesync file as raw bytes
+func (r *macosUnifiedLogReceiver) loadTimesyncFile(filePath string, timesyncRawData map[string][]byte) error {
+	// Validate file path for security
+	if err := validateFilePath(filePath); err != nil {
+		return fmt.Errorf("invalid timesync file path: %w", err)
+	}
+
+	data, err := os.ReadFile(filePath) // #nosec G304 - path is validated above
 	if err != nil {
 		return fmt.Errorf("failed to read timesync file %s: %w", filePath, err)
 	}
 
-	fileTimesyncData, err := macosunifiedloggingencodingextension.ParseTimesyncData(data)
-	if err != nil {
-		return fmt.Errorf("failed to parse timesync file %s: %w", filePath, err)
-	}
+	// Store the raw timesync data using the file path as the key
+	timesyncRawData[filePath] = data
 
-	// Merge the timesync data
-	for bootUUID, bootData := range fileTimesyncData {
-		if existing, exists := timesyncData[bootUUID]; exists {
-			// Merge records if boot UUID already exists
-			existing.TimesyncRecords = append(existing.TimesyncRecords, bootData.TimesyncRecords...)
-		} else {
-			timesyncData[bootUUID] = bootData
+	r.set.Logger.Debug("Loaded timesync file as raw bytes",
+		zap.String("file", filePath),
+		zap.Int("size", len(data)))
+
+	return nil
+}
+
+// loadUUIDTextData loads UUID text files and configures the encoding extension with the raw data
+func (r *macosUnifiedLogReceiver) loadUUIDTextData() error {
+	uuidTextRawData := make(map[string][]byte)
+
+	for _, uuidTextPath := range r.config.UUIDTextPaths {
+		err := r.loadUUIDTextFromPath(uuidTextPath, uuidTextRawData)
+		if err != nil {
+			r.set.Logger.Error("Failed to load UUID text from path", zap.String("path", uuidTextPath), zap.Error(err))
+			continue
 		}
 	}
 
-	r.set.Logger.Debug("Loaded timesync file",
+	if len(uuidTextRawData) == 0 {
+		return fmt.Errorf("no UUID text data loaded from any path")
+	}
+
+	totalBytes := 0
+	for _, data := range uuidTextRawData {
+		totalBytes += len(data)
+	}
+
+	// Configure the encoding extension with the raw UUID text data
+	if macosExt, ok := r.encodingExt.(*macosunifiedloggingencodingextension.MacosUnifiedLoggingExtension); ok {
+		macosExt.SetUUIDTextRawData(uuidTextRawData)
+		r.set.Logger.Info("Configured encoding extension with UUID text raw data",
+			zap.Int("uuidTextFiles", len(uuidTextRawData)),
+			zap.Int("totalBytes", totalBytes))
+	} else {
+		return fmt.Errorf("encoding extension is not of expected type")
+	}
+
+	return nil
+}
+
+// loadUUIDTextFromPath loads UUID text data from a specific path (file or glob pattern)
+func (r *macosUnifiedLogReceiver) loadUUIDTextFromPath(path string, uuidTextRawData map[string][]byte) error {
+	// Check if path contains wildcards
+	if strings.Contains(path, "*") {
+		// Handle glob pattern
+		matches, err := filepath.Glob(path)
+		if err != nil {
+			return fmt.Errorf("invalid glob pattern %s: %w", path, err)
+		}
+
+		for _, match := range matches {
+			err := r.loadUUIDTextFile(match, uuidTextRawData)
+			if err != nil {
+				r.set.Logger.Warn("Failed to load uuid text file", zap.String("file", match), zap.Error(err))
+				continue
+			}
+		}
+	} else {
+		// Handle single file
+		return r.loadUUIDTextFile(path, uuidTextRawData)
+	}
+
+	return nil
+}
+
+// loadUUIDTextFile loads a single UUID text file as raw bytes
+func (r *macosUnifiedLogReceiver) loadUUIDTextFile(filePath string, uuidTextRawData map[string][]byte) error {
+	// Validate file path for security
+	if err := validateFilePath(filePath); err != nil {
+		return fmt.Errorf("invalid UUID text file path: %w", err)
+	}
+
+	data, err := os.ReadFile(filePath) // #nosec G304 - path is validated above
+	if err != nil {
+		return fmt.Errorf("failed to read UUID text file %s: %w", filePath, err)
+	}
+
+	// Store the raw UUID text data using the file path as the key
+	uuidTextRawData[filePath] = data
+
+	r.set.Logger.Debug("Loaded UUID text file as raw bytes",
 		zap.String("file", filePath),
-		zap.Int("bootRecords", len(fileTimesyncData)))
+		zap.Int("size", len(data)))
+
+	return nil
+}
+
+// loadDSCData loads DSC files and configures the encoding extension with the raw data
+func (r *macosUnifiedLogReceiver) loadDSCData() error {
+	dscRawData := make(map[string][]byte)
+
+	for _, dscPath := range r.config.DSCPaths {
+		err := r.loadDSCFromPath(dscPath, dscRawData)
+		if err != nil {
+			r.set.Logger.Error("Failed to load DSC from path", zap.String("path", dscPath), zap.Error(err))
+			continue
+		}
+	}
+
+	if len(dscRawData) == 0 {
+		return fmt.Errorf("no DSC data loaded from any path")
+	}
+
+	totalBytes := 0
+	for _, data := range dscRawData {
+		totalBytes += len(data)
+	}
+
+	// Configure the encoding extension with the raw DSC data
+	if macosExt, ok := r.encodingExt.(*macosunifiedloggingencodingextension.MacosUnifiedLoggingExtension); ok {
+		macosExt.SetDSCRawData(dscRawData)
+		r.set.Logger.Info("Configured encoding extension with DSC raw data",
+			zap.Int("dscFiles", len(dscRawData)),
+			zap.Int("totalBytes", totalBytes))
+	} else {
+		return fmt.Errorf("encoding extension is not of expected type")
+	}
+
+	return nil
+}
+
+// loadDSCFromPath loads DSC data from a specific path (file or glob pattern)
+func (r *macosUnifiedLogReceiver) loadDSCFromPath(path string, dscRawData map[string][]byte) error {
+	// Check if path contains wildcards
+	if strings.Contains(path, "*") {
+		// Handle glob pattern
+		matches, err := filepath.Glob(path)
+		if err != nil {
+			return fmt.Errorf("invalid glob pattern %s: %w", path, err)
+		}
+
+		for _, match := range matches {
+			err := r.loadDSCFile(match, dscRawData)
+			if err != nil {
+				r.set.Logger.Warn("Failed to load DSC file", zap.String("file", match), zap.Error(err))
+				continue
+			}
+		}
+	} else {
+		// Handle single file
+		return r.loadDSCFile(path, dscRawData)
+	}
+
+	return nil
+}
+
+// loadDSCFile loads a single DSC file as raw bytes
+func (r *macosUnifiedLogReceiver) loadDSCFile(filePath string, dscRawData map[string][]byte) error {
+	// Validate file path for security
+	if err := validateFilePath(filePath); err != nil {
+		return fmt.Errorf("invalid DSC file path: %w", err)
+	}
+
+	data, err := os.ReadFile(filePath) // #nosec G304 - path is validated above
+	if err != nil {
+		return fmt.Errorf("failed to read DSC file %s: %w", filePath, err)
+	}
+
+	// Store the raw DSC data using the file path as the key
+	dscRawData[filePath] = data
+
+	r.set.Logger.Debug("Loaded DSC file as raw bytes",
+		zap.String("file", filePath),
+		zap.Int("size", len(data)))
+
+	return nil
+}
+
+// validateFilePath ensures the file path is safe and within expected bounds
+func validateFilePath(filePath string) error {
+	// Clean the path to resolve any . or .. elements
+	cleanPath := filepath.Clean(filePath)
+
+	// Check for directory traversal attempts
+	if strings.Contains(cleanPath, "..") {
+		return fmt.Errorf("invalid file path: directory traversal detected in %s", filePath)
+	}
 
 	return nil
 }
