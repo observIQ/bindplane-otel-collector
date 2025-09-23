@@ -124,31 +124,29 @@ func ParseChunkset(data []byte) (chunk ChunksetChunk, remainingData []byte, err 
 
 // ParseChunksetData parses each log in the decompressed Chunkset data
 func ParseChunksetData(data []byte, ulData *UnifiedLogCatalogData) error {
+	chunkPreambleSize := 16
 	for len(data) > 0 {
 		// read preamble
-		data, chunkTag, err := helpers.Take(data, 4)
+		preamble, err := DetectPreamble(data)
 		if err != nil {
-			return entries, fmt.Errorf("failed to read chunk tag: %w", err)
+			return fmt.Errorf("failed to detect preamble: %w", err)
 		}
-		data, _, err = helpers.Take(data, 4) // chunkSubTag
-		if err != nil {
-			return entries, fmt.Errorf("failed to read chunk sub tag: %w", err)
-		}
-		data, chunkDataSize, err := helpers.Take(data, 8)
-		if err != nil {
-			return entries, fmt.Errorf("failed to read chunk data size: %w", err)
-		}
+		chunkDataSize := preamble.ChunkDataSize
 
-		if uint64(chunkDataSize[0]) > uint64(^uint(0)>>1) { // Check if larger than max int
+		if chunkDataSize > uint64(^uint(0)>>1) { // Check if larger than max int
 			return fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 		}
 
-		data, chunkData, err := helpers.Take(data, int(chunkDataSize[0]))
+		data, chunkData, err := helpers.Take(data, int(chunkDataSize)+chunkPreambleSize)
 		if err != nil {
-			return entries, fmt.Errorf("failed to read chunk data: %w", err)
+			return fmt.Errorf("failed to read chunk data: %w", err)
 		}
-		if err := getChunksetData(chunkData, binary.LittleEndian.Uint32(chunkTag), ulData); err != nil {
-			return err
+
+		// Debug: Check what chunk types we're finding
+		fmt.Printf("Found chunk type: 0x%x, size: %d\n", preamble.ChunkTag, chunkDataSize)
+
+		if err := getChunksetData(chunkData, preamble.ChunkTag, ulData); err != nil {
+			return fmt.Errorf("failed to get chunkset data: %w", err)
 		}
 
 		// skip zero padding
