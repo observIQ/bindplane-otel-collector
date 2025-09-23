@@ -19,8 +19,8 @@ import (
 	"regexp"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/types"
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 )
 
@@ -69,11 +69,11 @@ type UnifiedLogData struct {
 
 // UnifiedLogCatalogData represents the complete unified log data
 type UnifiedLogCatalogData struct {
-	CatalogData    types.CatalogChunk
-	FirehoseData   []firehose.Preamble
-	OversizeData   []OversizeChunk
-	StatedumpData  []StatedumpChunk
-	SimpledumpData []SimpledumpChunk
+	CatalogData  models.CatalogChunk
+	FirehoseData []firehose.Preamble
+	OversizeData []OversizeChunk
+	// StatedumpData  []StatedumpChunk
+	// SimpledumpData []SimpledumpChunk
 }
 
 func ParseUnifiedLog(data []byte) (*UnifiedLogData, error) {
@@ -90,7 +90,7 @@ func ParseUnifiedLog(data []byte) (*UnifiedLogData, error) {
 		if chunkDataSize > uint64(^uint(0)>>1) {
 			return nil, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 		}
-		data, chunkData, _ = utils.Take(data, int(chunkDataSize))
+		data, chunkData, _ = helpers.Take(data, int(chunkDataSize))
 
 		switch preamble.ChunkTag {
 		case headerChunk:
@@ -116,14 +116,14 @@ func ParseUnifiedLog(data []byte) (*UnifiedLogData, error) {
 			return nil, fmt.Errorf("unknown chunk tag: %x", preamble.ChunkTag)
 		}
 
-		paddingSize := utils.PaddingSize(chunkDataSize, 8)
+		paddingSize := helpers.PaddingSize(chunkDataSize, 8)
 		if len(data) < int(paddingSize) {
 			break
 		}
 		if paddingSize > uint64(^uint(0)>>1) {
 			return nil, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 		}
-		data, _, _ = utils.Take(data, int(paddingSize))
+		data, _, _ = helpers.Take(data, int(paddingSize))
 		if len(data) == 0 {
 			break
 		}

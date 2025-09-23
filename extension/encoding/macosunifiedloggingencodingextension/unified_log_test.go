@@ -49,8 +49,10 @@ func TestGetULCatalogData(t *testing.T) {
 		110, 103, 46, 115, 116, 97, 108, 108, 115, 0, 0, 0,
 	}, data.CatalogData.CatalogSubsystemStrings)
 	require.Equal(t, 1, len(data.CatalogData.ProcessInfoEntries))
-	require.Equal(t, "2BEFD20C18EC3838814F2B4E5AF3BCEC", data.CatalogData.ProcessInfoEntries[0].MainUUID)
-	require.Equal(t, "3D05845F3F65358F9EBF2236E772AC01", data.CatalogData.ProcessInfoEntries[0].DSCUUID)
+	for _, entry := range data.CatalogData.ProcessInfoEntries {
+		require.Equal(t, "2BEFD20C18EC3838814F2B4E5AF3BCEC", entry.MainUUID)
+		require.Equal(t, "3D05845F3F65358F9EBF2236E772AC01", entry.DSCUUID)
+	}
 	require.Equal(t, 7, len(data.CatalogData.CatalogSubchunks))
 }
 
