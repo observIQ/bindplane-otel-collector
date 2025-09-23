@@ -21,8 +21,8 @@ import (
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 )
 
-// SimpleDumpChunk represents the parsed data from a SimpleDump chunk
-type SimpleDumpChunk struct {
+// SimpledumpChunk represents the parsed data from a SimpleDump chunk
+type SimpledumpChunk struct {
 	ChunkTag                    uint32
 	ChunkSubTag                 uint32
 	ChunkDataSize               uint64
@@ -57,8 +57,8 @@ func parseUUID(data []byte) string {
 // ParseSimpleDumpChunk parses a SimpleDump Chunk containing simple string data
 // Returns the parsed SimpleDump chunk and the remaining data
 // Note: The data passed in includes the complete chunk with 16-byte header (tag, subtag, size)
-func ParseSimpleDumpChunk(data []byte) (SimpleDumpChunk, []byte, error) {
-	var simpleDumpResult SimpleDumpChunk
+func ParseSimpleDumpChunk(data []byte) (SimpledumpChunk, []byte, error) {
+	var simpleDumpResult SimpledumpChunk
 
 	// Parse SimpleDump Chunk chunk header (16 bytes total)
 	data, chunkTag, err := helpers.Take(data, 4)

@@ -180,13 +180,13 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 		}
 
 		// TODO: uncomment once simpledump and statedump are merged
-		// for _, simpledump := range logData.SimpledumpData {
-		// 	otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(simpledump.MessageString)
-		// }
-		// for _, statedump := range logData.StatedumpData {
-		// 	otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(statedump.MessageString)
+		for _, simpledump := range logData.SimpledumpData {
+			otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(simpledump.MessageString)
+		}
+		for _, statedump := range logData.StatedumpData {
+			otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(string(statedump.Data))
 
-		// }
+		}
 	}
 
 	return otelLogs, nil

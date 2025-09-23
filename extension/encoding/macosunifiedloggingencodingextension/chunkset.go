@@ -142,11 +142,6 @@ func ParseChunksetData(data []byte, ulData *UnifiedLogCatalogData) error {
 			return fmt.Errorf("failed to read chunk data: %w", err)
 		}
 
-		// Debug: Check what chunk types we're finding - log all non-Oversize chunks
-		if preamble.ChunkTag != 0x6002 {
-			fmt.Printf("Found chunk type: 0x%x, size: %d\n", preamble.ChunkTag, chunkDataSize)
-		}
-
 		if err := getChunksetData(chunkData, preamble.ChunkTag, ulData); err != nil {
 			return fmt.Errorf("failed to get chunkset data: %w", err)
 		}
@@ -183,20 +178,21 @@ func getChunksetData(data []byte, chunkTag uint32, ulData *UnifiedLogCatalogData
 			return err
 		}
 		ulData.OversizeData = append(ulData.OversizeData, oversizeChunk)
-	// TODO: uncomment once statedump and simpledump are merged
-	// case statedumpChunk:
-	// 	statedumpChunk, err := ParseStatedump(*data)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	ulData.StatedumpData = append(ulData.StatedumpData, statedumpChunk)
-	// case simpledumpChunk:
-	// 	simpledumpChunk, _ := ParseSimpledumpChunk(*data)
-	// 	ulData.SimpledumpData = append(ulData.SimpledumpData, simpledumpChunk)
 	case statedumpChunk:
 		fmt.Printf("Found Statedump chunk type: 0x%x, size: %d\\n", chunkTag, len(data))
+		statedumpChunkData, err := ParseStateDump(data)
+		if err != nil {
+			return err
+		}
+		ulData.StatedumpData = append(ulData.StatedumpData, *statedumpChunkData)
 	case simpledumpChunk:
 		fmt.Printf("Found Simpledump chunk type: 0x%x, size: %d\\n", chunkTag, len(data))
+		simpledumpChunkData, _, err := ParseSimpleDumpChunk(data)
+		if err != nil {
+			return err
+		}
+		ulData.SimpledumpData = append(ulData.SimpledumpData, simpledumpChunkData)
+
 	default:
 		return fmt.Errorf("unknown chunk tag: %x", chunkTag)
 	}

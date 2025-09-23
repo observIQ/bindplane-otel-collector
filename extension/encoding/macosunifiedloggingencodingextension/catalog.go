@@ -392,7 +392,11 @@ func parseProcessInfoUUIDEntry(data []byte, catalogUUIDs []string) (models.Proce
 	copy(loadAddressVec, loadAddressBytes)
 
 	entry.LoadAddress = binary.LittleEndian.Uint64(loadAddressVec)
-	entry.UUID = catalogUUIDs[binary.LittleEndian.Uint16(catalogUUIDIndex)]
+	uuidIndex := binary.LittleEndian.Uint16(catalogUUIDIndex)
+	if int(uuidIndex) >= len(catalogUUIDs) {
+		return entry, data, fmt.Errorf("catalog UUID index %d out of range (max %d)", uuidIndex, len(catalogUUIDs)-1)
+	}
+	entry.UUID = catalogUUIDs[uuidIndex]
 
 	return entry, data, nil
 }

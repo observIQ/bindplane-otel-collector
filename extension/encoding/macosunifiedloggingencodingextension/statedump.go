@@ -24,8 +24,8 @@ import (
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 )
 
-// StateDump represents a Statedump log entry (also known as a "stateEvent" type of log entry)
-type StateDump struct {
+// StatedumpChunk represents a Statedump log entry (also known as a "stateEvent" type of log entry)
+type StatedumpChunk struct {
 	ChunkTag        uint32
 	ChunkSubtag     uint32
 	ChunkDataSize   uint64
@@ -45,14 +45,14 @@ type StateDump struct {
 }
 
 // ParseStateDump parses a Statedump log entry. Statedumps are special log entries that may contain a plist file, custom object, or protocol buffer
-func ParseStateDump(data []byte) (*StateDump, error) {
+func ParseStateDump(data []byte) (*StatedumpChunk, error) {
 	var err error
 	if len(data) < 72 { // Minimum size for basic structure
 		return nil, fmt.Errorf("statedump data too small: %d bytes", len(data))
 	}
 
 	reader := bytes.NewReader(data)
-	result := &StateDump{}
+	result := &StatedumpChunk{}
 
 	// Parse the header fields
 	if err := binary.Read(reader, binary.LittleEndian, &result.ChunkTag); err != nil {
@@ -329,7 +329,7 @@ func getNetworkInterface(data []byte) string {
 
 // StatedumpCollection represents a collection of statedumps loaded from tracev3 files
 type StatedumpCollection struct {
-	Statedumps []StateDump
+	Statedumps []StatedumpChunk
 	BootUUID   string
 	Timestamp  uint64
 }

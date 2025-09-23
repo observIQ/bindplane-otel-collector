@@ -16,12 +16,10 @@ package macosunifiedloggingencodingextension // import "github.com/observiq/bind
 
 import (
 	"fmt"
-	"regexp"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 )
 
 const (
@@ -53,27 +51,19 @@ type LogEntry struct {
 	MessageEntries []interface{} // Raw message data
 	Timestamp      string        // ISO formatted timestamp
 }
-
-// LogProcessor processes unified log data into individual log entries
-type LogProcessor struct {
-	cacheProvider *uuidtext.CacheProvider
-	timesyncData  map[string]*TimesyncBoot
-	messageRegex  *regexp.Regexp
-	debugMode     bool
-}
 type UnifiedLogData struct {
 	HeaderData   []HeaderChunk
 	CatalogData  []UnifiedLogCatalogData
 	OversizeData []OversizeChunk
 }
 
-// UnifiedLogCatalogData represents the complete unified log data
+// UnifiedLogCatalogData represents the complete unified log catalog data
 type UnifiedLogCatalogData struct {
-	CatalogData  models.CatalogChunk
-	FirehoseData []firehose.Preamble
-	OversizeData []OversizeChunk
-	// StatedumpData  []StatedumpLog
-	// SimpledumpData []SimpledumpLog
+	CatalogData    models.CatalogChunk
+	FirehoseData   []firehose.Preamble
+	OversizeData   []OversizeChunk
+	StatedumpData  []StatedumpChunk
+	SimpledumpData []SimpledumpChunk
 }
 
 func ParseUnifiedLog(data []byte) (*UnifiedLogData, error) {

@@ -256,7 +256,7 @@ func loadStatedumpsFromTracev3(data []byte) (*StatedumpCollection, error) {
 	}
 
 	collection := &StatedumpCollection{
-		Statedumps: make([]StateDump, 0),
+		Statedumps: make([]StatedumpChunk, 0),
 		BootUUID:   header.BootUUID,
 		Timestamp:  header.ContinuousTime,
 	}
