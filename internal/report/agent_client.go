@@ -19,14 +19,17 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	ulid "github.com/oklog/ulid/v2"
 )
 
 var _ Client = (*AgentClient)(nil)
 
 // AgentClient is a basic client that injects agent specific information in request headers
 type AgentClient struct {
-	agentID   string
-	secretKey *string
+	agentID    string
+	secretKey  *string
+	instanceID string
 
 	client *http.Client
 }
@@ -43,8 +46,9 @@ func NewAgentClient(agentID string, secretKey *string, tlsConfig *tls.Config) *A
 		KeepAlive: 30 * time.Second,
 	}
 	return &AgentClient{
-		agentID:   agentID,
-		secretKey: secretKey,
+		agentID:    agentID,
+		secretKey:  secretKey,
+		instanceID: ulid.Make().String(),
 		client: &http.Client{
 			Transport: &http.Transport{
 				Proxy:                 http.ProxyFromEnvironment,
@@ -63,6 +67,7 @@ func NewAgentClient(agentID string, secretKey *string, tlsConfig *tls.Config) *A
 // Do injects agent specific information into headers then sends the request
 func (a *AgentClient) Do(req *http.Request) (*http.Response, error) {
 	req.Header.Add("Agent-ID", a.agentID)
+	req.Header.Add("X-BindPlane-Instance-ID", a.instanceID)
 
 	if a.secretKey != nil {
 		req.Header.Add("X-BindPlane-Secret-Key", *a.secretKey)

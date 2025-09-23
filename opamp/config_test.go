@@ -345,6 +345,9 @@ agent_name: "My Agent"
 					Labels:     &labelsContents,
 					AgentName:  &agentNameContents,
 					InstanceID: cfg.InstanceID, // Use the actual generated InstanceID
+					ExtraMeasurementsAttributes: map[string]string{
+						"bindplane_instance_id": cfg.InstanceID,
+					},
 				}
 
 				assert.Equal(t, expectedConfig, cfg)
@@ -379,6 +382,9 @@ agent_id: %s
 					Labels:     nil,
 					AgentName:  nil,
 					InstanceID: cfg.InstanceID, // Use the actual generated InstanceID
+					ExtraMeasurementsAttributes: map[string]string{
+						"bindplane_instance_id": cfg.InstanceID,
+					},
 				}
 
 				assert.Equal(t, expectedConfig, cfg)
@@ -421,6 +427,9 @@ tls_config:
 					TLS: &TLSConfig{
 						InsecureSkipVerify: true,
 					},
+					ExtraMeasurementsAttributes: map[string]string{
+						"bindplane_instance_id": cfg.InstanceID,
+					},
 				}
 
 				assert.Equal(t, expectedConfig, cfg)
@@ -462,6 +471,9 @@ tls_config:
 					InstanceID: cfg.InstanceID, // Use the actual generated InstanceID
 					TLS: &TLSConfig{
 						InsecureSkipVerify: false,
+					},
+					ExtraMeasurementsAttributes: map[string]string{
+						"bindplane_instance_id": cfg.InstanceID,
 					},
 				}
 
@@ -536,6 +548,9 @@ tls_config:
 					TLS: &TLSConfig{
 						InsecureSkipVerify: false,
 						CAFile:             &caPath,
+					},
+					ExtraMeasurementsAttributes: map[string]string{
+						"bindplane_instance_id": cfg.InstanceID,
 					},
 				}
 
@@ -741,6 +756,9 @@ tls_config:
 						KeyFile:            &keyPath,
 						CertFile:           &certPath,
 					},
+					ExtraMeasurementsAttributes: map[string]string{
+						"bindplane_instance_id": cfg.InstanceID,
+					},
 				}
 
 				assert.Equal(t, expectedConfig, cfg)
@@ -808,6 +826,9 @@ agent_name: ${%s}
 					Labels:     &labelsContents,
 					AgentName:  &agentNameContents,
 					InstanceID: cfg.InstanceID, // Use the actual generated InstanceID
+					ExtraMeasurementsAttributes: map[string]string{
+						"bindplane_instance_id": cfg.InstanceID,
+					},
 				}
 
 				assert.Equal(t, expectedConfig, cfg)
@@ -875,6 +896,9 @@ agent_name: ${env:%s}
 					Labels:     &labelsContents,
 					AgentName:  &agentNameContents,
 					InstanceID: cfg.InstanceID, // Use the actual generated InstanceID
+					ExtraMeasurementsAttributes: map[string]string{
+						"bindplane_instance_id": cfg.InstanceID,
+					},
 				}
 
 				assert.Equal(t, expectedConfig, cfg)
@@ -942,6 +966,9 @@ tls_config:
 						InsecureSkipVerify: false,
 						KeyFile:            &keyPath,
 						CertFile:           &certPath,
+					},
+					ExtraMeasurementsAttributes: map[string]string{
+						"bindplane_instance_id": cfg.InstanceID,
 					},
 				}
 
@@ -1172,7 +1199,24 @@ func TestConfigCopy(t *testing.T) {
 	}
 
 	copyCfg := cfg.Copy()
-	require.Equal(t, cfg, *copyCfg)
+
+	// The copy should be equal to the original except for InstanceID and ExtraMeasurementsAttributes
+	require.Equal(t, cfg.Endpoint, copyCfg.Endpoint)
+	require.Equal(t, cfg.SecretKey, copyCfg.SecretKey)
+	require.Equal(t, cfg.AgentID, copyCfg.AgentID)
+	require.Equal(t, cfg.Labels, copyCfg.Labels)
+	require.Equal(t, cfg.AgentName, copyCfg.AgentName)
+	require.Equal(t, cfg.TLS, copyCfg.TLS)
+	require.Equal(t, cfg.MeasurementsInterval, copyCfg.MeasurementsInterval)
+	require.Equal(t, cfg.TopologyInterval, copyCfg.TopologyInterval)
+
+	// InstanceID should be different
+	require.NotEqual(t, cfg.InstanceID, copyCfg.InstanceID)
+	require.NotEmpty(t, copyCfg.InstanceID)
+
+	// ExtraMeasurementsAttributes should have the new InstanceID
+	require.NotNil(t, copyCfg.ExtraMeasurementsAttributes)
+	require.Equal(t, copyCfg.InstanceID, copyCfg.ExtraMeasurementsAttributes["bindplane_instance_id"])
 }
 
 func TestParseAgentID(t *testing.T) {

@@ -124,6 +124,11 @@ func TestCheckManagerConfigNoFile(t *testing.T) {
 		AgentName: new(string),
 		SecretKey: new(string),
 		Labels:    new(string),
+		// InstanceID is set internally by the client, so we must copy the actual value to the expected value config
+		InstanceID: actual.InstanceID,
+		ExtraMeasurementsAttributes: map[string]string{
+			"bindplane_instance_id": actual.InstanceID,
+		},
 	}
 	*expected.AgentName = "agent name"
 	*expected.SecretKey = "secretKey"

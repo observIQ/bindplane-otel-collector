@@ -186,7 +186,16 @@ func Test_managerReload(t *testing.T) {
 				assert.Equal(t, currConfig.AgentName, client.ident.agentName)
 
 				// Verify config rollback
-				assert.Equal(t, client.currentConfig, *currConfig)
+				assert.Equal(t, client.currentConfig.AgentID, currConfig.AgentID)
+				assert.Equal(t, client.currentConfig.TLS, currConfig.TLS)
+				assert.Equal(t, client.currentConfig.Labels, currConfig.Labels)
+				assert.Equal(t, client.currentConfig.MeasurementsInterval, currConfig.MeasurementsInterval)
+				assert.Equal(t, client.currentConfig.TopologyInterval, currConfig.TopologyInterval)
+				// Ensure InstanceID and ExtraMeasurementsAttributes are different and have a new value
+				assert.NotEqual(t, client.currentConfig.InstanceID, currConfig.InstanceID)
+				assert.NotEmpty(t, client.currentConfig.InstanceID)
+				assert.NotEqual(t, client.currentConfig.ExtraMeasurementsAttributes, currConfig.ExtraMeasurementsAttributes)
+				assert.Equal(t, client.currentConfig.ExtraMeasurementsAttributes["bindplane_instance_id"], client.currentConfig.InstanceID)
 
 				// Verify config rolledback
 				data, err := os.ReadFile(managerFilePath)

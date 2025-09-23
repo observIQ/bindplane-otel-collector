@@ -240,6 +240,7 @@ func (c *Client) Connect(ctx context.Context) error {
 			"Agent-Version":               []string{version.Version()},
 			"Agent-Hostname":              []string{c.ident.hostname},
 			"X-Bindplane-Agent-Id-Format": []string{c.ident.agentID.Type()},
+			"X-Bindplane-Instance-ID":     []string{c.currentConfig.InstanceID},
 		},
 		TLSConfig:   tlsCfg,
 		InstanceUid: c.ident.agentID.OpAMPInstanceUID(),

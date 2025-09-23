@@ -24,6 +24,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/internal/logging"
 	"github.com/observiq/bindplane-otel-collector/internal/report"
 	"github.com/observiq/bindplane-otel-collector/opamp"
+	"github.com/oklog/ulid/v2"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -98,6 +99,7 @@ func managerReload(client *Client, managerConfigPath string) opamp.ReloadFunc {
 			}
 			client.ident = rollbackIdent
 			client.currentConfig = *rollBackCfg
+			setInstanceID(&client.currentConfig)
 			return false, fmt.Errorf("failed to reformat manager config: %w", err)
 		}
 
@@ -109,6 +111,7 @@ func managerReload(client *Client, managerConfigPath string) opamp.ReloadFunc {
 			}
 			client.ident = rollbackIdent
 			client.currentConfig = *rollBackCfg
+			setInstanceID(&client.currentConfig)
 			return false, err
 		}
 
@@ -120,6 +123,7 @@ func managerReload(client *Client, managerConfigPath string) opamp.ReloadFunc {
 			}
 			client.ident = rollbackIdent
 			client.currentConfig = *rollBackCfg
+			setInstanceID(&client.currentConfig)
 			return false, fmt.Errorf("failed to set agent description: %w ", err)
 		}
 
@@ -130,6 +134,14 @@ func managerReload(client *Client, managerConfigPath string) opamp.ReloadFunc {
 
 		return true, nil
 	}
+}
+
+func setInstanceID(config *opamp.Config) {
+	config.InstanceID = ulid.Make().String()
+	if config.ExtraMeasurementsAttributes == nil {
+		config.ExtraMeasurementsAttributes = make(map[string]string)
+	}
+	config.ExtraMeasurementsAttributes["bindplane_instance_id"] = config.InstanceID
 }
 
 func collectorReload(client *Client, collectorConfigPath string) opamp.ReloadFunc {

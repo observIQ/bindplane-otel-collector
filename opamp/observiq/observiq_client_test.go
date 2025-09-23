@@ -406,6 +406,7 @@ func TestClientConnect(t *testing.T) {
 						"Agent-Version":               []string{version.Version()},
 						"Agent-Hostname":              []string{c.ident.hostname},
 						"X-Bindplane-Agent-Id-Format": []string{"ULID"},
+						"X-Bindplane-Instance-ID":     []string{c.currentConfig.InstanceID},
 					},
 					TLSConfig:   nil,
 					InstanceUid: c.ident.agentID.OpAMPInstanceUID(),

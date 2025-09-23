@@ -195,7 +195,7 @@ type Config struct {
 	SecretKey  *string    `yaml:"secret_key,omitempty" mapstructure:"secret_key,omitempty"`
 	AgentID    AgentID    `yaml:"agent_id" mapstructure:"agent_id"`
 	TLS        *TLSConfig `yaml:"tls_config,omitempty" mapstructure:"tls_config,omitempty"`
-	InstanceID string     `mapstructure:"instance_id"` // This is not in the config file, but is set internally by the client
+	InstanceID string     `yaml:"-,omitempty" mapstructure:"-,omitempty"` // This is not in the config file, but is set internally by the client
 
 	// Updatable fields
 	Labels                      *string           `yaml:"labels,omitempty" mapstructure:"labels,omitempty"`
@@ -279,10 +279,14 @@ func ParseConfig(configLocation string) (*Config, error) {
 	}
 
 	var config Config
-	config.InstanceID = ulid.Make().String()
+
 	if err = conf.Unmarshal(&config); err != nil {
 		return nil, fmt.Errorf("%s: %w", errPrefixParse, err)
 	}
+
+	config.InstanceID = ulid.Make().String()
+	config.ExtraMeasurementsAttributes = make(map[string]string)
+	config.ExtraMeasurementsAttributes["bindplane_instance_id"] = config.InstanceID
 
 	// Using Secure TLS check files
 	if config.TLS != nil && !config.TLS.InsecureSkipVerify {
@@ -337,9 +341,15 @@ func (c Config) Copy() *Config {
 	if c.TLS != nil {
 		cfgCopy.TLS = c.TLS.copy()
 	}
+
+	// Copy extra measurements attributes
 	if c.ExtraMeasurementsAttributes != nil {
 		cfgCopy.ExtraMeasurementsAttributes = maps.Clone(c.ExtraMeasurementsAttributes)
+	} else {
+		cfgCopy.ExtraMeasurementsAttributes = make(map[string]string)
 	}
+	cfgCopy.ExtraMeasurementsAttributes["bindplane_instance_id"] = cfgCopy.InstanceID
+
 	if c.TopologyInterval != nil {
 		cfgCopy.TopologyInterval = new(time.Duration)
 		*cfgCopy.TopologyInterval = *c.TopologyInterval
