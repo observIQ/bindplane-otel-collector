@@ -331,7 +331,6 @@ func parseCatalogProcessEntry(data []byte, catalogUUIDs []string) (models.Proces
 	if int(binary.LittleEndian.Uint16(catalogMainUUIDIndex)) < len(catalogUUIDs) {
 		mainUUID = catalogUUIDs[binary.LittleEndian.Uint16(catalogMainUUIDIndex)]
 	} else {
-		// log.Warn("[macos-unifiedlogs] Could not find main UUID in catalog")
 		mainUUID = ""
 	}
 
@@ -339,7 +338,6 @@ func parseCatalogProcessEntry(data []byte, catalogUUIDs []string) (models.Proces
 	if int(binary.LittleEndian.Uint16(catalogDSCUUIDIndex)) < len(catalogUUIDs) {
 		dscUUID = catalogUUIDs[binary.LittleEndian.Uint16(catalogDSCUUIDIndex)]
 	} else {
-		// log.Warn("[macos-unifiedlogs] Could not find DSC UUID in catalog")
 		dscUUID = ""
 	}
 
