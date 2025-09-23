@@ -213,7 +213,7 @@ func ExtractAbsoluteStrings(
 	key := fmt.Sprintf("%d_%d", firstProcID, secondProcID)
 	uuid := ""
 
-	if entry, exists := catalogs.ProcessInfoMap[key]; exists {
+	if entry, exists := catalogs.ProcessInfoEntries[key]; exists {
 		// In addition to firstProcID and secondProcID, we need to go through UUID entries in the catalog
 		// Entries with the Absolute flag have the UUID stored in a slice of UUIDs and offsets/load_address
 		// The correct UUID entry is the one where the absoluteOffset value falls in between loadAddress and loadAddress + size
@@ -412,7 +412,7 @@ func ExtractAltUUIDStrings(
 
 func getCatalogDSC(catalogs *models.CatalogChunk, firstProcID uint64, secondProcID uint32) (string, string) {
 	key := fmt.Sprintf("%d_%d", firstProcID, secondProcID)
-	if entry, exists := catalogs.ProcessInfoMap[key]; exists {
+	if entry, exists := catalogs.ProcessInfoEntries[key]; exists {
 		return entry.DSCUUID, entry.MainUUID
 	}
 	// TODO: log warning
