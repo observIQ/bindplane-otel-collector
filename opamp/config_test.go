@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
@@ -329,16 +330,23 @@ agent_name: "My Agent"
 				err := os.WriteFile(configPath, []byte(configContents), os.ModePerm)
 				require.NoError(t, err)
 
-				expectedConfig := &Config{
-					Endpoint:  "localhost:1234",
-					SecretKey: &secretKeyContents,
-					AgentID:   testAgentID,
-					Labels:    &labelsContents,
-					AgentName: &agentNameContents,
-				}
-
 				cfg, err := ParseConfig(configPath)
 				assert.NoError(t, err)
+
+				// Verify that InstanceID is generated and is a valid ULID
+				assert.NotEmpty(t, cfg.InstanceID)
+				_, err = ulid.Parse(cfg.InstanceID)
+				assert.NoError(t, err, "InstanceID should be a valid ULID")
+
+				expectedConfig := &Config{
+					Endpoint:   "localhost:1234",
+					SecretKey:  &secretKeyContents,
+					AgentID:    testAgentID,
+					Labels:     &labelsContents,
+					AgentName:  &agentNameContents,
+					InstanceID: cfg.InstanceID, // Use the actual generated InstanceID
+				}
+
 				assert.Equal(t, expectedConfig, cfg)
 			},
 		},
@@ -356,16 +364,23 @@ agent_id: %s
 				err := os.WriteFile(configPath, []byte(configContents), os.ModePerm)
 				require.NoError(t, err)
 
-				expectedConfig := &Config{
-					Endpoint:  "localhost:1234",
-					SecretKey: nil,
-					AgentID:   testAgentID,
-					Labels:    nil,
-					AgentName: nil,
-				}
-
 				cfg, err := ParseConfig(configPath)
 				assert.NoError(t, err)
+
+				// Verify that InstanceID is generated and is a valid ULID
+				assert.NotEmpty(t, cfg.InstanceID)
+				_, err = ulid.Parse(cfg.InstanceID)
+				assert.NoError(t, err, "InstanceID should be a valid ULID")
+
+				expectedConfig := &Config{
+					Endpoint:   "localhost:1234",
+					SecretKey:  nil,
+					AgentID:    testAgentID,
+					Labels:     nil,
+					AgentName:  nil,
+					InstanceID: cfg.InstanceID, // Use the actual generated InstanceID
+				}
+
 				assert.Equal(t, expectedConfig, cfg)
 			},
 		},
@@ -388,19 +403,26 @@ tls_config:
 				err := os.WriteFile(configPath, []byte(configContents), os.ModePerm)
 				require.NoError(t, err)
 
+				cfg, err := ParseConfig(configPath)
+				assert.NoError(t, err)
+
+				// Verify that InstanceID is generated and is a valid ULID
+				assert.NotEmpty(t, cfg.InstanceID)
+				_, err = ulid.Parse(cfg.InstanceID)
+				assert.NoError(t, err, "InstanceID should be a valid ULID")
+
 				expectedConfig := &Config{
-					Endpoint:  "localhost:1234",
-					SecretKey: &secretKeyContents,
-					AgentID:   testAgentID,
-					Labels:    &labelsContents,
-					AgentName: &agentNameContents,
+					Endpoint:   "localhost:1234",
+					SecretKey:  &secretKeyContents,
+					AgentID:    testAgentID,
+					Labels:     &labelsContents,
+					AgentName:  &agentNameContents,
+					InstanceID: cfg.InstanceID, // Use the actual generated InstanceID
 					TLS: &TLSConfig{
 						InsecureSkipVerify: true,
 					},
 				}
 
-				cfg, err := ParseConfig(configPath)
-				assert.NoError(t, err)
 				assert.Equal(t, expectedConfig, cfg)
 			},
 		},
@@ -423,19 +445,26 @@ tls_config:
 				err := os.WriteFile(configPath, []byte(configContents), os.ModePerm)
 				require.NoError(t, err)
 
+				cfg, err := ParseConfig(configPath)
+				assert.NoError(t, err)
+
+				// Verify that InstanceID is generated and is a valid ULID
+				assert.NotEmpty(t, cfg.InstanceID)
+				_, err = ulid.Parse(cfg.InstanceID)
+				assert.NoError(t, err, "InstanceID should be a valid ULID")
+
 				expectedConfig := &Config{
-					Endpoint:  "localhost:1234",
-					SecretKey: &secretKeyContents,
-					AgentID:   testAgentID,
-					Labels:    &labelsContents,
-					AgentName: &agentNameContents,
+					Endpoint:   "localhost:1234",
+					SecretKey:  &secretKeyContents,
+					AgentID:    testAgentID,
+					Labels:     &labelsContents,
+					AgentName:  &agentNameContents,
+					InstanceID: cfg.InstanceID, // Use the actual generated InstanceID
 					TLS: &TLSConfig{
 						InsecureSkipVerify: false,
 					},
 				}
 
-				cfg, err := ParseConfig(configPath)
-				assert.NoError(t, err)
 				assert.Equal(t, expectedConfig, cfg)
 			},
 		},
@@ -489,20 +518,27 @@ tls_config:
 				err = os.WriteFile(configPath, []byte(configContents), os.ModePerm)
 				require.NoError(t, err)
 
+				cfg, err := ParseConfig(configPath)
+				assert.NoError(t, err)
+
+				// Verify that InstanceID is generated and is a valid ULID
+				assert.NotEmpty(t, cfg.InstanceID)
+				_, err = ulid.Parse(cfg.InstanceID)
+				assert.NoError(t, err, "InstanceID should be a valid ULID")
+
 				expectedConfig := &Config{
-					Endpoint:  "localhost:1234",
-					SecretKey: &secretKeyContents,
-					AgentID:   testAgentID,
-					Labels:    &labelsContents,
-					AgentName: &agentNameContents,
+					Endpoint:   "localhost:1234",
+					SecretKey:  &secretKeyContents,
+					AgentID:    testAgentID,
+					Labels:     &labelsContents,
+					AgentName:  &agentNameContents,
+					InstanceID: cfg.InstanceID, // Use the actual generated InstanceID
 					TLS: &TLSConfig{
 						InsecureSkipVerify: false,
 						CAFile:             &caPath,
 					},
 				}
 
-				cfg, err := ParseConfig(configPath)
-				assert.NoError(t, err)
 				assert.Equal(t, expectedConfig, cfg)
 			},
 		},
@@ -685,12 +721,21 @@ tls_config:
 				err = os.WriteFile(configPath, []byte(configContents), os.ModePerm)
 				require.NoError(t, err)
 
+				cfg, err := ParseConfig(configPath)
+				assert.NoError(t, err)
+
+				// Verify that InstanceID is generated and is a valid ULID
+				assert.NotEmpty(t, cfg.InstanceID)
+				_, err = ulid.Parse(cfg.InstanceID)
+				assert.NoError(t, err, "InstanceID should be a valid ULID")
+
 				expectedConfig := &Config{
-					Endpoint:  "localhost:1234",
-					SecretKey: &secretKeyContents,
-					AgentID:   testAgentID,
-					Labels:    &labelsContents,
-					AgentName: &agentNameContents,
+					Endpoint:   "localhost:1234",
+					SecretKey:  &secretKeyContents,
+					AgentID:    testAgentID,
+					Labels:     &labelsContents,
+					AgentName:  &agentNameContents,
+					InstanceID: cfg.InstanceID, // Use the actual generated InstanceID
 					TLS: &TLSConfig{
 						InsecureSkipVerify: false,
 						KeyFile:            &keyPath,
@@ -698,8 +743,6 @@ tls_config:
 					},
 				}
 
-				cfg, err := ParseConfig(configPath)
-				assert.NoError(t, err)
 				assert.Equal(t, expectedConfig, cfg)
 			},
 		},
@@ -750,16 +793,23 @@ agent_name: ${%s}
 				err := os.WriteFile(configPath, []byte(configContents), os.ModePerm)
 				require.NoError(t, err)
 
-				expectedConfig := &Config{
-					Endpoint:  "localhost:1234",
-					SecretKey: &secretKeyContents,
-					AgentID:   testAgentID,
-					Labels:    &labelsContents,
-					AgentName: &agentNameContents,
-				}
-
 				cfg, err := ParseConfig(configPath)
 				assert.NoError(t, err)
+
+				// Verify that InstanceID is generated and is a valid ULID
+				assert.NotEmpty(t, cfg.InstanceID)
+				_, err = ulid.Parse(cfg.InstanceID)
+				assert.NoError(t, err, "InstanceID should be a valid ULID")
+
+				expectedConfig := &Config{
+					Endpoint:   "localhost:1234",
+					SecretKey:  &secretKeyContents,
+					AgentID:    testAgentID,
+					Labels:     &labelsContents,
+					AgentName:  &agentNameContents,
+					InstanceID: cfg.InstanceID, // Use the actual generated InstanceID
+				}
+
 				assert.Equal(t, expectedConfig, cfg)
 			},
 		},
@@ -810,16 +860,23 @@ agent_name: ${env:%s}
 				err := os.WriteFile(configPath, []byte(configContents), os.ModePerm)
 				require.NoError(t, err)
 
-				expectedConfig := &Config{
-					Endpoint:  "localhost:1234",
-					SecretKey: &secretKeyContents,
-					AgentID:   testAgentID,
-					Labels:    &labelsContents,
-					AgentName: &agentNameContents,
-				}
-
 				cfg, err := ParseConfig(configPath)
 				assert.NoError(t, err)
+
+				// Verify that InstanceID is generated and is a valid ULID
+				assert.NotEmpty(t, cfg.InstanceID)
+				_, err = ulid.Parse(cfg.InstanceID)
+				assert.NoError(t, err, "InstanceID should be a valid ULID")
+
+				expectedConfig := &Config{
+					Endpoint:   "localhost:1234",
+					SecretKey:  &secretKeyContents,
+					AgentID:    testAgentID,
+					Labels:     &labelsContents,
+					AgentName:  &agentNameContents,
+					InstanceID: cfg.InstanceID, // Use the actual generated InstanceID
+				}
+
 				assert.Equal(t, expectedConfig, cfg)
 			},
 		},
@@ -866,12 +923,21 @@ tls_config:
 				err = os.WriteFile(configPath, []byte(configContents), os.ModePerm)
 				require.NoError(t, err)
 
+				cfg, err := ParseConfig(configPath)
+				assert.NoError(t, err)
+
+				// Verify that InstanceID is generated and is a valid ULID
+				assert.NotEmpty(t, cfg.InstanceID)
+				_, err = ulid.Parse(cfg.InstanceID)
+				assert.NoError(t, err, "InstanceID should be a valid ULID")
+
 				expectedConfig := &Config{
-					Endpoint:  "localhost:1234",
-					SecretKey: &secretKeyContents,
-					AgentID:   testAgentID,
-					Labels:    &labelsContents,
-					AgentName: &agentNameContents,
+					Endpoint:   "localhost:1234",
+					SecretKey:  &secretKeyContents,
+					AgentID:    testAgentID,
+					Labels:     &labelsContents,
+					AgentName:  &agentNameContents,
+					InstanceID: cfg.InstanceID, // Use the actual generated InstanceID
 					TLS: &TLSConfig{
 						InsecureSkipVerify: false,
 						KeyFile:            &keyPath,
@@ -879,8 +945,6 @@ tls_config:
 					},
 				}
 
-				cfg, err := ParseConfig(configPath)
-				assert.NoError(t, err)
 				assert.Equal(t, expectedConfig, cfg)
 			},
 		},

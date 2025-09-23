@@ -191,10 +191,11 @@ func (a *AgentID) MarshalText() ([]byte, error) {
 
 // Config contains the configuration for the collector to communicate with an OpAmp enabled platform.
 type Config struct {
-	Endpoint  string     `yaml:"endpoint" mapstructure:"endpoint"`
-	SecretKey *string    `yaml:"secret_key,omitempty" mapstructure:"secret_key,omitempty"`
-	AgentID   AgentID    `yaml:"agent_id" mapstructure:"agent_id"`
-	TLS       *TLSConfig `yaml:"tls_config,omitempty" mapstructure:"tls_config,omitempty"`
+	Endpoint   string     `yaml:"endpoint" mapstructure:"endpoint"`
+	SecretKey  *string    `yaml:"secret_key,omitempty" mapstructure:"secret_key,omitempty"`
+	AgentID    AgentID    `yaml:"agent_id" mapstructure:"agent_id"`
+	TLS        *TLSConfig `yaml:"tls_config,omitempty" mapstructure:"tls_config,omitempty"`
+	InstanceID string     `mapstructure:"instance_id"` // This is not in the config file, but is set internally by the client
 
 	// Updatable fields
 	Labels                      *string           `yaml:"labels,omitempty" mapstructure:"labels,omitempty"`
@@ -278,6 +279,7 @@ func ParseConfig(configLocation string) (*Config, error) {
 	}
 
 	var config Config
+	config.InstanceID = ulid.Make().String()
 	if err = conf.Unmarshal(&config); err != nil {
 		return nil, fmt.Errorf("%s: %w", errPrefixParse, err)
 	}
@@ -317,6 +319,7 @@ func (c Config) Copy() *Config {
 		Endpoint:             c.Endpoint,
 		AgentID:              c.AgentID,
 		MeasurementsInterval: c.MeasurementsInterval,
+		InstanceID:           ulid.Make().String(),
 	}
 
 	if c.SecretKey != nil {
@@ -341,7 +344,6 @@ func (c Config) Copy() *Config {
 		cfgCopy.TopologyInterval = new(time.Duration)
 		*cfgCopy.TopologyInterval = *c.TopologyInterval
 	}
-
 	return cfgCopy
 }
 
