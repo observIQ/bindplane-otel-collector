@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 )
 
 // HeaderChunk represents a parsed header chunk
@@ -62,35 +62,120 @@ var (
 func ParseHeaderChunk(data []byte) (*HeaderChunk, error) {
 	header := &HeaderChunk{}
 	var chunkTag, chunkSubtag, chunkDataSize, machTimeNumerator, machTimeDenominator, continuousTime, unknownTime, unknown, biasMin, daylightSavings, unknownFlags, subChunkTag, subChunkDataSize, subChunkContinuousTime, subChunkTag2, subChunkDataSize2, unknown2, unknown3, buildVersionString, hardwareModelString, timezonePath, subChunkTag3, subChunkDataSize3, bootUUID, logdPID, logdExitStatus, subChunkTag4, subChunkDataSize4 []byte
+	var err error
 
-	data, chunkTag, _ = utils.Take(data, 4)
-	data, chunkSubtag, _ = utils.Take(data, 4)
-	data, chunkDataSize, _ = utils.Take(data, 8)
-	data, machTimeNumerator, _ = utils.Take(data, 4)
-	data, machTimeDenominator, _ = utils.Take(data, 4)
-	data, continuousTime, _ = utils.Take(data, 8)
-	data, unknownTime, _ = utils.Take(data, 8)
-	data, unknown, _ = utils.Take(data, 4)
-	data, biasMin, _ = utils.Take(data, 4)
-	data, daylightSavings, _ = utils.Take(data, 4)
-	data, unknownFlags, _ = utils.Take(data, 4)
-	data, subChunkTag, _ = utils.Take(data, 4)
-	data, subChunkDataSize, _ = utils.Take(data, 4)
-	data, subChunkContinuousTime, _ = utils.Take(data, 8)
-	data, subChunkTag2, _ = utils.Take(data, 4)
-	data, subChunkDataSize2, _ = utils.Take(data, 4)
-	data, unknown2, _ = utils.Take(data, 4)
-	data, unknown3, _ = utils.Take(data, 4)
-	data, buildVersionString, _ = utils.Take(data, 16)
-	data, hardwareModelString, _ = utils.Take(data, hardwareModelSize)
-	data, subChunkTag3, _ = utils.Take(data, 4)
-	data, subChunkDataSize3, _ = utils.Take(data, 4)
-	data, bootUUID, _ = utils.Take(data, 16)
-	data, logdPID, _ = utils.Take(data, 4)
-	data, logdExitStatus, _ = utils.Take(data, 4)
-	data, subChunkTag4, _ = utils.Take(data, 4)
-	data, subChunkDataSize4, _ = utils.Take(data, 4)
-	data, timezonePath, _ = utils.Take(data, 48)
+	data, chunkTag, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read chunk tag: %w", err)
+	}
+	data, chunkSubtag, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read chunk sub tag: %w", err)
+	}
+	data, chunkDataSize, err = helpers.Take(data, 8)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read chunk data size: %w", err)
+	}
+	data, machTimeNumerator, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read mach time numerator: %w", err)
+	}
+	data, machTimeDenominator, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read mach time denominator: %w", err)
+	}
+	data, continuousTime, err = helpers.Take(data, 8)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read continuous time: %w", err)
+	}
+	data, unknownTime, err = helpers.Take(data, 8)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read unknown time: %w", err)
+	}
+	data, unknown, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read unknown: %w", err)
+	}
+	data, biasMin, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read bias min: %w", err)
+	}
+	data, daylightSavings, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read daylight savings: %w", err)
+	}
+	data, unknownFlags, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read unknown flags: %w", err)
+	}
+	data, subChunkTag, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read sub chunk tag: %w", err)
+	}
+	data, subChunkDataSize, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read sub chunk data size: %w", err)
+	}
+	data, subChunkContinuousTime, err = helpers.Take(data, 8)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read sub chunk continuous time: %w", err)
+	}
+	data, subChunkTag2, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read sub chunk tag 2: %w", err)
+	}
+	data, subChunkDataSize2, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read sub chunk data size 2: %w", err)
+	}
+	data, unknown2, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read unknown 2: %w", err)
+	}
+	data, unknown3, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read unknown 3: %w", err)
+	}
+	data, buildVersionString, err = helpers.Take(data, 16)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read build version string: %w", err)
+	}
+	data, hardwareModelString, err = helpers.Take(data, hardwareModelSize)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read hardware model string: %w", err)
+	}
+	data, subChunkTag3, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read sub chunk tag 3: %w", err)
+	}
+	data, subChunkDataSize3, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read sub chunk data size 3: %w", err)
+	}
+	data, bootUUID, err = helpers.Take(data, 16)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read boot UUID: %w", err)
+	}
+	data, logdPID, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read logd PID: %w", err)
+	}
+	data, logdExitStatus, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read logd exit status: %w", err)
+	}
+	data, subChunkTag4, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read sub chunk tag 4: %w", err)
+	}
+	data, subChunkDataSize4, err = helpers.Take(data, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read sub chunk data size 4: %w", err)
+	}
+	data, timezonePath, err = helpers.Take(data, 48)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read timezone path: %w", err)
+	}
 
 	header.ChunkTag = binary.LittleEndian.Uint32(chunkTag)
 	header.ChunkSubTag = binary.LittleEndian.Uint32(chunkSubtag)

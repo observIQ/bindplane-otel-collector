@@ -29,7 +29,7 @@ func TestGetULHeaderData(t *testing.T) {
 
 func TestGetULCatalogData(t *testing.T) {
 	data := &UnifiedLogCatalogData{}
-	err := getULCatalogData(catalogTestData, data)
+	err := getULCatalogData(getULCatalogDataTestData, data)
 	require.NoError(t, err)
 	require.Equal(t, 0x600b, data.CatalogData.ChunkTag)
 	require.Equal(t, 17, data.CatalogData.ChunkSubtag)
@@ -67,7 +67,7 @@ var getULHeaderDataTestData = []byte{
 	101, 119, 95, 89, 111, 114, 107, 0, 0, 0, 0, 0, 0,
 }
 
-var catalogTestData = []byte{
+var getULCatalogDataTestData = []byte{
 	11, 96, 0, 0, 17, 0, 0, 0, 208, 1, 0, 0, 0, 0, 0, 0, 32, 0, 96, 0, 1, 0, 160, 0, 7, 0,
 	0, 0, 0, 0, 0, 0, 20, 165, 44, 35, 253, 233, 2, 0, 43, 239, 210, 12, 24, 236, 56, 56,
 	129, 79, 43, 78, 90, 243, 188, 236, 61, 5, 132, 95, 63, 101, 53, 143, 158, 191, 34, 54,
