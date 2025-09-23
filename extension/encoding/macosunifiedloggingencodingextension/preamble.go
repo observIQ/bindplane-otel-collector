@@ -18,7 +18,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/utils"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 )
 
 type LogPreamble struct {
@@ -37,15 +37,15 @@ func DetectPreamble(data []byte) (LogPreamble, error) {
 // ParsePreamble parses the 1st 16 bytes of the data into a LogPreamble
 // Consumes the input
 func ParsePreamble(data []byte) (LogPreamble, []byte, error) {
-	data, chunkTag, err := utils.Take(data, 4)
+	data, chunkTag, err := helpers.Take(data, 4)
 	if err != nil {
 		return LogPreamble{}, data, fmt.Errorf("failed to parse preamble chunk tag: %w", err)
 	}
-	data, chunkSubTag, err := utils.Take(data, 4)
+	data, chunkSubTag, err := helpers.Take(data, 4)
 	if err != nil {
 		return LogPreamble{}, data, fmt.Errorf("failed to parse preamble chunk subtag: %w", err)
 	}
-	data, chunkDataSize, err := utils.Take(data, 8)
+	data, chunkDataSize, err := helpers.Take(data, 8)
 	if err != nil {
 		return LogPreamble{}, data, fmt.Errorf("failed to parse preamble chunk data size: %w", err)
 	}
