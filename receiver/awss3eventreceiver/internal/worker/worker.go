@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -237,17 +238,37 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	logger.Debug("processing notification", zap.Int("event.count", len(notification.Records)))
 
 	// Filter records to only include s3:ObjectCreated:* events
-	var objectCreatedRecords []events.S3EventRecord
+	type recordWithDecodedKey struct {
+		record     events.S3EventRecord
+		decodedKey string
+	}
+	var objectCreatedRecords []recordWithDecodedKey
 	for _, record := range notification.Records {
+		key := record.S3.Object.Key
+
+		// URL decode the object key as S3 event notifications may contain URL-encoded keys
+		// when object names contain special characters like =, +, /, spaces, etc.
+		decodedKey, err := url.QueryUnescape(key)
+		if err != nil {
+			logger.Warn("failed to URL decode object key, using original key",
+				zap.String("original_key", key),
+				zap.Error(err))
+			decodedKey = key
+		} else if decodedKey != key {
+			logger.Debug("URL decoded object key",
+				zap.String("original_key", key),
+				zap.String("decoded_key", decodedKey))
+		}
+
 		recordLogger := logger.With(zap.String("event_name", record.EventName),
 			zap.String("bucket", record.S3.Bucket.Name),
-			zap.String("key", record.S3.Object.Key))
+			zap.String("key", decodedKey))
 		// S3 UI shows the prefix as "s3:ObjectCreated:", but the event name is unmarshalled as "ObjectCreated:"
 		if !strings.Contains(record.EventName, "ObjectCreated:") {
 			recordLogger.Warn("unexpected event: receiver handles only s3:ObjectCreated:* events",
 				zap.String("event_name", record.EventName),
 				zap.String("bucket", record.S3.Bucket.Name),
-				zap.String("key", record.S3.Object.Key))
+				zap.String("key", decodedKey))
 			continue
 		}
 
@@ -255,11 +276,14 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 			recordLogger.Debug("skipping record due to bucket name filter", zap.String("bucket", record.S3.Bucket.Name))
 			continue
 		}
-		if w.objectKeyFilter != nil && !w.objectKeyFilter.MatchString(record.S3.Object.Key) {
-			recordLogger.Debug("skipping record due to object key filter", zap.String("key", record.S3.Object.Key))
+		if w.objectKeyFilter != nil && !w.objectKeyFilter.MatchString(decodedKey) {
+			recordLogger.Debug("skipping record due to object key filter", zap.String("key", decodedKey))
 			continue
 		}
-		objectCreatedRecords = append(objectCreatedRecords, record)
+		objectCreatedRecords = append(objectCreatedRecords, recordWithDecodedKey{
+			record:     record,
+			decodedKey: decodedKey,
+		})
 	}
 
 	if len(objectCreatedRecords) == 0 {
@@ -273,36 +297,39 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	}
 
 	var keys []string
-	for _, record := range objectCreatedRecords {
-		recordLogger := logger.With(zap.String("bucket", record.S3.Bucket.Name), zap.String("key", record.S3.Object.Key))
+	for _, recordData := range objectCreatedRecords {
+		record := recordData.record
+		decodedKey := recordData.decodedKey
+
+		recordLogger := logger.With(zap.String("bucket", record.S3.Bucket.Name), zap.String("key", decodedKey))
 		recordLogger.Debug("processing record")
 
-		if err := w.processRecord(ctx, record, recordLogger); err != nil {
+		err := w.processRecord(ctx, record, decodedKey, recordLogger)
+		if err != nil {
 			w.handleProcessingError(ctx, msg, queueURL, err, recordLogger)
 			return
 		}
-		keys = append(keys, record.S3.Object.Key)
+		keys = append(keys, decodedKey)
 		w.metrics.S3eventObjectsHandled.Add(ctx, 1)
 	}
 	w.deleteMessage(ctx, msg, queueURL, keys, logger)
 }
 
-func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord, recordLogger *zap.Logger) error {
-	err := w.consumeLogsFromS3Object(ctx, record, true, recordLogger)
+func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord, decodedKey string, recordLogger *zap.Logger) error {
+	err := w.consumeLogsFromS3Object(ctx, record, decodedKey, true, recordLogger)
 	if err != nil {
 		if errors.Is(err, ErrNotArrayOrKnownObject) {
 			// try again without attempting to parse as JSON
 			recordLogger.Debug("parsing as JSON failed, trying again with line parsing")
-			return w.consumeLogsFromS3Object(ctx, record, false, recordLogger)
+			return w.consumeLogsFromS3Object(ctx, record, decodedKey, false, recordLogger)
 		}
 		return err
 	}
 	return nil
 }
 
-func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3EventRecord, tryJSON bool, recordLogger *zap.Logger) error {
+func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3EventRecord, decodedKey string, tryJSON bool, recordLogger *zap.Logger) error {
 	bucket := record.S3.Bucket.Name
-	key := record.S3.Object.Key
 	size := record.S3.Object.Size
 	opts := []func(o *s3.Options){
 		func(o *s3.Options) {
@@ -314,7 +341,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 
 	resp, err := w.client.S3().GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
+		Key:    aws.String(decodedKey),
 	}, opts...)
 	if err != nil {
 		return fmt.Errorf("get object: %w", err)
@@ -324,7 +351,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	now := time.Now()
 
 	stream := LogStream{
-		Name:            key,
+		Name:            decodedKey,
 		ContentEncoding: resp.ContentEncoding,
 		ContentType:     resp.ContentType,
 		Body:            resp.Body,
@@ -334,7 +361,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	}
 
 	// Create the offset storage key for this object
-	offsetStorageKey := fmt.Sprintf("%s_%s", OffsetStorageKey, key)
+	offsetStorageKey := fmt.Sprintf("%s_%s", OffsetStorageKey, decodedKey)
 
 	// Load the offset from storage
 	offset := NewOffset(0)
@@ -363,7 +390,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	ld := plog.NewLogs()
 	rls := ld.ResourceLogs().AppendEmpty()
 	rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
-	rls.Resource().Attributes().PutStr("aws.s3.key", key)
+	rls.Resource().Attributes().PutStr("aws.s3.key", decodedKey)
 	lrs := rls.ScopeLogs().AppendEmpty().LogRecords()
 
 	batchesConsumedCount := 0
@@ -409,7 +436,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 			ld = plog.NewLogs()
 			rls = ld.ResourceLogs().AppendEmpty()
 			rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
-			rls.Resource().Attributes().PutStr("aws.s3.key", key)
+			rls.Resource().Attributes().PutStr("aws.s3.key", decodedKey)
 			lrs = rls.ScopeLogs().AppendEmpty().LogRecords()
 		}
 	}
