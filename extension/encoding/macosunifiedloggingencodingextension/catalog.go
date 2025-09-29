@@ -50,6 +50,7 @@ func ParseCatalogChunk(data []byte) (models.CatalogChunk, []byte, error) {
 	var catalog models.CatalogChunk
 	var preamble LogPreamble
 	var err error
+	originalData := data
 
 	// Save original data for offset-based access
 	preamble, data, _ = ParsePreamble(data)
@@ -124,11 +125,11 @@ func ParseCatalogChunk(data []byte) (models.CatalogChunk, []byte, error) {
 	// // Calculate position to start parsing subchunks
 	// // The catalogOffsetSubChunks is relative to the start of chunk data (after preamble)
 	// // Add 24-byte padding to account for alignment between catalog header and subchunks
-	// preambleSize := 16 // LogPreamble size
-	// chunkDataStart := data[preambleSize:]
-	// paddingSize := 24
-	data, _, _ = helpers.Take(data, 4)
-	// subchunkData := chunkDataStart[catalogOffsetSubChunks+uint16(paddingSize):]
+	preambleSize := 16 // LogPreamble size
+	chunkDataStart := originalData[preambleSize:]
+	paddingSize := 24
+	// data, _, _ = helpers.Take(data, 4)
+	data = chunkDataStart[catalogOffsetSubChunks+uint16(paddingSize):]
 
 	var catalogSubchunks []models.CatalogSubchunk
 	for i := 0; i < int(numberSubChunks); i++ {
