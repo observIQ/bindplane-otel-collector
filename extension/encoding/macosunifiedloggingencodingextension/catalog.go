@@ -115,9 +115,10 @@ func ParseCatalogChunk(data []byte) (models.CatalogChunk, []byte, error) {
 	}
 
 	catalogProcessInfoEntries := make(map[string]*models.ProcessInfoEntry)
-	for _, entry := range catalogProcessInfoEntriesVec {
+	for i := range catalogProcessInfoEntriesVec {
+		entry := &catalogProcessInfoEntriesVec[i]
 		key := fmt.Sprintf("%d_%d", entry.FirstNumberProcID, entry.SecondNumberProcID)
-		catalogProcessInfoEntries[key] = &entry
+		catalogProcessInfoEntries[key] = entry
 	}
 
 	// // Calculate position to start parsing subchunks
