@@ -44,6 +44,106 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 )
 
+func TestURLDecodingInWorker(t *testing.T) {
+	tests := []struct {
+		name       string
+		encodedKey string
+		decodedKey string
+	}{
+		{
+			name:       "equals sign encoding",
+			encodedKey: "logs/hd%3Dtest/file.txt",
+			decodedKey: "logs/hd=test/file.txt",
+		},
+		{
+			name:       "plus sign encoding",
+			encodedKey: "logs/test%2Bfile.txt",
+			decodedKey: "logs/test+file.txt",
+		},
+		{
+			name:       "space encoding",
+			encodedKey: "logs/test%20file.txt",
+			decodedKey: "logs/test file.txt",
+		},
+		{
+			name:       "forward slash encoding",
+			encodedKey: "logs%2Ftest%2Ffile.txt",
+			decodedKey: "logs/test/file.txt",
+		},
+		{
+			name:       "no encoding needed",
+			encodedKey: "logs/test/file.txt",
+			decodedKey: "logs/test/file.txt",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer fake.SetFakeConstructorForTest(t)()
+
+			ctx := context.Background()
+			core, observedLogs := observer.New(zap.DebugLevel)
+			logger := zap.New(core)
+
+			// Create fake AWS client
+			fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
+
+			// Create S3 object with the decoded key name (actual S3 object)
+			// This simulates the real S3 object existing with the decoded key
+			fakeAWS.CreateObjects(t, map[string]map[string]string{
+				"test-bucket": {
+					tt.decodedKey: "test log line\n",
+				},
+			})
+
+			// Create consumer
+			consumer := &consumertest.LogsSink{}
+
+			// Create worker
+			tel := componenttest.NewNopTelemetrySettings()
+			tel.Logger = logger
+
+			tb, err := metadata.NewTelemetryBuilder(tel)
+			require.NoError(t, err)
+
+			w := worker.New(tel, consumer, fakeAWS, 1024*1024, 1000, 5*time.Minute, 1*time.Minute, 1*time.Hour, worker.WithTelemetryBuilder(tb))
+
+			// Get the message that was created (it will have the decoded key)
+			msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+			require.NoError(t, err)
+			require.Equal(t, 1, len(msg.Messages))
+
+			// Manually modify the message body to contain the encoded key
+			// This simulates what happens when S3 event notifications contain URL-encoded keys
+			originalBody := *msg.Messages[0].Body
+			modifiedBody := strings.ReplaceAll(originalBody, tt.decodedKey, tt.encodedKey)
+			msg.Messages[0].Body = &modifiedBody
+
+			// Process the message with the URL-encoded key
+			w.ProcessMessage(ctx, msg.Messages[0], "test-queue-url", func() {})
+
+			// Verify logs were consumed
+			require.Equal(t, 1, len(consumer.AllLogs()))
+			logs := consumer.AllLogs()[0]
+			require.Equal(t, 1, logs.LogRecordCount())
+
+			// Verify resource attributes use decoded key
+			resourceLogs := logs.ResourceLogs().At(0)
+			keyAttr, exists := resourceLogs.Resource().Attributes().Get("aws.s3.key")
+			require.True(t, exists)
+			require.Equal(t, tt.decodedKey, keyAttr.AsString()) // Should be decoded
+
+			// If URL decoding happened, check that it was logged
+			if tt.encodedKey != tt.decodedKey {
+				decodingLogs := observedLogs.FilterMessage("URL decoded object key").All()
+				require.Equal(t, 1, len(decodingLogs))
+				require.Equal(t, tt.encodedKey, decodingLogs[0].ContextMap()["original_key"])
+				require.Equal(t, tt.decodedKey, decodingLogs[0].ContextMap()["decoded_key"])
+			}
+		})
+	}
+}
+
 func logsFromFile(t *testing.T, filePath string) []map[string]map[string]string {
 	bytes, err := os.ReadFile(filePath)
 	if err != nil {
