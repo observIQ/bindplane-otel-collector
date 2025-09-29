@@ -73,18 +73,18 @@ func ParseCatalogChunk(data []byte) (models.CatalogChunk, []byte, error) {
 	data, numberSubChunksBytes, _ = helpers.Take(data, 2)
 	numberSubChunks := binary.LittleEndian.Uint16(numberSubChunksBytes)
 
-	data, unknown, _ = helpers.Take(data, int(UNKNOWN_LENGTH[0]))
+	data, unknown, _ = helpers.Take(data, int(UnknownLength[0]))
 
 	data, earliestFirehoseTimestampBytes, _ = helpers.Take(data, 8)
 	earliestFirehoseTimestamp := binary.LittleEndian.Uint64(earliestFirehoseTimestampBytes)
 
 	// Parse UUIDs
-	numberCatalogUUIDs := catalogSubsystemStringsOffset / UUID_LENGTH
+	numberCatalogUUIDs := catalogSubsystemStringsOffset / UUIDLength
 	catalogUUIDs := make([]string, numberCatalogUUIDs)
 	for i := 0; i < int(numberCatalogUUIDs); i++ {
 		var uuidBytes []byte
 
-		data, uuidBytes, err = helpers.Take(data, int(UUID_LENGTH))
+		data, uuidBytes, err = helpers.Take(data, int(UUIDLength))
 		if err != nil {
 			return catalog, data, fmt.Errorf("failed to parse catalog UUID %d: %w", i, err)
 		}
@@ -186,8 +186,8 @@ func parseCatalogSubchunk(data []byte) (models.CatalogSubchunk, []byte, error) {
 		return subchunk, data, fmt.Errorf("failed to parse catalog subchunk number index: %w", err)
 	}
 
-	if binary.LittleEndian.Uint32(compressionAlgorithm) != LZ4_COMPRESSION {
-		return subchunk, data, fmt.Errorf("unsupported compression algorithm: 0x%x (expected LZ4 0x%x)", compressionAlgorithm, LZ4_COMPRESSION)
+	if binary.LittleEndian.Uint32(compressionAlgorithm) != LZ4Compression {
+		return subchunk, data, fmt.Errorf("unsupported compression algorithm: 0x%x (expected LZ4 0x%x)", compressionAlgorithm, LZ4Compression)
 	}
 
 	// Parse indexes
@@ -224,7 +224,7 @@ func parseCatalogSubchunk(data []byte) (models.CatalogSubchunk, []byte, error) {
 		stringOffsets[i] = binary.LittleEndian.Uint16(offsetBytes)
 	}
 
-	padding := helpers.AnticipatedPaddingSize(uint64(binary.LittleEndian.Uint32(numberIndex))+uint64(numberStringOffsets), OFFSET_SIZE, 8)
+	padding := helpers.AnticipatedPaddingSize(uint64(binary.LittleEndian.Uint32(numberIndex))+uint64(numberStringOffsets), OffsetSize, 8)
 	if padding > uint64(^uint(0)>>1) {
 		return subchunk, data, fmt.Errorf("u64 is bigger than system usize")
 	}
@@ -388,7 +388,7 @@ func parseProcessInfoUUIDEntry(data []byte, catalogUUIDs []string) (models.Proce
 	entry.Unknown = binary.LittleEndian.Uint32(unknown)
 	entry.CatalogUUIDIndex = binary.LittleEndian.Uint16(catalogUUIDIndex)
 
-	data, loadAddressBytes, err = helpers.Take(data, int(LOAD_ADDRESS_SIZE[0]))
+	data, loadAddressBytes, err = helpers.Take(data, int(LoadAddressSize[0]))
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to read load address: %w", err)
 	}
