@@ -25,15 +25,21 @@ import (
 )
 
 const (
-	UUID_LENGTH     = uint16(16)
-	LZ4_COMPRESSION = uint32(256)
-	OFFSET_SIZE     = uint64(2)
+	// UUIDLength is the length in bytes of a catalog UUID (128 bits)
+	UUIDLength = uint16(16)
+	// LZ4Compression is the catalog compression algorithm identifier for LZ4
+	LZ4Compression = uint32(256)
+	// OffsetSize is the size in bytes of an offset unit in catalog structures
+	OffsetSize = uint64(2)
 )
 
 var (
-	UNKNOWN_LENGTH    = []byte{6}
-	SUBSYSTEM_SIZE    = []byte{6}
-	LOAD_ADDRESS_SIZE = []byte{6}
+	// UnknownLength holds the variable length for the unknown field
+	UnknownLength = []byte{6}
+	// SubsystemSize holds the size of a subsystem entry length field
+	SubsystemSize = []byte{6}
+	// LoadAddressSize is the byte-length for load address fields before padding
+	LoadAddressSize = []byte{6}
 )
 
 // GlobalCatalog stores catalog data for use by other chunk parsers

@@ -51,6 +51,9 @@ type LogEntry struct {
 	MessageEntries []interface{} // Raw message data
 	Timestamp      string        // ISO formatted timestamp
 }
+
+// UnifiedLogData aggregates parsed data from a unified logging archive,
+// including header, catalog, oversize, and related chunk data.
 type UnifiedLogData struct {
 	HeaderData   []HeaderChunk
 	CatalogData  []UnifiedLogCatalogData
@@ -66,6 +69,8 @@ type UnifiedLogCatalogData struct {
 	SimpledumpData []SimpledumpChunk
 }
 
+// ParseUnifiedLog parses a unified logging byte stream and returns a
+// fully-populated UnifiedLogData structure containing discovered chunks.
 func ParseUnifiedLog(data []byte) (*UnifiedLogData, error) {
 	unifiedLogData := &UnifiedLogData{}
 	catalogData := &UnifiedLogCatalogData{}

@@ -45,6 +45,9 @@ const (
 	simpledumpChunk = 0x6004
 )
 
+// ParseChunkset parses a chunkset chunk into its header fields, decompresses
+// the payload when necessary, and returns the parsed chunk alongside the
+// remaining unconsumed data.
 func ParseChunkset(chunksetData []byte) (chunk ChunksetChunk, remainingData []byte, err error) {
 	chunk = ChunksetChunk{}
 

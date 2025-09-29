@@ -375,6 +375,15 @@ func ParseFirehoseEntry(data []byte) (Entry, []byte, error) {
 	} else {
 		// TODO: Handle this warning
 		// fmt.Sprintf("Unknown log activity type: %d", unknownLogActivityType[0])
+		// Rust Logging of Warning and Debug data
+		// warn!(
+		// 	"[macos-unifiedlogs] Unknown log activity type: {} -  {} bytes left",
+		// 	unknown_log_activity_type,
+		// 	input.len()
+		// );
+		// debug!("[macos-unifiedlogs] Firehose data: {data:X?}");
+
+		return firehoseResult, data, nil
 	}
 
 	// Minimum item size is 6 bytes

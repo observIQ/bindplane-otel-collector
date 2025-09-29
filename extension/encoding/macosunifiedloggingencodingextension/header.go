@@ -59,6 +59,8 @@ var (
 	timezonePathSize  = 48
 )
 
+// ParseHeaderChunk parses a header chunk into a strongly-typed `HeaderChunk`.
+// It reads fixed-width fields, converts byte order, and trims null-terminated strings.
 func ParseHeaderChunk(data []byte) (*HeaderChunk, error) {
 	header := &HeaderChunk{}
 	var chunkTag, chunkSubtag, chunkDataSize, machTimeNumerator, machTimeDenominator, continuousTime, unknownTime, unknown, biasMin, daylightSavings, unknownFlags, subChunkTag, subChunkDataSize, subChunkContinuousTime, subChunkTag2, subChunkDataSize2, unknown2, unknown3, buildVersionString, hardwareModelString, timezonePath, subChunkTag3, subChunkDataSize3, bootUUID, logdPID, logdExitStatus, subChunkTag4, subChunkDataSize4 []byte

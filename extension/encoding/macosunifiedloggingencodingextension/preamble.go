@@ -21,6 +21,8 @@ import (
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 )
 
+// LogPreamble represents the preamble header present at the start of
+// each chunk. It contains the chunk tag, subtag, and the chunk data size.
 type LogPreamble struct {
 	ChunkTag      uint32
 	ChunkSubtag   uint32
