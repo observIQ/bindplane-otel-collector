@@ -52,7 +52,7 @@ const (
 
 var (
 	logTypes       = []uint8{0x2, 0x6, 0x4, 0x7, 0x3}
-	stringItem     = []uint8{0x20, 0x22, 0x40, 0x42, 0x30, 0x31, 0x32, 0xf2}
+	stringItem     = []uint8{0x20, 0x21, 0x22, 0x25, 0x40, 0x41, 0x42, 0x30, 0x31, 0x32, 0xf2, 0x35, 0x81, 0xf1}
 	privateStrings = []uint8{0x21, 0x25, 0x41, 0x35, 0x31, 0x81, 0xf1}
 	precisionItems = []uint8{0x10, 0x12}
 	sensitiveItems = []uint8{0x5, 0x45, 0x85}
@@ -705,9 +705,7 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (ItemD
 
 // GetFirehoseItems gets the firehose item type and size
 func GetFirehoseItems(data []byte) (ItemType, []byte) {
-	var remainingData []byte
-	var itemTypeBytes []byte
-	var itemSizeBytes []byte
+	var remainingData, itemTypeBytes, itemSizeBytes []byte
 	var err error
 
 	item := ItemType{}

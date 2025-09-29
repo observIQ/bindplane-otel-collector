@@ -148,7 +148,6 @@ func getULHeaderData(data []byte, unifiedLogData *UnifiedLogData) error {
 }
 
 func getULCatalogData(data []byte, catalogData *UnifiedLogCatalogData) error {
-	// TODO: make sure this is correct once the catalog chunk PR is merged
 	catalogResults, _, err := ParseCatalogChunk(data)
 	if err != nil {
 		return err

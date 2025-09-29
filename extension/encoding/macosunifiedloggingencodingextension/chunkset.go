@@ -36,8 +36,8 @@ type ChunksetChunk struct {
 }
 
 const (
-	bv41             = 825521762
-	bv41Uncompressed = 758412898
+	bv41             = uint32(825521762)
+	bv41Uncompressed = uint32(758412898)
 
 	firehoseChunk   = 0x6001
 	oversizeChunk   = 0x6002
@@ -50,32 +50,28 @@ const (
 // remaining unconsumed data.
 func ParseChunkset(chunksetData []byte) (chunk ChunksetChunk, remainingData []byte, err error) {
 	chunk = ChunksetChunk{}
+	var chunkTag, chunkSubtag, chunkDataSize, signature, uncompressedSize, decompressedData, footer, blockSize, compressedData []byte
 
-	var chunkTag []byte
 	chunksetData, chunkTag, err = helpers.Take(chunksetData, 4)
 	if err != nil {
 		return chunk, chunksetData, fmt.Errorf("failed to read chunk tag: %w", err)
 	}
 
-	var chunkSubtag []byte
 	chunksetData, chunkSubtag, err = helpers.Take(chunksetData, 4)
 	if err != nil {
 		return chunk, chunksetData, fmt.Errorf("failed to read chunk subtag: %w", err)
 	}
 
-	var chunkDataSize []byte
 	chunksetData, chunkDataSize, err = helpers.Take(chunksetData, 8)
 	if err != nil {
 		return chunk, chunksetData, fmt.Errorf("failed to read chunk data size: %w", err)
 	}
 
-	var signature []byte
 	chunksetData, signature, err = helpers.Take(chunksetData, 4)
 	if err != nil {
 		return chunk, chunksetData, fmt.Errorf("failed to read signature: %w", err)
 	}
 
-	var uncompressedSize []byte
 	chunksetData, uncompressedSize, err = helpers.Take(chunksetData, 4)
 	if err != nil {
 		return chunk, chunksetData, fmt.Errorf("failed to read uncompressed size: %w", err)
@@ -89,14 +85,12 @@ func ParseChunkset(chunksetData []byte) (chunk ChunksetChunk, remainingData []by
 
 	// Data is already uncompressed
 	if chunk.Signature == bv41Uncompressed {
-		var decompressedData []byte
 		chunksetData, decompressedData, err = helpers.Take(chunksetData, int(chunk.UncompressedSize))
 		if err != nil {
 			return chunk, chunksetData, fmt.Errorf("failed to read decompressed data: %w", err)
 		}
 		chunk.DecompressedData = decompressedData
 
-		var footer []byte
 		chunksetData, footer, err = helpers.Take(chunksetData, 4)
 		if err != nil {
 			return chunk, chunksetData, fmt.Errorf("failed to read footer: %w", err)
@@ -109,20 +103,18 @@ func ParseChunkset(chunksetData []byte) (chunk ChunksetChunk, remainingData []by
 		return chunk, chunksetData, fmt.Errorf("invalid chunkset signature: %x, expected %x", chunk.Signature, bv41)
 	}
 
-	var blockSize []byte
 	chunksetData, blockSize, err = helpers.Take(chunksetData, 4)
 	if err != nil {
 		return chunk, chunksetData, fmt.Errorf("failed to read block size: %w", err)
 	}
 	chunk.BlockSize = binary.LittleEndian.Uint32(blockSize)
 
-	var compressedData []byte
 	chunksetData, compressedData, err = helpers.Take(chunksetData, int(chunk.BlockSize))
 	if err != nil {
 		return chunk, chunksetData, fmt.Errorf("failed to read compressed data: %w", err)
 	}
 
-	decompressedData := make([]byte, chunk.UncompressedSize)
+	decompressedData = make([]byte, chunk.UncompressedSize)
 
 	// Decompress using LZ4
 	n, err := lz4.UncompressBlock(compressedData, decompressedData)
@@ -132,7 +124,6 @@ func ParseChunkset(chunksetData []byte) (chunk ChunksetChunk, remainingData []by
 
 	chunk.DecompressedData = decompressedData[:n]
 
-	var footer []byte
 	chunksetData, footer, err = helpers.Take(chunksetData, 4)
 	if err != nil {
 		return chunk, chunksetData, fmt.Errorf("failed to read footer: %w", err)

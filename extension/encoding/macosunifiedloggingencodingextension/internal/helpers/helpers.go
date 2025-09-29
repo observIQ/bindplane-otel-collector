@@ -84,12 +84,12 @@ func ExtractString(data []byte) (string, error) {
 	return "", fmt.Errorf("could not extract string %s", data)
 }
 
-// PaddingSizeFour calculates 4-byte alignment padding (equivalent to Rust's padding_size_four)
+// PaddingSizeFour calculates 4-byte alignment padding
 func PaddingSizeFour(dataSize uint64) uint64 {
 	return PaddingSize(dataSize, 4)
 }
 
-// PaddingSize calculates padding based on alignment (equivalent to Rust's padding_size)
+// PaddingSize calculates padding based on alignment
 func PaddingSize(dataSize uint64, alignment uint64) uint64 {
 	return (alignment - (dataSize & (alignment - 1))) & (alignment - 1)
 }

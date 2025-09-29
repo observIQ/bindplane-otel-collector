@@ -160,26 +160,25 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 		}
 
 		// Process Oversize data - these contain log messages or string data
-		for j, oversize := range logData.OversizeData {
-			if c.debugMode {
-				c.logger.Info("Processing oversize data",
-					zap.Int("oversizeIndex", j),
-					zap.Uint32("dataRefIndex", oversize.dataRefIndex),
-					zap.Int("itemInfoCount", len(oversize.messageItems.ItemInfo)))
-			}
+		// for j, oversize := range logData.OversizeData {
+		// 	if c.debugMode {
+		// 		c.logger.Info("Processing oversize data",
+		// 			zap.Int("oversizeIndex", j),
+		// 			zap.Uint32("dataRefIndex", oversize.dataRefIndex),
+		// 			zap.Int("itemInfoCount", len(oversize.messageItems.ItemInfo)))
+		// 	}
 
-			// Extract messages from the oversize chunk's message items
-			for _, item := range oversize.messageItems.ItemInfo {
-				if len(item.MessageStrings) > 0 {
-					if c.debugMode {
-						c.logger.Info("Found oversize log message", zap.String("message", item.MessageStrings))
-					}
-					otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(item.MessageStrings)
-				}
-			}
-		}
+		// 	// Extract messages from the oversize chunk's message items
+		// 	for _, item := range oversize.messageItems.ItemInfo {
+		// 		if len(item.MessageStrings) > 0 {
+		// 			if c.debugMode {
+		// 				c.logger.Info("Found oversize log message", zap.String("message", item.MessageStrings))
+		// 			}
+		// 			otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(item.MessageStrings)
+		// 		}
+		// 	}
+		// }
 
-		// TODO: uncomment once simpledump and statedump are merged
 		for _, simpledump := range logData.SimpledumpData {
 			otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(simpledump.MessageString)
 		}
