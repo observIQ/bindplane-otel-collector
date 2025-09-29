@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -245,24 +246,29 @@ func TestParseStateDumpObject(t *testing.T) {
 }
 
 func loadStatedumpsFromTracev3(data []byte) (*StatedumpCollection, error) {
+
 	if len(data) == 0 {
 		return nil, fmt.Errorf("empty tracev3 data")
 	}
 
+	var headerChunk *HeaderChunk
+	var err error
+
 	// Parse the header first to get boot UUID and timing info
-	header, headerSize, err := ParseTraceV3Header(data)
+
+	headerChunk, err = ParseHeaderChunk(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse tracev3 header: %w", err)
 	}
 
 	collection := &StatedumpCollection{
 		Statedumps: make([]StatedumpChunk, 0),
-		BootUUID:   header.BootUUID,
-		Timestamp:  header.ContinuousTime,
+		BootUUID:   headerChunk.BootUUID,
+		Timestamp:  headerChunk.ContinuousTime,
 	}
 
 	// Parse data section for statedump chunks
-	remainingData := data[headerSize:]
+	remainingData := data[headerChunk.ChunkDataSize:]
 	offset := 0
 	const chunkPreambleSize = 16
 
@@ -297,7 +303,7 @@ func loadStatedumpsFromTracev3(data []byte) (*StatedumpCollection, error) {
 		}
 
 		// Move to next chunk with 8-byte alignment padding
-		offset += totalChunkSize + int(paddingSize8(chunkDataSize))
+		offset += totalChunkSize + int(helpers.PaddingSize(chunkDataSize, 8))
 
 		// Safety limit
 		if len(collection.Statedumps) >= 1000 {

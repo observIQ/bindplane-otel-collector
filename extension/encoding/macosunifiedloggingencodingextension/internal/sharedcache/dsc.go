@@ -58,7 +58,15 @@ var DSCCache = make(map[string]*Strings)
 
 // ParseDSC parses a DSC (shared cache) file containing shared format strings
 func ParseDSC(data []byte) (*Strings, error) {
-	input, signature, err := helpers.Take(data, 4)
+	var input []byte
+	var signature []byte
+	var major []byte
+	var minor []byte
+	var numberRanges []byte
+	var numberUUIDs []byte
+	var err error
+
+	input, signature, err = helpers.Take(data, 4)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read signature: %w", err)
 	}
@@ -70,19 +78,19 @@ func ParseDSC(data []byte) (*Strings, error) {
 		Signature: binary.LittleEndian.Uint32(signature),
 	}
 
-	input, major, err := helpers.Take(input, 2)
+	input, major, err = helpers.Take(input, 2)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read major version: %w", err)
 	}
-	input, minor, err := helpers.Take(input, 2)
+	input, minor, err = helpers.Take(input, 2)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read minor version: %w", err)
 	}
-	input, numberRanges, err := helpers.Take(input, 4)
+	input, numberRanges, err = helpers.Take(input, 4)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read number ranges: %w", err)
 	}
-	input, numberUUIDs, err := helpers.Take(input, 4)
+	input, numberUUIDs, err = helpers.Take(input, 4)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read number UUIDs: %w", err)
 	}
@@ -179,42 +187,49 @@ func (d *Strings) ExtractSharedString(stringOffset uint64) (models.MessageData, 
 func getRanges(input []byte, major *uint16) ([]byte, RangeDescriptor, error) {
 	versionNumber := uint16(2)
 	rangeData := RangeDescriptor{}
+	var remainingInput []byte
+	var valueRangeOffset []byte
+	var uuidDescriptorIndex []byte
+	var dataOffset []byte
+	var rangeSize []byte
+	var unknown []byte
+	var err error
 
 	if major == &versionNumber {
-		remainingInput, valueRangeOffset, err := helpers.Take(input, 8)
+		remainingInput, valueRangeOffset, err = helpers.Take(input, 8)
 		if err != nil {
 			return nil, rangeData, err
 		}
 		rangeData.RangeOffset = binary.LittleEndian.Uint64(valueRangeOffset)
 		input = remainingInput
 	} else {
-		input, uuidDescriptorIndex, err := helpers.Take(input, 4)
+		input, uuidDescriptorIndex, err = helpers.Take(input, 4)
 		if err != nil {
 			return nil, rangeData, err
 		}
 		rangeData.UnknownUUIDIndex = uint64(binary.LittleEndian.Uint32(uuidDescriptorIndex))
 
-		input, valueRangeOffset, err := helpers.Take(input, 4)
+		input, valueRangeOffset, err = helpers.Take(input, 4)
 		if err != nil {
 			return nil, rangeData, err
 		}
 		rangeData.RangeOffset = uint64(binary.LittleEndian.Uint32(valueRangeOffset))
 	}
 
-	input, dataOffset, err := helpers.Take(input, 4)
+	input, dataOffset, err = helpers.Take(input, 4)
 	if err != nil {
 		return nil, rangeData, err
 	}
 	rangeData.DataOffset = binary.LittleEndian.Uint32(dataOffset)
 
-	input, rangeSize, err := helpers.Take(input, 4)
+	input, rangeSize, err = helpers.Take(input, 4)
 	if err != nil {
 		return nil, rangeData, err
 	}
 	rangeData.RangeSize = binary.LittleEndian.Uint32(rangeSize)
 
 	if major == &versionNumber {
-		remainingInput, unknown, err := helpers.Take(input, 8)
+		remainingInput, unknown, err = helpers.Take(input, 8)
 		if err != nil {
 			return nil, rangeData, err
 		}
@@ -228,16 +243,22 @@ func getRanges(input []byte, major *uint16) ([]byte, RangeDescriptor, error) {
 func getUUIDs(input []byte, major *uint16) ([]byte, UUIDDescriptor, error) {
 	versionNumber := uint16(2)
 	uuidData := UUIDDescriptor{}
+	var remainingInput []byte
+	var valueTextOffset []byte
+	var valueTextSize []byte
+	var valueUUID []byte
+	var valuePathOffset []byte
+	var err error
 
 	if major == &versionNumber {
-		remainingInput, valueTextOffset, err := helpers.Take(input, 8)
+		remainingInput, valueTextOffset, err = helpers.Take(input, 8)
 		if err != nil {
 			return nil, uuidData, err
 		}
 		uuidData.TextOffset = binary.LittleEndian.Uint64(valueTextOffset)
 		input = remainingInput
 	} else {
-		remainingInput, valueTextOffset, err := helpers.Take(input, 4)
+		remainingInput, valueTextOffset, err = helpers.Take(input, 4)
 		if err != nil {
 			return nil, uuidData, err
 		}
@@ -245,13 +266,13 @@ func getUUIDs(input []byte, major *uint16) ([]byte, UUIDDescriptor, error) {
 		input = remainingInput
 	}
 
-	input, valueTextSize, err := helpers.Take(input, 4)
+	input, valueTextSize, err = helpers.Take(input, 4)
 	if err != nil {
 		return nil, uuidData, err
 	}
 	uuidData.TextSize = binary.LittleEndian.Uint32(valueTextSize)
 
-	input, valueUUID, err := helpers.Take(input, 16)
+	input, valueUUID, err = helpers.Take(input, 16)
 	if err != nil {
 		return nil, uuidData, err
 	}
@@ -259,7 +280,7 @@ func getUUIDs(input []byte, major *uint16) ([]byte, UUIDDescriptor, error) {
 		valueUUID[0], valueUUID[1], valueUUID[2], valueUUID[3], valueUUID[4], valueUUID[5], valueUUID[6], valueUUID[7],
 		valueUUID[8], valueUUID[9], valueUUID[10], valueUUID[11], valueUUID[12], valueUUID[13], valueUUID[14], valueUUID[15])
 
-	input, valuePathOffset, err := helpers.Take(input, 4)
+	input, valuePathOffset, err = helpers.Take(input, 4)
 	if err != nil {
 		return nil, uuidData, err
 	}
@@ -269,7 +290,10 @@ func getUUIDs(input []byte, major *uint16) ([]byte, UUIDDescriptor, error) {
 }
 
 func getPaths(input []byte, pathOffset uint32) (string, error) {
-	pathData, _, err := helpers.Take(input, int(pathOffset))
+	var pathData []byte
+	var err error
+
+	pathData, _, err = helpers.Take(input, int(pathOffset))
 	if err != nil {
 		return "", err
 	}
@@ -282,11 +306,15 @@ func getPaths(input []byte, pathOffset uint32) (string, error) {
 
 // getEntryStrings gets the base log entry strings after the ranges and UUIDs are parsed out
 func getEntryStrings(input []byte, stringOffset uint32, stringRange uint32) ([]byte, error) {
-	stringsData, _, err := helpers.Take(input, int(stringOffset))
+	var stringsData []byte
+	var strings []byte
+	var err error
+
+	stringsData, _, err = helpers.Take(input, int(stringOffset))
 	if err != nil {
 		return nil, err
 	}
-	_, strings, err := helpers.Take(stringsData, int(stringRange))
+	_, strings, err = helpers.Take(stringsData, int(stringRange))
 	if err != nil {
 		return nil, err
 	}

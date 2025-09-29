@@ -35,9 +35,10 @@ const minimumMessageSize = 4
 // ParseFirehoseTrace parses a firehose trace entry
 func ParseFirehoseTrace(data []byte) (Trace, []byte, error) {
 	firehoseTrace := Trace{}
+	var unknownPCID []byte
 	var err error
 
-	data, unknownPCID, err := helpers.Take(data, 4)
+	data, unknownPCID, err = helpers.Take(data, 4)
 	if err != nil {
 		return firehoseTrace, data, err
 	}
@@ -67,30 +68,33 @@ func ParseFirehoseTrace(data []byte) (Trace, []byte, error) {
 // GetMessage gets the message data for a firehose trace entry
 func GetMessage(data []byte) ([]byte, ItemData, error) {
 	itemData := ItemData{}
+	var entries []byte
+	var err error
 
 	if len(data) < minimumMessageSize {
 		return data, itemData, nil
 	}
 
-	remainingData, entries, err := helpers.Take(data, 1)
+	data, entries, err = helpers.Take(data, 1)
 	if err != nil {
 		return data, itemData, err
 	}
 	count := 0
 	sizesCount := []uint8{}
 	for count < int(entries[0]) {
-		remainder, size, err := helpers.Take(remainingData, 1)
+		var size []byte
+		data, size, err = helpers.Take(data, 1)
 		if err != nil {
 			return data, itemData, err
 		}
 		sizesCount = append(sizesCount, size[0])
 		count++
-		remainingData = remainder
 	}
 
 	for _, size := range sizesCount {
 		itemInfo := ItemInfo{}
-		remainder, messageData, err := helpers.Take(remainingData, int(size))
+		var messageData []byte
+		data, messageData, err = helpers.Take(data, int(size))
 		if err != nil {
 			return data, itemData, err
 		}
@@ -108,13 +112,12 @@ func GetMessage(data []byte) ([]byte, ItemData, error) {
 			itemInfo.MessageStrings = fmt.Sprintf("unknown size: %d", messageData[0])
 		}
 		itemData.ItemInfo = append(itemData.ItemInfo, itemInfo)
-		remainingData = remainder
 	}
 
 	// Reverse the data back to expected format
 	slices.Reverse(itemData.ItemInfo)
 
-	return remainingData, itemData, nil
+	return data, itemData, nil
 }
 
 // GetFirehoseTraceStrings gets the message data for a firehose trace entry

@@ -48,7 +48,10 @@ func TestParseFirehosePreamble(t *testing.T) {
 }
 
 func TestParseFirehoseEntry(t *testing.T) {
-	parsedFirehose, _, err := ParseFirehoseEntry(firehoseEntryTestData)
+	var parsedFirehose Entry
+	var err error
+
+	parsedFirehose, _, err = ParseFirehoseEntry(firehoseEntryTestData)
 	require.NoError(t, err)
 	require.Equal(t, uint8(4), parsedFirehose.ActivityType)
 	require.Equal(t, uint8(0), parsedFirehose.LogType)
@@ -91,8 +94,6 @@ func TestParseItemString(t *testing.T) {
 }
 
 func TestGetBacktraceData(t *testing.T) {
-	// Not sure why, but the offsets don't match the rust test's expected offsets
-	// TODO: Investigate why the offsets don't match
 	_, backtraceData, _ := GetBacktraceData(firehoseBacktraceTestData)
 	require.Equal(t, 19, len(backtraceData))
 	require.Equal(t, []string{

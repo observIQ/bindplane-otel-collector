@@ -42,14 +42,8 @@ type Signpost struct {
 // ParseFirehoseSignpost parses a firehose signpost entry
 func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte, error) {
 	signpost := Signpost{}
-	var unknownActivityID []byte
-	var unknownSentinel []byte
-	var privateStringsOffset []byte
-	var privateStringsSize []byte
-	var subsystem []byte
-	var ttlValue []byte
-	var dataRefValue []byte
-	var signpostName []byte
+	var unknownActivityID, unknownSentinel, privateStringsOffset, privateStringsSize,
+		unknownPCID, subsystem, ttlValue, dataRefValue, signpostName, signpostID []byte
 	var err error
 
 	activityIDCurrentFlag := uint16(0x1)
@@ -65,6 +59,7 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte, error) 
 		}
 		signpost.UnknownSentinel = binary.LittleEndian.Uint32(unknownSentinel)
 	}
+
 	privateStringRangeFlag := uint16(0x100)
 	if (flags & privateStringRangeFlag) != 0 {
 		data, privateStringsOffset, err = helpers.Take(data, 2)
@@ -79,7 +74,7 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte, error) 
 		signpost.PrivateStringsSize = binary.LittleEndian.Uint16(privateStringsSize)
 	}
 
-	data, unknownPCID, err := helpers.Take(data, 4)
+	data, unknownPCID, err = helpers.Take(data, 4)
 	if err != nil {
 		return signpost, data, fmt.Errorf("failed to read unknown PC ID: %w", err)
 	}
@@ -100,7 +95,7 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte, error) 
 		signpost.Subsystem = binary.LittleEndian.Uint16(subsystem)
 	}
 
-	data, signpostID, err := helpers.Take(data, 8)
+	data, signpostID, err = helpers.Take(data, 8)
 	if err != nil {
 		return signpost, data, fmt.Errorf("failed to read signpost ID: %w", err)
 	}

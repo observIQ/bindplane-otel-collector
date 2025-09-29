@@ -41,37 +41,39 @@ type NonActivity struct {
 // ParseFirehoseNonActivity parses a firehose non-activity entry
 func ParseFirehoseNonActivity(data []byte, flags uint16) (NonActivity, []byte, error) {
 	var nonActivity NonActivity
+	var unknownActivityID, unknownSentinel, privateStringsOffset, privateStringsSize,
+		unknownPCID, subsystemValue, ttlValue, dataRefValue []byte
+	var err error
+
 	activityIDCurrent := uint16(0x1) // has_current_aid flag
 	if (flags & activityIDCurrent) != 0 {
-		firehoseData, unknownActivityID, err := helpers.Take(data, 4)
+		data, unknownActivityID, err = helpers.Take(data, 4)
 		if err != nil {
 			return nonActivity, data, fmt.Errorf("failed to read unknown activity ID: %w", err)
 		}
-		firehoseData, unknownSentinel, err := helpers.Take(firehoseData, 4)
+		data, unknownSentinel, err = helpers.Take(data, 4)
 		if err != nil {
 			return nonActivity, data, fmt.Errorf("failed to read unknown sentinel: %w", err)
 		}
 		nonActivity.UnknownActivityID = binary.LittleEndian.Uint32(unknownActivityID)
 		nonActivity.UnknownSentinel = binary.LittleEndian.Uint32(unknownSentinel)
-		data = firehoseData
 	}
 
 	privateStringRange := uint16(0x100) // has_private_data flag
 	if (flags & privateStringRange) != 0 {
-		firehoseData, privateStringsOffset, err := helpers.Take(data, 2)
+		data, privateStringsOffset, err = helpers.Take(data, 2)
 		if err != nil {
 			return nonActivity, data, fmt.Errorf("failed to read private strings offset: %w", err)
 		}
-		firehoseData, privateStringsSize, err := helpers.Take(firehoseData, 2)
+		data, privateStringsSize, err = helpers.Take(data, 2)
 		if err != nil {
 			return nonActivity, data, fmt.Errorf("failed to read private strings size: %w", err)
 		}
 		nonActivity.PrivateStringsOffset = binary.LittleEndian.Uint16(privateStringsOffset)
 		nonActivity.PrivateStringsSize = binary.LittleEndian.Uint16(privateStringsSize)
-		data = firehoseData
 	}
 
-	data, unknownPCID, err := helpers.Take(data, 4)
+	data, unknownPCID, err = helpers.Take(data, 4)
 	if err != nil {
 		return nonActivity, data, fmt.Errorf("failed to read unknown PC ID: %w", err)
 	}
@@ -85,32 +87,29 @@ func ParseFirehoseNonActivity(data []byte, flags uint16) (NonActivity, []byte, e
 
 	subsystem := uint16(0x200) // has_subsystem flag
 	if (flags & subsystem) != 0 {
-		firehoseData, subsystemValue, err := helpers.Take(data, 2)
+		data, subsystemValue, err = helpers.Take(data, 2)
 		if err != nil {
 			return nonActivity, data, fmt.Errorf("failed to read subsystem value: %w", err)
 		}
 		nonActivity.SubsystemValue = binary.LittleEndian.Uint16(subsystemValue)
-		data = firehoseData
 	}
 
 	ttl := uint16(0x400) // has_rules flag
 	if (flags & ttl) != 0 {
-		firehoseData, ttlValue, err := helpers.Take(data, 1)
+		data, ttlValue, err = helpers.Take(data, 1)
 		if err != nil {
 			return nonActivity, data, fmt.Errorf("failed to read TTL value: %w", err)
 		}
 		nonActivity.TTLValue = ttlValue[0]
-		data = firehoseData
 	}
 
 	dataRef := uint16(0x800) // has_oversize flag
 	if (flags & dataRef) != 0 {
-		firehoseData, dataRefValue, err := helpers.Take(data, 4)
+		data, dataRefValue, err = helpers.Take(data, 4)
 		if err != nil {
 			return nonActivity, data, fmt.Errorf("failed to read data ref value: %w", err)
 		}
 		nonActivity.DataRefValue = binary.LittleEndian.Uint32(dataRefValue)
-		data = firehoseData
 	}
 
 	return nonActivity, data, nil

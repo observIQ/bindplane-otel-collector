@@ -33,17 +33,17 @@ func TestGetULCatalogData(t *testing.T) {
 	data := &UnifiedLogCatalogData{}
 	err := getULCatalogData(getULCatalogDataTestData, data)
 	require.NoError(t, err)
-	require.Equal(t, 0x600b, data.CatalogData.ChunkTag)
-	require.Equal(t, 17, data.CatalogData.ChunkSubtag)
-	require.Equal(t, 464, data.CatalogData.ChunkDataSize)
-	require.Equal(t, 32, data.CatalogData.CatalogSubsystemStringsOffset)
-	require.Equal(t, 96, data.CatalogData.CatalogProcessInfoEntriesOffset)
-	require.Equal(t, 1, data.CatalogData.NumberProcessInformationEntries)
-	require.Equal(t, 160, data.CatalogData.CatalogOffsetSubChunks)
-	require.Equal(t, 7, data.CatalogData.NumberSubChunks)
+	require.Equal(t, uint32(0x600B), data.CatalogData.ChunkTag)
+	require.Equal(t, uint32(17), data.CatalogData.ChunkSubtag)
+	require.Equal(t, uint64(464), data.CatalogData.ChunkDataSize)
+	require.Equal(t, uint16(32), data.CatalogData.CatalogSubsystemStringsOffset)
+	require.Equal(t, uint16(96), data.CatalogData.CatalogProcessInfoEntriesOffset)
+	require.Equal(t, uint16(1), data.CatalogData.NumberProcessInformationEntries)
+	require.Equal(t, uint16(160), data.CatalogData.CatalogOffsetSubChunks)
+	require.Equal(t, uint16(7), data.CatalogData.NumberSubChunks)
 	require.Equal(t, []byte{0, 0, 0, 0, 0, 0}, data.CatalogData.Unknown)
 	require.Equal(t, uint64(820223379547412), data.CatalogData.EarliestFirehoseTimestamp)
-	require.Equal(t, []string{"2BEFD20C18EC3838814F2B4E5AF3BCEC", "2BEFD20C18EC3838814F2B4E5AF3BCEC"}, data.CatalogData.CatalogUUIDs)
+	require.Equal(t, []string{"2BEFD20C18EC3838814F2B4E5AF3BCEC", "3D05845F3F65358F9EBF2236E772AC01"}, data.CatalogData.CatalogUUIDs)
 	require.Equal(t, []byte{
 		99, 111, 109, 46, 97, 112, 112, 108, 101, 46, 83, 107, 121, 76, 105, 103, 104, 116,
 		0, 112, 101, 114, 102, 111, 114, 109, 97, 110, 99, 101, 95, 105, 110, 115, 116,

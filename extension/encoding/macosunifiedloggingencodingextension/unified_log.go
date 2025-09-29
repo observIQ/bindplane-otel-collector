@@ -152,8 +152,8 @@ func getULCatalogData(data []byte, catalogData *UnifiedLogCatalogData) error {
 	return nil
 }
 
-func getULChunksetData(data []byte, catalogData *UnifiedLogCatalogData, unifiedLogData *UnifiedLogData) error {
-	chunksetResults, _, err := ParseChunkset(data)
+func getULChunksetData(chunkData []byte, catalogData *UnifiedLogCatalogData, unifiedLogData *UnifiedLogData) error {
+	chunksetResults, _, err := ParseChunkset(chunkData)
 	if err != nil {
 		return err
 	}

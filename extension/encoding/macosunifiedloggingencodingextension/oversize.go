@@ -43,47 +43,52 @@ type OversizeChunk struct {
 func ParseOversizeChunk(data []byte) (OversizeChunk, []byte, error) {
 	var oversizeResult OversizeChunk
 
-	data, chunkTag, err := helpers.Take(data, 4)
+	var chunkTag, chunkSubTag, chunkDataSize, firstProcID, secondProcID,
+		ttl, unknownReserved, continuousTime, dataRefIndex, publicDataSize, privateDataSize []byte
+
+	var err error
+
+	data, chunkTag, err = helpers.Take(data, 4)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read chunk tag: %w", err)
 	}
-	data, chunkSubTag, err := helpers.Take(data, 4)
+	data, chunkSubTag, err = helpers.Take(data, 4)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read chunk sub tag: %w", err)
 	}
-	data, chunkDataSize, err := helpers.Take(data, 8)
+	data, chunkDataSize, err = helpers.Take(data, 8)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read chunk data size: %w", err)
 	}
-	data, firstProcID, err := helpers.Take(data, 8)
+	data, firstProcID, err = helpers.Take(data, 8)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read first proc ID: %w", err)
 	}
-	data, secondProcID, err := helpers.Take(data, 4)
+	data, secondProcID, err = helpers.Take(data, 4)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read second proc ID: %w", err)
 	}
-	data, ttl, err := helpers.Take(data, 1)
+	data, ttl, err = helpers.Take(data, 1)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read TTL: %w", err)
 	}
-	data, unknownReserved, err := helpers.Take(data, 3)
+	data, unknownReserved, err = helpers.Take(data, 3)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read unknown reserved: %w", err)
 	}
-	data, continuousTime, err := helpers.Take(data, 8)
+	data, continuousTime, err = helpers.Take(data, 8)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read continuous time: %w", err)
 	}
-	data, dataRefIndex, err := helpers.Take(data, 4)
+	data, dataRefIndex, err = helpers.Take(data, 4)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read data ref index: %w", err)
 	}
-	data, publicDataSize, err := helpers.Take(data, 2)
+	data, publicDataSize, err = helpers.Take(data, 2)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read public data size: %w", err)
 	}
-	data, privateDataSize, err := helpers.Take(data, 2)
+	data, privateDataSize, err = helpers.Take(data, 2)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read private data size: %w", err)
 	}
@@ -107,15 +112,20 @@ func ParseOversizeChunk(data []byte) (OversizeChunk, []byte, error) {
 		oversizeDataSize = len(data)
 	}
 
-	data, publicData, err := helpers.Take(data, oversizeDataSize)
+	var publicData []byte
+	data, publicData, err = helpers.Take(data, oversizeDataSize)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read public data: %w", err)
 	}
-	messageData, _, err := helpers.Take(publicData, 1)
+
+	var messageData []byte
+	messageData, _, err = helpers.Take(publicData, 1)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read message data header: %w", err)
 	}
-	messageData, itemCount, err := helpers.Take(messageData, 1)
+
+	var itemCount []byte
+	messageData, itemCount, err = helpers.Take(messageData, 1)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read item count: %w", err)
 	}

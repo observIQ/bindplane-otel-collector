@@ -61,73 +61,78 @@ func ParseSimpleDumpChunk(data []byte) (SimpledumpChunk, []byte, error) {
 	var simpleDumpResult SimpledumpChunk
 
 	// Parse SimpleDump Chunk chunk header (16 bytes total)
-	data, chunkTag, err := helpers.Take(data, 4)
+	var chunkTag, chunkSubTag, chunkDataSize, firstProcID, secondProcID,
+		continuousTime, threadID, unknownOffset, unknownTTL, unknownType, senderUUID,
+		dSCSharedCacheUUID, unknownNumberMessageStrings, unknownSizeSubsystemString,
+		unknownSizeMessageString []byte
+
+	var subsystem, messageString string
+
+	var err error
+
+	data, chunkTag, err = helpers.Take(data, 4)
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to read chunk tag: %w", err)
 	}
-	data, chunkSubTag, err := helpers.Take(data, 4)
+	data, chunkSubTag, err = helpers.Take(data, 4)
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to read chunk sub tag: %w", err)
 	}
-	data, chunkDataSize, err := helpers.Take(data, 8)
+	data, chunkDataSize, err = helpers.Take(data, 8)
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to read chunk data size: %w", err)
 	}
-	data, firstProcID, err := helpers.Take(data, 8)
+	data, firstProcID, err = helpers.Take(data, 8)
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to read first proc ID: %w", err)
 	}
-	data, secondProcID, err := helpers.Take(data, 8)
+	data, secondProcID, err = helpers.Take(data, 8)
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to read second proc ID: %w", err)
 	}
-	data, continuousTime, err := helpers.Take(data, 8)
+	data, continuousTime, err = helpers.Take(data, 8)
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to read continuous time: %w", err)
 	}
-	data, threadID, err := helpers.Take(data, 8)
+	data, threadID, err = helpers.Take(data, 8)
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to read thread ID: %w", err)
 	}
-	data, unknownOffset, err := helpers.Take(data, 4)
+	data, unknownOffset, err = helpers.Take(data, 4)
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to read unknown offset: %w", err)
 	}
-	data, unknownTTL, err := helpers.Take(data, 2)
+	data, unknownTTL, err = helpers.Take(data, 2)
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to read unknown TTL: %w", err)
 	}
-	data, unknownType, err := helpers.Take(data, 2)
+	data, unknownType, err = helpers.Take(data, 2)
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to read unknown type: %w", err)
 	}
-	data, senderUUID, err := helpers.Take(data, 16)
+	data, senderUUID, err = helpers.Take(data, 16)
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to read sender UUID: %w", err)
 	}
-	data, dSCSharedCacheUUID, err := helpers.Take(data, 16)
+	data, dSCSharedCacheUUID, err = helpers.Take(data, 16)
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to read DSC shared cache UUID: %w", err)
 	}
-	data, unknownNumberMessageStrings, err := helpers.Take(data, 4)
+	data, unknownNumberMessageStrings, err = helpers.Take(data, 4)
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to read unknown number message strings: %w", err)
 	}
-	data, unknownSizeSubsystemString, err := helpers.Take(data, 4)
+	data, unknownSizeSubsystemString, err = helpers.Take(data, 4)
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to read unknown size subsystem string: %w", err)
 	}
-	data, unknownSizeMessageString, err := helpers.Take(data, 4)
+	data, unknownSizeMessageString, err = helpers.Take(data, 4)
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to read unknown size message string: %w", err)
 	}
-	data, subsystem, err := helpers.ExtractStringSize(data, uint64(binary.LittleEndian.Uint32(unknownSizeSubsystemString)))
+	data, subsystem, err = helpers.ExtractStringSize(data, uint64(binary.LittleEndian.Uint32(unknownSizeSubsystemString)))
 	if err != nil {
 		return simpleDumpResult, data, fmt.Errorf("failed to extract subsystem string: %w", err)
-	}
-	data, messageString, err := helpers.ExtractStringSize(data, uint64(binary.LittleEndian.Uint32(unknownSizeMessageString)))
-	if err != nil {
-		return simpleDumpResult, data, fmt.Errorf("failed to extract message string: %w", err)
 	}
 	data, messageString, err = helpers.ExtractStringSize(data, uint64(binary.LittleEndian.Uint32(unknownSizeMessageString)))
 	if err != nil {

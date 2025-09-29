@@ -37,15 +37,18 @@ func DetectPreamble(data []byte) (LogPreamble, error) {
 // ParsePreamble parses the 1st 16 bytes of the data into a LogPreamble
 // Consumes the input
 func ParsePreamble(data []byte) (LogPreamble, []byte, error) {
-	data, chunkTag, err := helpers.Take(data, 4)
+	var chunkTag, chunkSubTag, chunkDataSize []byte
+	var err error
+
+	data, chunkTag, err = helpers.Take(data, 4)
 	if err != nil {
 		return LogPreamble{}, data, fmt.Errorf("failed to parse preamble chunk tag: %w", err)
 	}
-	data, chunkSubTag, err := helpers.Take(data, 4)
+	data, chunkSubTag, err = helpers.Take(data, 4)
 	if err != nil {
 		return LogPreamble{}, data, fmt.Errorf("failed to parse preamble chunk subtag: %w", err)
 	}
-	data, chunkDataSize, err := helpers.Take(data, 8)
+	data, chunkDataSize, err = helpers.Take(data, 8)
 	if err != nil {
 		return LogPreamble{}, data, fmt.Errorf("failed to parse preamble chunk data size: %w", err)
 	}

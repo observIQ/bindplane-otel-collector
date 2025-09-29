@@ -31,6 +31,8 @@ func ExtractSharedStrings(
 	catalogs *models.CatalogChunk,
 	originalOffset uint64,
 ) (models.MessageData, error) {
+	var err error
+
 	messageData := models.MessageData{}
 	// Get shared string file (DSC) associated with log entry from Catalog
 	dscUUID, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
@@ -60,6 +62,8 @@ func ExtractSharedStrings(
 
 	if sharedString, exists := provider.CachedDSC(dscUUID); exists {
 		for _, r := range sharedString.Ranges {
+			var messageStart []byte
+
 			if stringOffset >= r.RangeOffset && stringOffset < (r.RangeOffset+uint64(r.RangeSize)) {
 				offset := stringOffset - r.RangeOffset
 
@@ -67,7 +71,7 @@ func ExtractSharedStrings(
 					return messageData, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 				}
 
-				messageStart, _, err := helpers.Take(r.Strings, int(offset))
+				messageStart, _, err = helpers.Take(r.Strings, int(offset))
 				if err != nil {
 					return messageData, err
 				}
@@ -122,6 +126,8 @@ func ExtractFormatStrings(
 	catalogs *models.CatalogChunk,
 	originalOffset uint64,
 ) (models.MessageData, error) {
+	var err error
+
 	_, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
 
 	messageData := models.MessageData{
@@ -149,6 +155,7 @@ func ExtractFormatStrings(
 	if data, exists := provider.CachedUUIDText(mainUUID); exists {
 		stringStart := uint32(0)
 		for _, entry := range data.EntryDescriptors {
+			var messageStart []byte
 			if entry.RangeStartOffset > uint32(stringOffset) {
 				stringStart += entry.EntrySize
 				continue
@@ -160,7 +167,7 @@ func ExtractFormatStrings(
 				continue
 			}
 
-			messageStart, _, err := helpers.Take(data.FooterData, int(offset+stringStart))
+			messageStart, _, err = helpers.Take(data.FooterData, int(offset+stringStart))
 			if err != nil {
 				return messageData, err
 			}
@@ -210,6 +217,8 @@ func ExtractAbsoluteStrings(
 	catalogs *models.CatalogChunk,
 	originalOffset uint64,
 ) (models.MessageData, error) {
+	var err error
+
 	key := fmt.Sprintf("%d_%d", firstProcID, secondProcID)
 	uuid := ""
 
@@ -253,6 +262,8 @@ func ExtractAbsoluteStrings(
 
 	if data, exists := provider.CachedUUIDText(messageData.LibraryUUID); exists {
 		stringStart := uint32(0)
+		var messageStart []byte
+
 		for _, entry := range data.EntryDescriptors {
 			if entry.RangeStartOffset > uint32(stringOffset) {
 				stringStart += entry.EntrySize
@@ -269,7 +280,7 @@ func ExtractAbsoluteStrings(
 				return messageData, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 			}
 
-			messageStart, _, err := helpers.Take(data.FooterData, int(offset+uint64(stringStart)))
+			messageStart, _, err = helpers.Take(data.FooterData, int(offset+uint64(stringStart)))
 			if err != nil {
 				return messageData, err
 			}
@@ -325,6 +336,8 @@ func ExtractAltUUIDStrings(
 	catalogs *models.CatalogChunk,
 	originalOffset uint64,
 ) (models.MessageData, error) {
+	var err error
+
 	_, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
 	messageData := models.MessageData{
 		LibraryUUID: uuid,
@@ -353,6 +366,8 @@ func ExtractAltUUIDStrings(
 	if data, exists := provider.CachedUUIDText(uuid); exists {
 		stringStart := uint32(0)
 		for _, entry := range data.EntryDescriptors {
+			var messageStart []byte
+
 			if entry.RangeStartOffset > uint32(stringOffset) {
 				stringStart += entry.EntrySize
 				continue
@@ -364,7 +379,7 @@ func ExtractAltUUIDStrings(
 				continue
 			}
 
-			messageStart, _, err := helpers.Take(data.FooterData, int(offset+stringStart))
+			messageStart, _, err = helpers.Take(data.FooterData, int(offset+stringStart))
 			if err != nil {
 				return messageData, err
 			}
@@ -437,12 +452,14 @@ func getUUIDImagePath(uuid string, provider *uuidtext.CacheProvider) (string, er
 func uuidTextImagePath(data []byte, entries []uuidtext.Entry) (string, error) {
 	// Add up all entry range offset sizes to get image library offset
 	imageLibraryOffset := uint32(0)
+	var libraryStart []byte
+	var err error
 
 	for _, entry := range entries {
 		imageLibraryOffset += entry.EntrySize
 	}
 
-	libraryStart, _, err := helpers.Take(data, int(imageLibraryOffset))
+	libraryStart, _, err = helpers.Take(data, int(imageLibraryOffset))
 	if err != nil {
 		return "", err
 	}
