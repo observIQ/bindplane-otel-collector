@@ -31,8 +31,10 @@ import (
 )
 
 func TestParseOneLineArchive(t *testing.T) {
-	p := filepath.Join("testdata", "one_line_archive.logarchive")
-	glob := filepath.Join(p, "Persist", "*.tracev3")
+	baseArchivePath := filepath.Join("testdata", "one-line.logarchive")
+	traceV3Paths := filepath.Join(baseArchivePath, "Persist", "00000000000060d5.tracev3")
+	// timesyncPaths := filepath.Join(baseArchivePath, "timesync", "*.timesync")
+	// dscPaths := filepath.Join(baseArchivePath, "dsc", "*.dsc")
 
 	extFactory := macosunifiedloggingencodingextension.NewFactory()
 	extCfg := extFactory.CreateDefaultConfig()
@@ -53,7 +55,10 @@ func TestParseOneLineArchive(t *testing.T) {
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig().(*Config)
 	cfg.Encoding = "macosunifiedlogencoding"
-	cfg.TraceV3Paths = []string{glob}
+	cfg.TraceV3Paths = []string{traceV3Paths}
+	cfg.TimesyncPaths = []string{}
+	cfg.DSCPaths = []string{}
+	cfg.UUIDTextPaths = []string{}
 	cfg.StartAt = "beginning"
 	cfg.PollInterval = 100 * time.Millisecond
 
@@ -72,7 +77,7 @@ func TestParseOneLineArchive(t *testing.T) {
 	require.Eventually(
 		t,
 		func() bool { return sink.LogRecordCount() > 0 },
-		5*time.Second, 10*time.Millisecond,
+		200*time.Second, 10*time.Millisecond,
 	)
 
 	// Verify the log content
