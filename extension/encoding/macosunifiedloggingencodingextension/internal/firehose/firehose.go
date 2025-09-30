@@ -25,7 +25,7 @@ import (
 
 // Preamble represents a parsed firehose preamble
 type Preamble struct {
-	chunkTag                 uint32
+	ChunkTag                 uint32
 	chunkSubTag              uint32
 	chunkDataSize            uint64
 	FirstProcID              uint64
@@ -33,8 +33,8 @@ type Preamble struct {
 	ttl                      uint8
 	collapsed                uint8
 	unknown                  []byte
-	publicDataSize           uint16
-	privateDataVirtualOffset uint16
+	PublicDataSize           uint16
+	PrivateDataVirtualOffset uint16
 	unknown2                 uint16
 	unknown3                 uint16
 	BaseContinuousTime       uint64
@@ -165,7 +165,7 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 	// Save the current data for later use
 	logData := data
 
-	preamble.chunkTag = binary.LittleEndian.Uint32(chunkTag)
+	preamble.ChunkTag = binary.LittleEndian.Uint32(chunkTag)
 	preamble.chunkSubTag = binary.LittleEndian.Uint32(chunkSubTag)
 	preamble.chunkDataSize = binary.LittleEndian.Uint64(chunkDataSize)
 	preamble.FirstProcID = binary.LittleEndian.Uint64(firstProcID)
@@ -173,8 +173,8 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 	preamble.ttl = ttl[0]
 	preamble.collapsed = collapsed[0]
 	preamble.unknown = unknown
-	preamble.publicDataSize = binary.LittleEndian.Uint16(publicDataSize)
-	preamble.privateDataVirtualOffset = binary.LittleEndian.Uint16(privateDataVirtualOffset)
+	preamble.PublicDataSize = binary.LittleEndian.Uint16(publicDataSize)
+	preamble.PrivateDataVirtualOffset = binary.LittleEndian.Uint16(privateDataVirtualOffset)
 	preamble.unknown2 = binary.LittleEndian.Uint16(unknown2)
 	preamble.unknown3 = binary.LittleEndian.Uint16(unknown3)
 	preamble.BaseContinuousTime = binary.LittleEndian.Uint64(baseContinuousTime)
@@ -183,7 +183,7 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 	publicDataSizeOffset := 16
 	var publicData []byte
 
-	data, publicData, err = helpers.Take(data, int(preamble.publicDataSize)-publicDataSizeOffset)
+	data, publicData, err = helpers.Take(data, int(preamble.PublicDataSize)-publicDataSizeOffset)
 
 	if err != nil {
 		return preamble, data, fmt.Errorf("failed to read public data: %w", err)
@@ -202,8 +202,8 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 			if firehoseEntry.ActivityType == UnknownRemnantData {
 				break
 			}
-			if preamble.privateDataVirtualOffset != 0x1000 {
-				privateDataOffset := 0x1000 - preamble.privateDataVirtualOffset
+			if preamble.PrivateDataVirtualOffset != 0x1000 {
+				privateDataOffset := 0x1000 - preamble.PrivateDataVirtualOffset
 				// Calculate start of private data. If the remaining input is greater than private data offset.
 				// Remove any padding/junk data in front of the private data
 				if len(data) > int(privateDataOffset) && len(publicData) == 0 {
@@ -215,14 +215,14 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 					}
 				} else {
 					// If log data and public data are the same size, use private data offset to calculate the private data
-					if len(logData) == int(preamble.publicDataSize)-publicDataSizeOffset {
-						data, _, err = helpers.Take(logData, int(preamble.privateDataVirtualOffset)-publicDataSizeOffset-len(publicData))
+					if len(logData) == int(preamble.PublicDataSize)-publicDataSizeOffset {
+						data, _, err = helpers.Take(logData, int(preamble.PrivateDataVirtualOffset)-publicDataSizeOffset-len(publicData))
 						if err != nil {
 							return preamble, data, fmt.Errorf("failed to read private input data: %w", err)
 						}
 					} else {
 						// If we have private data, then any leftover public data is actually prepended to the private data
-						data, _, err = helpers.Take(logData, int(preamble.publicDataSize)-publicDataSizeOffset-len(publicData))
+						data, _, err = helpers.Take(logData, int(preamble.PublicDataSize)-publicDataSizeOffset-len(publicData))
 						if err != nil {
 							return preamble, data, fmt.Errorf("failed to read private input data: %w", err)
 						}
@@ -236,7 +236,7 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 	}
 
 	// If there is private data, go through and update any logs that have private data items
-	if preamble.privateDataVirtualOffset != 0x1000 {
+	if preamble.PrivateDataVirtualOffset != 0x1000 {
 		// Skip any null padding at the beginning
 		offset := 0
 		for offset < len(data) && data[offset] == 0 {
@@ -253,7 +253,7 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 			if publicData.FirehoseNonActivity.PrivateStringsSize == 0 {
 				continue
 			}
-			stringOffset := publicData.FirehoseNonActivity.PrivateStringsOffset - preamble.privateDataVirtualOffset
+			stringOffset := publicData.FirehoseNonActivity.PrivateStringsOffset - preamble.PrivateDataVirtualOffset
 
 			var privateStringStart []byte
 			privateStringStart, _, err = helpers.Take(privateInput, int(stringOffset))

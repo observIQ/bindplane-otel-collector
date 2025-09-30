@@ -24,18 +24,18 @@ import (
 
 // OversizeChunk represents a parsed oversize chunk
 type OversizeChunk struct {
-	chunkTag        uint32
+	ChunkTag        uint32
 	chunkSubTag     uint32
 	chunkDataSize   uint64
-	firstProcID     uint64
-	secondProcID    uint32
+	FirstProcID     uint64
+	SecondProcID    uint32
 	ttl             uint8
 	unknownReserved [3]uint8
-	continuousTime  uint64
+	ContinuousTime  uint64
 	dataRefIndex    uint32
-	publicDataSize  uint16
-	privateDataSize uint16
-	messageItems    firehose.ItemData
+	PublicDataSize  uint16
+	PrivateDataSize uint16
+	MessageItems    firehose.ItemData
 }
 
 // ParseOversizeChunk parses an oversize chunk
@@ -93,19 +93,19 @@ func ParseOversizeChunk(data []byte) (OversizeChunk, []byte, error) {
 		return oversizeResult, data, fmt.Errorf("failed to read private data size: %w", err)
 	}
 
-	oversizeResult.chunkTag = binary.LittleEndian.Uint32(chunkTag)
+	oversizeResult.ChunkTag = binary.LittleEndian.Uint32(chunkTag)
 	oversizeResult.chunkSubTag = binary.LittleEndian.Uint32(chunkSubTag)
 	oversizeResult.chunkDataSize = binary.LittleEndian.Uint64(chunkDataSize)
-	oversizeResult.firstProcID = binary.LittleEndian.Uint64(firstProcID)
-	oversizeResult.secondProcID = binary.LittleEndian.Uint32(secondProcID)
+	oversizeResult.FirstProcID = binary.LittleEndian.Uint64(firstProcID)
+	oversizeResult.SecondProcID = binary.LittleEndian.Uint32(secondProcID)
 	oversizeResult.ttl = ttl[0]
 	copy(oversizeResult.unknownReserved[:], unknownReserved)
-	oversizeResult.continuousTime = binary.LittleEndian.Uint64(continuousTime)
+	oversizeResult.ContinuousTime = binary.LittleEndian.Uint64(continuousTime)
 	oversizeResult.dataRefIndex = binary.LittleEndian.Uint32(dataRefIndex)
-	oversizeResult.publicDataSize = binary.LittleEndian.Uint16(publicDataSize)
-	oversizeResult.privateDataSize = binary.LittleEndian.Uint16(privateDataSize)
+	oversizeResult.PublicDataSize = binary.LittleEndian.Uint16(publicDataSize)
+	oversizeResult.PrivateDataSize = binary.LittleEndian.Uint16(privateDataSize)
 
-	oversizeDataSize := int(oversizeResult.publicDataSize + oversizeResult.privateDataSize)
+	oversizeDataSize := int(oversizeResult.PublicDataSize + oversizeResult.PrivateDataSize)
 	if oversizeDataSize > len(data) {
 		// TODO: Log this warning
 		// fmt.Printf("Oversize data size greater than Oversize remaining string size. Using remaining string size\n")
@@ -141,7 +141,7 @@ func ParseOversizeChunk(data []byte) (OversizeChunk, []byte, error) {
 	if err != nil {
 		return oversizeResult, data, err
 	}
-	oversizeResult.messageItems = firehoseItemData
+	oversizeResult.MessageItems = firehoseItemData
 
 	return oversizeResult, data, nil
 }
