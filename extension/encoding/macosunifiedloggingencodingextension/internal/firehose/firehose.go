@@ -191,15 +191,15 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 
 	// Go through all the public data associated with log Firehose entry
 	for len(publicData) > 0 {
-		var firehouseEntry Entry
-		firehouseEntry, publicData, err = ParseFirehoseEntry(publicData)
+		var firehoseEntry Entry
+		firehoseEntry, publicData, err = ParseFirehoseEntry(publicData)
 		if err != nil {
 			return preamble, data, fmt.Errorf("failed to parse firehose entry: %w", err)
 		}
 
-		if !slices.Contains(logTypes[:], firehouseEntry.ActivityType) || len(publicData) < 24 {
+		if !slices.Contains(logTypes[:], firehoseEntry.ActivityType) || len(publicData) < 24 {
 			// If the activity type is unknown remnant data, break
-			if firehouseEntry.ActivityType == UnknownRemnantData {
+			if firehoseEntry.ActivityType == UnknownRemnantData {
 				break
 			}
 			if preamble.privateDataVirtualOffset != 0x1000 {
@@ -229,10 +229,10 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 					}
 				}
 			}
-			preamble.PublicData = append(preamble.PublicData, firehouseEntry)
+			preamble.PublicData = append(preamble.PublicData, firehoseEntry)
 			break
 		}
-		preamble.PublicData = append(preamble.PublicData, firehouseEntry)
+		preamble.PublicData = append(preamble.PublicData, firehoseEntry)
 	}
 
 	// If there is private data, go through and update any logs that have private data items
@@ -475,7 +475,10 @@ func ParsePrivateData(data []byte, firehoseItemData *ItemData) ([]byte, error) {
 			if firehoseInfo.ItemSize == nullPrivate {
 				firehoseInfo.MessageStrings = "<private>"
 			} else {
-				privateData, messageString, _ := helpers.ExtractStringSize(privateStringStart, uint64(firehoseInfo.ItemSize))
+				privateData, messageString, err := helpers.ExtractStringSize(privateStringStart, uint64(firehoseInfo.ItemSize))
+				if err != nil {
+					return privateStringStart, fmt.Errorf("failed to extract private string: %w", err)
+				}
 				privateStringStart = privateData
 				firehoseInfo.MessageStrings = messageString
 			}
@@ -697,7 +700,7 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (ItemD
 		firehoseItemData.ItemInfo = append(firehoseItemData.ItemInfo, ItemInfo{
 			MessageStrings: item.MessageStrings,
 			ItemType:       item.ItemType,
-			ItemSize:       uint16(item.ItemSize),
+			ItemSize:       item.MessageStringSize,
 		})
 	}
 	return firehoseItemData, firehoseInput, nil
