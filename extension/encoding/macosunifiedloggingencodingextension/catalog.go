@@ -280,9 +280,6 @@ func parseCatalogProcessEntry(data []byte, catalogUUIDs []string) (models.Proces
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse catalog process entry second number proc ID: %w", err)
 	}
-	if err != nil {
-		return entry, data, fmt.Errorf("failed to parse catalog process entry second number proc ID: %w", err)
-	}
 	data, pid, err = helpers.Take(data, 4)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse catalog process entry PID: %w", err)
@@ -365,6 +362,21 @@ func parseCatalogProcessEntry(data []byte, catalogUUIDs []string) (models.Proces
 	entry.MainUUID = mainUUID
 	entry.DSCUUID = dscUUID
 
+	// Calculate and skip padding bytes after subsystem entries
+	const subsystemSize uint64 = 6
+	padding := helpers.AnticipatedPaddingSize(uint64(entry.NumberSubsystems), subsystemSize, 8)
+	if padding > uint64(^uint(0)>>1) {
+		return entry, data, fmt.Errorf("padding size %d is bigger than system int", padding)
+	}
+
+	// Skip padding bytes
+	if padding > 0 {
+		data, _, err = helpers.Take(data, int(padding))
+		if err != nil {
+			return entry, data, fmt.Errorf("failed to skip padding bytes: %w", err)
+		}
+	}
+
 	return entry, data, nil
 }
 
@@ -401,7 +413,7 @@ func parseProcessInfoUUIDEntry(data []byte, catalogUUIDs []string) (models.Proce
 	copy(loadAddressVec, loadAddressBytes)
 
 	entry.LoadAddress = binary.LittleEndian.Uint64(loadAddressVec)
-	uuidIndex := binary.LittleEndian.Uint16(catalogUUIDIndex)
+	uuidIndex := entry.CatalogUUIDIndex
 	if int(uuidIndex) >= len(catalogUUIDs) {
 		return entry, data, fmt.Errorf("catalog UUID index %d out of range (max %d)", uuidIndex, len(catalogUUIDs)-1)
 	}

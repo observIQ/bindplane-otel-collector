@@ -16,6 +16,7 @@ package macosunifiedloggingencodingextension // import "github.com/observiq/bind
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -142,42 +143,35 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 				zap.Int("oversizeDataCount", len(logData.OversizeData)))
 		}
 
-		for j, firehose := range logData.FirehoseData {
+		for j, firehosePreamble := range logData.FirehoseData {
 			if c.debugMode {
 				c.logger.Info("Processing firehose data",
 					zap.Int("firehoseIndex", j),
-					zap.Int("publicDataCount", len(firehose.PublicData)))
+					zap.Int("publicDataCount", len(firehosePreamble.PublicData)))
 			}
 
-			for _, firehoseEntry := range firehose.PublicData {
-				for _, item := range firehoseEntry.Message.ItemInfo {
-					if c.debugMode {
-						c.logger.Info("Found log message", zap.String("message", item.MessageStrings))
-					}
-					otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(item.MessageStrings)
-				}
+			for _, firehoseEntry := range firehosePreamble.PublicData {
+				// Create a single log record for each firehose entry
+				logRecord := otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+
+				// Format the complete log message from the firehose entry
+				// TODO: figure out how to call FormatFirehoseLogMessage
+				// formattedMessage, err := firehose.FormatFirehoseLogMessage(firehoseEntry.Message.ItemInfo, nil, nil)
+				// if err != nil {
+				// 	c.logger.Error("Failed to format firehose log message",
+				// 	zap.Error(err), zap.Int("firehoseIndex", j), zap.Int("firehoseEntryIndex", i))
+				// 	continue
+				// }
+				// logRecord.Body().SetStr(formattedMessage)
+				logRecord.Body().SetStr(firehoseEntry.Message.ItemInfo[0].MessageStrings)
+
+				// Add metadata as attributes
+				logRecord.Attributes().PutStr("activity_type", fmt.Sprintf("%d", firehoseEntry.ActivityType))
+				logRecord.Attributes().PutStr("log_type", fmt.Sprintf("%d", firehoseEntry.LogType))
+				logRecord.Attributes().PutInt("thread_id", int64(firehoseEntry.ThreadID))
+				logRecord.Attributes().PutInt("data_size", int64(firehoseEntry.DataSize))
 			}
 		}
-
-		// Process Oversize data - these contain log messages or string data
-		// for j, oversize := range logData.OversizeData {
-		// 	if c.debugMode {
-		// 		c.logger.Info("Processing oversize data",
-		// 			zap.Int("oversizeIndex", j),
-		// 			zap.Uint32("dataRefIndex", oversize.dataRefIndex),
-		// 			zap.Int("itemInfoCount", len(oversize.messageItems.ItemInfo)))
-		// 	}
-
-		// 	// Extract messages from the oversize chunk's message items
-		// 	for _, item := range oversize.messageItems.ItemInfo {
-		// 		if len(item.MessageStrings) > 0 {
-		// 			if c.debugMode {
-		// 				c.logger.Info("Found oversize log message", zap.String("message", item.MessageStrings))
-		// 			}
-		// 			otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(item.MessageStrings)
-		// 		}
-		// 	}
-		// }
 
 		for _, simpledump := range logData.SimpledumpData {
 			otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(simpledump.MessageString)

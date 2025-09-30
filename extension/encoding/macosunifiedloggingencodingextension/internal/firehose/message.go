@@ -16,11 +16,19 @@ package firehose
 
 import (
 	"fmt"
+	"regexp"
+	"slices"
+	"strings"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 )
+
+type FormatAndMessage struct {
+	Formatter string
+	Message   string
+}
 
 // ExtractSharedStrings extracts the message data for a shared string firehose entry
 func ExtractSharedStrings(
@@ -464,4 +472,128 @@ func uuidTextImagePath(data []byte, entries []uuidtext.Entry) (string, error) {
 		return "", err
 	}
 	return helpers.ExtractString(libraryStart)
+}
+
+// formatFirehoseLogMessage formats a complete log message from a firehose entry
+func FormatFirehoseLogMessage(formatString string, itemMessage []ItemInfo, messageRe *regexp.Regexp) (string, error) {
+	var err error
+	formatAndMessageVec := []FormatAndMessage{}
+	if len(itemMessage) == 0 && len(formatString) == 0 {
+		return "", nil
+	}
+	if len(formatString) == 0 {
+		return itemMessage[0].MessageStrings, nil
+	}
+	regexResults := messageRe.FindAllString(formatString, -1)
+	for i, formatter := range regexResults {
+		if strings.HasPrefix(formatter, "% ") {
+			continue
+		}
+
+		formatAndMessage := FormatAndMessage{
+			Formatter: "",
+			Message:   "",
+		}
+
+		if formatter == "%%" {
+			formatAndMessage.Formatter = formatter
+			formatAndMessage.Message = "%"
+			formatAndMessageVec = append(formatAndMessageVec, formatAndMessage)
+			continue
+		}
+
+		if i >= len(itemMessage) {
+			formatAndMessage.Formatter = formatter
+			formatAndMessage.Message = "<Missing message data>"
+			formatAndMessageVec = append(formatAndMessageVec, formatAndMessage)
+			continue
+		}
+
+		formattedLogMessage := itemMessage[i].MessageStrings
+		formatterString := formatter
+
+		if strings.HasPrefix(formatterString, "%{") && strings.HasSuffix(formatterString, "}") {
+			formatAndMessage.Formatter = formatterString
+			formatterString = formatterString[1:]
+			formatAndMessage.Message = formatterString
+			formatAndMessageVec = append(formatAndMessageVec, formatAndMessage)
+			continue
+		}
+
+		precisionItems := []uint8{0x10, 0x12}
+		if slices.Contains(precisionItems, itemMessage[i].ItemType) {
+			i++
+		}
+
+		dynamicPrecisionValue := uint8(0x0)
+		if itemMessage[i].ItemType == dynamicPrecisionValue && itemMessage[i].ItemSize == 0 && strings.Contains(formatterString, "%*") {
+			i++
+		}
+
+		if i >= len(itemMessage) {
+			formatAndMessage.Formatter = formatter
+			formatAndMessage.Message = "<Missing message data>"
+			formatAndMessageVec = append(formatAndMessageVec, formatAndMessage)
+			continue
+		}
+
+		privateStrings := []uint8{0x1, 0x21, 0x31, 0x41}
+		privateNumber := uint8(0x1)
+		privateMessage := uint16(0x8000)
+		var results string
+		if strings.HasPrefix(formatterString, "%{") {
+			if slices.Contains(privateStrings, itemMessage[i].ItemType) && itemMessage[i].ItemSize == 0 || (itemMessage[i].ItemType == privateNumber && itemMessage[i].ItemSize == privateMessage) {
+				formattedLogMessage = "<private>"
+			} else {
+				results, err = parseTypeFormatter(formatterString, itemMessage, itemMessage[i].ItemType, i)
+				if err != nil {
+					return "", err
+				}
+				formattedLogMessage = results
+			}
+		} else {
+			if slices.Contains(privateStrings, itemMessage[i].ItemType) && itemMessage[i].ItemSize == 0 || (itemMessage[i].ItemType == privateNumber && itemMessage[i].ItemSize == privateMessage) {
+				formattedLogMessage = "<private>"
+			} else {
+				results, err = parseFormatter(formatterString, itemMessage, itemMessage[i].ItemType, i)
+				if err != nil {
+					return "", err
+				}
+				formattedLogMessage = results
+			}
+		}
+
+		i++
+		formatAndMessage.Formatter = formatter
+		formatAndMessage.Message = formattedLogMessage
+		formatAndMessageVec = append(formatAndMessageVec, formatAndMessage)
+	}
+
+	logMessageVec := []string{}
+	for _, values := range formatAndMessageVec {
+		// Split the message by the formatter and replace it with the actual value
+		// We need to do this instead of simple replace because the replacement string may also contain a formatter
+		parts := strings.SplitN(formatString, values.Formatter, 2)
+		if len(parts) == 2 {
+			logMessageVec = append(logMessageVec, parts[0])
+			logMessageVec = append(logMessageVec, values.Message)
+			formatString = parts[1]
+		} else {
+			// If we can't split by the formatter, log an error and continue
+			// This shouldn't happen in normal cases
+			logMessageVec = append(logMessageVec, values.Formatter)
+		}
+	}
+
+	// Add any remaining message content
+	logMessageVec = append(logMessageVec, formatString)
+	return strings.Join(logMessageVec, ""), nil
+}
+
+func parseFormatter(formatterString string, messageValue []ItemInfo, itemType uint8, itemIndex int) (string, error) {
+	return "", nil
+}
+
+func parseTypeFormatter(formatterString string, messageValue []ItemInfo, itemType uint8, itemIndex int) (string, error) {
+	return "", nil
 }
