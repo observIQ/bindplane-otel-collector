@@ -41,7 +41,7 @@ func TestParseLogBigSur(t *testing.T) {
 	filepath := filepath.Join("testdata", "system_logs_big_sur.logarchive")
 	sink := new(consumertest.LogsSink)
 
-	err, macOSLogReceiver := setupAndStartReceiver(t, filepath, sink)
+	macOSLogReceiver, err := setupAndStartReceiver(t, filepath, sink)
 
 	// Verify the log content
 	byEventType := countLogInformation(t, sink)
@@ -63,7 +63,7 @@ func TestParseAllLogsPrivateBigSur(t *testing.T) {
 	filePath := filepath.Join("testdata", "system_logs_big_sur_private_enabled.logarchive")
 	sink := new(consumertest.LogsSink)
 
-	err, macOSLogReceiver := setupAndStartReceiver(t, filePath, sink)
+	macOSLogReceiver, err := setupAndStartReceiver(t, filePath, sink)
 
 	// Verify the log content
 	byEventType := countLogInformation(t, sink)
@@ -85,7 +85,7 @@ func TestParseAllLogsPrivateWithPublicMixBigSur(t *testing.T) {
 	filePath := filepath.Join("testdata", "system_logs_big_sur_public_private_data_mix.logarchive")
 	sink := new(consumertest.LogsSink)
 
-	err, macOSLogReceiver := setupAndStartReceiver(t, filePath, sink)
+	macOSLogReceiver, err := setupAndStartReceiver(t, filePath, sink)
 
 	// Verify the log content
 	byEventType := countLogInformation(t, sink)
@@ -103,7 +103,7 @@ func TestBigSurMissingOversizeStrings(t *testing.T) {
 	filePath := filepath.Join("testdata", "system_logs_big_sur.logarchive")
 	sink := new(consumertest.LogsSink)
 
-	err, macOSLogReceiver := setupAndStartReceiver(t, filePath, sink)
+	macOSLogReceiver, err := setupAndStartReceiver(t, filePath, sink)
 
 	// Verify the log content
 	byEventType := countLogInformation(t, sink)
@@ -121,7 +121,7 @@ func TestParseAllLogsHighSierra(t *testing.T) {
 	filePath := filepath.Join("testdata", "system_logs_high_sierra.logarchive")
 	sink := new(consumertest.LogsSink)
 
-	err, macOSLogReceiver := setupAndStartReceiver(t, filePath, sink)
+	macOSLogReceiver, err := setupAndStartReceiver(t, filePath, sink)
 
 	// Verify the log content
 	byEventType := countLogInformation(t, sink)
@@ -139,7 +139,7 @@ func TestParseAllLogsMonterey(t *testing.T) {
 	filePath := filepath.Join("testdata", "system_logs_monterey.logarchive")
 	sink := new(consumertest.LogsSink)
 
-	err, macOSLogReceiver := setupAndStartReceiver(t, filePath, sink)
+	macOSLogReceiver, err := setupAndStartReceiver(t, filePath, sink)
 
 	// Verify the log content
 	byEventType := countLogInformation(t, sink)
@@ -189,7 +189,7 @@ func countLogInformation(t *testing.T, sink *consumertest.LogsSink) map[string]i
 	return byEventType
 }
 
-func setupAndStartReceiver(t *testing.T, glob string, sink *consumertest.LogsSink) (error, receiver.Logs) {
+func setupAndStartReceiver(t *testing.T, glob string, sink *consumertest.LogsSink) (receiver.Logs, err) {
 	extFactory := macosunifiedloggingencodingextension.NewFactory()
 	extCfg := extFactory.CreateDefaultConfig()
 
