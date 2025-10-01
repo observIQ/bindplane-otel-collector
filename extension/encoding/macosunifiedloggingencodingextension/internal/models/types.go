@@ -76,7 +76,7 @@ func (c *CatalogChunk) GetSubsystem(subsystemValue uint16, firstProcID uint64, s
 
 // GetPID resolves internal process IDs to actual PID
 // Based on the rust implementation's get_pid method
-func (c *CatalogChunk) GetPID(firstProcID uint64, secondProcID uint32) uint32 {
+func (c *CatalogChunk) GetPID(firstProcID uint64, secondProcID uint32) uint64 {
 	if c == nil {
 		return 0
 	}
@@ -84,7 +84,7 @@ func (c *CatalogChunk) GetPID(firstProcID uint64, secondProcID uint32) uint32 {
 	// Look for the process entry
 	for _, procEntry := range c.ProcessInfoEntries {
 		if procEntry.FirstNumberProcID == firstProcID && procEntry.SecondNumberProcID == secondProcID {
-			return procEntry.PID
+			return uint64(procEntry.PID)
 		}
 	}
 

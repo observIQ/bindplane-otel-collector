@@ -18,12 +18,15 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/sharedcache"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding"
@@ -89,6 +92,12 @@ func (e *MacosUnifiedLoggingExtension) Start(_ context.Context, _ component.Host
 		debugMode:     e.config.DebugMode,
 		cacheProvider: uuidtext.NewCacheProvider(),
 	}
+
+	// Initialize the regex pattern for printf format parsing
+	if err := e.codec.initMessageRegex(); err != nil {
+		return fmt.Errorf("failed to initialize message regex: %w", err)
+	}
+
 	return nil
 }
 
@@ -108,6 +117,7 @@ type macosUnifiedLoggingCodec struct {
 	dscRawData      map[string][]byte               // Raw DSC data from files
 	dscData         map[string]*sharedcache.Strings // Parsed DSC data for shared string parsing
 	cacheProvider   *uuidtext.CacheProvider         // Cache provider for accessing parsed data
+	messageRegex    *regexp.Regexp                  // Compiled regex for printf format parsing
 }
 
 // UnmarshalLogs reads binary data and parses tracev3 entries into individual log records.
@@ -135,15 +145,19 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 			zap.Int("oversizeDataCount", len(logDataResults.OversizeData)))
 	}
 
-	for i, logData := range logDataResults.CatalogData {
+	// Process each catalog data entry
+	for i, catalogData := range logDataResults.CatalogData {
+		c.processFirehoseData(logDataResults, &catalogData, i)
+
 		if c.debugMode {
 			c.logger.Info("Processing catalog data",
 				zap.Int("catalogIndex", i),
-				zap.Int("firehoseDataCount", len(logData.FirehoseData)),
-				zap.Int("oversizeDataCount", len(logData.OversizeData)))
+				zap.Int("firehoseDataCount", len(catalogData.FirehoseData)),
+				zap.Int("oversizeDataCount", len(catalogData.OversizeData)))
 		}
 
-		for j, firehosePreamble := range logData.FirehoseData {
+		for j, firehosePreamble := range catalogData.FirehoseData {
+
 			if c.debugMode {
 				c.logger.Info("Processing firehose data",
 					zap.Int("firehoseIndex", j),
@@ -153,16 +167,6 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 			for _, firehoseEntry := range firehosePreamble.PublicData {
 				// Create a single log record for each firehose entry
 				logRecord := otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-
-				// Format the complete log message from the firehose entry
-				// TODO: figure out how to call FormatFirehoseLogMessage
-				// formattedMessage, err := firehose.FormatFirehoseLogMessage(firehoseEntry.Message.ItemInfo, nil, nil)
-				// if err != nil {
-				// 	c.logger.Error("Failed to format firehose log message",
-				// 	zap.Error(err), zap.Int("firehoseIndex", j), zap.Int("firehoseEntryIndex", i))
-				// 	continue
-				// }
-				// logRecord.Body().SetStr(formattedMessage)
 				logRecord.Body().SetStr(firehoseEntry.Message.ItemInfo[0].MessageStrings)
 
 				// Add metadata as attributes
@@ -173,10 +177,10 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 			}
 		}
 
-		for _, simpledump := range logData.SimpledumpData {
+		for _, simpledump := range catalogData.SimpledumpData {
 			otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(simpledump.MessageString)
 		}
-		for _, statedump := range logData.StatedumpData {
+		for _, statedump := range catalogData.StatedumpData {
 			otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(string(statedump.Data))
 
 		}
@@ -253,6 +257,22 @@ func extractDSCUUIDFromPath(filePath string) string {
 
 	// If not a standard UUID format, return as-is
 	return filename
+}
+
+// initMessageRegex initializes the regex pattern for printf format parsing
+// This is based on the Rust implementation's regex pattern
+func (c *macosUnifiedLoggingCodec) initMessageRegex() error {
+	// This is the regex pattern from the Rust implementation
+	// It matches printf-style format specifiers including Apple-specific extensions
+	pattern := `(%(?:(?:\{[^}]+}?)(?:[-+0#]{0,5})(?:\d+|\*)?(?:\.(?:\d+|\*))?(?:h|hh|l|ll|w|I|z|t|q|I32|I64)?[cmCdiouxXeEfgGaAnpsSZP@}]|(?:[-+0 #]{0,5})(?:\d+|\*)?(?:\.(?:\d+|\*))?(?:h|hh|l||q|t|ll|w|I|z|I32|I64)?[cmCdiouxXeEfgGaAnpsSZP@%]))`
+
+	regex, err := regexp.Compile(pattern)
+	if err != nil {
+		return fmt.Errorf("failed to compile regex for printf format parsing: %w", err)
+	}
+
+	c.messageRegex = regex
+	return nil
 }
 
 // parseTimesyncRawData parses raw timesync data into structured format
@@ -368,4 +388,109 @@ func extractUUIDFromPath(filePath string) string {
 
 	// If not a standard UUID format, return as-is
 	return filename
+}
+
+// processFirehoseData processes the firehose data for a given catalog data entry
+func (c *macosUnifiedLoggingCodec) processFirehoseData(ulData *UnifiedLogData, catalogData *UnifiedLogCatalogData, catalogIndex int) {
+	for preambleIndex, firehosePreamble := range catalogData.FirehoseData {
+		for firehoseEntryIndex, firehoseEntry := range firehosePreamble.PublicData {
+
+			entryContinuousTime := uint64(firehoseEntry.ContinousTimeDelta) | (uint64(firehoseEntry.ContinousTimeDeltaUpper) << 32)
+			continuousTime := firehosePreamble.BaseContinuousTime + entryContinuousTime
+			timestamp := GetTimestamp(c.timesyncData, ulData.HeaderData[0].BootUUID, continuousTime, firehosePreamble.BaseContinuousTime)
+
+			logData := LogEntry{
+				ThreadID:       firehoseEntry.ThreadID,
+				PID:            catalogData.CatalogData.GetPID(firehosePreamble.FirstProcID, firehosePreamble.SecondProcID),
+				ActivityID:     0,
+				Time:           timestamp,
+				Timestamp:      helpers.UnixEpochToISO(timestamp),
+				LogType:        GetLogType(firehoseEntry.LogType, firehoseEntry.ActivityType),
+				EventType:      GetEventType(firehoseEntry.ActivityType),
+				EUID:           catalogData.CatalogData.GetEUID(firehosePreamble.FirstProcID, firehosePreamble.SecondProcID),
+				BootUUID:       ulData.HeaderData[0].BootUUID,
+				TimezoneName:   strings.Split(ulData.HeaderData[0].TimezonePath, "/")[len(strings.Split(ulData.HeaderData[0].TimezonePath, "/"))-1],
+				MessageEntries: firehoseEntry.Message.ItemInfo,
+			}
+
+			switch firehoseEntry.ActivityType {
+			case 0x4:
+				logData.ActivityID = uint64(firehoseEntry.FirehoseNonActivity.UnknownActivityID)
+				messageData, err := firehose.GetFirehoseNonActivityStrings(
+					firehoseEntry.FirehoseNonActivity,
+					c.cacheProvider,
+					uint64(firehoseEntry.FormatStringLocation),
+					firehosePreamble.FirstProcID,
+					firehosePreamble.SecondProcID,
+					&catalogData.CatalogData)
+				if err != nil {
+					c.logger.Error("Failed to get message string data for firehose non-activity log entry",
+						zap.Error(err))
+				}
+
+				logData.Library = messageData.Library
+				logData.LibraryUUID = messageData.LibraryUUID
+				logData.Process = messageData.Process
+				logData.ProcessUUID = messageData.ProcessUUID
+				logData.RawMessage = messageData.FormatString
+
+				// if the non-activity log entry has a data ref value then the message strings are stored in an oversize log entry
+				var logMessage string
+				if firehoseEntry.FirehoseNonActivity.DataRefValue != 0 {
+					oversizeStrings := GetOversizeStrings(
+						uint32(firehoseEntry.FirehoseNonActivity.DataRefValue),
+						firehosePreamble.FirstProcID,
+						firehosePreamble.SecondProcID,
+						&ulData.OversizeData)
+					logMessage, err = firehose.FormatFirehoseLogMessage(messageData.FormatString, oversizeStrings, c.messageRegex)
+					if err != nil {
+						c.logger.Error("Failed to format firehose log message",
+							zap.Error(err))
+					}
+				} else {
+					logMessage, err = firehose.FormatFirehoseLogMessage(messageData.FormatString, firehoseEntry.Message.ItemInfo, c.messageRegex)
+					if err != nil {
+						c.logger.Error("Failed to format firehose log message",
+							zap.Error(err))
+					}
+				}
+
+				// TODO (after MVP): if we are tracking missing data then add the log data to the missing data
+				if strings.Contains(logMessage, "<Missing message data>") {
+					if c.debugMode {
+						c.logger.Info("Encountered missing message data",
+							zap.Int("catalogIndex", catalogIndex),
+							zap.Int("preambleIndex", preambleIndex),
+							zap.Int("firehoseEntryIndex", firehoseEntryIndex))
+					}
+				}
+
+				if len(firehoseEntry.Message.BacktraceStrings) > 0 {
+					logData.Message = fmt.Sprintf("Backtrace:\n%s\n%s", strings.Join(firehoseEntry.Message.BacktraceStrings, "\n"), logMessage)
+				} else {
+					logData.Message = logMessage
+				}
+
+				if firehoseEntry.FirehoseNonActivity.SubsystemValue != 0 {
+					subsystem := catalogData.CatalogData.GetSubsystem(firehoseEntry.FirehoseNonActivity.SubsystemValue, firehosePreamble.FirstProcID, firehosePreamble.SecondProcID)
+					logData.Subsystem = subsystem.Subsystem
+					logData.Category = subsystem.Category
+				}
+			case 0x7:
+				// no message data in loss entries
+				logData.EventType = EventTypeLoss
+				logData.LogType = LogTypeLoss
+			case 0x2:
+				logData.ActivityID = uint64(firehoseEntry.FirehoseActivity.ActivityID)
+				messageData, err := firehose.GetFirehoseActivityStrings(
+					firehoseEntry.FirehoseActivity,
+					c.cacheProvider,
+					uint64(firehoseEntry.FormatStringLocation),
+					firehosePreamble.FirstProcID,
+					firehosePreamble.SecondProcID,
+					&catalogData.CatalogData)
+			}
+
+		}
+	}
 }

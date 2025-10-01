@@ -147,9 +147,9 @@ func ParseOversizeChunk(data []byte) (OversizeChunk, []byte, error) {
 }
 
 // GetOversizeStrings gets the firehose item info from the oversize log entry based on oversize (data ref) id, first proc id, and second proc id
-func GetOversizeStrings(dataRef uint32, firstProcID uint64, secondProcID uint32, oversizeData []*OversizeChunk) []firehose.ItemInfo {
+func GetOversizeStrings(dataRef uint32, firstProcID uint64, secondProcID uint32, oversizeData *[]OversizeChunk) []firehose.ItemInfo {
 	messageStrings := []firehose.ItemInfo{}
-	for _, oversize := range oversizeData {
+	for _, oversize := range *oversizeData {
 		if oversize.dataRefIndex == dataRef && oversize.firstProcID == firstProcID && oversize.secondProcID == secondProcID {
 			for _, message := range oversize.messageItems.ItemInfo {
 				oversizeFirehose := firehose.ItemInfo{

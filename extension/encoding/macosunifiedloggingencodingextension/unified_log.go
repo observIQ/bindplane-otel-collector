@@ -29,6 +29,133 @@ const (
 	chunksetChunk     = 0x600d
 )
 
+type EventType uint8
+
+const (
+	EventTypeUnknown EventType = iota
+	EventTypeLog
+	EventTypeActivity
+	EventTypeTrace
+	EventTypeSignpost
+	EventTypeSimpledump
+	EventTypeStatedump
+	EventTypeLoss
+)
+
+func GetEventType(eventType uint8) EventType {
+	switch eventType {
+	case 0x4:
+		return EventTypeLog
+	case 0x2:
+		return EventTypeActivity
+	case 0x3:
+		return EventTypeTrace
+	case 0x6:
+		return EventTypeSignpost
+	case 0x7:
+		return EventTypeLoss
+	default:
+		return EventTypeUnknown
+	}
+}
+
+// LogType represents the type of log entry
+type LogType uint8
+
+const (
+	LogTypeDebug LogType = iota
+	LogTypeInfo
+	LogTypeDefault
+	LogTypeError
+	LogTypeFault
+	LogTypeCreate
+	LogTypeUseraction
+	LogTypeProcessSignpostEvent
+	LogTypeProcessSignpostStart
+	LogTypeProcessSignpostEnd
+	LogTypeSystemSignpostEvent
+	LogTypeSystemSignpostStart
+	LogTypeSystemSignpostEnd
+	LogTypeThreadSignpostEvent
+	LogTypeThreadSignpostStart
+	LogTypeThreadSignpostEnd
+	LogTypeSimpledump
+	LogTypeStatedump
+	LogTypeLoss
+)
+
+// String returns the string representation of the LogType
+func (lt LogType) String() string {
+	switch lt {
+	case LogTypeDebug:
+		return "Debug"
+	case LogTypeInfo:
+		return "Info"
+	case LogTypeDefault:
+		return "Default"
+	case LogTypeError:
+		return "Error"
+	case LogTypeFault:
+		return "Fault"
+	case LogTypeCreate:
+		return "Create"
+	case LogTypeUseraction:
+		return "Useraction"
+	case LogTypeProcessSignpostEvent:
+		return "ProcessSignpostEvent"
+	case LogTypeProcessSignpostStart:
+		return "ProcessSignpostStart"
+	case LogTypeProcessSignpostEnd:
+		return "ProcessSignpostEnd"
+	case LogTypeSystemSignpostEvent:
+		return "SystemSignpostEvent"
+	case LogTypeSystemSignpostStart:
+		return "SystemSignpostStart"
+	case LogTypeSystemSignpostEnd:
+		return "SystemSignpostEnd"
+	case LogTypeThreadSignpostEvent:
+		return "ThreadSignpostEvent"
+	case LogTypeThreadSignpostStart:
+		return "ThreadSignpostStart"
+	case LogTypeThreadSignpostEnd:
+		return "ThreadSignpostEnd"
+	case LogTypeSimpledump:
+		return "Simpledump"
+	case LogTypeStatedump:
+		return "Statedump"
+	case LogTypeLoss:
+		return "Loss"
+	default:
+		return "Unknown"
+	}
+}
+
+// GetLogType converts raw log type and activity type values to LogType enum
+// This is equivalent to the Rust LogData::get_log_type function
+func GetLogType(logType uint8, activityType uint8) LogType {
+	switch logType {
+	case 0x1:
+		if activityType == 0x2 {
+			return LogTypeCreate
+		}
+		return LogTypeUseraction
+	case 0x2:
+		return LogTypeDebug
+	case 0x3:
+		return LogTypeError
+	case 0x4:
+		return LogTypeFault
+	case 0x5:
+		return LogTypeDefault
+	case 0x6:
+		return LogTypeInfo
+	case 0x7:
+		return LogTypeLoss
+	default:
+		return LogTypeDefault
+	}
+}
+
 // LogEntry represents a processed unified log entry (equivalent to Rust LogData)
 type LogEntry struct {
 	Subsystem      string
@@ -40,16 +167,16 @@ type LogEntry struct {
 	ActivityID     uint64
 	Time           float64 // Unix timestamp as float
 	Category       string
-	EventType      string // "logEvent", "activityEvent", etc.
-	LogType        string // "Info", "Debug", "Error", etc.
+	EventType      EventType // EventType enum value
+	LogType        LogType   // LogType enum value
 	Process        string
 	ProcessUUID    string
 	Message        string // Formatted final message
 	RawMessage     string // Format string template
 	BootUUID       string
 	TimezoneName   string
-	MessageEntries []interface{} // Raw message data
-	Timestamp      string        // ISO formatted timestamp
+	MessageEntries []firehose.ItemInfo
+	Timestamp      string // ISO formatted timestamp
 }
 
 // UnifiedLogData aggregates parsed data from a unified logging archive,

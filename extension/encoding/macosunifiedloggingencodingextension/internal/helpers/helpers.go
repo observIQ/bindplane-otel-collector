@@ -18,6 +18,7 @@ package helpers // import "github.com/observiq/bindplane-otel-collector/extensio
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 // Take returns the first n bytes from data, along with the remainder (remainder is the first returned value).
@@ -100,4 +101,16 @@ func PaddingSize(dataSize uint64, alignment uint64) uint64 {
 func AnticipatedPaddingSize(dataCount uint64, dataSize uint64, alignment uint64) uint64 {
 	totalSize := dataCount * dataSize
 	return PaddingSize(totalSize, alignment)
+}
+
+// unixEpochToISO converts a Unix timestamp to ISO 8601 format string
+func UnixEpochToISO(timestamp float64) string {
+	// Convert float64 to int64 (Unix timestamp)
+	unixTime := int64(timestamp)
+
+	// Create time.Time from Unix timestamp
+	t := time.Unix(unixTime, 0)
+
+	// Format as ISO 8601 with timezone
+	return t.Format(time.RFC3339)
 }

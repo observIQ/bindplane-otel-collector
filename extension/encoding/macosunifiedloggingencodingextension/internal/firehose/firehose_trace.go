@@ -122,9 +122,5 @@ func GetMessage(data []byte) ([]byte, ItemData, error) {
 
 // GetFirehoseTraceStrings gets the message data for a firehose trace entry
 func GetFirehoseTraceStrings(provider *uuidtext.CacheProvider, stringOffset uint64, firstProcID uint64, secondProcID uint32, catalogs *models.CatalogChunk) (models.MessageData, error) {
-	messageData, err := ExtractFormatStrings(provider, stringOffset, firstProcID, secondProcID, catalogs, 0)
-	if err != nil {
-		return models.MessageData{}, err
-	}
-	return messageData, nil
+	return ExtractFormatStrings(provider, stringOffset, firstProcID, secondProcID, catalogs, 0)
 }

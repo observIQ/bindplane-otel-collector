@@ -28,8 +28,8 @@ type Preamble struct {
 	chunkTag                 uint32
 	chunkSubTag              uint32
 	chunkDataSize            uint64
-	firstProcID              uint64
-	secondProcID             uint32
+	FirstProcID              uint64
+	SecondProcID             uint32
 	ttl                      uint8
 	collapsed                uint8
 	unknown                  []byte
@@ -37,7 +37,7 @@ type Preamble struct {
 	privateDataVirtualOffset uint16
 	unknown2                 uint16
 	unknown3                 uint16
-	baseContinuousTime       uint64
+	BaseContinuousTime       uint64
 	PublicData               []Entry
 }
 
@@ -168,8 +168,8 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 	preamble.chunkTag = binary.LittleEndian.Uint32(chunkTag)
 	preamble.chunkSubTag = binary.LittleEndian.Uint32(chunkSubTag)
 	preamble.chunkDataSize = binary.LittleEndian.Uint64(chunkDataSize)
-	preamble.firstProcID = binary.LittleEndian.Uint64(firstProcID)
-	preamble.secondProcID = binary.LittleEndian.Uint32(secondProcID)
+	preamble.FirstProcID = binary.LittleEndian.Uint64(firstProcID)
+	preamble.SecondProcID = binary.LittleEndian.Uint32(secondProcID)
 	preamble.ttl = ttl[0]
 	preamble.collapsed = collapsed[0]
 	preamble.unknown = unknown
@@ -177,7 +177,7 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 	preamble.privateDataVirtualOffset = binary.LittleEndian.Uint16(privateDataVirtualOffset)
 	preamble.unknown2 = binary.LittleEndian.Uint16(unknown2)
 	preamble.unknown3 = binary.LittleEndian.Uint16(unknown3)
-	preamble.baseContinuousTime = binary.LittleEndian.Uint64(baseContinuousTime)
+	preamble.BaseContinuousTime = binary.LittleEndian.Uint64(baseContinuousTime)
 
 	// firehose_public_data_size includes the 16 bytes before the public data offset
 	publicDataSizeOffset := 16
