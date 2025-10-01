@@ -60,6 +60,25 @@ func GetEventType(eventType uint8) EventType {
 	}
 }
 
+// String returns the string representation of the EventType
+func (et EventType) String() string {
+	switch et {
+
+	case EventTypeLog:
+		return "Log"
+	case EventTypeActivity:
+		return "Activity"
+	case EventTypeTrace:
+		return "Trace"
+	case EventTypeSignpost:
+		return "Signpost"
+	case EventTypeLoss:
+		return "Loss"
+	default:
+		return "Unknown"
+	}
+}
+
 // LogType represents the type of log entry
 type LogType uint8
 

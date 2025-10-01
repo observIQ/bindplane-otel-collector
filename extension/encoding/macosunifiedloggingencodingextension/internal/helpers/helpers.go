@@ -104,13 +104,10 @@ func AnticipatedPaddingSize(dataCount uint64, dataSize uint64, alignment uint64)
 }
 
 // unixEpochToISO converts a Unix timestamp to ISO 8601 format string
-func UnixEpochToISO(timestamp float64) string {
+func UnixEpochToISO(timestamp float64) time.Time {
 	// Convert float64 to int64 (Unix timestamp)
 	unixTime := int64(timestamp)
 
 	// Create time.Time from Unix timestamp
-	t := time.Unix(unixTime, 0)
-
-	// Format as ISO 8601 with timezone
-	return t.Format(time.RFC3339)
+	return time.Unix(unixTime, 0)
 }
