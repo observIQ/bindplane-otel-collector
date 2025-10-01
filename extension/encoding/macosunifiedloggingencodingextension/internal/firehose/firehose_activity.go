@@ -17,8 +17,11 @@ package firehose
 import (
 	"encoding/binary"
 	"fmt"
+	"strconv"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 )
 
 // Activity represents a parsed firehose activity entry
@@ -203,4 +206,58 @@ func firehoseFormatterFlags(data []byte, flags uint16) (Formatters, []byte, erro
 	}
 
 	return formatterFlags, data, nil
+}
+
+func GetFirehoseActivityStrings(
+	firehose Activity,
+	provider *uuidtext.CacheProvider,
+	stringOffset uint64,
+	firstProcID uint64,
+	secondProcID uint32,
+	catalogs *models.CatalogChunk,
+) (models.MessageData, error) {
+	if firehose.FirehoseFormatters.SharedCache || firehose.FirehoseFormatters.LargeSharedCache != 0 && firehose.FirehoseFormatters.HasLargeOffset != 0 {
+		if firehose.FirehoseFormatters.HasLargeOffset != 0 {
+			largeOffset := firehose.FirehoseFormatters.HasLargeOffset
+			var extraOffsetValue string
+			// large_shared_cache should be double the value of has_large_offset
+			// Ex: has_large_offset = 1, large_shared_cache = 2
+			// If the value do not match then there is an issue with shared string offset
+			// Can recover by using large_shared_cache
+			// Apple/log records this as an error: "error: ~~> <Invalid shared cache code pointer offset>"
+			// But is still able to get string formatter
+			if largeOffset != firehose.FirehoseFormatters.LargeSharedCache/2 && !firehose.FirehoseFormatters.SharedCache {
+				largeOffset = firehose.FirehoseFormatters.LargeSharedCache / 2
+				extraOffsetValue = fmt.Sprintf("%x%x", largeOffset, stringOffset)
+			} else if firehose.FirehoseFormatters.SharedCache {
+				largeOffset = 8
+				addOffset := uint64(0x10000000) * uint64(largeOffset)
+				extraOffsetValue = fmt.Sprintf("%x", addOffset+stringOffset)
+			} else {
+				extraOffsetValue = fmt.Sprintf("%x%x", largeOffset, stringOffset)
+			}
+
+			extraOffsetValueResult, err := strconv.ParseUint(extraOffsetValue, 16, 64)
+			if err != nil {
+				return models.MessageData{}, fmt.Errorf("failed to get shared string offset to format string for activity firehose entry: %w", err)
+			}
+			return ExtractSharedStrings(provider, uint64(extraOffsetValueResult), firstProcID, secondProcID, catalogs, stringOffset)
+		}
+		return ExtractSharedStrings(provider, stringOffset, firstProcID, secondProcID, catalogs, stringOffset)
+	}
+
+	if firehose.FirehoseFormatters.Absolute {
+		extraOffsetValue := fmt.Sprintf("%x%x", firehose.FirehoseFormatters.MainExeAltIndex, firehose.PCID)
+		extraOffsetValueResult, err := strconv.ParseUint(extraOffsetValue, 16, 64)
+		if err != nil {
+			return models.MessageData{}, fmt.Errorf("failed to get absolute offset to format string for activity firehose entry: %w", err)
+		}
+		return ExtractAbsoluteStrings(provider, extraOffsetValueResult, stringOffset, firstProcID, secondProcID, catalogs, stringOffset)
+	}
+
+	if len(firehose.FirehoseFormatters.UUIDRelative) != 0 {
+		return ExtractAltUUIDStrings(provider, stringOffset, firehose.FirehoseFormatters.UUIDRelative, firstProcID, secondProcID, catalogs, stringOffset)
+	}
+
+	return ExtractFormatStrings(provider, stringOffset, firstProcID, secondProcID, catalogs, stringOffset)
 }
