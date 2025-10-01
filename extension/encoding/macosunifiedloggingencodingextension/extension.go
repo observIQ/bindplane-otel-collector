@@ -148,6 +148,8 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 	// Process each catalog data entry
 	for i, catalogData := range logDataResults.CatalogData {
 		c.processFirehoseData(logDataResults, &catalogData, i)
+		c.processSimpleDumpData(logDataResults, &catalogData, i)
+		c.processStatedumpData(logDataResults, &catalogData, i)
 
 		if c.debugMode {
 			c.logger.Info("Processing catalog data",
@@ -391,7 +393,8 @@ func extractUUIDFromPath(filePath string) string {
 }
 
 // processFirehoseData processes the firehose data for a given catalog data entry
-func (c *macosUnifiedLoggingCodec) processFirehoseData(ulData *UnifiedLogData, catalogData *UnifiedLogCatalogData, catalogIndex int) {
+func (c *macosUnifiedLoggingCodec) processFirehoseData(ulData *UnifiedLogData, catalogData *UnifiedLogCatalogData, catalogIndex int) ([]LogEntry, error) {
+	processedLogs := []LogEntry{}
 	for preambleIndex, firehosePreamble := range catalogData.FirehoseData {
 		for firehoseEntryIndex, firehoseEntry := range firehosePreamble.PublicData {
 
@@ -424,8 +427,7 @@ func (c *macosUnifiedLoggingCodec) processFirehoseData(ulData *UnifiedLogData, c
 					firehosePreamble.SecondProcID,
 					&catalogData.CatalogData)
 				if err != nil {
-					c.logger.Error("Failed to get message string data for firehose non-activity log entry",
-						zap.Error(err))
+					return processedLogs, err
 				}
 
 				logData.Library = messageData.Library
@@ -444,14 +446,12 @@ func (c *macosUnifiedLoggingCodec) processFirehoseData(ulData *UnifiedLogData, c
 						&ulData.OversizeData)
 					logMessage, err = firehose.FormatFirehoseLogMessage(messageData.FormatString, oversizeStrings, c.messageRegex)
 					if err != nil {
-						c.logger.Error("Failed to format firehose log message",
-							zap.Error(err))
+						return processedLogs, err
 					}
 				} else {
 					logMessage, err = firehose.FormatFirehoseLogMessage(messageData.FormatString, firehoseEntry.Message.ItemInfo, c.messageRegex)
 					if err != nil {
-						c.logger.Error("Failed to format firehose log message",
-							zap.Error(err))
+						return processedLogs, err
 					}
 				}
 
@@ -463,6 +463,7 @@ func (c *macosUnifiedLoggingCodec) processFirehoseData(ulData *UnifiedLogData, c
 							zap.Int("preambleIndex", preambleIndex),
 							zap.Int("firehoseEntryIndex", firehoseEntryIndex))
 					}
+					continue
 				}
 
 				if len(firehoseEntry.Message.BacktraceStrings) > 0 {
@@ -490,8 +491,7 @@ func (c *macosUnifiedLoggingCodec) processFirehoseData(ulData *UnifiedLogData, c
 					firehosePreamble.SecondProcID,
 					&catalogData.CatalogData)
 				if err != nil {
-					c.logger.Error("Failed to get message string data for firehose activity log entry",
-						zap.Error(err))
+					return processedLogs, err
 				}
 
 				logData.Library = messageData.Library
@@ -502,8 +502,7 @@ func (c *macosUnifiedLoggingCodec) processFirehoseData(ulData *UnifiedLogData, c
 
 				logMessage, err := firehose.FormatFirehoseLogMessage(messageData.FormatString, firehoseEntry.Message.ItemInfo, c.messageRegex)
 				if err != nil {
-					c.logger.Error("Failed to format firehose log message",
-						zap.Error(err))
+					return processedLogs, err
 				}
 
 				// TODO (after MVP): if we are tracking missing data then add the log data to the missing data
@@ -514,6 +513,108 @@ func (c *macosUnifiedLoggingCodec) processFirehoseData(ulData *UnifiedLogData, c
 							zap.Int("preambleIndex", preambleIndex),
 							zap.Int("firehoseEntryIndex", firehoseEntryIndex))
 					}
+					continue
+				}
+
+				if len(firehoseEntry.Message.BacktraceStrings) > 0 {
+					logData.Message = fmt.Sprintf("Backtrace:\n%s\n%s", strings.Join(firehoseEntry.Message.BacktraceStrings, "\n"), logMessage)
+				} else {
+					logData.Message = logMessage
+				}
+			case 0x6:
+				logData.ActivityID = uint64(firehoseEntry.FirehoseSignpost.UnknownActivityID)
+				messageData, err := firehose.GetFirehoseSignpostStrings(
+					firehoseEntry.FirehoseSignpost,
+					c.cacheProvider,
+					uint64(firehoseEntry.FormatStringLocation),
+					firehosePreamble.FirstProcID,
+					firehosePreamble.SecondProcID,
+					&catalogData.CatalogData)
+				if err != nil {
+					c.logger.Error("Failed to get message string data for firehose signpost log entry",
+						zap.Error(err))
+				}
+
+				logData.Library = messageData.Library
+				logData.LibraryUUID = messageData.LibraryUUID
+				logData.Process = messageData.Process
+				logData.ProcessUUID = messageData.ProcessUUID
+				logData.RawMessage = messageData.FormatString
+
+				var logMessage string
+				if firehoseEntry.FirehoseNonActivity.DataRefValue != 0 {
+					oversizeStrings := GetOversizeStrings(
+						uint32(firehoseEntry.FirehoseNonActivity.DataRefValue),
+						firehosePreamble.FirstProcID,
+						firehosePreamble.SecondProcID,
+						&ulData.OversizeData)
+					logMessage, err = firehose.FormatFirehoseLogMessage(messageData.FormatString, oversizeStrings, c.messageRegex)
+					if err != nil {
+						return processedLogs, err
+					}
+				} else {
+					logMessage, err = firehose.FormatFirehoseLogMessage(messageData.FormatString, firehoseEntry.Message.ItemInfo, c.messageRegex)
+					if err != nil {
+						return processedLogs, err
+					}
+				}
+
+				// TODO (after MVP): if we are tracking missing data then add the log data to the missing data
+				if strings.Contains(logMessage, "<Missing message data>") {
+					if c.debugMode {
+						c.logger.Info("Encountered missing message data",
+							zap.Int("catalogIndex", catalogIndex),
+							zap.Int("preambleIndex", preambleIndex),
+							zap.Int("firehoseEntryIndex", firehoseEntryIndex))
+					}
+					continue
+				}
+
+				logMessage = fmt.Sprintf("Signpost ID: %X - Signpost Name: %X\n%s", firehoseEntry.FirehoseSignpost.SignpostID, firehoseEntry.FirehoseSignpost.SignpostName, logMessage)
+
+				if len(firehoseEntry.Message.BacktraceStrings) > 0 {
+					logData.Message = fmt.Sprintf("Backtrace:\n%s\n%s", strings.Join(firehoseEntry.Message.BacktraceStrings, "\n"), logMessage)
+				} else {
+					logData.Message = logMessage
+				}
+
+				if firehoseEntry.FirehoseSignpost.Subsystem != 0 {
+					subsystem := catalogData.CatalogData.GetSubsystem(firehoseEntry.FirehoseSignpost.Subsystem, firehosePreamble.FirstProcID, firehosePreamble.SecondProcID)
+					logData.Subsystem = subsystem.Subsystem
+					logData.Category = subsystem.Category
+				}
+
+			case 0x3:
+				messageData, err := firehose.GetFirehoseTraceStrings(
+					c.cacheProvider,
+					uint64(firehoseEntry.FormatStringLocation),
+					firehosePreamble.FirstProcID,
+					firehosePreamble.SecondProcID,
+					&catalogData.CatalogData)
+				if err != nil {
+					return processedLogs, err
+				}
+
+				logData.Library = messageData.Library
+				logData.LibraryUUID = messageData.LibraryUUID
+				logData.Process = messageData.Process
+				logData.ProcessUUID = messageData.ProcessUUID
+
+				var logMessage string
+				logMessage, err = firehose.FormatFirehoseLogMessage(messageData.FormatString, firehoseEntry.Message.ItemInfo, c.messageRegex)
+				if err != nil {
+					return processedLogs, err
+				}
+
+				// TODO (after MVP): if we are tracking missing data then add the log data to the missing data
+				if strings.Contains(logMessage, "<Missing message data>") {
+					if c.debugMode {
+						c.logger.Info("Encountered missing message data",
+							zap.Int("catalogIndex", catalogIndex),
+							zap.Int("preambleIndex", preambleIndex),
+							zap.Int("firehoseEntryIndex", firehoseEntryIndex))
+					}
+					continue
 				}
 
 				if len(firehoseEntry.Message.BacktraceStrings) > 0 {
@@ -522,8 +623,13 @@ func (c *macosUnifiedLoggingCodec) processFirehoseData(ulData *UnifiedLogData, c
 					logData.Message = logMessage
 				}
 
+				if firehoseEntry.FirehoseTrace.UnknownPCID != 0 {
+				}
+			default:
+				return processedLogs, fmt.Errorf("parsed unknown firehose log data: %w", firehoseEntry)
 			}
-
+			processedLogs = append(processedLogs, logData)
 		}
 	}
+	return processedLogs, nil
 }

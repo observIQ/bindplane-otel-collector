@@ -140,7 +140,7 @@ func ParseFirehoseSignpost(data []byte, flags uint16) (Signpost, []byte, error) 
 }
 
 // GetFirehoseSignpostStrings gets the message data for a signpost firehose entry
-func GetFirehoseSignpostStrings(signpost Signpost, provider *uuidtext.CacheProvider, stringOffset uint64, firstProcID uint64, secondProcID uint32, catalogs models.CatalogChunk) (models.MessageData, error) {
+func GetFirehoseSignpostStrings(signpost Signpost, provider *uuidtext.CacheProvider, stringOffset uint64, firstProcID uint64, secondProcID uint32, catalogs *models.CatalogChunk) (models.MessageData, error) {
 	if signpost.FirehoseFormatters.SharedCache || (signpost.FirehoseFormatters.LargeSharedCache != 0 && signpost.FirehoseFormatters.HasLargeOffset != 0) {
 		if signpost.FirehoseFormatters.HasLargeOffset != 0 {
 			largeOffset := signpost.FirehoseFormatters.HasLargeOffset
@@ -165,10 +165,10 @@ func GetFirehoseSignpostStrings(signpost Signpost, provider *uuidtext.CacheProvi
 			if err != nil {
 				return models.MessageData{}, fmt.Errorf("failed to get shared string offset to format string for signpost firehose entry: %w", err)
 			}
-			return ExtractSharedStrings(provider, uint64(extraOffsetValueResult), firstProcID, secondProcID, &catalogs, stringOffset)
+			return ExtractSharedStrings(provider, uint64(extraOffsetValueResult), firstProcID, secondProcID, catalogs, stringOffset)
 		}
 
-		return ExtractSharedStrings(provider, stringOffset, firstProcID, secondProcID, &catalogs, stringOffset)
+		return ExtractSharedStrings(provider, stringOffset, firstProcID, secondProcID, catalogs, stringOffset)
 	}
 	if signpost.FirehoseFormatters.Absolute {
 		extraOffsetValue := fmt.Sprintf("%x%x", signpost.FirehoseFormatters.MainExeAltIndex, signpost.UnknownPCID)
@@ -176,12 +176,12 @@ func GetFirehoseSignpostStrings(signpost Signpost, provider *uuidtext.CacheProvi
 		if err != nil {
 			return models.MessageData{}, fmt.Errorf("failed to get absolute offset to format string for signpost firehose entry: %w", err)
 		}
-		return ExtractAbsoluteStrings(provider, extraOffsetValueResult, stringOffset, firstProcID, secondProcID, &catalogs, stringOffset)
+		return ExtractAbsoluteStrings(provider, extraOffsetValueResult, stringOffset, firstProcID, secondProcID, catalogs, stringOffset)
 	}
 
 	if len(signpost.FirehoseFormatters.UUIDRelative) != 0 {
-		return ExtractAltUUIDStrings(provider, stringOffset, signpost.FirehoseFormatters.UUIDRelative, firstProcID, secondProcID, &catalogs, stringOffset)
+		return ExtractAltUUIDStrings(provider, stringOffset, signpost.FirehoseFormatters.UUIDRelative, firstProcID, secondProcID, catalogs, stringOffset)
 	}
 
-	return ExtractFormatStrings(provider, stringOffset, firstProcID, secondProcID, &catalogs, stringOffset)
+	return ExtractFormatStrings(provider, stringOffset, firstProcID, secondProcID, catalogs, stringOffset)
 }
