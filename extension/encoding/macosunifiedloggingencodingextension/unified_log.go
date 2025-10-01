@@ -16,6 +16,7 @@ package macosunifiedloggingencodingextension // import "github.com/observiq/bind
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
@@ -176,7 +177,7 @@ type LogEntry struct {
 	BootUUID       string
 	TimezoneName   string
 	MessageEntries []firehose.ItemInfo
-	Timestamp      string // ISO formatted timestamp
+	Timestamp      time.Time // ISO formatted timestamp
 }
 
 // UnifiedLogData aggregates parsed data from a unified logging archive,

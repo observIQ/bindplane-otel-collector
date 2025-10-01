@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 
@@ -147,9 +148,12 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 
 	// Process each catalog data entry
 	for i, catalogData := range logDataResults.CatalogData {
-		c.processFirehoseData(logDataResults, &catalogData, i)
-		c.processSimpleDumpData(logDataResults, &catalogData, i)
-		c.processStatedumpData(logDataResults, &catalogData, i)
+		catalogFirehoseData, err := c.processFirehoseData(logDataResults, &catalogData, i)
+		if err != nil {
+			return plog.NewLogs(), err
+		}
+		// c.processSimpleDumpData(logDataResults, &catalogData, i)
+		// c.processStatedumpData(logDataResults, &catalogData, i)
 
 		if c.debugMode {
 			c.logger.Info("Processing catalog data",
@@ -166,10 +170,25 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 					zap.Int("publicDataCount", len(firehosePreamble.PublicData)))
 			}
 
-			for _, firehoseEntry := range firehosePreamble.PublicData {
+			for k, firehoseEntry := range firehosePreamble.PublicData {
 				// Create a single log record for each firehose entry
 				logRecord := otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
 				logRecord.Body().SetStr(firehoseEntry.Message.ItemInfo[0].MessageStrings)
+				logRecord.SetTimestamp(pcommon.NewTimestampFromTime(catalogFirehoseData[k].Timestamp)) // idk if this is the right value to use
+				logRecord.Attributes().PutStr("subsystem", catalogFirehoseData[k].Subsystem)
+				logRecord.Attributes().PutStr("category", catalogFirehoseData[k].Category)
+				logRecord.Attributes().PutStr("process", catalogFirehoseData[k].Process)
+				logRecord.Attributes().PutStr("process_uuid", catalogFirehoseData[k].ProcessUUID)
+				logRecord.Attributes().PutStr("library", catalogFirehoseData[k].Library)
+				logRecord.Attributes().PutStr("library_uuid", catalogFirehoseData[k].LibraryUUID)
+				logRecord.Attributes().PutStr("boot_uuid", catalogFirehoseData[k].BootUUID)
+				logRecord.Attributes().PutStr("timezone_name", catalogFirehoseData[k].TimezoneName)
+				logRecord.Attributes().PutInt("activity_id", int64(catalogFirehoseData[k].ActivityID))
+				logRecord.Attributes().PutInt("event_type", int64(catalogFirehoseData[k].EventType))
+				logRecord.Attributes().PutInt("log_type", int64(catalogFirehoseData[k].LogType))
+				logRecord.Attributes().PutInt("pid", int64(catalogFirehoseData[k].PID))
+				logRecord.Attributes().PutInt("euid", int64(catalogFirehoseData[k].EUID))
+				logRecord.Attributes().PutInt("thread_id", int64(catalogFirehoseData[k].ThreadID))
 
 				// Add metadata as attributes
 				logRecord.Attributes().PutStr("activity_type", fmt.Sprintf("%d", firehoseEntry.ActivityType))
