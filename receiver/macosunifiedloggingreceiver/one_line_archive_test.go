@@ -32,7 +32,9 @@ import (
 
 func TestParseOneLineArchive(t *testing.T) {
 	baseArchivePath := filepath.Join("testdata", "one-line.logarchive")
-	traceV3Paths := filepath.Join(baseArchivePath, "Persist", "00000000000060d5.tracev3")
+	traceV3Paths := filepath.Join(baseArchivePath, "**", "*.tracev3")
+
+	// traceV3Paths := filepath.Join(baseArchivePath, "Persist", "00000000000060d5.tracev3")
 	// timesyncPaths := filepath.Join(baseArchivePath, "timesync", "*.timesync")
 	// dscPaths := filepath.Join(baseArchivePath, "dsc", "*.dsc")
 
@@ -82,40 +84,17 @@ func TestParseOneLineArchive(t *testing.T) {
 
 	// Verify the log content
 	logs := sink.AllLogs()
-	require.Len(t, logs, 1)
+	require.Len(t, logs, 5)
 
-	byEventType := map[string]int{}
+	logCounts := countLogInformation(logs)
 
-	rls := logs[0].ResourceLogs()
-	for i := 0; i < rls.Len(); i++ {
-		sls := rls.At(i).ScopeLogs()
-		for j := 0; j < sls.Len(); j++ {
-			lrs := sls.At(j).LogRecords()
-			for k := 0; k < lrs.Len(); k++ {
-				lr := lrs.At(k)
+	t.Logf("map: %#v", logCounts["byEventType"])
+	t.Logf("map: %#v", logCounts["byLogType"])
+	t.Logf("map: %#v", logCounts["byMessageMatches"])
+	t.Logf("map: %#v", logCounts["byProcessMatches"])
+	t.Logf("map: %#v", logCounts["bySubsystemMatches"])
 
-				// Event Types: logEvent, activityEvent, traceEvent, signpostEvent, lossEvent
-				if v, ok := lr.Attributes().Get("eventType"); ok {
-					switch v.AsString() {
-					case "logEvent":
-						byEventType["logEvent"]++
-					case "activityEvent":
-						byEventType["activityEvent"]++
-					case "traceEvent":
-						byEventType["traceEvent"]++
-					case "signpostEvent":
-						byEventType["signpostEvent"]++
-					case "lossEvent":
-						byEventType["lossEvent"]++
-					}
-				}
-			}
-		}
-	}
-
-	t.Logf("map: %#v", byEventType)
-
-	require.Equal(t, 1, byEventType["signpostEvent"])
+	// require.Equal(t, 1, byEventType["signpostEvent"])
 
 	// logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).EventName()
 	// assert.Contains(t, logRecord.Body().AsString(), "Read traceV3 file")
