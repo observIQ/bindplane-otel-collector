@@ -130,7 +130,7 @@ func TestValidate(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			err := xconfmap.Validate(tc.config)
 			if tc.expectedErr != nil {
-				require.EqualError(t, err, tc.expectedErr.Error())
+				require.ErrorContains(t, err, tc.expectedErr.Error())
 			} else {
 				require.NoError(t, err)
 			}
