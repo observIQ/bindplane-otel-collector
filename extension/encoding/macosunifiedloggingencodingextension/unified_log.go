@@ -246,13 +246,15 @@ func ParseUnifiedLog(data []byte) (*UnifiedLogData, error) {
 				return unifiedLogData, fmt.Errorf("failed to get header data: %w", err)
 			}
 		case catalogChunk:
-			if catalogData.CatalogData.ChunkTag != 0 {
-				unifiedLogData.CatalogData = append(unifiedLogData.CatalogData, *catalogData)
-			}
-			catalogData = &UnifiedLogCatalogData{}
-			err := getULCatalogData(chunkData, catalogData)
-			if err != nil {
-				return unifiedLogData, fmt.Errorf("failed to get catalog data: %w", err)
+			if len(chunkData) > 0 {
+				if catalogData.CatalogData.ChunkTag != 0 {
+					unifiedLogData.CatalogData = append(unifiedLogData.CatalogData, *catalogData)
+				}
+				catalogData = &UnifiedLogCatalogData{}
+				err := getULCatalogData(chunkData, catalogData)
+				if err != nil {
+					return unifiedLogData, fmt.Errorf("failed to get catalog data: %w", err)
+				}
 			}
 		case chunksetChunk:
 			err := getULChunksetData(chunkData, catalogData, unifiedLogData)

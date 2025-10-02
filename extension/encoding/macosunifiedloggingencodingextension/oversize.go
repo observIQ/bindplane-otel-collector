@@ -150,8 +150,8 @@ func ParseOversizeChunk(data []byte) (OversizeChunk, []byte, error) {
 func GetOversizeStrings(dataRef uint32, firstProcID uint64, secondProcID uint32, oversizeData *[]OversizeChunk) []firehose.ItemInfo {
 	messageStrings := []firehose.ItemInfo{}
 	for _, oversize := range *oversizeData {
-		if oversize.dataRefIndex == dataRef && oversize.firstProcID == firstProcID && oversize.secondProcID == secondProcID {
-			for _, message := range oversize.messageItems.ItemInfo {
+		if oversize.dataRefIndex == dataRef && oversize.FirstProcID == firstProcID && oversize.SecondProcID == secondProcID {
+			for _, message := range oversize.MessageItems.ItemInfo {
 				oversizeFirehose := firehose.ItemInfo{
 					MessageStrings: message.MessageStrings,
 					ItemType:       message.ItemType,

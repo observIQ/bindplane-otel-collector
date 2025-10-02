@@ -18,6 +18,7 @@ import (
 	"context"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -46,99 +47,76 @@ func TestParseLogBigSur(t *testing.T) {
 
 	// Verify the log content
 	logCounts := countLogInformation(sink.AllLogs())
+	logLogCounts(t, logCounts)
 
-	require.Equal(t, 110953, len(sink.AllLogs()))
+	require.Equal(t, 110953, sink.LogRecordCount())
 	require.Equal(t, 322, logCounts["byEventType"]["Statedump"])
 }
 
-// func TestParseAllLogsPrivateBigSur(t *testing.T) {
-// 	filePath := filepath.Join("testdata", "system_logs_big_sur_private_enabled.logarchive")
-// 	sink := new(consumertest.LogsSink)
+func TestParseAllLogsPrivateBigSur(t *testing.T) {
+	filePath := filepath.Join("testdata", "system_logs_big_sur_private_enabled.logarchive", "**", "*.tracev3")
+	sink := new(consumertest.LogsSink)
 
-// 	setupAndStartReceiver(t, filePath, sink, 0)
+	setupAndStartReceiver(t, filePath, sink, 0)
 
-// 	// Verify the log content
-// 	logCounts := countLogInformation(sink.AllLogs())
+	// Verify the log content
+	logCounts := countLogInformation(sink.AllLogs())
 
-// 	require.Equal(t, 0, logCounts["byEventType"]["signpostEvent"])
-// 	require.Equal(t, 0, logCounts["byEventType"]["lossEvent"])
-// }
+	require.Equal(t, 0, sink.LogRecordCount())
+	require.Equal(t, 0, logCounts["byEventType"]["signpostEvent"])
+}
 
-// func TestParseAllLogsPrivateWithPublicMixBigSur(t *testing.T) {
-// 	filePath := filepath.Join("testdata", "system_logs_big_sur_public_private_data_mix.logarchive")
-// 	sink := new(consumertest.LogsSink)
-// 	var macOSLogReceiver receiver.Logs
-// 	var err error
+func TestParseAllLogsPrivateWithPublicMixBigSur(t *testing.T) {
+	filePath := filepath.Join("testdata", "system_logs_big_sur_public_private_data_mix.logarchive", "**", "*.tracev3")
+	sink := new(consumertest.LogsSink)
 
-// 	setupAndStartReceiver(t, filePath, sink, 0)
+	setupAndStartReceiver(t, filePath, sink, 0)
 
-// 	// Verify the log content
-// 	logCounts := countLogInformation(sink.AllLogs())
+	// Verify the log content
+	logCounts := countLogInformation(sink.AllLogs())
 
-// 	require.Equal(t, 0, logCounts["byEventType"]["signpostEvent"])
-// 	require.Equal(t, 0, logCounts["byEventType"]["lossEvent"])
+	require.Equal(t, 0, sink.LogRecordCount())
+	require.Equal(t, 0, logCounts["byEventType"]["signpostEvent"])
+}
 
-// 	err = macOSLogReceiver.Shutdown(context.Background())
-// 	require.NoError(t, err, "failed to shutdown receiver")
-// }
+func TestBigSurMissingOversizeStrings(t *testing.T) {
+	filePath := filepath.Join("testdata", "system_logs_big_sur.logarchive", "**", "*.tracev3")
+	sink := new(consumertest.LogsSink)
 
-// func TestBigSurMissingOversizeStrings(t *testing.T) {
-// 	filePath := filepath.Join("testdata", "system_logs_big_sur.logarchive")
-// 	sink := new(consumertest.LogsSink)
-// 	var macOSLogReceiver receiver.Logs
-// 	var err error
+	setupAndStartReceiver(t, filePath, sink, 0)
 
-// 	macOSLogReceiver, err = setupAndStartReceiver(t, filePath, sink)
-// 	require.NoError(t, err, "failed to setup and start receiver")
+	// Verify the log content
+	logCounts := countLogInformation(sink.AllLogs())
 
-// 	// Verify the log content
-// 	logCounts := countLogInformation(sink.AllLogs())
+	require.Equal(t, 0, sink.LogRecordCount())
+	require.Equal(t, 0, logCounts["byEventType"]["signpostEvent"])
+}
 
-// 	// require.Equal(t, 50665, logCounts["signpostEvent"])
-// 	// require.Equal(t, 5, logCounts["lossEvent"])
+func TestParseAllLogsHighSierra(t *testing.T) {
+	filePath := filepath.Join("testdata", "system_logs_high_sierra.logarchive", "**", "*.tracev3")
+	sink := new(consumertest.LogsSink)
 
-// 	err = macOSLogReceiver.Shutdown(context.Background())
-// 	require.NoError(t, err, "failed to shutdown receiver")
-// }
+	setupAndStartReceiver(t, filePath, sink, 10000)
 
-// func TestParseAllLogsHighSierra(t *testing.T) {
-// 	filePath := filepath.Join("testdata", "system_logs_high_sierra.logarchive")
-// 	sink := new(consumertest.LogsSink)
-// 	var macOSLogReceiver receiver.Logs
-// 	var err error
+	// Verify the log content
+	logCounts := countLogInformation(sink.AllLogs())
 
-// 	setupAndStartReceiver(t, filePath, sink, 0)
+	require.Equal(t, 0, sink.LogRecordCount())
+	require.Equal(t, 0, logCounts["byEventType"]["signpostEvent"])
+}
 
-// 	// Verify the log content
-// 	byEventType := countLogInformation(sink.AllLogs())
+func TestParseAllLogsMonterey(t *testing.T) {
+	filePath := filepath.Join("testdata", "system_logs_monterey.logarchive", "**", "*.tracev3")
+	sink := new(consumertest.LogsSink)
 
-// 	t.Logf("map: %#v", byEventType)
+	setupAndStartReceiver(t, filePath, sink, 0)
 
-// 	require.Equal(t, 50665, byEventType["signpostEvent"])
-// 	require.Equal(t, 5, byEventType["lossEvent"])
+	// Verify the log content
+	logCounts := countLogInformation(sink.AllLogs())
 
-// 	err = macOSLogReceiver.Shutdown(context.Background())
-// 	require.NoError(t, err, "failed to shutdown receiver")
-// }
-
-// func TestParseAllLogsMonterey(t *testing.T) {
-// 	filePath := filepath.Join("testdata", "system_logs_monterey.logarchive")
-// 	sink := new(consumertest.LogsSink)
-// 	var macOSLogReceiver receiver.Logs
-// 	var err error
-
-// 	macOSLogReceiver, err = setupAndStartReceiver(t, filePath, sink)
-// 	require.NoError(t, err, "failed to setup and start receiver")
-
-// 	// Verify the log content
-// 	logCounts := countLogInformation(sink.AllLogs())
-
-// 	require.Equal(t, 50665, logCounts["byEventType"]["signpostEvent"])
-// 	require.Equal(t, 5, logCounts["byEventType"]["lossEvent"])
-
-// 	err = macOSLogReceiver.Shutdown(context.Background())
-// 	require.NoError(t, err, "failed to shutdown receiver")
-// }
+	require.Equal(t, 0, sink.LogRecordCount())
+	require.Equal(t, 0, logCounts["byEventType"]["signpostEvent"])
+}
 
 func setupAndStartReceiver(t *testing.T, traceV3Paths string, sink *consumertest.LogsSink, expectedLogCount int) {
 	extFactory := macosunifiedloggingencodingextension.NewFactory()
@@ -278,5 +256,37 @@ func countLogInformation(logs []plog.Logs) map[string]map[string]int {
 			}
 		}
 	}
+
 	return logCounts
+}
+
+func logLogCounts(t *testing.T, logCounts map[string]map[string]int) {
+	t.Helper()
+
+	// Sort outer categories for stable output
+	categories := make([]string, 0, len(logCounts))
+	for cat := range logCounts {
+		categories = append(categories, cat)
+	}
+	sort.Strings(categories)
+
+	for _, cat := range categories {
+		t.Logf("== %s ==", cat)
+		inner := logCounts[cat]
+
+		// Sort inner keys for stable output
+		keys := make([]string, 0, len(inner))
+		for k := range inner {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		if len(keys) == 0 {
+			t.Logf("(empty)")
+			continue
+		}
+		for _, k := range keys {
+			t.Logf("%s: %d", k, inner[k])
+		}
+	}
 }
