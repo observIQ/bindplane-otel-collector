@@ -30,19 +30,29 @@ const (
 	chunksetChunk     = 0x600d
 )
 
+// EventType represents the type of event in unified logging
 type EventType uint8
 
 const (
+	// EventTypeUnknown represents an unknown event type
 	EventTypeUnknown EventType = iota
+	// EventTypeLog represents log events
 	EventTypeLog
+	// EventTypeActivity represents activity events
 	EventTypeActivity
+	// EventTypeTrace represents trace events
 	EventTypeTrace
+	// EventTypeSignpost represents signpost events
 	EventTypeSignpost
+	// EventTypeSimpledump represents simple dump events
 	EventTypeSimpledump
+	// EventTypeStatedump represents state dump events
 	EventTypeStatedump
+	// EventTypeLoss represents loss events
 	EventTypeLoss
 )
 
+// GetEventType converts a uint8 event type to EventType
 func GetEventType(eventType uint8) EventType {
 	switch eventType {
 	case 0x4:
@@ -83,24 +93,43 @@ func (et EventType) String() string {
 type LogType uint8
 
 const (
+	// LogTypeDebug represents debug level logs
 	LogTypeDebug LogType = iota
+	// LogTypeInfo represents info level logs
 	LogTypeInfo
+	// LogTypeDefault represents default level logs
 	LogTypeDefault
+	// LogTypeError represents error level logs
 	LogTypeError
+	// LogTypeFault represents fault level logs
 	LogTypeFault
+	// LogTypeCreate represents create level logs
 	LogTypeCreate
+	// LogTypeUseraction represents user action logs
 	LogTypeUseraction
+	// LogTypeProcessSignpostEvent represents process signpost events
 	LogTypeProcessSignpostEvent
+	// LogTypeProcessSignpostStart represents process signpost start events
 	LogTypeProcessSignpostStart
+	// LogTypeProcessSignpostEnd represents process signpost end events
 	LogTypeProcessSignpostEnd
+	// LogTypeSystemSignpostEvent represents system signpost events
 	LogTypeSystemSignpostEvent
+	// LogTypeSystemSignpostStart represents system signpost start events
 	LogTypeSystemSignpostStart
+	// LogTypeSystemSignpostEnd represents system signpost end events
 	LogTypeSystemSignpostEnd
+	// LogTypeThreadSignpostEvent represents thread signpost events
 	LogTypeThreadSignpostEvent
+	// LogTypeThreadSignpostStart represents thread signpost start events
 	LogTypeThreadSignpostStart
+	// LogTypeThreadSignpostEnd represents thread signpost end events
 	LogTypeThreadSignpostEnd
+	// LogTypeSimpledump represents simple dump logs
 	LogTypeSimpledump
+	// LogTypeStatedump represents state dump logs
 	LogTypeStatedump
+	// LogTypeLoss represents loss logs
 	LogTypeLoss
 )
 
