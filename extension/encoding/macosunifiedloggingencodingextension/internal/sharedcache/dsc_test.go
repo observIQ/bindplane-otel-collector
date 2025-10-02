@@ -20,23 +20,23 @@ func TestParseDSC_VersionOne(t *testing.T) {
 
 	require.Equal(t, 532, len(results.UUIDs))
 	require.Equal(t, "4DF6D8F5D9C23A968DE45E99D6B73DC8", results.UUIDs[0].UUID)
-	require.Equal(t, 19919502, results.UUIDs[0].PathOffset)
-	require.Equal(t, 8192, results.UUIDs[0].TextSize)
-	require.Equal(t, 73728, results.UUIDs[0].TextOffset)
+	require.Equal(t, uint32(19919502), results.UUIDs[0].PathOffset)
+	require.Equal(t, uint32(8192), results.UUIDs[0].TextSize)
+	require.Equal(t, uint64(73728), results.UUIDs[0].TextOffset)
 	require.Equal(t, "/usr/lib/system/libsystem_blocks.dylib", results.UUIDs[0].PathString)
 
 	require.Equal(t, 788, len(results.Ranges))
 	require.Equal(t, []byte{0}, results.Ranges[0].Strings)
-	require.Equal(t, 0, results.Ranges[0].UnknownUUIDIndex)
-	require.Equal(t, 80296, results.Ranges[0].RangeOffset)
-	require.Equal(t, 1, results.Ranges[0].RangeSize)
+	require.Equal(t, uint64(0), results.Ranges[0].UnknownUUIDIndex)
+	require.Equal(t, uint64(80296), results.Ranges[0].RangeOffset)
+	require.Equal(t, uint32(1), results.Ranges[0].RangeSize)
 
-	require.Equal(t, 1685283688, results.Signature)
-	require.Equal(t, 1, results.MajorVersion)
-	require.Equal(t, 0, results.MinorVersion)
+	require.Equal(t, uint32(1685283688), results.Signature)
+	require.Equal(t, uint16(1), results.MajorVersion)
+	require.Equal(t, uint16(0), results.MinorVersion)
 	require.Equal(t, "", results.DSCUUID)
-	require.Equal(t, 788, results.NumberRanges)
-	require.Equal(t, 532, results.NumberUUIDs)
+	require.Equal(t, uint32(788), results.NumberRanges)
+	require.Equal(t, uint32(532), results.NumberUUIDs)
 }
 
 func TestParseDSC_InvalidSignature(t *testing.T) {

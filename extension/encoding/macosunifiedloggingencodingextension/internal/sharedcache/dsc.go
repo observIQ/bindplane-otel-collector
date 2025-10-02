@@ -118,20 +118,20 @@ func ParseDSC(data []byte) (*Strings, error) {
 		input = remainingInput
 	}
 
-	for _, uuid := range sharedCacheStrings.UUIDs {
-		pathString, err := getPaths(input, uuid.PathOffset)
+	for i := range sharedCacheStrings.UUIDs {
+		pathString, err := getPaths(data, sharedCacheStrings.UUIDs[i].PathOffset)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get paths while parsing DSC: %w", err)
 		}
-		uuid.PathString = pathString
+		sharedCacheStrings.UUIDs[i].PathString = pathString
 	}
 
-	for _, rangeData := range sharedCacheStrings.Ranges {
-		strings, err := getEntryStrings(input, rangeData.DataOffset, rangeData.RangeSize)
+	for i := range sharedCacheStrings.Ranges {
+		strings, err := getEntryStrings(data, sharedCacheStrings.Ranges[i].DataOffset, sharedCacheStrings.Ranges[i].RangeSize)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get strings while parsing DSC: %w", err)
 		}
-		rangeData.Strings = strings
+		sharedCacheStrings.Ranges[i].Strings = strings
 	}
 
 	return sharedCacheStrings, nil
