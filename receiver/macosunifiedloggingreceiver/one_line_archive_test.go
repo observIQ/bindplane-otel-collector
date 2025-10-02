@@ -54,6 +54,8 @@ func TestParseOneLineArchive(t *testing.T) {
 		},
 	}
 
+	set := receivertest.NewNopSettings(metadata.Type)
+	// set.Logger = zap.NewNop()
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig().(*Config)
 	cfg.Encoding = "macosunifiedlogencoding"
@@ -65,11 +67,14 @@ func TestParseOneLineArchive(t *testing.T) {
 	cfg.PollInterval = 100 * time.Millisecond
 
 	sink := new(consumertest.LogsSink)
-	rcv, err := factory.CreateLogs(context.Background(), receivertest.NewNopSettings(metadata.Type), cfg, sink)
+	rcv, err := factory.CreateLogs(context.Background(), set, cfg, sink)
 	require.NoError(t, err)
 	require.NotNil(t, rcv)
 
-	// // Test that we can start and stop the receiver
+	// Test that we can start and stop the receiver
+	err = ext.Start(context.Background(), host)
+	require.NoError(t, err, "failed to start extension")
+
 	err = rcv.Start(context.Background(), host)
 	require.NoError(t, err, "failed to start receiver")
 
@@ -102,4 +107,7 @@ func TestParseOneLineArchive(t *testing.T) {
 
 	err = rcv.Shutdown(context.Background())
 	require.NoError(t, err, "failed to shutdown receiver")
+
+	err = ext.Shutdown(context.Background())
+	require.NoError(t, err, "failed to shutdown extension")
 }

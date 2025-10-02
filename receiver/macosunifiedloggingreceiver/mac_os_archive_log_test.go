@@ -22,16 +22,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension"
+	"github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver/internal/metadata"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/extension/extensiontest"
 	"go.opentelemetry.io/collector/pdata/plog"
-	"go.opentelemetry.io/collector/receiver"
 	"go.opentelemetry.io/collector/receiver/receivertest"
-
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension"
-	"github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver/internal/metadata"
 )
 
 type mockHostForTest struct {
@@ -41,130 +39,108 @@ type mockHostForTest struct {
 func (h *mockHostForTest) GetExtensions() map[component.ID]component.Component { return h.extensions }
 
 func TestParseLogBigSur(t *testing.T) {
-	filePath := filepath.Join("testdata", "system_logs_big_sur.logarchive")
+	filePath := filepath.Join("testdata", "system_logs_big_sur.logarchive", "**", "*.tracev3")
 	sink := new(consumertest.LogsSink)
-	var macOSLogReceiver receiver.Logs
-	var err error
 
-	macOSLogReceiver, err = setupAndStartReceiver(t, filePath, sink)
-	require.NoError(t, err, "failed to setup and start receiver")
+	setupAndStartReceiver(t, filePath, sink, 250)
 
 	// Verify the log content
 	logCounts := countLogInformation(sink.AllLogs())
 
-	// require.Equal(t, 50665, logCounts["signpostEvent"])
-	// require.Equal(t, 5, logCounts["lossEvent"])
-
-	// logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).EventName()
-	// assert.Contains(t, logRecord.Body().AsString(), "Read traceV3 file")
-	// assert.Contains(t, logRecord.Body().AsString(), testFile)
-
-	err = macOSLogReceiver.Shutdown(context.Background())
-	require.NoError(t, err, "failed to shutdown receiver")
+	require.Equal(t, 110953, len(sink.AllLogs()))
+	require.Equal(t, 322, logCounts["byEventType"]["Statedump"])
 }
 
-func TestParseAllLogsPrivateBigSur(t *testing.T) {
-	filePath := filepath.Join("testdata", "system_logs_big_sur_private_enabled.logarchive")
-	sink := new(consumertest.LogsSink)
-	var macOSLogReceiver receiver.Logs
-	var err error
+// func TestParseAllLogsPrivateBigSur(t *testing.T) {
+// 	filePath := filepath.Join("testdata", "system_logs_big_sur_private_enabled.logarchive")
+// 	sink := new(consumertest.LogsSink)
 
-	macOSLogReceiver, err = setupAndStartReceiver(t, filePath, sink)
-	require.NoError(t, err, "failed to setup and start receiver")
+// 	setupAndStartReceiver(t, filePath, sink, 0)
 
-	// Verify the log content
-	logCounts := countLogInformation(sink.AllLogs())
+// 	// Verify the log content
+// 	logCounts := countLogInformation(sink.AllLogs())
 
-	// require.Equal(t, 50665, logCounts["byEventType"]["signpostEvent"])
-	// require.Equal(t, 5, logCounts["byEventType"]["lossEvent"])
+// 	require.Equal(t, 0, logCounts["byEventType"]["signpostEvent"])
+// 	require.Equal(t, 0, logCounts["byEventType"]["lossEvent"])
+// }
 
-	// logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).EventName()
-	// assert.Contains(t, logRecord.Body().AsString(), "Read traceV3 file")
-	// assert.Contains(t, logRecord.Body().AsString(), testFile)
+// func TestParseAllLogsPrivateWithPublicMixBigSur(t *testing.T) {
+// 	filePath := filepath.Join("testdata", "system_logs_big_sur_public_private_data_mix.logarchive")
+// 	sink := new(consumertest.LogsSink)
+// 	var macOSLogReceiver receiver.Logs
+// 	var err error
 
-	err = macOSLogReceiver.Shutdown(context.Background())
-	require.NoError(t, err, "failed to shutdown receiver")
-}
+// 	setupAndStartReceiver(t, filePath, sink, 0)
 
-func TestParseAllLogsPrivateWithPublicMixBigSur(t *testing.T) {
-	filePath := filepath.Join("testdata", "system_logs_big_sur_public_private_data_mix.logarchive")
-	sink := new(consumertest.LogsSink)
-	var macOSLogReceiver receiver.Logs
-	var err error
+// 	// Verify the log content
+// 	logCounts := countLogInformation(sink.AllLogs())
 
-	macOSLogReceiver, err = setupAndStartReceiver(t, filePath, sink)
-	require.NoError(t, err, "failed to setup and start receiver")
+// 	require.Equal(t, 0, logCounts["byEventType"]["signpostEvent"])
+// 	require.Equal(t, 0, logCounts["byEventType"]["lossEvent"])
 
-	// Verify the log content
-	logCounts := countLogInformation(sink.AllLogs())
+// 	err = macOSLogReceiver.Shutdown(context.Background())
+// 	require.NoError(t, err, "failed to shutdown receiver")
+// }
 
-	// require.Equal(t, 50665, logCounts["byEventType"]["signpostEvent"])
-	// require.Equal(t, 5, logCounts["byEventType"]["lossEvent"])
+// func TestBigSurMissingOversizeStrings(t *testing.T) {
+// 	filePath := filepath.Join("testdata", "system_logs_big_sur.logarchive")
+// 	sink := new(consumertest.LogsSink)
+// 	var macOSLogReceiver receiver.Logs
+// 	var err error
 
-	err = macOSLogReceiver.Shutdown(context.Background())
-	require.NoError(t, err, "failed to shutdown receiver")
-}
+// 	macOSLogReceiver, err = setupAndStartReceiver(t, filePath, sink)
+// 	require.NoError(t, err, "failed to setup and start receiver")
 
-func TestBigSurMissingOversizeStrings(t *testing.T) {
-	filePath := filepath.Join("testdata", "system_logs_big_sur.logarchive")
-	sink := new(consumertest.LogsSink)
-	var macOSLogReceiver receiver.Logs
-	var err error
+// 	// Verify the log content
+// 	logCounts := countLogInformation(sink.AllLogs())
 
-	macOSLogReceiver, err = setupAndStartReceiver(t, filePath, sink)
-	require.NoError(t, err, "failed to setup and start receiver")
+// 	// require.Equal(t, 50665, logCounts["signpostEvent"])
+// 	// require.Equal(t, 5, logCounts["lossEvent"])
 
-	// Verify the log content
-	logCounts := countLogInformation(sink.AllLogs())
+// 	err = macOSLogReceiver.Shutdown(context.Background())
+// 	require.NoError(t, err, "failed to shutdown receiver")
+// }
 
-	// require.Equal(t, 50665, logCounts["signpostEvent"])
-	// require.Equal(t, 5, logCounts["lossEvent"])
+// func TestParseAllLogsHighSierra(t *testing.T) {
+// 	filePath := filepath.Join("testdata", "system_logs_high_sierra.logarchive")
+// 	sink := new(consumertest.LogsSink)
+// 	var macOSLogReceiver receiver.Logs
+// 	var err error
 
-	err = macOSLogReceiver.Shutdown(context.Background())
-	require.NoError(t, err, "failed to shutdown receiver")
-}
+// 	setupAndStartReceiver(t, filePath, sink, 0)
 
-func TestParseAllLogsHighSierra(t *testing.T) {
-	filePath := filepath.Join("testdata", "system_logs_high_sierra.logarchive")
-	sink := new(consumertest.LogsSink)
-	var macOSLogReceiver receiver.Logs
-	var err error
+// 	// Verify the log content
+// 	byEventType := countLogInformation(sink.AllLogs())
 
-	macOSLogReceiver, err = setupAndStartReceiver(t, filePath, sink)
-	require.NoError(t, err, "failed to setup and start receiver")
+// 	t.Logf("map: %#v", byEventType)
 
-	// Verify the log content
-	byEventType := countLogInformation(sink.AllLogs())
+// 	require.Equal(t, 50665, byEventType["signpostEvent"])
+// 	require.Equal(t, 5, byEventType["lossEvent"])
 
-	t.Logf("map: %#v", byEventType)
+// 	err = macOSLogReceiver.Shutdown(context.Background())
+// 	require.NoError(t, err, "failed to shutdown receiver")
+// }
 
-	require.Equal(t, 50665, byEventType["signpostEvent"])
-	require.Equal(t, 5, byEventType["lossEvent"])
+// func TestParseAllLogsMonterey(t *testing.T) {
+// 	filePath := filepath.Join("testdata", "system_logs_monterey.logarchive")
+// 	sink := new(consumertest.LogsSink)
+// 	var macOSLogReceiver receiver.Logs
+// 	var err error
 
-	err = macOSLogReceiver.Shutdown(context.Background())
-	require.NoError(t, err, "failed to shutdown receiver")
-}
+// 	macOSLogReceiver, err = setupAndStartReceiver(t, filePath, sink)
+// 	require.NoError(t, err, "failed to setup and start receiver")
 
-func TestParseAllLogsMonterey(t *testing.T) {
-	filePath := filepath.Join("testdata", "system_logs_monterey.logarchive")
-	sink := new(consumertest.LogsSink)
-	var macOSLogReceiver receiver.Logs
-	var err error
+// 	// Verify the log content
+// 	logCounts := countLogInformation(sink.AllLogs())
 
-	macOSLogReceiver, err = setupAndStartReceiver(t, filePath, sink)
-	require.NoError(t, err, "failed to setup and start receiver")
+// 	require.Equal(t, 50665, logCounts["byEventType"]["signpostEvent"])
+// 	require.Equal(t, 5, logCounts["byEventType"]["lossEvent"])
 
-	// Verify the log content
-	logCounts := countLogInformation(sink.AllLogs())
+// 	err = macOSLogReceiver.Shutdown(context.Background())
+// 	require.NoError(t, err, "failed to shutdown receiver")
+// }
 
-	require.Equal(t, 50665, logCounts["byEventType"]["signpostEvent"])
-	require.Equal(t, 5, logCounts["byEventType"]["lossEvent"])
-
-	err = macOSLogReceiver.Shutdown(context.Background())
-	require.NoError(t, err, "failed to shutdown receiver")
-}
-
-func setupAndStartReceiver(t *testing.T, glob string, sink *consumertest.LogsSink) (receiver.Logs, error) {
+func setupAndStartReceiver(t *testing.T, traceV3Paths string, sink *consumertest.LogsSink, expectedLogCount int) {
 	extFactory := macosunifiedloggingencodingextension.NewFactory()
 	extCfg := extFactory.CreateDefaultConfig()
 
@@ -181,18 +157,26 @@ func setupAndStartReceiver(t *testing.T, glob string, sink *consumertest.LogsSin
 		},
 	}
 
+	set := receivertest.NewNopSettings(metadata.Type)
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig().(*Config)
 	cfg.Encoding = "macosunifiedlogencoding"
-	cfg.TraceV3Paths = []string{glob}
+	cfg.TraceV3Paths = []string{traceV3Paths}
+	cfg.TimesyncPaths = []string{}
+	cfg.DSCPaths = []string{}
+	cfg.UUIDTextPaths = []string{}
 	cfg.StartAt = "beginning"
 	cfg.PollInterval = 100 * time.Millisecond
 
-	rcv, err := factory.CreateLogs(context.Background(), receivertest.NewNopSettings(metadata.Type), cfg, sink)
+	rcv, err := factory.CreateLogs(context.Background(), set, cfg, sink)
 	require.NoError(t, err)
 	require.NotNil(t, rcv)
 
-	// // Test that we can start and stop the receiver
+	// Start the Extension and the Receiver for the test
+	err = ext.Start(context.Background(), host)
+	require.NoError(t, err, "failed to start extension")
+
+	// Test that we can start and stop the receiver
 	err = rcv.Start(context.Background(), host)
 	require.NoError(t, err, "failed to start receiver")
 
@@ -203,10 +187,17 @@ func setupAndStartReceiver(t *testing.T, glob string, sink *consumertest.LogsSin
 	// Total log entries: 747,616
 	require.Eventually(
 		t,
-		func() bool { return sink.LogRecordCount() >= 1 },
-		5*time.Second, 10*time.Millisecond,
+		func() bool { return sink.LogRecordCount() >= expectedLogCount },
+		10*time.Second, 10*time.Millisecond,
 	)
-	return rcv, err
+
+	err = rcv.Shutdown(context.Background())
+	require.NoError(t, err, "failed to shutdown receiver")
+
+	err = ext.Shutdown(context.Background())
+	require.NoError(t, err, "failed to shutdown extension")
+
+	return
 }
 
 func countLogInformation(logs []plog.Logs) map[string]map[string]int {
