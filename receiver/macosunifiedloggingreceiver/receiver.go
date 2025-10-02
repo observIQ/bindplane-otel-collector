@@ -282,21 +282,6 @@ func (r *macosUnifiedLogReceiver) consumeTraceV3Tokens(ctx context.Context, toke
 		totalLogRecords += decodedLogs.LogRecordCount()
 	}
 
-	// If no logs were created, create a fallback entry
-	if totalLogRecords == 0 {
-		allLogs = plog.NewLogs()
-		resourceLogs := allLogs.ResourceLogs().AppendEmpty()
-		resource := resourceLogs.Resource()
-		resource.Attributes().PutStr("log.file.path", filePath)
-		resource.Attributes().PutStr("log.file.format", "macos_unified_log_tracev3")
-
-		scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
-		logRecord := scopeLogs.LogRecords().AppendEmpty()
-		r.setLogRecordAttributes(&logRecord, totalSize, len(tokens))
-		logRecord.Body().SetStr(fmt.Sprintf("No logs decoded from traceV3 file: %s (size: %d bytes, tokens: %d)", filePath, totalSize, len(tokens)))
-		totalLogRecords = 1
-	}
-
 	// Send all decoded logs to the consumer
 	err := r.consumer.ConsumeLogs(ctx, allLogs)
 	if err != nil {

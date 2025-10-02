@@ -150,10 +150,13 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 	for i, catalogData := range logDataResults.CatalogData {
 		catalogFirehoseData, err := c.processFirehoseData(logDataResults, &catalogData, i)
 		if err != nil {
-			return plog.NewLogs(), err
+			return otelLogs, err
 		}
-		// c.processSimpleDumpData(logDataResults, &catalogData, i)
-		// c.processStatedumpData(logDataResults, &catalogData, i)
+		catalogSimpleDumpData := c.processSimpleDumpData(logDataResults, &catalogData, i)
+		catalogStatedumpData, err := c.processStatedumpData(logDataResults, &catalogData, i)
+		if err != nil {
+			return otelLogs, err
+		}
 
 		if c.debugMode {
 			c.logger.Info("Processing catalog data",
@@ -174,7 +177,7 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 				// Create a single log record for each firehose entry
 				logRecord := otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
 				logRecord.Body().SetStr(firehoseEntry.Message.ItemInfo[0].MessageStrings)
-				logRecord.SetTimestamp(pcommon.NewTimestampFromTime(catalogFirehoseData[k].Timestamp)) // idk if this is the right value to use (it's not)
+				logRecord.SetTimestamp(pcommon.NewTimestampFromTime(catalogFirehoseData[k].Timestamp))
 				logRecord.Attributes().PutStr("subsystem", catalogFirehoseData[k].Subsystem)
 				logRecord.Attributes().PutStr("category", catalogFirehoseData[k].Category)
 				logRecord.Attributes().PutStr("process", catalogFirehoseData[k].Process)
@@ -187,20 +190,41 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 				logRecord.Attributes().PutInt("pid", int64(catalogFirehoseData[k].PID))
 				logRecord.Attributes().PutInt("euid", int64(catalogFirehoseData[k].EUID))
 				logRecord.Attributes().PutInt("thread_id", int64(catalogFirehoseData[k].ThreadID))
-
-				// Add metadata as attributes
 				logRecord.Attributes().PutStr("activity_type", fmt.Sprintf("%d", firehoseEntry.ActivityType))
-				// logRecord.Attributes().PutStr("log_type", fmt.Sprintf("%d", firehoseEntry.LogType))
-				logRecord.Attributes().PutInt("thread_id", int64(firehoseEntry.ThreadID))
 			}
 		}
 
 		for _, simpledump := range catalogData.SimpledumpData {
-			otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(simpledump.MessageString)
+			logRecord := otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+			logRecord.Body().SetStr(simpledump.MessageString)
+			logRecord.SetTimestamp(pcommon.NewTimestampFromTime(catalogSimpleDumpData[i].Timestamp))
+			logRecord.Attributes().PutStr("subsystem", catalogSimpleDumpData[i].Subsystem)
+			logRecord.Attributes().PutStr("process", catalogSimpleDumpData[i].Process)
+			logRecord.Attributes().PutStr("process_uuid", catalogSimpleDumpData[i].ProcessUUID)
+			logRecord.Attributes().PutStr("boot_uuid", catalogSimpleDumpData[i].BootUUID)
+			logRecord.Attributes().PutStr("timezone_name", catalogSimpleDumpData[i].TimezoneName)
+			logRecord.Attributes().PutInt("activity_id", int64(catalogSimpleDumpData[i].ActivityID))
+			logRecord.Attributes().PutStr("event_type", catalogSimpleDumpData[i].EventType.String())
+			logRecord.Attributes().PutStr("log_type", catalogSimpleDumpData[i].LogType.String())
+			logRecord.Attributes().PutInt("pid", int64(catalogSimpleDumpData[i].PID))
+			logRecord.Attributes().PutInt("euid", int64(catalogSimpleDumpData[i].EUID))
+			logRecord.Attributes().PutInt("thread_id", int64(catalogSimpleDumpData[i].ThreadID))
 		}
 		for _, statedump := range catalogData.StatedumpData {
-			otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty().Body().SetStr(string(statedump.Data))
-
+			logRecord := otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+			logRecord.Body().SetStr(string(statedump.Data))
+			logRecord.SetTimestamp(pcommon.NewTimestampFromTime(catalogStatedumpData[i].Timestamp))
+			logRecord.Attributes().PutStr("subsystem", catalogStatedumpData[i].Subsystem)
+			logRecord.Attributes().PutStr("process", catalogStatedumpData[i].Process)
+			logRecord.Attributes().PutStr("process_uuid", catalogStatedumpData[i].ProcessUUID)
+			logRecord.Attributes().PutStr("boot_uuid", catalogStatedumpData[i].BootUUID)
+			logRecord.Attributes().PutStr("timezone_name", catalogStatedumpData[i].TimezoneName)
+			logRecord.Attributes().PutInt("activity_id", int64(catalogStatedumpData[i].ActivityID))
+			logRecord.Attributes().PutStr("event_type", catalogStatedumpData[i].EventType.String())
+			logRecord.Attributes().PutStr("log_type", catalogStatedumpData[i].LogType.String())
+			logRecord.Attributes().PutInt("pid", int64(catalogStatedumpData[i].PID))
+			logRecord.Attributes().PutInt("euid", int64(catalogStatedumpData[i].EUID))
+			logRecord.Attributes().PutInt("thread_id", int64(catalogStatedumpData[i].ThreadID))
 		}
 	}
 
@@ -646,6 +670,75 @@ func (c *macosUnifiedLoggingCodec) processFirehoseData(ulData *UnifiedLogData, c
 			}
 			processedLogs = append(processedLogs, logData)
 		}
+	}
+	return processedLogs, nil
+}
+
+func (c *macosUnifiedLoggingCodec) processSimpleDumpData(ulData *UnifiedLogData, catalogData *UnifiedLogCatalogData, catalogIndex int) []LogEntry {
+	processedLogs := []LogEntry{}
+	for _, simpledump := range catalogData.SimpledumpData {
+		timestamp := GetTimestamp(c.timesyncData, ulData.HeaderData[0].BootUUID, simpledump.ContinuousTime, uint64(1))
+		logEntry := LogEntry{
+			Subsystem:    simpledump.Subsystem,
+			ThreadID:     simpledump.ThreadID,
+			PID:          simpledump.FirstProcID,
+			Time:         timestamp,
+			Timestamp:    helpers.UnixEpochToISO(timestamp),
+			LogType:      LogTypeSimpledump,
+			Message:      simpledump.MessageString,
+			EventType:    EventTypeSimpledump,
+			BootUUID:     ulData.HeaderData[0].BootUUID,
+			TimezoneName: strings.Split(ulData.HeaderData[0].TimezonePath, "/")[len(strings.Split(ulData.HeaderData[0].TimezonePath, "/"))-1],
+			LibraryUUID:  simpledump.SenderUUID,
+			ProcessUUID:  simpledump.DSCSharedCacheUUID,
+		}
+		processedLogs = append(processedLogs, logEntry)
+	}
+	return processedLogs
+}
+
+func (c *macosUnifiedLoggingCodec) processStatedumpData(ulData *UnifiedLogData, catalogData *UnifiedLogCatalogData, catalogIndex int) ([]LogEntry, error) {
+	processedLogs := []LogEntry{}
+	for _, statedump := range catalogData.StatedumpData {
+		var dataString string
+		switch statedump.UnknownDataType {
+		case 0x1:
+			dataString = ParseStateDumpPlist(statedump.Data)
+		case 0x2:
+			c.logger.Info("Processing statedump protobuf data", zap.Int("catalogIndex", catalogIndex), zap.ByteString("data", statedump.Data))
+			// if protobufMap, err := extractProtobuf(statedump.Data); err == nil {
+			// 	if jsonBytes, err := json.Marshal(protobufMap); err == nil {
+			// 		dataString = string(jsonBytes)
+			// 	} else {
+			// 		dataString = "Failed to serialize Protobuf HashMap"
+			// 	}
+			// } else {
+			// 	dataString = fmt.Sprintf("Failed to parse StateDump protobuf: %s", encodeStandard(statedump.Data))
+			// }
+		case 0x3:
+			dataString = ParseStateDumpObject(statedump.Data, statedump.TitleName)
+		default:
+			c.logger.Warn("Unknown statedump data type", zap.Int("type", int(statedump.UnknownDataType)))
+			results, err := helpers.ExtractString(statedump.Data)
+			if err != nil {
+				return processedLogs, err
+			}
+			dataString = results
+		}
+
+		timestamp := GetTimestamp(c.timesyncData, ulData.HeaderData[0].BootUUID, statedump.ContinuousTime, uint64(1))
+		logEntry := LogEntry{
+			PID:          statedump.FirstProcID,
+			ActivityID:   statedump.ActivityID,
+			Time:         timestamp,
+			Timestamp:    helpers.UnixEpochToISO(timestamp),
+			EventType:    EventTypeStatedump,
+			Message:      fmt.Sprintf("title: %s\nObject Library: %s\nObject Type: %s\n%s", statedump.TitleName, statedump.DecoderLibrary, statedump.DecoderType, dataString),
+			LogType:      LogTypeStatedump,
+			BootUUID:     ulData.HeaderData[0].BootUUID,
+			TimezoneName: strings.Split(ulData.HeaderData[0].TimezonePath, "/")[len(strings.Split(ulData.HeaderData[0].TimezonePath, "/"))-1],
+		}
+		processedLogs = append(processedLogs, logEntry)
 	}
 	return processedLogs, nil
 }
