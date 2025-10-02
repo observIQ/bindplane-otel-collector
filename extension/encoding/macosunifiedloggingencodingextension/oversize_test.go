@@ -39,7 +39,7 @@ func TestParseOversizeChunk(t *testing.T) {
 }
 
 func TestGetOversizeStrings(t *testing.T) {
-	chunk := []*OversizeChunk{
+	chunk := []OversizeChunk{
 		{
 			chunkTag:        24578,
 			chunkSubTag:     0,
@@ -72,7 +72,7 @@ func TestGetOversizeStrings(t *testing.T) {
 	dataRef := uint32(1)
 	firstProcID := uint64(96)
 	secondProcID := uint32(245)
-	results := GetOversizeStrings(dataRef, firstProcID, secondProcID, chunk)
+	results := GetOversizeStrings(dataRef, firstProcID, secondProcID, &chunk)
 	require.Equal(t, results[0].MessageStrings, "system kext collection")
 	require.Equal(t, results[1].MessageStrings, "/System/Library/KernelCollections/SystemKernelExtensions.kc")
 

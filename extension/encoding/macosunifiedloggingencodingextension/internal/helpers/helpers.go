@@ -103,11 +103,15 @@ func AnticipatedPaddingSize(dataCount uint64, dataSize uint64, alignment uint64)
 	return PaddingSize(totalSize, alignment)
 }
 
-// unixEpochToISO converts a Unix timestamp to ISO 8601 format string
+// UnixEpochToISO converts a Unix timestamp in nanoseconds to time.Time
 func UnixEpochToISO(timestamp float64) time.Time {
-	// Convert float64 to int64 (Unix timestamp)
-	unixTime := int64(timestamp)
+	// Convert float64 to int64 (Unix timestamp in nanoseconds)
+	unixTimeNano := int64(timestamp)
+
+	// Convert nanoseconds to seconds and remaining nanoseconds
+	seconds := unixTimeNano / 1e9
+	nanoseconds := unixTimeNano % 1e9
 
 	// Create time.Time from Unix timestamp
-	return time.Unix(unixTime, 0)
+	return time.Unix(seconds, nanoseconds)
 }

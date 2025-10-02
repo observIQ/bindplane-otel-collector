@@ -241,33 +241,35 @@ func GetTimestamp(
 	*/
 
 	var timebaseAdjustment = 1.0
-	var timesyncContinousTime uint64
+	var timesyncContinuousTime uint64
 	var timesyncWalltime int64
 
 	if timesync, exists := timesyncData[bootUUID]; exists {
 		if timesync.TimebaseNumerator == 125 && timesync.TimebaseDenominator == 3 {
 			timebaseAdjustment = 125.0 / 3.0
 		}
+
 		// A preamble time of 0 means we need to use the timesync header boot time as our minimum value.
 		// We also set the timesync_continous_time to zero
 		if firehosePreambleTime == 0 {
-			timesyncContinousTime = 0
+			timesyncContinuousTime = 0
 			timesyncWalltime = timesync.BootTime
 		}
+		// Only iterate through timesync records if preamble time is not 0
 		for _, timesyncRecord := range timesync.TimesyncRecords {
 			if timesyncRecord.KernelTime > firehoseLogDeltaTime {
-				if timesyncContinousTime == 0 && timesyncWalltime == 0 {
-					timesyncContinousTime = timesyncRecord.KernelTime
+				if timesyncContinuousTime == 0 && timesyncWalltime == 0 {
+					timesyncContinuousTime = timesyncRecord.KernelTime
 					timesyncWalltime = timesyncRecord.WallTime
 				}
 				break
 			}
-			timesyncContinousTime = timesyncRecord.KernelTime
+			timesyncContinuousTime = timesyncRecord.KernelTime
 			timesyncWalltime = timesyncRecord.WallTime
 		}
 	}
-	continousTime := float64(firehoseLogDeltaTime)*timebaseAdjustment - float64(timesyncContinousTime)*timebaseAdjustment
-	return continousTime + float64(timesyncWalltime)
+	continuousTime := float64(firehoseLogDeltaTime)*timebaseAdjustment + (-float64(timesyncContinuousTime) * timebaseAdjustment)
+	return continuousTime + float64(timesyncWalltime)
 }
 
 // NormalizeBootUUID normalizes boot UUID format to match timesync data format

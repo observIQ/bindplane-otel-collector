@@ -192,7 +192,6 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 				logRecord.Attributes().PutStr("activity_type", fmt.Sprintf("%d", firehoseEntry.ActivityType))
 				// logRecord.Attributes().PutStr("log_type", fmt.Sprintf("%d", firehoseEntry.LogType))
 				logRecord.Attributes().PutInt("thread_id", int64(firehoseEntry.ThreadID))
-				logRecord.Attributes().PutInt("data_size", int64(firehoseEntry.DataSize))
 			}
 		}
 
@@ -643,7 +642,7 @@ func (c *macosUnifiedLoggingCodec) processFirehoseData(ulData *UnifiedLogData, c
 				if firehoseEntry.FirehoseTrace.UnknownPCID != 0 {
 				}
 			default:
-				return processedLogs, fmt.Errorf("parsed unknown firehose log data: %w", firehoseEntry)
+				return processedLogs, fmt.Errorf("parsed unknown firehose log data: %v", firehoseEntry)
 			}
 			processedLogs = append(processedLogs, logData)
 		}
