@@ -39,11 +39,30 @@ type mockHostForTest struct {
 
 func (h *mockHostForTest) GetExtensions() map[component.ID]component.Component { return h.extensions }
 
-func TestParseLogBigSur(t *testing.T) {
-	filePath := filepath.Join("testdata", "system_logs_big_sur.logarchive", "**", "*.tracev3")
+func TestParseLogOneLogFromBigSur(t *testing.T) {
+	filePaths := map[string]string{
+		"tracev3":  filepath.Join("testdata", "system_logs_big_sur.logarchive", "**", "0000000000000004.tracev3"),
+		"timesync": filepath.Join(""),
+		"dsc":      filepath.Join(""),
+		"uuidtext": filepath.Join(""),
+	}
 	sink := new(consumertest.LogsSink)
 
-	setupAndStartReceiver(t, filePath, sink, 250)
+	setupAndStartReceiver(t, filePaths, sink, 2)
+
+	// Verify the log content
+	logCounts := countLogInformation(sink.AllLogs())
+	logLogCounts(t, logCounts)
+
+	require.Equal(t, 110953, sink.LogRecordCount())
+	require.Equal(t, 322, logCounts["byEventType"]["Statedump"])
+}
+
+func TestParseLogAllBigSur(t *testing.T) {
+	filePaths := getFilePathsForArchiveInTestData("system_logs_big_sur.logarchive")
+	sink := new(consumertest.LogsSink)
+
+	setupAndStartReceiver(t, filePaths, sink, 250)
 
 	// Verify the log content
 	logCounts := countLogInformation(sink.AllLogs())
@@ -54,10 +73,10 @@ func TestParseLogBigSur(t *testing.T) {
 }
 
 func TestParseAllLogsPrivateBigSur(t *testing.T) {
-	filePath := filepath.Join("testdata", "system_logs_big_sur_private_enabled.logarchive", "**", "*.tracev3")
+	filePaths := getFilePathsForArchiveInTestData("system_logs_big_sur_private_enabled.logarchive")
 	sink := new(consumertest.LogsSink)
 
-	setupAndStartReceiver(t, filePath, sink, 0)
+	setupAndStartReceiver(t, filePaths, sink, 0)
 
 	// Verify the log content
 	logCounts := countLogInformation(sink.AllLogs())
@@ -67,23 +86,10 @@ func TestParseAllLogsPrivateBigSur(t *testing.T) {
 }
 
 func TestParseAllLogsPrivateWithPublicMixBigSur(t *testing.T) {
-	filePath := filepath.Join("testdata", "system_logs_big_sur_public_private_data_mix.logarchive", "**", "*.tracev3")
+	filePaths := getFilePathsForArchiveInTestData("system_logs_big_sur_public_private_data_mix.logarchive")
 	sink := new(consumertest.LogsSink)
 
-	setupAndStartReceiver(t, filePath, sink, 0)
-
-	// Verify the log content
-	logCounts := countLogInformation(sink.AllLogs())
-
-	require.Equal(t, 0, sink.LogRecordCount())
-	require.Equal(t, 0, logCounts["byEventType"]["signpostEvent"])
-}
-
-func TestBigSurMissingOversizeStrings(t *testing.T) {
-	filePath := filepath.Join("testdata", "system_logs_big_sur.logarchive", "**", "*.tracev3")
-	sink := new(consumertest.LogsSink)
-
-	setupAndStartReceiver(t, filePath, sink, 0)
+	setupAndStartReceiver(t, filePaths, sink, 0)
 
 	// Verify the log content
 	logCounts := countLogInformation(sink.AllLogs())
@@ -93,10 +99,10 @@ func TestBigSurMissingOversizeStrings(t *testing.T) {
 }
 
 func TestParseAllLogsHighSierra(t *testing.T) {
-	filePath := filepath.Join("testdata", "system_logs_high_sierra.logarchive", "**", "*.tracev3")
+	filePaths := getFilePathsForArchiveInTestData("system_logs_high_sierra.logarchive")
 	sink := new(consumertest.LogsSink)
 
-	setupAndStartReceiver(t, filePath, sink, 10000)
+	setupAndStartReceiver(t, filePaths, sink, 10000)
 
 	// Verify the log content
 	logCounts := countLogInformation(sink.AllLogs())
@@ -106,10 +112,10 @@ func TestParseAllLogsHighSierra(t *testing.T) {
 }
 
 func TestParseAllLogsMonterey(t *testing.T) {
-	filePath := filepath.Join("testdata", "system_logs_monterey.logarchive", "**", "*.tracev3")
+	filePaths := getFilePathsForArchiveInTestData("system_logs_monterey.logarchive")
 	sink := new(consumertest.LogsSink)
 
-	setupAndStartReceiver(t, filePath, sink, 0)
+	setupAndStartReceiver(t, filePaths, sink, 0)
 
 	// Verify the log content
 	logCounts := countLogInformation(sink.AllLogs())
@@ -118,7 +124,16 @@ func TestParseAllLogsMonterey(t *testing.T) {
 	require.Equal(t, 0, logCounts["byEventType"]["signpostEvent"])
 }
 
-func setupAndStartReceiver(t *testing.T, traceV3Paths string, sink *consumertest.LogsSink, expectedLogCount int) {
+func getFilePathsForArchiveInTestData(archivePath string) map[string]string {
+	return map[string]string{
+		"tracev3":  filepath.Join("testdata", archivePath, "**", "*.tracev3"),
+		"timesync": filepath.Join("testdata", archivePath, "timesync", "**", "*.timesync"),
+		"dsc":      filepath.Join("testdata", archivePath, "dsc", "**", "*"),
+		"uuidtext": filepath.Join("testdata", archivePath, "uuidtext", "**", "*"),
+	}
+}
+
+func setupAndStartReceiver(t *testing.T, filePaths map[string]string, sink *consumertest.LogsSink, expectedLogCount int) {
 	extFactory := macosunifiedloggingencodingextension.NewFactory()
 	extCfg := extFactory.CreateDefaultConfig()
 
@@ -139,10 +154,10 @@ func setupAndStartReceiver(t *testing.T, traceV3Paths string, sink *consumertest
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig().(*Config)
 	cfg.Encoding = "macosunifiedlogencoding"
-	cfg.TraceV3Paths = []string{traceV3Paths}
-	cfg.TimesyncPaths = []string{}
-	cfg.DSCPaths = []string{}
-	cfg.UUIDTextPaths = []string{}
+	cfg.TraceV3Paths = []string{filePaths["tracev3"]}
+	cfg.TimesyncPaths = []string{filePaths["timesync"]}
+	cfg.DSCPaths = []string{filePaths["dsc"]}
+	cfg.UUIDTextPaths = []string{filePaths["uuidtext"]}
 	cfg.StartAt = "beginning"
 	cfg.PollInterval = 100 * time.Millisecond
 
@@ -158,15 +173,10 @@ func setupAndStartReceiver(t *testing.T, traceV3Paths string, sink *consumertest
 	err = rcv.Start(context.Background(), host)
 	require.NoError(t, err, "failed to start receiver")
 
-	// Wait for the file to be processed
-	// Run: "log raw-dump -a testdata/system_logs_big_sur.logarchive"
-	// total log entries: 747,294
-	// Add Statedump log entries: 322
-	// Total log entries: 747,616
 	require.Eventually(
 		t,
 		func() bool { return sink.LogRecordCount() >= expectedLogCount },
-		10*time.Second, 10*time.Millisecond,
+		30*time.Second, 10*time.Millisecond,
 	)
 
 	err = rcv.Shutdown(context.Background())

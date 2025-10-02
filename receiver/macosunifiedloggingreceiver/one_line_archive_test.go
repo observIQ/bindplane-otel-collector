@@ -15,7 +15,6 @@
 package macosunifiedloggingreceiver
 
 import (
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -23,10 +22,10 @@ import (
 )
 
 func TestParseOneLineArchive(t *testing.T) {
-	filePath := filepath.Join("testdata", "one-line.logarchive", "**", "*.tracev3")
+	filePaths := getFilePathsForArchiveInTestData("one-line.logarchive")
 	sink := new(consumertest.LogsSink)
 
-	setupAndStartReceiver(t, filePath, sink, 1)
+	setupAndStartReceiver(t, filePaths, sink, 1)
 
 	// Verify the log content
 	logCounts := countLogInformation(sink.AllLogs())
