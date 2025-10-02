@@ -22,11 +22,9 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
-	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/receiver"
 	"go.opentelemetry.io/collector/receiver/receiverhelper"
@@ -282,10 +280,15 @@ func (r *macosUnifiedLogReceiver) consumeTraceV3Tokens(ctx context.Context, toke
 		totalLogRecords += decodedLogs.LogRecordCount()
 	}
 
+	var err error
 	// Send all decoded logs to the consumer
-	err := r.consumer.ConsumeLogs(ctx, allLogs)
-	if err != nil {
-		r.set.Logger.Error("Failed to consume logs", zap.Error(err))
+	if allLogs.LogRecordCount() > 0 {
+		err := r.consumer.ConsumeLogs(ctx, allLogs)
+		if err != nil {
+			r.set.Logger.Error("Failed to consume logs", zap.Error(err))
+		}
+	} else {
+		r.set.Logger.Info("No logs decoded from traceV3 file", zap.String("filePath", filePath))
 	}
 
 	r.set.Logger.Info("Successfully processed traceV3 file",
@@ -297,17 +300,6 @@ func (r *macosUnifiedLogReceiver) consumeTraceV3Tokens(ctx context.Context, toke
 	r.obsrecv.EndLogsOp(obsrecvCtx, "macos_unified_log", totalLogRecords, err)
 
 	return nil
-}
-
-func (*macosUnifiedLogReceiver) setLogRecordAttributes(logRecord *plog.LogRecord, totalSize, lenTokens int) {
-	logRecord.SetTimestamp(pcommon.NewTimestampFromTime(time.Now()))
-	logRecord.SetSeverityNumber(plog.SeverityNumberInfo)
-	logRecord.SetSeverityText("INFO")
-
-	// Add file information as attributes
-	logRecord.Attributes().PutInt("file.total.size", int64(totalSize))
-	logRecord.Attributes().PutInt("file.token.count", int64(lenTokens))
-	logRecord.Attributes().PutStr("receiver.name", "macosunifiedlog")
 }
 
 // loadTimesyncData loads timesync files and configures the encoding extension with the raw data

@@ -184,13 +184,12 @@ func formatUUID(uuidBytes []byte) string {
 		return hex.EncodeToString(uuidBytes)
 	}
 
-	// Format as uppercase hex string without dashes using big-endian for proper UUID formatting
-	return fmt.Sprintf("%08X%04X%04X%04X%012X",
-		binary.BigEndian.Uint32(uuidBytes[0:4]),
-		binary.BigEndian.Uint16(uuidBytes[4:6]),
-		binary.BigEndian.Uint16(uuidBytes[6:8]),
-		binary.BigEndian.Uint16(uuidBytes[8:10]),
-		uuidBytes[10:16])
+	// Format as uppercase hex string without dashes using big-endian for consistency with other UUID parsing
+	return fmt.Sprintf("%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+		uuidBytes[0], uuidBytes[1], uuidBytes[2], uuidBytes[3],
+		uuidBytes[4], uuidBytes[5], uuidBytes[6], uuidBytes[7],
+		uuidBytes[8], uuidBytes[9], uuidBytes[10], uuidBytes[11],
+		uuidBytes[12], uuidBytes[13], uuidBytes[14], uuidBytes[15])
 }
 
 // encodeStandard provides hex encoding for unsupported objects

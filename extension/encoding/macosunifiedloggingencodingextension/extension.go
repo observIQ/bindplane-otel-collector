@@ -176,21 +176,32 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 			for k, firehoseEntry := range firehosePreamble.PublicData {
 				// Create a single log record for each firehose entry
 				logRecord := otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
-				logRecord.Body().SetStr(firehoseEntry.Message.ItemInfo[0].MessageStrings)
+				if len(firehoseEntry.Message.ItemInfo) > 0 {
+					logRecord.Body().SetStr(firehoseEntry.Message.ItemInfo[0].MessageStrings)
+				} else {
+					logRecord.Body().SetStr(fmt.Sprintf("No message strings found for firehose entry: %d", k))
+				}
 				logRecord.SetTimestamp(pcommon.NewTimestampFromTime(catalogFirehoseData[k].Timestamp))
+				// Add formatted timestamp (ISO format) as an attribute
+				logRecord.Attributes().PutStr("timestamp", catalogFirehoseData[k].Timestamp.Format("2006-01-02T15:04:05.000000000Z"))
 				logRecord.Attributes().PutStr("subsystem", catalogFirehoseData[k].Subsystem)
 				logRecord.Attributes().PutStr("category", catalogFirehoseData[k].Category)
 				logRecord.Attributes().PutStr("process", catalogFirehoseData[k].Process)
-				logRecord.Attributes().PutStr("process_uuid", catalogFirehoseData[k].ProcessUUID)
+				logRecord.Attributes().PutStr("process_image_uuid", catalogFirehoseData[k].ProcessUUID)
 				logRecord.Attributes().PutStr("boot_uuid", catalogFirehoseData[k].BootUUID)
 				logRecord.Attributes().PutStr("timezone_name", catalogFirehoseData[k].TimezoneName)
 				logRecord.Attributes().PutInt("activity_id", int64(catalogFirehoseData[k].ActivityID))
 				logRecord.Attributes().PutStr("event_type", catalogFirehoseData[k].EventType.String())
-				logRecord.Attributes().PutStr("log_type", catalogFirehoseData[k].LogType.String())
+				logRecord.Attributes().PutStr("message_type", catalogFirehoseData[k].LogType.String())
 				logRecord.Attributes().PutInt("pid", int64(catalogFirehoseData[k].PID))
 				logRecord.Attributes().PutInt("euid", int64(catalogFirehoseData[k].EUID))
 				logRecord.Attributes().PutInt("thread_id", int64(catalogFirehoseData[k].ThreadID))
-				logRecord.Attributes().PutStr("activity_type", fmt.Sprintf("%d", firehoseEntry.ActivityType))
+				if len(firehoseEntry.Message.BacktraceStrings) > 0 {
+					logRecord.Attributes().PutStr("backtrace", strings.Join(firehoseEntry.Message.BacktraceStrings, "\n"))
+				}
+				logRecord.Attributes().PutStr("library", catalogFirehoseData[k].Library)
+				logRecord.Attributes().PutStr("library_uuid", catalogFirehoseData[k].LibraryUUID)
+				logRecord.Attributes().PutStr("process", catalogFirehoseData[k].Process)
 			}
 		}
 
@@ -198,14 +209,15 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 			logRecord := otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
 			logRecord.Body().SetStr(simpledump.MessageString)
 			logRecord.SetTimestamp(pcommon.NewTimestampFromTime(catalogSimpleDumpData[i].Timestamp))
+			logRecord.Attributes().PutStr("timestamp", catalogSimpleDumpData[i].Timestamp.Format("2006-01-02T15:04:05.000000000Z"))
 			logRecord.Attributes().PutStr("subsystem", catalogSimpleDumpData[i].Subsystem)
 			logRecord.Attributes().PutStr("process", catalogSimpleDumpData[i].Process)
-			logRecord.Attributes().PutStr("process_uuid", catalogSimpleDumpData[i].ProcessUUID)
+			logRecord.Attributes().PutStr("process_image_uuid", catalogSimpleDumpData[i].ProcessUUID)
 			logRecord.Attributes().PutStr("boot_uuid", catalogSimpleDumpData[i].BootUUID)
 			logRecord.Attributes().PutStr("timezone_name", catalogSimpleDumpData[i].TimezoneName)
 			logRecord.Attributes().PutInt("activity_id", int64(catalogSimpleDumpData[i].ActivityID))
 			logRecord.Attributes().PutStr("event_type", catalogSimpleDumpData[i].EventType.String())
-			logRecord.Attributes().PutStr("log_type", catalogSimpleDumpData[i].LogType.String())
+			logRecord.Attributes().PutStr("message_type", catalogSimpleDumpData[i].LogType.String())
 			logRecord.Attributes().PutInt("pid", int64(catalogSimpleDumpData[i].PID))
 			logRecord.Attributes().PutInt("euid", int64(catalogSimpleDumpData[i].EUID))
 			logRecord.Attributes().PutInt("thread_id", int64(catalogSimpleDumpData[i].ThreadID))
@@ -214,14 +226,15 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 			logRecord := otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
 			logRecord.Body().SetStr(string(statedump.Data))
 			logRecord.SetTimestamp(pcommon.NewTimestampFromTime(catalogStatedumpData[i].Timestamp))
+			logRecord.Attributes().PutStr("timestamp", catalogStatedumpData[i].Timestamp.Format("2006-01-02T15:04:05.000000000Z"))
 			logRecord.Attributes().PutStr("subsystem", catalogStatedumpData[i].Subsystem)
 			logRecord.Attributes().PutStr("process", catalogStatedumpData[i].Process)
-			logRecord.Attributes().PutStr("process_uuid", catalogStatedumpData[i].ProcessUUID)
+			logRecord.Attributes().PutStr("process_image_uuid", catalogStatedumpData[i].ProcessUUID)
 			logRecord.Attributes().PutStr("boot_uuid", catalogStatedumpData[i].BootUUID)
 			logRecord.Attributes().PutStr("timezone_name", catalogStatedumpData[i].TimezoneName)
 			logRecord.Attributes().PutInt("activity_id", int64(catalogStatedumpData[i].ActivityID))
 			logRecord.Attributes().PutStr("event_type", catalogStatedumpData[i].EventType.String())
-			logRecord.Attributes().PutStr("log_type", catalogStatedumpData[i].LogType.String())
+			logRecord.Attributes().PutStr("message_type", catalogStatedumpData[i].LogType.String())
 			logRecord.Attributes().PutInt("pid", int64(catalogStatedumpData[i].PID))
 			logRecord.Attributes().PutInt("euid", int64(catalogStatedumpData[i].EUID))
 			logRecord.Attributes().PutInt("thread_id", int64(catalogStatedumpData[i].ThreadID))
@@ -244,6 +257,14 @@ func (c *macosUnifiedLoggingCodec) parseDSCRawData() {
 	for filePath, rawData := range c.dscRawData {
 		// Extract UUID from file path
 		uuid := extractDSCUUIDFromPath(filePath)
+
+		// Debug logging to understand UUID extraction
+		if c.debugMode {
+			c.logger.Info("Extracting DSC UUID from path",
+				zap.String("filePath", filePath),
+				zap.String("extractedUUID", uuid),
+				zap.Int("uuidLength", len(uuid)))
+		}
 
 		// Parse the raw data
 		parsedDSC, err := sharedcache.ParseDSC(rawData)
@@ -376,6 +397,14 @@ func (c *macosUnifiedLoggingCodec) parseUUIDTextRawData() {
 		// Extract UUID from file path
 		uuid := extractUUIDFromPath(filePath)
 
+		// Debug logging to understand UUID extraction
+		if c.debugMode {
+			c.logger.Info("Extracting UUID from path",
+				zap.String("filePath", filePath),
+				zap.String("extractedUUID", uuid),
+				zap.Int("uuidLength", len(uuid)))
+		}
+
 		// Parse the raw data
 		parsedUUIDText, err := uuidtext.ParseUUIDText(rawData)
 		if err != nil {
@@ -416,6 +445,32 @@ func extractUUIDFromPath(filePath string) string {
 
 	// Remove any extension if present
 	filename = strings.TrimSuffix(filename, filepath.Ext(filename))
+
+	// Check if the filename is 30 characters (truncated UUID)
+	// In this case, we need to reconstruct the full UUID from the directory name
+	if len(filename) == 30 {
+		// Get the parent directory name
+		dir := filepath.Dir(filePath)
+		parentDir := filepath.Base(dir)
+
+		// Check if parent directory is 2 hex characters
+		if len(parentDir) == 2 {
+			// Check if parent directory is all hex
+			isHex := true
+			for _, char := range parentDir {
+				if !((char >= '0' && char <= '9') || (char >= 'A' && char <= 'F') || (char >= 'a' && char <= 'f')) {
+					isHex = false
+					break
+				}
+			}
+
+			if isHex {
+				// Reconstruct the full UUID by combining directory + filename
+				fullUUID := strings.ToUpper(parentDir) + strings.ToUpper(filename)
+				return fullUUID
+			}
+		}
+	}
 
 	// The filename should be the UUID (32 hex characters)
 	if len(filename) == 32 {

@@ -16,9 +16,7 @@ package macosunifiedloggingencodingextension
 
 import (
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
-	"strings"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
@@ -90,8 +88,12 @@ func ParseCatalogChunk(data []byte) (models.CatalogChunk, []byte, error) {
 			return catalog, data, fmt.Errorf("failed to parse catalog UUID %d: %w", i, err)
 		}
 
-		// Convert 16 bytes to uppercase hex string
-		uuidStr := strings.ToUpper(hex.EncodeToString(uuidBytes))
+		// Convert 16 bytes to uppercase hex string (big-endian for consistency with firehose parsing)
+		uuidStr := fmt.Sprintf("%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+			uuidBytes[0], uuidBytes[1], uuidBytes[2], uuidBytes[3],
+			uuidBytes[4], uuidBytes[5], uuidBytes[6], uuidBytes[7],
+			uuidBytes[8], uuidBytes[9], uuidBytes[10], uuidBytes[11],
+			uuidBytes[12], uuidBytes[13], uuidBytes[14], uuidBytes[15])
 		catalogUUIDs[i] = uuidStr
 	}
 
