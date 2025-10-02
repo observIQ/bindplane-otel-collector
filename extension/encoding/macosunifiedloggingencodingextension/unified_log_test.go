@@ -25,6 +25,7 @@ import (
 )
 
 func TestParseUnifiedLog_OneLineArchive(t *testing.T) {
+	skipIfNoReceiverTestdata(t)
 	baseArchivePath := filepath.Join("..", "..", "..", "receiver", "macosunifiedloggingreceiver", "testdata", "one-line.logarchive")
 	traceV3Path := filepath.Join(baseArchivePath, "Persist", "00000000000060d5.tracev3")
 

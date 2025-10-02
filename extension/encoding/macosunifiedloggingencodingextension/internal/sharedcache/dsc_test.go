@@ -23,7 +23,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// skipIfNoTestdata skips the test if the testdata directory doesn't exist
+func skipIfNoTestdata(t *testing.T) {
+	testdataPath := filepath.Join("..", "..", "..", "..", "..", "receiver", "macosunifiedloggingreceiver", "testdata")
+	if _, err := os.Stat(testdataPath); os.IsNotExist(err) {
+		t.Skip("Skipping test: testdata directory not found")
+	}
+}
+
 func TestParseDSC_VersionOne(t *testing.T) {
+	skipIfNoTestdata(t)
 	filePath := filepath.Join("..", "..", "..", "..", "..", "receiver", "macosunifiedloggingreceiver", "testdata", "DSC Tests", "big_sur_version_1_522F6217CB113F8FB845C2A1B784C7C2")
 
 	data, err := os.ReadFile(filePath)
