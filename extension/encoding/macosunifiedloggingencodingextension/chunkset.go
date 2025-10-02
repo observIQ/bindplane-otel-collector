@@ -193,14 +193,12 @@ func getChunksetData(data []byte, chunkTag uint32, ulData *UnifiedLogCatalogData
 		}
 		ulData.OversizeData = append(ulData.OversizeData, oversizeChunk)
 	case statedumpChunk:
-		fmt.Printf("Found Statedump chunk type: 0x%x, size: %d\\n", chunkTag, len(data))
 		statedumpChunkData, err := ParseStateDump(data)
 		if err != nil {
 			return err
 		}
 		ulData.StatedumpData = append(ulData.StatedumpData, *statedumpChunkData)
 	case simpledumpChunk:
-		fmt.Printf("Found Simpledump chunk type: 0x%x, size: %d\\n", chunkTag, len(data))
 		simpledumpChunkData, _, err := ParseSimpleDumpChunk(data)
 		if err != nil {
 			return err
