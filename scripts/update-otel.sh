@@ -30,7 +30,9 @@ go.opentelemetry.io/collector/config/configcompression
 go.opentelemetry.io/collector/config/configretry
 go.opentelemetry.io/collector/config/configtls
 go.opentelemetry.io/collector/config/confignet
+go.opentelemetry.io/collector/config/configmiddleware
 go.opentelemetry.io/collector/consumer
+go.opentelemetry.io/collector/exporter
 go.opentelemetry.io/collector/extension
 go.opentelemetry.io/collector/extension/extensionauth
 go.opentelemetry.io/collector/pipeline
