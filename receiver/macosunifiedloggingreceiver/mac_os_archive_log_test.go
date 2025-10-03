@@ -141,9 +141,9 @@ func TestParseAllLogsMonterey(t *testing.T) {
 func getFilePathsForArchiveInTestData(archivePath string) map[string]string {
 	return map[string]string{
 		"tracev3":  filepath.Join("testdata", archivePath, "**", "*.tracev3"),
-		"timesync": filepath.Join("testdata", archivePath, "timesync", "**", "*.timesync"),
-		"dsc":      filepath.Join("testdata", archivePath, "dsc", "**", "*"),
-		"uuidtext": filepath.Join("testdata", archivePath, "uuidtext", "**", "*"),
+		"timesync": filepath.Join("testdata", archivePath, "timesync", "*.timesync"),
+		"dsc":      filepath.Join("testdata", archivePath, "dsc", "*"),
+		"uuidtext": filepath.Join("testdata", archivePath, "[0-9A-F][0-9A-F]", "*"),
 	}
 }
 

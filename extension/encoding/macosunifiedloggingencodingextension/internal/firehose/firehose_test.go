@@ -122,11 +122,11 @@ func TestGetBacktraceData(t *testing.T) {
 func TestParseFirehosePrivateDataZero(t *testing.T) {
 	parsedFirehosePreamble, _, err := ParseFirehosePreamble(firehosePrivateDataZeroTestData)
 	require.NoError(t, err)
-	require.Equal(t, uint16(4094), parsedFirehosePreamble.privateDataVirtualOffset)
+	require.Equal(t, uint16(4094), parsedFirehosePreamble.PrivateDataVirtualOffset)
 	require.Equal(t, uint64(1189179), parsedFirehosePreamble.FirstProcID)
 	require.Equal(t, uint32(2685254), parsedFirehosePreamble.SecondProcID)
 	require.Equal(t, uint64(2686068189033091), parsedFirehosePreamble.BaseContinuousTime)
-	require.Equal(t, uint16(664), parsedFirehosePreamble.publicDataSize)
+	require.Equal(t, uint16(664), parsedFirehosePreamble.PublicDataSize)
 	require.Equal(t, 10, len(parsedFirehosePreamble.PublicData))
 	require.Equal(t, uint8(1), parsedFirehosePreamble.collapsed)
 }
