@@ -21,6 +21,8 @@ import (
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 )
 
+// LogPreamble represents the preamble header present at the start of
+// each chunk. It contains the chunk tag, subtag, and the chunk data size.
 type LogPreamble struct {
 	ChunkTag      uint32
 	ChunkSubtag   uint32
@@ -37,15 +39,18 @@ func DetectPreamble(data []byte) (LogPreamble, error) {
 // ParsePreamble parses the 1st 16 bytes of the data into a LogPreamble
 // Consumes the input
 func ParsePreamble(data []byte) (LogPreamble, []byte, error) {
-	data, chunkTag, err := helpers.Take(data, 4)
+	var chunkTag, chunkSubTag, chunkDataSize []byte
+	var err error
+
+	data, chunkTag, err = helpers.Take(data, 4)
 	if err != nil {
 		return LogPreamble{}, data, fmt.Errorf("failed to parse preamble chunk tag: %w", err)
 	}
-	data, chunkSubTag, err := helpers.Take(data, 4)
+	data, chunkSubTag, err = helpers.Take(data, 4)
 	if err != nil {
 		return LogPreamble{}, data, fmt.Errorf("failed to parse preamble chunk subtag: %w", err)
 	}
-	data, chunkDataSize, err := helpers.Take(data, 8)
+	data, chunkDataSize, err = helpers.Take(data, 8)
 	if err != nil {
 		return LogPreamble{}, data, fmt.Errorf("failed to parse preamble chunk data size: %w", err)
 	}

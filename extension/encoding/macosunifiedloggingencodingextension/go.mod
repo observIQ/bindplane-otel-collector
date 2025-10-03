@@ -13,6 +13,7 @@ require (
 	go.opentelemetry.io/collector/extension v1.39.0
 	go.opentelemetry.io/collector/extension/extensiontest v0.131.1-0.20250801020258-8b73477b9810
 	go.opentelemetry.io/collector/pdata v1.39.0
+	go.uber.org/zap v1.27.0
 )
 
 require (
@@ -38,7 +39,6 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.37.0 // indirect
 	go.opentelemetry.io/otel/trace v1.37.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/net v0.41.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.26.0 // indirect

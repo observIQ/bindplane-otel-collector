@@ -18,6 +18,7 @@ package helpers // import "github.com/observiq/bindplane-otel-collector/extensio
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 // Take returns the first n bytes from data, along with the remainder (remainder is the first returned value).
@@ -84,18 +85,33 @@ func ExtractString(data []byte) (string, error) {
 	return "", fmt.Errorf("could not extract string %s", data)
 }
 
-// PaddingSizeFour calculates 4-byte alignment padding (equivalent to Rust's padding_size_four)
+// PaddingSizeFour calculates 4-byte alignment padding
 func PaddingSizeFour(dataSize uint64) uint64 {
 	return PaddingSize(dataSize, 4)
 }
 
-// PaddingSize calculates padding based on alignment (equivalent to Rust's padding_size)
+// PaddingSize calculates padding based on alignment
 func PaddingSize(dataSize uint64, alignment uint64) uint64 {
 	return (alignment - (dataSize & (alignment - 1))) & (alignment - 1)
 }
 
-// AnticipatedPaddingSize8 calculates 8-byte alignment padding
+// AnticipatedPaddingSize returns the padding bytes required to align
+// a contiguous block of data of size dataCount*dataSize to the given alignment.
+// It mirrors PaddingSize but for a computed total.
 func AnticipatedPaddingSize(dataCount uint64, dataSize uint64, alignment uint64) uint64 {
 	totalSize := dataCount * dataSize
 	return PaddingSize(totalSize, alignment)
+}
+
+// UnixEpochToISO converts a Unix timestamp in nanoseconds to time.Time
+func UnixEpochToISO(timestamp float64) time.Time {
+	// Convert float64 to int64 (Unix timestamp in nanoseconds)
+	unixTimeNano := int64(timestamp)
+
+	// Convert nanoseconds to seconds and remaining nanoseconds
+	seconds := unixTimeNano / 1e9
+	nanoseconds := unixTimeNano % 1e9
+
+	// Create time.Time from Unix timestamp
+	return time.Unix(seconds, nanoseconds)
 }

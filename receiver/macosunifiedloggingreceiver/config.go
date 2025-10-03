@@ -57,7 +57,9 @@ func (cfg *Config) getFileConsumerConfig() fileconsumer.Config {
 
 	// Set file consumer encoding to "nop" since we'll handle decoding via the extension
 	fcConfig.Encoding = "nop"
-
+	// 64MiB. In practice, macOS rotates the file at a max of 10MiB.
+	// The entire file needs to be read in at once to ensure binary data is decoded correctly.
+	fcConfig.MaxLogSize = 1024 * 1024 * 64
 	// Enable file path attributes so we can access the file paths in the consume function
 	fcConfig.IncludeFilePath = true
 	fcConfig.IncludeFileName = true

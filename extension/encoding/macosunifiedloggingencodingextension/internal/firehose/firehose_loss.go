@@ -33,15 +33,18 @@ type Loss struct {
 func ParseFirehoseLoss(data []byte) (Loss, []byte, error) {
 	firehoseLoss := Loss{}
 
-	data, startTime, err := helpers.Take(data, 8)
+	var startTime, endTime, count []byte
+	var err error
+
+	data, startTime, err = helpers.Take(data, 8)
 	if err != nil {
 		return firehoseLoss, data, fmt.Errorf("failed to read start time: %w", err)
 	}
-	data, endTime, err := helpers.Take(data, 8)
+	data, endTime, err = helpers.Take(data, 8)
 	if err != nil {
 		return firehoseLoss, data, fmt.Errorf("failed to read end time: %w", err)
 	}
-	data, count, err := helpers.Take(data, 8)
+	data, count, err = helpers.Take(data, 8)
 	if err != nil {
 		return firehoseLoss, data, fmt.Errorf("failed to read count: %w", err)
 	}

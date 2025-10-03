@@ -24,18 +24,18 @@ import (
 
 // OversizeChunk represents a parsed oversize chunk
 type OversizeChunk struct {
-	chunkTag        uint32
+	ChunkTag        uint32
 	chunkSubTag     uint32
 	chunkDataSize   uint64
-	firstProcID     uint64
-	secondProcID    uint32
+	FirstProcID     uint64
+	SecondProcID    uint32
 	ttl             uint8
 	unknownReserved [3]uint8
-	continuousTime  uint64
+	ContinuousTime  uint64
 	dataRefIndex    uint32
-	publicDataSize  uint16
-	privateDataSize uint16
-	messageItems    firehose.ItemData
+	PublicDataSize  uint16
+	PrivateDataSize uint16
+	MessageItems    firehose.ItemData
 }
 
 // ParseOversizeChunk parses an oversize chunk
@@ -43,79 +43,89 @@ type OversizeChunk struct {
 func ParseOversizeChunk(data []byte) (OversizeChunk, []byte, error) {
 	var oversizeResult OversizeChunk
 
-	data, chunkTag, err := helpers.Take(data, 4)
+	var chunkTag, chunkSubTag, chunkDataSize, firstProcID, secondProcID,
+		ttl, unknownReserved, continuousTime, dataRefIndex, publicDataSize, privateDataSize []byte
+
+	var err error
+
+	data, chunkTag, err = helpers.Take(data, 4)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read chunk tag: %w", err)
 	}
-	data, chunkSubTag, err := helpers.Take(data, 4)
+	data, chunkSubTag, err = helpers.Take(data, 4)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read chunk sub tag: %w", err)
 	}
-	data, chunkDataSize, err := helpers.Take(data, 8)
+	data, chunkDataSize, err = helpers.Take(data, 8)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read chunk data size: %w", err)
 	}
-	data, firstProcID, err := helpers.Take(data, 8)
+	data, firstProcID, err = helpers.Take(data, 8)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read first proc ID: %w", err)
 	}
-	data, secondProcID, err := helpers.Take(data, 4)
+	data, secondProcID, err = helpers.Take(data, 4)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read second proc ID: %w", err)
 	}
-	data, ttl, err := helpers.Take(data, 1)
+	data, ttl, err = helpers.Take(data, 1)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read TTL: %w", err)
 	}
-	data, unknownReserved, err := helpers.Take(data, 3)
+	data, unknownReserved, err = helpers.Take(data, 3)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read unknown reserved: %w", err)
 	}
-	data, continuousTime, err := helpers.Take(data, 8)
+	data, continuousTime, err = helpers.Take(data, 8)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read continuous time: %w", err)
 	}
-	data, dataRefIndex, err := helpers.Take(data, 4)
+	data, dataRefIndex, err = helpers.Take(data, 4)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read data ref index: %w", err)
 	}
-	data, publicDataSize, err := helpers.Take(data, 2)
+	data, publicDataSize, err = helpers.Take(data, 2)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read public data size: %w", err)
 	}
-	data, privateDataSize, err := helpers.Take(data, 2)
+	data, privateDataSize, err = helpers.Take(data, 2)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read private data size: %w", err)
 	}
 
-	oversizeResult.chunkTag = binary.LittleEndian.Uint32(chunkTag)
+	oversizeResult.ChunkTag = binary.LittleEndian.Uint32(chunkTag)
 	oversizeResult.chunkSubTag = binary.LittleEndian.Uint32(chunkSubTag)
 	oversizeResult.chunkDataSize = binary.LittleEndian.Uint64(chunkDataSize)
-	oversizeResult.firstProcID = binary.LittleEndian.Uint64(firstProcID)
-	oversizeResult.secondProcID = binary.LittleEndian.Uint32(secondProcID)
+	oversizeResult.FirstProcID = binary.LittleEndian.Uint64(firstProcID)
+	oversizeResult.SecondProcID = binary.LittleEndian.Uint32(secondProcID)
 	oversizeResult.ttl = ttl[0]
 	copy(oversizeResult.unknownReserved[:], unknownReserved)
-	oversizeResult.continuousTime = binary.LittleEndian.Uint64(continuousTime)
+	oversizeResult.ContinuousTime = binary.LittleEndian.Uint64(continuousTime)
 	oversizeResult.dataRefIndex = binary.LittleEndian.Uint32(dataRefIndex)
-	oversizeResult.publicDataSize = binary.LittleEndian.Uint16(publicDataSize)
-	oversizeResult.privateDataSize = binary.LittleEndian.Uint16(privateDataSize)
+	oversizeResult.PublicDataSize = binary.LittleEndian.Uint16(publicDataSize)
+	oversizeResult.PrivateDataSize = binary.LittleEndian.Uint16(privateDataSize)
 
-	oversizeDataSize := int(oversizeResult.publicDataSize + oversizeResult.privateDataSize)
+	oversizeDataSize := int(oversizeResult.PublicDataSize + oversizeResult.PrivateDataSize)
 	if oversizeDataSize > len(data) {
 		// TODO: Log this warning
 		// fmt.Printf("Oversize data size greater than Oversize remaining string size. Using remaining string size\n")
 		oversizeDataSize = len(data)
 	}
 
-	data, publicData, err := helpers.Take(data, oversizeDataSize)
+	var publicData []byte
+	data, publicData, err = helpers.Take(data, oversizeDataSize)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read public data: %w", err)
 	}
-	messageData, _, err := helpers.Take(publicData, 1)
+
+	var messageData []byte
+	messageData, _, err = helpers.Take(publicData, 1)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read message data header: %w", err)
 	}
-	messageData, itemCount, err := helpers.Take(messageData, 1)
+
+	var itemCount []byte
+	messageData, itemCount, err = helpers.Take(messageData, 1)
 	if err != nil {
 		return oversizeResult, data, fmt.Errorf("failed to read item count: %w", err)
 	}
@@ -131,17 +141,17 @@ func ParseOversizeChunk(data []byte) (OversizeChunk, []byte, error) {
 	if err != nil {
 		return oversizeResult, data, err
 	}
-	oversizeResult.messageItems = firehoseItemData
+	oversizeResult.MessageItems = firehoseItemData
 
 	return oversizeResult, data, nil
 }
 
 // GetOversizeStrings gets the firehose item info from the oversize log entry based on oversize (data ref) id, first proc id, and second proc id
-func GetOversizeStrings(dataRef uint32, firstProcID uint64, secondProcID uint32, oversizeData []*OversizeChunk) []firehose.ItemInfo {
+func GetOversizeStrings(dataRef uint32, firstProcID uint64, secondProcID uint32, oversizeData *[]OversizeChunk) []firehose.ItemInfo {
 	messageStrings := []firehose.ItemInfo{}
-	for _, oversize := range oversizeData {
-		if oversize.dataRefIndex == dataRef && oversize.firstProcID == firstProcID && oversize.secondProcID == secondProcID {
-			for _, message := range oversize.messageItems.ItemInfo {
+	for _, oversize := range *oversizeData {
+		if oversize.dataRefIndex == dataRef && oversize.FirstProcID == firstProcID && oversize.SecondProcID == secondProcID {
+			for _, message := range oversize.MessageItems.ItemInfo {
 				oversizeFirehose := firehose.ItemInfo{
 					MessageStrings: message.MessageStrings,
 					ItemType:       message.ItemType,

@@ -36,8 +36,8 @@ type ChunksetChunk struct {
 }
 
 const (
-	bv41             = 825521762
-	bv41Uncompressed = 758412898
+	bv41             = uint32(825521762)
+	bv41Uncompressed = uint32(758412898)
 
 	firehoseChunk   = 0x6001
 	oversizeChunk   = 0x6002
@@ -45,28 +45,36 @@ const (
 	simpledumpChunk = 0x6004
 )
 
-func parseChunkset(data []byte) (chunk ChunksetChunk, remainingData []byte, err error) {
+// ParseChunkset parses a chunkset chunk into its header fields, decompresses
+// the payload when necessary, and returns the parsed chunk alongside the
+// remaining unconsumed data.
+func ParseChunkset(chunksetData []byte) (chunk ChunksetChunk, remainingData []byte, err error) {
 	chunk = ChunksetChunk{}
+	var chunkTag, chunkSubtag, chunkDataSize, signature, uncompressedSize, decompressedData, footer, blockSize, compressedData []byte
 
-	data, chunkTag, err := helpers.Take(data, 4)
+	chunksetData, chunkTag, err = helpers.Take(chunksetData, 4)
 	if err != nil {
-		return chunk, data, fmt.Errorf("failed to read chunk tag: %w", err)
+		return chunk, chunksetData, fmt.Errorf("failed to read chunk tag: %w", err)
 	}
-	data, chunkSubtag, err := helpers.Take(data, 4)
+
+	chunksetData, chunkSubtag, err = helpers.Take(chunksetData, 4)
 	if err != nil {
-		return chunk, data, fmt.Errorf("failed to read chunk subtag: %w", err)
+		return chunk, chunksetData, fmt.Errorf("failed to read chunk subtag: %w", err)
 	}
-	data, chunkDataSize, err := helpers.Take(data, 8)
+
+	chunksetData, chunkDataSize, err = helpers.Take(chunksetData, 8)
 	if err != nil {
-		return chunk, data, fmt.Errorf("failed to read chunk data size: %w", err)
+		return chunk, chunksetData, fmt.Errorf("failed to read chunk data size: %w", err)
 	}
-	data, signature, err := helpers.Take(data, 4)
+
+	chunksetData, signature, err = helpers.Take(chunksetData, 4)
 	if err != nil {
-		return chunk, data, fmt.Errorf("failed to read signature: %w", err)
+		return chunk, chunksetData, fmt.Errorf("failed to read signature: %w", err)
 	}
-	data, uncompressedSize, err := helpers.Take(data, 4)
+
+	chunksetData, uncompressedSize, err = helpers.Take(chunksetData, 4)
 	if err != nil {
-		return chunk, data, fmt.Errorf("failed to read uncompressed size: %w", err)
+		return chunk, chunksetData, fmt.Errorf("failed to read uncompressed size: %w", err)
 	}
 
 	chunk.ChunkTag = binary.LittleEndian.Uint32(chunkTag)
@@ -77,101 +85,100 @@ func parseChunkset(data []byte) (chunk ChunksetChunk, remainingData []byte, err 
 
 	// Data is already uncompressed
 	if chunk.Signature == bv41Uncompressed {
-		data, decompressedData, err := helpers.Take(data, int(chunk.UncompressedSize))
+		chunksetData, decompressedData, err = helpers.Take(chunksetData, int(chunk.UncompressedSize))
 		if err != nil {
-			return chunk, data, fmt.Errorf("failed to read decompressed data: %w", err)
+			return chunk, chunksetData, fmt.Errorf("failed to read decompressed data: %w", err)
 		}
 		chunk.DecompressedData = decompressedData
-		data, footer, err := helpers.Take(data, 4)
+
+		chunksetData, footer, err = helpers.Take(chunksetData, 4)
 		if err != nil {
-			return chunk, data, fmt.Errorf("failed to read footer: %w", err)
+			return chunk, chunksetData, fmt.Errorf("failed to read footer: %w", err)
 		}
 		chunk.Footer = binary.LittleEndian.Uint32(footer)
-		return chunk, data, nil
+		return chunk, chunksetData, nil
 	}
 
 	if chunk.Signature != bv41 {
-		return chunk, data, fmt.Errorf("invalid chunkset signature: %x, expected %x", chunk.Signature, bv41)
+		return chunk, chunksetData, fmt.Errorf("invalid chunkset signature: %x, expected %x", chunk.Signature, bv41)
 	}
 
-	data, blockSize, err := helpers.Take(data, 4)
+	chunksetData, blockSize, err = helpers.Take(chunksetData, 4)
 	if err != nil {
-		return chunk, data, fmt.Errorf("failed to read block size: %w", err)
+		return chunk, chunksetData, fmt.Errorf("failed to read block size: %w", err)
 	}
 	chunk.BlockSize = binary.LittleEndian.Uint32(blockSize)
-	data, compressedData, err := helpers.Take(data, int(chunk.BlockSize))
+
+	chunksetData, compressedData, err = helpers.Take(chunksetData, int(chunk.BlockSize))
 	if err != nil {
-		return chunk, data, fmt.Errorf("failed to read compressed data: %w", err)
+		return chunk, chunksetData, fmt.Errorf("failed to read compressed data: %w", err)
 	}
 
-	decompressedData := make([]byte, chunk.UncompressedSize)
+	decompressedData = make([]byte, chunk.UncompressedSize)
 
 	// Decompress using LZ4
 	n, err := lz4.UncompressBlock(compressedData, decompressedData)
 	if err != nil {
-		return chunk, data, fmt.Errorf("failed to decompress chunkset data: %w", err)
+		return chunk, chunksetData, fmt.Errorf("failed to decompress chunkset data: %w", err)
 	}
 
 	chunk.DecompressedData = decompressedData[:n]
-	data, footer, err := helpers.Take(data, 4)
+
+	chunksetData, footer, err = helpers.Take(chunksetData, 4)
 	if err != nil {
-		return chunk, data, fmt.Errorf("failed to read footer: %w", err)
+		return chunk, chunksetData, fmt.Errorf("failed to read footer: %w", err)
 	}
 	chunk.Footer = binary.LittleEndian.Uint32(footer)
 
-	return chunk, data, nil
+	return chunk, chunksetData, nil
 }
 
 // ParseChunksetData parses each log in the decompressed Chunkset data
-func ParseChunksetData(data []byte, ulData *UnifiedLogData) ([]*TraceV3Entry, error) {
-	entries := []*TraceV3Entry{}
+func ParseChunksetData(decompressedChucksetData []byte, ulData *UnifiedLogCatalogData) error {
+	chunkPreambleSize := 16
 
-	for len(data) > 0 {
+	for len(decompressedChucksetData) > 0 {
 		// read preamble
-		data, chunkTag, err := helpers.Take(data, 4)
+		preamble, err := DetectPreamble(decompressedChucksetData)
 		if err != nil {
-			return entries, fmt.Errorf("failed to read chunk tag: %w", err)
+			return fmt.Errorf("failed to detect preamble: %w", err)
 		}
-		data, _, err = helpers.Take(data, 4) // chunkSubTag
-		if err != nil {
-			return entries, fmt.Errorf("failed to read chunk sub tag: %w", err)
+		chunkDataSize := preamble.ChunkDataSize
+
+		if chunkDataSize > uint64(^uint(0)>>1) { // Check if larger than max int
+			return fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 		}
-		data, chunkDataSize, err := helpers.Take(data, 8)
+		// Consumes chunkData and Preamble bytes off data and returns the chunkData
+		var chunkData []byte
+		decompressedChucksetData, chunkData, err = helpers.Take(decompressedChucksetData, int(chunkDataSize)+chunkPreambleSize)
 		if err != nil {
-			return entries, fmt.Errorf("failed to read chunk data size: %w", err)
+			return fmt.Errorf("failed to read chunk data: %w", err)
 		}
 
-		if uint64(chunkDataSize[0]) > uint64(^uint(0)>>1) { // Check if larger than max int
-			return entries, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
-		}
-
-		data, chunkData, err := helpers.Take(data, int(chunkDataSize[0]))
-		if err != nil {
-			return entries, fmt.Errorf("failed to read chunk data: %w", err)
-		}
-		if err := getChunksetData(chunkData, binary.LittleEndian.Uint32(chunkTag), ulData); err != nil {
-			return entries, err
+		if err := getChunksetData(chunkData, preamble.ChunkTag, ulData); err != nil {
+			return fmt.Errorf("failed to get chunkset data: %w", err)
 		}
 
 		// skip zero padding
 		offset := 0
-		for offset < len(data) && data[offset] == 0 {
+		for offset < len(decompressedChucksetData) && decompressedChucksetData[offset] == 0 {
 			offset++
 		}
-		remainingData := data[offset:]
-		if len(remainingData) == 0 {
+		// Consumes the zero padding off currentData and updates currentData
+		decompressedChucksetData = decompressedChucksetData[offset:]
+		if len(decompressedChucksetData) == 0 {
 			break
 		}
 
-		if len(remainingData) < 16 {
+		if len(decompressedChucksetData) < 16 {
 			// TODO: Warn, not enough data for Chunkset preamble header, needed 16 bytes. Got: %d
 			break
 		}
 	}
-	return entries, nil
+	return nil
 }
 
-func getChunksetData(data []byte, chunkTag uint32, ulData *UnifiedLogData) error {
+func getChunksetData(data []byte, chunkTag uint32, ulData *UnifiedLogCatalogData) error {
 	switch chunkTag {
 	case firehoseChunk:
 		firehosePreamble, _, err := firehose.ParseFirehosePreamble(data)
@@ -185,16 +192,19 @@ func getChunksetData(data []byte, chunkTag uint32, ulData *UnifiedLogData) error
 			return err
 		}
 		ulData.OversizeData = append(ulData.OversizeData, oversizeChunk)
-	// TODO: uncomment once statedump and simpledump are merged
-	// case statedumpChunk:
-	// 	statedumpChunk, err := ParseStatedump(*data)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	ulData.StatedumpData = append(ulData.StatedumpData, statedumpChunk)
-	// case simpledumpChunk:
-	// 	simpledumpChunk, _ := ParseSimpledumpChunk(*data)
-	// 	ulData.SimpledumpData = append(ulData.SimpledumpData, simpledumpChunk)
+	case statedumpChunk:
+		statedumpChunkData, err := ParseStateDump(data)
+		if err != nil {
+			return err
+		}
+		ulData.StatedumpData = append(ulData.StatedumpData, *statedumpChunkData)
+	case simpledumpChunk:
+		simpledumpChunkData, _, err := ParseSimpleDumpChunk(data)
+		if err != nil {
+			return err
+		}
+		ulData.SimpledumpData = append(ulData.SimpledumpData, simpledumpChunkData)
+
 	default:
 		return fmt.Errorf("unknown chunk tag: %x", chunkTag)
 	}

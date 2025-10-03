@@ -25,20 +25,20 @@ import (
 
 // Preamble represents a parsed firehose preamble
 type Preamble struct {
-	chunkTag                 uint32
+	ChunkTag                 uint32
 	chunkSubTag              uint32
 	chunkDataSize            uint64
-	firstProcID              uint64
-	secondProcID             uint32
+	FirstProcID              uint64
+	SecondProcID             uint32
 	ttl                      uint8
 	collapsed                uint8
 	unknown                  []byte
-	publicDataSize           uint16
-	privateDataVirtualOffset uint16
+	PublicDataSize           uint16
+	PrivateDataVirtualOffset uint16
 	unknown2                 uint16
 	unknown3                 uint16
-	baseContinuousTime       uint64
-	publicData               []Entry
+	BaseContinuousTime       uint64
+	PublicData               []Entry
 }
 
 const (
@@ -52,7 +52,7 @@ const (
 
 var (
 	logTypes       = []uint8{0x2, 0x6, 0x4, 0x7, 0x3}
-	stringItem     = []uint8{0x20, 0x22, 0x40, 0x42, 0x30, 0x31, 0x32, 0xf2}
+	stringItem     = []uint8{0x20, 0x21, 0x22, 0x25, 0x40, 0x41, 0x42, 0x30, 0x31, 0x32, 0xf2, 0x35, 0x81, 0xf1}
 	privateStrings = []uint8{0x21, 0x25, 0x41, 0x35, 0x31, 0x81, 0xf1}
 	precisionItems = []uint8{0x10, 0x12}
 	sensitiveItems = []uint8{0x5, 0x45, 0x85}
@@ -105,129 +105,138 @@ type ItemInfo struct {
 func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 	var preamble Preamble
 
-	data, chunkTag, err := helpers.Take(data, 4)
+	var chunkTag, chunkSubTag, chunkDataSize, firstProcID, secondProcID, ttl,
+		collapsed, unknown, publicDataSize, privateDataVirtualOffset, unknown2, unknown3, baseContinuousTime []byte
+	var err error
+
+	data, chunkTag, err = helpers.Take(data, 4)
 	if err != nil {
 		return preamble, data, fmt.Errorf("failed to read chunk tag: %w", err)
 	}
-	data, chunkSubTag, err := helpers.Take(data, 4)
+	data, chunkSubTag, err = helpers.Take(data, 4)
 	if err != nil {
 		return preamble, data, fmt.Errorf("failed to read chunk sub tag: %w", err)
 	}
-	data, chunkDataSize, err := helpers.Take(data, 8)
+	data, chunkDataSize, err = helpers.Take(data, 8)
 	if err != nil {
 		return preamble, data, fmt.Errorf("failed to read chunk data size: %w", err)
 	}
-	data, firstProcID, err := helpers.Take(data, 8)
+	data, firstProcID, err = helpers.Take(data, 8)
 	if err != nil {
 		return preamble, data, fmt.Errorf("failed to read first proc ID: %w", err)
 	}
-	data, secondProcID, err := helpers.Take(data, 4)
+	data, secondProcID, err = helpers.Take(data, 4)
 	if err != nil {
 		return preamble, data, fmt.Errorf("failed to read second proc ID: %w", err)
 	}
-	data, ttl, err := helpers.Take(data, 1)
+	data, ttl, err = helpers.Take(data, 1)
 	if err != nil {
 		return preamble, data, fmt.Errorf("failed to read TTL: %w", err)
 	}
-	data, collapsed, err := helpers.Take(data, 1)
+	data, collapsed, err = helpers.Take(data, 1)
 	if err != nil {
 		return preamble, data, fmt.Errorf("failed to read collapsed: %w", err)
 	}
-	data, unknown, err := helpers.Take(data, 2)
+	data, unknown, err = helpers.Take(data, 2)
 	if err != nil {
 		return preamble, data, fmt.Errorf("failed to read unknown: %w", err)
 	}
-	data, publicDataSize, err := helpers.Take(data, 2)
+	data, publicDataSize, err = helpers.Take(data, 2)
 	if err != nil {
 		return preamble, data, fmt.Errorf("failed to read public data size: %w", err)
 	}
-	data, privateDataVirtualOffset, err := helpers.Take(data, 2)
+	data, privateDataVirtualOffset, err = helpers.Take(data, 2)
 	if err != nil {
 		return preamble, data, fmt.Errorf("failed to read private data virtual offset: %w", err)
 	}
-	data, unknown2, err := helpers.Take(data, 2)
+	data, unknown2, err = helpers.Take(data, 2)
 	if err != nil {
 		return preamble, data, fmt.Errorf("failed to read unknown2: %w", err)
 	}
-	data, unknown3, err := helpers.Take(data, 2)
+	data, unknown3, err = helpers.Take(data, 2)
 	if err != nil {
 		return preamble, data, fmt.Errorf("failed to read unknown3: %w", err)
 	}
-	logData, baseContinuousTime, err := helpers.Take(data, 8)
+	data, baseContinuousTime, err = helpers.Take(data, 8)
 	if err != nil {
 		return preamble, data, fmt.Errorf("failed to read base continuous time: %w", err)
 	}
 
-	preamble.chunkTag = binary.LittleEndian.Uint32(chunkTag)
+	// Save the current data for later use
+	logData := data
+
+	preamble.ChunkTag = binary.LittleEndian.Uint32(chunkTag)
 	preamble.chunkSubTag = binary.LittleEndian.Uint32(chunkSubTag)
 	preamble.chunkDataSize = binary.LittleEndian.Uint64(chunkDataSize)
-	preamble.firstProcID = binary.LittleEndian.Uint64(firstProcID)
-	preamble.secondProcID = binary.LittleEndian.Uint32(secondProcID)
+	preamble.FirstProcID = binary.LittleEndian.Uint64(firstProcID)
+	preamble.SecondProcID = binary.LittleEndian.Uint32(secondProcID)
 	preamble.ttl = ttl[0]
 	preamble.collapsed = collapsed[0]
 	preamble.unknown = unknown
-	preamble.publicDataSize = binary.LittleEndian.Uint16(publicDataSize)
-	preamble.privateDataVirtualOffset = binary.LittleEndian.Uint16(privateDataVirtualOffset)
+	preamble.PublicDataSize = binary.LittleEndian.Uint16(publicDataSize)
+	preamble.PrivateDataVirtualOffset = binary.LittleEndian.Uint16(privateDataVirtualOffset)
 	preamble.unknown2 = binary.LittleEndian.Uint16(unknown2)
 	preamble.unknown3 = binary.LittleEndian.Uint16(unknown3)
-	preamble.baseContinuousTime = binary.LittleEndian.Uint64(baseContinuousTime)
+	preamble.BaseContinuousTime = binary.LittleEndian.Uint64(baseContinuousTime)
 
 	// firehose_public_data_size includes the 16 bytes before the public data offset
 	publicDataSizeOffset := 16
-	data, publicData, err := helpers.Take(logData, int(preamble.publicDataSize)-publicDataSizeOffset)
+	var publicData []byte
+
+	data, publicData, err = helpers.Take(data, int(preamble.PublicDataSize)-publicDataSizeOffset)
+
 	if err != nil {
 		return preamble, data, fmt.Errorf("failed to read public data: %w", err)
 	}
 
 	// Go through all the public data associated with log Firehose entry
 	for len(publicData) > 0 {
-		firehosePublicData, firehoseInput, err := ParseFirehoseEntry(publicData)
+		var firehoseEntry Entry
+		firehoseEntry, publicData, err = ParseFirehoseEntry(publicData)
 		if err != nil {
 			return preamble, data, fmt.Errorf("failed to parse firehose entry: %w", err)
 		}
-		publicData = firehoseInput
 
-		if !slices.Contains(logTypes[:], firehosePublicData.ActivityType) || len(publicData) < 24 {
+		if !slices.Contains(logTypes[:], firehoseEntry.ActivityType) || len(publicData) < 24 {
 			// If the activity type is unknown remnant data, break
-			if firehosePublicData.ActivityType == UnknownRemnantData {
+			if firehoseEntry.ActivityType == UnknownRemnantData {
 				break
 			}
-			if preamble.privateDataVirtualOffset != 0x1000 {
-				privateDataOffset := 0x1000 - preamble.privateDataVirtualOffset
-
+			if preamble.PrivateDataVirtualOffset != 0x1000 {
+				privateDataOffset := 0x1000 - preamble.PrivateDataVirtualOffset
+				// Calculate start of private data. If the remaining input is greater than private data offset.
+				// Remove any padding/junk data in front of the private data
 				if len(data) > int(privateDataOffset) && len(publicData) == 0 {
 					leftoverDataSize := len(data) - int(privateDataOffset)
-					_, privateData, err := helpers.Take(data, leftoverDataSize)
+					// Removing padding in front of the private data
+					data, _, err = helpers.Take(data, leftoverDataSize)
 					if err != nil {
-						return preamble, data, fmt.Errorf("failed to read private data: %w", err)
+						return preamble, data, fmt.Errorf("failed to extract padding in front of private data: %w", err)
 					}
-					data = privateData
 				} else {
 					// If log data and public data are the same size, use private data offset to calculate the private data
-					if len(logData) == int(preamble.publicDataSize)-publicDataSizeOffset {
-						_, privateInputData, err := helpers.Take(logData, int(preamble.privateDataVirtualOffset)-publicDataSizeOffset-len(publicData))
+					if len(logData) == int(preamble.PublicDataSize)-publicDataSizeOffset {
+						data, _, err = helpers.Take(logData, int(preamble.PrivateDataVirtualOffset)-publicDataSizeOffset-len(publicData))
 						if err != nil {
 							return preamble, data, fmt.Errorf("failed to read private input data: %w", err)
 						}
-						data = privateInputData
 					} else {
 						// If we have private data, then any leftover public data is actually prepended to the private data
-						_, privateInputData, err := helpers.Take(logData, int(preamble.publicDataSize)-publicDataSizeOffset-len(publicData))
+						data, _, err = helpers.Take(logData, int(preamble.PublicDataSize)-publicDataSizeOffset-len(publicData))
 						if err != nil {
 							return preamble, data, fmt.Errorf("failed to read private input data: %w", err)
 						}
-						data = privateInputData
 					}
 				}
 			}
-			preamble.publicData = append(preamble.publicData, firehosePublicData)
+			preamble.PublicData = append(preamble.PublicData, firehoseEntry)
 			break
 		}
-		preamble.publicData = append(preamble.publicData, firehosePublicData)
+		preamble.PublicData = append(preamble.PublicData, firehoseEntry)
 	}
 
 	// If there is private data, go through and update any logs that have private data items
-	if preamble.privateDataVirtualOffset != 0x1000 {
+	if preamble.PrivateDataVirtualOffset != 0x1000 {
 		// Skip any null padding at the beginning
 		offset := 0
 		for offset < len(data) && data[offset] == 0 {
@@ -239,13 +248,15 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 			privateInput = data
 		}
 
-		for i := range preamble.publicData {
-			publicData := &preamble.publicData[i] // Use index to avoid memory aliasing
+		for i := range preamble.PublicData {
+			publicData := &preamble.PublicData[i] // Use index to avoid memory aliasing
 			if publicData.FirehoseNonActivity.PrivateStringsSize == 0 {
 				continue
 			}
-			stringOffset := publicData.FirehoseNonActivity.PrivateStringsOffset - preamble.privateDataVirtualOffset
-			_, privateStringStart, err := helpers.Take(privateInput, int(stringOffset))
+			stringOffset := publicData.FirehoseNonActivity.PrivateStringsOffset - preamble.PrivateDataVirtualOffset
+
+			var privateStringStart []byte
+			privateStringStart, _, err = helpers.Take(privateInput, int(stringOffset))
 			if err != nil {
 				return preamble, data, fmt.Errorf("failed to read private string data: %w", err)
 			}
@@ -263,36 +274,39 @@ func ParseFirehosePreamble(data []byte) (Preamble, []byte, error) {
 // ParseFirehoseEntry parses a firehose entry
 func ParseFirehoseEntry(data []byte) (Entry, []byte, error) {
 	firehoseResult := Entry{}
+	var unknownLogActivityType, unknownLogType, flags, formatStringLocation,
+		threadID, continousTimeDelta, continousTimeDeltaUpper, dataSize []byte
+	var err error
 
-	data, unknownLogActivityType, err := helpers.Take(data, 1)
+	data, unknownLogActivityType, err = helpers.Take(data, 1)
 	if err != nil {
 		return firehoseResult, data, fmt.Errorf("failed to read log activity type: %w", err)
 	}
-	data, unknownLogType, err := helpers.Take(data, 1)
+	data, unknownLogType, err = helpers.Take(data, 1)
 	if err != nil {
 		return firehoseResult, data, fmt.Errorf("failed to read log type: %w", err)
 	}
-	data, flags, err := helpers.Take(data, 2)
+	data, flags, err = helpers.Take(data, 2)
 	if err != nil {
 		return firehoseResult, data, fmt.Errorf("failed to read flags: %w", err)
 	}
-	data, formatStringLocation, err := helpers.Take(data, 4)
+	data, formatStringLocation, err = helpers.Take(data, 4)
 	if err != nil {
 		return firehoseResult, data, fmt.Errorf("failed to read format string location: %w", err)
 	}
-	data, threadID, err := helpers.Take(data, 8)
+	data, threadID, err = helpers.Take(data, 8)
 	if err != nil {
 		return firehoseResult, data, fmt.Errorf("failed to read thread ID: %w", err)
 	}
-	data, continousTimeDelta, err := helpers.Take(data, 4)
+	data, continousTimeDelta, err = helpers.Take(data, 4)
 	if err != nil {
 		return firehoseResult, data, fmt.Errorf("failed to read continuous time delta: %w", err)
 	}
-	data, continousTimeDeltaUpper, err := helpers.Take(data, 2)
+	data, continousTimeDeltaUpper, err = helpers.Take(data, 2)
 	if err != nil {
 		return firehoseResult, data, fmt.Errorf("failed to read continuous time delta upper: %w", err)
 	}
-	data, dataSize, err := helpers.Take(data, 2)
+	data, dataSize, err = helpers.Take(data, 2)
 	if err != nil {
 		return firehoseResult, data, fmt.Errorf("failed to read data size: %w", err)
 	}
@@ -306,7 +320,8 @@ func ParseFirehoseEntry(data []byte) (Entry, []byte, error) {
 	firehoseResult.ContinousTimeDeltaUpper = binary.LittleEndian.Uint16(continousTimeDeltaUpper)
 	firehoseResult.DataSize = binary.LittleEndian.Uint16(dataSize)
 
-	data, firehoseData, err := helpers.Take(data, int(firehoseResult.DataSize))
+	var firehoseData []byte
+	data, firehoseData, err = helpers.Take(data, int(firehoseResult.DataSize))
 	if err != nil {
 		return firehoseResult, data, fmt.Errorf("failed to read firehose data: %w", err)
 	}
@@ -319,40 +334,40 @@ func ParseFirehoseEntry(data []byte) (Entry, []byte, error) {
 	const trace uint8 = 0x3
 
 	if unknownLogActivityType[0] == activity {
-		activity, activityData, err := ParseFirehoseActivity(firehoseData, firehoseResult.Flags, unknownLogType[0])
+		var activity Activity
+		activity, firehoseData, err = ParseFirehoseActivity(firehoseData, firehoseResult.Flags, unknownLogType[0])
 		if err != nil {
 			return firehoseResult, data, err
 		}
-		firehoseData = activityData
 		firehoseResult.FirehoseActivity = activity
 
 	} else if unknownLogActivityType[0] == nonactivity {
-		nonActivity, nonActivityData, err := ParseFirehoseNonActivity(firehoseData, firehoseResult.Flags)
+		var nonActivity NonActivity
+		nonActivity, firehoseData, err = ParseFirehoseNonActivity(firehoseData, firehoseResult.Flags)
 		if err != nil {
 			return firehoseResult, data, err
 		}
-		firehoseData = nonActivityData
 		firehoseResult.FirehoseNonActivity = nonActivity
 	} else if unknownLogActivityType[0] == signpost {
-		signpost, signpostData, err := ParseFirehoseSignpost(firehoseData, firehoseResult.Flags)
+		var signpost Signpost
+		signpost, firehoseData, err = ParseFirehoseSignpost(firehoseData, firehoseResult.Flags)
 		if err != nil {
 			return firehoseResult, data, err
 		}
-		firehoseData = signpostData
 		firehoseResult.FirehoseSignpost = signpost
 	} else if unknownLogActivityType[0] == loss {
-		loss, lossData, err := ParseFirehoseLoss(firehoseData)
+		var loss Loss
+		loss, firehoseData, err = ParseFirehoseLoss(firehoseData)
 		if err != nil {
 			return firehoseResult, data, err
 		}
-		firehoseData = lossData
 		firehoseResult.FirehoseLoss = loss
 	} else if unknownLogActivityType[0] == trace {
-		trace, traceData, err := ParseFirehoseTrace(firehoseData)
+		var trace Trace
+		trace, firehoseData, err = ParseFirehoseTrace(firehoseData)
 		if err != nil {
 			return firehoseResult, data, err
 		}
-		firehoseData = traceData
 		firehoseResult.FirehoseTrace = trace
 		firehoseResult.Message = trace.MessageData
 	} else if unknownLogActivityType[0] == UnknownRemnantData {
@@ -360,6 +375,15 @@ func ParseFirehoseEntry(data []byte) (Entry, []byte, error) {
 	} else {
 		// TODO: Handle this warning
 		// fmt.Sprintf("Unknown log activity type: %d", unknownLogActivityType[0])
+		// Rust Logging of Warning and Debug data
+		// warn!(
+		// 	"[macos-unifiedlogs] Unknown log activity type: {} -  {} bytes left",
+		// 	unknown_log_activity_type,
+		// 	input.len()
+		// );
+		// debug!("[macos-unifiedlogs] Firehose data: {data:X?}");
+
+		return firehoseResult, data, nil
 	}
 
 	// Minimum item size is 6 bytes
@@ -373,17 +397,21 @@ func ParseFirehoseEntry(data []byte) (Entry, []byte, error) {
 		return firehoseResult, data, nil
 	}
 
-	firehoseData, unknownItem, err := helpers.Take(firehoseData, 1)
+	var unknownItem []byte
+	var numberItems []byte
+	firehoseData, unknownItem, err = helpers.Take(firehoseData, 1)
 	if err != nil {
 		return firehoseResult, data, fmt.Errorf("failed to read unknown item: %w", err)
 	}
-	firehoseData, numberItems, err := helpers.Take(firehoseData, 1)
+	firehoseData, numberItems, err = helpers.Take(firehoseData, 1)
 	if err != nil {
 		return firehoseResult, data, fmt.Errorf("failed to read number items: %w", err)
 	}
 	firehoseResult.UnknownItem = unknownItem[0]
 	firehoseResult.NumberItems = numberItems[0]
-	messageData, _, err := ParseFirehoseMessageItems(firehoseData, numberItems[0], firehoseResult.Flags)
+
+	var messageData ItemData
+	messageData, _, err = ParseFirehoseMessageItems(firehoseData, numberItems[0], firehoseResult.Flags)
 	if err != nil {
 		return firehoseResult, data, err
 	}
@@ -405,7 +433,7 @@ func ParseFirehoseEntry(data []byte) (Entry, []byte, error) {
 	if err != nil {
 		return firehoseResult, data, fmt.Errorf("failed to read padding data: %w", err)
 	}
-	if int(paddingData) > len(remainingData) {
+	if int(paddingData) > offset {
 		data = remainingData
 	}
 
@@ -416,13 +444,17 @@ func ParseFirehoseEntry(data []byte) (Entry, []byte, error) {
 // Returns the remaining data and an error if the private data is not found
 func ParsePrivateData(data []byte, firehoseItemData *ItemData) ([]byte, error) {
 	privateStringStart := data
+	var err error
 
 	for i := range firehoseItemData.ItemInfo {
 		firehoseInfo := &firehoseItemData.ItemInfo[i]
 		if slices.Contains(privateStrings[:], firehoseInfo.ItemType) {
 			if firehoseInfo.ItemType == privateStrings[3] || firehoseInfo.ItemType == privateStrings[4] {
+				var privateData []byte
+				var pointerObject []byte
+
 				if len(privateStringStart) < int(firehoseInfo.ItemSize) {
-					privateData, pointerObject, err := helpers.Take(privateStringStart, len(privateStringStart))
+					privateData, pointerObject, err = helpers.Take(privateStringStart, len(privateStringStart))
 					if err != nil {
 						return privateStringStart, fmt.Errorf("failed to read private data object: %w", err)
 					}
@@ -431,7 +463,7 @@ func ParsePrivateData(data []byte, firehoseItemData *ItemData) ([]byte, error) {
 					continue
 				}
 
-				privateData, pointerObject, err := helpers.Take(privateStringStart, int(firehoseInfo.ItemSize))
+				privateData, pointerObject, err = helpers.Take(privateStringStart, int(firehoseInfo.ItemSize))
 				if err != nil {
 					return privateStringStart, fmt.Errorf("failed to read private data object: %w", err)
 				}
@@ -443,7 +475,10 @@ func ParsePrivateData(data []byte, firehoseItemData *ItemData) ([]byte, error) {
 			if firehoseInfo.ItemSize == nullPrivate {
 				firehoseInfo.MessageStrings = "<private>"
 			} else {
-				privateData, messageString, _ := helpers.ExtractStringSize(privateStringStart, uint64(firehoseInfo.ItemSize))
+				privateData, messageString, err := helpers.ExtractStringSize(privateStringStart, uint64(firehoseInfo.ItemSize))
+				if err != nil {
+					return privateStringStart, fmt.Errorf("failed to extract private string: %w", err)
+				}
 				privateStringStart = privateData
 				firehoseInfo.MessageStrings = messageString
 			}
@@ -463,18 +498,25 @@ func ParsePrivateData(data []byte, firehoseItemData *ItemData) ([]byte, error) {
 
 // GetBacktraceData parses backtrace data for log entry (chunk). This only exists if `has_context_data` flag is set
 func GetBacktraceData(data []byte) ([]byte, []string, error) {
+	var uuidCountBytes []byte
+	var offsetCountBytes []byte
+	var uuidBytes []byte
+	var offsetBytes []byte
+	var indexBytes []byte
+	var err error
+
 	// Skip 3 unknown bytes
-	input, _, err := helpers.Take(data, 3)
+	data, _, err = helpers.Take(data, 3)
 	if err != nil {
 		return data, nil, fmt.Errorf("failed to read backtrace data: %w", err)
 	}
 
 	// Read counts
-	input, uuidCountBytes, err := helpers.Take(input, 1)
+	data, uuidCountBytes, err = helpers.Take(data, 1)
 	if err != nil {
 		return data, nil, fmt.Errorf("failed to read uuid count: %w", err)
 	}
-	input, offsetCountBytes, err := helpers.Take(input, 2)
+	data, offsetCountBytes, err = helpers.Take(data, 2)
 	if err != nil {
 		return data, nil, fmt.Errorf("failed to read offset count: %w", err)
 	}
@@ -484,11 +526,10 @@ func GetBacktraceData(data []byte) ([]byte, []string, error) {
 	// Read UUID vector (128-bit big-endian UUIDs)
 	var uuidVec []string
 	for i := 0; i < uuidCount; i++ {
-		remaining, uuidBytes, err := helpers.Take(input, 16) // 128 bits = 16 bytes
+		data, uuidBytes, err = helpers.Take(data, 16) // 128 bits = 16 bytes
 		if err != nil {
 			return data, nil, fmt.Errorf("failed to read uuid bytes: %w", err)
 		}
-		input = remaining
 		// Convert 128-bit UUID to uppercase hex string (big-endian)
 		uuidStr := fmt.Sprintf("%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
 			uuidBytes[0], uuidBytes[1], uuidBytes[2], uuidBytes[3],
@@ -501,11 +542,10 @@ func GetBacktraceData(data []byte) ([]byte, []string, error) {
 	// Read offsets vector (32-bit little-endian)
 	var offsetsVec []uint32
 	for i := 0; i < offsetCount; i++ {
-		remaining, offsetBytes, err := helpers.Take(input, 4)
+		data, offsetBytes, err = helpers.Take(data, 4)
 		if err != nil {
 			return data, nil, fmt.Errorf("failed to read offset bytes: %w", err)
 		}
-		input = remaining
 		offset := binary.LittleEndian.Uint32(offsetBytes)
 		offsetsVec = append(offsetsVec, offset)
 	}
@@ -513,11 +553,10 @@ func GetBacktraceData(data []byte) ([]byte, []string, error) {
 	// Read indexes (8-bit)
 	var indexes []uint8
 	for i := 0; i < offsetCount; i++ {
-		remaining, indexBytes, err := helpers.Take(input, 1)
+		data, indexBytes, err = helpers.Take(data, 1)
 		if err != nil {
 			return data, nil, fmt.Errorf("failed to read index bytes: %w", err)
 		}
-		input = remaining
 		indexes = append(indexes, indexBytes[0])
 	}
 
@@ -540,23 +579,24 @@ func GetBacktraceData(data []byte) ([]byte, []string, error) {
 	// Calculate padding size (align to 4-byte boundary)
 	paddingSize := helpers.PaddingSizeFour(uint64(offsetCount))
 	if paddingSize > uint64(^uint(0)>>1) { // Check if larger than max int
-		return input, backtraceData, fmt.Errorf("u64 is bigger than system int")
+		return data, backtraceData, fmt.Errorf("u64 is bigger than system int")
 	}
 
 	// Skip padding bytes
-	backtraceInput, _, err := helpers.Take(input, int(paddingSize))
+	data, _, err = helpers.Take(data, int(paddingSize))
 	if err != nil {
 		return data, nil, fmt.Errorf("failed to read padding bytes: %w", err)
 	}
-	input = backtraceInput
 
-	return input, backtraceData, nil
+	return data, backtraceData, nil
 }
 
 // ParseFirehoseMessageItems parses message items from firehose entry data
 func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (ItemData, []byte, error) {
 	itemCount := 0
 	itemsData := []ItemType{}
+	var err error
+	var parsedBacktraceSig []byte
 
 	firehoseInput := data
 	firehoseItemData := ItemData{}
@@ -604,7 +644,7 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (ItemD
 		firehoseItemData.BacktraceStrings = backtraceData
 	} else if len(firehoseInput) > backtraceSignatureSize {
 		backtraceSignature := []uint8{1, 0, 18}
-		_, parsedBacktraceSig, err := helpers.Take(firehoseInput, backtraceSignatureSize)
+		_, parsedBacktraceSig, err = helpers.Take(firehoseInput, backtraceSignatureSize)
 		if err != nil {
 			return firehoseItemData, firehoseInput, fmt.Errorf("failed to read backtrace signature: %w", err)
 		}
@@ -660,7 +700,7 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (ItemD
 		firehoseItemData.ItemInfo = append(firehoseItemData.ItemInfo, ItemInfo{
 			MessageStrings: item.MessageStrings,
 			ItemType:       item.ItemType,
-			ItemSize:       uint16(item.ItemSize),
+			ItemSize:       item.MessageStringSize,
 		})
 	}
 	return firehoseItemData, firehoseInput, nil
@@ -668,13 +708,15 @@ func ParseFirehoseMessageItems(data []byte, numItems uint8, flags uint16) (ItemD
 
 // GetFirehoseItems gets the firehose item type and size
 func GetFirehoseItems(data []byte) (ItemType, []byte) {
+	var remainingData, itemTypeBytes, itemSizeBytes []byte
 	var err error
+
 	item := ItemType{}
-	remainingData, itemTypeBytes, err := helpers.Take(data, 1)
+	remainingData, itemTypeBytes, err = helpers.Take(data, 1)
 	if err != nil {
 		return item, remainingData
 	}
-	remainingData, itemSizeBytes, err := helpers.Take(remainingData, 1)
+	remainingData, itemSizeBytes, err = helpers.Take(remainingData, 1)
 	if err != nil {
 		return item, remainingData
 	}
@@ -724,10 +766,13 @@ func GetFirehoseItems(data []byte) (ItemType, []byte) {
 
 // ParseItemString parses a string from the firehose data based on the item type and message size
 func ParseItemString(data []byte, itemType uint8, messageSize uint16) ([]byte, string, error) {
+	var messageData []byte
+	var err error
+
 	if messageSize > uint16(len(data)) {
 		return helpers.ExtractStringSize(data, uint64(messageSize))
 	}
-	data, messageData, err := helpers.Take(data, int(messageSize))
+	data, messageData, err = helpers.Take(data, int(messageSize))
 	if err != nil {
 		return data, "", err
 	}
