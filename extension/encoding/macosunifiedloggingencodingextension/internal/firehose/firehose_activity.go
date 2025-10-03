@@ -208,6 +208,7 @@ func firehoseFormatterFlags(data []byte, flags uint16) (Formatters, []byte, erro
 	return formatterFlags, data, nil
 }
 
+// GetFirehoseActivityStrings extracts activity strings from firehose data
 func GetFirehoseActivityStrings(
 	firehose Activity,
 	provider *uuidtext.CacheProvider,

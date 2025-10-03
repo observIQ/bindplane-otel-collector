@@ -25,6 +25,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 )
 
+// FormatAndMessage represents a formatted message with its formatter
 type FormatAndMessage struct {
 	Formatter string
 	Message   string
@@ -474,7 +475,7 @@ func uuidTextImagePath(data []byte, entries []uuidtext.Entry) (string, error) {
 	return helpers.ExtractString(libraryStart)
 }
 
-// formatFirehoseLogMessage formats a complete log message from a firehose entry
+// FormatFirehoseLogMessage formats a complete log message from a firehose entry
 func FormatFirehoseLogMessage(formatString string, itemMessage []ItemInfo, messageRe *regexp.Regexp) (string, error) {
 	var err error
 	formatAndMessageVec := []FormatAndMessage{}

@@ -15,12 +15,28 @@
 package macosunifiedloggingencodingextension
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
 )
+
+func TestParseUnifiedLog_OneLineArchive(t *testing.T) {
+	skipIfNoReceiverTestdata(t)
+	baseArchivePath := filepath.Join("..", "..", "..", "receiver", "macosunifiedloggingreceiver", "testdata", "one-line.logarchive")
+	traceV3Path := filepath.Join(baseArchivePath, "Persist", "00000000000060d5.tracev3")
+
+	data, err := os.ReadFile(traceV3Path)
+	require.NoError(t, err)
+
+	// Adjust signature if your UnmarshalLogs needs context, etc.
+	logs, err := ParseUnifiedLog(data)
+	require.NoError(t, err)
+	require.NotNil(t, logs)
+}
 
 func TestGetULHeaderData(t *testing.T) {
 	unifiedLogData := &UnifiedLogData{}

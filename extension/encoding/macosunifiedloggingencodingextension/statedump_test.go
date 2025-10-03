@@ -15,6 +15,7 @@ import (
 )
 
 func TestParseStateDump(t *testing.T) {
+	skipIfNoTestdata(t)
 	data, err := os.ReadFile(filepath.Join("testdata", "statedump", "statedump_test_plist.bin"))
 	require.NoError(t, err)
 
@@ -39,6 +40,7 @@ func TestParseStateDump(t *testing.T) {
 }
 
 func TestParseStateDumpCustomObject(t *testing.T) {
+	skipIfNoTestdata(t)
 	data, err := os.ReadFile(filepath.Join("testdata", "statedump", "statedump_test_valid.bin"))
 	require.NoError(t, err)
 
@@ -60,6 +62,7 @@ func TestParseStateDumpCustomObject(t *testing.T) {
 }
 
 func TestLoadStatedumpsFromTraceV3(t *testing.T) {
+	skipIfNoTestdata(t)
 	data, err := os.ReadFile(filepath.Join("testdata", "statedump", "test_tracev3_with_statedumps.tracev3"))
 	require.NoError(t, err)
 
@@ -86,6 +89,7 @@ func TestParseStateDumpErrors(t *testing.T) {
 }
 
 func TestExpectedStructsFromTestData(t *testing.T) {
+	skipIfNoTestdata(t)
 	plistData, err := os.ReadFile(filepath.Join("testdata", "statedump", "statedump_test_plist.bin"))
 	require.NoError(t, err)
 

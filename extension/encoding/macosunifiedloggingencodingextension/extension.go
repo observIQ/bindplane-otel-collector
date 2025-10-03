@@ -148,12 +148,14 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 
 	// Process each catalog data entry
 	for i, catalogData := range logDataResults.CatalogData {
-		catalogFirehoseData, err := c.processFirehoseData(logDataResults, &catalogData, i)
+		// Create a local copy to avoid memory aliasing issues
+		localCatalogData := catalogData
+		catalogFirehoseData, err := c.processFirehoseData(logDataResults, &localCatalogData, i)
 		if err != nil {
 			return otelLogs, err
 		}
-		catalogSimpleDumpData := c.processSimpleDumpData(logDataResults, &catalogData, i)
-		catalogStatedumpData, err := c.processStatedumpData(logDataResults, &catalogData, i)
+		catalogSimpleDumpData := c.processSimpleDumpData(logDataResults, &localCatalogData, i)
+		catalogStatedumpData, err := c.processStatedumpData(logDataResults, &localCatalogData, i)
 		if err != nil {
 			return otelLogs, err
 		}

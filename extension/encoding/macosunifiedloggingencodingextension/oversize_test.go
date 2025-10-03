@@ -25,34 +25,34 @@ import (
 func TestParseOversizeChunk(t *testing.T) {
 	parsedOversizeChunk, _, err := ParseOversizeChunk(OversizeChunkData)
 	require.NoError(t, err)
-	require.Equal(t, parsedOversizeChunk.chunkTag, uint32(0x6002))
+	require.Equal(t, parsedOversizeChunk.ChunkTag, uint32(0x6002))
 	require.Equal(t, parsedOversizeChunk.chunkSubTag, uint32(0))
 	require.Equal(t, parsedOversizeChunk.chunkDataSize, uint64(3354))
-	require.Equal(t, parsedOversizeChunk.firstProcID, uint64(192))
-	require.Equal(t, parsedOversizeChunk.secondProcID, uint32(193))
+	require.Equal(t, parsedOversizeChunk.FirstProcID, uint64(192))
+	require.Equal(t, parsedOversizeChunk.SecondProcID, uint32(193))
 	require.Equal(t, parsedOversizeChunk.ttl, uint8(14))
 	require.Equal(t, parsedOversizeChunk.unknownReserved, [3]uint8{0x00, 0x00, 0x00})
-	require.Equal(t, parsedOversizeChunk.continuousTime, uint64(12381160463))
+	require.Equal(t, parsedOversizeChunk.ContinuousTime, uint64(12381160463))
 	require.Equal(t, parsedOversizeChunk.dataRefIndex, uint32(1))
-	require.Equal(t, parsedOversizeChunk.publicDataSize, uint16(3322))
-	require.Equal(t, parsedOversizeChunk.privateDataSize, uint16(0))
+	require.Equal(t, parsedOversizeChunk.PublicDataSize, uint16(3322))
+	require.Equal(t, parsedOversizeChunk.PrivateDataSize, uint16(0))
 }
 
 func TestGetOversizeStrings(t *testing.T) {
 	chunk := []OversizeChunk{
 		{
-			chunkTag:        24578,
+			ChunkTag:        24578,
 			chunkSubTag:     0,
 			chunkDataSize:   1124,
-			firstProcID:     96,
-			secondProcID:    245,
+			FirstProcID:     96,
+			SecondProcID:    245,
 			ttl:             0,
 			unknownReserved: [3]uint8{0, 0, 0},
-			continuousTime:  5609252490,
+			ContinuousTime:  5609252490,
 			dataRefIndex:    1,
-			publicDataSize:  1092,
-			privateDataSize: 0,
-			messageItems: firehose.ItemData{
+			PublicDataSize:  1092,
+			PrivateDataSize: 0,
+			MessageItems: firehose.ItemData{
 				ItemInfo: []firehose.ItemInfo{
 					{
 						MessageStrings: "system kext collection",
