@@ -22,12 +22,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/observiq/bindplane-otel-collector/collector"
 	colmocks "github.com/observiq/bindplane-otel-collector/collector/mocks"
 	"github.com/observiq/bindplane-otel-collector/opamp"
 	"github.com/observiq/bindplane-otel-collector/opamp/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -396,4 +398,88 @@ func Test_loggerReload(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, tc.testFunc)
 	}
+}
+
+func Test_saveAgentID(t *testing.T) {
+	t.Run("Successfully saves new agent ID", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		configPath := filepath.Join(tmpDir, "manager.yaml")
+
+		// Create initial config with original agent ID and all fields
+		originalAgentID := opamp.AgentIDFromUUID(uuid.New())
+		secretKey := "test-secret-key"
+		labels := "env=test"
+		agentName := "test-agent"
+		initialConfig := opamp.Config{
+			Endpoint:             "wss://example.com",
+			SecretKey:            &secretKey,
+			AgentID:              originalAgentID,
+			Labels:               &labels,
+			AgentName:            &agentName,
+			MeasurementsInterval: 30 * time.Second,
+		}
+
+		// Write initial config
+		data, err := yaml.Marshal(&initialConfig)
+		require.NoError(t, err)
+		err = os.WriteFile(configPath, data, 0600)
+		require.NoError(t, err)
+
+		// Create new agent ID to save
+		newAgentID := opamp.AgentIDFromUUID(uuid.New())
+
+		// Save new agent ID
+		err = saveAgentID(configPath, newAgentID)
+		require.NoError(t, err)
+
+		// Read back and verify the file was actually updated
+		updatedData, err := os.ReadFile(configPath)
+		require.NoError(t, err)
+
+		var updatedConfig opamp.Config
+		err = yaml.Unmarshal(updatedData, &updatedConfig)
+		require.NoError(t, err)
+
+		// Verify agent ID was updated
+		assert.Equal(t, newAgentID.String(), updatedConfig.AgentID.String())
+		assert.NotEqual(t, originalAgentID.String(), updatedConfig.AgentID.String())
+
+		// Verify all other fields were preserved
+		assert.Equal(t, initialConfig.Endpoint, updatedConfig.Endpoint)
+		assert.Equal(t, *initialConfig.SecretKey, *updatedConfig.SecretKey)
+		assert.Equal(t, *initialConfig.Labels, *updatedConfig.Labels)
+		assert.Equal(t, *initialConfig.AgentName, *updatedConfig.AgentName)
+		assert.Equal(t, initialConfig.MeasurementsInterval, updatedConfig.MeasurementsInterval)
+
+		// Also verify we can re-parse using the ParseConfig function
+		parsedConfig, err := opamp.ParseConfig(configPath)
+		require.NoError(t, err)
+		assert.Equal(t, newAgentID.String(), parsedConfig.AgentID.String())
+	})
+
+	t.Run("Returns error when config file doesn't exist", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		configPath := filepath.Join(tmpDir, "nonexistent.yaml")
+
+		newAgentID := opamp.AgentIDFromUUID(uuid.New())
+
+		err := saveAgentID(configPath, newAgentID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to read manager config")
+	})
+
+	t.Run("Returns error when config file is invalid", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		configPath := filepath.Join(tmpDir, "invalid.yaml")
+
+		// Write invalid YAML
+		err := os.WriteFile(configPath, []byte("invalid: yaml: content:"), 0600)
+		require.NoError(t, err)
+
+		newAgentID := opamp.AgentIDFromUUID(uuid.New())
+
+		err = saveAgentID(configPath, newAgentID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to unmarshal manager config")
+	})
 }

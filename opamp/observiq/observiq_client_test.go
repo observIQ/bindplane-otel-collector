@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/observiq/bindplane-otel-collector/collector"
 	colmocks "github.com/observiq/bindplane-otel-collector/collector/mocks"
 	"github.com/observiq/bindplane-otel-collector/internal/report"
@@ -38,6 +39,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 )
 
 func TestNewClient(t *testing.T) {
@@ -1545,4 +1547,110 @@ func TestClient_onPackagesAvailableHandler(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, tc.testFunc)
 	}
+}
+
+func Test_onAgentIdentificationHandler(t *testing.T) {
+	t.Run("Successfully updates agent ID and persists to file", func(t *testing.T) {
+		// Create a temp directory for the manager config
+		tmpDir := t.TempDir()
+		managerConfigPath := filepath.Join(tmpDir, "manager.yaml")
+
+		// Create initial manager config
+		originalAgentID := opamp.AgentIDFromUUID(uuid.New())
+		secretKey := "test-secret"
+		initialConfig := opamp.Config{
+			Endpoint:  "wss://example.com",
+			SecretKey: &secretKey,
+			AgentID:   originalAgentID,
+		}
+
+		// Write initial config
+		data, err := yaml.Marshal(&initialConfig)
+		require.NoError(t, err)
+		err = os.WriteFile(managerConfigPath, data, 0600)
+		require.NoError(t, err)
+
+		// Create mock OpAMP client
+		mockOpAmpClient := mocks.NewMockOpAMPClient(t)
+		mockOpAmpClient.On("SetAgentDescription", mock.Anything).Return(nil)
+
+		// Create client
+		client := &Client{
+			logger:            zap.NewNop(),
+			ident:             &identity{agentID: originalAgentID},
+			currentConfig:     initialConfig,
+			opampClient:       mockOpAmpClient,
+			managerConfigPath: managerConfigPath,
+		}
+
+		// Create new instance UID
+		newUUID := uuid.New()
+		newInstanceUid := types.InstanceUid(newUUID)
+
+		// Create AgentIdentification message
+		agentIdentification := &protobufs.AgentIdentification{
+			NewInstanceUid: newInstanceUid[:],
+		}
+
+		// Call handler
+		err = client.onAgentIdentificationHandler(context.Background(), agentIdentification)
+		require.NoError(t, err)
+
+		// Verify the agent ID was updated in memory
+		expectedAgentID, err := opamp.AgentIDFromInstanceUid([16]byte(newInstanceUid))
+		require.NoError(t, err)
+		assert.Equal(t, expectedAgentID.String(), client.ident.agentID.String())
+		assert.Equal(t, expectedAgentID.String(), client.currentConfig.AgentID.String())
+
+		// Verify the agent ID was persisted to the manager config file
+		persistedData, err := os.ReadFile(managerConfigPath)
+		require.NoError(t, err)
+
+		var persistedConfig opamp.Config
+		err = yaml.Unmarshal(persistedData, &persistedConfig)
+		require.NoError(t, err)
+
+		assert.Equal(t, expectedAgentID.String(), persistedConfig.AgentID.String())
+		assert.NotEqual(t, originalAgentID.String(), persistedConfig.AgentID.String())
+
+		// Verify other fields were preserved
+		assert.Equal(t, initialConfig.Endpoint, persistedConfig.Endpoint)
+		assert.Equal(t, *initialConfig.SecretKey, *persistedConfig.SecretKey)
+
+		// Verify SetAgentDescription was called
+		mockOpAmpClient.AssertExpectations(t)
+	})
+
+	t.Run("Rolls back on persistence failure", func(t *testing.T) {
+		// Use a read-only directory to cause write failure
+		tmpDir := t.TempDir()
+		managerConfigPath := filepath.Join(tmpDir, "readonly", "manager.yaml")
+
+		// Create client with original agent ID
+		originalAgentID := opamp.AgentIDFromUUID(uuid.New())
+		client := &Client{
+			logger:            zap.NewNop(),
+			ident:             &identity{agentID: originalAgentID},
+			currentConfig:     opamp.Config{AgentID: originalAgentID},
+			managerConfigPath: managerConfigPath,
+		}
+
+		// Create new instance UID
+		newUUID := uuid.New()
+		newInstanceUid := types.InstanceUid(newUUID)
+
+		// Create AgentIdentification message
+		agentIdentification := &protobufs.AgentIdentification{
+			NewInstanceUid: newInstanceUid[:],
+		}
+
+		// Call handler - should fail due to write error
+		err := client.onAgentIdentificationHandler(context.Background(), agentIdentification)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to persist new agent ID")
+
+		// Verify the agent ID was rolled back
+		assert.Equal(t, originalAgentID.String(), client.ident.agentID.String())
+		assert.Equal(t, originalAgentID.String(), client.currentConfig.AgentID.String())
+	})
 }

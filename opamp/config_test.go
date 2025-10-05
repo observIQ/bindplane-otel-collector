@@ -39,6 +39,42 @@ func Must[T any](t T, err error) T {
 var testAgentIDString = "01HX2DWEQZ045KQR3VG0EYEZ94"
 var testAgentID = Must(ParseAgentID(testAgentIDString))
 
+func TestAgentIDFromInstanceUid(t *testing.T) {
+	t.Run("UUID instance_uid", func(t *testing.T) {
+		// Create a UUID
+		u := uuid.New()
+		instanceUid := [16]byte(u)
+
+		// Convert to AgentID
+		agentID, err := AgentIDFromInstanceUid(instanceUid)
+		require.NoError(t, err)
+
+		// Verify it's a UUID type
+		assert.Equal(t, "UUID", agentID.Type())
+		assert.Equal(t, u.String(), agentID.String())
+
+		// Verify round-trip conversion
+		assert.Equal(t, instanceUid, [16]byte(agentID.OpAMPInstanceUID()))
+	})
+
+	t.Run("ULID instance_uid", func(t *testing.T) {
+		// Use the test ULID - note that ULID can be parsed as UUID v7
+		// so we just verify the conversion works correctly
+		instanceUid := testAgentID.OpAMPInstanceUID()
+
+		// Convert to AgentID
+		agentID, err := AgentIDFromInstanceUid([16]byte(instanceUid))
+		require.NoError(t, err)
+
+		// The type might be UUID (v7) since UUID parsing succeeds for ULID bytes
+		// What matters is that we can round-trip the value
+		assert.Contains(t, []string{"UUID", "ULID"}, agentID.Type())
+
+		// Verify round-trip conversion works
+		assert.Equal(t, [16]byte(instanceUid), [16]byte(agentID.OpAMPInstanceUID()))
+	})
+}
+
 func TestToTLS(t *testing.T) {
 	invalidCAFile := "/some/bad/file-ca.crt"
 	invalidKeyFile := "/some/bad/file.key"
