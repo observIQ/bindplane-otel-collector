@@ -79,7 +79,8 @@ type Client struct {
 	collectorMntrCancel context.CancelFunc
 	collectorMntrWg     sync.WaitGroup
 
-	currentConfig opamp.Config
+	currentConfig     opamp.Config
+	managerConfigPath string
 }
 
 // NewClientArgs arguments passed when creating a new client
@@ -129,6 +130,7 @@ func NewClient(args *NewClientArgs) (opamp.Client, error) {
 		packagesStateProvider:   newPackagesStateProvider(clientLogger, packagestate.DefaultFileName),
 		updaterManager:          updaterManger,
 		reportManager:           reportManager,
+		managerConfigPath:       args.ManagerConfigPath,
 	}
 
 	// Parse URL to determin scheme
@@ -366,6 +368,11 @@ func (c *Client) onMessageFuncHandler(ctx context.Context, msg *types.MessageDat
 			c.logger.Error("Error while processing Packages Available Change", zap.Error(err))
 		}
 	}
+	if msg.AgentIdentification != nil {
+		if err := c.onAgentIdentificationHandler(ctx, msg.AgentIdentification); err != nil {
+			c.logger.Error("Error while processing Agent Identification Change", zap.Error(err))
+		}
+	}
 	if msg.CustomCapabilities != nil {
 		if slices.Contains(msg.CustomCapabilities.Capabilities, measurements.ReportMeasurementsV1Capability) {
 			c.logger.Info("Server supports custom throughput message measurements, starting measurements sender.")
@@ -382,6 +389,48 @@ func (c *Client) onMessageFuncHandler(ctx context.Context, msg *types.MessageDat
 			c.topologySender.Stop()
 		}
 	}
+}
+
+func (c *Client) onAgentIdentificationHandler(ctx context.Context, agentIdentification *protobufs.AgentIdentification) error {
+	c.logger.Debug("Agent identification handler")
+
+	// The OpAMP SDK already updated the instance_uid in the client
+	// Now we need to persist it and update our local state
+	newAgentID, err := opamp.AgentIDFromInstanceUid(types.InstanceUid(agentIdentification.NewInstanceUid))
+	if err != nil {
+		c.logger.Error("Failed to parse new instance UID", zap.Error(err))
+		return fmt.Errorf("failed to parse new instance UID: %w", err)
+	}
+
+	c.logger.Info("Received new instance UID from server",
+		zap.String("old_instance_uid", c.ident.agentID.String()),
+		zap.String("new_instance_uid", newAgentID.String()))
+
+	// Update our internal state
+	oldAgentID := c.ident.agentID
+	c.ident.agentID = newAgentID
+	c.currentConfig.AgentID = newAgentID
+
+	// Persist to manager config file
+	if err := saveAgentID(c.managerConfigPath, newAgentID); err != nil {
+		// Rollback on error
+		c.ident.agentID = oldAgentID
+		c.currentConfig.AgentID = oldAgentID
+		c.logger.Error("Failed to persist new agent ID to manager config", zap.Error(err))
+		return fmt.Errorf("failed to persist new agent ID: %w", err)
+	}
+
+	// Update agent description with new ID
+	if err := c.opampClient.SetAgentDescription(c.ident.ToAgentDescription()); err != nil {
+		c.logger.Error("Failed to update agent description with new instance UID", zap.Error(err))
+		// Not rolling back here since the ID is already persisted
+		return fmt.Errorf("failed to update agent description: %w", err)
+	}
+
+	c.logger.Info("Successfully updated instance UID",
+		zap.String("new_instance_uid", newAgentID.String()))
+
+	return nil
 }
 
 func (c *Client) onRemoteConfigHandler(ctx context.Context, remoteConfig *protobufs.AgentRemoteConfig) error {
