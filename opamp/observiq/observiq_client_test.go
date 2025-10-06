@@ -1585,11 +1585,11 @@ func Test_onAgentIdentificationHandler(t *testing.T) {
 
 		// Create new instance UID
 		newUUID := uuid.New()
-		newInstanceUid := types.InstanceUid(newUUID)
+		newInstanceUID := types.InstanceUid(newUUID)
 
 		// Create AgentIdentification message
 		agentIdentification := &protobufs.AgentIdentification{
-			NewInstanceUid: newInstanceUid[:],
+			NewInstanceUid: newInstanceUID[:],
 		}
 
 		// Call handler
@@ -1597,7 +1597,7 @@ func Test_onAgentIdentificationHandler(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify the agent ID was updated in memory
-		expectedAgentID, err := opamp.AgentIDFromInstanceUid([16]byte(newInstanceUid))
+		expectedAgentID, err := opamp.AgentIDFromInstanceUID([16]byte(newInstanceUID))
 		require.NoError(t, err)
 		assert.Equal(t, expectedAgentID.String(), client.ident.agentID.String())
 		assert.Equal(t, expectedAgentID.String(), client.currentConfig.AgentID.String())
@@ -1637,11 +1637,11 @@ func Test_onAgentIdentificationHandler(t *testing.T) {
 
 		// Create new instance UID
 		newUUID := uuid.New()
-		newInstanceUid := types.InstanceUid(newUUID)
+		newInstanceUID := types.InstanceUid(newUUID)
 
 		// Create AgentIdentification message
 		agentIdentification := &protobufs.AgentIdentification{
-			NewInstanceUid: newInstanceUid[:],
+			NewInstanceUid: newInstanceUID[:],
 		}
 
 		// Call handler - should fail due to write error

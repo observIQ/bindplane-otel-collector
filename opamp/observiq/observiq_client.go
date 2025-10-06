@@ -391,12 +391,12 @@ func (c *Client) onMessageFuncHandler(ctx context.Context, msg *types.MessageDat
 	}
 }
 
-func (c *Client) onAgentIdentificationHandler(ctx context.Context, agentIdentification *protobufs.AgentIdentification) error {
+func (c *Client) onAgentIdentificationHandler(_ context.Context, agentIdentification *protobufs.AgentIdentification) error {
 	c.logger.Debug("Agent identification handler")
 
 	// The OpAMP SDK already updated the instance_uid in the client
 	// Now we need to persist it and update our local state
-	newAgentID, err := opamp.AgentIDFromInstanceUid(types.InstanceUid(agentIdentification.NewInstanceUid))
+	newAgentID, err := opamp.AgentIDFromInstanceUID(types.InstanceUid(agentIdentification.NewInstanceUid))
 	if err != nil {
 		c.logger.Error("Failed to parse new instance UID", zap.Error(err))
 		return fmt.Errorf("failed to parse new instance UID: %w", err)
