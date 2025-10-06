@@ -9,7 +9,7 @@ on:
 
 jobs:
   release-test:
-    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x64
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
     steps:
       - name: Checkout Repo
         uses: namespacelabs/nscloud-checkout-action@v7
