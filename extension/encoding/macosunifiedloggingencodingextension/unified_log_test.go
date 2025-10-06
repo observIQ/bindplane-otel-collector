@@ -22,11 +22,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
+	testutil "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/testutil"
 )
 
 func TestParseUnifiedLog_OneLineArchive(t *testing.T) {
-	skipIfNoReceiverTestdata(t)
-	baseArchivePath := filepath.Join("..", "..", "..", "receiver", "macosunifiedloggingreceiver", "testdata", "one-line.logarchive")
+	testutil.SkipIfNoReceiverTestdata(t)
+	baseArchivePath := filepath.Join(testutil.ReceiverTestdataDir(), "one-line.logarchive")
 	traceV3Path := filepath.Join(baseArchivePath, "Persist", "00000000000060d5.tracev3")
 
 	data, err := os.ReadFile(traceV3Path)

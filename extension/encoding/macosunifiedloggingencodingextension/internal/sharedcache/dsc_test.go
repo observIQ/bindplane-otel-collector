@@ -21,19 +21,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	testutil "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/testutil"
 )
 
-// skipIfNoTestdata skips the test if the testdata directory doesn't exist
-func skipIfNoTestdata(t *testing.T) {
-	testdataPath := filepath.Join("..", "..", "..", "..", "..", "receiver", "macosunifiedloggingreceiver", "testdata")
-	if _, err := os.Stat(testdataPath); os.IsNotExist(err) {
-		t.Skip("Skipping test: testdata directory not found")
-	}
-}
-
 func TestParseDSC_VersionOne(t *testing.T) {
-	skipIfNoTestdata(t)
-	filePath := filepath.Join("..", "..", "..", "..", "..", "receiver", "macosunifiedloggingreceiver", "testdata", "DSC Tests", "big_sur_version_1_522F6217CB113F8FB845C2A1B784C7C2")
+	testutil.SkipIfNoReceiverTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "DSC Tests", "big_sur_version_1_522F6217CB113F8FB845C2A1B784C7C2")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
@@ -60,6 +54,72 @@ func TestParseDSC_VersionOne(t *testing.T) {
 	require.Equal(t, "", results.DSCUUID)
 	require.Equal(t, uint32(788), results.NumberRanges)
 	require.Equal(t, uint32(532), results.NumberUUIDs)
+}
+
+func TestParseDSC_VersionTwo(t *testing.T) {
+	testutil.SkipIfNoReceiverTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "DSC Tests", "monterey_version_2_3D05845F3F65358F9EBF2236E772AC01")
+
+	data, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+
+	results, err := ParseDSC(data)
+	require.NoError(t, err)
+
+	require.Equal(t, 1250, len(results.UUIDs))
+	require.Equal(t, "326DD91B4EF83D80B90BF50EB7D7FDB8", results.UUIDs[0].UUID)
+	require.Equal(t, uint32(98376932), results.UUIDs[0].PathOffset)
+	require.Equal(t, uint32(8192), results.UUIDs[0].TextSize)
+	require.Equal(t, uint64(327680), results.UUIDs[0].TextOffset)
+	require.Equal(t, "/usr/lib/system/libsystem_blocks.dylib", results.UUIDs[0].PathString)
+
+	require.Equal(t, 3432, len(results.Ranges))
+	require.Equal(t, []byte{0}, results.Ranges[0].Strings)
+	require.Equal(t, uint64(0), results.Ranges[0].UnknownUUIDIndex)
+	require.Equal(t, uint64(334248), results.Ranges[0].RangeOffset)
+	require.Equal(t, uint32(1), results.Ranges[0].RangeSize)
+
+	require.Equal(t, uint32(1685283688), results.Signature)
+	require.Equal(t, uint16(2), results.MajorVersion)
+	require.Equal(t, uint16(0), results.MinorVersion)
+	require.Equal(t, "", results.DSCUUID)
+	require.Equal(t, uint32(3432), results.NumberRanges)
+	require.Equal(t, uint32(2250), results.NumberUUIDs)
+}
+
+func TestParseDSC_BadHeader(t *testing.T) {
+	testutil.SkipIfNoReceiverTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Bad Data", "DSC", "bad_header_version_1_522F6217CB113F8FB845C2A1B784C7C2")
+
+	data, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+
+	results, err := ParseDSC(data)
+	require.Contains(t, err.Error(), "invalid DSC signature")
+	require.Nil(t, results)
+}
+func TestParseDSC_BadContent(t *testing.T) {
+	testutil.SkipIfNoReceiverTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Bad Data", "DSC", "bad_content_version_1_522F6217CB113F8FB845C2A1B784C7C2")
+
+	data, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+
+	results, err := ParseDSC(data)
+	require.Contains(t, err.Error(), "DSC: not enough bytes")
+	require.Nil(t, results)
+}
+
+func TestParseDSC_BadFile(t *testing.T) {
+	testutil.SkipIfNoReceiverTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Bad Data", "DSC", "Badfile")
+
+	data, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+
+	results, err := ParseDSC(data)
+	require.Contains(t, err.Error(), "invalid DSC signature")
+	require.Nil(t, results)
 }
 
 func TestParseDSC_InvalidSignature(t *testing.T) {

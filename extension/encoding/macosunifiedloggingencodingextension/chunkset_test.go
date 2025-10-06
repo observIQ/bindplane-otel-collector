@@ -20,6 +20,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	testutil "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/testutil"
 )
 
 func TestParseChunkset(t *testing.T) {
@@ -49,11 +51,10 @@ func TestChunksetWithOversize(t *testing.T) {
 }
 
 func TestParseChunksetData(t *testing.T) {
-	skipIfNoReceiverTestdata(t)
-	baseArchivePath := filepath.Join("..", "..", "..", "receiver", "macosunifiedloggingreceiver", "testdata", "Chunkset Tests")
-	traceV3Path := filepath.Join(baseArchivePath, "big_sur_chunkset.raw")
+	testutil.SkipIfNoReceiverTestdata(t)
+	filepath := filepath.Join(testutil.ReceiverTestdataDir(), "Chunkset Tests", "big_sur_chunkset.raw")
 
-	data, err := os.ReadFile(traceV3Path)
+	data, err := os.ReadFile(filepath)
 	require.NoError(t, err)
 
 	// Create a mock catalog data for testing
@@ -79,11 +80,10 @@ func TestParseChunksetData(t *testing.T) {
 }
 
 func TestParseFirehoseChunkset(t *testing.T) {
-	skipIfNoReceiverTestdata(t)
-	baseArchivePath := filepath.Join("..", "..", "..", "receiver", "macosunifiedloggingreceiver", "testdata", "Chunkset Tests")
-	traceV3Path := filepath.Join(baseArchivePath, "big_sur_firehose_chunkset.raw")
+	testutil.SkipIfNoReceiverTestdata(t)
+	filepath := filepath.Join(testutil.ReceiverTestdataDir(), "Chunkset Tests", "big_sur_firehose_chunkset.raw")
 
-	data, err := os.ReadFile(traceV3Path)
+	data, err := os.ReadFile(filepath)
 	require.NoError(t, err)
 
 	// Create a mock catalog data for testing
@@ -111,11 +111,10 @@ func TestParseFirehoseChunkset(t *testing.T) {
 }
 
 func TestParseOversizeChunkset(t *testing.T) {
-	skipIfNoReceiverTestdata(t)
-	baseArchivePath := filepath.Join("..", "..", "..", "receiver", "macosunifiedloggingreceiver", "testdata", "Chunkset Tests")
-	traceV3Path := filepath.Join(baseArchivePath, "big_sur_oversize_chunkset.raw")
+	testutil.SkipIfNoReceiverTestdata(t)
+	filepath := filepath.Join(testutil.ReceiverTestdataDir(), "Chunkset Tests", "big_sur_oversize_chunkset.raw")
 
-	data, err := os.ReadFile(traceV3Path)
+	data, err := os.ReadFile(filepath)
 	require.NoError(t, err)
 
 	// Create a mock catalog data for testing
@@ -144,11 +143,10 @@ func TestParseOversizeChunkset(t *testing.T) {
 }
 
 func TestParseStatedumpChunkset(t *testing.T) {
-	skipIfNoReceiverTestdata(t)
-	baseArchivePath := filepath.Join("..", "..", "..", "receiver", "macosunifiedloggingreceiver", "testdata", "Chunkset Tests")
-	traceV3Path := filepath.Join(baseArchivePath, "big_sur_statedump_chunkset.raw")
+	testutil.SkipIfNoReceiverTestdata(t)
+	filepath := filepath.Join(testutil.ReceiverTestdataDir(), "Chunkset Tests", "big_sur_statedump_chunkset.raw")
 
-	data, err := os.ReadFile(traceV3Path)
+	data, err := os.ReadFile(filepath)
 	require.NoError(t, err)
 
 	// Create a mock catalog data for testing
@@ -184,12 +182,12 @@ func TestParseStatedumpChunkset(t *testing.T) {
 	require.Equal(t, "5CD8DDEE04383A38887710227C5A0A56", ulData.StatedumpData[0].UUID)
 	require.Equal(t, uint64(288), ulData.StatedumpData[0].ChunkDataSize)
 }
-func TestParseSimpledumpChunkset(t *testing.T) {
-	skipIfNoReceiverTestdata(t)
-	baseArchivePath := filepath.Join("..", "..", "..", "receiver", "macosunifiedloggingreceiver", "testdata", "Chunkset Tests")
-	traceV3Path := filepath.Join(baseArchivePath, "monterey_chunkset_simpledump.raw")
 
-	data, err := os.ReadFile(traceV3Path)
+func TestParseSimpledumpChunkset(t *testing.T) {
+	testutil.SkipIfNoReceiverTestdata(t)
+	filepath := filepath.Join(testutil.ReceiverTestdataDir(), "Chunkset Tests", "monterey_chunkset_simpledump.raw")
+
+	data, err := os.ReadFile(filepath)
 	require.NoError(t, err)
 
 	// Create a mock catalog data for testing

@@ -11,11 +11,12 @@ import (
 	"testing"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
+	testutil "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 
 func TestParseStateDump(t *testing.T) {
-	skipIfNoTestdata(t)
+	testutil.SkipIfNoTestdata(t)
 	data, err := os.ReadFile(filepath.Join("testdata", "statedump", "statedump_test_plist.bin"))
 	require.NoError(t, err)
 
@@ -40,7 +41,7 @@ func TestParseStateDump(t *testing.T) {
 }
 
 func TestParseStateDumpCustomObject(t *testing.T) {
-	skipIfNoTestdata(t)
+	testutil.SkipIfNoTestdata(t)
 	data, err := os.ReadFile(filepath.Join("testdata", "statedump", "statedump_test_valid.bin"))
 	require.NoError(t, err)
 
@@ -62,7 +63,7 @@ func TestParseStateDumpCustomObject(t *testing.T) {
 }
 
 func TestLoadStatedumpsFromTraceV3(t *testing.T) {
-	skipIfNoTestdata(t)
+	testutil.SkipIfNoTestdata(t)
 	data, err := os.ReadFile(filepath.Join("testdata", "statedump", "test_tracev3_with_statedumps.tracev3"))
 	require.NoError(t, err)
 
@@ -89,7 +90,7 @@ func TestParseStateDumpErrors(t *testing.T) {
 }
 
 func TestExpectedStructsFromTestData(t *testing.T) {
-	skipIfNoTestdata(t)
+	testutil.SkipIfNoTestdata(t)
 	plistData, err := os.ReadFile(filepath.Join("testdata", "statedump", "statedump_test_plist.bin"))
 	require.NoError(t, err)
 
