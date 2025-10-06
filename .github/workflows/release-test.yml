@@ -9,7 +9,7 @@ on:
 
 jobs:
   release-test:
-    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x64
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
     steps:
       - name: Checkout Repo
         uses: namespacelabs/nscloud-checkout-action@v7
@@ -48,7 +48,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
-          version: "v2.8.2"
+          version: "v2.12.5"
           args: release --skip=publish --skip=validate --skip=sign --clean
         env:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
