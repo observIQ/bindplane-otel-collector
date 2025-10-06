@@ -338,6 +338,10 @@ dockers:
   - id: scratch-amd64
     goos: linux
     goarch: amd64
+    retry:
+      attempts: 10
+      delay: 1s
+      max_delay: 1m
     ids:
       - collector
     image_templates:
@@ -361,6 +365,10 @@ dockers:
   - id: scratch-arm64
     goos: linux
     goarch: arm64
+    retry:
+      attempts: 10
+      delay: 1s
+      max_delay: 1m
     ids:
       - collector
     image_templates:
@@ -384,6 +392,10 @@ dockers:
   - id: ubuntu-amd64
     goos: linux
     goarch: amd64
+    retry:
+      attempts: 10
+      delay: 1s
+      max_delay: 1m
     ids:
       - collector
     image_templates:
@@ -418,6 +430,10 @@ dockers:
   - id: ubuntu-arm64
     goos: linux
     goarch: arm64
+    retry:
+      attempts: 10
+      delay: 1s
+      max_delay: 1m
     ids:
       - collector
     image_templates:
@@ -453,6 +469,10 @@ dockers:
   - id: ubi8-amd64
     goos: linux
     goarch: amd64
+    retry:
+      attempts: 10
+      delay: 1s
+      max_delay: 1m
     ids:
       - collector
     image_templates:
@@ -481,6 +501,10 @@ dockers:
   - id: ubi8-arm64
     goos: linux
     goarch: arm64
+    retry:
+      attempts: 10
+      delay: 1s
+      max_delay: 1m
     ids:
       - collector
     image_templates:
