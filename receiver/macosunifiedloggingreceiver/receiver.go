@@ -288,7 +288,7 @@ func (r *macosUnifiedLogReceiver) consumeTraceV3Tokens(ctx context.Context, toke
 			r.set.Logger.Error("Failed to consume logs", zap.Error(err))
 		}
 	} else {
-		r.set.Logger.Info("No logs decoded from traceV3 file", zap.String("filePath", filePath))
+		r.set.Logger.Warn("No logs decoded from traceV3 file", zap.String("filePath", filePath))
 	}
 
 	r.set.Logger.Info("Successfully processed traceV3 file",
