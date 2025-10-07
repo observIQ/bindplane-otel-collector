@@ -251,7 +251,7 @@ func ExtractAbsoluteStrings(
 	}
 
 	// UUID data should already be loaded by the receiver and cached by the extension
-	if originalOffset&0x80000000 != 0 {
+	if originalOffset&0x80000000 != 0 || stringOffset == absoluteOffset {
 		if data, exists := provider.CachedUUIDText(messageData.LibraryUUID); exists {
 			libraryString, err := uuidTextImagePath(data.FooterData, data.EntryDescriptors)
 			if err != nil {
@@ -310,6 +310,7 @@ func ExtractAbsoluteStrings(
 				return messageData, err
 			}
 			messageData.Process = processString
+			return messageData, nil
 		}
 	}
 
