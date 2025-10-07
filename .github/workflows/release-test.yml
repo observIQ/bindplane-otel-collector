@@ -28,7 +28,7 @@ jobs:
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: namespacelabs/nscloud-setup-buildx-action@v0
+        uses: docker/setup-buildx-action@v3
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
