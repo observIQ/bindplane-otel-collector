@@ -40,11 +40,11 @@ func TestParseUUIDText_BigSur(t *testing.T) {
 	require.Equal(t, uint32(2), results.UnknownMajorVersion)
 	require.Equal(t, uint32(1), results.UnknownMinorVersion)
 	require.Equal(t, uint32(2), results.NumberEntries)
-	require.Equal(t, 617, results.EntryDescriptors[0].EntrySize)
+	require.Equal(t, uint32(617), results.EntryDescriptors[0].EntrySize)
 	require.Equal(t, uint32(2301), results.EntryDescriptors[1].EntrySize)
 	require.Equal(t, uint32(32048), results.EntryDescriptors[0].RangeStartOffset)
 	require.Equal(t, uint32(29747), results.EntryDescriptors[1].RangeStartOffset)
-	require.Equal(t, uint32(2987), len(results.FooterData))
+	require.Equal(t, 2987, len(results.FooterData))
 }
 
 func TestParseUUIDText_HighSierra(t *testing.T) {
@@ -61,7 +61,7 @@ func TestParseUUIDText_HighSierra(t *testing.T) {
 	require.Equal(t, uint32(2), results.UnknownMajorVersion)
 	require.Equal(t, uint32(1), results.UnknownMinorVersion)
 	require.Equal(t, uint32(1), results.NumberEntries)
-	require.Equal(t, 2740, results.EntryDescriptors[0].EntrySize)
+	require.Equal(t, uint32(2740), results.EntryDescriptors[0].EntrySize)
 	require.Equal(t, uint32(21132), results.EntryDescriptors[0].RangeStartOffset)
 	require.Equal(t, 2951, len(results.FooterData))
 }
