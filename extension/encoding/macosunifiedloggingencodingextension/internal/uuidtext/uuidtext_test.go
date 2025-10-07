@@ -153,13 +153,12 @@ func TestParseUUIDText_Valid(t *testing.T) {
 
 	// Note: current implementation pre-allocates slice with length NumberEntries and then appends again.
 	// Validate that the appended entries exist at the tail of the slice.
-	require.GreaterOrEqual(t, len(got.EntryDescriptors), len(entries))
+	require.Equal(t, len(entries), len(got.EntryDescriptors))
+
 	// Expect appended entries at indices [NumberEntries, NumberEntries+len(entries))
-	base := int(got.NumberEntries)
-	require.GreaterOrEqual(t, len(got.EntryDescriptors), base+len(entries))
 	for i := range entries {
-		require.Equal(t, entries[i].RangeStartOffset, got.EntryDescriptors[base+i].RangeStartOffset)
-		require.Equal(t, entries[i].EntrySize, got.EntryDescriptors[base+i].EntrySize)
+		require.Equal(t, entries[i].RangeStartOffset, got.EntryDescriptors[i].RangeStartOffset)
+		require.Equal(t, entries[i].EntrySize, got.EntryDescriptors[i].EntrySize)
 	}
 
 	require.Equal(t, footer, got.FooterData)
@@ -202,9 +201,8 @@ func TestParseUUIDText_FileBased(t *testing.T) {
 	require.Equal(t, uint32(4), got.UnknownMinorVersion)
 	require.Equal(t, uint32(1), got.NumberEntries)
 
-	base := int(got.NumberEntries)
-	require.GreaterOrEqual(t, len(got.EntryDescriptors), base+1)
-	require.Equal(t, uint32(1234), got.EntryDescriptors[base+0].RangeStartOffset)
-	require.Equal(t, uint32(56), got.EntryDescriptors[base+0].EntrySize)
+	require.GreaterOrEqual(t, 1, len(got.EntryDescriptors))
+	require.Equal(t, uint32(1234), got.EntryDescriptors[0].RangeStartOffset)
+	require.Equal(t, uint32(56), got.EntryDescriptors[0].EntrySize)
 	require.True(t, strings.HasPrefix(string(got.FooterData), "fmt "))
 }
