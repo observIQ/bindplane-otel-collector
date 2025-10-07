@@ -59,7 +59,6 @@ func TestGetFirehoseSignpostStrings(t *testing.T) {
 	require.NoError(t, err)
 
 	cacheProvider := testutil.CreateAndPopulateUUIDAndDSCCaches(t, basePath)
-	catalogChunk := results.CatalogData[0].CatalogData
 	activityType := uint8(0x6)
 
 	for _, catalogData := range results.CatalogData {
@@ -72,7 +71,7 @@ func TestGetFirehoseSignpostStrings(t *testing.T) {
 						uint64(entry.FormatStringLocation),
 						preamble.FirstProcID,
 						preamble.SecondProcID,
-						&catalogChunk,
+						&catalogData.CatalogData,
 					)
 
 					require.NoError(t, err)

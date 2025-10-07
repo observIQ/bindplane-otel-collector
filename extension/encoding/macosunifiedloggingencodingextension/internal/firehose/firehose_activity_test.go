@@ -68,7 +68,6 @@ func TestParseFirehoseActivity_BigSur(t *testing.T) {
 
 	cacheProvider := testutil.CreateAndPopulateUUIDAndDSCCaches(t, basePath)
 
-	catalogChunk := results.CatalogData[0].CatalogData
 	activityType := uint8(0x2)
 
 	for _, catalogData := range results.CatalogData {
@@ -81,7 +80,7 @@ func TestParseFirehoseActivity_BigSur(t *testing.T) {
 						uint64(entry.FormatStringLocation),
 						preamble.FirstProcID,
 						preamble.SecondProcID,
-						&catalogChunk,
+						&catalogData.CatalogData,
 					)
 
 					require.NoError(t, err)
