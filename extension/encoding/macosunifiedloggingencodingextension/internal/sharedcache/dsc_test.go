@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package sharedcache
+package sharedcache_test
 
 import (
 	"os"
@@ -22,6 +22,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/sharedcache"
 	testutil "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/testutil"
 )
 
@@ -32,7 +33,7 @@ func TestParseDSC_VersionOne(t *testing.T) {
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
 
-	results, err := ParseDSC(data)
+	results, err := sharedcache.ParseDSC(data)
 	require.NoError(t, err)
 
 	require.Equal(t, 532, len(results.UUIDs))
@@ -63,7 +64,7 @@ func TestParseDSC_VersionTwo(t *testing.T) {
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
 
-	results, err := ParseDSC(data)
+	results, err := sharedcache.ParseDSC(data)
 	require.NoError(t, err)
 
 	require.Equal(t, 1250, len(results.UUIDs))
@@ -94,7 +95,7 @@ func TestParseDSC_BadHeader(t *testing.T) {
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
 
-	results, err := ParseDSC(data)
+	results, err := sharedcache.ParseDSC(data)
 	require.Contains(t, err.Error(), "invalid DSC signature")
 	require.Nil(t, results)
 }
@@ -105,7 +106,7 @@ func TestParseDSC_BadContent(t *testing.T) {
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
 
-	results, err := ParseDSC(data)
+	results, err := sharedcache.ParseDSC(data)
 	require.Contains(t, err.Error(), "DSC: not enough bytes")
 	require.Nil(t, results)
 }
@@ -117,7 +118,7 @@ func TestParseDSC_BadFile(t *testing.T) {
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
 
-	results, err := ParseDSC(data)
+	results, err := sharedcache.ParseDSC(data)
 	require.Contains(t, err.Error(), "invalid DSC signature")
 	require.Nil(t, results)
 }
@@ -126,7 +127,7 @@ func TestParseDSC_InvalidSignature(t *testing.T) {
 	// 4 bytes signature that does NOT match 0x64736368 ("dsch")
 	data := []byte{0x00, 0x00, 0x00, 0x00}
 
-	_, err := ParseDSC(data)
+	_, err := sharedcache.ParseDSC(data)
 	if err == nil {
 		t.Fatalf("expected error for invalid signature, got nil")
 	}
@@ -139,7 +140,7 @@ func TestParseDSC_ShortInputSignature(t *testing.T) {
 	// Fewer than 4 bytes should fail reading signature
 	data := []byte{0x01, 0x02, 0x03}
 
-	_, err := ParseDSC(data)
+	_, err := sharedcache.ParseDSC(data)
 	if err == nil {
 		t.Fatalf("expected error for short input, got nil")
 	}
@@ -149,8 +150,8 @@ func TestParseDSC_ShortInputSignature(t *testing.T) {
 }
 
 func TestExtractSharedString_DynamicFormatter(t *testing.T) {
-	s := &Strings{
-		UUIDs: []UUIDDescriptor{{
+	s := &sharedcache.Strings{
+		UUIDs: []sharedcache.UUIDDescriptor{{
 			PathString: "libExample.dylib",
 			UUID:       "ABCDEF0123456789ABCDEF0123456789",
 		}},
@@ -170,7 +171,7 @@ func TestExtractSharedString_DynamicFormatter(t *testing.T) {
 }
 
 func TestExtractSharedString_NotFound(t *testing.T) {
-	s := &Strings{}
+	s := &sharedcache.Strings{}
 	_, err := s.ExtractSharedString(12345)
 	if err == nil {
 		t.Fatalf("expected not found error, got nil")
@@ -186,15 +187,15 @@ func TestExtractSharedString_Found(t *testing.T) {
 	raw := make([]byte, 5)
 	raw = append(raw, []byte("hello\x00trailing")...)
 
-	s := &Strings{
-		Ranges: []RangeDescriptor{{
+	s := &sharedcache.Strings{
+		Ranges: []sharedcache.RangeDescriptor{{
 			RangeOffset:      base,
 			DataOffset:       0,  // not used by ExtractSharedString
 			RangeSize:        64, // large enough to include offset and string
 			UnknownUUIDIndex: 0,
 			Strings:          raw,
 		}},
-		UUIDs: []UUIDDescriptor{{
+		UUIDs: []sharedcache.UUIDDescriptor{{
 			PathString: "libStrings.dylib",
 			UUID:       "00112233445566778899AABBCCDDEEFF",
 		}},

@@ -39,7 +39,7 @@ func TestParseFirehosePreamble_PrivatePublicValues(t *testing.T) {
 	for _, entries := range results.PublicData {
 		for _, firehoseEntries := range entries.Message.ItemInfo {
 			if firehoseEntries.MessageStrings == "EMAIL_PRIVATE_LINK_MENU_TITLE" || firehoseEntries.MessageStrings == "Send private link by email …" {
-				privatePublicStringCount += 1
+				privatePublicStringCount++
 			}
 		}
 	}

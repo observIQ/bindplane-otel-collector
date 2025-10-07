@@ -40,15 +40,15 @@ func TestExtractSharedStrings_NonActivity(t *testing.T) {
 	catalogChunk := results.CatalogData[0].CatalogData
 
 	testOffset := uint64(1331408102)
-	testFirstProcId := uint64(45)
-	testSecondProcId := uint32(188)
+	testFirstProcID := uint64(45)
+	testSecondProcID := uint32(188)
 	originalOffset := uint64(0)
 
 	messageData, err := firehose.ExtractSharedStrings(
 		cacheProvider,
 		testOffset,
-		testFirstProcId,
-		testSecondProcId,
+		testFirstProcID,
+		testSecondProcID,
 		&catalogChunk,
 		originalOffset,
 	)
@@ -67,15 +67,15 @@ func TestExtractSharedStrings_NonActivity_BadOffset(t *testing.T) {
 	catalogChunk := results.CatalogData[0].CatalogData
 
 	badOffset := uint64(7)
-	testFirstProcId := uint64(45)
-	testSecondProcId := uint32(188)
+	testFirstProcID := uint64(45)
+	testSecondProcID := uint32(188)
 	originalOffset := uint64(0)
 
 	messageData, err := firehose.ExtractSharedStrings(
 		cacheProvider,
 		badOffset,
-		testFirstProcId,
-		testSecondProcId,
+		testFirstProcID,
+		testSecondProcID,
 		&catalogChunk,
 		originalOffset,
 	)
@@ -94,14 +94,14 @@ func TestExtractSharedStrings_NonActivity_Dynamic(t *testing.T) {
 	catalogChunk := results.CatalogData[2].CatalogData
 
 	testOffset := uint64(2420246585)
-	testFirstProcId := uint64(32)
-	testSecondProcId := uint32(424)
+	testFirstProcID := uint64(32)
+	testSecondProcID := uint32(424)
 
 	messageData, err := firehose.ExtractSharedStrings(
 		cacheProvider,
 		testOffset,
-		testFirstProcId,
-		testSecondProcId,
+		testFirstProcID,
+		testSecondProcID,
 		&catalogChunk,
 		testOffset,
 	)
@@ -121,14 +121,14 @@ func TestExtractFormatStrings_NonActivity(t *testing.T) {
 	catalogChunk := results.CatalogData[0].CatalogData
 
 	testOffset := uint64(14960)
-	testFirstProcId := uint64(45)
-	testSecondProcId := uint32(188)
+	testFirstProcID := uint64(45)
+	testSecondProcID := uint32(188)
 
 	messageData, err := firehose.ExtractFormatStrings(
 		cacheProvider,
 		testOffset,
-		testFirstProcId,
-		testSecondProcId,
+		testFirstProcID,
+		testSecondProcID,
 		&catalogChunk,
 		testOffset,
 	)
@@ -149,15 +149,15 @@ func TestExtractFormatStrings_NonActivity_BadOffset(t *testing.T) {
 
 	catalogChunk := results.CatalogData[0].CatalogData
 	badOffset := uint64(1)
-	testFirstProcId := uint64(45)
-	testSecondProcId := uint32(188)
+	testFirstProcID := uint64(45)
+	testSecondProcID := uint32(188)
 	originalOffset := uint64(0)
 
 	messageData, err := firehose.ExtractFormatStrings(
 		cacheProvider,
 		badOffset,
-		testFirstProcId,
-		testSecondProcId,
+		testFirstProcID,
+		testSecondProcID,
 		&catalogChunk,
 		originalOffset,
 	)
@@ -173,14 +173,14 @@ func TestExtractFormatStrings_NonActivity_Dynamic(t *testing.T) {
 	catalogChunk := results.CatalogData[4].CatalogData
 
 	testOffset := uint64(2147519968)
-	testFirstProcId := uint64(38)
-	testSecondProcId := uint32(317)
+	testFirstProcID := uint64(38)
+	testSecondProcID := uint32(317)
 
 	messageData, err := firehose.ExtractFormatStrings(
 		cacheProvider,
 		testOffset,
-		testFirstProcId,
-		testSecondProcId,
+		testFirstProcID,
+		testSecondProcID,
 		&catalogChunk,
 		testOffset,
 	)
@@ -201,14 +201,14 @@ func TestExtractFormatStrings_NonActivity_DynamicBadOffset(t *testing.T) {
 
 	catalogChunk := results.CatalogData[4].CatalogData
 	badOffset := uint64(55)
-	testFirstProcId := uint64(38)
-	testSecondProcId := uint32(317)
+	testFirstProcID := uint64(38)
+	testSecondProcID := uint32(317)
 
 	messageData, err := firehose.ExtractFormatStrings(
 		cacheProvider,
 		badOffset,
-		testFirstProcId,
-		testSecondProcId,
+		testFirstProcID,
+		testSecondProcID,
 		&catalogChunk,
 		badOffset,
 	)
@@ -225,16 +225,16 @@ func TestExtractAbsoluteStrings_NonActivity(t *testing.T) {
 	catalogChunk := results.CatalogData[0].CatalogData
 	testOffset := uint64(396912)
 	testAbsoluteOffset := uint64(280925241119206)
-	testFirstProcId := uint64(0)
-	testSecondProcId := uint32(0)
+	testFirstProcID := uint64(0)
+	testSecondProcID := uint32(0)
 	originalOffset := uint64(0)
 
 	messageData, err := firehose.ExtractAbsoluteStrings(
 		cacheProvider,
 		testAbsoluteOffset,
 		testOffset,
-		testFirstProcId,
-		testSecondProcId,
+		testFirstProcID,
+		testSecondProcID,
 		&catalogChunk,
 		originalOffset,
 	)
@@ -251,16 +251,16 @@ func TestExtractAbsoluteStrings_NonActivity_BadOffset(t *testing.T) {
 	catalogChunk := results.CatalogData[0].CatalogData
 	testOffset := uint64(396912)
 	testBadAbsoluteOffset := uint64(12)
-	testFirstProcId := uint64(0)
-	testSecondProcId := uint32(0)
+	testFirstProcID := uint64(0)
+	testSecondProcID := uint32(0)
 	originalOffset := uint64(0)
 
 	messageData, err := firehose.ExtractAbsoluteStrings(
 		cacheProvider,
 		testBadAbsoluteOffset,
 		testOffset,
-		testFirstProcId,
-		testSecondProcId,
+		testFirstProcID,
+		testSecondProcID,
 		&catalogChunk,
 		originalOffset,
 	)
@@ -279,15 +279,15 @@ func TestExtractAbsoluteStrings_NonActivity_Dynamic(t *testing.T) {
 	catalogChunk := results.CatalogData[1].CatalogData
 	testOffset := uint64(102)
 	testAbsoluteOffset := uint64(102)
-	testFirstProcId := uint64(0)
-	testSecondProcId := uint32(0)
+	testFirstProcID := uint64(0)
+	testSecondProcID := uint32(0)
 
 	messageData, err := firehose.ExtractAbsoluteStrings(
 		cacheProvider,
 		testAbsoluteOffset,
 		testOffset,
-		testFirstProcId,
-		testSecondProcId,
+		testFirstProcID,
+		testSecondProcID,
 		&catalogChunk,
 		testOffset,
 	)
@@ -306,15 +306,15 @@ func TestExtractAbsoluteStrings_NonActivity_DynamicBadOffset(t *testing.T) {
 	catalogChunk := results.CatalogData[1].CatalogData
 	testBadOffset := uint64(111)
 	testAbsoluteOffset := uint64(102)
-	testFirstProcId := uint64(0)
-	testSecondProcId := uint32(0)
+	testFirstProcID := uint64(0)
+	testSecondProcID := uint32(0)
 
 	messageData, err := firehose.ExtractAbsoluteStrings(
 		cacheProvider,
 		testAbsoluteOffset,
 		testBadOffset,
-		testFirstProcId,
-		testSecondProcId,
+		testFirstProcID,
+		testSecondProcID,
 		&catalogChunk,
 		testBadOffset,
 	)
@@ -331,8 +331,8 @@ func TestExtractAltUUIDStrings(t *testing.T) {
 	catalogChunk := results.CatalogData[0].CatalogData
 
 	testOffset := uint64(221408)
-	testFirstProcId := uint64(105)
-	testSecondProcId := uint32(240)
+	testFirstProcID := uint64(105)
+	testSecondProcID := uint32(240)
 	testUUID := "C275D5EEBAD43A86B74F16F3E62BF57D"
 	originalOffset := uint64(0)
 
@@ -340,8 +340,8 @@ func TestExtractAltUUIDStrings(t *testing.T) {
 		cacheProvider,
 		testOffset,
 		testUUID,
-		testFirstProcId,
-		testSecondProcId,
+		testFirstProcID,
+		testSecondProcID,
 		&catalogChunk,
 		originalOffset,
 	)
@@ -360,13 +360,13 @@ func TestGetCatalogDSC(t *testing.T) {
 
 	catalogChunk := results.CatalogData[0].CatalogData
 
-	testFirstProcId := uint64(136)
-	testSecondProcId := uint32(342)
+	testFirstProcID := uint64(136)
+	testSecondProcID := uint32(342)
 
 	dscUUID, mainUUID := firehose.GetCatalogDSC(
 		&catalogChunk,
-		testFirstProcId,
-		testSecondProcId,
+		testFirstProcID,
+		testSecondProcID,
 	)
 
 	require.Equal(t, "80896B329EB13A10A7C5449B15305DE2", dscUUID)

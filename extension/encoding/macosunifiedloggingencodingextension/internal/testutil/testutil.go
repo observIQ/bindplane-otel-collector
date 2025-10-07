@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package testutil provides shared testing helpers for the macOS unified logging encoding extension.
 package testutil
 
 import (
@@ -80,9 +81,10 @@ func ExtensionTestdataDir() string {
 	return filepath.Join(root, "testdata")
 }
 
+// CreateAndPopulateUUIDAndDSCCaches initializes a cache provider and populates it
+// with UUIDText and DSC data under the provided basePath for use in tests.
 func CreateAndPopulateUUIDAndDSCCaches(t *testing.T, basePath string) *uuidtext.CacheProvider {
 	cacheProvider := uuidtext.NewCacheProvider()
-
 	uuidTextFilePath := filepath.Join(basePath, "[0-9A-F][0-9A-F]", "*")
 	uuidTextFilePaths, _ := filepath.Glob(uuidTextFilePath)
 

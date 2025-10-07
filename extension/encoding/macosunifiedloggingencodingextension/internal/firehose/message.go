@@ -434,6 +434,8 @@ func ExtractAltUUIDStrings(
 
 }
 
+// GetCatalogDSC returns the DSC UUID and the main UUID for the given process IDs
+// from the catalog chunk. If the entry is not found, empty strings are returned.
 func GetCatalogDSC(catalogs *models.CatalogChunk, firstProcID uint64, secondProcID uint32) (string, string) {
 	key := fmt.Sprintf("%d_%d", firstProcID, secondProcID)
 	if entry, exists := catalogs.ProcessInfoEntries[key]; exists {
@@ -443,6 +445,8 @@ func GetCatalogDSC(catalogs *models.CatalogChunk, firstProcID uint64, secondProc
 	return "", ""
 }
 
+// GetUUIDImagePath returns the image path for the given UUID using the cache provider.
+// If the UUID is all zeros, it returns an empty path. If not found, a failure message is returned.
 func GetUUIDImagePath(uuid string, provider *uuidtext.CacheProvider) (string, error) {
 	// An UUID of all zeros is possible in the Catalog, if this happens there is no process path
 	if uuid == "00000000000000000000000000000000" {
