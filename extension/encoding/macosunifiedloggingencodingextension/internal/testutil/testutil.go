@@ -80,10 +80,10 @@ func ExtensionTestdataDir() string {
 	return filepath.Join(root, "testdata")
 }
 
-func CreateAndPopulateUUIDAndDSCCaches(t *testing.T) *uuidtext.CacheProvider {
+func CreateAndPopulateUUIDAndDSCCaches(t *testing.T, basePath string) *uuidtext.CacheProvider {
 	cacheProvider := uuidtext.NewCacheProvider()
 
-	uuidTextFilePath := filepath.Join(ReceiverTestdataDir(), "system_logs_big_sur.logarchive", "[0-9A-F][0-9A-F]", "*")
+	uuidTextFilePath := filepath.Join(basePath, "[0-9A-F][0-9A-F]", "*")
 	uuidTextFilePaths, _ := filepath.Glob(uuidTextFilePath)
 
 	for _, uuidPath := range uuidTextFilePaths {
