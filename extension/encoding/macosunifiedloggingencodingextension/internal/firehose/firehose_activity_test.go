@@ -22,7 +22,6 @@ import (
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension"
 	firehose "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/testutil"
-	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 	"github.com/stretchr/testify/require"
 )
 
@@ -57,7 +56,9 @@ func TestParseFirehoseActivity(t *testing.T) {
 
 func TestParseFirehoseActivity_BigSur(t *testing.T) {
 	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "system_logs_big_sur.logarchive", "Persist", "0000000000000004.tracev3")
+
+	basePath := filepath.Join(testutil.ReceiverTestdataDir(), "system_logs_big_sur.logarchive")
+	filePath := filepath.Join(basePath, "Persist", "0000000000000004.tracev3")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
@@ -65,7 +66,8 @@ func TestParseFirehoseActivity_BigSur(t *testing.T) {
 	results, err := macosunifiedloggingencodingextension.ParseUnifiedLog(data)
 	require.NoError(t, err)
 
-	cacheProvider := uuidtext.NewCacheProvider()
+	cacheProvider := testutil.CreateAndPopulateUUIDAndDSCCaches(t, basePath)
+
 	catalogChunk := results.CatalogData[0].CatalogData
 	activityType := uint8(0x2)
 
