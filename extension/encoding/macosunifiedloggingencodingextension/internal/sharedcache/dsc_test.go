@@ -67,7 +67,7 @@ func TestParseDSC_VersionTwo(t *testing.T) {
 	results, err := sharedcache.ParseDSC(data)
 	require.NoError(t, err)
 
-	require.Equal(t, 1250, len(results.UUIDs))
+	require.Equal(t, 2250, len(results.UUIDs))
 	require.Equal(t, "326DD91B4EF83D80B90BF50EB7D7FDB8", results.UUIDs[0].UUID)
 	require.Equal(t, uint32(98376932), results.UUIDs[0].PathOffset)
 	require.Equal(t, uint32(8192), results.UUIDs[0].TextSize)
