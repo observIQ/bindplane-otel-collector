@@ -340,7 +340,7 @@ dockers:
     goarch: amd64
     retry:
       attempts: 10
-      delay: 1s
+      delay: 30s
       max_delay: 1m
     ids:
       - collector
@@ -367,7 +367,7 @@ dockers:
     goarch: arm64
     retry:
       attempts: 10
-      delay: 1s
+      delay: 30s
       max_delay: 1m
     ids:
       - collector
@@ -394,7 +394,7 @@ dockers:
     goarch: amd64
     retry:
       attempts: 10
-      delay: 1s
+      delay: 30s
       max_delay: 1m
     ids:
       - collector
@@ -432,7 +432,7 @@ dockers:
     goarch: arm64
     retry:
       attempts: 10
-      delay: 1s
+      delay: 30s
       max_delay: 1m
     ids:
       - collector
@@ -471,7 +471,7 @@ dockers:
     goarch: amd64
     retry:
       attempts: 10
-      delay: 1s
+      delay: 30s
       max_delay: 1m
     ids:
       - collector
@@ -503,7 +503,7 @@ dockers:
     goarch: arm64
     retry:
       attempts: 10
-      delay: 1s
+      delay: 30s
       max_delay: 1m
     ids:
       - collector
