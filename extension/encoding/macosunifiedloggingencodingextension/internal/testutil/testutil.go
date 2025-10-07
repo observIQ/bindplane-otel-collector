@@ -18,6 +18,11 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/sharedcache"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
+	"github.com/stretchr/testify/require"
 )
 
 // SkipIfNoTestdata skips the test if the local testdata directory doesn't exist.
@@ -73,4 +78,30 @@ func ExtensionTestdataDir() string {
 		return "testdata"
 	}
 	return filepath.Join(root, "testdata")
+}
+
+func CreateAndPopulateUUIDAndDSCCaches(t *testing.T) *uuidtext.CacheProvider {
+	cacheProvider := uuidtext.NewCacheProvider()
+
+	uuidTextFilePath := filepath.Join(ReceiverTestdataDir(), "system_logs_big_sur.logarchive", "[0-9A-F][0-9A-F]", "*")
+	uuidTextFilePaths, _ := filepath.Glob(uuidTextFilePath)
+
+	for _, uuidPath := range uuidTextFilePaths {
+		uuidTextData, _ := os.ReadFile(uuidPath)
+		parsedUUIDText, err := uuidtext.ParseUUIDText(uuidTextData)
+		require.NoError(t, err)
+		uuid := helpers.ExtractUUIDFromPath(uuidPath)
+		cacheProvider.UpdateUUID(uuid, "", parsedUUIDText)
+	}
+
+	dscFilePath := filepath.Join(ReceiverTestdataDir(), "system_logs_big_sur.logarchive", "dsc", "*")
+	dscFilePaths, _ := filepath.Glob(dscFilePath)
+
+	for _, dscPath := range dscFilePaths {
+		dscData, _ := os.ReadFile(dscPath)
+		parsedDSC, err := sharedcache.ParseDSC(dscData)
+		require.NoError(t, err)
+		cacheProvider.UpdateDSC(helpers.ExtractUUIDFromPath(dscPath), "", parsedDSC)
+	}
+	return cacheProvider
 }

@@ -16,10 +16,39 @@ package firehose
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
+
+func TestParseFirehosePreamble_PrivatePublicValues(t *testing.T) {
+	testutil.SkipIfNoReceiverTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Chunkset Tests", "private_public_data.raw")
+
+	data, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+
+	results, _, err := ParseFirehosePreamble(data)
+	require.NoError(t, err)
+
+	require.Equal(t, 51, len(results.PublicData))
+	privatePublicStringCount := 0
+	for _, entries := range results.PublicData {
+		for _, firehoseEntries := range entries.Message.ItemInfo {
+			if firehoseEntries.MessageStrings == "EMAIL_PRIVATE_LINK_MENU_TITLE" || firehoseEntries.MessageStrings == "Send private link by email …" {
+				privatePublicStringCount += 1
+			}
+		}
+	}
+
+	// EMAIL_PRIVATE_LINK_MENU_TITLE is a private string
+	// Send private link by email … is a public string
+	// both in same log entry
+	require.Equal(t, 2, privatePublicStringCount)
+}
 
 func TestParseFirehosePreamble(t *testing.T) {
 	parsedFirehosePreamble, data, err := ParseFirehosePreamble(firehosePreambleTestData)

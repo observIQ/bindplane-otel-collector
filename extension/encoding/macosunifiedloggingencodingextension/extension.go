@@ -424,7 +424,7 @@ func (c *macosUnifiedLoggingCodec) parseUUIDTextRawData() {
 
 	for filePath, rawData := range c.uuidTextRawData {
 		// Extract UUID from file path
-		uuid := extractUUIDFromPath(filePath)
+		uuid := helpers.ExtractUUIDFromPath(filePath)
 
 		// Debug logging to understand UUID extraction
 		if c.debugMode {
@@ -465,55 +465,6 @@ func (c *macosUnifiedLoggingCodec) parseUUIDTextRawData() {
 	c.logger.Info("Completed UUID text data parsing",
 		zap.Int("totalFiles", len(c.uuidTextRawData)),
 		zap.Int("successfullyParsed", len(c.uuidTextData)))
-}
-
-// extractUUIDFromPath extracts the UUID from a UUID text file path
-func extractUUIDFromPath(filePath string) string {
-	// Get the base filename (last component of the path)
-	filename := filepath.Base(filePath)
-
-	// Remove any extension if present
-	filename = strings.TrimSuffix(filename, filepath.Ext(filename))
-
-	// Check if the filename is 30 characters (truncated UUID)
-	// In this case, we need to reconstruct the full UUID from the directory name
-	if len(filename) == 30 {
-		// Get the parent directory name
-		dir := filepath.Dir(filePath)
-		parentDir := filepath.Base(dir)
-
-		// Check if parent directory is 2 hex characters
-		if len(parentDir) == 2 {
-			// Check if parent directory is all hex
-			isHex := true
-			for _, char := range parentDir {
-				if !((char >= '0' && char <= '9') || (char >= 'A' && char <= 'F') || (char >= 'a' && char <= 'f')) {
-					isHex = false
-					break
-				}
-			}
-
-			if isHex {
-				// Reconstruct the full UUID by combining directory + filename
-				fullUUID := strings.ToUpper(parentDir) + strings.ToUpper(filename)
-				return fullUUID
-			}
-		}
-	}
-
-	// The filename should be the UUID (32 hex characters)
-	if len(filename) == 32 {
-		// Check if it's all hex (A-F, 0-9)
-		for _, char := range filename {
-			if !((char >= '0' && char <= '9') || (char >= 'A' && char <= 'F') || (char >= 'a' && char <= 'f')) {
-				return filename
-			}
-		}
-		return strings.ToUpper(filename) // Normalize to uppercase
-	}
-
-	// If not a standard UUID format, return as-is
-	return filename
 }
 
 // processFirehoseData processes the firehose data for a given catalog data entry
