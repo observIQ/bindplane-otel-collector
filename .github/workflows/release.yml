@@ -156,7 +156,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
-          version: "v2.8.2"
+          version: "v2.12.5"
           args: release --clean --timeout 120m
         env:
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
