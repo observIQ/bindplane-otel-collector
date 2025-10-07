@@ -410,6 +410,7 @@ func (c *Client) onAgentIdentificationHandler(_ context.Context, agentIdentifica
 	oldAgentID := c.ident.agentID
 	c.ident.agentID = newAgentID
 	c.currentConfig.AgentID = newAgentID
+	c.currentConfig.ExtraMeasurementsAttributes["agent"] = newAgentID.String()
 
 	// Persist to manager config file
 	if err := saveAgentID(c.managerConfigPath, newAgentID); err != nil {

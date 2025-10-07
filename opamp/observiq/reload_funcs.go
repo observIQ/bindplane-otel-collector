@@ -331,6 +331,7 @@ func saveAgentID(configPath string, agentID opamp.AgentID) error {
 
 	// Update agent_id field
 	config.AgentID = agentID
+	config.ExtraMeasurementsAttributes["agent"] = agentID.String()
 
 	// Marshal back to yaml
 	newData, err := yaml.Marshal(&config)
