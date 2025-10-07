@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package uuidtext
+package uuidtext_test
 
 import (
 	"encoding/binary"
@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/testutil"
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,7 +33,7 @@ func TestParseUUIDText_BigSur(t *testing.T) {
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
 
-	results, err := ParseUUIDText(data)
+	results, err := uuidtext.ParseUUIDText(data)
 	require.NoError(t, err)
 
 	require.Equal(t, uint32(0x66778899), results.Signature)
@@ -53,7 +54,7 @@ func TestParseUUIDText_HighSierra(t *testing.T) {
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
 
-	results, err := ParseUUIDText(data)
+	results, err := uuidtext.ParseUUIDText(data)
 	require.NoError(t, err)
 
 	require.Equal(t, uint32(0x66778899), results.Signature)
@@ -71,7 +72,7 @@ func TestParseUUIDText_BadHeader(t *testing.T) {
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
 
-	results, err := ParseUUIDText(data)
+	results, err := uuidtext.ParseUUIDText(data)
 	require.Contains(t, err.Error(), "invalid UUID text signature")
 	require.Nil(t, results)
 }
@@ -82,7 +83,7 @@ func TestParseUUIDText_BadContent(t *testing.T) {
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
 
-	results, err := ParseUUIDText(data)
+	results, err := uuidtext.ParseUUIDText(data)
 	require.Contains(t, err.Error(), "failed to read signature: not enough bytes")
 	require.Nil(t, results)
 }
@@ -94,13 +95,13 @@ func TestParseUUIDText_BadFile(t *testing.T) {
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
 
-	results, err := ParseUUIDText(data)
+	results, err := uuidtext.ParseUUIDText(data)
 	require.Contains(t, err.Error(), "invalid UUID text signature")
 	require.Nil(t, results)
 }
 
 // buildUUIDTextBytes constructs a minimal UUIDText binary for testing.
-func buildUUIDTextBytes(major, minor uint32, entries []Entry, footer []byte) []byte {
+func buildUUIDTextBytes(major, minor uint32, entries []uuidtext.Entry, footer []byte) []byte {
 	// Signature 0x66778899 (little-endian)
 	buf := make([]byte, 0, 4+4+4+4+len(entries)*8+len(footer))
 
@@ -135,14 +136,14 @@ func buildUUIDTextBytes(major, minor uint32, entries []Entry, footer []byte) []b
 }
 
 func TestParseUUIDText_Valid(t *testing.T) {
-	entries := []Entry{
+	entries := []uuidtext.Entry{
 		{RangeStartOffset: 10, EntrySize: 100},
 		{RangeStartOffset: 200, EntrySize: 50},
 	}
 	footer := []byte("hello\x00world\x00")
 	data := buildUUIDTextBytes(1, 2, entries, footer)
 
-	got, err := ParseUUIDText(data)
+	got, err := uuidtext.ParseUUIDText(data)
 	require.NoError(t, err)
 
 	require.Equal(t, uint32(0x66778899), got.Signature)
@@ -167,7 +168,7 @@ func TestParseUUIDText_Valid(t *testing.T) {
 func TestParseUUIDText_InvalidSignature(t *testing.T) {
 	// Invalid signature (all zeros)
 	data := []byte{0x00, 0x00, 0x00, 0x00}
-	_, err := ParseUUIDText(data)
+	_, err := uuidtext.ParseUUIDText(data)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "invalid UUID text signature")
 }
@@ -175,7 +176,7 @@ func TestParseUUIDText_InvalidSignature(t *testing.T) {
 func TestParseUUIDText_ShortInput(t *testing.T) {
 	// Fewer than 4 bytes for signature
 	data := []byte{0x01, 0x02, 0x03}
-	_, err := ParseUUIDText(data)
+	_, err := uuidtext.ParseUUIDText(data)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to read signature")
 }
@@ -183,7 +184,7 @@ func TestParseUUIDText_ShortInput(t *testing.T) {
 func TestParseUUIDText_FileBased(t *testing.T) {
 	// Mirrors the file-reading pattern used in DSC tests, but generates a temp file here.
 	// If we later add static fixtures under testdata, we can switch to using testutil.ExtensionTestdataDir().
-	entries := []Entry{{RangeStartOffset: 1234, EntrySize: 56}}
+	entries := []uuidtext.Entry{{RangeStartOffset: 1234, EntrySize: 56}}
 	footer := []byte("fmt %s\x00")
 	payload := buildUUIDTextBytes(3, 4, entries, footer)
 
@@ -194,7 +195,7 @@ func TestParseUUIDText_FileBased(t *testing.T) {
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
 
-	got, err := ParseUUIDText(data)
+	got, err := uuidtext.ParseUUIDText(data)
 	require.NoError(t, err)
 
 	require.Equal(t, uint32(3), got.UnknownMajorVersion)
