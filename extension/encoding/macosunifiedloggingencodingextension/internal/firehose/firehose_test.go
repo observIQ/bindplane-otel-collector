@@ -25,8 +25,8 @@ import (
 )
 
 func TestParseFirehosePreamble_PrivatePublicValues(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Chunkset Tests", "private_public_data.raw")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Chunkset Tests", "private_public_data.raw")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)

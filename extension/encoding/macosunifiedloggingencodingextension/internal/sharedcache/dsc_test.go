@@ -27,8 +27,8 @@ import (
 )
 
 func TestParseDSC_VersionOne(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "DSC Tests", "big_sur_version_1_522F6217CB113F8FB845C2A1B784C7C2")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "DSC Tests", "big_sur_version_1_522F6217CB113F8FB845C2A1B784C7C2")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
@@ -58,8 +58,8 @@ func TestParseDSC_VersionOne(t *testing.T) {
 }
 
 func TestParseDSC_VersionTwo(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "DSC Tests", "monterey_version_2_3D05845F3F65358F9EBF2236E772AC01")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "DSC Tests", "monterey_version_2_3D05845F3F65358F9EBF2236E772AC01")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
@@ -89,8 +89,8 @@ func TestParseDSC_VersionTwo(t *testing.T) {
 }
 
 func TestParseDSC_BadHeader(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Bad Data", "DSC", "bad_header_version_1_522F6217CB113F8FB845C2A1B784C7C2")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Bad Data", "DSC", "bad_header_version_1_522F6217CB113F8FB845C2A1B784C7C2")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
@@ -100,8 +100,8 @@ func TestParseDSC_BadHeader(t *testing.T) {
 	require.Nil(t, results)
 }
 func TestParseDSC_BadContent(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Bad Data", "DSC", "bad_content_version_1_522F6217CB113F8FB845C2A1B784C7C2")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Bad Data", "DSC", "bad_content_version_1_522F6217CB113F8FB845C2A1B784C7C2")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
@@ -112,8 +112,8 @@ func TestParseDSC_BadContent(t *testing.T) {
 }
 
 func TestParseDSC_BadFile(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Bad Data", "DSC", "Badfile")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Bad Data", "DSC", "Badfile")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)

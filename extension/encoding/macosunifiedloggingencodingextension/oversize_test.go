@@ -42,8 +42,8 @@ func TestParseOversizeChunk(t *testing.T) {
 }
 
 func TestParseOversizeChunk_PrivateStrings(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Oversize Tests", "oversize_private_strings.raw")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Oversize Tests", "oversize_private_strings.raw")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)

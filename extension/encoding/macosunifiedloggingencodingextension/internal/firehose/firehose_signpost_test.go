@@ -48,9 +48,9 @@ func TestParseFirehoseSignpost(t *testing.T) {
 }
 
 func TestGetFirehoseSignpostStrings(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
 
-	basePath := filepath.Join(testutil.ReceiverTestdataDir(), "system_logs_big_sur.logarchive")
+	basePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "system_logs_big_sur.logarchive")
 	filePath := filepath.Join(basePath, "Signpost", "0000000000000001.tracev3")
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)

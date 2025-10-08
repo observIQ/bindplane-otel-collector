@@ -389,9 +389,9 @@ func TestGetUUIDImagePath(t *testing.T) {
 }
 
 func testSetup(t *testing.T, archiveName string) (*uuidtext.CacheProvider, *macosunifiedloggingencodingextension.UnifiedLogData) {
-	testutil.SkipIfNoReceiverTestdata(t)
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
 
-	basePath := filepath.Join(testutil.ReceiverTestdataDir(), "system_logs_big_sur.logarchive")
+	basePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "system_logs_big_sur.logarchive")
 	filePath := filepath.Join(basePath, "Persist", archiveName+".tracev3")
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)

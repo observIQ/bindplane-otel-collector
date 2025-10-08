@@ -51,8 +51,8 @@ func TestChunksetWithOversize(t *testing.T) {
 }
 
 func TestParseChunksetData(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filepath := filepath.Join(testutil.ReceiverTestdataDir(), "Chunkset Tests", "big_sur_chunkset.raw")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filepath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Chunkset Tests", "big_sur_chunkset.raw")
 
 	data, err := os.ReadFile(filepath)
 	require.NoError(t, err)
@@ -80,8 +80,8 @@ func TestParseChunksetData(t *testing.T) {
 }
 
 func TestParseFirehoseChunkset(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filepath := filepath.Join(testutil.ReceiverTestdataDir(), "Chunkset Tests", "big_sur_firehose_chunkset.raw")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filepath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Chunkset Tests", "big_sur_firehose_chunkset.raw")
 
 	data, err := os.ReadFile(filepath)
 	require.NoError(t, err)
@@ -111,8 +111,8 @@ func TestParseFirehoseChunkset(t *testing.T) {
 }
 
 func TestParseOversizeChunkset(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filepath := filepath.Join(testutil.ReceiverTestdataDir(), "Chunkset Tests", "big_sur_oversize_chunkset.raw")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filepath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Chunkset Tests", "big_sur_oversize_chunkset.raw")
 
 	data, err := os.ReadFile(filepath)
 	require.NoError(t, err)
@@ -143,8 +143,8 @@ func TestParseOversizeChunkset(t *testing.T) {
 }
 
 func TestParseStatedumpChunkset(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filepath := filepath.Join(testutil.ReceiverTestdataDir(), "Chunkset Tests", "big_sur_statedump_chunkset.raw")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filepath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Chunkset Tests", "big_sur_statedump_chunkset.raw")
 
 	data, err := os.ReadFile(filepath)
 	require.NoError(t, err)
@@ -184,8 +184,8 @@ func TestParseStatedumpChunkset(t *testing.T) {
 }
 
 func TestParseSimpledumpChunkset(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filepath := filepath.Join(testutil.ReceiverTestdataDir(), "Chunkset Tests", "monterey_chunkset_simpledump.raw")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filepath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Chunkset Tests", "monterey_chunkset_simpledump.raw")
 
 	data, err := os.ReadFile(filepath)
 	require.NoError(t, err)

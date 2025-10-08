@@ -27,20 +27,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// SkipIfNoTestdata skips the test if the local testdata directory doesn't exist.
-func SkipIfNoTestdata(t *testing.T) {
+// SkipIfNoReceiverLogArchiveTestdata skips the test if the receiver testdata directory doesn't exist.
+func SkipIfNoReceiverLogArchiveTestdata(t *testing.T) {
 	t.Helper()
-	if _, err := os.Stat("testdata"); os.IsNotExist(err) {
-		t.Skip("Skipping test: testdata directory not found")
-	}
-}
-
-// SkipIfNoReceiverTestdata skips the test if the receiver testdata directory doesn't exist.
-func SkipIfNoReceiverTestdata(t *testing.T) {
-	t.Helper()
-	testdataPath := ReceiverTestdataDir()
+	testdataPath := ReceiverLogArchiveTestdataDir()
 	if _, err := os.Stat(testdataPath); os.IsNotExist(err) {
-		t.Skip("Skipping test: testdata directory not found")
+		t.Skip("Skipping test: testdata/logarchivetestdata directory not found in macosunifiedloggingreceiver")
 	}
 }
 
@@ -64,22 +56,13 @@ func ModuleRoot() (string, error) {
 	}
 }
 
-// ReceiverTestdataDir returns the absolute path to the receiver's testdata directory.
-func ReceiverTestdataDir() string {
+// ReceiverLogArchiveTestdataDir returns the absolute path to the receiver's testdata directory.
+func ReceiverLogArchiveTestdataDir() string {
 	root, err := ModuleRoot()
 	if err != nil {
-		return "testdata"
+		return "testdata/logarchivetestdata"
 	}
-	return filepath.Clean(filepath.Join(root, "..", "..", "..", "receiver", "macosunifiedloggingreceiver", "testdata"))
-}
-
-// ExtensionTestdataDir returns the absolute path to this package's testdata directory.
-func ExtensionTestdataDir() string {
-	root, err := ModuleRoot()
-	if err != nil {
-		return "testdata"
-	}
-	return filepath.Join(root, "testdata")
+	return filepath.Clean(filepath.Join(root, "..", "..", "..", "receiver", "macosunifiedloggingreceiver", "testdata", "logarchivetestdata"))
 }
 
 // ReadFileWithinBase safely reads the file at candidatePath ensuring it resides under baseDir.
@@ -120,11 +103,11 @@ func CreateAndPopulateUUIDAndDSCCaches(t *testing.T, basePath string) *uuidtext.
 		cacheProvider.UpdateUUID(uuid, "", parsedUUIDText)
 	}
 
-	dscFilePath := filepath.Join(ReceiverTestdataDir(), "system_logs_big_sur.logarchive", "dsc", "*")
+	dscFilePath := filepath.Join(ReceiverLogArchiveTestdataDir(), "system_logs_big_sur.logarchive", "dsc", "*")
 	dscFilePaths, err := filepath.Glob(dscFilePath)
 	require.NoError(t, err)
 
-	dscBaseDir := filepath.Join(ReceiverTestdataDir(), "system_logs_big_sur.logarchive", "dsc")
+	dscBaseDir := filepath.Join(ReceiverLogArchiveTestdataDir(), "system_logs_big_sur.logarchive", "dsc")
 
 	for _, dscPath := range dscFilePaths {
 		dscData, absPath := ReadFileWithinBase(t, dscBaseDir, dscPath)

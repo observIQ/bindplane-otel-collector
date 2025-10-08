@@ -27,8 +27,8 @@ import (
 )
 
 func TestParseUUIDText_BigSur(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "UUIDText", "Big Sur", "1FE459BBDC3E19BBF82D58415A2AE9")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "UUIDText", "Big Sur", "1FE459BBDC3E19BBF82D58415A2AE9")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
@@ -48,8 +48,8 @@ func TestParseUUIDText_BigSur(t *testing.T) {
 }
 
 func TestParseUUIDText_HighSierra(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "UUIDText", "High Sierra", "425A2E5B5531B98918411B4379EE5F")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "UUIDText", "High Sierra", "425A2E5B5531B98918411B4379EE5F")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
@@ -66,8 +66,8 @@ func TestParseUUIDText_HighSierra(t *testing.T) {
 	require.Equal(t, 2951, len(results.FooterData))
 }
 func TestParseUUIDText_BadHeader(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Bad Data", "UUIDText", "Bad_Header_1FE459BBDC3E19BBF82D58415A2AE9")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Bad Data", "UUIDText", "Bad_Header_1FE459BBDC3E19BBF82D58415A2AE9")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
@@ -77,8 +77,8 @@ func TestParseUUIDText_BadHeader(t *testing.T) {
 	require.Nil(t, results)
 }
 func TestParseUUIDText_BadContent(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Bad Data", "UUIDText", "Bad_Content_1FE459BBDC3E19BBF82D58415A2AE9")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Bad Data", "UUIDText", "Bad_Content_1FE459BBDC3E19BBF82D58415A2AE9")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
@@ -89,8 +89,8 @@ func TestParseUUIDText_BadContent(t *testing.T) {
 }
 
 func TestParseUUIDText_BadFile(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Bad Data", "UUIDText", "Badfile.txt")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Bad Data", "UUIDText", "Badfile.txt")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)

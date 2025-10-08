@@ -55,9 +55,9 @@ func TestGetMessageMultiple(t *testing.T) {
 }
 
 func TestGetFirehoseTraceStrings(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
 
-	basePath := filepath.Join(testutil.ReceiverTestdataDir(), "system_logs_high_sierra.logarchive")
+	basePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "system_logs_high_sierra.logarchive")
 	filePath := filepath.Join(basePath, "logdata.LiveData.tracev3")
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)

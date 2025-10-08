@@ -24,8 +24,8 @@ import (
 )
 
 func TestParseTimesyncData_DataFromArchive(t *testing.T) {
-	// testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "system_logs_big_sur.logarchive", "timesync", "0000000000000002.timesync")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "system_logs_big_sur.logarchive", "timesync", "0000000000000002.timesync")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
@@ -38,8 +38,8 @@ func TestParseTimesyncData_DataFromArchive(t *testing.T) {
 }
 
 func TestParseTimesyncData_BadBootHeader(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Bad Data", "Timesync", "Bad_Boot_header_0000000000000002.timesync")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Bad Data", "Timesync", "Bad_Boot_header_0000000000000002.timesync")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
@@ -50,8 +50,8 @@ func TestParseTimesyncData_BadBootHeader(t *testing.T) {
 }
 
 func TestParseTimesyncData_BadRecordHeader(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Bad Data", "Timesync", "Bad_Record_header_0000000000000002.timesync")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Bad Data", "Timesync", "Bad_Record_header_0000000000000002.timesync")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
@@ -62,8 +62,8 @@ func TestParseTimesyncData_BadRecordHeader(t *testing.T) {
 }
 
 func TestParseTimesyncData_BadContent(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Bad Data", "Timesync", "Bad_content_0000000000000002.timesync")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Bad Data", "Timesync", "Bad_content_0000000000000002.timesync")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)
@@ -74,8 +74,8 @@ func TestParseTimesyncData_BadContent(t *testing.T) {
 }
 
 func TestParseTimesyncData_BadFile(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	filePath := filepath.Join(testutil.ReceiverTestdataDir(), "Bad Data", "Timesync", "BadFile.timesync")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Bad Data", "Timesync", "BadFile.timesync")
 
 	data, err := os.ReadFile(filePath)
 	require.NoError(t, err)

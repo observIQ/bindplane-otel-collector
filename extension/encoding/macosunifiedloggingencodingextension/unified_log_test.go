@@ -26,8 +26,8 @@ import (
 )
 
 func TestParseUnifiedLog_OneLineArchive(t *testing.T) {
-	testutil.SkipIfNoReceiverTestdata(t)
-	baseArchivePath := filepath.Join(testutil.ReceiverTestdataDir(), "one-line.logarchive")
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	baseArchivePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "one-line.logarchive")
 	traceV3Path := filepath.Join(baseArchivePath, "Persist", "00000000000060d5.tracev3")
 
 	data, err := os.ReadFile(traceV3Path)
