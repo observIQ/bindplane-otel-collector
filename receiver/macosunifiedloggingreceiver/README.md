@@ -144,6 +144,38 @@ This receiver is currently under active development. The main components impleme
 - ✅ Basic receiver framework
 - ❌ Encoding extension for traceV3 files (in development)
 
+## Optional Test Data
+
+If you’d like to test the receiver with real-world macOS Unified Log archives,  
+you can download the optional **logarchivetestdata** package.
+
+### Download and Extract
+
+In the ```./receiver/macosunifiedloggingreceiver/testdata``` folder off the root of the repository, run:
+
+```bash
+curl -L -o logarchivetestdata.zip \
+  https://github.com/observIQ/macos-unified-log-archive-test-data/releases/latest/download/logarchivetestdata.zip
+
+unzip -o logarchivetestdata.zip
+```
+
+After extraction, the directory structure should look like:
+
+```
+bindplane-otel-collector/
+├── extension/
+│   └── encoding/
+│       └── encoding/
+│           └── macosunifiedloggingencodingextension
+└── receiver/
+   └── macosunifiedloggingreceiver/
+       └── testdata/
+           └── logarchivetestdata/  # Optional downloaded test logs
+```
+
+**Note:** The log archive test data is large and optional — it’s not required to build or run the receiver.
+
 ## Troubleshooting
 
 ### Common Issues

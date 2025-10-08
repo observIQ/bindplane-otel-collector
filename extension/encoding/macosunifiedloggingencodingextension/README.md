@@ -73,3 +73,36 @@ service:
       receivers: [macosunifiedlogging]
       exporters: [debug]
 ```
+
+## Optional Test Data
+
+If you’d like to test the encoding with real-world macOS Unified Log archives,  
+you can download the optional **logarchivetestdata** package.
+
+### Download and Extract
+
+The encoding shares the log archive test data with the macOS Unified Logging Receiver.
+In the ```./receiver/macosunifiedloggingreceiver/testdata``` folder off the root of the repository, run:
+
+```bash
+curl -L -o logarchivetestdata.zip \
+  https://github.com/observIQ/macos-unified-log-archive-test-data/releases/latest/download/logarchivetestdata.zip
+
+unzip -o logarchivetestdata.zip
+```
+
+After extraction, the directory structure should look like:
+
+```
+bindplane-otel-collector/
+├── extension/
+│   └── encoding/
+│       └── encoding/
+│           └── macosunifiedloggingencodingextension
+└── receiver/
+   └── macosunifiedloggingreceiver/
+       └── testdata/
+           └── logarchivetestdata/  # Optional downloaded test logs
+```
+
+**Note:** The log archive test data is large and optional — it’s not required to build or run the receiver.
