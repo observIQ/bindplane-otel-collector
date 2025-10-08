@@ -22,6 +22,8 @@ import (
 )
 
 func TestParseOneLineArchive(t *testing.T) {
+	skipIfNoLogArchiveTestdata(t)
+
 	filePaths := getFilePathsForLogArchiveInTestData("one-line.logarchive")
 	sink := new(consumertest.LogsSink)
 
