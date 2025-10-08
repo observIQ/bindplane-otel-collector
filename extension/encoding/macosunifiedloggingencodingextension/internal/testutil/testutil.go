@@ -18,6 +18,7 @@ package testutil
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
@@ -81,29 +82,55 @@ func ExtensionTestdataDir() string {
 	return filepath.Join(root, "testdata")
 }
 
+// ReadFileWithinBase safely reads the file at candidatePath ensuring it resides under baseDir.
+// Returns the file contents and the resolved absolute path.
+func ReadFileWithinBase(t *testing.T, baseDir, candidatePath string) ([]byte, string) {
+	t.Helper()
+
+	baseAbs, err := filepath.Abs(baseDir)
+	require.NoError(t, err)
+
+	cleanedPath := filepath.Clean(candidatePath)
+	absPath, err := filepath.Abs(cleanedPath)
+	require.NoError(t, err)
+
+	rel, err := filepath.Rel(baseAbs, absPath)
+	require.NoError(t, err)
+	require.Falsef(t, strings.HasPrefix(rel, ".."), "resolved path escapes base directory: %s", absPath)
+
+	// #nosec G304 - paths are discovered from trusted testdata globs within the repository
+	data, err := os.ReadFile(absPath)
+	require.NoError(t, err)
+	return data, absPath
+}
+
 // CreateAndPopulateUUIDAndDSCCaches initializes a cache provider and populates it
 // with UUIDText and DSC data under the provided basePath for use in tests.
 func CreateAndPopulateUUIDAndDSCCaches(t *testing.T, basePath string) *uuidtext.CacheProvider {
 	cacheProvider := uuidtext.NewCacheProvider()
 	uuidTextFilePath := filepath.Join(basePath, "[0-9A-F][0-9A-F]", "*")
-	uuidTextFilePaths, _ := filepath.Glob(uuidTextFilePath)
+	uuidTextFilePaths, err := filepath.Glob(uuidTextFilePath)
+	require.NoError(t, err)
 
 	for _, uuidPath := range uuidTextFilePaths {
-		uuidTextData, _ := os.ReadFile(uuidPath)
+		uuidTextData, absPath := ReadFileWithinBase(t, basePath, uuidPath)
 		parsedUUIDText, err := uuidtext.ParseUUIDText(uuidTextData)
 		require.NoError(t, err)
-		uuid := helpers.ExtractUUIDFromPath(uuidPath)
+		uuid := helpers.ExtractUUIDFromPath(absPath)
 		cacheProvider.UpdateUUID(uuid, "", parsedUUIDText)
 	}
 
 	dscFilePath := filepath.Join(ReceiverTestdataDir(), "system_logs_big_sur.logarchive", "dsc", "*")
-	dscFilePaths, _ := filepath.Glob(dscFilePath)
+	dscFilePaths, err := filepath.Glob(dscFilePath)
+	require.NoError(t, err)
+
+	dscBaseDir := filepath.Join(ReceiverTestdataDir(), "system_logs_big_sur.logarchive", "dsc")
 
 	for _, dscPath := range dscFilePaths {
-		dscData, _ := os.ReadFile(dscPath)
+		dscData, absPath := ReadFileWithinBase(t, dscBaseDir, dscPath)
 		parsedDSC, err := sharedcache.ParseDSC(dscData)
 		require.NoError(t, err)
-		cacheProvider.UpdateDSC(helpers.ExtractUUIDFromPath(dscPath), "", parsedDSC)
+		cacheProvider.UpdateDSC(helpers.ExtractUUIDFromPath(absPath), "", parsedDSC)
 	}
 	return cacheProvider
 }
