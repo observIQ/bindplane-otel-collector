@@ -15,11 +15,14 @@
 package macosunifiedloggingencodingextension
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/firehose"
+	testutil "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/testutil"
 )
 
 func TestParseOversizeChunk(t *testing.T) {
@@ -36,6 +39,32 @@ func TestParseOversizeChunk(t *testing.T) {
 	require.Equal(t, parsedOversizeChunk.dataRefIndex, uint32(1))
 	require.Equal(t, parsedOversizeChunk.PublicDataSize, uint16(3322))
 	require.Equal(t, parsedOversizeChunk.PrivateDataSize, uint16(0))
+}
+
+func TestParseOversizeChunk_PrivateStrings(t *testing.T) {
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Oversize Tests", "oversize_private_strings.raw")
+
+	data, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+
+	results, _, err := ParseOversizeChunk(data)
+	require.NoError(t, err)
+
+	require.Equal(t, results.ChunkTag, uint32(0x6002))
+	require.Equal(t, results.chunkSubTag, uint32(0))
+	require.Equal(t, results.chunkDataSize, uint64(2963))
+	require.Equal(t, results.FirstProcID, uint64(86))
+	require.Equal(t, results.SecondProcID, uint32(302))
+	require.Equal(t, results.ttl, uint8(0))
+	require.Equal(t, results.unknownReserved, [3]uint8{0, 0, 0})
+	require.Equal(t, results.ContinuousTime, uint64(96693842097))
+	require.Equal(t, results.dataRefIndex, uint32(1))
+	require.Equal(t, results.PublicDataSize, uint16(8))
+	require.Equal(t, results.PrivateDataSize, uint16(2923))
+	require.Equal(t, results.MessageItems.ItemInfo[0].MessageStrings,
+		"updated queuedEvents[4]=(\n    \"FudEvent - Client:(null) Type:114 Filter:com.apple.MobileAccessoryUpdater.EA.app.multiasset.A2015.59 Data:<dictionary: 0x7fdac460fcd0> { count = 5, transaction: 0, voucher = 0x7fdac460e7c0, contents =\\n\\t\\\"Command\\\" => <uint64: 0x2a6f1a5c3cef6b9d>: 114\\n\\t\\\"PluginIdentifier\\\" => <string: 0x7fdac58122c0> { length = 49, contents = \\\"com.apple.MobileAccessoryUpdater.EAUpdaterService\\\" }\\n\\t\\\"_State\\\" => <uint64: 0x2a6f1a5c3ce84b9d>: 0\\n\\t\\\"XPCEventName\\\" => <string: 0x7fdac4507f90> { length = 59, contents = \\\"com.apple.MobileAccessoryUpdater.EA.app.multiasset.A2015.59\\\" }\\n\\t\\\"Notification\\\" => <string: 0x7fdac450a7c0> { length = 44, contents = \\\"com.apple.corespeech.voicetriggerassetchange\\\" }\\n} Options:{\\n}\",\n    \"FudEvent - Client:(null) Type:114 Filter:com.apple.MobileAccessoryUpdater.EA.app.multiasset.A1881.58 Data:<dictionary: 0x7fdac460fdc0> { count = 5, transaction: 0, voucher = 0x7fdac460e7c0, contents =\\n\\t\\\"Command\\\" => <uint64: 0x2a6f1a5c3cef6b9d>: 114\\n\\t\\\"PluginIdentifier\\\" => <string: 0x7fdac5813c40> { length = 49, contents = \\\"com.apple.MobileAccessoryUpdater.EAUpdaterService\\\" }\\n\\t\\\"_State\\\" => <uint64: 0x2a6f1a5c3ce84b9d>: 0\\n\\t\\\"XPCEventName\\\" => <string: 0x7fdac450b380> { length = 59, contents = \\\"com.apple.MobileAccessoryUpdater.EA.app.multiasset.A1881.58\\\" }\\n\\t\\\"Notification\\\" => <string: 0x7fdac4504780> { length = 44, contents = \\\"com.apple.corespeech.voicetriggerassetchange\\\" }\\n} Options:{\\n}\",\n    \"FudEvent - Client:(null) Type:114 Filter:com.apple.MobileAccessoryUpdater.EA.app.multiasset.A2048.57 Data:<dictionary: 0x7fdac460feb0> { count = 5, transaction: 0, voucher = 0x7fdac460e7c0, contents =\\n\\t\\\"Command\\\" => <uint64: 0x2a6f1a5c3cef6b9d>: 114\\n\\t\\\"PluginIdentifier\\\" => <string: 0x7fdac5805eb0> { length = 49, contents = \\\"com.apple.MobileAccessoryUpdater.EAUpdaterService\\\" }\\n\\t\\\"_State\\\" => <uint64: 0x2a6f1a5c3ce84b9d>: 0\\n\\t\\\"XPCEventName\\\" => <string: 0x7fdac4516980> { length = 59, contents = \\\"com.apple.MobileAccessoryUpdater.EA.app.multiasset.A2048.57\\\" }\\n\\t\\\"Notification\\\" => <string: 0x7fdac451eed0> { length = 44, contents = \\\"com.apple.corespeech.voicetriggerassetchange\\\" }\\n} Options:{\\n}\",\n    \"FudEvent - Client:(null) Type:114 Filter:com.apple.MobileAccessoryUpdater.EA.app.multiasset.A2032.61 Data:<dictionary: 0x7fdac46050c0> { count = 5, transaction: 0, voucher = 0x7fdac460e7c0, contents =\\n\\t\\\"Command\\\" => <uint64: 0x2a6f1a5c3cef6b9d>: 114\\n\\t\\\"PluginIdentifier\\\" => <string: 0x7fdac58064e0> { length = 49, contents = \\\"com.apple.MobileAccessoryUpdater.EAUpdaterService\\\" }\\n\\t\\\"_State\\\" => <uint64: 0x2a6f1a5c3ce84b9d>: 0\\n\\t\\\"XPCEventName\\\" => <string: 0x7fdac453ba80> { length = 59, contents = \\\"com.apple.MobileAccessoryUpdater.EA.app.multiasset.A2032.61\\\" }\\n\\t\\\"Notification\\\" => <string: 0x7fdac450d430> { length = 44, contents = \\\"com.apple.corespeech.voicetriggerassetchange\\\" }\\n} Options:{\\n}\"\n)",
+	)
 }
 
 func TestGetOversizeStrings(t *testing.T) {

@@ -101,7 +101,7 @@ func ParseDSC(data []byte) (*Strings, error) {
 	sharedCacheStrings.NumberUUIDs = binary.LittleEndian.Uint32(numberUUIDs)
 
 	for i := 0; i < int(sharedCacheStrings.NumberRanges); i++ {
-		remainingInput, rangeData, err := getRanges(input, &sharedCacheStrings.MajorVersion)
+		remainingInput, rangeData, err := getRanges(input, sharedCacheStrings.MajorVersion)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get ranges while parsing DSC: %w", err)
 		}
@@ -110,7 +110,7 @@ func ParseDSC(data []byte) (*Strings, error) {
 	}
 
 	for i := 0; i < int(sharedCacheStrings.NumberUUIDs); i++ {
-		remainingInput, uuidData, err := getUUIDs(input, &sharedCacheStrings.MajorVersion)
+		remainingInput, uuidData, err := getUUIDs(input, sharedCacheStrings.MajorVersion)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get UUIDs while parsing DSC: %w", err)
 		}
@@ -184,7 +184,7 @@ func (d *Strings) ExtractSharedString(stringOffset uint64) (models.MessageData, 
 	return messageData, fmt.Errorf("shared string not found at offset %d", stringOffset)
 }
 
-func getRanges(input []byte, major *uint16) ([]byte, RangeDescriptor, error) {
+func getRanges(input []byte, major uint16) ([]byte, RangeDescriptor, error) {
 	versionNumber := uint16(2)
 	rangeData := RangeDescriptor{}
 	var remainingInput []byte
@@ -195,7 +195,7 @@ func getRanges(input []byte, major *uint16) ([]byte, RangeDescriptor, error) {
 	var unknown []byte
 	var err error
 
-	if major == &versionNumber {
+	if major == versionNumber {
 		remainingInput, valueRangeOffset, err = helpers.Take(input, 8)
 		if err != nil {
 			return nil, rangeData, err
@@ -228,7 +228,7 @@ func getRanges(input []byte, major *uint16) ([]byte, RangeDescriptor, error) {
 	}
 	rangeData.RangeSize = binary.LittleEndian.Uint32(rangeSize)
 
-	if major == &versionNumber {
+	if major == versionNumber {
 		remainingInput, unknown, err = helpers.Take(input, 8)
 		if err != nil {
 			return nil, rangeData, err
@@ -240,7 +240,7 @@ func getRanges(input []byte, major *uint16) ([]byte, RangeDescriptor, error) {
 	return input, rangeData, nil
 }
 
-func getUUIDs(input []byte, major *uint16) ([]byte, UUIDDescriptor, error) {
+func getUUIDs(input []byte, major uint16) ([]byte, UUIDDescriptor, error) {
 	versionNumber := uint16(2)
 	uuidData := UUIDDescriptor{}
 	var remainingInput []byte
@@ -250,7 +250,7 @@ func getUUIDs(input []byte, major *uint16) ([]byte, UUIDDescriptor, error) {
 	var valuePathOffset []byte
 	var err error
 
-	if major == &versionNumber {
+	if major == versionNumber {
 		remainingInput, valueTextOffset, err = helpers.Take(input, 8)
 		if err != nil {
 			return nil, uuidData, err

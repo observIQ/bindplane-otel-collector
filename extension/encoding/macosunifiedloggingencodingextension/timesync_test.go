@@ -15,10 +15,75 @@
 package macosunifiedloggingencodingextension
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
+	testutil "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
+
+func TestParseTimesyncData_DataFromArchive(t *testing.T) {
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "system_logs_big_sur.logarchive", "timesync", "0000000000000002.timesync")
+
+	data, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+
+	results, err := ParseTimesyncData(data)
+	require.NoError(t, err)
+
+	require.Equal(t, 5, len(results))
+	require.Equal(t, len(results["9A6A3124274A44B29ABF2BC9E4599B3B"].TimesyncRecords), 5)
+}
+
+func TestParseTimesyncData_BadBootHeader(t *testing.T) {
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Bad Data", "Timesync", "Bad_Boot_header_0000000000000002.timesync")
+
+	data, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+
+	results, err := ParseTimesyncData(data)
+	require.Contains(t, err.Error(), "invalid boot signature")
+	require.Empty(t, results)
+}
+
+func TestParseTimesyncData_BadRecordHeader(t *testing.T) {
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Bad Data", "Timesync", "Bad_Record_header_0000000000000002.timesync")
+
+	data, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+
+	results, err := ParseTimesyncData(data)
+	require.Contains(t, err.Error(), "invalid boot signature")
+	require.Equal(t, 1, len(results))
+}
+
+func TestParseTimesyncData_BadContent(t *testing.T) {
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Bad Data", "Timesync", "Bad_content_0000000000000002.timesync")
+
+	data, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+
+	results, err := ParseTimesyncData(data)
+	require.Contains(t, err.Error(), "invalid boot signature")
+	require.Equal(t, 2, len(results))
+}
+
+func TestParseTimesyncData_BadFile(t *testing.T) {
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Bad Data", "Timesync", "BadFile.timesync")
+
+	data, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+
+	results, err := ParseTimesyncData(data)
+	require.Contains(t, err.Error(), "invalid boot signature")
+	require.Equal(t, 0, len(results))
+}
 
 func TestParseTimesyncRecord(t *testing.T) {
 	testData := []byte{

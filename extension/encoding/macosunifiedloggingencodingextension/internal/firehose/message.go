@@ -44,7 +44,7 @@ func ExtractSharedStrings(
 
 	messageData := models.MessageData{}
 	// Get shared string file (DSC) associated with log entry from Catalog
-	dscUUID, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
+	dscUUID, mainUUID := GetCatalogDSC(catalogs, firstProcID, secondProcID)
 
 	// DSC and UUID data should already be loaded by the receiver and cached by the extension
 	// If data is missing, it means the files weren't found during initialization
@@ -58,7 +58,7 @@ func ExtractSharedStrings(
 				messageData.LibraryUUID = sharedString.UUIDs[ranges.UnknownUUIDIndex].UUID
 				messageData.ProcessUUID = mainUUID
 
-				processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+				processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 				if err != nil {
 					return messageData, err
 				}
@@ -91,7 +91,7 @@ func ExtractSharedStrings(
 
 				messageData.ProcessUUID = mainUUID
 
-				processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+				processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 				if err != nil {
 					return messageData, err
 				}
@@ -112,7 +112,7 @@ func ExtractSharedStrings(
 			messageData.FormatString = "Error: Invalid shared string offset"
 			messageData.ProcessUUID = mainUUID
 
-			processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+			processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 			if err != nil {
 				return messageData, err
 			}
@@ -137,7 +137,7 @@ func ExtractFormatStrings(
 ) (models.MessageData, error) {
 	var err error
 
-	_, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
+	_, mainUUID := GetCatalogDSC(catalogs, firstProcID, secondProcID)
 
 	messageData := models.MessageData{
 		LibraryUUID: mainUUID,
@@ -244,21 +244,21 @@ func ExtractAbsoluteStrings(
 		}
 	}
 
-	_, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
+	_, mainUUID := GetCatalogDSC(catalogs, firstProcID, secondProcID)
 	messageData := models.MessageData{
 		LibraryUUID: uuid,
 		ProcessUUID: mainUUID,
 	}
 
 	// UUID data should already be loaded by the receiver and cached by the extension
-	if originalOffset&0x80000000 != 0 {
+	if originalOffset&0x80000000 != 0 || stringOffset == absoluteOffset {
 		if data, exists := provider.CachedUUIDText(messageData.LibraryUUID); exists {
 			libraryString, err := uuidTextImagePath(data.FooterData, data.EntryDescriptors)
 			if err != nil {
 				return messageData, err
 			}
 			messageData.Library = libraryString
-			processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+			processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 			if err != nil {
 				return messageData, err
 			}
@@ -305,11 +305,12 @@ func ExtractAbsoluteStrings(
 			messageData.FormatString = messageFormatString
 			messageData.Library = libraryString
 
-			processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+			processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 			if err != nil {
 				return messageData, err
 			}
 			messageData.Process = processString
+			return messageData, nil
 		}
 	}
 
@@ -321,8 +322,8 @@ func ExtractAbsoluteStrings(
 			return messageData, err
 		}
 		messageData.Library = libraryString
-		messageData.FormatString = fmt.Sprintf("Error: Invalid offset %d for UUID %s", stringOffset, messageData.LibraryUUID)
-		processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+		messageData.FormatString = fmt.Sprintf("Error: Invalid offset %d for absolute UUID %s", stringOffset, messageData.LibraryUUID)
+		processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 		if err != nil {
 			return messageData, err
 		}
@@ -331,7 +332,7 @@ func ExtractAbsoluteStrings(
 	}
 
 	// logger.Warn("Failed to get message string from UUIDText file")
-	messageData.FormatString = fmt.Sprintf("Failed to get message string from UUIDText file: %s", messageData.LibraryUUID)
+	messageData.FormatString = fmt.Sprintf("Failed to get string message from absolute UUIDText file: %s", messageData.LibraryUUID)
 	return messageData, nil
 }
 
@@ -347,7 +348,7 @@ func ExtractAltUUIDStrings(
 ) (models.MessageData, error) {
 	var err error
 
-	_, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
+	_, mainUUID := GetCatalogDSC(catalogs, firstProcID, secondProcID)
 	messageData := models.MessageData{
 		LibraryUUID: uuid,
 		ProcessUUID: mainUUID,
@@ -362,7 +363,7 @@ func ExtractAltUUIDStrings(
 				return messageData, err
 			}
 			messageData.Library = libraryString
-			processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+			processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 			if err != nil {
 				return messageData, err
 			}
@@ -400,7 +401,7 @@ func ExtractAltUUIDStrings(
 			if err != nil {
 				return messageData, err
 			}
-			processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+			processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 			if err != nil {
 				return messageData, err
 			}
@@ -420,7 +421,7 @@ func ExtractAltUUIDStrings(
 		}
 		messageData.Library = libraryString
 		messageData.FormatString = fmt.Sprintf("Error: Invalid offset %d for UUID %s", stringOffset, uuid)
-		processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+		processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 		if err != nil {
 			return messageData, err
 		}
@@ -434,7 +435,9 @@ func ExtractAltUUIDStrings(
 
 }
 
-func getCatalogDSC(catalogs *models.CatalogChunk, firstProcID uint64, secondProcID uint32) (string, string) {
+// GetCatalogDSC returns the DSC UUID and the main UUID for the given process IDs
+// from the catalog chunk. If the entry is not found, empty strings are returned.
+func GetCatalogDSC(catalogs *models.CatalogChunk, firstProcID uint64, secondProcID uint32) (string, string) {
 	key := fmt.Sprintf("%d_%d", firstProcID, secondProcID)
 	if entry, exists := catalogs.ProcessInfoEntries[key]; exists {
 		return entry.DSCUUID, entry.MainUUID
@@ -443,7 +446,9 @@ func getCatalogDSC(catalogs *models.CatalogChunk, firstProcID uint64, secondProc
 	return "", ""
 }
 
-func getUUIDImagePath(uuid string, provider *uuidtext.CacheProvider) (string, error) {
+// GetUUIDImagePath returns the image path for the given UUID using the cache provider.
+// If the UUID is all zeros, it returns an empty path. If not found, a failure message is returned.
+func GetUUIDImagePath(uuid string, provider *uuidtext.CacheProvider) (string, error) {
 	// An UUID of all zeros is possible in the Catalog, if this happens there is no process path
 	if uuid == "00000000000000000000000000000000" {
 		// logger.Info("Got UUID of all zeros fom Catalog")

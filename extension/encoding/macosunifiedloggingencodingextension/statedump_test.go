@@ -15,8 +15,7 @@ import (
 )
 
 func TestParseStateDump(t *testing.T) {
-	skipIfNoTestdata(t)
-	data, err := os.ReadFile(filepath.Join("testdata", "statedump", "statedump_test_plist.bin"))
+	data, err := os.ReadFile(filepath.Join("testdata", "statedump_test_plist.bin"))
 	require.NoError(t, err)
 
 	statedump, err := ParseStateDump(data)
@@ -40,8 +39,7 @@ func TestParseStateDump(t *testing.T) {
 }
 
 func TestParseStateDumpCustomObject(t *testing.T) {
-	skipIfNoTestdata(t)
-	data, err := os.ReadFile(filepath.Join("testdata", "statedump", "statedump_test_valid.bin"))
+	data, err := os.ReadFile(filepath.Join("testdata", "statedump_test_valid.bin"))
 	require.NoError(t, err)
 
 	statedump, err := ParseStateDump(data)
@@ -62,8 +60,7 @@ func TestParseStateDumpCustomObject(t *testing.T) {
 }
 
 func TestLoadStatedumpsFromTraceV3(t *testing.T) {
-	skipIfNoTestdata(t)
-	data, err := os.ReadFile(filepath.Join("testdata", "statedump", "test_tracev3_with_statedumps.tracev3"))
+	data, err := os.ReadFile(filepath.Join("testdata", "test_tracev3_with_statedumps.tracev3"))
 	require.NoError(t, err)
 
 	collection, err := loadStatedumpsFromTracev3(data)
@@ -89,8 +86,7 @@ func TestParseStateDumpErrors(t *testing.T) {
 }
 
 func TestExpectedStructsFromTestData(t *testing.T) {
-	skipIfNoTestdata(t)
-	plistData, err := os.ReadFile(filepath.Join("testdata", "statedump", "statedump_test_plist.bin"))
+	plistData, err := os.ReadFile(filepath.Join("testdata", "statedump_test_plist.bin"))
 	require.NoError(t, err)
 
 	plistSD, err := ParseStateDump(plistData)
@@ -109,7 +105,7 @@ func TestExpectedStructsFromTestData(t *testing.T) {
 	}
 
 	// Test custom object statedump parsing
-	customData, err := os.ReadFile(filepath.Join("testdata", "statedump", "statedump_test_valid.bin"))
+	customData, err := os.ReadFile(filepath.Join("testdata", "statedump_test_valid.bin"))
 	require.NoError(t, err)
 
 	customSD, err := ParseStateDump(customData)
@@ -131,7 +127,7 @@ func TestExpectedStructsFromTestData(t *testing.T) {
 	}
 
 	// Test TraceV3 collection parsing
-	tracev3Data, err := os.ReadFile(filepath.Join("testdata", "statedump", "test_tracev3_with_statedumps.tracev3"))
+	tracev3Data, err := os.ReadFile(filepath.Join("testdata", "test_tracev3_with_statedumps.tracev3"))
 	require.NoError(t, err)
 
 	collection, err := loadStatedumpsFromTracev3(tracev3Data)

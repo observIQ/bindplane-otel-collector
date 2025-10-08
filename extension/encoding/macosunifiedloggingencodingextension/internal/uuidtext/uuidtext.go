@@ -90,7 +90,7 @@ func ParseUUIDText(data []byte) (*UUIDText, error) {
 			RangeStartOffset: binary.LittleEndian.Uint32(rangeStartOffset),
 			EntrySize:        binary.LittleEndian.Uint32(entrySize),
 		}
-		uuidText.EntryDescriptors = append(uuidText.EntryDescriptors, entryData)
+		uuidText.EntryDescriptors[i] = entryData
 	}
 	uuidText.FooterData = data
 

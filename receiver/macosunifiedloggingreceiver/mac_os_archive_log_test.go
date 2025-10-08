@@ -40,17 +40,17 @@ type mockHostForTest struct {
 
 func (h *mockHostForTest) GetExtensions() map[component.ID]component.Component { return h.extensions }
 
-// skipIfNoTestdata skips the test if the testdata directory doesn't exist
-func skipIfNoTestdata(t *testing.T) {
-	if _, err := os.Stat("testdata"); os.IsNotExist(err) {
-		t.Skip("Skipping test: testdata directory not found")
+// skipIfNoLogArchiveTestdata skips the test if the testdata directory doesn't exist
+func skipIfNoLogArchiveTestdata(t *testing.T) {
+	if _, err := os.Stat("testdata/logarchivetestdata"); os.IsNotExist(err) {
+		t.Skip("Skipping test: testdata/logarchivetestdata directory not found")
 	}
 }
 
 func TestParseLogOneLogFromBigSur(t *testing.T) {
-	skipIfNoTestdata(t)
+	skipIfNoLogArchiveTestdata(t)
 	filePaths := map[string]string{
-		"tracev3":  filepath.Join("testdata", "system_logs_big_sur.logarchive", "**", "0000000000000004.tracev3"),
+		"tracev3":  filepath.Join("testdata", "logarchivetestdata", "system_logs_big_sur.logarchive", "**", "0000000000000004.tracev3"),
 		"timesync": filepath.Join(""),
 		"dsc":      filepath.Join(""),
 		"uuidtext": filepath.Join(""),
@@ -68,8 +68,8 @@ func TestParseLogOneLogFromBigSur(t *testing.T) {
 }
 
 func TestParseLogAllBigSur(t *testing.T) {
-	skipIfNoTestdata(t)
-	filePaths := getFilePathsForArchiveInTestData("system_logs_big_sur.logarchive")
+	skipIfNoLogArchiveTestdata(t)
+	filePaths := getFilePathsForLogArchiveInTestData("system_logs_big_sur.logarchive")
 	sink := new(consumertest.LogsSink)
 
 	setupAndStartReceiver(t, filePaths, sink, 1)
@@ -83,8 +83,8 @@ func TestParseLogAllBigSur(t *testing.T) {
 }
 
 func TestParseAllLogsPrivateBigSur(t *testing.T) {
-	skipIfNoTestdata(t)
-	filePaths := getFilePathsForArchiveInTestData("system_logs_big_sur_private_enabled.logarchive")
+	skipIfNoLogArchiveTestdata(t)
+	filePaths := getFilePathsForLogArchiveInTestData("system_logs_big_sur_private_enabled.logarchive")
 	sink := new(consumertest.LogsSink)
 
 	setupAndStartReceiver(t, filePaths, sink, 1)
@@ -97,8 +97,8 @@ func TestParseAllLogsPrivateBigSur(t *testing.T) {
 }
 
 func TestParseAllLogsPrivateWithPublicMixBigSur(t *testing.T) {
-	skipIfNoTestdata(t)
-	filePaths := getFilePathsForArchiveInTestData("system_logs_big_sur_public_private_data_mix.logarchive")
+	skipIfNoLogArchiveTestdata(t)
+	filePaths := getFilePathsForLogArchiveInTestData("system_logs_big_sur_public_private_data_mix.logarchive")
 	sink := new(consumertest.LogsSink)
 
 	setupAndStartReceiver(t, filePaths, sink, 1)
@@ -111,8 +111,8 @@ func TestParseAllLogsPrivateWithPublicMixBigSur(t *testing.T) {
 }
 
 func TestParseAllLogsHighSierra(t *testing.T) {
-	skipIfNoTestdata(t)
-	filePaths := getFilePathsForArchiveInTestData("system_logs_high_sierra.logarchive")
+	skipIfNoLogArchiveTestdata(t)
+	filePaths := getFilePathsForLogArchiveInTestData("system_logs_high_sierra.logarchive")
 	sink := new(consumertest.LogsSink)
 
 	setupAndStartReceiver(t, filePaths, sink, 1)
@@ -125,8 +125,8 @@ func TestParseAllLogsHighSierra(t *testing.T) {
 }
 
 func TestParseAllLogsMonterey(t *testing.T) {
-	skipIfNoTestdata(t)
-	filePaths := getFilePathsForArchiveInTestData("system_logs_monterey.logarchive")
+	skipIfNoLogArchiveTestdata(t)
+	filePaths := getFilePathsForLogArchiveInTestData("system_logs_monterey.logarchive")
 	sink := new(consumertest.LogsSink)
 
 	setupAndStartReceiver(t, filePaths, sink, 1)
@@ -138,12 +138,12 @@ func TestParseAllLogsMonterey(t *testing.T) {
 	require.LessOrEqual(t, 0, logCounts["byEventType"]["Statedump"])
 }
 
-func getFilePathsForArchiveInTestData(archivePath string) map[string]string {
+func getFilePathsForLogArchiveInTestData(archivePath string) map[string]string {
 	return map[string]string{
-		"tracev3":  filepath.Join("testdata", archivePath, "**", "*.tracev3"),
-		"timesync": filepath.Join("testdata", archivePath, "timesync", "*.timesync"),
-		"dsc":      filepath.Join("testdata", archivePath, "dsc", "*"),
-		"uuidtext": filepath.Join("testdata", archivePath, "[0-9A-F][0-9A-F]", "*"),
+		"tracev3":  filepath.Join("testdata", "logarchivetestdata", archivePath, "**", "*.tracev3"),
+		"timesync": filepath.Join("testdata", "logarchivetestdata", archivePath, "timesync", "*.timesync"),
+		"dsc":      filepath.Join("testdata", "logarchivetestdata", archivePath, "dsc", "*"),
+		"uuidtext": filepath.Join("testdata", "logarchivetestdata", archivePath, "[0-9A-F][0-9A-F]", "*"),
 	}
 }
 

@@ -1,2 +1,4 @@
 # Ignore large binary files for testing macos unified log receiver
-testdata/private/*
+testdata/logarchivetestdata/**/*
+testdata/*.zip
+testdata/*.sha256

@@ -22,7 +22,9 @@ import (
 )
 
 func TestParseOneLineArchive(t *testing.T) {
-	filePaths := getFilePathsForArchiveInTestData("one-line.logarchive")
+	skipIfNoLogArchiveTestdata(t)
+
+	filePaths := getFilePathsForLogArchiveInTestData("one-line.logarchive")
 	sink := new(consumertest.LogsSink)
 
 	setupAndStartReceiver(t, filePaths, sink, 1)
