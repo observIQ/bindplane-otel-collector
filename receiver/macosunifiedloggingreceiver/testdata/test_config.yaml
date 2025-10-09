@@ -1,0 +1,23 @@
+receivers:
+  # Test case: defaults - uses factory defaults for all paths
+  macosunifiedlogging/defaults:
+
+  # Test case: custom-paths - overrides default paths with custom ones
+  macosunifiedlogging/custom-paths:
+    tracev3_paths:
+      - /custom/path/*.tracev3
+    timesync_paths:
+      - /custom/timesync/*.timesync
+    uuidtext_paths:
+      - /custom/uuidtext/*
+    dsc_paths:
+      - /custom/dsc/*
+    start_at: beginning
+
+  # Test case: valid-encoding - properly sets encoding
+  macosunifiedlogging/valid-encoding:
+    encoding_extension: macosunifiedlogencoding
+
+  # Test case: bad-encoding (for validation failure testing)
+  macosunifiedlogging/bad-encoding:
+    encoding_extension: some_other_encoding

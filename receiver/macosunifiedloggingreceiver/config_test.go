@@ -1,0 +1,237 @@
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package macosunifiedloggingreceiver
+
+import (
+	"path/filepath"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/confmap/confmaptest"
+
+	"github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver/internal/metadata"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/adapter"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/fileconsumer"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/fileconsumer/attrs"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/fileconsumer/matcher"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/operator"
+)
+
+func TestLoadConfig(t *testing.T) {
+	t.Parallel()
+
+	cm, err := confmaptest.LoadConf(filepath.Join("testdata", "test_config.yaml"))
+	require.NoError(t, err)
+
+	tests := []struct {
+		id       component.ID
+		expected component.Config
+	}{
+		{
+			id: component.NewIDWithName(metadata.Type, "defaults"),
+			expected: &Config{
+				BaseConfig: adapter.BaseConfig{
+					Operators: []operator.Config{},
+				},
+				Config: fileconsumer.Config{
+					Criteria: matcher.Criteria{},
+					Resolver: attrs.Resolver{
+						IncludeFileName: true, // Default from fileconsumer.NewConfig()
+					},
+					StartAt:            "end",   // Default from fileconsumer.NewConfig()
+					Encoding:           "utf-8", // Default from fileconsumer.NewConfig()
+					PollInterval:       200 * time.Millisecond,
+					MaxConcurrentFiles: 1024,
+					MaxLogSize:         1024 * 1024, // 1MiB
+					FingerprintSize:    1000,        // fingerprint.DefaultSize
+					InitialBufferSize:  16 * 1024,   // scanner.DefaultBufferSize
+					FlushPeriod:        500 * time.Millisecond,
+				},
+				TraceV3Paths:  []string{"/var/db/diagnostics/tracev3/Persist/*", "/var/db/diagnostics/tracev3/Special/*", "/var/db/diagnostics/tracev3/HighVolume/*", "/var/db/diagnostics/tracev3/SignPost/*"},
+				TimesyncPaths: []string{"/var/db/diagnostics/timesync/*"},
+				UUIDTextPaths: []string{"/var/db/uuidtext/*"},
+			},
+		},
+		{
+			id: component.NewIDWithName(metadata.Type, "custom-paths"),
+			expected: &Config{
+				BaseConfig: adapter.BaseConfig{
+					Operators: []operator.Config{},
+				},
+				Config: fileconsumer.Config{
+					Criteria: matcher.Criteria{},
+					Resolver: attrs.Resolver{
+						IncludeFileName: true, // Default from fileconsumer.NewConfig()
+					},
+					StartAt:            "beginning", // Overridden in YAML
+					Encoding:           "utf-8",     // Default from fileconsumer.NewConfig()
+					PollInterval:       200 * time.Millisecond,
+					MaxConcurrentFiles: 1024,
+					MaxLogSize:         1024 * 1024, // 1MiB
+					FingerprintSize:    1000,        // fingerprint.DefaultSize
+					InitialBufferSize:  16 * 1024,   // scanner.DefaultBufferSize
+					FlushPeriod:        500 * time.Millisecond,
+				},
+				TraceV3Paths:  []string{"/custom/path/*.tracev3"},
+				TimesyncPaths: []string{"/custom/timesync/*.timesync"},
+				UUIDTextPaths: []string{"/custom/uuidtext/*"},
+				DSCPaths:      []string{"/custom/dsc/*"},
+			},
+		},
+		{
+			id: component.NewIDWithName(metadata.Type, "valid-encoding"),
+			expected: &Config{
+				BaseConfig: adapter.BaseConfig{
+					Operators: []operator.Config{},
+				},
+				Config: fileconsumer.Config{
+					Criteria: matcher.Criteria{},
+					Resolver: attrs.Resolver{
+						IncludeFileName: true, // Default from fileconsumer.NewConfig()
+					},
+					StartAt:            "end",   // Default from fileconsumer.NewConfig()
+					Encoding:           "utf-8", // Default from fileconsumer.NewConfig()
+					PollInterval:       200 * time.Millisecond,
+					MaxConcurrentFiles: 1024,
+					MaxLogSize:         1024 * 1024, // 1MiB
+					FingerprintSize:    1000,        // fingerprint.DefaultSize
+					InitialBufferSize:  16 * 1024,   // scanner.DefaultBufferSize
+					FlushPeriod:        500 * time.Millisecond,
+				},
+				Encoding:      "macosunifiedlogencoding",
+				TraceV3Paths:  []string{"/var/db/diagnostics/tracev3/Persist/*", "/var/db/diagnostics/tracev3/Special/*", "/var/db/diagnostics/tracev3/HighVolume/*", "/var/db/diagnostics/tracev3/SignPost/*"},
+				TimesyncPaths: []string{"/var/db/diagnostics/timesync/*"},
+				UUIDTextPaths: []string{"/var/db/uuidtext/*"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.id.String(), func(t *testing.T) {
+			factory := NewFactory()
+			cfg := factory.CreateDefaultConfig()
+
+			sub, err := cm.Sub("receivers::" + tt.id.String())
+			require.NoError(t, err)
+			require.NoError(t, sub.Unmarshal(cfg))
+
+			// Don't apply getFileConsumerConfig transformation here - test the raw loaded config
+			assert.Equal(t, tt.expected, cfg)
+		})
+	}
+}
+
+func TestValidateConfig(t *testing.T) {
+	tests := []struct {
+		name        string
+		config      *Config
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name: "valid config with correct encoding",
+			config: &Config{
+				Encoding: "macosunifiedlogencoding",
+			},
+			expectError: false,
+		},
+		{
+			name: "missing encoding",
+			config: &Config{
+				Encoding: "",
+			},
+			expectError: true,
+			errorMsg:    "encoding_extension must be macosunifiedlogencoding for macOS Unified Logging receiver",
+		},
+		{
+			name: "wrong encoding",
+			config: &Config{
+				Encoding: "some_other_encoding",
+			},
+			expectError: true,
+			errorMsg:    "encoding_extension must be macosunifiedlogencoding for macOS Unified Logging receiver",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.config.Validate()
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errorMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestFailedLoadConfig(t *testing.T) {
+	cm, err := confmaptest.LoadConf(filepath.Join("testdata", "test_config.yaml"))
+	require.NoError(t, err)
+
+	tests := []struct {
+		name     string
+		configID string
+		errorMsg string
+	}{
+		{
+			name:     "bad encoding",
+			configID: "bad-encoding",
+			errorMsg: "encoding_extension must be macosunifiedlogencoding for macOS Unified Logging receiver",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			factory := NewFactory()
+			cfg := factory.CreateDefaultConfig()
+
+			sub, err := cm.Sub("receivers::" + component.NewIDWithName(metadata.Type, tt.configID).String())
+			require.NoError(t, err)
+			require.NoError(t, sub.Unmarshal(cfg))
+
+			err = cfg.(*Config).Validate()
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errorMsg)
+		})
+	}
+}
+
+func TestGetFileConsumerConfig(t *testing.T) {
+	t.Run("overrides encoding and sets file attributes", func(t *testing.T) {
+		config := &Config{
+			Config: fileconsumer.Config{
+				Encoding: "utf-8", // This should be overridden
+			},
+			TraceV3Paths: []string{"/custom/path/*.tracev3"},
+		}
+
+		fcConfig := config.getFileConsumerConfig()
+
+		// Verify that encoding is set to "nop"
+		assert.Equal(t, "nop", fcConfig.Encoding)
+
+		// Verify that file attributes are enabled
+		assert.True(t, fcConfig.IncludeFilePath)
+		assert.True(t, fcConfig.IncludeFileName)
+
+		// Verify that TraceV3Paths are used as Include patterns
+		assert.Equal(t, []string{"/custom/path/*.tracev3"}, fcConfig.Include)
+	})
+}

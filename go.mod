@@ -35,6 +35,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver v1.85.3
 	github.com/observiq/bindplane-otel-collector/receiver/httpreceiver v1.85.3
 	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.85.3
+	github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver v1.85.3
 	github.com/observiq/bindplane-otel-collector/receiver/oktareceiver v1.85.3
 	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.85.3
 	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.85.3
@@ -211,6 +212,7 @@ require (
 require (
 	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.85.3
 	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.85.3
+	github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension v1.85.3
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.85.3
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.85.3
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.136.0
@@ -968,6 +970,8 @@ replace github.com/observiq/bindplane-otel-collector/internal/testutils => ./int
 // Extensions
 replace github.com/observiq/bindplane-otel-collector/extension/awss3eventextension => ./extension/awss3eventextension
 
+replace github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension => ./extension/encoding/macosunifiedloggingencodingextension
+
 // Exporters
 replace github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter => ./exporter/azureblobexporter
 
@@ -1032,6 +1036,8 @@ replace github.com/observiq/bindplane-otel-collector/receiver/googlecloudstorage
 replace github.com/observiq/bindplane-otel-collector/receiver/httpreceiver => ./receiver/httpreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/m365receiver => ./receiver/m365receiver
+
+replace github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver => ./receiver/macosunifiedloggingreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/oktareceiver => ./receiver/oktareceiver
 
