@@ -16,88 +16,95 @@ package macosunifiedloggingencodingextension
 
 import (
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
-	"strings"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
 )
 
 const (
-	UUID_LENGTH     = uint16(16)
-	LZ4_COMPRESSION = uint32(256)
-	OFFSET_SIZE     = uint64(2)
+	// UUIDLength is the length in bytes of a catalog UUID (128 bits)
+	UUIDLength = uint16(16)
+	// LZ4Compression is the catalog compression algorithm identifier for LZ4
+	LZ4Compression = uint32(256)
+	// OffsetSize is the size in bytes of an offset unit in catalog structures
+	OffsetSize = uint64(2)
 )
 
 var (
-	UNKNOWN_LENGTH    = []byte{6}
-	SUBSYSTEM_SIZE    = []byte{6}
-	LOAD_ADDRESS_SIZE = []byte{6}
+	// UnknownLength holds the variable length for the unknown field
+	UnknownLength = []byte{6}
+	// SubsystemSize holds the size of a subsystem entry length field
+	SubsystemSize = []byte{6}
+	// LoadAddressSize is the byte-length for load address fields before padding
+	LoadAddressSize = []byte{6}
 )
 
 // GlobalCatalog stores catalog data for use by other chunk parsers
 var GlobalCatalog *models.CatalogChunk
 
 // ParseCatalogChunk parses a Catalog chunk (0x600b) containing catalog metadata
-func ParseCatalogChunk(originalData []byte) (models.CatalogChunk, []byte, error) {
+func ParseCatalogChunk(data []byte) (models.CatalogChunk, []byte, error) {
 	var catalog models.CatalogChunk
 	var preamble LogPreamble
+	var err error
+	originalData := data
 
 	// Save original data for offset-based access
-	data := originalData
 	preamble, data, _ = ParsePreamble(data)
 
+	var catalogSubsystemStringsOffsetBytes, catalogProcessInfoEntriesOffsetBytes, numberProcessInformationEntriesBytes,
+		catalogOffsetSubChunksBytes, numberSubChunksBytes, unknown, earliestFirehoseTimestampBytes []byte
+
 	// Parse header fields
-	remainingData, catalogSubsystemStringsOffsetBytes, _ := helpers.Take(data, 2)
-	data = remainingData
+	data, catalogSubsystemStringsOffsetBytes, _ = helpers.Take(data, 2)
 	catalogSubsystemStringsOffset := binary.LittleEndian.Uint16(catalogSubsystemStringsOffsetBytes)
 
-	remainingData, catalogProcessInfoEntriesOffsetBytes, _ := helpers.Take(data, 2)
-	data = remainingData
+	data, catalogProcessInfoEntriesOffsetBytes, _ = helpers.Take(data, 2)
 	catalogProcessInfoEntriesOffset := binary.LittleEndian.Uint16(catalogProcessInfoEntriesOffsetBytes)
 
-	remainingData, numberProcessInformationEntriesBytes, _ := helpers.Take(data, 2)
-	data = remainingData
+	data, numberProcessInformationEntriesBytes, _ = helpers.Take(data, 2)
 	numberProcessInformationEntries := binary.LittleEndian.Uint16(numberProcessInformationEntriesBytes)
 
-	remainingData, catalogOffsetSubChunksBytes, _ := helpers.Take(data, 2)
-	data = remainingData
+	data, catalogOffsetSubChunksBytes, _ = helpers.Take(data, 2)
 	catalogOffsetSubChunks := binary.LittleEndian.Uint16(catalogOffsetSubChunksBytes)
 
-	remainingData, numberSubChunksBytes, _ := helpers.Take(data, 2)
-	data = remainingData
+	data, numberSubChunksBytes, _ = helpers.Take(data, 2)
 	numberSubChunks := binary.LittleEndian.Uint16(numberSubChunksBytes)
 
-	remainingData, unknown, _ := helpers.Take(data, int(UNKNOWN_LENGTH[0]))
-	data = remainingData
+	data, unknown, _ = helpers.Take(data, int(UnknownLength[0]))
 
-	remainingData, earliestFirehoseTimestampBytes, _ := helpers.Take(data, 8)
-	data = remainingData
+	data, earliestFirehoseTimestampBytes, _ = helpers.Take(data, 8)
 	earliestFirehoseTimestamp := binary.LittleEndian.Uint64(earliestFirehoseTimestampBytes)
 
 	// Parse UUIDs
-	numberCatalogUUIDs := catalogSubsystemStringsOffset / UUID_LENGTH
+	numberCatalogUUIDs := catalogSubsystemStringsOffset / UUIDLength
 	catalogUUIDs := make([]string, numberCatalogUUIDs)
 	for i := 0; i < int(numberCatalogUUIDs); i++ {
-		remainingData, uuidBytes, err := helpers.Take(data, int(UUID_LENGTH))
+		var uuidBytes []byte
+
+		data, uuidBytes, err = helpers.Take(data, int(UUIDLength))
 		if err != nil {
 			return catalog, data, fmt.Errorf("failed to parse catalog UUID %d: %w", i, err)
 		}
-		data = remainingData
 
-		// Convert 16 bytes to uppercase hex string
-		uuidStr := strings.ToUpper(hex.EncodeToString(uuidBytes))
+		// Convert 16 bytes to uppercase hex string (big-endian for consistency with firehose parsing)
+		uuidStr := fmt.Sprintf("%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+			uuidBytes[0], uuidBytes[1], uuidBytes[2], uuidBytes[3],
+			uuidBytes[4], uuidBytes[5], uuidBytes[6], uuidBytes[7],
+			uuidBytes[8], uuidBytes[9], uuidBytes[10], uuidBytes[11],
+			uuidBytes[12], uuidBytes[13], uuidBytes[14], uuidBytes[15])
 		catalogUUIDs[i] = uuidStr
 	}
 
+	var subsystemsStringsData []byte
+
 	// Parse subsystem strings
 	subsystemsStringsLength := int(catalogProcessInfoEntriesOffset - catalogSubsystemStringsOffset)
-	remainingData, subsystemsStringsData, err := helpers.Take(data, subsystemsStringsLength)
+	data, subsystemsStringsData, err = helpers.Take(data, subsystemsStringsLength)
 	if err != nil {
 		return catalog, data, fmt.Errorf("failed to parse catalog subsystems strings: %w", err)
 	}
-	data = remainingData
 
 	// Parse process entries
 	catalogProcessInfoEntriesVec := make([]models.ProcessInfoEntry, numberProcessInformationEntries)
@@ -111,9 +118,10 @@ func ParseCatalogChunk(originalData []byte) (models.CatalogChunk, []byte, error)
 	}
 
 	catalogProcessInfoEntries := make(map[string]*models.ProcessInfoEntry)
-	for _, entry := range catalogProcessInfoEntriesVec {
+	for i := range catalogProcessInfoEntriesVec {
+		entry := &catalogProcessInfoEntriesVec[i]
 		key := fmt.Sprintf("%d_%d", entry.FirstNumberProcID, entry.SecondNumberProcID)
-		catalogProcessInfoEntries[key] = &entry
+		catalogProcessInfoEntries[key] = entry
 	}
 
 	// Calculate position to start parsing subchunks
@@ -122,12 +130,12 @@ func ParseCatalogChunk(originalData []byte) (models.CatalogChunk, []byte, error)
 	preambleSize := 16 // LogPreamble size
 	chunkDataStart := originalData[preambleSize:]
 	paddingSize := 24
-	subchunkData := chunkDataStart[catalogOffsetSubChunks+uint16(paddingSize):]
+	data = chunkDataStart[catalogOffsetSubChunks+uint16(paddingSize):]
 
 	var catalogSubchunks []models.CatalogSubchunk
 	for i := 0; i < int(numberSubChunks); i++ {
 		var subchunk models.CatalogSubchunk
-		subchunk, subchunkData, err = parseCatalogSubchunk(subchunkData)
+		subchunk, data, err = parseCatalogSubchunk(data)
 		if err != nil {
 			return catalog, data, fmt.Errorf("failed to parse catalog subchunk %d: %w", i, err)
 		}
@@ -157,62 +165,69 @@ func ParseCatalogChunk(originalData []byte) (models.CatalogChunk, []byte, error)
 // parseCatalogSubchunk parses the catalog subchunk
 func parseCatalogSubchunk(data []byte) (models.CatalogSubchunk, []byte, error) {
 	var subchunk models.CatalogSubchunk
-	data, start, err := helpers.Take(data, 8)
+	var start, end, uncompressedSize, compressionAlgorithm, numberIndex []byte
+	var err error
+
+	data, start, err = helpers.Take(data, 8)
 	if err != nil {
 		return subchunk, data, fmt.Errorf("failed to parse catalog subchunk start: %w", err)
 	}
-	data, end, err := helpers.Take(data, 8)
+	data, end, err = helpers.Take(data, 8)
 	if err != nil {
 		return subchunk, data, fmt.Errorf("failed to parse catalog subchunk end: %w", err)
 	}
-	data, uncompressedSize, err := helpers.Take(data, 4)
+	data, uncompressedSize, err = helpers.Take(data, 4)
 	if err != nil {
 		return subchunk, data, fmt.Errorf("failed to parse catalog subchunk uncompressed size: %w", err)
 	}
-	data, compressionAlgorithm, err := helpers.Take(data, 4)
+	data, compressionAlgorithm, err = helpers.Take(data, 4)
 	if err != nil {
 		return subchunk, data, fmt.Errorf("failed to parse catalog subchunk compression algorithm: %w", err)
 	}
-	data, numberIndex, err := helpers.Take(data, 4)
+	data, numberIndex, err = helpers.Take(data, 4)
 	if err != nil {
 		return subchunk, data, fmt.Errorf("failed to parse catalog subchunk number index: %w", err)
 	}
 
-	if binary.LittleEndian.Uint32(compressionAlgorithm) != LZ4_COMPRESSION {
-		return subchunk, data, fmt.Errorf("unsupported compression algorithm: 0x%x (expected LZ4 0x%x)", compressionAlgorithm, LZ4_COMPRESSION)
+	if binary.LittleEndian.Uint32(compressionAlgorithm) != LZ4Compression {
+		return subchunk, data, fmt.Errorf("unsupported compression algorithm: 0x%x (expected LZ4 0x%x)", compressionAlgorithm, LZ4Compression)
 	}
 
 	// Parse indexes
 	indexes := make([]uint16, binary.LittleEndian.Uint32(numberIndex))
 	for i := 0; i < int(binary.LittleEndian.Uint32(numberIndex)); i++ {
-		remainingData, indexBytes, err := helpers.Take(data, 2)
+		var indexBytes []byte
+
+		data, indexBytes, err = helpers.Take(data, 2)
 		if err != nil {
 			return subchunk, data, fmt.Errorf("failed to parse index %d: %w", i, err)
 		}
-		data = remainingData
 		indexes[i] = binary.LittleEndian.Uint16(indexBytes)
 	}
 
 	// Parse number of string offsets
-	remainingData2, numberStringOffsetsBytes, err := helpers.Take(data, 4)
+	var numberStringOffsetsBytes []byte
+
+	data, numberStringOffsetsBytes, err = helpers.Take(data, 4)
 	if err != nil {
 		return subchunk, data, fmt.Errorf("failed to parse number of string offsets: %w", err)
 	}
-	data = remainingData2
 	numberStringOffsets := binary.LittleEndian.Uint32(numberStringOffsetsBytes)
 
 	// Parse string offsets
 	stringOffsets := make([]uint16, int(numberStringOffsets))
 	for i := 0; i < int(numberStringOffsets); i++ {
-		remainingData, offsetBytes, err := helpers.Take(data, 2)
+
+		var offsetBytes []byte
+
+		data, offsetBytes, err = helpers.Take(data, 2)
 		if err != nil {
 			return subchunk, data, fmt.Errorf("failed to parse string offset %d: %w", i, err)
 		}
-		data = remainingData
 		stringOffsets[i] = binary.LittleEndian.Uint16(offsetBytes)
 	}
 
-	padding := helpers.AnticipatedPaddingSize(uint64(binary.LittleEndian.Uint32(numberIndex))+uint64(numberStringOffsets), OFFSET_SIZE, 8)
+	padding := helpers.AnticipatedPaddingSize(uint64(binary.LittleEndian.Uint32(numberIndex))+uint64(numberStringOffsets), OffsetSize, 8)
 	if padding > uint64(^uint(0)>>1) {
 		return subchunk, data, fmt.Errorf("u64 is bigger than system usize")
 	}
@@ -237,64 +252,55 @@ func parseCatalogSubchunk(data []byte) (models.CatalogSubchunk, []byte, error) {
 // parseCatalogProcessEntry parses the process information entry
 func parseCatalogProcessEntry(data []byte, catalogUUIDs []string) (models.ProcessInfoEntry, []byte, error) {
 	var entry models.ProcessInfoEntry
-	remainingData, index, err := helpers.Take(data, 2)
+	var index, unknown, catalogMainUUIDIndex, catalogDSCUUIDIndex, firstNumberProcID,
+		secondNumberProcID, pid, effectiveUserID, unknown2, numberUUIDsEntries, unknown3, numberSubsystems, unknown4 []byte
+
+	var err error
+
+	data, index, err = helpers.Take(data, 2)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse catalog process entry index: %w", err)
 	}
-	data = remainingData
-	remainingData, unknown, err := helpers.Take(data, 2)
+	data, unknown, err = helpers.Take(data, 2)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse catalog process entry unknown: %w", err)
 	}
-	data = remainingData
-	remainingData, catalogMainUUIDIndex, err := helpers.Take(data, 2)
+	data, catalogMainUUIDIndex, err = helpers.Take(data, 2)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse catalog process entry catalog main UUID index: %w", err)
 	}
-	data = remainingData
-	remainingData, catalogDSCUUIDIndex, err := helpers.Take(data, 2)
+	data, catalogDSCUUIDIndex, err = helpers.Take(data, 2)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse catalog process entry catalog DSC UUID index: %w", err)
 	}
-	data = remainingData
-	remainingData, firstNumberProcID, err := helpers.Take(data, 8)
+	data, firstNumberProcID, err = helpers.Take(data, 8)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse catalog process entry first number proc ID: %w", err)
 	}
-	data = remainingData
-	remainingData, secondNumberProcID, err := helpers.Take(data, 4)
+	data, secondNumberProcID, err = helpers.Take(data, 4)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse catalog process entry second number proc ID: %w", err)
 	}
-	data = remainingData
-	if err != nil {
-		return entry, data, fmt.Errorf("failed to parse catalog process entry second number proc ID: %w", err)
-	}
-	remainingData, pid, err := helpers.Take(data, 4)
+	data, pid, err = helpers.Take(data, 4)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse catalog process entry PID: %w", err)
 	}
-	data = remainingData
-	remainingData, effectiveUserID, err := helpers.Take(data, 4)
+	data, effectiveUserID, err = helpers.Take(data, 4)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse catalog process entry effective user ID: %w", err)
 	}
-	data = remainingData
-	remainingData, unknown2, err := helpers.Take(data, 4)
+	data, unknown2, err = helpers.Take(data, 4)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse catalog process entry unknown2: %w", err)
 	}
-	data = remainingData
-	remainingData, numberUUIDsEntries, err := helpers.Take(data, 4)
+	data, numberUUIDsEntries, err = helpers.Take(data, 4)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse catalog process entry number UUIDs entries: %w", err)
 	}
-	data = remainingData
-	remainingData, unknown3, err := helpers.Take(data, 4)
+	data, unknown3, err = helpers.Take(data, 4)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse catalog process entry unknown3: %w", err)
 	}
-	data = remainingData
 
 	var uuidInfoEntries []models.ProcessUUIDEntry
 	for i := 0; i < int(binary.LittleEndian.Uint32(numberUUIDsEntries)); i++ {
@@ -306,16 +312,14 @@ func parseCatalogProcessEntry(data []byte, catalogUUIDs []string) (models.Proces
 		uuidInfoEntries = append(uuidInfoEntries, UUIDEntry)
 	}
 
-	remainingData, numberSubsystems, err := helpers.Take(data, 4)
+	data, numberSubsystems, err = helpers.Take(data, 4)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse catalog process entry number subsystems: %w", err)
 	}
-	data = remainingData
-	remainingData, unknown4, err := helpers.Take(data, 4)
+	data, unknown4, err = helpers.Take(data, 4)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse catalog process entry unknown4: %w", err)
 	}
-	data = remainingData
 
 	var subsystemEntries []models.ProcessInfoSubsystem
 	for i := 0; i < int(binary.LittleEndian.Uint32(numberSubsystems)); i++ {
@@ -359,20 +363,38 @@ func parseCatalogProcessEntry(data []byte, catalogUUIDs []string) (models.Proces
 	entry.MainUUID = mainUUID
 	entry.DSCUUID = dscUUID
 
+	// Calculate and skip padding bytes after subsystem entries
+	const subsystemSize uint64 = 6
+	padding := helpers.AnticipatedPaddingSize(uint64(entry.NumberSubsystems), subsystemSize, 8)
+	if padding > uint64(^uint(0)>>1) {
+		return entry, data, fmt.Errorf("padding size %d is bigger than system int", padding)
+	}
+
+	// Skip padding bytes
+	if padding > 0 {
+		data, _, err = helpers.Take(data, int(padding))
+		if err != nil {
+			return entry, data, fmt.Errorf("failed to skip padding bytes: %w", err)
+		}
+	}
+
 	return entry, data, nil
 }
 
 func parseProcessInfoUUIDEntry(data []byte, catalogUUIDs []string) (models.ProcessUUIDEntry, []byte, error) {
 	var entry models.ProcessUUIDEntry
-	data, size, err := helpers.Take(data, 4)
+	var size, unknown, catalogUUIDIndex, loadAddressBytes []byte
+	var err error
+
+	data, size, err = helpers.Take(data, 4)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse process info UUID entry size: %w", err)
 	}
-	data, unknown, err := helpers.Take(data, 4)
+	data, unknown, err = helpers.Take(data, 4)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse process info UUID entry unknown: %w", err)
 	}
-	data, catalogUUIDIndex, err := helpers.Take(data, 2)
+	data, catalogUUIDIndex, err = helpers.Take(data, 2)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse process info UUID entry catalog UUID index: %w", err)
 	}
@@ -381,7 +403,7 @@ func parseProcessInfoUUIDEntry(data []byte, catalogUUIDs []string) (models.Proce
 	entry.Unknown = binary.LittleEndian.Uint32(unknown)
 	entry.CatalogUUIDIndex = binary.LittleEndian.Uint16(catalogUUIDIndex)
 
-	data, loadAddressBytes, err := helpers.Take(data, int(LOAD_ADDRESS_SIZE[0]))
+	data, loadAddressBytes, err = helpers.Take(data, int(LoadAddressSize[0]))
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to read load address: %w", err)
 	}
@@ -392,22 +414,29 @@ func parseProcessInfoUUIDEntry(data []byte, catalogUUIDs []string) (models.Proce
 	copy(loadAddressVec, loadAddressBytes)
 
 	entry.LoadAddress = binary.LittleEndian.Uint64(loadAddressVec)
-	entry.UUID = catalogUUIDs[binary.LittleEndian.Uint16(catalogUUIDIndex)]
+	uuidIndex := entry.CatalogUUIDIndex
+	if int(uuidIndex) >= len(catalogUUIDs) {
+		return entry, data, fmt.Errorf("catalog UUID index %d out of range (max %d)", uuidIndex, len(catalogUUIDs)-1)
+	}
+	entry.UUID = catalogUUIDs[uuidIndex]
 
 	return entry, data, nil
 }
 
 func parseProcessInfoSubsystem(data []byte) (models.ProcessInfoSubsystem, []byte, error) {
 	var entry models.ProcessInfoSubsystem
-	data, identifier, err := helpers.Take(data, 2)
+	var identifier, subsystemOffset, categoryOffset []byte
+	var err error
+
+	data, identifier, err = helpers.Take(data, 2)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse process info subsystem identifier: %w", err)
 	}
-	data, subsystemOffset, err := helpers.Take(data, 2)
+	data, subsystemOffset, err = helpers.Take(data, 2)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse process info subsystem subsystem offset: %w", err)
 	}
-	data, categoryOffset, err := helpers.Take(data, 2)
+	data, categoryOffset, err = helpers.Take(data, 2)
 	if err != nil {
 		return entry, data, fmt.Errorf("failed to parse process info subsystem category offset: %w", err)
 	}

@@ -35,7 +35,7 @@ import (
 func TestLoadConfig(t *testing.T) {
 	t.Parallel()
 
-	cm, err := confmaptest.LoadConf(filepath.Join("testdata", "config.yaml"))
+	cm, err := confmaptest.LoadConf(filepath.Join("testdata", "test_config.yaml"))
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -49,9 +49,7 @@ func TestLoadConfig(t *testing.T) {
 					Operators: []operator.Config{},
 				},
 				Config: fileconsumer.Config{
-					Criteria: matcher.Criteria{
-						Include: []string{"/var/db/diagnostics/Persist/*.tracev3"},
-					},
+					Criteria: matcher.Criteria{},
 					Resolver: attrs.Resolver{
 						IncludeFileName: true, // Default from fileconsumer.NewConfig()
 					},
@@ -64,19 +62,19 @@ func TestLoadConfig(t *testing.T) {
 					InitialBufferSize:  16 * 1024,   // scanner.DefaultBufferSize
 					FlushPeriod:        500 * time.Millisecond,
 				},
-				Encoding: "macosunifiedlogencoding",
+				TraceV3Paths:  []string{"/var/db/diagnostics/tracev3/Persist/*", "/var/db/diagnostics/tracev3/Special/*", "/var/db/diagnostics/tracev3/HighVolume/*", "/var/db/diagnostics/tracev3/SignPost/*"},
+				TimesyncPaths: []string{"/var/db/diagnostics/timesync/*"},
+				UUIDTextPaths: []string{"/var/db/uuidtext/*"},
 			},
 		},
 		{
-			id: component.NewIDWithName(metadata.Type, "start-at-beginning"),
+			id: component.NewIDWithName(metadata.Type, "custom-paths"),
 			expected: &Config{
 				BaseConfig: adapter.BaseConfig{
 					Operators: []operator.Config{},
 				},
 				Config: fileconsumer.Config{
-					Criteria: matcher.Criteria{
-						Include: []string{"/var/db/diagnostics/Persist/*.tracev3"},
-					},
+					Criteria: matcher.Criteria{},
 					Resolver: attrs.Resolver{
 						IncludeFileName: true, // Default from fileconsumer.NewConfig()
 					},
@@ -89,42 +87,20 @@ func TestLoadConfig(t *testing.T) {
 					InitialBufferSize:  16 * 1024,   // scanner.DefaultBufferSize
 					FlushPeriod:        500 * time.Millisecond,
 				},
-				Encoding: "macosunifiedlogencoding",
+				TraceV3Paths:  []string{"/custom/path/*.tracev3"},
+				TimesyncPaths: []string{"/custom/timesync/*.timesync"},
+				UUIDTextPaths: []string{"/custom/uuidtext/*"},
+				DSCPaths:      []string{"/custom/dsc/*"},
 			},
 		},
 		{
-			id: component.NewIDWithName(metadata.Type, "testdata"),
+			id: component.NewIDWithName(metadata.Type, "valid-encoding"),
 			expected: &Config{
 				BaseConfig: adapter.BaseConfig{
 					Operators: []operator.Config{},
 				},
 				Config: fileconsumer.Config{
-					Criteria: matcher.Criteria{
-						Include: []string{"testdata/test.tracev3"},
-					},
-					Resolver: attrs.Resolver{
-						IncludeFileName: true, // Default from fileconsumer.NewConfig()
-					},
-					StartAt:            "beginning", // Overridden in YAML
-					Encoding:           "utf-8",     // Default from fileconsumer.NewConfig()
-					PollInterval:       200 * time.Millisecond,
-					MaxConcurrentFiles: 1024,
-					MaxLogSize:         1024 * 1024, // 1MiB
-					FingerprintSize:    1000,        // fingerprint.DefaultSize
-					InitialBufferSize:  16 * 1024,   // scanner.DefaultBufferSize
-					FlushPeriod:        500 * time.Millisecond,
-				},
-				Encoding: "macosunifiedlogencoding",
-			},
-		},
-		{
-			id: component.NewIDWithName(metadata.Type, "no-include"),
-			expected: &Config{
-				BaseConfig: adapter.BaseConfig{
-					Operators: []operator.Config{},
-				},
-				Config: fileconsumer.Config{
-					Criteria: matcher.Criteria{}, // No include patterns
+					Criteria: matcher.Criteria{},
 					Resolver: attrs.Resolver{
 						IncludeFileName: true, // Default from fileconsumer.NewConfig()
 					},
@@ -137,32 +113,10 @@ func TestLoadConfig(t *testing.T) {
 					InitialBufferSize:  16 * 1024,   // scanner.DefaultBufferSize
 					FlushPeriod:        500 * time.Millisecond,
 				},
-				Encoding: "macosunifiedlogencoding",
-			},
-		},
-		{
-			id: component.NewIDWithName(metadata.Type, "empty-include"),
-			expected: &Config{
-				BaseConfig: adapter.BaseConfig{
-					Operators: []operator.Config{},
-				},
-				Config: fileconsumer.Config{
-					Criteria: matcher.Criteria{
-						Include: []string{}, // Empty include array
-					},
-					Resolver: attrs.Resolver{
-						IncludeFileName: true, // Default from fileconsumer.NewConfig()
-					},
-					StartAt:            "end",   // Default from fileconsumer.NewConfig()
-					Encoding:           "utf-8", // Default from fileconsumer.NewConfig()
-					PollInterval:       200 * time.Millisecond,
-					MaxConcurrentFiles: 1024,
-					MaxLogSize:         1024 * 1024, // 1MiB
-					FingerprintSize:    1000,        // fingerprint.DefaultSize
-					InitialBufferSize:  16 * 1024,   // scanner.DefaultBufferSize
-					FlushPeriod:        500 * time.Millisecond,
-				},
-				Encoding: "macosunifiedlogencoding",
+				Encoding:      "macosunifiedlogencoding",
+				TraceV3Paths:  []string{"/var/db/diagnostics/tracev3/Persist/*", "/var/db/diagnostics/tracev3/Special/*", "/var/db/diagnostics/tracev3/HighVolume/*", "/var/db/diagnostics/tracev3/SignPost/*"},
+				TimesyncPaths: []string{"/var/db/diagnostics/timesync/*"},
+				UUIDTextPaths: []string{"/var/db/uuidtext/*"},
 			},
 		},
 	}
@@ -172,7 +126,7 @@ func TestLoadConfig(t *testing.T) {
 			factory := NewFactory()
 			cfg := factory.CreateDefaultConfig()
 
-			sub, err := cm.Sub(tt.id.String())
+			sub, err := cm.Sub("receivers::" + tt.id.String())
 			require.NoError(t, err)
 			require.NoError(t, sub.Unmarshal(cfg))
 
@@ -190,47 +144,15 @@ func TestValidateConfig(t *testing.T) {
 		errorMsg    string
 	}{
 		{
-			name: "valid config with include patterns",
+			name: "valid config with correct encoding",
 			config: &Config{
-				BaseConfig: adapter.BaseConfig{
-					Operators: []operator.Config{},
-				},
-				Config: fileconsumer.Config{
-					Criteria: matcher.Criteria{
-						Include: []string{"/var/db/diagnostics/Persist/*.tracev3"},
-					},
-				},
 				Encoding: "macosunifiedlogencoding",
-			},
-			expectError: false,
-		},
-		{
-			name: "valid config with tracev3_path",
-			config: &Config{
-				BaseConfig: adapter.BaseConfig{
-					Operators: []operator.Config{},
-				},
-				Config: fileconsumer.Config{
-					Criteria: matcher.Criteria{
-						Include: []string{}, // Empty, should use TraceV3Path
-					},
-				},
-				Encoding:     "macosunifiedlogencoding",
-				TraceV3Paths: []string{"/custom/path/*.tracev3"},
 			},
 			expectError: false,
 		},
 		{
 			name: "missing encoding",
 			config: &Config{
-				BaseConfig: adapter.BaseConfig{
-					Operators: []operator.Config{},
-				},
-				Config: fileconsumer.Config{
-					Criteria: matcher.Criteria{
-						Include: []string{"/var/db/diagnostics/Persist/*.tracev3"},
-					},
-				},
 				Encoding: "",
 			},
 			expectError: true,
@@ -239,14 +161,6 @@ func TestValidateConfig(t *testing.T) {
 		{
 			name: "wrong encoding",
 			config: &Config{
-				BaseConfig: adapter.BaseConfig{
-					Operators: []operator.Config{},
-				},
-				Config: fileconsumer.Config{
-					Criteria: matcher.Criteria{
-						Include: []string{}, // Empty include
-					},
-				},
 				Encoding: "some_other_encoding",
 			},
 			expectError: true,
@@ -268,7 +182,7 @@ func TestValidateConfig(t *testing.T) {
 }
 
 func TestFailedLoadConfig(t *testing.T) {
-	cm, err := confmaptest.LoadConf(filepath.Join("testdata", "config.yaml"))
+	cm, err := confmaptest.LoadConf(filepath.Join("testdata", "test_config.yaml"))
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -288,7 +202,7 @@ func TestFailedLoadConfig(t *testing.T) {
 			factory := NewFactory()
 			cfg := factory.CreateDefaultConfig()
 
-			sub, err := cm.Sub(component.NewIDWithName(metadata.Type, tt.configID).String())
+			sub, err := cm.Sub("receivers::" + component.NewIDWithName(metadata.Type, tt.configID).String())
 			require.NoError(t, err)
 			require.NoError(t, sub.Unmarshal(cfg))
 
@@ -300,15 +214,12 @@ func TestFailedLoadConfig(t *testing.T) {
 }
 
 func TestGetFileConsumerConfig(t *testing.T) {
-	t.Run("default include patterns", func(t *testing.T) {
+	t.Run("overrides encoding and sets file attributes", func(t *testing.T) {
 		config := &Config{
 			Config: fileconsumer.Config{
-				Criteria: matcher.Criteria{
-					Include: []string{"/test/*.tracev3"},
-				},
 				Encoding: "utf-8", // This should be overridden
 			},
-			Encoding: "macosunifiedlogencoding",
+			TraceV3Paths: []string{"/custom/path/*.tracev3"},
 		}
 
 		fcConfig := config.getFileConsumerConfig()
@@ -320,7 +231,7 @@ func TestGetFileConsumerConfig(t *testing.T) {
 		assert.True(t, fcConfig.IncludeFilePath)
 		assert.True(t, fcConfig.IncludeFileName)
 
-		// Verify that original include patterns are preserved
-		assert.Equal(t, []string{"/test/*.tracev3"}, fcConfig.Include)
+		// Verify that TraceV3Paths are used as Include patterns
+		assert.Equal(t, []string{"/custom/path/*.tracev3"}, fcConfig.Include)
 	})
 }

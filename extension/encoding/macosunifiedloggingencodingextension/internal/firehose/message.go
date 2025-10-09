@@ -16,11 +16,20 @@ package firehose
 
 import (
 	"fmt"
+	"regexp"
+	"slices"
+	"strings"
 
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/models"
 	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/uuidtext"
 )
+
+// FormatAndMessage represents a formatted message with its formatter
+type FormatAndMessage struct {
+	Formatter string
+	Message   string
+}
 
 // ExtractSharedStrings extracts the message data for a shared string firehose entry
 func ExtractSharedStrings(
@@ -31,9 +40,11 @@ func ExtractSharedStrings(
 	catalogs *models.CatalogChunk,
 	originalOffset uint64,
 ) (models.MessageData, error) {
+	var err error
+
 	messageData := models.MessageData{}
 	// Get shared string file (DSC) associated with log entry from Catalog
-	dscUUID, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
+	dscUUID, mainUUID := GetCatalogDSC(catalogs, firstProcID, secondProcID)
 
 	// DSC and UUID data should already be loaded by the receiver and cached by the extension
 	// If data is missing, it means the files weren't found during initialization
@@ -47,7 +58,7 @@ func ExtractSharedStrings(
 				messageData.LibraryUUID = sharedString.UUIDs[ranges.UnknownUUIDIndex].UUID
 				messageData.ProcessUUID = mainUUID
 
-				processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+				processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 				if err != nil {
 					return messageData, err
 				}
@@ -60,6 +71,8 @@ func ExtractSharedStrings(
 
 	if sharedString, exists := provider.CachedDSC(dscUUID); exists {
 		for _, r := range sharedString.Ranges {
+			var messageStart []byte
+
 			if stringOffset >= r.RangeOffset && stringOffset < (r.RangeOffset+uint64(r.RangeSize)) {
 				offset := stringOffset - r.RangeOffset
 
@@ -67,7 +80,7 @@ func ExtractSharedStrings(
 					return messageData, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 				}
 
-				messageStart, _, err := helpers.Take(r.Strings, int(offset))
+				messageStart, _, err = helpers.Take(r.Strings, int(offset))
 				if err != nil {
 					return messageData, err
 				}
@@ -78,7 +91,7 @@ func ExtractSharedStrings(
 
 				messageData.ProcessUUID = mainUUID
 
-				processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+				processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 				if err != nil {
 					return messageData, err
 				}
@@ -99,7 +112,7 @@ func ExtractSharedStrings(
 			messageData.FormatString = "Error: Invalid shared string offset"
 			messageData.ProcessUUID = mainUUID
 
-			processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+			processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 			if err != nil {
 				return messageData, err
 			}
@@ -122,7 +135,9 @@ func ExtractFormatStrings(
 	catalogs *models.CatalogChunk,
 	originalOffset uint64,
 ) (models.MessageData, error) {
-	_, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
+	var err error
+
+	_, mainUUID := GetCatalogDSC(catalogs, firstProcID, secondProcID)
 
 	messageData := models.MessageData{
 		LibraryUUID: mainUUID,
@@ -149,6 +164,7 @@ func ExtractFormatStrings(
 	if data, exists := provider.CachedUUIDText(mainUUID); exists {
 		stringStart := uint32(0)
 		for _, entry := range data.EntryDescriptors {
+			var messageStart []byte
 			if entry.RangeStartOffset > uint32(stringOffset) {
 				stringStart += entry.EntrySize
 				continue
@@ -160,7 +176,7 @@ func ExtractFormatStrings(
 				continue
 			}
 
-			messageStart, _, err := helpers.Take(data.FooterData, int(offset+stringStart))
+			messageStart, _, err = helpers.Take(data.FooterData, int(offset+stringStart))
 			if err != nil {
 				return messageData, err
 			}
@@ -210,6 +226,8 @@ func ExtractAbsoluteStrings(
 	catalogs *models.CatalogChunk,
 	originalOffset uint64,
 ) (models.MessageData, error) {
+	var err error
+
 	key := fmt.Sprintf("%d_%d", firstProcID, secondProcID)
 	uuid := ""
 
@@ -226,21 +244,21 @@ func ExtractAbsoluteStrings(
 		}
 	}
 
-	_, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
+	_, mainUUID := GetCatalogDSC(catalogs, firstProcID, secondProcID)
 	messageData := models.MessageData{
 		LibraryUUID: uuid,
 		ProcessUUID: mainUUID,
 	}
 
 	// UUID data should already be loaded by the receiver and cached by the extension
-	if originalOffset&0x80000000 != 0 {
+	if originalOffset&0x80000000 != 0 || stringOffset == absoluteOffset {
 		if data, exists := provider.CachedUUIDText(messageData.LibraryUUID); exists {
 			libraryString, err := uuidTextImagePath(data.FooterData, data.EntryDescriptors)
 			if err != nil {
 				return messageData, err
 			}
 			messageData.Library = libraryString
-			processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+			processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 			if err != nil {
 				return messageData, err
 			}
@@ -253,6 +271,8 @@ func ExtractAbsoluteStrings(
 
 	if data, exists := provider.CachedUUIDText(messageData.LibraryUUID); exists {
 		stringStart := uint32(0)
+		var messageStart []byte
+
 		for _, entry := range data.EntryDescriptors {
 			if entry.RangeStartOffset > uint32(stringOffset) {
 				stringStart += entry.EntrySize
@@ -269,7 +289,7 @@ func ExtractAbsoluteStrings(
 				return messageData, fmt.Errorf("failed to extract string size: u64 is bigger than system usize")
 			}
 
-			messageStart, _, err := helpers.Take(data.FooterData, int(offset+uint64(stringStart)))
+			messageStart, _, err = helpers.Take(data.FooterData, int(offset+uint64(stringStart)))
 			if err != nil {
 				return messageData, err
 			}
@@ -285,11 +305,12 @@ func ExtractAbsoluteStrings(
 			messageData.FormatString = messageFormatString
 			messageData.Library = libraryString
 
-			processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+			processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 			if err != nil {
 				return messageData, err
 			}
 			messageData.Process = processString
+			return messageData, nil
 		}
 	}
 
@@ -301,8 +322,8 @@ func ExtractAbsoluteStrings(
 			return messageData, err
 		}
 		messageData.Library = libraryString
-		messageData.FormatString = fmt.Sprintf("Error: Invalid offset %d for UUID %s", stringOffset, messageData.LibraryUUID)
-		processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+		messageData.FormatString = fmt.Sprintf("Error: Invalid offset %d for absolute UUID %s", stringOffset, messageData.LibraryUUID)
+		processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 		if err != nil {
 			return messageData, err
 		}
@@ -311,7 +332,7 @@ func ExtractAbsoluteStrings(
 	}
 
 	// logger.Warn("Failed to get message string from UUIDText file")
-	messageData.FormatString = fmt.Sprintf("Failed to get message string from UUIDText file: %s", messageData.LibraryUUID)
+	messageData.FormatString = fmt.Sprintf("Failed to get string message from absolute UUIDText file: %s", messageData.LibraryUUID)
 	return messageData, nil
 }
 
@@ -325,7 +346,9 @@ func ExtractAltUUIDStrings(
 	catalogs *models.CatalogChunk,
 	originalOffset uint64,
 ) (models.MessageData, error) {
-	_, mainUUID := getCatalogDSC(catalogs, firstProcID, secondProcID)
+	var err error
+
+	_, mainUUID := GetCatalogDSC(catalogs, firstProcID, secondProcID)
 	messageData := models.MessageData{
 		LibraryUUID: uuid,
 		ProcessUUID: mainUUID,
@@ -340,7 +363,7 @@ func ExtractAltUUIDStrings(
 				return messageData, err
 			}
 			messageData.Library = libraryString
-			processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+			processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 			if err != nil {
 				return messageData, err
 			}
@@ -353,6 +376,8 @@ func ExtractAltUUIDStrings(
 	if data, exists := provider.CachedUUIDText(uuid); exists {
 		stringStart := uint32(0)
 		for _, entry := range data.EntryDescriptors {
+			var messageStart []byte
+
 			if entry.RangeStartOffset > uint32(stringOffset) {
 				stringStart += entry.EntrySize
 				continue
@@ -364,7 +389,7 @@ func ExtractAltUUIDStrings(
 				continue
 			}
 
-			messageStart, _, err := helpers.Take(data.FooterData, int(offset+stringStart))
+			messageStart, _, err = helpers.Take(data.FooterData, int(offset+stringStart))
 			if err != nil {
 				return messageData, err
 			}
@@ -376,7 +401,7 @@ func ExtractAltUUIDStrings(
 			if err != nil {
 				return messageData, err
 			}
-			processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+			processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 			if err != nil {
 				return messageData, err
 			}
@@ -396,7 +421,7 @@ func ExtractAltUUIDStrings(
 		}
 		messageData.Library = libraryString
 		messageData.FormatString = fmt.Sprintf("Error: Invalid offset %d for UUID %s", stringOffset, uuid)
-		processString, err := getUUIDImagePath(messageData.ProcessUUID, provider)
+		processString, err := GetUUIDImagePath(messageData.ProcessUUID, provider)
 		if err != nil {
 			return messageData, err
 		}
@@ -410,7 +435,9 @@ func ExtractAltUUIDStrings(
 
 }
 
-func getCatalogDSC(catalogs *models.CatalogChunk, firstProcID uint64, secondProcID uint32) (string, string) {
+// GetCatalogDSC returns the DSC UUID and the main UUID for the given process IDs
+// from the catalog chunk. If the entry is not found, empty strings are returned.
+func GetCatalogDSC(catalogs *models.CatalogChunk, firstProcID uint64, secondProcID uint32) (string, string) {
 	key := fmt.Sprintf("%d_%d", firstProcID, secondProcID)
 	if entry, exists := catalogs.ProcessInfoEntries[key]; exists {
 		return entry.DSCUUID, entry.MainUUID
@@ -419,7 +446,9 @@ func getCatalogDSC(catalogs *models.CatalogChunk, firstProcID uint64, secondProc
 	return "", ""
 }
 
-func getUUIDImagePath(uuid string, provider *uuidtext.CacheProvider) (string, error) {
+// GetUUIDImagePath returns the image path for the given UUID using the cache provider.
+// If the UUID is all zeros, it returns an empty path. If not found, a failure message is returned.
+func GetUUIDImagePath(uuid string, provider *uuidtext.CacheProvider) (string, error) {
 	// An UUID of all zeros is possible in the Catalog, if this happens there is no process path
 	if uuid == "00000000000000000000000000000000" {
 		// logger.Info("Got UUID of all zeros fom Catalog")
@@ -437,14 +466,140 @@ func getUUIDImagePath(uuid string, provider *uuidtext.CacheProvider) (string, er
 func uuidTextImagePath(data []byte, entries []uuidtext.Entry) (string, error) {
 	// Add up all entry range offset sizes to get image library offset
 	imageLibraryOffset := uint32(0)
+	var libraryStart []byte
+	var err error
 
 	for _, entry := range entries {
 		imageLibraryOffset += entry.EntrySize
 	}
 
-	libraryStart, _, err := helpers.Take(data, int(imageLibraryOffset))
+	libraryStart, _, err = helpers.Take(data, int(imageLibraryOffset))
 	if err != nil {
 		return "", err
 	}
 	return helpers.ExtractString(libraryStart)
+}
+
+// FormatFirehoseLogMessage formats a complete log message from a firehose entry
+func FormatFirehoseLogMessage(formatString string, itemMessage []ItemInfo, messageRe *regexp.Regexp) (string, error) {
+	var err error
+	formatAndMessageVec := []FormatAndMessage{}
+	if len(itemMessage) == 0 && len(formatString) == 0 {
+		return "", nil
+	}
+	if len(formatString) == 0 {
+		return itemMessage[0].MessageStrings, nil
+	}
+	regexResults := messageRe.FindAllString(formatString, -1)
+	for i, formatter := range regexResults {
+		if strings.HasPrefix(formatter, "% ") {
+			continue
+		}
+
+		formatAndMessage := FormatAndMessage{
+			Formatter: "",
+			Message:   "",
+		}
+
+		if formatter == "%%" {
+			formatAndMessage.Formatter = formatter
+			formatAndMessage.Message = "%"
+			formatAndMessageVec = append(formatAndMessageVec, formatAndMessage)
+			continue
+		}
+
+		if i >= len(itemMessage) {
+			formatAndMessage.Formatter = formatter
+			formatAndMessage.Message = "<Missing message data>"
+			formatAndMessageVec = append(formatAndMessageVec, formatAndMessage)
+			continue
+		}
+
+		formattedLogMessage := itemMessage[i].MessageStrings
+		formatterString := formatter
+
+		if strings.HasPrefix(formatterString, "%{") && strings.HasSuffix(formatterString, "}") {
+			formatAndMessage.Formatter = formatterString
+			formatterString = formatterString[1:]
+			formatAndMessage.Message = formatterString
+			formatAndMessageVec = append(formatAndMessageVec, formatAndMessage)
+			continue
+		}
+
+		precisionItems := []uint8{0x10, 0x12}
+		if slices.Contains(precisionItems, itemMessage[i].ItemType) {
+			i++
+		}
+
+		dynamicPrecisionValue := uint8(0x0)
+		if itemMessage[i].ItemType == dynamicPrecisionValue && itemMessage[i].ItemSize == 0 && strings.Contains(formatterString, "%*") {
+			i++
+		}
+
+		if i >= len(itemMessage) {
+			formatAndMessage.Formatter = formatter
+			formatAndMessage.Message = "<Missing message data>"
+			formatAndMessageVec = append(formatAndMessageVec, formatAndMessage)
+			continue
+		}
+
+		privateStrings := []uint8{0x1, 0x21, 0x31, 0x41}
+		privateNumber := uint8(0x1)
+		privateMessage := uint16(0x8000)
+		var results string
+		if strings.HasPrefix(formatterString, "%{") {
+			if slices.Contains(privateStrings, itemMessage[i].ItemType) && itemMessage[i].ItemSize == 0 || (itemMessage[i].ItemType == privateNumber && itemMessage[i].ItemSize == privateMessage) {
+				formattedLogMessage = "<private>"
+			} else {
+				results, err = parseTypeFormatter(formatterString, itemMessage, itemMessage[i].ItemType, i)
+				if err != nil {
+					return "", err
+				}
+				formattedLogMessage = results
+			}
+		} else {
+			if slices.Contains(privateStrings, itemMessage[i].ItemType) && itemMessage[i].ItemSize == 0 || (itemMessage[i].ItemType == privateNumber && itemMessage[i].ItemSize == privateMessage) {
+				formattedLogMessage = "<private>"
+			} else {
+				results, err = parseFormatter(formatterString, itemMessage, itemMessage[i].ItemType, i)
+				if err != nil {
+					return "", err
+				}
+				formattedLogMessage = results
+			}
+		}
+
+		i++
+		formatAndMessage.Formatter = formatter
+		formatAndMessage.Message = formattedLogMessage
+		formatAndMessageVec = append(formatAndMessageVec, formatAndMessage)
+	}
+
+	logMessageVec := []string{}
+	for _, values := range formatAndMessageVec {
+		// Split the message by the formatter and replace it with the actual value
+		// We need to do this instead of simple replace because the replacement string may also contain a formatter
+		parts := strings.SplitN(formatString, values.Formatter, 2)
+		if len(parts) == 2 {
+			logMessageVec = append(logMessageVec, parts[0])
+			logMessageVec = append(logMessageVec, values.Message)
+			formatString = parts[1]
+		} else {
+			// If we can't split by the formatter, log an error and continue
+			// This shouldn't happen in normal cases
+			logMessageVec = append(logMessageVec, values.Formatter)
+		}
+	}
+
+	// Add any remaining message content
+	logMessageVec = append(logMessageVec, formatString)
+	return strings.Join(logMessageVec, ""), nil
+}
+
+func parseFormatter(formatterString string, messageValue []ItemInfo, itemType uint8, itemIndex int) (string, error) {
+	return "", nil
+}
+
+func parseTypeFormatter(formatterString string, messageValue []ItemInfo, itemType uint8, itemIndex int) (string, error) {
+	return "", nil
 }

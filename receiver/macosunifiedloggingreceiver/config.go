@@ -15,10 +15,11 @@
 package macosunifiedloggingreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver"
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/adapter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/fileconsumer"
+	"go.opentelemetry.io/collector/component"
 )
 
 // Config defines configuration for the macOS Unified Logging receiver
@@ -57,7 +58,9 @@ func (cfg *Config) getFileConsumerConfig() fileconsumer.Config {
 
 	// Set file consumer encoding to "nop" since we'll handle decoding via the extension
 	fcConfig.Encoding = "nop"
-
+	// 64MiB. In practice, macOS rotates the file at a max of 10MiB.
+	// The entire file needs to be read in at once to ensure binary data is decoded correctly.
+	fcConfig.MaxLogSize = 1024 * 1024 * 64
 	// Enable file path attributes so we can access the file paths in the consume function
 	fcConfig.IncludeFilePath = true
 	fcConfig.IncludeFileName = true
@@ -67,8 +70,17 @@ func (cfg *Config) getFileConsumerConfig() fileconsumer.Config {
 
 // Validate checks the receiver configuration is valid
 func (cfg Config) Validate() error {
-	if cfg.Encoding != "macosunifiedlogencoding" {
-		return errors.New("encoding_extension must be macosunifiedlogencoding for macOS Unified Logging receiver")
+	macosUnifiedLogEncodingType := component.MustNewType("macosunifiedlogencoding")
+	// Parse the encoding extension ID
+	encodingID := component.ID{}
+	if err := encodingID.UnmarshalText([]byte(cfg.Encoding)); err != nil {
+		return fmt.Errorf("invalid encoding_extension ID: %w", err)
+	}
+
+	// Check that the type matches the expected extension type
+	if encodingID.Type() != macosUnifiedLogEncodingType {
+		return fmt.Errorf("encoding_extension must be of type '%s', got '%s'",
+			macosUnifiedLogEncodingType, encodingID.Type())
 	}
 
 	return nil

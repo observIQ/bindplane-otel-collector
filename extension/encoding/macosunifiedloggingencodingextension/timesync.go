@@ -54,7 +54,10 @@ func ParseTimesyncData(data []byte) (map[string]*TimesyncBoot, error) {
 	timesyncBoot := &TimesyncBoot{}
 
 	for len(data) > 0 {
-		_, signature, err := helpers.Take(data, 4)
+		var signature []byte
+		var err error
+
+		_, signature, err = helpers.Take(data, 4)
 		if err != nil {
 			return timesyncData, fmt.Errorf("failed to read timesync signature: %w", err)
 		}
@@ -91,7 +94,11 @@ func ParseTimesyncData(data []byte) (map[string]*TimesyncBoot, error) {
 func ParseTimesyncBoot(data []byte) (*TimesyncBoot, []byte, error) {
 	boot := &TimesyncBoot{}
 	expectedSignature := uint16(0xbbb0)
-	data, signature, err := helpers.Take(data, 2)
+	var signature, headerSize, unknown, bootUUID, timebaseNumerator,
+		timebaseDenominator, bootTime, timezoneOffsetMins, daylightSavings []byte
+	var err error
+
+	data, signature, err = helpers.Take(data, 2)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read boot signature: %w", err)
 	}
@@ -100,19 +107,19 @@ func ParseTimesyncBoot(data []byte) (*TimesyncBoot, []byte, error) {
 	}
 	boot.Signature = binary.LittleEndian.Uint16(signature)
 
-	data, headerSize, err := helpers.Take(data, 2)
+	data, headerSize, err = helpers.Take(data, 2)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read header size: %w", err)
 	}
 	boot.HeaderSize = binary.LittleEndian.Uint16(headerSize)
 
-	data, unknown, err := helpers.Take(data, 4)
+	data, unknown, err = helpers.Take(data, 4)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read unknown field: %w", err)
 	}
 	boot.Unknown = binary.LittleEndian.Uint32(unknown)
 
-	data, bootUUID, err := helpers.Take(data, 16)
+	data, bootUUID, err = helpers.Take(data, 16)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read boot UUID: %w", err)
 	}
@@ -123,31 +130,31 @@ func ParseTimesyncBoot(data []byte) (*TimesyncBoot, []byte, error) {
 		binary.BigEndian.Uint16(bootUUID[8:10]),
 		bootUUID[10:16])
 
-	data, timebaseNumerator, err := helpers.Take(data, 4)
+	data, timebaseNumerator, err = helpers.Take(data, 4)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read timebase numerator: %w", err)
 	}
 	boot.TimebaseNumerator = binary.LittleEndian.Uint32(timebaseNumerator)
 
-	data, timebaseDenominator, err := helpers.Take(data, 4)
+	data, timebaseDenominator, err = helpers.Take(data, 4)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read timebase denominator: %w", err)
 	}
 	boot.TimebaseDenominator = binary.LittleEndian.Uint32(timebaseDenominator)
 
-	data, bootTime, err := helpers.Take(data, 8)
+	data, bootTime, err = helpers.Take(data, 8)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read boot time: %w", err)
 	}
 	boot.BootTime = int64(binary.LittleEndian.Uint64(bootTime))
 
-	data, timezoneOffsetMins, err := helpers.Take(data, 4)
+	data, timezoneOffsetMins, err = helpers.Take(data, 4)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read timezone offset: %w", err)
 	}
 	boot.TimezoneOffsetMins = binary.LittleEndian.Uint32(timezoneOffsetMins)
 
-	data, daylightSavings, err := helpers.Take(data, 4)
+	data, daylightSavings, err = helpers.Take(data, 4)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read daylight savings: %w", err)
 	}
@@ -161,7 +168,10 @@ func ParseTimesyncBoot(data []byte) (*TimesyncBoot, []byte, error) {
 // ParseTimesyncRecord parses a timesync record
 func ParseTimesyncRecord(data []byte) (*TimesyncRecord, []byte, error) {
 	record := &TimesyncRecord{}
-	data, signature, err := helpers.Take(data, 4)
+	var signature, unknownFlags, kernelTime, wallTime, timezone, daylightSavings []byte
+	var err error
+
+	data, signature, err = helpers.Take(data, 4)
 	if err != nil {
 		return record, data, fmt.Errorf("failed to read timesync record signature: %w", err)
 	}
@@ -170,23 +180,23 @@ func ParseTimesyncRecord(data []byte) (*TimesyncRecord, []byte, error) {
 		return record, data, fmt.Errorf("invalid timesync signature: expected 0x%x, got 0x%x", expectedTimesyncSignature, signature)
 	}
 
-	data, unknownFlags, err := helpers.Take(data, 4)
+	data, unknownFlags, err = helpers.Take(data, 4)
 	if err != nil {
 		return record, data, fmt.Errorf("failed to read unknown flags: %w", err)
 	}
-	data, kernelTime, err := helpers.Take(data, 8)
+	data, kernelTime, err = helpers.Take(data, 8)
 	if err != nil {
 		return record, data, fmt.Errorf("failed to read kernel time: %w", err)
 	}
-	data, wallTime, err := helpers.Take(data, 8)
+	data, wallTime, err = helpers.Take(data, 8)
 	if err != nil {
 		return record, data, fmt.Errorf("failed to read wall time: %w", err)
 	}
-	data, timezone, err := helpers.Take(data, 4)
+	data, timezone, err = helpers.Take(data, 4)
 	if err != nil {
 		return record, data, fmt.Errorf("failed to read timezone: %w", err)
 	}
-	data, daylightSavings, err := helpers.Take(data, 4)
+	data, daylightSavings, err = helpers.Take(data, 4)
 	if err != nil {
 		return record, data, fmt.Errorf("failed to read daylight savings: %w", err)
 	}
@@ -231,33 +241,35 @@ func GetTimestamp(
 	*/
 
 	var timebaseAdjustment = 1.0
-	var timesyncContinousTime uint64
+	var timesyncContinuousTime uint64
 	var timesyncWalltime int64
 
 	if timesync, exists := timesyncData[bootUUID]; exists {
 		if timesync.TimebaseNumerator == 125 && timesync.TimebaseDenominator == 3 {
 			timebaseAdjustment = 125.0 / 3.0
 		}
+
 		// A preamble time of 0 means we need to use the timesync header boot time as our minimum value.
 		// We also set the timesync_continous_time to zero
 		if firehosePreambleTime == 0 {
-			timesyncContinousTime = 0
+			timesyncContinuousTime = 0
 			timesyncWalltime = timesync.BootTime
 		}
+		// Only iterate through timesync records if preamble time is not 0
 		for _, timesyncRecord := range timesync.TimesyncRecords {
 			if timesyncRecord.KernelTime > firehoseLogDeltaTime {
-				if timesyncContinousTime == 0 && timesyncWalltime == 0 {
-					timesyncContinousTime = timesyncRecord.KernelTime
+				if timesyncContinuousTime == 0 && timesyncWalltime == 0 {
+					timesyncContinuousTime = timesyncRecord.KernelTime
 					timesyncWalltime = timesyncRecord.WallTime
 				}
 				break
 			}
-			timesyncContinousTime = timesyncRecord.KernelTime
+			timesyncContinuousTime = timesyncRecord.KernelTime
 			timesyncWalltime = timesyncRecord.WallTime
 		}
 	}
-	continousTime := float64(firehoseLogDeltaTime)*timebaseAdjustment - float64(timesyncContinousTime)*timebaseAdjustment
-	return continousTime + float64(timesyncWalltime)
+	continuousTime := float64(firehoseLogDeltaTime)*timebaseAdjustment + (-float64(timesyncContinuousTime) * timebaseAdjustment)
+	return continuousTime + float64(timesyncWalltime)
 }
 
 // NormalizeBootUUID normalizes boot UUID format to match timesync data format

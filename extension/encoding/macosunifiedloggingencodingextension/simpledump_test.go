@@ -71,7 +71,7 @@ func BuildSimpleDumpTestData(prefix, subsystemSize, subsystem, messageSize, mess
 	return out
 }
 
-func validateBaseData(t *testing.T, chunk *SimpleDumpChunk) {
+func validateBaseData(t *testing.T, chunk *SimpledumpChunk) {
 	require.Equal(t, uint32(24580), chunk.ChunkTag, "ChunkTag value incorrect")
 	require.Equal(t, uint32(5), chunk.ChunkSubTag, "ChunkSubTag value incorrect")
 	require.Equal(t, uint64(219), chunk.ChunkDataSize, "ChunkDataSize value incorrect")
@@ -91,12 +91,12 @@ func TestParseSimpleDump(t *testing.T) {
 	testCases := []struct {
 		desc     string
 		data     []byte
-		validate func(*testing.T, *SimpleDumpChunk)
+		validate func(*testing.T, *SimpledumpChunk)
 	}{
 		{
 			desc: "base",
 			data: BuildSimpleDumpTestData(baseSimpleDumpPrefix, defaultSizeSubsystemString, defaultSubsystemBytes, defaultSizeMessageString, defaultMessageBytes),
-			validate: func(t *testing.T, chunk *SimpleDumpChunk) {
+			validate: func(t *testing.T, chunk *SimpledumpChunk) {
 				validateBaseData(t, chunk)
 				require.Equal(t, uint32(79), chunk.UnknownSizeSubsystemString, "UnknownSizeSubsystemString value incorrect")
 				require.Equal(t, uint32(56), chunk.UnknownSizeMessageString, "UnknownSizeMessageString value incorrect")
@@ -107,7 +107,7 @@ func TestParseSimpleDump(t *testing.T) {
 		{
 			desc: "empty",
 			data: BuildSimpleDumpTestData(baseSimpleDumpPrefix, []byte{0, 0, 0, 0}, []byte{}, defaultSizeMessageString, defaultMessageBytes),
-			validate: func(t *testing.T, chunk *SimpleDumpChunk) {
+			validate: func(t *testing.T, chunk *SimpledumpChunk) {
 				validateBaseData(t, chunk)
 				require.Equal(t, uint32(0), chunk.UnknownSizeSubsystemString, "UnknownSizeSubsystemString value incorrect")
 				require.Equal(t, uint32(56), chunk.UnknownSizeMessageString, "UnknownSizeMessageString value incorrect")
@@ -118,7 +118,7 @@ func TestParseSimpleDump(t *testing.T) {
 		{
 			desc: "empty message",
 			data: BuildSimpleDumpTestData(baseSimpleDumpPrefix, defaultSizeSubsystemString, defaultSubsystemBytes, []byte{0, 0, 0, 0}, []byte{}),
-			validate: func(t *testing.T, chunk *SimpleDumpChunk) {
+			validate: func(t *testing.T, chunk *SimpledumpChunk) {
 				validateBaseData(t, chunk)
 				require.Equal(t, uint32(79), chunk.UnknownSizeSubsystemString, "UnknownSizeSubsystemString value incorrect")
 				require.Equal(t, uint32(0), chunk.UnknownSizeMessageString, "UnknownSizeMessageString value incorrect")
