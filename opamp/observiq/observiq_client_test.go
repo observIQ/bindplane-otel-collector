@@ -398,36 +398,30 @@ func TestClientConnect(t *testing.T) {
 					packagesStateProvider: mockPackagesStateProvider,
 				}
 
-				expectedSettings := types.StartSettings{
-					OpAMPServerURL: c.currentConfig.Endpoint,
-					Header: http.Header{
-						"Authorization":               []string{fmt.Sprintf("Secret-Key %s", c.currentConfig.GetSecretKey())},
-						"User-Agent":                  []string{fmt.Sprintf("observiq-otel-collector/%s", version.Version())},
-						"OpAMP-Version":               []string{opamp.Version()},
-						"Agent-ID":                    []string{c.ident.agentID.String()},
-						"Agent-Version":               []string{version.Version()},
-						"Agent-Hostname":              []string{c.ident.hostname},
-						"X-Bindplane-Agent-Id-Format": []string{"ULID"},
-					},
-					TLSConfig:   nil,
-					InstanceUid: c.ident.agentID.OpAMPInstanceUID(),
-					Callbacks: types.Callbacks{
-						OnConnect:          c.onConnectHandler,
-						OnConnectFailed:    c.onConnectFailedHandler,
-						OnError:            c.onErrorHandler,
-						OnMessage:          c.onMessageFuncHandler,
-						GetEffectiveConfig: c.onGetEffectiveConfigHandler,
-					},
-					PackagesStateProvider: c.packagesStateProvider,
+				expectedHeaders := http.Header{
+					"Authorization":               []string{fmt.Sprintf("Secret-Key %s", c.currentConfig.GetSecretKey())},
+					"User-Agent":                  []string{fmt.Sprintf("observiq-otel-collector/%s", version.Version())},
+					"Opamp-Version":               []string{opamp.Version()},
+					"Agent-Id":                    []string{c.ident.agentID.String()},
+					"Agent-Version":               []string{version.Version()},
+					"Agent-Hostname":              []string{c.ident.hostname},
+					"X-Bindplane-Agent-Id-Format": []string{"ULID"},
 				}
+
 				mockOpAmpClient.On("Start", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 					settings := args.Get(1).(types.StartSettings)
-					assert.Equal(t, expectedSettings.OpAMPServerURL, settings.OpAMPServerURL)
-					assert.Equal(t, expectedSettings.Header, settings.Header)
-					assert.Equal(t, expectedSettings.TLSConfig, settings.TLSConfig)
-					assert.Equal(t, expectedSettings.InstanceUid, settings.InstanceUid)
-					assert.Equal(t, expectedSettings.PackagesStateProvider, settings.PackagesStateProvider)
-					// assert is unable to compare function pointers
+					assert.Equal(t, c.currentConfig.Endpoint, settings.OpAMPServerURL)
+					assert.Nil(t, settings.TLSConfig)
+					assert.Equal(t, c.ident.agentID.OpAMPInstanceUID(), settings.InstanceUid)
+					assert.Equal(t, c.packagesStateProvider, settings.PackagesStateProvider)
+
+					// Test HeaderFunc by calling it and checking the result
+					assert.NotNil(t, settings.HeaderFunc)
+					if settings.HeaderFunc != nil {
+						header := settings.HeaderFunc(http.Header{})
+						assert.Equal(t, expectedHeaders, header)
+					}
+					// assert is unable to compare function pointers for callbacks
 				})
 
 				err := c.Connect(context.Background())
