@@ -113,6 +113,28 @@ func AgentIDFromUUID(u uuid.UUID) AgentID {
 	}
 }
 
+// AgentIDFromInstanceUID creates an agent ID from an OpAMP InstanceUid.
+// It attempts to parse the bytes as a UUID first, then falls back to ULID if that fails.
+func AgentIDFromInstanceUID(instanceUID [16]byte) (AgentID, error) {
+	// Try parsing as UUID first
+	u, err := uuid.FromBytes(instanceUID[:])
+	if err == nil {
+		return AgentID{
+			by:     instanceUID,
+			idType: agentIDTypeUUID,
+			orig:   u.String(),
+		}, nil
+	}
+
+	// Try parsing as ULID
+	ulidVal := ulid.ULID(instanceUID)
+	return AgentID{
+		by:     instanceUID,
+		idType: agentIDTypeULID,
+		orig:   ulidVal.String(),
+	}, nil
+}
+
 // String returns a string representation of the agent ID
 func (a AgentID) String() string {
 	return a.orig

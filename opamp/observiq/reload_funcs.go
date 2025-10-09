@@ -313,3 +313,35 @@ func copyFile(originPath, newPath string) error {
 
 	return nil
 }
+
+// saveAgentID persists the agent ID to the manager config file
+func saveAgentID(configPath string, agentID opamp.AgentID) error {
+	// Read existing config
+	cleanPath := filepath.Clean(configPath)
+	data, err := os.ReadFile(cleanPath)
+	if err != nil {
+		return fmt.Errorf("failed to read manager config: %w", err)
+	}
+
+	// Unmarshal existing config
+	var config opamp.Config
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return fmt.Errorf("failed to unmarshal manager config: %w", err)
+	}
+
+	// Update agent_id field
+	config.AgentID = agentID
+
+	// Marshal back to yaml
+	newData, err := yaml.Marshal(&config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal manager config: %w", err)
+	}
+
+	// Write back to file
+	if err := os.WriteFile(cleanPath, newData, 0600); err != nil {
+		return fmt.Errorf("failed to write manager config: %w", err)
+	}
+
+	return nil
+}
