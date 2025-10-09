@@ -1617,8 +1617,11 @@ func Test_onAgentIdentificationHandler(t *testing.T) {
 		assert.Equal(t, initialConfig.Endpoint, persistedConfig.Endpoint)
 		assert.Equal(t, *initialConfig.SecretKey, *persistedConfig.SecretKey)
 
-		// Verify SetAgentDescription was called
+		// Verify SetAgentDescription was called with updated identity
 		mockOpAmpClient.AssertExpectations(t)
+
+		// Verify that the identity's agent ID was updated (which HeaderFunc will read)
+		assert.Equal(t, expectedAgentID.String(), client.ident.agentID.String())
 	})
 
 	t.Run("Rolls back on persistence failure", func(t *testing.T) {

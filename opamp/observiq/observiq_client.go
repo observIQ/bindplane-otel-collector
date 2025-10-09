@@ -232,19 +232,23 @@ func (c *Client) Connect(ctx context.Context) error {
 		return fmt.Errorf("failed creating TLS config: %w", err)
 	}
 
+	// Use HeaderFunc to dynamically set headers, allowing them to update when agent ID changes
+	headerFunc := func(header http.Header) http.Header {
+		header.Set("Authorization", fmt.Sprintf("Secret-Key %s", c.currentConfig.GetSecretKey()))
+		header.Set("User-Agent", fmt.Sprintf("observiq-otel-collector/%s", version.Version()))
+		header.Set("OpAMP-Version", opamp.Version())
+		header.Set("Agent-ID", c.ident.agentID.String())
+		header.Set("Agent-Version", version.Version())
+		header.Set("Agent-Hostname", c.ident.hostname)
+		header.Set("X-Bindplane-Agent-Id-Format", c.ident.agentID.Type())
+		return header
+	}
+
 	settings := types.StartSettings{
 		OpAMPServerURL: c.currentConfig.Endpoint,
-		Header: http.Header{
-			"Authorization":               []string{fmt.Sprintf("Secret-Key %s", c.currentConfig.GetSecretKey())},
-			"User-Agent":                  []string{fmt.Sprintf("observiq-otel-collector/%s", version.Version())},
-			"OpAMP-Version":               []string{opamp.Version()},
-			"Agent-ID":                    []string{c.ident.agentID.String()},
-			"Agent-Version":               []string{version.Version()},
-			"Agent-Hostname":              []string{c.ident.hostname},
-			"X-Bindplane-Agent-Id-Format": []string{c.ident.agentID.Type()},
-		},
-		TLSConfig:   tlsCfg,
-		InstanceUid: c.ident.agentID.OpAMPInstanceUID(),
+		HeaderFunc:     headerFunc,
+		TLSConfig:      tlsCfg,
+		InstanceUid:    c.ident.agentID.OpAMPInstanceUID(),
 		Callbacks: types.Callbacks{
 			OnConnect:          c.onConnectHandler,
 			OnConnectFailed:    c.onConnectFailedHandler,
@@ -410,7 +414,6 @@ func (c *Client) onAgentIdentificationHandler(_ context.Context, agentIdentifica
 	oldAgentID := c.ident.agentID
 	c.ident.agentID = newAgentID
 	c.currentConfig.AgentID = newAgentID
-	c.currentConfig.ExtraMeasurementsAttributes["agent"] = newAgentID.String()
 
 	// Persist to manager config file
 	if err := saveAgentID(c.managerConfigPath, newAgentID); err != nil {
