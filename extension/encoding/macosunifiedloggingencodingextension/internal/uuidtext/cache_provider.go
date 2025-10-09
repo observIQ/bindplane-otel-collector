@@ -49,6 +49,7 @@ func (c *CacheProvider) UpdateUUID(uuid string, uuid2 string, data *UUIDText) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	// TODO: Investigate what the correct number of cached UUIDText is for the cache
 	// Keep 1000 UUID text files cached
 	if len(c.uuidTextCache) > 1000 {
 		// Remove some old entries

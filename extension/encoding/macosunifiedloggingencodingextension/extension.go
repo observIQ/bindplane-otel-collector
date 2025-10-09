@@ -352,10 +352,8 @@ func extractDSCUUIDFromPath(filePath string) string {
 }
 
 // initMessageRegex initializes the regex pattern for printf format parsing
-// This is based on the Rust implementation's regex pattern
 func (c *macosUnifiedLoggingCodec) initMessageRegex() error {
-	// This is the regex pattern from the Rust implementation
-	// It matches printf-style format specifiers including Apple-specific extensions
+	// Regex patternmatches printf-style format specifiers including apple specific extensions
 	pattern := `(%(?:(?:\{[^}]+}?)(?:[-+0#]{0,5})(?:\d+|\*)?(?:\.(?:\d+|\*))?(?:h|hh|l|ll|w|I|z|t|q|I32|I64)?[cmCdiouxXeEfgGaAnpsSZP@}]|(?:[-+0 #]{0,5})(?:\d+|\*)?(?:\.(?:\d+|\*))?(?:h|hh|l||q|t|ll|w|I|z|I32|I64)?[cmCdiouxXeEfgGaAnpsSZP@%]))`
 
 	regex, err := regexp.Compile(pattern)
@@ -741,15 +739,7 @@ func (c *macosUnifiedLoggingCodec) processStatedumpData(ulData *UnifiedLogData, 
 			dataString = ParseStateDumpPlist(statedump.Data)
 		case 0x2:
 			c.logger.Info("Processing statedump protobuf data", zap.Int("catalogIndex", catalogIndex), zap.ByteString("data", statedump.Data))
-			// if protobufMap, err := extractProtobuf(statedump.Data); err == nil {
-			// 	if jsonBytes, err := json.Marshal(protobufMap); err == nil {
-			// 		dataString = string(jsonBytes)
-			// 	} else {
-			// 		dataString = "Failed to serialize Protobuf HashMap"
-			// 	}
-			// } else {
-			// 	dataString = fmt.Sprintf("Failed to parse StateDump protobuf: %s", encodeStandard(statedump.Data))
-			// }
+			// TODO (after MVP): add protobuf data parsing
 		case 0x3:
 			dataString = ParseStateDumpObject(statedump.Data, statedump.TitleName)
 		default:

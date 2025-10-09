@@ -124,13 +124,12 @@ func ParseCatalogChunk(data []byte) (models.CatalogChunk, []byte, error) {
 		catalogProcessInfoEntries[key] = entry
 	}
 
-	// // Calculate position to start parsing subchunks
-	// // The catalogOffsetSubChunks is relative to the start of chunk data (after preamble)
-	// // Add 24-byte padding to account for alignment between catalog header and subchunks
+	// Calculate position to start parsing subchunks
+	// The catalogOffsetSubChunks is relative to the start of chunk data (after preamble)
+	// Add 24-byte padding to account for alignment between catalog header and subchunks
 	preambleSize := 16 // LogPreamble size
 	chunkDataStart := originalData[preambleSize:]
 	paddingSize := 24
-	// data, _, _ = helpers.Take(data, 4)
 	data = chunkDataStart[catalogOffsetSubChunks+uint16(paddingSize):]
 
 	var catalogSubchunks []models.CatalogSubchunk
