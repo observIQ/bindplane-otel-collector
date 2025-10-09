@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -148,6 +149,7 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 
 	// Process each catalog data entry
 	for i, catalogData := range logDataResults.CatalogData {
+		fmt.Println("Processing catalog data", i)
 		// Create a local copy to avoid memory aliasing issues
 		localCatalogData := catalogData
 		catalogFirehoseData, err := c.processFirehoseData(logDataResults, &localCatalogData, i)
@@ -178,6 +180,7 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 			for k, firehoseEntry := range firehosePreamble.PublicData {
 				// Create a single log record for each firehose entry
 				logRecord := otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				logRecord.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
 				if len(firehoseEntry.Message.ItemInfo) > 0 {
 					logRecord.Body().SetStr(firehoseEntry.Message.ItemInfo[0].MessageStrings)
 				} else {
@@ -203,12 +206,12 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 				}
 				logRecord.Attributes().PutStr("library", catalogFirehoseData[k].Library)
 				logRecord.Attributes().PutStr("library_uuid", catalogFirehoseData[k].LibraryUUID)
-				logRecord.Attributes().PutStr("process", catalogFirehoseData[k].Process)
 			}
 		}
 
 		for simpledumpIndex, simpledump := range catalogData.SimpledumpData {
 			logRecord := otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+			logRecord.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
 			logRecord.Body().SetStr(simpledump.MessageString)
 			logRecord.SetTimestamp(pcommon.NewTimestampFromTime(catalogSimpleDumpData[simpledumpIndex].Timestamp))
 			logRecord.Attributes().PutStr("timestamp", catalogSimpleDumpData[simpledumpIndex].Timestamp.Format("2006-01-02T15:04:05.000000000Z"))
@@ -226,6 +229,7 @@ func (c *macosUnifiedLoggingCodec) UnmarshalLogs(buf []byte) (plog.Logs, error) 
 		}
 		for statedumpIndex, statedump := range catalogData.StatedumpData {
 			logRecord := otelLogs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+			logRecord.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
 			logRecord.Body().SetStr(string(statedump.Data))
 			logRecord.SetTimestamp(pcommon.NewTimestampFromTime(catalogStatedumpData[statedumpIndex].Timestamp))
 			logRecord.Attributes().PutStr("timestamp", catalogStatedumpData[statedumpIndex].Timestamp.Format("2006-01-02T15:04:05.000000000Z"))
