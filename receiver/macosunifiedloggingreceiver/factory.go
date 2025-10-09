@@ -40,13 +40,12 @@ func NewFactory() receiver.Factory {
 func createDefaultConfig() component.Config {
 	return &Config{
 		TraceV3Paths: []string{
-			"/var/db/diagnostics/tracev3/Persist/*",
-			"/var/db/diagnostics/tracev3/Special/*",
-			"/var/db/diagnostics/tracev3/HighVolume/*",
-			"/var/db/diagnostics/tracev3/SignPost/*",
+			"/var/db/diagnostics/*/*.tracev3",
 		},
 		TimesyncPaths: []string{"/var/db/diagnostics/timesync/*"},
-		UUIDTextPaths: []string{"/var/db/uuidtext/*"},
+		UUIDTextPaths: []string{"/var/db/uuidtext/[0-9A-F][0-9A-F]/*"},
+		DSCPaths:      []string{"/var/db/uuidtext/dsc/*"},
+
 		BaseConfig: adapter.BaseConfig{
 			Operators: []operator.Config{},
 		},

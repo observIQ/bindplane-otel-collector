@@ -20,10 +20,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 )
 
-// StateDump represents a Statedump log entry (also known as a "stateEvent" type of log entry)
-type StateDump struct {
+// StatedumpChunk represents a Statedump log entry (also known as a "stateEvent" type of log entry)
+type StatedumpChunk struct {
 	ChunkTag        uint32
 	ChunkSubtag     uint32
 	ChunkDataSize   uint64
@@ -43,13 +45,14 @@ type StateDump struct {
 }
 
 // ParseStateDump parses a Statedump log entry. Statedumps are special log entries that may contain a plist file, custom object, or protocol buffer
-func ParseStateDump(data []byte) (*StateDump, error) {
+func ParseStateDump(data []byte) (*StatedumpChunk, error) {
+	var err error
 	if len(data) < 72 { // Minimum size for basic structure
 		return nil, fmt.Errorf("statedump data too small: %d bytes", len(data))
 	}
 
 	reader := bytes.NewReader(data)
-	result := &StateDump{}
+	result := &StatedumpChunk{}
 
 	// Parse the header fields
 	if err := binary.Read(reader, binary.LittleEndian, &result.ChunkTag); err != nil {
@@ -114,13 +117,17 @@ func ParseStateDump(data []byte) (*StateDump, error) {
 		if _, err := reader.Read(libraryData); err != nil {
 			return nil, fmt.Errorf("failed to read library data: %w", err)
 		}
-		result.DecoderLibrary = extractString(libraryData)
+		if result.DecoderLibrary, err = helpers.ExtractString(libraryData); err != nil {
+			return nil, fmt.Errorf("failed to extract library data: %w", err)
+		}
 
 		typeData := make([]byte, stringSize)
 		if _, err := reader.Read(typeData); err != nil {
 			return nil, fmt.Errorf("failed to read type data: %w", err)
 		}
-		result.DecoderType = extractString(typeData)
+		if result.DecoderType, err = helpers.ExtractString(typeData); err != nil {
+			return nil, fmt.Errorf("failed to extract type data: %w", err)
+		}
 	}
 
 	// Read title data
@@ -128,7 +135,10 @@ func ParseStateDump(data []byte) (*StateDump, error) {
 	if _, err := reader.Read(titleData); err != nil {
 		return nil, fmt.Errorf("failed to read title data: %w", err)
 	}
-	result.TitleName = extractString(titleData)
+	result.TitleName, err = helpers.ExtractString(titleData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract title data: %w", err)
+	}
 
 	// Read the actual statedump data
 	if result.UnknownDataSize > 0 {
@@ -174,13 +184,12 @@ func formatUUID(uuidBytes []byte) string {
 		return hex.EncodeToString(uuidBytes)
 	}
 
-	// Format as uppercase hex string without dashes using big-endian for proper UUID formatting
-	return fmt.Sprintf("%08X%04X%04X%04X%012X",
-		binary.BigEndian.Uint32(uuidBytes[0:4]),
-		binary.BigEndian.Uint16(uuidBytes[4:6]),
-		binary.BigEndian.Uint16(uuidBytes[6:8]),
-		binary.BigEndian.Uint16(uuidBytes[8:10]),
-		uuidBytes[10:16])
+	// Format as uppercase hex string without dashes using big-endian for consistency with other UUID parsing
+	return fmt.Sprintf("%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+		uuidBytes[0], uuidBytes[1], uuidBytes[2], uuidBytes[3],
+		uuidBytes[4], uuidBytes[5], uuidBytes[6], uuidBytes[7],
+		uuidBytes[8], uuidBytes[9], uuidBytes[10], uuidBytes[11],
+		uuidBytes[12], uuidBytes[13], uuidBytes[14], uuidBytes[15])
 }
 
 // encodeStandard provides hex encoding for unsupported objects
@@ -317,34 +326,9 @@ func getNetworkInterface(data []byte) string {
 	return fmt.Sprintf("Network information data (%d bytes): %x", len(data), data)
 }
 
-// ParseStatedumpChunk parses a Statedump chunk (0x6003) containing system state information
-func ParseStatedumpChunk(data []byte, entry *TraceV3Entry) {
-	statedump, err := ParseStateDump(data)
-	if err != nil {
-		entry.Message = fmt.Sprintf("Failed to parse statedump: %v", err)
-		entry.Level = "Error"
-		return
-	}
-
-	var message string
-	switch statedump.UnknownDataType {
-	case 1: // plist
-		message = ParseStateDumpPlist(statedump.Data)
-	case 3: // custom object
-		message = ParseStateDumpObject(statedump.Data, statedump.TitleName)
-	default:
-		message = fmt.Sprintf("Unknown statedump type %d: %x", statedump.UnknownDataType, statedump.Data)
-	}
-
-	entry.Message = fmt.Sprintf("Statedump [%s]: %s", statedump.TitleName, message)
-	entry.Level = "Debug"
-	entry.Subsystem = "com.apple.statedump"
-	entry.Category = statedump.TitleName
-}
-
 // StatedumpCollection represents a collection of statedumps loaded from tracev3 files
 type StatedumpCollection struct {
-	Statedumps []StateDump
+	Statedumps []StatedumpChunk
 	BootUUID   string
 	Timestamp  uint64
 }

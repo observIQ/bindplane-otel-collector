@@ -10,11 +10,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/helpers"
 	"github.com/stretchr/testify/require"
 )
 
 func TestParseStateDump(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join("testdata", "statedump", "statedump_test_plist.bin"))
+	data, err := os.ReadFile(filepath.Join("testdata", "statedump_test_plist.bin"))
 	require.NoError(t, err)
 
 	statedump, err := ParseStateDump(data)
@@ -38,7 +39,7 @@ func TestParseStateDump(t *testing.T) {
 }
 
 func TestParseStateDumpCustomObject(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join("testdata", "statedump", "statedump_test_valid.bin"))
+	data, err := os.ReadFile(filepath.Join("testdata", "statedump_test_valid.bin"))
 	require.NoError(t, err)
 
 	statedump, err := ParseStateDump(data)
@@ -59,7 +60,7 @@ func TestParseStateDumpCustomObject(t *testing.T) {
 }
 
 func TestLoadStatedumpsFromTraceV3(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join("testdata", "statedump", "test_tracev3_with_statedumps.tracev3"))
+	data, err := os.ReadFile(filepath.Join("testdata", "test_tracev3_with_statedumps.tracev3"))
 	require.NoError(t, err)
 
 	collection, err := loadStatedumpsFromTracev3(data)
@@ -85,7 +86,7 @@ func TestParseStateDumpErrors(t *testing.T) {
 }
 
 func TestExpectedStructsFromTestData(t *testing.T) {
-	plistData, err := os.ReadFile(filepath.Join("testdata", "statedump", "statedump_test_plist.bin"))
+	plistData, err := os.ReadFile(filepath.Join("testdata", "statedump_test_plist.bin"))
 	require.NoError(t, err)
 
 	plistSD, err := ParseStateDump(plistData)
@@ -104,7 +105,7 @@ func TestExpectedStructsFromTestData(t *testing.T) {
 	}
 
 	// Test custom object statedump parsing
-	customData, err := os.ReadFile(filepath.Join("testdata", "statedump", "statedump_test_valid.bin"))
+	customData, err := os.ReadFile(filepath.Join("testdata", "statedump_test_valid.bin"))
 	require.NoError(t, err)
 
 	customSD, err := ParseStateDump(customData)
@@ -126,7 +127,7 @@ func TestExpectedStructsFromTestData(t *testing.T) {
 	}
 
 	// Test TraceV3 collection parsing
-	tracev3Data, err := os.ReadFile(filepath.Join("testdata", "statedump", "test_tracev3_with_statedumps.tracev3"))
+	tracev3Data, err := os.ReadFile(filepath.Join("testdata", "test_tracev3_with_statedumps.tracev3"))
 	require.NoError(t, err)
 
 	collection, err := loadStatedumpsFromTracev3(tracev3Data)
@@ -245,24 +246,29 @@ func TestParseStateDumpObject(t *testing.T) {
 }
 
 func loadStatedumpsFromTracev3(data []byte) (*StatedumpCollection, error) {
+
 	if len(data) == 0 {
 		return nil, fmt.Errorf("empty tracev3 data")
 	}
 
+	var headerChunk *HeaderChunk
+	var err error
+
 	// Parse the header first to get boot UUID and timing info
-	header, headerSize, err := ParseTraceV3Header(data)
+
+	headerChunk, err = ParseHeaderChunk(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse tracev3 header: %w", err)
 	}
 
 	collection := &StatedumpCollection{
-		Statedumps: make([]StateDump, 0),
-		BootUUID:   header.BootUUID,
-		Timestamp:  header.ContinuousTime,
+		Statedumps: make([]StatedumpChunk, 0),
+		BootUUID:   headerChunk.BootUUID,
+		Timestamp:  headerChunk.ContinuousTime,
 	}
 
 	// Parse data section for statedump chunks
-	remainingData := data[headerSize:]
+	remainingData := data[headerChunk.ChunkDataSize:]
 	offset := 0
 	const chunkPreambleSize = 16
 
@@ -297,7 +303,7 @@ func loadStatedumpsFromTracev3(data []byte) (*StatedumpCollection, error) {
 		}
 
 		// Move to next chunk with 8-byte alignment padding
-		offset += totalChunkSize + int(paddingSize8(chunkDataSize))
+		offset += totalChunkSize + int(helpers.PaddingSize(chunkDataSize, 8))
 
 		// Safety limit
 		if len(collection.Statedumps) >= 1000 {

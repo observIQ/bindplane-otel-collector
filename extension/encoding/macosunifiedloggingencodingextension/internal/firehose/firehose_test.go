@@ -16,39 +16,71 @@ package firehose
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
+
+func TestParseFirehosePreamble_PrivatePublicValues(t *testing.T) {
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filePath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Chunkset Tests", "private_public_data.raw")
+
+	data, err := os.ReadFile(filePath)
+	require.NoError(t, err)
+
+	results, _, err := ParseFirehosePreamble(data)
+	require.NoError(t, err)
+
+	require.Equal(t, 51, len(results.PublicData))
+	privatePublicStringCount := 0
+	for _, entries := range results.PublicData {
+		for _, firehoseEntries := range entries.Message.ItemInfo {
+			if firehoseEntries.MessageStrings == "EMAIL_PRIVATE_LINK_MENU_TITLE" || firehoseEntries.MessageStrings == "Send private link by email …" {
+				privatePublicStringCount++
+			}
+		}
+	}
+
+	// EMAIL_PRIVATE_LINK_MENU_TITLE is a private string
+	// Send private link by email … is a public string
+	// both in same log entry
+	require.Equal(t, 2, privatePublicStringCount)
+}
 
 func TestParseFirehosePreamble(t *testing.T) {
 	parsedFirehosePreamble, data, err := ParseFirehosePreamble(firehosePreambleTestData)
 	require.NoError(t, err)
-	require.Equal(t, uint32(0x6001), parsedFirehosePreamble.chunkTag)
+	require.Equal(t, uint32(0x6001), parsedFirehosePreamble.ChunkTag)
 	require.Equal(t, uint32(0), parsedFirehosePreamble.chunkSubTag)
 	require.Equal(t, uint64(4032), parsedFirehosePreamble.chunkDataSize)
-	require.Equal(t, uint64(483), parsedFirehosePreamble.firstProcID)
-	require.Equal(t, uint32(1123), parsedFirehosePreamble.secondProcID)
+	require.Equal(t, uint64(483), parsedFirehosePreamble.FirstProcID)
+	require.Equal(t, uint32(1123), parsedFirehosePreamble.SecondProcID)
 	require.Equal(t, uint8(0), parsedFirehosePreamble.collapsed)
 	require.Equal(t, uint8(0), parsedFirehosePreamble.ttl)
 	require.Equal(t, []byte{0, 0}, parsedFirehosePreamble.unknown)
-	require.Equal(t, uint16(4016), parsedFirehosePreamble.publicDataSize)
-	require.Equal(t, uint16(4096), parsedFirehosePreamble.privateDataVirtualOffset)
+	require.Equal(t, uint16(4016), parsedFirehosePreamble.PublicDataSize)
+	require.Equal(t, uint16(4096), parsedFirehosePreamble.PrivateDataVirtualOffset)
 	require.Equal(t, uint16(0), parsedFirehosePreamble.unknown2)
 	require.Equal(t, uint16(768), parsedFirehosePreamble.unknown3)
-	require.Equal(t, uint64(4197166166425), parsedFirehosePreamble.baseContinuousTime)
+	require.Equal(t, uint64(4197166166425), parsedFirehosePreamble.BaseContinuousTime)
 
-	resultCount := len(parsedFirehosePreamble.publicData)
+	resultCount := len(parsedFirehosePreamble.PublicData)
 	for len(data) > 0 {
 		parsedFirehosePreamble, data, err = ParseFirehosePreamble(data)
 		require.NoError(t, err)
-		resultCount += len(parsedFirehosePreamble.publicData)
+		resultCount += len(parsedFirehosePreamble.PublicData)
 	}
 	require.Equal(t, 371, resultCount)
 }
 
 func TestParseFirehoseEntry(t *testing.T) {
-	parsedFirehose, _, err := ParseFirehoseEntry(firehoseEntryTestData)
+	var parsedFirehose Entry
+	var err error
+
+	parsedFirehose, _, err = ParseFirehoseEntry(firehoseEntryTestData)
 	require.NoError(t, err)
 	require.Equal(t, uint8(4), parsedFirehose.ActivityType)
 	require.Equal(t, uint8(0), parsedFirehose.LogType)
@@ -91,8 +123,6 @@ func TestParseItemString(t *testing.T) {
 }
 
 func TestGetBacktraceData(t *testing.T) {
-	// Not sure why, but the offsets don't match the rust test's expected offsets
-	// TODO: Investigate why the offsets don't match
 	_, backtraceData, _ := GetBacktraceData(firehoseBacktraceTestData)
 	require.Equal(t, 19, len(backtraceData))
 	require.Equal(t, []string{
@@ -121,12 +151,12 @@ func TestGetBacktraceData(t *testing.T) {
 func TestParseFirehosePrivateDataZero(t *testing.T) {
 	parsedFirehosePreamble, _, err := ParseFirehosePreamble(firehosePrivateDataZeroTestData)
 	require.NoError(t, err)
-	require.Equal(t, uint16(4094), parsedFirehosePreamble.privateDataVirtualOffset)
-	require.Equal(t, uint64(1189179), parsedFirehosePreamble.firstProcID)
-	require.Equal(t, uint32(2685254), parsedFirehosePreamble.secondProcID)
-	require.Equal(t, uint64(2686068189033091), parsedFirehosePreamble.baseContinuousTime)
-	require.Equal(t, uint16(664), parsedFirehosePreamble.publicDataSize)
-	require.Equal(t, 10, len(parsedFirehosePreamble.publicData))
+	require.Equal(t, uint16(4094), parsedFirehosePreamble.PrivateDataVirtualOffset)
+	require.Equal(t, uint64(1189179), parsedFirehosePreamble.FirstProcID)
+	require.Equal(t, uint32(2685254), parsedFirehosePreamble.SecondProcID)
+	require.Equal(t, uint64(2686068189033091), parsedFirehosePreamble.BaseContinuousTime)
+	require.Equal(t, uint16(664), parsedFirehosePreamble.PublicDataSize)
+	require.Equal(t, 10, len(parsedFirehosePreamble.PublicData))
 	require.Equal(t, uint8(1), parsedFirehosePreamble.collapsed)
 }
 
@@ -220,26 +250,26 @@ func TestParseFirehosePrivateNumberString(t *testing.T) {
 func TestParseFirehoseHeaderContinuousTimeZero(t *testing.T) {
 	firehosePreamble, data, err := ParseFirehosePreamble(firehoseHeaderContinuousTimeZeroTestData)
 	require.NoError(t, err)
-	require.Equal(t, uint32(0x6001), firehosePreamble.chunkTag)
+	require.Equal(t, uint32(0x6001), firehosePreamble.ChunkTag)
 	require.Equal(t, uint32(0), firehosePreamble.chunkSubTag)
 	require.Equal(t, uint64(4104), firehosePreamble.chunkDataSize)
-	require.Equal(t, uint64(59), firehosePreamble.firstProcID)
-	require.Equal(t, uint32(60), firehosePreamble.secondProcID)
+	require.Equal(t, uint64(59), firehosePreamble.FirstProcID)
+	require.Equal(t, uint32(60), firehosePreamble.SecondProcID)
 	require.Equal(t, uint8(0), firehosePreamble.ttl)
 	require.Equal(t, uint8(0), firehosePreamble.collapsed)
 	require.Equal(t, []byte{0, 0}, firehosePreamble.unknown)
-	require.Equal(t, uint16(4088), firehosePreamble.publicDataSize)
-	require.Equal(t, uint16(4096), firehosePreamble.privateDataVirtualOffset)
+	require.Equal(t, uint16(4088), firehosePreamble.PublicDataSize)
+	require.Equal(t, uint16(4096), firehosePreamble.PrivateDataVirtualOffset)
 	require.Equal(t, uint16(4096), firehosePreamble.unknown2)
 	require.Equal(t, uint16(768), firehosePreamble.unknown3)
-	require.Equal(t, uint64(0), firehosePreamble.baseContinuousTime)
+	require.Equal(t, uint64(0), firehosePreamble.BaseContinuousTime)
 
-	resultCount := len(firehosePreamble.publicData)
+	resultCount := len(firehosePreamble.PublicData)
 	for len(data) > 0 {
 		firehosePublicData, firehoseInput, err := ParseFirehosePreamble(data)
 		require.NoError(t, err)
 		data = firehoseInput
-		resultCount += len(firehosePublicData.publicData)
+		resultCount += len(firehosePublicData.PublicData)
 	}
 	require.Equal(t, 66, resultCount)
 }
@@ -247,47 +277,47 @@ func TestParseFirehoseHeaderContinuousTimeZero(t *testing.T) {
 func TestParseFirehosePreambleHasPrivateStringsBigSur(t *testing.T) {
 	firehosePreamble, _, err := ParseFirehosePreamble(firehosePreambleHasPrivateStringsBigSurTestData)
 	require.NoError(t, err)
-	require.Equal(t, uint32(0x6001), firehosePreamble.chunkTag)
+	require.Equal(t, uint32(0x6001), firehosePreamble.ChunkTag)
 	require.Equal(t, uint32(0), firehosePreamble.chunkSubTag)
 	require.Equal(t, uint64(163), firehosePreamble.chunkDataSize)
-	require.Equal(t, uint64(143), firehosePreamble.firstProcID)
-	require.Equal(t, uint32(356), firehosePreamble.secondProcID)
+	require.Equal(t, uint64(143), firehosePreamble.FirstProcID)
+	require.Equal(t, uint32(356), firehosePreamble.SecondProcID)
 	require.Equal(t, uint8(1), firehosePreamble.collapsed)
 	require.Equal(t, uint8(0), firehosePreamble.ttl)
 	require.Equal(t, []byte{0, 0}, firehosePreamble.unknown)
-	require.Equal(t, uint16(56), firehosePreamble.publicDataSize)
-	require.Equal(t, uint16(4005), firehosePreamble.privateDataVirtualOffset)
+	require.Equal(t, uint16(56), firehosePreamble.PublicDataSize)
+	require.Equal(t, uint16(4005), firehosePreamble.PrivateDataVirtualOffset)
 	require.Equal(t, uint16(0), firehosePreamble.unknown2)
 	require.Equal(t, uint16(512), firehosePreamble.unknown3)
-	require.Equal(t, uint64(0), firehosePreamble.baseContinuousTime)
+	require.Equal(t, uint64(0), firehosePreamble.BaseContinuousTime)
 
-	require.Equal(t, 1, len(firehosePreamble.publicData))
-	require.Equal(t, uint8(4), firehosePreamble.publicData[0].ActivityType)
-	require.Equal(t, uint8(0), firehosePreamble.publicData[0].LogType)
-	require.Equal(t, uint16(258), firehosePreamble.publicData[0].Flags)
-	require.Equal(t, uint32(16144), firehosePreamble.publicData[0].FormatStringLocation)
-	require.Equal(t, uint64(957), firehosePreamble.publicData[0].ThreadID)
-	require.Equal(t, uint16(1), firehosePreamble.publicData[0].ContinousTimeDeltaUpper)
-	require.Equal(t, uint32(478486415), firehosePreamble.publicData[0].ContinousTimeDelta)
-	require.Equal(t, uint16(16), firehosePreamble.publicData[0].DataSize)
+	require.Equal(t, 1, len(firehosePreamble.PublicData))
+	require.Equal(t, uint8(4), firehosePreamble.PublicData[0].ActivityType)
+	require.Equal(t, uint8(0), firehosePreamble.PublicData[0].LogType)
+	require.Equal(t, uint16(258), firehosePreamble.PublicData[0].Flags)
+	require.Equal(t, uint32(16144), firehosePreamble.PublicData[0].FormatStringLocation)
+	require.Equal(t, uint64(957), firehosePreamble.PublicData[0].ThreadID)
+	require.Equal(t, uint16(1), firehosePreamble.PublicData[0].ContinousTimeDeltaUpper)
+	require.Equal(t, uint32(478486415), firehosePreamble.PublicData[0].ContinousTimeDelta)
+	require.Equal(t, uint16(16), firehosePreamble.PublicData[0].DataSize)
 
-	require.Equal(t, uint32(0), firehosePreamble.publicData[0].FirehoseNonActivity.UnknownActivityID)
-	require.Equal(t, uint32(0), firehosePreamble.publicData[0].FirehoseNonActivity.UnknownSentinel)
-	require.Equal(t, uint16(4005), firehosePreamble.publicData[0].FirehoseNonActivity.PrivateStringsOffset)
-	require.Equal(t, uint16(91), firehosePreamble.publicData[0].FirehoseNonActivity.PrivateStringsSize)
-	require.Equal(t, uint32(0), firehosePreamble.publicData[0].FirehoseNonActivity.UnknownMessageStringRef)
-	require.Equal(t, uint16(0), firehosePreamble.publicData[0].FirehoseNonActivity.SubsystemValue)
-	require.Equal(t, uint8(0), firehosePreamble.publicData[0].FirehoseNonActivity.TTLValue)
-	require.Equal(t, uint32(0), firehosePreamble.publicData[0].FirehoseNonActivity.DataRefValue)
-	require.Equal(t, uint32(14968), firehosePreamble.publicData[0].FirehoseNonActivity.UnknownPCID)
+	require.Equal(t, uint32(0), firehosePreamble.PublicData[0].FirehoseNonActivity.UnknownActivityID)
+	require.Equal(t, uint32(0), firehosePreamble.PublicData[0].FirehoseNonActivity.UnknownSentinel)
+	require.Equal(t, uint16(4005), firehosePreamble.PublicData[0].FirehoseNonActivity.PrivateStringsOffset)
+	require.Equal(t, uint16(91), firehosePreamble.PublicData[0].FirehoseNonActivity.PrivateStringsSize)
+	require.Equal(t, uint32(0), firehosePreamble.PublicData[0].FirehoseNonActivity.UnknownMessageStringRef)
+	require.Equal(t, uint16(0), firehosePreamble.PublicData[0].FirehoseNonActivity.SubsystemValue)
+	require.Equal(t, uint8(0), firehosePreamble.PublicData[0].FirehoseNonActivity.TTLValue)
+	require.Equal(t, uint32(0), firehosePreamble.PublicData[0].FirehoseNonActivity.DataRefValue)
+	require.Equal(t, uint32(14968), firehosePreamble.PublicData[0].FirehoseNonActivity.UnknownPCID)
 
-	require.True(t, firehosePreamble.publicData[0].FirehoseNonActivity.FirehoseFormatters.MainExe)
-	require.False(t, firehosePreamble.publicData[0].FirehoseNonActivity.FirehoseFormatters.SharedCache)
-	require.Equal(t, uint16(0), firehosePreamble.publicData[0].FirehoseNonActivity.FirehoseFormatters.HasLargeOffset)
-	require.Equal(t, uint16(0), firehosePreamble.publicData[0].FirehoseNonActivity.FirehoseFormatters.LargeSharedCache)
-	require.False(t, firehosePreamble.publicData[0].FirehoseNonActivity.FirehoseFormatters.Absolute)
-	require.Equal(t, "", firehosePreamble.publicData[0].FirehoseNonActivity.FirehoseFormatters.UUIDRelative)
-	require.Equal(t, uint16(0), firehosePreamble.publicData[0].FirehoseNonActivity.FirehoseFormatters.MainExeAltIndex)
+	require.True(t, firehosePreamble.PublicData[0].FirehoseNonActivity.FirehoseFormatters.MainExe)
+	require.False(t, firehosePreamble.PublicData[0].FirehoseNonActivity.FirehoseFormatters.SharedCache)
+	require.Equal(t, uint16(0), firehosePreamble.PublicData[0].FirehoseNonActivity.FirehoseFormatters.HasLargeOffset)
+	require.Equal(t, uint16(0), firehosePreamble.PublicData[0].FirehoseNonActivity.FirehoseFormatters.LargeSharedCache)
+	require.False(t, firehosePreamble.PublicData[0].FirehoseNonActivity.FirehoseFormatters.Absolute)
+	require.Equal(t, "", firehosePreamble.PublicData[0].FirehoseNonActivity.FirehoseFormatters.UUIDRelative)
+	require.Equal(t, uint16(0), firehosePreamble.PublicData[0].FirehoseNonActivity.FirehoseFormatters.MainExeAltIndex)
 }
 
 var firehosePreambleHasPrivateStringsBigSurTestData = []byte{

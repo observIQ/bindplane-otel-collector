@@ -15,35 +15,214 @@
 package macosunifiedloggingencodingextension
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	testutil "github.com/observiq/bindplane-otel-collector/extension/encoding/macosunifiedloggingencodingextension/internal/testutil"
 )
 
 func TestParseChunkset(t *testing.T) {
-	parsedChunkset, _, err := parseChunkset(chunksetTestData)
+	parsedChunkset, _, err := ParseChunkset(chunksetTestData)
 	require.NoError(t, err)
-	require.Equal(t, parsedChunkset.ChunkTag, uint32(0x600d))
-	require.Equal(t, parsedChunkset.ChunkSubtag, uint32(17))
-	require.Equal(t, parsedChunkset.ChunkDataSize, uint64(21703))
-	require.Equal(t, parsedChunkset.Signature, uint32(825521762))
-	require.Equal(t, parsedChunkset.UncompressedSize, uint32(63560))
-	require.Equal(t, parsedChunkset.BlockSize, uint32(21687))
-	require.Equal(t, len(parsedChunkset.DecompressedData), 63560)
-	require.Equal(t, parsedChunkset.Footer, uint32(607417954))
+	require.Equal(t, uint32(0x600d), parsedChunkset.ChunkTag)
+	require.Equal(t, uint32(17), parsedChunkset.ChunkSubtag)
+	require.Equal(t, uint64(21703), parsedChunkset.ChunkDataSize)
+	require.Equal(t, uint32(825521762), parsedChunkset.Signature)
+	require.Equal(t, uint32(63560), parsedChunkset.UncompressedSize)
+	require.Equal(t, uint32(21687), parsedChunkset.BlockSize)
+	require.Equal(t, 63560, len(parsedChunkset.DecompressedData))
+	require.Equal(t, uint32(607417954), parsedChunkset.Footer)
 }
 
 func TestChunksetWithOversize(t *testing.T) {
-	parsedChunkset, _, err := parseChunkset(chunksetWithOversizeTestData)
+	parsedChunkset, _, err := ParseChunkset(chunksetWithOversizeTestData)
 	require.NoError(t, err)
-	require.Equal(t, parsedChunkset.ChunkTag, uint32(0x600d))
-	require.Equal(t, parsedChunkset.ChunkSubtag, uint32(17))
-	require.Equal(t, parsedChunkset.ChunkDataSize, uint64(20758))
-	require.Equal(t, parsedChunkset.Signature, uint32(825521762))
-	require.Equal(t, parsedChunkset.UncompressedSize, uint32(62592))
-	require.Equal(t, parsedChunkset.BlockSize, uint32(20742))
-	require.Equal(t, len(parsedChunkset.DecompressedData), 62592)
-	require.Equal(t, parsedChunkset.Footer, uint32(607417954))
+	require.Equal(t, uint32(0x600d), parsedChunkset.ChunkTag)
+	require.Equal(t, uint32(17), parsedChunkset.ChunkSubtag)
+	require.Equal(t, uint64(20758), parsedChunkset.ChunkDataSize)
+	require.Equal(t, uint32(825521762), parsedChunkset.Signature)
+	require.Equal(t, uint32(62592), parsedChunkset.UncompressedSize)
+	require.Equal(t, uint32(20742), parsedChunkset.BlockSize)
+	require.Equal(t, 62592, len(parsedChunkset.DecompressedData))
+	require.Equal(t, uint32(607417954), parsedChunkset.Footer)
+}
+
+func TestParseChunksetData(t *testing.T) {
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filepath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Chunkset Tests", "big_sur_chunkset.raw")
+
+	data, err := os.ReadFile(filepath)
+	require.NoError(t, err)
+
+	// Create a mock catalog data for testing
+	ulData := &UnifiedLogCatalogData{}
+
+	// Adjust signature if your UnmarshalLogs needs context, etc.
+	err = ParseChunksetData(data, ulData)
+	require.Nil(t, err)
+
+	require.Equal(t, uint32(0), ulData.CatalogData.ChunkTag)
+	require.Equal(t, 26, len(ulData.FirehoseData))
+	require.Equal(t, 0, len(ulData.StatedumpData))
+	require.Equal(t, 0, len(ulData.SimpledumpData))
+	require.Equal(t, 0, len(ulData.OversizeData))
+
+	require.Equal(t, "796.100", ulData.FirehoseData[0].PublicData[0].Message.ItemInfo[0].MessageStrings)
+
+	require.Equal(t, uint64(0), ulData.FirehoseData[0].BaseContinuousTime)
+	require.Equal(t, uint64(105), ulData.FirehoseData[0].FirstProcID)
+	require.Equal(t, uint32(236), ulData.FirehoseData[0].SecondProcID)
+	require.Equal(t, uint16(3936), ulData.FirehoseData[0].PublicDataSize)
+	require.Equal(t, uint16(4096), ulData.FirehoseData[0].PrivateDataVirtualOffset)
+}
+
+func TestParseFirehoseChunkset(t *testing.T) {
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filepath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Chunkset Tests", "big_sur_firehose_chunkset.raw")
+
+	data, err := os.ReadFile(filepath)
+	require.NoError(t, err)
+
+	// Create a mock catalog data for testing
+	ulData := &UnifiedLogCatalogData{}
+
+	// Adjust signature if your UnmarshalLogs needs context, etc.
+	err = ParseChunksetData(data, ulData)
+	require.Nil(t, err)
+
+	// TODO: Does the chunk tag go on CatalogData or FirehoseData?
+	// require.Equal(t, uint32(0), ulData.FirehoseData[0].ChunkTag)
+	require.Equal(t, uint32(0), ulData.CatalogData.ChunkTag)
+	require.Equal(t, 1, len(ulData.FirehoseData))
+	require.Equal(t, 0, len(ulData.StatedumpData))
+	require.Equal(t, 0, len(ulData.SimpledumpData))
+	require.Equal(t, 0, len(ulData.OversizeData))
+
+	require.Equal(t, "796.100", ulData.FirehoseData[0].PublicData[0].Message.ItemInfo[0].MessageStrings)
+
+	require.Equal(t, uint64(0), ulData.FirehoseData[0].BaseContinuousTime)
+	require.Equal(t, uint64(105), ulData.FirehoseData[0].FirstProcID)
+	require.Equal(t, uint32(236), ulData.FirehoseData[0].SecondProcID)
+	require.Equal(t, uint16(3936), ulData.FirehoseData[0].PublicDataSize)
+	require.Equal(t, uint16(4096), ulData.FirehoseData[0].PrivateDataVirtualOffset)
+}
+
+func TestParseOversizeChunkset(t *testing.T) {
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filepath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Chunkset Tests", "big_sur_oversize_chunkset.raw")
+
+	data, err := os.ReadFile(filepath)
+	require.NoError(t, err)
+
+	// Create a mock catalog data for testing
+	ulData := &UnifiedLogCatalogData{}
+
+	// Adjust signature if your UnmarshalLogs needs context, etc.
+	err = ParseChunksetData(data, ulData)
+	require.Nil(t, err)
+
+	// TODO: Does the chunk tag go on CatalogData or OversizeData?
+	// require.Equal(t, uint32(0), ulData.OversizeData[0].ChunkTag)
+	require.Equal(t, uint32(0), ulData.CatalogData.ChunkTag)
+	require.Equal(t, 1, len(ulData.OversizeData))
+	require.Equal(t, 0, len(ulData.FirehoseData))
+	require.Equal(t, 0, len(ulData.StatedumpData))
+	require.Equal(t, 0, len(ulData.SimpledumpData))
+
+	require.Equal(t, "system kext collection", ulData.OversizeData[0].MessageItems.ItemInfo[0].MessageStrings)
+	require.Equal(t, uint8(34), ulData.OversizeData[0].MessageItems.ItemInfo[0].ItemType)
+
+	require.Equal(t, uint64(5609252490), ulData.OversizeData[0].ContinuousTime)
+	require.Equal(t, uint64(96), ulData.OversizeData[0].FirstProcID)
+	require.Equal(t, uint32(245), ulData.OversizeData[0].SecondProcID)
+	require.Equal(t, uint16(1092), ulData.OversizeData[0].PublicDataSize)
+	require.Equal(t, uint16(0), ulData.OversizeData[0].PrivateDataSize)
+}
+
+func TestParseStatedumpChunkset(t *testing.T) {
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filepath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Chunkset Tests", "big_sur_statedump_chunkset.raw")
+
+	data, err := os.ReadFile(filepath)
+	require.NoError(t, err)
+
+	// Create a mock catalog data for testing
+	ulData := &UnifiedLogCatalogData{}
+
+	// Adjust signature if your UnmarshalLogs needs context, etc.
+	err = ParseChunksetData(data, ulData)
+	require.Nil(t, err)
+
+	// TODO: Does the chunk tag go on CatalogData or Statedump?
+	// require.Equal(t, uint32(0), ulData.StatedumpData[0][0].ChunkTag)
+	require.Equal(t, uint32(0), ulData.CatalogData.ChunkTag)
+	require.Equal(t, 1, len(ulData.StatedumpData))
+	require.Equal(t, 0, len(ulData.OversizeData))
+	require.Equal(t, 0, len(ulData.FirehoseData))
+	require.Equal(t, 0, len(ulData.SimpledumpData))
+
+	require.Equal(t, "CLDaemonStatusStateTracker", ulData.StatedumpData[0].TitleName)
+	require.Equal(t, []byte{
+		0, 0, 0, 0, 0, 0, 240, 191,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 2, 0,
+		0, 0, 255, 255, 255, 255, 0,
+		0, 0, 0, 0, 0, 0, 0}, ulData.StatedumpData[0].Data,
+	)
+
+	require.Equal(t, "_CLDaemonStatusStateTrackerState", ulData.StatedumpData[0].DecoderType)
+	require.Equal(t, "location", ulData.StatedumpData[0].DecoderLibrary)
+	require.Equal(t, uint64(3906319117), ulData.StatedumpData[0].ContinuousTime)
+	require.Equal(t, uint64(113), ulData.StatedumpData[0].FirstProcID)
+	require.Equal(t, uint32(464), ulData.StatedumpData[0].SecondProcID)
+	require.Equal(t, uint64(9223372036854776950), ulData.StatedumpData[0].ActivityID)
+	require.Equal(t, "5CD8DDEE04383A38887710227C5A0A56", ulData.StatedumpData[0].UUID)
+	require.Equal(t, uint64(288), ulData.StatedumpData[0].ChunkDataSize)
+}
+
+func TestParseSimpledumpChunkset(t *testing.T) {
+	testutil.SkipIfNoReceiverLogArchiveTestdata(t)
+	filepath := filepath.Join(testutil.ReceiverLogArchiveTestdataDir(), "Chunkset Tests", "monterey_chunkset_simpledump.raw")
+
+	data, err := os.ReadFile(filepath)
+	require.NoError(t, err)
+
+	// Create a mock catalog data for testing
+	ulData := &UnifiedLogCatalogData{}
+
+	// Adjust signature if your UnmarshalLogs needs context, etc.
+	err = ParseChunksetData(data, ulData)
+	require.Nil(t, err)
+
+	// TODO: Does the chunk tag go on CatalogData or SimpledumpData?
+	// require.Equal(t, uint32(0), ulData.SimpledumpData[0].ChunkTag)
+	require.Equal(t, uint32(0), ulData.CatalogData.ChunkTag)
+	require.Equal(t, 1, len(ulData.SimpledumpData))
+	require.Equal(t, 0, len(ulData.StatedumpData))
+	require.Equal(t, 0, len(ulData.OversizeData))
+	require.Equal(t, 0, len(ulData.FirehoseData))
+
+	require.Equal(t,
+		"service exited: dirty = 0, supported pressured-exit = 1",
+		ulData.SimpledumpData[0].MessageString,
+	)
+
+	require.Equal(t, uint64(4970481235501), ulData.SimpledumpData[0].ContinuousTime)
+	require.Equal(t, uint64(1), ulData.SimpledumpData[0].FirstProcID)
+	require.Equal(t, uint64(1), ulData.SimpledumpData[0].SecondProcID)
+	require.Equal(t, uint64(59907), ulData.SimpledumpData[0].ThreadID)
+	require.Equal(t, uint32(56), ulData.SimpledumpData[0].UnknownSizeMessageString)
+	require.Equal(t, uint32(79), ulData.SimpledumpData[0].UnknownSizeSubsystemString)
+	require.Equal(t, uint32(95862), ulData.SimpledumpData[0].UnknownOffset)
+
+	require.Equal(
+		t,
+		"user/501/com.apple.mdworker.shared.0B000000-0000-0000-0000-000000000000 [4229]",
+		ulData.SimpledumpData[0].Subsystem,
+	)
 }
 
 var chunksetTestData = []byte{
