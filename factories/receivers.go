@@ -22,7 +22,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/httpreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/m365receiver"
-	"github.com/observiq/bindplane-otel-collector/receiver/macoslogcommandreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/oktareceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/routereceiver"
@@ -153,7 +153,7 @@ var defaultReceivers = []receiver.Factory{
 	kubeletstatsreceiver.NewFactory(),
 	libhoneyreceiver.NewFactory(),
 	m365receiver.NewFactory(),
-	macoslogcommandreceiver.NewFactory(),
+	macosunifiedloggingreceiver.NewFactory(),
 	memcachedreceiver.NewFactory(),
 	mongodbatlasreceiver.NewFactory(),
 	mongodbreceiver.NewFactory(),

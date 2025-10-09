@@ -1045,7 +1045,7 @@ replace github.com/observiq/bindplane-otel-collector/receiver/httpreceiver => ./
 
 replace github.com/observiq/bindplane-otel-collector/receiver/m365receiver => ./receiver/m365receiver
 
-replace github.com/observiq/bindplane-otel-collector/receiver/macoslogcommandreceiver => ./receiver/macoslogcommandreceiver
+replace github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver => ./receiver/macosunifiedloggingreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/oktareceiver => ./receiver/oktareceiver
 

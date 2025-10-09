@@ -12,7 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package macoslogcommandreceiver implements a receiver that uses the native
-// macOS `log` command to retrieve and parse unified logging data.
-// It supports both live system logs and archived log files (.logarchive).
-package macoslogcommandreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/macoslogcommandreceiver"
+package macosunifiedloggingreceiver
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+func TestConfigValidate(t *testing.T) {
+	require.NoError(t, Config{}.Validate())
+}
