@@ -1,6 +1,6 @@
-# macOS Log Command Receiver
+# macOS Unified Logging Receiver
 
-The macOS Log Command Receiver collects logs from macOS systems using the native `log` command. This receiver supports both live system logs and archived log files (`.logarchive`).
+The macOS Unified Logging Receiver collects logs from macOS systems using the native `log` command. This receiver supports both live system logs and archived log files (`.logarchive`).
 
 ## Key Features
 
@@ -16,7 +16,7 @@ The macOS Log Command Receiver collects logs from macOS systems using the native
 
 ```yaml
 receivers:
-  macoslogcommand:
+  macosunifiedlogging:
     poll_interval: 30s      # How often to poll for new logs
     max_log_age: 24h        # How far back to read on startup
 ```
@@ -25,7 +25,7 @@ receivers:
 
 ```yaml
 receivers:
-  macoslogcommand:
+  macosunifiedlogging:
     archive_path: "/path/to/system_logs.logarchive"
     start_time: "2024-01-01 00:00:00"
     end_time: "2024-01-02 00:00:00"
@@ -35,7 +35,7 @@ receivers:
 
 ```yaml
 receivers:
-  macoslogcommand:
+  macosunifiedlogging:
     archive_path: "./logs.logarchive"
     predicate: "subsystem == 'com.apple.systempreferences'"
 ```
@@ -95,7 +95,7 @@ Complete example configuration:
 
 ```yaml
 receivers:
-  macoslogcommand:
+  macosunifiedlogging:
     archive_path: "./system_logs.logarchive"
     predicate: "subsystem BEGINSWITH 'com.apple'"
     start_time: "2024-01-01 00:00:00"
@@ -110,22 +110,7 @@ exporters:
 service:
   pipelines:
     logs:
-      receivers: [macoslogcommand]
+      receivers: [macosunifiedlogging]
       exporters: [debug, file]
 ```
-
-## Comparison with macosunifiedlogging Receiver
-
-The `macoslogcommand` receiver:
-- ✅ Simpler implementation using native tooling
-- ✅ Guaranteed format compatibility with macOS
-- ✅ Easier to maintain
-- ❌ Requires the `log` command to be available
-- ❌ May have performance overhead from subprocess execution
-
-The `macosunifiedlogging` receiver:
-- ✅ Direct binary parsing (faster)
-- ✅ Works without external dependencies
-- ❌ More complex implementation
-- ❌ Requires maintenance as format changes
 

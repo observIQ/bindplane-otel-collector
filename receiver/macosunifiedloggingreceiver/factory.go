@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package macoslogcommandreceiver
+package macosunifiedloggingreceiver
 
 import (
 	"context"
@@ -22,7 +22,7 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/macoslogcommandreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver/internal/metadata"
 )
 
 // NewFactory creates a factory for macOS log command receiver

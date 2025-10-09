@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package macoslogcommandreceiver
+package macosunifiedloggingreceiver
 
 import (
 	"bufio"
@@ -30,29 +30,27 @@ import (
 )
 
 // logCommandReceiver uses exec.Command to run the native macOS `log` command
-type logCommandReceiver struct {
+type unifiedLoggingReceiver struct {
 	config   *Config
 	logger   *zap.Logger
 	consumer consumer.Logs
 	cancel   context.CancelFunc
 }
 
-// newReceiver creates a new log command-based receiver
 func newReceiver(
 	config *Config,
 	logger *zap.Logger,
 	consumer consumer.Logs,
-) *logCommandReceiver {
-	return &logCommandReceiver{
+) *unifiedLoggingReceiver {
+	return &unifiedLoggingReceiver{
 		config:   config,
 		logger:   logger,
 		consumer: consumer,
 	}
 }
 
-// Start implements component.Component
-func (r *logCommandReceiver) Start(ctx context.Context, _ component.Host) error {
-	r.logger.Info("Starting macOS log command receiver")
+func (r *unifiedLoggingReceiver) Start(ctx context.Context, _ component.Host) error {
+	r.logger.Info("Starting macOS unified logging receiver")
 
 	ctx, cancel := context.WithCancel(ctx)
 	r.cancel = cancel
@@ -63,9 +61,8 @@ func (r *logCommandReceiver) Start(ctx context.Context, _ component.Host) error 
 	return nil
 }
 
-// Shutdown implements component.Component
-func (r *logCommandReceiver) Shutdown(_ context.Context) error {
-	r.logger.Info("Shutting down macOS log command receiver")
+func (r *unifiedLoggingReceiver) Shutdown(_ context.Context) error {
+	r.logger.Info("Shutting down macOS unified logging receiver")
 	if r.cancel != nil {
 		r.cancel()
 	}
@@ -73,7 +70,7 @@ func (r *logCommandReceiver) Shutdown(_ context.Context) error {
 }
 
 // readLogs runs the log command and processes output
-func (r *logCommandReceiver) readLogs(ctx context.Context) {
+func (r *unifiedLoggingReceiver) readLogs(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -107,7 +104,7 @@ func (r *logCommandReceiver) readLogs(ctx context.Context) {
 }
 
 // runLogCommand executes the log command and processes output
-func (r *logCommandReceiver) runLogCommand(ctx context.Context) error {
+func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) error {
 	// Build the log command arguments
 	args := r.buildLogCommandArgs()
 
@@ -170,7 +167,7 @@ func (r *logCommandReceiver) runLogCommand(ctx context.Context) error {
 }
 
 // buildLogCommandArgs constructs the arguments for the log command
-func (r *logCommandReceiver) buildLogCommandArgs() []string {
+func (r *unifiedLoggingReceiver) buildLogCommandArgs() []string {
 	args := []string{"show"}
 
 	// Add archive path if specified
@@ -204,7 +201,7 @@ func (r *logCommandReceiver) buildLogCommandArgs() []string {
 }
 
 // processLogLine parses a single NDJSON log line and sends it to the consumer
-func (r *logCommandReceiver) processLogLine(ctx context.Context, line []byte) error {
+func (r *unifiedLoggingReceiver) processLogLine(ctx context.Context, line []byte) error {
 	// Parse the NDJSON line
 	var logEntry map[string]interface{}
 	if err := json.Unmarshal(line, &logEntry); err != nil {
@@ -228,6 +225,7 @@ func (r *logCommandReceiver) processLogLine(ctx context.Context, line []byte) er
 			logRecord.SetTimestamp(pcommon.NewTimestampFromTime(t))
 		}
 	}
+	logRecord.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
 
 	// Set severity from messageType
 	if msgType, ok := logEntry["messageType"].(string); ok {
