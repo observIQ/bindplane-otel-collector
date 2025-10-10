@@ -78,15 +78,5 @@ func (cfg *Config) Validate() error {
 		}
 	}
 
-	// Set default poll interval if not specified
-	if cfg.PollInterval == 0 {
-		cfg.PollInterval = 30 * time.Second
-	}
-
-	// Set default max log age if not specified (live mode only)
-	if cfg.MaxLogAge == 0 && cfg.ArchivePath == "" {
-		cfg.MaxLogAge = 24 * time.Hour
-	}
-
 	return nil
 }
