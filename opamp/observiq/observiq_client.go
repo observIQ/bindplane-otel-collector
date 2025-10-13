@@ -425,6 +425,7 @@ func (c *Client) onAgentIdentificationHandler(_ context.Context, agentIdentifica
 	}
 
 	// Update agent description with new ID
+	// TODO: Remove this once the OpAMP-GO library is updated.
 	if err := c.opampClient.SetAgentDescription(c.ident.ToAgentDescription()); err != nil {
 		c.logger.Error("Failed to update agent description with new instance UID", zap.Error(err))
 		// Not rolling back here since the ID is already persisted
