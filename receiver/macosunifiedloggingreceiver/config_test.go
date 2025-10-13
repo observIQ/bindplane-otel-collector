@@ -133,7 +133,7 @@ func TestLoadConfigFromYAML(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Load the config from YAML file
-			cm, err := confmaptest.LoadConf(filepath.Join("testdata", "config.yaml"))
+			cm, err := confmaptest.LoadConf(filepath.Join("testdata", "test_config.yaml"))
 			require.NoError(t, err)
 
 			// Get the specific config section
