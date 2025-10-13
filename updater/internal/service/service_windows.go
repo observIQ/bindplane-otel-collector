@@ -298,7 +298,7 @@ func (w windowsService) currentServiceConfig() (*windowsServiceConfig, error) {
 	// In the original config, the Path is the main binary path, relative to the install directory.
 	binaryPath, err := filepath.Rel(w.installDir, fullBinaryPath)
 	if err != nil {
-		return nil, fmt.Errorf("could not find service exe relative to install dir: %w", err)
+		return nil, fmt.Errorf("could not find service exe %s relative to install dir %s: %w", fullBinaryPath, w.installDir, err)
 	}
 
 	// Convert windows api start type to the config file service type
