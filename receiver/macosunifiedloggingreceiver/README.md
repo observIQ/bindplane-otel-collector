@@ -11,6 +11,18 @@ The macOS Unified Logging Receiver collects logs from macOS systems using the na
 
 ## Configuration
 
+### Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `archive_path` | string | "" | Path to `.logarchive` directory. If empty, reads live system logs |
+| `predicate` | string | "" | Filter predicate (e.g., `"subsystem == 'com.apple.example'"`) |
+| `start_time` | string | "" | Start time in format "2006-01-02 15:04:05" |
+| `end_time` | string | "" | End time in format "2006-01-02 15:04:05" (archive mode only) |
+| `poll_interval` | duration | 30s | How often to poll for new logs (live mode only) |
+| `max_log_age` | duration | 24h | Maximum age of logs to read on startup (live mode only) |
+| `raw` | bool | false | Send log lines as stringBody instead of parsing as structured NDJSON |
+
 ### Basic Configuration (Live Mode)
 
 ```yaml
@@ -39,16 +51,16 @@ receivers:
     predicate: "subsystem == 'com.apple.systempreferences'"
 ```
 
-## Configuration Options
+### Raw Mode
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `archive_path` | string | "" | Path to `.logarchive` directory. If empty, reads live system logs |
-| `predicate` | string | "" | Filter predicate (e.g., `"subsystem == 'com.apple.example'"`) |
-| `start_time` | string | "" | Start time in format "2006-01-02 15:04:05" |
-| `end_time` | string | "" | End time in format "2006-01-02 15:04:05" (archive mode only) |
-| `poll_interval` | duration | 30s | How often to poll for new logs (live mode only) |
-| `max_log_age` | duration | 24h | Maximum age of logs to read on startup (live mode only) |
+```yaml
+receivers:
+  macosunifiedlogging:
+    raw: true               
+    poll_interval: 30s
+    max_log_age: 24h
+```
+
 
 ## Predicate Examples
 
@@ -76,12 +88,23 @@ For a full description of predicate expressions, run `log help predicates`.
 
 ## Output Format
 
-The receiver converts macOS unified logging format to OpenTelemetry log records:
+### Default Mode (Structured)
+
+When `raw` is `false` (default), the receiver parses NDJSON output and converts it to OpenTelemetry log records:
 
 - **Body**: Contains the `eventMessage` field
 - **Timestamp**: Parsed from the `timestamp` field
 - **Severity**: Mapped from `messageType` (Error, Fault, Default, Info, Debug)
 - **Attributes**: All other fields from the log command output
+
+### Raw Mode
+
+When `raw` is `true`, the receiver sends unparsed log lines:
+
+- **Body**: Contains the entire raw log line as a string
+- **Timestamp**: Set to observed time (when the log was received)
+- **Severity**: Not set
+- **Attributes**: None (raw text only)
 
 ## Example
 

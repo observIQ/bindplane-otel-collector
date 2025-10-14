@@ -22,21 +22,51 @@ import (
 )
 
 func TestBuildLogCommandArgs(t *testing.T) {
-	receiver := &unifiedLoggingReceiver{
-		config: &Config{
-			ArchivePath: "./testdata/system_logs.logarchive",
-			StartTime:   "2024-01-01 00:00:00",
-			EndTime:     "2024-01-02 00:00:00",
-			Predicate:   "subsystem == 'com.apple.systempreferences'",
-		},
-	}
+	t.Run("with ndjson style (default)", func(t *testing.T) {
+		receiver := &unifiedLoggingReceiver{
+			config: &Config{
+				ArchivePath: "./testdata/system_logs.logarchive",
+				StartTime:   "2024-01-01 00:00:00",
+				EndTime:     "2024-01-02 00:00:00",
+				Predicate:   "subsystem == 'com.apple.systempreferences'",
+				Raw:         false,
+			},
+		}
 
-	args := receiver.buildLogCommandArgs()
-	require.Contains(t, args, "--archive", "./testdata/system_logs.logarchive")
-	require.Contains(t, args, "--start", "2024-01-01 00:00:00")
-	require.Contains(t, args, "--end", "2024-01-02 00:00:00")
-	require.Contains(t, args, "--predicate", "subsystem == 'com.apple.systempreferences'")
-	require.Contains(t, args, "--style", "ndjson")
+		args := receiver.buildLogCommandArgs()
+		require.Contains(t, args, "--archive")
+		require.Contains(t, args, "./testdata/system_logs.logarchive")
+		require.Contains(t, args, "--start")
+		require.Contains(t, args, "2024-01-01 00:00:00")
+		require.Contains(t, args, "--end")
+		require.Contains(t, args, "2024-01-02 00:00:00")
+		require.Contains(t, args, "--predicate")
+		require.Contains(t, args, "subsystem == 'com.apple.systempreferences'")
+		require.Contains(t, args, "--style")
+		require.Contains(t, args, "ndjson")
+	})
+
+	t.Run("with raw flag enabled", func(t *testing.T) {
+		receiver := &unifiedLoggingReceiver{
+			config: &Config{
+				ArchivePath: "./testdata/system_logs.logarchive",
+				StartTime:   "2024-01-01 00:00:00",
+				Predicate:   "subsystem == 'com.apple.systempreferences'",
+				Raw:         true,
+			},
+		}
+
+		args := receiver.buildLogCommandArgs()
+		require.Contains(t, args, "--archive")
+		require.Contains(t, args, "./testdata/system_logs.logarchive")
+		require.Contains(t, args, "--start")
+		require.Contains(t, args, "2024-01-01 00:00:00")
+		require.Contains(t, args, "--predicate")
+		require.Contains(t, args, "subsystem == 'com.apple.systempreferences'")
+		// Should NOT contain --style ndjson when raw mode is enabled
+		require.NotContains(t, args, "--style")
+		require.NotContains(t, args, "ndjson")
+	})
 }
 
 func TestMapMessageTypeToSeverity(t *testing.T) {

@@ -46,6 +46,11 @@ type Config struct {
 	// Only applies to live mode. Format: "24h", "1h30m", etc.
 	MaxLogAge time.Duration `mapstructure:"max_log_age"`
 
+	// Raw specifies whether to send raw unparsed log lines
+	// If true, logs are sent as stringBody with raw text
+	// If false (default), logs are parsed as NDJSON with structured fields
+	Raw bool `mapstructure:"raw"`
+
 	// prevent unkeyed literal initialization
 	_ struct{}
 }

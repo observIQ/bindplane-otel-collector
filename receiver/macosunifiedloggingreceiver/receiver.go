@@ -131,6 +131,7 @@ func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) error {
 	scanner.Buffer(buf, 10*1024*1024) // 10MB max
 
 	var processedCount int
+	var isFirstLine = true
 	for scanner.Scan() {
 		select {
 		case <-ctx.Done():
@@ -142,11 +143,17 @@ func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) error {
 				continue
 			}
 
+			// Skip the header line in raw mode
+			if r.config.Raw && isFirstLine {
+				isFirstLine = false
+				continue
+			}
+			isFirstLine = false
+
 			// Parse and send the log entry
 			if err := r.processLogLine(ctx, line); err != nil {
 				r.logger.Warn("Failed to process log line",
-					zap.Error(err),
-					zap.String("line", string(line[:min(len(line), 200)])))
+					zap.Error(err))
 				continue
 			}
 			processedCount++
@@ -175,8 +182,10 @@ func (r *unifiedLoggingReceiver) buildLogCommandArgs() []string {
 		args = append(args, "--archive", r.config.ArchivePath)
 	}
 
-	// Add style for NDJSON output
-	args = append(args, "--style", "ndjson")
+	// Add style for NDJSON output (only when not in raw mode)
+	if !r.config.Raw {
+		args = append(args, "--style", "ndjson")
+	}
 
 	// Add start time
 	if r.config.StartTime != "" {
@@ -202,17 +211,24 @@ func (r *unifiedLoggingReceiver) buildLogCommandArgs() []string {
 
 // processLogLine parses a single NDJSON log line and sends it to the consumer
 func (r *unifiedLoggingReceiver) processLogLine(ctx context.Context, line []byte) error {
-	// Parse the NDJSON line
-	var logEntry map[string]interface{}
-	if err := json.Unmarshal(line, &logEntry); err != nil {
-		return fmt.Errorf("failed to parse NDJSON: %w", err)
-	}
-
 	// Convert to OTel plog
 	logs := plog.NewLogs()
 	resourceLogs := logs.ResourceLogs().AppendEmpty()
 	scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
 	logRecord := scopeLogs.LogRecords().AppendEmpty()
+
+	// Handle raw mode - send line as-is
+	if r.config.Raw {
+		logRecord.Body().SetStr(string(line))
+		logRecord.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
+		return r.consumer.ConsumeLogs(ctx, logs)
+	}
+
+	// Parse the NDJSON line
+	var logEntry map[string]interface{}
+	if err := json.Unmarshal(line, &logEntry); err != nil {
+		return fmt.Errorf("failed to parse NDJSON: %w", err)
+	}
 
 	// Set the log body from the message field
 	if msg, ok := logEntry["eventMessage"].(string); ok {
