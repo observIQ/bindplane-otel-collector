@@ -139,15 +139,15 @@ func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) error {
 				continue
 			}
 
-			// Skip the header line in raw mode
-			if r.config.Raw && isFirstLine {
+			// Skip the header line in default format (plain text output)
+			if r.config.Format == "default" && isFirstLine {
 				isFirstLine = false
 				continue
 			}
 			isFirstLine = false
 
-			// Skip completion/status messages in raw mode
-			if r.config.Raw && isCompletionLine(line) {
+			// Skip completion/status messages in default format
+			if r.config.Format == "default" && isCompletionLine(line) {
 				continue
 			}
 
@@ -181,9 +181,9 @@ func (r *unifiedLoggingReceiver) buildLogCommandArgs() []string {
 		args = append(args, "--archive", r.config.ArchivePath)
 	}
 
-	// Add style for NDJSON output (only when not in raw mode)
-	if !r.config.Raw {
-		args = append(args, "--style", "ndjson")
+	// Add style flag if format is not default
+	if r.config.Format != "" && r.config.Format != "default" {
+		args = append(args, "--style", r.config.Format)
 	}
 
 	// Add start time
@@ -220,8 +220,8 @@ func (r *unifiedLoggingReceiver) processLogLine(ctx context.Context, line []byte
 	logRecord.Body().SetStr(string(line))
 	logRecord.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
 
-	// Parse timestamp and severity when not in raw mode
-	if !r.config.Raw {
+	// Parse timestamp and severity when using JSON formats
+	if r.config.Format == "ndjson" || r.config.Format == "json" {
 		var logEntry map[string]interface{}
 		if err := json.Unmarshal(line, &logEntry); err == nil {
 			// Parse and set timestamp

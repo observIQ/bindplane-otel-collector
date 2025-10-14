@@ -21,7 +21,7 @@ The macOS Unified Logging Receiver collects logs from macOS systems using the na
 | `end_time` | string | "" | End time in format "2006-01-02 15:04:05" (archive mode only) |
 | `poll_interval` | duration | 30s | How often to poll for new logs (live mode only) |
 | `max_log_age` | duration | 24h | Maximum age of logs to read on startup (live mode only) |
-| `raw` | bool | false | Send log lines as stringBody instead of parsing as structured NDJSON |
+| `format` | string | "default" | Output format: `default`, `ndjson`, `json`, `syslog`, or `compact` |
 
 ### Basic Configuration (Live Mode)
 
@@ -51,12 +51,12 @@ receivers:
     predicate: "subsystem == 'com.apple.systempreferences'"
 ```
 
-### Raw Mode
+### With Custom Format
 
 ```yaml
 receivers:
   macosunifiedlogging:
-    raw: true               
+    format: ndjson          # Use structured JSON output
     poll_interval: 30s
     max_log_age: 24h
 ```
@@ -90,19 +90,21 @@ For a full description of predicate expressions, run `log help predicates`.
 
 The receiver converts macOS logs to OpenTelemetry log records:
 
-- **Body**: Contains the entire log line as a string (JSON format when `raw: false`, plain text when `raw: true`)
+- **Body**: Contains the entire log line as a string
 - **Attributes**: Not set
 
-### Default Mode (JSON)
+### Format Options
 
-When `raw` is `false` (default), the log command outputs structured NDJSON. Each log line is captured as a complete JSON string in the body, with timestamp and severity extracted:
+#### `ndjson` and `json` Formats
+
+When using JSON formats, each log line is captured as a complete JSON string in the body, with timestamp and severity extracted:
 
 - **Timestamp**: Parsed from the `timestamp` field in the JSON
 - **Severity**: Mapped from `messageType` (Error, Fault, Default, Info, Debug)
 
-### Raw Mode
+#### `default`, `syslog`, and `compact` Formats
 
-When `raw` is `true`, the log command outputs plain text format. Each log line is captured as plain text in the body:
+When using plain text formats, each log line is captured as plain text in the body:
 
 - **Timestamp**: Set to observed time (when the log was received)
 - **Severity**: Not set

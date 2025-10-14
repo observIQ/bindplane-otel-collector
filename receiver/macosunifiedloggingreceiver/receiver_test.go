@@ -26,14 +26,14 @@ import (
 )
 
 func TestBuildLogCommandArgs(t *testing.T) {
-	t.Run("with ndjson style (default)", func(t *testing.T) {
+	t.Run("with ndjson format", func(t *testing.T) {
 		receiver := &unifiedLoggingReceiver{
 			config: &Config{
 				ArchivePath: "./testdata/system_logs.logarchive",
 				StartTime:   "2024-01-01 00:00:00",
 				EndTime:     "2024-01-02 00:00:00",
 				Predicate:   "subsystem == 'com.apple.systempreferences'",
-				Raw:         false,
+				Format:      "ndjson",
 			},
 		}
 
@@ -50,13 +50,13 @@ func TestBuildLogCommandArgs(t *testing.T) {
 		require.Contains(t, args, "ndjson")
 	})
 
-	t.Run("with raw flag enabled", func(t *testing.T) {
+	t.Run("with default format", func(t *testing.T) {
 		receiver := &unifiedLoggingReceiver{
 			config: &Config{
 				ArchivePath: "./testdata/system_logs.logarchive",
 				StartTime:   "2024-01-01 00:00:00",
 				Predicate:   "subsystem == 'com.apple.systempreferences'",
-				Raw:         true,
+				Format:      "default",
 			},
 		}
 
@@ -67,18 +67,29 @@ func TestBuildLogCommandArgs(t *testing.T) {
 		require.Contains(t, args, "2024-01-01 00:00:00")
 		require.Contains(t, args, "--predicate")
 		require.Contains(t, args, "subsystem == 'com.apple.systempreferences'")
-		// Should NOT contain --style ndjson when raw mode is enabled
+		// Should NOT contain --style when format is default
 		require.NotContains(t, args, "--style")
-		require.NotContains(t, args, "ndjson")
+	})
+
+	t.Run("with json format", func(t *testing.T) {
+		receiver := &unifiedLoggingReceiver{
+			config: &Config{
+				Format: "json",
+			},
+		}
+
+		args := receiver.buildLogCommandArgs()
+		require.Contains(t, args, "--style")
+		require.Contains(t, args, "json")
 	})
 }
 
 func TestProcessLogLine(t *testing.T) {
-	t.Run("raw mode - sends unparsed line", func(t *testing.T) {
+	t.Run("default format - sends unparsed line", func(t *testing.T) {
 		sink := &consumertest.LogsSink{}
 		receiver := &unifiedLoggingReceiver{
 			config: &Config{
-				Raw: true,
+				Format: "default",
 			},
 			consumer: sink,
 			logger:   zap.NewNop(),
@@ -97,20 +108,20 @@ func TestProcessLogLine(t *testing.T) {
 		logRecord := logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
 		require.Equal(t, string(rawLine), logRecord.Body().Str())
 
-		// In raw mode, timestamp should only be observed (not parsed)
+		// In default format, timestamp should only be observed (not parsed)
 		require.NotZero(t, logRecord.ObservedTimestamp())
 		require.Zero(t, logRecord.Timestamp())
 
-		// In raw mode, severity should not be set
+		// In default format, severity should not be set
 		require.Equal(t, "", logRecord.SeverityText())
 		require.Equal(t, plog.SeverityNumberUnspecified, logRecord.SeverityNumber())
 	})
 
-	t.Run("json mode - parses timestamp and severity", func(t *testing.T) {
+	t.Run("ndjson format - parses timestamp and severity", func(t *testing.T) {
 		sink := &consumertest.LogsSink{}
 		receiver := &unifiedLoggingReceiver{
 			config: &Config{
-				Raw: false,
+				Format: "ndjson",
 			},
 			consumer: sink,
 			logger:   zap.NewNop(),
@@ -139,11 +150,11 @@ func TestProcessLogLine(t *testing.T) {
 		require.Equal(t, plog.SeverityNumberError, logRecord.SeverityNumber())
 	})
 
-	t.Run("json mode - handles invalid json gracefully", func(t *testing.T) {
+	t.Run("ndjson format - handles invalid json gracefully", func(t *testing.T) {
 		sink := &consumertest.LogsSink{}
 		receiver := &unifiedLoggingReceiver{
 			config: &Config{
-				Raw: false,
+				Format: "ndjson",
 			},
 			consumer: sink,
 			logger:   zap.NewNop(),
@@ -167,11 +178,42 @@ func TestProcessLogLine(t *testing.T) {
 		require.Zero(t, logRecord.Timestamp())
 	})
 
-	t.Run("json mode - handles json without timestamp or severity", func(t *testing.T) {
+	t.Run("json format - parses timestamp and severity", func(t *testing.T) {
 		sink := &consumertest.LogsSink{}
 		receiver := &unifiedLoggingReceiver{
 			config: &Config{
-				Raw: false,
+				Format: "json",
+			},
+			consumer: sink,
+			logger:   zap.NewNop(),
+		}
+
+		jsonLine := []byte(`{"timestamp":"2024-01-01 12:00:00.123456-0700","eventMessage":"Test message","messageType":"Debug","subsystem":"com.test"}`)
+		err := receiver.processLogLine(context.Background(), jsonLine)
+		require.NoError(t, err)
+
+		// Verify the log was consumed
+		require.Len(t, sink.AllLogs(), 1)
+		logs := sink.AllLogs()[0]
+		require.Equal(t, 1, logs.LogRecordCount())
+
+		// Verify the log record contains the entire JSON as body
+		logRecord := logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
+		require.Equal(t, string(jsonLine), logRecord.Body().Str())
+
+		// Verify timestamp was parsed from JSON
+		require.NotZero(t, logRecord.Timestamp())
+
+		// Verify severity was parsed from JSON
+		require.Equal(t, "Debug", logRecord.SeverityText())
+		require.Equal(t, plog.SeverityNumberDebug, logRecord.SeverityNumber())
+	})
+
+	t.Run("ndjson format - handles json without timestamp or severity", func(t *testing.T) {
+		sink := &consumertest.LogsSink{}
+		receiver := &unifiedLoggingReceiver{
+			config: &Config{
+				Format: "ndjson",
 			},
 			consumer: sink,
 			logger:   zap.NewNop(),

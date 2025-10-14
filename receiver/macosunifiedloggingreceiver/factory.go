@@ -40,7 +40,7 @@ func createDefaultConfig() component.Config {
 	return &Config{
 		PollInterval: 30 * time.Second,
 		MaxLogAge:    24 * time.Hour,
-		Raw:          false,
+		Format:       "default",
 	}
 }
 

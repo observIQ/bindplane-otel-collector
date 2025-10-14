@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 )
 
@@ -46,10 +47,10 @@ type Config struct {
 	// Only applies to live mode. Format: "24h", "1h30m", etc.
 	MaxLogAge time.Duration `mapstructure:"max_log_age"`
 
-	// Raw specifies whether to send raw unparsed log lines
-	// If true, logs are sent as stringBody with raw text
-	// If false (default), logs are parsed as NDJSON with structured fields
-	Raw bool `mapstructure:"raw"`
+	// Format specifies the output format from the log command
+	// Options: "default" (system default), "ndjson", "json", "syslog", "compact"
+	// Default: "default"
+	Format string `mapstructure:"format"`
 
 	// prevent unkeyed literal initialization
 	_ struct{}
@@ -57,6 +58,28 @@ type Config struct {
 
 // Validate checks the Config is valid
 func (cfg *Config) Validate() error {
+	// Validate OS is Darwin
+	if runtime.GOOS != "darwin" {
+		return fmt.Errorf("macosunifiedloggingreceiver is only supported on Darwin")
+	}
+
+	// Set default format if not specified
+	if cfg.Format == "" {
+		cfg.Format = "default"
+	}
+
+	// Validate format
+	validFormats := map[string]bool{
+		"default": true,
+		"ndjson":  true,
+		"json":    true,
+		"syslog":  true,
+		"compact": true,
+	}
+	if !validFormats[cfg.Format] {
+		return fmt.Errorf("invalid format: %s (valid options: default, ndjson, json, syslog, compact)", cfg.Format)
+	}
+
 	// Validate archive path if specified
 	if cfg.ArchivePath != "" {
 		// sanitize the archive path
