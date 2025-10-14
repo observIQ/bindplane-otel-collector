@@ -41,6 +41,9 @@ go.opentelemetry.io/collector/processor
 go.opentelemetry.io/collector/receiver
 EOF
 
+# Exit on any error (set after read command which returns non-zero at EOF)
+set -e
+
 is_stable_module() {
     for stable_mod in $STABLE_MODULES; do
         if [ "$stable_mod" = "$1" ]; then
@@ -81,9 +84,14 @@ fi
 LOCAL_MODULES=$(find . -type f -name "go.mod" -exec dirname {} \; | sort)
 for local_mod in $LOCAL_MODULES; do
     # Run in a subshell so that the CD doesn't change this shell's current directory
+    # Temporarily disable 'set -e' for this command so we can check its exit status
+    set +e
     (
+        # Exit subshell on any error
+        set -e
+        
         echo "Updating deps in $local_mod"
-        cd "$local_mod" || exit 1
+        cd "$local_mod"
         # go list will not work if module is not tidy, so we tidy first
         go mod tidy -compat=1.24
 
@@ -103,4 +111,12 @@ for local_mod in $LOCAL_MODULES; do
             fi
         done
     )
+    # Get the exit status of the subshell and re-enable 'set -e'
+    SUBSHELL_EXIT=$?
+    set -e
+    # Check if subshell failed and exit if it did
+    if [ $SUBSHELL_EXIT -ne 0 ]; then
+        echo "Error: Failed to update $local_mod" >&2
+        exit 1
+    fi
 done
