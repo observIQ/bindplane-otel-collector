@@ -121,3 +121,69 @@ func TestMapMessageTypeToSeverity(t *testing.T) {
 		})
 	}
 }
+
+func TestIsCompletionLine(t *testing.T) {
+	tests := []struct {
+		name     string
+		line     string
+		expected bool
+	}{
+		{
+			name:     "JSON completion format",
+			line:     `{"count":540659,"finished":1}`,
+			expected: true,
+		},
+		{
+			name:     "JSON completion format with whitespace",
+			line:     `  {"count":100,"finished":1}  `,
+			expected: true,
+		},
+		{
+			name:     "completion line with asterisks",
+			line:     "** Processed 574 entries, done. **",
+			expected: true,
+		},
+		{
+			name:     "completion line with whitespace",
+			line:     "  ** Finished processing **  ",
+			expected: true,
+		},
+		{
+			name:     "completion line with Processed and entries",
+			line:     "Processed 100 entries successfully",
+			expected: true,
+		},
+		{
+			name:     "completion line with Processed and done",
+			line:     "Processed all logs, done",
+			expected: true,
+		},
+		{
+			name:     "normal log line",
+			line:     "2024-01-01 12:00:00.123456-0700  localhost kernel[0]: System initialized",
+			expected: false,
+		},
+		{
+			name:     "log line containing Processed word only",
+			line:     "2024-01-01 12:00:00.123456-0700  localhost app[123]: Processed user request",
+			expected: false,
+		},
+		{
+			name:     "JSON without count and finished",
+			line:     `{"timestamp":"2024-01-01","message":"test"}`,
+			expected: false,
+		},
+		{
+			name:     "empty line",
+			line:     "",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isCompletionLine([]byte(tt.line))
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}

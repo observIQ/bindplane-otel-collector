@@ -16,6 +16,7 @@ package macosunifiedloggingreceiver
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -71,32 +72,20 @@ func (r *unifiedLoggingReceiver) Shutdown(_ context.Context) error {
 
 // readLogs runs the log command and processes output
 func (r *unifiedLoggingReceiver) readLogs(ctx context.Context) {
+	ticker := time.NewTicker(r.config.PollInterval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		default:
+		case <-ticker.C:
 			if err := r.runLogCommand(ctx); err != nil {
 				r.logger.Error("Failed to run log command", zap.Error(err))
-				// Wait before retrying
-				select {
-				case <-time.After(r.config.PollInterval):
-					continue
-				case <-ctx.Done():
-					return
-				}
+				continue
 			}
 
-			// If reading from archive, we're done
 			if r.config.ArchivePath != "" {
 				r.logger.Info("Finished reading archive logs")
-				return
-			}
-
-			// For live mode, wait before polling again
-			select {
-			case <-time.After(r.config.PollInterval):
-			case <-ctx.Done():
 				return
 			}
 		}
@@ -124,6 +113,11 @@ func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) error {
 		return fmt.Errorf("failed to start log command: %w", err)
 	}
 
+	// Ensure the process is properly cleaned up to avoid zombies
+	defer func() {
+		_ = cmd.Wait()
+	}()
+
 	// Read and process output line by line
 	scanner := bufio.NewScanner(stdout)
 	// Set a large buffer size for long log lines
@@ -132,10 +126,12 @@ func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) error {
 
 	var processedCount int
 	var isFirstLine = true
+	var killed bool
 	for scanner.Scan() {
 		select {
 		case <-ctx.Done():
 			_ = cmd.Process.Kill()
+			killed = true
 			return ctx.Err()
 		default:
 			line := scanner.Bytes()
@@ -149,6 +145,11 @@ func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) error {
 				continue
 			}
 			isFirstLine = false
+
+			// Skip completion/status messages in raw mode
+			if r.config.Raw && isCompletionLine(line) {
+				continue
+			}
 
 			// Parse and send the log entry
 			if err := r.processLogLine(ctx, line); err != nil {
@@ -164,12 +165,10 @@ func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) error {
 		return fmt.Errorf("error reading log output: %w", err)
 	}
 
-	// Wait for command to finish
-	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf("log command failed: %w", err)
+	// Check if the process was killed due to context cancellation
+	if !killed {
+		r.logger.Info("Processed logs", zap.Int("count", processedCount))
 	}
-
-	r.logger.Info("Processed logs", zap.Int("count", processedCount))
 	return nil
 }
 
@@ -293,4 +292,38 @@ func mapMessageTypeToSeverity(msgType string) plog.SeverityNumber {
 	default:
 		return plog.SeverityNumberUnspecified
 	}
+}
+
+// isCompletionLine checks if a line is a completion/status message from the log command
+// These lines should be filtered out (e.g., {"count":540659,"finished":1})
+func isCompletionLine(line []byte) bool {
+	// Trim whitespace
+	trimmed := bytes.TrimSpace(line)
+
+	// Check if line is empty
+	if len(trimmed) == 0 {
+		return false
+	}
+
+	// Check if line starts with "**" (typical completion message format)
+	if bytes.HasPrefix(trimmed, []byte("**")) {
+		return true
+	}
+
+	// Check for JSON completion format: {"count":N,"finished":1}
+	if bytes.HasPrefix(trimmed, []byte("{")) && bytes.HasSuffix(trimmed, []byte("}")) {
+		// Quick check for both "count" and "finished" fields
+		if bytes.Contains(trimmed, []byte("\"count\"")) &&
+			bytes.Contains(trimmed, []byte("\"finished\"")) {
+			return true
+		}
+	}
+
+	// Check for common completion keywords
+	if bytes.Contains(trimmed, []byte("Processed")) &&
+		(bytes.Contains(trimmed, []byte("entries")) || bytes.Contains(trimmed, []byte("done"))) {
+		return true
+	}
+
+	return false
 }
