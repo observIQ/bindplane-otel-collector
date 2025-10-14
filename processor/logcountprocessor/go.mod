@@ -3,9 +3,9 @@ module github.com/observiq/bindplane-otel-collector/processor/logcountprocessor
 go 1.24.4
 
 require (
-	github.com/observiq/bindplane-otel-collector/counter v1.86.0
-	github.com/observiq/bindplane-otel-collector/expr v1.86.0
-	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.86.0
+	github.com/observiq/bindplane-otel-collector/counter v1.86.1
+	github.com/observiq/bindplane-otel-collector/expr v1.86.1
+	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.86.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.137.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.43.0
