@@ -208,7 +208,7 @@ func (r *unifiedLoggingReceiver) buildLogCommandArgs() []string {
 	return args
 }
 
-// processLogLine parses a single NDJSON log line and sends it to the consumer
+// processLogLine processes a log line and sends it to the consumer
 func (r *unifiedLoggingReceiver) processLogLine(ctx context.Context, line []byte) error {
 	// Convert to OTel plog
 	logs := plog.NewLogs()
@@ -216,60 +216,25 @@ func (r *unifiedLoggingReceiver) processLogLine(ctx context.Context, line []byte
 	scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
 	logRecord := scopeLogs.LogRecords().AppendEmpty()
 
-	// Handle raw mode - send line as-is
-	if r.config.Raw {
-		logRecord.Body().SetStr(string(line))
-		logRecord.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
-		return r.consumer.ConsumeLogs(ctx, logs)
-	}
-
-	// Parse the NDJSON line
-	var logEntry map[string]interface{}
-	if err := json.Unmarshal(line, &logEntry); err != nil {
-		return fmt.Errorf("failed to parse NDJSON: %w", err)
-	}
-
-	// Set the log body from the message field
-	if msg, ok := logEntry["eventMessage"].(string); ok {
-		logRecord.Body().SetStr(msg)
-	}
-
-	// Parse and set timestamp
-	if ts, ok := logEntry["timestamp"].(string); ok {
-		if t, err := time.Parse("2006-01-02 15:04:05.000000-0700", ts); err == nil {
-			logRecord.SetTimestamp(pcommon.NewTimestampFromTime(t))
-		}
-	}
+	// Put the entire line into the log body as a string
+	logRecord.Body().SetStr(string(line))
 	logRecord.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
 
-	// Set severity from messageType
-	if msgType, ok := logEntry["messageType"].(string); ok {
-		logRecord.SetSeverityText(msgType)
-		logRecord.SetSeverityNumber(mapMessageTypeToSeverity(msgType))
-	}
+	// Parse timestamp and severity when not in raw mode
+	if !r.config.Raw {
+		var logEntry map[string]interface{}
+		if err := json.Unmarshal(line, &logEntry); err == nil {
+			// Parse and set timestamp
+			if ts, ok := logEntry["timestamp"].(string); ok {
+				if t, err := time.Parse("2006-01-02 15:04:05.000000-0700", ts); err == nil {
+					logRecord.SetTimestamp(pcommon.NewTimestampFromTime(t))
+				}
+			}
 
-	// Add all fields as attributes
-	attrs := logRecord.Attributes()
-	for key, value := range logEntry {
-		// Skip the message since we put it in the body
-		if key == "eventMessage" {
-			continue
-		}
-
-		// Convert value to appropriate pcommon type
-		switch v := value.(type) {
-		case string:
-			attrs.PutStr(key, v)
-		case float64:
-			attrs.PutDouble(key, v)
-		case bool:
-			attrs.PutBool(key, v)
-		case int64:
-			attrs.PutInt(key, v)
-		default:
-			// Convert complex types to JSON string
-			if jsonBytes, err := json.Marshal(v); err == nil {
-				attrs.PutStr(key, string(jsonBytes))
+			// Set severity from messageType
+			if msgType, ok := logEntry["messageType"].(string); ok {
+				logRecord.SetSeverityText(msgType)
+				logRecord.SetSeverityNumber(mapMessageTypeToSeverity(msgType))
 			}
 		}
 	}

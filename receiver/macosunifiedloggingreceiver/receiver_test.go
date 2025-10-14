@@ -15,10 +15,14 @@
 package macosunifiedloggingreceiver
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.uber.org/zap"
 )
 
 func TestBuildLogCommandArgs(t *testing.T) {
@@ -66,6 +70,133 @@ func TestBuildLogCommandArgs(t *testing.T) {
 		// Should NOT contain --style ndjson when raw mode is enabled
 		require.NotContains(t, args, "--style")
 		require.NotContains(t, args, "ndjson")
+	})
+}
+
+func TestProcessLogLine(t *testing.T) {
+	t.Run("raw mode - sends unparsed line", func(t *testing.T) {
+		sink := &consumertest.LogsSink{}
+		receiver := &unifiedLoggingReceiver{
+			config: &Config{
+				Raw: true,
+			},
+			consumer: sink,
+			logger:   zap.NewNop(),
+		}
+
+		rawLine := []byte("2024-01-01 12:00:00.123456-0700  localhost kernel[0]: (AppleACPIPlatform) AppleACPICPU: ProcessorId=0 LocalApicId=0 Enabled")
+		err := receiver.processLogLine(context.Background(), rawLine)
+		require.NoError(t, err)
+
+		// Verify the log was consumed
+		require.Len(t, sink.AllLogs(), 1)
+		logs := sink.AllLogs()[0]
+		require.Equal(t, 1, logs.LogRecordCount())
+
+		// Verify the log record contains the raw line as string body
+		logRecord := logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
+		require.Equal(t, string(rawLine), logRecord.Body().Str())
+
+		// In raw mode, timestamp should only be observed (not parsed)
+		require.NotZero(t, logRecord.ObservedTimestamp())
+		require.Zero(t, logRecord.Timestamp())
+
+		// In raw mode, severity should not be set
+		require.Equal(t, "", logRecord.SeverityText())
+		require.Equal(t, plog.SeverityNumberUnspecified, logRecord.SeverityNumber())
+	})
+
+	t.Run("json mode - parses timestamp and severity", func(t *testing.T) {
+		sink := &consumertest.LogsSink{}
+		receiver := &unifiedLoggingReceiver{
+			config: &Config{
+				Raw: false,
+			},
+			consumer: sink,
+			logger:   zap.NewNop(),
+		}
+
+		jsonLine := []byte(`{"timestamp":"2024-01-01 12:00:00.123456-0700","eventMessage":"Test message","messageType":"Error","subsystem":"com.test"}`)
+		err := receiver.processLogLine(context.Background(), jsonLine)
+		require.NoError(t, err)
+
+		// Verify the log was consumed
+		require.Len(t, sink.AllLogs(), 1)
+		logs := sink.AllLogs()[0]
+		require.Equal(t, 1, logs.LogRecordCount())
+
+		// Verify the log record contains the entire JSON as body
+		logRecord := logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
+		require.Equal(t, string(jsonLine), logRecord.Body().Str())
+
+		// Verify timestamp was parsed from JSON
+		require.NotZero(t, logRecord.Timestamp())
+		expectedTime, _ := time.Parse("2006-01-02 15:04:05.000000-0700", "2024-01-01 12:00:00.123456-0700")
+		require.Equal(t, expectedTime.UnixNano(), logRecord.Timestamp().AsTime().UnixNano())
+
+		// Verify severity was parsed from JSON
+		require.Equal(t, "Error", logRecord.SeverityText())
+		require.Equal(t, plog.SeverityNumberError, logRecord.SeverityNumber())
+	})
+
+	t.Run("json mode - handles invalid json gracefully", func(t *testing.T) {
+		sink := &consumertest.LogsSink{}
+		receiver := &unifiedLoggingReceiver{
+			config: &Config{
+				Raw: false,
+			},
+			consumer: sink,
+			logger:   zap.NewNop(),
+		}
+
+		invalidJSON := []byte(`{invalid json}`)
+		err := receiver.processLogLine(context.Background(), invalidJSON)
+		require.NoError(t, err)
+
+		// Verify the log was still consumed (with just the body)
+		require.Len(t, sink.AllLogs(), 1)
+		logs := sink.AllLogs()[0]
+		require.Equal(t, 1, logs.LogRecordCount())
+
+		// Verify the log record contains the invalid JSON as body
+		logRecord := logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
+		require.Equal(t, string(invalidJSON), logRecord.Body().Str())
+
+		// Timestamp should only be observed (not parsed from invalid JSON)
+		require.NotZero(t, logRecord.ObservedTimestamp())
+		require.Zero(t, logRecord.Timestamp())
+	})
+
+	t.Run("json mode - handles json without timestamp or severity", func(t *testing.T) {
+		sink := &consumertest.LogsSink{}
+		receiver := &unifiedLoggingReceiver{
+			config: &Config{
+				Raw: false,
+			},
+			consumer: sink,
+			logger:   zap.NewNop(),
+		}
+
+		jsonLine := []byte(`{"eventMessage":"Test message","subsystem":"com.test"}`)
+		err := receiver.processLogLine(context.Background(), jsonLine)
+		require.NoError(t, err)
+
+		// Verify the log was consumed
+		require.Len(t, sink.AllLogs(), 1)
+		logs := sink.AllLogs()[0]
+		require.Equal(t, 1, logs.LogRecordCount())
+
+		// Verify the log record contains the JSON as body
+		logRecord := logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
+		require.Equal(t, string(jsonLine), logRecord.Body().Str())
+
+		// Timestamp should only be observed (no timestamp in JSON)
+		require.NotZero(t, logRecord.ObservedTimestamp())
+		require.Zero(t, logRecord.Timestamp())
+
+		// Severity should not be set (no messageType in JSON)
+		require.Equal(t, "", logRecord.SeverityText())
+		require.Equal(t, plog.SeverityNumberUnspecified, logRecord.SeverityNumber())
 	})
 }
 

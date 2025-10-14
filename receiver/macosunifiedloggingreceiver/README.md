@@ -88,23 +88,24 @@ For a full description of predicate expressions, run `log help predicates`.
 
 ## Output Format
 
-### Default Mode (Structured)
+The receiver converts macOS logs to OpenTelemetry log records:
 
-When `raw` is `false` (default), the receiver parses NDJSON output and converts it to OpenTelemetry log records:
+- **Body**: Contains the entire log line as a string (JSON format when `raw: false`, plain text when `raw: true`)
+- **Attributes**: Not set
 
-- **Body**: Contains the `eventMessage` field
-- **Timestamp**: Parsed from the `timestamp` field
+### Default Mode (JSON)
+
+When `raw` is `false` (default), the log command outputs structured NDJSON. Each log line is captured as a complete JSON string in the body, with timestamp and severity extracted:
+
+- **Timestamp**: Parsed from the `timestamp` field in the JSON
 - **Severity**: Mapped from `messageType` (Error, Fault, Default, Info, Debug)
-- **Attributes**: All other fields from the log command output
 
 ### Raw Mode
 
-When `raw` is `true`, the receiver sends unparsed log lines:
+When `raw` is `true`, the log command outputs plain text format. Each log line is captured as plain text in the body:
 
-- **Body**: Contains the entire raw log line as a string
 - **Timestamp**: Set to observed time (when the log was received)
 - **Severity**: Not set
-- **Attributes**: None (raw text only)
 
 ## Example
 
