@@ -1,4 +1,4 @@
-// Copyright observIQ, Inc.
+// copyright observIQ, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,26 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !darwin
+
 package macosunifiedloggingreceiver
 
 import (
-	"time"
+	"context"
+	"errors"
 
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"
+
+	"github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver/internal/metadata"
 )
 
-// NewFactory creates a factory for the macOS unified logging receiver
-func NewFactory() receiver.Factory {
-	return newFactoryAdapter()
+func newFactoryAdapter() receiver.Factory {
+	return receiver.NewFactory(
+		metadata.Type,
+		createDefaultConfig,
+		receiver.WithLogs(createLogsReceiverOthers, metadata.LogsStability))
 }
 
-// createDefaultConfig creates a config with default values
-func createDefaultConfig() component.Config {
-	// Default to live mode
-	return &Config{
-		PollInterval: 30 * time.Second,
-		MaxLogAge:    24 * time.Hour,
-		Format:       "default",
-	}
+func createLogsReceiverOthers(
+	_ context.Context,
+	_ receiver.Settings,
+	_ component.Config,
+	_ consumer.Logs,
+) (receiver.Logs, error) {
+	return nil, errors.New("macosunifiedloggingreceiver receiver is only supported on macOS")
 }
