@@ -2,13 +2,12 @@
 
 The macOS Unified Logging Receiver collects logs from macOS systems using the native `log` command. This receiver supports both live system logs and archived log files (`.logarchive`).
 
-## Key Features
+## Requirements
 
-- **Native Integration**: Uses the macOS `log show` command with NDJSON output
-- **Archive Support**: Read from archived log files (`.logarchive` directories)
-- **Live Mode**: Stream logs from the live system in real-time
-- **Filtering**: Apply predicates to filter logs by subsystem, category, process, etc.
-- **Time Range**: Specify start and end times for log collection
+- macOS 10.12 (Sierra) or later
+- The `log` command must be available in PATH
+- For archive mode: Read access to the `.logarchive` directory
+- For live mode: Appropriate permissions to read system logs
 
 ## Configuration
 
@@ -47,7 +46,7 @@ receivers:
 | `archive_path` | string | "" | Path to `.logarchive` directory. If empty, reads live system logs |
 | `predicate` | string | "" | Filter predicate (e.g., `"subsystem == 'com.apple.example'"`) |
 | `start_time` | string | "" | Start time in format "2006-01-02 15:04:05" |
-| `end_time` | string | "" | End time (archive mode only) in format "2006-01-02 15:04:05" |
+| `end_time` | string | "" | End time in format "2006-01-02 15:04:05" (archive mode only) |
 | `poll_interval` | duration | 30s | How often to poll for new logs (live mode only) |
 | `max_log_age` | duration | 24h | Maximum age of logs to read on startup (live mode only) |
 
@@ -73,6 +72,8 @@ Combine filters:
 subsystem == 'com.apple.example' AND messageType IN {'Error', 'Fault'}
 ```
 
+For a full description of predicate expressions, run `log help predicates`.
+
 ## Output Format
 
 The receiver converts macOS unified logging format to OpenTelemetry log records:
@@ -81,13 +82,6 @@ The receiver converts macOS unified logging format to OpenTelemetry log records:
 - **Timestamp**: Parsed from the `timestamp` field
 - **Severity**: Mapped from `messageType` (Error, Fault, Default, Info, Debug)
 - **Attributes**: All other fields from the log command output
-
-## Requirements
-
-- macOS 10.12 (Sierra) or later
-- The `log` command must be available in PATH
-- For archive mode: Read access to the `.logarchive` directory
-- For live mode: Appropriate permissions to read system logs
 
 ## Example
 
@@ -101,8 +95,6 @@ receivers:
     start_time: "2024-01-01 00:00:00"
 
 exporters:
-  debug:
-    verbosity: detailed
   file:
     path: "./output/logs.json"
     format: json
@@ -111,6 +103,6 @@ service:
   pipelines:
     logs:
       receivers: [macosunifiedlogging]
-      exporters: [debug, file]
+      exporters: [file]
 ```
 
