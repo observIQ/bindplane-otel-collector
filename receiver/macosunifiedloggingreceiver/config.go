@@ -17,6 +17,7 @@ package macosunifiedloggingreceiver
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -53,6 +54,9 @@ type Config struct {
 func (cfg *Config) Validate() error {
 	// Validate archive path if specified
 	if cfg.ArchivePath != "" {
+		// sanitize the archive path
+		cfg.ArchivePath = filepath.Clean(cfg.ArchivePath)
+
 		info, err := os.Stat(cfg.ArchivePath)
 		if err != nil {
 			return fmt.Errorf("archive_path does not exist: %w", err)
