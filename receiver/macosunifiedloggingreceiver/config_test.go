@@ -55,6 +55,90 @@ func TestConfigValidate(t *testing.T) {
 			},
 			expectedErr: errors.New("archive_path must be a directory (.logarchive)"),
 		},
+		{
+			desc: "valid predicate with AND",
+			cfg: &Config{
+				Predicate: "subsystem == 'com.apple.example' AND messageType == 'Error'",
+			},
+			expectedErr: nil,
+		},
+		{
+			desc: "valid predicate with && (normalized to AND)",
+			cfg: &Config{
+				Predicate: "subsystem == 'com.apple.example' && messageType == 'Error'",
+			},
+			expectedErr: nil,
+		},
+		{
+			desc: "valid predicate with comparison operators",
+			cfg: &Config{
+				Predicate: "processID > 100 && processID < 1000",
+			},
+			expectedErr: nil,
+		},
+		{
+			desc: "valid predicate with > comparison and spaces",
+			cfg: &Config{
+				Predicate: "processID >100",
+			},
+			expectedErr: nil,
+		},
+		{
+			desc: "invalid predicate - semicolon",
+			cfg: &Config{
+				Predicate: "subsystem == 'test'; curl http://evil.com",
+			},
+			expectedErr: errors.New("predicate contains invalid character"),
+		},
+		{
+			desc: "invalid predicate - pipe",
+			cfg: &Config{
+				Predicate: "subsystem == 'test' | sh",
+			},
+			expectedErr: errors.New("predicate contains invalid character"),
+		},
+		{
+			desc: "invalid predicate - dollar sign",
+			cfg: &Config{
+				Predicate: "subsystem == '$HOME'",
+			},
+			expectedErr: errors.New("predicate contains invalid character"),
+		},
+		{
+			desc: "invalid predicate - backtick",
+			cfg: &Config{
+				Predicate: "subsystem == '`whoami`'",
+			},
+			expectedErr: errors.New("predicate contains invalid character"),
+		},
+		{
+			desc: "invalid predicate - append redirect",
+			cfg: &Config{
+				Predicate: "subsystem == 'test' >> /tmp/output",
+			},
+			expectedErr: errors.New("predicate contains invalid character"),
+		},
+		{
+			desc: "invalid predicate - absolute path redirect",
+			cfg: &Config{
+				Predicate: "subsystem == 'test' > /tmp/output",
+			},
+			expectedErr: errors.New("predicate appears to contain file redirect"),
+		},
+		{
+			desc: "invalid predicate - relative path redirect",
+			cfg: &Config{
+				Predicate: "subsystem == 'test' > ./output",
+			},
+			expectedErr: errors.New("predicate appears to contain file redirect"),
+		},
+		{
+			desc: "invalid predicate - home directory redirect",
+			cfg: &Config{
+				Predicate: "subsystem == 'test' > ~/output",
+			},
+			expectedErr: errors.New("predicate appears to contain file redirect"),
+		},
 	}
 
 	for _, tc := range testCases {
@@ -67,6 +151,19 @@ func TestConfigValidate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPredicateNormalization(t *testing.T) {
+	cfg := &Config{
+		Predicate: "subsystem == 'test' && processID > 100 && messageType == 'Error'",
+	}
+
+	err := cfg.Validate()
+	require.NoError(t, err)
+
+	// Verify && was replaced with AND
+	require.Equal(t, "subsystem == 'test' AND processID > 100 AND messageType == 'Error'", cfg.Predicate)
+	require.NotContains(t, cfg.Predicate, "&&")
 }
 
 func TestLoadConfigFromYAML(t *testing.T) {
