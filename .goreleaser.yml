@@ -17,7 +17,6 @@ builds:
     tags:
       - bindplane
     goos:
-      - windows
       - linux
       - darwin
     goarch:
@@ -27,14 +26,6 @@ builds:
       - ppc64
       - ppc64le
     ignore:
-      - goos: windows
-        goarch: arm
-      - goos: windows
-        goarch: arm64
-      - goos: windows
-        goarch: ppc64
-      - goos: windows
-        goarch: ppc64le
       - goos: darwin
         goarch: ppc64
       - goos: darwin
@@ -53,7 +44,6 @@ builds:
       - CGO_ENABLED=0
     mod_timestamp: "{{ .CommitTimestamp }}"
     goos:
-      - windows
       - linux
       - darwin
     goarch:
@@ -63,14 +53,6 @@ builds:
       - ppc64
       - ppc64le
     ignore:
-      - goos: windows
-        goarch: arm
-      - goos: windows
-        goarch: arm64
-      - goos: windows
-        goarch: ppc64
-      - goos: windows
-        goarch: ppc64le
       - goos: darwin
         goarch: ppc64
       - goos: darwin
@@ -106,12 +88,6 @@ archives:
       - src: release_deps/com.observiq.collector.plist
         dst: "install"
         strip_parent: true
-      - src: release_deps/windows_service.json
-        dst: install
-        strip_parent: true
-    format_overrides:
-      - goos: windows
-        format: zip
 
 nfpms:
   - id: collector
