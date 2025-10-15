@@ -1,0 +1,4 @@
+# Invalid YAML syntax
+server: "8.8.8.8:53"
+timeout: -5s
+invalid: yaml: content: [

@@ -1,0 +1,3 @@
+# Minimal valid configuration
+server: "127.0.0.1:53"
+timeout: 1ns

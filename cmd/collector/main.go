@@ -28,6 +28,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/observiq/bindplane-otel-collector/collector"
 	"github.com/observiq/bindplane-otel-collector/internal/logging"
+	"github.com/observiq/bindplane-otel-collector/internal/resolver"
 	"github.com/observiq/bindplane-otel-collector/internal/service"
 	"github.com/observiq/bindplane-otel-collector/internal/version"
 	"github.com/observiq/bindplane-otel-collector/opamp"
@@ -50,6 +51,7 @@ const (
 	configPathENV    = "CONFIG_YAML_PATH"
 	managerPathENV   = "MANAGER_YAML_PATH"
 	loggingPathENV   = "LOGGING_YAML_PATH"
+	resolverPathENV  = "RESOLVER_YAML_PATH"
 	featureGatesENV  = "COLLECTOR_FEATURE_GATES"
 )
 
@@ -57,6 +59,7 @@ func main() {
 	collectorConfigPaths := pflag.StringSlice("config", getDefaultCollectorConfigPaths(), "the collector config path")
 	managerConfigPath := pflag.String("manager", getDefaultManagerConfigPath(), "The configuration for remote management")
 	loggingConfigPath := pflag.String("logging", getDefaultLoggingConfigPath(), "the collector logging config path")
+	resolverConfigPath := pflag.String("resolver", getDefaultResolverConfigPath(), "the resolver config path")
 	featureGates := pflag.StringSlice("feature-gates", getDefaultFeatureGates(), "the collector feature gates")
 
 	_ = pflag.String("log-level", "", "not implemented") // TEMP(jsirianni): Required for OTEL k8s operator
@@ -79,6 +82,23 @@ func main() {
 	logger, err := zap.NewProduction(logOpts...)
 	if err != nil {
 		log.Fatalf("Failed to set up logger: %v", err)
+	}
+
+	// Custom DNS resolver can be configured using a config file or environment variables
+	// See internal/resolver/resolver.go for more details.
+	if *resolverConfigPath != "" || os.Getenv(resolver.ENVEnable) != "" {
+		logger.Info("Configuring custom DNS resolver")
+
+		resolverInstance, err := resolver.New(logger, *resolverConfigPath)
+		if err != nil {
+			logger.Fatal("Failed to create resolver", zap.Error(err))
+		}
+
+		if err := resolverInstance.Configure(); err != nil {
+			logger.Fatal("Failed to configure resolver", zap.Error(err))
+		}
+
+		logger.Info("Custom DNS resolver configured successfully")
 	}
 
 	var runnableService service.RunnableService
@@ -148,6 +168,14 @@ func getDefaultLoggingConfigPath() string {
 		return lp
 	}
 	return logging.DefaultConfigPath
+}
+
+func getDefaultResolverConfigPath() string {
+	rp, ok := os.LookupEnv(resolverPathENV)
+	if ok {
+		return rp
+	}
+	return ""
 }
 
 func getDefaultFeatureGates() []string {
