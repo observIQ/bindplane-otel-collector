@@ -1,7 +1,20 @@
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package resolver
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -16,14 +29,14 @@ func loadFromFile(configPath string) (Resolver, error) {
 	var resolver Resolver
 
 	//#nosec G304 -- Resolver config is user provided and protected by a
-	// buffered reader with 256 byte limit
+	// buffered reader
 	file, err := os.Open(configPath)
 	if err != nil {
 		return resolver, fmt.Errorf("failed to open config file: %w", err)
 	}
 	defer file.Close()
 
-	reader := bufio.NewReaderSize(file, 256)
+	reader := io.LimitReader(file, 256)
 	data, err := io.ReadAll(reader)
 	if err != nil {
 		return resolver, fmt.Errorf("failed to read config file: %w", err)
