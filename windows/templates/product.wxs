@@ -23,7 +23,7 @@
       <MediaTemplate EmbedCab="yes" {{if gt (.Compression | len) 0}}CompressionLevel="{{.Compression}}"{{end}}/>
 
       <MajorUpgrade
-        Schedule="afterInstallExecute"
+        Schedule="afterInstallInitialize"
         DowngradeErrorMessage="A newer version of this software is already installed."/>
 
       {{if gt (.Banner | len) 0 }} <WixVariable Id="WixUIBannerBmp" Value="{{.Banner}}"/> {{end}}
