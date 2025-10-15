@@ -72,6 +72,18 @@ func (r *unifiedLoggingReceiver) Shutdown(_ context.Context) error {
 
 // readLogs runs the log command and processes output
 func (r *unifiedLoggingReceiver) readLogs(ctx context.Context) {
+	// Run immediately on startup
+	if err := r.runLogCommand(ctx); err != nil {
+		r.logger.Error("Failed to run log command", zap.Error(err))
+	}
+
+	// If reading from archive, we're done after first run
+	if r.config.ArchivePath != "" {
+		r.logger.Info("Finished reading archive logs")
+		return
+	}
+
+	// For live mode, poll at regular intervals
 	ticker := time.NewTicker(r.config.PollInterval)
 	defer ticker.Stop()
 	for {
@@ -81,12 +93,6 @@ func (r *unifiedLoggingReceiver) readLogs(ctx context.Context) {
 		case <-ticker.C:
 			if err := r.runLogCommand(ctx); err != nil {
 				r.logger.Error("Failed to run log command", zap.Error(err))
-				continue
-			}
-
-			if r.config.ArchivePath != "" {
-				r.logger.Info("Finished reading archive logs")
-				return
 			}
 		}
 	}
@@ -139,15 +145,16 @@ func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) error {
 				continue
 			}
 
-			// Skip the header line in default format (plain text output)
-			if r.config.Format == "default" && isFirstLine {
+			// Skip the header line in text-based formats (default, syslog, compact)
+			isTextFormat := r.config.Format == "default" || r.config.Format == "syslog" || r.config.Format == "compact"
+			if isTextFormat && isFirstLine {
 				isFirstLine = false
 				continue
 			}
 			isFirstLine = false
 
-			// Skip completion/status messages in default format
-			if r.config.Format == "default" && isCompletionLine(line) {
+			// Skip completion/status messages (applies to all formats)
+			if isCompletionLine(line) {
 				continue
 			}
 
