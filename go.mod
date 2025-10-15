@@ -28,7 +28,6 @@ require (
 	github.com/observiq/bindplane-otel-collector/processor/samplingprocessor v1.86.1
 	github.com/observiq/bindplane-otel-collector/processor/spancountprocessor v1.86.1
 	github.com/observiq/bindplane-otel-collector/processor/throughputmeasurementprocessor v1.86.1
-	github.com/observiq/bindplane-otel-collector/processor/unrollprocessor v1.86.1
 	github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver v1.86.1
 	github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver v1.86.1
 	github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver v1.86.1
@@ -224,6 +223,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor v0.137.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/intervalprocessor v0.137.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/redactionprocessor v0.137.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/processor/unrollprocessor v0.137.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/githubreceiver v0.137.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/libhoneyreceiver v0.137.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.137.0
@@ -629,8 +629,10 @@ require (
 	go.uber.org/zap/exp v0.3.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	golang.org/x/telemetry v0.0.0-20250908211612-aef8a434d053 // indirect
+	golang.org/x/tools/godoc v0.1.0-deprecated // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250922171735-9219d122eba9 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251002232023-7c0ddcbb5797 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251014184007-4626949a642f // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	sigs.k8s.io/controller-runtime v0.20.4 // indirect
 )
@@ -926,16 +928,16 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/crypto v0.42.0 // indirect
+	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b // indirect
-	golang.org/x/mod v0.27.0 // indirect
-	golang.org/x/net v0.44.0 // indirect
+	golang.org/x/mod v0.28.0 // indirect
+	golang.org/x/net v0.46.0 // indirect
 	golang.org/x/oauth2 v0.32.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/term v0.35.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
+	golang.org/x/term v0.36.0 // indirect
+	golang.org/x/text v0.30.0 // indirect
 	golang.org/x/time v0.13.0 // indirect
-	golang.org/x/tools v0.36.0 // indirect
+	golang.org/x/tools v0.37.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gonum.org/v1/gonum v0.16.0 // indirect
 	google.golang.org/api v0.252.0 // indirect
@@ -1027,8 +1029,6 @@ replace github.com/observiq/bindplane-otel-collector/processor/spancountprocesso
 replace github.com/observiq/bindplane-otel-collector/processor/throughputmeasurementprocessor => ./processor/throughputmeasurementprocessor
 
 replace github.com/observiq/bindplane-otel-collector/processor/topologyprocessor => ./processor/topologyprocessor
-
-replace github.com/observiq/bindplane-otel-collector/processor/unrollprocessor => ./processor/unrollprocessor
 
 // Receivers
 replace github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver => ./receiver/awss3eventreceiver
