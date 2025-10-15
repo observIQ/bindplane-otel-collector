@@ -1,0 +1,3 @@
+# Valid resolver configuration with positive timeout
+server: "9.9.9.9:53"
+timeout: 5s

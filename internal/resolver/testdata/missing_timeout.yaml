@@ -1,0 +1,2 @@
+# Missing timeout field
+server: "8.8.8.8:53"
