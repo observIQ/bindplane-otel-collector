@@ -1,0 +1,3 @@
+# Invalid timeout configuration
+server: "8.8.8.8:53"
+timeout: "invalid-duration"

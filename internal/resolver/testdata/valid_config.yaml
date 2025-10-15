@@ -1,0 +1,3 @@
+# Valid resolver configuration
+server: "8.8.8.8:53"
+timeout: 5s

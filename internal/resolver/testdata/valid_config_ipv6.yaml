@@ -1,0 +1,3 @@
+# Valid resolver configuration with IPv6
+server: "[2001:4860:4860::8888]:53"
+timeout: 10s

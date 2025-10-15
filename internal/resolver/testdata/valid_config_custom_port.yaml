@@ -1,0 +1,3 @@
+# Valid resolver configuration with custom port
+server: "1.1.1.1:5353"
+timeout: 30s
