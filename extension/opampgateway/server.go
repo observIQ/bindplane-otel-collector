@@ -37,7 +37,7 @@ type server struct {
 }
 
 var (
-	handlePath = "/v1/opamp"
+	handlePath = "/"
 )
 
 func newServer(cfg *OpAMPServer, logger *zap.Logger, connectionManagement ServerConnectionManagement) *server {
@@ -69,7 +69,8 @@ func (s *server) Start() error {
 		s.httpServer.Addr,
 		func(l net.Listener) error {
 			defer s.httpServerServeWg.Done()
-			return s.httpServer.ServeTLS(l, "", "")
+			// TODO: add TLS support
+			return s.httpServer.Serve(l)
 		},
 	)
 
@@ -181,6 +182,9 @@ func (s *server) handleWSConnection(conn *websocket.Conn) {
 			}
 			continue
 		}
+		s.logger.Info("Received message from WebSocket",
+			zap.String("message", string(msgBytes)),
+		)
 
 		// Parse out AgentID
 		agentID, err := parseAgentID(request.GetInstanceUid())
