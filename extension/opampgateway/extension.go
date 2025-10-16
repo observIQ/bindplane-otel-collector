@@ -12,19 +12,25 @@ import (
 type OpAMPGateway struct {
 	logger *zap.Logger
 	cfg    *Config
-	// upstreamConnections is a map of agent ID to the websocket ID of the connection AgentToServer messages should be forwarded on.
-	upstreamConnections    map[string]string
-	upstreamConnectionsIDs map[string]*websocket.Conn
+
+	pool *connectionPool
+
+	// upstreamConnections is a map of agent ID to the websocket connection AgentToServer messages should be forwarded on.
+	upstreamConnections *connections
+
 	// downstreamConnections is a map of agent ID to the websocket connection ServerToAgent messages should be forwarded on.
-	downstreamConnections map[string]*websocket.Conn
+	downstreamConnections *connections
 
 	server *server
 }
 
 func newOpAMPGateway(logger *zap.Logger, cfg *Config) *OpAMPGateway {
 	o := &OpAMPGateway{
-		logger: logger,
-		cfg:    cfg,
+		logger:                logger,
+		cfg:                   cfg,
+		pool:                  newConnectionPool(),
+		upstreamConnections:   newConnections(),
+		downstreamConnections: newConnections(),
 	}
 	o.server = newServer(cfg.OpAMPServer, logger.Named("opamp-server"), o)
 	return o
@@ -42,10 +48,10 @@ func (o *OpAMPGateway) Shutdown(ctx context.Context) error {
 
 // EnsureDownstreamConnection will ensure that a downstream connection exists for the given agent ID.
 func (o *OpAMPGateway) EnsureDownstreamConnection(agentID string, conn *websocket.Conn) {
-	_, ok := o.downstreamConnections[agentID]
+	_, ok := o.downstreamConnections.get(agentID)
 	if !ok {
 		o.logger.Debug("Creating downstream connection for agent ID", zap.String("agent_id", agentID))
-		o.downstreamConnections[agentID] = conn
+		o.downstreamConnections.set(agentID, newConnection(conn))
 	}
 	if ok {
 		o.logger.Debug("Downstream connection already exists for agent ID", zap.String("agent_id", agentID))
@@ -62,7 +68,7 @@ func (o *OpAMPGateway) ForwardMessageUpstream(agentID string, msg []byte) error 
 }
 
 func (o *OpAMPGateway) getUpstreamConnection(agentID string) (*websocket.Conn, error) {
-	connID, ok := o.upstreamConnections[agentID]
+	connID, ok := o.upstreamConnections.get(agentID)
 	if !ok {
 		// need to assign a new connection - get a random connection ID
 		for id := range o.upstreamConnectionsIDs {
@@ -77,3 +83,15 @@ func (o *OpAMPGateway) getUpstreamConnection(agentID string) (*websocket.Conn, e
 	}
 	return conn, nil
 }
+
+func (o *OpAMPGateway) AddUpstreamConnection(conn *websocket.Conn, id string) {
+	o.pool.connections
+	_, ok := o.upstreamConnections.get()
+	if !ok {
+		o.upstreamConnectionsIDs[id] = conn
+	} else {
+		o.logger.Error("upstream connection for this id already exists")
+	}
+}
+
+func (o *OpAMPGateway) ForwardMessageDownstream(agentID string, msg []byte) error
