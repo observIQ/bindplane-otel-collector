@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector
 
-go 1.24.4
+go 1.25.1
 
 require (
 	github.com/google/uuid v1.6.0
@@ -210,6 +210,7 @@ require (
 require (
 	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.86.1
 	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.86.1
+	github.com/observiq/bindplane-otel-collector/extension/opampgateway v0.0.0-00010101000000-000000000000
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.86.1
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.86.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.137.0
@@ -981,6 +982,8 @@ replace github.com/observiq/bindplane-otel-collector/internal/testutils => ./int
 
 // Extensions
 replace github.com/observiq/bindplane-otel-collector/extension/awss3eventextension => ./extension/awss3eventextension
+
+replace github.com/observiq/bindplane-otel-collector/extension/opampgateway => ./extension/opampgateway
 
 // Exporters
 replace github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter => ./exporter/azureblobexporter
