@@ -4,9 +4,11 @@ go 1.25.1
 
 require (
 	github.com/gorilla/websocket v1.5.3
+	github.com/open-telemetry/opamp-go v0.22.0
 	go.opentelemetry.io/collector/component v1.43.0
 	go.opentelemetry.io/collector/extension v1.43.0
 	go.uber.org/zap v1.27.0
+	google.golang.org/protobuf v1.36.9
 )
 
 require (
@@ -34,5 +36,4 @@ require (
 	golang.org/x/text v0.28.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250825161204-c5933d9347a5 // indirect
 	google.golang.org/grpc v1.75.1 // indirect
-	google.golang.org/protobuf v1.36.9 // indirect
 )
