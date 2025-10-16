@@ -1,4 +1,4 @@
-type: bindplane
+type: opampgateway
 
 status:
   class: extension
