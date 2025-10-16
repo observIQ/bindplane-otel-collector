@@ -2,6 +2,7 @@ package opampgateway
 
 import (
 	"context"
+	"crypto/tls"
 
 	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
 	"go.opentelemetry.io/collector/component"
@@ -22,7 +23,7 @@ func defaultConfig() component.Config {
 		UpstreamConnections: 1,
 		OpAMPServer: &OpAMPServer{
 			Endpoint: "0.0.0.0:3001",
-			TLS: &TLSConfig{
+			TLS: &tls.Config{
 				InsecureSkipVerify: true,
 			},
 		},
