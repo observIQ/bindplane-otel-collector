@@ -3,6 +3,7 @@ module github.com/observiq/bindplane-otel-collector/extension/opampgateway
 go 1.25.1
 
 require (
+	github.com/gorilla/websocket v1.5.3
 	go.opentelemetry.io/collector/component v1.43.0
 	go.opentelemetry.io/collector/extension v1.43.0
 	go.uber.org/zap v1.27.0
