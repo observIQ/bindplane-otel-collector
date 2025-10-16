@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -16,7 +17,7 @@ import (
 type ClientConnectionManagement interface {
 	AddUpstreamConnection(conn *websocket.Conn, id string)
 
-	ForwardMessageDownstream(agentID string, msg []byte) error
+	ForwardMessageDownstream(ctx context.Context, agentID string, msg []byte) error
 }
 
 type client struct {
@@ -28,9 +29,12 @@ type client struct {
 	secretKey        string
 	upstreamEndpoint string
 	connectionCount  int
+
+	clientConnectionsWg     *sync.WaitGroup
+	clientConnectionsCancel context.CancelFunc
 }
 
-func newClient(logger *zap.Logger, cfg *Config, ccm ClientConnectionManagement) *client {
+func newClient(cfg *Config, logger *zap.Logger, ccm ClientConnectionManagement) *client {
 	return &client{
 		logger:           logger,
 		dialer:           *websocket.DefaultDialer,
@@ -48,42 +52,73 @@ func (c *client) Start() error {
 			return fmt.Errorf("ensure connected: %w", err)
 		}
 
-		c.ccm.AddUpstreamConnection(conn, fmt.Sprintf("%s_%s", conn.RemoteAddr().String(), i))
+		c.ccm.AddUpstreamConnection(conn, fmt.Sprintf("%s_%d", conn.RemoteAddr().String(), i))
 
-		go c.handleWSConnection(conn)
+		connCtx, connCancel := context.WithCancel(context.Background())
+		c.clientConnectionsCancel = connCancel
+
+		c.clientConnectionsWg = &sync.WaitGroup{}
+		c.clientConnectionsWg.Add(1)
+		go c.handleWSConnection(connCtx, conn)
 	}
 
 	return nil
 }
 
 func (c *client) Stop() error {
+	c.clientConnectionsCancel()
+	c.clientConnectionsWg.Wait()
+
 	return nil
 }
 
-func (c *client) handleWSConnection(conn *websocket.Conn) {
+func (c *client) handleWSConnection(ctx context.Context, conn *websocket.Conn) {
+	defer c.clientConnectionsWg.Done()
+
+	type receivedMessage struct {
+		message []byte
+		err     error
+	}
+
 	for {
-		message := protobufs.ServerToAgent{}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			result := make(chan receivedMessage, 1)
 
-		_, bytes, err := conn.ReadMessage()
-		if err != nil {
-			c.logger.Error("failed to read message from connection", zap.Error(err))
-			continue
-		}
+			go func() {
+				_, bytes, err := conn.ReadMessage()
+				result <- receivedMessage{bytes, err}
+			}()
 
-		if err := decodeWSMessage(bytes, &message); err != nil {
-			c.logger.Error("failed to decode ws message", zap.Error(err))
-			continue
-		}
+			select {
+			case <-ctx.Done():
+				return
+			case res := <-result:
+				messageCtx := context.Background()
 
-		agentID, err := parseAgentID(message.GetInstanceUid())
-		if err != nil {
-			c.logger.Error("failed to parse agent id", zap.Error(err))
-			continue
-		}
+				if res.err == nil {
+					c.logger.Error("Failed to read message from websocket", zap.Error(res.err))
+					continue
+				}
+				message := protobufs.ServerToAgent{}
+				if err := decodeWSMessage(res.message, &message); err != nil {
+					c.logger.Error("failed to decode ws message", zap.Error(err))
+					continue
+				}
 
-		err = c.ccm.ForwardMessageDownstream(agentID, bytes)
-		if err != nil {
-			c.logger.Error("failed to forward message downstream")
+				agentID, err := parseAgentID(message.GetInstanceUid())
+				if err != nil {
+					c.logger.Error("failed to parse agent id", zap.Error(err))
+					continue
+				}
+
+				err = c.ccm.ForwardMessageDownstream(messageCtx, agentID, res.message)
+				if err != nil {
+					c.logger.Error("failed to forward message downstream")
+				}
+			}
 		}
 	}
 }

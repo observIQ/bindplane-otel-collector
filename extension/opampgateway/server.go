@@ -19,7 +19,7 @@ type ServerConnectionManagement interface {
 	EnsureDownstreamConnection(agentID string, conn *websocket.Conn)
 
 	// ForwardMessageUpstream will forward the given message to the upstream connection for the given agent ID.
-	ForwardMessageUpstream(agentID string, msg []byte) error
+	ForwardMessageUpstream(ctx context.Context, agentID string, msg []byte) error
 }
 
 type server struct {
@@ -147,6 +147,7 @@ func (s *server) acceptOpAMPConnection(req *http.Request) bool {
 func (s *server) handleWSConnection(conn *websocket.Conn) {
 	connectionCreated := false
 	for {
+		msgContext := context.Background()
 		request := protobufs.AgentToServer{}
 
 		// Block on reading a message from the WebSocket connection.
@@ -200,7 +201,7 @@ func (s *server) handleWSConnection(conn *websocket.Conn) {
 		}
 
 		// Forward the message to the upstream connection for the agent ID.
-		err = s.connectionManagement.ForwardMessageUpstream(agentID, msgBytes)
+		err = s.connectionManagement.ForwardMessageUpstream(msgContext, agentID, msgBytes)
 		if err != nil {
 			s.logger.Error("Error forwarding message to upstream", zap.Error(err))
 			continue

@@ -25,3 +25,9 @@ func (c *connections) set(agentID string, conn *connection) {
 	defer c.mtx.Unlock()
 	c.agentConnections[agentID] = conn
 }
+
+func (c *connections) size() int {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return len(c.agentConnections)
+}

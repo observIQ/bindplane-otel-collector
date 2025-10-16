@@ -1,10 +1,12 @@
 package opampgateway
 
 import (
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"google.golang.org/protobuf/proto"
 )
@@ -37,8 +39,9 @@ func decodeWSMessage(bytes []byte, msg proto.Message) error {
 	return nil
 }
 
-func writeWSMessage(conn *websocket.Conn, msg []byte) error {
-	writer, err := conn.NextWriter(websocket.BinaryMessage)
+func writeWSMessage(_ context.Context, con *websocket.Conn, msg []byte) error {
+
+	writer, err := con.NextWriter(websocket.BinaryMessage)
 	if err != nil {
 		return fmt.Errorf("next writer: %w", err)
 	}
@@ -69,6 +72,40 @@ func writeWSMessage(conn *websocket.Conn, msg []byte) error {
 	return nil
 }
 
+type agentID struct {
+	raw    []byte
+	parsed string
+}
+
+// newAgentID parses the raw byte representation of the agent ID according to the provided format.
+func newAgentID(raw []byte) (agentID, error) {
+	parsedString := ""
+	switch len(raw) {
+	case 26:
+		// agentID is a pre-formatted legacy ULID
+		parsedString = string(raw)
+	case 16:
+		u := uuid.UUID(raw)
+		parsedString = u.String()
+
+	default:
+		return agentID{}, fmt.Errorf("expected 16 or 26 bytes, got %d", len(raw))
+	}
+
+	return agentID{
+		raw:    raw,
+		parsed: parsedString,
+	}, nil
+}
+
+func (a agentID) String() string {
+	return a.parsed
+}
+
 func parseAgentID(instanceUID []byte) (string, error) {
-	return "", nil
+	id, err := newAgentID(instanceUID)
+	if err != nil {
+		return "", err
+	}
+	return id.String(), nil
 }

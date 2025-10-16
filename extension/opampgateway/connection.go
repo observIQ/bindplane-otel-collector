@@ -1,12 +1,16 @@
 package opampgateway
 
-import "github.com/gorilla/websocket"
+import (
+	"github.com/gorilla/websocket"
+)
 
 type connection struct {
-	id string
-	*websocket.Conn
+	id   string
+	conn *wsConnection
 }
 
 func newConnection(conn *websocket.Conn) *connection {
-	return &connection{}
+	return &connection{
+		conn: newWSConnection(conn),
+	}
 }
