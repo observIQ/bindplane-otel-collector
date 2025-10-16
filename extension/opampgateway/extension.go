@@ -17,20 +17,26 @@ type OpAMPGateway struct {
 	upstreamConnectionsIDs map[string]*websocket.Conn
 	// downstreamConnections is a map of agent ID to the websocket connection ServerToAgent messages should be forwarded on.
 	downstreamConnections map[string]*websocket.Conn
+
+	server *server
 }
 
 func newOpAMPGateway(logger *zap.Logger, cfg *Config) *OpAMPGateway {
-	return &OpAMPGateway{
+	o := &OpAMPGateway{
 		logger: logger,
 		cfg:    cfg,
 	}
+	o.server = newServer(cfg.OpAMPServer, logger.Named("opamp-server"), o)
+	return o
 }
 
 func (o *OpAMPGateway) Start(_ context.Context, host component.Host) error {
+	o.server.Start()
 	return nil
 }
 
 func (o *OpAMPGateway) Shutdown(ctx context.Context) error {
+	o.server.Stop()
 	return nil
 }
 
