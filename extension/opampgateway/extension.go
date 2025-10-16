@@ -41,7 +41,7 @@ func newOpAMPGateway(logger *zap.Logger, cfg *Config) *OpAMPGateway {
 
 func (o *OpAMPGateway) Start(_ context.Context, host component.Host) error {
 	o.server.Start()
-	o.client.Start()
+	o.client.Start(context.Background())
 	return nil
 }
 
