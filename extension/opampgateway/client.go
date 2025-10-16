@@ -45,9 +45,9 @@ func newClient(cfg *Config, logger *zap.Logger, ccm ClientConnectionManagement) 
 	}
 }
 
-func (c *client) Start() error {
+func (c *client) Start(ctx context.Context) error {
 	for i := 0; i < c.connectionCount; i++ {
-		conn, err := c.ensureConnected(context.Background())
+		conn, err := c.ensureConnected(ctx)
 		if err != nil {
 			return fmt.Errorf("ensure connected: %w", err)
 		}
