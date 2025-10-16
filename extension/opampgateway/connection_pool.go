@@ -22,7 +22,6 @@ func newConnectionPool(logger *zap.Logger) *connectionPool {
 func (c *connectionPool) add(conn *connection) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	c.connections[conn.id] = conn
 
 	_, ok := c.connections[conn.id]
 	if !ok {

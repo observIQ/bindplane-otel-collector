@@ -141,6 +141,7 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 // acceptOpAMPConnection returns true if the connection should be accepted
 func (s *server) acceptOpAMPConnection(req *http.Request) bool {
+	s.logger.Info("connection request", zap.String("user-agent", req.UserAgent()))
 	return true
 }
 
