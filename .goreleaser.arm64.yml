@@ -1,0 +1,58 @@
+version: 2
+
+project_name: observiq-otel-collector
+
+before:
+  hooks:
+    - make release-prep CURR_VERSION={{ .Version }}
+
+builds:
+  - id: collector
+    binary: observiq-otel-collector
+    main: ./cmd/collector
+    env:
+      - CGO_ENABLED=0
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    tags:
+      - bindplane
+    goos:
+      - linux
+    goarch:
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/observiq/bindplane-otel-collector/internal/version.version=v{{ .Version }}
+      - -X github.com/observiq/bindplane-otel-collector/internal/version.gitHash={{ .FullCommit }}
+      - -X github.com/observiq/bindplane-otel-collector/internal/version.date={{ .Date }}
+
+dockers:
+  - id: ubuntu-arm64
+    goos: linux
+    goarch: arm64
+    retry:
+      attempts: 10
+      delay: 30s
+      max_delay: 1m
+    ids:
+      - collector
+    image_templates:
+      - "observiq/bindplane-agent-arm64:{{ .Version }}"
+      - "observiq/bindplane-agent-arm64:latest"
+    dockerfile: ./docker/Dockerfile.ubuntu
+    use: buildx
+    build_flag_templates:
+      - "--label=created={{.Date}}"
+      - "--label=title={{.ProjectName}}"
+      - "--label=revision={{.FullCommit}}"
+      - "--label=version={{.Version}}"
+      - "--platform=linux/arm64"
+    extra_files:
+      - release_deps/VERSION.txt
+      - release_deps/plugins
+      - release_deps/config.yaml
+      - config/logging.stdout.yaml
+      - LICENSE
+      - release_deps/opentelemetry-java-contrib-jmx-metrics.jar
+
+changelog:
+  disable: true

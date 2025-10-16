@@ -256,6 +256,9 @@ release-test:
 build-single:
 	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --skip=publish --clean --skip=validate --snapshot --single-target
 
+.PHONY: release-test-single
+release-test-single:
+	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release -f .goreleaser.arm64.yml --skip=publish --clean --skip=validate --snapshot
 
 .PHONY: for-all
 for-all:
