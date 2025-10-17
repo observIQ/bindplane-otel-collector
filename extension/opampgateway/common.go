@@ -46,18 +46,6 @@ func writeWSMessage(_ context.Context, con *websocket.Conn, msg []byte) error {
 		return fmt.Errorf("next writer: %w", err)
 	}
 
-	// Encode header as a varint.
-	hdrBuf := make([]byte, binary.MaxVarintLen64)
-	n := binary.PutUvarint(hdrBuf, wsMsgHeader)
-	hdrBuf = hdrBuf[:n]
-
-	// Write the header bytes.
-	_, err = writer.Write(hdrBuf)
-	if err != nil {
-		writer.Close()
-		return fmt.Errorf("write header: %w", err)
-	}
-
 	// Write the encoded data.
 	_, err = writer.Write(msg)
 	if err != nil {
