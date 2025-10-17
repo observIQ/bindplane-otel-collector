@@ -2,6 +2,7 @@ package opampgateway
 
 import (
 	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 )
 
 type connection struct {
@@ -9,8 +10,8 @@ type connection struct {
 	conn *wsConnection
 }
 
-func newConnection(conn *websocket.Conn) *connection {
+func newConnection(conn *websocket.Conn, logger *zap.Logger) *connection {
 	return &connection{
-		conn: newWSConnection(conn),
+		conn: newWSConnection(conn, logger),
 	}
 }

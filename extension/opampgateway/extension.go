@@ -56,7 +56,7 @@ func (o *OpAMPGateway) EnsureDownstreamConnection(agentID string, conn *websocke
 	_, ok := o.downstreamConnections.get(agentID)
 	if !ok {
 		o.logger.Debug("Creating downstream connection for agent ID", zap.String("agent_id", agentID))
-		o.downstreamConnections.set(agentID, newConnection(conn))
+		o.downstreamConnections.set(agentID, newConnection(conn, o.logger.Named("downstream-connection")))
 	}
 	if ok {
 		o.logger.Debug("Downstream connection already exists for agent ID", zap.String("agent_id", agentID))
@@ -65,6 +65,7 @@ func (o *OpAMPGateway) EnsureDownstreamConnection(agentID string, conn *websocke
 
 // ForwardMessageUpstream will forward the given message to the upstream connection for the given agent ID.
 func (o *OpAMPGateway) ForwardMessageUpstream(ctx context.Context, agentID string, msg []byte) error {
+	o.logger.Info("Forwarding message upstream", zap.String("agent_id", agentID), zap.String("message", string(msg)))
 	conn, err := o.getUpstreamConnection(agentID)
 	if err != nil {
 		return fmt.Errorf("get upstream connection: %w", err)
@@ -82,7 +83,7 @@ func (o *OpAMPGateway) getUpstreamConnection(agentID string) (*wsConnection, err
 }
 
 func (o *OpAMPGateway) AddUpstreamConnection(conn *websocket.Conn, id string) {
-	c := newConnection(conn)
+	c := newConnection(conn, o.logger.Named("upstream-connection"))
 	c.id = id
 	o.pool.add(c)
 }
