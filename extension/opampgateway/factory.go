@@ -3,6 +3,7 @@ package opampgateway
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 
 	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
 	"go.opentelemetry.io/collector/component"
@@ -31,6 +32,11 @@ func defaultConfig() component.Config {
 }
 
 func createOpAMPGateway(_ context.Context, cs extension.Settings, cfg component.Config) (extension.Extension, error) {
+	t, err := metadata.NewTelemetryBuilder(cs.TelemetrySettings)
+	if err != nil {
+		return nil, fmt.Errorf("create telemetry builder: %w", err)
+	}
+
 	oCfg := cfg.(*Config)
-	return newOpAMPGateway(cs.Logger, oCfg), nil
+	return newOpAMPGateway(cs.Logger, oCfg, t), nil
 }

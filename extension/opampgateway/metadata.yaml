@@ -4,3 +4,47 @@ status:
   class: extension
   stability:
     alpha: [extension]
+
+telemetry:
+  metrics:
+    opampgateway_upstream_connections:
+      enabled: true
+      description: "The number of upstream connections."
+      unit: "{connections}"
+      sum:
+        value_type: int
+
+    opampgateway_downstream_connections:
+      enabled: true
+      description: "The number of downstream connections."
+      unit: "{connections}"
+      sum:
+        value_type: int
+    
+    opampgateway_upstream_messages:
+      enabled: true
+      description: "The number of upstream messages."
+      unit: "{messages}"
+      sum:
+        value_type: int
+
+    opampgateway_downstream_messages:
+      enabled: true
+      description: "The number of downstream messages."
+      unit: "{messages}"
+      sum:
+        value_type: int
+
+    opampgateway_upstream_message_size:
+      enabled: true
+      description: "The total size of the upstream messages."
+      unit: "B"
+      sum:
+        value_type: int
+
+    opampgateway_downstream_message_size:
+      enabled: true
+      description: "The total size of the downstream messages."
+      unit: "B"
+      sum:
+        value_type: int
