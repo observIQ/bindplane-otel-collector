@@ -208,5 +208,7 @@ func (s *server) handleWSConnection(conn *websocket.Conn) {
 			s.logger.Error("Error forwarding message to upstream", zap.Error(err))
 			continue
 		}
+
+		s.logger.Info("Message sent to upstream", zap.String("agent_id", agentID), zap.String("message", string(msgBytes)))
 	}
 }
