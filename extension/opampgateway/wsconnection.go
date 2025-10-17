@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 )
 
 // borrowed from opamp-go library
@@ -19,10 +20,11 @@ type wsConnection struct {
 	connMutex sync.Mutex
 	wsConn    *websocket.Conn
 	closed    atomic.Bool
+	logger    *zap.Logger
 }
 
-func newWSConnection(wsConn *websocket.Conn) *wsConnection {
-	return &wsConnection{wsConn: wsConn}
+func newWSConnection(wsConn *websocket.Conn, logger *zap.Logger) *wsConnection {
+	return &wsConnection{wsConn: wsConn, logger: logger}
 }
 
 func (c *wsConnection) Connection() net.Conn {
@@ -32,6 +34,8 @@ func (c *wsConnection) Connection() net.Conn {
 func (c *wsConnection) Send(ctx context.Context, message []byte) error {
 	c.connMutex.Lock()
 	defer c.connMutex.Unlock()
+
+	c.logger.Info("Sending message to websocket", zap.String("message", string(message)))
 
 	return writeWSMessage(ctx, c.wsConn, message)
 }
