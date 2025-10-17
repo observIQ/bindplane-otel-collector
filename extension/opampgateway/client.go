@@ -98,9 +98,9 @@ func (c *client) handleWSConnection(ctx context.Context, conn *websocket.Conn) {
 			case res := <-result:
 				messageCtx := context.Background()
 
-				if res.err == nil {
+				if res.err != nil {
 					c.logger.Error("Failed to read message from websocket", zap.Error(res.err))
-					continue
+					break
 				}
 				message := protobufs.ServerToAgent{}
 				if err := decodeWSMessage(res.message, &message); err != nil {

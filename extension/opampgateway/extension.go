@@ -83,12 +83,14 @@ func (o *OpAMPGateway) getUpstreamConnection(agentID string) (*wsConnection, err
 }
 
 func (o *OpAMPGateway) AddUpstreamConnection(conn *websocket.Conn, id string) {
+	o.logger.Info("Adding upstream connection", zap.String("id", id))
 	c := newConnection(conn, o.logger.Named("upstream-connection"))
 	c.id = id
 	o.pool.add(c)
 }
 
 func (o *OpAMPGateway) ForwardMessageDownstream(ctx context.Context, agentID string, msg []byte) error {
+	o.logger.Info("Forwarding message downstream", zap.String("agent_id", agentID), zap.String("message", string(msg)))
 	c, ok := o.downstreamConnections.get(agentID)
 	if !ok {
 		return fmt.Errorf("downstream connection not found for id '%s'", agentID)
