@@ -197,6 +197,7 @@ func (s *server) handleWSConnection(conn *websocket.Conn) {
 
 		// Ensure a downstream connection exists for the agent ID.
 		if !connectionCreated {
+			s.logger.Info("Creating downstream connection for agent ID", zap.String("agent_id", agentID))
 			s.connectionManagement.EnsureDownstreamConnection(agentID, conn)
 			connectionCreated = true
 		}
