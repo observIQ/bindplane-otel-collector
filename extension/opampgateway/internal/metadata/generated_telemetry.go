@@ -27,11 +27,11 @@ type TelemetryBuilder struct {
 	mu                                sync.Mutex
 	registrations                     []metric.Registration
 	OpampgatewayDownstreamConnections metric.Int64UpDownCounter
-	OpampgatewayDownstreamMessageSize metric.Int64UpDownCounter
-	OpampgatewayDownstreamMessages    metric.Int64UpDownCounter
+	OpampgatewayDownstreamMessageSize metric.Int64Counter
+	OpampgatewayDownstreamMessages    metric.Int64Counter
 	OpampgatewayUpstreamConnections   metric.Int64UpDownCounter
-	OpampgatewayUpstreamMessageSize   metric.Int64UpDownCounter
-	OpampgatewayUpstreamMessages      metric.Int64UpDownCounter
+	OpampgatewayUpstreamMessageSize   metric.Int64Counter
+	OpampgatewayUpstreamMessages      metric.Int64Counter
 }
 
 // TelemetryBuilderOption applies changes to default builder.
@@ -69,13 +69,13 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 		metric.WithUnit("{connections}"),
 	)
 	errs = errors.Join(errs, err)
-	builder.OpampgatewayDownstreamMessageSize, err = builder.meter.Int64UpDownCounter(
+	builder.OpampgatewayDownstreamMessageSize, err = builder.meter.Int64Counter(
 		"otelcol_opampgateway_downstream_message_size",
 		metric.WithDescription("The total size of the downstream messages."),
 		metric.WithUnit("B"),
 	)
 	errs = errors.Join(errs, err)
-	builder.OpampgatewayDownstreamMessages, err = builder.meter.Int64UpDownCounter(
+	builder.OpampgatewayDownstreamMessages, err = builder.meter.Int64Counter(
 		"otelcol_opampgateway_downstream_messages",
 		metric.WithDescription("The number of downstream messages."),
 		metric.WithUnit("{messages}"),
@@ -87,13 +87,13 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 		metric.WithUnit("{connections}"),
 	)
 	errs = errors.Join(errs, err)
-	builder.OpampgatewayUpstreamMessageSize, err = builder.meter.Int64UpDownCounter(
+	builder.OpampgatewayUpstreamMessageSize, err = builder.meter.Int64Counter(
 		"otelcol_opampgateway_upstream_message_size",
 		metric.WithDescription("The total size of the upstream messages."),
 		metric.WithUnit("B"),
 	)
 	errs = errors.Join(errs, err)
-	builder.OpampgatewayUpstreamMessages, err = builder.meter.Int64UpDownCounter(
+	builder.OpampgatewayUpstreamMessages, err = builder.meter.Int64Counter(
 		"otelcol_opampgateway_upstream_messages",
 		metric.WithDescription("The number of upstream messages."),
 		metric.WithUnit("{messages}"),

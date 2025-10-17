@@ -20,7 +20,7 @@ The total size of the downstream messages.
 
 | Unit | Metric Type | Value Type | Monotonic |
 | ---- | ----------- | ---------- | --------- |
-| B | Sum | Int | false |
+| B | Sum | Int | true |
 
 ### otelcol_opampgateway_downstream_messages
 
@@ -28,7 +28,7 @@ The number of downstream messages.
 
 | Unit | Metric Type | Value Type | Monotonic |
 | ---- | ----------- | ---------- | --------- |
-| {messages} | Sum | Int | false |
+| {messages} | Sum | Int | true |
 
 ### otelcol_opampgateway_upstream_connections
 
@@ -44,7 +44,7 @@ The total size of the upstream messages.
 
 | Unit | Metric Type | Value Type | Monotonic |
 | ---- | ----------- | ---------- | --------- |
-| B | Sum | Int | false |
+| B | Sum | Int | true |
 
 ### otelcol_opampgateway_upstream_messages
 
@@ -52,4 +52,4 @@ The number of upstream messages.
 
 | Unit | Metric Type | Value Type | Monotonic |
 | ---- | ----------- | ---------- | --------- |
-| {messages} | Sum | Int | false |
+| {messages} | Sum | Int | true |

@@ -26,6 +26,8 @@ telemetry:
       description: "The number of upstream messages."
       unit: "{messages}"
       sum:
+        aggregation_temporality: cumulative
+        monotonic: true
         value_type: int
 
     opampgateway_downstream_messages:
@@ -33,6 +35,8 @@ telemetry:
       description: "The number of downstream messages."
       unit: "{messages}"
       sum:
+        aggregation_temporality: cumulative
+        monotonic: true
         value_type: int
 
     opampgateway_upstream_message_size:
@@ -40,6 +44,8 @@ telemetry:
       description: "The total size of the upstream messages."
       unit: "B"
       sum:
+        aggregation_temporality: cumulative
+        monotonic: true
         value_type: int
 
     opampgateway_downstream_message_size:
@@ -47,4 +53,6 @@ telemetry:
       description: "The total size of the downstream messages."
       unit: "B"
       sum:
+        aggregation_temporality: cumulative 
+        monotonic: true
         value_type: int

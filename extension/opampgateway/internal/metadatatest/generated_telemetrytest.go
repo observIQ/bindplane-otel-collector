@@ -44,7 +44,7 @@ func AssertEqualOpampgatewayDownstreamMessageSize(t *testing.T, tt *componenttes
 		Unit:        "B",
 		Data: metricdata.Sum[int64]{
 			Temporality: metricdata.CumulativeTemporality,
-			IsMonotonic: false,
+			IsMonotonic: true,
 			DataPoints:  dps,
 		},
 	}
@@ -60,7 +60,7 @@ func AssertEqualOpampgatewayDownstreamMessages(t *testing.T, tt *componenttest.T
 		Unit:        "{messages}",
 		Data: metricdata.Sum[int64]{
 			Temporality: metricdata.CumulativeTemporality,
-			IsMonotonic: false,
+			IsMonotonic: true,
 			DataPoints:  dps,
 		},
 	}
@@ -92,7 +92,7 @@ func AssertEqualOpampgatewayUpstreamMessageSize(t *testing.T, tt *componenttest.
 		Unit:        "B",
 		Data: metricdata.Sum[int64]{
 			Temporality: metricdata.CumulativeTemporality,
-			IsMonotonic: false,
+			IsMonotonic: true,
 			DataPoints:  dps,
 		},
 	}
@@ -108,7 +108,7 @@ func AssertEqualOpampgatewayUpstreamMessages(t *testing.T, tt *componenttest.Tel
 		Unit:        "{messages}",
 		Data: metricdata.Sum[int64]{
 			Temporality: metricdata.CumulativeTemporality,
-			IsMonotonic: false,
+			IsMonotonic: true,
 			DataPoints:  dps,
 		},
 	}
