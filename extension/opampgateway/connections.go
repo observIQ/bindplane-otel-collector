@@ -1,33 +1,34 @@
 package opampgateway
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 type connections struct {
-	agentConnections map[string]*connection
-	mtx              sync.RWMutex
+	agentConnections sync.Map
+	count            atomic.Uint32
 }
 
 func newConnections() *connections {
-	return &connections{
-		agentConnections: map[string]*connection{},
-	}
+	return &connections{}
 }
 
 func (c *connections) get(agentID string) (conn *connection, ok bool) {
-	c.mtx.RLock()
-	defer c.mtx.RUnlock()
-	conn, ok = c.agentConnections[agentID]
-	return
+	result, ok := c.agentConnections.Load(agentID)
+	if !ok {
+		return nil, false
+	}
+	conn = result.(*connection)
+	return conn, true
 }
 
 func (c *connections) set(agentID string, conn *connection) {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	c.agentConnections[agentID] = conn
+	c.agentConnections.Store(agentID, conn)
+	c.count.Add(1)
+	conn.incrementAgentCount()
 }
 
 func (c *connections) size() int {
-	c.mtx.RLock()
-	defer c.mtx.RUnlock()
-	return len(c.agentConnections)
+	return int(c.count.Load())
 }
