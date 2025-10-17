@@ -41,6 +41,7 @@ func (c *wsConnection) Send(ctx context.Context, message []byte) error {
 }
 
 func (c *wsConnection) Disconnect() error {
+	c.logger.Info("Disconnecting websocket")
 	if !c.closed.CompareAndSwap(false, true) {
 		return nil
 	}
