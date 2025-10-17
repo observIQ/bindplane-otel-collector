@@ -40,7 +40,6 @@ func decodeWSMessage(bytes []byte, msg proto.Message) error {
 }
 
 func writeWSMessage(_ context.Context, con *websocket.Conn, msg []byte) error {
-
 	writer, err := con.NextWriter(websocket.BinaryMessage)
 	if err != nil {
 		return fmt.Errorf("next writer: %w", err)

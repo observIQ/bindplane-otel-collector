@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gorilla/websocket"
+	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.uber.org/zap"
 )
@@ -24,15 +25,18 @@ type OpAMPGateway struct {
 	server *server
 
 	client *client
+
+	telemetry *metadata.TelemetryBuilder
 }
 
-func newOpAMPGateway(logger *zap.Logger, cfg *Config) *OpAMPGateway {
+func newOpAMPGateway(logger *zap.Logger, cfg *Config, t *metadata.TelemetryBuilder) *OpAMPGateway {
 	o := &OpAMPGateway{
 		logger:                logger,
 		cfg:                   cfg,
 		pool:                  newConnectionPool(logger),
 		upstreamConnections:   newConnections(),
 		downstreamConnections: newConnections(),
+		telemetry:             t,
 	}
 	o.server = newServer(cfg.OpAMPServer, logger.Named("opamp-server"), o)
 	o.client = newClient(cfg, logger.Named("opamp-client"), o)
@@ -57,6 +61,7 @@ func (o *OpAMPGateway) EnsureDownstreamConnection(agentID string, conn *websocke
 	if !ok {
 		o.logger.Debug("Creating downstream connection for agent ID", zap.String("agent_id", agentID))
 		o.downstreamConnections.set(agentID, newConnection(conn, o.logger.Named("downstream-connection")))
+		o.telemetry.OpampgatewayDownstreamConnections.Add(context.Background(), 1)
 	}
 	if ok {
 		o.logger.Debug("Downstream connection already exists for agent ID", zap.String("agent_id", agentID))
@@ -70,6 +75,8 @@ func (o *OpAMPGateway) ForwardMessageUpstream(ctx context.Context, agentID strin
 	if err != nil {
 		return fmt.Errorf("get upstream connection: %w", err)
 	}
+	o.telemetry.OpampgatewayUpstreamMessages.Add(context.Background(), 1)
+	o.telemetry.OpampgatewayUpstreamMessageSize.Add(context.Background(), int64(len(msg)))
 	return conn.Send(ctx, msg)
 }
 
@@ -84,6 +91,7 @@ func (o *OpAMPGateway) getUpstreamConnection(agentID string) (*wsConnection, err
 
 func (o *OpAMPGateway) AddUpstreamConnection(conn *websocket.Conn, id string) {
 	o.logger.Info("Adding upstream connection", zap.String("id", id))
+	o.telemetry.OpampgatewayUpstreamConnections.Add(context.Background(), 1)
 	c := newConnection(conn, o.logger.Named("upstream-connection"))
 	c.id = id
 	o.pool.add(c)
@@ -95,5 +103,7 @@ func (o *OpAMPGateway) ForwardMessageDownstream(ctx context.Context, agentID str
 	if !ok {
 		return fmt.Errorf("downstream connection not found for id '%s'", agentID)
 	}
+	o.telemetry.OpampgatewayDownstreamMessages.Add(context.Background(), 1)
+	o.telemetry.OpampgatewayDownstreamMessageSize.Add(context.Background(), int64(len(msg)))
 	return c.conn.Send(ctx, msg)
 }
