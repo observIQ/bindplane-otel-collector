@@ -1,6 +1,7 @@
 package opampgateway
 
 import (
+	"math"
 	"sync"
 
 	"go.uber.org/zap"
@@ -34,8 +35,16 @@ func (c *connectionPool) add(conn *connection) {
 func (c *connectionPool) next() *connection {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
+
+	// find the connection with the lowest count
+	minCount := math.MaxInt32
+	var minConn *connection
 	for _, conn := range c.connections {
-		return conn
+		count := conn.agentCount()
+		if count < minCount {
+			minCount = count
+			minConn = conn
+		}
 	}
-	return nil
+	return minConn
 }
