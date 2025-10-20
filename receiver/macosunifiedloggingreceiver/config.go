@@ -131,39 +131,9 @@ func (cfg *Config) Validate() error {
 	}
 
 	// Validate predicate to prevent invalid characters
-	// Note: exec.Command doesn't use a shell, but we validate to ensure
-	// only valid predicate syntax is used
 	if cfg.Predicate != "" {
-		invalidChars := []string{
-			";",  // Command separator (not valid in predicates)
-			"|",  // Pipe (not valid in predicates - use AND/OR instead)
-			"$",  // Variable expansion (not valid in predicates)
-			"`",  // Backtick command substitution (not valid in predicates)
-			"\n", // Newline (not valid in predicates)
-			"\r", // Carriage return (not valid in predicates)
-			">>", // Append redirect (not valid in predicates)
-			"<<", // Here document (not valid in predicates)
-		}
-		for _, char := range invalidChars {
-			if strings.Contains(cfg.Predicate, char) {
-				return fmt.Errorf("predicate contains invalid character: %q", char)
-			}
-		}
-
-		// Normalize && to AND to prevent command chaining
-		cfg.Predicate = strings.ReplaceAll(cfg.Predicate, "&&", "AND")
-
-		// Check for redirect patterns (e.g., "> /tmp/file" or "> ./file")
-		// Allow > as a comparison operator but block file redirects
-		redirectPatterns := []string{
-			"> /",  // Absolute path redirect
-			"> ./", // Relative path redirect
-			"> ~/", // Home directory redirect
-		}
-		for _, pattern := range redirectPatterns {
-			if strings.Contains(cfg.Predicate, pattern) {
-				return fmt.Errorf("predicate appears to contain file redirect: %q", pattern)
-			}
+		if err := validatePredicate(&cfg.Predicate); err != nil {
+			return fmt.Errorf("invalid predicate: %w", err)
 		}
 	}
 
@@ -178,13 +148,6 @@ func (cfg *Config) Validate() error {
 		}
 		if !info.IsDir() {
 			return fmt.Errorf("archive_path must be a directory (.logarchive)")
-		}
-	}
-
-	// Validate predicate if specified
-	if cfg.Predicate != "" {
-		if err := validatePredicate(cfg.Predicate); err != nil {
-			return fmt.Errorf("invalid predicate: %w", err)
 		}
 	}
 
@@ -208,23 +171,23 @@ func (cfg *Config) Validate() error {
 }
 
 // validatePredicate performs basic validation on the predicate expression
-func validatePredicate(predicate string) error {
+func validatePredicate(predicate *string) error {
 	var errs error
 
 	// Check for balanced quotes
-	if !hasBalancedQuotes(predicate) {
+	if !hasBalancedQuotes(*predicate) {
 		errs = errors.Join(errs, errors.New("unbalanced quotes in predicate expression"))
 	}
 
 	// Check for balanced parentheses
-	if !hasBalancedParentheses(predicate) {
+	if !hasBalancedParentheses(*predicate) {
 		errs = errors.Join(errs, errors.New("unbalanced parentheses in predicate expression"))
 	}
 
 	// Validate that at least one valid field name appears in the predicate
 	hasValidField := false
 	for field := range validPredicateFields {
-		if strings.Contains(predicate, field) {
+		if strings.Contains(*predicate, field) {
 			hasValidField = true
 			break
 		}
@@ -235,7 +198,7 @@ func validatePredicate(predicate string) error {
 
 	hasValidOperator := false
 	for _, op := range validOperators {
-		if strings.Contains(predicate, op) {
+		if strings.Contains(*predicate, op) {
 			hasValidOperator = true
 			break
 		}
@@ -244,33 +207,52 @@ func validatePredicate(predicate string) error {
 		errs = errors.Join(errs, errors.New("predicate must contain at least one valid operator"))
 	}
 
-	predicateUsesEventType := strings.Contains(predicate, "type")
+	predicateUsesEventType := strings.Contains(*predicate, "type")
 	if predicateUsesEventType {
-		if !hasValidEventType(predicate) {
+		if !hasValidEventType(*predicate) {
 			errs = errors.Join(errs, errors.New("predicate must contain at least one valid event type"))
 		}
 	}
 
-	predicateUsesLogType := strings.Contains(predicate, "logType")
+	predicateUsesLogType := strings.Contains(*predicate, "logType")
 	if predicateUsesLogType {
-		if !hasValidLogType(predicate) {
+		if !hasValidLogType(*predicate) {
 			errs = errors.Join(errs, errors.New("predicate must contain at least one valid log type"))
 		}
 	}
 
-	predicateUsesSignpostScope := strings.Contains(predicate, "signpostScope")
+	predicateUsesSignpostScope := strings.Contains(*predicate, "signpostScope")
 	if predicateUsesSignpostScope {
-		if !hasValidSignpostScope(predicate) {
+		if !hasValidSignpostScope(*predicate) {
 			errs = errors.Join(errs, errors.New("predicate must contain at least one valid signpost scope"))
 		}
 	}
 
-	predicateUsesSignpostType := strings.Contains(predicate, "signpostType")
+	predicateUsesSignpostType := strings.Contains(*predicate, "signpostType")
 	if predicateUsesSignpostType {
-		if !hasValidSignpostType(predicate) {
+		if !hasValidSignpostType(*predicate) {
 			errs = errors.Join(errs, errors.New("predicate must contain at least one valid signpost type"))
 		}
 	}
+
+	invalidChars := []string{
+		";",  // Command separator (not valid in predicates)
+		"|",  // Pipe (not valid in predicates - use AND/OR instead)
+		"$",  // Variable expansion (not valid in predicates)
+		"`",  // Backtick command substitution (not valid in predicates)
+		"\n", // Newline (not valid in predicates)
+		"\r", // Carriage return (not valid in predicates)
+		">>", // Append redirect (not valid in predicates)
+		"<<", // Here document (not valid in predicates)
+	}
+	for _, char := range invalidChars {
+		if strings.Contains(*predicate, char) {
+			return fmt.Errorf("predicate contains invalid character: %q", char)
+		}
+	}
+
+	// Normalize && to AND to prevent command chaining
+	*predicate = strings.ReplaceAll(*predicate, "&&", "AND")
 
 	return errs
 }
