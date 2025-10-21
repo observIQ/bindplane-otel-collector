@@ -27,6 +27,7 @@ type TelemetryBuilder struct {
 	mu                     sync.Mutex
 	registrations          []metric.Registration
 	ExporterBatchSize      metric.Int64Histogram
+	ExporterLogsSendFailed metric.Int64Counter
 	ExporterPayloadSize    metric.Int64Histogram
 	ExporterRawBytes       metric.Int64UpDownCounter
 	ExporterRequestCount   metric.Int64UpDownCounter
@@ -67,6 +68,12 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 		metric.WithDescription("The number of logs in a batch."),
 		metric.WithUnit("{logs}"),
 		metric.WithExplicitBucketBoundaries([]float64{1, 100, 250, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500, 10000, 20000, 30000, 40000, 50000}...),
+	)
+	errs = errors.Join(errs, err)
+	builder.ExporterLogsSendFailed, err = builder.meter.Int64Counter(
+		"otelcol_exporter_logs_send_failed",
+		metric.WithDescription("The number of times ConsumeLogs failed, triggering a retry by the collector pipeline."),
+		metric.WithUnit("{failures}"),
 	)
 	errs = errors.Join(errs, err)
 	builder.ExporterPayloadSize, err = builder.meter.Int64Histogram(

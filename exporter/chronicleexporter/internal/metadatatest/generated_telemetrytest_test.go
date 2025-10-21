@@ -20,12 +20,16 @@ func TestSetupTelemetry(t *testing.T) {
 	require.NoError(t, err)
 	defer tb.Shutdown()
 	tb.ExporterBatchSize.Record(context.Background(), 1)
+	tb.ExporterLogsSendFailed.Add(context.Background(), 1)
 	tb.ExporterPayloadSize.Record(context.Background(), 1)
 	tb.ExporterRawBytes.Add(context.Background(), 1)
 	tb.ExporterRequestCount.Add(context.Background(), 1)
 	tb.ExporterRequestLatency.Record(context.Background(), 1)
 	AssertEqualExporterBatchSize(t, testTel,
 		[]metricdata.HistogramDataPoint[int64]{{}}, metricdatatest.IgnoreValue(),
+		metricdatatest.IgnoreTimestamp())
+	AssertEqualExporterLogsSendFailed(t, testTel,
+		[]metricdata.DataPoint[int64]{{Value: 1}},
 		metricdatatest.IgnoreTimestamp())
 	AssertEqualExporterPayloadSize(t, testTel,
 		[]metricdata.HistogramDataPoint[int64]{{}}, metricdatatest.IgnoreValue(),
