@@ -90,7 +90,7 @@ For a full description of predicate expressions, run `log help predicates`.
 
 Predicate values are validated to ensure only valid predicate syntax is used. The following are not allowed:
 - Command separators: `;`
-- Pipes: `|` (use `AND`/`OR` for logical operations)
+- Pipes: `|` (`||` are normalized to `OR`)
 - Variable expansion: `$`
 - Backticks: `` ` ``
 - Redirects: `>>`, `<<`
