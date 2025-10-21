@@ -199,16 +199,12 @@ func (exp *httpExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
 	}
-	successfulPayloads := []*api.ImportLogsRequest{}
 	for logType, logTypePayloads := range payloads {
 		for _, payload := range logTypePayloads {
 			if err := exp.uploadToChronicleHTTP(ctx, payload, logType); err != nil {
-				// If there is an error only report
-				// the bytes successfully sent
-				exp.countAndReportBatchBytes(ctx, successfulPayloads)
+				// Don't count bytes on failure - retry will count them on success
 				return fmt.Errorf("upload to chronicle: %w", err)
 			}
-			successfulPayloads = append(successfulPayloads, payload)
 		}
 	}
 	// If everything sent successfully just report the total bytes
@@ -218,27 +214,6 @@ func (exp *httpExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 		metric.WithAttributeSet(exp.metricAttributes),
 	)
 	return nil
-}
-
-func (exp *httpExporter) countAndReportBatchBytes(ctx context.Context, payloads []*api.ImportLogsRequest) {
-	totalBytes := uint(0)
-	for _, payload := range payloads {
-		inlineSource := payload.GetInlineSource()
-		if inlineSource == nil {
-			exp.set.Logger.Warn("Payload source is not InlineSource, skipping bytes calculation")
-			continue
-		}
-		for _, entry := range inlineSource.Logs {
-			totalBytes += uint(len(entry.Data))
-		}
-	}
-	if totalBytes > 0 {
-		exp.telemetry.ExporterRawBytes.Add(
-			ctx,
-			int64(totalBytes),
-			metric.WithAttributeSet(exp.metricAttributes),
-		)
-	}
 }
 
 func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.ImportLogsRequest, logType string) error {
