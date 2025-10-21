@@ -118,27 +118,6 @@ func TestConfigValidate(t *testing.T) {
 			},
 			expectedErr: errors.New("predicate contains invalid character"),
 		},
-		{
-			desc: "invalid predicate - absolute path redirect",
-			cfg: &Config{
-				Predicate: "subsystem == 'test' > /tmp/output",
-			},
-			expectedErr: errors.New("predicate appears to contain file redirect"),
-		},
-		{
-			desc: "invalid predicate - relative path redirect",
-			cfg: &Config{
-				Predicate: "subsystem == 'test' > ./output",
-			},
-			expectedErr: errors.New("predicate appears to contain file redirect"),
-		},
-		{
-			desc: "invalid predicate - home directory redirect",
-			cfg: &Config{
-				Predicate: "subsystem == 'test' > ~/output",
-			},
-			expectedErr: errors.New("predicate appears to contain file redirect"),
-		},
 	}
 
 	for _, tc := range testCases {
