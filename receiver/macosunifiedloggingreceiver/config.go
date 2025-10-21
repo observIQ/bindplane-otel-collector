@@ -235,6 +235,11 @@ func validatePredicate(predicate *string) error {
 		}
 	}
 
+	// Normalize && to AND to prevent command chaining
+	*predicate = strings.ReplaceAll(*predicate, "&&", "AND")
+	// Normalize || to OR to prevent command chaining
+	*predicate = strings.ReplaceAll(*predicate, "||", "OR")
+
 	invalidChars := []string{
 		";",  // Command separator (not valid in predicates)
 		"|",  // Pipe (not valid in predicates - use AND/OR instead)
@@ -250,9 +255,6 @@ func validatePredicate(predicate *string) error {
 			return fmt.Errorf("predicate contains invalid character: %q", char)
 		}
 	}
-
-	// Normalize && to AND to prevent command chaining
-	*predicate = strings.ReplaceAll(*predicate, "&&", "AND")
 
 	return errs
 }

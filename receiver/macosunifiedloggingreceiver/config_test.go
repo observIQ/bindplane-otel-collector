@@ -70,6 +70,13 @@ func TestConfigValidate(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
+			desc: "valid predicate with || (normalized to OR)",
+			cfg: &Config{
+				Predicate: "subsystem == 'com.apple.example' || messageType == 'Error'",
+			},
+			expectedErr: nil,
+		},
+		{
 			desc: "valid predicate with comparison operators",
 			cfg: &Config{
 				Predicate: "processID > 100 && processID < 1000",
