@@ -70,6 +70,13 @@ func TestConfigValidate(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
+			desc: "valid predicate with || (normalized to OR)",
+			cfg: &Config{
+				Predicate: "subsystem == 'com.apple.example' || messageType == 'Error'",
+			},
+			expectedErr: nil,
+		},
+		{
 			desc: "valid predicate with comparison operators",
 			cfg: &Config{
 				Predicate: "processID > 100 && processID < 1000",
@@ -117,27 +124,6 @@ func TestConfigValidate(t *testing.T) {
 				Predicate: "subsystem == 'test' >> /tmp/output",
 			},
 			expectedErr: errors.New("predicate contains invalid character"),
-		},
-		{
-			desc: "invalid predicate - absolute path redirect",
-			cfg: &Config{
-				Predicate: "subsystem == 'test' > /tmp/output",
-			},
-			expectedErr: errors.New("predicate appears to contain file redirect"),
-		},
-		{
-			desc: "invalid predicate - relative path redirect",
-			cfg: &Config{
-				Predicate: "subsystem == 'test' > ./output",
-			},
-			expectedErr: errors.New("predicate appears to contain file redirect"),
-		},
-		{
-			desc: "invalid predicate - home directory redirect",
-			cfg: &Config{
-				Predicate: "subsystem == 'test' > ~/output",
-			},
-			expectedErr: errors.New("predicate appears to contain file redirect"),
 		},
 	}
 

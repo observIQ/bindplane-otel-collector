@@ -90,10 +90,10 @@ For a full description of predicate expressions, run `log help predicates`.
 
 Predicate values are validated to ensure only valid predicate syntax is used. The following are not allowed:
 - Command separators: `;`
-- Pipes: `|` (use `AND`/`OR` for logical operations)
+- Pipes: `|` (`||` are normalized to `OR`)
 - Variable expansion: `$`
 - Backticks: `` ` ``
-- Redirects: `>>`, `<<`, and redirect patterns like `> /path` or `> ./file`
+- Redirects: `>>`, `<<`
 - Control characters: newlines, carriage returns
 
 Valid predicate operators like `&&` (logical AND), `<`, `>` (comparison) are allowed. The `>` operator is allowed for comparisons (e.g., `processID > 100`) but blocked when followed by file paths. Note that `&&` is automatically normalized to `AND` for consistency. Use standard predicate syntax as documented by Apple's `log` command.
