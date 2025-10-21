@@ -14,6 +14,14 @@ The number of logs in a batch.
 | ---- | ----------- | ---------- |
 | {logs} | Histogram | Int |
 
+### otelcol_exporter_logs_send_failed
+
+The number of times ConsumeLogs failed, triggering a retry by the collector pipeline.
+
+| Unit | Metric Type | Value Type | Monotonic |
+| ---- | ----------- | ---------- | --------- |
+| {failures} | Sum | Int | true |
+
 ### otelcol_exporter_payload_size
 
 The size of the payload in bytes.

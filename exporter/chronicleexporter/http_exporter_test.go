@@ -351,7 +351,7 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "multiple payloads with one failure - should not count any bytes on failure",
+			name: "multiple payloads with one failure - should count bytes since retry is disabled",
 			input: func() plog.Logs {
 				logs := plog.NewLogs()
 				rls1 := logs.ResourceLogs().AppendEmpty()
@@ -367,7 +367,7 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 				lrs2.Attributes().PutStr("chronicle_log_type", "TYPE_2")
 				return logs
 			}(),
-			expectedBytes: 0, // No bytes counted on failure - retry will count them on success
+			expectedBytes: 9, // Only count bytes from successful payloads before failure (just first "body data")
 			rawLogField:   "body",
 			// This handler will fail on the 2nd request of either type
 			handlers: func() map[string]http.HandlerFunc {
@@ -460,7 +460,8 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 			} else {
 				// For failure cases with 0 bytes, verify the metric doesn't exist
 				_, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
-				require.Error(t, err, "Expected metric to not exist when no bytes are counted")
+				require.Error(t, err, "Metric should not exist when no bytes are counted")
+				require.Contains(t, err.Error(), "not found", "Error should indicate metric was not found")
 			}
 		})
 	}
