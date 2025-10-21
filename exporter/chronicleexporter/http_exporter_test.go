@@ -466,3 +466,135 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 		})
 	}
 }
+
+// TestHTTPExporterTelemetryWithRetry tests telemetry when retry is enabled
+func TestHTTPExporterTelemetryWithRetry(t *testing.T) {
+	// Override the token source so that we don't have to provide real credentials
+	secureTokenSource := tokenSource
+	defer func() {
+		tokenSource = secureTokenSource
+	}()
+	tokenSource = func(context.Context, *Config) (oauth2.TokenSource, error) {
+		return &emptyTokenSource{}, nil
+	}
+
+	// Configure with retry ENABLED
+	defaultCfgMod := func(cfg *Config) {
+		cfg.Protocol = protocolHTTPS
+		cfg.Location = "us"
+		cfg.CustomerID = "00000000-1111-2222-3333-444444444444"
+		cfg.Project = "fake"
+		cfg.Forwarder = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		cfg.LogType = "FAKE"
+		cfg.QueueBatchConfig.Enabled = false
+		cfg.BackOffConfig.Enabled = true // Retry enabled
+	}
+
+	testCases := []struct {
+		name          string
+		input         plog.Logs
+		expectedBytes int
+		rawLogField   string
+		handlers      map[string]http.HandlerFunc
+		expectError   bool
+	}{
+		{
+			name: "payload with transient failure - should NOT count bytes on first failure since retry is enabled",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls1 := logs.ResourceLogs().AppendEmpty()
+				sls1 := rls1.ScopeLogs().AppendEmpty()
+				lrs1 := sls1.LogRecords().AppendEmpty()
+				lrs1.Body().SetStr("test data")
+				lrs1.Attributes().PutStr("chronicle_log_type", "TRANSIENT_TYPE")
+				return logs
+			}(),
+			expectedBytes: 9, // Count bytes only on successful retry (length of "test data")
+			rawLogField:   "body",
+			// This handler will fail once, then succeed on retry
+			handlers: func() map[string]http.HandlerFunc {
+				callCount := 0
+				return map[string]http.HandlerFunc{
+					"TRANSIENT_TYPE": func(w http.ResponseWriter, _ *http.Request) {
+						callCount++
+						if callCount == 1 {
+							// First call fails with transient error
+							w.WriteHeader(http.StatusServiceUnavailable)
+						} else {
+							// Retry succeeds
+							w.WriteHeader(http.StatusOK)
+						}
+					},
+				}
+			}(),
+			expectError: false, // No error expected since retry succeeds
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a mock server so we are not dependent on the actual Chronicle service
+			mockServer := newMockHTTPServer(tc.handlers)
+			defer mockServer.srv.Close()
+
+			// Override the endpoint builder so that we can point to the mock server
+			secureHTTPEndpoint := httpEndpoint
+			defer func() {
+				httpEndpoint = secureHTTPEndpoint
+			}()
+			httpEndpoint = func(_ *Config, logType string) string {
+				return fmt.Sprintf("%s/logTypes/%s/logs:import", mockServer.srv.URL, logType)
+			}
+
+			// Create telemetry for testing metrics
+			testTelemetry := componenttest.NewTelemetry()
+			defer testTelemetry.Shutdown(context.Background())
+
+			f := NewFactory()
+			cfg := f.CreateDefaultConfig().(*Config)
+			defaultCfgMod(cfg)
+			if tc.rawLogField != "" {
+				cfg.RawLogField = tc.rawLogField
+			}
+			require.NoError(t, cfg.Validate())
+
+			ctx := context.Background()
+			exp, err := f.CreateLogs(ctx, metadatatest.NewSettings(testTelemetry), cfg)
+			require.NoError(t, err)
+			require.NoError(t, exp.Start(ctx, componenttest.NewNopHost()))
+			defer func() {
+				require.NoError(t, exp.Shutdown(ctx))
+			}()
+
+			err = exp.ConsumeLogs(ctx, tc.input)
+
+			// Check error expectations based on test case
+			if tc.expectError {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "upload to chronicle")
+			} else {
+				require.NoError(t, err)
+			}
+
+			// Test telemetry metrics - check that the metric exists and has the expected value
+			// When expectedBytes is 0 (failure case), the metric won't exist
+			if tc.expectedBytes > 0 {
+				metric, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
+				require.NoError(t, err)
+				require.NotNil(t, metric)
+
+				// For successful cases, verify the metric has the expected value
+				sumData, ok := metric.Data.(metricdata.Sum[int64])
+				require.True(t, ok, "Expected Sum metric data")
+
+				require.Len(t, sumData.DataPoints, 1, "Expected exactly one data point")
+				require.Equal(t, int64(tc.expectedBytes), sumData.DataPoints[0].Value)
+			} else {
+				// For failure cases with 0 bytes, verify the metric doesn't exist
+				_, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
+				require.Error(t, err, "Metric should not exist when no bytes are counted")
+				require.Contains(t, err.Error(), "not found", "Error should indicate metric was not found")
+			}
+		})
+	}
+}
