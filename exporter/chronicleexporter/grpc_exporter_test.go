@@ -255,6 +255,7 @@ func TestGRPCExporterTelemetry(t *testing.T) {
 		rawLogField   string
 		handler       mockBatchCreateLogsHandler
 		expectError   bool
+		retryEnabled  bool
 	}{
 		{
 			name: "single log record",
@@ -331,7 +332,7 @@ func TestGRPCExporterTelemetry(t *testing.T) {
 			expectError:   false,
 		},
 		{
-			name: "multiple payloads with one failure - should not count bytes for failed payload",
+			name: "multiple payloads with one failure - should count bytes since retry is disabled",
 			input: func() plog.Logs {
 				logs := plog.NewLogs()
 				rls1 := logs.ResourceLogs().AppendEmpty()
@@ -347,7 +348,7 @@ func TestGRPCExporterTelemetry(t *testing.T) {
 				lrs2.Attributes().PutStr("chronicle_log_type", "FAILURE_TYPE")
 				return logs
 			}(),
-			expectedBytes: 7, // Data: "Success"
+			expectedBytes: 7, // Only count bytes from successful payloads before failure (just "Success")
 			rawLogField:   "body",
 			handler: func() mockBatchCreateLogsHandler {
 				requestCount := 0
@@ -360,7 +361,35 @@ func TestGRPCExporterTelemetry(t *testing.T) {
 					return &api.BatchCreateLogsResponse{}, nil
 				}
 			}(),
-			expectError: true,
+			expectError:  true,
+			retryEnabled: false,
+		},
+		{
+			name: "transient failure with retry enabled - should NOT count bytes on first failure",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls1 := logs.ResourceLogs().AppendEmpty()
+				sls1 := rls1.ScopeLogs().AppendEmpty()
+				lrs1 := sls1.LogRecords().AppendEmpty()
+				lrs1.Body().SetStr("test data")
+				return logs
+			}(),
+			expectedBytes: 9, // Count bytes only on successful retry (length of "test data")
+			rawLogField:   "body",
+			handler: func() mockBatchCreateLogsHandler {
+				callCount := 0
+				return func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
+					callCount++
+					if callCount == 1 {
+						// First call fails with transient error
+						return nil, status.Error(codes.Unavailable, "Simulated transient failure")
+					}
+					// Retry succeeds
+					return &api.BatchCreateLogsResponse{}, nil
+				}
+			}(),
+			expectError:  false,
+			retryEnabled: true,
 		},
 	}
 
@@ -389,6 +418,9 @@ func TestGRPCExporterTelemetry(t *testing.T) {
 			if tc.rawLogField != "" {
 				cfg.RawLogField = tc.rawLogField
 			}
+			if tc.retryEnabled {
+				cfg.BackOffConfig.Enabled = true
+			}
 
 			require.NoError(t, cfg.Validate())
 
@@ -411,15 +443,23 @@ func TestGRPCExporterTelemetry(t *testing.T) {
 			}
 
 			// Test telemetry metrics - check that the metric exists and has the expected value
-			metric, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
-			require.NoError(t, err)
-			require.NotNil(t, metric)
+			// When expectedBytes is 0 (failure case), the metric won't exist
+			if tc.expectedBytes > 0 {
+				metric, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
+				require.NoError(t, err)
+				require.NotNil(t, metric)
 
-			// For successful cases, verify the metric has the expected value
-			sumData, ok := metric.Data.(metricdata.Sum[int64])
-			require.True(t, ok, "Expected Sum metric data")
-			require.Len(t, sumData.DataPoints, 1, "Expected exactly one data point")
-			require.Equal(t, int64(tc.expectedBytes), sumData.DataPoints[0].Value)
+				// For successful cases, verify the metric has the expected value
+				sumData, ok := metric.Data.(metricdata.Sum[int64])
+				require.True(t, ok, "Expected Sum metric data")
+				require.Len(t, sumData.DataPoints, 1, "Expected exactly one data point")
+				require.Equal(t, int64(tc.expectedBytes), sumData.DataPoints[0].Value)
+			} else {
+				// For failure cases with 0 bytes, verify the metric doesn't exist
+				_, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
+				require.Error(t, err, "Metric should not exist when no bytes are counted")
+				require.Contains(t, err.Error(), "not found", "Error should indicate metric was not found")
+			}
 		})
 	}
 }

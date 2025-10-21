@@ -269,6 +269,7 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 		rawLogField   string
 		handlers      map[string]http.HandlerFunc
 		expectError   bool
+		retryEnabled  bool
 	}{
 		{
 			name: "single log record",
@@ -351,7 +352,7 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "multiple payloads with one failure - should not count bytes for failed payload",
+			name: "multiple payloads with one failure - should count bytes since retry is disabled",
 			input: func() plog.Logs {
 				logs := plog.NewLogs()
 				rls1 := logs.ResourceLogs().AppendEmpty()
@@ -367,7 +368,7 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 				lrs2.Attributes().PutStr("chronicle_log_type", "TYPE_2")
 				return logs
 			}(),
-			expectedBytes: 9, // Data: "body data"
+			expectedBytes: 9, // Only count bytes from successful payloads before failure (just first "body data")
 			rawLogField:   "body",
 			// This handler will fail on the 2nd request of either type
 			handlers: func() map[string]http.HandlerFunc {
@@ -391,7 +392,40 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 					},
 				}
 			}(),
-			expectError: true,
+			expectError:  true,
+			retryEnabled: false,
+		},
+		{
+			name: "transient failure with retry enabled - should NOT count bytes on first failure",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls1 := logs.ResourceLogs().AppendEmpty()
+				sls1 := rls1.ScopeLogs().AppendEmpty()
+				lrs1 := sls1.LogRecords().AppendEmpty()
+				lrs1.Body().SetStr("test data")
+				lrs1.Attributes().PutStr("chronicle_log_type", "TRANSIENT_TYPE")
+				return logs
+			}(),
+			expectedBytes: 9, // Count bytes only on successful retry (length of "test data")
+			rawLogField:   "body",
+			// This handler will fail once, then succeed on retry
+			handlers: func() map[string]http.HandlerFunc {
+				callCount := 0
+				return map[string]http.HandlerFunc{
+					"TRANSIENT_TYPE": func(w http.ResponseWriter, _ *http.Request) {
+						callCount++
+						if callCount == 1 {
+							// First call fails with transient error
+							w.WriteHeader(http.StatusServiceUnavailable)
+						} else {
+							// Retry succeeds
+							w.WriteHeader(http.StatusOK)
+						}
+					},
+				}
+			}(),
+			expectError:  false,
+			retryEnabled: true,
 		},
 	}
 
@@ -424,6 +458,9 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 			if tc.rawLogField != "" {
 				cfg.RawLogField = tc.rawLogField
 			}
+			if tc.retryEnabled {
+				cfg.BackOffConfig.Enabled = true
+			}
 			require.NoError(t, cfg.Validate())
 
 			ctx := context.Background()
@@ -445,16 +482,24 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 			}
 
 			// Test telemetry metrics - check that the metric exists and has the expected value
-			metric, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
-			require.NoError(t, err)
-			require.NotNil(t, metric)
+			// When expectedBytes is 0 (failure case), the metric won't exist
+			if tc.expectedBytes > 0 {
+				metric, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
+				require.NoError(t, err)
+				require.NotNil(t, metric)
 
-			// For successful cases, verify the metric has the expected value
-			sumData, ok := metric.Data.(metricdata.Sum[int64])
-			require.True(t, ok, "Expected Sum metric data")
+				// For successful cases, verify the metric has the expected value
+				sumData, ok := metric.Data.(metricdata.Sum[int64])
+				require.True(t, ok, "Expected Sum metric data")
 
-			require.Len(t, sumData.DataPoints, 1, "Expected exactly one data point")
-			require.Equal(t, int64(tc.expectedBytes), sumData.DataPoints[0].Value)
+				require.Len(t, sumData.DataPoints, 1, "Expected exactly one data point")
+				require.Equal(t, int64(tc.expectedBytes), sumData.DataPoints[0].Value)
+			} else {
+				// For failure cases with 0 bytes, verify the metric doesn't exist
+				_, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
+				require.Error(t, err, "Metric should not exist when no bytes are counted")
+				require.Contains(t, err.Error(), "not found", "Error should indicate metric was not found")
+			}
 		})
 	}
 }
