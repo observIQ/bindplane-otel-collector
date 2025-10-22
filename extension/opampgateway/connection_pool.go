@@ -13,9 +13,9 @@ type connectionPool struct {
 	mtx         sync.RWMutex
 }
 
-func newConnectionPool(logger *zap.Logger) *connectionPool {
+func newConnectionPool(size int, logger *zap.Logger) *connectionPool {
 	return &connectionPool{
-		connections: map[string]*connection{},
+		connections: make(map[string]*connection, size),
 		logger:      logger.Named("opamp-gateway-connection-pool"),
 	}
 }
@@ -30,6 +30,18 @@ func (c *connectionPool) add(conn *connection) {
 	} else {
 		c.logger.Error("upstream connection for this id already exists")
 	}
+}
+
+func (c *connectionPool) size() int {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return len(c.connections)
+}
+
+func (c *connectionPool) remove(conn *connection) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	delete(c.connections, conn.id)
 }
 
 func (c *connectionPool) next() *connection {
