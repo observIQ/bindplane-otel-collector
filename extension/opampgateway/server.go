@@ -9,18 +9,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/open-telemetry/opamp-go/protobufs"
 	"go.uber.org/zap"
 )
-
-type ServerConnectionManagement interface {
-	// EnsureConnection will ensure that a connection exists for the given agent ID.
-	// If a connection does not exist, it will be created using the provided websocket connection.
-	EnsureDownstreamConnection(agentID string, conn *websocket.Conn)
-
-	// ForwardMessageUpstream will forward the given message to the upstream connection for the given agent ID.
-	ForwardMessageUpstream(ctx context.Context, agentID string, msg []byte) error
-}
 
 type server struct {
 	cfg    *OpAMPServer
@@ -33,19 +23,21 @@ type server struct {
 
 	addr net.Addr
 
-	connectionManagement ServerConnectionManagement
+	downstreamConnections *connections
+	callbacks             ConnectionCallbacks
 }
 
 var (
 	handlePath = "/"
 )
 
-func newServer(cfg *OpAMPServer, logger *zap.Logger, connectionManagement ServerConnectionManagement) *server {
+func newServer(cfg *OpAMPServer, logger *zap.Logger, callbacks ConnectionCallbacks) *server {
 	return &server{
-		cfg:                  cfg,
-		logger:               logger,
-		wsUpgrader:           websocket.Upgrader{},
-		connectionManagement: connectionManagement,
+		cfg:                   cfg,
+		logger:                logger,
+		wsUpgrader:            websocket.Upgrader{},
+		downstreamConnections: newConnections(),
+		callbacks:             callbacks,
 	}
 }
 
@@ -99,8 +91,28 @@ func (s *server) Stop() error {
 	return nil
 }
 
+// --------------------------------------------------------------------------------------
+// downstream connection management
+
+func (s *server) addDownstreamConnection(agentID string, conn *connection) {
+	// set the id to the agent ID so we can remove the connection by id later
+	conn.id = agentID
+	s.downstreamConnections.set(agentID, conn)
+}
+
+func (s *server) getDownstreamConnection(agentID string) (*connection, bool) {
+	conn, ok := s.downstreamConnections.get(agentID)
+	return conn, ok
+}
+
+func (s *server) removeDownstreamConnection(conn *connection) {
+	s.downstreamConnections.remove(conn.id)
+}
+
+// --------------------------------------------------------------------------------------
+
 // startHttpServer starts the HTTP Server in background.
-func (s *server) startHttpServer(addr string, fn func(l net.Listener) error) error {
+func (s *server) startHttpServer(addr string, serveFunc func(l net.Listener) error) error {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
@@ -109,7 +121,7 @@ func (s *server) startHttpServer(addr string, fn func(l net.Listener) error) err
 
 	// Run the HTTP Server in background.
 	go func() {
-		err = fn(ln)
+		err = serveFunc(ln)
 
 		// ErrServerClosed is expected after successful Stop(), so we won't log that
 		// particular error.
@@ -136,79 +148,18 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	s.logger.Debug("accepted OpAMP connection", zap.String("remote_addr", conn.RemoteAddr().String()))
 
-	go s.handleWSConnection(conn)
+	// the initial id is the remote address of the connection but once we have parsed the
+	// agent ID, we will use that as the id
+	id := fmt.Sprintf("downstream-%s", conn.RemoteAddr().String())
+	c := newConnection(conn, id, s.logger.Named("downstream-connection"))
+
+	// start the connection and block until the connection is closed or an error is returned.
+	go c.start(context.Background(), s.callbacks)
 }
 
 // acceptOpAMPConnection returns true if the connection should be accepted
 func (s *server) acceptOpAMPConnection(req *http.Request) bool {
 	s.logger.Info("connection request", zap.String("user-agent", req.UserAgent()))
+	// TODO: add authentication
 	return true
-}
-
-func (s *server) handleWSConnection(conn *websocket.Conn) {
-	connectionCreated := false
-	for {
-		msgContext := context.Background()
-		request := protobufs.AgentToServer{}
-
-		// Block on reading a message from the WebSocket connection.
-		mt, msgBytes, err := conn.ReadMessage()
-		isBreak, err := func() (bool, error) {
-			if err != nil {
-				if !websocket.IsUnexpectedCloseError(err) {
-					s.logger.Error("Cannot read a message from WebSocket", zap.Error(err))
-					return true, err
-				}
-				// This is a normal closing of the WebSocket connection.
-				s.logger.Debug("Agent disconnected", zap.Error(err))
-				return true, err
-			}
-			if mt != websocket.BinaryMessage {
-				err = fmt.Errorf("unexpected message type: %v, must be binary message", mt)
-				s.logger.Error("Cannot process a message from WebSocket", zap.Error(err))
-				return false, err
-			}
-
-			// Decode WebSocket message as a Protobuf message.
-			err = decodeWSMessage(msgBytes, &request)
-			if err != nil {
-				s.logger.Error("Cannot decode message from WebSocket", zap.Error(err))
-				return false, err
-			}
-			return false, nil
-		}()
-		if err != nil {
-			s.logger.Error("Error processing message from WebSocket", zap.Error(err))
-			if isBreak {
-				break
-			}
-			continue
-		}
-		s.logger.Info("Received message from WebSocket",
-			zap.String("message", string(msgBytes)),
-		)
-
-		// Parse out AgentID
-		agentID, err := parseAgentID(request.GetInstanceUid())
-		if err != nil {
-			s.logger.Error("Error parsing agent ID", zap.Error(err))
-			continue
-		}
-
-		// Ensure a downstream connection exists for the agent ID.
-		if !connectionCreated {
-			s.logger.Info("Creating downstream connection for agent ID", zap.String("agent_id", agentID))
-			s.connectionManagement.EnsureDownstreamConnection(agentID, conn)
-			connectionCreated = true
-		}
-
-		// Forward the message to the upstream connection for the agent ID.
-		err = s.connectionManagement.ForwardMessageUpstream(msgContext, agentID, msgBytes)
-		if err != nil {
-			s.logger.Error("Error forwarding message to upstream", zap.Error(err))
-			continue
-		}
-
-		s.logger.Info("Message sent to upstream", zap.String("agent_id", agentID), zap.String("message", string(msgBytes)))
-	}
 }

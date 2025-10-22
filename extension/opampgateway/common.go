@@ -48,8 +48,7 @@ func writeWSMessage(_ context.Context, con *websocket.Conn, msg []byte) error {
 	// Write the encoded data.
 	_, err = writer.Write(msg)
 	if err != nil {
-		writer.Close()
-		return fmt.Errorf("write data: %w", err)
+		return errors.Join(fmt.Errorf("write data: %w", err), writer.Close())
 	}
 
 	err = writer.Close()
