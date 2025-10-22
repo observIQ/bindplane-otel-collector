@@ -1,0 +1,3 @@
+# Invalid server configuration
+server: "invalid-hostname:53"
+timeout: -5s
