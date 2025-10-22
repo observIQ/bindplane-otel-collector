@@ -1,22 +1,49 @@
 package opampgateway
 
 import (
+	"context"
+	"fmt"
 	"sync/atomic"
 
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 )
 
-type connection struct {
-	id    string
-	conn  *wsConnection
-	count atomic.Int32
+type ConnectionCallbacks struct {
+	// OnMessage is called when a message is received.
+	OnMessage func(ctx context.Context, connection *connection, messageNumber int, messageType int, messageBytes []byte) error
+
+	// OnError is called when an error occurs. The connection will be closed and the context
+	// will be cancelled after this call.
+	OnError func(ctx context.Context, connection *connection, err error)
+
+	// OnClose is called when the connection is closed.
+	OnClose func(ctx context.Context, connection *connection) error
 }
 
-func newConnection(conn *websocket.Conn, logger *zap.Logger) *connection {
+type connection struct {
+	id   string
+	conn *websocket.Conn
+
+	writeChan chan []byte
+	errorChan chan error
+
+	readerDone chan struct{}
+	writerDone chan struct{}
+
+	count  atomic.Int32
+	logger *zap.Logger
+}
+
+func newConnection(conn *websocket.Conn, id string, logger *zap.Logger) *connection {
 	return &connection{
-		conn:  newWSConnection(conn, logger),
-		count: atomic.Int32{},
+		conn:       conn,
+		id:         id,
+		logger:     logger,
+		writeChan:  make(chan []byte),
+		errorChan:  make(chan error),
+		readerDone: make(chan struct{}),
+		writerDone: make(chan struct{}),
 	}
 }
 
@@ -30,4 +57,104 @@ func (c *connection) incrementAgentCount() {
 
 func (c *connection) decrementAgentCount() {
 	c.count.Add(-1)
+}
+
+// start will start the reader and writer goroutines and wait for the context to be done
+// or an error to be sent on the error channel. if an error is sent on the error channel,
+// the connection will be stopped and the context will be cancelled.
+func (c *connection) start(ctx context.Context, callbacks ConnectionCallbacks) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	go c.startReader(ctx, callbacks)
+
+	// block while writing messages to the connection. a connection close will unblock the writer.
+	c.startWriter(ctx)
+
+	// Wait for the context to be done or the connection to be stopped
+	select {
+	case err := <-c.errorChan:
+		c.logger.Error("error in connection", zap.Error(err), zap.String("id", c.id))
+		callbacks.OnError(ctx, c, err)
+		cancel()
+	case <-ctx.Done():
+	}
+
+	// wait for the reader and writer to finish
+	<-c.readerDone
+	<-c.writerDone
+
+	// Call the on close handler
+	err := callbacks.OnClose(ctx, c)
+	if err != nil {
+		c.logger.Error("error in on close handler", zap.Error(err), zap.String("id", c.id))
+	}
+}
+
+// send will send a message to the connection by putting it on the write channel. the
+// writer goroutine will handle sending the message to the connection.
+func (c *connection) send(message []byte) {
+	c.logger.Info("sending message", zap.String("id", c.id), zap.String("message", string(message)))
+	c.writeChan <- message
+}
+
+// --------------------------------------------------------------------------------------
+// reader goroutine
+
+func (c *connection) startReader(ctx context.Context, callbacks ConnectionCallbacks) {
+	defer close(c.readerDone)
+
+	messageNumber := 0
+	// loop until the connection is closed
+	for {
+		// Try to read the message
+		messageType, messageBytes, err := c.conn.ReadMessage()
+		if err != nil {
+			if ctx.Err() != nil {
+				// context is done, so we return cleanly
+				return
+			}
+			// TODO: check websocket.IsUnexpectedCloseError(err) {
+			c.errorChan <- fmt.Errorf("read message: %w", err)
+			return
+		}
+
+		// Handle the message using the callback
+		if err := callbacks.OnMessage(ctx, c, messageNumber, messageType, messageBytes); err != nil {
+			c.errorChan <- fmt.Errorf("handle message: %w", err)
+			return
+		}
+		messageNumber++
+	}
+}
+
+// --------------------------------------------------------------------------------------
+// writer goroutine
+
+func (c *connection) startWriter(ctx context.Context) {
+	defer close(c.writerDone)
+
+	for {
+		select {
+		case <-ctx.Done():
+			c.logger.Info("writer context done", zap.String("id", c.id))
+			// closing the connection will cause ReadMessage to unblock and return an error
+			err := c.conn.Close()
+			if err != nil {
+				c.logger.Error("error closing connection", zap.Error(err))
+			}
+			return
+		case message, ok := <-c.writeChan:
+			if !ok {
+				// the write channel is closed, so we return
+				c.logger.Info("write channel closed", zap.String("id", c.id))
+				return
+			}
+			err := writeWSMessage(ctx, c.conn, message)
+			if err != nil {
+				c.errorChan <- fmt.Errorf("write message: %w", err)
+				return
+			}
+		}
+	}
 }
