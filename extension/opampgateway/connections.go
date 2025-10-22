@@ -7,7 +7,7 @@ import (
 
 type connections struct {
 	agentConnections sync.Map
-	count            atomic.Uint32
+	count            atomic.Int32
 }
 
 func newConnections() *connections {
@@ -27,6 +27,16 @@ func (c *connections) set(agentID string, conn *connection) {
 	c.agentConnections.Store(agentID, conn)
 	c.count.Add(1)
 	conn.incrementAgentCount()
+}
+
+func (c *connections) remove(agentID string) {
+	result, ok := c.agentConnections.LoadAndDelete(agentID)
+	if !ok {
+		return
+	}
+	conn := result.(*connection)
+	c.count.Add(-1)
+	conn.decrementAgentCount()
 }
 
 func (c *connections) size() int {

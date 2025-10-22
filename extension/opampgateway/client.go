@@ -10,12 +10,11 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/gorilla/websocket"
-	"github.com/open-telemetry/opamp-go/protobufs"
 	"go.uber.org/zap"
 )
 
 type ClientConnectionManagement interface {
-	AddUpstreamConnection(conn *websocket.Conn, id string)
+	AddUpstreamConnection(ctx context.Context, conn *websocket.Conn, id string, callbacks ConnectionCallbacks)
 
 	ForwardMessageDownstream(ctx context.Context, agentID string, msg []byte) error
 }
@@ -24,7 +23,17 @@ type client struct {
 	logger *zap.Logger
 	dialer websocket.Dialer
 
-	ccm ClientConnectionManagement
+	pool *connectionPool
+
+	// upstreamConnections is a set of connections to the upstream OpAMP server.
+	upstreamConnections *connections
+
+	// assignedConnections is a map of agent ID to the websocket connection id that
+	// AgentToServer messages should be forwarded on.
+	assignedConnections    map[string]string
+	assignedConnectionsMtx sync.RWMutex
+
+	callbacks ConnectionCallbacks
 
 	secretKey        string
 	upstreamEndpoint string
@@ -34,94 +43,94 @@ type client struct {
 	clientConnectionsCancel context.CancelFunc
 }
 
-func newClient(cfg *Config, logger *zap.Logger, ccm ClientConnectionManagement) *client {
+func newClient(cfg *Config, logger *zap.Logger, callbacks ConnectionCallbacks) *client {
 	return &client{
-		logger:           logger,
-		dialer:           *websocket.DefaultDialer,
-		ccm:              ccm,
-		secretKey:        cfg.SecretKey,
-		upstreamEndpoint: cfg.UpstreamOpAMPAddress,
-		connectionCount:  cfg.UpstreamConnections,
+		logger:              logger,
+		dialer:              *websocket.DefaultDialer,
+		pool:                newConnectionPool(cfg.UpstreamConnections, logger),
+		upstreamConnections: newConnections(),
+		assignedConnections: make(map[string]string),
+		callbacks:           callbacks,
+		secretKey:           cfg.SecretKey,
+		upstreamEndpoint:    cfg.UpstreamOpAMPAddress,
+		connectionCount:     cfg.UpstreamConnections,
 	}
 }
 
-func (c *client) Start(ctx context.Context) error {
+func (c *client) Start(ctx context.Context) {
+	ctx, c.clientConnectionsCancel = context.WithCancel(ctx)
+
+	c.clientConnectionsWg = &sync.WaitGroup{}
 	for i := 0; i < c.connectionCount; i++ {
+		// ensure connected will do infinite retries until the context is done or an error is returned.
 		conn, err := c.ensureConnected(ctx)
 		if err != nil {
-			return fmt.Errorf("ensure connected: %w", err)
+			c.logger.Error("ensure connected", zap.Error(err))
+			return
 		}
 
-		c.ccm.AddUpstreamConnection(conn, fmt.Sprintf("%s_%d", conn.RemoteAddr().String(), i))
+		clientConnection := newConnection(conn, fmt.Sprintf("%s_%d", conn.RemoteAddr().String(), i), c.logger.Named("upstream-connection"))
+		c.pool.add(clientConnection)
 
-		connCtx, connCancel := context.WithCancel(context.Background())
-		c.clientConnectionsCancel = connCancel
-
-		c.clientConnectionsWg = &sync.WaitGroup{}
 		c.clientConnectionsWg.Add(1)
-		go c.handleWSConnection(connCtx, conn)
+		go clientConnection.start(ctx, ConnectionCallbacks{
+			OnMessage: c.callbacks.OnMessage,
+			OnError:   c.callbacks.OnError,
+			OnClose: func(ctx context.Context, connection *connection) error {
+				defer c.clientConnectionsWg.Done()
+				c.upstreamConnections.remove(connection.id)
+				// TODO: replace with a new connection
+				c.pool.remove(connection)
+				c.logger.Info("upstream connection closed", zap.String("id", connection.id), zap.Int("connection_count", c.pool.size()))
+				return c.callbacks.OnClose(ctx, connection)
+			},
+		})
 	}
-
-	return nil
 }
 
-func (c *client) Stop() error {
+func (c *client) Stop() {
+	c.logger.Info("stopping client")
 	c.clientConnectionsCancel()
 	c.clientConnectionsWg.Wait()
-
-	return nil
+	c.logger.Info("client stopped")
 }
 
-func (c *client) handleWSConnection(ctx context.Context, conn *websocket.Conn) {
-	defer c.clientConnectionsWg.Done()
+// --------------------------------------------------------------------------------------
+// upstream connection management
 
-	type receivedMessage struct {
-		message []byte
-		err     error
-	}
+func (c *client) assignedUpstreamConnection(agentID string) (*connection, error) {
+	// check for an existing assignment
+	c.assignedConnectionsMtx.RLock()
+	connectionID, ok := c.assignedConnections[agentID]
+	c.assignedConnectionsMtx.RUnlock()
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			result := make(chan receivedMessage, 1)
-
-			go func() {
-				_, bytes, err := conn.ReadMessage()
-				result <- receivedMessage{bytes, err}
-			}()
-
-			select {
-			case <-ctx.Done():
-				return
-			case res := <-result:
-				messageCtx := context.Background()
-
-				if res.err != nil {
-					c.logger.Error("Failed to read message from websocket", zap.Error(res.err))
-					break
-				}
-				message := protobufs.ServerToAgent{}
-				if err := decodeWSMessage(res.message, &message); err != nil {
-					c.logger.Error("failed to decode ws message", zap.Error(err))
-					continue
-				}
-
-				agentID, err := parseAgentID(message.GetInstanceUid())
-				if err != nil {
-					c.logger.Error("failed to parse agent id", zap.Error(err))
-					continue
-				}
-
-				err = c.ccm.ForwardMessageDownstream(messageCtx, agentID, res.message)
-				if err != nil {
-					c.logger.Error("failed to forward message downstream")
-				}
-			}
+	if ok {
+		// make sure the connection still exists
+		if conn, ok := c.upstreamConnections.get(connectionID); ok {
+			return conn, nil
 		}
 	}
+
+	// if no existing assignment or missing connection, assign a new connection
+	c.assignedConnectionsMtx.Lock()
+	defer c.assignedConnectionsMtx.Unlock()
+
+	// get a connection from the pool
+	conn := c.pool.next()
+
+	// assign the connection to the agent ID
+	c.assignedConnections[agentID] = conn.id
+
+	return conn, nil
 }
+
+func (c *client) unassignUpstreamConnection(agentID string) {
+	c.assignedConnectionsMtx.Lock()
+	defer c.assignedConnectionsMtx.Unlock()
+	delete(c.assignedConnections, agentID)
+}
+
+// --------------------------------------------------------------------------------------
 
 // Continuously try until connected. Will return nil when successfully
 // connected. Will return error if it is cancelled via context.
