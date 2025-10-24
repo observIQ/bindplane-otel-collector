@@ -23,7 +23,8 @@ func defaultConfig() component.Config {
 	return &Config{
 		UpstreamConnections: 1,
 		OpAMPServer: &OpAMPServer{
-			Endpoint: "0.0.0.0:3001",
+			// default to a random port so that tests can run without conflicts
+			Endpoint: "0.0.0.0:0",
 			TLS: &tls.Config{
 				InsecureSkipVerify: true,
 			},

@@ -54,17 +54,25 @@ func newClient(cfg *Config, logger *zap.Logger, callbacks ConnectionCallbacks) *
 		secretKey:           cfg.SecretKey,
 		upstreamEndpoint:    cfg.UpstreamOpAMPAddress,
 		connectionCount:     cfg.UpstreamConnections,
+		clientConnectionsWg: &sync.WaitGroup{},
 	}
 }
 
 func (c *client) Start(ctx context.Context) {
 	ctx, c.clientConnectionsCancel = context.WithCancel(ctx)
+	go c.startClientConnections(ctx)
+}
 
-	c.clientConnectionsWg = &sync.WaitGroup{}
+func (c *client) startClientConnections(ctx context.Context) {
 	for i := 0; i < c.connectionCount; i++ {
-		// ensure connected will do infinite retries until the context is done or an error is returned.
+		// ensure connected will do infinite retries until the context is done or an error is
+		// returned. this could mean that it takes a while to open the connections to the
+		// upstream server.
 		conn, err := c.ensureConnected(ctx)
 		if err != nil {
+			if ctx.Err() != nil {
+				return
+			}
 			c.logger.Error("ensure connected", zap.Error(err))
 			return
 		}
@@ -89,8 +97,9 @@ func (c *client) Start(ctx context.Context) {
 }
 
 func (c *client) Stop() {
-	c.logger.Info("stopping client")
-	c.clientConnectionsCancel()
+	if c.clientConnectionsCancel != nil {
+		c.clientConnectionsCancel()
+	}
 	c.clientConnectionsWg.Wait()
 	c.logger.Info("client stopped")
 }
@@ -117,6 +126,10 @@ func (c *client) assignedUpstreamConnection(agentID string) (*connection, error)
 
 	// get a connection from the pool
 	conn := c.pool.next()
+
+	if conn == nil {
+		return nil, fmt.Errorf("no connection available")
+	}
 
 	// assign the connection to the agent ID
 	c.assignedConnections[agentID] = conn.id
