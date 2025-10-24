@@ -21,9 +21,14 @@ import (
 // Config defines configuration for the macOS log command receiver
 // Separated into a common file that isn't platform specific so that factory_others.go can reference it
 type Config struct {
-	// ArchivePath points to a .logarchive directory to read from
+	// ArchivePath is a path or glob pattern to .logarchive directory(ies)
 	// If empty, reads from the live system logs
+	// Supports glob patterns (e.g., "*.logarchive", "**/logs/*.logarchive")
 	ArchivePath string `mapstructure:"archive_path"`
+
+	// resolvedArchivePaths stores the expanded archive paths after glob resolution
+	// This is populated during Validate() and not exposed to users
+	resolvedArchivePaths []string
 
 	// Predicate is a filter predicate to pass to the log command
 	// Example: "subsystem == 'com.apple.systempreferences'"
@@ -34,7 +39,7 @@ type Config struct {
 	StartTime string `mapstructure:"start_time"`
 
 	// EndTime specifies when to stop reading logs
-	// Only used with archive_path
+	// Only used with archive_paths
 	EndTime string `mapstructure:"end_time"`
 
 	// PollInterval specifies how often to poll for new logs (live mode only)
@@ -51,4 +56,10 @@ type Config struct {
 
 	// prevent unkeyed literal initialization
 	_ struct{}
+}
+
+// getResolvedArchivePaths returns the resolved archive paths after glob expansion
+// This is used internally by the receiver
+func (cfg *Config) getResolvedArchivePaths() []string {
+	return cfg.resolvedArchivePaths
 }

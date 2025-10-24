@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"sync"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
@@ -72,18 +73,41 @@ func (r *unifiedLoggingReceiver) Shutdown(_ context.Context) error {
 
 // readLogs runs the log command and processes output
 func (r *unifiedLoggingReceiver) readLogs(ctx context.Context) {
+	// If reading from archive, process each archive once
+	if r.config.ArchivePath != "" {
+		r.readFromArchive(ctx)
+		return
+	}
+	r.readFromLive(ctx)
+}
+
+func (r *unifiedLoggingReceiver) readFromArchive(ctx context.Context) {
+	resolvedPaths := r.config.getResolvedArchivePaths()
+	r.logger.Info("Reading from archive mode", zap.Int("archive_count", len(resolvedPaths)))
+
+	wg := &sync.WaitGroup{}
+	for _, archivePath := range resolvedPaths {
+		wg.Add(1)
+		go func(archivePath string) {
+			defer wg.Done()
+			r.logger.Info("Processing archive", zap.String("path", archivePath))
+			if err := r.runLogCommand(ctx, archivePath); err != nil {
+				r.logger.Error("Failed to run log command for archive", zap.String("archive", archivePath), zap.Error(err))
+				return
+			}
+		}(archivePath)
+	}
+	wg.Wait()
+	r.logger.Info("Finished reading archive logs")
+}
+
+func (r *unifiedLoggingReceiver) readFromLive(ctx context.Context) {
 	// Run immediately on startup
-	if err := r.runLogCommand(ctx); err != nil {
+	if err := r.runLogCommand(ctx, ""); err != nil {
 		r.logger.Error("Failed to run log command", zap.Error(err))
 	}
 
-	// If reading from archive, we're done after first run
-	if r.config.ArchivePath != "" {
-		r.logger.Info("Finished reading archive logs")
-		return
-	}
-
-	// For live mode, poll at regular intervals
+	// Poll at regular intervals
 	ticker := time.NewTicker(r.config.PollInterval)
 	defer ticker.Stop()
 	for {
@@ -91,7 +115,7 @@ func (r *unifiedLoggingReceiver) readLogs(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := r.runLogCommand(ctx); err != nil {
+			if err := r.runLogCommand(ctx, ""); err != nil {
 				r.logger.Error("Failed to run log command", zap.Error(err))
 			}
 		}
@@ -99,9 +123,10 @@ func (r *unifiedLoggingReceiver) readLogs(ctx context.Context) {
 }
 
 // runLogCommand executes the log command and processes output
-func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) error {
+// archivePath should be empty string for live mode, or a specific archive path for archive mode
+func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context, archivePath string) error {
 	// Build the log command arguments
-	args := r.buildLogCommandArgs()
+	args := r.buildLogCommandArgs(archivePath)
 
 	r.logger.Info("Running log command", zap.Strings("args", args))
 
@@ -180,12 +205,13 @@ func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) error {
 }
 
 // buildLogCommandArgs constructs the arguments for the log command
-func (r *unifiedLoggingReceiver) buildLogCommandArgs() []string {
+// archivePath should be empty string for live mode, or a specific archive path for archive mode
+func (r *unifiedLoggingReceiver) buildLogCommandArgs(archivePath string) []string {
 	args := []string{"show"}
 
 	// Add archive path if specified
-	if r.config.ArchivePath != "" {
-		args = append(args, "--archive", r.config.ArchivePath)
+	if archivePath != "" {
+		args = append(args, "--archive", archivePath)
 	}
 
 	// Add style flag if format is not default
@@ -196,14 +222,14 @@ func (r *unifiedLoggingReceiver) buildLogCommandArgs() []string {
 	// Add start time
 	if r.config.StartTime != "" {
 		args = append(args, "--start", r.config.StartTime)
-	} else if r.config.MaxLogAge > 0 && r.config.ArchivePath == "" {
+	} else if r.config.MaxLogAge > 0 && archivePath == "" {
 		// For live mode, calculate start time from max_log_age
 		startTime := time.Now().Add(-r.config.MaxLogAge)
 		args = append(args, "--start", startTime.Format("2006-01-02 15:04:05"))
 	}
 
 	// Add end time (archive mode only)
-	if r.config.EndTime != "" && r.config.ArchivePath != "" {
+	if r.config.EndTime != "" && archivePath != "" {
 		args = append(args, "--end", r.config.EndTime)
 	}
 

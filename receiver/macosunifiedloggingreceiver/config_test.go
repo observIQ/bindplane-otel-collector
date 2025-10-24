@@ -46,14 +46,14 @@ func TestConfigValidate(t *testing.T) {
 			cfg: &Config{
 				ArchivePath: "/tmp/test/invalid",
 			},
-			expectedErr: errors.New("archive_path does not exist"),
+			expectedErr: errors.New("failed to resolve archive path"),
 		},
 		{
 			desc: "invalid archive path - not a directory",
 			cfg: &Config{
 				ArchivePath: "./README.md",
 			},
-			expectedErr: errors.New("archive_path must be a directory (.logarchive)"),
+			expectedErr: errors.New("failed to resolve archive path"),
 		},
 		{
 			desc: "valid predicate with AND",
@@ -150,6 +150,132 @@ func TestPredicateNormalization(t *testing.T) {
 	// Verify && was replaced with AND
 	require.Equal(t, "subsystem == 'test' AND processID > 100 AND messageType == 'Error'", cfg.Predicate)
 	require.NotContains(t, cfg.Predicate, "&&")
+}
+
+func TestResolveArchivePath(t *testing.T) {
+	// Create test archive directories
+	testdataDir := filepath.Join(".", "testdata", "glob_test")
+	archive1 := filepath.Join(testdataDir, "archive1.logarchive")
+	archive2 := filepath.Join(testdataDir, "archive2.logarchive")
+	archive3 := filepath.Join(testdataDir, "logs", "archive3.logarchive")
+	notAnArchive := filepath.Join(testdataDir, "file.txt")
+
+	_ = os.MkdirAll(archive1, 0755)
+	_ = os.MkdirAll(archive2, 0755)
+	_ = os.MkdirAll(archive3, 0755)
+	_ = os.MkdirAll(testdataDir, 0755)
+	_ = os.WriteFile(notAnArchive, []byte("test"), 0644)
+
+	defer func() {
+		_ = os.RemoveAll(testdataDir)
+	}()
+
+	testCases := []struct {
+		name          string
+		inputPath     string
+		expectedCount int
+		expectedPaths []string
+		expectError   bool
+		errorContains string
+	}{
+		{
+			name:          "single direct path",
+			inputPath:     archive1,
+			expectedCount: 1,
+			expectedPaths: []string{archive1},
+			expectError:   false,
+		},
+		{
+			name:          "glob pattern matching multiple archives",
+			inputPath:     filepath.Join(testdataDir, "*.logarchive"),
+			expectedCount: 2, // archive1 and archive2
+			expectError:   false,
+		},
+		{
+			name:          "glob pattern with doublestar",
+			inputPath:     filepath.Join(testdataDir, "**", "*.logarchive"),
+			expectedCount: 3, // archive1, archive2, and archive3
+			expectError:   false,
+		},
+		{
+			name:          "glob pattern with no matches",
+			inputPath:     filepath.Join(testdataDir, "nonexistent*.logarchive"),
+			expectedCount: 0,
+			expectError:   false,
+		},
+		{
+			name:          "direct path to non-directory",
+			inputPath:     notAnArchive,
+			expectError:   true,
+			errorContains: "must be a directory",
+		},
+		{
+			name:          "direct path that doesn't exist",
+			inputPath:     filepath.Join(testdataDir, "doesnotexist.logarchive"),
+			expectError:   true,
+			errorContains: "does not exist",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			resolved, err := resolveArchivePath(tc.inputPath)
+
+			if tc.expectError {
+				require.Error(t, err)
+				if tc.errorContains != "" {
+					require.ErrorContains(t, err, tc.errorContains)
+				}
+				return
+			}
+
+			require.NoError(t, err)
+			require.Len(t, resolved, tc.expectedCount)
+
+			if len(tc.expectedPaths) > 0 {
+				require.ElementsMatch(t, tc.expectedPaths, resolved)
+			}
+		})
+	}
+}
+
+func TestConfigValidateWithGlobPaths(t *testing.T) {
+	// Create test archive directories
+	testdataDir := filepath.Join(".", "testdata", "validate_glob_test")
+	archive1 := filepath.Join(testdataDir, "archive1.logarchive")
+	archive2 := filepath.Join(testdataDir, "archive2.logarchive")
+
+	_ = os.MkdirAll(archive1, 0755)
+	_ = os.MkdirAll(archive2, 0755)
+
+	defer func() {
+		_ = os.RemoveAll(testdataDir)
+	}()
+
+	t.Run("validate resolves glob patterns", func(t *testing.T) {
+		cfg := &Config{
+			ArchivePath: filepath.Join(testdataDir, "*.logarchive"),
+		}
+
+		err := cfg.Validate()
+		require.NoError(t, err)
+
+		// After validation, GetResolvedArchivePaths should contain resolved paths
+		resolved := cfg.getResolvedArchivePaths()
+		require.Len(t, resolved, 2)
+		require.Contains(t, resolved, archive1)
+		require.Contains(t, resolved, archive2)
+	})
+
+	t.Run("validate fails when no archives match glob", func(t *testing.T) {
+		cfg := &Config{
+			ArchivePath: filepath.Join(testdataDir, "nonexistent*.logarchive"),
+		}
+
+		err := cfg.Validate()
+		require.Error(t, err)
+		require.ErrorContains(t, err, "no archive paths matched")
+	})
 }
 
 func TestLoadConfigFromYAML(t *testing.T) {
