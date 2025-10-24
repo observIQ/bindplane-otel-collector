@@ -58,8 +58,8 @@ type Config struct {
 	_ struct{}
 }
 
-// GetResolvedArchivePaths returns the resolved archive paths after glob expansion
+// getResolvedArchivePaths returns the resolved archive paths after glob expansion
 // This is used internally by the receiver
-func (cfg *Config) GetResolvedArchivePaths() []string {
+func (cfg *Config) getResolvedArchivePaths() []string {
 	return cfg.resolvedArchivePaths
 }

@@ -338,7 +338,6 @@ func hasBalancedParentheses(s string) bool {
 // and returns a list of resolved archive directory paths
 func resolveArchivePath(pattern string) ([]string, error) {
 	var resolved []string
-	seen := make(map[string]bool)
 
 	// Clean the pattern
 	pattern = filepath.Clean(pattern)
@@ -359,24 +358,16 @@ func resolveArchivePath(pattern string) ([]string, error) {
 				// Skip invalid matches and continue
 				continue
 			}
-			// Deduplicate paths
-			if !seen[match] {
-				resolved = append(resolved, match)
-				seen[match] = true
-			}
+			resolved = append(resolved, match)
 		}
-	} else {
-		// Direct path without glob
-		if err := validateArchivePath(pattern); err != nil {
-			return nil, err
-		}
-		if !seen[pattern] {
-			resolved = append(resolved, pattern)
-			seen[pattern] = true
-		}
+		return resolved, nil
 	}
 
-	return resolved, nil
+	// Direct path without glob
+	if err := validateArchivePath(pattern); err != nil {
+		return nil, err
+	}
+	return []string{pattern}, nil
 }
 
 // validateArchivePath checks if a path exists and is a valid archive directory

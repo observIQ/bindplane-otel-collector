@@ -261,7 +261,7 @@ func TestConfigValidateWithGlobPaths(t *testing.T) {
 		require.NoError(t, err)
 
 		// After validation, GetResolvedArchivePaths should contain resolved paths
-		resolved := cfg.GetResolvedArchivePaths()
+		resolved := cfg.getResolvedArchivePaths()
 		require.Len(t, resolved, 2)
 		require.Contains(t, resolved, archive1)
 		require.Contains(t, resolved, archive2)

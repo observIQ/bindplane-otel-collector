@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"sync"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
@@ -73,26 +74,40 @@ func (r *unifiedLoggingReceiver) Shutdown(_ context.Context) error {
 // readLogs runs the log command and processes output
 func (r *unifiedLoggingReceiver) readLogs(ctx context.Context) {
 	// If reading from archive, process each archive once
-	resolvedPaths := r.config.GetResolvedArchivePaths()
-	if len(resolvedPaths) > 0 {
-		r.logger.Info("Reading from archive mode", zap.Int("archive_count", len(resolvedPaths)))
-		for i, archivePath := range resolvedPaths {
-			r.logger.Info("Processing archive", zap.Int("index", i+1), zap.Int("total", len(resolvedPaths)), zap.String("path", archivePath))
-			if err := r.runLogCommand(ctx, archivePath); err != nil {
-				r.logger.Error("Failed to run log command for archive", zap.String("archive", archivePath), zap.Error(err))
-				continue
-			}
-		}
-		r.logger.Info("Finished reading archive logs")
+	if r.config.ArchivePath != "" {
+		r.readFromArchive(ctx)
 		return
 	}
+	r.readFromLive(ctx)
+}
 
-	// For live mode, run immediately on startup
+func (r *unifiedLoggingReceiver) readFromArchive(ctx context.Context) {
+	resolvedPaths := r.config.getResolvedArchivePaths()
+	r.logger.Info("Reading from archive mode", zap.Int("archive_count", len(resolvedPaths)))
+
+	wg := &sync.WaitGroup{}
+	for _, archivePath := range resolvedPaths {
+		wg.Add(1)
+		go func(archivePath string) {
+			defer wg.Done()
+			r.logger.Info("Processing archive", zap.String("path", archivePath))
+			if err := r.runLogCommand(ctx, archivePath); err != nil {
+				r.logger.Error("Failed to run log command for archive", zap.String("archive", archivePath), zap.Error(err))
+				return
+			}
+		}(archivePath)
+	}
+	wg.Wait()
+	r.logger.Info("Finished reading archive logs")
+}
+
+func (r *unifiedLoggingReceiver) readFromLive(ctx context.Context) {
+	// Run immediately on startup
 	if err := r.runLogCommand(ctx, ""); err != nil {
 		r.logger.Error("Failed to run log command", zap.Error(err))
 	}
 
-	// For live mode, poll at regular intervals
+	// Poll at regular intervals
 	ticker := time.NewTicker(r.config.PollInterval)
 	defer ticker.Stop()
 	for {
