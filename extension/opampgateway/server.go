@@ -25,6 +25,11 @@ type server struct {
 
 	downstreamConnections *connections
 	callbacks             ConnectionCallbacks
+
+	shutdownCtx    context.Context
+	shutdownCancel context.CancelFunc
+
+	connectionsWg sync.WaitGroup
 }
 
 var (
@@ -32,12 +37,15 @@ var (
 )
 
 func newServer(cfg *OpAMPServer, logger *zap.Logger, callbacks ConnectionCallbacks) *server {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &server{
 		cfg:                   cfg,
 		logger:                logger,
 		wsUpgrader:            websocket.Upgrader{},
 		downstreamConnections: newConnections(),
 		callbacks:             callbacks,
+		shutdownCtx:           ctx,
+		shutdownCancel:        cancel,
 	}
 }
 
@@ -71,6 +79,10 @@ func (s *server) Start() error {
 
 // Stop stops the HTTP Server.
 func (s *server) Stop() error {
+	// cancel the shutdown context to stop the existing connections
+	s.shutdownCancel()
+
+	// shutdown the http server
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if s.httpServer != nil {
@@ -85,10 +97,25 @@ func (s *server) Stop() error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			s.httpServerServeWg.Wait()
+			if s.httpServerServeWg != nil {
+				s.httpServerServeWg.Wait()
+			}
 		}
 	}
-	return nil
+
+	// wait in a separate goroutine to prevent blocking the return and bypassing the timeout
+	done := make(chan struct{})
+	go func() {
+		s.connectionsWg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // --------------------------------------------------------------------------------------
@@ -153,8 +180,12 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	id := fmt.Sprintf("downstream-%s", conn.RemoteAddr().String())
 	c := newConnection(conn, id, s.logger.Named("downstream-connection"))
 
-	// start the connection and block until the connection is closed or an error is returned.
-	go c.start(context.Background(), s.callbacks)
+	// start the connection in a goroutine to prevent blocking the handler
+	s.connectionsWg.Add(1)
+	go func() {
+		defer s.connectionsWg.Done()
+		c.start(s.shutdownCtx, s.callbacks)
+	}()
 }
 
 // acceptOpAMPConnection returns true if the connection should be accepted

@@ -100,7 +100,6 @@ func (o *OpAMPGateway) HandleAgentError(ctx context.Context, connection *connect
 
 func (o *OpAMPGateway) HandleAgentClose(ctx context.Context, connection *connection) error {
 	agentID := connection.id
-	o.logger.Info("Agent connection closed", zap.String("agent_id", agentID))
 	o.client.unassignUpstreamConnection(agentID)
 	o.server.removeDownstreamConnection(connection)
 	return nil
