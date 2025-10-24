@@ -23,6 +23,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/bmatcuk/doublestar/v4"
 )
 
 // Valid field names for macOS unified logging predicates
@@ -139,16 +141,16 @@ func (cfg *Config) Validate() error {
 
 	// Validate archive path if specified
 	if cfg.ArchivePath != "" {
-		// sanitize the archive path
-		cfg.ArchivePath = filepath.Clean(cfg.ArchivePath)
-
-		info, err := os.Stat(cfg.ArchivePath)
+		// Resolve and validate archive path (including glob patterns)
+		resolvedPaths, err := resolveArchivePath(cfg.ArchivePath)
 		if err != nil {
-			return fmt.Errorf("archive_path does not exist: %w", err)
+			return fmt.Errorf("failed to resolve archive path: %w", err)
 		}
-		if !info.IsDir() {
-			return fmt.Errorf("archive_path must be a directory (.logarchive)")
+		if len(resolvedPaths) == 0 {
+			return fmt.Errorf("no archive paths matched the provided pattern")
 		}
+		// Store the resolved paths internally
+		cfg.resolvedArchivePaths = resolvedPaths
 	}
 
 	// Validate time format if specified
@@ -330,4 +332,67 @@ func hasBalancedParentheses(s string) bool {
 		}
 	}
 	return count == 0
+}
+
+// resolveArchivePath takes a path (potentially with glob pattern)
+// and returns a list of resolved archive directory paths
+func resolveArchivePath(pattern string) ([]string, error) {
+	var resolved []string
+	seen := make(map[string]bool)
+
+	// Clean the pattern
+	pattern = filepath.Clean(pattern)
+
+	// Check if pattern contains glob characters
+	hasGlob := strings.ContainsAny(pattern, "*?[]")
+
+	if hasGlob {
+		// Use doublestar for glob matching
+		matches, err := doublestar.FilepathGlob(pattern)
+		if err != nil {
+			return nil, fmt.Errorf("invalid glob pattern %q: %w", pattern, err)
+		}
+
+		// Validate each matched path
+		for _, match := range matches {
+			if err := validateArchivePath(match); err != nil {
+				// Skip invalid matches and continue
+				continue
+			}
+			// Deduplicate paths
+			if !seen[match] {
+				resolved = append(resolved, match)
+				seen[match] = true
+			}
+		}
+	} else {
+		// Direct path without glob
+		if err := validateArchivePath(pattern); err != nil {
+			return nil, err
+		}
+		if !seen[pattern] {
+			resolved = append(resolved, pattern)
+			seen[pattern] = true
+		}
+	}
+
+	return resolved, nil
+}
+
+// GetResolvedArchivePaths returns the resolved archive paths after glob expansion
+// This is used internally by the receiver
+func (cfg *Config) GetResolvedArchivePaths() []string {
+	return cfg.resolvedArchivePaths
+}
+
+// validateArchivePath checks if a path exists and is a valid archive directory
+func validateArchivePath(path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("archive_path %q does not exist: %w", path, err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("archive_path %q must be a directory (.logarchive)", path)
+	}
+	return nil
 }

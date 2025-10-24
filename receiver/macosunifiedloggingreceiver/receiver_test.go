@@ -39,7 +39,7 @@ func TestBuildLogCommandArgs(t *testing.T) {
 			},
 		}
 
-		args := receiver.buildLogCommandArgs()
+		args := receiver.buildLogCommandArgs("./testdata/system_logs.logarchive")
 		require.Contains(t, args, "--archive")
 		require.Contains(t, args, "./testdata/system_logs.logarchive")
 		require.Contains(t, args, "--start")
@@ -62,7 +62,7 @@ func TestBuildLogCommandArgs(t *testing.T) {
 			},
 		}
 
-		args := receiver.buildLogCommandArgs()
+		args := receiver.buildLogCommandArgs("./testdata/system_logs.logarchive")
 		require.Contains(t, args, "--archive")
 		require.Contains(t, args, "./testdata/system_logs.logarchive")
 		require.Contains(t, args, "--start")
@@ -80,7 +80,7 @@ func TestBuildLogCommandArgs(t *testing.T) {
 			},
 		}
 
-		args := receiver.buildLogCommandArgs()
+		args := receiver.buildLogCommandArgs("")
 		require.Contains(t, args, "--style")
 		require.Contains(t, args, "json")
 	})
