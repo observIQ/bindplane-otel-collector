@@ -30,8 +30,8 @@ func NewFactory() receiver.Factory {
 func createDefaultConfig() component.Config {
 	// Default to live mode
 	return &Config{
-		PollInterval: 30 * time.Second,
-		MaxLogAge:    24 * time.Hour,
-		Format:       "default",
+		MaxPollInterval: 30 * time.Second,
+		MaxLogAge:       24 * time.Hour,
+		Format:          "default",
 	}
 }

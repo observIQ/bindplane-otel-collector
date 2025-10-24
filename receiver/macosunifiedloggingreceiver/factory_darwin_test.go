@@ -23,9 +23,9 @@ import (
 
 func TestCreateDefaultConfig(t *testing.T) {
 	expectedCfg := &Config{
-		PollInterval: 30 * time.Second,
-		MaxLogAge:    24 * time.Hour,
-		Format:       "default",
+		MaxPollInterval: 30 * time.Second,
+		MaxLogAge:       24 * time.Hour,
+		Format:          "default",
 	}
 
 	componentCfg := createDefaultConfig()
