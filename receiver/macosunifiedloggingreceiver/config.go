@@ -379,12 +379,6 @@ func resolveArchivePath(pattern string) ([]string, error) {
 	return resolved, nil
 }
 
-// GetResolvedArchivePaths returns the resolved archive paths after glob expansion
-// This is used internally by the receiver
-func (cfg *Config) GetResolvedArchivePaths() []string {
-	return cfg.resolvedArchivePaths
-}
-
 // validateArchivePath checks if a path exists and is a valid archive directory
 func validateArchivePath(path string) error {
 	info, err := os.Stat(path)
