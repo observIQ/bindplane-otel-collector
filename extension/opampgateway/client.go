@@ -28,11 +28,6 @@ type client struct {
 	// upstreamConnections is a set of connections to the upstream OpAMP server.
 	upstreamConnections *connections
 
-	// assignedConnections is a map of agent ID to the websocket connection id that
-	// AgentToServer messages should be forwarded on.
-	assignedConnections    map[string]string
-	assignedConnectionsMtx sync.RWMutex
-
 	callbacks ConnectionCallbacks
 
 	secretKey        string
@@ -49,7 +44,6 @@ func newClient(cfg *Config, logger *zap.Logger, callbacks ConnectionCallbacks) *
 		dialer:              *websocket.DefaultDialer,
 		pool:                newConnectionPool(cfg.UpstreamConnections, logger),
 		upstreamConnections: newConnections(),
-		assignedConnections: make(map[string]string),
 		callbacks:           callbacks,
 		secretKey:           cfg.SecretKey,
 		upstreamEndpoint:    cfg.UpstreamOpAMPAddress,
@@ -65,10 +59,13 @@ func (c *client) Start(ctx context.Context) {
 
 func (c *client) startClientConnections(ctx context.Context) {
 	for i := 0; i < c.connectionCount; i++ {
+		// generate a unique id for the connection
+		id := fmt.Sprintf("upstream-%d", i)
+
 		// ensure connected will do infinite retries until the context is done or an error is
 		// returned. this could mean that it takes a while to open the connections to the
 		// upstream server.
-		conn, err := c.ensureConnected(ctx)
+		conn, err := c.ensureConnected(ctx, id)
 		if err != nil {
 			if ctx.Err() != nil {
 				return
@@ -77,7 +74,7 @@ func (c *client) startClientConnections(ctx context.Context) {
 			return
 		}
 
-		clientConnection := newConnection(conn, fmt.Sprintf("%s_%d", conn.RemoteAddr().String(), i), c.logger.Named("upstream-connection"))
+		clientConnection := newConnection(conn, id, c.logger.Named("upstream-connection"))
 		c.pool.add(clientConnection)
 
 		c.clientConnectionsWg.Add(1)
@@ -109,45 +106,27 @@ func (c *client) Stop() {
 
 func (c *client) assignedUpstreamConnection(agentID string) (*connection, error) {
 	// check for an existing assignment
-	c.assignedConnectionsMtx.RLock()
-	connectionID, ok := c.assignedConnections[agentID]
-	c.assignedConnectionsMtx.RUnlock()
-
-	if ok {
-		// make sure the connection still exists
-		if conn, ok := c.upstreamConnections.get(connectionID); ok {
-			return conn, nil
-		}
+	conn, existing := c.upstreamConnections.getOrAssign(agentID, c.pool.next)
+	if existing {
+		c.logger.Info("existing assigned upstream connection", zap.String("agent_id", agentID), zap.String("connection_id", conn.id))
+		return conn, nil
 	}
-
-	// if no existing assignment or missing connection, assign a new connection
-	c.assignedConnectionsMtx.Lock()
-	defer c.assignedConnectionsMtx.Unlock()
-
-	// get a connection from the pool
-	conn := c.pool.next()
-
 	if conn == nil {
 		return nil, fmt.Errorf("no connection available")
 	}
-
-	// assign the connection to the agent ID
-	c.assignedConnections[agentID] = conn.id
-
+	c.logger.Info("new assigned upstream connection", zap.String("agent_id", agentID), zap.String("connection_id", conn.id))
 	return conn, nil
 }
 
 func (c *client) unassignUpstreamConnection(agentID string) {
-	c.assignedConnectionsMtx.Lock()
-	defer c.assignedConnectionsMtx.Unlock()
-	delete(c.assignedConnections, agentID)
+	c.upstreamConnections.remove(agentID)
 }
 
 // --------------------------------------------------------------------------------------
 
 // Continuously try until connected. Will return nil when successfully
 // connected. Will return error if it is cancelled via context.
-func (c *client) ensureConnected(ctx context.Context) (*websocket.Conn, error) {
+func (c *client) ensureConnected(ctx context.Context, id string) (*websocket.Conn, error) {
 	infiniteBackoff := backoff.NewExponentialBackOff()
 
 	// Make ticker run forever.
@@ -162,7 +141,7 @@ func (c *client) ensureConnected(ctx context.Context) (*websocket.Conn, error) {
 		select {
 		case <-timer.C:
 			{
-				conn, err := c.tryConnectOnce(ctx)
+				conn, err := c.tryConnectOnce(ctx, id)
 				if err != nil {
 					if errors.Is(err, context.Canceled) {
 						c.logger.Debug("Client is stopped, will not try anymore.")
@@ -185,24 +164,25 @@ func (c *client) ensureConnected(ctx context.Context) (*websocket.Conn, error) {
 	}
 }
 
-func (c *client) tryConnectOnce(ctx context.Context) (*websocket.Conn, error) {
+func (c *client) tryConnectOnce(ctx context.Context, id string) (*websocket.Conn, error) {
 	var resp *http.Response
 
-	conn, resp, err := c.dialer.DialContext(ctx, c.upstreamEndpoint, c.header())
+	conn, resp, err := c.dialer.DialContext(ctx, c.upstreamEndpoint, c.header(id))
 	if err != nil {
 		if resp != nil {
 			return nil, fmt.Errorf("server responded with status: %s", resp.Status)
 		}
 		return nil, err
 	}
-	c.logger.Info("Successfully connected to upstream OpAMP server", zap.String("upstream_endpoint", conn.RemoteAddr().String()))
+	c.logger.Info("Successfully connected to upstream OpAMP server", zap.String("id", id), zap.String("upstream_endpoint", conn.RemoteAddr().String()))
 
 	// Successfully connected.
 	return conn, nil
 }
 
-func (c *client) header() http.Header {
+func (c *client) header(id string) http.Header {
 	return http.Header{
-		"Authorization": []string{fmt.Sprintf("Secret-Key %s", c.secretKey)},
+		"Authorization":                 []string{fmt.Sprintf("Secret-Key %s", c.secretKey)},
+		"X-Opamp-Gateway-Connection-Id": []string{id},
 	}
 }
