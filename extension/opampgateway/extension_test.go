@@ -2,6 +2,7 @@ package opampgateway
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -215,6 +216,11 @@ func (h *gatewayTestHarness) CloseUpstreamConnection(t *testing.T, id string) {
 
 	for _, c := range h.upstream.connections {
 		if c.id == id {
+<<<<<<< HEAD
+||||||| parent of 49eb0b08 (add TestGatewayUpstreamConnectionAffinity)
+=======
+			t.Logf("closing upstream connection %s", id)
+>>>>>>> 49eb0b08 (add TestGatewayUpstreamConnectionAffinity)
 			_ = c.conn.Close()
 			return
 		}
@@ -281,6 +287,12 @@ func (s *testOpAMPServer) handle(w http.ResponseWriter, r *http.Request) {
 	// extract the connection id from the request
 	id := r.Header.Get("X-Opamp-Gateway-Connection-Id")
 
+<<<<<<< HEAD
+||||||| parent of 49eb0b08 (add TestGatewayUpstreamConnectionAffinity)
+=======
+	s.t.Logf("upgrading connection request for %s", id)
+
+>>>>>>> 49eb0b08 (add TestGatewayUpstreamConnectionAffinity)
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		s.errCh <- fmt.Errorf("upgrade: %w", err)
@@ -310,7 +322,13 @@ func (s *testOpAMPServer) readLoop(conn *websocket.Conn, id string) {
 	for {
 		messageType, data, err := conn.ReadMessage()
 		if err != nil {
+<<<<<<< HEAD
 			if websocket.IsUnexpectedCloseError(err) {
+||||||| parent of 49eb0b08 (add TestGatewayUpstreamConnectionAffinity)
+			s.errCh <- err
+=======
+			if errors.Is(err, net.ErrClosed) || websocket.IsUnexpectedCloseError(err) {
+>>>>>>> 49eb0b08 (add TestGatewayUpstreamConnectionAffinity)
 				// unexpected close is expected to happen when the connection is closed
 				return
 			}
