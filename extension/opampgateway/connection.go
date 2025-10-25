@@ -2,7 +2,9 @@ package opampgateway
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"sync/atomic"
 
 	"github.com/gorilla/websocket"
@@ -129,7 +131,7 @@ func (c *connection) startReader(ctx context.Context, callbacks ConnectionCallba
 				// context is done, so we return cleanly
 				return
 			}
-			if websocket.IsUnexpectedCloseError(err) {
+			if errors.Is(err, net.ErrClosed) || websocket.IsUnexpectedCloseError(err) {
 				// unexpected close is expected to happen when the connection is closed
 				return
 			}
