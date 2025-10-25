@@ -70,9 +70,7 @@ func TestGatewayHandlesAgentClose(t *testing.T) {
 	}, 5*time.Second, 50*time.Millisecond, "downstream connection still registered")
 
 	require.Eventually(t, func() bool {
-		h.gateway.client.assignedConnectionsMtx.RLock()
-		defer h.gateway.client.assignedConnectionsMtx.RUnlock()
-		_, ok := h.gateway.client.assignedConnections[agent.ID()]
+		_, ok := h.gateway.client.upstreamConnections.get(agent.ID())
 		return !ok
 	}, 5*time.Second, 50*time.Millisecond, "upstream assignment still registered")
 }
@@ -94,11 +92,45 @@ func TestGatewayHandlesAgentCloseAfterSend(t *testing.T) {
 	}, 5*time.Second, 50*time.Millisecond, "downstream connection still registered")
 
 	require.Eventually(t, func() bool {
-		h.gateway.client.assignedConnectionsMtx.RLock()
-		defer h.gateway.client.assignedConnectionsMtx.RUnlock()
-		_, ok := h.gateway.client.assignedConnections[agent.ID()]
+		_, ok := h.gateway.client.upstreamConnections.get(agent.ID())
 		return !ok
 	}, 5*time.Second, 50*time.Millisecond, "upstream assignment still registered")
+}
+
+func TestGatewayUpstreamConnectionAffinity(t *testing.T) {
+	t.Parallel()
+
+	// 10 upstream connections
+	h := newGatewayTestHarness(t, 10)
+	agent1 := h.NewAgent(t)
+
+	// send an initial message to determine the connection id
+	agent1.Send()
+	msg := h.upstream.WaitForAgentMessage(t, agent1.ID(), 5*time.Second)
+	connectionID := msg.ConnectionID
+
+	// we only expect the agent to use a single upstream connection
+	for range 10 {
+		agent1.Send()
+		msg = h.upstream.WaitForAgentMessage(t, agent1.ID(), 5*time.Second)
+		require.Equal(t, connectionID, msg.ConnectionID)
+	}
+
+	// // close the connection in use by the agent
+	// h.CloseUpstreamConnection(t, connectionID)
+
+	// // send a message to the agent
+	// agent1.Send()
+	// msg = h.upstream.WaitForAgentMessage(t, agent1.ID(), 5*time.Second)
+	// newConnectionID := msg.ConnectionID
+	// require.NotEqual(t, connectionID, newConnectionID)
+
+	// // the agent should use the new connection
+	// for range 10 {
+	// 	agent1.Send()
+	// 	msg = h.upstream.WaitForAgentMessage(t, agent1.ID(), 5*time.Second)
+	// 	require.Equal(t, newConnectionID, msg.ConnectionID)
+	// }
 }
 
 // --------------------------------------------------------------------------------------
@@ -164,6 +196,7 @@ func newGatewayTestHarness(t *testing.T, upstreamConnections int) *gatewayTestHa
 	return h
 }
 
+// NewAgent creates a new test agent with a generated id and returns it.
 func (h *gatewayTestHarness) NewAgent(t *testing.T) *testAgent {
 	t.Helper()
 	id := uuid.New()
@@ -173,9 +206,33 @@ func (h *gatewayTestHarness) NewAgent(t *testing.T) *testAgent {
 	return agent
 }
 
+// CloseUpstreamConnection closes the upstream connection with the given id. It will panic
+// if the connection is not found.
+//
+// This can be used to simulate a connection being closed by the upstream server.
+func (h *gatewayTestHarness) CloseUpstreamConnection(t *testing.T, id string) {
+	t.Helper()
+
+	for _, c := range h.upstream.connections {
+		if c.id == id {
+			_ = c.conn.Close()
+			return
+		}
+	}
+
+	t.Fatalf("upstream connection %s not found", id)
+}
+
 type upstreamMessage struct {
-	AgentID string
-	Message *protobufs.AgentToServer
+	// the id of the connection that sent the message
+	ConnectionID string
+	AgentID      string
+	Message      *protobufs.AgentToServer
+}
+
+type upstreamConnection struct {
+	id   string
+	conn *websocket.Conn
 }
 
 type testOpAMPServer struct {
@@ -184,7 +241,7 @@ type testOpAMPServer struct {
 	upgrader websocket.Upgrader
 
 	mu          sync.Mutex
-	connections []*websocket.Conn
+	connections []*upstreamConnection
 
 	connectionCount atomic.Int32
 	recvCh          chan upstreamMessage
@@ -221,6 +278,9 @@ func (s *testOpAMPServer) URL() string {
 }
 
 func (s *testOpAMPServer) handle(w http.ResponseWriter, r *http.Request) {
+	// extract the connection id from the request
+	id := r.Header.Get("X-Opamp-Gateway-Connection-Id")
+
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		s.errCh <- fmt.Errorf("upgrade: %w", err)
@@ -228,7 +288,7 @@ func (s *testOpAMPServer) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.mu.Lock()
-	s.connections = append(s.connections, conn)
+	s.connections = append(s.connections, &upstreamConnection{id: id, conn: conn})
 	s.mu.Unlock()
 	s.connectionCount.Add(1)
 
@@ -242,15 +302,19 @@ func (s *testOpAMPServer) handle(w http.ResponseWriter, r *http.Request) {
 			_ = conn.Close()
 			s.connectionCount.Add(-1)
 		}()
-		s.readLoop(conn)
+		s.readLoop(conn, id)
 	}()
 }
 
-func (s *testOpAMPServer) readLoop(conn *websocket.Conn) {
+func (s *testOpAMPServer) readLoop(conn *websocket.Conn, id string) {
 	for {
 		messageType, data, err := conn.ReadMessage()
 		if err != nil {
-			s.errCh <- err
+			if websocket.IsUnexpectedCloseError(err) {
+				// unexpected close is expected to happen when the connection is closed
+				return
+			}
+			s.errCh <- fmt.Errorf("read message: %w", err)
 			return
 		}
 		if messageType != websocket.BinaryMessage {
@@ -272,8 +336,9 @@ func (s *testOpAMPServer) readLoop(conn *websocket.Conn) {
 
 		select {
 		case s.recvCh <- upstreamMessage{
-			AgentID: agentID,
-			Message: &msg,
+			ConnectionID: id,
+			AgentID:      agentID,
+			Message:      &msg,
 		}:
 		default:
 			s.errCh <- fmt.Errorf("recvCh buffer full")
@@ -312,7 +377,7 @@ func (s *testOpAMPServer) WaitForAnyMessage(t *testing.T, timeout time.Duration)
 	}
 }
 
-func (s *testOpAMPServer) WaitForAgentMessage(t *testing.T, agentID string, timeout time.Duration) *protobufs.AgentToServer {
+func (s *testOpAMPServer) WaitForAgentMessage(t *testing.T, agentID string, timeout time.Duration) upstreamMessage {
 	t.Helper()
 
 	deadline := time.After(timeout)
@@ -320,7 +385,7 @@ func (s *testOpAMPServer) WaitForAgentMessage(t *testing.T, agentID string, time
 		select {
 		case msg := <-s.recvCh:
 			if msg.AgentID == agentID {
-				return proto.Clone(msg.Message).(*protobufs.AgentToServer)
+				return msg
 			}
 		case err := <-s.errCh:
 			require.NoError(t, err)
@@ -342,25 +407,27 @@ func (s *testOpAMPServer) Send(resp *protobufs.ServerToAgent) error {
 		return fmt.Errorf("no upstream connections")
 	}
 
-	return writeWSMessage(context.Background(), s.connections[0], payload)
+	return writeWSMessage(context.Background(), s.connections[0].conn, payload)
 }
 
+// Close closes the test OpAMP server. It will close all the connections and the server.
 func (s *testOpAMPServer) Close() {
 	s.server.Close()
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, conn := range s.connections {
-		_ = conn.Close()
+		_ = conn.conn.Close()
 	}
 }
 
 type testAgent struct {
-	t      *testing.T
-	conn   *websocket.Conn
-	rawID  []byte
-	id     string
-	recvCh chan *protobufs.ServerToAgent
+	t           *testing.T
+	conn        *websocket.Conn
+	rawID       []byte
+	id          string
+	sequenceNum uint64
+	recvCh      chan *protobufs.ServerToAgent
 }
 
 func newTestAgent(t *testing.T, url string, rawID []byte) *testAgent {
@@ -373,11 +440,12 @@ func newTestAgent(t *testing.T, url string, rawID []byte) *testAgent {
 	require.NoError(t, err)
 
 	agent := &testAgent{
-		t:      t,
-		conn:   conn,
-		rawID:  append([]byte(nil), rawID...),
-		id:     id,
-		recvCh: make(chan *protobufs.ServerToAgent, 8),
+		t:           t,
+		conn:        conn,
+		rawID:       append([]byte(nil), rawID...),
+		id:          id,
+		sequenceNum: 1,
+		recvCh:      make(chan *protobufs.ServerToAgent, 8),
 	}
 
 	go agent.readLoop()
@@ -397,15 +465,30 @@ func (a *testAgent) RawID() []byte {
 	return append([]byte(nil), a.rawID...)
 }
 
-func (a *testAgent) Send(msg *protobufs.AgentToServer) {
-	if len(msg.GetInstanceUid()) == 0 {
-		msg.InstanceUid = append([]byte(nil), a.rawID...)
+// Send sends the given messages to the agent. If no messages are provided, a default
+// message is sent.
+func (a *testAgent) Send(msgs ...*protobufs.AgentToServer) {
+	if len(msgs) == 0 {
+		// send a default message
+		msgs = []*protobufs.AgentToServer{{}}
 	}
 
-	payload, err := proto.Marshal(msg)
-	require.NoError(a.t, err)
+	for _, msg := range msgs {
+		if len(msg.GetInstanceUid()) == 0 {
+			msg.InstanceUid = append([]byte(nil), a.rawID...)
+		}
 
-	require.NoError(a.t, a.conn.WriteMessage(websocket.BinaryMessage, payload))
+		// assign the next sequence number for this agent
+		if msg.SequenceNum == 0 {
+			msg.SequenceNum = a.sequenceNum
+			a.sequenceNum++
+		}
+
+		payload, err := proto.Marshal(msg)
+		require.NoError(a.t, err)
+
+		require.NoError(a.t, a.conn.WriteMessage(websocket.BinaryMessage, payload))
+	}
 }
 
 func (a *testAgent) WaitForMessage(t *testing.T, timeout time.Duration) *protobufs.ServerToAgent {
