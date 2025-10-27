@@ -36,6 +36,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.86.1
 	github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver v1.86.1
 	github.com/observiq/bindplane-otel-collector/receiver/oktareceiver v1.86.1
+	github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver v1.86.1
 	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.86.1
 	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.86.1
 	github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver v1.86.1
@@ -429,6 +430,7 @@ require (
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-github/v76 v76.0.0 // indirect
 	github.com/google/go-tpm v0.9.6 // indirect
+	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/gophercloud/gophercloud/v2 v2.7.0 // indirect
 	github.com/grafana/clusterurl v0.2.1 // indirect
@@ -1045,6 +1047,8 @@ replace github.com/observiq/bindplane-otel-collector/receiver/m365receiver => ./
 replace github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver => ./receiver/macosunifiedloggingreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/oktareceiver => ./receiver/oktareceiver
+
+replace github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver => ./receiver/pcapreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver => ./receiver/pluginreceiver
 

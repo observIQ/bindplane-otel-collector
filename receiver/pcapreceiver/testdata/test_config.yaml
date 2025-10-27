@@ -17,3 +17,10 @@ auto_detect:
   snap_length: 65535
   promiscuous: true
 
+# Complex BPF filter
+complex_filter:
+  interface: eth0
+  snap_length: 65535
+  bpf_filter: "tcp port 80 or tcp port 443"
+  promiscuous: false
+

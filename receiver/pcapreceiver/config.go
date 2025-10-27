@@ -14,6 +14,14 @@
 
 package pcapreceiver
 
+import (
+	"errors"
+	"fmt"
+
+	"github.com/google/gopacket/layers"
+	"github.com/google/gopacket/pcap"
+)
+
 // Config defines configuration for the PCAP receiver
 type Config struct {
 	// Interface specifies the network interface to capture from
@@ -35,7 +43,28 @@ type Config struct {
 
 // Validate checks if the configuration is valid
 func (c *Config) Validate() error {
-	// To be implemented in Phase 4
-	return nil
+	var errs error
+
+	// Validate snap length
+	if c.SnapLength <= 0 {
+		errs = errors.Join(errs, fmt.Errorf("snap_length must be greater than 0, got %d", c.SnapLength))
+	}
+
+	// Validate BPF filter syntax if provided
+	if c.BPFFilter != "" {
+		// Use pcap.CompileBPFFilter to validate syntax
+		// We need to provide a link type - use Ethernet as default
+		_, err := pcap.CompileBPFFilter(layers.LinkTypeEthernet, int(c.SnapLength), c.BPFFilter)
+		if err != nil {
+			errs = errors.Join(errs, fmt.Errorf("invalid bpf_filter: %w", err))
+		}
+	}
+
+	// Note: We don't validate interface existence here because:
+	// 1. Empty interface means auto-detect
+	// 2. Interfaces may not exist during config validation (e.g., in CI/tests)
+	// 3. Interface validation will happen at Start() time with proper error reporting
+
+	return errs
 }
 
