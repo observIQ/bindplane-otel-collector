@@ -18,9 +18,11 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 
+	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcapgo"
 )
@@ -46,11 +48,69 @@ func main() {
 		panic(err)
 	}
 
-	// Generate 11 test packets (TCP, UDP, ICMP, IPv6)
-	packets := make([][]byte, 0, 11)
+	// Create test packets
+	packets := []gopacket.Packet{
+		createTCPPacket("192.168.1.1", "192.168.1.2", 12345, 80),
+		createTCPPacket("192.168.1.2", "192.168.1.1", 80, 12345),
+		createTCPPacket("10.0.0.1", "10.0.0.2", 54321, 443),
+	}
 
-	// Add packet data from CreateTCPPacket, CreateUDPPacket, etc.
-	// For simplicity, just write minimal valid packets
+	for _, packet := range packets {
+		if err := w.WritePacket(packet.Metadata().CaptureInfo, packet.Data()); err != nil {
+			panic(err)
+		}
+	}
 
-	fmt.Printf("Generated %d packets\n", len(packets))
+	fmt.Printf("Generated PCAP file successfully with %d packets\n", len(packets))
+}
+
+// createTCPPacket creates a simple TCP packet for testing
+func createTCPPacket(srcIP, dstIP string, srcPort, dstPort uint16) gopacket.Packet {
+	// Ethernet layer
+	ethLayer := &layers.Ethernet{
+		SrcMAC:       net.HardwareAddr{0x00, 0x0c, 0x29, 0x3e, 0x7f, 0x8a},
+		DstMAC:       net.HardwareAddr{0x00, 0x0c, 0x29, 0x3e, 0x7f, 0x8b},
+		EthernetType: layers.EthernetTypeIPv4,
+	}
+
+	// IP layer
+	ipLayer := &layers.IPv4{
+		SrcIP:    net.ParseIP(srcIP),
+		DstIP:    net.ParseIP(dstIP),
+		Version:  4,
+		TTL:      64,
+		Protocol: layers.IPProtocolTCP,
+	}
+
+	// TCP layer
+	tcpLayer := &layers.TCP{
+		SrcPort: layers.TCPPort(srcPort),
+		DstPort: layers.TCPPort(dstPort),
+		Seq:     uint32(1),
+		Ack:     uint32(1),
+		Window:  14600,
+		SYN:     true,
+	}
+	tcpLayer.SetNetworkLayerForChecksum(ipLayer)
+
+	// Serialize layers
+	buf := gopacket.NewSerializeBuffer()
+	opts := gopacket.SerializeOptions{
+		FixLengths:       true,
+		ComputeChecksums: true,
+	}
+	err := gopacket.SerializeLayers(buf, opts, ethLayer, ipLayer, tcpLayer)
+	if err != nil {
+		panic(err)
+	}
+
+	packetData := buf.Bytes()
+	packet := gopacket.NewPacket(packetData, layers.LinkTypeEthernet, gopacket.Default)
+
+	// Set proper capture info
+	md := packet.Metadata()
+	md.CaptureLength = len(packetData)
+	md.Length = len(packetData)
+
+	return packet
 }
