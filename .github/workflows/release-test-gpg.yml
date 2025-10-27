@@ -1,4 +1,4 @@
-name: Release Test
+name: Release Test (GPG)
 on:
   workflow_dispatch:
     inputs:
