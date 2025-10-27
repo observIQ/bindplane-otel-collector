@@ -1,6 +1,6 @@
 # PCAP Receiver
 
-The PCAP Receiver captures network packets from interfaces and converts packet metadata to OpenTelemetry logs. This receiver achieves functional parity with Google Chronicle Forwarder.
+The PCAP Receiver captures network packets from interfaces and converts packet metadata to OpenTelemetry logs.
 
 ## Requirements
 
@@ -58,24 +58,6 @@ service:
       exporters: [file]
 ```
 
-## Packet Attributes
-
-Each captured packet is converted to a log record with the following attributes:
-
-- `interface`: Source interface name
-- `packet.size`: Total packet length in bytes
-- `packet.timestamp`: Capture timestamp (RFC3339)
-- `link.type`: Link layer type (e.g., "Ethernet")
-- `link.src_addr`: Source MAC address
-- `link.dst_addr`: Destination MAC address
-- `network.protocol`: Network protocol (e.g., "IPv4", "IPv6")
-- `network.src_addr`: Source IP address
-- `network.dst_addr`: Destination IP address
-- `transport.protocol`: Transport protocol (e.g., "TCP", "UDP", "ICMP")
-- `transport.src_port`: Source port (TCP/UDP only)
-- `transport.dst_port`: Destination port (TCP/UDP only)
-- `application.protocol`: Application protocol (port-based detection)
-
 ## Platform-Specific Notes
 
 ### Linux
@@ -106,19 +88,28 @@ Requires Administrator privileges and Npcap installation:
 2. Run PowerShell as Administrator
 3. Execute the collector
 
-## Chronicle Forwarder Parity
 
-This receiver implements the same packet capture semantics as Google Chronicle Forwarder:
+## BPF Filter Examples
 
-- Cross-platform support (Windows/Npcap, Linux/libpcap, macOS/BPF)
-- Identical attribute schema for packet metadata
-- BPF filter support
-- Promiscuous mode support
-- Full packet capture with configurable snap length
+Berkeley Packet Filter (BPF) syntax allows fine-grained packet filtering:
 
-## Limitations
+```yaml
+# Capture only HTTP traffic
+bpf_filter: "tcp port 80"
 
-- Requires elevated privileges (root/admin)
-- Live capture only (no PCAP file replay in initial version)
-- Performance may be impacted by high packet rates
+# Capture HTTP and HTTPS traffic
+bpf_filter: "tcp port 80 or tcp port 443"
+
+# Capture DNS queries
+bpf_filter: "udp port 53"
+
+# Capture traffic to/from specific host
+bpf_filter: "host 192.168.1.100"
+
+# Capture traffic on specific subnet
+bpf_filter: "net 10.0.0.0/8"
+
+# Complex filter combining multiple conditions
+bpf_filter: "tcp and (port 80 or port 443) and host 192.168.1.100"
+```
 
