@@ -23,8 +23,19 @@
       <MediaTemplate EmbedCab="yes" {{if gt (.Compression | len) 0}}CompressionLevel="{{.Compression}}"{{end}}/>
 
       <MajorUpgrade
-        Schedule="afterInstallInitialize"
+        Schedule="afterInstallExecute"
         DowngradeErrorMessage="A newer version of this software is already installed."/>
+      
+      <!-- Force MSI to overwrite all files during upgrade, even if they've been modified.
+           This is necessary because the binary and other files may change between MSI runs
+           (e.g., via auto-updates), and MSI normally refuses to overwrite changed files.
+           REINSTALLMODE values:
+           - a: Force all files to be reinstalled, regardless of version
+           - m: Rewrite all required registry entries
+           - u: Rewrite all required user-specific registry entries
+           - s: Overwrite all existing shortcuts
+      -->
+      <Property Id="REINSTALLMODE" Value="amus"/>
 
       {{if gt (.Banner | len) 0 }} <WixVariable Id="WixUIBannerBmp" Value="{{.Banner}}"/> {{end}}
       {{if gt (.Dialog | len) 0 }} <WixVariable Id="WixUIDialogBmp" Value="{{.Dialog}}"/> {{end}}
