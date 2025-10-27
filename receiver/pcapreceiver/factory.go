@@ -20,7 +20,6 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"
-	"go.uber.org/zap"
 )
 
 // NewFactory creates a factory for the PCAP receiver
@@ -35,9 +34,9 @@ func NewFactory() receiver.Factory {
 // createDefaultConfig creates a config with default values
 func createDefaultConfig() component.Config {
 	return &Config{
-		Interface:   "",     // Auto-detect
-		SnapLength:  65535,  // Full packet
-		BPFFilter:   "",     // No filter
+		Interface:   "",    // Auto-detect
+		SnapLength:  65535, // Full packet
+		BPFFilter:   "",    // No filter
 		Promiscuous: true,
 	}
 }
@@ -52,4 +51,3 @@ func createLogsReceiver(
 	c := cfg.(*Config)
 	return newReceiver(c, set.Logger, consumer), nil
 }
-
