@@ -24,9 +24,10 @@ type client struct {
 	dialer websocket.Dialer
 
 	pool *connectionPool
-
 	// upstreamConnections is a set of connections to the upstream OpAMP server.
 	upstreamConnections *connections
+
+	agentClientConnections *agentClientConnections
 
 	callbacks ConnectionCallbacks
 
@@ -39,16 +40,20 @@ type client struct {
 }
 
 func newClient(cfg *Config, logger *zap.Logger, callbacks ConnectionCallbacks) *client {
+	pool := newConnectionPool(cfg.UpstreamConnections, logger)
+	connections := newConnections()
+	agentClientConnections := newAgentClientConnections(connections, pool)
 	return &client{
-		logger:              logger,
-		dialer:              *websocket.DefaultDialer,
-		pool:                newConnectionPool(cfg.UpstreamConnections, logger),
-		upstreamConnections: newConnections(),
-		callbacks:           callbacks,
-		secretKey:           cfg.SecretKey,
-		upstreamEndpoint:    cfg.UpstreamOpAMPAddress,
-		connectionCount:     cfg.UpstreamConnections,
-		clientConnectionsWg: &sync.WaitGroup{},
+		logger:                 logger,
+		dialer:                 *websocket.DefaultDialer,
+		pool:                   pool,
+		upstreamConnections:    connections,
+		agentClientConnections: agentClientConnections,
+		callbacks:              callbacks,
+		secretKey:              cfg.SecretKey,
+		upstreamEndpoint:       cfg.UpstreamOpAMPAddress,
+		connectionCount:        cfg.UpstreamConnections,
+		clientConnectionsWg:    &sync.WaitGroup{},
 	}
 }
 
@@ -76,6 +81,7 @@ func (c *client) startClientConnections(ctx context.Context) {
 
 		clientConnection := newConnection(conn, id, c.logger.Named("upstream-connection"))
 		c.pool.add(clientConnection)
+		c.upstreamConnections.set(id, clientConnection)
 
 		c.clientConnectionsWg.Add(1)
 		go clientConnection.start(ctx, ConnectionCallbacks{
@@ -105,21 +111,15 @@ func (c *client) Stop() {
 // upstream connection management
 
 func (c *client) assignedUpstreamConnection(agentID string) (*connection, error) {
-	// check for an existing assignment
-	conn, existing := c.upstreamConnections.getOrAssign(agentID, c.pool.next)
-	if existing {
-		c.logger.Info("existing assigned upstream connection", zap.String("agent_id", agentID), zap.String("connection_id", conn.id))
-		return conn, nil
+	conn, exists := c.agentClientConnections.assignedAgentConnection(agentID)
+	if !exists {
+		return nil, fmt.Errorf("no upstream connection available for agent %s", agentID)
 	}
-	if conn == nil {
-		return nil, fmt.Errorf("no connection available")
-	}
-	c.logger.Info("new assigned upstream connection", zap.String("agent_id", agentID), zap.String("connection_id", conn.id))
 	return conn, nil
 }
 
 func (c *client) unassignUpstreamConnection(agentID string) {
-	c.upstreamConnections.remove(agentID)
+	c.agentClientConnections.unassignAgentConnection(agentID)
 }
 
 // --------------------------------------------------------------------------------------
