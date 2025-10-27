@@ -9,69 +9,48 @@ import (
 type connectionProvider func() *connection
 
 type connections struct {
-	agentConnections map[string]*connection
-	mtx              sync.Mutex
+	byConnectionID map[string]*connection
+	mtx            sync.RWMutex
 }
 
 func newConnections() *connections {
 	return &connections{
-		agentConnections: make(map[string]*connection),
+		byConnectionID: make(map[string]*connection),
 	}
 }
 
-// getOrAssign returns a connection for the given agent ID. if the connection is not found, it
-// will call the provider function to obtain a connection for the agent ID. If the
-// provider is nil, no connection will be returned.
-func (c *connections) getOrAssign(agentID string, provider connectionProvider) (*connection, bool) {
+// get returns a connection for the given agent ID. if the connection is not
+// found, it will return nil.
+func (c *connections) get(connectionID string) (*connection, bool) {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	conn, exists := c.byConnectionID[connectionID]
+	return conn, exists
+}
+
+func (c *connections) set(connectionID string, conn *connection) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
-	conn, exists := c.agentConnections[agentID]
-	if exists {
-		return conn, true
-	}
-
-	if provider == nil {
-		return nil, false
-	}
-
-	conn = provider()
-	if conn == nil {
-		return nil, false
-	}
-
-	c.agentConnections[agentID] = conn
-	conn.incrementAgentCount()
-	return conn, true
-}
-
-// get returns a connection for the given agent ID.
-func (c *connections) get(agentID string) (*connection, bool) {
-	return c.getOrAssign(agentID, nil)
-}
-
-func (c *connections) set(agentID string, conn *connection) {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-
-	c.agentConnections[agentID] = conn
+	c.byConnectionID[connectionID] = conn
 	conn.incrementAgentCount()
 }
 
-func (c *connections) remove(agentID string) {
+func (c *connections) remove(connectionID string) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
-	conn, exists := c.agentConnections[agentID]
+	conn, exists := c.byConnectionID[connectionID]
 	if !exists {
 		return
 	}
 	conn.decrementAgentCount()
-	delete(c.agentConnections, agentID)
+	delete(c.byConnectionID, connectionID)
 }
 
 func (c *connections) size() int {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	return len(c.agentConnections)
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return len(c.byConnectionID)
 }

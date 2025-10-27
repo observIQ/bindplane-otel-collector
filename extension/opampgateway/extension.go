@@ -87,7 +87,7 @@ func (o *OpAMPGateway) HandleAgentMessage(ctx context.Context, connection *conne
 	}
 
 	// send the message to the upstream connection
-	o.logger.Info("Forwarding message upstream", zap.String("agent_id", agentID), zap.String("message", message.String()))
+	o.logger.Info("Forwarding message upstream", zap.String("agent_id", agentID), zap.String("connection_id", conn.id), zap.String("message", message.String()))
 	conn.send(messageBytes)
 	o.telemetry.OpampgatewayUpstreamMessages.Add(context.Background(), 1)
 	o.telemetry.OpampgatewayUpstreamMessageSize.Add(context.Background(), int64(len(messageBytes)))
