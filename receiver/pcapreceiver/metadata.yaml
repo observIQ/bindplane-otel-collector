@@ -1,0 +1,7 @@
+type: pcap
+
+status:
+  class: receiver
+  stability:
+    development: [logs]
+

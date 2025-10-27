@@ -1,0 +1,19 @@
+# Test configurations for PCAP receiver
+
+# Basic configuration
+basic:
+  interface: eth0
+  snap_length: 65535
+  promiscuous: true
+
+# With BPF filter
+with_filter:
+  interface: lo
+  bpf_filter: "tcp port 80"
+  snap_length: 1500
+
+# Auto-detect interface
+auto_detect:
+  snap_length: 65535
+  promiscuous: true
+
