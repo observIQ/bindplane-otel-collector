@@ -25,8 +25,13 @@ import (
 // Config defines configuration for the PCAP receiver
 type Config struct {
 	// Interface specifies the network interface to capture from
-	// If empty, auto-detects the first available interface
+	// If empty and FilePath is empty, auto-detects the first available interface
 	Interface string `mapstructure:"interface"`
+
+	// FilePath specifies a PCAP file to read from (for testing/replay)
+	// If set, live capture is disabled
+	// This field is primarily used for testing
+	FilePath string `mapstructure:"file_path"`
 
 	// SnapLength is the maximum bytes to capture per packet
 	// Default: 65535 (full packet)
@@ -67,4 +72,3 @@ func (c *Config) Validate() error {
 
 	return errs
 }
-
