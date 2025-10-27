@@ -1,0 +1,161 @@
+name: Release Test
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Collector Version"
+        required: true
+        default: "v0.0.1"
+
+jobs:
+  release-test:
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
+    steps:
+      - name: Checkout Repo
+        uses: namespacelabs/nscloud-checkout-action@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false # Use Namespace caching instead
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        
+      - name: Fake Windows MSI
+        run: touch ./observiq-otel-collector.msi
+
+      - name: Set VERSION
+        run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+
+      - name: Write signing key for nFPM
+        shell: bash
+        run: |
+          cat > ci-signing-key.asc <<'EOF'
+          ${{ secrets.TEMP_2025_GPG_PRIVATE_KEY }}
+          EOF
+
+      - name: Cache Goreleaser Build
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: ~/.cache/goreleaser
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser-pro
+          version: "v2.12.5"
+          args: release --skip=publish --clean
+        env:
+          GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
+          GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          SIGNING_KEY_FILE: ci-signing-key.asc
+
+      - name: Upload build artifacts
+        uses: namespace-actions/upload-artifact@v1
+        with:
+          name: dist-artifacts
+          path: dist/
+          retention-days: 1
+
+      # Linux package uploads to Google Artifact Registry
+
+      # google-github-actions/auth@v2 was used above to install
+      # gcloud sdk. google-github-actions/auth was used as well
+      # but we need to re-authenticate to upload packages to the
+      # correct project.
+      - name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v2"
+        with:
+          credentials_json: "${{ secrets.ORG_BINDPLANE_PUBLIC_LINUX_REPO_JSON_KEY }}"
+
+      - name: Upload Bindplane Linux AMD64 Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload devel-deb \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_amd64.deb
+
+      - name: Upload Bindplane Linux AMD64 RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload devel-rpm \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_amd64.rpm
+
+      - name: Upload Bindplane Linux ARM64 Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload devel-deb \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_arm64.deb
+      - name: Upload Bindplane Linux ARM64 RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload devel-rpm \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_arm64.rpm
+
+      - name: Upload Bindplane Linux ARM32 Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload devel-deb \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_arm.deb
+
+      - name: Upload Bindplane Linux ARM32 RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload devel-rpm \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_arm.rpm
+
+      - name: Upload Bindplane Linux PPC64LE Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload devel-deb \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64le.deb
+
+      - name: Upload Bindplane Linux PPC64LE RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload devel-rpm \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64le.rpm
+
+      - name: Upload Bindplane Linux PPC64 Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload devel-deb \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64.deb
+
+      - name: Upload Bindplane Linux PPC64 RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload devel-rpm \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64.rpm
