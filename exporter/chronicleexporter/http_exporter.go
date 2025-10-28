@@ -64,11 +64,10 @@ func newHTTPExporter(cfg *Config, params exporter.Settings, telemetry *metadata.
 	macAddress := ios.MACAddress()
 	params.Logger.Debug("Creating HTTP exporter", zap.String("exporter_id", params.ID.String()), zap.String("mac_address", macAddress))
 	return &httpExporter{
-		cfg:        cfg,
-		set:        params.TelemetrySettings,
-		exporterID: params.ID.String(),
-		marshaler:  marshaler,
-		telemetry:  telemetry,
+		cfg:       cfg,
+		set:       params.TelemetrySettings,
+		marshaler: marshaler,
+		telemetry: telemetry,
 		metricAttributes: attribute.NewSet(
 			attribute.KeyValue{
 				Key:   "exporter",
