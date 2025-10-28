@@ -49,7 +49,7 @@ jobs:
         with:
           distribution: goreleaser-pro
           version: "v2.12.5"
-          args: release --skip=publish --skip=validate --clean
+          args: release --skip=publish --skip=validate --clean --config ./.goreleaser.gpg.yml
         env:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
