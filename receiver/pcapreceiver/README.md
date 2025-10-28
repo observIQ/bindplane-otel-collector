@@ -25,8 +25,6 @@ The PCAP Receiver captures network packets from interfaces and converts packet m
 receivers:
   pcap:
     interface: eth0
-    snap_length: 65535
-    promiscuous: true
 ```
 
 ### With BPF Filter
