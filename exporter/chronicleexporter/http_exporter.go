@@ -28,6 +28,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
+	ios "github.com/observiq/bindplane-otel-collector/internal/os"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
@@ -60,11 +61,14 @@ func newHTTPExporter(cfg *Config, params exporter.Settings, telemetry *metadata.
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}
+	macAddress := ios.MACAddress()
+	params.Logger.Debug("Creating HTTP exporter", zap.String("exporter_id", params.ID.String()), zap.String("mac_address", macAddress))
 	return &httpExporter{
-		cfg:       cfg,
-		set:       params.TelemetrySettings,
-		marshaler: marshaler,
-		telemetry: telemetry,
+		cfg:        cfg,
+		set:        params.TelemetrySettings,
+		exporterID: params.ID.String(),
+		marshaler:  marshaler,
+		telemetry:  telemetry,
 		metricAttributes: attribute.NewSet(
 			attribute.KeyValue{
 				Key:   "exporter",
@@ -73,6 +77,10 @@ func newHTTPExporter(cfg *Config, params exporter.Settings, telemetry *metadata.
 			attribute.KeyValue{
 				Key:   "exporter_type",
 				Value: attribute.StringValue(params.ID.Type().String()),
+			},
+			attribute.KeyValue{
+				Key:   "host.mac_address",
+				Value: attribute.StringValue(macAddress),
 			},
 		),
 	}, nil
