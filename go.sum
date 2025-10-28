@@ -656,8 +656,8 @@ github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 h1:9iefClla7iYpfYWdzPCRDo
 github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2/go.mod h1:XtLgD3ZD34DAaVIIAyG3objl5DynM3CQ/vMcbBNJZGI=
 github.com/Azure/azure-sdk-for-go/sdk/messaging/azeventhubs/v2 v2.0.1 h1:0jZwGhuG42Gm/yv/sSxO0L6uh7JfJBflK8Eh8SAi3QE=
 github.com/Azure/azure-sdk-for-go/sdk/messaging/azeventhubs/v2 v2.0.1/go.mod h1:mWrFe78uRBS76gOOmm6+/nR0INwQeGZfhankYx6ShQA=
-github.com/Azure/azure-sdk-for-go/sdk/monitor/ingestion/azlogs v1.0.0 h1:pjEAC5RiMJd3Qc2x5MlDLii8bVjLhPeNcriRMUYnzXk=
-github.com/Azure/azure-sdk-for-go/sdk/monitor/ingestion/azlogs v1.0.0/go.mod h1:creAgI4tQiVrsK7UBv1RHoAQo3crd5ATEanZhLXtgLU=
+github.com/Azure/azure-sdk-for-go/sdk/monitor/ingestion/azlogs v1.1.0 h1:Q+tp/BW0x11uAm5i9f2xEu3RZ3wy89KNYfDVCWFHUJQ=
+github.com/Azure/azure-sdk-for-go/sdk/monitor/ingestion/azlogs v1.1.0/go.mod h1:et3yi6OrdxM8YK0pfOwpHSLf4gWypxQVWh4T9wRzg3k=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5 v5.7.0 h1:LkHbJbgF3YyvC53aqYGR+wWQDn2Rdp9AQdGndf9QvY4=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5 v5.7.0/go.mod h1:QyiQdW4f4/BIfB8ZutZ2s+28RAgfa/pT+zS++ZHyM1I=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/eventhub/armeventhub v1.3.0 h1:4hGvxD72TluuFIXVr8f4XkKZfqAa7Pj61t0jmQ7+kes=
