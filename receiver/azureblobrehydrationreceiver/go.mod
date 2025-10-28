@@ -3,8 +3,8 @@ module github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydratio
 go 1.24.4
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.0
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.2
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.1
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.3
 	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.86.1
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.86.1
 	github.com/observiq/bindplane-otel-collector/internal/testutils v1.86.1
@@ -60,9 +60,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/net v0.42.0 // indirect
+	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/text v0.27.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250804133106-a7a43d27e69b // indirect
 	google.golang.org/grpc v1.76.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
