@@ -1058,25 +1058,21 @@ replace github.com/observiq/bindplane-otel-collector/receiver/telemetrygenerator
 
 replace github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver => ./receiver/windowseventtracereceiver
 
-// Special case replaces
 // Does not build with windows and only used in configschema executable
 // Relevant issue https://github.com/mattn/go-ieproxy/issues/45
 replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
-
-// Replaces below this are required by datadog exporter in v0.83.0 https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.83.0/exporter/datadogexporter/go.mod#L266-L275
-
-// openshift removed all tags from their repo, use the pseudoversion from the release-3.9 branch HEAD
-replace github.com/openshift/api v3.9.0+incompatible => github.com/openshift/api v0.0.0-20180801171038-322a19404e37
 
 // github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension.test is forcing this dep to be updated, but it isn't compatible with the linux build process, so replacing to last stable version
 replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 
 // Keep at v0.130.0 since the Loki exporter was removed in v0.131.0
+// Linear ticket tracking deprecation: https://linear.app/bindplane/issue/BPOP-486/deprecation-loki-exporter-deprecated-v01310
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/lokiexporter => github.com/open-telemetry/opentelemetry-collector-contrib/exporter/lokiexporter v0.130.0
 
 // Keep at v0.132.0 since the Routing processor was removed in v0.133.0
+// Linear ticket tracking deprecation: https://linear.app/bindplane/issue/BPOP-3999/deprecation-routing-processor-v01330
 replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/routingprocessor => github.com/open-telemetry/opentelemetry-collector-contrib/processor/routingprocessor v0.132.0
 
-// Panic present in gosnowflake v1.16.0 so replace with v1.15.0
-// https://github.com/snowflakedb/gosnowflake/issues/1533
-replace github.com/snowflakedb/gosnowflake => github.com/snowflakedb/gosnowflake v1.15.0
+// Keep at v0.137.0 to avoid new breaking changes in the Google Cloud Log Entry Encoding Extension
+// Linear ticket tracking deprecation: https://linear.app/bindplane/issue/FLEET-235/deprecation-googlecloudlogentry-encoding-extension-v01380-vpc-flow
+replace github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension => github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension v0.137.0
