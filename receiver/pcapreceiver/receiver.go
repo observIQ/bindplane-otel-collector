@@ -109,7 +109,7 @@ func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
 	return nil
 }
 
-func (r *pcapReceiver) Shutdown(ctx context.Context) error {
+func (r *pcapReceiver) Shutdown() error {
 	r.mu.Lock()
 	if r.cancel != nil {
 		r.cancel()

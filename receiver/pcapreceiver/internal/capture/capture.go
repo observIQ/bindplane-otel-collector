@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package capture implements a packet capturer that captures network packets from interfaces and converts packet metadata to OpenTelemetry logs.
 package capture
 
 import (

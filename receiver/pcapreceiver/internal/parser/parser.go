@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package parser converts gopacket.Packet to OpenTelemetry logs.
 package parser
 
 import (

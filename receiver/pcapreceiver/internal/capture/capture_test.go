@@ -26,11 +26,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCapturerInterface(t *testing.T) {
-	// Verify that capturer implements Capturer interface
-	var _ Capturer = (*capturer)(nil)
-}
-
 func TestNewCapturer(t *testing.T) {
 	t.Run("creates capturer from file", func(t *testing.T) {
 		pcapPath := filepath.Join("..", "..", "testdata", "capture.pcap")
@@ -46,13 +41,13 @@ func TestNewCapturer(t *testing.T) {
 			Promiscuous: false,
 		}
 
-		cap, err := NewCapturer(cfg)
+		capt, err := NewCapturer(cfg)
 		require.NoError(t, err, "should create file-based capturer successfully")
-		require.NotNil(t, cap, "capturer should not be nil")
+		require.NotNil(t, capt, "capturer should not be nil")
 
 		// Clean up
-		if cap != nil {
-			_ = cap.Close()
+		if capt != nil {
+			_ = capt.Close()
 		}
 	})
 
@@ -70,12 +65,12 @@ func TestNewCapturer(t *testing.T) {
 			Promiscuous: false,
 		}
 
-		cap, err := NewCapturer(cfg)
+		capt, err := NewCapturer(cfg)
 		require.NoError(t, err, "should create file-based capturer with BPF filter")
-		require.NotNil(t, cap)
+		require.NotNil(t, capt)
 
-		if cap != nil {
-			_ = cap.Close()
+		if capt != nil {
+			_ = capt.Close()
 		}
 	})
 
@@ -92,14 +87,14 @@ func TestNewCapturer(t *testing.T) {
 			Promiscuous: false,
 		}
 
-		cap, err := NewCapturer(cfg)
+		capt, err := NewCapturer(cfg)
 		if err != nil {
 			t.Skipf("Cannot create live capturer (may need permissions): %v", err)
 		}
-		require.NotNil(t, cap)
+		require.NotNil(t, capt)
 
-		if cap != nil {
-			_ = cap.Close()
+		if capt != nil {
+			_ = capt.Close()
 		}
 	})
 }
@@ -121,20 +116,20 @@ func TestCapture_FromFile(t *testing.T) {
 		Promiscuous: false,
 	}
 
-	cap, err := NewCapturer(cfg)
+	capt, err := NewCapturer(cfg)
 	require.NoError(t, err, "should create file-based capturer")
-	require.NotNil(t, cap)
-	defer cap.Close()
+	require.NotNil(t, capt)
+	defer capt.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err = cap.Start(ctx)
+	err = capt.Start(ctx)
 	require.NoError(t, err, "should start capturer")
 
 	// Read packets from channel
 	var packets []gopacket.Packet
-	packetChan := cap.Packets()
+	packetChan := capt.Packets()
 
 	// Read with timeout
 	done := make(chan bool)
@@ -177,19 +172,19 @@ func TestCapture_FromFile_WithBPFFilter(t *testing.T) {
 		Promiscuous: false,
 	}
 
-	cap, err := NewCapturer(cfg)
+	capt, err := NewCapturer(cfg)
 	require.NoError(t, err, "should create file-based capturer with filter")
-	require.NotNil(t, cap)
-	defer cap.Close()
+	require.NotNil(t, capt)
+	defer capt.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err = cap.Start(ctx)
+	err = capt.Start(ctx)
 	require.NoError(t, err, "should start capturer")
 
 	// Read a few packets
-	packetChan := cap.Packets()
+	packetChan := capt.Packets()
 	var count int
 	timeout := time.After(2 * time.Second)
 
@@ -229,17 +224,17 @@ func TestCapture_Stats(t *testing.T) {
 		Promiscuous: false,
 	}
 
-	cap, err := NewCapturer(cfg)
+	capt, err := NewCapturer(cfg)
 	require.NoError(t, err)
-	require.NotNil(t, cap)
-	defer cap.Close()
+	require.NotNil(t, capt)
+	defer capt.Close()
 
 	ctx := context.Background()
-	err = cap.Start(ctx)
+	err = capt.Start(ctx)
 	require.NoError(t, err)
 
 	// Read some packets
-	packetChan := cap.Packets()
+	packetChan := capt.Packets()
 	timeout := time.After(2 * time.Second)
 
 readLoop:
@@ -255,7 +250,7 @@ readLoop:
 	}
 
 	// Get stats
-	stats, err := cap.Stats()
+	stats, err := capt.Stats()
 	require.NoError(t, err, "should get stats")
 	require.NotNil(t, stats, "stats should not be nil")
 	require.GreaterOrEqual(t, stats.PacketsReceived, uint64(0), "packets received should be >= 0")
@@ -278,19 +273,19 @@ func TestCapture_Live_Linux(t *testing.T) {
 		Promiscuous: false,
 	}
 
-	cap, err := NewCapturer(cfg)
+	capt, err := NewCapturer(cfg)
 	require.NoError(t, err, "should create live capturer on Linux")
-	require.NotNil(t, cap)
-	defer cap.Close()
+	require.NotNil(t, capt)
+	defer capt.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err = cap.Start(ctx)
+	err = capt.Start(ctx)
 	require.NoError(t, err, "should start live capture")
 
 	// Try to read a packet (with short timeout)
-	packetChan := cap.Packets()
+	packetChan := capt.Packets()
 	select {
 	case packet := <-packetChan:
 		require.NotNil(t, packet, "should receive a packet")
@@ -316,19 +311,19 @@ func TestCapture_Live_Darwin(t *testing.T) {
 		Promiscuous: false,
 	}
 
-	cap, err := NewCapturer(cfg)
+	capt, err := NewCapturer(cfg)
 	require.NoError(t, err, "should create live capturer on macOS")
-	require.NotNil(t, cap)
-	defer cap.Close()
+	require.NotNil(t, capt)
+	defer capt.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err = cap.Start(ctx)
+	err = capt.Start(ctx)
 	require.NoError(t, err, "should start live capture")
 
 	// Try to read a packet
-	packetChan := cap.Packets()
+	packetChan := capt.Packets()
 	select {
 	case packet := <-packetChan:
 		require.NotNil(t, packet, "should receive a packet")
@@ -352,23 +347,23 @@ func TestCapture_Live_Windows(t *testing.T) {
 		Promiscuous: false,
 	}
 
-	cap, err := NewCapturer(cfg)
+	capt, err := NewCapturer(cfg)
 	if err != nil {
 		t.Skipf("Cannot create live capturer on Windows (may need Npcap or admin): %v", err)
 	}
-	require.NotNil(t, cap)
-	defer cap.Close()
+	require.NotNil(t, capt)
+	defer capt.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err = cap.Start(ctx)
+	err = capt.Start(ctx)
 	if err != nil {
 		t.Skipf("Cannot start live capture on Windows: %v", err)
 	}
 
 	// Try to read a packet
-	packetChan := cap.Packets()
+	packetChan := capt.Packets()
 	select {
 	case packet := <-packetChan:
 		require.NotNil(t, packet, "should receive a packet")
