@@ -22,6 +22,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
+	ios "github.com/observiq/bindplane-otel-collector/internal/os"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
@@ -29,6 +30,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -59,6 +61,8 @@ func newGRPCExporter(cfg *Config, params exporter.Settings, telemetry *metadata.
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}
+	macAddress := ios.MACAddress()
+	params.Logger.Debug("Creating gRPC exporter", zap.String("exporter_id", params.ID.String()), zap.String("mac_address", macAddress))
 	return &grpcExporter{
 		cfg:        cfg,
 		set:        params.TelemetrySettings,
@@ -73,6 +77,10 @@ func newGRPCExporter(cfg *Config, params exporter.Settings, telemetry *metadata.
 			attribute.KeyValue{
 				Key:   "exporter_type",
 				Value: attribute.StringValue(params.ID.Type().String()),
+			},
+			attribute.KeyValue{
+				Key:   "host.mac_address",
+				Value: attribute.StringValue(macAddress),
 			},
 		),
 	}, nil

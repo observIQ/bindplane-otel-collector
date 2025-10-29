@@ -95,18 +95,25 @@ for local_mod in $LOCAL_MODULES; do
         # go list will not work if module is not tidy, so we tidy first
         go mod tidy -compat=1.24
 
-        OTEL_MODULES=$(go list -m -f '{{if not (or .Indirect .Main)}}{{.Path}}{{end}}' all |
-            grep -E -e '(?:^github.com/open-telemetry/opentelemetry-collector-contrib)|(?:^go.opentelemetry.io/collector)')
+        echo "  Tidied $local_mod"
+
+        # Temporarily disable 'set -e' for this command in case there are no OTEL modules
+        set +e
+        OTEL_MODULES=$(
+            go list -m -f '{{if not (or .Indirect .Main)}}{{.Path}}{{end}}' all |
+            grep -E -e '(?:^github.com/open-telemetry/opentelemetry-collector-contrib)|(?:^go.opentelemetry.io/collector)'
+        )
+        set -e
 
         for mod in $OTEL_MODULES; do
             if is_stable_module "$mod"; then
-                echo "$local_mod: $mod@$PDATA_TARGET_VERSION"
+                echo "  Updating $local_mod: $mod@$PDATA_TARGET_VERSION"
                 go mod edit -require "$mod@$PDATA_TARGET_VERSION"
             elif is_contrib_module "$mod"; then
-                echo "$local_mod: $mod@$CONTRIB_TARGET_VERSION"
+                echo "  Updating $local_mod: $mod@$CONTRIB_TARGET_VERSION"
                 go mod edit -require "$mod@$CONTRIB_TARGET_VERSION"
             else
-                echo "$local_mod: $mod@$TARGET_VERSION"
+                echo "  Updating $local_mod: $mod@$TARGET_VERSION"
                 go mod edit -require "$mod@$TARGET_VERSION"
             fi
         done
