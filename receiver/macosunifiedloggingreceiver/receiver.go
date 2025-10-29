@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"sync"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -74,14 +75,38 @@ func (r *unifiedLoggingReceiver) Shutdown(_ context.Context) error {
 // readLogs runs the log command and processes output
 func (r *unifiedLoggingReceiver) readLogs(ctx context.Context) {
 	// Run immediately on startup
-	count, err := r.runLogCommand(ctx)
+	if r.config.ArchivePath == "" {
+		r.readFromLive(ctx)
+	} else {
+		r.readFromArchive(ctx)
+	}
+}
+
+func (r *unifiedLoggingReceiver) readFromArchive(ctx context.Context) {
+	resolvedPaths := r.config.getResolvedArchivePaths()
+	r.logger.Info("Reading from archive mode", zap.Int("archive_count", len(resolvedPaths)))
+
+	wg := &sync.WaitGroup{}
+	for _, archivePath := range resolvedPaths {
+		wg.Add(1)
+		go func(archivePath string) {
+			defer wg.Done()
+			r.logger.Info("Processing archive", zap.String("path", archivePath))
+			if _, err := r.runLogCommand(ctx, archivePath); err != nil {
+				r.logger.Error("Failed to run log command for archive", zap.String("archive", archivePath), zap.Error(err))
+				return
+			}
+		}(archivePath)
+	}
+	wg.Wait()
+	r.logger.Info("Finished reading archive logs")
+}
+
+func (r *unifiedLoggingReceiver) readFromLive(ctx context.Context) {
+	// Run immediately on startup
+	_, err := r.runLogCommand(ctx, "")
 	if err != nil {
 		r.logger.Error("Failed to run log command", zap.Error(err))
-	}
-
-	// If reading from archive, we're done after first run
-	if r.config.ArchivePath != "" {
-		r.logger.Info("Finished reading archive logs")
 		return
 	}
 
@@ -103,7 +128,7 @@ func (r *unifiedLoggingReceiver) readLogs(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			count, err = r.runLogCommand(ctx)
+			count, err := r.runLogCommand(ctx, "")
 			if err != nil {
 				r.logger.Error("Failed to run log command", zap.Error(err))
 			}
@@ -120,9 +145,10 @@ func (r *unifiedLoggingReceiver) readLogs(ctx context.Context) {
 
 // runLogCommand executes the log command and processes output
 // Returns the number of logs processed
-func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) (int, error) {
+// archivePath should be empty string for live mode, or a specific archive path for archive mode
+func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context, archivePath string) (int, error) {
 	// Build the log command arguments
-	args := r.buildLogCommandArgs()
+	args := r.buildLogCommandArgs(archivePath)
 
 	r.logger.Info("Running log command", zap.Strings("args", args))
 
@@ -201,12 +227,13 @@ func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) (int, error)
 }
 
 // buildLogCommandArgs constructs the arguments for the log command
-func (r *unifiedLoggingReceiver) buildLogCommandArgs() []string {
+// archivePath should be empty string for live mode, or a specific archive path for archive mode
+func (r *unifiedLoggingReceiver) buildLogCommandArgs(archivePath string) []string {
 	args := []string{"show"}
 
 	// Add archive path if specified
-	if r.config.ArchivePath != "" {
-		args = append(args, "--archive", r.config.ArchivePath)
+	if archivePath != "" {
+		args = append(args, "--archive", archivePath)
 	}
 
 	// Add style flag if format is not default
@@ -217,14 +244,14 @@ func (r *unifiedLoggingReceiver) buildLogCommandArgs() []string {
 	// Add start time
 	if r.config.StartTime != "" {
 		args = append(args, "--start", r.config.StartTime)
-	} else if r.config.MaxLogAge > 0 && r.config.ArchivePath == "" {
+	} else if r.config.MaxLogAge > 0 && archivePath == "" {
 		// For live mode, calculate start time from max_log_age
 		startTime := time.Now().Add(-r.config.MaxLogAge)
 		args = append(args, "--start", startTime.Format("2006-01-02 15:04:05"))
 	}
 
 	// Add end time (archive mode only)
-	if r.config.EndTime != "" && r.config.ArchivePath != "" {
+	if r.config.EndTime != "" && archivePath != "" {
 		args = append(args, "--end", r.config.EndTime)
 	}
 
