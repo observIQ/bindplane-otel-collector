@@ -36,6 +36,7 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/collector/receiver/receiverhelper"
 	"go.uber.org/zap"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
@@ -148,6 +149,7 @@ type Worker struct {
 	objectKeyFilter             *regexp.Regexp
 	notificationType            string
 	parseFunc                   parseFunc
+	obsrecv                     *receiverhelper.ObsReport
 }
 
 // Option is a functional option for configuring the Worker
@@ -184,13 +186,14 @@ func WithNotificationType(notificationType string) Option {
 }
 
 // New creates a new Worker
-func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client client.Client, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration, opts ...Option) *Worker {
+func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client client.Client, obsrecv *receiverhelper.ObsReport, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration, opts ...Option) *Worker {
 	w := &Worker{
 		logger:                      tel.Logger.With(zap.String("component", "awss3eventreceiver")),
 		tel:                         tel,
 		client:                      client,
 		nextConsumer:                nextConsumer,
 		offsetStorage:               storageclient.NewNopStorage(),
+		obsrecv:                     obsrecv,
 		maxLogSize:                  maxLogSize,
 		maxLogsEmitted:              maxLogsEmitted,
 		visibilityTimeout:           visibilityTimeout,
@@ -419,11 +422,14 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 		}
 
 		if ld.LogRecordCount() >= w.maxLogsEmitted {
+			obsCtx := w.obsrecv.StartLogsOp(ctx)
 			if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
+				w.obsrecv.EndLogsOp(obsCtx, metadata.Type.String(), ld.LogRecordCount(), err)
 				recordLogger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
 				return fmt.Errorf("consume logs: %w", err)
 			}
 			w.metrics.S3eventBatchSize.Record(ctx, int64(ld.LogRecordCount()))
+			w.obsrecv.EndLogsOp(obsCtx, metadata.Type.String(), ld.LogRecordCount(), nil)
 
 			batchesConsumedCount++
 			recordLogger.Debug("Reached max logs for single batch, starting new batch", zap.Int("batches_consumed_count", batchesConsumedCount))

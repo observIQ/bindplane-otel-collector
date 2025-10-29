@@ -22,6 +22,7 @@ require (
 	go.opentelemetry.io/collector/pdata v1.44.0
 	go.opentelemetry.io/collector/pipeline v1.44.0
 	go.opentelemetry.io/collector/receiver v1.44.0
+	go.opentelemetry.io/collector/receiver/receiverhelper v0.138.0
 	go.opentelemetry.io/collector/receiver/receivertest v0.138.0
 	go.opentelemetry.io/otel/metric v1.38.0
 	go.opentelemetry.io/otel/sdk/metric v1.38.0
