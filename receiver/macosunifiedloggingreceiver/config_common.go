@@ -37,8 +37,9 @@ type Config struct {
 	// Only used with archive_path
 	EndTime string `mapstructure:"end_time"`
 
-	// PollInterval specifies how often to poll for new logs (live mode only)
-	PollInterval time.Duration `mapstructure:"poll_interval"`
+	// MaxPollInterval specifies the maximum interval between polling for new logs (live mode only)
+	// The actual poll interval uses exponential backoff based on whether logs are being actively written
+	MaxPollInterval time.Duration `mapstructure:"max_poll_interval"`
 
 	// MaxLogAge specifies the maximum age of logs to read on startup
 	// Only applies to live mode. Format: "24h", "1h30m", etc.

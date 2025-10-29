@@ -2,7 +2,7 @@
 
 # Live mode with default settings
 live_mode_defaults:
-  poll_interval: 30s
+  max_poll_interval: 30s
   max_log_age: 24h
 
 # Archive mode with all options
@@ -11,7 +11,7 @@ archive_mode_full:
   predicate: "subsystem == 'com.apple.systempreferences'"
   start_time: "2024-01-01 00:00:00"
   end_time: "2024-01-02 00:00:00"
-  poll_interval: 60s
+  max_poll_interval: 60s
   max_log_age: 48h
 
 # Archive mode minimal
@@ -21,7 +21,7 @@ archive_mode_minimal:
 # Live mode with predicate
 live_mode_predicate:
   predicate: "process == 'kernel' AND messageType == 'Error'"
-  poll_interval: 15s
+  max_poll_interval: 15s
   max_log_age: 12h
 
 # Archive mode with time range

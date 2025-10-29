@@ -3,6 +3,7 @@ module github.com/observiq/bindplane-otel-collector/receiver/macosunifiedlogging
 go 1.24.4
 
 require (
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.44.0
 	go.opentelemetry.io/collector/component/componenttest v0.138.0
