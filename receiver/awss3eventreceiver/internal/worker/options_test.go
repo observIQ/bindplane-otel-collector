@@ -23,6 +23,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
+	"go.opentelemetry.io/collector/receiver/receiverhelper"
+	"go.opentelemetry.io/collector/receiver/receivertest"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 	"github.com/observiq/bindplane-otel-collector/internal/aws/fake"
@@ -37,9 +39,17 @@ func TestWithBucketNameFilter(t *testing.T) {
 	sink := new(consumertest.LogsSink)
 	fakeClient := client.NewClient(aws.Config{})
 
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
+
 	filter := regexp.MustCompile("test-bucket")
 	w := worker.New(
-		set, sink, fakeClient, 1024, 100,
+		set, sink, fakeClient, obsrecv, 1024, 100,
 		time.Second, time.Minute, time.Hour,
 		worker.WithBucketNameFilter(filter),
 	)
@@ -59,9 +69,16 @@ func TestWithObjectKeyFilter(t *testing.T) {
 	sink := new(consumertest.LogsSink)
 	fakeClient := client.NewClient(aws.Config{})
 
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
 	filter := regexp.MustCompile(`\.log$`)
 	w := worker.New(
-		set, sink, fakeClient, 1024, 100,
+		set, sink, fakeClient, obsrecv, 1024, 100,
 		time.Second, time.Minute, time.Hour,
 		worker.WithObjectKeyFilter(filter),
 	)
@@ -84,8 +101,16 @@ func TestWithTelemetryBuilder(t *testing.T) {
 	tb, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
 
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
+
 	w := worker.New(
-		set, sink, fakeClient, 1024, 100,
+		set, sink, fakeClient, obsrecv, 1024, 100,
 		time.Second, time.Minute, time.Hour,
 		worker.WithTelemetryBuilder(tb),
 	)
@@ -99,9 +124,16 @@ func TestWithTelemetryBuilder_Nil(t *testing.T) {
 	set := componenttest.NewNopTelemetrySettings()
 	sink := new(consumertest.LogsSink)
 	fakeClient := client.NewClient(aws.Config{})
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
 
 	w := worker.New(
-		set, sink, fakeClient, 1024, 100,
+		set, sink, fakeClient, obsrecv, 1024, 100,
 		time.Second, time.Minute, time.Hour,
 		worker.WithTelemetryBuilder(nil),
 	)
@@ -121,8 +153,15 @@ func TestMultipleOptions(t *testing.T) {
 	tb, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
 
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
 	w := worker.New(
-		set, sink, fakeClient, 1024, 100,
+		set, sink, fakeClient, obsrecv, 1024, 100,
 		time.Second, time.Minute, time.Hour,
 		worker.WithBucketNameFilter(bucketFilter),
 		worker.WithObjectKeyFilter(keyFilter),
@@ -146,8 +185,15 @@ func TestNoOptions(t *testing.T) {
 	sink := new(consumertest.LogsSink)
 	fakeClient := client.NewClient(aws.Config{})
 
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
 	w := worker.New(
-		set, sink, fakeClient, 1024, 100,
+		set, sink, fakeClient, obsrecv, 1024, 100,
 		time.Second, time.Minute, time.Hour,
 	)
 
@@ -161,8 +207,16 @@ func TestWithNilFilters(t *testing.T) {
 	sink := new(consumertest.LogsSink)
 	fakeClient := client.NewClient(aws.Config{})
 
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
+
 	w := worker.New(
-		set, sink, fakeClient, 1024, 100,
+		set, sink, fakeClient, obsrecv, 1024, 100,
 		time.Second, time.Minute, time.Hour,
 		worker.WithBucketNameFilter(nil),
 		worker.WithObjectKeyFilter(nil),

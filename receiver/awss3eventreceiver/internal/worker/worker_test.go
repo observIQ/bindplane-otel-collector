@@ -34,6 +34,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
+	"go.opentelemetry.io/collector/receiver/receiverhelper"
+	"go.opentelemetry.io/collector/receiver/receivertest"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
 
@@ -106,7 +108,15 @@ func TestURLDecodingInWorker(t *testing.T) {
 			tb, err := metadata.NewTelemetryBuilder(tel)
 			require.NoError(t, err)
 
-			w := worker.New(tel, consumer, fakeAWS, 1024*1024, 1000, 5*time.Minute, 1*time.Minute, 1*time.Hour, worker.WithTelemetryBuilder(tb))
+			params := receivertest.NewNopSettings(metadata.Type)
+			obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+				ReceiverID:             params.ID,
+				Transport:              "http",
+				ReceiverCreateSettings: params,
+			})
+			require.NoError(t, err)
+
+			w := worker.New(tel, consumer, fakeAWS, obsrecv, 1024*1024, 1000, 5*time.Minute, 1*time.Minute, 1*time.Hour, worker.WithTelemetryBuilder(tb))
 
 			// Get the message that was created (it will have the decoded key)
 			msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
@@ -325,7 +335,14 @@ func TestProcessMessage(t *testing.T) {
 			b, err := metadata.NewTelemetryBuilder(set)
 			require.NoError(t, err)
 
-			w := worker.New(set, sink, fakeAWS, testCase.maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(b))
+			params := receivertest.NewNopSettings(metadata.Type)
+			obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+				ReceiverID:             params.ID,
+				Transport:              "http",
+				ReceiverCreateSettings: params,
+			})
+			require.NoError(t, err)
+			w := worker.New(set, sink, fakeAWS, obsrecv, testCase.maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 			numCallbacks := 0
 
@@ -461,7 +478,14 @@ func TestEventTypeFiltering(t *testing.T) {
 			sink := new(consumertest.LogsSink)
 			b, err := metadata.NewTelemetryBuilder(set)
 			require.NoError(t, err)
-			w := worker.New(set, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(b))
+			params := receivertest.NewNopSettings(metadata.Type)
+			obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+				ReceiverID:             params.ID,
+				Transport:              "http",
+				ReceiverCreateSettings: params,
+			})
+			require.NoError(t, err)
+			w := worker.New(set, sink, fakeAWS, obsrecv, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 			numCallbacks := 0
 
@@ -521,7 +545,14 @@ func TestMessageVisibilityExtension(t *testing.T) {
 
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
+	w := worker.New(set, sink, fakeAWS, obsrecv, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	// Get a message from the queue
 	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
@@ -600,7 +631,14 @@ func TestVisibilityExtensionLogs(t *testing.T) {
 	visibilityTimeout := 300 * time.Second
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
+	w := worker.New(set, sink, mockClient, obsrecv, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -685,7 +723,14 @@ func TestExtendToMaxAndStop(t *testing.T) {
 
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, maxVisibilityWindow, worker.WithTelemetryBuilder(b))
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
+	w := worker.New(set, sink, mockClient, obsrecv, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, maxVisibilityWindow, worker.WithTelemetryBuilder(b))
 
 	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -741,7 +786,14 @@ func TestVisibilityExtensionContextCancellation(t *testing.T) {
 	visibilityTimeout := 300 * time.Second
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
+	w := worker.New(set, sink, fakeAWS, obsrecv, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -814,7 +866,14 @@ func TestVisibilityExtensionErrorHandling(t *testing.T) {
 	visibilityTimeout := 300 * time.Second
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
+	w := worker.New(set, sink, mockClient, obsrecv, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -1027,7 +1086,14 @@ func TestProcessMessageWithFilters(t *testing.T) {
 			if testCase.objectKeyFilter != nil {
 				opts = append(opts, worker.WithObjectKeyFilter(testCase.objectKeyFilter))
 			}
-			w := worker.New(set, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, opts...)
+			params := receivertest.NewNopSettings(metadata.Type)
+			obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+				ReceiverID:             params.ID,
+				Transport:              "http",
+				ReceiverCreateSettings: params,
+			})
+			require.NoError(t, err)
+			w := worker.New(set, sink, fakeAWS, obsrecv, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, opts...)
 
 			numCallbacks := 0
 
