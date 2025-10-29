@@ -28,8 +28,6 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pipeline"
-	"go.opentelemetry.io/collector/receiver"
-	"go.opentelemetry.io/collector/receiver/receiverhelper"
 	"go.uber.org/zap"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/backoff"
@@ -58,9 +56,6 @@ type logsReceiver struct {
 
 	// Channel for distributing messages to worker goroutines
 	msgChan chan workerMessage
-
-	// observer for metrics about the receiver
-	obsrecv *receiverhelper.ObsReport
 }
 
 type workerMessage struct {
@@ -68,10 +63,7 @@ type workerMessage struct {
 	queueURL string
 }
 
-func newLogsReceiver(params receiver.Settings, cfg *Config, next consumer.Logs, tb *metadata.TelemetryBuilder) (component.Component, error) {
-	id := params.ID
-	tel := params.TelemetrySettings
-
+func newLogsReceiver(id component.ID, tel component.TelemetrySettings, cfg *Config, next consumer.Logs, tb *metadata.TelemetryBuilder) (component.Component, error) {
 	region, err := client.ParseRegionFromSQSURL(cfg.SQSQueueURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract region from SQS URL: %w", err)
@@ -80,15 +72,6 @@ func newLogsReceiver(params receiver.Settings, cfg *Config, next consumer.Logs, 
 	awsConfig, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(region))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create AWS config: %w", err)
-	}
-
-	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
-		ReceiverID:             id,
-		Transport:              "http",
-		ReceiverCreateSettings: params,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to set up observer: %w", err)
 	}
 
 	var bucketNameFilter *regexp.Regexp
@@ -130,11 +113,12 @@ func newLogsReceiver(params receiver.Settings, cfg *Config, next consumer.Logs, 
 
 				// Set notification type
 				opts = append(opts, worker.WithNotificationType(cfg.NotificationType))
-				return worker.New(tel, next, client.NewClient(awsConfig), obsrecv, cfg.MaxLogSize, cfg.MaxLogsEmitted, cfg.VisibilityTimeout, cfg.VisibilityExtensionInterval, cfg.MaxVisibilityWindow, opts...)
+
+				return worker.New(tel, next, client.NewClient(awsConfig), cfg.MaxLogSize, cfg.MaxLogsEmitted, cfg.VisibilityTimeout, cfg.VisibilityExtensionInterval, cfg.MaxVisibilityWindow, opts...)
+
 			},
 		},
 		offsetStorage: storageclient.NewNopStorage(),
-		obsrecv:       obsrecv,
 	}, nil
 }
 

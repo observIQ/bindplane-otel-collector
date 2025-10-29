@@ -29,8 +29,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
-	"go.opentelemetry.io/collector/receiver/receiverhelper"
-	"go.opentelemetry.io/collector/receiver/receivertest"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
 
@@ -162,15 +160,7 @@ func TestProcessMessageDLQConditions(t *testing.T) {
 			tb, err := metadata.NewTelemetryBuilder(set)
 			require.NoError(t, err)
 
-			params := receivertest.NewNopSettings(metadata.Type)
-			obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
-				ReceiverID:             params.ID,
-				Transport:              "http",
-				ReceiverCreateSettings: params,
-			})
-
-			require.NoError(t, err)
-			w := worker.New(set, sink, mockClient, obsrecv, 4096, 1000, 100*time.Millisecond, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(tb))
+			w := worker.New(set, sink, mockClient, 4096, 1000, 100*time.Millisecond, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(tb))
 
 			msg := types.Message{
 				Body:          aws.String(validS3Event),
@@ -211,14 +201,7 @@ func TestProcessMessageDLQConditionsWithUnsupportedFileType(t *testing.T) {
 	tb, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
 
-	params := receivertest.NewNopSettings(metadata.Type)
-	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
-		ReceiverID:             params.ID,
-		Transport:              "http",
-		ReceiverCreateSettings: params,
-	})
-	require.NoError(t, err)
-	w := worker.New(set, sink, fakeAWS, obsrecv, 4096, 1000, 100*time.Millisecond, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(tb))
+	w := worker.New(set, sink, fakeAWS, 4096, 1000, 100*time.Millisecond, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(tb))
 
 	// Get message from queue
 	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
@@ -258,14 +241,7 @@ func TestDLQVisibilityTimeoutResetError(t *testing.T) {
 	tb, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
 
-	params := receivertest.NewNopSettings(metadata.Type)
-	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
-		ReceiverID:             params.ID,
-		Transport:              "http",
-		ReceiverCreateSettings: params,
-	})
-	require.NoError(t, err)
-	w := worker.New(set, sink, mockClient, obsrecv, 4096, 1000, 100*time.Millisecond, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(tb))
+	w := worker.New(set, sink, mockClient, 4096, 1000, 100*time.Millisecond, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(tb))
 
 	msg := types.Message{
 		Body:          aws.String(validS3Event),
@@ -341,14 +317,7 @@ func TestDLQMetricsRecording(t *testing.T) {
 			tb, err := metadata.NewTelemetryBuilder(set)
 			require.NoError(t, err)
 
-			params := receivertest.NewNopSettings(metadata.Type)
-			obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
-				ReceiverID:             params.ID,
-				Transport:              "http",
-				ReceiverCreateSettings: params,
-			})
-			require.NoError(t, err)
-			w := worker.New(set, sink, mockClient, obsrecv, 4096, 1000, 100*time.Millisecond, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(tb))
+			w := worker.New(set, sink, mockClient, 4096, 1000, 100*time.Millisecond, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(tb))
 
 			msg := types.Message{
 				Body:          aws.String(validS3Event),
@@ -463,15 +432,7 @@ func TestDLQConditionDetection(t *testing.T) {
 			tb, err := metadata.NewTelemetryBuilder(set)
 			require.NoError(t, err)
 
-			params := receivertest.NewNopSettings(metadata.Type)
-			obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
-				ReceiverID:             params.ID,
-				Transport:              "http",
-				ReceiverCreateSettings: params,
-			})
-			require.NoError(t, err)
-
-			w := worker.New(set, sink, mockClient, obsrecv, 4096, 1000, 100*time.Millisecond, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(tb))
+			w := worker.New(set, sink, mockClient, 4096, 1000, 100*time.Millisecond, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(tb))
 
 			msg := types.Message{
 				Body:          aws.String(validS3Event),
