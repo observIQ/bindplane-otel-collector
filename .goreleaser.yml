@@ -332,6 +332,8 @@ nfpms:
     scripts:
       preinstall: ./scripts/package/preinstall.sh
       postinstall: ./scripts/package/postinstall.sh
+      preremove: ./scripts/package/preremove.sh
+      postremove: ./scripts/package/postremove.sh
 
 # Build container images with docker buildx (mutli arch builds).
 dockers:
