@@ -37,3 +37,8 @@ builder
 
 # Ignore generated credentials from google-github-actions/auth
 gha-creds-*.json
+
+# Ignore GPG signing key, written to filesystem
+# during release process. Can cause Goreleaser failure
+# due to dirty git state.
+ci-signing-key.asc
