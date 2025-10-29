@@ -27,4 +27,3 @@ func checkPlatformPermissions() error {
 	// Check for CAP_NET_RAW capability
 	return nil
 }
-

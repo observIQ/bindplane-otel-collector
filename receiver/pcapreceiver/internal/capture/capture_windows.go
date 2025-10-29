@@ -27,4 +27,3 @@ func checkPlatformPermissions() error {
 	// Check for Npcap installation and admin privileges
 	return nil
 }
-

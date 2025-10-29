@@ -27,4 +27,3 @@ func checkPlatformPermissions() error {
 	// Check for BPF device access
 	return nil
 }
-

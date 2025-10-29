@@ -16,4 +16,3 @@
 // network traffic from interfaces and converts packet metadata to OpenTelemetry logs.
 // This receiver achieves functional parity with Google Chronicle Forwarder.
 package pcapreceiver
-
