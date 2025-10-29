@@ -88,6 +88,10 @@ cleanup_collector() {
     remove_file_or_dir "${BDOT_CONFIG_HOME}/observiq-otel-collector"
 }
 
+cleanup_install_dir() {
+    remove_file_or_dir "${BDOT_CONFIG_HOME}/install"
+}
+
 # Only perform cleanup on uninstall, not on upgrade
 if is_uninstall "$1"; then
     cleanup_package_statuses
@@ -96,6 +100,7 @@ if is_uninstall "$1"; then
     cleanup_version
     cleanup_updater
     cleanup_collector
+    cleanup_install_dir
 else
     echo "Upgrade detected, skipping cleanup"
 fi
