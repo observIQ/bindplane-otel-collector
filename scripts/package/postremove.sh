@@ -64,43 +64,15 @@ remove_file_or_dir() {
     fi
 }
 
-cleanup_package_statuses() {
-    remove_file_or_dir "${BDOT_CONFIG_HOME}/package_statuses.json"
-}
-
-cleanup_plugins() {
-    remove_file_or_dir "${BDOT_CONFIG_HOME}/plugins"
-}
-
-cleanup_log() {
-    remove_file_or_dir "${BDOT_CONFIG_HOME}/log"
-}
-
-cleanup_version() {
-    remove_file_or_dir "${BDOT_CONFIG_HOME}/VERSION.txt"
-}
-
-cleanup_updater() {
-    remove_file_or_dir "${BDOT_CONFIG_HOME}/updater"
-}
-
-cleanup_collector() {
-    remove_file_or_dir "${BDOT_CONFIG_HOME}/observiq-otel-collector"
-}
-
-cleanup_install_dir() {
-    remove_file_or_dir "${BDOT_CONFIG_HOME}/install"
-}
-
 # Only perform cleanup on uninstall, not on upgrade
 if is_uninstall "$1"; then
-    cleanup_package_statuses
-    cleanup_plugins
-    cleanup_log
-    cleanup_version
-    cleanup_updater
-    cleanup_collector
-    cleanup_install_dir
+    remove_file_or_dir "${BDOT_CONFIG_HOME}/package_statuses.json"
+    remove_file_or_dir "${BDOT_CONFIG_HOME}/plugins"
+    remove_file_or_dir "${BDOT_CONFIG_HOME}/log"
+    remove_file_or_dir "${BDOT_CONFIG_HOME}/VERSION.txt"
+    remove_file_or_dir "${BDOT_CONFIG_HOME}/updater"
+    remove_file_or_dir "${BDOT_CONFIG_HOME}/observiq-otel-collector"
+    remove_file_or_dir "${BDOT_CONFIG_HOME}/install"
 else
     echo "Upgrade detected, skipping cleanup"
 fi
