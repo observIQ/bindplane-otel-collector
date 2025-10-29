@@ -30,3 +30,8 @@ archive_mode_time_range:
   start_time: "2024-06-01 00:00:00"
   end_time: "2024-06-01 23:59:59"
 
+# Archive mode with glob pattern
+archive_mode_glob:
+  archive_path: "./testdata/*.logarchive"
+  format: "ndjson"
+
