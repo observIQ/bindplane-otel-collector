@@ -452,10 +452,13 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	}
 	w.metrics.S3eventBatchSize.Record(ctx, int64(ld.LogRecordCount()))
 
+	obsCtx := w.obsrecv.StartLogsOp(ctx)
 	if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
+		w.obsrecv.EndLogsOp(ctx, metadata.Type.String(), ld.LogRecordCount(), err)
 		recordLogger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
 		return fmt.Errorf("consume logs: %w", err)
 	}
+	w.obsrecv.EndLogsOp(obsCtx, metadata.Type.String(), ld.LogRecordCount(), nil)
 	recordLogger.Debug("processed S3 object", zap.Int("batches_consumed_count", batchesConsumedCount+1))
 
 	// Save the offset to storage
