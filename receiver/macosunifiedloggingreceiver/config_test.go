@@ -36,8 +36,8 @@ func TestConfigValidate(t *testing.T) {
 		{
 			desc: "valid config - live mode",
 			cfg: &Config{
-				PollInterval: 50 * time.Second,
-				MaxLogAge:    12 * time.Hour,
+				MaxPollInterval: 50 * time.Second,
+				MaxLogAge:       12 * time.Hour,
 			},
 			expectedErr: nil,
 		},
@@ -237,7 +237,7 @@ func TestLoadConfigFromYAML(t *testing.T) {
 			require.Equal(t, tc.expectedEnd, cfg.EndTime, "end_time mismatch")
 
 			if tc.expectedPoll > 0 {
-				require.Equal(t, tc.expectedPoll, cfg.PollInterval, "poll_interval mismatch")
+				require.Equal(t, tc.expectedPoll, cfg.MaxPollInterval, "max_poll_interval mismatch")
 			}
 			if tc.expectedMaxAge > 0 {
 				require.Equal(t, tc.expectedMaxAge, cfg.MaxLogAge, "max_log_age mismatch")

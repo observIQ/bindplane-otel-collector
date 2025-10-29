@@ -23,6 +23,7 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -73,7 +74,8 @@ func (r *unifiedLoggingReceiver) Shutdown(_ context.Context) error {
 // readLogs runs the log command and processes output
 func (r *unifiedLoggingReceiver) readLogs(ctx context.Context) {
 	// Run immediately on startup
-	if err := r.runLogCommand(ctx); err != nil {
+	count, err := r.runLogCommand(ctx)
+	if err != nil {
 		r.logger.Error("Failed to run log command", zap.Error(err))
 	}
 
@@ -83,23 +85,42 @@ func (r *unifiedLoggingReceiver) readLogs(ctx context.Context) {
 		return
 	}
 
-	// For live mode, poll at regular intervals
-	ticker := time.NewTicker(r.config.PollInterval)
+	// For live mode, use exponential backoff based on whether logs are being actively written
+	// Configure backoff starting at 100ms, maxing out at MaxPollInterval
+	expBackoff := backoff.NewExponentialBackOff(
+		backoff.WithInitialInterval(100*time.Millisecond),
+		backoff.WithMaxInterval(r.config.MaxPollInterval),
+		backoff.WithMultiplier(2.0),
+		backoff.WithMaxElapsedTime(0), // Never stop
+	)
+	expBackoff.Reset()
+
+	ticker := backoff.NewTicker(expBackoff)
 	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := r.runLogCommand(ctx); err != nil {
+			count, err = r.runLogCommand(ctx)
+			if err != nil {
 				r.logger.Error("Failed to run log command", zap.Error(err))
 			}
+
+			// If logs were processed, reset backoff to minimum interval
+			if count > 0 {
+				r.logger.Debug("Logs found, resetting backoff to minimum interval", zap.Int("count", count))
+				expBackoff.Reset()
+			}
+			// If no logs, backoff will continue to increase to MaxPollInterval
 		}
 	}
 }
 
 // runLogCommand executes the log command and processes output
-func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) error {
+// Returns the number of logs processed
+func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) (int, error) {
 	// Build the log command arguments
 	args := r.buildLogCommandArgs()
 
@@ -111,12 +132,12 @@ func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) error {
 	// Get stdout pipe
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return fmt.Errorf("failed to get stdout pipe: %w", err)
+		return 0, fmt.Errorf("failed to get stdout pipe: %w", err)
 	}
 
 	// Start the command
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start log command: %w", err)
+		return 0, fmt.Errorf("failed to start log command: %w", err)
 	}
 
 	// Ensure the process is properly cleaned up to avoid zombies
@@ -138,7 +159,7 @@ func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) error {
 		case <-ctx.Done():
 			_ = cmd.Process.Kill()
 			killed = true
-			return ctx.Err()
+			return processedCount, ctx.Err()
 		default:
 			line := scanner.Bytes()
 			if len(line) == 0 {
@@ -169,14 +190,14 @@ func (r *unifiedLoggingReceiver) runLogCommand(ctx context.Context) error {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("error reading log output: %w", err)
+		return processedCount, fmt.Errorf("error reading log output: %w", err)
 	}
 
 	// Check if the process was killed due to context cancellation
 	if !killed {
 		r.logger.Info("Processed logs", zap.Int("count", processedCount))
 	}
-	return nil
+	return processedCount, nil
 }
 
 // buildLogCommandArgs constructs the arguments for the log command

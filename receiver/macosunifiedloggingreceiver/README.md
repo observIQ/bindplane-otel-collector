@@ -19,16 +19,26 @@ The macOS Unified Logging Receiver collects logs from macOS systems using the na
 | `predicate` | string | "" | Filter predicate (e.g., `"subsystem == 'com.apple.example'"`) |
 | `start_time` | string | "" | Start time in format "2006-01-02 15:04:05" |
 | `end_time` | string | "" | End time in format "2006-01-02 15:04:05" (archive mode only) |
-| `poll_interval` | duration | 30s | How often to poll for new logs (live mode only) |
+| `max_poll_interval` | duration | 30s | Maximum interval between polling for new logs (live mode only). Uses exponential backoff starting at 100ms |
 | `max_log_age` | duration | 24h | Maximum age of logs to read on startup (live mode only) |
 | `format` | string | "default" | Output format: `default`, `ndjson`, `json`, `syslog`, or `compact` |
+
+### Exponential Backoff Behavior
+
+In live mode, the receiver uses exponential backoff to optimize polling based on log activity:
+
+- **Active Logging**: When logs are actively being written, the receiver polls frequently (starting at 100ms) to minimize latency and catch logs written immediately after the previous poll
+- **Idle Period**: When no logs are found, the polling interval increases exponentially (doubling each time) up to `max_poll_interval`
+- **Automatic Reset**: As soon as logs are detected again, the interval resets to the minimum (100ms)
+
+This approach minimizes both latency during active logging and resource usage during idle periods.
 
 ### Basic Configuration (Live Mode)
 
 ```yaml
 receivers:
   macosunifiedlogging:
-    poll_interval: 30s      # How often to poll for new logs
+    max_poll_interval: 30s  # Maximum interval between polls (uses exponential backoff)
     max_log_age: 24h        # How far back to read on startup
 ```
 
@@ -56,8 +66,8 @@ receivers:
 ```yaml
 receivers:
   macosunifiedlogging:
-    format: ndjson          # Use structured JSON output
-    poll_interval: 30s
+    format: ndjson             # Use structured JSON output
+    max_poll_interval: 30s
     max_log_age: 24h
 ```
 
