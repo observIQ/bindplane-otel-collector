@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 
@@ -129,13 +130,16 @@ func TestCapture_FromFile(t *testing.T) {
 
 	// Read packets from channel
 	var packets []gopacket.Packet
+	var packetsMu sync.Mutex
 	packetChan := capt.Packets()
 
 	// Read with timeout
 	done := make(chan bool)
 	go func() {
 		for packet := range packetChan {
+			packetsMu.Lock()
 			packets = append(packets, packet)
+			packetsMu.Unlock()
 		}
 		done <- true
 	}()
@@ -145,12 +149,22 @@ func TestCapture_FromFile(t *testing.T) {
 		// All packets read
 	case <-time.After(3 * time.Second):
 		// Timeout - that's okay, might have read some packets
+		// Cancel context to ensure goroutine stops
+		cancel()
+		// Wait a bit for goroutine to finish
+		time.Sleep(100 * time.Millisecond)
 	}
 
-	require.Greater(t, len(packets), 0, "should read at least one packet from PCAP file")
+	packetsMu.Lock()
+	packetCount := len(packets)
+	packetsCopy := make([]gopacket.Packet, len(packets))
+	copy(packetsCopy, packets)
+	packetsMu.Unlock()
+
+	require.Greater(t, packetCount, 0, "should read at least one packet from PCAP file")
 
 	// Verify packets have expected properties
-	for i, packet := range packets {
+	for i, packet := range packetsCopy {
 		require.NotNil(t, packet, "packet %d should not be nil", i)
 		require.NotNil(t, packet.Metadata(), "packet %d metadata should not be nil", i)
 		require.Greater(t, packet.Metadata().Length, 0, "packet %d should have length > 0", i)
