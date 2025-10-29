@@ -2,9 +2,7 @@ package opampgateway
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net"
 	"sync/atomic"
 
 	"github.com/gorilla/websocket"
@@ -121,31 +119,16 @@ func (c *connection) send(message []byte) {
 func (c *connection) startReader(ctx context.Context, callbacks ConnectionCallbacks) {
 	defer close(c.readerDone)
 
-	messageNumber := 0
-	// loop until the connection is closed
-	for {
-		// try to read the message
-		messageType, messageBytes, err := c.conn.ReadMessage()
-		if err != nil {
-			if ctx.Err() != nil {
-				// context is done, so we return cleanly
-				return
-			}
-			if errors.Is(err, net.ErrClosed) || websocket.IsUnexpectedCloseError(err) {
-				// unexpected close is expected to happen when the connection is closed
-				return
-			}
-			c.readerErrorChan <- fmt.Errorf("read message: %w", err)
-			return
-		}
+	reader := newMessageReader(c.conn, readerCallbacks{
+		OnMessage: func(ctx context.Context, messageNumber int, messageType int, messageBytes []byte) error {
+			return callbacks.OnMessage(ctx, c, messageNumber, messageType, messageBytes)
+		},
+		OnError: func(ctx context.Context, err error) {
+			callbacks.OnError(ctx, c, err)
+		},
+	})
 
-		// handle the message using the callback
-		if err := callbacks.OnMessage(ctx, c, messageNumber, messageType, messageBytes); err != nil {
-			c.readerErrorChan <- fmt.Errorf("handle message: %w", err)
-			return
-		}
-		messageNumber++
-	}
+	reader.loop(ctx, 0)
 }
 
 // --------------------------------------------------------------------------------------
