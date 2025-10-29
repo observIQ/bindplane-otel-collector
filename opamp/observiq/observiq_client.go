@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"slices"
 	"sync"
 	"time"
@@ -738,6 +739,11 @@ func (c *Client) finishPackageInstall(pkgStatuses *protobufs.PackageStatuses) {
 
 	if err := c.opampClient.SetPackageStatuses(pkgStatuses); err != nil {
 		c.logger.Error("OpAMP client failed to set package statuses", zap.Error(err))
+	}
+
+	// safely remove the package status artifact now that we've successfully updated
+	if err := os.Remove(packagestate.DefaultFileName); err != nil {
+		c.logger.Warn("Failed to remove package status artifact after successful update", zap.Error(err))
 	}
 }
 
