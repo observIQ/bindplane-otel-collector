@@ -197,8 +197,19 @@ func (p *Parser) detectApplicationLayer(attrs pcommon.Map) {
 		return // No ports for ICMP
 	}
 
-	srcPort := uint16(srcPortVal.Int())
-	dstPort := uint16(dstPortVal.Int())
+	// Safely convert int64 to uint16 with bounds checking
+	srcPortInt := srcPortVal.Int()
+	dstPortInt := dstPortVal.Int()
+
+	if srcPortInt < 0 || srcPortInt > 65535 {
+		return // Invalid port
+	}
+	if dstPortInt < 0 || dstPortInt > 65535 {
+		return // Invalid port
+	}
+
+	srcPort := uint16(srcPortInt)
+	dstPort := uint16(dstPortInt)
 
 	// Check both source and destination ports
 	protocol := detectApplicationProtocol(dstPort, transportProto.Str())

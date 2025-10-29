@@ -175,9 +175,20 @@ func (c *capturer) Stats() (*Stats, error) {
 		}, nil
 	}
 
+	// Check for potential overflow
+	packetsReceived := uint64(0)
+	if pcapStats.PacketsReceived >= 0 {
+		packetsReceived = uint64(pcapStats.PacketsReceived)
+	}
+
+	packetsDropped := uint64(0)
+	if pcapStats.PacketsDropped >= 0 {
+		packetsDropped = uint64(pcapStats.PacketsDropped)
+	}
+
 	return &Stats{
-		PacketsReceived: uint64(pcapStats.PacketsReceived),
-		PacketsDropped:  uint64(pcapStats.PacketsDropped),
+		PacketsReceived: packetsReceived,
+		PacketsDropped:  packetsDropped,
 		InterfaceName:   c.interfaceName,
 	}, nil
 }

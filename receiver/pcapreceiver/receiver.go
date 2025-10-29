@@ -95,7 +95,7 @@ func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
 	// Start capturer
 	err = r.capturer.Start(processCtx)
 	if err != nil {
-		r.capturer.Close()
+		_ = r.capturer.Close()
 		return fmt.Errorf("failed to start capturer: %w", err)
 	}
 
@@ -109,7 +109,7 @@ func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
 	return nil
 }
 
-func (r *pcapReceiver) Shutdown() error {
+func (r *pcapReceiver) Shutdown(_ context.Context) error {
 	r.mu.Lock()
 	if r.cancel != nil {
 		r.cancel()

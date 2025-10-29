@@ -53,7 +53,7 @@ func CreateTCPPacket(srcIP, dstIP string, srcPort, dstPort uint16) gopacket.Pack
 		Window:  65535,
 		SYN:     true,
 	}
-	tcp.SetNetworkLayerForChecksum(ip)
+	_ = tcp.SetNetworkLayerForChecksum(ip)
 
 	payload := gopacket.Payload([]byte("test tcp payload"))
 
@@ -96,7 +96,7 @@ func CreateUDPPacket(srcIP, dstIP string, srcPort, dstPort uint16) gopacket.Pack
 		SrcPort: layers.UDPPort(srcPort),
 		DstPort: layers.UDPPort(dstPort),
 	}
-	udp.SetNetworkLayerForChecksum(ip)
+	_ = udp.SetNetworkLayerForChecksum(ip)
 
 	payload := gopacket.Payload([]byte("test udp payload"))
 
@@ -186,7 +186,7 @@ func CreateIPv6TCPPacket(srcIP, dstIP string, srcPort, dstPort uint16) gopacket.
 		Window:  65535,
 		SYN:     true,
 	}
-	tcp.SetNetworkLayerForChecksum(ip)
+	_ = tcp.SetNetworkLayerForChecksum(ip)
 
 	payload := gopacket.Payload([]byte("test ipv6 tcp payload"))
 
