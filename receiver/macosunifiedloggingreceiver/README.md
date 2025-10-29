@@ -15,7 +15,7 @@ The macOS Unified Logging Receiver collects logs from macOS systems using the na
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `archive_path` | string | "" | Path to `.logarchive` directory. If empty, reads live system logs |
+| `archive_path` | string | "" | Path or glob pattern to `.logarchive` directory(ies). If empty, reads live system logs. Supports glob patterns (e.g., `*.logarchive`, `**/logs/*.logarchive`) which will match multiple archives |
 | `predicate` | string | "" | Filter predicate (e.g., `"subsystem == 'com.apple.example'"`) |
 | `start_time` | string | "" | Start time in format "2006-01-02 15:04:05" |
 | `end_time` | string | "" | End time in format "2006-01-02 15:04:05" (archive mode only) |
@@ -42,7 +42,7 @@ receivers:
     max_log_age: 24h        # How far back to read on startup
 ```
 
-### Archive Mode
+### Archive Mode (Single Archive)
 
 ```yaml
 receivers:
@@ -51,6 +51,16 @@ receivers:
     start_time: "2024-01-01 00:00:00"
     end_time: "2024-01-02 00:00:00"
 ```
+
+### Archive Mode (Glob Pattern - Multiple Archives)
+
+```yaml
+receivers:
+  macosunifiedlogging:
+    archive_path: "/logs/**/*.logarchive"  # Matches all .logarchive directories recursively
+    format: "ndjson"
+```
+
 
 ### With Filtering
 
