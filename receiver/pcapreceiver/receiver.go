@@ -78,12 +78,23 @@ func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
 	}
 
 	// Build the capture command
-	r.cmd = capture.BuildCaptureCommand(
-		r.config.Interface,
-		r.config.Filter,
-		snaplen,
-		r.config.Promiscuous,
-	)
+	if runtime.GOOS == "windows" {
+		// Use windows-specific builder that accepts executable override
+		r.cmd = capture.BuildCaptureCommandWithExe(
+			r.config.ExecutablePath,
+			r.config.Interface,
+			r.config.Filter,
+			snaplen,
+			r.config.Promiscuous,
+		)
+	} else {
+		r.cmd = capture.BuildCaptureCommand(
+			r.config.Interface,
+			r.config.Filter,
+			snaplen,
+			r.config.Promiscuous,
+		)
+	}
 
 	if r.cmd == nil {
 		return fmt.Errorf("failed to build capture command for platform: %s", runtime.GOOS)
@@ -156,13 +167,30 @@ func (r *pcapReceiver) checkPrivileges() error {
 		}
 
 		// Perform a lightweight preflight to detect permission issues.
-		// Attempt to start tcpdump with a single-packet capture and write to stdout.
 		preflight := newCommand("tcpdump", "-i", r.config.Interface, "-c", "1", "-w", "-")
-		// We don't need to read output; just check if starting fails due to permissions.
 		if err := preflight.Start(); err != nil {
 			return fmt.Errorf("insufficient privileges to start tcpdump: %w. Either run with sudo, or grant capabilities: 'sudo setcap cap_net_raw,cap_net_admin=eip /usr/sbin/tcpdump' (or grant to the collector binary). Then verify: 'getcap /usr/sbin/tcpdump'", err)
 		}
-		// Immediately kill the preflight process to avoid capturing traffic.
+		_ = preflight.Process.Kill()
+		_, _ = preflight.Process.Wait()
+		return nil
+	}
+
+	if runtime.GOOS == "windows" {
+		// Preflight: ensure windump is usable and we have access
+		exe := r.config.ExecutablePath
+		if exe == "" {
+			exe = "windump.exe"
+		}
+		// Try listing interfaces to validate Npcap presence
+		if err := newCommand(exe, "-D").Run(); err != nil {
+			return fmt.Errorf("Npcap windump not available: %w. Install Npcap (https://nmap.org/npcap/) and ensure windump.exe is on PATH or set executable_path", err)
+		}
+		// Try single packet preflight
+		preflight := newCommand(exe, "-i", r.config.Interface, "-c", "1", "-w", "-")
+		if err := preflight.Start(); err != nil {
+			return fmt.Errorf("unable to start windump: %w. Try running the collector as Administrator or reinstall Npcap without Admin-only mode.", err)
+		}
 		_ = preflight.Process.Kill()
 		_, _ = preflight.Process.Wait()
 		return nil

@@ -12,27 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !darwin
+//go:build windows
 
 package pcapreceiver
 
 import (
 	"context"
-	"fmt"
-	"runtime"
+	"testing"
 
-	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/consumer"
-	"go.opentelemetry.io/collector/receiver"
+	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/consumer/consumertest"
+	"go.opentelemetry.io/collector/receiver/receivertest"
 )
 
-// createLogsReceiver returns an error for unsupported platforms
-func createLogsReceiver(
-	_ context.Context,
-	_ receiver.Settings,
-	_ component.Config,
-	_ consumer.Logs,
-) (receiver.Logs, error) {
-	return nil, fmt.Errorf("pcap receiver is currently only supported on macOS (darwin). Current platform: %s. Linux and Windows support is planned for future releases", runtime.GOOS)
+func TestCreateLogsReceiver_Windows(t *testing.T) {
+	factory := NewFactory()
+	cfg := createDefaultConfig()
+
+	settings := receivertest.NewNopSettings(factory.Type())
+	consumer := consumertest.NewNop()
+
+	recv, err := factory.CreateLogs(context.Background(), settings, cfg, consumer)
+	require.NoError(t, err)
+	require.NotNil(t, recv)
 }
 

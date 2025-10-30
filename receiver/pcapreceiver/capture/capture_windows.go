@@ -17,13 +17,45 @@
 package capture
 
 import (
+	"fmt"
 	"os/exec"
+	"path/filepath"
+	"strings"
 )
 
-// BuildCaptureCommand is not yet implemented for Windows
-func BuildCaptureCommand(iface, filter string, snaplen int, promisc bool) *exec.Cmd {
-	// TODO: Implement Windows support in future release
-	// For now, this will be caught at factory level
-	return nil
+// BuildCaptureCommand builds the windump command for Windows (Npcap)
+// iface may be a numeric index (from "windump -D") or an interface name.
+// If executablePath is non-empty, it will be used as the windump executable; otherwise "windump.exe" is used.
+func BuildCaptureCommandWithExe(executablePath, iface, filter string, snaplen int, promisc bool) *exec.Cmd {
+	args := []string{
+		"-i", iface, // Interface index or name
+		"-n",        // No name resolution
+		"-xx",       // Hex dump including link-level
+		"-l",        // Line buffered
+	}
+
+	if !promisc {
+		args = append(args, "-p")
+	}
+
+	args = append(args, "-s", fmt.Sprintf("%d", snaplen))
+
+	if filter != "" {
+		args = append(args, strings.Fields(filter)...)
+	}
+
+	exe := executablePath
+	if exe == "" {
+		exe = "windump.exe"
+	} else {
+		exe = filepath.Clean(executablePath)
+	}
+
+	return exec.Command(exe, args...) // #nosec G204 - args validated by config
+}
+
+// BuildCaptureCommand builds the windump command using default executable lookup
+func BuildCaptureCommandWindows(iface, filter string, snaplen int, promisc bool) *exec.Cmd {
+	return BuildCaptureCommandWithExe("", iface, filter, snaplen, promisc)
 }
 
