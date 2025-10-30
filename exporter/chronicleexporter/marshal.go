@@ -45,11 +45,11 @@ const (
 )
 
 // Specific collector IDs for Chronicle used to identify bindplane agents.
-var (
-	googleCollectorID           = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1111")
-	googleEnterpriseCollectorID = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1112")
-	enterpriseCollectorID       = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1113")
-	defaultCollectorID          = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1114")
+const (
+	googleCollectorID           = "aaaa1111-aaaa-1111-aaaa-1111aaaa1111"
+	googleEnterpriseCollectorID = "aaaa1111-aaaa-1111-aaaa-1111aaaa1112"
+	enterpriseCollectorID       = "aaaa1111-aaaa-1111-aaaa-1111aaaa1113"
+	defaultCollectorID          = "aaaa1111-aaaa-1111-aaaa-1111aaaa1114"
 )
 
 const (
@@ -70,7 +70,7 @@ type protoMarshaler struct {
 	teleSettings component.TelemetrySettings
 	startTime    time.Time
 	customerID   []byte
-	collectorID  []byte
+	collectorID  string
 	telemetry    *metadata.TelemetryBuilder
 	logTypes     map[string]exists
 	logger       *zap.Logger
@@ -482,7 +482,7 @@ func (m *protoMarshaler) buildGRPCRequest(entries []*api.LogEntry, logType, name
 			Entries:   entries,
 			LogType:   logType,
 			Source: &api.EventSource{
-				CollectorId: m.collectorID,
+				CollectorId: []byte(m.collectorID),
 				CustomerId:  m.customerID,
 				Labels:      ingestionLabels,
 				Namespace:   namespace,
@@ -554,7 +554,7 @@ func getObservedTimestamp(logRecord plog.LogRecord) time.Time {
 
 func buildForwarderString(cfg Config) string {
 	format := "projects/%s/locations/%s/instances/%s/forwarders/%s"
-	return fmt.Sprintf(format, cfg.Project, cfg.Location, cfg.CustomerID, cfg.Forwarder)
+	return fmt.Sprintf(format, cfg.Project, cfg.Location, cfg.CustomerID, getCollectorID(cfg.LicenseType))
 }
 
 func (m *protoMarshaler) constructHTTPPayloads(rawLogs map[string][]*api.Log) map[string][]*api.ImportLogsRequest {
@@ -621,15 +621,15 @@ func (m *protoMarshaler) buildHTTPRequest(entries []*api.Log) *api.ImportLogsReq
 	}
 }
 
-func getCollectorID(licenseType string) []byte {
+func getCollectorID(licenseType string) string {
 	switch strings.ToLower(licenseType) {
 	case strings.ToLower(licenseTypeGoogle):
-		return googleCollectorID[:]
+		return googleCollectorID
 	case strings.ToLower(licenseTypeGoogleEnterprise):
-		return googleEnterpriseCollectorID[:]
+		return googleEnterpriseCollectorID
 	case strings.ToLower(licenseTypeEnterprise):
-		return enterpriseCollectorID[:]
+		return enterpriseCollectorID
 	default:
-		return defaultCollectorID[:]
+		return defaultCollectorID
 	}
 }
