@@ -87,6 +87,7 @@ type Config struct {
 	Project string `mapstructure:"project"`
 
 	// Forwarder is the forwarder that will be used when the protocol is https.
+	// Deprecated as of v1.87.1: The forwarder (Collector ID) is now determined by the license type
 	Forwarder string `mapstructure:"forwarder"`
 
 	// BatchRequestSizeLimitGRPC is the maximum batch request size, in bytes, that can be sent to Chronicle via the GRPC protocol
@@ -136,9 +137,6 @@ func (cfg *Config) Validate() error {
 		}
 		if cfg.Project == "" {
 			return errors.New("project is required when protocol is https")
-		}
-		if cfg.Forwarder == "" {
-			return errors.New("forwarder is required when protocol is https")
 		}
 		if cfg.BatchRequestSizeLimitHTTP <= 0 {
 			return errors.New("positive batch request size limit is required when protocol is https")

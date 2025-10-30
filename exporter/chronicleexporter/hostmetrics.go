@@ -123,7 +123,7 @@ func (hmr *hostMetricsReporter) getAndReset() *api.BatchCreateEventsRequest {
 	now := timestamppb.Now()
 	batchID := uuid.New()
 	source := &api.EventSource{
-		CollectorId: getCollectorID(hmr.licenseType),
+		CollectorId: []byte(getCollectorID(hmr.licenseType)),
 		Namespace:   hmr.namespace,
 		CustomerId:  hmr.customerID,
 	}
