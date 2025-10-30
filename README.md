@@ -271,7 +271,7 @@ Have an idea to improve the Bindplane Distro for OpenTelemetry Collector? Here's
 
 The Bindplane Distro for OpenTelemetry Collector is an open source project. If you'd like to contribute, take a look at our [contribution guidelines](/CONTRIBUTING.md) and [developer guide](/docs/development.md).
 
-All sorts of contributions are **welcome and extremely helpful**. 🙌
+All sorts of contributions are **welcome and extremely helpful**.
 
 ## How can we help?
 
