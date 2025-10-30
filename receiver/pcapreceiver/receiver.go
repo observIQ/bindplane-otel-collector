@@ -56,6 +56,11 @@ func newReceiver(config *Config, logger *zap.Logger, consumer consumer.Logs) *pc
 func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
 	r.logger.Info("Starting PCAP receiver", zap.String("interface", r.config.Interface))
 
+	// Validate configuration first
+	if err := r.config.Validate(); err != nil {
+		return fmt.Errorf("configuration validation failed: %w", err)
+	}
+
 	// Check privileges
 	if err := r.checkPrivileges(); err != nil {
 		return fmt.Errorf("privilege check failed: %w", err)
