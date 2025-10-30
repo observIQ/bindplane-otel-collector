@@ -12,14 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build windows
+
 package pcapreceiver
 
-// Config defines configuration for the PCAP receiver
-type Config struct {
-	Interface      string `mapstructure:"interface"`        // Network interface to capture on (e.g., "en0")
-	Filter         string `mapstructure:"filter"`           // BPF filter expression (optional)
-	SnapLen        int    `mapstructure:"snaplen"`          // Snapshot length in bytes (default: 65535)
-	Promiscuous    bool   `mapstructure:"promiscuous"`      // Enable promiscuous mode (default: true)
-	ExecutablePath string `mapstructure:"executable_path"`  // Windows only: optional override path to windump.exe
+import (
+	"context"
+
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/receiver"
+)
+
+// createLogsReceiver creates a logs receiver for Windows
+func createLogsReceiver(
+	_ context.Context,
+	params receiver.Settings,
+	cfg component.Config,
+	consumer consumer.Logs,
+) (receiver.Logs, error) {
+	receiverCfg := cfg.(*Config)
+
+	params.Logger.Warn("PCAP receiver on Windows requires Npcap (windump.exe). Ensure Npcap is installed and run as Administrator if necessary")
+
+	return newReceiver(receiverCfg, params.Logger, consumer), nil
 }
 

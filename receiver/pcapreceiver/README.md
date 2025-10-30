@@ -240,6 +240,28 @@ which tcpdump
 tcpdump --version
 ```
 
+### Windows
+
+Requires Npcap (WinPcap-compatible). Ensure `windump.exe` is available (on PATH or specify `executable_path`).
+
+- Install Npcap: `https://nmap.org/npcap/`
+- List interfaces:
+
+```powershell
+windump.exe -D
+```
+
+- Run as Administrator if Npcap was installed in Admin-only mode, or reinstall Npcap without Admin-only mode to allow non-admin capture.
+
+- Optional: set explicit path in config:
+
+```yaml
+receivers:
+  pcap:
+    interface: 1
+    executable_path: "C:\\Program Files\\Npcap\\windump.exe"
+```
+
 ### Running the Collector
 
 ```bash
@@ -267,11 +289,12 @@ getcap /usr/sbin/tcpdump
 
 ### "tcpdump: command not found"
 
-**Error**: `failed to start capture command: tcpdump: command not found`
+**Error**: `failed to start capture command: tcpdump: command not found` or `windump.exe not found`
 
-**Solution**: Install tcpdump:
-- macOS: `tcpdump` should be pre-installed. Check `/usr/sbin/tcpdump`
-- If missing, reinstall Command Line Tools: `xcode-select --install`
+**Solution**:
+- macOS: `tcpdump` should be pre-installed. Check `/usr/sbin/tcpdump`.
+- Linux: Install: `apt install tcpdump` or `yum install tcpdump`.
+- Windows: Install Npcap and ensure `windump.exe` is on PATH or configure `executable_path`.
 
 ### "No such device exists"
 
@@ -295,13 +318,11 @@ If the receiver starts but no packets appear:
    # Test filter manually
    sudo tcpdump -i en0 -c 10 "tcp port 443"
    ```
-
 2. **Verify interface is active**: Ensure the interface has traffic
    ```bash
    # Generate test traffic
    ping google.com
    ```
-
 3. **Check promiscuous mode**: Some interfaces may not support promiscuous mode. Try setting `promiscuous: false`
 
 ### High CPU Usage
@@ -333,4 +354,3 @@ If packet capture causes high CPU usage:
 - Capability-based guidance improvements and auto-detection
 - Optional packet reassembly
 - Built-in rate limiting / sampling
-
