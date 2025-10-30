@@ -1715,57 +1715,57 @@ func Test_getCollectorID(t *testing.T) {
 	cases := []struct {
 		name        string
 		licenseType string
-		expect      []byte
+		expect      string
 	}{
 		{
 			name:        "GoogleEnterprise",
 			licenseType: "GoogleEnterprise",
-			expect:      googleEnterpriseCollectorID[:],
+			expect:      googleEnterpriseCollectorID,
 		},
 		{
 			name:        "GoogleEnterprise lowercase",
 			licenseType: "googleenterprise",
-			expect:      googleEnterpriseCollectorID[:],
+			expect:      googleEnterpriseCollectorID,
 		},
 		{
 			name:        "Enterprise",
 			licenseType: "Enterprise",
-			expect:      enterpriseCollectorID[:],
+			expect:      enterpriseCollectorID,
 		},
 		{
 			name:        "Google",
 			licenseType: "Google",
-			expect:      googleCollectorID[:],
+			expect:      googleCollectorID,
 		},
 		{
 			name:        "FreeCloud",
 			licenseType: "FreeCloud",
-			expect:      defaultCollectorID[:],
+			expect:      defaultCollectorID,
 		},
 		{
 			name:        "Free",
 			licenseType: "Free",
-			expect:      defaultCollectorID[:],
+			expect:      defaultCollectorID,
 		},
 		{
 			name:        "Development",
 			licenseType: "Development",
-			expect:      defaultCollectorID[:],
+			expect:      defaultCollectorID,
 		},
 		{
 			name:        "Trial",
 			licenseType: "Trial",
-			expect:      defaultCollectorID[:],
+			expect:      defaultCollectorID,
 		},
 		{
 			name:        "Honeycomb",
 			licenseType: "Honeycomb",
-			expect:      defaultCollectorID[:],
+			expect:      defaultCollectorID,
 		},
 		{
 			name:        "unknown license type",
 			licenseType: "unknown",
-			expect:      defaultCollectorID[:],
+			expect:      defaultCollectorID,
 		},
 	}
 

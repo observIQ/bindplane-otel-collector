@@ -137,9 +137,6 @@ func (cfg *Config) Validate() error {
 		if cfg.Project == "" {
 			return errors.New("project is required when protocol is https")
 		}
-		if cfg.Forwarder == "" {
-			return errors.New("forwarder is required when protocol is https")
-		}
 		if cfg.BatchRequestSizeLimitHTTP <= 0 {
 			return errors.New("positive batch request size limit is required when protocol is https")
 		}
