@@ -1,0 +1,10 @@
+type: pcap
+
+status:
+  class: receiver
+  stability:
+    alpha: [logs]
+  distributions: []
+  codeowners:
+    active: []
+
