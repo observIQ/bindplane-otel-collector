@@ -46,14 +46,14 @@ func TestConfigValidate(t *testing.T) {
 			cfg: &Config{
 				ArchivePath: "/tmp/test/invalid",
 			},
-			expectedErr: errors.New("archive_path does not exist"),
+			expectedErr: errors.New("no such file or directory"),
 		},
 		{
 			desc: "invalid archive path - not a directory",
 			cfg: &Config{
 				ArchivePath: "./README.md",
 			},
-			expectedErr: errors.New("archive_path must be a directory (.logarchive)"),
+			expectedErr: errors.New("must be a directory"),
 		},
 		{
 			desc: "valid predicate with AND",

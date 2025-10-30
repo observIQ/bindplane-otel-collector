@@ -18,6 +18,8 @@ package macosunifiedloggingreceiver
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -39,7 +41,7 @@ func TestBuildLogCommandArgs(t *testing.T) {
 			},
 		}
 
-		args := receiver.buildLogCommandArgs()
+		args := receiver.buildLogCommandArgs("./testdata/system_logs.logarchive")
 		require.Contains(t, args, "--archive")
 		require.Contains(t, args, "./testdata/system_logs.logarchive")
 		require.Contains(t, args, "--start")
@@ -62,7 +64,7 @@ func TestBuildLogCommandArgs(t *testing.T) {
 			},
 		}
 
-		args := receiver.buildLogCommandArgs()
+		args := receiver.buildLogCommandArgs("./testdata/system_logs.logarchive")
 		require.Contains(t, args, "--archive")
 		require.Contains(t, args, "./testdata/system_logs.logarchive")
 		require.Contains(t, args, "--start")
@@ -80,7 +82,7 @@ func TestBuildLogCommandArgs(t *testing.T) {
 			},
 		}
 
-		args := receiver.buildLogCommandArgs()
+		args := receiver.buildLogCommandArgs("")
 		require.Contains(t, args, "--style")
 		require.Contains(t, args, "json")
 	})
@@ -361,4 +363,93 @@ func TestIsCompletionLine(t *testing.T) {
 			require.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func TestReadFromMultipleArchives(t *testing.T) {
+	// Create test archive directories
+	testdataDir := filepath.Join(".", "testdata", "multi_archive_test")
+	archive1 := filepath.Join(testdataDir, "archive1.logarchive")
+	archive2 := filepath.Join(testdataDir, "archive2.logarchive")
+	archive3 := filepath.Join(testdataDir, "logs", "archive3.logarchive")
+
+	_ = os.MkdirAll(archive1, 0755)
+	_ = os.MkdirAll(archive2, 0755)
+	_ = os.MkdirAll(archive3, 0755)
+
+	defer func() {
+		_ = os.RemoveAll(testdataDir)
+	}()
+
+	t.Run("receiver processes multiple archives with glob pattern", func(t *testing.T) {
+		// Create config with glob pattern
+		cfg := &Config{
+			ArchivePath: filepath.Join(testdataDir, "*.logarchive"),
+			Format:      "ndjson",
+		}
+
+		// Validate config to resolve glob paths
+		err := cfg.Validate()
+		require.NoError(t, err)
+
+		// Verify that multiple archives were resolved
+		resolvedPaths := cfg.getResolvedArchivePaths()
+		require.Len(t, resolvedPaths, 2, "Should resolve 2 archives matching *.logarchive pattern")
+		require.Contains(t, resolvedPaths, archive1)
+		require.Contains(t, resolvedPaths, archive2)
+		require.NotContains(t, resolvedPaths, archive3, "Should not include archive3 (in subdirectory)")
+
+		// Create receiver
+		sink := &consumertest.LogsSink{}
+		receiver := newReceiver(cfg, zap.NewNop(), sink)
+		require.NotNil(t, receiver)
+		require.Equal(t, 2, len(receiver.config.getResolvedArchivePaths()))
+	})
+
+	t.Run("receiver processes multiple archives with doublestar glob pattern", func(t *testing.T) {
+		// Create config with doublestar glob pattern
+		cfg := &Config{
+			ArchivePath: filepath.Join(testdataDir, "**", "*.logarchive"),
+			Format:      "ndjson",
+		}
+
+		// Validate config to resolve glob paths
+		err := cfg.Validate()
+		require.NoError(t, err)
+
+		// Verify that all archives were resolved (including subdirectories)
+		resolvedPaths := cfg.getResolvedArchivePaths()
+		require.Len(t, resolvedPaths, 3, "Should resolve all 3 archives with ** pattern")
+		require.Contains(t, resolvedPaths, archive1)
+		require.Contains(t, resolvedPaths, archive2)
+		require.Contains(t, resolvedPaths, archive3)
+
+		// Create receiver
+		sink := &consumertest.LogsSink{}
+		receiver := newReceiver(cfg, zap.NewNop(), sink)
+		require.NotNil(t, receiver)
+		require.Equal(t, 3, len(receiver.config.getResolvedArchivePaths()))
+	})
+
+	t.Run("receiver handles single archive path", func(t *testing.T) {
+		// Create config with direct path (no glob)
+		cfg := &Config{
+			ArchivePath: archive1,
+			Format:      "ndjson",
+		}
+
+		// Validate config
+		err := cfg.Validate()
+		require.NoError(t, err)
+
+		// Verify that single archive was resolved
+		resolvedPaths := cfg.getResolvedArchivePaths()
+		require.Len(t, resolvedPaths, 1, "Should resolve to single archive")
+		require.Contains(t, resolvedPaths, archive1)
+
+		// Create receiver
+		sink := &consumertest.LogsSink{}
+		receiver := newReceiver(cfg, zap.NewNop(), sink)
+		require.NotNil(t, receiver)
+		require.Equal(t, 1, len(receiver.config.getResolvedArchivePaths()))
+	})
 }

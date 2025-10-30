@@ -70,5 +70,5 @@ func createLogsReceiver(_ context.Context, params receiver.Settings, conf compon
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
 
-	return newLogsReceiver(params.ID, params.TelemetrySettings, cfg, con, t)
+	return newLogsReceiver(params, cfg, con, t)
 }
