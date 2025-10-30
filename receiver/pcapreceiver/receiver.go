@@ -238,7 +238,13 @@ func (r *pcapReceiver) readPackets(ctx context.Context, stdout io.ReadCloser) {
 
 	// Process last packet
 	if len(packetLines) > 0 {
-		r.processPacket(ctx, packetLines)
+		// If we're shutting down, skip processing any buffered packet
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			r.processPacket(ctx, packetLines)
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -257,6 +263,13 @@ func isTimestampLine(line string) bool {
 
 // processPacket parses and emits a packet as an OTel log
 func (r *pcapReceiver) processPacket(ctx context.Context, lines []string) {
+	// Do not process or emit if shutdown has been initiated
+	select {
+	case <-ctx.Done():
+		return
+	default:
+	}
+
 	// Parse the packet
 	packetInfo, err := parser.ParseTcpdumpPacket(lines)
 	if err != nil {
