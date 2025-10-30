@@ -239,7 +239,7 @@ require (
 	cloud.google.com/go/auth v0.17.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/pubsub/v2 v2.0.0 // indirect
-	cloud.google.com/go/storage v1.57.0 // indirect
+	cloud.google.com/go/storage v1.57.1 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.0 // indirect
@@ -371,7 +371,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aws/aws-lambda-go v1.50.0 // indirect
 	github.com/aws/aws-msk-iam-sasl-signer-go v1.0.4 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.20.0 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.20.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.58.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.256.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/lightsail v1.44.0 // indirect
