@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package parser provides functions to parse network packets from tcpdump output.
 package parser
 
 import "time"
@@ -28,4 +29,3 @@ type PacketInfo struct {
 	HexData    string    // Full packet as hex string (without 0x prefix or spaces)
 	Length     int       // Total packet length in bytes
 }
-

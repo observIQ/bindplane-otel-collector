@@ -230,9 +230,12 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.138.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otelarrowreceiver v0.138.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver v0.138.0
+	go.opentelemetry.io/collector/component/componenttest v0.138.0
+	go.opentelemetry.io/collector/consumer/consumertest v0.138.0
 	go.opentelemetry.io/collector/extension/extensiontest v0.138.0
 	go.opentelemetry.io/collector/processor/processorhelper v0.138.0
 	go.opentelemetry.io/collector/processor/processortest v0.138.0
+	go.opentelemetry.io/collector/receiver/receivertest v0.138.0
 )
 
 require (
@@ -557,7 +560,6 @@ require (
 	go.opentelemetry.io/collector v0.138.0 // indirect
 	go.opentelemetry.io/collector/client v1.44.0 // indirect
 	go.opentelemetry.io/collector/component/componentstatus v0.138.0 // indirect
-	go.opentelemetry.io/collector/component/componenttest v0.138.0 // indirect
 	go.opentelemetry.io/collector/config/configauth v1.44.0 // indirect
 	go.opentelemetry.io/collector/config/configcompression v1.44.0 // indirect
 	go.opentelemetry.io/collector/config/configgrpc v0.138.0 // indirect
@@ -574,7 +576,6 @@ require (
 	go.opentelemetry.io/collector/connector/xconnector v0.138.0 // indirect
 	go.opentelemetry.io/collector/consumer/consumererror v0.138.0 // indirect
 	go.opentelemetry.io/collector/consumer/consumererror/xconsumererror v0.138.0 // indirect
-	go.opentelemetry.io/collector/consumer/consumertest v0.138.0 // indirect
 	go.opentelemetry.io/collector/consumer/xconsumer v0.138.0 // indirect
 	go.opentelemetry.io/collector/exporter/exporterhelper v0.138.0 // indirect
 	go.opentelemetry.io/collector/exporter/exporterhelper/xexporterhelper v0.138.0 // indirect
@@ -597,7 +598,6 @@ require (
 	go.opentelemetry.io/collector/processor/processorhelper/xprocessorhelper v0.138.0 // indirect
 	go.opentelemetry.io/collector/processor/xprocessor v0.138.0 // indirect
 	go.opentelemetry.io/collector/receiver/receiverhelper v0.138.0 // indirect
-	go.opentelemetry.io/collector/receiver/receivertest v0.138.0 // indirect
 	go.opentelemetry.io/collector/receiver/xreceiver v0.138.0 // indirect
 	go.opentelemetry.io/collector/scraper v0.138.0 // indirect
 	go.opentelemetry.io/collector/scraper/scraperhelper v0.138.0 // indirect

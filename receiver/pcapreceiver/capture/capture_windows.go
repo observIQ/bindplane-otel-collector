@@ -29,9 +29,9 @@ import (
 func BuildCaptureCommandWithExe(executablePath, iface, filter string, snaplen int, promisc bool) *exec.Cmd {
 	args := []string{
 		"-i", iface, // Interface index or name
-		"-n",        // No name resolution
-		"-xx",       // Hex dump including link-level
-		"-l",        // Line buffered
+		"-n",  // No name resolution
+		"-xx", // Hex dump including link-level
+		"-l",  // Line buffered
 	}
 
 	if !promisc {
@@ -55,7 +55,6 @@ func BuildCaptureCommandWithExe(executablePath, iface, filter string, snaplen in
 }
 
 // BuildCaptureCommand builds the windump command using default executable lookup
-func BuildCaptureCommandWindows(iface, filter string, snaplen int, promisc bool) *exec.Cmd {
+func BuildCaptureCommand(iface, filter string, snaplen int, promisc bool) *exec.Cmd {
 	return BuildCaptureCommandWithExe("", iface, filter, snaplen, promisc)
 }
-

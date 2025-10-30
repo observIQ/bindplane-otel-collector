@@ -78,23 +78,13 @@ func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
 	}
 
 	// Build the capture command
-	if runtime.GOOS == "windows" {
-		// Use windows-specific builder that accepts executable override
-		r.cmd = capture.BuildCaptureCommandWithExe(
-			r.config.ExecutablePath,
-			r.config.Interface,
-			r.config.Filter,
-			snaplen,
-			r.config.Promiscuous,
-		)
-	} else {
-		r.cmd = capture.BuildCaptureCommand(
-			r.config.Interface,
-			r.config.Filter,
-			snaplen,
-			r.config.Promiscuous,
-		)
-	}
+	// Use a single cross-platform builder to avoid symbol conflicts across build tags
+	r.cmd = capture.BuildCaptureCommand(
+		r.config.Interface,
+		r.config.Filter,
+		snaplen,
+		r.config.Promiscuous,
+	)
 
 	if r.cmd == nil {
 		return fmt.Errorf("failed to build capture command for platform: %s", runtime.GOOS)
@@ -184,19 +174,18 @@ func (r *pcapReceiver) checkPrivileges() error {
 		}
 		// Try listing interfaces to validate Npcap presence
 		if err := newCommand(exe, "-D").Run(); err != nil {
-			return fmt.Errorf("Npcap windump not available: %w. Install Npcap (https://nmap.org/npcap/) and ensure windump.exe is on PATH or set executable_path", err)
+			return fmt.Errorf("npcap windump not available: %w. Install Npcap (https://nmap.org/npcap/) and ensure windump.exe is on PATH or set executable_path", err)
 		}
 		// Try single packet preflight
 		preflight := newCommand(exe, "-i", r.config.Interface, "-c", "1", "-w", "-")
 		if err := preflight.Start(); err != nil {
-			return fmt.Errorf("unable to start windump: %w. Try running the collector as Administrator or reinstall Npcap without Admin-only mode.", err)
+			return fmt.Errorf("unable to start windump: %w. Try running the collector as Administrator or reinstall Npcap without Admin-only mode", err)
 		}
 		_ = preflight.Process.Kill()
 		_, _ = preflight.Process.Wait()
 		return nil
 	}
 
-	// Windows privilege checking would go here in the future
 	return nil
 }
 
@@ -309,4 +298,3 @@ func (r *pcapReceiver) processPacket(ctx context.Context, lines []string) {
 		r.logger.Error("Failed to consume packet log", zap.Error(err))
 	}
 }
-
