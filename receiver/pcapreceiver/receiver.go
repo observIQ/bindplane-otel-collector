@@ -32,6 +32,11 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	// newCommand is used to allow tests to stub command creation
+	newCommand = exec.Command
+)
+
 const defaultSnapLen = 65535
 
 // pcapReceiver receives network packets via tcpdump and emits them as logs
@@ -136,13 +141,33 @@ func (r *pcapReceiver) Shutdown(_ context.Context) error {
 
 // checkPrivileges checks if the process has sufficient privileges to capture packets
 func (r *pcapReceiver) checkPrivileges() error {
-	if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
-		// Check if running as root
+	if runtime.GOOS == "darwin" {
 		if os.Geteuid() != 0 {
 			return fmt.Errorf("packet capture requires root privileges. Please run the collector with sudo")
 		}
 		r.logger.Info("Running with root privileges")
+		return nil
 	}
+
+	if runtime.GOOS == "linux" {
+		if os.Geteuid() == 0 {
+			r.logger.Info("Running with root privileges")
+			return nil
+		}
+
+		// Perform a lightweight preflight to detect permission issues.
+		// Attempt to start tcpdump with a single-packet capture and write to stdout.
+		preflight := newCommand("tcpdump", "-i", r.config.Interface, "-c", "1", "-w", "-")
+		// We don't need to read output; just check if starting fails due to permissions.
+		if err := preflight.Start(); err != nil {
+			return fmt.Errorf("insufficient privileges to start tcpdump: %w. Either run with sudo, or grant capabilities: 'sudo setcap cap_net_raw,cap_net_admin=eip /usr/sbin/tcpdump' (or grant to the collector binary). Then verify: 'getcap /usr/sbin/tcpdump'", err)
+		}
+		// Immediately kill the preflight process to avoid capturing traffic.
+		_ = preflight.Process.Kill()
+		_, _ = preflight.Process.Wait()
+		return nil
+	}
+
 	// Windows privilege checking would go here in the future
 	return nil
 }

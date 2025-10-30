@@ -1,6 +1,10 @@
 # PCAP Receiver
 
-The PCAP Receiver captures network packets and emits them as OpenTelemetry logs. It uses system-native command-line tools (`tcpdump` on macOS/Linux) to capture packets.
+The PCAP Receiver captures network packets and emits them as OpenTelemetry logs. It uses system-native command-line tools (`tcpdump` on macOS/Linux) to capture packets, making it a pure-Go solution that doesn't require cgo or native library dependencies.
+
+## Minimum Agent Versions
+
+- Introduced: v1.x.x (TBD)
 
 ## Supported Pipelines
 
@@ -9,7 +13,7 @@ The PCAP Receiver captures network packets and emits them as OpenTelemetry logs.
 ## Supported Platforms
 
 - **macOS (darwin)**: ✅ Fully supported
-- **Linux**: ⏳ Planned for future release  
+- **Linux**: ✅ Fully supported
 - **Windows**: ⏳ Planned for future release
 
 ## How It Works
@@ -36,6 +40,29 @@ Run the collector with `sudo`:
 sudo /path/to/collector --config config.yaml
 ```
 
+### Linux
+
+You can either run as root or use Linux capabilities.
+
+- Option A: Run as root
+
+```bash
+sudo /path/to/collector --config config.yaml
+```
+
+- Option B: Grant capabilities to tcpdump (common on many distros):
+
+```bash
+sudo setcap cap_net_raw,cap_net_admin=eip /usr/sbin/tcpdump
+getcap /usr/sbin/tcpdump  # verify
+```
+
+- Option C: Grant capabilities to the collector binary (alternative):
+
+```bash
+sudo setcap cap_net_raw,cap_net_admin=eip /path/to/collector
+```
+
 ### Why Root Privileges?
 
 Packet capture requires access to network interfaces at a low level, which is restricted to privileged users for security reasons. On Unix-like systems, this requires running as root (UID 0).
@@ -60,7 +87,7 @@ Packet capture requires access to network interfaces at a low level, which is re
 
 Common interface names by platform:
 - **macOS**: `en0` (Wi-Fi), `en1` (Ethernet), `lo0` (loopback)
-- **Linux**: `eth0`, `wlan0`, `lo`
+- **Linux**: `eth0`, `ens160`, `wlan0`, `lo`
 
 To list available interfaces on macOS:
 ```bash
@@ -98,6 +125,17 @@ BPF filter syntax reference: [tcpdump manual](https://www.tcpdump.org/manpages/p
 receivers:
   pcap:
     interface: en0
+    filter: "tcp port 443"
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    logs:
+      receivers: [pcap]
+      exporters: [debug]
 ```
 
 ### Capture DNS Traffic
@@ -108,6 +146,16 @@ receivers:
     interface: en0
     filter: "udp port 53"
     snaplen: 1024
+
+exporters:
+  chronicle_forwarder:
+    endpoint: "forwarder.example.com:514"
+
+service:
+  pipelines:
+    logs:
+      receivers: [pcap]
+      exporters: [chronicle_forwarder]
 ```
 
 ### Capture All HTTP/HTTPS Traffic
@@ -118,6 +166,22 @@ receivers:
     interface: en0
     filter: "tcp port 80 or tcp port 443"
     promiscuous: true
+
+processors:
+  batch:
+    timeout: 10s
+    send_batch_size: 100
+
+exporters:
+  otlp:
+    endpoint: collector.example.com:4317
+
+service:
+  pipelines:
+    logs:
+      receivers: [pcap]
+      processors: [batch]
+      exporters: [otlp]
 ```
 
 ## Output Format
@@ -166,15 +230,39 @@ which tcpdump
 tcpdump --version
 ```
 
+### Linux
+
+`tcpdump` is pre-installed on Linux. No additional installation required.
+
+To verify:
+```bash
+which tcpdump
+tcpdump --version
+```
+
+### Running the Collector
+
+```bash
+# Download and install the collector
+# ... installation steps ...
+
+# Run with sudo for packet capture privileges
+sudo /path/to/collector --config /path/to/config.yaml
+```
+
 ## Troubleshooting
 
 ### "permission denied" Error
 
 **Error**: `failed to start capture command: permission denied`
 
-**Solution**: Run the collector with `sudo`:
+**Solution**:
+- macOS: run the collector with `sudo`.
+- Linux: run as root or grant capabilities:
+
 ```bash
-sudo /path/to/collector --config config.yaml
+sudo setcap cap_net_raw,cap_net_admin=eip /usr/sbin/tcpdump
+getcap /usr/sbin/tcpdump
 ```
 
 ### "tcpdump: command not found"
@@ -233,17 +321,16 @@ If packet capture causes high CPU usage:
 
 ## Limitations
 
-- Currently only macOS (darwin) is supported
-- Requires root privileges (cannot run as unprivileged user)
+- macOS and Linux supported; Windows not yet supported
+- Requires elevated privileges (root or capabilities)
 - No built-in rate limiting (use downstream processors)
 - Does not reassemble fragmented packets
 - Does not decode application-layer protocols (HTTP, DNS, etc.) - only provides raw packet data
 
 ## Future Enhancements
 
-- Linux support with `tcpdump`
 - Windows support with `windump` / `npcap`
-- Capability-based privileges on Linux (`CAP_NET_RAW`)
+- Capability-based guidance improvements and auto-detection
 - Optional packet reassembly
 - Built-in rate limiting / sampling
 

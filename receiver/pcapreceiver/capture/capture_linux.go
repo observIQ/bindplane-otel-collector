@@ -17,13 +17,34 @@
 package capture
 
 import (
+	"fmt"
 	"os/exec"
+	"strings"
 )
 
-// BuildCaptureCommand is not yet implemented for Linux
+// BuildCaptureCommand builds the tcpdump command for Linux
 func BuildCaptureCommand(iface, filter string, snaplen int, promisc bool) *exec.Cmd {
-	// TODO: Implement Linux support in future release
-	// For now, this will be caught at factory level
-	return nil
+	args := []string{
+		"-i", iface,  // Interface
+		"-n",         // Don't resolve hostnames
+		"-xx",        // Print packet data in hex with link-level headers
+		"-l",         // Line buffered output
+	}
+
+	// Add -p flag to disable promiscuous mode if requested
+	if !promisc {
+		args = append(args, "-p")
+	}
+
+	// Add snapshot length
+	args = append(args, "-s", fmt.Sprintf("%d", snaplen))
+
+	// Add filter if specified
+	if filter != "" {
+		filterParts := strings.Fields(filter)
+		args = append(args, filterParts...)
+	}
+
+	return exec.Command("tcpdump", args...) // #nosec G204 - validated by config
 }
 
