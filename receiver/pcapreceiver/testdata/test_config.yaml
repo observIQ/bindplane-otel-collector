@@ -1,0 +1,23 @@
+receivers:
+  pcap:
+    interface: en0
+    filter: "tcp port 443 or udp port 53"
+    snaplen: 65535
+    promiscuous: true
+  pcap/minimal:
+    interface: eth0
+  pcap/dns:
+    interface: en0
+    filter: "udp port 53"
+    snaplen: 1024
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    logs:
+      receivers: [pcap]
+      exporters: [debug]
+
