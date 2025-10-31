@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/processor/throughputmeasurem
 go 1.24.4
 
 require (
-	github.com/observiq/bindplane-otel-collector/internal/measurements v1.87.2
+	github.com/observiq/bindplane-otel-collector/internal/measurements v1.87.3
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.138.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.138.0
 	github.com/stretchr/testify v1.11.1
