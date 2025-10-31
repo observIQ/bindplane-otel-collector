@@ -68,7 +68,10 @@ func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
 
 	// Check privileges
 	if err := r.checkPrivileges(); err != nil {
-		return fmt.Errorf("privilege check failed: %w", err)
+		r.logger.Warn("PCAP receiver cannot collect packets due to insufficient privileges",
+			zap.Error(err),
+			zap.String("message", "No packets will be collected. Please ensure the collector has the necessary privileges to capture network packets."))
+		return nil
 	}
 
 	// Set default snaplen if not specified
