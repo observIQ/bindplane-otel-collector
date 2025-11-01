@@ -28,12 +28,12 @@ func newOpAMPGateway(logger *zap.Logger, cfg *Config, t *metadata.TelemetryBuild
 		cfg:       cfg,
 		telemetry: t,
 	}
-	o.server = newServer(cfg.OpAMPServer, logger.Named("opamp-server"), ConnectionCallbacks{
+	o.server = newServer(cfg.OpAMPServer, logger.Named("opamp-server"), ConnectionCallbacks[*downstreamConnection]{
 		OnMessage: o.HandleAgentMessage,
 		OnError:   o.HandleAgentError,
 		OnClose:   o.HandleAgentClose,
 	})
-	o.client = newClient(cfg, logger.Named("opamp-client"), ConnectionCallbacks{
+	o.client = newClient(cfg, logger.Named("opamp-client"), ConnectionCallbacks[*upstreamConnection]{
 		OnMessage: o.HandleServerMessage,
 		OnError:   o.HandleServerError,
 		OnClose:   o.HandleServerClose,
@@ -55,7 +55,7 @@ func (o *OpAMPGateway) Shutdown(ctx context.Context) error {
 // Agent callbacks
 
 // HandleAgentMessage handles message set from an agent to the server
-func (o *OpAMPGateway) HandleAgentMessage(ctx context.Context, connection *connection, messageNumber int, messageType int, messageBytes []byte) error {
+func (o *OpAMPGateway) HandleAgentMessage(ctx context.Context, connection *downstreamConnection, messageNumber int, messageType int, messageBytes []byte) error {
 	if messageType != websocket.BinaryMessage {
 		err := fmt.Errorf("unexpected message type: %v, must be binary message", messageType)
 		o.logger.Error("Cannot process a message from WebSocket", zap.Error(err), zap.Int("message_number", messageNumber), zap.Int("message_type", messageType), zap.String("message_bytes", string(messageBytes)))
@@ -94,11 +94,11 @@ func (o *OpAMPGateway) HandleAgentMessage(ctx context.Context, connection *conne
 	return nil
 }
 
-func (o *OpAMPGateway) HandleAgentError(ctx context.Context, connection *connection, err error) {
+func (o *OpAMPGateway) HandleAgentError(ctx context.Context, connection *downstreamConnection, err error) {
 	o.logger.Error("Error in agent connection", zap.Error(err))
 }
 
-func (o *OpAMPGateway) HandleAgentClose(ctx context.Context, connection *connection) error {
+func (o *OpAMPGateway) HandleAgentClose(ctx context.Context, connection *downstreamConnection) error {
 	agentID := connection.id
 	o.client.unassignUpstreamConnection(agentID)
 	o.server.removeDownstreamConnection(connection)
@@ -109,7 +109,7 @@ func (o *OpAMPGateway) HandleAgentClose(ctx context.Context, connection *connect
 // Server callbacks
 
 // HandleServerMessage handles message set from the server to an agent
-func (o *OpAMPGateway) HandleServerMessage(ctx context.Context, connection *connection, messageNumber int, messageType int, messageBytes []byte) error {
+func (o *OpAMPGateway) HandleServerMessage(ctx context.Context, connection *upstreamConnection, messageNumber int, messageType int, messageBytes []byte) error {
 	if messageType != websocket.BinaryMessage {
 		err := fmt.Errorf("unexpected message type: %v, must be binary message", messageType)
 		o.logger.Error("Cannot process a message from WebSocket", zap.Error(err), zap.Int("message_number", messageNumber), zap.Int("message_type", messageType), zap.String("message_bytes", string(messageBytes)))
@@ -140,11 +140,11 @@ func (o *OpAMPGateway) HandleServerMessage(ctx context.Context, connection *conn
 	return nil
 }
 
-func (o *OpAMPGateway) HandleServerError(ctx context.Context, connection *connection, err error) {
+func (o *OpAMPGateway) HandleServerError(ctx context.Context, connection *upstreamConnection, err error) {
 	o.logger.Error("Error in server connection", zap.Error(err))
 }
 
-func (o *OpAMPGateway) HandleServerClose(ctx context.Context, connection *connection) error {
+func (o *OpAMPGateway) HandleServerClose(ctx context.Context, connection *upstreamConnection) error {
 	o.logger.Info("Server connection closed", zap.String("connection_id", connection.id))
 	return nil
 }

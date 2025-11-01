@@ -2,19 +2,15 @@ package opampgateway
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
 	"sync"
-	"time"
 
-	"github.com/cenkalti/backoff/v4"
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 )
 
 type ClientConnectionManagement interface {
-	AddUpstreamConnection(ctx context.Context, conn *websocket.Conn, id string, callbacks ConnectionCallbacks)
+	AddUpstreamConnection(ctx context.Context, conn *websocket.Conn, id string, callbacks ConnectionCallbacks[*upstreamConnection])
 
 	ForwardMessageDownstream(ctx context.Context, agentID string, msg []byte) error
 }
@@ -25,11 +21,11 @@ type client struct {
 
 	pool *connectionPool
 	// upstreamConnections is a set of connections to the upstream OpAMP server.
-	upstreamConnections *connections
+	upstreamConnections *connections[*upstreamConnection]
 
 	agentClientConnections *agentClientConnections
 
-	callbacks ConnectionCallbacks
+	callbacks ConnectionCallbacks[*upstreamConnection]
 
 	secretKey        string
 	upstreamEndpoint string
@@ -39,9 +35,9 @@ type client struct {
 	clientConnectionsCancel context.CancelFunc
 }
 
-func newClient(cfg *Config, logger *zap.Logger, callbacks ConnectionCallbacks) *client {
+func newClient(cfg *Config, logger *zap.Logger, callbacks ConnectionCallbacks[*upstreamConnection]) *client {
 	pool := newConnectionPool(cfg.UpstreamConnections, logger)
-	connections := newConnections()
+	connections := newConnections[*upstreamConnection]()
 	agentClientConnections := newAgentClientConnections(connections, pool)
 	return &client{
 		logger:                 logger,
@@ -67,27 +63,19 @@ func (c *client) startClientConnections(ctx context.Context) {
 		// generate a unique id for the connection
 		id := fmt.Sprintf("upstream-%d", i)
 
-		// ensure connected will do infinite retries until the context is done or an error is
-		// returned. this could mean that it takes a while to open the connections to the
-		// upstream server.
-		conn, err := c.ensureConnected(ctx, id)
-		if err != nil {
-			if ctx.Err() != nil {
-				return
-			}
-			c.logger.Error("ensure connected", zap.Error(err))
-			return
-		}
+		clientConnection := newUpstreamConnection(c.dialer, upstreamConnectionSettings{
+			endpoint:  c.upstreamEndpoint,
+			secretKey: c.secretKey,
+		}, id, c.logger.Named("upstream-connection"))
 
-		clientConnection := newConnection(conn, id, c.logger.Named("upstream-connection"))
 		c.pool.add(clientConnection)
 		c.upstreamConnections.set(id, clientConnection)
 
 		c.clientConnectionsWg.Add(1)
-		go clientConnection.start(ctx, ConnectionCallbacks{
+		go clientConnection.start(ctx, ConnectionCallbacks[*upstreamConnection]{
 			OnMessage: c.callbacks.OnMessage,
 			OnError:   c.callbacks.OnError,
-			OnClose: func(ctx context.Context, connection *connection) error {
+			OnClose: func(ctx context.Context, connection *upstreamConnection) error {
 				defer c.clientConnectionsWg.Done()
 				c.upstreamConnections.remove(connection.id)
 				// TODO: replace with a new connection
@@ -110,7 +98,7 @@ func (c *client) Stop() {
 // --------------------------------------------------------------------------------------
 // upstream connection management
 
-func (c *client) assignedUpstreamConnection(agentID string) (*connection, error) {
+func (c *client) assignedUpstreamConnection(agentID string) (*upstreamConnection, error) {
 	conn, exists := c.agentClientConnections.assignedAgentConnection(agentID)
 	if !exists {
 		return nil, fmt.Errorf("no upstream connection available for agent %s", agentID)
@@ -120,69 +108,4 @@ func (c *client) assignedUpstreamConnection(agentID string) (*connection, error)
 
 func (c *client) unassignUpstreamConnection(agentID string) {
 	c.agentClientConnections.unassignAgentConnection(agentID)
-}
-
-// --------------------------------------------------------------------------------------
-
-// Continuously try until connected. Will return nil when successfully
-// connected. Will return error if it is cancelled via context.
-func (c *client) ensureConnected(ctx context.Context, id string) (*websocket.Conn, error) {
-	infiniteBackoff := backoff.NewExponentialBackOff()
-
-	// Make ticker run forever.
-	infiniteBackoff.MaxElapsedTime = 0
-
-	interval := time.Duration(0)
-
-	for {
-		timer := time.NewTimer(interval)
-		interval = infiniteBackoff.NextBackOff()
-
-		select {
-		case <-timer.C:
-			{
-				conn, err := c.tryConnectOnce(ctx, id)
-				if err != nil {
-					if errors.Is(err, context.Canceled) {
-						c.logger.Debug("Client is stopped, will not try anymore.")
-						return nil, err
-					} else {
-						c.logger.Error("Connection failed", zap.Error(err))
-					}
-					// Retry again a bit later.
-					continue
-				}
-				// Connected successfully.
-				return conn, nil
-			}
-
-		case <-ctx.Done():
-			c.logger.Debug("Client is stopped, will not try anymore.")
-			timer.Stop()
-			return nil, ctx.Err()
-		}
-	}
-}
-
-func (c *client) tryConnectOnce(ctx context.Context, id string) (*websocket.Conn, error) {
-	var resp *http.Response
-
-	conn, resp, err := c.dialer.DialContext(ctx, c.upstreamEndpoint, c.header(id))
-	if err != nil {
-		if resp != nil {
-			return nil, fmt.Errorf("server responded with status: %s", resp.Status)
-		}
-		return nil, err
-	}
-	c.logger.Info("Successfully connected to upstream OpAMP server", zap.String("id", id), zap.String("upstream_endpoint", conn.RemoteAddr().String()))
-
-	// Successfully connected.
-	return conn, nil
-}
-
-func (c *client) header(id string) http.Header {
-	return http.Header{
-		"Authorization":                 []string{fmt.Sprintf("Secret-Key %s", c.secretKey)},
-		"X-Opamp-Gateway-Connection-Id": []string{id},
-	}
 }

@@ -231,7 +231,7 @@ type upstreamMessage struct {
 	Message      *protobufs.AgentToServer
 }
 
-type upstreamConnection struct {
+type testUpstreamConnection struct {
 	id   string
 	conn *websocket.Conn
 }
@@ -242,7 +242,7 @@ type testOpAMPServer struct {
 	upgrader websocket.Upgrader
 
 	mu          sync.Mutex
-	connections []*upstreamConnection
+	connections []*testUpstreamConnection
 
 	connectionCount atomic.Int32
 	recvCh          chan upstreamMessage
@@ -289,7 +289,7 @@ func (s *testOpAMPServer) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.mu.Lock()
-	s.connections = append(s.connections, &upstreamConnection{id: id, conn: conn})
+	s.connections = append(s.connections, &testUpstreamConnection{id: id, conn: conn})
 	s.mu.Unlock()
 	s.connectionCount.Add(1)
 
@@ -408,7 +408,7 @@ func (s *testOpAMPServer) Send(resp *protobufs.ServerToAgent) error {
 		return fmt.Errorf("no upstream connections")
 	}
 
-	return writeWSMessage(context.Background(), s.connections[0].conn, payload)
+	return writeWSMessage(s.connections[0].conn, payload)
 }
 
 // Close closes the test OpAMP server. It will close all the connections and the server.
