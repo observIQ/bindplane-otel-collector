@@ -348,7 +348,7 @@ dockers:
       - collector
     image_templates:
       - "observiq/bindplane-agent-amd64:{{ .Version }}-minimal"
-      # - "ghcr.io/observiq/bindplane-agent-amd64:{{ .Version }}-minimal"
+      - "ghcr.io/observiq/bindplane-agent-amd64:{{ .Version }}-minimal"
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-amd64:{{ .Version }}-minimal"
     dockerfile: ./docker/Dockerfile.scratch
     use: buildx
@@ -375,7 +375,7 @@ dockers:
       - collector
     image_templates:
       - "observiq/bindplane-agent-arm64:{{ .Version }}-minimal"
-      # - "ghcr.io/observiq/bindplane-agent-arm64:{{ .Version }}-minimal"
+      - "ghcr.io/observiq/bindplane-agent-arm64:{{ .Version }}-minimal"
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-arm64:{{ .Version }}-minimal"
     dockerfile: ./docker/Dockerfile.scratch
     use: buildx
@@ -402,7 +402,7 @@ dockers:
       - collector
     image_templates:
       - "observiq/bindplane-agent-ppc64le:{{ .Version }}-minimal"
-      # - "ghcr.io/observiq/bindplane-agent-ppc64le:{{ .Version }}-minimal"
+      - "ghcr.io/observiq/bindplane-agent-ppc64le:{{ .Version }}-minimal"
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-ppc64le:{{ .Version }}-minimal"
     dockerfile: ./docker/Dockerfile.scratch
     use: buildx
@@ -431,15 +431,15 @@ dockers:
     image_templates:
       - "observiq/observiq-otel-collector-amd64:latest"
       - "observiq/observiq-otel-collector-amd64:{{ .Version }}"
-      # - "ghcr.io/observiq/observiq-otel-collector-amd64:latest"
-      # - "ghcr.io/observiq/observiq-otel-collector-amd64:{{ .Version }}"
+      - "ghcr.io/observiq/observiq-otel-collector-amd64:latest"
+      - "ghcr.io/observiq/observiq-otel-collector-amd64:{{ .Version }}"
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-amd64:latest"
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-amd64:{{ .Version }}"
       # Bindplane Agent Containers
       - "observiq/bindplane-agent-amd64:latest"
       - "observiq/bindplane-agent-amd64:{{ .Version }}"
-      # - "ghcr.io/observiq/bindplane-agent-amd64:latest"
-      # - "ghcr.io/observiq/bindplane-agent-amd64:{{ .Version }}"
+      - "ghcr.io/observiq/bindplane-agent-amd64:latest"
+      - "ghcr.io/observiq/bindplane-agent-amd64:{{ .Version }}"
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-amd64:latest"
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-amd64:{{ .Version }}"
     dockerfile: ./docker/Dockerfile.ubuntu
@@ -469,15 +469,15 @@ dockers:
     image_templates:
       - "observiq/observiq-otel-collector-arm64:latest"
       - "observiq/observiq-otel-collector-arm64:{{ .Version }}"
-      # - "ghcr.io/observiq/observiq-otel-collector-arm64:latest"
-      # - "ghcr.io/observiq/observiq-otel-collector-arm64:{{ .Version }}"
+      - "ghcr.io/observiq/observiq-otel-collector-arm64:latest"
+      - "ghcr.io/observiq/observiq-otel-collector-arm64:{{ .Version }}"
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-arm64:latest"
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-arm64:{{ .Version }}"
       # Bindplane Agent Containers
       - "observiq/bindplane-agent-arm64:latest"
       - "observiq/bindplane-agent-arm64:{{ .Version }}"
-      # - "ghcr.io/observiq/bindplane-agent-arm64:latest"
-      # - "ghcr.io/observiq/bindplane-agent-arm64:{{ .Version }}"
+      - "ghcr.io/observiq/bindplane-agent-arm64:latest"
+      - "ghcr.io/observiq/bindplane-agent-arm64:{{ .Version }}"
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-arm64:latest"
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-arm64:{{ .Version }}"
     dockerfile: ./docker/Dockerfile.ubuntu
@@ -507,15 +507,15 @@ dockers:
     image_templates:
       - "observiq/observiq-otel-collector-ppc64le:latest"
       - "observiq/observiq-otel-collector-ppc64le:{{ .Version }}"
-      # - "ghcr.io/observiq/observiq-otel-collector-ppc64le:latest"
-      # - "ghcr.io/observiq/observiq-otel-collector-ppc64le:{{ .Version }}"
+      - "ghcr.io/observiq/observiq-otel-collector-ppc64le:latest"
+      - "ghcr.io/observiq/observiq-otel-collector-ppc64le:{{ .Version }}"
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-ppc64le:latest"
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-ppc64le:{{ .Version }}"
       # Bindplane Agent Containers
       - "observiq/bindplane-agent-ppc64le:latest"
       - "observiq/bindplane-agent-ppc64le:{{ .Version }}"
-      # - "ghcr.io/observiq/bindplane-agent-ppc64le:latest"
-      # - "ghcr.io/observiq/bindplane-agent-ppc64le:{{ .Version }}"
+      - "ghcr.io/observiq/bindplane-agent-ppc64le:latest"
+      - "ghcr.io/observiq/bindplane-agent-ppc64le:{{ .Version }}"
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-ppc64le:latest"
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-ppc64le:{{ .Version }}"
     dockerfile: ./docker/Dockerfile.ubuntu
@@ -545,11 +545,11 @@ dockers:
       - collector
     image_templates:
       - "observiq/observiq-otel-collector-amd64:{{ .Version }}-ubi8"
-      # - "ghcr.io/observiq/observiq-otel-collector-amd64:{{ .Version }}-ubi8"
+      - "ghcr.io/observiq/observiq-otel-collector-amd64:{{ .Version }}-ubi8"
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-amd64:{{ .Version }}-ubi8"
       # Bindplane Agent Containers
       - "observiq/bindplane-agent-amd64:{{ .Version }}-ubi8"
-      # - "ghcr.io/observiq/bindplane-agent-amd64:{{ .Version }}-ubi8"
+      - "ghcr.io/observiq/bindplane-agent-amd64:{{ .Version }}-ubi8"
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-amd64:{{ .Version }}-ubi8"
     dockerfile: ./docker/Dockerfile.ubi8
     use: buildx
@@ -577,11 +577,11 @@ dockers:
       - collector
     image_templates:
       - "observiq/observiq-otel-collector-arm64:{{ .Version }}-ubi8"
-      # - "ghcr.io/observiq/observiq-otel-collector-arm64:{{ .Version }}-ubi8"
+      - "ghcr.io/observiq/observiq-otel-collector-arm64:{{ .Version }}-ubi8"
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-arm64:{{ .Version }}-ubi8"
       # Bindplane Agent Containers
       - "observiq/bindplane-agent-arm64:{{ .Version }}-ubi8"
-      # - "ghcr.io/observiq/bindplane-agent-arm64:{{ .Version }}-ubi8"
+      - "ghcr.io/observiq/bindplane-agent-arm64:{{ .Version }}-ubi8"
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-arm64:{{ .Version }}-ubi8"
     dockerfile: ./docker/Dockerfile.ubi8
     use: buildx
@@ -606,12 +606,12 @@ docker_manifests:
       - "observiq/bindplane-agent-arm64:{{ .Version }}-minimal"
       - "observiq/bindplane-agent-ppc64le:{{ .Version }}-minimal"
     skip_push: false
-  # - name_template: "ghcr.io/observiq/bindplane-agent:{{ .Version }}-minimal"
-  #   image_templates:
-  #     - "ghcr.io/observiq/bindplane-agent-amd64:{{ .Version }}-minimal"
-  #     - "ghcr.io/observiq/bindplane-agent-arm64:{{ .Version }}-minimal"
-  #     - "ghcr.io/observiq/bindplane-agent-ppc64le:{{ .Version }}-minimal"
-  #   skip_push: false
+  - name_template: "ghcr.io/observiq/bindplane-agent:{{ .Version }}-minimal"
+    image_templates:
+      - "ghcr.io/observiq/bindplane-agent-amd64:{{ .Version }}-minimal"
+      - "ghcr.io/observiq/bindplane-agent-arm64:{{ .Version }}-minimal"
+      - "ghcr.io/observiq/bindplane-agent-ppc64le:{{ .Version }}-minimal"
+    skip_push: false
   - name_template: "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent:{{ .Version }}-minimal"
     image_templates:
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-amd64:{{ .Version }}-minimal"
@@ -635,23 +635,23 @@ docker_manifests:
       - "observiq/observiq-otel-collector-amd64:{{ .Version }}-ubi8"
       - "observiq/observiq-otel-collector-arm64:{{ .Version }}-ubi8"
     skip_push: false
-  # - name_template: "ghcr.io/observiq/observiq-otel-collector:latest"
-  #   image_templates:
-  #     - "ghcr.io/observiq/observiq-otel-collector-amd64:latest"
-  #     - "ghcr.io/observiq/observiq-otel-collector-arm64:latest"
-  #     - "ghcr.io/observiq/observiq-otel-collector-ppc64le:latest"
-  #   skip_push: false
-  # - name_template: "ghcr.io/observiq/observiq-otel-collector:{{ .Version }}"
-  #   image_templates:
-  #     - "ghcr.io/observiq/observiq-otel-collector-amd64:{{ .Version }}"
-  #     - "ghcr.io/observiq/observiq-otel-collector-arm64:{{ .Version }}"
-  #     - "ghcr.io/observiq/observiq-otel-collector-ppc64le:{{ .Version }}"
-  #   skip_push: false
-  # - name_template: "ghcr.io/observiq/observiq-otel-collector:{{ .Version }}-ubi8"
-  #   image_templates:
-  #     - "ghcr.io/observiq/observiq-otel-collector-amd64:{{ .Version }}-ubi8"
-  #     - "ghcr.io/observiq/observiq-otel-collector-arm64:{{ .Version }}-ubi8"
-  #   skip_push: false
+  - name_template: "ghcr.io/observiq/observiq-otel-collector:latest"
+    image_templates:
+      - "ghcr.io/observiq/observiq-otel-collector-amd64:latest"
+      - "ghcr.io/observiq/observiq-otel-collector-arm64:latest"
+      - "ghcr.io/observiq/observiq-otel-collector-ppc64le:latest"
+    skip_push: false
+  - name_template: "ghcr.io/observiq/observiq-otel-collector:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/observiq/observiq-otel-collector-amd64:{{ .Version }}"
+      - "ghcr.io/observiq/observiq-otel-collector-arm64:{{ .Version }}"
+      - "ghcr.io/observiq/observiq-otel-collector-ppc64le:{{ .Version }}"
+    skip_push: false
+  - name_template: "ghcr.io/observiq/observiq-otel-collector:{{ .Version }}-ubi8"
+    image_templates:
+      - "ghcr.io/observiq/observiq-otel-collector-amd64:{{ .Version }}-ubi8"
+      - "ghcr.io/observiq/observiq-otel-collector-arm64:{{ .Version }}-ubi8"
+    skip_push: false
   - name_template: "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector:latest"
     image_templates:
       - "us-central1-docker.pkg.dev/observiq-containers/collector/observiq-otel-collector-amd64:latest"
@@ -687,23 +687,23 @@ docker_manifests:
       - "observiq/bindplane-agent-amd64:{{ .Version }}-ubi8"
       - "observiq/bindplane-agent-arm64:{{ .Version }}-ubi8"
     skip_push: false
-  # - name_template: "ghcr.io/observiq/bindplane-agent:latest"
-  #   image_templates:
-  #     - "ghcr.io/observiq/bindplane-agent-amd64:latest"
-  #     - "ghcr.io/observiq/bindplane-agent-arm64:latest"
-  #     - "ghcr.io/observiq/bindplane-agent-ppc64le:latest"
-  #   skip_push: false
-  # - name_template: "ghcr.io/observiq/bindplane-agent:{{ .Version }}"
-  #   image_templates:
-  #     - "ghcr.io/observiq/bindplane-agent-amd64:{{ .Version }}"
-  #     - "ghcr.io/observiq/bindplane-agent-arm64:{{ .Version }}"
-  #     - "ghcr.io/observiq/bindplane-agent-ppc64le:{{ .Version }}"
-  #   skip_push: false
-  # - name_template: "ghcr.io/observiq/bindplane-agent:{{ .Version }}-ubi8"
-  #   image_templates:
-  #     - "ghcr.io/observiq/bindplane-agent-amd64:{{ .Version }}-ubi8"
-  #     - "ghcr.io/observiq/bindplane-agent-arm64:{{ .Version }}-ubi8"
-  #   skip_push: false
+  - name_template: "ghcr.io/observiq/bindplane-agent:latest"
+    image_templates:
+      - "ghcr.io/observiq/bindplane-agent-amd64:latest"
+      - "ghcr.io/observiq/bindplane-agent-arm64:latest"
+      - "ghcr.io/observiq/bindplane-agent-ppc64le:latest"
+    skip_push: false
+  - name_template: "ghcr.io/observiq/bindplane-agent:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/observiq/bindplane-agent-amd64:{{ .Version }}"
+      - "ghcr.io/observiq/bindplane-agent-arm64:{{ .Version }}"
+      - "ghcr.io/observiq/bindplane-agent-ppc64le:{{ .Version }}"
+    skip_push: false
+  - name_template: "ghcr.io/observiq/bindplane-agent:{{ .Version }}-ubi8"
+    image_templates:
+      - "ghcr.io/observiq/bindplane-agent-amd64:{{ .Version }}-ubi8"
+      - "ghcr.io/observiq/bindplane-agent-arm64:{{ .Version }}-ubi8"
+    skip_push: false
   - name_template: "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent:latest"
     image_templates:
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-amd64:latest"
