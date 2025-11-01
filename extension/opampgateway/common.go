@@ -1,7 +1,6 @@
 package opampgateway
 
 import (
-	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -39,7 +38,7 @@ func decodeWSMessage(bytes []byte, msg proto.Message) error {
 	return nil
 }
 
-func writeWSMessage(_ context.Context, con *websocket.Conn, msg []byte) error {
+func writeWSMessage(con *websocket.Conn, msg []byte) error {
 	writer, err := con.NextWriter(websocket.BinaryMessage)
 	if err != nil {
 		return fmt.Errorf("next writer: %w", err)

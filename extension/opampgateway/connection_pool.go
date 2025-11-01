@@ -8,19 +8,19 @@ import (
 )
 
 type connectionPool struct {
-	connections map[string]*connection
+	connections map[string]*upstreamConnection
 	logger      *zap.Logger
 	mtx         sync.RWMutex
 }
 
 func newConnectionPool(size int, logger *zap.Logger) *connectionPool {
 	return &connectionPool{
-		connections: make(map[string]*connection, size),
+		connections: make(map[string]*upstreamConnection, size),
 		logger:      logger.Named("opamp-gateway-connection-pool"),
 	}
 }
 
-func (c *connectionPool) add(conn *connection) {
+func (c *connectionPool) add(conn *upstreamConnection) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
@@ -38,19 +38,19 @@ func (c *connectionPool) size() int {
 	return len(c.connections)
 }
 
-func (c *connectionPool) remove(conn *connection) {
+func (c *connectionPool) remove(conn *upstreamConnection) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	delete(c.connections, conn.id)
 }
 
-func (c *connectionPool) next() *connection {
+func (c *connectionPool) next() *upstreamConnection {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 
 	// find the connection with the lowest count
 	minCount := math.MaxInt32
-	var minConn *connection
+	var minConn *upstreamConnection
 	for _, conn := range c.connections {
 		count := conn.agentCount()
 		if count < minCount {
