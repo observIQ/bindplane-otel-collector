@@ -23,8 +23,8 @@ type server struct {
 
 	addr net.Addr
 
-	downstreamConnections *connections
-	callbacks             ConnectionCallbacks
+	downstreamConnections *connections[*downstreamConnection]
+	callbacks             ConnectionCallbacks[*downstreamConnection]
 
 	shutdownCtx    context.Context
 	shutdownCancel context.CancelFunc
@@ -36,13 +36,13 @@ var (
 	handlePath = "/"
 )
 
-func newServer(cfg *OpAMPServer, logger *zap.Logger, callbacks ConnectionCallbacks) *server {
+func newServer(cfg *OpAMPServer, logger *zap.Logger, callbacks ConnectionCallbacks[*downstreamConnection]) *server {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &server{
 		cfg:                   cfg,
 		logger:                logger,
 		wsUpgrader:            websocket.Upgrader{},
-		downstreamConnections: newConnections(),
+		downstreamConnections: newConnections[*downstreamConnection](),
 		callbacks:             callbacks,
 		shutdownCtx:           ctx,
 		shutdownCancel:        cancel,
@@ -121,18 +121,18 @@ func (s *server) Stop() error {
 // --------------------------------------------------------------------------------------
 // downstream connection management
 
-func (s *server) addDownstreamConnection(agentID string, conn *connection) {
+func (s *server) addDownstreamConnection(agentID string, conn *downstreamConnection) {
 	// set the id to the agent ID so we can remove the connection by id later
 	conn.id = agentID
 	s.downstreamConnections.set(agentID, conn)
 }
 
-func (s *server) getDownstreamConnection(agentID string) (*connection, bool) {
+func (s *server) getDownstreamConnection(agentID string) (*downstreamConnection, bool) {
 	conn, ok := s.downstreamConnections.get(agentID)
 	return conn, ok
 }
 
-func (s *server) removeDownstreamConnection(conn *connection) {
+func (s *server) removeDownstreamConnection(conn *downstreamConnection) {
 	s.downstreamConnections.remove(conn.id)
 }
 
@@ -178,7 +178,7 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	// the initial id is the remote address of the connection but once we have parsed the
 	// agent ID, we will use that as the id
 	id := fmt.Sprintf("downstream-%s", conn.RemoteAddr().String())
-	c := newConnection(conn, id, s.logger.Named("downstream-connection"))
+	c := newDownstreamConnection(conn, id, s.logger.Named("downstream-connection"))
 
 	// start the connection in a goroutine to prevent blocking the handler
 	s.connectionsWg.Add(1)
