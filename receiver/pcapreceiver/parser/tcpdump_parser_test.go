@@ -23,12 +23,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseTcpdumpPacket_TCP(t *testing.T) {
+func TestParsePacket_TCP(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "testdata", "tcp_packet.txt"))
 	require.NoError(t, err)
 
 	lines := strings.Split(string(data), "\n")
-	packet, err := ParseTcpdumpPacket(lines)
+	packet, err := ParsePacket(lines)
 	require.NoError(t, err)
 	require.NotNil(t, packet)
 
@@ -59,12 +59,12 @@ func TestParseTcpdumpPacket_TCP(t *testing.T) {
 	require.Greater(t, packet.Length, 0)
 }
 
-func TestParseTcpdumpPacket_UDP(t *testing.T) {
+func TestParsePacket_UDP(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "testdata", "udp_packet.txt"))
 	require.NoError(t, err)
 
 	lines := strings.Split(string(data), "\n")
-	packet, err := ParseTcpdumpPacket(lines)
+	packet, err := ParsePacket(lines)
 	require.NoError(t, err)
 	require.NotNil(t, packet)
 
@@ -85,12 +85,12 @@ func TestParseTcpdumpPacket_UDP(t *testing.T) {
 	require.Greater(t, packet.Length, 0)
 }
 
-func TestParseTcpdumpPacket_ICMP(t *testing.T) {
+func TestParsePacket_ICMP(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "testdata", "icmp_packet.txt"))
 	require.NoError(t, err)
 
 	lines := strings.Split(string(data), "\n")
-	packet, err := ParseTcpdumpPacket(lines)
+	packet, err := ParsePacket(lines)
 	require.NoError(t, err)
 	require.NotNil(t, packet)
 
@@ -111,12 +111,12 @@ func TestParseTcpdumpPacket_ICMP(t *testing.T) {
 	require.Greater(t, packet.Length, 0)
 }
 
-func TestParseTcpdumpPacket_IPv6(t *testing.T) {
+func TestParsePacket_IPv6(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "testdata", "ipv6_packet.txt"))
 	require.NoError(t, err)
 
 	lines := strings.Split(string(data), "\n")
-	packet, err := ParseTcpdumpPacket(lines)
+	packet, err := ParsePacket(lines)
 	require.NoError(t, err)
 	require.NotNil(t, packet)
 
@@ -137,31 +137,31 @@ func TestParseTcpdumpPacket_IPv6(t *testing.T) {
 	require.Greater(t, packet.Length, 0)
 }
 
-func TestParseTcpdumpPacket_Malformed(t *testing.T) {
+func TestParsePacket_Malformed(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "testdata", "malformed.txt"))
 	require.NoError(t, err)
 
 	lines := strings.Split(string(data), "\n")
-	packet, err := ParseTcpdumpPacket(lines)
+	packet, err := ParsePacket(lines)
 
 	// Should return an error for malformed input
 	require.Error(t, err)
 	require.Nil(t, packet)
 }
 
-func TestParseTcpdumpPacket_EmptyInput(t *testing.T) {
+func TestParsePacket_EmptyInput(t *testing.T) {
 	lines := []string{}
-	packet, err := ParseTcpdumpPacket(lines)
+	packet, err := ParsePacket(lines)
 
 	require.Error(t, err)
 	require.Nil(t, packet)
 }
 
-func TestParseTcpdumpPacket_OnlyHeaderLine(t *testing.T) {
+func TestParsePacket_OnlyHeaderLine(t *testing.T) {
 	lines := []string{
 		"12:34:56.789012 IP 192.168.1.100.54321 > 192.168.1.1.443: Flags [S], seq 1234567890",
 	}
-	packet, err := ParseTcpdumpPacket(lines)
+	packet, err := ParsePacket(lines)
 
 	// Should error because there's no hex data
 	require.Error(t, err)
@@ -306,11 +306,11 @@ func TestParseHeaderLine(t *testing.T) {
 
 func TestParseHexLines(t *testing.T) {
 	tests := []struct {
-		name     string
-		lines    []string
-		wantHex  string
-		wantLen  int
-		wantErr  bool
+		name    string
+		lines   []string
+		wantHex string
+		wantLen int
+		wantErr bool
 	}{
 		{
 			name: "valid hex lines",
@@ -354,4 +354,3 @@ func TestParseHexLines(t *testing.T) {
 		})
 	}
 }
-

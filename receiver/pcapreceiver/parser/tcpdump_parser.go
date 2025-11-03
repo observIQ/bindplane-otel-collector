@@ -34,9 +34,9 @@ var (
 	errInvalidFormat = errors.New("invalid tcpdump format")
 )
 
-// ParseTcpdumpPacket parses a complete packet from tcpdump -xx output
+// ParsePacket parses a complete packet from tcpdump -xx output
 // The input should be multiple lines: first line is the header, subsequent lines are hex data
-func ParseTcpdumpPacket(lines []string) (*PacketInfo, error) {
+func ParsePacket(lines []string) (*PacketInfo, error) {
 	if len(lines) == 0 {
 		return nil, errEmptyInput
 	}
@@ -97,30 +97,64 @@ func parseHeaderLine(line string) (*PacketInfo, error) {
 	// Remove timestamp from line for easier parsing
 	line = strings.TrimSpace(line[len(timestampMatch[0]):])
 
-	// Determine protocol (IP, IP6, ARP, etc.)
+	// Split into parts
 	parts := strings.Fields(line)
 	if len(parts) < 4 {
 		return nil, fmt.Errorf("%w: not enough fields", errInvalidFormat)
 	}
 
-	info.Protocol = parts[0]
+	// Handle two different tcpdump formats:
+	// 1. Standard format: "IP 192.168.1.100.54321 > 192.168.1.1.443:"
+	// 2. Linux "any" interface format: "enp0s1 Out IP 192.168.65.3.22 > 192.168.65.1.50562:"
+	var protocolIdx, srcIdx, dirIdx, dstIdx int
+
+	// Check if this is the Linux "any" interface format (has "In" or "Out" after interface name)
+	// Format: <interface> <In|Out> <protocol> <src> > <dst>
+	if len(parts) >= 5 && (parts[1] == "In" || parts[1] == "Out") {
+		// Linux "any" interface format
+		protocolIdx = 2
+		srcIdx = 3
+		dirIdx = 4
+		dstIdx = 5
+	} else {
+		// Standard format: <protocol> <src> > <dst>
+		protocolIdx = 0
+		srcIdx = 1
+		dirIdx = 2
+		dstIdx = 3
+	}
+
+	// Validate we have enough parts
+	if len(parts) <= dstIdx {
+		return nil, fmt.Errorf("%w: not enough fields for format", errInvalidFormat)
+	}
+
+	info.Protocol = parts[protocolIdx]
+
+	// Validate direction indicator
+	if parts[dirIdx] != ">" {
+		return nil, fmt.Errorf("%w: missing direction indicator at position %d (got %q)", errInvalidFormat, dirIdx, parts[dirIdx])
+	}
 
 	// Parse addresses and ports
 	// Format: "192.168.1.100.54321 > 192.168.1.1.443:"
 	// or for ICMP: "192.168.1.100 > 192.168.1.1:"
-	srcPart := parts[1]
-	if len(parts) < 3 || parts[2] != ">" {
-		return nil, fmt.Errorf("%w: missing direction indicator", errInvalidFormat)
-	}
-	dstPart := strings.TrimSuffix(parts[3], ":")
+	srcPart := parts[srcIdx]
+	dstPart := strings.TrimSuffix(parts[dstIdx], ":")
 
 	// Parse source address and port
 	info.SrcAddress, info.SrcPort = parseAddressPort(srcPart)
 	info.DstAddress, info.DstPort = parseAddressPort(dstPart)
 
 	// Determine transport protocol from the rest of the line
-	restOfLine := strings.Join(parts[4:], " ")
-	info.Transport = determineTransport(restOfLine, info.Protocol)
+	// Start after the destination address
+	restStartIdx := dstIdx + 1
+	if restStartIdx < len(parts) {
+		restOfLine := strings.Join(parts[restStartIdx:], " ")
+		info.Transport = determineTransport(restOfLine, info.Protocol)
+	} else {
+		info.Transport = determineTransport("", info.Protocol)
+	}
 
 	return info, nil
 }
@@ -282,4 +316,3 @@ func parseHexLines(lines []string) (string, int, error) {
 
 	return hexBuilder.String(), byteCount, nil
 }
-
