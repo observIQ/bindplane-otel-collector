@@ -15,10 +15,11 @@
 package worker // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"fmt"
 
 	"github.com/aws/aws-lambda-go/events"
+	json "github.com/goccy/go-json"
 )
 
 // SNSNotification represents the structure of an SNS notification
