@@ -192,10 +192,10 @@ func (r *pcapReceiver) checkPrivileges() error {
 	}
 
 	if runtime.GOOS == "linux" {
-		if os.Geteuid() == 0 {
-			r.logger.Info("Running with root privileges")
-			return nil
+		if os.Geteuid() != 0 {
+			return fmt.Errorf("packet capture requires root privileges. Please run the collector with sudo")
 		}
+		r.logger.Info("Running with root privileges")
 
 		// Perform a lightweight preflight to detect permission issues.
 		preflight := newCommand("tcpdump", "-i", r.config.Interface, "-c", "1", "-w", "-")
