@@ -16,6 +16,7 @@ package pcapreceiver
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 )
 
@@ -55,21 +56,49 @@ func (cfg *Config) Validate() error {
 
 // validateInterfaceName validates the interface name to prevent shell injection
 func validateInterfaceName(iface string) error {
-	// Dangerous characters that could be used for command injection
-	dangerousChars := []string{
-		";",  // Command separator
-		"|",  // Pipe
-		"&",  // Background/AND
-		"$",  // Variable expansion
-		"`",  // Command substitution
-		"\n", // Newline
-		"\r", // Carriage return
-		">",  // Redirect
-		"<",  // Redirect
-		"\"", // Quote
-		"'",  // Quote
-		"\\", // Escape
-		" ",  // Space (interfaces shouldn't have spaces)
+	// Windows interface names can be:
+	// - Numeric indices: "1", "2"
+	// - Device paths: "\Device\NPF_{GUID}"
+	// - Friendly names: "Ethernet", "Local Area Connection"
+	// Unix interface names are simpler: "eth0", "en0", "any", etc.
+
+	var dangerousChars []string
+
+	if runtime.GOOS == "windows" {
+		// Windows: Allow backslashes, braces, and spaces (for device paths and friendly names)
+		// But still block command injection characters
+		dangerousChars = []string{
+			";",  // Command separator
+			"|",  // Pipe
+			"&",  // Background/AND
+			"$",  // Variable expansion
+			"`",  // Command substitution
+			"\n", // Newline
+			"\r", // Carriage return
+			">",  // Redirect
+			"<",  // Redirect
+			"\"", // Quote
+			"'",  // Quote
+		}
+	} else {
+		// Unix: Strict validation (no backslashes, spaces, or braces)
+		dangerousChars = []string{
+			";",  // Command separator
+			"|",  // Pipe
+			"&",  // Background/AND
+			"$",  // Variable expansion
+			"`",  // Command substitution
+			"\n", // Newline
+			"\r", // Carriage return
+			">",  // Redirect
+			"<",  // Redirect
+			"\"", // Quote
+			"'",  // Quote
+			"\\", // Escape (backslash not valid in Unix interface names)
+			" ",  // Space (interfaces shouldn't have spaces on Unix)
+			"{",  // Brace (not valid in Unix interface names)
+			"}",  // Brace (not valid in Unix interface names)
+		}
 	}
 
 	for _, char := range dangerousChars {
@@ -87,17 +116,17 @@ func validateFilter(filter string) error {
 	// Dangerous characters for command injection
 	// Note: BPF filters legitimately use spaces, parentheses, brackets, equals, etc.
 	dangerousChars := []string{
-		";",   // Command separator
-		"|",   // Single pipe (BPF uses 'or', not '|')
-		"&",   // Single ampersand (BPF uses 'and', not '&')
-		"$",   // Variable expansion
-		"`",   // Command substitution
-		"\n",  // Newline
-		"\r",  // Carriage return
-		">>",  // Append redirect
-		"<<",  // Here document
-		"&&",  // Logical AND (command chaining)
-		"||",  // Logical OR (command chaining)
+		";",  // Command separator
+		"|",  // Single pipe (BPF uses 'or', not '|')
+		"&",  // Single ampersand (BPF uses 'and', not '&')
+		"$",  // Variable expansion
+		"`",  // Command substitution
+		"\n", // Newline
+		"\r", // Carriage return
+		">>", // Append redirect
+		"<<", // Here document
+		"&&", // Logical AND (command chaining)
+		"||", // Logical OR (command chaining)
 	}
 
 	for _, char := range dangerousChars {
@@ -108,4 +137,3 @@ func validateFilter(filter string) error {
 
 	return nil
 }
-

@@ -271,7 +271,17 @@ func (r *pcapReceiver) readStderr(ctx context.Context, stderr io.ReadCloser) {
 }
 
 // readPackets reads and parses packets from capture tool output (tcpdump/dumpcap)
+// On Windows, this delegates to readPacketsWindows which uses pcapgo to parse binary PCAP data
+// On Unix, this uses text-based parsing of tcpdump output
 func (r *pcapReceiver) readPackets(ctx context.Context, stdout io.ReadCloser) {
+	// Windows uses pcapgo to parse binary PCAP data from dumpcap
+	// This is handled in receiver_windows.go
+	if runtime.GOOS == "windows" {
+		// readPacketsWindows is defined in receiver_windows.go (Windows build tag only)
+		// This will only compile on Windows builds
+		r.readPacketsWindows(ctx, stdout)
+		return
+	}
 	r.logger.Debug("Starting packet reader goroutine")
 	defer r.logger.Debug("Packet reader goroutine exiting")
 
@@ -395,6 +405,19 @@ func (r *pcapReceiver) processPacket(ctx context.Context, lines []string) {
 		zap.String("src", packetInfo.SrcAddress),
 		zap.String("dst", packetInfo.DstAddress),
 		zap.Int("length", packetInfo.Length))
+
+	// Process the parsed packet info
+	r.processPacketInfo(ctx, packetInfo)
+}
+
+// processPacketInfo emits a parsed packet as an OTel log (common for both text and binary parsing)
+func (r *pcapReceiver) processPacketInfo(ctx context.Context, packetInfo *parser.PacketInfo) {
+	// Do not process or emit if shutdown has been initiated
+	select {
+	case <-ctx.Done():
+		return
+	default:
+	}
 
 	// Create OTel log
 	logs := plog.NewLogs()

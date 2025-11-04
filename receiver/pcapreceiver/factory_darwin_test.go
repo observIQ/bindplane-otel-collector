@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build darwin
+
 package pcapreceiver
 
 import (
@@ -44,7 +46,7 @@ func TestCreateDefaultConfig(t *testing.T) {
 func TestCreateLogsReceiver(t *testing.T) {
 	factory := NewFactory()
 	cfg := createDefaultConfig()
-	
+
 	settings := receivertest.NewNopSettings(factory.Type())
 	consumer := consumertest.NewNop()
 
@@ -71,12 +73,12 @@ func TestCreateLogsReceiver_WithInvalidConfig(t *testing.T) {
 	cfg := &Config{
 		Interface: "", // Invalid: empty interface
 	}
-	
+
 	settings := receivertest.NewNopSettings(factory.Type())
 	consumer := consumertest.NewNop()
 
 	receiver, err := factory.CreateLogs(context.Background(), settings, cfg, consumer)
-	
+
 	// Config validation happens at Start(), so receiver creation should succeed
 	require.NoError(t, err)
 	require.NotNil(t, receiver)
@@ -86,4 +88,3 @@ func TestFactoryType(t *testing.T) {
 	factory := NewFactory()
 	require.Equal(t, typeStr, factory.Type().String())
 }
-

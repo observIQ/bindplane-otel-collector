@@ -28,7 +28,6 @@ import (
 // otherwise "dumpcap.exe" is used (typically from Wireshark installation).
 func BuildCaptureCommandWithExe(executablePath, iface, filter string, snaplen int, promisc bool) *exec.Cmd {
 	args := []string{
-		// TODO: Update these options to match what I can actually run on the VM
 		"-i", iface, // Interface index or name
 		"-q",         // Don't report packet counts
 		"-F", "pcap", // Output in pcap format
@@ -68,7 +67,6 @@ func BuildCaptureCommandWithExe(executablePath, iface, filter string, snaplen in
 	}
 
 	return exec.Command(exe, args...) // #nosec G204 - args validated by config
-	// TODO: Use pcapgo to parse the stout output from dumpcap
 }
 
 // BuildCaptureCommand builds the dumpcap command using default executable lookup
