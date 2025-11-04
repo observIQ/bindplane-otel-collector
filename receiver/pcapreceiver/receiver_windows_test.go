@@ -22,7 +22,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -31,16 +30,13 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcapgo"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 )
 
 func TestCheckPrivileges_Windows_DumpcapAvailable(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows-specific test")
-	}
-
 	cfg := &Config{Interface: "1"}
 	receiver := newReceiver(cfg, zap.NewNop(), consumertest.NewNop())
 
@@ -55,10 +51,6 @@ func TestCheckPrivileges_Windows_DumpcapAvailable(t *testing.T) {
 }
 
 func TestCheckPrivileges_Windows_ExecutablePath(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows-specific test")
-	}
-
 	// Save original newCommand
 	originalNewCommand := newCommand
 	defer func() {
@@ -90,10 +82,6 @@ func TestCheckPrivileges_Windows_ExecutablePath(t *testing.T) {
 }
 
 func TestCheckPrivileges_Windows_DumpcapNotFound(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows-specific test")
-	}
-
 	// Save original newCommand
 	originalNewCommand := newCommand
 	defer func() {
@@ -115,10 +103,6 @@ func TestCheckPrivileges_Windows_DumpcapNotFound(t *testing.T) {
 }
 
 func TestReadPacketsWindows_ValidPacket(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows-specific test")
-	}
-
 	cfg := &Config{Interface: "1"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -187,10 +171,6 @@ func TestReadPacketsWindows_ValidPacket(t *testing.T) {
 }
 
 func TestReadPacketsWindows_MultiplePackets(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows-specific test")
-	}
-
 	cfg := &Config{Interface: "1"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -241,10 +221,6 @@ func TestReadPacketsWindows_MultiplePackets(t *testing.T) {
 }
 
 func TestReadPacketsWindows_EmptyInput(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows-specific test")
-	}
-
 	cfg := &Config{Interface: "1"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -272,10 +248,6 @@ func TestReadPacketsWindows_EmptyInput(t *testing.T) {
 }
 
 func TestReadPacketsWindows_InvalidPCAPData(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows-specific test")
-	}
-
 	cfg := &Config{Interface: "1"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -296,10 +268,6 @@ func TestReadPacketsWindows_InvalidPCAPData(t *testing.T) {
 }
 
 func TestReadPacketsWindows_ContextCancellation(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows-specific test")
-	}
-
 	cfg := &Config{Interface: "1"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -348,10 +316,6 @@ func TestReadPacketsWindows_ContextCancellation(t *testing.T) {
 }
 
 func TestReadPacketsWindows_UDPPacket(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows-specific test")
-	}
-
 	cfg := &Config{Interface: "1"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -406,10 +370,6 @@ func TestReadPacketsWindows_UDPPacket(t *testing.T) {
 }
 
 func TestReadPacketsWindows_IPv6Packet(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows-specific test")
-	}
-
 	cfg := &Config{Interface: "1"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -462,10 +422,6 @@ func TestReadPacketsWindows_IPv6Packet(t *testing.T) {
 }
 
 func TestReadPacketsWindows_ICMPPacket(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows-specific test")
-	}
-
 	cfg := &Config{Interface: "1"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -521,4 +477,53 @@ func TestReadPacketsWindows_ICMPPacket(t *testing.T) {
 	_, dstPortExists := attrs.Get("network.dst.port")
 	require.False(t, srcPortExists)
 	require.False(t, dstPortExists)
+}
+
+func TestStart_InvalidConfig(t *testing.T) {
+	tests := []struct {
+		name      string
+		config    *Config
+		wantError string
+	}{
+		{
+			name: "empty interface",
+			config: &Config{
+				Interface: "",
+			},
+			wantError: "interface must be specified",
+		},
+		{
+			name: "invalid interface with shell injection",
+			config: &Config{
+				Interface: "1; whoami",
+			},
+			wantError: "invalid character",
+		},
+		{
+			name: "invalid filter",
+			config: &Config{
+				Interface: "1",
+				Filter:    "tcp port 80 && whoami",
+			},
+			wantError: "invalid character",
+		},
+		{
+			name: "invalid snaplen",
+			config: &Config{
+				Interface: "1",
+				SnapLen:   10,
+			},
+			wantError: "snaplen must be between",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			receiver := newReceiver(tt.config, zap.NewNop(), consumertest.NewNop())
+
+			err := receiver.Start(context.Background(), componenttest.NewNopHost())
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tt.wantError)
+		})
+	}
 }

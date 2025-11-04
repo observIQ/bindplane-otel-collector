@@ -16,13 +16,10 @@ package pcapreceiver
 
 import (
 	"context"
-	"os"
-	"runtime"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.uber.org/zap"
 )
@@ -42,27 +39,6 @@ func TestNewReceiver(t *testing.T) {
 	require.Equal(t, cfg, receiver.config)
 	require.Equal(t, logger, receiver.logger)
 	require.Equal(t, consumer, receiver.consumer)
-}
-
-// TestCheckPrivileges is a basic integration test for privilege checking.
-func TestCheckPrivileges(t *testing.T) {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("Privilege check only implemented for Unix-like systems")
-	}
-
-	cfg := &Config{Interface: "en0"}
-	receiver := newReceiver(cfg, zap.NewNop(), consumertest.NewNop())
-
-	err := receiver.checkPrivileges()
-
-	if os.Geteuid() == 0 {
-		// Running as root, should succeed
-		require.NoError(t, err)
-	} else {
-		// Not running as root, should fail
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "root privileges")
-	}
 }
 
 func TestIsTimestampLine(t *testing.T) {
@@ -233,83 +209,6 @@ func TestShutdown(t *testing.T) {
 	// Test shutdown without starting
 	err := receiver.Shutdown(context.Background())
 	require.NoError(t, err)
-}
-
-func TestStart_InvalidConfig(t *testing.T) {
-	if runtime.GOOS != "darwin" {
-		t.Skip("Test only runs on macOS")
-	}
-
-	tests := []struct {
-		name      string
-		config    *Config
-		wantError string
-	}{
-		{
-			name: "empty interface",
-			config: &Config{
-				Interface: "",
-			},
-			wantError: "interface must be specified",
-		},
-		{
-			name: "invalid interface with shell injection",
-			config: &Config{
-				Interface: "eth0; rm -rf /",
-			},
-			wantError: "invalid character",
-		},
-		{
-			name: "invalid filter",
-			config: &Config{
-				Interface: "en0",
-				Filter:    "tcp port 80 && whoami",
-			},
-			wantError: "invalid character",
-		},
-		{
-			name: "invalid snaplen",
-			config: &Config{
-				Interface: "en0",
-				SnapLen:   10,
-			},
-			wantError: "snaplen must be between",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			receiver := newReceiver(tt.config, zap.NewNop(), consumertest.NewNop())
-
-			err := receiver.Start(context.Background(), componenttest.NewNopHost())
-			require.Error(t, err)
-			require.Contains(t, err.Error(), tt.wantError)
-		})
-	}
-}
-
-// TestStart_WithoutRootPrivileges tests that Start() handles lack of privileges gracefully.
-func TestStart_WithoutRootPrivileges(t *testing.T) {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("Privilege check only implemented for Unix-like systems")
-	}
-
-	if os.Geteuid() == 0 {
-		t.Skip("Test requires running without root privileges")
-	}
-
-	cfg := &Config{
-		Interface: "en0",
-		SnapLen:   65535,
-	}
-	receiver := newReceiver(cfg, zap.NewNop(), consumertest.NewNop())
-
-	// Start should succeed even without privileges, but won't capture packets
-	err := receiver.Start(context.Background(), componenttest.NewNopHost())
-	require.NoError(t, err)
-
-	// Clean up
-	_ = receiver.Shutdown(context.Background())
 }
 
 func TestProcessPacket_IPv6(t *testing.T) {

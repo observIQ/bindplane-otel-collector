@@ -22,22 +22,18 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 )
 
 func TestCheckPrivileges_Unix_Root(t *testing.T) {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("Unix-specific test")
-	}
-
 	// Save original newCommand
 	originalNewCommand := newCommand
 	defer func() {
@@ -77,10 +73,6 @@ func TestCheckPrivileges_Unix_Root(t *testing.T) {
 }
 
 func TestCheckPrivileges_Unix_NoRoot(t *testing.T) {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("Unix-specific test")
-	}
-
 	if os.Geteuid() == 0 {
 		t.Skip("Test requires running without root privileges")
 	}
@@ -95,10 +87,6 @@ func TestCheckPrivileges_Unix_NoRoot(t *testing.T) {
 }
 
 func TestCheckPrivileges_Unix_TcpdumpNotFound(t *testing.T) {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("Unix-specific test")
-	}
-
 	// Save original newCommand
 	originalNewCommand := newCommand
 	defer func() {
@@ -121,10 +109,6 @@ func TestCheckPrivileges_Unix_TcpdumpNotFound(t *testing.T) {
 }
 
 func TestReadPackets_Unix_SinglePacket(t *testing.T) {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("Unix-specific test")
-	}
-
 	cfg := &Config{Interface: "en0"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -184,10 +168,6 @@ func TestReadPackets_Unix_SinglePacket(t *testing.T) {
 }
 
 func TestReadPackets_Unix_MultiplePackets(t *testing.T) {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("Unix-specific test")
-	}
-
 	cfg := &Config{Interface: "en0"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -219,10 +199,6 @@ func TestReadPackets_Unix_MultiplePackets(t *testing.T) {
 }
 
 func TestReadPackets_Unix_EmptyInput(t *testing.T) {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("Unix-specific test")
-	}
-
 	cfg := &Config{Interface: "en0"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -240,10 +216,6 @@ func TestReadPackets_Unix_EmptyInput(t *testing.T) {
 }
 
 func TestReadPackets_Unix_MalformedPacket(t *testing.T) {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("Unix-specific test")
-	}
-
 	cfg := &Config{Interface: "en0"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -266,10 +238,6 @@ func TestReadPackets_Unix_MalformedPacket(t *testing.T) {
 }
 
 func TestReadPackets_Unix_LargePacket(t *testing.T) {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("Unix-specific test")
-	}
-
 	cfg := &Config{Interface: "en0"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -305,10 +273,6 @@ func TestReadPackets_Unix_LargePacket(t *testing.T) {
 }
 
 func TestReadPackets_Unix_PacketWithOnlyTimestamp(t *testing.T) {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("Unix-specific test")
-	}
-
 	cfg := &Config{Interface: "en0"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -331,10 +295,6 @@ func TestReadPackets_Unix_PacketWithOnlyTimestamp(t *testing.T) {
 }
 
 func TestReadPackets_Unix_IPv6Packet(t *testing.T) {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("Unix-specific test")
-	}
-
 	cfg := &Config{Interface: "en0"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -366,10 +326,6 @@ func TestReadPackets_Unix_IPv6Packet(t *testing.T) {
 }
 
 func TestReadPackets_Unix_ICMPPacket(t *testing.T) {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("Unix-specific test")
-	}
-
 	cfg := &Config{Interface: "en0"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -406,10 +362,6 @@ func TestReadPackets_Unix_ICMPPacket(t *testing.T) {
 }
 
 func TestReadPackets_Unix_ScannerError(t *testing.T) {
-	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
-		t.Skip("Unix-specific test")
-	}
-
 	cfg := &Config{Interface: "en0"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
@@ -451,4 +403,72 @@ func (e *errorReader) Read(p []byte) (n int, err error) {
 		return n, e.err
 	}
 	return n, nil
+}
+
+func TestStart_InvalidConfig(t *testing.T) {
+	tests := []struct {
+		name      string
+		config    *Config
+		wantError string
+	}{
+		{
+			name: "empty interface",
+			config: &Config{
+				Interface: "",
+			},
+			wantError: "interface must be specified",
+		},
+		{
+			name: "invalid interface with shell injection",
+			config: &Config{
+				Interface: "eth0; rm -rf /",
+			},
+			wantError: "invalid character",
+		},
+		{
+			name: "invalid filter",
+			config: &Config{
+				Interface: "any",
+				Filter:    "tcp port 80 && whoami",
+			},
+			wantError: "invalid character",
+		},
+		{
+			name: "invalid snaplen",
+			config: &Config{
+				Interface: "any",
+				SnapLen:   10,
+			},
+			wantError: "snaplen must be between",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			receiver := newReceiver(tt.config, zap.NewNop(), consumertest.NewNop())
+
+			err := receiver.Start(context.Background(), componenttest.NewNopHost())
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tt.wantError)
+		})
+	}
+}
+
+func TestStart_WithoutRootPrivileges(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("Test requires running without root privileges")
+	}
+
+	cfg := &Config{
+		Interface: "any",
+		SnapLen:   65535,
+	}
+	receiver := newReceiver(cfg, zap.NewNop(), consumertest.NewNop())
+
+	// Start should succeed even without privileges, but won't capture packets
+	err := receiver.Start(context.Background(), componenttest.NewNopHost())
+	require.NoError(t, err)
+
+	// Clean up
+	_ = receiver.Shutdown(context.Background())
 }

@@ -27,8 +27,8 @@ import (
 func TestBuildCaptureCommand_Windows_DefaultExe(t *testing.T) {
 	cmd := BuildCaptureCommand("1", "tcp port 443", 65535, true)
 	require.NotNil(t, cmd)
-	require.True(t, strings.HasSuffix(strings.ToLower(cmd.Path), "dumpcap.exe"))
-	require.Equal(t, []string{"-i", "1", "-n", "-x", "-l", "-s", "65535", "-f", "tcp port 443"}, cmd.Args[1:])
+	require.True(t, strings.HasSuffix(strings.ToLower(cmd.Path), "dumpcap"))
+	require.Equal(t, []string{"-i", "1", "-q", "-F", "pcap", "-w", "-", "-s", "65535", "-f", "tcp port 443"}, cmd.Args[1:])
 }
 
 func TestBuildCaptureCommand_Windows_WithExecutablePath(t *testing.T) {
@@ -36,5 +36,5 @@ func TestBuildCaptureCommand_Windows_WithExecutablePath(t *testing.T) {
 	cmd := BuildCaptureCommandWithExe(exe, "Ethernet 2", "udp port 53", 1024, false)
 	require.NotNil(t, cmd)
 	require.Equal(t, exe, cmd.Path)
-	require.Equal(t, []string{"-i", "Ethernet 2", "-n", "-x", "-l", "-p", "-s", "1024", "-f", "udp port 53"}, cmd.Args[1:])
+	require.Equal(t, []string{"-i", "Ethernet 2", "-q", "-F", "pcap", "-w", "-", "-p", "-s", "1024", "-f", "udp port 53"}, cmd.Args[1:])
 }
