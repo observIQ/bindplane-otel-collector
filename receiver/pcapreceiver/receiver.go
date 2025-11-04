@@ -278,6 +278,7 @@ func (r *pcapReceiver) processPacketInfo(ctx context.Context, packetInfo *parser
 	if r.config.ParseAttributes {
 		attrs := logRecord.Attributes()
 		attrs.PutStr("network.type", packetInfo.Protocol)
+		attrs.PutStr("network.interface.name", r.config.Interface)
 		attrs.PutStr("network.transport", packetInfo.Transport)
 		attrs.PutStr("source.address", packetInfo.SrcAddress)
 		attrs.PutStr("destination.address", packetInfo.DstAddress)

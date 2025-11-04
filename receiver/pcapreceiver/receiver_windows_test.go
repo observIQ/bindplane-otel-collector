@@ -176,6 +176,10 @@ func TestReadPacketsWindows_ValidPacket(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "IP", protocol.AsString())
 
+	interfaceName, ok := attrs.Get("network.interface.name")
+	require.True(t, ok)
+	require.Equal(t, "1", interfaceName.AsString())
+
 	transport, ok := attrs.Get("network.transport")
 	require.True(t, ok)
 	require.Equal(t, "TCP", transport.AsString())
@@ -410,6 +414,10 @@ func TestReadPacketsWindows_UDPPacket(t *testing.T) {
 	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
 	attrs := logRecord.Attributes()
 
+	interfaceName, ok := attrs.Get("network.interface.name")
+	require.True(t, ok)
+	require.Equal(t, "1", interfaceName.AsString())
+
 	transport, ok := attrs.Get("network.transport")
 	require.True(t, ok)
 	require.Equal(t, "UDP", transport.AsString())
@@ -483,6 +491,10 @@ func TestReadPacketsWindows_IPv6Packet(t *testing.T) {
 	require.True(t, ok)
 	// Note: pcapgo parser may report "IPv6" instead of "IP6"
 	require.Contains(t, []string{"IP6", "IPv6"}, protocol.AsString())
+
+	interfaceName, ok := attrs.Get("network.interface.name")
+	require.True(t, ok)
+	require.Equal(t, "1", interfaceName.AsString())
 }
 
 func TestReadPacketsWindows_ICMPPacket(t *testing.T) {
@@ -542,6 +554,10 @@ func TestReadPacketsWindows_ICMPPacket(t *testing.T) {
 	logs := sink.AllLogs()
 	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
 	attrs := logRecord.Attributes()
+
+	interfaceName, ok := attrs.Get("network.interface.name")
+	require.True(t, ok)
+	require.Equal(t, "1", interfaceName.AsString())
 
 	transport, ok := attrs.Get("network.transport")
 	require.True(t, ok)

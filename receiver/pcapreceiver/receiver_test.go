@@ -125,6 +125,10 @@ func TestProcessPacket(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "IP", protocol.AsString())
 
+	interfaceName, ok := attrs.Get("network.interface.name")
+	require.True(t, ok)
+	require.Equal(t, "en0", interfaceName.AsString())
+
 	transport, ok := attrs.Get("network.transport")
 	require.True(t, ok)
 	require.Equal(t, "TCP", transport.AsString())
@@ -192,6 +196,10 @@ func TestProcessPacket_ICMPNoPort(t *testing.T) {
 
 	// Check transport is ICMP
 	attrs := logRecord.Attributes()
+	interfaceName, ok := attrs.Get("network.interface.name")
+	require.True(t, ok)
+	require.Equal(t, "en0", interfaceName.AsString())
+
 	transport, ok := attrs.Get("network.transport")
 	require.True(t, ok)
 	require.Equal(t, "ICMP", transport.AsString())
@@ -240,6 +248,10 @@ func TestProcessPacket_IPv6(t *testing.T) {
 	protocol, ok := attrs.Get("network.type")
 	require.True(t, ok)
 	require.Equal(t, "IP6", protocol.AsString())
+
+	interfaceName, ok := attrs.Get("network.interface.name")
+	require.True(t, ok)
+	require.Equal(t, "en0", interfaceName.AsString())
 
 	// Check IPv6 addresses
 	srcAddr, ok := attrs.Get("source.address")
@@ -295,6 +307,10 @@ func TestProcessPacket_UDP(t *testing.T) {
 	attrs := logRecord.Attributes()
 
 	// Check UDP transport
+	interfaceName, ok := attrs.Get("network.interface.name")
+	require.True(t, ok)
+	require.Equal(t, "en0", interfaceName.AsString())
+
 	transport, ok := attrs.Get("network.transport")
 	require.True(t, ok)
 	require.Equal(t, "UDP", transport.AsString())
@@ -329,11 +345,14 @@ func TestPacketInfo_ToLogAttributes(t *testing.T) {
 
 	// Verify all expected attributes are present
 	attrs := logRecord.Attributes()
-	require.Equal(t, 7, attrs.Len(), "Should have 7 attributes")
+	require.Equal(t, 8, attrs.Len(), "Should have 8 attributes")
 
 	// Verify attribute types
 	protocol, _ := attrs.Get("network.type")
 	require.Equal(t, "IP", protocol.AsString())
+
+	interfaceName, _ := attrs.Get("network.interface.name")
+	require.Equal(t, "en0", interfaceName.AsString())
 
 	transport, _ := attrs.Get("network.transport")
 	require.Equal(t, "TCP", transport.AsString())

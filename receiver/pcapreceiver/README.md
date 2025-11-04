@@ -179,6 +179,7 @@ Each captured packet is emitted as an OTel log with the following structure:
   "body": "0x4500003c1c4640004006b1e6c0a80164c0a80101d43101bb499602d200000000a002fffffe300000020405b40103030601010",
   "attributes": {
     "network.type": "IP",
+    "network.interface.name": "en0",
     "network.transport": "TCP",
     "source.address": "192.168.1.100",
     "destination.address": "192.168.1.1",
@@ -193,6 +194,7 @@ Each captured packet is emitted as an OTel log with the following structure:
 ### Attributes
 
 - `network.type`: Network layer protocol (`IP`, `IPv6`, `ARP`)
+- `network.interface.name`: Network interface name used for packet capture (e.g., `en0`, `eth0`, `1`)
 - `network.transport`: Transport layer protocol (`TCP`, `UDP`, `ICMP`, or `Unknown`)
 - `source.address`: Source IP address
 - `destination.address`: Destination IP address

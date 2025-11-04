@@ -142,6 +142,10 @@ func TestReadPackets_Unix_SinglePacket(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "IP", protocol.AsString())
 
+	interfaceName, ok := attrs.Get("network.interface.name")
+	require.True(t, ok)
+	require.Equal(t, "en0", interfaceName.AsString())
+
 	transport, ok := attrs.Get("network.transport")
 	require.True(t, ok)
 	require.Equal(t, "TCP", transport.AsString())
@@ -323,6 +327,10 @@ func TestReadPackets_Unix_IPv6Packet(t *testing.T) {
 	protocol, ok := attrs.Get("network.type")
 	require.True(t, ok)
 	require.Equal(t, "IP6", protocol.AsString())
+
+	interfaceName, ok := attrs.Get("network.interface.name")
+	require.True(t, ok)
+	require.Equal(t, "en0", interfaceName.AsString())
 }
 
 func TestReadPackets_Unix_ICMPPacket(t *testing.T) {
@@ -349,6 +357,10 @@ func TestReadPackets_Unix_ICMPPacket(t *testing.T) {
 	logs := sink.AllLogs()
 	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
 	attrs := logRecord.Attributes()
+
+	interfaceName, ok := attrs.Get("network.interface.name")
+	require.True(t, ok)
+	require.Equal(t, "en0", interfaceName.AsString())
 
 	transport, ok := attrs.Get("network.transport")
 	require.True(t, ok)
