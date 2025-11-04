@@ -23,7 +23,7 @@ import (
 
 // readPacketsWindows is a stub for non-Windows builds
 // This should never be called since readPackets checks runtime.GOOS first
-func (r *pcapReceiver) readPacketsWindows(ctx context.Context, stdout io.ReadCloser) {
+func (r *pcapReceiver) readPacketsWindows(_ context.Context, _ io.ReadCloser) {
 	// This should never be called on non-Windows platforms
 	// The runtime check in readPackets should prevent this
 	panic("readPacketsWindows called on non-Windows platform - this is a programming error")
