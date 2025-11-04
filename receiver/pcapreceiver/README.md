@@ -206,7 +206,7 @@ Each captured packet is emitted as an OTel log with the following structure:
 
 ### Body Format
 
-The log body contains the full packet data as a hex-encoded string with `0x` prefix. This can be decoded and analyzed by downstream systems or Chronicle Forwarder.
+The log body contains the full packet data as a hex-encoded string with `0x` prefix. This can be decoded and analyzed downstream.
 
 ## Troubleshooting
 

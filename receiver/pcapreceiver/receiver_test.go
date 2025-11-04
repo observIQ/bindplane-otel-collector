@@ -26,10 +26,11 @@ import (
 
 func TestNewReceiver(t *testing.T) {
 	cfg := &Config{
-		Interface:   "en0",
-		Filter:      "tcp port 443",
-		SnapLen:     65535,
-		Promiscuous: true,
+		Interface:     "en0",
+		Filter:        "tcp port 443",
+		SnapLen:       65535,
+		Promiscuous:   true,
+		AddAttributes: true,
 	}
 	logger := zap.NewNop()
 	consumer := consumertest.NewNop()
@@ -88,7 +89,7 @@ func TestIsTimestampLine(t *testing.T) {
 }
 
 func TestProcessPacket(t *testing.T) {
-	cfg := &Config{Interface: "en0"}
+	cfg := &Config{Interface: "en0", AddAttributes: true}
 	sink := &consumertest.LogsSink{}
 	receiver := newReceiver(cfg, zap.NewNop(), sink)
 
@@ -169,7 +170,7 @@ func TestProcessPacket_InvalidPacket(t *testing.T) {
 }
 
 func TestProcessPacket_ICMPNoPort(t *testing.T) {
-	cfg := &Config{Interface: "en0"}
+	cfg := &Config{Interface: "en0", AddAttributes: true}
 	sink := &consumertest.LogsSink{}
 	receiver := newReceiver(cfg, zap.NewNop(), sink)
 
@@ -212,7 +213,7 @@ func TestShutdown(t *testing.T) {
 }
 
 func TestProcessPacket_IPv6(t *testing.T) {
-	cfg := &Config{Interface: "en0"}
+	cfg := &Config{Interface: "en0", AddAttributes: true}
 	sink := &consumertest.LogsSink{}
 	receiver := newReceiver(cfg, zap.NewNop(), sink)
 
@@ -271,7 +272,7 @@ func TestDefaultSnapLen(t *testing.T) {
 }
 
 func TestProcessPacket_UDP(t *testing.T) {
-	cfg := &Config{Interface: "en0"}
+	cfg := &Config{Interface: "en0", AddAttributes: true}
 	sink := &consumertest.LogsSink{}
 	receiver := newReceiver(cfg, zap.NewNop(), sink)
 
@@ -306,7 +307,7 @@ func TestProcessPacket_UDP(t *testing.T) {
 
 func TestPacketInfo_ToLogAttributes(t *testing.T) {
 	// Test that PacketInfo is correctly converted to log attributes
-	cfg := &Config{Interface: "en0"}
+	cfg := &Config{Interface: "en0", AddAttributes: true}
 	sink := &consumertest.LogsSink{}
 	receiver := newReceiver(cfg, zap.NewNop(), sink)
 
