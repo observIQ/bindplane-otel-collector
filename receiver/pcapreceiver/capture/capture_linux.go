@@ -14,6 +14,7 @@
 
 //go:build linux
 
+// Package capture provides functions to build capture commands for different platforms.
 package capture
 
 import (
