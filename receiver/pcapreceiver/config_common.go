@@ -16,10 +16,10 @@ package pcapreceiver
 
 // Config defines configuration for the PCAP receiver
 type Config struct {
-	Interface      string `mapstructure:"interface"`       // Network interface to capture on (e.g., "en0")
-	Filter         string `mapstructure:"filter"`          // BPF filter expression (optional)
-	SnapLen        int    `mapstructure:"snaplen"`         // Snapshot length in bytes (default: 65535)
-	Promiscuous    bool   `mapstructure:"promiscuous"`     // Enable promiscuous mode (default: true)
-	ExecutablePath string `mapstructure:"executable_path"` // Windows only: optional override path to dumpcap.exe
-	AddAttributes  bool   `mapstructure:"add_attributes"`  // Add network attributes to log records
+	Interface       string `mapstructure:"interface"`        // Network interface to capture on (e.g., "en0")
+	Filter          string `mapstructure:"filter"`           // BPF filter expression (optional)
+	SnapLen         int    `mapstructure:"snaplen"`          // Snapshot length in bytes (default: 65535)
+	Promiscuous     bool   `mapstructure:"promiscuous"`      // Enable promiscuous mode (default: true)
+	ExecutablePath  string `mapstructure:"executable_path"`  // Windows only: optional override path to dumpcap.exe
+	ParseAttributes bool   `mapstructure:"parse_attributes"` // Parse network attributes and add them to the logs
 }

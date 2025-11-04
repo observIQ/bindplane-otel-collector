@@ -28,11 +28,11 @@ func TestConfig_Validate_Success(t *testing.T) {
 		{
 			name: "valid config with all fields",
 			config: &Config{
-				Interface:     "en0",
-				Filter:        "tcp port 443",
-				SnapLen:       65535,
-				Promiscuous:   true,
-				AddAttributes: false,
+				Interface:       "en0",
+				Filter:          "tcp port 443",
+				SnapLen:         65535,
+				Promiscuous:     true,
+				ParseAttributes: false,
 			},
 		},
 		{

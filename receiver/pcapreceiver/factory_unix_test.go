@@ -40,7 +40,7 @@ func TestCreateDefaultConfig(t *testing.T) {
 	require.Equal(t, "any", pcapCfg.Interface)
 	require.Equal(t, 65535, pcapCfg.SnapLen)
 	require.True(t, pcapCfg.Promiscuous)
-	require.True(t, pcapCfg.AddAttributes)
+	require.True(t, pcapCfg.ParseAttributes)
 }
 
 func TestCreateLogsReceiver(t *testing.T) {

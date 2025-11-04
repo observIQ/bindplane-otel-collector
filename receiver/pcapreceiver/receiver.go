@@ -275,7 +275,7 @@ func (r *pcapReceiver) processPacketInfo(ctx context.Context, packetInfo *parser
 	logRecord.Body().SetStr("0x" + packetInfo.HexData)
 
 	// Set attributes if enabled
-	if r.config.AddAttributes {
+	if r.config.ParseAttributes {
 		attrs := logRecord.Attributes()
 		attrs.PutStr("network.type", packetInfo.Protocol)
 		attrs.PutStr("network.transport", packetInfo.Transport)

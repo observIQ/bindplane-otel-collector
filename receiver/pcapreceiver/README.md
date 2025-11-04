@@ -2,10 +2,6 @@
 
 The PCAP Receiver captures network packets and emits them as OpenTelemetry logs. It uses system-native command-line tools (`tcpdump` on macOS/Linux, `dumpcap` on Windows) to capture packets directly from a network interface.
 
-## Minimum Agent Versions
-
-- Introduced: v1.x.x (TBD)
-
 ## Supported Pipelines
 
 - Logs
@@ -92,7 +88,7 @@ tcpdump --version
    - Source and destination addresses
    - Source and destination ports (when applicable)
    - Full packet data as hex string
-4. Each packet is emitted as an OTel log with the hex-encoded packet as the body and structured attributes.
+4. Each packet is emitted as an OTel log with the hex-encoded packet as the body.
 
 ## Configuration
 
@@ -103,7 +99,7 @@ tcpdump --version
 | `snaplen`     | int    | `65535` | No       | Maximum bytes to capture per packet (64-65535).             |
 | `promiscuous` | bool   | `true`  | No       | Enable promiscuous mode to capture all network traffic.     |
 | `executable_path` | string | `dumpcap` | No | Windows only, optional path to `dumpcap` executable. |
-| `add_attributes` | bool | `true` | No | Parse network attributes and add them to the logs.
+| `parse_attributes` | bool | `true` | No | Parse network attributes and add them to the logs. |
 
 \* Defaults to `"1"` on Windows 
 
@@ -192,7 +188,7 @@ Each captured packet is emitted as an OTel log with the following structure:
   }
 }
 ```
-**Note:** Attributes will only be parsed when `add_attributes` is enabled.
+**Note:** Attributes will only be parsed when `parse_attributes` is `true`.
 
 ### Attributes
 

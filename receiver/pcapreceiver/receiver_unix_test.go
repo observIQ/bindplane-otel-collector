@@ -109,7 +109,7 @@ func TestCheckPrivileges_Unix_TcpdumpNotFound(t *testing.T) {
 }
 
 func TestReadPackets_Unix_SinglePacket(t *testing.T) {
-	cfg := &Config{Interface: "en0", AddAttributes: true}
+	cfg := &Config{Interface: "en0", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	receiver := newReceiver(cfg, logger, sink)
@@ -168,7 +168,7 @@ func TestReadPackets_Unix_SinglePacket(t *testing.T) {
 }
 
 func TestReadPackets_Unix_MultiplePackets(t *testing.T) {
-	cfg := &Config{Interface: "en0", AddAttributes: true}
+	cfg := &Config{Interface: "en0", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	receiver := newReceiver(cfg, logger, sink)
@@ -199,7 +199,7 @@ func TestReadPackets_Unix_MultiplePackets(t *testing.T) {
 }
 
 func TestReadPackets_Unix_EmptyInput(t *testing.T) {
-	cfg := &Config{Interface: "en0", AddAttributes: true}
+	cfg := &Config{Interface: "en0", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	receiver := newReceiver(cfg, logger, sink)
@@ -295,7 +295,7 @@ func TestReadPackets_Unix_PacketWithOnlyTimestamp(t *testing.T) {
 }
 
 func TestReadPackets_Unix_IPv6Packet(t *testing.T) {
-	cfg := &Config{Interface: "en0", AddAttributes: true}
+	cfg := &Config{Interface: "en0", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	receiver := newReceiver(cfg, logger, sink)
@@ -326,7 +326,7 @@ func TestReadPackets_Unix_IPv6Packet(t *testing.T) {
 }
 
 func TestReadPackets_Unix_ICMPPacket(t *testing.T) {
-	cfg := &Config{Interface: "en0", AddAttributes: true}
+	cfg := &Config{Interface: "en0", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	receiver := newReceiver(cfg, logger, sink)

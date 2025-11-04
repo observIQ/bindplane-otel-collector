@@ -103,7 +103,7 @@ func TestCheckPrivileges_Windows_DumpcapNotFound(t *testing.T) {
 }
 
 func TestReadPacketsWindows_ValidPacket(t *testing.T) {
-	cfg := &Config{Interface: "1", AddAttributes: true}
+	cfg := &Config{Interface: "1", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	receiver := newReceiver(cfg, logger, sink)
@@ -351,7 +351,7 @@ func TestReadPacketsWindows_ContextCancellation(t *testing.T) {
 }
 
 func TestReadPacketsWindows_UDPPacket(t *testing.T) {
-	cfg := &Config{Interface: "1", AddAttributes: true}
+	cfg := &Config{Interface: "1", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	receiver := newReceiver(cfg, logger, sink)
@@ -416,7 +416,7 @@ func TestReadPacketsWindows_UDPPacket(t *testing.T) {
 }
 
 func TestReadPacketsWindows_IPv6Packet(t *testing.T) {
-	cfg := &Config{Interface: "1", AddAttributes: true}
+	cfg := &Config{Interface: "1", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	receiver := newReceiver(cfg, logger, sink)
@@ -486,7 +486,7 @@ func TestReadPacketsWindows_IPv6Packet(t *testing.T) {
 }
 
 func TestReadPacketsWindows_ICMPPacket(t *testing.T) {
-	cfg := &Config{Interface: "1", AddAttributes: true}
+	cfg := &Config{Interface: "1", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	receiver := newReceiver(cfg, logger, sink)
