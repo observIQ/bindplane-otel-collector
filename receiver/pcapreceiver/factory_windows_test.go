@@ -36,4 +36,3 @@ func TestCreateLogsReceiver_Windows(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, recv)
 }
-

@@ -37,4 +37,3 @@ func createLogsReceiver(
 
 	return newReceiver(receiverCfg, params.Logger, consumer), nil
 }
-

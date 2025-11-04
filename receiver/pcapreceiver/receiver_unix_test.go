@@ -48,7 +48,7 @@ func TestCheckPrivileges_Unix_Root(t *testing.T) {
 	mockCmd := &exec.Cmd{
 		Process: &os.Process{Pid: 12345},
 	}
-	newCommand = func(name string, arg ...string) *exec.Cmd {
+	newCommand = func(_ string, _ ...string) *exec.Cmd {
 		cmd := exec.Command("echo", "test")
 		cmd.Process = mockCmd.Process
 		return cmd
@@ -106,7 +106,7 @@ func TestCheckPrivileges_Unix_TcpdumpNotFound(t *testing.T) {
 	}()
 
 	// Mock command that fails to start
-	newCommand = func(name string, arg ...string) *exec.Cmd {
+	newCommand = func(_ string, _ ...string) *exec.Cmd {
 		cmd := exec.Command("nonexistent-command-that-does-not-exist")
 		return cmd
 	}

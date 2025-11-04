@@ -25,12 +25,12 @@ import (
 
 func TestBuildCaptureCommand_Linux(t *testing.T) {
 	tests := []struct {
-		name        string
-		iface       string
-		filter      string
-		snaplen     int
-		promisc     bool
-		wantArgs    []string
+		name     string
+		iface    string
+		filter   string
+		snaplen  int
+		promisc  bool
+		wantArgs []string
 	}{
 		{
 			name:     "basic command with interface",

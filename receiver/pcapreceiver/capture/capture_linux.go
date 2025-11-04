@@ -25,10 +25,10 @@ import (
 // BuildCaptureCommand builds the tcpdump command for Linux
 func BuildCaptureCommand(iface, filter string, snaplen int, promisc bool) *exec.Cmd {
 	args := []string{
-		"-i", iface,  // Interface
-		"-n",         // Don't resolve hostnames
-		"-xx",        // Print packet data in hex with link-level headers
-		"-l",         // Line buffered output
+		"-i", iface, // Interface
+		"-n",  // Don't resolve hostnames
+		"-xx", // Print packet data in hex with link-level headers
+		"-l",  // Line buffered output
 	}
 
 	// Add -p flag to disable promiscuous mode if requested
@@ -47,4 +47,3 @@ func BuildCaptureCommand(iface, filter string, snaplen int, promisc bool) *exec.
 
 	return exec.Command("tcpdump", args...) // #nosec G204 - validated by config
 }
-

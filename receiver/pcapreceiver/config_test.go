@@ -236,4 +236,3 @@ func TestConfig_Validate_SnapLenErrors(t *testing.T) {
 		})
 	}
 }
-

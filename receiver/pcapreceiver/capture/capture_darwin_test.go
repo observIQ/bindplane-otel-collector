@@ -25,12 +25,12 @@ import (
 
 func TestBuildCaptureCommand(t *testing.T) {
 	tests := []struct {
-		name        string
-		iface       string
-		filter      string
-		snaplen     int
-		promisc     bool
-		wantArgs    []string
+		name     string
+		iface    string
+		filter   string
+		snaplen  int
+		promisc  bool
+		wantArgs []string
 	}{
 		{
 			name:     "basic command with interface",
@@ -98,4 +98,3 @@ func TestBuildCaptureCommand_FilterWithParentheses(t *testing.T) {
 	require.Contains(t, args, "and")
 	require.Contains(t, args, "not")
 }
-
