@@ -99,6 +99,42 @@ func parseHeaderLine(line string) (*PacketInfo, error) {
 
 	// Split into parts
 	parts := strings.Fields(line)
+	if len(parts) < 2 {
+		return nil, fmt.Errorf("%w: not enough fields", errInvalidFormat)
+	}
+
+	// Check for ARP packets first (they don't follow the standard IP format)
+	// Format: "ARP, Request who-has 10.1.10.167 tell 10.1.10.1"
+	// Format: "ARP, Reply 10.1.10.167 is-at c2:08:9d:e7:3c:e1"
+	if len(parts) >= 2 && parts[0] == "ARP," {
+		info.Protocol = "ARP"
+		info.Transport = "Unknown"
+
+		// Parse ARP request: "ARP, Request who-has <dst> tell <src>"
+		if len(parts) >= 6 && parts[1] == "Request" && parts[2] == "who-has" && parts[4] == "tell" {
+			// Extract destination IP (who-has target)
+			info.DstAddress = parts[3]
+			// Extract source IP (tell sender)
+			info.SrcAddress = parts[5]
+			return info, nil
+		}
+
+		// Parse ARP reply: "ARP, Reply <target> is-at <mac>"
+		if len(parts) >= 3 && parts[1] == "Reply" {
+			// The target IP is the destination
+			if len(parts) >= 3 {
+				info.DstAddress = parts[2]
+			}
+			// Source IP might be in the hex data, but we can't easily extract it from the header
+			// For now, just set what we can
+			return info, nil
+		}
+
+		// Generic ARP packet - just set protocol
+		return info, nil
+	}
+
+	// Check for minimum fields for IP packets
 	if len(parts) < 4 {
 		return nil, fmt.Errorf("%w: not enough fields", errInvalidFormat)
 	}
