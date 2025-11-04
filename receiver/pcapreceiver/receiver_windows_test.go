@@ -121,12 +121,23 @@ func TestReadPacketsWindows_ValidPacket(t *testing.T) {
 		// Create a simple TCP packet
 		buf := make([]byte, 0, 60)
 		// Ethernet header (14 bytes)
-		buf = append(buf, make([]byte, 14)...)
+		ethHeader := make([]byte, 14)
+		binary.BigEndian.PutUint16(ethHeader[12:14], 0x0800) // EtherType: IPv4
+		buf = append(buf, ethHeader...)
 		// IP header (20 bytes)
 		ipHeader := make([]byte, 20)
 		ipHeader[0] = 0x45                            // Version 4, IHL 5
 		ipHeader[1] = 0x00                            // TOS
 		binary.BigEndian.PutUint16(ipHeader[2:4], 60) // Total length
+		ipHeader[9] = 6                               // Protocol: TCP
+		ipHeader[12] = 192                            // Source IP: 192.168.1.100
+		ipHeader[13] = 168
+		ipHeader[14] = 1
+		ipHeader[15] = 100
+		ipHeader[16] = 192 // Dest IP: 192.168.1.1
+		ipHeader[17] = 168
+		ipHeader[18] = 1
+		ipHeader[19] = 1
 		buf = append(buf, ipHeader...)
 		// TCP header (20 bytes)
 		tcpHeader := make([]byte, 20)
@@ -187,10 +198,22 @@ func TestReadPacketsWindows_MultiplePackets(t *testing.T) {
 		// Create two packets
 		for i := 0; i < 2; i++ {
 			buf := make([]byte, 0, 60)
-			buf = append(buf, make([]byte, 14)...) // Ethernet
+			// Ethernet header (14 bytes)
+			ethHeader := make([]byte, 14)
+			binary.BigEndian.PutUint16(ethHeader[12:14], 0x0800) // EtherType: IPv4
+			buf = append(buf, ethHeader...)
 			ipHeader := make([]byte, 20)
 			ipHeader[0] = 0x45
 			binary.BigEndian.PutUint16(ipHeader[2:4], 60)
+			ipHeader[9] = 6    // Protocol: TCP
+			ipHeader[12] = 192 // Source IP: 192.168.1.100
+			ipHeader[13] = 168
+			ipHeader[14] = 1
+			ipHeader[15] = 100
+			ipHeader[16] = 192 // Dest IP: 192.168.1.1
+			ipHeader[17] = 168
+			ipHeader[18] = 1
+			ipHeader[19] = 1
 			buf = append(buf, ipHeader...)
 			tcpHeader := make([]byte, 20)
 			binary.BigEndian.PutUint16(tcpHeader[0:2], uint16(54321+i))
@@ -285,10 +308,22 @@ func TestReadPacketsWindows_ContextCancellation(t *testing.T) {
 
 		// Write one packet
 		buf := make([]byte, 0, 60)
-		buf = append(buf, make([]byte, 14)...)
+		// Ethernet header (14 bytes)
+		ethHeader := make([]byte, 14)
+		binary.BigEndian.PutUint16(ethHeader[12:14], 0x0800) // EtherType: IPv4
+		buf = append(buf, ethHeader...)
 		ipHeader := make([]byte, 20)
 		ipHeader[0] = 0x45
 		binary.BigEndian.PutUint16(ipHeader[2:4], 60)
+		ipHeader[9] = 6    // Protocol: TCP
+		ipHeader[12] = 192 // Source IP: 192.168.1.100
+		ipHeader[13] = 168
+		ipHeader[14] = 1
+		ipHeader[15] = 100
+		ipHeader[16] = 192 // Dest IP: 192.168.1.1
+		ipHeader[17] = 168
+		ipHeader[18] = 1
+		ipHeader[19] = 1
 		buf = append(buf, ipHeader...)
 		tcpHeader := make([]byte, 20)
 		buf = append(buf, tcpHeader...)
@@ -331,11 +366,22 @@ func TestReadPacketsWindows_UDPPacket(t *testing.T) {
 
 		// Create UDP packet
 		buf := make([]byte, 0, 42)
-		buf = append(buf, make([]byte, 14)...) // Ethernet
+		// Ethernet header (14 bytes)
+		ethHeader := make([]byte, 14)
+		binary.BigEndian.PutUint16(ethHeader[12:14], 0x0800) // EtherType: IPv4
+		buf = append(buf, ethHeader...)
 		ipHeader := make([]byte, 20)
 		ipHeader[0] = 0x45
 		ipHeader[9] = 17 // UDP protocol
 		binary.BigEndian.PutUint16(ipHeader[2:4], 42)
+		ipHeader[12] = 192 // Source IP: 192.168.1.100
+		ipHeader[13] = 168
+		ipHeader[14] = 1
+		ipHeader[15] = 100
+		ipHeader[16] = 192 // Dest IP: 192.168.1.1
+		ipHeader[17] = 168
+		ipHeader[18] = 1
+		ipHeader[19] = 1
 		buf = append(buf, ipHeader...)
 		udpHeader := make([]byte, 8)
 		binary.BigEndian.PutUint16(udpHeader[0:2], 12345) // Source port
@@ -385,9 +431,27 @@ func TestReadPacketsWindows_IPv6Packet(t *testing.T) {
 
 		// Create IPv6 packet
 		buf := make([]byte, 0, 74)
-		buf = append(buf, make([]byte, 14)...) // Ethernet
+		// Ethernet header (14 bytes)
+		ethHeader := make([]byte, 14)
+		binary.BigEndian.PutUint16(ethHeader[12:14], 0x86DD) // EtherType: IPv6
+		buf = append(buf, ethHeader...)
 		ipv6Header := make([]byte, 40)
 		ipv6Header[0] = 0x60 // Version 6
+		ipv6Header[6] = 6    // Next header: TCP
+		// Source IPv6: 2001:db8::1
+		ipv6Header[8] = 0x20
+		ipv6Header[9] = 0x01
+		ipv6Header[10] = 0x0d
+		ipv6Header[11] = 0xb8
+		ipv6Header[14] = 0x00
+		ipv6Header[15] = 0x01
+		// Dest IPv6: 2001:db8::2
+		ipv6Header[24] = 0x20
+		ipv6Header[25] = 0x01
+		ipv6Header[26] = 0x0d
+		ipv6Header[27] = 0xb8
+		ipv6Header[30] = 0x00
+		ipv6Header[31] = 0x02
 		buf = append(buf, ipv6Header...)
 		tcpHeader := make([]byte, 20)
 		binary.BigEndian.PutUint16(tcpHeader[0:2], 8080)
@@ -437,11 +501,22 @@ func TestReadPacketsWindows_ICMPPacket(t *testing.T) {
 
 		// Create ICMP packet
 		buf := make([]byte, 0, 42)
-		buf = append(buf, make([]byte, 14)...) // Ethernet
+		// Ethernet header (14 bytes)
+		ethHeader := make([]byte, 14)
+		binary.BigEndian.PutUint16(ethHeader[12:14], 0x0800) // EtherType: IPv4
+		buf = append(buf, ethHeader...)
 		ipHeader := make([]byte, 20)
 		ipHeader[0] = 0x45
 		ipHeader[9] = 1 // ICMP protocol
 		binary.BigEndian.PutUint16(ipHeader[2:4], 42)
+		ipHeader[12] = 192 // Source IP: 192.168.1.100
+		ipHeader[13] = 168
+		ipHeader[14] = 1
+		ipHeader[15] = 100
+		ipHeader[16] = 192 // Dest IP: 192.168.1.1
+		ipHeader[17] = 168
+		ipHeader[18] = 1
+		ipHeader[19] = 1
 		buf = append(buf, ipHeader...)
 		icmpHeader := make([]byte, 8)
 		icmpHeader[0] = 8 // Echo request
