@@ -231,6 +231,10 @@ func (u *Updater) Update() error {
 
 	// Successful update
 	u.logger.Info("Update Complete")
+	// safely remove the package status artifact now that we've successfully updated
+	if removeErr := os.Remove(packagestate.DefaultFileName); removeErr != nil {
+		u.logger.Warn("Failed to remove package status artifact after successful update", zap.Error(removeErr))
+	}
 	return nil
 }
 
