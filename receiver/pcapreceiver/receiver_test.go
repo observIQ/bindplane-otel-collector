@@ -44,6 +44,7 @@ func TestNewReceiver(t *testing.T) {
 	require.Equal(t, consumer, receiver.consumer)
 }
 
+// TestCheckPrivileges is a basic integration test for privilege checking.
 func TestCheckPrivileges(t *testing.T) {
 	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
 		t.Skip("Privilege check only implemented for Unix-like systems")
@@ -287,6 +288,7 @@ func TestStart_InvalidConfig(t *testing.T) {
 	}
 }
 
+// TestStart_WithoutRootPrivileges tests that Start() handles lack of privileges gracefully.
 func TestStart_WithoutRootPrivileges(t *testing.T) {
 	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
 		t.Skip("Privilege check only implemented for Unix-like systems")
@@ -305,6 +307,9 @@ func TestStart_WithoutRootPrivileges(t *testing.T) {
 	// Start should succeed even without privileges, but won't capture packets
 	err := receiver.Start(context.Background(), componenttest.NewNopHost())
 	require.NoError(t, err)
+
+	// Clean up
+	_ = receiver.Shutdown(context.Background())
 }
 
 func TestProcessPacket_IPv6(t *testing.T) {
