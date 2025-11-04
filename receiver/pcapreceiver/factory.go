@@ -32,12 +32,3 @@ func NewFactory() receiver.Factory {
 		receiver.WithLogs(createLogsReceiver, stability),
 	)
 }
-
-// createDefaultConfig creates the default configuration for the receiver
-func createDefaultConfig() component.Config {
-	return &Config{
-		Interface:   "en0", // Default macOS interface
-		SnapLen:     65535, // Maximum snapshot length
-		Promiscuous: true,  // Enable promiscuous mode by default
-	}
-}

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build linux
+//go:build !windows
 
 package pcapreceiver
 
@@ -24,7 +24,7 @@ import (
 	"go.opentelemetry.io/collector/receiver"
 )
 
-// createLogsReceiver creates a logs receiver for Linux
+// createLogsReceiver creates a logs receiver for Unix systems (macOS/Linux)
 func createLogsReceiver(
 	_ context.Context,
 	params receiver.Settings,
@@ -33,7 +33,7 @@ func createLogsReceiver(
 ) (receiver.Logs, error) {
 	receiverCfg := cfg.(*Config)
 
-	params.Logger.Warn("PCAP receiver on Linux may require root or tcpdump capabilities (cap_net_raw,cap_net_admin)")
+	params.Logger.Warn("PCAP receiver requires root privileges or tcpdump capabilities (cap_net_raw,cap_net_admin). Ensure the collector has sufficient privileges to capture network packets")
 
 	return newReceiver(receiverCfg, params.Logger, consumer), nil
 }

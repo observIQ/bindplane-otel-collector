@@ -25,6 +25,17 @@ import (
 	"go.opentelemetry.io/collector/receiver/receivertest"
 )
 
+func TestCreateDefaultConfig_Windows(t *testing.T) {
+	cfg := createDefaultConfig()
+	require.NotNil(t, cfg)
+
+	pcapCfg, ok := cfg.(*Config)
+	require.True(t, ok)
+	require.Equal(t, "1", pcapCfg.Interface) // Windows default is numeric ID "1"
+	require.Equal(t, 65535, pcapCfg.SnapLen)
+	require.True(t, pcapCfg.Promiscuous)
+}
+
 func TestCreateLogsReceiver_Windows(t *testing.T) {
 	factory := NewFactory()
 	cfg := createDefaultConfig()

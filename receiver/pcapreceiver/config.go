@@ -16,7 +16,6 @@ package pcapreceiver
 
 import (
 	"fmt"
-	"runtime"
 	"strings"
 )
 
@@ -48,62 +47,6 @@ func (cfg *Config) Validate() error {
 	if cfg.SnapLen != 0 {
 		if cfg.SnapLen < minSnapLen || cfg.SnapLen > maxSnapLen {
 			return fmt.Errorf("snaplen must be between %d and %d", minSnapLen, maxSnapLen)
-		}
-	}
-
-	return nil
-}
-
-// validateInterfaceName validates the interface name to prevent shell injection
-func validateInterfaceName(iface string) error {
-	// Windows interface names can be:
-	// - Numeric indices: "1", "2"
-	// - Device paths: "\Device\NPF_{GUID}"
-	// - Friendly names: "Ethernet", "Local Area Connection"
-	// Unix interface names are simpler: "eth0", "en0", "any", etc.
-
-	var dangerousChars []string
-
-	if runtime.GOOS == "windows" {
-		// Windows: Allow backslashes, braces, and spaces (for device paths and friendly names)
-		// But still block command injection characters
-		dangerousChars = []string{
-			";",  // Command separator
-			"|",  // Pipe
-			"&",  // Background/AND
-			"$",  // Variable expansion
-			"`",  // Command substitution
-			"\n", // Newline
-			"\r", // Carriage return
-			">",  // Redirect
-			"<",  // Redirect
-			"\"", // Quote
-			"'",  // Quote
-		}
-	} else {
-		// Unix: Strict validation (no backslashes, spaces, or braces)
-		dangerousChars = []string{
-			";",  // Command separator
-			"|",  // Pipe
-			"&",  // Background/AND
-			"$",  // Variable expansion
-			"`",  // Command substitution
-			"\n", // Newline
-			"\r", // Carriage return
-			">",  // Redirect
-			"<",  // Redirect
-			"\"", // Quote
-			"'",  // Quote
-			"\\", // Escape (backslash not valid in Unix interface names)
-			" ",  // Space (interfaces shouldn't have spaces on Unix)
-			"{",  // Brace (not valid in Unix interface names)
-			"}",  // Brace (not valid in Unix interface names)
-		}
-	}
-
-	for _, char := range dangerousChars {
-		if strings.Contains(iface, char) {
-			return fmt.Errorf("invalid character %q in interface name", char)
 		}
 	}
 

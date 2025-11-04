@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build darwin
+//go:build !windows
 
 package pcapreceiver
 
 import (
 	"context"
-	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -38,7 +37,7 @@ func TestCreateDefaultConfig(t *testing.T) {
 
 	pcapCfg, ok := cfg.(*Config)
 	require.True(t, ok)
-	require.Equal(t, "en0", pcapCfg.Interface)
+	require.Equal(t, "any", pcapCfg.Interface)
 	require.Equal(t, 65535, pcapCfg.SnapLen)
 	require.True(t, pcapCfg.Promiscuous)
 }
@@ -50,25 +49,12 @@ func TestCreateLogsReceiver(t *testing.T) {
 	settings := receivertest.NewNopSettings(factory.Type())
 	consumer := consumertest.NewNop()
 
-	receiver, err := factory.CreateLogs(context.Background(), settings, cfg, consumer)
-
-	if runtime.GOOS == "darwin" {
-		// On macOS, receiver should be created successfully
-		require.NoError(t, err)
-		require.NotNil(t, receiver)
-	} else {
-		// On other platforms, should return unsupported error
-		require.Error(t, err)
-		require.Nil(t, receiver)
-		require.Contains(t, err.Error(), "currently only supported on macOS")
-	}
+	recv, err := factory.CreateLogs(context.Background(), settings, cfg, consumer)
+	require.NoError(t, err)
+	require.NotNil(t, recv)
 }
 
 func TestCreateLogsReceiver_WithInvalidConfig(t *testing.T) {
-	if runtime.GOOS != "darwin" {
-		t.Skip("Test only runs on macOS")
-	}
-
 	factory := NewFactory()
 	cfg := &Config{
 		Interface: "", // Invalid: empty interface

@@ -1,6 +1,6 @@
 # PCAP Receiver
 
-The PCAP Receiver captures network packets and emits them as OpenTelemetry logs. It uses system-native command-line tools (`tcpdump` on macOS/Linux) to capture packets, making it a pure-Go solution that doesn't require cgo or native library dependencies.
+The PCAP Receiver captures network packets and emits them as OpenTelemetry logs. It uses system-native command-line tools (`tcpdump` on macOS/Linux, `dumpcap` on Windows) to capture packets directly from a network interface.
 
 ## Minimum Agent Versions
 
@@ -10,88 +10,112 @@ The PCAP Receiver captures network packets and emits them as OpenTelemetry logs.
 
 - Logs
 
-## Supported Platforms
-
-- **macOS (darwin)**: ✅ Fully supported
-- **Linux**: ✅ Fully supported
-- **Windows**: ✅ Fully supported (requires Wireshark)
-
-## How It Works
-
-1. The receiver spawns a capture tool process (`tcpdump` on macOS/Linux, `dumpcap` on Windows) with the specified interface and filter
-2. The capture tool outputs packet data in hex format (`-xx` flag for tcpdump, `-x` flag for dumpcap)
-3. The receiver parses the text output to extract:
-   - Network protocol (IP, IPv6, ARP)
-   - Transport protocol (TCP, UDP, ICMP)
-   - Source and destination addresses
-   - Source and destination ports (when applicable)
-   - Full packet data as hex string
-4. Each packet is emitted as an OTel log with the hex-encoded packet as the body and structured attributes
-
-## Privilege Requirements
+## Prerequisites
 
 ⚠️ **This receiver requires elevated privileges to capture network packets.**
 
 ### macOS
 
-Run the collector with `sudo`:
+**Tool**: `tcpdump` is pre-installed on macOS. No additional installation required.
 
+To verify:
+```bash
+which tcpdump
+tcpdump --version
+```
+
+**Privileges**: Run the collector with `sudo`:
 ```bash
 sudo /path/to/collector --config config.yaml
 ```
 
 ### Linux
 
-You can either run as root or use Linux capabilities.
+**Tool**: `tcpdump` is pre-installed on Linux. No additional installation required.
 
-- Option A: Run as root
-
+To verify:
 ```bash
-sudo /path/to/collector --config config.yaml
+which tcpdump
+tcpdump --version
 ```
 
-- Option B: Grant capabilities to tcpdump (common on many distros):
+**Privileges**: You can either run as root or use Linux capabilities.
 
-```bash
-sudo setcap cap_net_raw,cap_net_admin=eip /usr/sbin/tcpdump
-getcap /usr/sbin/tcpdump  # verify
-```
+- **Option A: Run as root**
+  ```bash
+  sudo /path/to/collector --config config.yaml
+  ```
 
-- Option C: Grant capabilities to the collector binary (alternative):
+- **Option B: Grant capabilities to tcpdump** (common on many distros):
+  ```bash
+  sudo setcap cap_net_raw,cap_net_admin=eip /usr/sbin/tcpdump
+  getcap /usr/sbin/tcpdump  # verify
+  ```
 
-```bash
-sudo setcap cap_net_raw,cap_net_admin=eip /path/to/collector
-```
+- **Option C: Grant capabilities to the collector binary** (alternative):
+  ```bash
+  sudo setcap cap_net_raw,cap_net_admin=eip /path/to/collector
+  ```
 
-### Why Root Privileges?
+### Windows
 
-Packet capture requires access to network interfaces at a low level, which is restricted to privileged users for security reasons. On Unix-like systems, this requires running as root (UID 0).
+**Tool**: Requires Wireshark (which includes Npcap). Ensure `dumpcap.exe` is available (typically from Wireshark installation, or specify `executable_path`).
+
+- Install Wireshark: `https://www.wireshark.org/download.html` (includes Npcap during installation)
+- List interfaces:
+  ```powershell
+  dumpcap.exe -D
+  ```
+- Optional: set explicit path in config:
+  ```yaml
+  receivers:
+    pcap:
+      interface: 1
+      executable_path: "C:\\Program Files\\Wireshark\\dumpcap.exe"
+  ```
+
+**Privileges**: Run as Administrator if Npcap was installed in Admin-only mode, or reinstall Npcap without Admin-only mode to allow non-admin capture.
 
 ### Security Considerations
 
 - Only run the collector as root when necessary for packet capture
 - Use BPF filters to limit captured traffic and reduce security exposure
 - Consider using a dedicated system user with minimal privileges for other collector components
-- In future releases, Linux support may include capability-based privileges (`CAP_NET_RAW`) as an alternative to full root access
+
+## How It Works
+
+1. The receiver spawns a capture tool process (`tcpdump` on macOS/Linux, `dumpcap` on Windows) with the specified interface and filter.
+2. The capture tool outputs packet data in hex format (`-xx` flag for tcpdump, `-x` flag for dumpcap).
+3. The receiver parses the text output to extract:
+   - Network protocol (IP, IPv6, ARP)
+   - Transport protocol (TCP, UDP, ICMP)
+   - Source and destination addresses
+   - Source and destination ports (when applicable)
+   - Full packet data as hex string
+4. Each packet is emitted as an OTel log with the hex-encoded packet as the body and structured attributes.
 
 ## Configuration
 
 | Field         | Type   | Default | Required | Description                                                  |
 | ------------- | ------ | ------- | -------- | ------------------------------------------------------------ |
-| `interface`   | string | `"en0"` | Yes      | Network interface to capture packets from (e.g., `en0`, `eth0`) |
+| `interface`   | string | `any`* | No      | Network interface to capture packets from (e.g., `en0`, `eth0`) |
 | `filter`      | string | `""`    | No       | BPF (Berkeley Packet Filter) expression to filter packets    |
 | `snaplen`     | int    | `65535` | No       | Maximum bytes to capture per packet (64-65535)               |
 | `promiscuous` | bool   | `true`  | No       | Enable promiscuous mode to capture all network traffic       |
+| `executable_path` | string | `dumpcap` | No | Windows only, optional path to `dumpcap` executable |
+
+\* Defaults to `"1"` on Windows 
 
 ### Interface Names
 
-Common interface names by platform:
-- **macOS**: `en0` (Wi-Fi), `en1` (Ethernet), `lo0` (loopback)
-- **Linux**: `eth0`, `ens160`, `wlan0`, `lo`
-
-To list available interfaces on macOS:
+To list available interfaces on macOS/Linux:
 ```bash
 tcpdump -D
+```
+
+To list available interfaces on Windows:
+```bash
+dumpcap -D
 ```
 
 ### BPF Filters
@@ -126,16 +150,6 @@ receivers:
   pcap:
     interface: en0
     filter: "tcp port 443"
-
-exporters:
-  debug:
-    verbosity: detailed
-
-service:
-  pipelines:
-    logs:
-      receivers: [pcap]
-      exporters: [debug]
 ```
 
 ### Capture DNS Traffic
@@ -146,16 +160,6 @@ receivers:
     interface: en0
     filter: "udp port 53"
     snaplen: 1024
-
-exporters:
-  chronicle_forwarder:
-    endpoint: "forwarder.example.com:514"
-
-service:
-  pipelines:
-    logs:
-      receivers: [pcap]
-      exporters: [chronicle_forwarder]
 ```
 
 ### Capture All HTTP/HTTPS Traffic
@@ -166,22 +170,6 @@ receivers:
     interface: en0
     filter: "tcp port 80 or tcp port 443"
     promiscuous: true
-
-processors:
-  batch:
-    timeout: 10s
-    send_batch_size: 100
-
-exporters:
-  otlp:
-    endpoint: collector.example.com:4317
-
-service:
-  pipelines:
-    logs:
-      receivers: [pcap]
-      processors: [batch]
-      exporters: [otlp]
 ```
 
 ## Output Format
@@ -217,60 +205,6 @@ Each captured packet is emitted as an OTel log with the following structure:
 ### Body Format
 
 The log body contains the full packet data as a hex-encoded string with `0x` prefix. This can be decoded and analyzed by downstream systems or Chronicle Forwarder.
-
-## Prerequisites
-
-### macOS
-
-`tcpdump` is pre-installed on macOS. No additional installation required.
-
-To verify:
-```bash
-which tcpdump
-tcpdump --version
-```
-
-### Linux
-
-`tcpdump` is pre-installed on Linux. No additional installation required.
-
-To verify:
-```bash
-which tcpdump
-tcpdump --version
-```
-
-### Windows
-
-Requires Wireshark (which includes Npcap). Ensure `dumpcap.exe` is available (typically from Wireshark installation, or specify `executable_path`).
-
-- Install Wireshark: `https://www.wireshark.org/download.html` (includes Npcap during installation)
-- List interfaces:
-
-```powershell
-dumpcap.exe -D
-```
-
-- Run as Administrator if Npcap was installed in Admin-only mode, or reinstall Npcap without Admin-only mode to allow non-admin capture.
-
-- Optional: set explicit path in config:
-
-```yaml
-receivers:
-  pcap:
-    interface: 1
-    executable_path: "C:\\Program Files\\Wireshark\\dumpcap.exe"
-```
-
-### Running the Collector
-
-```bash
-# Download and install the collector
-# ... installation steps ...
-
-# Run with sudo for packet capture privileges
-sudo /path/to/collector --config /path/to/config.yaml
-```
 
 ## Troubleshooting
 
@@ -325,32 +259,3 @@ If the receiver starts but no packets appear:
    ```
 3. **Check promiscuous mode**: Some interfaces may not support promiscuous mode. Try setting `promiscuous: false`
 
-### High CPU Usage
-
-If packet capture causes high CPU usage:
-
-1. **Use specific BPF filters**: Capture only needed traffic
-2. **Reduce snaplen**: Capture only packet headers: `snaplen: 128`
-3. **Add processors**: Use sampling or filtering processors downstream
-
-## Performance Considerations
-
-- **CPU**: Packet parsing is CPU-intensive. Use BPF filters to limit captured traffic.
-- **Memory**: Each packet creates an OTel log record. Use batch processors to manage memory.
-- **Disk I/O**: High packet rates can generate significant log volume. Consider sampling.
-- **Network**: Capturing on busy interfaces (e.g., production servers) may impact performance.
-
-## Limitations
-
-- Requires elevated privileges (root or capabilities on Unix, Administrator on Windows)
-- Windows requires Wireshark installation (includes Npcap)
-- No built-in rate limiting (use downstream processors)
-- Does not reassemble fragmented packets
-- Does not decode application-layer protocols (HTTP, DNS, etc.) - only provides raw packet data
-
-## Future Enhancements
-
-- Windows support with `dumpcap` (Wireshark) / `npcap` (completed)
-- Capability-based guidance improvements and auto-detection
-- Optional packet reassembly
-- Built-in rate limiting / sampling
