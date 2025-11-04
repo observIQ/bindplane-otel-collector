@@ -208,19 +208,32 @@ func (r *pcapReceiver) checkPrivileges() error {
 	}
 
 	if runtime.GOOS == "windows" {
-		// Preflight: ensure windump is usable and we have access
+		// Preflight: ensure dumpcap is usable and we have access
 		exe := r.config.ExecutablePath
 		if exe == "" {
-			exe = "windump.exe"
+			// Try common Wireshark installation paths
+			commonPaths := []string{
+				`C:\Program Files\Wireshark\dumpcap.exe`,
+				`C:\Program Files (x86)\Wireshark\dumpcap.exe`,
+			}
+			for _, path := range commonPaths {
+				if _, err := exec.LookPath(path); err == nil {
+					exe = path
+					break
+				}
+			}
+			if exe == "" {
+				exe = "dumpcap"
+			}
 		}
-		// Try listing interfaces to validate Npcap presence
+		// Try listing interfaces to validate Wireshark/Npcap presence
 		if err := newCommand(exe, "-D").Run(); err != nil {
-			return fmt.Errorf("npcap windump not available: %w. Install Npcap (https://nmap.org/npcap/) and ensure windump.exe is on PATH or set executable_path", err)
+			return fmt.Errorf("dumpcap (Wireshark) not available: %w. Install Wireshark (https://www.wireshark.org/download.html) which includes Npcap, or ensure dumpcap.exe is on PATH or set executable_path", err)
 		}
 		// Try single packet preflight
-		preflight := newCommand(exe, "-i", r.config.Interface, "-c", "1", "-w", "-")
+		preflight := newCommand(exe, "-i", r.config.Interface, "-c", "1", "-x")
 		if err := preflight.Start(); err != nil {
-			return fmt.Errorf("unable to start windump: %w. Try running the collector as Administrator or reinstall Npcap without Admin-only mode", err)
+			return fmt.Errorf("unable to start dumpcap: %w. Try running the collector as Administrator or ensure Npcap is installed and not in Admin-only mode", err)
 		}
 		_ = preflight.Process.Kill()
 		_, _ = preflight.Process.Wait()
@@ -230,7 +243,7 @@ func (r *pcapReceiver) checkPrivileges() error {
 	return nil
 }
 
-// readStderr reads error messages from tcpdump
+// readStderr reads error messages from capture tool (tcpdump/dumpcap)
 func (r *pcapReceiver) readStderr(ctx context.Context, stderr io.ReadCloser) {
 	r.logger.Debug("Starting stderr reader goroutine")
 	defer r.logger.Debug("Stderr reader goroutine exiting")
@@ -245,19 +258,19 @@ func (r *pcapReceiver) readStderr(ctx context.Context, stderr io.ReadCloser) {
 		default:
 			line := scanner.Text()
 			lineCount++
-			// Log stderr output at info level to see what tcpdump is saying (it writes important messages to stderr)
-			r.logger.Info("tcpdump stderr", zap.String("message", line), zap.Int("line_number", lineCount))
+			// Log stderr output at info level to see what the capture tool is saying (it writes important messages to stderr)
+			r.logger.Info("capture tool stderr", zap.String("message", line), zap.Int("line_number", lineCount))
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		r.logger.Error("Error reading from tcpdump stderr", zap.Error(err), zap.Int("total_lines", lineCount))
+		r.logger.Error("Error reading from capture tool stderr", zap.Error(err), zap.Int("total_lines", lineCount))
 	} else {
 		r.logger.Debug("Stderr scanner closed", zap.Int("total_lines_read", lineCount))
 	}
 }
 
-// readPackets reads and parses packets from tcpdump output
+// readPackets reads and parses packets from capture tool output (tcpdump/dumpcap)
 func (r *pcapReceiver) readPackets(ctx context.Context, stdout io.ReadCloser) {
 	r.logger.Debug("Starting packet reader goroutine")
 	defer r.logger.Debug("Packet reader goroutine exiting")

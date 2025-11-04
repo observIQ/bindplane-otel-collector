@@ -13,11 +13,10 @@
 // limitations under the License.
 
 // Package pcapreceiver implements a receiver that captures network packets
-// using system CLI tools (tcpdump on macOS/Linux, windump on Windows) and
+// using system CLI tools (tcpdump on macOS/Linux, dumpcap on Windows) and
 // emits them as OpenTelemetry logs with hex-encoded packet bodies and
 // structured attributes.
 //
 // This receiver requires elevated privileges (root on Unix-like systems) to
 // capture network packets.
 package pcapreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver"
-

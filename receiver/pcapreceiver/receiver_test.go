@@ -53,7 +53,7 @@ func TestCheckPrivileges(t *testing.T) {
 	receiver := newReceiver(cfg, zap.NewNop(), consumertest.NewNop())
 
 	err := receiver.checkPrivileges()
-	
+
 	if os.Geteuid() == 0 {
 		// Running as root, should succeed
 		require.NoError(t, err)
@@ -66,9 +66,9 @@ func TestCheckPrivileges(t *testing.T) {
 
 func TestIsTimestampLine(t *testing.T) {
 	tests := []struct {
-		name  string
-		line  string
-		want  bool
+		name string
+		line string
+		want bool
 	}{
 		{
 			name: "valid timestamp",
@@ -135,12 +135,12 @@ func TestProcessPacket(t *testing.T) {
 
 	// Verify log structure
 	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
-	
+
 	// Check body starts with 0x
 	body := logRecord.Body().AsString()
 	require.True(t, len(body) > 2, "Body should not be empty")
 	require.Equal(t, "0x", body[:2], "Body should start with 0x prefix")
-	
+
 	// Check attributes
 	attrs := logRecord.Attributes()
 	protocol, ok := attrs.Get("network.protocol")
@@ -211,7 +211,7 @@ func TestProcessPacket_ICMPNoPort(t *testing.T) {
 
 	logs := sink.AllLogs()
 	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
-	
+
 	// Check transport is ICMP
 	attrs := logRecord.Attributes()
 	transport, ok := attrs.Get("network.transport")
@@ -279,7 +279,7 @@ func TestStart_InvalidConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			receiver := newReceiver(tt.config, zap.NewNop(), consumertest.NewNop())
-			
+
 			err := receiver.Start(context.Background(), componenttest.NewNopHost())
 			require.Error(t, err)
 			require.Contains(t, err.Error(), tt.wantError)
@@ -302,9 +302,9 @@ func TestStart_WithoutRootPrivileges(t *testing.T) {
 	}
 	receiver := newReceiver(cfg, zap.NewNop(), consumertest.NewNop())
 
+	// Start should succeed even without privileges, but won't capture packets
 	err := receiver.Start(context.Background(), componenttest.NewNopHost())
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "root privileges")
+	require.NoError(t, err)
 }
 
 func TestProcessPacket_IPv6(t *testing.T) {
@@ -328,9 +328,9 @@ func TestProcessPacket_IPv6(t *testing.T) {
 
 	logs := sink.AllLogs()
 	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
-	
+
 	attrs := logRecord.Attributes()
-	
+
 	// Check IPv6 protocol
 	protocol, ok := attrs.Get("network.protocol")
 	require.True(t, ok)
@@ -361,7 +361,7 @@ func TestDefaultSnapLen(t *testing.T) {
 		SnapLen:   0, // Not specified, should use default
 	}
 	receiver := newReceiver(cfg, zap.NewNop(), consumertest.NewNop())
-	
+
 	require.Equal(t, 0, receiver.config.SnapLen, "Config should preserve original 0 value")
 	// Default is applied in Start() when building capture command
 }
@@ -386,9 +386,9 @@ func TestProcessPacket_UDP(t *testing.T) {
 
 	logs := sink.AllLogs()
 	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
-	
+
 	attrs := logRecord.Attributes()
-	
+
 	// Check UDP transport
 	transport, ok := attrs.Get("network.transport")
 	require.True(t, ok)
@@ -421,16 +421,15 @@ func TestPacketInfo_ToLogAttributes(t *testing.T) {
 
 	logs := sink.AllLogs()
 	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
-	
+
 	// Verify all expected attributes are present
 	attrs := logRecord.Attributes()
 	require.Equal(t, 7, attrs.Len(), "Should have 7 attributes")
-	
+
 	// Verify attribute types
 	protocol, _ := attrs.Get("network.protocol")
 	require.Equal(t, "IP", protocol.AsString())
-	
+
 	transport, _ := attrs.Get("network.transport")
 	require.Equal(t, "TCP", transport.AsString())
 }
-

@@ -20,18 +20,19 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
-	"strings"
 )
 
-// BuildCaptureCommand builds the windump command for Windows (Npcap)
-// iface may be a numeric index (from "windump -D") or an interface name.
-// If executablePath is non-empty, it will be used as the windump executable; otherwise "windump.exe" is used.
+// BuildCaptureCommand builds the dumpcap command for Windows (Wireshark)
+// iface may be a numeric index (from "dumpcap -D") or an interface name.
+// If executablePath is non-empty, it will be used as the dumpcap executable;
+// otherwise "dumpcap.exe" is used (typically from Wireshark installation).
 func BuildCaptureCommandWithExe(executablePath, iface, filter string, snaplen int, promisc bool) *exec.Cmd {
 	args := []string{
+		// TODO: Update these options to match what I can actually run on the VM
 		"-i", iface, // Interface index or name
-		"-n",  // No name resolution
-		"-xx", // Hex dump including link-level
-		"-l",  // Line buffered
+		"-q",         // Don't report packet counts
+		"-F", "pcap", // Output in pcap format
+		"-w", "-", // Write to stdout
 	}
 
 	if !promisc {
@@ -41,20 +42,36 @@ func BuildCaptureCommandWithExe(executablePath, iface, filter string, snaplen in
 	args = append(args, "-s", fmt.Sprintf("%d", snaplen))
 
 	if filter != "" {
-		args = append(args, strings.Fields(filter)...)
+		// dumpcap uses -f flag with BPF filter syntax (same as tcpdump)
+		// Pass filter as a single string argument (not split)
+		args = append(args, "-f", filter)
 	}
 
 	exe := executablePath
 	if exe == "" {
-		exe = "windump.exe"
+		// Try common Wireshark installation paths
+		commonPaths := []string{
+			`C:\Program Files\Wireshark\dumpcap.exe`,
+			`C:\Program Files (x86)\Wireshark\dumpcap.exe`,
+		}
+		for _, path := range commonPaths {
+			if _, err := exec.LookPath(path); err == nil {
+				exe = path
+				break
+			}
+		}
+		if exe == "" {
+			exe = "dumpcap"
+		}
 	} else {
 		exe = filepath.Clean(executablePath)
 	}
 
 	return exec.Command(exe, args...) // #nosec G204 - args validated by config
+	// TODO: Use pcapgo to parse the stout output from dumpcap
 }
 
-// BuildCaptureCommand builds the windump command using default executable lookup
+// BuildCaptureCommand builds the dumpcap command using default executable lookup
 func BuildCaptureCommand(iface, filter string, snaplen int, promisc bool) *exec.Cmd {
 	return BuildCaptureCommandWithExe("", iface, filter, snaplen, promisc)
 }

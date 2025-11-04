@@ -14,12 +14,12 @@ The PCAP Receiver captures network packets and emits them as OpenTelemetry logs.
 
 - **macOS (darwin)**: ✅ Fully supported
 - **Linux**: ✅ Fully supported
-- **Windows**: ⏳ Planned for future release
+- **Windows**: ✅ Fully supported (requires Wireshark)
 
 ## How It Works
 
-1. The receiver spawns a `tcpdump` process with the specified interface and filter
-2. `tcpdump` outputs packet data in hex format (`-xx` flag)
+1. The receiver spawns a capture tool process (`tcpdump` on macOS/Linux, `dumpcap` on Windows) with the specified interface and filter
+2. The capture tool outputs packet data in hex format (`-xx` flag for tcpdump, `-x` flag for dumpcap)
 3. The receiver parses the text output to extract:
    - Network protocol (IP, IPv6, ARP)
    - Transport protocol (TCP, UDP, ICMP)
@@ -242,13 +242,13 @@ tcpdump --version
 
 ### Windows
 
-Requires Npcap (WinPcap-compatible). Ensure `windump.exe` is available (on PATH or specify `executable_path`).
+Requires Wireshark (which includes Npcap). Ensure `dumpcap.exe` is available (typically from Wireshark installation, or specify `executable_path`).
 
-- Install Npcap: `https://nmap.org/npcap/`
+- Install Wireshark: `https://www.wireshark.org/download.html` (includes Npcap during installation)
 - List interfaces:
 
 ```powershell
-windump.exe -D
+dumpcap.exe -D
 ```
 
 - Run as Administrator if Npcap was installed in Admin-only mode, or reinstall Npcap without Admin-only mode to allow non-admin capture.
@@ -259,7 +259,7 @@ windump.exe -D
 receivers:
   pcap:
     interface: 1
-    executable_path: "C:\\Program Files\\Npcap\\windump.exe"
+    executable_path: "C:\\Program Files\\Wireshark\\dumpcap.exe"
 ```
 
 ### Running the Collector
@@ -289,12 +289,12 @@ getcap /usr/sbin/tcpdump
 
 ### "tcpdump: command not found"
 
-**Error**: `failed to start capture command: tcpdump: command not found` or `windump.exe not found`
+**Error**: `failed to start capture command: tcpdump: command not found` or `dumpcap.exe not found`
 
 **Solution**:
 - macOS: `tcpdump` should be pre-installed. Check `/usr/sbin/tcpdump`.
 - Linux: Install: `apt install tcpdump` or `yum install tcpdump`.
-- Windows: Install Npcap and ensure `windump.exe` is on PATH or configure `executable_path`.
+- Windows: Install Wireshark (which includes Npcap) from `https://www.wireshark.org/download.html`. `dumpcap.exe` is typically located at `C:\Program Files\Wireshark\dumpcap.exe`. Ensure it's on PATH or configure `executable_path`.
 
 ### "No such device exists"
 
@@ -342,15 +342,15 @@ If packet capture causes high CPU usage:
 
 ## Limitations
 
-- macOS and Linux supported; Windows not yet supported
-- Requires elevated privileges (root or capabilities)
+- Requires elevated privileges (root or capabilities on Unix, Administrator on Windows)
+- Windows requires Wireshark installation (includes Npcap)
 - No built-in rate limiting (use downstream processors)
 - Does not reassemble fragmented packets
 - Does not decode application-layer protocols (HTTP, DNS, etc.) - only provides raw packet data
 
 ## Future Enhancements
 
-- Windows support with `windump` / `npcap`
+- Windows support with `dumpcap` (Wireshark) / `npcap` (completed)
 - Capability-based guidance improvements and auto-detection
 - Optional packet reassembly
 - Built-in rate limiting / sampling
