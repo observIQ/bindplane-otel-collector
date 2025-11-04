@@ -138,7 +138,7 @@ func TestReadPackets_Unix_SinglePacket(t *testing.T) {
 	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
 	attrs := logRecord.Attributes()
 
-	protocol, ok := attrs.Get("network.protocol")
+	protocol, ok := attrs.Get("network.type")
 	require.True(t, ok)
 	require.Equal(t, "IP", protocol.AsString())
 
@@ -146,19 +146,19 @@ func TestReadPackets_Unix_SinglePacket(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "TCP", transport.AsString())
 
-	srcAddr, ok := attrs.Get("network.src.address")
+	srcAddr, ok := attrs.Get("source.address")
 	require.True(t, ok)
 	require.Equal(t, "192.168.1.100", srcAddr.AsString())
 
-	dstAddr, ok := attrs.Get("network.dst.address")
+	dstAddr, ok := attrs.Get("destination.address")
 	require.True(t, ok)
 	require.Equal(t, "192.168.1.1", dstAddr.AsString())
 
-	srcPort, ok := attrs.Get("network.src.port")
+	srcPort, ok := attrs.Get("source.port")
 	require.True(t, ok)
 	require.Equal(t, int64(54321), srcPort.Int())
 
-	dstPort, ok := attrs.Get("network.dst.port")
+	dstPort, ok := attrs.Get("destination.port")
 	require.True(t, ok)
 	require.Equal(t, int64(443), dstPort.Int())
 
@@ -320,7 +320,7 @@ func TestReadPackets_Unix_IPv6Packet(t *testing.T) {
 	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
 	attrs := logRecord.Attributes()
 
-	protocol, ok := attrs.Get("network.protocol")
+	protocol, ok := attrs.Get("network.type")
 	require.True(t, ok)
 	require.Equal(t, "IP6", protocol.AsString())
 }
@@ -355,8 +355,8 @@ func TestReadPackets_Unix_ICMPPacket(t *testing.T) {
 	require.Equal(t, "ICMP", transport.AsString())
 
 	// ICMP should not have ports
-	_, srcPortExists := attrs.Get("network.src.port")
-	_, dstPortExists := attrs.Get("network.dst.port")
+	_, srcPortExists := attrs.Get("source.port")
+	_, dstPortExists := attrs.Get("destination.port")
 	require.False(t, srcPortExists)
 	require.False(t, dstPortExists)
 }

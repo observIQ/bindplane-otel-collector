@@ -181,12 +181,12 @@ Each captured packet is emitted as an OTel log with the following structure:
   "timestamp": "2025-10-30T12:34:56.789012Z",
   "body": "0x4500003c1c4640004006b1e6c0a80164c0a80101d43101bb499602d200000000a002fffffe300000020405b40103030601010",
   "attributes": {
-    "network.protocol": "IP",
+    "network.type": "IP",
     "network.transport": "TCP",
-    "network.src.address": "192.168.1.100",
-    "network.dst.address": "192.168.1.1",
-    "network.src.port": 54321,
-    "network.dst.port": 443,
+    "source.address": "192.168.1.100",
+    "destination.address": "192.168.1.1",
+    "source.port": 54321,
+    "destination.port": 443,
     "packet.length": 60
   }
 }
@@ -194,12 +194,12 @@ Each captured packet is emitted as an OTel log with the following structure:
 
 ### Attributes
 
-- `network.protocol`: Network layer protocol (`IP`, `IPv6`, `ARP`)
+- `network.type`: Network layer protocol (`IP`, `IPv6`, `ARP`)
 - `network.transport`: Transport layer protocol (`TCP`, `UDP`, `ICMP`, or `Unknown`)
-- `network.src.address`: Source IP address
-- `network.dst.address`: Destination IP address
-- `network.src.port`: Source port (omitted for ICMP and other non-port protocols)
-- `network.dst.port`: Destination port (omitted for ICMP and other non-port protocols)
+- `source.address`: Source IP address
+- `destination.address`: Destination IP address
+- `source.port`: Source port (omitted for ICMP and other non-port protocols)
+- `destination.port`: Destination port (omitted for ICMP and other non-port protocols)
 - `packet.length`: Total packet size in bytes
 
 ### Body Format

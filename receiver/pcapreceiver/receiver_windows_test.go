@@ -172,7 +172,7 @@ func TestReadPacketsWindows_ValidPacket(t *testing.T) {
 	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
 	attrs := logRecord.Attributes()
 
-	protocol, ok := attrs.Get("network.protocol")
+	protocol, ok := attrs.Get("network.type")
 	require.True(t, ok)
 	require.Equal(t, "IP", protocol.AsString())
 
@@ -479,7 +479,7 @@ func TestReadPacketsWindows_IPv6Packet(t *testing.T) {
 	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
 	attrs := logRecord.Attributes()
 
-	protocol, ok := attrs.Get("network.protocol")
+	protocol, ok := attrs.Get("network.type")
 	require.True(t, ok)
 	// Note: pcapgo parser may report "IPv6" instead of "IP6"
 	require.Contains(t, []string{"IP6", "IPv6"}, protocol.AsString())
@@ -548,8 +548,8 @@ func TestReadPacketsWindows_ICMPPacket(t *testing.T) {
 	require.Equal(t, "ICMP", transport.AsString())
 
 	// ICMP should not have ports
-	_, srcPortExists := attrs.Get("network.src.port")
-	_, dstPortExists := attrs.Get("network.dst.port")
+	_, srcPortExists := attrs.Get("source.port")
+	_, dstPortExists := attrs.Get("destination.port")
 	require.False(t, srcPortExists)
 	require.False(t, dstPortExists)
 }

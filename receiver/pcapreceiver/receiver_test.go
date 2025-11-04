@@ -120,7 +120,7 @@ func TestProcessPacket(t *testing.T) {
 
 	// Check attributes
 	attrs := logRecord.Attributes()
-	protocol, ok := attrs.Get("network.protocol")
+	protocol, ok := attrs.Get("network.type")
 	require.True(t, ok)
 	require.Equal(t, "IP", protocol.AsString())
 
@@ -128,19 +128,19 @@ func TestProcessPacket(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "TCP", transport.AsString())
 
-	srcAddr, ok := attrs.Get("network.src.address")
+	srcAddr, ok := attrs.Get("source.address")
 	require.True(t, ok)
 	require.Equal(t, "192.168.1.100", srcAddr.AsString())
 
-	dstAddr, ok := attrs.Get("network.dst.address")
+	dstAddr, ok := attrs.Get("destination.address")
 	require.True(t, ok)
 	require.Equal(t, "192.168.1.1", dstAddr.AsString())
 
-	srcPort, ok := attrs.Get("network.src.port")
+	srcPort, ok := attrs.Get("source.port")
 	require.True(t, ok)
 	require.Equal(t, int64(54321), srcPort.Int())
 
-	dstPort, ok := attrs.Get("network.dst.port")
+	dstPort, ok := attrs.Get("destination.port")
 	require.True(t, ok)
 	require.Equal(t, int64(443), dstPort.Int())
 
@@ -196,8 +196,8 @@ func TestProcessPacket_ICMPNoPort(t *testing.T) {
 	require.Equal(t, "ICMP", transport.AsString())
 
 	// Verify ports are not set (ICMP doesn't have ports)
-	_, srcPortExists := attrs.Get("network.src.port")
-	_, dstPortExists := attrs.Get("network.dst.port")
+	_, srcPortExists := attrs.Get("source.port")
+	_, dstPortExists := attrs.Get("destination.port")
 	require.False(t, srcPortExists, "ICMP should not have source port")
 	require.False(t, dstPortExists, "ICMP should not have destination port")
 }
@@ -236,25 +236,25 @@ func TestProcessPacket_IPv6(t *testing.T) {
 	attrs := logRecord.Attributes()
 
 	// Check IPv6 protocol
-	protocol, ok := attrs.Get("network.protocol")
+	protocol, ok := attrs.Get("network.type")
 	require.True(t, ok)
 	require.Equal(t, "IP6", protocol.AsString())
 
 	// Check IPv6 addresses
-	srcAddr, ok := attrs.Get("network.src.address")
+	srcAddr, ok := attrs.Get("source.address")
 	require.True(t, ok)
 	require.Contains(t, srcAddr.AsString(), "2001:db8")
 
-	dstAddr, ok := attrs.Get("network.dst.address")
+	dstAddr, ok := attrs.Get("destination.address")
 	require.True(t, ok)
 	require.Contains(t, dstAddr.AsString(), "2001:db8")
 
 	// Check ports
-	srcPort, ok := attrs.Get("network.src.port")
+	srcPort, ok := attrs.Get("source.port")
 	require.True(t, ok)
 	require.Equal(t, int64(8080), srcPort.Int())
 
-	dstPort, ok := attrs.Get("network.dst.port")
+	dstPort, ok := attrs.Get("destination.port")
 	require.True(t, ok)
 	require.Equal(t, int64(80), dstPort.Int())
 }
@@ -299,7 +299,7 @@ func TestProcessPacket_UDP(t *testing.T) {
 	require.Equal(t, "UDP", transport.AsString())
 
 	// Check DNS port
-	dstPort, ok := attrs.Get("network.dst.port")
+	dstPort, ok := attrs.Get("destination.port")
 	require.True(t, ok)
 	require.Equal(t, int64(53), dstPort.Int())
 }
@@ -331,7 +331,7 @@ func TestPacketInfo_ToLogAttributes(t *testing.T) {
 	require.Equal(t, 7, attrs.Len(), "Should have 7 attributes")
 
 	// Verify attribute types
-	protocol, _ := attrs.Get("network.protocol")
+	protocol, _ := attrs.Get("network.type")
 	require.Equal(t, "IP", protocol.AsString())
 
 	transport, _ := attrs.Get("network.transport")

@@ -276,16 +276,16 @@ func (r *pcapReceiver) processPacketInfo(ctx context.Context, packetInfo *parser
 
 	// Set attributes
 	attrs := logRecord.Attributes()
-	attrs.PutStr("network.protocol", packetInfo.Protocol)
+	attrs.PutStr("network.type", packetInfo.Protocol)
 	attrs.PutStr("network.transport", packetInfo.Transport)
-	attrs.PutStr("network.src.address", packetInfo.SrcAddress)
-	attrs.PutStr("network.dst.address", packetInfo.DstAddress)
+	attrs.PutStr("source.address", packetInfo.SrcAddress)
+	attrs.PutStr("destination.address", packetInfo.DstAddress)
 
 	if packetInfo.SrcPort > 0 {
-		attrs.PutInt("network.src.port", int64(packetInfo.SrcPort))
+		attrs.PutInt("source.port", int64(packetInfo.SrcPort))
 	}
 	if packetInfo.DstPort > 0 {
-		attrs.PutInt("network.dst.port", int64(packetInfo.DstPort))
+		attrs.PutInt("destination.port", int64(packetInfo.DstPort))
 	}
 
 	attrs.PutInt("packet.length", int64(packetInfo.Length))
