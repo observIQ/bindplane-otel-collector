@@ -19,9 +19,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
-	"runtime"
 
 	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/capture"
 	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/parser"
@@ -66,7 +64,6 @@ func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
 		return fmt.Errorf("configuration validation failed: %w", err)
 	}
 
-	// Check privileges
 	if err := r.checkPrivileges(); err != nil {
 		r.logger.Warn("PCAP receiver cannot collect packets due to insufficient privileges",
 			zap.Error(err),
@@ -90,7 +87,7 @@ func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
 	)
 
 	if r.cmd == nil {
-		return fmt.Errorf("failed to build capture command for platform: %s", runtime.GOOS)
+		return fmt.Errorf("failed to build capture command")
 	}
 
 	// Log the command being executed for debugging
@@ -181,68 +178,6 @@ func (r *pcapReceiver) Shutdown(_ context.Context) error {
 	return nil
 }
 
-// checkPrivileges checks if the process has sufficient privileges to capture packets
-func (r *pcapReceiver) checkPrivileges() error {
-	if runtime.GOOS == "darwin" {
-		if os.Geteuid() != 0 {
-			return fmt.Errorf("packet capture requires root privileges. Please run the collector with sudo")
-		}
-		r.logger.Info("Running with root privileges")
-		return nil
-	}
-
-	if runtime.GOOS == "linux" {
-		if os.Geteuid() != 0 {
-			return fmt.Errorf("packet capture requires root privileges. Please run the collector with sudo")
-		}
-		r.logger.Info("Running with root privileges")
-
-		// Perform a lightweight preflight to detect permission issues.
-		preflight := newCommand("tcpdump", "-i", r.config.Interface, "-c", "1", "-w", "-")
-		if err := preflight.Start(); err != nil {
-			return fmt.Errorf("insufficient privileges to start tcpdump: %w. Either run with sudo, or grant capabilities: 'sudo setcap cap_net_raw,cap_net_admin=eip /usr/sbin/tcpdump' (or grant to the collector binary). Then verify: 'getcap /usr/sbin/tcpdump'", err)
-		}
-		_ = preflight.Process.Kill()
-		_, _ = preflight.Process.Wait()
-		return nil
-	}
-
-	if runtime.GOOS == "windows" {
-		// Preflight: ensure dumpcap is usable and we have access
-		exe := r.config.ExecutablePath
-		if exe == "" {
-			// Try common Wireshark installation paths
-			commonPaths := []string{
-				`C:\Program Files\Wireshark\dumpcap.exe`,
-				`C:\Program Files (x86)\Wireshark\dumpcap.exe`,
-			}
-			for _, path := range commonPaths {
-				if _, err := exec.LookPath(path); err == nil {
-					exe = path
-					break
-				}
-			}
-			if exe == "" {
-				exe = "dumpcap"
-			}
-		}
-		// Try listing interfaces to validate Wireshark/Npcap presence
-		if err := newCommand(exe, "-D").Run(); err != nil {
-			return fmt.Errorf("dumpcap (Wireshark) not available: %w. Install Wireshark (https://www.wireshark.org/download.html) which includes Npcap, or ensure dumpcap.exe is on PATH or set executable_path", err)
-		}
-		// Try single packet preflight
-		preflight := newCommand(exe, "-i", r.config.Interface, "-c", "1", "-x")
-		if err := preflight.Start(); err != nil {
-			return fmt.Errorf("unable to start dumpcap: %w. Try running the collector as Administrator or ensure Npcap is installed and not in Admin-only mode", err)
-		}
-		_ = preflight.Process.Kill()
-		_, _ = preflight.Process.Wait()
-		return nil
-	}
-
-	return nil
-}
-
 // readStderr reads error messages from capture tool (tcpdump/dumpcap)
 func (r *pcapReceiver) readStderr(ctx context.Context, stderr io.ReadCloser) {
 	r.logger.Debug("Starting stderr reader goroutine")
@@ -267,99 +202,6 @@ func (r *pcapReceiver) readStderr(ctx context.Context, stderr io.ReadCloser) {
 		r.logger.Error("Error reading from capture tool stderr", zap.Error(err), zap.Int("total_lines", lineCount))
 	} else {
 		r.logger.Debug("Stderr scanner closed", zap.Int("total_lines_read", lineCount))
-	}
-}
-
-// readPackets reads and parses packets from capture tool output (tcpdump/dumpcap)
-// On Windows, this delegates to readPacketsWindows which uses pcapgo to parse binary PCAP data
-// On Unix, this uses text-based parsing of tcpdump output
-func (r *pcapReceiver) readPackets(ctx context.Context, stdout io.ReadCloser) {
-	// Windows uses pcapgo to parse binary PCAP data from dumpcap
-	// This is handled in receiver_windows.go
-	if runtime.GOOS == "windows" {
-		// readPacketsWindows is defined in receiver_windows.go (Windows build tag only)
-		// This will only compile on Windows builds
-		r.readPacketsWindows(ctx, stdout)
-		return
-	}
-	r.logger.Debug("Starting packet reader goroutine")
-	defer r.logger.Debug("Packet reader goroutine exiting")
-
-	scanner := bufio.NewScanner(stdout)
-	// Increase buffer size for potentially large packets
-	buf := make([]byte, 0, 64*1024)
-	scanner.Buffer(buf, 1024*1024)
-
-	var packetLines []string
-	lineCount := 0
-	packetCount := 0
-
-	for scanner.Scan() {
-		select {
-		case <-ctx.Done():
-			r.logger.Debug("Packet reader context cancelled",
-				zap.Int("total_lines_read", lineCount),
-				zap.Int("packets_processed", packetCount))
-			return
-		default:
-			line := scanner.Text()
-			lineCount++
-
-			// Log first few lines to see what we're getting
-			if lineCount <= 10 {
-				r.logger.Debug("Reading line from tcpdump stdout",
-					zap.Int("line_number", lineCount),
-					zap.Int("line_length", len(line)),
-					zap.String("line_preview", truncateString(line, 100)))
-			}
-
-			// Check if this is the start of a new packet (timestamp line)
-			if isTimestampLine(line) {
-				// Process previous packet if we have one
-				if len(packetLines) > 0 {
-					packetCount++
-					r.logger.Debug("Processing complete packet",
-						zap.Int("packet_number", packetCount),
-						zap.Int("packet_lines", len(packetLines)))
-					r.processPacket(ctx, packetLines)
-					packetLines = nil
-				}
-				// Start new packet
-				packetLines = append(packetLines, line)
-				r.logger.Debug("Detected new packet start", zap.String("header_line", truncateString(line, 150)))
-			} else if len(line) > 0 {
-				// Continuation of current packet (hex data)
-				packetLines = append(packetLines, line)
-			}
-		}
-	}
-
-	r.logger.Info("Scanner finished reading",
-		zap.Int("total_lines_read", lineCount),
-		zap.Int("packets_processed", packetCount),
-		zap.Int("buffered_lines", len(packetLines)))
-
-	// Process last packet
-	if len(packetLines) > 0 {
-		// If we're shutting down, skip processing any buffered packet
-		select {
-		case <-ctx.Done():
-			r.logger.Debug("Skipping final packet due to shutdown")
-			return
-		default:
-			packetCount++
-			r.logger.Debug("Processing final buffered packet", zap.Int("packet_number", packetCount))
-			r.processPacket(ctx, packetLines)
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		r.logger.Error("Error reading packet data from tcpdump stdout",
-			zap.Error(err),
-			zap.Int("lines_read_before_error", lineCount),
-			zap.Int("packets_processed", packetCount))
-	} else {
-		r.logger.Debug("Scanner closed normally", zap.Int("total_lines", lineCount), zap.Int("total_packets", packetCount))
 	}
 }
 

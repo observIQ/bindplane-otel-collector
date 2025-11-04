@@ -18,12 +18,53 @@ package pcapreceiver
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"os/exec"
 
 	"github.com/google/gopacket/pcapgo"
 	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/parser"
 	"go.uber.org/zap"
 )
+
+// checkPrivileges checks if the process has sufficient privileges to capture packets on Windows
+func (r *pcapReceiver) checkPrivileges() error {
+	// Preflight: ensure dumpcap is usable and we have access
+	exe := r.config.ExecutablePath
+	if exe == "" {
+		// Try common Wireshark installation paths
+		commonPaths := []string{
+			`C:\Program Files\Wireshark\dumpcap.exe`,
+			`C:\Program Files (x86)\Wireshark\dumpcap.exe`,
+		}
+		for _, path := range commonPaths {
+			if _, err := exec.LookPath(path); err == nil {
+				exe = path
+				break
+			}
+		}
+		if exe == "" {
+			exe = "dumpcap"
+		}
+	}
+	// Try listing interfaces to validate Wireshark/Npcap presence
+	if err := newCommand(exe, "-D").Run(); err != nil {
+		return fmt.Errorf("dumpcap (Wireshark) not available: %w. Install Wireshark (https://www.wireshark.org/download.html) which includes Npcap, or ensure dumpcap.exe is on PATH or set executable_path", err)
+	}
+	// Try single packet preflight
+	preflight := newCommand(exe, "-i", r.config.Interface, "-c", "1", "-x")
+	if err := preflight.Start(); err != nil {
+		return fmt.Errorf("unable to start dumpcap: %w. Try running the collector as Administrator or ensure Npcap is installed and not in Admin-only mode", err)
+	}
+	_ = preflight.Process.Kill()
+	_, _ = preflight.Process.Wait()
+	return nil
+}
+
+// readPackets reads and parses packets from dumpcap output using pcapgo (Windows only)
+func (r *pcapReceiver) readPackets(ctx context.Context, stdout io.ReadCloser) {
+	r.readPacketsWindows(ctx, stdout)
+}
 
 // readPacketsWindows reads and parses packets from binary PCAP data using pcapgo (Windows only)
 func (r *pcapReceiver) readPacketsWindows(ctx context.Context, stdout io.ReadCloser) {
