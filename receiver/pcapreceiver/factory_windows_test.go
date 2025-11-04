@@ -34,6 +34,7 @@ func TestCreateDefaultConfig_Windows(t *testing.T) {
 	require.Equal(t, "1", pcapCfg.Interface) // Windows default is numeric ID "1"
 	require.Equal(t, 65535, pcapCfg.SnapLen)
 	require.True(t, pcapCfg.Promiscuous)
+	require.True(t, pcapCfg.AddAttributes)
 }
 
 func TestCreateLogsReceiver_Windows(t *testing.T) {

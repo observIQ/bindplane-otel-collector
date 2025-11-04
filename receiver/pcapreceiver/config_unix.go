@@ -26,9 +26,10 @@ import (
 // createDefaultConfig creates the default configuration for the receiver on Unix systems (macOS/Linux)
 func createDefaultConfig() component.Config {
 	return &Config{
-		Interface:   "any", // Default interface ("any" captures from all interfaces)
-		SnapLen:     65535, // Maximum snapshot length
-		Promiscuous: true,  // Enable promiscuous mode by default
+		Interface:     "any", // Default interface ("any" captures from all interfaces)
+		SnapLen:       65535, // Maximum snapshot length
+		Promiscuous:   true,  // Enable promiscuous mode by default
+		AddAttributes: true,  // Add attributes by default
 	}
 }
 

@@ -274,21 +274,23 @@ func (r *pcapReceiver) processPacketInfo(ctx context.Context, packetInfo *parser
 	// Set body as hex-encoded packet data (with 0x prefix)
 	logRecord.Body().SetStr("0x" + packetInfo.HexData)
 
-	// Set attributes
-	attrs := logRecord.Attributes()
-	attrs.PutStr("network.type", packetInfo.Protocol)
-	attrs.PutStr("network.transport", packetInfo.Transport)
-	attrs.PutStr("source.address", packetInfo.SrcAddress)
-	attrs.PutStr("destination.address", packetInfo.DstAddress)
+	// Set attributes if enabled
+	if r.config.AddAttributes {
+		attrs := logRecord.Attributes()
+		attrs.PutStr("network.type", packetInfo.Protocol)
+		attrs.PutStr("network.transport", packetInfo.Transport)
+		attrs.PutStr("source.address", packetInfo.SrcAddress)
+		attrs.PutStr("destination.address", packetInfo.DstAddress)
 
-	if packetInfo.SrcPort > 0 {
-		attrs.PutInt("source.port", int64(packetInfo.SrcPort))
-	}
-	if packetInfo.DstPort > 0 {
-		attrs.PutInt("destination.port", int64(packetInfo.DstPort))
-	}
+		if packetInfo.SrcPort > 0 {
+			attrs.PutInt("source.port", int64(packetInfo.SrcPort))
+		}
+		if packetInfo.DstPort > 0 {
+			attrs.PutInt("destination.port", int64(packetInfo.DstPort))
+		}
 
-	attrs.PutInt("packet.length", int64(packetInfo.Length))
+		attrs.PutInt("packet.length", int64(packetInfo.Length))
+	}
 
 	// Consume the log
 	if err := r.consumer.ConsumeLogs(ctx, logs); err != nil {

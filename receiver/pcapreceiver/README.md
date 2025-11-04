@@ -98,11 +98,12 @@ tcpdump --version
 
 | Field         | Type   | Default | Required | Description                                                  |
 | ------------- | ------ | ------- | -------- | ------------------------------------------------------------ |
-| `interface`   | string | `any`* | No      | Network interface to capture packets from (e.g., `en0`, `eth0`) |
-| `filter`      | string | `""`    | No       | BPF (Berkeley Packet Filter) expression to filter packets    |
-| `snaplen`     | int    | `65535` | No       | Maximum bytes to capture per packet (64-65535)               |
-| `promiscuous` | bool   | `true`  | No       | Enable promiscuous mode to capture all network traffic       |
-| `executable_path` | string | `dumpcap` | No | Windows only, optional path to `dumpcap` executable |
+| `interface`   | string | `any`* | No      | Network interface to capture packets from (e.g., `en0`, `eth0`). |
+| `filter`      | string | `""`    | No       | BPF (Berkeley Packet Filter) expression to filter packets.    |
+| `snaplen`     | int    | `65535` | No       | Maximum bytes to capture per packet (64-65535).             |
+| `promiscuous` | bool   | `true`  | No       | Enable promiscuous mode to capture all network traffic.     |
+| `executable_path` | string | `dumpcap` | No | Windows only, optional path to `dumpcap` executable. |
+| `add_attributes` | bool | `true` | No | Parse network attributes and add them to the logs.
 
 \* Defaults to `"1"` on Windows 
 
@@ -191,6 +192,7 @@ Each captured packet is emitted as an OTel log with the following structure:
   }
 }
 ```
+**Note:** Attributes will only be parsed when `add_attributes` is enabled.
 
 ### Attributes
 

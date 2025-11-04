@@ -26,9 +26,10 @@ import (
 // createDefaultConfig creates the default configuration for the receiver on Windows
 func createDefaultConfig() component.Config {
 	return &Config{
-		Interface:   "1",   // Default Windows interface (numeric ID, typically the first interface)
-		SnapLen:     65535, // Maximum snapshot length
-		Promiscuous: true,  // Enable promiscuous mode by default
+		Interface:     "1",   // Default Windows interface (numeric ID, typically the first interface)
+		SnapLen:       65535, // Maximum snapshot length
+		Promiscuous:   true,  // Enable promiscuous mode by default
+		AddAttributes: true,  // Add attributes by default
 	}
 }
 

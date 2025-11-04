@@ -21,4 +21,5 @@ type Config struct {
 	SnapLen        int    `mapstructure:"snaplen"`         // Snapshot length in bytes (default: 65535)
 	Promiscuous    bool   `mapstructure:"promiscuous"`     // Enable promiscuous mode (default: true)
 	ExecutablePath string `mapstructure:"executable_path"` // Windows only: optional override path to dumpcap.exe
+	AddAttributes  bool   `mapstructure:"add_attributes"`  // Add network attributes to log records
 }
