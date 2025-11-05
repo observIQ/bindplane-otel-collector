@@ -38,8 +38,6 @@ var (
 	newCommand = exec.Command
 )
 
-const defaultSnapLen = 65535
-
 // pcapReceiver receives network packets via tcpdump and emits them as logs
 type pcapReceiver struct {
 	id        component.ID
@@ -91,18 +89,12 @@ func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
 		return nil
 	}
 
-	// Set default snaplen if not specified
-	snaplen := r.config.SnapLen
-	if snaplen == 0 {
-		snaplen = defaultSnapLen
-	}
-
 	// Build the capture command
 	// Use a single cross-platform builder to avoid symbol conflicts across build tags
 	r.cmd = capture.BuildCaptureCommand(
 		r.config.Interface,
 		r.config.Filter,
-		snaplen,
+		r.config.SnapLen,
 		r.config.Promiscuous,
 	)
 
@@ -114,7 +106,7 @@ func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
 	r.logger.Debug("Built capture command",
 		zap.String("path", r.cmd.Path),
 		zap.Strings("args", r.cmd.Args),
-		zap.Int("snaplen", snaplen),
+		zap.Int("snaplen", r.config.SnapLen),
 		zap.Bool("promiscuous", r.config.Promiscuous),
 		zap.String("filter", r.config.Filter))
 
@@ -313,16 +305,25 @@ func (r *pcapReceiver) processPacketInfo(ctx context.Context, packetInfo *parser
 		attrs.PutInt("packet.length", int64(packetInfo.Length))
 	}
 
-	// Consume the log
+	// Consume the log with observation tracking
+	obsCtx := r.obsrecv.StartLogsOp(ctx)
 	if err := r.consumer.ConsumeLogs(ctx, logs); err != nil {
+		r.obsrecv.EndLogsOp(obsCtx, metadata.Type.String(), logs.LogRecordCount(), err)
 		r.logger.Error("Failed to consume packet log",
 			zap.Error(err),
 			zap.String("protocol", packetInfo.Protocol),
 			zap.String("src", packetInfo.SrcAddress),
 			zap.String("dst", packetInfo.DstAddress))
-	} else {
-		r.logger.Debug("Successfully consumed packet log",
-			zap.String("protocol", packetInfo.Protocol),
-			zap.String("transport", packetInfo.Transport))
+		return
 	}
+	r.obsrecv.EndLogsOp(obsCtx, metadata.Type.String(), logs.LogRecordCount(), nil)
+
+	// Record custom metric for packets captured
+	if r.metrics != nil {
+		r.metrics.PcapPacketsCaptured.Add(ctx, 1)
+	}
+
+	r.logger.Debug("Successfully consumed packet log",
+		zap.String("protocol", packetInfo.Protocol),
+		zap.String("transport", packetInfo.Transport))
 }

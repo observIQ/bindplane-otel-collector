@@ -18,6 +18,7 @@ package pcapreceiver
 
 import (
 	"context"
+	"fmt"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -34,12 +35,22 @@ func createLogsReceiver(
 	cfg component.Config,
 	consumer consumer.Logs,
 ) (receiver.Logs, error) {
-	receiverCfg := cfg.(*Config)
-
-	params.Logger.Warn("PCAP receiver on Windows requires Wireshark (dumpcap.exe). Ensure Wireshark is installed and run as Administrator if necessary")
 
 	settings := receivertest.NewNopSettings(metadata.Type)
-	receiver, err := newReceiver(settings, receiverCfg, params.Logger, consumer)
+	tb, err := metadata.NewTelemetryBuilder(params.TelemetrySettings)
+	if err != nil {
+		return nil, err
+	}
+	receiverCfg, ok := cfg.(*Config)
+	if !ok {
+		return nil, fmt.Errorf("invalid config type")
+	}
+
+	if err := receiverCfg.Validate(); err != nil {
+		return nil, fmt.Errorf("validate config: %w", err)
+	}
+	params.Logger.Warn("PCAP receiver on Windows requires Wireshark (dumpcap.exe). Ensure Wireshark is installed and run as Administrator if necessary")
+	receiver, err := newReceiver(settings, receiverCfg, params.Logger, consumer, tb)
 	if err != nil {
 		return nil, err
 	}

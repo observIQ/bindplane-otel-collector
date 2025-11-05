@@ -35,12 +35,16 @@ import (
 	"go.opentelemetry.io/collector/receiver/receivertest"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
+
+	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/internal/metadata"
 )
 
 func TestCheckPrivileges_Windows_DumpcapAvailable(t *testing.T) {
 	cfg := &Config{Interface: "1"}
 	settings := receivertest.NewNopSettings(typ)
-	receiver, err := newReceiver(settings, cfg, zap.NewNop(), consumertest.NewNop())
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, zap.NewNop(), consumertest.NewNop(), tb)
 	require.NoError(t, err)
 
 	// This will try to actually run dumpcap, so it may fail if Wireshark is not installed
@@ -77,7 +81,9 @@ func TestCheckPrivileges_Windows_ExecutablePath(t *testing.T) {
 		ExecutablePath: `C:\Program Files\Wireshark\dumpcap.exe`,
 	}
 	settings := receivertest.NewNopSettings(typ)
-	receiver, err := newReceiver(settings, cfg, zap.NewNop(), consumertest.NewNop())
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, zap.NewNop(), consumertest.NewNop(), tb)
 	require.NoError(t, err)
 
 	// Will try to run the command, which will fail in mock but we can verify args
@@ -101,7 +107,9 @@ func TestCheckPrivileges_Windows_DumpcapNotFound(t *testing.T) {
 
 	cfg := &Config{Interface: "1"}
 	settings := receivertest.NewNopSettings(typ)
-	receiver, err := newReceiver(settings, cfg, zap.NewNop(), consumertest.NewNop())
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, zap.NewNop(), consumertest.NewNop(), tb)
 	require.NoError(t, err)
 
 	err = receiver.checkPrivileges()
@@ -114,7 +122,9 @@ func TestReadPacketsWindows_ValidPacket(t *testing.T) {
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	settings := receivertest.NewNopSettings(typ)
-	receiver, err := newReceiver(settings, cfg, logger, sink)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
 	require.NoError(t, err)
 
 	// Create a PCAP writer to generate valid PCAP data
@@ -199,7 +209,9 @@ func TestReadPacketsWindows_MultiplePackets(t *testing.T) {
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	settings := receivertest.NewNopSettings(typ)
-	receiver, err := newReceiver(settings, cfg, logger, sink)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
 	require.NoError(t, err)
 
 	pr, pw := io.Pipe()
@@ -263,7 +275,9 @@ func TestReadPacketsWindows_EmptyInput(t *testing.T) {
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	settings := receivertest.NewNopSettings(typ)
-	receiver, err := newReceiver(settings, cfg, logger, sink)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
 	require.NoError(t, err)
 
 	// Empty PCAP file (just header)
@@ -292,7 +306,9 @@ func TestReadPacketsWindows_InvalidPCAPData(t *testing.T) {
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	settings := receivertest.NewNopSettings(typ)
-	receiver, err := newReceiver(settings, cfg, logger, sink)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
 	require.NoError(t, err)
 
 	// Invalid PCAP data
@@ -314,7 +330,9 @@ func TestReadPacketsWindows_ContextCancellation(t *testing.T) {
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	settings := receivertest.NewNopSettings(typ)
-	receiver, err := newReceiver(settings, cfg, logger, sink)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
 	require.NoError(t, err)
 
 	pr, pw := io.Pipe()
@@ -376,7 +394,9 @@ func TestReadPacketsWindows_UDPPacket(t *testing.T) {
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	settings := receivertest.NewNopSettings(typ)
-	receiver, err := newReceiver(settings, cfg, logger, sink)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
 	require.NoError(t, err)
 
 	pr, pw := io.Pipe()
@@ -447,7 +467,9 @@ func TestReadPacketsWindows_IPv6Packet(t *testing.T) {
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	settings := receivertest.NewNopSettings(typ)
-	receiver, err := newReceiver(settings, cfg, logger, sink)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
 	require.NoError(t, err)
 
 	pr, pw := io.Pipe()
@@ -523,7 +545,9 @@ func TestReadPacketsWindows_ICMPPacket(t *testing.T) {
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
 	settings := receivertest.NewNopSettings(typ)
-	receiver, err := newReceiver(settings, cfg, logger, sink)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
 	require.NoError(t, err)
 
 	pr, pw := io.Pipe()
@@ -634,7 +658,9 @@ func TestStart_InvalidConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			settings := receivertest.NewNopSettings(typ)
-			receiver, err := newReceiver(settings, tt.config, zap.NewNop(), consumertest.NewNop())
+			tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+			require.NoError(t, err)
+			receiver, err := newReceiver(settings, tt.config, zap.NewNop(), consumertest.NewNop(), tb)
 			require.NoError(t, err)
 
 			err = receiver.Start(context.Background(), componenttest.NewNopHost())

@@ -18,6 +18,7 @@ package pcapreceiver
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/internal/metadata"
 	"go.opentelemetry.io/collector/component"
@@ -37,11 +38,17 @@ func createLogsReceiver(
 	if err != nil {
 		return nil, err
 	}
-	receiverCfg := cfg.(*Config)
-
-	params.Logger.Warn("PCAP receiver requires root privileges or tcpdump capabilities (cap_net_raw,cap_net_admin). Ensure the collector has sufficient privileges to capture network packets")
-
 	settings := receivertest.NewNopSettings(metadata.Type)
+
+	receiverCfg, ok := cfg.(*Config)
+	if !ok {
+		return nil, fmt.Errorf("invalid config type")
+	}
+
+	if err := receiverCfg.Validate(); err != nil {
+		return nil, fmt.Errorf("validate config: %w", err)
+	}
+	params.Logger.Warn("PCAP receiver requires root privileges or tcpdump capabilities (cap_net_raw,cap_net_admin). Ensure the collector has sufficient privileges to capture network packets")
 	receiver, err := newReceiver(settings, receiverCfg, params.Logger, consumer, tb)
 	if err != nil {
 		return nil, err
