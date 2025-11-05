@@ -47,7 +47,7 @@ builds:
 # https://goreleaser.com/customization/archive/
 archives:
   - format: zip
-    name_template: "archive/{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     files:
       - LICENSE
       - src: release_deps/opentelemetry-java-contrib-jmx-metrics.jar
