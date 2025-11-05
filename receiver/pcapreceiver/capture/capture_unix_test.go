@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build darwin
+//go:build !windows
 
 package capture
 
@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBuildCaptureCommand(t *testing.T) {
+func TestBuildCaptureCommand_Unix(t *testing.T) {
 	tests := []struct {
 		name     string
 		iface    string
@@ -88,7 +88,7 @@ func TestBuildCaptureCommand(t *testing.T) {
 	}
 }
 
-func TestBuildCaptureCommand_FilterWithParentheses(t *testing.T) {
+func TestBuildCaptureCommand_Unix_FilterWithParentheses(t *testing.T) {
 	cmd := BuildCaptureCommand("en0", "(tcp port 80 or tcp port 443) and not src 192.168.1.1", 65535, true)
 	require.NotNil(t, cmd)
 

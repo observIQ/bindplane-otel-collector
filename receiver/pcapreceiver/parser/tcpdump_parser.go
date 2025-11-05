@@ -107,8 +107,8 @@ func parseHeaderLine(line string) (*PacketInfo, error) {
 	// Format: "ARP, Request who-has 10.1.10.167 tell 10.1.10.1"
 	// Format: "ARP, Reply 10.1.10.167 is-at c2:08:9d:e7:3c:e1"
 	if len(parts) >= 2 && parts[0] == "ARP," {
-		info.Protocol = "ARP"
-		info.Transport = "Unknown"
+		info.Protocol = ProtocolARP
+		info.Transport = TransportUnknown
 
 		// Parse ARP request: "ARP, Request who-has <dst> tell <src>"
 		if len(parts) >= 6 && parts[1] == "Request" && parts[2] == "who-has" && parts[4] == "tell" {
@@ -265,32 +265,32 @@ func determineTransport(description, protocol string) string {
 
 	// Check for explicit protocol mentions
 	if strings.Contains(descLower, "tcp") || strings.Contains(descLower, "flags [") {
-		return "TCP"
+		return TransportTCP
 	}
 	if strings.Contains(descLower, "udp") {
-		return "UDP"
+		return TransportUDP
 	}
 	if strings.Contains(descLower, "icmp") {
-		return "ICMP"
+		return TransportICMP
 	}
 
 	// Check for DNS patterns (usually UDP)
 	// Example: "12345+ A? example.com."
 	if strings.Contains(description, "+") && (strings.Contains(descLower, "a?") || strings.Contains(descLower, "aaaa?")) {
-		return "UDP"
+		return TransportUDP
 	}
 
 	// Default based on protocol
-	if protocol == "IP" || protocol == "IP6" {
+	if protocol == ProtocolIP || protocol == ProtocolIP6 {
 		// If we have flags, it's likely TCP
 		if strings.Contains(descLower, "flags") {
-			return "TCP"
+			return TransportTCP
 		}
 		// Otherwise unknown
-		return "Unknown"
+		return TransportUnknown
 	}
 
-	return "Unknown"
+	return TransportUnknown
 }
 
 // parseTimestamp parses a timestamp string like "12:34:56.789012"

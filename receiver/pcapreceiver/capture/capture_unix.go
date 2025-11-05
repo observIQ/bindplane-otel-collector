@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build linux
+//go:build !windows
 
 // Package capture provides functions to build capture commands for different platforms.
 package capture
@@ -23,7 +23,7 @@ import (
 	"strings"
 )
 
-// BuildCaptureCommand builds the tcpdump command for Linux
+// BuildCaptureCommand builds the tcpdump command for macOS and Linux
 func BuildCaptureCommand(iface, filter string, snaplen int, promisc bool) *exec.Cmd {
 	args := []string{
 		"-i", iface, // Interface
@@ -42,9 +42,10 @@ func BuildCaptureCommand(iface, filter string, snaplen int, promisc bool) *exec.
 
 	// Add filter if specified
 	if filter != "" {
+		// Split filter into words for proper argument passing
 		filterParts := strings.Fields(filter)
 		args = append(args, filterParts...)
 	}
 
-	return exec.Command("tcpdump", args...) // #nosec G204 - validated by config
+	return exec.Command("tcpdump", args...) // #nosec G204 - interface and filter are validated by config
 }

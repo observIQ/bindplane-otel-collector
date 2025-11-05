@@ -38,8 +38,8 @@ func TestParsePacket_TCP(t *testing.T) {
 	require.Equal(t, 56, packet.Timestamp.Second())
 
 	// Verify protocol information
-	require.Equal(t, "IP", packet.Protocol)
-	require.Equal(t, "TCP", packet.Transport)
+	require.Equal(t, ProtocolIP, packet.Protocol)
+	require.Equal(t, TransportTCP, packet.Transport)
 
 	// Verify addresses
 	require.Equal(t, "192.168.1.100", packet.SrcAddress)
@@ -69,8 +69,8 @@ func TestParsePacket_UDP(t *testing.T) {
 	require.NotNil(t, packet)
 
 	// Verify protocol information
-	require.Equal(t, "IP", packet.Protocol)
-	require.Equal(t, "UDP", packet.Transport)
+	require.Equal(t, ProtocolIP, packet.Protocol)
+	require.Equal(t, TransportUDP, packet.Transport)
 
 	// Verify addresses
 	require.Equal(t, "10.0.0.5", packet.SrcAddress)
@@ -95,8 +95,8 @@ func TestParsePacket_ICMP(t *testing.T) {
 	require.NotNil(t, packet)
 
 	// Verify protocol information
-	require.Equal(t, "IP", packet.Protocol)
-	require.Equal(t, "ICMP", packet.Transport)
+	require.Equal(t, ProtocolIP, packet.Protocol)
+	require.Equal(t, TransportICMP, packet.Transport)
 
 	// Verify addresses
 	require.Equal(t, "192.168.1.100", packet.SrcAddress)
@@ -121,8 +121,8 @@ func TestParsePacket_IPv6(t *testing.T) {
 	require.NotNil(t, packet)
 
 	// Verify protocol information
-	require.Equal(t, "IP6", packet.Protocol)
-	require.Equal(t, "TCP", packet.Transport)
+	require.Equal(t, ProtocolIP6, packet.Protocol)
+	require.Equal(t, TransportTCP, packet.Transport)
 
 	// Verify IPv6 addresses
 	require.Contains(t, packet.SrcAddress, "2001:db8")
@@ -238,8 +238,8 @@ func TestParseHeaderLine(t *testing.T) {
 		{
 			name:        "TCP with ports",
 			line:        "12:34:56.789012 IP 192.168.1.100.54321 > 192.168.1.1.443: Flags [S]",
-			wantProto:   "IP",
-			wantTransp:  "TCP",
+			wantProto:   ProtocolIP,
+			wantTransp:  TransportTCP,
 			wantSrcAddr: "192.168.1.100",
 			wantDstAddr: "192.168.1.1",
 			wantSrcPort: 54321,
@@ -249,8 +249,8 @@ func TestParseHeaderLine(t *testing.T) {
 		{
 			name:        "UDP with ports",
 			line:        "13:45:22.123456 IP 10.0.0.5.12345 > 8.8.8.8.53: UDP",
-			wantProto:   "IP",
-			wantTransp:  "UDP",
+			wantProto:   ProtocolIP,
+			wantTransp:  TransportUDP,
 			wantSrcAddr: "10.0.0.5",
 			wantDstAddr: "8.8.8.8",
 			wantSrcPort: 12345,
@@ -260,8 +260,8 @@ func TestParseHeaderLine(t *testing.T) {
 		{
 			name:        "ICMP without ports",
 			line:        "14:20:30.555555 IP 192.168.1.100 > 192.168.1.1: ICMP echo request",
-			wantProto:   "IP",
-			wantTransp:  "ICMP",
+			wantProto:   ProtocolIP,
+			wantTransp:  TransportICMP,
 			wantSrcAddr: "192.168.1.100",
 			wantDstAddr: "192.168.1.1",
 			wantSrcPort: 0,
@@ -271,8 +271,8 @@ func TestParseHeaderLine(t *testing.T) {
 		{
 			name:        "IPv6 with ports",
 			line:        "15:30:45.678901 IP6 2001:db8::1.8080 > 2001:db8::2.80: Flags [S]",
-			wantProto:   "IP6",
-			wantTransp:  "TCP",
+			wantProto:   ProtocolIP6,
+			wantTransp:  TransportTCP,
 			wantSrcAddr: "2001:db8::1",
 			wantDstAddr: "2001:db8::2",
 			wantSrcPort: 8080,

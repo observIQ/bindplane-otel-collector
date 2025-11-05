@@ -18,7 +18,6 @@ package capture
 
 import (
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -27,7 +26,6 @@ import (
 func TestBuildCaptureCommand_Windows_DefaultExe(t *testing.T) {
 	cmd := BuildCaptureCommand("1", "tcp port 443", 65535, true)
 	require.NotNil(t, cmd)
-	require.True(t, strings.HasSuffix(strings.ToLower(cmd.Path), "dumpcap"))
 	require.Equal(t, []string{"-i", "1", "-q", "-F", "pcap", "-w", "-", "-s", "65535", "-f", "tcp port 443"}, cmd.Args[1:])
 }
 

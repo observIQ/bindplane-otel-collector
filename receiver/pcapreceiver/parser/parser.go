@@ -17,10 +17,27 @@ package parser
 
 import "time"
 
+// Transport protocol constants
+const (
+	TransportTCP     = "TCP"
+	TransportUDP     = "UDP"
+	TransportICMP    = "ICMP"
+	TransportUnknown = "Unknown"
+)
+
+// Network protocol constants
+const (
+	ProtocolIP      = "IP"
+	ProtocolIPv6    = "IPv6"
+	ProtocolIP6     = "IP6" // Alternative representation of IPv6
+	ProtocolARP     = "ARP"
+	ProtocolUnknown = "Unknown"
+)
+
 // PacketInfo contains parsed information from a network packet
 type PacketInfo struct {
 	Timestamp  time.Time // Timestamp from tcpdump output
-	Protocol   string    // Network layer protocol: "IP", "IPv6", "ARP", etc.
+	Protocol   string    // Network layer protocol: "IP", "IPv6", "ARP", "Unknown"
 	Transport  string    // Transport layer protocol: "TCP", "UDP", "ICMP", etc.
 	SrcAddress string    // Source IP address
 	DstAddress string    // Destination IP address

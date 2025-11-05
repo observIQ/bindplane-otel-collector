@@ -52,18 +52,18 @@ func ParsePcapgoPacket(data []byte, ci gopacket.CaptureInfo) (*PacketInfo, error
 	if ipv4 := packet.Layer(layers.LayerTypeIPv4); ipv4 != nil {
 		ipv4Layer = ipv4.(*layers.IPv4)
 		ipLayer = ipv4
-		info.Protocol = "IP"
+		info.Protocol = ProtocolIP
 		info.SrcAddress = ipv4Layer.SrcIP.String()
 		info.DstAddress = ipv4Layer.DstIP.String()
 	} else if ipv6 := packet.Layer(layers.LayerTypeIPv6); ipv6 != nil {
 		ipv6Layer = ipv6.(*layers.IPv6)
 		ipLayer = ipv6
-		info.Protocol = "IPv6"
+		info.Protocol = ProtocolIPv6
 		info.SrcAddress = ipv6Layer.SrcIP.String()
 		info.DstAddress = ipv6Layer.DstIP.String()
 	} else if arp := packet.Layer(layers.LayerTypeARP); arp != nil {
 		arpLayer = arp.(*layers.ARP)
-		info.Protocol = "ARP"
+		info.Protocol = ProtocolARP
 		// ARP addresses are []byte, convert to IP string
 		if len(arpLayer.SourceProtAddress) == 4 {
 			info.SrcAddress = fmt.Sprintf("%d.%d.%d.%d",
@@ -83,33 +83,33 @@ func ParsePcapgoPacket(data []byte, ci gopacket.CaptureInfo) (*PacketInfo, error
 		} else {
 			info.DstAddress = fmt.Sprintf("%x", arpLayer.DstProtAddress)
 		}
-		info.Transport = "Unknown"
+		info.Transport = TransportUnknown
 		return info, nil
 	} else {
 		// Unknown network layer
-		info.Protocol = "Unknown"
-		info.Transport = "Unknown"
+		info.Protocol = ProtocolUnknown
+		info.Transport = TransportUnknown
 		return info, nil
 	}
 
 	// Extract transport layer protocol
 	if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
 		tcp := tcpLayer.(*layers.TCP)
-		info.Transport = "TCP"
+		info.Transport = TransportTCP
 		info.SrcPort = int(tcp.SrcPort)
 		info.DstPort = int(tcp.DstPort)
 	} else if udpLayer := packet.Layer(layers.LayerTypeUDP); udpLayer != nil {
 		udp := udpLayer.(*layers.UDP)
-		info.Transport = "UDP"
+		info.Transport = TransportUDP
 		info.SrcPort = int(udp.SrcPort)
 		info.DstPort = int(udp.DstPort)
 	} else if icmpLayer := packet.Layer(layers.LayerTypeICMPv4); icmpLayer != nil {
-		info.Transport = "ICMP"
+		info.Transport = TransportICMP
 	} else if icmpv6Layer := packet.Layer(layers.LayerTypeICMPv6); icmpv6Layer != nil {
-		info.Transport = "ICMP"
+		info.Transport = TransportICMP
 	} else if ipLayer != nil {
 		// IP layer found but no transport layer
-		info.Transport = "Unknown"
+		info.Transport = TransportUnknown
 	}
 
 	return info, nil
