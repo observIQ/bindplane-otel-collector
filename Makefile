@@ -178,6 +178,7 @@ gosec:
 	  -exclude-dir=internal/tools \
 	  -exclude-dir=exporter/chronicleexporter/internal/metadata \
 	  -exclude-dir=receiver/awss3eventreceiver/internal/metadata \
+	  -exclude-dir=receiver/pcapreceiver/internal/metadata \
 	  ./...
 # exclude the testdata dir; it contains a go program for testing.
 	cd updater; gosec -exclude-dir internal/service/testdata ./...
