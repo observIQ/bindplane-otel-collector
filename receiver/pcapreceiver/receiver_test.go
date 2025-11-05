@@ -19,8 +19,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/internal/metadata"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
+	"go.opentelemetry.io/collector/receiver/receivertest"
 	"go.uber.org/zap"
 )
 
@@ -34,8 +37,11 @@ func TestNewReceiver(t *testing.T) {
 	}
 	logger := zap.NewNop()
 	consumer := consumertest.NewNop()
-
-	receiver := newReceiver(cfg, logger, consumer)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	settings := receivertest.NewNopSettings(typ)
+	receiver, err := newReceiver(settings, cfg, logger, consumer, tb)
+	require.NoError(t, err)
 	require.NotNil(t, receiver)
 	require.Equal(t, cfg, receiver.config)
 	require.Equal(t, logger, receiver.logger)
@@ -91,7 +97,11 @@ func TestIsTimestampLine(t *testing.T) {
 func TestProcessPacket(t *testing.T) {
 	cfg := &Config{Interface: "en0", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
-	receiver := newReceiver(cfg, zap.NewNop(), sink)
+	settings := receivertest.NewNopSettings(typ)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, zap.NewNop(), sink, tb)
+	require.NoError(t, err)
 
 	lines := []string{
 		"12:34:56.789012 IP 192.168.1.100.54321 > 192.168.1.1.443: Flags [S]",
@@ -157,7 +167,11 @@ func TestProcessPacket(t *testing.T) {
 func TestProcessPacket_InvalidPacket(t *testing.T) {
 	cfg := &Config{Interface: "en0"}
 	sink := &consumertest.LogsSink{}
-	receiver := newReceiver(cfg, zap.NewNop(), sink)
+	settings := receivertest.NewNopSettings(typ)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, zap.NewNop(), sink, tb)
+	require.NoError(t, err)
 
 	// Invalid packet lines
 	lines := []string{
@@ -176,7 +190,11 @@ func TestProcessPacket_InvalidPacket(t *testing.T) {
 func TestProcessPacket_ICMPNoPort(t *testing.T) {
 	cfg := &Config{Interface: "en0", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
-	receiver := newReceiver(cfg, zap.NewNop(), sink)
+	settings := receivertest.NewNopSettings(typ)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, zap.NewNop(), sink, tb)
+	require.NoError(t, err)
 
 	lines := []string{
 		"14:20:30.555555 IP 192.168.1.100 > 192.168.1.1: ICMP echo request",
@@ -213,17 +231,25 @@ func TestProcessPacket_ICMPNoPort(t *testing.T) {
 
 func TestShutdown(t *testing.T) {
 	cfg := &Config{Interface: "en0"}
-	receiver := newReceiver(cfg, zap.NewNop(), consumertest.NewNop())
+	settings := receivertest.NewNopSettings(typ)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, zap.NewNop(), consumertest.NewNop(), tb)
+	require.NoError(t, err)
 
 	// Test shutdown without starting
-	err := receiver.Shutdown(context.Background())
+	err = receiver.Shutdown(context.Background())
 	require.NoError(t, err)
 }
 
 func TestProcessPacket_IPv6(t *testing.T) {
 	cfg := &Config{Interface: "en0", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
-	receiver := newReceiver(cfg, zap.NewNop(), sink)
+	settings := receivertest.NewNopSettings(typ)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, zap.NewNop(), sink, tb)
+	require.NoError(t, err)
 
 	lines := []string{
 		"15:30:45.678901 IP6 2001:db8::1.8080 > 2001:db8::2.80: Flags [S]",
@@ -277,7 +303,11 @@ func TestDefaultSnapLen(t *testing.T) {
 		Interface: "en0",
 		SnapLen:   0, // Not specified, should use default
 	}
-	receiver := newReceiver(cfg, zap.NewNop(), consumertest.NewNop())
+	settings := receivertest.NewNopSettings(typ)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, zap.NewNop(), consumertest.NewNop(), tb)
+	require.NoError(t, err)
 
 	require.Equal(t, 0, receiver.config.SnapLen, "Config should preserve original 0 value")
 	// Default is applied in Start() when building capture command
@@ -286,7 +316,11 @@ func TestDefaultSnapLen(t *testing.T) {
 func TestProcessPacket_UDP(t *testing.T) {
 	cfg := &Config{Interface: "en0", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
-	receiver := newReceiver(cfg, zap.NewNop(), sink)
+	settings := receivertest.NewNopSettings(typ)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, zap.NewNop(), sink, tb)
+	require.NoError(t, err)
 
 	lines := []string{
 		"13:45:22.123456 IP 10.0.0.5.12345 > 8.8.8.8.53: 12345+ A? example.com. (29)",
@@ -325,7 +359,11 @@ func TestPacketInfo_ToLogAttributes(t *testing.T) {
 	// Test that PacketInfo is correctly converted to log attributes
 	cfg := &Config{Interface: "en0", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
-	receiver := newReceiver(cfg, zap.NewNop(), sink)
+	settings := receivertest.NewNopSettings(typ)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+	receiver, err := newReceiver(settings, cfg, zap.NewNop(), sink, tb)
+	require.NoError(t, err)
 
 	// Manually construct lines from PacketInfo for testing
 	lines := []string{

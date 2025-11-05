@@ -32,17 +32,20 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
+	"go.opentelemetry.io/collector/receiver/receivertest"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 )
 
 func TestCheckPrivileges_Windows_DumpcapAvailable(t *testing.T) {
 	cfg := &Config{Interface: "1"}
-	receiver := newReceiver(cfg, zap.NewNop(), consumertest.NewNop())
+	settings := receivertest.NewNopSettings(typ)
+	receiver, err := newReceiver(settings, cfg, zap.NewNop(), consumertest.NewNop())
+	require.NoError(t, err)
 
 	// This will try to actually run dumpcap, so it may fail if Wireshark is not installed
 	// We just verify it doesn't panic and handles errors gracefully
-	err := receiver.checkPrivileges()
+	err = receiver.checkPrivileges()
 	// If dumpcap is available, should succeed or fail with a specific error
 	// If not available, should fail with installation error
 	if err != nil {
@@ -73,7 +76,9 @@ func TestCheckPrivileges_Windows_ExecutablePath(t *testing.T) {
 		Interface:      "1",
 		ExecutablePath: `C:\Program Files\Wireshark\dumpcap.exe`,
 	}
-	receiver := newReceiver(cfg, zap.NewNop(), consumertest.NewNop())
+	settings := receivertest.NewNopSettings(typ)
+	receiver, err := newReceiver(settings, cfg, zap.NewNop(), consumertest.NewNop())
+	require.NoError(t, err)
 
 	// Will try to run the command, which will fail in mock but we can verify args
 	_ = receiver.checkPrivileges()
@@ -95,9 +100,11 @@ func TestCheckPrivileges_Windows_DumpcapNotFound(t *testing.T) {
 	}
 
 	cfg := &Config{Interface: "1"}
-	receiver := newReceiver(cfg, zap.NewNop(), consumertest.NewNop())
+	settings := receivertest.NewNopSettings(typ)
+	receiver, err := newReceiver(settings, cfg, zap.NewNop(), consumertest.NewNop())
+	require.NoError(t, err)
 
-	err := receiver.checkPrivileges()
+	err = receiver.checkPrivileges()
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "dumpcap")
 }
@@ -106,7 +113,9 @@ func TestReadPacketsWindows_ValidPacket(t *testing.T) {
 	cfg := &Config{Interface: "1", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	receiver := newReceiver(cfg, logger, sink)
+	settings := receivertest.NewNopSettings(typ)
+	receiver, err := newReceiver(settings, cfg, logger, sink)
+	require.NoError(t, err)
 
 	// Create a PCAP writer to generate valid PCAP data
 	pr, pw := io.Pipe()
@@ -189,7 +198,9 @@ func TestReadPacketsWindows_MultiplePackets(t *testing.T) {
 	cfg := &Config{Interface: "1"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	receiver := newReceiver(cfg, logger, sink)
+	settings := receivertest.NewNopSettings(typ)
+	receiver, err := newReceiver(settings, cfg, logger, sink)
+	require.NoError(t, err)
 
 	pr, pw := io.Pipe()
 	stdout := io.NopCloser(pr)
@@ -251,7 +262,9 @@ func TestReadPacketsWindows_EmptyInput(t *testing.T) {
 	cfg := &Config{Interface: "1"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	receiver := newReceiver(cfg, logger, sink)
+	settings := receivertest.NewNopSettings(typ)
+	receiver, err := newReceiver(settings, cfg, logger, sink)
+	require.NoError(t, err)
 
 	// Empty PCAP file (just header)
 	pr, pw := io.Pipe()
@@ -278,7 +291,9 @@ func TestReadPacketsWindows_InvalidPCAPData(t *testing.T) {
 	cfg := &Config{Interface: "1"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	receiver := newReceiver(cfg, logger, sink)
+	settings := receivertest.NewNopSettings(typ)
+	receiver, err := newReceiver(settings, cfg, logger, sink)
+	require.NoError(t, err)
 
 	// Invalid PCAP data
 	stdout := io.NopCloser(strings.NewReader("invalid pcap data"))
@@ -298,7 +313,9 @@ func TestReadPacketsWindows_ContextCancellation(t *testing.T) {
 	cfg := &Config{Interface: "1"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	receiver := newReceiver(cfg, logger, sink)
+	settings := receivertest.NewNopSettings(typ)
+	receiver, err := newReceiver(settings, cfg, logger, sink)
+	require.NoError(t, err)
 
 	pr, pw := io.Pipe()
 	stdout := io.NopCloser(pr)
@@ -358,7 +375,9 @@ func TestReadPacketsWindows_UDPPacket(t *testing.T) {
 	cfg := &Config{Interface: "1", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	receiver := newReceiver(cfg, logger, sink)
+	settings := receivertest.NewNopSettings(typ)
+	receiver, err := newReceiver(settings, cfg, logger, sink)
+	require.NoError(t, err)
 
 	pr, pw := io.Pipe()
 	stdout := io.NopCloser(pr)
@@ -427,7 +446,9 @@ func TestReadPacketsWindows_IPv6Packet(t *testing.T) {
 	cfg := &Config{Interface: "1", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	receiver := newReceiver(cfg, logger, sink)
+	settings := receivertest.NewNopSettings(typ)
+	receiver, err := newReceiver(settings, cfg, logger, sink)
+	require.NoError(t, err)
 
 	pr, pw := io.Pipe()
 	stdout := io.NopCloser(pr)
@@ -501,7 +522,9 @@ func TestReadPacketsWindows_ICMPPacket(t *testing.T) {
 	cfg := &Config{Interface: "1", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	receiver := newReceiver(cfg, logger, sink)
+	settings := receivertest.NewNopSettings(typ)
+	receiver, err := newReceiver(settings, cfg, logger, sink)
+	require.NoError(t, err)
 
 	pr, pw := io.Pipe()
 	stdout := io.NopCloser(pr)
@@ -610,9 +633,11 @@ func TestStart_InvalidConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			receiver := newReceiver(tt.config, zap.NewNop(), consumertest.NewNop())
+			settings := receivertest.NewNopSettings(typ)
+			receiver, err := newReceiver(settings, tt.config, zap.NewNop(), consumertest.NewNop())
+			require.NoError(t, err)
 
-			err := receiver.Start(context.Background(), componenttest.NewNopHost())
+			err = receiver.Start(context.Background(), componenttest.NewNopHost())
 			require.Error(t, err)
 			require.Contains(t, err.Error(), tt.wantError)
 		})

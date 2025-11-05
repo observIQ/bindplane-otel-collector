@@ -22,11 +22,14 @@ import (
 	"os/exec"
 
 	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/capture"
+	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/parser"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/collector/receiver"
+	"go.opentelemetry.io/collector/receiver/receiverhelper"
 	"go.uber.org/zap"
 )
 
@@ -39,20 +42,37 @@ const defaultSnapLen = 65535
 
 // pcapReceiver receives network packets via tcpdump and emits them as logs
 type pcapReceiver struct {
-	config   *Config
-	logger   *zap.Logger
-	consumer consumer.Logs
-	cancel   context.CancelFunc
-	cmd      *exec.Cmd
+	id        component.ID
+	telemetry component.TelemetrySettings
+	metrics   *metadata.TelemetryBuilder
+	config    *Config
+	logger    *zap.Logger
+	consumer  consumer.Logs
+	cancel    context.CancelFunc
+	cmd       *exec.Cmd
+	obsrecv   *receiverhelper.ObsReport
 }
 
 // newReceiver creates a new PCAP receiver
-func newReceiver(config *Config, logger *zap.Logger, consumer consumer.Logs) *pcapReceiver {
-	return &pcapReceiver{
-		config:   config,
-		logger:   logger,
-		consumer: consumer,
+func newReceiver(params receiver.Settings, config *Config, logger *zap.Logger, consumer consumer.Logs, tb *metadata.TelemetryBuilder) (*pcapReceiver, error) {
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to set up observer: %w", err)
 	}
+
+	return &pcapReceiver{
+		id:        params.ID,
+		telemetry: params.TelemetrySettings,
+		metrics:   tb,
+		config:    config,
+		logger:    logger,
+		consumer:  consumer,
+		obsrecv:   obsrecv,
+	}, nil
 }
 
 // Start starts the packet capture

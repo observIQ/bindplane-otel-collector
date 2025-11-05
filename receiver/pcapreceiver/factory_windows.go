@@ -22,6 +22,9 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"
+	"go.opentelemetry.io/collector/receiver/receivertest"
+
+	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/internal/metadata"
 )
 
 // createLogsReceiver creates a logs receiver for Windows
@@ -35,5 +38,10 @@ func createLogsReceiver(
 
 	params.Logger.Warn("PCAP receiver on Windows requires Wireshark (dumpcap.exe). Ensure Wireshark is installed and run as Administrator if necessary")
 
-	return newReceiver(receiverCfg, params.Logger, consumer), nil
+	settings := receivertest.NewNopSettings(metadata.Type)
+	receiver, err := newReceiver(settings, receiverCfg, params.Logger, consumer)
+	if err != nil {
+		return nil, err
+	}
+	return receiver, nil
 }
