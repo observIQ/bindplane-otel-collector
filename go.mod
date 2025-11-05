@@ -36,6 +36,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.87.4
 	github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver v1.87.4
 	github.com/observiq/bindplane-otel-collector/receiver/oktareceiver v1.87.4
+	github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver v1.87.4
 	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.87.4
 	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.87.4
 	github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver v1.87.4
@@ -1049,6 +1050,8 @@ replace github.com/observiq/bindplane-otel-collector/receiver/m365receiver => ./
 replace github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver => ./receiver/macosunifiedloggingreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/oktareceiver => ./receiver/oktareceiver
+
+replace github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver => ./receiver/pcapreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver => ./receiver/pluginreceiver
 
