@@ -4,8 +4,8 @@ go 1.24.4
 
 require (
 	cloud.google.com/go/storage v1.57.1
-	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.87.4
-	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.87.4
+	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.87.5
+	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.87.5
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.44.0
 	go.opentelemetry.io/collector/component/componenttest v0.138.0
