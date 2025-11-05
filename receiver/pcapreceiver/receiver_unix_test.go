@@ -26,12 +26,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/internal/metadata"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
-	"go.opentelemetry.io/collector/receiver/receivertest"
-	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 )
 
@@ -53,11 +50,7 @@ func TestCheckPrivileges_Unix_Root(t *testing.T) {
 	}
 
 	cfg := &Config{Interface: "en0"}
-	settings := receivertest.NewNopSettings(typ)
-	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
-	require.NoError(t, err)
-	receiver, err := newReceiver(settings, cfg, zap.NewNop(), consumertest.NewNop(), tb)
-	require.NoError(t, err)
+	receiver := newTestReceiver(t, cfg, nil, nil)
 
 	// Test with root privileges (Geteuid == 0)
 	if os.Geteuid() == 0 {
@@ -84,13 +77,9 @@ func TestCheckPrivileges_Unix_NoRoot(t *testing.T) {
 	}
 
 	cfg := &Config{Interface: "en0"}
-	settings := receivertest.NewNopSettings(typ)
-	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
-	require.NoError(t, err)
-	receiver, err := newReceiver(settings, cfg, zap.NewNop(), consumertest.NewNop(), tb)
-	require.NoError(t, err)
+	receiver := newTestReceiver(t, cfg, nil, nil)
 
-	err = receiver.checkPrivileges()
+	err := receiver.checkPrivileges()
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "root privileges")
 	require.Contains(t, err.Error(), "sudo")
@@ -110,13 +99,9 @@ func TestCheckPrivileges_Unix_TcpdumpNotFound(t *testing.T) {
 	}
 
 	cfg := &Config{Interface: "en0"}
-	settings := receivertest.NewNopSettings(typ)
-	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
-	require.NoError(t, err)
-	receiver, err := newReceiver(settings, cfg, zap.NewNop(), consumertest.NewNop(), tb)
-	require.NoError(t, err)
+	receiver := newTestReceiver(t, cfg, nil, nil)
 
-	err = receiver.checkPrivileges()
+	err := receiver.checkPrivileges()
 	// Should fail when trying to start the preflight command
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "privileges")
@@ -126,11 +111,7 @@ func TestReadPackets_Unix_SinglePacket(t *testing.T) {
 	cfg := &Config{Interface: "en0", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	settings := receivertest.NewNopSettings(typ)
-	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
-	require.NoError(t, err)
-	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
-	require.NoError(t, err)
+	receiver := newTestReceiver(t, cfg, logger, sink)
 
 	// Create input simulating tcpdump output
 	input := "12:34:56.789012 IP 192.168.1.100.54321 > 192.168.1.1.443: Flags [S]\n" +
@@ -193,11 +174,7 @@ func TestReadPackets_Unix_MultiplePackets(t *testing.T) {
 	cfg := &Config{Interface: "en0", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	settings := receivertest.NewNopSettings(typ)
-	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
-	require.NoError(t, err)
-	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
-	require.NoError(t, err)
+	receiver := newTestReceiver(t, cfg, logger, sink)
 
 	// Create input with multiple packets
 	input := "12:34:56.789012 IP 192.168.1.100.54321 > 192.168.1.1.443: Flags [S]\n" +
@@ -228,11 +205,7 @@ func TestReadPackets_Unix_EmptyInput(t *testing.T) {
 	cfg := &Config{Interface: "en0", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	settings := receivertest.NewNopSettings(typ)
-	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
-	require.NoError(t, err)
-	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
-	require.NoError(t, err)
+	receiver := newTestReceiver(t, cfg, logger, sink)
 
 	stdout := io.NopCloser(strings.NewReader(""))
 	ctx, cancel := context.WithCancel(context.Background())
@@ -249,11 +222,7 @@ func TestReadPackets_Unix_MalformedPacket(t *testing.T) {
 	cfg := &Config{Interface: "en0"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	settings := receivertest.NewNopSettings(typ)
-	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
-	require.NoError(t, err)
-	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
-	require.NoError(t, err)
+	receiver := newTestReceiver(t, cfg, logger, sink)
 
 	// Create input with malformed packet (no valid timestamp)
 	input := "not a timestamp line\n" +
@@ -275,11 +244,7 @@ func TestReadPackets_Unix_LargePacket(t *testing.T) {
 	cfg := &Config{Interface: "en0"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	settings := receivertest.NewNopSettings(typ)
-	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
-	require.NoError(t, err)
-	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
-	require.NoError(t, err)
+	receiver := newTestReceiver(t, cfg, logger, sink)
 
 	// Create a large packet with many hex lines
 	var sb strings.Builder
@@ -314,11 +279,7 @@ func TestReadPackets_Unix_PacketWithOnlyTimestamp(t *testing.T) {
 	cfg := &Config{Interface: "en0"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	settings := receivertest.NewNopSettings(typ)
-	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
-	require.NoError(t, err)
-	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
-	require.NoError(t, err)
+	receiver := newTestReceiver(t, cfg, logger, sink)
 
 	// Packet with only timestamp line, no hex data
 	input := "12:34:56.789012 IP 192.168.1.100.54321 > 192.168.1.1.443: Flags [S]\n" +
@@ -340,11 +301,7 @@ func TestReadPackets_Unix_IPv6Packet(t *testing.T) {
 	cfg := &Config{Interface: "en0", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	settings := receivertest.NewNopSettings(typ)
-	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
-	require.NoError(t, err)
-	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
-	require.NoError(t, err)
+	receiver := newTestReceiver(t, cfg, logger, sink)
 
 	// IPv6 packet
 	input := "15:30:45.678901 IP6 2001:db8::1.8080 > 2001:db8::2.80: Flags [S]\n" +
@@ -379,11 +336,7 @@ func TestReadPackets_Unix_ICMPPacket(t *testing.T) {
 	cfg := &Config{Interface: "en0", ParseAttributes: true}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	settings := receivertest.NewNopSettings(typ)
-	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
-	require.NoError(t, err)
-	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
-	require.NoError(t, err)
+	receiver := newTestReceiver(t, cfg, logger, sink)
 
 	// ICMP packet (no ports)
 	input := "14:20:30.555555 IP 192.168.1.100 > 192.168.1.1: ICMP echo request\n" +
@@ -423,11 +376,7 @@ func TestReadPackets_Unix_ScannerError(t *testing.T) {
 	cfg := &Config{Interface: "en0"}
 	sink := &consumertest.LogsSink{}
 	logger := zaptest.NewLogger(t)
-	settings := receivertest.NewNopSettings(typ)
-	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
-	require.NoError(t, err)
-	receiver, err := newReceiver(settings, cfg, logger, sink, tb)
-	require.NoError(t, err)
+	receiver := newTestReceiver(t, cfg, logger, sink)
 
 	// Create a reader that will cause an error
 	// Use a custom reader that returns an error after some data
@@ -507,13 +456,9 @@ func TestStart_InvalidConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			settings := receivertest.NewNopSettings(typ)
-			tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
-			require.NoError(t, err)
-			receiver, err := newReceiver(settings, tt.config, zap.NewNop(), consumertest.NewNop(), tb)
-			require.NoError(t, err)
+			receiver := newTestReceiver(t, tt.config, nil, nil)
 
-			err = receiver.Start(context.Background(), componenttest.NewNopHost())
+			err := receiver.Start(context.Background(), componenttest.NewNopHost())
 			require.Error(t, err)
 			require.Contains(t, err.Error(), tt.wantError)
 		})
@@ -529,14 +474,10 @@ func TestStart_WithoutRootPrivileges(t *testing.T) {
 		Interface: "any",
 		SnapLen:   65535,
 	}
-	settings := receivertest.NewNopSettings(typ)
-	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
-	require.NoError(t, err)
-	receiver, err := newReceiver(settings, cfg, zap.NewNop(), consumertest.NewNop(), tb)
-	require.NoError(t, err)
+	receiver := newTestReceiver(t, cfg, nil, nil)
 
 	// Start should succeed even without privileges, but won't capture packets
-	err = receiver.Start(context.Background(), componenttest.NewNopHost())
+	err := receiver.Start(context.Background(), componenttest.NewNopHost())
 	require.NoError(t, err)
 
 	// Clean up

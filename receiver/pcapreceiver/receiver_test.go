@@ -22,10 +22,34 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/internal/metadata"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
+	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/receiver/receivertest"
 	"go.uber.org/zap"
 )
+
+// newTestReceiver creates a test receiver with default settings.
+// If logger is nil, uses zap.NewNop(). If consumer is nil, uses consumertest.NewNop().
+func newTestReceiver(t *testing.T, cfg *Config, logger *zap.Logger, con consumer.Logs) *pcapReceiver {
+	t.Helper()
+
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+	if con == nil {
+		con = consumertest.NewNop()
+	}
+
+	settings := receivertest.NewNopSettings(metadata.Type)
+	tb, err := metadata.NewTelemetryBuilder(componenttest.NewNopTelemetrySettings())
+	require.NoError(t, err)
+
+	receiver, err := newReceiver(settings, cfg, logger, con, tb)
+	require.NoError(t, err)
+	require.NotNil(t, receiver)
+
+	return receiver
+}
 
 func TestNewReceiver(t *testing.T) {
 	cfg := &Config{

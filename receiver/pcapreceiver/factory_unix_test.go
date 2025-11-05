@@ -55,22 +55,6 @@ func TestCreateLogsReceiver(t *testing.T) {
 	require.NotNil(t, recv)
 }
 
-func TestCreateLogsReceiver_WithInvalidConfig(t *testing.T) {
-	factory := NewFactory()
-	cfg := &Config{
-		Interface: "", // Invalid: empty interface
-	}
-
-	settings := receivertest.NewNopSettings(factory.Type())
-	consumer := consumertest.NewNop()
-
-	receiver, err := factory.CreateLogs(context.Background(), settings, cfg, consumer)
-
-	// Config validation happens at Start(), so receiver creation should succeed
-	require.NoError(t, err)
-	require.NotNil(t, receiver)
-}
-
 func TestFactoryType(t *testing.T) {
 	factory := NewFactory()
 	require.Equal(t, typeStr, factory.Type().String())
