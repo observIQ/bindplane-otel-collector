@@ -173,7 +173,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsperfcountersreceiver v0.138.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinreceiver v0.138.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zookeeperreceiver v0.138.0
-	github.com/shirou/gopsutil/v3 v3.24.5
+	github.com/shirou/gopsutil/v3 v3.24.5 // indirect
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.44.0
@@ -210,6 +210,7 @@ require (
 require (
 	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.87.3
 	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.87.3
+	github.com/observiq/bindplane-otel-collector/internal/os v1.87.3
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.87.3
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.87.3
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.138.0
@@ -967,6 +968,8 @@ replace github.com/observiq/bindplane-otel-collector/packagestate => ./packagest
 replace github.com/observiq/bindplane-otel-collector/internal/aws => ./internal/aws
 
 replace github.com/observiq/bindplane-otel-collector/internal/measurements => ./internal/measurements
+
+replace github.com/observiq/bindplane-otel-collector/internal/os => ./internal/os
 
 replace github.com/observiq/bindplane-otel-collector/internal/rehydration => ./internal/rehydration
 
