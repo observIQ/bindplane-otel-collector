@@ -101,4 +101,3 @@ func TestBuildCaptureCommand_Darwin_FilterWithParentheses(t *testing.T) {
 	require.Contains(t, args, "--apple-md-print")
 	require.Contains(t, args, "I")
 }
-

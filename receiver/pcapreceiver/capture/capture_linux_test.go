@@ -101,4 +101,3 @@ func TestBuildCaptureCommand_Linux_FilterWithParentheses(t *testing.T) {
 	require.NotContains(t, args, "--apple-md-print")
 	require.NotContains(t, args, "I")
 }
-
