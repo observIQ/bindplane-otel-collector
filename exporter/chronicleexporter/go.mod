@@ -5,8 +5,8 @@ go 1.24.4
 require (
 	github.com/golang/mock v1.7.0-rc.1
 	github.com/google/uuid v1.6.0
-	github.com/observiq/bindplane-otel-collector v1.87.3
-	github.com/observiq/bindplane-otel-collector/expr v1.87.3
+	github.com/observiq/bindplane-otel-collector/expr v1.87.4
+	github.com/observiq/bindplane-otel-collector/internal/os v1.87.4
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.138.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.11.1
@@ -105,6 +105,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/observiq/bindplane-otel-collector => ../../
+replace github.com/observiq/bindplane-otel-collector/internal/os => ../../internal/os
 
 replace github.com/observiq/bindplane-otel-collector/expr => ../../expr
