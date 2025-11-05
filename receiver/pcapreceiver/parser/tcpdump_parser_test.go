@@ -49,6 +49,9 @@ func TestParsePacket_TCP(t *testing.T) {
 	require.Equal(t, 54321, packet.SrcPort)
 	require.Equal(t, 443, packet.DstPort)
 
+	// Verify interface (standard format doesn't include interface name)
+	require.Empty(t, packet.Interface)
+
 	// Verify hex data (should be concatenated without spaces/offsets)
 	require.NotEmpty(t, packet.HexData)
 	require.Contains(t, packet.HexData, "4500003c")
@@ -80,6 +83,9 @@ func TestParsePacket_UDP(t *testing.T) {
 	require.Equal(t, 12345, packet.SrcPort)
 	require.Equal(t, 53, packet.DstPort)
 
+	// Verify interface (standard format doesn't include interface name)
+	require.Empty(t, packet.Interface)
+
 	// Verify hex data
 	require.NotEmpty(t, packet.HexData)
 	require.Greater(t, packet.Length, 0)
@@ -106,6 +112,9 @@ func TestParsePacket_ICMP(t *testing.T) {
 	require.Equal(t, 0, packet.SrcPort)
 	require.Equal(t, 0, packet.DstPort)
 
+	// Verify interface (standard format doesn't include interface name)
+	require.Empty(t, packet.Interface)
+
 	// Verify hex data
 	require.NotEmpty(t, packet.HexData)
 	require.Greater(t, packet.Length, 0)
@@ -131,6 +140,9 @@ func TestParsePacket_IPv6(t *testing.T) {
 	// Verify ports
 	require.Equal(t, 8080, packet.SrcPort)
 	require.Equal(t, 80, packet.DstPort)
+
+	// Verify interface (standard format doesn't include interface name)
+	require.Empty(t, packet.Interface)
 
 	// Verify hex data
 	require.NotEmpty(t, packet.HexData)
@@ -233,6 +245,7 @@ func TestParseHeaderLine(t *testing.T) {
 		wantDstAddr string
 		wantSrcPort int
 		wantDstPort int
+		wantIface   string
 		wantErr     bool
 	}{
 		{
@@ -244,6 +257,7 @@ func TestParseHeaderLine(t *testing.T) {
 			wantDstAddr: "192.168.1.1",
 			wantSrcPort: 54321,
 			wantDstPort: 443,
+			wantIface:   "",
 			wantErr:     false,
 		},
 		{
@@ -255,6 +269,7 @@ func TestParseHeaderLine(t *testing.T) {
 			wantDstAddr: "8.8.8.8",
 			wantSrcPort: 12345,
 			wantDstPort: 53,
+			wantIface:   "",
 			wantErr:     false,
 		},
 		{
@@ -266,6 +281,7 @@ func TestParseHeaderLine(t *testing.T) {
 			wantDstAddr: "192.168.1.1",
 			wantSrcPort: 0,
 			wantDstPort: 0,
+			wantIface:   "",
 			wantErr:     false,
 		},
 		{
@@ -277,6 +293,55 @@ func TestParseHeaderLine(t *testing.T) {
 			wantDstAddr: "2001:db8::2",
 			wantSrcPort: 8080,
 			wantDstPort: 80,
+			wantIface:   "",
+			wantErr:     false,
+		},
+		{
+			name:        "Linux any interface format - Out",
+			line:        "12:34:56.789012 enp0s1 Out IP 192.168.65.3.22 > 192.168.65.1.50562: Flags [S]",
+			wantProto:   ProtocolIP,
+			wantTransp:  TransportTCP,
+			wantSrcAddr: "192.168.65.3",
+			wantDstAddr: "192.168.65.1",
+			wantSrcPort: 22,
+			wantDstPort: 50562,
+			wantIface:   "enp0s1",
+			wantErr:     false,
+		},
+		{
+			name:        "Linux any interface format - In",
+			line:        "12:34:56.789012 eth0 In IP 10.0.0.5.12345 > 8.8.8.8.53: UDP",
+			wantProto:   ProtocolIP,
+			wantTransp:  TransportUDP,
+			wantSrcAddr: "10.0.0.5",
+			wantDstAddr: "8.8.8.8",
+			wantSrcPort: 12345,
+			wantDstPort: 53,
+			wantIface:   "eth0",
+			wantErr:     false,
+		},
+		{
+			name:        "macOS any interface format",
+			line:        "13:32:25.750732 (en0) IP6 2603:3015:ed7:4100:299f:27fe:d52f:aca5.53353 > 2606:4700:4400::ac40:93d3.443: Flags [.]",
+			wantProto:   ProtocolIP6,
+			wantTransp:  TransportTCP,
+			wantSrcAddr: "2603:3015:ed7:4100:299f:27fe:d52f:aca5",
+			wantDstAddr: "2606:4700:4400::ac40:93d3",
+			wantSrcPort: 53353,
+			wantDstPort: 443,
+			wantIface:   "en0",
+			wantErr:     false,
+		},
+		{
+			name:        "macOS any interface format - IPv4",
+			line:        "13:32:25.750732 (en1) IP 192.168.1.100.54321 > 192.168.1.1.443: Flags [S]",
+			wantProto:   ProtocolIP,
+			wantTransp:  TransportTCP,
+			wantSrcAddr: "192.168.1.100",
+			wantDstAddr: "192.168.1.1",
+			wantSrcPort: 54321,
+			wantDstPort: 443,
+			wantIface:   "en1",
 			wantErr:     false,
 		},
 		{
@@ -299,6 +364,7 @@ func TestParseHeaderLine(t *testing.T) {
 				require.Equal(t, tt.wantDstAddr, info.DstAddress)
 				require.Equal(t, tt.wantSrcPort, info.SrcPort)
 				require.Equal(t, tt.wantDstPort, info.DstPort)
+				require.Equal(t, tt.wantIface, info.Interface)
 			}
 		})
 	}

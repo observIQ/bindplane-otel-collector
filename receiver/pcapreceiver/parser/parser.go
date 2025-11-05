@@ -45,4 +45,5 @@ type PacketInfo struct {
 	DstPort    int       // Destination port (0 if not applicable)
 	HexData    string    // Full packet as hex string (without 0x prefix or spaces)
 	Length     int       // Total packet length in bytes
+	Interface  string    // Network interface name (empty if not available)
 }

@@ -78,7 +78,10 @@ func ParsePacket(lines []string) (*PacketInfo, error) {
 }
 
 // parseHeaderLine parses the first line of tcpdump output
-// Example: "12:34:56.789012 IP 192.168.1.100.54321 > 192.168.1.1.443: Flags [S], seq 1234567890"
+// Examples:
+//   - Standard: "12:34:56.789012 IP 192.168.1.100.54321 > 192.168.1.1.443: Flags [S], seq 1234567890"
+//   - Linux "any": "12:34:56.789012 enp0s1 Out IP 192.168.65.3.22 > 192.168.65.1.50562:"
+//   - macOS "any": "13:32:25.750732 (en0) IP6 2603:3015:ed7:4100:299f:27fe:d52f:aca5.53353 > ..."
 func parseHeaderLine(line string) (*PacketInfo, error) {
 	info := &PacketInfo{}
 
@@ -96,6 +99,18 @@ func parseHeaderLine(line string) (*PacketInfo, error) {
 
 	// Remove timestamp from line for easier parsing
 	line = strings.TrimSpace(line[len(timestampMatch[0]):])
+
+	// Check for macOS interface format: "(en0) IP6 ..."
+	// Format: <timestamp> (<interface>) <protocol> <rest>
+	if strings.HasPrefix(line, "(") {
+		// Extract interface name from parentheses
+		closeParen := strings.Index(line, ")")
+		if closeParen > 0 {
+			info.Interface = line[1:closeParen] // Extract interface name without parentheses
+			// Remove the interface part from the line
+			line = strings.TrimSpace(line[closeParen+1:])
+		}
+	}
 
 	// Split into parts
 	parts := strings.Fields(line)
@@ -139,21 +154,25 @@ func parseHeaderLine(line string) (*PacketInfo, error) {
 		return nil, fmt.Errorf("%w: not enough fields", errInvalidFormat)
 	}
 
-	// Handle two different tcpdump formats:
+	// Handle three different tcpdump formats:
 	// 1. Standard format: "IP 192.168.1.100.54321 > 192.168.1.1.443:"
 	// 2. Linux "any" interface format: "enp0s1 Out IP 192.168.65.3.22 > 192.168.65.1.50562:"
+	// 3. macOS "any" interface format (with --apple-md-print I): "(en0) IP6 2603:3015:ed7:4100:299f:27fe:d52f:aca5.53353 > ..."
+	//    Note: Interface is already extracted above if present
 	var protocolIdx, srcIdx, dirIdx, dstIdx int
 
 	// Check if this is the Linux "any" interface format (has "In" or "Out" after interface name)
 	// Format: <interface> <In|Out> <protocol> <src> > <dst>
 	if len(parts) >= 5 && (parts[1] == "In" || parts[1] == "Out") {
-		// Linux "any" interface format
+		// Linux "any" interface format - extract interface name
+		info.Interface = parts[0]
 		protocolIdx = 2
 		srcIdx = 3
 		dirIdx = 4
 		dstIdx = 5
 	} else {
 		// Standard format: <protocol> <src> > <dst>
+		// Interface name not available in this format
 		protocolIdx = 0
 		srcIdx = 1
 		dirIdx = 2

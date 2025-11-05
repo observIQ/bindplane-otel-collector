@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !windows
+//go:build darwin
 
 // Package capture provides functions to build capture commands for different platforms.
 package capture
@@ -23,7 +23,7 @@ import (
 	"strings"
 )
 
-// BuildCaptureCommand builds the tcpdump command for macOS and Linux
+// BuildCaptureCommand builds the tcpdump command for macOS
 func BuildCaptureCommand(iface, filter string, snaplen int, promisc bool) *exec.Cmd {
 	args := []string{
 		"-i", iface, // Interface
@@ -31,6 +31,10 @@ func BuildCaptureCommand(iface, filter string, snaplen int, promisc bool) *exec.
 		"-xx", // Print packet data in hex with link-level headers
 		"-l",  // Line buffered output
 	}
+
+	// Add --apple-md-print I flag to include interface name in output
+	// Used to parse the interface name when capturing from "any" interface
+	args = append(args, "--apple-md-print", "I")
 
 	// Add -p flag to disable promiscuous mode if requested
 	if !promisc {

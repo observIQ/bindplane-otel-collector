@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !windows
+//go:build linux
 
 package capture
 
@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBuildCaptureCommand_Unix(t *testing.T) {
+func TestBuildCaptureCommand_Linux(t *testing.T) {
 	tests := []struct {
 		name     string
 		iface    string
@@ -34,19 +34,19 @@ func TestBuildCaptureCommand_Unix(t *testing.T) {
 	}{
 		{
 			name:     "basic command with interface",
-			iface:    "en0",
+			iface:    "eth0",
 			filter:   "",
 			snaplen:  65535,
 			promisc:  true,
-			wantArgs: []string{"-i", "en0", "-n", "-xx", "-l", "-s", "65535"},
+			wantArgs: []string{"-i", "eth0", "-n", "-xx", "-l", "-s", "65535"},
 		},
 		{
 			name:     "command with filter",
-			iface:    "en0",
+			iface:    "eth0",
 			filter:   "tcp port 443",
 			snaplen:  65535,
 			promisc:  true,
-			wantArgs: []string{"-i", "en0", "-n", "-xx", "-l", "-s", "65535", "tcp", "port", "443"},
+			wantArgs: []string{"-i", "eth0", "-n", "-xx", "-l", "-s", "65535", "tcp", "port", "443"},
 		},
 		{
 			name:     "command with complex filter",
@@ -58,19 +58,19 @@ func TestBuildCaptureCommand_Unix(t *testing.T) {
 		},
 		{
 			name:     "command without promiscuous mode",
-			iface:    "en0",
+			iface:    "eth0",
 			filter:   "",
 			snaplen:  65535,
 			promisc:  false,
-			wantArgs: []string{"-i", "en0", "-n", "-xx", "-l", "-p", "-s", "65535"},
+			wantArgs: []string{"-i", "eth0", "-n", "-xx", "-l", "-p", "-s", "65535"},
 		},
 		{
 			name:     "command with custom snaplen",
-			iface:    "en0",
+			iface:    "eth0",
 			filter:   "",
 			snaplen:  1024,
 			promisc:  true,
-			wantArgs: []string{"-i", "en0", "-n", "-xx", "-l", "-s", "1024"},
+			wantArgs: []string{"-i", "eth0", "-n", "-xx", "-l", "-s", "1024"},
 		},
 	}
 
@@ -88,8 +88,8 @@ func TestBuildCaptureCommand_Unix(t *testing.T) {
 	}
 }
 
-func TestBuildCaptureCommand_Unix_FilterWithParentheses(t *testing.T) {
-	cmd := BuildCaptureCommand("en0", "(tcp port 80 or tcp port 443) and not src 192.168.1.1", 65535, true)
+func TestBuildCaptureCommand_Linux_FilterWithParentheses(t *testing.T) {
+	cmd := BuildCaptureCommand("eth0", "(tcp port 80 or tcp port 443) and not src 192.168.1.1", 65535, true)
 	require.NotNil(t, cmd)
 
 	// Verify the filter arguments are properly split
@@ -97,4 +97,8 @@ func TestBuildCaptureCommand_Unix_FilterWithParentheses(t *testing.T) {
 	require.Contains(t, args, "(tcp")
 	require.Contains(t, args, "and")
 	require.Contains(t, args, "not")
+	// Verify macOS-specific flags are NOT present on Linux
+	require.NotContains(t, args, "--apple-md-print")
+	require.NotContains(t, args, "I")
 }
+
