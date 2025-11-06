@@ -9,6 +9,10 @@ import (
 	"go.uber.org/zap"
 )
 
+type UpstreamConnectionAssigner interface {
+	AssignUpstreamConnection(downstreamConnectionID string) (*upstreamConnection, error)
+}
+
 type ClientConnectionManagement interface {
 	AddUpstreamConnection(ctx context.Context, conn *websocket.Conn, id string, callbacks ConnectionCallbacks[*upstreamConnection])
 
@@ -109,4 +113,15 @@ func (c *client) assignedUpstreamConnection(agentID string) (*upstreamConnection
 
 func (c *client) unassignUpstreamConnection(agentID string) {
 	c.agentClientConnections.unassignAgentConnection(agentID)
+}
+
+// --------------------------------------------------------------------------------------
+// UpstreamConnectionAssigner
+
+func (c *client) AssignUpstreamConnection(downstreamConnectionID string) (*upstreamConnection, error) {
+	return c.assignedUpstreamConnection(downstreamConnectionID)
+}
+
+func (c *client) UnassignUpstreamConnection(downstreamConnectionID string) {
+	c.unassignUpstreamConnection(downstreamConnectionID)
 }
