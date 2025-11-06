@@ -18,15 +18,18 @@ type downstreamConnection struct {
 	readerDone chan struct{}
 	writerDone chan struct{}
 
+	upstreamConnection *upstreamConnection
+
 	logger *zap.Logger
 }
 
-func newDownstreamConnection(conn *websocket.Conn, id string, logger *zap.Logger) *downstreamConnection {
+func newDownstreamConnection(conn *websocket.Conn, upstreamConnection *upstreamConnection, id string, logger *zap.Logger) *downstreamConnection {
 	return &downstreamConnection{
-		conn:      conn,
-		id:        id,
-		logger:    logger,
-		writeChan: make(chan []byte),
+		conn:               conn,
+		upstreamConnection: upstreamConnection,
+		id:                 id,
+		logger:             logger,
+		writeChan:          make(chan []byte),
 
 		// the error channel is buffered to prevent blocking the reader goroutine if it
 		// encounters an error. it will return immediately after reporting the error and the
@@ -85,6 +88,15 @@ func (c *downstreamConnection) start(ctx context.Context, callbacks ConnectionCa
 func (c *downstreamConnection) send(message []byte) {
 	c.logger.Info("sending message", zap.String("id", c.id), zap.String("message", string(message)))
 	c.writeChan <- message
+}
+
+func (c *downstreamConnection) close() error {
+	c.logger.Info("downstream connection closing", zap.String("id", c.id))
+	err := c.conn.Close()
+	if err != nil {
+		return fmt.Errorf("close connection: %w", err)
+	}
+	return nil
 }
 
 // --------------------------------------------------------------------------------------
