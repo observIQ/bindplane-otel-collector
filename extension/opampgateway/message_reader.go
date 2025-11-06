@@ -30,7 +30,8 @@ func newMessageReader(conn *websocket.Conn, callbacks readerCallbacks) *messageR
 func (r *messageReader) loop(ctx context.Context, messageNumber int) {
 	// loop until the connection is closed
 	for {
-		// try to read the message
+		// try to read the message. ReadMessage will block until a message is received or the
+		// connection is closed.
 		messageType, messageBytes, err := r.conn.ReadMessage()
 		if err != nil {
 			if ctx.Err() != nil {
