@@ -1,11 +1,16 @@
 package opampgateway
 
 import (
+	"errors"
 	"math"
 	"sync"
 
 	"go.uber.org/zap"
 )
+
+// ErrNoUpstreamConnectionsAvailable is returned when no upstream connections that are
+// connected to the upstream OpAMP server are available.
+var ErrNoUpstreamConnectionsAvailable = errors.New("no upstream connections available")
 
 type connectionPool struct {
 	connections map[string]*upstreamConnection
@@ -44,7 +49,8 @@ func (c *connectionPool) remove(conn *upstreamConnection) {
 	delete(c.connections, conn.id)
 }
 
-func (c *connectionPool) next() *upstreamConnection {
+// next returns the next connection from the pool. if no connection is found, it will return nil and false.
+func (c *connectionPool) next() (*upstreamConnection, bool) {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 
@@ -52,11 +58,15 @@ func (c *connectionPool) next() *upstreamConnection {
 	minCount := math.MaxInt32
 	var minConn *upstreamConnection
 	for _, conn := range c.connections {
+		// if the connection is not connected, skip it
+		if !conn.isConnected() {
+			continue
+		}
 		count := conn.agentCount()
 		if count < minCount {
 			minCount = count
 			minConn = conn
 		}
 	}
-	return minConn
+	return minConn, minConn != nil
 }
