@@ -83,6 +83,13 @@ jobs:
           path: C:/build/observiq-otel-collector.msi
           # Short lived because Go Releaser will upload the msi to a release (github release, gcs, etc)
           retention-days: 1
+      - name: "Upload Windows ZIP Archive"
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-archive
+          path: dist/**/*.zip
+          # Short lived because this is meant as an action for developers
+          retention-days: 1
 
   release:
     needs: [build-64bit-msi]
@@ -136,6 +143,11 @@ jobs:
         with:
           name: observiq-otel-collector.msi
           path: observiq-otel-collector.msi
+      - name: Retrieve Windows 64-bit ZIP Archive
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-archive
+          path: windows-archive
       - name: Install cosign
         run: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
       - name: Build cosign key file
@@ -169,7 +181,7 @@ jobs:
           cp ./scripts/install/*.sh ./artifacts
           cp ./observiq-otel-collector.msi/observiq-otel-collector.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
-          cp ./dist/*zip ./artifacts
+          cp ./windows-archive/*.zip ./artifacts
           cp ./dist/*.rpm ./artifacts
           cp ./dist/*.deb ./artifacts
           cp ./dist/*SHA256SUMS ./artifacts
