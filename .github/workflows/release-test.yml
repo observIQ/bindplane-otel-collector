@@ -86,6 +86,10 @@ jobs:
           path: C:/build/observiq-otel-collector.msi
           # Short lived because this is meant as an action for developers
           retention-days: 1
+      - name: Install tree command
+        run: sudo apt-get update && sudo apt-get install -y tree
+      - name: "DEBUG: List dist/"
+        run: tree dist/
       - name: "Upload ZIP Archive"
         uses: actions/upload-artifact@v4
         with:
@@ -131,6 +135,11 @@ jobs:
         with:
           name: windows-archive
           path: windows-archive
+
+      - name: "DEBUG: List Windows 64-bit ZIP Archive"
+        run: |
+          ls -la windows-archive
+          du -sh windows-archive
 
       - name: Set VERSION
         run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
