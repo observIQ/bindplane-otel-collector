@@ -15,8 +15,12 @@
 package worker // import "github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 
 import (
-	"encoding/json"
 	"fmt"
+
+	// Gojson was specifically choosen for parseStandardSNSMessage
+	// and parseS3EventFromJSON because it is faster than encoding/json
+	// for the dataset that is being processed.
+	gojson "github.com/goccy/go-json"
 
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -46,7 +50,7 @@ func ParseSNSToS3Event(messageBody string) (*events.S3Event, error) {
 // parseStandardSNSMessage parses a standard SNS notification and extracts the S3 event
 func parseStandardSNSMessage(messageBody string) (*events.S3Event, error) {
 	var snsNotification SNSNotification
-	if err := json.Unmarshal([]byte(messageBody), &snsNotification); err != nil {
+	if err := gojson.Unmarshal([]byte(messageBody), &snsNotification); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal SNS notification: %w", err)
 	}
 
@@ -68,7 +72,7 @@ func parseStandardSNSMessage(messageBody string) (*events.S3Event, error) {
 // parseS3EventFromJSON parses an S3 event from JSON string
 func parseS3EventFromJSON(jsonData string) (*events.S3Event, error) {
 	var s3Event events.S3Event
-	if err := json.Unmarshal([]byte(jsonData), &s3Event); err != nil {
+	if err := gojson.Unmarshal([]byte(jsonData), &s3Event); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal S3 event: %w", err)
 	}
 	return &s3Event, nil
