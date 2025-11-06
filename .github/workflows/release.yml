@@ -21,9 +21,8 @@ jobs:
           # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser-pro
           version: "v2.12.5"
-          args: release --single-target --skip=validate,publish,blobs--clean --config=.goreleaser-windows.yml
+          args: release --single-target --skip=validate,publish--clean --config=.goreleaser-windows.yml
         env:
-          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
       - name: Copy Windows Collector Binary
