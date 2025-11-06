@@ -23,7 +23,7 @@ jobs:
           # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser-pro
           version: "v2.12.5"
-          args: build --single-target --skip=validate --clean --snapshot --config=.goreleaser-windows.yml
+          args: release --single-target --skip=validate,publish --clean --config=.goreleaser-windows.yml
         env:
           GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -84,5 +84,12 @@ jobs:
         with:
           name: observiq-otel-collector.msi
           path: C:/build/observiq-otel-collector.msi
+          # Short lived because this is meant as an action for developers
+          retention-days: 1
+      - name: "Upload ZIP Archive"
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-archive
+          path: dist/windows_amd64/*.zip
           # Short lived because this is meant as an action for developers
           retention-days: 1
