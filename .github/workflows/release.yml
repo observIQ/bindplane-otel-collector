@@ -89,7 +89,7 @@ jobs:
         with:
           name: windows-archive
           path: dist/**/*.zip
-          # Short lived because this is meant as an action for developers
+          # Short lived because Go Releaser will upload the zip to a release (github release, gcs, etc)
           retention-days: 1
 
   release:
