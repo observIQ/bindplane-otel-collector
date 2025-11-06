@@ -16,6 +16,8 @@ package chronicleexporter
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -1706,6 +1708,199 @@ func Benchmark_getRawField(b *testing.B) {
 		b.Run(tc.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				_, _ = m.getRawField(ctx, tc.field, tc.logRecord, tc.scope, tc.resource)
+			}
+		})
+	}
+}
+
+// smallLog creates a minimal log record
+func smallLog() (plog.LogRecord, plog.ScopeLogs, plog.ResourceLogs) {
+	logRecord := plog.NewLogRecord()
+	scope := plog.NewScopeLogs()
+	resource := plog.NewResourceLogs()
+
+	// Small body
+	logRecord.Body().SetStr("Application started")
+
+	// Minimal attributes
+	logRecord.Attributes().PutStr("chronicle_log_type", "WINEVTLOG")
+	logRecord.Attributes().PutStr("chronicle_namespace", "production")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["env"]`, `{"region":"us-east-1"}`)
+
+	// Minimal resource attributes
+	resource.Resource().Attributes().PutStr("host.name", "host-001")
+
+	return logRecord, scope, resource
+}
+
+// mediumLog creates a medium-sized log record (equivalent to the original representativeLog)
+func mediumLog() (plog.LogRecord, plog.ScopeLogs, plog.ResourceLogs) {
+	logRecord := plog.NewLogRecord()
+	scope := plog.NewScopeLogs()
+	resource := plog.NewResourceLogs()
+
+	// Set body as a map to trigger json.Marshal in getRawField when field is "body"
+	logRecord.Body().SetEmptyMap()
+	logRecord.Body().Map().PutStr("event_id", "7036")
+	logRecord.Body().Map().PutStr("level", "4")
+	logRecord.Body().Map().PutStr("message", "Print Spooler stopped")
+	logRecord.Body().Map().PutStr("timestamp", "2024-11-08T18:51:13.504187700Z")
+
+	// Add regular attributes
+	logRecord.Attributes().PutStr("status", "200")
+	logRecord.Attributes().PutStr("log.file.name", "/var/log/containers/agent_agent_ns.log")
+	logRecord.Attributes().PutStr("chronicle_log_type", "WINEVTLOG")
+	logRecord.Attributes().PutStr("chronicle_namespace", "production")
+
+	// Add ingestion labels - some as JSON strings (to trigger json.Unmarshal) and some as regular strings
+	// This JSON string will trigger json.Unmarshal in getRawNestedFields
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["env"]`, `{"region":"us-east-1","cluster":"prod-001"}`)
+	// This regular string will not trigger json.Unmarshal
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["team"]`, "platform")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["service"]`, "api-server")
+
+	// Add resource attributes
+	resource.Resource().Attributes().PutStr("host.name", "host-001")
+	resource.Resource().Attributes().PutStr("service.name", "chronicle-exporter")
+
+	return logRecord, scope, resource
+}
+
+// largeLog creates a large log record with many attributes and a larger body
+func largeLog() (plog.LogRecord, plog.ScopeLogs, plog.ResourceLogs) {
+	logRecord := plog.NewLogRecord()
+	scope := plog.NewScopeLogs()
+	resource := plog.NewResourceLogs()
+
+	// Large body with more fields
+	logRecord.Body().SetEmptyMap()
+	logRecord.Body().Map().PutStr("event_id", "7036")
+	logRecord.Body().Map().PutStr("level", "4")
+	logRecord.Body().Map().PutStr("message", "Print Spooler stopped")
+	logRecord.Body().Map().PutStr("timestamp", "2024-11-08T18:51:13.504187700Z")
+	logRecord.Body().Map().PutStr("source", "Service Control Manager")
+	logRecord.Body().Map().PutStr("user_id", "SYSTEM")
+	logRecord.Body().Map().PutStr("process_id", "604")
+	logRecord.Body().Map().PutStr("thread_id", "4792")
+
+	// Many attributes
+	logRecord.Attributes().PutStr("status", "200")
+	logRecord.Attributes().PutStr("log.file.name", "/var/log/containers/agent_agent_ns.log")
+	logRecord.Attributes().PutStr("chronicle_log_type", "WINEVTLOG")
+	logRecord.Attributes().PutStr("chronicle_namespace", "production")
+	logRecord.Attributes().PutStr("http.method", "POST")
+	logRecord.Attributes().PutStr("http.status_code", "200")
+	logRecord.Attributes().PutStr("http.url", "/api/v1/logs")
+	logRecord.Attributes().PutStr("user_agent", "Mozilla/5.0")
+	logRecord.Attributes().PutStr("request_id", "abc123def456")
+	logRecord.Attributes().PutStr("duration_ms", "45")
+
+	// Multiple ingestion labels with JSON
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["env"]`, `{"region":"us-east-1","cluster":"prod-001","zone":"us-east-1a"}`)
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["team"]`, "platform")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["service"]`, "api-server")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["version"]`, "v1.2.3")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["deployment"]`, "production")
+
+	// More resource attributes
+	resource.Resource().Attributes().PutStr("host.name", "host-001")
+	resource.Resource().Attributes().PutStr("service.name", "chronicle-exporter")
+	resource.Resource().Attributes().PutStr("service.version", "1.87.4")
+	resource.Resource().Attributes().PutStr("os.type", "linux")
+	resource.Resource().Attributes().PutStr("os.version", "5.15.0")
+
+	return logRecord, scope, resource
+}
+
+// veryLargeLog creates a very large log record with many attributes and a very large body
+func veryLargeLog() (plog.LogRecord, plog.ScopeLogs, plog.ResourceLogs) {
+	logRecord := plog.NewLogRecord()
+	scope := plog.NewScopeLogs()
+	resource := plog.NewResourceLogs()
+
+	// Very large body with many fields
+	logRecord.Body().SetEmptyMap()
+	for i := 0; i < 50; i++ {
+		logRecord.Body().Map().PutStr(fmt.Sprintf("field_%d", i), fmt.Sprintf("value_%d_%s", i, strings.Repeat("x", 100)))
+	}
+	logRecord.Body().Map().PutStr("event_id", "7036")
+	logRecord.Body().Map().PutStr("level", "4")
+	logRecord.Body().Map().PutStr("message", "Print Spooler stopped with detailed error information")
+	logRecord.Body().Map().PutStr("timestamp", "2024-11-08T18:51:13.504187700Z")
+
+	// Many attributes
+	logRecord.Attributes().PutStr("status", "200")
+	logRecord.Attributes().PutStr("log.file.name", "/var/log/containers/agent_agent_ns.log")
+	logRecord.Attributes().PutStr("chronicle_log_type", "WINEVTLOG")
+	logRecord.Attributes().PutStr("chronicle_namespace", "production")
+	for i := 0; i < 30; i++ {
+		logRecord.Attributes().PutStr(fmt.Sprintf("attr_%d", i), fmt.Sprintf("value_%d", i))
+	}
+
+	// Multiple ingestion labels with complex JSON
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["env"]`, `{"region":"us-east-1","cluster":"prod-001","zone":"us-east-1a","datacenter":"dc1"}`)
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["team"]`, "platform")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["service"]`, "api-server")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["version"]`, "v1.2.3")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["deployment"]`, "production")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["metadata"]`, `{"tier":"critical","owner":"team-platform","cost_center":"eng-001"}`)
+
+	// Many resource attributes
+	resource.Resource().Attributes().PutStr("host.name", "host-001")
+	resource.Resource().Attributes().PutStr("service.name", "chronicle-exporter")
+	resource.Resource().Attributes().PutStr("service.version", "1.87.4")
+	resource.Resource().Attributes().PutStr("os.type", "linux")
+	resource.Resource().Attributes().PutStr("os.version", "5.15.0")
+	for i := 0; i < 20; i++ {
+		resource.Resource().Attributes().PutStr(fmt.Sprintf("resource_attr_%d", i), fmt.Sprintf("value_%d", i))
+	}
+
+	return logRecord, scope, resource
+}
+
+func Benchmark_processLogRecord(b *testing.B) {
+	logger := zap.NewNop()
+	telemSettings := component.TelemetrySettings{
+		Logger:        logger,
+		MeterProvider: noop.NewMeterProvider(),
+	}
+
+	telemetry, err := metadata.NewTelemetryBuilder(telemSettings)
+	if err != nil {
+		b.Fatalf("Error creating telemetry builder: %v", err)
+	}
+
+	cfg := Config{
+		CustomerID:                uuid.New().String(),
+		RawLogField:               "", // Empty RawLogField forces json.Marshal of entire log record
+		BatchRequestSizeLimitGRPC: 5242880,
+	}
+
+	ctx := context.Background()
+
+	sizes := []struct {
+		name string
+		log  func() (plog.LogRecord, plog.ScopeLogs, plog.ResourceLogs)
+	}{
+		{"small", smallLog},
+		{"medium", mediumLog},
+		{"large", largeLog},
+		{"very_large", veryLargeLog},
+	}
+
+	for _, size := range sizes {
+		b.Run(size.name, func(b *testing.B) {
+			logRecord, scope, resource := size.log()
+
+			m := &protoMarshaler{
+				cfg:          cfg,
+				teleSettings: telemSettings,
+				telemetry:    telemetry,
+				logger:       logger,
+			}
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, _, _, _, _ = m.processLogRecord(ctx, logRecord, scope, resource)
 			}
 		})
 	}
