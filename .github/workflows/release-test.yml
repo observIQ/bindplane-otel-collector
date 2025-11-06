@@ -134,9 +134,14 @@ jobs:
           name: windows-archive
           path: windows-archive
 
+      - name: "DEBUG: Install tree"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tree
+
       - name: "DEBUG: List Windows 64-bit ZIP Archive"
         run: |
-          ls -la windows-archive
+          tree windows-archive
           du -sh windows-archive
 
       - name: Set VERSION
