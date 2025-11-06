@@ -23,6 +23,7 @@ import (
 	json "github.com/goccy/go-json"
 
 	"github.com/google/uuid"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/observiq/bindplane-otel-collector/expr"
@@ -43,6 +44,9 @@ const (
 
 	// catchAllLogType is the log type that is used when the log type is not found in the log types map
 	catchAllLogType = "CATCH_ALL"
+
+	// exprCacheCapacity is the default capacity for the expression cache
+	exprCacheCapacity = 1000
 )
 
 // Specific collector IDs for Chronicle used to identify bindplane agents.
@@ -83,12 +87,17 @@ type protoMarshaler struct {
 	telemetry         *metadata.TelemetryBuilder
 	logTypes          map[string]exists
 	logger            *zap.Logger
+	exprCache         *lru.Cache[string, any]
 }
 
 func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings, telemetry *metadata.TelemetryBuilder, logger *zap.Logger) (*protoMarshaler, error) {
 	customerID, err := uuid.Parse(cfg.CustomerID)
 	if err != nil {
 		return nil, fmt.Errorf("parse customer ID: %w", err)
+	}
+	exprCache, err := lru.New[string, any](exprCacheCapacity)
+	if err != nil {
+		return nil, fmt.Errorf("create expression cache: %w", err)
 	}
 	return &protoMarshaler{
 		startTime:         time.Now(),
@@ -99,6 +108,7 @@ func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings, tel
 		collectorIDString: getCollectorIDString(cfg.LicenseType),
 		telemetry:         telemetry,
 		logger:            logger,
+		exprCache:         exprCache,
 	}, nil
 }
 
@@ -355,13 +365,42 @@ func (m *protoMarshaler) getRawField(ctx context.Context, field string, logRecor
 		return "", nil
 	}
 
-	lrExpr, err := expr.NewOTTLLogRecordExpression(field, m.teleSettings)
-	if err != nil {
-		return "", fmt.Errorf("raw_log_field is invalid: %s", err)
+	// Check cache first
+	cachedExpr, found := m.exprCache.Get(field)
+
+	var lrExpr any
+	var err error
+
+	if found {
+		lrExpr = cachedExpr
+	} else {
+		// Parse the expression
+		lrExpr, err = expr.NewOTTLLogRecordExpression(field, m.teleSettings)
+		if err != nil {
+			return "", fmt.Errorf("raw_log_field is invalid: %s", err)
+		}
+
+		// Store in cache (LRU handles eviction automatically)
+		// Double-check: another goroutine might have added it while we were parsing
+		if !m.exprCache.Contains(field) {
+			m.exprCache.Add(field, lrExpr)
+		} else {
+			// Use the cached version if it was added by another goroutine
+			lrExpr, _ = m.exprCache.Get(field)
+		}
 	}
+
+	// Type assert to get Execute method
+	exprWithExecute, ok := lrExpr.(interface {
+		Execute(context.Context, ottllog.TransformContext) (any, error)
+	})
+	if !ok {
+		return "", fmt.Errorf("cached expression does not implement Execute method")
+	}
+
 	tCtx := ottllog.NewTransformContext(logRecord, scope.Scope(), resource.Resource(), scope, resource)
 
-	lrExprResult, err := lrExpr.Execute(ctx, tCtx)
+	lrExprResult, err := exprWithExecute.Execute(ctx, tCtx)
 	if err != nil {
 		return "", fmt.Errorf("execute log record expression: %w", err)
 	}

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/stretchr/testify/require"
@@ -1680,7 +1681,10 @@ var getRawFieldCases = []getRawFieldCase{
 func Test_getRawField(t *testing.T) {
 	for _, tc := range getRawFieldCases {
 		t.Run(tc.name, func(t *testing.T) {
-			m := &protoMarshaler{}
+			exprCache, _ := lru.New[string, interface{}](exprCacheCapacity)
+			m := &protoMarshaler{
+				exprCache: exprCache,
+			}
 			m.teleSettings.Logger = zap.NewNop()
 
 			ctx := context.Background()
@@ -1698,7 +1702,10 @@ func Test_getRawField(t *testing.T) {
 }
 
 func Benchmark_getRawField(b *testing.B) {
-	m := &protoMarshaler{}
+	exprCache, _ := lru.New[string, interface{}](exprCacheCapacity)
+	m := &protoMarshaler{
+		exprCache: exprCache,
+	}
 	m.teleSettings.Logger = zap.NewNop()
 
 	ctx := context.Background()
@@ -1892,11 +1899,13 @@ func Benchmark_processLogRecord(b *testing.B) {
 		b.Run(size.name, func(b *testing.B) {
 			logRecord, scope, resource := size.log()
 
+			exprCache, _ := lru.New[string, interface{}](exprCacheCapacity)
 			m := &protoMarshaler{
 				cfg:          cfg,
 				teleSettings: telemSettings,
 				telemetry:    telemetry,
 				logger:       logger,
+				exprCache:    exprCache,
 			}
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
