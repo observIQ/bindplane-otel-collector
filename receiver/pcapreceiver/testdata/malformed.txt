@@ -1,0 +1,5 @@
+Invalid line without proper format
+	0x0000:  incomplete hex
+Some random text
+	not a hex line at all
+
