@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.90.0
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.13
 	github.com/aws/smithy-go v1.23.2
+	github.com/goccy/go-json v0.10.5
 	github.com/google/go-cmp v0.7.0
 	github.com/linkedin/goavro/v2 v2.14.1
 	github.com/observiq/bindplane-otel-collector/internal/aws v1.87.8
