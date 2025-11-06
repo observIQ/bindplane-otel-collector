@@ -1,0 +1,17 @@
+type: pcap
+
+status:
+  class: receiver
+  stability:
+    alpha: [logs]
+
+telemetry:
+  metrics:
+  
+    pcap.packets_captured:
+      enabled: true
+      description: The number of packets captured by the PCAP receiver
+      unit: "{packets}"
+      sum:
+        value_type: int
+        monotonic: true
