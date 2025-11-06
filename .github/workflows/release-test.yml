@@ -8,8 +8,97 @@ on:
         default: "v0.0.1"
 
 jobs:
+  build-64bit-msi:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout Sources
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          # either 'goreleaser' (default) or 'goreleaser-pro'
+          distribution: goreleaser-pro
+          version: "v2.12.5"
+          args: release --single-target --skip=validate,publish --clean --config=.goreleaser-windows.yml
+        env:
+          GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+      - name: Copy Windows Collector Binary
+        run: cp dist/windows_amd64/collector_windows_amd64_v1/observiq-otel-collector.exe windows/observiq-otel-collector.exe
+      - name: Copy Windows Updater Binary
+        run: cp dist/windows_amd64/updater_windows_amd64_v1/updater.exe windows/updater.exe
+      - name: Copy Plugins to MSI Build Directory
+        run: cp -r release_deps/plugins windows/
+      - name: Copy Example Config
+        run: cp config/example.yaml windows/config.yaml
+      - name: Copy Logging Config
+        run: cp config/logging.yaml windows/logging.yaml
+      - name: Copy JMX Receiver Jar
+        run: cp release_deps/opentelemetry-java-contrib-jmx-metrics.jar windows/opentelemetry-java-contrib-jmx-metrics.jar
+      - name: Copy LICENSE
+        run: cp LICENSE windows/LICENSE
+      - name: Copy VERSION file
+        run: cp release_deps/VERSION.txt windows/VERSION.txt
+      # HACK: Copy build directory to C drive to avoid this error, since there must be a relative path from the tempdir that go-msi uses
+      # for the MSI to build properly
+      - name: Copy Build Dir
+        run: |
+          cp -r windows C:/build
+          echo "C:/build" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      # Installs go-msi and wix.
+      - name: Install Build Tools
+        run: |
+          curl -f -L -o go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.2.0/go-msi.exe
+          curl -f -L -o wix310-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix3104rtm/wix310-binaries.zip
+          unzip wix310-binaries.zip
+        working-directory: C:/build
+      - name: "Build MSI from Tagged Release"
+        run: go-msi.exe make -m observiq-otel-collector.msi --version ${{ github.event.inputs.version }} --arch amd64
+        working-directory: C:/build
+      - name: Install DigiCert Client tools from Github Custom Actions marketplace
+        uses: digicert/ssm-code-signing@v1.0.0
+      - name: Set up certificate 
+        run: | 
+          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12 
+        shell: bash
+      - name: Set variables for signing
+        id: variables 
+        run: | 
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT 
+          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV" 
+          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV" 
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
+          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV" 
+        shell: bash
+      - name: Signing using keypair alias
+        run: |
+          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/observiq-otel-collector.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
+        shell: cmd
+      - name: "Upload MSI"
+        uses: actions/upload-artifact@v4
+        with:
+          name: observiq-otel-collector.msi
+          path: C:/build/observiq-otel-collector.msi
+          # Short lived because this is meant as an action for developers
+          retention-days: 1
+      - name: "DEBUG: List dist/"
+        run: tree /F dist/
+      - name: "Upload ZIP Archive"
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-archive
+          path: dist/**/*.zip
+          # Short lived because this is meant as an action for developers
+          retention-days: 1
+
   release-test:
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
+    needs: [build-64bit-msi]
     steps:
       - name: Checkout Repo
         uses: namespacelabs/nscloud-checkout-action@v7
@@ -33,8 +122,27 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         
-      - name: Fake Windows MSI
-        run: touch ./observiq-otel-collector.msi
+      - name: Retrieve Windows 64-bit MSI Installer
+        uses: actions/download-artifact@v4
+        with:
+          name: observiq-otel-collector.msi
+          path: observiq-otel-collector.msi
+
+      - name: Retrieve Windows 64-bit ZIP Archive
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-archive
+          path: windows-archive
+
+      - name: "DEBUG: Install tree"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tree
+
+      - name: "DEBUG: List Windows 64-bit ZIP Archive"
+        run: |
+          tree windows-archive
+          du -sh windows-archive
 
       - name: Set VERSION
         run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
@@ -54,6 +162,23 @@ jobs:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+
+      - name: Create artifact archive
+        run: |
+          mkdir artifacts
+          cp ./scripts/install/*.sh ./artifacts
+          cp ./observiq-otel-collector.msi/observiq-otel-collector.msi ./artifacts
+          cp ./dist/*tar.gz ./artifacts
+          cp ./windows-archive/windows_amd64/*.zip ./artifacts
+          cp ./dist/*.rpm ./artifacts
+          cp ./dist/*.deb ./artifacts
+          cp ./dist/*SHA256SUMS ./artifacts
+          tar -czvf observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz -C ./artifacts .
+
+      - name: Check Artifacts Directory
+        run: |
+          ls -la artifacts
+          du -sh artifacts
 
       - name: Upload build artifacts
         uses: namespace-actions/upload-artifact@v1
