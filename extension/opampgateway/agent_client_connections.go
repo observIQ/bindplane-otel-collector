@@ -36,13 +36,13 @@ func (a *agentClientConnections) assignedAgentConnection(agentID string) (*upstr
 		}
 	}
 	// if no existing assignment, assign a new connection from the pool
-	conn := a.pool.next()
-	if conn == nil {
+	conn, exists := a.pool.next()
+	if !exists {
 		return nil, false
 	}
 	a.agentToConnectionID[agentID] = conn.id
 	conn.incrementAgentCount()
-	return conn, true
+	return conn, exists
 }
 
 // unassignAgentConnection unassigns the connection for the given agent ID. it will not

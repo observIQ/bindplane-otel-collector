@@ -101,7 +101,8 @@ func (c *client) Stop() {
 func (c *client) assignedUpstreamConnection(agentID string) (*upstreamConnection, error) {
 	conn, exists := c.agentClientConnections.assignedAgentConnection(agentID)
 	if !exists {
-		return nil, fmt.Errorf("no upstream connection available for agent %s", agentID)
+		c.logger.Info("no upstream connection available", zap.String("agent_id", agentID), zap.Int("connection_count", c.pool.size()))
+		return nil, fmt.Errorf("no upstream connection available for agent %s: %w", agentID, ErrNoUpstreamConnectionsAvailable)
 	}
 	return conn, nil
 }

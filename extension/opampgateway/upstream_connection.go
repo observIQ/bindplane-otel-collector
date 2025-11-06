@@ -25,6 +25,8 @@ type upstreamConnection struct {
 
 	count  atomic.Int32
 	logger *zap.Logger
+
+	connected atomic.Bool
 }
 
 type upstreamConnectionSettings struct {
@@ -60,6 +62,13 @@ func (c *upstreamConnection) decrementAgentCount() {
 	c.count.Add(-1)
 }
 
+func (c *upstreamConnection) isConnected() bool {
+	return c.connected.Load()
+}
+func (c *upstreamConnection) setConnected(connected bool) {
+	c.connected.Store(connected)
+}
+
 // start will start the reader and writer goroutines and wait for the context to be done
 // or an error to be sent on the error channel. if an error is sent on the error channel,
 // the connection will be stopped and the context will be cancelled.
@@ -70,7 +79,7 @@ func (c *upstreamConnection) start(ctx context.Context, callbacks ConnectionCall
 	// block while writing messages to the connection. a connection close will unblock the writer.
 	err := c.startWriter(ctx, callbacks)
 	if err != nil {
-		c.logger.Error("error in connection writer", zap.Error(err), zap.String("id", c.id))
+		c.logger.Error("upstream connection writer", zap.Error(err), zap.String("id", c.id))
 		callbacks.OnError(ctx, c, err)
 	}
 
@@ -83,7 +92,7 @@ func (c *upstreamConnection) start(ctx context.Context, callbacks ConnectionCall
 	// check for errors from the reader
 	select {
 	case err := <-c.readerErrorChan:
-		c.logger.Error("error in connection reader", zap.Error(err), zap.String("id", c.id))
+		c.logger.Error("upstream connection reader", zap.Error(err), zap.String("id", c.id))
 		callbacks.OnError(ctx, c, err)
 	default:
 	}
@@ -91,7 +100,7 @@ func (c *upstreamConnection) start(ctx context.Context, callbacks ConnectionCall
 	// Call the on close handler
 	err = callbacks.OnClose(ctx, c)
 	if err != nil {
-		c.logger.Error("error in on close handler", zap.Error(err), zap.String("id", c.id))
+		c.logger.Error("upstream connection on close handler", zap.Error(err), zap.String("id", c.id))
 	}
 }
 
@@ -152,7 +161,6 @@ func (c *upstreamConnection) startWriter(ctx context.Context, callbacks Connecti
 		// start the reader in a separate goroutine and cancel the context if it returns, likely
 		// due to an error or the connection being closed
 		go func() {
-			defer cancel()
 			defer close(readerDone)
 			c.startReader(ctx, conn, callbacks)
 		}()
@@ -162,6 +170,7 @@ func (c *upstreamConnection) startWriter(ctx context.Context, callbacks Connecti
 			c.logger.Error("writer loop", zap.Error(err))
 		}
 
+		// close the connection
 		// wait for the reader to finish
 		<-readerDone
 	}
@@ -171,6 +180,9 @@ func (c *upstreamConnection) startWriter(ctx context.Context, callbacks Connecti
 // the next message to write and returns the next message to write and an error if one
 // occurs.
 func (c *upstreamConnection) writerLoop(ctx context.Context, conn *websocket.Conn, nextMessage []byte) ([]byte, error) {
+	c.setConnected(true)
+	defer c.setConnected(false)
+
 	// attempt to write the next message if one is pending
 	if nextMessage != nil {
 		err := writeWSMessage(conn, nextMessage)
