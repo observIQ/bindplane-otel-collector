@@ -90,6 +90,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-archive
-          path: dist/**/*.zip
+          path: dist/windows_amd64/*.zip
           # Short lived because this is meant as an action for developers
           retention-days: 1
