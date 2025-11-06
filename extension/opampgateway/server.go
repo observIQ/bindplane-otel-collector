@@ -2,6 +2,7 @@ package opampgateway
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -23,8 +24,9 @@ type server struct {
 
 	addr net.Addr
 
-	downstreamConnections *connections[*downstreamConnection]
-	callbacks             ConnectionCallbacks[*downstreamConnection]
+	downstreamConnections      *connections[*downstreamConnection]
+	callbacks                  ConnectionCallbacks[*downstreamConnection]
+	upstreamConnectionAssigner UpstreamConnectionAssigner
 
 	shutdownCtx    context.Context
 	shutdownCancel context.CancelFunc
@@ -36,16 +38,17 @@ var (
 	handlePath = "/"
 )
 
-func newServer(cfg *OpAMPServer, logger *zap.Logger, callbacks ConnectionCallbacks[*downstreamConnection]) *server {
+func newServer(cfg *OpAMPServer, logger *zap.Logger, upstreamConnectionAssigner UpstreamConnectionAssigner, callbacks ConnectionCallbacks[*downstreamConnection]) *server {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &server{
-		cfg:                   cfg,
-		logger:                logger,
-		wsUpgrader:            websocket.Upgrader{},
-		downstreamConnections: newConnections[*downstreamConnection](),
-		callbacks:             callbacks,
-		shutdownCtx:           ctx,
-		shutdownCancel:        cancel,
+		cfg:                        cfg,
+		logger:                     logger,
+		wsUpgrader:                 websocket.Upgrader{},
+		downstreamConnections:      newConnections[*downstreamConnection](),
+		upstreamConnectionAssigner: upstreamConnectionAssigner,
+		callbacks:                  callbacks,
+		shutdownCtx:                ctx,
+		shutdownCancel:             cancel,
 	}
 }
 
@@ -168,6 +171,23 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// the initial id is the remote address of the connection but once we have parsed the
+	// agent ID, we will use that as the id
+	id := fmt.Sprintf("downstream-%s", r.RemoteAddr)
+	upstreamConnection, err := s.upstreamConnectionAssigner.AssignUpstreamConnection(id)
+	if err != nil {
+		if errors.Is(err, ErrNoUpstreamConnectionsAvailable) {
+			w.Header().Set("Retry-After", "30")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		s.logger.Error("failed to assign upstream connection", zap.Error(err))
+		w.Header().Set("Retry-After", "30")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	s.logger.Info("assigned upstream connection", zap.String("downstream_connection_id", id), zap.String("upstream_connection_id", upstreamConnection.id))
+
 	conn, err := s.wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		s.logger.Error("failed to accept OpAMP connection", zap.Error(err))
@@ -175,10 +195,8 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	s.logger.Debug("accepted OpAMP connection", zap.String("remote_addr", conn.RemoteAddr().String()))
 
-	// the initial id is the remote address of the connection but once we have parsed the
-	// agent ID, we will use that as the id
-	id := fmt.Sprintf("downstream-%s", conn.RemoteAddr().String())
-	c := newDownstreamConnection(conn, id, s.logger.Named("downstream-connection"))
+	// unassign an upstream connection
+	c := newDownstreamConnection(conn, upstreamConnection, id, s.logger.Named("downstream-connection"))
 
 	// start the connection in a goroutine to prevent blocking the handler
 	s.connectionsWg.Add(1)
