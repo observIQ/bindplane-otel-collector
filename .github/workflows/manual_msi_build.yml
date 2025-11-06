@@ -86,14 +86,16 @@ jobs:
           path: C:/build/observiq-otel-collector.msi
           # Short lived because this is meant as an action for developers
           retention-days: 1
-      - name : "Examine C:build"
+      - name : "Examine directories"
         run: |
+          pwd
+          dir
           dir C:/build
         shell: bash
       - name: "Upload ZIP Archive"
         uses: actions/upload-artifact@v4
         with:
           name: archive
-          path: C:/build/dist/*.zip
+          path: dist/*.zip
           # Short lived because this is meant as an action for developers
           retention-days: 1
