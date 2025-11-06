@@ -28,15 +28,15 @@ func newOpAMPGateway(logger *zap.Logger, cfg *Config, t *metadata.TelemetryBuild
 		cfg:       cfg,
 		telemetry: t,
 	}
-	o.server = newServer(cfg.OpAMPServer, logger.Named("opamp-server"), ConnectionCallbacks[*downstreamConnection]{
-		OnMessage: o.HandleAgentMessage,
-		OnError:   o.HandleAgentError,
-		OnClose:   o.HandleAgentClose,
-	})
 	o.client = newClient(cfg, logger.Named("opamp-client"), ConnectionCallbacks[*upstreamConnection]{
 		OnMessage: o.HandleServerMessage,
 		OnError:   o.HandleServerError,
 		OnClose:   o.HandleServerClose,
+	})
+	o.server = newServer(cfg.OpAMPServer, logger.Named("opamp-server"), o.client, ConnectionCallbacks[*downstreamConnection]{
+		OnMessage: o.HandleAgentMessage,
+		OnError:   o.HandleAgentError,
+		OnClose:   o.HandleAgentClose,
 	})
 	return o
 }
@@ -81,14 +81,11 @@ func (o *OpAMPGateway) HandleAgentMessage(ctx context.Context, connection *downs
 	}
 
 	// find the upstream connection
-	conn, err := o.client.assignedUpstreamConnection(agentID)
-	if err != nil {
-		return fmt.Errorf("get upstream connection: %w", err)
-	}
+	upstreamConnection := connection.upstreamConnection
 
 	// send the message to the upstream connection
-	o.logger.Info("Forwarding message upstream", zap.String("agent_id", agentID), zap.String("connection_id", conn.id), zap.String("message", message.String()))
-	conn.send(messageBytes)
+	o.logger.Info("Forwarding message upstream", zap.String("agent_id", agentID), zap.String("connection_id", upstreamConnection.id), zap.String("message", message.String()))
+	upstreamConnection.send(messageBytes)
 	o.telemetry.OpampgatewayUpstreamMessages.Add(context.Background(), 1)
 	o.telemetry.OpampgatewayUpstreamMessageSize.Add(context.Background(), int64(len(messageBytes)))
 	return nil
@@ -146,5 +143,6 @@ func (o *OpAMPGateway) HandleServerError(ctx context.Context, connection *upstre
 
 func (o *OpAMPGateway) HandleServerClose(ctx context.Context, connection *upstreamConnection) error {
 	o.logger.Info("Server connection closed", zap.String("connection_id", connection.id))
+	// close all downstream connections associated with this upstream connection
 	return nil
 }
