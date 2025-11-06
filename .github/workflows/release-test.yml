@@ -164,7 +164,7 @@ jobs:
           cp ./scripts/install/*.sh ./artifacts
           cp ./observiq-otel-collector.msi/observiq-otel-collector.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
-          cp ./windows-archive/*.zip ./artifacts
+          cp ./windows-archive/windows_amd64/*.zip ./artifacts
           cp ./dist/*.rpm ./artifacts
           cp ./dist/*.deb ./artifacts
           cp ./dist/*SHA256SUMS ./artifacts
