@@ -13,12 +13,6 @@ type UpstreamConnectionAssigner interface {
 	AssignUpstreamConnection(downstreamConnectionID string) (*upstreamConnection, error)
 }
 
-type ClientConnectionManagement interface {
-	AddUpstreamConnection(ctx context.Context, conn *websocket.Conn, id string, callbacks ConnectionCallbacks[*upstreamConnection])
-
-	ForwardMessageDownstream(ctx context.Context, agentID string, msg []byte) error
-}
-
 type client struct {
 	logger *zap.Logger
 	dialer websocket.Dialer
@@ -27,7 +21,7 @@ type client struct {
 	// upstreamConnections is a set of connections to the upstream OpAMP server.
 	upstreamConnections *connections[*upstreamConnection]
 
-	agentClientConnections *agentClientConnections
+	connectionAssignments *connectionAssignments
 
 	callbacks ConnectionCallbacks[*upstreamConnection]
 
@@ -42,18 +36,18 @@ type client struct {
 func newClient(cfg *Config, logger *zap.Logger, callbacks ConnectionCallbacks[*upstreamConnection]) *client {
 	pool := newConnectionPool(cfg.UpstreamConnections, logger)
 	connections := newConnections[*upstreamConnection]()
-	agentClientConnections := newAgentClientConnections(connections, pool)
+	connectionAssignments := newConnectionAssignments(connections, pool)
 	return &client{
-		logger:                 logger,
-		dialer:                 *websocket.DefaultDialer,
-		pool:                   pool,
-		upstreamConnections:    connections,
-		agentClientConnections: agentClientConnections,
-		callbacks:              callbacks,
-		secretKey:              cfg.SecretKey,
-		upstreamEndpoint:       cfg.UpstreamOpAMPAddress,
-		connectionCount:        cfg.UpstreamConnections,
-		clientConnectionsWg:    &sync.WaitGroup{},
+		logger:                logger.Named("client"),
+		dialer:                *websocket.DefaultDialer,
+		pool:                  pool,
+		upstreamConnections:   connections,
+		connectionAssignments: connectionAssignments,
+		callbacks:             callbacks,
+		secretKey:             cfg.SecretKey,
+		upstreamEndpoint:      cfg.UpstreamOpAMPAddress,
+		connectionCount:       cfg.UpstreamConnections,
+		clientConnectionsWg:   &sync.WaitGroup{},
 	}
 }
 
@@ -70,24 +64,31 @@ func (c *client) startClientConnections(ctx context.Context) {
 		clientConnection := newUpstreamConnection(c.dialer, upstreamConnectionSettings{
 			endpoint:  c.upstreamEndpoint,
 			secretKey: c.secretKey,
-		}, id, c.logger.Named("upstream-connection"))
+		}, id, c.logger)
 
 		c.pool.add(clientConnection)
 		c.upstreamConnections.set(id, clientConnection)
 
-		c.clientConnectionsWg.Add(1)
-		go clientConnection.start(ctx, ConnectionCallbacks[*upstreamConnection]{
-			OnMessage: c.callbacks.OnMessage,
-			OnError:   c.callbacks.OnError,
-			OnClose: func(ctx context.Context, connection *upstreamConnection) error {
+		go func() {
+			// cleanup function to remove the connection from the pool and connections map
+			defer func() {
 				defer c.clientConnectionsWg.Done()
-				c.upstreamConnections.remove(connection.id)
-				// TODO: replace with a new connection
-				c.pool.remove(connection)
-				c.logger.Info("upstream connection closed", zap.String("id", connection.id), zap.Int("connection_count", c.pool.size()))
-				return c.callbacks.OnClose(ctx, connection)
-			},
-		})
+				c.upstreamConnections.remove(clientConnection.id)
+				c.pool.remove(clientConnection)
+				c.logger.Info("upstream connection shutdown", zap.String("id", clientConnection.id), zap.Int("downstream_count", clientConnection.downstreamCount()))
+			}()
+			c.clientConnectionsWg.Add(1)
+
+			// start the connection
+			clientConnection.start(ctx, ConnectionCallbacks[*upstreamConnection]{
+				OnMessage: c.callbacks.OnMessage,
+				OnError:   c.callbacks.OnError,
+				OnClose: func(ctx context.Context, connection *upstreamConnection) error {
+					c.logger.Info("upstream connection closed", zap.String("id", connection.id), zap.Int("downstream_count", clientConnection.downstreamCount()))
+					return c.callbacks.OnClose(ctx, connection)
+				},
+			})
+		}()
 	}
 }
 
@@ -102,17 +103,18 @@ func (c *client) Stop() {
 // --------------------------------------------------------------------------------------
 // upstream connection management
 
-func (c *client) assignedUpstreamConnection(agentID string) (*upstreamConnection, error) {
-	conn, exists := c.agentClientConnections.assignedAgentConnection(agentID)
+func (c *client) assignedUpstreamConnection(downstreamConnectionID string) (*upstreamConnection, error) {
+	conn, exists := c.connectionAssignments.assignedUpstreamConnection(downstreamConnectionID)
 	if !exists {
-		c.logger.Info("no upstream connection available", zap.String("agent_id", agentID), zap.Int("connection_count", c.pool.size()))
-		return nil, fmt.Errorf("no upstream connection available for agent %s: %w", agentID, ErrNoUpstreamConnectionsAvailable)
+		c.logger.Info("no upstream connection available", zap.String("downstream_connection_id", downstreamConnectionID), zap.Int("connection_count", c.pool.size()))
+		return nil, fmt.Errorf("no upstream connection available for downstream connection %s: %w", downstreamConnectionID, ErrNoUpstreamConnectionsAvailable)
 	}
+	c.logger.Info("assigned upstream connection", zap.String("downstream_connection_id", downstreamConnectionID), zap.String("upstream_connection_id", conn.id))
 	return conn, nil
 }
 
-func (c *client) unassignUpstreamConnection(agentID string) {
-	c.agentClientConnections.unassignAgentConnection(agentID)
+func (c *client) unassignUpstreamConnection(downstreamConnectionID string) {
+	c.connectionAssignments.unassignDownstreamConnection(downstreamConnectionID)
 }
 
 // --------------------------------------------------------------------------------------

@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"iter"
 	"net"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -32,6 +34,8 @@ type server struct {
 	shutdownCancel context.CancelFunc
 
 	connectionsWg sync.WaitGroup
+
+	downstreamConnectionCount atomic.Uint32
 }
 
 var (
@@ -42,7 +46,7 @@ func newServer(cfg *OpAMPServer, logger *zap.Logger, upstreamConnectionAssigner 
 	ctx, cancel := context.WithCancel(context.Background())
 	return &server{
 		cfg:                        cfg,
-		logger:                     logger,
+		logger:                     logger.Named("server"),
 		wsUpgrader:                 websocket.Upgrader{},
 		downstreamConnections:      newConnections[*downstreamConnection](),
 		upstreamConnectionAssigner: upstreamConnectionAssigner,
@@ -139,6 +143,19 @@ func (s *server) removeDownstreamConnection(conn *downstreamConnection) {
 	s.downstreamConnections.remove(conn.id)
 }
 
+func (s *server) closeDownstreamConnections(downstreamConnectionIDs iter.Seq[string]) {
+	for downstreamConnectionID := range downstreamConnectionIDs {
+		if conn, ok := s.downstreamConnections.get(downstreamConnectionID); ok {
+			s.logger.Info("closing downstream connection", zap.String("downstream_connection_id", downstreamConnectionID))
+			err := conn.close()
+			if err != nil {
+				s.logger.Error("failed to close downstream connection", zap.Error(err), zap.String("downstream_connection_id", downstreamConnectionID))
+			}
+			s.logger.Info("closed downstream connection", zap.String("downstream_connection_id", downstreamConnectionID))
+		}
+	}
+}
+
 // --------------------------------------------------------------------------------------
 
 // startHttpServer starts the HTTP Server in background.
@@ -173,7 +190,7 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	// the initial id is the remote address of the connection but once we have parsed the
 	// agent ID, we will use that as the id
-	id := fmt.Sprintf("downstream-%s", r.RemoteAddr)
+	id := fmt.Sprintf("downstream-%d-%s", s.downstreamConnectionCount.Add(1), r.RemoteAddr)
 	upstreamConnection, err := s.upstreamConnectionAssigner.AssignUpstreamConnection(id)
 	if err != nil {
 		if errors.Is(err, ErrNoUpstreamConnectionsAvailable) {
@@ -181,7 +198,7 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
-		s.logger.Error("failed to assign upstream connection", zap.Error(err))
+		s.logger.Error("assign upstream connection", zap.Error(err))
 		w.Header().Set("Retry-After", "30")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -190,13 +207,14 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := s.wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
-		s.logger.Error("failed to accept OpAMP connection", zap.Error(err))
+		s.logger.Error("accept OpAMP connection", zap.Error(err))
 		return
 	}
 	s.logger.Debug("accepted OpAMP connection", zap.String("remote_addr", conn.RemoteAddr().String()))
 
-	// unassign an upstream connection
-	c := newDownstreamConnection(conn, upstreamConnection, id, s.logger.Named("downstream-connection"))
+	// create the downstream connection
+	c := newDownstreamConnection(conn, upstreamConnection, id, s.logger)
+	s.downstreamConnections.set(id, c)
 
 	// start the connection in a goroutine to prevent blocking the handler
 	s.connectionsWg.Add(1)
