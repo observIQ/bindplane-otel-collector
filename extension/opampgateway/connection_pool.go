@@ -62,7 +62,7 @@ func (c *connectionPool) next() (*upstreamConnection, bool) {
 		if !conn.isConnected() {
 			continue
 		}
-		count := conn.agentCount()
+		count := conn.downstreamCount()
 		if count < minCount {
 			minCount = count
 			minConn = conn

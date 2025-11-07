@@ -23,17 +23,18 @@ type OpAMPGateway struct {
 }
 
 func newOpAMPGateway(logger *zap.Logger, cfg *Config, t *metadata.TelemetryBuilder) *OpAMPGateway {
+	logger = logger.Named("opamp-gateway")
 	o := &OpAMPGateway{
 		logger:    logger,
 		cfg:       cfg,
 		telemetry: t,
 	}
-	o.client = newClient(cfg, logger.Named("opamp-client"), ConnectionCallbacks[*upstreamConnection]{
+	o.client = newClient(cfg, logger, ConnectionCallbacks[*upstreamConnection]{
 		OnMessage: o.HandleServerMessage,
 		OnError:   o.HandleServerError,
 		OnClose:   o.HandleServerClose,
 	})
-	o.server = newServer(cfg.OpAMPServer, logger.Named("opamp-server"), o.client, ConnectionCallbacks[*downstreamConnection]{
+	o.server = newServer(cfg.OpAMPServer, logger, o.client, ConnectionCallbacks[*downstreamConnection]{
 		OnMessage: o.HandleAgentMessage,
 		OnError:   o.HandleAgentError,
 		OnClose:   o.HandleAgentClose,
@@ -96,8 +97,7 @@ func (o *OpAMPGateway) HandleAgentError(ctx context.Context, connection *downstr
 }
 
 func (o *OpAMPGateway) HandleAgentClose(ctx context.Context, connection *downstreamConnection) error {
-	agentID := connection.id
-	o.client.unassignUpstreamConnection(agentID)
+	o.client.unassignUpstreamConnection(connection.id)
 	o.server.removeDownstreamConnection(connection)
 	return nil
 }
@@ -142,7 +142,9 @@ func (o *OpAMPGateway) HandleServerError(ctx context.Context, connection *upstre
 }
 
 func (o *OpAMPGateway) HandleServerClose(ctx context.Context, connection *upstreamConnection) error {
-	o.logger.Info("Server connection closed", zap.String("connection_id", connection.id))
+	o.logger.Info("Server connection closed", zap.String("upstream_connection_id", connection.id))
 	// close all downstream connections associated with this upstream connection
+	downstreamConnectionIDs := o.client.connectionAssignments.removeDownstreamConnectionIDs(connection.id)
+	o.server.closeDownstreamConnections(downstreamConnectionIDs)
 	return nil
 }
