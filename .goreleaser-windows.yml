@@ -75,6 +75,7 @@ checksum:
   algorithm: sha256
   extra_files:
     - glob: "./observiq-otel-collector.msi"
+    - glob: "./dist/**/*.zip"
 
 # https://goreleaser.com/customization/sign/
 signs:
@@ -93,6 +94,7 @@ release:
   extra_files:
     - glob: "./observiq-otel-collector*.msi"
     - glob: "./observiq-otel-collector*.msi.sig"
+    - glob: "./dist/**/*.zip"
 
 # https://console.cloud.google.com/storage/browser/bdot-release
 blobs:
@@ -102,6 +104,7 @@ blobs:
     extra_files:
       - glob: "./observiq-otel-collector*.msi"
       - glob: "./observiq-otel-collector*.msi.sig"
+      - glob: "./dist/**/*.zip"
 
 # https://goreleaser.com/customization/changelog/
 changelog:
