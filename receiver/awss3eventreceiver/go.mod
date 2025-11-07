@@ -11,8 +11,8 @@ require (
 	github.com/aws/smithy-go v1.23.1
 	github.com/google/go-cmp v0.7.0
 	github.com/linkedin/goavro/v2 v2.14.1
-	github.com/observiq/bindplane-otel-collector/internal/aws v1.87.7
-	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.87.7
+	github.com/observiq/bindplane-otel-collector/internal/aws v1.87.8
+	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.87.8
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.44.0
 	go.opentelemetry.io/collector/component/componenttest v0.138.0
