@@ -26,7 +26,12 @@ type server struct {
 
 	addr net.Addr
 
-	downstreamConnections      *connections[*downstreamConnection]
+	// agentConnections represent connections per agent ID
+	agentConnections *connections[*downstreamConnection]
+
+	// downstreamConnections represent connections per downstream connection ID
+	downstreamConnections *connections[*downstreamConnection]
+
 	callbacks                  ConnectionCallbacks[*downstreamConnection]
 	upstreamConnectionAssigner UpstreamConnectionAssigner
 
@@ -48,6 +53,7 @@ func newServer(cfg *OpAMPServer, logger *zap.Logger, upstreamConnectionAssigner 
 		cfg:                        cfg,
 		logger:                     logger.Named("server"),
 		wsUpgrader:                 websocket.Upgrader{},
+		agentConnections:           newConnections[*downstreamConnection](),
 		downstreamConnections:      newConnections[*downstreamConnection](),
 		upstreamConnectionAssigner: upstreamConnectionAssigner,
 		callbacks:                  callbacks,
@@ -126,16 +132,26 @@ func (s *server) Stop() error {
 }
 
 // --------------------------------------------------------------------------------------
-// downstream connection management
+// agent connection management
 
-func (s *server) addDownstreamConnection(agentID string, conn *downstreamConnection) {
-	// set the id to the agent ID so we can remove the connection by id later
-	conn.id = agentID
-	s.downstreamConnections.set(agentID, conn)
+func (s *server) getAgentConnection(agentID string) (*downstreamConnection, bool) {
+	conn, ok := s.agentConnections.get(agentID)
+	return conn, ok
 }
 
-func (s *server) getDownstreamConnection(agentID string) (*downstreamConnection, bool) {
-	conn, ok := s.downstreamConnections.get(agentID)
+func (s *server) setAgentConnection(agentID string, conn *downstreamConnection) {
+	s.agentConnections.set(agentID, conn)
+}
+
+// --------------------------------------------------------------------------------------
+// downstream connection management
+
+func (s *server) addDownstreamConnection(connectionID string, conn *downstreamConnection) {
+	s.downstreamConnections.set(connectionID, conn)
+}
+
+func (s *server) getDownstreamConnection(connectionID string) (*downstreamConnection, bool) {
+	conn, ok := s.downstreamConnections.get(connectionID)
 	return conn, ok
 }
 
@@ -214,7 +230,7 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	// create the downstream connection
 	c := newDownstreamConnection(conn, upstreamConnection, id, s.logger)
-	s.downstreamConnections.set(id, c)
+	s.addDownstreamConnection(id, c)
 
 	// start the connection in a goroutine to prevent blocking the handler
 	s.connectionsWg.Add(1)

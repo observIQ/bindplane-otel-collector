@@ -74,12 +74,9 @@ func (o *OpAMPGateway) HandleAgentMessage(ctx context.Context, connection *downs
 		return fmt.Errorf("cannot parse agent ID: %w", err)
 	}
 
-	if messageNumber == 0 {
-		// this is the first message, so we need to register the downstream connection for the
-		// agent ID so we can forward messages to the agent from the server
-		o.server.addDownstreamConnection(agentID, connection)
-		o.telemetry.OpampgatewayDownstreamConnections.Add(ctx, 1)
-	}
+	// register the downstream connection for the agent ID so we can forward messages to the
+	// agent from the server
+	o.server.setAgentConnection(agentID, connection)
 
 	// find the upstream connection
 	upstreamConnection := connection.upstreamConnection
@@ -124,7 +121,7 @@ func (o *OpAMPGateway) HandleServerMessage(ctx context.Context, connection *upst
 	}
 
 	// find the downstream connection from the server
-	conn, ok := o.server.getDownstreamConnection(agentID)
+	conn, ok := o.server.getAgentConnection(agentID)
 	if !ok {
 		// downstream connection no longer exists. just ignore the message for now.
 		return nil
