@@ -28,7 +28,7 @@ func newDownstreamConnection(conn *websocket.Conn, upstreamConnection *upstreamC
 		conn:               conn,
 		upstreamConnection: upstreamConnection,
 		id:                 id,
-		logger:             logger,
+		logger:             logger.Named("downstream-connection").With(zap.String("id", id)),
 		writeChan:          make(chan []byte),
 
 		// the error channel is buffered to prevent blocking the reader goroutine if it
@@ -57,7 +57,7 @@ func (c *downstreamConnection) start(ctx context.Context, callbacks ConnectionCa
 	// block while writing messages to the connection. a connection close will unblock the writer.
 	err := c.startWriter(ctx)
 	if err != nil {
-		c.logger.Error("error in connection writer", zap.Error(err), zap.String("id", c.id))
+		c.logger.Error("error in connection writer", zap.Error(err))
 		callbacks.OnError(ctx, c, err)
 	}
 
@@ -71,7 +71,7 @@ func (c *downstreamConnection) start(ctx context.Context, callbacks ConnectionCa
 	// check for errors from the reader
 	select {
 	case err := <-c.readerErrorChan:
-		c.logger.Error("error in connection reader", zap.Error(err), zap.String("id", c.id))
+		c.logger.Error("error in connection reader", zap.Error(err))
 		callbacks.OnError(ctx, c, err)
 	default:
 	}
@@ -79,19 +79,19 @@ func (c *downstreamConnection) start(ctx context.Context, callbacks ConnectionCa
 	// Call the on close handler
 	err = callbacks.OnClose(ctx, c)
 	if err != nil {
-		c.logger.Error("error in on close handler", zap.Error(err), zap.String("id", c.id))
+		c.logger.Error("error in on close handler", zap.Error(err))
 	}
 }
 
 // send will send a message to the connection by putting it on the write channel. the
 // writer goroutine will handle sending the message to the connection.
 func (c *downstreamConnection) send(message []byte) {
-	c.logger.Info("sending message", zap.String("id", c.id), zap.String("message", string(message)))
+	c.logger.Info("sending message", zap.String("message", string(message)))
 	c.writeChan <- message
 }
 
 func (c *downstreamConnection) close() error {
-	c.logger.Info("downstream connection closing", zap.String("id", c.id))
+	c.logger.Info("downstream connection closing")
 	err := c.conn.Close()
 	if err != nil {
 		return fmt.Errorf("close connection: %w", err)
@@ -126,7 +126,7 @@ func (c *downstreamConnection) startWriter(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			c.logger.Info("writer context done", zap.String("id", c.id))
+			c.logger.Info("writer context done")
 			// closing the connection will cause ReadMessage to unblock and return an error
 			err := c.conn.Close()
 			if err != nil {
@@ -137,7 +137,7 @@ func (c *downstreamConnection) startWriter(ctx context.Context) error {
 		case message, ok := <-c.writeChan:
 			if !ok {
 				// the write channel is closed, so we return
-				c.logger.Info("write channel closed", zap.String("id", c.id))
+				c.logger.Info("write channel closed")
 				return nil
 			}
 			err := writeWSMessage(c.conn, message)

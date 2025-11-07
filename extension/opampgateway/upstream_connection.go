@@ -39,7 +39,7 @@ func newUpstreamConnection(dialer websocket.Dialer, settings upstreamConnectionS
 		dialer:    dialer,
 		settings:  settings,
 		id:        id,
-		logger:    logger,
+		logger:    logger.Named("upstream-connection").With(zap.String("id", id)),
 		writeChan: make(chan []byte),
 
 		// the error channel is buffered to prevent blocking the reader goroutine if it
@@ -50,15 +50,15 @@ func newUpstreamConnection(dialer websocket.Dialer, settings upstreamConnectionS
 	}
 }
 
-func (c *upstreamConnection) agentCount() int {
+func (c *upstreamConnection) downstreamCount() int {
 	return int(c.count.Load())
 }
 
-func (c *upstreamConnection) incrementAgentCount() {
+func (c *upstreamConnection) incrementDownstreamCount() {
 	c.count.Add(1)
 }
 
-func (c *upstreamConnection) decrementAgentCount() {
+func (c *upstreamConnection) decrementDownstreamCount() {
 	c.count.Add(-1)
 }
 
@@ -79,7 +79,7 @@ func (c *upstreamConnection) start(ctx context.Context, callbacks ConnectionCall
 	// block while writing messages to the connection. a connection close will unblock the writer.
 	err := c.startWriter(ctx, callbacks)
 	if err != nil {
-		c.logger.Error("upstream connection writer", zap.Error(err), zap.String("id", c.id))
+		c.logger.Error("upstream connection writer", zap.Error(err))
 		callbacks.OnError(ctx, c, err)
 	}
 
@@ -92,22 +92,18 @@ func (c *upstreamConnection) start(ctx context.Context, callbacks ConnectionCall
 	// check for errors from the reader
 	select {
 	case err := <-c.readerErrorChan:
-		c.logger.Error("upstream connection reader", zap.Error(err), zap.String("id", c.id))
+		c.logger.Error("upstream connection reader", zap.Error(err))
 		callbacks.OnError(ctx, c, err)
 	default:
 	}
 
-	// Call the on close handler
-	err = callbacks.OnClose(ctx, c)
-	if err != nil {
-		c.logger.Error("upstream connection on close handler", zap.Error(err), zap.String("id", c.id))
-	}
+	// TODO: shutdown handler?
 }
 
 // send will send a message to the connection by putting it on the write channel. the
 // writer goroutine will handle sending the message to the connection.
 func (c *upstreamConnection) send(message []byte) {
-	c.logger.Info("sending message", zap.String("id", c.id), zap.String("message", string(message)))
+	c.logger.Info("sending message", zap.String("message", string(message)))
 	c.writeChan <- message
 }
 
@@ -158,21 +154,38 @@ func (c *upstreamConnection) startWriter(ctx context.Context, callbacks Connecti
 
 		readerDone := make(chan struct{})
 
+		writerCtx, writerCancel := context.WithCancel(ctx)
+		readerCtx, readerCancel := context.WithCancel(ctx)
+
 		// start the reader in a separate goroutine and cancel the context if it returns, likely
 		// due to an error or the connection being closed
 		go func() {
 			defer close(readerDone)
-			c.startReader(ctx, conn, callbacks)
+			defer writerCancel()
+			c.startReader(readerCtx, conn, callbacks)
+			c.logger.Info("reader finished")
 		}()
 
-		nextMessage, err = c.writerLoop(ctx, conn, nextMessage)
+		nextMessage, err = c.writerLoop(writerCtx, conn, nextMessage)
 		if err != nil {
 			c.logger.Error("writer loop", zap.Error(err))
 		}
 
+		c.logger.Info("writer loop done")
+
+		// cancel the reader context to stop the reader loop
+		readerCancel()
+
 		// close the connection
 		// wait for the reader to finish
+		c.logger.Info("waiting for reader to finish")
 		<-readerDone
+
+		// Call the on close handler
+		err = callbacks.OnClose(ctx, c)
+		if err != nil {
+			c.logger.Error("upstream connection OnClose handler", zap.Error(err))
+		}
 	}
 }
 
@@ -196,7 +209,7 @@ func (c *upstreamConnection) writerLoop(ctx context.Context, conn *websocket.Con
 	for {
 		select {
 		case <-ctx.Done():
-			c.logger.Info("writer context done", zap.String("id", c.id))
+			c.logger.Info("writer context done")
 			// closing the connection will cause ReadMessage to unblock and return an error
 			err := conn.Close()
 			if err != nil {
@@ -208,7 +221,7 @@ func (c *upstreamConnection) writerLoop(ctx context.Context, conn *websocket.Con
 		case message, ok := <-c.writeChan:
 			if !ok {
 				// the write channel is closed, so we return
-				c.logger.Info("write channel closed", zap.String("id", c.id))
+				c.logger.Info("write channel closed")
 				return message, nil
 			}
 			err := writeWSMessage(conn, message)
@@ -264,6 +277,8 @@ func (c *upstreamConnection) ensureConnected(ctx context.Context, id string) (*w
 func (c *upstreamConnection) tryConnectOnce(ctx context.Context, id string) (*websocket.Conn, error) {
 	var resp *http.Response
 
+	c.logger.Info("Attempting to connect to upstream OpAMP server", zap.String("upstream_endpoint", c.settings.endpoint))
+
 	conn, resp, err := c.dialer.DialContext(ctx, c.settings.endpoint, c.header(id))
 	if err != nil {
 		if resp != nil {
@@ -271,7 +286,7 @@ func (c *upstreamConnection) tryConnectOnce(ctx context.Context, id string) (*we
 		}
 		return nil, err
 	}
-	c.logger.Info("Successfully connected to upstream OpAMP server", zap.String("id", id), zap.String("upstream_endpoint", conn.RemoteAddr().String()))
+	c.logger.Info("Successfully connected to upstream OpAMP server", zap.String("upstream_endpoint", conn.RemoteAddr().String()))
 
 	// Successfully connected.
 	return conn, nil
