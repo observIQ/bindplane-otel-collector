@@ -21,7 +21,7 @@ type connectionPool struct {
 func newConnectionPool(size int, logger *zap.Logger) *connectionPool {
 	return &connectionPool{
 		connections: make(map[string]*upstreamConnection, size),
-		logger:      logger.Named("opamp-gateway-connection-pool"),
+		logger:      logger,
 	}
 }
 

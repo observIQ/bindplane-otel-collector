@@ -103,7 +103,7 @@ func (c *upstreamConnection) start(ctx context.Context, callbacks ConnectionCall
 // send will send a message to the connection by putting it on the write channel. the
 // writer goroutine will handle sending the message to the connection.
 func (c *upstreamConnection) send(message []byte) {
-	c.logger.Info("sending message", zap.String("message", string(message)))
+	c.logger.Debug("sending message", zap.String("message", string(message)))
 	c.writeChan <- message
 }
 
@@ -111,14 +111,14 @@ func (c *upstreamConnection) send(message []byte) {
 // reader goroutine
 
 func (c *upstreamConnection) startReader(ctx context.Context, conn *websocket.Conn, callbacks ConnectionCallbacks[*upstreamConnection]) {
-	reader := newMessageReader(conn, readerCallbacks{
+	reader := newMessageReader(conn, c.id, readerCallbacks{
 		OnMessage: func(ctx context.Context, messageNumber int, messageType int, messageBytes []byte) error {
 			return callbacks.OnMessage(ctx, c, messageNumber, messageType, messageBytes)
 		},
 		OnError: func(ctx context.Context, err error) {
 			callbacks.OnError(ctx, c, err)
 		},
-	})
+	}, c.logger)
 
 	reader.loop(ctx, 0)
 }
@@ -166,6 +166,7 @@ func (c *upstreamConnection) startWriter(ctx context.Context, callbacks Connecti
 			c.logger.Info("reader finished")
 		}()
 
+		// TODO: discard the next message if the connection is closed
 		nextMessage, err = c.writerLoop(writerCtx, conn, nextMessage)
 		if err != nil {
 			c.logger.Error("writer loop", zap.Error(err))
