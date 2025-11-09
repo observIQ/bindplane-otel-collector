@@ -29,16 +29,16 @@ func newOpAMPGateway(logger *zap.Logger, cfg *Config, t *metadata.TelemetryBuild
 		cfg:       cfg,
 		telemetry: t,
 	}
-	o.client = newClient(cfg, logger, ConnectionCallbacks[*upstreamConnection]{
-		OnMessage: o.HandleServerMessage,
-		OnError:   o.HandleServerError,
-		OnClose:   o.HandleServerClose,
-	})
-	o.server = newServer(cfg.OpAMPServer, logger, o.client, ConnectionCallbacks[*downstreamConnection]{
-		OnMessage: o.HandleAgentMessage,
-		OnError:   o.HandleAgentError,
-		OnClose:   o.HandleAgentClose,
-	})
+	o.client = newClient(cfg, o.telemetry, ConnectionCallbacks[*upstreamConnection]{
+		OnMessage: o.HandleUpstreamMessage,
+		OnError:   o.HandleUpstreamError,
+		OnClose:   o.HandleUpstreamClose,
+	}, logger)
+	o.server = newServer(cfg.OpAMPServer, o.telemetry, o.client, ConnectionCallbacks[*downstreamConnection]{
+		OnMessage: o.HandleDownstreamMessage,
+		OnError:   o.HandleDownstreamError,
+		OnClose:   o.HandleDownstreamClose,
+	}, logger)
 	return o
 }
 
@@ -53,10 +53,11 @@ func (o *OpAMPGateway) Shutdown(ctx context.Context) error {
 }
 
 // --------------------------------------------------------------------------------------
-// Agent callbacks
+// Downstream callbacks
 
-// HandleAgentMessage handles message set from an agent to the server
-func (o *OpAMPGateway) HandleAgentMessage(ctx context.Context, connection *downstreamConnection, messageNumber int, messageType int, messageBytes []byte) error {
+// HandleDownstreamMessage handles message set from a downstream connection to the server
+func (o *OpAMPGateway) HandleDownstreamMessage(ctx context.Context, connection *downstreamConnection, messageNumber int, messageType int, messageBytes []byte) error {
+	o.logger.Debug("HandleDownstreamMessage", zap.String("downstream_connection_id", connection.id), zap.Int("message_number", messageNumber), zap.Int("message_type", messageType))
 	if messageType != websocket.BinaryMessage {
 		err := fmt.Errorf("unexpected message type: %v, must be binary message", messageType)
 		o.logger.Error("Cannot process a message from WebSocket", zap.Error(err), zap.Int("message_number", messageNumber), zap.Int("message_type", messageType), zap.String("message_bytes", string(messageBytes)))
@@ -82,28 +83,31 @@ func (o *OpAMPGateway) HandleAgentMessage(ctx context.Context, connection *downs
 	upstreamConnection := connection.upstreamConnection
 
 	// send the message to the upstream connection
-	o.logger.Info("Forwarding message upstream", zap.String("agent_id", agentID), zap.String("connection_id", upstreamConnection.id), zap.String("message", message.String()))
+	msg := fmt.Sprintf("%s => %s", connection.id, upstreamConnection.id)
+	logUpstreamMessage(o.logger, msg, agentID, messageNumber, len(messageBytes), &message)
 	upstreamConnection.send(messageBytes)
 	o.telemetry.OpampgatewayUpstreamMessages.Add(context.Background(), 1)
 	o.telemetry.OpampgatewayUpstreamMessageSize.Add(context.Background(), int64(len(messageBytes)))
 	return nil
 }
 
-func (o *OpAMPGateway) HandleAgentError(ctx context.Context, connection *downstreamConnection, err error) {
-	o.logger.Error("Error in agent connection", zap.Error(err))
+func (o *OpAMPGateway) HandleDownstreamError(ctx context.Context, connection *downstreamConnection, err error) {
+	o.logger.Error("HandleDownstreamError", zap.Error(err))
 }
 
-func (o *OpAMPGateway) HandleAgentClose(ctx context.Context, connection *downstreamConnection) error {
+func (o *OpAMPGateway) HandleDownstreamClose(ctx context.Context, connection *downstreamConnection) error {
+	o.logger.Info("HandleDownstreamClose", zap.String("downstream_connection_id", connection.id))
 	o.client.unassignUpstreamConnection(connection.id)
 	o.server.removeDownstreamConnection(connection)
 	return nil
 }
 
 // --------------------------------------------------------------------------------------
-// Server callbacks
+// Upstream callbacks
 
-// HandleServerMessage handles message set from the server to an agent
-func (o *OpAMPGateway) HandleServerMessage(ctx context.Context, connection *upstreamConnection, messageNumber int, messageType int, messageBytes []byte) error {
+// HandleUpstreamMessage handles message set from the upstream connection to a downstream connection
+func (o *OpAMPGateway) HandleUpstreamMessage(ctx context.Context, connection *upstreamConnection, messageNumber int, messageType int, messageBytes []byte) error {
+	o.logger.Debug("HandleUpstreamMessage", zap.String("upstream_connection_id", connection.id), zap.Int("message_number", messageNumber), zap.Int("message_type", messageType))
 	if messageType != websocket.BinaryMessage {
 		err := fmt.Errorf("unexpected message type: %v, must be binary message", messageType)
 		o.logger.Error("Cannot process a message from WebSocket", zap.Error(err), zap.Int("message_number", messageNumber), zap.Int("message_type", messageType), zap.String("message_bytes", string(messageBytes)))
@@ -128,20 +132,72 @@ func (o *OpAMPGateway) HandleServerMessage(ctx context.Context, connection *upst
 	}
 
 	// forward the message to the downstream connection
+	msg := fmt.Sprintf("%s <= %s", conn.id, connection.id)
+	logDownstreamMessage(o.logger, msg, agentID, messageNumber, len(messageBytes), &message)
 	conn.send(messageBytes)
 	o.telemetry.OpampgatewayDownstreamMessages.Add(context.Background(), 1)
 	o.telemetry.OpampgatewayDownstreamMessageSize.Add(context.Background(), int64(len(messageBytes)))
 	return nil
 }
 
-func (o *OpAMPGateway) HandleServerError(ctx context.Context, connection *upstreamConnection, err error) {
-	o.logger.Error("Error in server connection", zap.Error(err))
+func (o *OpAMPGateway) HandleUpstreamError(ctx context.Context, connection *upstreamConnection, err error) {
+	o.logger.Error("HandleUpstreamError", zap.Error(err))
 }
 
-func (o *OpAMPGateway) HandleServerClose(ctx context.Context, connection *upstreamConnection) error {
-	o.logger.Info("Server connection closed", zap.String("upstream_connection_id", connection.id))
+func (o *OpAMPGateway) HandleUpstreamClose(ctx context.Context, connection *upstreamConnection) error {
+	o.logger.Info("HandleUpstreamClose", zap.String("upstream_connection_id", connection.id))
 	// close all downstream connections associated with this upstream connection
 	downstreamConnectionIDs := o.client.connectionAssignments.removeDownstreamConnectionIDs(connection.id)
 	o.server.closeDownstreamConnections(downstreamConnectionIDs)
 	return nil
+}
+
+// --------------------------------------------------------------------------------------
+// logging helpers
+
+func logDownstreamMessage(logger *zap.Logger, msg string, agentID string, messageNumber int, messageBytes int, message *protobufs.ServerToAgent) {
+	logger.Info(msg, zap.String("agent.id", agentID), zap.Int("message.number", messageNumber), zap.Int("message.bytes", messageBytes), zap.Strings("components", downstreamMessageComponents(message)))
+}
+
+func logUpstreamMessage(logger *zap.Logger, msg string, agentID string, messageNumber int, messageBytes int, message *protobufs.AgentToServer) {
+	logger.Info(msg, zap.String("agent.id", agentID), zap.Int("message.number", messageNumber), zap.Int("message.bytes", messageBytes), zap.Strings("components", upstreamMessageComponents(message)))
+}
+
+func downstreamMessageComponents(serverToAgent *protobufs.ServerToAgent) []string {
+	var components []string
+	components = includeComponent(components, serverToAgent.ErrorResponse, "ErrorResponse")
+	components = includeComponent(components, serverToAgent.RemoteConfig, "RemoteConfig")
+	components = includeComponent(components, serverToAgent.ConnectionSettings, "ConnectionSettings")
+	components = includeComponent(components, serverToAgent.PackagesAvailable, "PackagesAvailable")
+	components = includeComponent(components, serverToAgent.AgentIdentification, "AgentIdentification")
+	components = includeComponent(components, serverToAgent.Command, "Command")
+	components = includeCustomMessage(components, serverToAgent.CustomMessage)
+	return components
+}
+
+// upstreamMessageComponents returns the names of the components in the message
+func upstreamMessageComponents(agentToServer *protobufs.AgentToServer) []string {
+	var components []string
+	components = includeComponent(components, agentToServer.AgentDescription, "AgentDescription")
+	components = includeComponent(components, agentToServer.EffectiveConfig, "EffectiveConfig")
+	components = includeComponent(components, agentToServer.RemoteConfigStatus, "RemoteConfigStatus")
+	components = includeComponent(components, agentToServer.PackageStatuses, "PackageStatuses")
+	components = includeComponent(components, agentToServer.AvailableComponents, "AvailableComponents")
+	components = includeComponent(components, agentToServer.Health, "Health")
+	components = includeCustomMessage(components, agentToServer.CustomMessage)
+	return components
+}
+
+func includeComponent[T any](components []string, msg *T, name string) []string {
+	if msg != nil {
+		components = append(components, name)
+	}
+	return components
+}
+
+func includeCustomMessage(components []string, msg *protobufs.CustomMessage) []string {
+	if msg != nil {
+		components = append(components, msg.Type)
+	}
+	return components
 }

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
+	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
 	"go.uber.org/zap"
 )
 
@@ -31,14 +32,17 @@ type client struct {
 
 	clientConnectionsWg     *sync.WaitGroup
 	clientConnectionsCancel context.CancelFunc
+
+	telemetry *metadata.TelemetryBuilder
 }
 
-func newClient(cfg *Config, logger *zap.Logger, callbacks ConnectionCallbacks[*upstreamConnection]) *client {
+func newClient(cfg *Config, telemetry *metadata.TelemetryBuilder, callbacks ConnectionCallbacks[*upstreamConnection], logger *zap.Logger) *client {
+	logger = logger.Named("client")
 	pool := newConnectionPool(cfg.UpstreamConnections, logger)
 	connections := newConnections[*upstreamConnection]()
 	connectionAssignments := newConnectionAssignments(connections, pool)
 	return &client{
-		logger:                logger.Named("client"),
+		logger:                logger,
 		dialer:                *websocket.DefaultDialer,
 		pool:                  pool,
 		upstreamConnections:   connections,
@@ -48,6 +52,7 @@ func newClient(cfg *Config, logger *zap.Logger, callbacks ConnectionCallbacks[*u
 		upstreamEndpoint:      cfg.UpstreamOpAMPAddress,
 		connectionCount:       cfg.UpstreamConnections,
 		clientConnectionsWg:   &sync.WaitGroup{},
+		telemetry:             telemetry,
 	}
 }
 
@@ -70,6 +75,9 @@ func (c *client) startClientConnections(ctx context.Context) {
 		c.upstreamConnections.set(id, clientConnection)
 
 		go func() {
+			c.telemetry.OpampgatewayUpstreamConnections.Add(context.Background(), 1)
+			defer c.telemetry.OpampgatewayUpstreamConnections.Add(context.Background(), -1)
+
 			// cleanup function to remove the connection from the pool and connections map
 			defer func() {
 				defer c.clientConnectionsWg.Done()
