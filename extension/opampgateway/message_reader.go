@@ -7,11 +7,14 @@ import (
 	"net"
 
 	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 )
 
 type messageReader struct {
 	conn      *websocket.Conn
 	callbacks readerCallbacks
+	id        string
+	logger    *zap.Logger
 }
 
 type readerCallbacks struct {
@@ -19,8 +22,8 @@ type readerCallbacks struct {
 	OnError   func(ctx context.Context, err error)
 }
 
-func newMessageReader(conn *websocket.Conn, callbacks readerCallbacks) *messageReader {
-	return &messageReader{conn: conn, callbacks: callbacks}
+func newMessageReader(conn *websocket.Conn, id string, callbacks readerCallbacks, logger *zap.Logger) *messageReader {
+	return &messageReader{conn: conn, id: id, callbacks: callbacks, logger: logger.Named("message-reader").With(zap.String("id", id))}
 }
 
 // loop will read messages from the connection and call the OnMessage callback for each
@@ -36,12 +39,15 @@ func (r *messageReader) loop(ctx context.Context, messageNumber int) {
 		if err != nil {
 			if ctx.Err() != nil {
 				// context is done, so we return cleanly
+				r.logger.Info("context done")
 				return
 			}
 			if errors.Is(err, net.ErrClosed) || websocket.IsUnexpectedCloseError(err) {
 				// unexpected close is expected to happen when the connection is closed
+				r.logger.Info("closed")
 				return
 			}
+			r.logger.Error("read message", zap.Error(err))
 			r.callbacks.OnError(ctx, fmt.Errorf("read message: %w", err))
 			return
 		}

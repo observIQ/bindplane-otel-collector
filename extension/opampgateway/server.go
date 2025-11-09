@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
 	"go.uber.org/zap"
 )
 
@@ -41,13 +42,15 @@ type server struct {
 	connectionsWg sync.WaitGroup
 
 	downstreamConnectionCount atomic.Uint32
+
+	telemetry *metadata.TelemetryBuilder
 }
 
 var (
 	handlePath = "/"
 )
 
-func newServer(cfg *OpAMPServer, logger *zap.Logger, upstreamConnectionAssigner UpstreamConnectionAssigner, callbacks ConnectionCallbacks[*downstreamConnection]) *server {
+func newServer(cfg *OpAMPServer, telemetry *metadata.TelemetryBuilder, upstreamConnectionAssigner UpstreamConnectionAssigner, callbacks ConnectionCallbacks[*downstreamConnection], logger *zap.Logger) *server {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &server{
 		cfg:                        cfg,
@@ -59,6 +62,7 @@ func newServer(cfg *OpAMPServer, logger *zap.Logger, upstreamConnectionAssigner 
 		callbacks:                  callbacks,
 		shutdownCtx:                ctx,
 		shutdownCancel:             cancel,
+		telemetry:                  telemetry,
 	}
 }
 
@@ -228,6 +232,8 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	s.logger.Debug("accepted OpAMP connection", zap.String("remote_addr", conn.RemoteAddr().String()))
 
+	s.telemetry.OpampgatewayDownstreamConnections.Add(context.Background(), 1)
+
 	// create the downstream connection
 	c := newDownstreamConnection(conn, upstreamConnection, id, s.logger)
 	s.addDownstreamConnection(id, c)
@@ -236,6 +242,8 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	s.connectionsWg.Add(1)
 	go func() {
 		defer s.connectionsWg.Done()
+		defer s.telemetry.OpampgatewayDownstreamConnections.Add(context.Background(), -1)
+
 		c.start(s.shutdownCtx, s.callbacks)
 	}()
 }
