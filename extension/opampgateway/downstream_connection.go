@@ -21,6 +21,8 @@ type downstreamConnection struct {
 	upstreamConnection *upstreamConnection
 
 	logger *zap.Logger
+
+	cancel context.CancelFunc
 }
 
 func newDownstreamConnection(conn *websocket.Conn, upstreamConnection *upstreamConnection, id string, logger *zap.Logger) *downstreamConnection {
@@ -44,13 +46,13 @@ func newDownstreamConnection(conn *websocket.Conn, upstreamConnection *upstreamC
 // or an error to be sent on the error channel. if an error is sent on the error channel,
 // the connection will be stopped and the context will be cancelled.
 func (c *downstreamConnection) start(ctx context.Context, callbacks ConnectionCallbacks[*downstreamConnection]) {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, c.cancel = context.WithCancel(ctx)
+	defer c.cancel()
 
 	// start the reader in a separate goroutine and cancel the context if it returns, likely
 	// due to an error or the connection being closed
 	go func() {
-		defer cancel()
+		defer c.cancel()
 		c.startReader(ctx, callbacks)
 	}()
 
@@ -62,7 +64,7 @@ func (c *downstreamConnection) start(ctx context.Context, callbacks ConnectionCa
 	}
 
 	// if the writer returns, cancel the context to stop the reader
-	cancel()
+	c.cancel()
 
 	// wait for the reader and writer to finish
 	<-c.readerDone
@@ -86,16 +88,13 @@ func (c *downstreamConnection) start(ctx context.Context, callbacks ConnectionCa
 // send will send a message to the connection by putting it on the write channel. the
 // writer goroutine will handle sending the message to the connection.
 func (c *downstreamConnection) send(message []byte) {
-	c.logger.Info("sending message", zap.String("message", string(message)))
+	c.logger.Debug("sending message", zap.String("message", string(message)))
 	c.writeChan <- message
 }
 
 func (c *downstreamConnection) close() error {
 	c.logger.Info("downstream connection closing")
-	err := c.conn.Close()
-	if err != nil {
-		return fmt.Errorf("close connection: %w", err)
-	}
+	c.cancel()
 	return nil
 }
 
@@ -105,14 +104,14 @@ func (c *downstreamConnection) close() error {
 func (c *downstreamConnection) startReader(ctx context.Context, callbacks ConnectionCallbacks[*downstreamConnection]) {
 	defer close(c.readerDone)
 
-	reader := newMessageReader(c.conn, readerCallbacks{
+	reader := newMessageReader(c.conn, c.id, readerCallbacks{
 		OnMessage: func(ctx context.Context, messageNumber int, messageType int, messageBytes []byte) error {
 			return callbacks.OnMessage(ctx, c, messageNumber, messageType, messageBytes)
 		},
 		OnError: func(ctx context.Context, err error) {
 			callbacks.OnError(ctx, c, err)
 		},
-	})
+	}, c.logger)
 
 	reader.loop(ctx, 0)
 }
