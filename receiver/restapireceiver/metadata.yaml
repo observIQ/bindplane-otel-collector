@@ -1,0 +1,7 @@
+type: restapi
+
+status:
+  class: receiver
+  stability:
+    alpha: [logs, metrics]
+
