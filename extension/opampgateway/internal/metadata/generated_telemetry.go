@@ -23,15 +23,13 @@ func Tracer(settings component.TelemetrySettings) trace.Tracer {
 // TelemetryBuilder provides an interface for components to report telemetry
 // as defined in metadata and user config.
 type TelemetryBuilder struct {
-	meter                             metric.Meter
-	mu                                sync.Mutex
-	registrations                     []metric.Registration
-	OpampgatewayDownstreamConnections metric.Int64UpDownCounter
-	OpampgatewayDownstreamMessageSize metric.Int64UpDownCounter
-	OpampgatewayDownstreamMessages    metric.Int64UpDownCounter
-	OpampgatewayUpstreamConnections   metric.Int64UpDownCounter
-	OpampgatewayUpstreamMessageSize   metric.Int64UpDownCounter
-	OpampgatewayUpstreamMessages      metric.Int64UpDownCounter
+	meter                       metric.Meter
+	mu                          sync.Mutex
+	registrations               []metric.Registration
+	OpampgatewayConnections     metric.Int64UpDownCounter
+	OpampgatewayMessageBytes    metric.Int64Counter
+	OpampgatewayMessages        metric.Int64Counter
+	OpampgatewayMessagesLatency metric.Int64Histogram
 }
 
 // TelemetryBuilderOption applies changes to default builder.
@@ -63,40 +61,29 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 	}
 	builder.meter = Meter(settings)
 	var err, errs error
-	builder.OpampgatewayDownstreamConnections, err = builder.meter.Int64UpDownCounter(
-		"otelcol_opampgateway_downstream_connections",
-		metric.WithDescription("The number of downstream connections."),
+	builder.OpampgatewayConnections, err = builder.meter.Int64UpDownCounter(
+		"otelcol_opampgateway.connections",
+		metric.WithDescription("The number of connections."),
 		metric.WithUnit("{connections}"),
 	)
 	errs = errors.Join(errs, err)
-	builder.OpampgatewayDownstreamMessageSize, err = builder.meter.Int64UpDownCounter(
-		"otelcol_opampgateway_downstream_message_size",
-		metric.WithDescription("The total size of the downstream messages."),
-		metric.WithUnit("B"),
-	)
-	errs = errors.Join(errs, err)
-	builder.OpampgatewayDownstreamMessages, err = builder.meter.Int64UpDownCounter(
-		"otelcol_opampgateway_downstream_messages",
-		metric.WithDescription("The number of downstream messages."),
-		metric.WithUnit("{messages}"),
-	)
-	errs = errors.Join(errs, err)
-	builder.OpampgatewayUpstreamConnections, err = builder.meter.Int64UpDownCounter(
-		"otelcol_opampgateway_upstream_connections",
-		metric.WithDescription("The number of upstream connections."),
-		metric.WithUnit("{connections}"),
-	)
-	errs = errors.Join(errs, err)
-	builder.OpampgatewayUpstreamMessageSize, err = builder.meter.Int64UpDownCounter(
-		"otelcol_opampgateway_upstream_message_size",
+	builder.OpampgatewayMessageBytes, err = builder.meter.Int64Counter(
+		"otelcol_opampgateway.message.bytes",
 		metric.WithDescription("The total size of the upstream messages."),
 		metric.WithUnit("B"),
 	)
 	errs = errors.Join(errs, err)
-	builder.OpampgatewayUpstreamMessages, err = builder.meter.Int64UpDownCounter(
-		"otelcol_opampgateway_upstream_messages",
-		metric.WithDescription("The number of upstream messages."),
+	builder.OpampgatewayMessages, err = builder.meter.Int64Counter(
+		"otelcol_opampgateway.messages",
+		metric.WithDescription("The number of messages."),
 		metric.WithUnit("{messages}"),
+	)
+	errs = errors.Join(errs, err)
+	builder.OpampgatewayMessagesLatency, err = builder.meter.Int64Histogram(
+		"otelcol_opampgateway.messages.latency",
+		metric.WithDescription("The latency imposed by the gateway forwarding a message."),
+		metric.WithUnit("ms"),
+		metric.WithExplicitBucketBoundaries([]float64{0, 5, 8, 21, 40, 61, 100, 250, 500, 750, 1000, 2500, 5000, 7500, 10000, 25000, 50000, 75000, 100000}...),
 	)
 	errs = errors.Join(errs, err)
 	return &builder, errs

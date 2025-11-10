@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gorilla/websocket"
+	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
 	"go.uber.org/zap"
 )
 
@@ -12,7 +13,7 @@ type downstreamConnection struct {
 	id   string
 	conn *websocket.Conn
 
-	writeChan       chan []byte
+	writeChan       chan *message
 	readerErrorChan chan error
 
 	readerDone chan struct{}
@@ -20,18 +21,20 @@ type downstreamConnection struct {
 
 	upstreamConnection *upstreamConnection
 
-	logger *zap.Logger
+	telemetry *metadata.TelemetryBuilder
+	logger    *zap.Logger
 
 	cancel context.CancelFunc
 }
 
-func newDownstreamConnection(conn *websocket.Conn, upstreamConnection *upstreamConnection, id string, logger *zap.Logger) *downstreamConnection {
+func newDownstreamConnection(conn *websocket.Conn, telemetry *metadata.TelemetryBuilder, upstreamConnection *upstreamConnection, id string, logger *zap.Logger) *downstreamConnection {
 	return &downstreamConnection{
 		conn:               conn,
 		upstreamConnection: upstreamConnection,
 		id:                 id,
+		telemetry:          telemetry,
 		logger:             logger.Named("downstream-connection").With(zap.String("id", id)),
-		writeChan:          make(chan []byte),
+		writeChan:          make(chan *message),
 
 		// the error channel is buffered to prevent blocking the reader goroutine if it
 		// encounters an error. it will return immediately after reporting the error and the
@@ -87,8 +90,8 @@ func (c *downstreamConnection) start(ctx context.Context, callbacks ConnectionCa
 
 // send will send a message to the connection by putting it on the write channel. the
 // writer goroutine will handle sending the message to the connection.
-func (c *downstreamConnection) send(message []byte) {
-	c.logger.Debug("sending message", zap.String("message", string(message)))
+func (c *downstreamConnection) send(message *message) {
+	c.logger.Debug("sending message", zap.String("message", string(message.data)))
 	c.writeChan <- message
 }
 
@@ -105,8 +108,8 @@ func (c *downstreamConnection) startReader(ctx context.Context, callbacks Connec
 	defer close(c.readerDone)
 
 	reader := newMessageReader(c.conn, c.id, readerCallbacks{
-		OnMessage: func(ctx context.Context, messageNumber int, messageType int, messageBytes []byte) error {
-			return callbacks.OnMessage(ctx, c, messageNumber, messageType, messageBytes)
+		OnMessage: func(ctx context.Context, messageType int, message *message) error {
+			return callbacks.OnMessage(ctx, c, messageType, message)
 		},
 		OnError: func(ctx context.Context, err error) {
 			callbacks.OnError(ctx, c, err)
@@ -139,10 +142,11 @@ func (c *downstreamConnection) startWriter(ctx context.Context) error {
 				c.logger.Info("write channel closed")
 				return nil
 			}
-			err := writeWSMessage(c.conn, message)
+			err := writeWSMessage(c.conn, message.data)
 			if err != nil {
 				return fmt.Errorf("write message: %w", err)
 			}
+			c.telemetry.OpampgatewayMessagesLatency.Record(ctx, message.elapsedTime().Milliseconds(), directionDownstream)
 		}
 	}
 }

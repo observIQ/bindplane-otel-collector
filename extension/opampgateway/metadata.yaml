@@ -5,46 +5,66 @@ status:
   stability:
     alpha: [extension]
 
+attributes:
+  direction:
+    description: The direction of the messages, upstream or downstream.
+    type: string
+    enum: [upstream, downstream]
+
 telemetry:
   metrics:
-    opampgateway_upstream_connections:
+    opampgateway.connections:
       enabled: true
-      description: "The number of upstream connections."
+      description: "The number of connections."
       unit: "{connections}"
       sum:
         value_type: int
+      attributes: [direction]
 
-    opampgateway_downstream_connections:
+    opampgateway.messages:
       enabled: true
-      description: "The number of downstream connections."
-      unit: "{connections}"
-      sum:
-        value_type: int
-    
-    opampgateway_upstream_messages:
-      enabled: true
-      description: "The number of upstream messages."
+      description: "The number of messages."
       unit: "{messages}"
       sum:
         value_type: int
+        monotonic: true
+      attributes: [direction]
 
-    opampgateway_downstream_messages:
-      enabled: true
-      description: "The number of downstream messages."
-      unit: "{messages}"
-      sum:
-        value_type: int
-
-    opampgateway_upstream_message_size:
+    opampgateway.message.bytes:
       enabled: true
       description: "The total size of the upstream messages."
       unit: "B"
       sum:
         value_type: int
+        monotonic: true
+      attributes: [direction]
 
-    opampgateway_downstream_message_size:
+    opampgateway.messages.latency:
       enabled: true
-      description: "The total size of the downstream messages."
-      unit: "B"
-      sum:
+      description: The latency imposed by the gateway forwarding a message.
+      unit: ms
+      histogram:
         value_type: int
+        bucket_boundaries:
+          [
+            0,
+            005,
+            010,
+            025,
+            050,
+            075,
+            100,
+            250,
+            500,
+            750,
+            1000,
+            2500,
+            5000,
+            7500,
+            10000,
+            25000,
+            50000,
+            75000,
+            100000,
+          ]
+      attributes: [direction]

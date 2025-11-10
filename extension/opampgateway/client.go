@@ -66,7 +66,7 @@ func (c *client) startClientConnections(ctx context.Context) {
 		// generate a unique id for the connection
 		id := fmt.Sprintf("upstream-%d", i)
 
-		clientConnection := newUpstreamConnection(c.dialer, upstreamConnectionSettings{
+		clientConnection := newUpstreamConnection(c.dialer, c.telemetry, upstreamConnectionSettings{
 			endpoint:  c.upstreamEndpoint,
 			secretKey: c.secretKey,
 		}, id, c.logger)
@@ -75,8 +75,8 @@ func (c *client) startClientConnections(ctx context.Context) {
 		c.upstreamConnections.set(id, clientConnection)
 
 		go func() {
-			c.telemetry.OpampgatewayUpstreamConnections.Add(context.Background(), 1, directionUpstream)
-			defer c.telemetry.OpampgatewayUpstreamConnections.Add(context.Background(), -1, directionUpstream)
+			c.telemetry.OpampgatewayConnections.Add(context.Background(), 1, directionUpstream)
+			defer c.telemetry.OpampgatewayConnections.Add(context.Background(), -1, directionUpstream)
 
 			// cleanup function to remove the connection from the pool and connections map
 			defer func() {

@@ -6,50 +6,58 @@
 
 The following telemetry is emitted by this component.
 
-### otelcol_opampgateway_downstream_connections
+### otelcol_opampgateway.connections
 
-The number of downstream connections.
-
-| Unit | Metric Type | Value Type | Monotonic |
-| ---- | ----------- | ---------- | --------- |
-| {connections} | Sum | Int | false |
-
-### otelcol_opampgateway_downstream_message_size
-
-The total size of the downstream messages.
-
-| Unit | Metric Type | Value Type | Monotonic |
-| ---- | ----------- | ---------- | --------- |
-| B | Sum | Int | false |
-
-### otelcol_opampgateway_downstream_messages
-
-The number of downstream messages.
-
-| Unit | Metric Type | Value Type | Monotonic |
-| ---- | ----------- | ---------- | --------- |
-| {messages} | Sum | Int | false |
-
-### otelcol_opampgateway_upstream_connections
-
-The number of upstream connections.
+The number of connections.
 
 | Unit | Metric Type | Value Type | Monotonic |
 | ---- | ----------- | ---------- | --------- |
 | {connections} | Sum | Int | false |
 
-### otelcol_opampgateway_upstream_message_size
+#### Attributes
+
+| Name | Description | Values |
+| ---- | ----------- | ------ |
+| direction | The direction of the messages, upstream or downstream. | Str: ``upstream``, ``downstream`` |
+
+### otelcol_opampgateway.message.bytes
 
 The total size of the upstream messages.
 
 | Unit | Metric Type | Value Type | Monotonic |
 | ---- | ----------- | ---------- | --------- |
-| B | Sum | Int | false |
+| B | Sum | Int | true |
 
-### otelcol_opampgateway_upstream_messages
+#### Attributes
 
-The number of upstream messages.
+| Name | Description | Values |
+| ---- | ----------- | ------ |
+| direction | The direction of the messages, upstream or downstream. | Str: ``upstream``, ``downstream`` |
+
+### otelcol_opampgateway.messages
+
+The number of messages.
 
 | Unit | Metric Type | Value Type | Monotonic |
 | ---- | ----------- | ---------- | --------- |
-| {messages} | Sum | Int | false |
+| {messages} | Sum | Int | true |
+
+#### Attributes
+
+| Name | Description | Values |
+| ---- | ----------- | ------ |
+| direction | The direction of the messages, upstream or downstream. | Str: ``upstream``, ``downstream`` |
+
+### otelcol_opampgateway.messages.latency
+
+The latency imposed by the gateway forwarding a message.
+
+| Unit | Metric Type | Value Type |
+| ---- | ----------- | ---------- |
+| ms | Histogram | Int |
+
+#### Attributes
+
+| Name | Description | Values |
+| ---- | ----------- | ------ |
+| direction | The direction of the messages, upstream or downstream. | Str: ``upstream``, ``downstream`` |

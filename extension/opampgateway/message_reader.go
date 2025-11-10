@@ -18,7 +18,7 @@ type messageReader struct {
 }
 
 type readerCallbacks struct {
-	OnMessage func(ctx context.Context, messageNumber int, messageType int, messageBytes []byte) error
+	OnMessage func(ctx context.Context, messageType int, message *message) error
 	OnError   func(ctx context.Context, err error)
 }
 
@@ -53,7 +53,8 @@ func (r *messageReader) loop(ctx context.Context, messageNumber int) {
 		}
 
 		// handle the message using the callback
-		if err := r.callbacks.OnMessage(ctx, messageNumber, messageType, messageBytes); err != nil {
+		message := newMessage(messageNumber, messageBytes)
+		if err := r.callbacks.OnMessage(ctx, messageType, message); err != nil {
 			r.callbacks.OnError(ctx, fmt.Errorf("handle message: %w", err))
 			return
 		}

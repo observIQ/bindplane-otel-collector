@@ -231,17 +231,17 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	s.logger.Debug("accepted OpAMP connection", zap.String("remote_addr", conn.RemoteAddr().String()))
 
-	s.telemetry.OpampgatewayDownstreamConnections.Add(context.Background(), 1, directionDownstream)
+	s.telemetry.OpampgatewayConnections.Add(context.Background(), 1, directionDownstream)
 
 	// create the downstream connection
-	c := newDownstreamConnection(conn, upstreamConnection, id, s.logger)
+	c := newDownstreamConnection(conn, s.telemetry, upstreamConnection, id, s.logger)
 	s.addDownstreamConnection(id, c)
 
 	// start the connection in a goroutine to prevent blocking the handler
 	s.connectionsWg.Add(1)
 	go func() {
 		defer s.connectionsWg.Done()
-		defer s.telemetry.OpampgatewayDownstreamConnections.Add(context.Background(), -1, directionDownstream)
+		defer s.telemetry.OpampgatewayConnections.Add(context.Background(), -1, directionDownstream)
 
 		c.start(s.shutdownCtx, s.callbacks)
 	}()
