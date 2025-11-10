@@ -89,12 +89,6 @@ receivers:
   restapi:
     url: "https://api.example.com/data"
     poll_interval: 5m
-
-service:
-  pipelines:
-    logs:
-      receivers: [restapi]
-      exporters: [otlp]
 ```
 
 ### API Key Authentication
@@ -109,12 +103,6 @@ receivers:
       apikey:
         header_name: "X-API-Key"
         value: "your-api-key-here"
-
-service:
-  pipelines:
-    logs:
-      receivers: [restapi]
-      exporters: [otlp]
 ```
 
 ### Bearer Token Authentication
@@ -127,12 +115,6 @@ receivers:
     auth:
       mode: bearer
       bearer_token: "your-bearer-token-here"
-
-service:
-  pipelines:
-    metrics:
-      receivers: [restapi]
-      exporters: [otlp]
 ```
 
 ### Basic Authentication with Pagination
@@ -156,16 +138,6 @@ receivers:
         starting_offset: 0
       total_record_count_field: "total"
     storage: file_storage
-
-service:
-  pipelines:
-    logs:
-      receivers: [restapi]
-      exporters: [otlp]
-
-extensions:
-  file_storage:
-    directory: /var/lib/otelcol/storage
 ```
 
 ### Time-Based Offset with Page/Size Pagination
@@ -192,12 +164,6 @@ receivers:
       param_name: "since"
       offset_timestamp: "2024-01-01T00:00:00Z"
     storage: file_storage
-
-service:
-  pipelines:
-    logs:
-      receivers: [restapi]
-      exporters: [otlp]
 
 extensions:
   file_storage:
