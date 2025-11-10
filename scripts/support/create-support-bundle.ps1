@@ -77,9 +77,9 @@ if ($response -ne "n") {
         Write-Host "PowerShell 6.0.0 or greater is required to collect pprof profiles. Aborting pprof collection."
         exit
     }
-    $pprof_port = Read-Host -Prompt "Enter the pprof port (default 13133): "
+    $pprof_port = Read-Host -Prompt "Enter the pprof port (default 1777): "
     if ([string]::IsNullOrWhiteSpace($pprof_port)) {
-        $pprof_port = 13133
+        $pprof_port = 1777
     }
 
     $profiles = @("profile", "block", "goroutine", "heap", "mutex", "threadcreate", "trace")
