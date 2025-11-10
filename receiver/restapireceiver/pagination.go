@@ -45,10 +45,9 @@ func newPaginationState(cfg *Config) *paginationState {
 	switch cfg.Pagination.Mode {
 	case PaginationModeOffsetLimit:
 		state.currentOffset = cfg.Pagination.OffsetLimit.StartingOffset
-		if cfg.Pagination.OffsetLimit.LimitFieldName != "" {
-			// Use a default limit if not specified
-			state.limit = 10
-		}
+		// Use a default limit - this will be sent as a query parameter
+		// The actual page size may differ based on API response
+		state.limit = 10
 
 	case PaginationModePageSize:
 		if cfg.Pagination.ZeroBasedIndex {
@@ -127,9 +126,12 @@ func parseOffsetLimitResponse(cfg *Config, response any, state *paginationState)
 	}
 
 	// Determine if there are more records
-	// If we have total records, compare current offset + limit to total
+	// If we have total records, compare current offset + actual items returned to total
 	if state.totalRecords > 0 {
-		hasMore := (state.currentOffset + state.limit) < state.totalRecords
+		// Use actual data count if available, otherwise use limit
+		dataCount := getDataCount(response)
+		itemsProcessed := state.currentOffset + dataCount
+		hasMore := itemsProcessed < state.totalRecords
 		return hasMore, nil
 	}
 
