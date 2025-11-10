@@ -13,6 +13,7 @@ func newMessage(number int, data []byte) *message {
 	return &message{
 		data:     data,
 		received: time.Now(),
+		number:   number,
 	}
 }
 

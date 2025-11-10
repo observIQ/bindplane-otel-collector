@@ -83,7 +83,7 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 		"otelcol_opampgateway.messages.latency",
 		metric.WithDescription("The latency imposed by the gateway forwarding a message."),
 		metric.WithUnit("ms"),
-		metric.WithExplicitBucketBoundaries([]float64{0, 5, 8, 21, 40, 61, 100, 250, 500, 750, 1000, 2500, 5000, 7500, 10000, 25000, 50000, 75000, 100000}...),
+		metric.WithExplicitBucketBoundaries([]float64{0, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1000, 2500, 5000, 7500, 10000, 25000, 50000, 75000, 100000}...),
 	)
 	errs = errors.Join(errs, err)
 	return &builder, errs
