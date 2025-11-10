@@ -8,7 +8,17 @@ import (
 	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
+)
+
+var (
+	attrUpstream   = attribute.String("direction", "upstream")
+	attrDownstream = attribute.String("direction", "downstream")
+
+	directionUpstream   = metric.WithAttributeSet(attribute.NewSet(attrUpstream))
+	directionDownstream = metric.WithAttributeSet(attribute.NewSet(attrDownstream))
 )
 
 type OpAMPGateway struct {
@@ -86,8 +96,8 @@ func (o *OpAMPGateway) HandleDownstreamMessage(ctx context.Context, connection *
 	msg := fmt.Sprintf("%s => %s", connection.id, upstreamConnection.id)
 	logUpstreamMessage(o.logger, msg, agentID, messageNumber, len(messageBytes), &message)
 	upstreamConnection.send(messageBytes)
-	o.telemetry.OpampgatewayUpstreamMessages.Add(context.Background(), 1)
-	o.telemetry.OpampgatewayUpstreamMessageSize.Add(context.Background(), int64(len(messageBytes)))
+	o.telemetry.OpampgatewayUpstreamMessages.Add(context.Background(), 1, directionUpstream)
+	o.telemetry.OpampgatewayUpstreamMessageSize.Add(context.Background(), int64(len(messageBytes)), directionUpstream)
 	return nil
 }
 
@@ -107,7 +117,7 @@ func (o *OpAMPGateway) HandleDownstreamClose(ctx context.Context, connection *do
 
 // HandleUpstreamMessage handles message set from the upstream connection to a downstream connection
 func (o *OpAMPGateway) HandleUpstreamMessage(ctx context.Context, connection *upstreamConnection, messageNumber int, messageType int, messageBytes []byte) error {
-	o.logger.Debug("HandleUpstreamMessage", zap.String("upstream_connection_id", connection.id), zap.Int("message_number", messageNumber), zap.Int("message_type", messageType))
+	o.logger.Debug("HandleUpstreamMessage", zap.String("upstream_connection_id", connection.id), zap.Int("message_number", messageNumber), zap.Int("message_type", messageType), zap.String("message_bytes", string(messageBytes)))
 	if messageType != websocket.BinaryMessage {
 		err := fmt.Errorf("unexpected message type: %v, must be binary message", messageType)
 		o.logger.Error("Cannot process a message from WebSocket", zap.Error(err), zap.Int("message_number", messageNumber), zap.Int("message_type", messageType), zap.String("message_bytes", string(messageBytes)))
@@ -121,7 +131,7 @@ func (o *OpAMPGateway) HandleUpstreamMessage(ctx context.Context, connection *up
 
 	agentID, err := parseAgentID(message.GetInstanceUid())
 	if err != nil {
-		return fmt.Errorf("failed to parse agent id: %w", err)
+		return fmt.Errorf("parse agent id: %w, %s", err, message.String())
 	}
 
 	// find the downstream connection from the server
@@ -135,8 +145,8 @@ func (o *OpAMPGateway) HandleUpstreamMessage(ctx context.Context, connection *up
 	msg := fmt.Sprintf("%s <= %s", conn.id, connection.id)
 	logDownstreamMessage(o.logger, msg, agentID, messageNumber, len(messageBytes), &message)
 	conn.send(messageBytes)
-	o.telemetry.OpampgatewayDownstreamMessages.Add(context.Background(), 1)
-	o.telemetry.OpampgatewayDownstreamMessageSize.Add(context.Background(), int64(len(messageBytes)))
+	o.telemetry.OpampgatewayDownstreamMessages.Add(context.Background(), 1, directionDownstream)
+	o.telemetry.OpampgatewayDownstreamMessageSize.Add(context.Background(), int64(len(messageBytes)), directionDownstream)
 	return nil
 }
 

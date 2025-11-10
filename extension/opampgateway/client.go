@@ -75,8 +75,8 @@ func (c *client) startClientConnections(ctx context.Context) {
 		c.upstreamConnections.set(id, clientConnection)
 
 		go func() {
-			c.telemetry.OpampgatewayUpstreamConnections.Add(context.Background(), 1)
-			defer c.telemetry.OpampgatewayUpstreamConnections.Add(context.Background(), -1)
+			c.telemetry.OpampgatewayUpstreamConnections.Add(context.Background(), 1, directionUpstream)
+			defer c.telemetry.OpampgatewayUpstreamConnections.Add(context.Background(), -1, directionUpstream)
 
 			// cleanup function to remove the connection from the pool and connections map
 			defer func() {
