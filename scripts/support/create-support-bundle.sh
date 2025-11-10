@@ -310,8 +310,8 @@ collect_profiles() {
     tar_filename="$1"
     increase_indent
     # POSIX prompt
-    info "For endpoint, please use the format http://localhost:13133 or https://localhost:13133\n"
-    info "where 13133 is the port you configured in your profile extension (13133 is the default)"
+    info "For endpoint, please use the format http://localhost:1777 or https://localhost:1777\n"
+    info "where 1777 is the port you configured in your profile extension (1777 is the default)"
     # shellcheck disable=SC2162
     read -p "Endpoint: " ENDPOINT
     printf "\n"
