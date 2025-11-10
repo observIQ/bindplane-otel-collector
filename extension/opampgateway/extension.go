@@ -66,16 +66,16 @@ func (o *OpAMPGateway) Shutdown(ctx context.Context) error {
 // Downstream callbacks
 
 // HandleDownstreamMessage handles message set from a downstream connection to the server
-func (o *OpAMPGateway) HandleDownstreamMessage(ctx context.Context, connection *downstreamConnection, messageNumber int, messageType int, messageBytes []byte) error {
-	o.logger.Debug("HandleDownstreamMessage", zap.String("downstream_connection_id", connection.id), zap.Int("message_number", messageNumber), zap.Int("message_type", messageType))
+func (o *OpAMPGateway) HandleDownstreamMessage(ctx context.Context, connection *downstreamConnection, messageType int, msg *message) error {
+	o.logger.Debug("HandleDownstreamMessage", zap.String("downstream_connection_id", connection.id), zap.Int("message_number", msg.number), zap.Int("message_type", messageType))
 	if messageType != websocket.BinaryMessage {
 		err := fmt.Errorf("unexpected message type: %v, must be binary message", messageType)
-		o.logger.Error("Cannot process a message from WebSocket", zap.Error(err), zap.Int("message_number", messageNumber), zap.Int("message_type", messageType), zap.String("message_bytes", string(messageBytes)))
+		o.logger.Error("Cannot process a message from WebSocket", zap.Error(err), zap.Int("message_number", msg.number), zap.Int("message_type", messageType), zap.String("message_bytes", string(msg.data)))
 		return err
 	}
 
 	message := protobufs.AgentToServer{}
-	err := decodeWSMessage(messageBytes, &message)
+	err := decodeWSMessage(msg.data, &message)
 	if err != nil {
 		return fmt.Errorf("cannot decode message from WebSocket: %w", err)
 	}
@@ -93,11 +93,11 @@ func (o *OpAMPGateway) HandleDownstreamMessage(ctx context.Context, connection *
 	upstreamConnection := connection.upstreamConnection
 
 	// send the message to the upstream connection
-	msg := fmt.Sprintf("%s => %s", connection.id, upstreamConnection.id)
-	logUpstreamMessage(o.logger, msg, agentID, messageNumber, len(messageBytes), &message)
-	upstreamConnection.send(messageBytes)
-	o.telemetry.OpampgatewayUpstreamMessages.Add(context.Background(), 1, directionUpstream)
-	o.telemetry.OpampgatewayUpstreamMessageSize.Add(context.Background(), int64(len(messageBytes)), directionUpstream)
+	logMsg := fmt.Sprintf("%s => %s", connection.id, upstreamConnection.id)
+	logUpstreamMessage(o.logger, logMsg, agentID, msg.number, len(msg.data), &message)
+	upstreamConnection.send(msg)
+	o.telemetry.OpampgatewayMessages.Add(context.Background(), 1, directionUpstream)
+	o.telemetry.OpampgatewayMessageBytes.Add(context.Background(), int64(len(msg.data)), directionUpstream)
 	return nil
 }
 
@@ -116,22 +116,22 @@ func (o *OpAMPGateway) HandleDownstreamClose(ctx context.Context, connection *do
 // Upstream callbacks
 
 // HandleUpstreamMessage handles message set from the upstream connection to a downstream connection
-func (o *OpAMPGateway) HandleUpstreamMessage(ctx context.Context, connection *upstreamConnection, messageNumber int, messageType int, messageBytes []byte) error {
-	o.logger.Debug("HandleUpstreamMessage", zap.String("upstream_connection_id", connection.id), zap.Int("message_number", messageNumber), zap.Int("message_type", messageType), zap.String("message_bytes", string(messageBytes)))
+func (o *OpAMPGateway) HandleUpstreamMessage(ctx context.Context, connection *upstreamConnection, messageType int, message *message) error {
+	o.logger.Debug("HandleUpstreamMessage", zap.String("upstream_connection_id", connection.id), zap.Int("message_number", message.number), zap.Int("message_type", messageType), zap.String("message_bytes", string(message.data)))
 	if messageType != websocket.BinaryMessage {
 		err := fmt.Errorf("unexpected message type: %v, must be binary message", messageType)
-		o.logger.Error("Cannot process a message from WebSocket", zap.Error(err), zap.Int("message_number", messageNumber), zap.Int("message_type", messageType), zap.String("message_bytes", string(messageBytes)))
+		o.logger.Error("Cannot process a message from WebSocket", zap.Error(err), zap.Int("message_number", message.number), zap.Int("message_type", messageType), zap.String("message_bytes", string(message.data)))
 		return err
 	}
 
-	message := protobufs.ServerToAgent{}
-	if err := decodeWSMessage(messageBytes, &message); err != nil {
+	m := protobufs.ServerToAgent{}
+	if err := decodeWSMessage(message.data, &m); err != nil {
 		return fmt.Errorf("failed to decode ws message: %w", err)
 	}
 
-	agentID, err := parseAgentID(message.GetInstanceUid())
+	agentID, err := parseAgentID(m.GetInstanceUid())
 	if err != nil {
-		return fmt.Errorf("parse agent id: %w, %s", err, message.String())
+		return fmt.Errorf("parse agent id: %w, %s", err, m.String())
 	}
 
 	// find the downstream connection from the server
@@ -143,10 +143,10 @@ func (o *OpAMPGateway) HandleUpstreamMessage(ctx context.Context, connection *up
 
 	// forward the message to the downstream connection
 	msg := fmt.Sprintf("%s <= %s", conn.id, connection.id)
-	logDownstreamMessage(o.logger, msg, agentID, messageNumber, len(messageBytes), &message)
-	conn.send(messageBytes)
-	o.telemetry.OpampgatewayDownstreamMessages.Add(context.Background(), 1, directionDownstream)
-	o.telemetry.OpampgatewayDownstreamMessageSize.Add(context.Background(), int64(len(messageBytes)), directionDownstream)
+	logDownstreamMessage(o.logger, msg, agentID, message.number, len(message.data), &m)
+	conn.send(message)
+	o.telemetry.OpampgatewayMessages.Add(context.Background(), 1, directionDownstream)
+	o.telemetry.OpampgatewayMessageBytes.Add(context.Background(), int64(len(message.data)), directionDownstream)
 	return nil
 }
 

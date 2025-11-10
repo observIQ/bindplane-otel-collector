@@ -19,29 +19,21 @@ func TestSetupTelemetry(t *testing.T) {
 	tb, err := metadata.NewTelemetryBuilder(testTel.NewTelemetrySettings())
 	require.NoError(t, err)
 	defer tb.Shutdown()
-	tb.OpampgatewayDownstreamConnections.Add(context.Background(), 1)
-	tb.OpampgatewayDownstreamMessageSize.Add(context.Background(), 1)
-	tb.OpampgatewayDownstreamMessages.Add(context.Background(), 1)
-	tb.OpampgatewayUpstreamConnections.Add(context.Background(), 1)
-	tb.OpampgatewayUpstreamMessageSize.Add(context.Background(), 1)
-	tb.OpampgatewayUpstreamMessages.Add(context.Background(), 1)
-	AssertEqualOpampgatewayDownstreamConnections(t, testTel,
+	tb.OpampgatewayConnections.Add(context.Background(), 1)
+	tb.OpampgatewayMessageBytes.Add(context.Background(), 1)
+	tb.OpampgatewayMessages.Add(context.Background(), 1)
+	tb.OpampgatewayMessagesLatency.Record(context.Background(), 1)
+	AssertEqualOpampgatewayConnections(t, testTel,
 		[]metricdata.DataPoint[int64]{{Value: 1}},
 		metricdatatest.IgnoreTimestamp())
-	AssertEqualOpampgatewayDownstreamMessageSize(t, testTel,
+	AssertEqualOpampgatewayMessageBytes(t, testTel,
 		[]metricdata.DataPoint[int64]{{Value: 1}},
 		metricdatatest.IgnoreTimestamp())
-	AssertEqualOpampgatewayDownstreamMessages(t, testTel,
+	AssertEqualOpampgatewayMessages(t, testTel,
 		[]metricdata.DataPoint[int64]{{Value: 1}},
 		metricdatatest.IgnoreTimestamp())
-	AssertEqualOpampgatewayUpstreamConnections(t, testTel,
-		[]metricdata.DataPoint[int64]{{Value: 1}},
-		metricdatatest.IgnoreTimestamp())
-	AssertEqualOpampgatewayUpstreamMessageSize(t, testTel,
-		[]metricdata.DataPoint[int64]{{Value: 1}},
-		metricdatatest.IgnoreTimestamp())
-	AssertEqualOpampgatewayUpstreamMessages(t, testTel,
-		[]metricdata.DataPoint[int64]{{Value: 1}},
+	AssertEqualOpampgatewayMessagesLatency(t, testTel,
+		[]metricdata.HistogramDataPoint[int64]{{}}, metricdatatest.IgnoreValue(),
 		metricdatatest.IgnoreTimestamp())
 
 	require.NoError(t, testTel.Shutdown(context.Background()))

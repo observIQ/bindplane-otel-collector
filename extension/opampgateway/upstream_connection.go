@@ -10,6 +10,7 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/gorilla/websocket"
+	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
 	"go.uber.org/zap"
 )
 
@@ -18,13 +19,15 @@ type upstreamConnection struct {
 	settings upstreamConnectionSettings
 	dialer   websocket.Dialer
 
-	writeChan       chan []byte
+	writeChan       chan *message
 	readerErrorChan chan error
 
 	writerDone chan struct{}
 
-	count  atomic.Int32
-	logger *zap.Logger
+	count atomic.Int32
+
+	telemetry *metadata.TelemetryBuilder
+	logger    *zap.Logger
 
 	connected atomic.Bool
 }
@@ -34,13 +37,14 @@ type upstreamConnectionSettings struct {
 	secretKey string
 }
 
-func newUpstreamConnection(dialer websocket.Dialer, settings upstreamConnectionSettings, id string, logger *zap.Logger) *upstreamConnection {
+func newUpstreamConnection(dialer websocket.Dialer, telemetry *metadata.TelemetryBuilder, settings upstreamConnectionSettings, id string, logger *zap.Logger) *upstreamConnection {
 	return &upstreamConnection{
 		dialer:    dialer,
 		settings:  settings,
 		id:        id,
+		telemetry: telemetry,
 		logger:    logger.Named("upstream-connection").With(zap.String("id", id)),
-		writeChan: make(chan []byte),
+		writeChan: make(chan *message),
 
 		// the error channel is buffered to prevent blocking the reader goroutine if it
 		// encounters an error. it will return immediately after reporting the error and the
@@ -102,8 +106,8 @@ func (c *upstreamConnection) start(ctx context.Context, callbacks ConnectionCall
 
 // send will send a message to the connection by putting it on the write channel. the
 // writer goroutine will handle sending the message to the connection.
-func (c *upstreamConnection) send(message []byte) {
-	c.logger.Debug("sending message", zap.String("message", string(message)))
+func (c *upstreamConnection) send(message *message) {
+	c.logger.Debug("sending message", zap.String("message", string(message.data)))
 	c.writeChan <- message
 }
 
@@ -112,8 +116,8 @@ func (c *upstreamConnection) send(message []byte) {
 
 func (c *upstreamConnection) startReader(ctx context.Context, conn *websocket.Conn, callbacks ConnectionCallbacks[*upstreamConnection]) {
 	reader := newMessageReader(conn, c.id, readerCallbacks{
-		OnMessage: func(ctx context.Context, messageNumber int, messageType int, messageBytes []byte) error {
-			return callbacks.OnMessage(ctx, c, messageNumber, messageType, messageBytes)
+		OnMessage: func(ctx context.Context, messageType int, message *message) error {
+			return callbacks.OnMessage(ctx, c, messageType, message)
 		},
 		OnError: func(ctx context.Context, err error) {
 			callbacks.OnError(ctx, c, err)
@@ -135,7 +139,7 @@ func (c *upstreamConnection) startWriter(ctx context.Context, callbacks Connecti
 	// nextMessage is the message that was not written to the connection because the
 	// connection was closed. it will be written to the connection when it is reconnected.
 	// it is used to avoid losing messages when the connection is closed.
-	var nextMessage []byte
+	var nextMessage *message
 
 	for {
 		// ensure connected will do infinite retries until the context is done or an error is
@@ -193,13 +197,13 @@ func (c *upstreamConnection) startWriter(ctx context.Context, callbacks Connecti
 // writerLoop will loop until the context is done or the write channel is closed. it takes
 // the next message to write and returns the next message to write and an error if one
 // occurs.
-func (c *upstreamConnection) writerLoop(ctx context.Context, conn *websocket.Conn, nextMessage []byte) ([]byte, error) {
+func (c *upstreamConnection) writerLoop(ctx context.Context, conn *websocket.Conn, nextMessage *message) (*message, error) {
 	c.setConnected(true)
 	defer c.setConnected(false)
 
 	// attempt to write the next message if one is pending
 	if nextMessage != nil {
-		err := writeWSMessage(conn, nextMessage)
+		err := writeWSMessage(conn, nextMessage.data)
 		if err != nil {
 			return nextMessage, fmt.Errorf("write message: %w", err)
 		}
@@ -225,10 +229,11 @@ func (c *upstreamConnection) writerLoop(ctx context.Context, conn *websocket.Con
 				c.logger.Info("write channel closed")
 				return message, nil
 			}
-			err := writeWSMessage(conn, message)
+			err := writeWSMessage(conn, message.data)
 			if err != nil {
 				return message, fmt.Errorf("write message: %w", err)
 			}
+			c.telemetry.OpampgatewayMessagesLatency.Record(ctx, message.elapsedTime().Milliseconds(), directionUpstream)
 		}
 	}
 }

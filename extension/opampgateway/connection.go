@@ -4,7 +4,7 @@ import "context"
 
 type ConnectionCallbacks[T any] struct {
 	// OnMessage is called when a message is received.
-	OnMessage func(ctx context.Context, connection T, messageNumber int, messageType int, messageBytes []byte) error
+	OnMessage func(ctx context.Context, connection T, messageType int, message *message) error
 
 	// OnError is called when an error occurs. The connection will be closed and the context
 	// will be cancelled after this call.

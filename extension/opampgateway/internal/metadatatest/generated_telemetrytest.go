@@ -21,10 +21,10 @@ func NewSettings(tt *componenttest.Telemetry) extension.Settings {
 	return set
 }
 
-func AssertEqualOpampgatewayDownstreamConnections(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.DataPoint[int64], opts ...metricdatatest.Option) {
+func AssertEqualOpampgatewayConnections(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.DataPoint[int64], opts ...metricdatatest.Option) {
 	want := metricdata.Metrics{
-		Name:        "otelcol_opampgateway_downstream_connections",
-		Description: "The number of downstream connections.",
+		Name:        "otelcol_opampgateway.connections",
+		Description: "The number of connections.",
 		Unit:        "{connections}",
 		Data: metricdata.Sum[int64]{
 			Temporality: metricdata.CumulativeTemporality,
@@ -32,87 +32,54 @@ func AssertEqualOpampgatewayDownstreamConnections(t *testing.T, tt *componenttes
 			DataPoints:  dps,
 		},
 	}
-	got, err := tt.GetMetric("otelcol_opampgateway_downstream_connections")
+	got, err := tt.GetMetric("otelcol_opampgateway.connections")
 	require.NoError(t, err)
 	metricdatatest.AssertEqual(t, want, got, opts...)
 }
 
-func AssertEqualOpampgatewayDownstreamMessageSize(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.DataPoint[int64], opts ...metricdatatest.Option) {
+func AssertEqualOpampgatewayMessageBytes(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.DataPoint[int64], opts ...metricdatatest.Option) {
 	want := metricdata.Metrics{
-		Name:        "otelcol_opampgateway_downstream_message_size",
-		Description: "The total size of the downstream messages.",
-		Unit:        "B",
-		Data: metricdata.Sum[int64]{
-			Temporality: metricdata.CumulativeTemporality,
-			IsMonotonic: false,
-			DataPoints:  dps,
-		},
-	}
-	got, err := tt.GetMetric("otelcol_opampgateway_downstream_message_size")
-	require.NoError(t, err)
-	metricdatatest.AssertEqual(t, want, got, opts...)
-}
-
-func AssertEqualOpampgatewayDownstreamMessages(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.DataPoint[int64], opts ...metricdatatest.Option) {
-	want := metricdata.Metrics{
-		Name:        "otelcol_opampgateway_downstream_messages",
-		Description: "The number of downstream messages.",
-		Unit:        "{messages}",
-		Data: metricdata.Sum[int64]{
-			Temporality: metricdata.CumulativeTemporality,
-			IsMonotonic: false,
-			DataPoints:  dps,
-		},
-	}
-	got, err := tt.GetMetric("otelcol_opampgateway_downstream_messages")
-	require.NoError(t, err)
-	metricdatatest.AssertEqual(t, want, got, opts...)
-}
-
-func AssertEqualOpampgatewayUpstreamConnections(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.DataPoint[int64], opts ...metricdatatest.Option) {
-	want := metricdata.Metrics{
-		Name:        "otelcol_opampgateway_upstream_connections",
-		Description: "The number of upstream connections.",
-		Unit:        "{connections}",
-		Data: metricdata.Sum[int64]{
-			Temporality: metricdata.CumulativeTemporality,
-			IsMonotonic: false,
-			DataPoints:  dps,
-		},
-	}
-	got, err := tt.GetMetric("otelcol_opampgateway_upstream_connections")
-	require.NoError(t, err)
-	metricdatatest.AssertEqual(t, want, got, opts...)
-}
-
-func AssertEqualOpampgatewayUpstreamMessageSize(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.DataPoint[int64], opts ...metricdatatest.Option) {
-	want := metricdata.Metrics{
-		Name:        "otelcol_opampgateway_upstream_message_size",
+		Name:        "otelcol_opampgateway.message.bytes",
 		Description: "The total size of the upstream messages.",
 		Unit:        "B",
 		Data: metricdata.Sum[int64]{
 			Temporality: metricdata.CumulativeTemporality,
-			IsMonotonic: false,
+			IsMonotonic: true,
 			DataPoints:  dps,
 		},
 	}
-	got, err := tt.GetMetric("otelcol_opampgateway_upstream_message_size")
+	got, err := tt.GetMetric("otelcol_opampgateway.message.bytes")
 	require.NoError(t, err)
 	metricdatatest.AssertEqual(t, want, got, opts...)
 }
 
-func AssertEqualOpampgatewayUpstreamMessages(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.DataPoint[int64], opts ...metricdatatest.Option) {
+func AssertEqualOpampgatewayMessages(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.DataPoint[int64], opts ...metricdatatest.Option) {
 	want := metricdata.Metrics{
-		Name:        "otelcol_opampgateway_upstream_messages",
-		Description: "The number of upstream messages.",
+		Name:        "otelcol_opampgateway.messages",
+		Description: "The number of messages.",
 		Unit:        "{messages}",
 		Data: metricdata.Sum[int64]{
 			Temporality: metricdata.CumulativeTemporality,
-			IsMonotonic: false,
+			IsMonotonic: true,
 			DataPoints:  dps,
 		},
 	}
-	got, err := tt.GetMetric("otelcol_opampgateway_upstream_messages")
+	got, err := tt.GetMetric("otelcol_opampgateway.messages")
+	require.NoError(t, err)
+	metricdatatest.AssertEqual(t, want, got, opts...)
+}
+
+func AssertEqualOpampgatewayMessagesLatency(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.HistogramDataPoint[int64], opts ...metricdatatest.Option) {
+	want := metricdata.Metrics{
+		Name:        "otelcol_opampgateway.messages.latency",
+		Description: "The latency imposed by the gateway forwarding a message.",
+		Unit:        "ms",
+		Data: metricdata.Histogram[int64]{
+			Temporality: metricdata.CumulativeTemporality,
+			DataPoints:  dps,
+		},
+	}
+	got, err := tt.GetMetric("otelcol_opampgateway.messages.latency")
 	require.NoError(t, err)
 	metricdatatest.AssertEqual(t, want, got, opts...)
 }
