@@ -15,11 +15,16 @@
 package restapireceiver
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/confmap/confmaptest"
 	"go.opentelemetry.io/collector/confmap/xconfmap"
+
+	"github.com/observiq/bindplane-otel-collector/receiver/restapireceiver/internal/metadata"
 )
 
 func TestConfig_Validate(t *testing.T) {
@@ -29,12 +34,12 @@ func TestConfig_Validate(t *testing.T) {
 		expectedErr string
 	}{
 		{
-			name: "valid config with no auth",
+			name: "valid config with apikey auth",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeNone,
-				},
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(AuthModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "test-key",
 				Pagination: PaginationConfig{
 					Mode: PaginationModeNone,
 				},
@@ -44,10 +49,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "missing URL",
 			config: &Config{
-				URL: "",
-				Auth: AuthConfig{
-					Mode: AuthModeNone,
-				},
+				URL:                  "",
+				AuthMode:             string(AuthModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "test-key",
 				Pagination: PaginationConfig{
 					Mode: PaginationModeNone,
 				},
@@ -57,61 +62,47 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "invalid auth mode",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthMode("invalid"),
-				},
+				URL:      "https://api.example.com/data",
+				AuthMode: string(AuthMode("invalid")),
 				Pagination: PaginationConfig{
 					Mode: PaginationModeNone,
 				},
 			},
-			expectedErr: "invalid auth mode: invalid, must be one of: none, apikey, bearer, basic",
+			expectedErr: "invalid auth mode: invalid, must be one of: apikey, bearer, basic",
 		},
 		{
 			name: "apikey auth missing header name",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeAPIKey,
-					APIKey: APIKeyAuth{
-						HeaderName: "",
-						Value:      "test-key",
-					},
-				},
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(AuthModeAPIKey),
+				AuthAPIKeyHeaderName: "",
+				AuthAPIKeyValue:      "test-key",
 				Pagination: PaginationConfig{
 					Mode: PaginationModeNone,
 				},
 			},
-			expectedErr: "auth.apikey.header_name is required when auth.mode is apikey",
+			expectedErr: "apikey_header_name is required when auth_mode is apikey",
 		},
 		{
 			name: "apikey auth missing value",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeAPIKey,
-					APIKey: APIKeyAuth{
-						HeaderName: "X-API-Key",
-						Value:      "",
-					},
-				},
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(AuthModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "",
 				Pagination: PaginationConfig{
 					Mode: PaginationModeNone,
 				},
 			},
-			expectedErr: "auth.apikey.value is required when auth.mode is apikey",
+			expectedErr: "apikey_value is required when auth_mode is apikey",
 		},
 		{
 			name: "valid apikey auth",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeAPIKey,
-					APIKey: APIKeyAuth{
-						HeaderName: "X-API-Key",
-						Value:      "test-key",
-					},
-				},
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(AuthModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "test-key",
 				Pagination: PaginationConfig{
 					Mode: PaginationModeNone,
 				},
@@ -121,25 +112,21 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "bearer auth missing token",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode:        AuthModeBearer,
-					BearerToken: "",
-				},
+				URL:             "https://api.example.com/data",
+				AuthMode:        string(AuthModeBearer),
+				AuthBearerToken: "",
 				Pagination: PaginationConfig{
 					Mode: PaginationModeNone,
 				},
 			},
-			expectedErr: "auth.bearer_token is required when auth.mode is bearer",
+			expectedErr: "bearer_token is required when auth_mode is bearer",
 		},
 		{
 			name: "valid bearer auth",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode:        AuthModeBearer,
-					BearerToken: "test-token",
-				},
+				URL:             "https://api.example.com/data",
+				AuthMode:        string(AuthModeBearer),
+				AuthBearerToken: "test-token",
 				Pagination: PaginationConfig{
 					Mode: PaginationModeNone,
 				},
@@ -149,48 +136,36 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "basic auth missing username",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeBasic,
-					BasicAuth: BasicAuth{
-						Username: "",
-						Password: "test-password",
-					},
-				},
+				URL:               "https://api.example.com/data",
+				AuthMode:          string(AuthModeBasic),
+				AuthBasicUsername: "",
+				AuthBasicPassword: "test-password",
 				Pagination: PaginationConfig{
 					Mode: PaginationModeNone,
 				},
 			},
-			expectedErr: "auth.basic.username is required when auth.mode is basic",
+			expectedErr: "basic_username is required when auth_mode is basic",
 		},
 		{
 			name: "basic auth missing password",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeBasic,
-					BasicAuth: BasicAuth{
-						Username: "test-user",
-						Password: "",
-					},
-				},
+				URL:               "https://api.example.com/data",
+				AuthMode:          string(AuthModeBasic),
+				AuthBasicUsername: "test-user",
+				AuthBasicPassword: "",
 				Pagination: PaginationConfig{
 					Mode: PaginationModeNone,
 				},
 			},
-			expectedErr: "auth.basic.password is required when auth.mode is basic",
+			expectedErr: "basic_password is required when auth_mode is basic",
 		},
 		{
 			name: "valid basic auth",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeBasic,
-					BasicAuth: BasicAuth{
-						Username: "test-user",
-						Password: "test-password",
-					},
-				},
+				URL:               "https://api.example.com/data",
+				AuthMode:          string(AuthModeBasic),
+				AuthBasicUsername: "test-user",
+				AuthBasicPassword: "test-password",
 				Pagination: PaginationConfig{
 					Mode: PaginationModeNone,
 				},
@@ -200,10 +175,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "invalid pagination mode",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeNone,
-				},
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(AuthModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "test-key",
 				Pagination: PaginationConfig{
 					Mode: PaginationMode("invalid"),
 				},
@@ -213,10 +188,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "offset_limit pagination missing offset field name",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeNone,
-				},
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(AuthModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "test-key",
 				Pagination: PaginationConfig{
 					Mode: PaginationModeOffsetLimit,
 					OffsetLimit: OffsetLimitPagination{
@@ -230,10 +205,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "offset_limit pagination missing limit field name",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeNone,
-				},
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(AuthModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "test-key",
 				Pagination: PaginationConfig{
 					Mode: PaginationModeOffsetLimit,
 					OffsetLimit: OffsetLimitPagination{
@@ -247,10 +222,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "valid offset_limit pagination",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeNone,
-				},
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(AuthModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "test-key",
 				Pagination: PaginationConfig{
 					Mode: PaginationModeOffsetLimit,
 					OffsetLimit: OffsetLimitPagination{
@@ -265,10 +240,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "page_size pagination missing page num field name",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeNone,
-				},
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(AuthModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "test-key",
 				Pagination: PaginationConfig{
 					Mode: PaginationModePageSize,
 					PageSize: PageSizePagination{
@@ -282,10 +257,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "page_size pagination missing page size field name",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeNone,
-				},
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(AuthModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "test-key",
 				Pagination: PaginationConfig{
 					Mode: PaginationModePageSize,
 					PageSize: PageSizePagination{
@@ -299,10 +274,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "valid page_size pagination",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeNone,
-				},
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(AuthModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "test-key",
 				Pagination: PaginationConfig{
 					Mode: PaginationModePageSize,
 					PageSize: PageSizePagination{
@@ -317,10 +292,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "time_based_offset enabled missing param name",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeNone,
-				},
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(AuthModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "test-key",
 				Pagination: PaginationConfig{
 					Mode: PaginationModeNone,
 				},
@@ -335,10 +310,10 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "valid time_based_offset",
 			config: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeNone,
-				},
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(AuthModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "test-key",
 				Pagination: PaginationConfig{
 					Mode: PaginationModeNone,
 				},
@@ -369,10 +344,43 @@ func TestConfig_DefaultValues(t *testing.T) {
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig().(*Config)
 
-	require.Equal(t, AuthModeNone, cfg.Auth.Mode)
+	require.Equal(t, string(AuthModeAPIKey), cfg.AuthMode)
 	require.Equal(t, PaginationModeNone, cfg.Pagination.Mode)
 	require.Equal(t, 5*time.Minute, cfg.PollInterval)
 	require.False(t, cfg.TimeBasedOffset.Enabled)
 	require.Equal(t, 0, cfg.Pagination.PageLimit)
 	require.False(t, cfg.Pagination.ZeroBasedIndex)
+}
+
+func TestLoadConfigFromYAML(t *testing.T) {
+	// Load the YAML config file
+	cm, err := confmaptest.LoadConf(filepath.Join("testdata", "config.yaml"))
+	require.NoError(t, err)
+
+	factory := NewFactory()
+	cfg := factory.CreateDefaultConfig()
+
+	// Get the receivers.restapi section
+	receiversMap, err := cm.Sub("receivers")
+	require.NoError(t, err)
+
+	sub, err := receiversMap.Sub(component.NewID(metadata.Type).String())
+	require.NoError(t, err)
+
+	// Unmarshal the config
+	err = sub.Unmarshal(cfg)
+	require.NoError(t, err)
+
+	// Validate the config
+	restapiCfg := cfg.(*Config)
+	err = xconfmap.Validate(restapiCfg)
+	require.NoError(t, err)
+
+	// Verify the config values were parsed correctly
+	require.Equal(t, "https://api.example.com/data", restapiCfg.URL)
+	require.Equal(t, "data", restapiCfg.ResponseField)
+	require.Equal(t, 5*time.Minute, restapiCfg.PollInterval)
+	require.Equal(t, string(AuthModeAPIKey), restapiCfg.AuthMode)
+	require.Equal(t, "X-API-Key", restapiCfg.AuthAPIKeyHeaderName)
+	require.Equal(t, "test-key", restapiCfg.AuthAPIKeyValue)
 }

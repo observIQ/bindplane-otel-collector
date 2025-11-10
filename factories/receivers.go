@@ -26,6 +26,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/oktareceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/restapireceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/routereceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver"
@@ -171,6 +172,7 @@ var defaultReceivers = []receiver.Factory{
 	pluginreceiver.NewFactory(),
 	podmanreceiver.NewFactory(),
 	postgresqlreceiver.NewFactory(),
+	restapireceiver.NewFactory(),
 	prometheusreceiver.NewFactory(),
 	prometheusremotewritereceiver.NewFactory(),
 	rabbitmqreceiver.NewFactory(),

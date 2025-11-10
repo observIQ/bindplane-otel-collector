@@ -237,36 +237,33 @@ func (c *defaultRESTAPIClient) GetFullResponse(ctx context.Context, requestURL s
 
 // applyAuth applies authentication headers to the request based on the configured auth mode.
 func (c *defaultRESTAPIClient) applyAuth(req *http.Request) error {
-	switch c.cfg.Auth.Mode {
-	case AuthModeNone:
-		// No authentication
-		return nil
+	switch AuthMode(c.cfg.AuthMode) {
 
 	case AuthModeAPIKey:
 		// API key authentication
-		if c.cfg.Auth.APIKey.HeaderName == "" || c.cfg.Auth.APIKey.Value == "" {
+		if c.cfg.AuthAPIKeyHeaderName == "" || c.cfg.AuthAPIKeyValue == "" {
 			return fmt.Errorf("API key header name and value are required")
 		}
-		req.Header.Set(c.cfg.Auth.APIKey.HeaderName, c.cfg.Auth.APIKey.Value)
+		req.Header.Set(c.cfg.AuthAPIKeyHeaderName, c.cfg.AuthAPIKeyValue)
 		return nil
 
 	case AuthModeBearer:
 		// Bearer token authentication
-		if c.cfg.Auth.BearerToken == "" {
+		if c.cfg.AuthBearerToken == "" {
 			return fmt.Errorf("bearer token is required")
 		}
-		req.Header.Set("Authorization", "Bearer "+c.cfg.Auth.BearerToken)
+		req.Header.Set("Authorization", "Bearer "+c.cfg.AuthBearerToken)
 		return nil
 
 	case AuthModeBasic:
 		// Basic authentication
-		if c.cfg.Auth.BasicAuth.Username == "" || c.cfg.Auth.BasicAuth.Password == "" {
+		if c.cfg.AuthBasicUsername == "" || c.cfg.AuthBasicPassword == "" {
 			return fmt.Errorf("basic auth username and password are required")
 		}
-		req.SetBasicAuth(c.cfg.Auth.BasicAuth.Username, c.cfg.Auth.BasicAuth.Password)
+		req.SetBasicAuth(c.cfg.AuthBasicUsername, c.cfg.AuthBasicPassword)
 		return nil
 
 	default:
-		return fmt.Errorf("unsupported auth mode: %s", c.cfg.Auth.Mode)
+		return fmt.Errorf("unsupported auth mode: %s", c.cfg.AuthMode)
 	}
 }

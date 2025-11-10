@@ -26,11 +26,22 @@ import (
 type AuthMode string
 
 const (
-	AuthModeNone   AuthMode = "none"
 	AuthModeAPIKey AuthMode = "apikey"
 	AuthModeBearer AuthMode = "bearer"
 	AuthModeBasic  AuthMode = "basic"
 )
+
+// UnmarshalText implements the encoding.TextUnmarshaler interface
+func (m *AuthMode) UnmarshalText(text []byte) error {
+	mode := AuthMode(text)
+	switch mode {
+	case AuthModeAPIKey, AuthModeBearer, AuthModeBasic:
+		*m = mode
+		return nil
+	default:
+		return fmt.Errorf("invalid auth mode: %s, must be one of: none, apikey, bearer, basic", text)
+	}
+}
 
 // PaginationMode defines the pagination mode for the REST API receiver.
 type PaginationMode string
@@ -40,6 +51,18 @@ const (
 	PaginationModeOffsetLimit PaginationMode = "offset_limit"
 	PaginationModePageSize    PaginationMode = "page_size"
 )
+
+// UnmarshalText implements the encoding.TextUnmarshaler interface
+func (m *PaginationMode) UnmarshalText(text []byte) error {
+	mode := PaginationMode(text)
+	switch mode {
+	case PaginationModeNone, PaginationModeOffsetLimit, PaginationModePageSize:
+		*m = mode
+		return nil
+	default:
+		return fmt.Errorf("invalid pagination mode: %s, must be one of: none, offset_limit, page_size", text)
+	}
+}
 
 // Config defines configuration for the REST API receiver.
 type Config struct {
@@ -51,7 +74,13 @@ type Config struct {
 	ResponseField string `mapstructure:"response_field"`
 
 	// Auth defines authentication configuration.
-	Auth AuthConfig `mapstructure:"auth"`
+	AuthMode string `mapstructure:"auth_mode"`
+
+	AuthAPIKeyHeaderName string `mapstructure:"apikey_header_name"`
+	AuthAPIKeyValue      string `mapstructure:"apikey_value"`
+	AuthBearerToken      string `mapstructure:"bearer_token"`
+	AuthBasicUsername    string `mapstructure:"basic_username"`
+	AuthBasicPassword    string `mapstructure:"basic_password"`
 
 	// Pagination defines pagination configuration.
 	Pagination PaginationConfig `mapstructure:"pagination"`
@@ -67,39 +96,6 @@ type Config struct {
 
 	// StorageID is the optional storage extension ID for checkpointing.
 	StorageID *component.ID `mapstructure:"storage"`
-}
-
-// AuthConfig defines authentication configuration.
-type AuthConfig struct {
-	// Mode is the authentication mode: "none", "apikey", "bearer", or "basic".
-	Mode AuthMode `mapstructure:"mode"`
-
-	// APIKey defines API key authentication.
-	APIKey APIKeyAuth `mapstructure:"apikey"`
-
-	// BearerToken is the bearer token for bearer authentication.
-	BearerToken string `mapstructure:"bearer_token"`
-
-	// BasicAuth defines basic authentication.
-	BasicAuth BasicAuth `mapstructure:"basic"`
-}
-
-// APIKeyAuth defines API key authentication configuration.
-type APIKeyAuth struct {
-	// HeaderName is the name of the header to use for the API key.
-	HeaderName string `mapstructure:"header_name"`
-
-	// Value is the API key value.
-	Value string `mapstructure:"value"`
-}
-
-// BasicAuth defines basic authentication configuration.
-type BasicAuth struct {
-	// Username is the username for basic authentication.
-	Username string `mapstructure:"username"`
-
-	// Password is the password for basic authentication.
-	Password string `mapstructure:"password"`
 }
 
 // PaginationConfig defines pagination configuration.
@@ -168,33 +164,38 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("url is required")
 	}
 
+	// Validate auth
+	if c.AuthMode == "" {
+		return fmt.Errorf("auth is required")
+	}
+
 	// Validate auth mode
-	switch c.Auth.Mode {
-	case AuthModeNone, AuthModeAPIKey, AuthModeBearer, AuthModeBasic:
+	switch c.AuthMode {
+	case string(AuthModeAPIKey), string(AuthModeBearer), string(AuthModeBasic):
 		// Valid modes
 	default:
-		return fmt.Errorf("invalid auth mode: %s, must be one of: none, apikey, bearer, basic", c.Auth.Mode)
+		return fmt.Errorf("invalid auth mode: %s, must be one of: apikey, bearer, basic", c.AuthMode)
 	}
 
 	// Validate auth mode specific requirements
-	switch c.Auth.Mode {
-	case AuthModeAPIKey:
-		if c.Auth.APIKey.HeaderName == "" {
-			return fmt.Errorf("auth.apikey.header_name is required when auth.mode is apikey")
+	switch c.AuthMode {
+	case string(AuthModeAPIKey):
+		if c.AuthAPIKeyHeaderName == "" {
+			return fmt.Errorf("apikey_header_name is required when auth_mode is apikey")
 		}
-		if c.Auth.APIKey.Value == "" {
-			return fmt.Errorf("auth.apikey.value is required when auth.mode is apikey")
+		if c.AuthAPIKeyValue == "" {
+			return fmt.Errorf("apikey_value is required when auth_mode is apikey")
 		}
-	case AuthModeBearer:
-		if c.Auth.BearerToken == "" {
-			return fmt.Errorf("auth.bearer_token is required when auth.mode is bearer")
+	case string(AuthModeBearer):
+		if c.AuthBearerToken == "" {
+			return fmt.Errorf("bearer_token is required when auth_mode is bearer")
 		}
-	case AuthModeBasic:
-		if c.Auth.BasicAuth.Username == "" {
-			return fmt.Errorf("auth.basic.username is required when auth.mode is basic")
+	case string(AuthModeBasic):
+		if c.AuthBasicUsername == "" {
+			return fmt.Errorf("basic_username is required when auth_mode is basic")
 		}
-		if c.Auth.BasicAuth.Password == "" {
-			return fmt.Errorf("auth.basic.password is required when auth.mode is basic")
+		if c.AuthBasicPassword == "" {
+			return fmt.Errorf("basic_password is required when auth_mode is basic")
 		}
 	}
 

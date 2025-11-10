@@ -49,11 +49,11 @@ func TestIntegration_EndToEnd_Logs(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:           server.URL,
-		ResponseField: "logs",
-		Auth: AuthConfig{
-			Mode: AuthModeNone,
-		},
+		URL:                  server.URL,
+		ResponseField:        "logs",
+		AuthMode:             string(AuthModeAPIKey),
+		AuthAPIKeyHeaderName: "X-API-Key",
+		AuthAPIKeyValue:      "test-key",
 		Pagination: PaginationConfig{
 			Mode: PaginationModeNone,
 		},
@@ -101,10 +101,10 @@ func TestIntegration_EndToEnd_Metrics(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL: server.URL,
-		Auth: AuthConfig{
-			Mode: AuthModeNone,
-		},
+		URL:                  server.URL,
+		AuthMode:             string(AuthModeAPIKey),
+		AuthAPIKeyHeaderName: "X-API-Key",
+		AuthAPIKeyValue:      "test-key",
 		Pagination: PaginationConfig{
 			Mode: PaginationModeNone,
 		},
@@ -181,12 +181,10 @@ func TestIntegration_WithPaginationAndAuth(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:           server.URL,
-		ResponseField: "data",
-		Auth: AuthConfig{
-			Mode:        AuthModeBearer,
-			BearerToken: "test-token-123",
-		},
+		URL:             server.URL,
+		ResponseField:   "data",
+		AuthMode:        string(AuthModeBearer),
+		AuthBearerToken: "test-token-123",
 		Pagination: PaginationConfig{
 			Mode: PaginationModeOffsetLimit,
 			OffsetLimit: OffsetLimitPagination{
@@ -248,10 +246,10 @@ func TestIntegration_TimeBasedOffset(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL: server.URL,
-		Auth: AuthConfig{
-			Mode: AuthModeNone,
-		},
+		URL:                  server.URL,
+		AuthMode:             string(AuthModeAPIKey),
+		AuthAPIKeyHeaderName: "X-API-Key",
+		AuthAPIKeyValue:      "test-key",
 		Pagination: PaginationConfig{
 			Mode: PaginationModeNone,
 		},
@@ -307,10 +305,10 @@ func TestIntegration_ErrorRecovery(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL: server.URL,
-		Auth: AuthConfig{
-			Mode: AuthModeNone,
-		},
+		URL:                  server.URL,
+		AuthMode:             string(AuthModeAPIKey),
+		AuthAPIKeyHeaderName: "X-API-Key",
+		AuthAPIKeyValue:      "test-key",
 		Pagination: PaginationConfig{
 			Mode: PaginationModeNone,
 		},
