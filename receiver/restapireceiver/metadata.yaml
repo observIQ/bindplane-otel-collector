@@ -5,3 +5,7 @@ status:
   stability:
     alpha: [logs, metrics]
 
+tests:
+  config:
+    url: "https://api.example.com/data"
+
