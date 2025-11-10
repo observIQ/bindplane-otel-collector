@@ -38,6 +38,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/oktareceiver v1.87.8
 	github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver v1.87.8
 	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.87.8
+	github.com/observiq/bindplane-otel-collector/receiver/restapireceiver v1.87.8
 	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.87.8
 	github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver v1.87.8
 	github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver v1.87.8
@@ -1054,6 +1055,8 @@ replace github.com/observiq/bindplane-otel-collector/receiver/oktareceiver => ./
 replace github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver => ./receiver/pcapreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver => ./receiver/pluginreceiver
+
+replace github.com/observiq/bindplane-otel-collector/receiver/restapireceiver => ./receiver/restapireceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/routereceiver => ./receiver/routereceiver
 
