@@ -6,6 +6,10 @@ status:
     alpha: [metrics]
 
 resource_attributes:
+  sapnetweaver.SID:
+    type: string
+    description: The SAP Netweaver SID.
+    enabled: true
   sapnetweaver.instance:
     type: string
     description: The SAP Netweaver instance.
@@ -14,26 +18,8 @@ resource_attributes:
     type: string
     description: The SAP Netweaver node.
     enabled: true
-  sapnetweaver.SID:
-    type: string
-    description: The SAP Netweaver SID.
-    enabled: true
 
 attributes:
-  process_name:
-    type: string
-    description: The name value from GetProcessList.
-  process_description:
-    type: string
-    description: The description value from GetProcessList.
-  response_type:
-    type: string
-    description: The response type.
-    enum:
-      - transaction
-      - dialog
-      - dialogRFC
-      - http
   control_state:
     type: string
     name_override: "state"
@@ -43,49 +29,116 @@ attributes:
       - green
       - yellow
       - red
-  wp_type:
-    type: string
-    description: The work processor type.
-  wp_status:
-    type: string
-    description: The work processor status.
-  hostname:
-    type: string
-    description: The SAP hostname.
-  instance_number:
-    type: int
-    description: The instance number
   feature:
     type: string
     description: The service availability.
+  hostname:
+    type: string
+    description: The SAP hostname.
   instance:
     type: string
     description: The SAP instance name.
+  instance_number:
+    type: int
+    description: The instance number
+  process_description:
+    type: string
+    description: The description value from GetProcessList.
+  process_name:
+    type: string
+    description: The name value from GetProcessList.
+  response_type:
+    type: string
+    description: The response type.
+    enum:
+      - transaction
+      - dialog
+      - dialogRFC
+      - http
+  wp_status:
+    type: string
+    description: The work processor status.
+  wp_type:
+    type: string
+    description: The work processor type.
 
 metrics:
-  sapnetweaver.system.instance_availability:
-    description: The availability status of each system instance.
-    extended_documentation: "Collected from SAPControl Web Service Interface > GetSystemInstanceList."
+  sapnetweaver.abap.update.status:
+    description: The status of the ABAP update process.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Update > Update > AbapErrorInUpdate.
+    stability:
+      level: alpha
     unit: "1"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
       value_type: int
-    attributes: [hostname, instance_number, feature, control_state]
+    attributes: [control_state]
     enabled: true
-  sapnetweaver.process_availability:
-    description: The processes availability directly started by the sapstartsrv Web service.
-    extended_documentation: "Collected from SAPControl Web Service Interface > GetProcessList."
-    unit: "1"
+  sapnetweaver.cache.evictions:
+    description: The number of evicted entries.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > Server Cache > EvictedEntries.
+    stability:
+      level: alpha
+    unit: "{entries}"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
       value_type: int
-    attributes: [process_name, process_description, control_state]
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.cache.hits:
+    description: The cache hit percentage.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > Server Cache > CacheHits.
+    stability:
+      level: alpha
+    unit: "%"
+    gauge:
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.connection.error.count:
+    description: The amount of connection errors.
+    unit: "{connections}"
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General > StatNoOfConnectErrors.
+    stability:
+      level: alpha
+    sum:
+      monotonic: false
+      aggregation_temporality: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.cpu.system.utilization:
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems> CPU > System Utilization.
+    description: The system CPU utilization percentage.
+    stability:
+      level: alpha
+    unit: "%"
+    gauge:
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.cpu.utilization:
+    description: The CPU utilization percentage.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems> CPU > CPU_Utilization.
+    stability:
+      level: alpha
+    unit: "%"
+    gauge:
+      value_type: int
+      input_type: string
+    attributes: []
     enabled: true
   sapnetweaver.database.dialog.request.time:
     description: The average time for processing logical database requests calls to the SAP database interface.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Dialog > DBRequestTime.
+    stability:
+      level: alpha
     unit: "ms"
     sum:
       monotonic: false
@@ -94,124 +147,67 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  sapnetweaver.cpu.utilization:
-    description: The CPU utilization percentage.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems> CPU > CPU_Utilization.
-    unit: "%"
+  sapnetweaver.host.memory.virtual.overhead:
+    description: Virtualization System Memory Overhead.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems > Memory > Memory Overhead.
+    stability:
+      level: alpha
+    unit: "By"
     gauge:
       value_type: int
-      input_type: string
-    attributes: []
-    enabled: true
-  sapnetweaver.cpu.system.utilization:
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems> CPU > System Utilization.
-    description: The system CPU utilization percentage.
-    unit: "%"
-    gauge:
-      value_type: int
-      input_type: string
-    attributes: []
-    enabled: true
-  sapnetweaver.memory.swap_space.utilization:
-    description: The swap space utilization percentage.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems >  Swap_Space > Percentage_Used.
-    unit: "%"
-    gauge:
-      value_type: int
-      input_type: string
     attributes: []
     enabled: true
   sapnetweaver.host.memory.virtual.swap:
     description: Virtualization System Swap Memory.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > FileSystems > Memory_Virtualization_Virtual_System > Memory Swapped Out.
+    stability:
+      level: alpha
     unit: "By"
     gauge:
       value_type: int
     attributes: []
     enabled: true
-  sapnetweaver.memory.configured:
-    description: The amount of configured memory.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems > Memory > Configured Memory.
-    unit: "By"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
-      value_type: int
-    attributes: []
-    enabled: true
-  sapnetweaver.memory.free:
-    description: The amount of free memory.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems > Memory > Free Memory.
-    unit: "By"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
-      value_type: int
-    attributes: []
-    enabled: true
-  sapnetweaver.host.memory.virtual.overhead:
-    description: Virtualization System Memory Overhead.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems > Memory > Memory Overhead.
-    unit: "By"
+  sapnetweaver.host.spool_list.utilization:
+    description: The host spool list used percentage.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Spool > SpoolService > HostspoolListUsed.
+    stability:
+      level: alpha
+    unit: "%"
     gauge:
       value_type: int
+      input_type: string
     attributes: []
     enabled: true
-  sapnetweaver.work_process.active.count:
-    description: The number of free ABAP work processes in the system.
-    extended_documentation: "Collected from SAPControl Web Service Interface > ABAPGetSystemWPTable."
-    unit: "{work_processes}"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
-      value_type: int
-    attributes: [instance, wp_type, wp_status]
-    enabled: true
-  sapnetweaver.queue.count:
-    description: The queue length.
-    extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
-    unit: "1"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
-      value_type: int
-    attributes: [wp_type]
-    enabled: true
-  sapnetweaver.queue_peak.count:
-    description: The peak queue length.
-    extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
-    unit: "1"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
-      value_type: int
-    attributes: [wp_type]
-    enabled: true
-  sapnetweaver.queue_max.count:
-    description: The max queue length.
-    extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
-    unit: "1"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
-      value_type: int
-    attributes: [wp_type]
-    enabled: true
-  sapnetweaver.spool.request.error.count:
-    description: The number of spool work processes that have encountered errors.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Spool > SpoolService > ErrorsInWpSPO.
+  sapnetweaver.locks.dequeue.errors.count:
+    description: The dequeued locks error count.
+    extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
+    stability:
+      level: alpha
     unit: "{errors}"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
       value_type: int
-      input_type: string
     attributes: []
     enabled: true
   sapnetweaver.locks.enqueue.current.count:
     description: The current number of enqueued locks.
     extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
+    stability:
+      level: alpha
     unit: "{locks}"
+    sum:
+      monotonic: false
+      aggregation_temporality: cumulative
+      value_type: int
+    attributes: []
+    enabled: true
+  sapnetweaver.locks.enqueue.errors.count:
+    description: The enqueued locks error count.
+    extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
+    stability:
+      level: alpha
+    unit: "{errors}"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
@@ -221,16 +217,8 @@ metrics:
   sapnetweaver.locks.enqueue.high.count:
     description: The high number of enqueued locks.
     extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
-    unit: "{locks}"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
-      value_type: int
-    attributes: []
-    enabled: true
-  sapnetweaver.locks.enqueue.max.count:
-    description: The max number of enqueued locks.
-    extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
+    stability:
+      level: alpha
     unit: "{locks}"
     sum:
       monotonic: false
@@ -241,6 +229,8 @@ metrics:
   sapnetweaver.locks.enqueue.lock_time:
     description: The enqueued locks time.
     extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
+    stability:
+      level: alpha
     unit: "ms"
     sum:
       monotonic: false
@@ -251,6 +241,8 @@ metrics:
   sapnetweaver.locks.enqueue.lock_wait_time:
     description: The enqueued locks wait time.
     extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
+    stability:
+      level: alpha
     unit: "ms"
     sum:
       monotonic: false
@@ -258,136 +250,106 @@ metrics:
       value_type: int
     attributes: []
     enabled: true
-  sapnetweaver.locks.enqueue.errors.count:
-    description: The enqueued locks error count.
+  sapnetweaver.locks.enqueue.max.count:
+    description: The max number of enqueued locks.
     extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
-    unit: "{errors}"
+    stability:
+      level: alpha
+    unit: "{locks}"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
       value_type: int
     attributes: []
     enabled: true
-  sapnetweaver.locks.dequeue.errors.count:
-    description: The dequeued locks error count.
-    extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
-    unit: "{errors}"
+  sapnetweaver.memory.configured:
+    description: The amount of configured memory.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems > Memory > Configured Memory.
+    stability:
+      level: alpha
+    unit: "By"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
       value_type: int
     attributes: []
     enabled: true
-  sapnetweaver.short_dumps.rate:
-    description: The rate of Short Dumps.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Abap > Shortdumps Frequency.
-    unit: "{dumps}/min"
+  sapnetweaver.memory.free:
+    description: The amount of free memory.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems > Memory > Free Memory.
+    stability:
+      level: alpha
+    unit: "By"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
       value_type: int
-      input_type: string
     attributes: []
     enabled: true
-  sapnetweaver.sessions.http.count:
-    description: The number of HTTP Sessions.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Web Container > CurrentHttpSessions.
-    unit: "{sessions}"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
-      value_type: int
-      input_type: string
-    attributes: []
-    enabled: true
-  sapnetweaver.sessions.security.count:
-    description: The number of Security Sessions.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Web Container > CurrentSecuritySessions.
-    unit: "{sessions}"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
+  sapnetweaver.memory.swap_space.utilization:
+    description: The swap space utilization percentage.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems >  Swap_Space > Percentage_Used.
+    stability:
+      level: alpha
+    unit: "%"
+    gauge:
       value_type: int
       input_type: string
     attributes: []
     enabled: true
-  sapnetweaver.sessions.browser.count:
-    description: The number of Browser Sessions.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Sessions AS Java > Browser Sessions.
-    unit: "{sessions}"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
-      value_type: int
-      input_type: string
-    attributes: []
-    enabled: true
-  sapnetweaver.sessions.web.count:
-    description: The number of Web Sessions.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Sessions AS Java > Web Sessions.
-    unit: "{sessions}"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
-      value_type: int
-      input_type: string
-    attributes: []
-    enabled: true
-  sapnetweaver.sessions.ejb.count:
-    description: The number of EJB Sessions.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Sessions AS Java > EJB Sessions.
-    unit: "{sessions}"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
-      value_type: int
-      input_type: string
-    attributes: []
-    enabled: true
-  sapnetweaver.session.count:
-    description: The amount of sessions created.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3ServiceS > ITS > Number of Sessions.
-    unit: "{sessions}"
-    sum:
-      monotonic: false
-      aggregation_temporality: cumulative
-      value_type: int
-      input_type: string
-    attributes: []
-    enabled: true
-  sapnetweaver.work_process.job.aborted.status:
-    description: The status of aborted jobs on an application server.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Background > AbortedJobs.
+  sapnetweaver.process_availability:
+    description: The processes availability directly started by the sapstartsrv Web service.
+    extended_documentation: "Collected from SAPControl Web Service Interface > GetProcessList."
+    stability:
+      level: alpha
     unit: "1"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
       value_type: int
-    attributes: [control_state]
+    attributes: [process_name, process_description, control_state]
     enabled: true
-  sapnetweaver.abap.update.status:
-    description: The status of the ABAP update process.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Update > Update > AbapErrorInUpdate.
+  sapnetweaver.queue.count:
+    description: The queue length.
+    extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
+    stability:
+      level: alpha
     unit: "1"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
       value_type: int
-    attributes: [control_state]
+    attributes: [wp_type]
     enabled: true
-  sapnetweaver.response.duration:
-    description: The response time duration.
-    unit: "ms"
+  sapnetweaver.queue_max.count:
+    description: The max queue length.
+    extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
+    stability:
+      level: alpha
+    unit: "1"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
       value_type: int
-      input_type: string
-    attributes: [response_type]
+    attributes: [wp_type]
+    enabled: true
+  sapnetweaver.queue_peak.count:
+    description: The peak queue length.
+    extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
+    stability:
+      level: alpha
+    unit: "1"
+    sum:
+      monotonic: false
+      aggregation_temporality: cumulative
+      value_type: int
+    attributes: [wp_type]
     enabled: true
   sapnetweaver.request.count:
     description: The amount of requests made.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General >  StatNoOfRequests.
+    stability:
+      level: alpha
     unit: "{requests}"
     sum:
       monotonic: false
@@ -399,6 +361,8 @@ metrics:
   sapnetweaver.request.timeout.count:
     description: The amount of timed out requests.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General >  StatNoOfTimeouts.
+    stability:
+      level: alpha
     unit: "{timeouts}"
     sum:
       monotonic: false
@@ -407,10 +371,24 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  sapnetweaver.connection.error.count:
-    description: The amount of connection errors.
-    unit: "{connections}"
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General > StatNoOfConnectErrors.
+  sapnetweaver.response.duration:
+    description: The response time duration.
+    stability:
+      level: alpha
+    unit: "ms"
+    sum:
+      monotonic: false
+      aggregation_temporality: cumulative
+      value_type: int
+      input_type: string
+    attributes: [response_type]
+    enabled: true
+  sapnetweaver.session.count:
+    description: The amount of sessions created.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3ServiceS > ITS > Number of Sessions.
+    stability:
+      level: alpha
+    unit: "{sessions}"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
@@ -418,19 +396,12 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  sapnetweaver.cache.hits:
-    description: The cache hit percentage.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > Server Cache > CacheHits.
-    unit: "%"
-    gauge:
-      value_type: int
-      input_type: string
-    attributes: []
-    enabled: true
-  sapnetweaver.cache.evictions:
-    description: The number of evicted entries.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > Server Cache > EvictedEntries.
-    unit: "{entries}"
+  sapnetweaver.sessions.browser.count:
+    description: The number of Browser Sessions.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Sessions AS Java > Browser Sessions.
+    stability:
+      level: alpha
+    unit: "{sessions}"
     sum:
       monotonic: false
       aggregation_temporality: cumulative
@@ -438,12 +409,117 @@ metrics:
       input_type: string
     attributes: []
     enabled: true
-  sapnetweaver.host.spool_list.utilization:
-    description: The host spool list used percentage.
-    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Spool > SpoolService > HostspoolListUsed.
-    unit: "%"
-    gauge:
+  sapnetweaver.sessions.ejb.count:
+    description: The number of EJB Sessions.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Sessions AS Java > EJB Sessions.
+    stability:
+      level: alpha
+    unit: "{sessions}"
+    sum:
+      monotonic: false
+      aggregation_temporality: cumulative
       value_type: int
       input_type: string
     attributes: []
+    enabled: true
+  sapnetweaver.sessions.http.count:
+    description: The number of HTTP Sessions.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Web Container > CurrentHttpSessions.
+    stability:
+      level: alpha
+    unit: "{sessions}"
+    sum:
+      monotonic: false
+      aggregation_temporality: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.sessions.security.count:
+    description: The number of Security Sessions.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Web Container > CurrentSecuritySessions.
+    stability:
+      level: alpha
+    unit: "{sessions}"
+    sum:
+      monotonic: false
+      aggregation_temporality: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.sessions.web.count:
+    description: The number of Web Sessions.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Sessions AS Java > Web Sessions.
+    stability:
+      level: alpha
+    unit: "{sessions}"
+    sum:
+      monotonic: false
+      aggregation_temporality: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.short_dumps.rate:
+    description: The rate of Short Dumps.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Abap > Shortdumps Frequency.
+    stability:
+      level: alpha
+    unit: "{dumps}/min"
+    sum:
+      monotonic: false
+      aggregation_temporality: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.spool.request.error.count:
+    description: The number of spool work processes that have encountered errors.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Spool > SpoolService > ErrorsInWpSPO.
+    stability:
+      level: alpha
+    unit: "{errors}"
+    sum:
+      monotonic: false
+      aggregation_temporality: cumulative
+      value_type: int
+      input_type: string
+    attributes: []
+    enabled: true
+  sapnetweaver.system.instance_availability:
+    description: The availability status of each system instance.
+    extended_documentation: "Collected from SAPControl Web Service Interface > GetSystemInstanceList."
+    stability:
+      level: alpha
+    unit: "1"
+    sum:
+      monotonic: false
+      aggregation_temporality: cumulative
+      value_type: int
+    attributes: [hostname, instance_number, feature, control_state]
+    enabled: true
+  sapnetweaver.work_process.active.count:
+    description: The number of free ABAP work processes in the system.
+    extended_documentation: "Collected from SAPControl Web Service Interface > ABAPGetSystemWPTable."
+    stability:
+      level: alpha
+    unit: "{work_processes}"
+    sum:
+      monotonic: false
+      aggregation_temporality: cumulative
+      value_type: int
+    attributes: [instance, wp_type, wp_status]
+    enabled: true
+  sapnetweaver.work_process.job.aborted.status:
+    description: The status of aborted jobs on an application server.
+    extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Background > AbortedJobs.
+    stability:
+      level: alpha
+    unit: "1"
+    sum:
+      monotonic: false
+      aggregation_temporality: cumulative
+      value_type: int
+    attributes: [control_state]
     enabled: true
