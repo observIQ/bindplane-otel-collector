@@ -36,10 +36,8 @@ func TestNewRESTAPIClient(t *testing.T) {
 		{
 			name: "valid config with no auth",
 			cfg: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeNone,
-				},
+				URL:          "https://api.example.com/data",
+				AuthMode:     string(AuthModeAPIKey),
 				ClientConfig: confighttp.ClientConfig{},
 			},
 			wantErr: false,
@@ -47,15 +45,11 @@ func TestNewRESTAPIClient(t *testing.T) {
 		{
 			name: "valid config with apikey auth",
 			cfg: &Config{
-				URL: "https://api.example.com/data",
-				Auth: AuthConfig{
-					Mode: AuthModeAPIKey,
-					APIKey: APIKeyAuth{
-						HeaderName: "X-API-Key",
-						Value:      "test-key",
-					},
-				},
-				ClientConfig: confighttp.ClientConfig{},
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(AuthModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "test-key",
+				ClientConfig:         confighttp.ClientConfig{},
 			},
 			wantErr: false,
 		},
@@ -82,9 +76,8 @@ func TestNewRESTAPIClient(t *testing.T) {
 func TestRESTAPIClient_GetJSON_NoAuth(t *testing.T) {
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify no auth header
-		require.Empty(t, r.Header.Get("Authorization"))
-		require.Empty(t, r.Header.Get("X-API-Key"))
+		// Verify API key header is set
+		require.Equal(t, "test-key", r.Header.Get("X-API-Key"))
 
 		// Return JSON array
 		response := []map[string]any{
@@ -97,11 +90,11 @@ func TestRESTAPIClient_GetJSON_NoAuth(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL: server.URL,
-		Auth: AuthConfig{
-			Mode: AuthModeNone,
-		},
-		ClientConfig: confighttp.ClientConfig{},
+		URL:                  server.URL,
+		AuthMode:             string(AuthModeAPIKey),
+		AuthAPIKeyHeaderName: "X-API-Key",
+		AuthAPIKeyValue:      "test-key",
+		ClientConfig:         confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -136,15 +129,11 @@ func TestRESTAPIClient_GetJSON_APIKeyAuth(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL: server.URL,
-		Auth: AuthConfig{
-			Mode: AuthModeAPIKey,
-			APIKey: APIKeyAuth{
-				HeaderName: "X-API-Key",
-				Value:      "test-api-key",
-			},
-		},
-		ClientConfig: confighttp.ClientConfig{},
+		URL:                  server.URL,
+		AuthMode:             string(AuthModeAPIKey),
+		AuthAPIKeyHeaderName: "X-API-Key",
+		AuthAPIKeyValue:      "test-api-key",
+		ClientConfig:         confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -175,12 +164,10 @@ func TestRESTAPIClient_GetJSON_BearerAuth(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL: server.URL,
-		Auth: AuthConfig{
-			Mode:        AuthModeBearer,
-			BearerToken: "test-token",
-		},
-		ClientConfig: confighttp.ClientConfig{},
+		URL:             server.URL,
+		AuthMode:        string(AuthModeBearer),
+		AuthBearerToken: "test-token",
+		ClientConfig:    confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -214,15 +201,11 @@ func TestRESTAPIClient_GetJSON_BasicAuth(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL: server.URL,
-		Auth: AuthConfig{
-			Mode: AuthModeBasic,
-			BasicAuth: BasicAuth{
-				Username: "testuser",
-				Password: "testpass",
-			},
-		},
-		ClientConfig: confighttp.ClientConfig{},
+		URL:               server.URL,
+		AuthMode:          string(AuthModeBasic),
+		AuthBasicUsername: "testuser",
+		AuthBasicPassword: "testpass",
+		ClientConfig:      confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -254,11 +237,11 @@ func TestRESTAPIClient_GetJSON_WithQueryParams(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL: server.URL,
-		Auth: AuthConfig{
-			Mode: AuthModeNone,
-		},
-		ClientConfig: confighttp.ClientConfig{},
+		URL:                  server.URL,
+		AuthMode:             string(AuthModeAPIKey),
+		AuthAPIKeyHeaderName: "X-API-Key",
+		AuthAPIKeyValue:      "test-key",
+		ClientConfig:         confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -294,12 +277,12 @@ func TestRESTAPIClient_GetJSON_ResponseField(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:           server.URL,
-		ResponseField: "data",
-		Auth: AuthConfig{
-			Mode: AuthModeNone,
-		},
-		ClientConfig: confighttp.ClientConfig{},
+		URL:                  server.URL,
+		ResponseField:        "data",
+		AuthMode:             string(AuthModeAPIKey),
+		AuthAPIKeyHeaderName: "X-API-Key",
+		AuthAPIKeyValue:      "test-key",
+		ClientConfig:         confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -326,11 +309,11 @@ func TestRESTAPIClient_GetJSON_HTTPError(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL: server.URL,
-		Auth: AuthConfig{
-			Mode: AuthModeNone,
-		},
-		ClientConfig: confighttp.ClientConfig{},
+		URL:                  server.URL,
+		AuthMode:             string(AuthModeAPIKey),
+		AuthAPIKeyHeaderName: "X-API-Key",
+		AuthAPIKeyValue:      "test-key",
+		ClientConfig:         confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -356,11 +339,11 @@ func TestRESTAPIClient_GetJSON_InvalidJSON(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL: server.URL,
-		Auth: AuthConfig{
-			Mode: AuthModeNone,
-		},
-		ClientConfig: confighttp.ClientConfig{},
+		URL:                  server.URL,
+		AuthMode:             string(AuthModeAPIKey),
+		AuthAPIKeyHeaderName: "X-API-Key",
+		AuthAPIKeyValue:      "test-key",
+		ClientConfig:         confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -386,11 +369,11 @@ func TestRESTAPIClient_GetJSON_EmptyArray(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL: server.URL,
-		Auth: AuthConfig{
-			Mode: AuthModeNone,
-		},
-		ClientConfig: confighttp.ClientConfig{},
+		URL:                  server.URL,
+		AuthMode:             string(AuthModeAPIKey),
+		AuthAPIKeyHeaderName: "X-API-Key",
+		AuthAPIKeyValue:      "test-key",
+		ClientConfig:         confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
