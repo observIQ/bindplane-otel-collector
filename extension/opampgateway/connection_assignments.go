@@ -1,7 +1,6 @@
 package opampgateway
 
 import (
-	"iter"
 	"sync"
 )
 
@@ -51,19 +50,17 @@ func (a *connectionAssignments) assignedUpstreamConnection(downstreamConnectionI
 // removeDownstreamConnectionIDs removes the downstream connection IDs for the given
 // upstream connection ID. it will return a sequence of downstream connection IDs that
 // were removed.
-func (a *connectionAssignments) removeDownstreamConnectionIDs(upstreamConnectionID string) iter.Seq[string] {
+func (a *connectionAssignments) removeDownstreamConnectionIDs(upstreamConnectionID string) []string {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-	return func(yield func(string) bool) {
-		for down, up := range a.downstreamToUpstream {
-			if up == upstreamConnectionID {
-				delete(a.downstreamToUpstream, down)
-				if !yield(down) {
-					return
-				}
-			}
+	ids := []string{}
+	for down, up := range a.downstreamToUpstream {
+		if up == upstreamConnectionID {
+			delete(a.downstreamToUpstream, down)
+			ids = append(ids, down)
 		}
 	}
+	return ids
 }
 
 // unassignDownstreamConnection unassigns the connection for the given downstream

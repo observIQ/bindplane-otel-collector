@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"iter"
 	"net"
 	"net/http"
 	"sync"
@@ -163,8 +162,8 @@ func (s *server) removeDownstreamConnection(conn *downstreamConnection) {
 	s.downstreamConnections.remove(conn.id)
 }
 
-func (s *server) closeDownstreamConnections(downstreamConnectionIDs iter.Seq[string]) {
-	for downstreamConnectionID := range downstreamConnectionIDs {
+func (s *server) closeDownstreamConnections(downstreamConnectionIDs []string) {
+	for _, downstreamConnectionID := range downstreamConnectionIDs {
 		if conn, ok := s.downstreamConnections.get(downstreamConnectionID); ok {
 			s.logger.Info("closing downstream connection", zap.String("downstream_connection_id", downstreamConnectionID))
 			err := conn.close()
@@ -232,7 +231,7 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	s.logger.Debug("accepted OpAMP connection", zap.String("remote_addr", conn.RemoteAddr().String()))
 
-	s.telemetry.OpampgatewayDownstreamConnections.Add(context.Background(), 1)
+	s.telemetry.OpampgatewayDownstreamConnections.Add(context.Background(), 1, directionDownstream)
 
 	// create the downstream connection
 	c := newDownstreamConnection(conn, upstreamConnection, id, s.logger)
@@ -242,7 +241,7 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	s.connectionsWg.Add(1)
 	go func() {
 		defer s.connectionsWg.Done()
-		defer s.telemetry.OpampgatewayDownstreamConnections.Add(context.Background(), -1)
+		defer s.telemetry.OpampgatewayDownstreamConnections.Add(context.Background(), -1, directionDownstream)
 
 		c.start(s.shutdownCtx, s.callbacks)
 	}()
