@@ -32,6 +32,9 @@ type restAPIClient interface {
 	// GetJSON fetches JSON data from the specified URL with the given query parameters.
 	// Returns an array of map[string]any representing the JSON objects.
 	GetJSON(ctx context.Context, requestURL string, params url.Values) ([]map[string]any, error)
+	// GetFullResponse fetches the full JSON response from the specified URL.
+	// Returns the full response as map[string]any for pagination parsing.
+	GetFullResponse(ctx context.Context, requestURL string, params url.Values) (map[string]any, error)
 }
 
 // defaultRESTAPIClient is the default implementation of restAPIClient.
@@ -158,6 +161,78 @@ func (c *defaultRESTAPIClient) GetJSON(ctx context.Context, requestURL string, p
 	}
 
 	return result, nil
+}
+
+// GetFullResponse fetches the full JSON response from the specified URL.
+func (c *defaultRESTAPIClient) GetFullResponse(ctx context.Context, requestURL string, params url.Values) (map[string]any, error) {
+	// Build the request URL with query parameters
+	u, err := url.Parse(requestURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse URL: %w", err)
+	}
+
+	// Add query parameters
+	if len(params) > 0 {
+		existingParams := u.Query()
+		for key, values := range params {
+			for _, value := range values {
+				existingParams.Add(key, value)
+			}
+		}
+		u.RawQuery = existingParams.Encode()
+	}
+
+	// Create the HTTP request
+	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Apply authentication
+	if err := c.applyAuth(req); err != nil {
+		return nil, fmt.Errorf("failed to apply authentication: %w", err)
+	}
+
+	// Set headers
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+
+	// Make the request
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check for HTTP errors
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Read the response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Parse JSON
+	var jsonData any
+	if err := json.Unmarshal(body, &jsonData); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
+	}
+
+	// Return as map
+	responseMap, ok := jsonData.(map[string]any)
+	if !ok {
+		// If response is an array, wrap it in a map
+		if arr, ok := jsonData.([]any); ok {
+			return map[string]any{"data": arr}, nil
+		}
+		return nil, fmt.Errorf("response is not a JSON object or array")
+	}
+
+	return responseMap, nil
 }
 
 // applyAuth applies authentication headers to the request based on the configured auth mode.
