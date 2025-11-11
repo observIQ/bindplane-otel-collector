@@ -43,13 +43,13 @@ func newPaginationState(cfg *Config) *paginationState {
 	}
 
 	switch cfg.Pagination.Mode {
-	case PaginationModeOffsetLimit:
+	case paginationModeOffsetLimit:
 		state.currentOffset = cfg.Pagination.OffsetLimit.StartingOffset
 		// Use a default limit - this will be sent as a query parameter
 		// The actual page size may differ based on API response
 		state.limit = 10
 
-	case PaginationModePageSize:
+	case paginationModePageSize:
 		if cfg.Pagination.ZeroBasedIndex {
 			state.currentPage = cfg.Pagination.PageSize.StartingPage
 		} else {
@@ -69,7 +69,7 @@ func buildPaginationParams(cfg *Config, state *paginationState) url.Values {
 	params := url.Values{}
 
 	switch cfg.Pagination.Mode {
-	case PaginationModeOffsetLimit:
+	case paginationModeOffsetLimit:
 		if cfg.Pagination.OffsetLimit.OffsetFieldName != "" {
 			params.Set(cfg.Pagination.OffsetLimit.OffsetFieldName, fmt.Sprintf("%d", state.currentOffset))
 		}
@@ -77,7 +77,7 @@ func buildPaginationParams(cfg *Config, state *paginationState) url.Values {
 			params.Set(cfg.Pagination.OffsetLimit.LimitFieldName, fmt.Sprintf("%d", state.limit))
 		}
 
-	case PaginationModePageSize:
+	case paginationModePageSize:
 		if cfg.Pagination.PageSize.PageNumFieldName != "" {
 			params.Set(cfg.Pagination.PageSize.PageNumFieldName, fmt.Sprintf("%d", state.currentPage))
 		}
@@ -85,7 +85,7 @@ func buildPaginationParams(cfg *Config, state *paginationState) url.Values {
 			params.Set(cfg.Pagination.PageSize.PageSizeFieldName, fmt.Sprintf("%d", state.pageSize))
 		}
 
-	case PaginationModeNone:
+	case paginationModeNone:
 		// No pagination parameters
 	}
 
@@ -96,13 +96,13 @@ func buildPaginationParams(cfg *Config, state *paginationState) url.Values {
 // It also updates the state with metadata from the response.
 func parsePaginationResponse(cfg *Config, response any, state *paginationState) (bool, error) {
 	switch cfg.Pagination.Mode {
-	case PaginationModeOffsetLimit:
+	case paginationModeOffsetLimit:
 		return parseOffsetLimitResponse(cfg, response, state)
 
-	case PaginationModePageSize:
+	case paginationModePageSize:
 		return parsePageSizeResponse(cfg, response, state)
 
-	case PaginationModeNone:
+	case paginationModeNone:
 		return false, nil
 
 	default:
@@ -211,11 +211,11 @@ func getDataCount(response any) int {
 // updatePaginationState updates the pagination state to the next page/offset.
 func updatePaginationState(cfg *Config, state *paginationState) {
 	switch cfg.Pagination.Mode {
-	case PaginationModeOffsetLimit:
+	case paginationModeOffsetLimit:
 		state.currentOffset += state.limit
 		state.pagesFetched++
 
-	case PaginationModePageSize:
+	case paginationModePageSize:
 		if cfg.Pagination.ZeroBasedIndex {
 			state.currentPage++
 		} else {
