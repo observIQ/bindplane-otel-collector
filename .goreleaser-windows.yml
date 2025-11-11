@@ -12,10 +12,11 @@ builds:
     binary: observiq-otel-collector
     main: ./cmd/collector
     env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
     mod_timestamp: "{{ .CommitTimestamp }}"
     tags:
       - bindplane
+      - netgo
     goos:
       - windows
     goarch:
@@ -31,8 +32,10 @@ builds:
     dir: ./updater/
     main: ./cmd/updater
     env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
     mod_timestamp: "{{ .CommitTimestamp }}"
+    tags:
+      - netgo
     goos:
       - windows
     goarch:
