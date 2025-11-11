@@ -354,7 +354,7 @@ func TestConfig_DefaultValues(t *testing.T) {
 
 func TestLoadConfigFromYAML(t *testing.T) {
 	// Load the YAML config file
-	cm, err := confmaptest.LoadConf(filepath.Join("testdata", "config.yaml"))
+	cm, err := confmaptest.LoadConf(filepath.Join("testdata", "test-config.yaml"))
 	require.NoError(t, err)
 
 	factory := NewFactory()
