@@ -239,7 +239,7 @@ func (c *defaultRESTAPIClient) GetFullResponse(ctx context.Context, requestURL s
 func (c *defaultRESTAPIClient) applyAuth(req *http.Request) error {
 	switch AuthMode(c.cfg.AuthMode) {
 
-	case AuthModeAPIKey:
+	case authModeAPIKey:
 		// API key authentication
 		if c.cfg.AuthAPIKeyHeaderName == "" || c.cfg.AuthAPIKeyValue == "" {
 			return fmt.Errorf("API key header name and value are required")
@@ -247,7 +247,7 @@ func (c *defaultRESTAPIClient) applyAuth(req *http.Request) error {
 		req.Header.Set(c.cfg.AuthAPIKeyHeaderName, c.cfg.AuthAPIKeyValue)
 		return nil
 
-	case AuthModeBearer:
+	case authModeBearer:
 		// Bearer token authentication
 		if c.cfg.AuthBearerToken == "" {
 			return fmt.Errorf("bearer token is required")
@@ -255,7 +255,7 @@ func (c *defaultRESTAPIClient) applyAuth(req *http.Request) error {
 		req.Header.Set("Authorization", "Bearer "+c.cfg.AuthBearerToken)
 		return nil
 
-	case AuthModeBasic:
+	case authModeBasic:
 		// Basic authentication
 		if c.cfg.AuthBasicUsername == "" || c.cfg.AuthBasicPassword == "" {
 			return fmt.Errorf("basic auth username and password are required")

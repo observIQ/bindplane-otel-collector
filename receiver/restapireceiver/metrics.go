@@ -52,7 +52,7 @@ func convertJSONToMetrics(data []map[string]any, logger *zap.Logger) pmetric.Met
 		dataPoint.SetDoubleValue(*value)
 
 		// Set timestamp
-		timestamp := extractTimestamp(item, logger)
+		timestamp := extractTimestamp(item)
 		if timestamp > 0 {
 			dataPoint.SetTimestamp(timestamp)
 		} else {
@@ -71,7 +71,7 @@ func convertJSONToMetrics(data []map[string]any, logger *zap.Logger) pmetric.Met
 				continue
 			}
 			// Add as attribute
-			setAttribute(attrs, key, val, logger)
+			setAttribute(attrs, key, val)
 		}
 	}
 
@@ -135,7 +135,7 @@ func toFloat64(val any) *float64 {
 }
 
 // setAttribute sets an attribute value, handling various types.
-func setAttribute(attrs pcommon.Map, key string, val any, logger *zap.Logger) {
+func setAttribute(attrs pcommon.Map, key string, val any) {
 	switch v := val.(type) {
 	case string:
 		attrs.PutStr(key, v)

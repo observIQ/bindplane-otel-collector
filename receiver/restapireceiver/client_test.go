@@ -37,7 +37,7 @@ func TestNewRESTAPIClient(t *testing.T) {
 			name: "valid config with no auth",
 			cfg: &Config{
 				URL:          "https://api.example.com/data",
-				AuthMode:     string(AuthModeAPIKey),
+				AuthMode:     string(authModeAPIKey),
 				ClientConfig: confighttp.ClientConfig{},
 			},
 			wantErr: false,
@@ -46,7 +46,7 @@ func TestNewRESTAPIClient(t *testing.T) {
 			name: "valid config with apikey auth",
 			cfg: &Config{
 				URL:                  "https://api.example.com/data",
-				AuthMode:             string(AuthModeAPIKey),
+				AuthMode:             string(authModeAPIKey),
 				AuthAPIKeyHeaderName: "X-API-Key",
 				AuthAPIKeyValue:      "test-key",
 				ClientConfig:         confighttp.ClientConfig{},
@@ -91,7 +91,7 @@ func TestRESTAPIClient_GetJSON_NoAuth(t *testing.T) {
 
 	cfg := &Config{
 		URL:                  server.URL,
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		ClientConfig:         confighttp.ClientConfig{},
@@ -130,7 +130,7 @@ func TestRESTAPIClient_GetJSON_APIKeyAuth(t *testing.T) {
 
 	cfg := &Config{
 		URL:                  server.URL,
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-api-key",
 		ClientConfig:         confighttp.ClientConfig{},
@@ -165,7 +165,7 @@ func TestRESTAPIClient_GetJSON_BearerAuth(t *testing.T) {
 
 	cfg := &Config{
 		URL:             server.URL,
-		AuthMode:        string(AuthModeBearer),
+		AuthMode:        string(authModeBearer),
 		AuthBearerToken: "test-token",
 		ClientConfig:    confighttp.ClientConfig{},
 	}
@@ -202,7 +202,7 @@ func TestRESTAPIClient_GetJSON_BasicAuth(t *testing.T) {
 
 	cfg := &Config{
 		URL:               server.URL,
-		AuthMode:          string(AuthModeBasic),
+		AuthMode:          string(authModeBasic),
 		AuthBasicUsername: "testuser",
 		AuthBasicPassword: "testpass",
 		ClientConfig:      confighttp.ClientConfig{},
@@ -238,7 +238,7 @@ func TestRESTAPIClient_GetJSON_WithQueryParams(t *testing.T) {
 
 	cfg := &Config{
 		URL:                  server.URL,
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		ClientConfig:         confighttp.ClientConfig{},
@@ -261,7 +261,7 @@ func TestRESTAPIClient_GetJSON_WithQueryParams(t *testing.T) {
 
 func TestRESTAPIClient_GetJSON_ResponseField(t *testing.T) {
 	// Create a test server that returns nested JSON
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		response := map[string]any{
 			"data": []map[string]any{
 				{"id": "1", "name": "test1"},
@@ -279,7 +279,7 @@ func TestRESTAPIClient_GetJSON_ResponseField(t *testing.T) {
 	cfg := &Config{
 		URL:                  server.URL,
 		ResponseField:        "data",
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		ClientConfig:         confighttp.ClientConfig{},
@@ -302,7 +302,7 @@ func TestRESTAPIClient_GetJSON_ResponseField(t *testing.T) {
 
 func TestRESTAPIClient_GetJSON_HTTPError(t *testing.T) {
 	// Create a test server that returns error
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal Server Error"))
 	}))
@@ -310,7 +310,7 @@ func TestRESTAPIClient_GetJSON_HTTPError(t *testing.T) {
 
 	cfg := &Config{
 		URL:                  server.URL,
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		ClientConfig:         confighttp.ClientConfig{},
@@ -332,7 +332,7 @@ func TestRESTAPIClient_GetJSON_HTTPError(t *testing.T) {
 
 func TestRESTAPIClient_GetJSON_InvalidJSON(t *testing.T) {
 	// Create a test server that returns invalid JSON
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte("invalid json"))
 	}))
@@ -340,7 +340,7 @@ func TestRESTAPIClient_GetJSON_InvalidJSON(t *testing.T) {
 
 	cfg := &Config{
 		URL:                  server.URL,
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		ClientConfig:         confighttp.ClientConfig{},
@@ -361,7 +361,7 @@ func TestRESTAPIClient_GetJSON_InvalidJSON(t *testing.T) {
 
 func TestRESTAPIClient_GetJSON_EmptyArray(t *testing.T) {
 	// Create a test server that returns empty array
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		response := []map[string]any{}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
@@ -370,7 +370,7 @@ func TestRESTAPIClient_GetJSON_EmptyArray(t *testing.T) {
 
 	cfg := &Config{
 		URL:                  server.URL,
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		ClientConfig:         confighttp.ClientConfig{},

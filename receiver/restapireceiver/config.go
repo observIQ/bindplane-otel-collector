@@ -26,16 +26,16 @@ import (
 type AuthMode string
 
 const (
-	AuthModeAPIKey AuthMode = "apikey"
-	AuthModeBearer AuthMode = "bearer"
-	AuthModeBasic  AuthMode = "basic"
+	authModeAPIKey AuthMode = "apikey"
+	authModeBearer AuthMode = "bearer"
+	authModeBasic  AuthMode = "basic"
 )
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface
 func (m *AuthMode) UnmarshalText(text []byte) error {
 	mode := AuthMode(text)
 	switch mode {
-	case AuthModeAPIKey, AuthModeBearer, AuthModeBasic:
+	case authModeAPIKey, authModeBearer, authModeBasic:
 		*m = mode
 		return nil
 	default:
@@ -47,16 +47,16 @@ func (m *AuthMode) UnmarshalText(text []byte) error {
 type PaginationMode string
 
 const (
-	PaginationModeNone        PaginationMode = "none"
-	PaginationModeOffsetLimit PaginationMode = "offset_limit"
-	PaginationModePageSize    PaginationMode = "page_size"
+	paginationModeNone        PaginationMode = "none"
+	paginationModeOffsetLimit PaginationMode = "offset_limit"
+	paginationModePageSize    PaginationMode = "page_size"
 )
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface
 func (m *PaginationMode) UnmarshalText(text []byte) error {
 	mode := PaginationMode(text)
 	switch mode {
-	case PaginationModeNone, PaginationModeOffsetLimit, PaginationModePageSize:
+	case paginationModeNone, paginationModeOffsetLimit, paginationModePageSize:
 		*m = mode
 		return nil
 	default:
@@ -171,7 +171,7 @@ func (c *Config) Validate() error {
 
 	// Validate auth mode
 	switch c.AuthMode {
-	case string(AuthModeAPIKey), string(AuthModeBearer), string(AuthModeBasic):
+	case string(authModeAPIKey), string(authModeBearer), string(authModeBasic):
 		// Valid modes
 	default:
 		return fmt.Errorf("invalid auth mode: %s, must be one of: apikey, bearer, basic", c.AuthMode)
@@ -179,18 +179,18 @@ func (c *Config) Validate() error {
 
 	// Validate auth mode specific requirements
 	switch c.AuthMode {
-	case string(AuthModeAPIKey):
+	case string(authModeAPIKey):
 		if c.AuthAPIKeyHeaderName == "" {
 			return fmt.Errorf("apikey_header_name is required when auth_mode is apikey")
 		}
 		if c.AuthAPIKeyValue == "" {
 			return fmt.Errorf("apikey_value is required when auth_mode is apikey")
 		}
-	case string(AuthModeBearer):
+	case string(authModeBearer):
 		if c.AuthBearerToken == "" {
 			return fmt.Errorf("bearer_token is required when auth_mode is bearer")
 		}
-	case string(AuthModeBasic):
+	case string(authModeBasic):
 		if c.AuthBasicUsername == "" {
 			return fmt.Errorf("basic_username is required when auth_mode is basic")
 		}
@@ -201,7 +201,7 @@ func (c *Config) Validate() error {
 
 	// Validate pagination mode
 	switch c.Pagination.Mode {
-	case PaginationModeNone, PaginationModeOffsetLimit, PaginationModePageSize:
+	case paginationModeNone, paginationModeOffsetLimit, paginationModePageSize:
 		// Valid modes
 	default:
 		return fmt.Errorf("invalid pagination mode: %s, must be one of: none, offset_limit, page_size", c.Pagination.Mode)
@@ -209,14 +209,14 @@ func (c *Config) Validate() error {
 
 	// Validate pagination mode specific requirements
 	switch c.Pagination.Mode {
-	case PaginationModeOffsetLimit:
+	case paginationModeOffsetLimit:
 		if c.Pagination.OffsetLimit.OffsetFieldName == "" {
 			return fmt.Errorf("pagination.offset_limit.offset_field_name is required when pagination.mode is offset_limit")
 		}
 		if c.Pagination.OffsetLimit.LimitFieldName == "" {
 			return fmt.Errorf("pagination.offset_limit.limit_field_name is required when pagination.mode is offset_limit")
 		}
-	case PaginationModePageSize:
+	case paginationModePageSize:
 		if c.Pagination.PageSize.PageNumFieldName == "" {
 			return fmt.Errorf("pagination.page_size.page_num_field_name is required when pagination.mode is page_size")
 		}

@@ -24,7 +24,7 @@ import (
 func TestBuildPaginationParams_OffsetLimit(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode: PaginationModeOffsetLimit,
+			Mode: paginationModeOffsetLimit,
 			OffsetLimit: OffsetLimitPagination{
 				OffsetFieldName: "offset",
 				LimitFieldName:  "limit",
@@ -46,7 +46,7 @@ func TestBuildPaginationParams_OffsetLimit(t *testing.T) {
 func TestBuildPaginationParams_OffsetLimit_NonZero(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode: PaginationModeOffsetLimit,
+			Mode: paginationModeOffsetLimit,
 			OffsetLimit: OffsetLimitPagination{
 				OffsetFieldName: "skip",
 				LimitFieldName:  "take",
@@ -68,7 +68,7 @@ func TestBuildPaginationParams_OffsetLimit_NonZero(t *testing.T) {
 func TestBuildPaginationParams_PageSize_OneBased(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode:           PaginationModePageSize,
+			Mode:           paginationModePageSize,
 			ZeroBasedIndex: false,
 			PageSize: PageSizePagination{
 				PageNumFieldName:  "page",
@@ -91,7 +91,7 @@ func TestBuildPaginationParams_PageSize_OneBased(t *testing.T) {
 func TestBuildPaginationParams_PageSize_ZeroBased(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode:           PaginationModePageSize,
+			Mode:           paginationModePageSize,
 			ZeroBasedIndex: true,
 			PageSize: PageSizePagination{
 				PageNumFieldName:  "page",
@@ -114,7 +114,7 @@ func TestBuildPaginationParams_PageSize_ZeroBased(t *testing.T) {
 func TestBuildPaginationParams_None(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode: PaginationModeNone,
+			Mode: paginationModeNone,
 		},
 	}
 
@@ -126,7 +126,7 @@ func TestBuildPaginationParams_None(t *testing.T) {
 func TestParsePaginationResponse_OffsetLimit_HasMore(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode: PaginationModeOffsetLimit,
+			Mode: paginationModeOffsetLimit,
 			OffsetLimit: OffsetLimitPagination{
 				OffsetFieldName: "offset",
 				LimitFieldName:  "limit",
@@ -158,7 +158,7 @@ func TestParsePaginationResponse_OffsetLimit_HasMore(t *testing.T) {
 func TestParsePaginationResponse_OffsetLimit_NoMore(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode: PaginationModeOffsetLimit,
+			Mode: paginationModeOffsetLimit,
 			OffsetLimit: OffsetLimitPagination{
 				OffsetFieldName: "offset",
 				LimitFieldName:  "limit",
@@ -189,7 +189,7 @@ func TestParsePaginationResponse_OffsetLimit_NoMore(t *testing.T) {
 func TestParsePaginationResponse_OffsetLimit_NoTotalField(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode: PaginationModeOffsetLimit,
+			Mode: paginationModeOffsetLimit,
 			OffsetLimit: OffsetLimitPagination{
 				OffsetFieldName: "offset",
 				LimitFieldName:  "limit",
@@ -218,7 +218,7 @@ func TestParsePaginationResponse_OffsetLimit_NoTotalField(t *testing.T) {
 func TestParsePaginationResponse_OffsetLimit_PartialPage(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode: PaginationModeOffsetLimit,
+			Mode: paginationModeOffsetLimit,
 			OffsetLimit: OffsetLimitPagination{
 				OffsetFieldName: "offset",
 				LimitFieldName:  "limit",
@@ -246,7 +246,7 @@ func TestParsePaginationResponse_OffsetLimit_PartialPage(t *testing.T) {
 func TestParsePaginationResponse_PageSize_HasMore(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode: PaginationModePageSize,
+			Mode: paginationModePageSize,
 			PageSize: PageSizePagination{
 				PageNumFieldName:    "page",
 				PageSizeFieldName:   "size",
@@ -277,7 +277,7 @@ func TestParsePaginationResponse_PageSize_HasMore(t *testing.T) {
 func TestParsePaginationResponse_PageSize_NoMore(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode: PaginationModePageSize,
+			Mode: paginationModePageSize,
 			PageSize: PageSizePagination{
 				PageNumFieldName:    "page",
 				PageSizeFieldName:   "size",
@@ -308,7 +308,7 @@ func TestParsePaginationResponse_PageSize_NoMore(t *testing.T) {
 func TestParsePaginationResponse_PageSize_NoTotalPagesField(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode: PaginationModePageSize,
+			Mode: paginationModePageSize,
 			PageSize: PageSizePagination{
 				PageNumFieldName:  "page",
 				PageSizeFieldName: "size",
@@ -336,7 +336,7 @@ func TestParsePaginationResponse_PageSize_NoTotalPagesField(t *testing.T) {
 func TestParsePaginationResponse_PageSize_PartialPage(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode: PaginationModePageSize,
+			Mode: paginationModePageSize,
 			PageSize: PageSizePagination{
 				PageNumFieldName:  "page",
 				PageSizeFieldName: "size",
@@ -364,7 +364,7 @@ func TestParsePaginationResponse_PageSize_PartialPage(t *testing.T) {
 func TestUpdatePaginationState_OffsetLimit(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode: PaginationModeOffsetLimit,
+			Mode: paginationModeOffsetLimit,
 			OffsetLimit: OffsetLimitPagination{
 				StartingOffset: 0,
 			},
@@ -387,7 +387,7 @@ func TestUpdatePaginationState_OffsetLimit(t *testing.T) {
 func TestUpdatePaginationState_PageSize_OneBased(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode:           PaginationModePageSize,
+			Mode:           paginationModePageSize,
 			ZeroBasedIndex: false,
 			PageSize: PageSizePagination{
 				StartingPage: 1,
@@ -409,7 +409,7 @@ func TestUpdatePaginationState_PageSize_OneBased(t *testing.T) {
 func TestUpdatePaginationState_PageSize_ZeroBased(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode:           PaginationModePageSize,
+			Mode:           paginationModePageSize,
 			ZeroBasedIndex: true,
 			PageSize: PageSizePagination{
 				StartingPage: 0,
@@ -431,7 +431,7 @@ func TestUpdatePaginationState_PageSize_ZeroBased(t *testing.T) {
 func TestCheckPageLimit_WithinLimit(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode:      PaginationModePageSize,
+			Mode:      paginationModePageSize,
 			PageLimit: 10,
 		},
 	}
@@ -448,7 +448,7 @@ func TestCheckPageLimit_WithinLimit(t *testing.T) {
 func TestCheckPageLimit_ExceedsLimit(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode:      PaginationModePageSize,
+			Mode:      paginationModePageSize,
 			PageLimit: 10,
 		},
 	}
@@ -465,7 +465,7 @@ func TestCheckPageLimit_ExceedsLimit(t *testing.T) {
 func TestCheckPageLimit_NoLimit(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode:      PaginationModePageSize,
+			Mode:      paginationModePageSize,
 			PageLimit: 0, // 0 means no limit
 		},
 	}
@@ -482,7 +482,7 @@ func TestCheckPageLimit_NoLimit(t *testing.T) {
 func TestNewPaginationState_OffsetLimit(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode: PaginationModeOffsetLimit,
+			Mode: paginationModeOffsetLimit,
 			OffsetLimit: OffsetLimitPagination{
 				StartingOffset: 5,
 			},
@@ -498,7 +498,7 @@ func TestNewPaginationState_OffsetLimit(t *testing.T) {
 func TestNewPaginationState_PageSize_OneBased(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode:           PaginationModePageSize,
+			Mode:           paginationModePageSize,
 			ZeroBasedIndex: false,
 			PageSize: PageSizePagination{
 				StartingPage: 1,
@@ -515,7 +515,7 @@ func TestNewPaginationState_PageSize_OneBased(t *testing.T) {
 func TestNewPaginationState_PageSize_ZeroBased(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode:           PaginationModePageSize,
+			Mode:           paginationModePageSize,
 			ZeroBasedIndex: true,
 			PageSize: PageSizePagination{
 				StartingPage: 0,
@@ -532,7 +532,7 @@ func TestNewPaginationState_PageSize_ZeroBased(t *testing.T) {
 func TestParsePaginationResponse_WithDataArray(t *testing.T) {
 	cfg := &Config{
 		Pagination: PaginationConfig{
-			Mode: PaginationModeOffsetLimit,
+			Mode: paginationModeOffsetLimit,
 		},
 	}
 

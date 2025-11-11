@@ -35,7 +35,7 @@ func TestCreateLogsReceiver(t *testing.T) {
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig().(*Config)
 	cfg.URL = "https://api.example.com/data"
-	cfg.AuthMode = string(AuthModeAPIKey)
+	cfg.AuthMode = string(authModeAPIKey)
 	cfg.AuthAPIKeyHeaderName = "X-API-Key"
 	cfg.AuthAPIKeyValue = "test-key"
 
@@ -53,7 +53,7 @@ func TestCreateMetricsReceiver(t *testing.T) {
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig().(*Config)
 	cfg.URL = "https://api.example.com/data"
-	cfg.AuthMode = string(AuthModeAPIKey)
+	cfg.AuthMode = string(authModeAPIKey)
 	cfg.AuthAPIKeyHeaderName = "X-API-Key"
 	cfg.AuthAPIKeyValue = "test-key"
 

@@ -31,7 +31,7 @@ import (
 )
 
 func TestRESTAPILogsReceiver_StartShutdown(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		response := []map[string]any{
 			{"id": "1", "message": "test"},
 		}
@@ -42,11 +42,11 @@ func TestRESTAPILogsReceiver_StartShutdown(t *testing.T) {
 
 	cfg := &Config{
 		URL:                  server.URL,
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		Pagination: PaginationConfig{
-			Mode: PaginationModeNone,
+			Mode: paginationModeNone,
 		},
 		PollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
@@ -75,7 +75,7 @@ func TestRESTAPILogsReceiver_StartShutdown(t *testing.T) {
 }
 
 func TestRESTAPIMetricsReceiver_StartShutdown(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		response := []map[string]any{
 			{"value": 42.0, "name": "test"},
 		}
@@ -86,11 +86,11 @@ func TestRESTAPIMetricsReceiver_StartShutdown(t *testing.T) {
 
 	cfg := &Config{
 		URL:                  server.URL,
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		Pagination: PaginationConfig{
-			Mode: PaginationModeNone,
+			Mode: paginationModeNone,
 		},
 		PollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
@@ -157,11 +157,11 @@ func TestRESTAPILogsReceiver_WithPagination(t *testing.T) {
 	cfg := &Config{
 		URL:                  server.URL,
 		ResponseField:        "data",
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		Pagination: PaginationConfig{
-			Mode: PaginationModeOffsetLimit,
+			Mode: paginationModeOffsetLimit,
 			OffsetLimit: OffsetLimitPagination{
 				OffsetFieldName: "offset",
 				LimitFieldName:  "limit",
@@ -220,11 +220,11 @@ func TestRESTAPILogsReceiver_WithTimeBasedOffset(t *testing.T) {
 	initialTime := time.Now().Add(-1 * time.Hour)
 	cfg := &Config{
 		URL:                  server.URL,
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		Pagination: PaginationConfig{
-			Mode: PaginationModeNone,
+			Mode: paginationModeNone,
 		},
 		TimeBasedOffset: TimeBasedOffsetConfig{
 			Enabled:         true,
@@ -257,7 +257,7 @@ func TestRESTAPILogsReceiver_WithTimeBasedOffset(t *testing.T) {
 }
 
 func TestRESTAPILogsReceiver_ErrorHandling(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal Server Error"))
 	}))
@@ -265,11 +265,11 @@ func TestRESTAPILogsReceiver_ErrorHandling(t *testing.T) {
 
 	cfg := &Config{
 		URL:                  server.URL,
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		Pagination: PaginationConfig{
-			Mode: PaginationModeNone,
+			Mode: paginationModeNone,
 		},
 		PollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
@@ -296,7 +296,7 @@ func TestRESTAPILogsReceiver_ErrorHandling(t *testing.T) {
 }
 
 func TestRESTAPILogsReceiver_EmptyResponse(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		response := []map[string]any{}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
@@ -305,11 +305,11 @@ func TestRESTAPILogsReceiver_EmptyResponse(t *testing.T) {
 
 	cfg := &Config{
 		URL:                  server.URL,
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		Pagination: PaginationConfig{
-			Mode: PaginationModeNone,
+			Mode: paginationModeNone,
 		},
 		PollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},

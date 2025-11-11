@@ -99,7 +99,7 @@ func (r *restAPILogsReceiver) Start(ctx context.Context, host component.Host) er
 	// Initialize pagination state
 	r.paginationState = newPaginationState(r.cfg)
 	// Set limit if configured
-	if r.cfg.Pagination.Mode == PaginationModeOffsetLimit && r.cfg.Pagination.OffsetLimit.LimitFieldName != "" {
+	if r.cfg.Pagination.Mode == paginationModeOffsetLimit && r.cfg.Pagination.OffsetLimit.LimitFieldName != "" {
 		// Use a reasonable default limit (can be overridden by API)
 		r.paginationState.limit = 10
 	}
@@ -209,7 +209,7 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) error {
 		}
 
 		// Check pagination
-		if r.cfg.Pagination.Mode == PaginationModeNone {
+		if r.cfg.Pagination.Mode == paginationModeNone {
 			// No pagination, we're done
 			break
 		}
@@ -234,7 +234,7 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) error {
 
 		// Update pagination state for next page
 		// For offset/limit, use actual data count instead of limit
-		if r.cfg.Pagination.Mode == PaginationModeOffsetLimit {
+		if r.cfg.Pagination.Mode == paginationModeOffsetLimit {
 			dataCount := getDataCount(fullResponse)
 			if dataCount > 0 {
 				r.paginationState.currentOffset += dataCount
@@ -423,7 +423,7 @@ func (r *restAPIMetricsReceiver) Start(ctx context.Context, host component.Host)
 	// Initialize pagination state
 	r.paginationState = newPaginationState(r.cfg)
 	// Set limit if configured
-	if r.cfg.Pagination.Mode == PaginationModeOffsetLimit && r.cfg.Pagination.OffsetLimit.LimitFieldName != "" {
+	if r.cfg.Pagination.Mode == paginationModeOffsetLimit && r.cfg.Pagination.OffsetLimit.LimitFieldName != "" {
 		// Use a reasonable default limit (can be overridden by API)
 		r.paginationState.limit = 10
 	}
@@ -533,7 +533,7 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) error {
 		}
 
 		// Check pagination
-		if r.cfg.Pagination.Mode == PaginationModeNone {
+		if r.cfg.Pagination.Mode == paginationModeNone {
 			// No pagination, we're done
 			break
 		}
@@ -558,7 +558,7 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) error {
 
 		// Update pagination state for next page
 		// For offset/limit, use actual data count instead of limit
-		if r.cfg.Pagination.Mode == PaginationModeOffsetLimit {
+		if r.cfg.Pagination.Mode == paginationModeOffsetLimit {
 			dataCount := getDataCount(fullResponse)
 			if dataCount > 0 {
 				r.paginationState.currentOffset += dataCount
