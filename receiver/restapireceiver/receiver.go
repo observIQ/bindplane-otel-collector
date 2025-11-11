@@ -16,12 +16,12 @@ package restapireceiver
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"sync"
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/adapter"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -283,7 +283,7 @@ func (r *restAPILogsReceiver) loadCheckpoint(ctx context.Context) {
 	}
 
 	var checkpoint checkpointData
-	if err := json.Unmarshal(bytes, &checkpoint); err != nil {
+	if err := jsoniter.Unmarshal(bytes, &checkpoint); err != nil {
 		r.logger.Warn("unable to decode checkpoint, starting fresh", zap.Error(err))
 		return
 	}
@@ -311,7 +311,7 @@ func (r *restAPILogsReceiver) saveCheckpoint(ctx context.Context) error {
 		checkpoint.TimeOffset = &r.timeOffset
 	}
 
-	bytes, err := json.Marshal(checkpoint)
+	bytes, err := jsoniter.Marshal(checkpoint)
 	if err != nil {
 		return fmt.Errorf("failed to marshal checkpoint: %w", err)
 	}
@@ -607,7 +607,7 @@ func (r *restAPIMetricsReceiver) loadCheckpoint(ctx context.Context) {
 	}
 
 	var checkpoint checkpointData
-	if err := json.Unmarshal(bytes, &checkpoint); err != nil {
+	if err := jsoniter.Unmarshal(bytes, &checkpoint); err != nil {
 		r.logger.Warn("unable to decode checkpoint, starting fresh", zap.Error(err))
 		return
 	}
@@ -635,7 +635,7 @@ func (r *restAPIMetricsReceiver) saveCheckpoint(ctx context.Context) error {
 		checkpoint.TimeOffset = &r.timeOffset
 	}
 
-	bytes, err := json.Marshal(checkpoint)
+	bytes, err := jsoniter.Marshal(checkpoint)
 	if err != nil {
 		return fmt.Errorf("failed to marshal checkpoint: %w", err)
 	}

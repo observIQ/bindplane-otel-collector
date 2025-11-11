@@ -16,12 +16,12 @@ package restapireceiver
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 
+	jsoniter "github.com/json-iterator/go"
 	"go.opentelemetry.io/collector/component"
 	"go.uber.org/zap"
 )
@@ -120,7 +120,7 @@ func (c *defaultRESTAPIClient) GetJSON(ctx context.Context, requestURL string, p
 
 	// Parse JSON
 	var jsonData any
-	if err := json.Unmarshal(body, &jsonData); err != nil {
+	if err := jsoniter.Unmarshal(body, &jsonData); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
 	}
 
@@ -218,7 +218,7 @@ func (c *defaultRESTAPIClient) GetFullResponse(ctx context.Context, requestURL s
 
 	// Parse JSON
 	var jsonData any
-	if err := json.Unmarshal(body, &jsonData); err != nil {
+	if err := jsoniter.Unmarshal(body, &jsonData); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
 	}
 
