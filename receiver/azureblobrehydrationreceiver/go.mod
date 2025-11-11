@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydratio
 go 1.24.4
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.1
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.20.0
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.3
 	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.87.8
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.87.8
