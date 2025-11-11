@@ -34,7 +34,7 @@ import (
 // TestIntegration_EndToEnd_Logs tests a complete end-to-end scenario for logs collection.
 func TestIntegration_EndToEnd_Logs(t *testing.T) {
 	requestCount := 0
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		requestCount++
 		response := map[string]any{
 			"logs": []map[string]any{
@@ -51,11 +51,11 @@ func TestIntegration_EndToEnd_Logs(t *testing.T) {
 	cfg := &Config{
 		URL:                  server.URL,
 		ResponseField:        "logs",
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		Pagination: PaginationConfig{
-			Mode: PaginationModeNone,
+			Mode: paginationModeNone,
 		},
 		PollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
@@ -89,7 +89,7 @@ func TestIntegration_EndToEnd_Logs(t *testing.T) {
 // TestIntegration_EndToEnd_Metrics tests a complete end-to-end scenario for metrics collection.
 func TestIntegration_EndToEnd_Metrics(t *testing.T) {
 	requestCount := 0
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		requestCount++
 		response := []map[string]any{
 			{"metric": "cpu_usage", "value": 75.5, "timestamp": time.Now().Format(time.RFC3339)},
@@ -102,11 +102,11 @@ func TestIntegration_EndToEnd_Metrics(t *testing.T) {
 
 	cfg := &Config{
 		URL:                  server.URL,
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		Pagination: PaginationConfig{
-			Mode: PaginationModeNone,
+			Mode: paginationModeNone,
 		},
 		PollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
@@ -183,10 +183,10 @@ func TestIntegration_WithPaginationAndAuth(t *testing.T) {
 	cfg := &Config{
 		URL:             server.URL,
 		ResponseField:   "data",
-		AuthMode:        string(AuthModeBearer),
+		AuthMode:        string(authModeBearer),
 		AuthBearerToken: "test-token-123",
 		Pagination: PaginationConfig{
-			Mode: PaginationModeOffsetLimit,
+			Mode: paginationModeOffsetLimit,
 			OffsetLimit: OffsetLimitPagination{
 				OffsetFieldName: "offset",
 				LimitFieldName:  "limit",
@@ -247,11 +247,11 @@ func TestIntegration_TimeBasedOffset(t *testing.T) {
 
 	cfg := &Config{
 		URL:                  server.URL,
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		Pagination: PaginationConfig{
-			Mode: PaginationModeNone,
+			Mode: paginationModeNone,
 		},
 		TimeBasedOffset: TimeBasedOffsetConfig{
 			Enabled:         true,
@@ -287,7 +287,7 @@ func TestIntegration_TimeBasedOffset(t *testing.T) {
 // TestIntegration_ErrorRecovery tests that the receiver continues polling after errors.
 func TestIntegration_ErrorRecovery(t *testing.T) {
 	requestCount := 0
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		requestCount++
 		if requestCount == 1 {
 			// First request returns error
@@ -306,11 +306,11 @@ func TestIntegration_ErrorRecovery(t *testing.T) {
 
 	cfg := &Config{
 		URL:                  server.URL,
-		AuthMode:             string(AuthModeAPIKey),
+		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		Pagination: PaginationConfig{
-			Mode: PaginationModeNone,
+			Mode: paginationModeNone,
 		},
 		PollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
