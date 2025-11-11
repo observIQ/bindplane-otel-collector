@@ -139,6 +139,13 @@ func (r *restAPILogsReceiver) Shutdown(ctx context.Context) error {
 
 // startPolling starts the polling goroutine.
 func (r *restAPILogsReceiver) startPolling(ctx context.Context) error {
+	// Run immediately on startup
+	if err := r.poll(ctx); err != nil {
+		r.logger.Error("error on initial poll", zap.Error(err))
+		// Continue with periodic polling even if initial poll fails
+	}
+
+	// Start periodic polling
 	ticker := time.NewTicker(r.pollInterval)
 	r.wg.Add(1)
 	go func() {
@@ -456,6 +463,13 @@ func (r *restAPIMetricsReceiver) Shutdown(ctx context.Context) error {
 
 // startPolling starts the polling goroutine.
 func (r *restAPIMetricsReceiver) startPolling(ctx context.Context) error {
+	// Run immediately on startup
+	if err := r.poll(ctx); err != nil {
+		r.logger.Error("error on initial poll", zap.Error(err))
+		// Continue with periodic polling even if initial poll fails
+	}
+
+	// Start periodic polling
 	ticker := time.NewTicker(r.pollInterval)
 	r.wg.Add(1)
 	go func() {
