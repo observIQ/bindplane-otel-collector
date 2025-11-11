@@ -7,27 +7,36 @@ on:
         required: true
         default: "v0.0.1"
 
+# Concurrency group ensures only one test release runs at a time
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-64bit-msi:
-    runs-on: windows-2022
+    runs-on: namespace-profile-bindplane-default-windows-2022-32x64
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Run GoReleaser
+          cache-dependency-path: "**/go.sum"
+
+      - name: Run GoReleaser (split)
         uses: goreleaser/goreleaser-action@v6
         with:
-          # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser-pro
           version: "v2.12.5"
-          args: release --single-target --skip=validate,publish --clean --config=.goreleaser-windows.yml
+          args: release --skip=publish --skip=validate --skip=sign --clean --split --config=.goreleaser-windows.yml
         env:
           GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          GGOOS: windows
+          GGOARCH: amd64
       - name: Copy Windows Collector Binary
         run: cp dist/windows_amd64/collector_windows_amd64_v1/observiq-otel-collector.exe windows/observiq-otel-collector.exe
       - name: Copy Windows Updater Binary
@@ -80,25 +89,107 @@ jobs:
           smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/observiq-otel-collector.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
         shell: cmd
       - name: "Upload MSI"
-        uses: actions/upload-artifact@v4
+        uses: namespace-actions/upload-artifact@v1
         with:
           name: observiq-otel-collector.msi
           path: C:/build/observiq-otel-collector.msi
           # Short lived because this is meant as an action for developers
           retention-days: 1
-      - name: "DEBUG: List dist/"
-        run: tree /F dist/
+      - name: "Upload Windows dist artifacts"
+        uses: namespace-actions/upload-artifact@v1
+        with:
+          name: dist-windows-amd64
+          path: dist/
+          retention-days: 1
+
       - name: "Upload Windows ZIP Archive"
-        uses: actions/upload-artifact@v4
+        uses: namespace-actions/upload-artifact@v1
         with:
           name: windows-archive
           path: dist/**/*.zip
           # Short lived because this is meant as an action for developers
           retention-days: 1
 
-  release-test:
+  # Split release-test job: builds binaries and packages in parallel for each OS/arch combination
+  # This significantly reduces build time by parallelizing work across multiple runners
+  release-test-split:
+    name: Release Test Split - ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x64
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: linux
+            goarch: arm
+          - goos: linux
+            goarch: ppc64
+          - goos: linux
+            goarch: ppc64le
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          # Note: windows/amd64 build happens in build-64bit-msi job due to MSI packaging requirements
+    steps:
+      - name: Checkout Repo
+        uses: namespacelabs/nscloud-checkout-action@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false # Use Namespace caching instead
+
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set VERSION
+        run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+
+      - name: Cache Goreleaser Build
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: ~/.cache/goreleaser
+
+      - name: Run GoReleaser (split)
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser-pro
+          version: "v2.12.5"
+          args: release --skip=publish --skip=validate --skip=sign --clean --split
+        env:
+          GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
+          GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          GGOOS: ${{ matrix.goos }}
+          GGOARCH: ${{ matrix.goarch }}
+
+      - name: Upload dist artifacts
+        uses: namespace-actions/upload-artifact@v1
+        with:
+          name: dist-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/
+          retention-days: 1
+
+  # Merge release-test job: combines all split artifacts and performs package uploads
+  merge-release-test:
+    needs: [build-64bit-msi, release-test-split]
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
-    needs: [build-64bit-msi]
     steps:
       - name: Checkout Repo
         uses: namespacelabs/nscloud-checkout-action@v7
@@ -123,13 +214,13 @@ jobs:
         uses: docker/setup-qemu-action@v2
         
       - name: Retrieve Windows 64-bit MSI Installer
-        uses: actions/download-artifact@v4
+        uses: namespace-actions/download-artifact@v1
         with:
           name: observiq-otel-collector.msi
           path: observiq-otel-collector.msi
 
       - name: Retrieve Windows 64-bit ZIP Archive
-        uses: actions/download-artifact@v4
+        uses: namespace-actions/download-artifact@v1
         with:
           name: windows-archive
           path: windows-archive
@@ -152,12 +243,20 @@ jobs:
         with:
           path: ~/.cache/goreleaser
 
-      - name: Run GoReleaser
+      # Download all artifacts from the parallel split builds
+      - name: Download dist artifacts
+        uses: namespace-actions/download-artifact@v1
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Run GoReleaser (merge)
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
           version: "v2.12.5"
-          args: release --skip=publish --skip=validate --skip=sign --clean
+          args: continue --merge
         env:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
