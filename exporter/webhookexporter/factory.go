@@ -58,8 +58,11 @@ func createDefaultConfig(collectorVersion string) func() component.Config {
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: "https://localhost",
 					Timeout:  30 * time.Second,
-					Headers: map[string]configopaque.String{
-						"User-Agent": configopaque.String(userAgent),
+					Headers: configopaque.MapList{
+						{
+							Name:  "User-Agent",
+							Value: configopaque.String(userAgent),
+						},
 					},
 				},
 				Verb:             POST,
