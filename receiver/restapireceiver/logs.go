@@ -46,7 +46,7 @@ func convertJSONToLogs(data []map[string]any, logger *zap.Logger) plog.Logs {
 		}
 
 		// Try to extract timestamp from common field names
-		timestamp := extractTimestamp(item, logger)
+		timestamp := extractTimestamp(item)
 		if timestamp > 0 {
 			logRecord.SetTimestamp(timestamp)
 		} else {
@@ -60,7 +60,7 @@ func convertJSONToLogs(data []map[string]any, logger *zap.Logger) plog.Logs {
 
 // extractTimestamp attempts to extract a timestamp from the JSON object.
 // It checks common field names like "timestamp", "time", "created_at", etc.
-func extractTimestamp(item map[string]any, logger *zap.Logger) pcommon.Timestamp {
+func extractTimestamp(item map[string]any) pcommon.Timestamp {
 	// Common timestamp field names
 	timestampFields := []string{"timestamp", "time", "created_at", "createdAt", "date", "datetime", "@timestamp"}
 
