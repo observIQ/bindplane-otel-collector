@@ -28,6 +28,7 @@ import (
 	"go.opentelemetry.io/collector/otelcol"
 	"go.opentelemetry.io/collector/processor"
 	"go.opentelemetry.io/collector/receiver"
+	"go.opentelemetry.io/collector/service/telemetry/otelconftelemetry"
 	"gopkg.in/yaml.v2"
 )
 
@@ -148,6 +149,7 @@ func (r *RenderedConfig) GetRequiredFactories(h component.Host, emitterFactory e
 		Processors: processorFactories,
 		Exporters:  exporterFactories,
 		Extensions: extensionFactories,
+		Telemetry:  otelconftelemetry.NewFactory(),
 	}, nil
 }
 

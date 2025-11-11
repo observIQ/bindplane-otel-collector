@@ -33,6 +33,7 @@ require (
 	go.opentelemetry.io/collector/processor v1.45.0
 	go.opentelemetry.io/collector/receiver v1.45.0
 	go.opentelemetry.io/collector/receiver/receivertest v0.139.0
+	go.opentelemetry.io/collector/service v0.139.0
 	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -202,7 +203,6 @@ require (
 	go.opentelemetry.io/collector/receiver/xreceiver v0.139.0 // indirect
 	go.opentelemetry.io/collector/scraper v0.139.0 // indirect
 	go.opentelemetry.io/collector/scraper/scraperhelper v0.139.0 // indirect
-	go.opentelemetry.io/collector/service v0.139.0 // indirect
 	go.opentelemetry.io/collector/service/hostcapabilities v0.139.0 // indirect
 	go.opentelemetry.io/contrib/bridges/otelzap v0.13.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.63.0 // indirect

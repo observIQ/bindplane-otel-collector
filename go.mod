@@ -69,7 +69,6 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter v0.139.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/loadbalancingexporter v0.139.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/logzioexporter v0.139.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/lokiexporter v0.139.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.139.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusremotewriteexporter v0.139.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/sapmexporter v0.139.0
@@ -234,6 +233,7 @@ require (
 	go.opentelemetry.io/collector/extension/extensiontest v0.139.0
 	go.opentelemetry.io/collector/processor/processorhelper v0.139.0
 	go.opentelemetry.io/collector/processor/processortest v0.139.0
+	go.opentelemetry.io/collector/service v0.139.0
 )
 
 require (
@@ -437,7 +437,6 @@ require (
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/gophercloud/gophercloud/v2 v2.8.0 // indirect
 	github.com/grafana/clusterurl v0.2.1 // indirect
-	github.com/grafana/loki/pkg/push v0.0.0-20240514112848-a1b1eeb09583 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hectane/go-acl v0.0.0-20230122075934-ca0b05cb1adb // indirect
 	github.com/hetznercloud/hcloud-go/v2 v2.28.0 // indirect
@@ -605,7 +604,6 @@ require (
 	go.opentelemetry.io/collector/receiver/xreceiver v0.139.0 // indirect
 	go.opentelemetry.io/collector/scraper v0.139.0 // indirect
 	go.opentelemetry.io/collector/scraper/scraperhelper v0.139.0 // indirect
-	go.opentelemetry.io/collector/service v0.139.0 // indirect
 	go.opentelemetry.io/collector/service/hostcapabilities v0.139.0 // indirect
 	go.opentelemetry.io/contrib/bridges/otelzap v0.13.0 // indirect
 	go.opentelemetry.io/contrib/detectors/gcp v1.36.0 // indirect
@@ -865,7 +863,6 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/resourcetotelemetry v0.139.0 // indirect; indi72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.139.0 // indirect; indi72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/jaeger v0.139.0 // indirect; indi72.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/loki v0.130.0 // indirect; indi72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/prometheus v0.139.0 // indirect; indi72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/prometheusremotewrite v0.139.0 // indirect; indi72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/signalfx v0.139.0 // indirect; indi72.0
@@ -1073,10 +1070,6 @@ replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
 
 // github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension.test is forcing this dep to be updated, but it isn't compatible with the linux build process, so replacing to last stable version
 replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
-
-// Keep at v0.130.0 since the Loki exporter was removed in v0.131.0
-// Linear ticket tracking deprecation: https://linear.app/bindplane/issue/BPOP-486/deprecation-loki-exporter-deprecated-v01310
-replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/lokiexporter => github.com/open-telemetry/opentelemetry-collector-contrib/exporter/lokiexporter v0.130.0
 
 // Keep at v0.132.0 since the Routing processor was removed in v0.133.0
 // Linear ticket tracking deprecation: https://linear.app/bindplane/issue/BPOP-3999/deprecation-routing-processor-v01330
