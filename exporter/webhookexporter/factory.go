@@ -29,6 +29,7 @@ import (
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
+	"go.opentelemetry.io/collector/exporter/exporterhelper/xexporterhelper"
 )
 
 const (
@@ -101,12 +102,12 @@ func createLogsExporter(ctx context.Context, params exporter.Settings, config co
 // logsEncoding implements QueueBatchEncoding for logs
 type logsEncoding struct{}
 
-func (e *logsEncoding) Marshal(req exporterhelper.Request) ([]byte, error) {
+func (e *logsEncoding) Marshal(req xexporterhelper.Request) ([]byte, error) {
 	return json.Marshal(req)
 }
 
-func (e *logsEncoding) Unmarshal(data []byte) (exporterhelper.Request, error) {
-	var req exporterhelper.Request
+func (e *logsEncoding) Unmarshal(data []byte) (xexporterhelper.Request, error) {
+	var req xexporterhelper.Request
 	err := json.Unmarshal(data, &req)
 	return req, err
 }

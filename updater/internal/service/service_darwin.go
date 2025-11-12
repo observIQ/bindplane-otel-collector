@@ -109,7 +109,7 @@ func (d darwinService) install() error {
 	// Ensure the parent directory exists, but only for standard LaunchAgents path
 	parentDir := filepath.Dir(d.installedServiceFilePath)
 	if filepath.Base(parentDir) == "LaunchAgents" {
-		if err := os.MkdirAll(parentDir, 0755); err != nil {
+		if err := os.MkdirAll(parentDir, 0750); err != nil {
 			return fmt.Errorf("failed to create service directory: %w", err)
 		}
 	}

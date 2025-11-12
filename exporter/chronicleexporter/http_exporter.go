@@ -28,6 +28,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
+	ios "github.com/observiq/bindplane-otel-collector/internal/os"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
@@ -60,6 +61,8 @@ func newHTTPExporter(cfg *Config, params exporter.Settings, telemetry *metadata.
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}
+	macAddress := ios.MACAddress()
+	params.Logger.Debug("Creating HTTP exporter", zap.String("exporter_id", params.ID.String()), zap.String("mac_address", macAddress))
 	return &httpExporter{
 		cfg:       cfg,
 		set:       params.TelemetrySettings,
@@ -73,6 +76,10 @@ func newHTTPExporter(cfg *Config, params exporter.Settings, telemetry *metadata.
 			attribute.KeyValue{
 				Key:   "exporter_type",
 				Value: attribute.StringValue(params.ID.Type().String()),
+			},
+			attribute.KeyValue{
+				Key:   "host.mac_address",
+				Value: attribute.StringValue(macAddress),
 			},
 		),
 	}, nil
@@ -194,6 +201,17 @@ func (exp *httpExporter) Shutdown(context.Context) error {
 	return nil
 }
 
+// ConsumeLogs sends logs to Chronicle via HTTP.
+//
+// Retry behavior: When this function returns an error, the OTel collector's
+// exporterhelper will retry the entire batch (ld plog.Logs) from the beginning.
+// This means all payloads will be retried, including any that succeeded before
+// the error occurred. Chronicle is expected to handle duplicate requests
+// idempotently to prevent duplicate log entries.
+//
+// Metrics: When retry is enabled, raw bytes are only counted on success to prevent
+// double-counting across retry attempts. When retry is disabled, bytes are counted
+// regardless of success/failure since this is the only attempt to send the data.
 func (exp *httpExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 	payloads, totalBytes, err := exp.marshaler.MarshalRawLogsForHTTP(ctx, ld)
 	if err != nil {
@@ -203,15 +221,19 @@ func (exp *httpExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
 	for logType, logTypePayloads := range payloads {
 		for _, payload := range logTypePayloads {
 			if err := exp.uploadToChronicleHTTP(ctx, payload, logType); err != nil {
-				// If there is an error only report
-				// the bytes successfully sent
-				exp.countAndReportBatchBytes(ctx, successfulPayloads)
+				// Track the failure for observability
+				exp.telemetry.ExporterLogsSendFailed.Add(ctx, 1, metric.WithAttributeSet(exp.metricAttributes))
+
+				// If retry is disabled, count bytes for payloads that succeeded before this failure
+				if !exp.cfg.BackOffConfig.Enabled {
+					exp.countAndReportBatchBytes(ctx, successfulPayloads)
+				}
 				return fmt.Errorf("upload to chronicle: %w", err)
 			}
 			successfulPayloads = append(successfulPayloads, payload)
 		}
 	}
-	// If everything sent successfully just report the total bytes
+	// Count bytes on success (for both retry enabled and disabled cases)
 	exp.telemetry.ExporterRawBytes.Add(
 		ctx,
 		int64(totalBytes),

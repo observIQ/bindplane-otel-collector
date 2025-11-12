@@ -46,6 +46,14 @@ telemetry:
       sum:
         value_type: int
 
+    exporter_logs_send_failed:
+      enabled: true
+      description: "The number of times ConsumeLogs failed, triggering a retry by the collector pipeline."
+      unit: "{failures}"
+      sum:
+        value_type: int
+        monotonic: true
+
 tests:
   config:
     protocol: "grpc"

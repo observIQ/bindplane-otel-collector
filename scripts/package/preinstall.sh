@@ -27,6 +27,9 @@ set -e
 : "${BDOT_USER:=bdot}"
 : "${BDOT_GROUP:=bdot}"
 
+# The collectors installation directory
+: "${BDOT_CONFIG_HOME:=/opt/observiq-otel-collector}"
+
 legacy_username="observiq-otel-collector"
 service_name="observiq-otel-collector"
 
@@ -148,5 +151,16 @@ _migrate_group() {
     groupmod -n "${BDOT_GROUP}" "$legacy_username"
 }
 
+# Collector version v1.86.1 or older did not perform cleanup
+# on uninstall, leaving this file behind.
+cleanup_package_statuses() {
+    package_statuses_file="${BDOT_CONFIG_HOME}/package_statuses.json"
+    if [ -f "$package_statuses_file" ]; then
+        echo "Cleaning up previous package statuses file: $package_statuses_file"
+        rm -f "$package_statuses_file"
+    fi
+}
+
+cleanup_package_statuses
 migrate_user
 install
