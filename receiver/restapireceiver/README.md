@@ -28,23 +28,17 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 |-------|------|---------|----------|-------------|
 | `url` | string | | `true` | The base URL for the REST API endpoint |
 | `response_field` | string | | `false` | The name of the field in the response that contains the array of items. If empty, the response is assumed to be a top-level array |
-| `auth` | object | | `false` | Authentication configuration (see below) |
+| `auth_mode` | string | `apikey` | `false` | Authentication mode: `apikey`, `bearer`, or `basic` |
+| `apikey_header_name` | string | | `false` | Header name for API key (required if `auth_mode` is `apikey`) |
+| `apikey_value` | string | | `false` | API key value (required if `auth_mode` is `apikey`) |
+| `bearer_token` | string | | `false` | Bearer token value (required if `auth_mode` is `bearer`) |
+| `username` | string | | `false` | Username for basic auth (required if `auth_mode` is `basic`) |
+| `password` | string | | `false` | Password for basic auth (required if `auth_mode` is `basic`) |
 | `pagination` | object | | `false` | Pagination configuration (see below) |
 | `time_based_offset` | object | | `false` | Time-based offset configuration (see below) |
 | `poll_interval` | duration | `5m` | `false` | The interval between API polls |
 | `storage` | component | | `false` | The component ID of a storage extension for checkpointing |
 | `timeout` | duration | `10s` | `false` | HTTP client timeout |
-
-### Authentication Configuration
-
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `auth.mode` | string | `none` | `false` | Authentication mode: `none`, `apikey`, `bearer`, or `basic` |
-| `auth.apikey.header_name` | string | | `false` | Header name for API key (required if mode is `apikey`) |
-| `auth.apikey.value` | string | | `false` | API key value (required if mode is `apikey`) |
-| `auth.bearer_token` | string | | `false` | Bearer token value (required if mode is `bearer`) |
-| `auth.basic.username` | string | | `false` | Username for basic auth (required if mode is `basic`) |
-| `auth.basic.password` | string | | `false` | Password for basic auth (required if mode is `basic`) |
 
 ### Pagination Configuration
 
@@ -98,11 +92,9 @@ receivers:
   restapi:
     url: "https://api.example.com/events"
     poll_interval: 10m
-    auth:
-      mode: apikey
-      apikey:
-        header_name: "X-API-Key"
-        value: "your-api-key-here"
+    auth_mode: apikey
+    apikey_header_name: "X-API-Key"
+    apikey_value: "your-api-key-here"
 ```
 
 ### Bearer Token Authentication
@@ -112,9 +104,8 @@ receivers:
   restapi:
     url: "https://api.example.com/metrics"
     poll_interval: 5m
-    auth:
-      mode: bearer
-      bearer_token: "your-bearer-token-here"
+    auth_mode: bearer
+    bearer_token: "your-bearer-token-here"
 ```
 
 ### Basic Authentication with Pagination
@@ -125,11 +116,9 @@ receivers:
     url: "https://api.example.com/logs"
     response_field: "data"
     poll_interval: 5m
-    auth:
-      mode: basic
-      basic:
-        username: "user"
-        password: "pass"
+    auth_mode: basic
+    username: "user"
+    password: "pass"
     pagination:
       mode: offset_limit
       offset_limit:
@@ -148,9 +137,8 @@ receivers:
     url: "https://api.example.com/events"
     response_field: "items"
     poll_interval: 15m
-    auth:
-      mode: bearer
-      bearer_token: "token"
+    auth_mode: bearer
+    bearer_token: "token"
     pagination:
       mode: page_size
       page_size:
@@ -203,11 +191,3 @@ The checkpoint includes:
 - Current pagination state (offset/page number)
 - Time-based offset timestamp
 - Number of pages fetched
-
-
-## Limitations
-
-- Currently supports only GET requests
-- JSON format only (no XML, CSV, etc.)
-- One log/metric per JSON object in the array
-- No support for streaming responses
