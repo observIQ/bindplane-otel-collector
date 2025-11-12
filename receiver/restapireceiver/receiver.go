@@ -37,7 +37,6 @@ const (
 // checkpointData represents the data stored in the checkpoint.
 type checkpointData struct {
 	PaginationState *paginationState `json:"pagination_state"`
-	TimeOffset      *time.Time       `json:"time_offset,omitempty"`
 }
 
 // restAPILogsReceiver is a receiver that pulls logs from a REST API.
@@ -55,7 +54,6 @@ type restAPILogsReceiver struct {
 	pollInterval    time.Duration
 	cancel          context.CancelFunc
 	paginationState *paginationState
-	timeOffset      time.Time
 }
 
 // newRESTAPILogsReceiver creates a new REST API logs receiver.
@@ -102,14 +100,6 @@ func (r *restAPILogsReceiver) Start(ctx context.Context, host component.Host) er
 	if r.cfg.Pagination.Mode == paginationModeOffsetLimit && r.cfg.Pagination.OffsetLimit.LimitFieldName != "" {
 		// Use a reasonable default limit (can be overridden by API)
 		r.paginationState.limit = 10
-	}
-
-	// Initialize time offset
-	if r.cfg.TimeBasedOffset.Enabled {
-		r.timeOffset = r.cfg.TimeBasedOffset.OffsetTimestamp
-		if r.timeOffset.IsZero() {
-			r.timeOffset = time.Now().Add(-r.pollInterval)
-		}
 	}
 
 	// Start polling
@@ -170,7 +160,7 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Build request URL with pagination and time-based offset
+	// Build request URL with pagination
 	requestURL := r.cfg.URL
 	params := url.Values{}
 
@@ -180,11 +170,6 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) error {
 		for _, value := range values {
 			params.Add(key, value)
 		}
-	}
-
-	// Add time-based offset parameter
-	if r.cfg.TimeBasedOffset.Enabled {
-		params.Set(r.cfg.TimeBasedOffset.ParamName, r.timeOffset.Format(time.RFC3339))
 	}
 
 	// Handle pagination - fetch all pages in this poll cycle
@@ -255,16 +240,17 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) error {
 				params.Add(key, value)
 			}
 		}
-
-		// Re-add time-based offset if enabled
-		if r.cfg.TimeBasedOffset.Enabled {
-			params.Set(r.cfg.TimeBasedOffset.ParamName, r.timeOffset.Format(time.RFC3339))
-		}
 	}
 
-	// Update time offset if enabled
-	if r.cfg.TimeBasedOffset.Enabled {
-		r.timeOffset = time.Now()
+	// Reset timestamp after completing poll cycle
+	// This ensures next poll starts fresh from the initial timestamp
+	if r.cfg.Pagination.Mode == paginationModeTimestamp {
+		if !r.cfg.Pagination.Timestamp.InitialTimestamp.IsZero() {
+			r.paginationState.currentTimestamp = r.cfg.Pagination.Timestamp.InitialTimestamp
+		} else {
+			r.paginationState.currentTimestamp = time.Time{}
+		}
+		r.paginationState.pagesFetched = 0
 	}
 
 	return nil
@@ -291,10 +277,6 @@ func (r *restAPILogsReceiver) loadCheckpoint(ctx context.Context) {
 	if checkpoint.PaginationState != nil {
 		r.paginationState = checkpoint.PaginationState
 	}
-
-	if checkpoint.TimeOffset != nil {
-		r.timeOffset = *checkpoint.TimeOffset
-	}
 }
 
 // saveCheckpoint saves the checkpoint to storage.
@@ -305,10 +287,6 @@ func (r *restAPILogsReceiver) saveCheckpoint(ctx context.Context) error {
 
 	checkpoint := checkpointData{
 		PaginationState: r.paginationState,
-	}
-
-	if r.cfg != nil && r.cfg.TimeBasedOffset.Enabled {
-		checkpoint.TimeOffset = &r.timeOffset
 	}
 
 	bytes, err := jsoniter.Marshal(checkpoint)
@@ -379,7 +357,6 @@ type restAPIMetricsReceiver struct {
 	pollInterval    time.Duration
 	cancel          context.CancelFunc
 	paginationState *paginationState
-	timeOffset      time.Time
 }
 
 // newRESTAPIMetricsReceiver creates a new REST API metrics receiver.
@@ -426,14 +403,6 @@ func (r *restAPIMetricsReceiver) Start(ctx context.Context, host component.Host)
 	if r.cfg.Pagination.Mode == paginationModeOffsetLimit && r.cfg.Pagination.OffsetLimit.LimitFieldName != "" {
 		// Use a reasonable default limit (can be overridden by API)
 		r.paginationState.limit = 10
-	}
-
-	// Initialize time offset
-	if r.cfg.TimeBasedOffset.Enabled {
-		r.timeOffset = r.cfg.TimeBasedOffset.OffsetTimestamp
-		if r.timeOffset.IsZero() {
-			r.timeOffset = time.Now().Add(-r.pollInterval)
-		}
 	}
 
 	// Start polling
@@ -494,7 +463,7 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Build request URL with pagination and time-based offset
+	// Build request URL with pagination
 	requestURL := r.cfg.URL
 	params := url.Values{}
 
@@ -504,11 +473,6 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) error {
 		for _, value := range values {
 			params.Add(key, value)
 		}
-	}
-
-	// Add time-based offset parameter
-	if r.cfg.TimeBasedOffset.Enabled {
-		params.Set(r.cfg.TimeBasedOffset.ParamName, r.timeOffset.Format(time.RFC3339))
 	}
 
 	// Handle pagination - fetch all pages in this poll cycle
@@ -579,16 +543,17 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) error {
 				params.Add(key, value)
 			}
 		}
-
-		// Re-add time-based offset if enabled
-		if r.cfg.TimeBasedOffset.Enabled {
-			params.Set(r.cfg.TimeBasedOffset.ParamName, r.timeOffset.Format(time.RFC3339))
-		}
 	}
 
-	// Update time offset if enabled
-	if r.cfg.TimeBasedOffset.Enabled {
-		r.timeOffset = time.Now()
+	// Reset timestamp after completing poll cycle
+	// This ensures next poll starts fresh from the initial timestamp
+	if r.cfg.Pagination.Mode == paginationModeTimestamp {
+		if !r.cfg.Pagination.Timestamp.InitialTimestamp.IsZero() {
+			r.paginationState.currentTimestamp = r.cfg.Pagination.Timestamp.InitialTimestamp
+		} else {
+			r.paginationState.currentTimestamp = time.Time{}
+		}
+		r.paginationState.pagesFetched = 0
 	}
 
 	return nil
@@ -615,10 +580,6 @@ func (r *restAPIMetricsReceiver) loadCheckpoint(ctx context.Context) {
 	if checkpoint.PaginationState != nil {
 		r.paginationState = checkpoint.PaginationState
 	}
-
-	if checkpoint.TimeOffset != nil {
-		r.timeOffset = *checkpoint.TimeOffset
-	}
 }
 
 // saveCheckpoint saves the checkpoint to storage.
@@ -629,10 +590,6 @@ func (r *restAPIMetricsReceiver) saveCheckpoint(ctx context.Context) error {
 
 	checkpoint := checkpointData{
 		PaginationState: r.paginationState,
-	}
-
-	if r.cfg != nil && r.cfg.TimeBasedOffset.Enabled {
-		checkpoint.TimeOffset = &r.timeOffset
 	}
 
 	bytes, err := jsoniter.Marshal(checkpoint)

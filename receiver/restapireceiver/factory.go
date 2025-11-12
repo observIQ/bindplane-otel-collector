@@ -46,9 +46,6 @@ func createDefaultConfig() component.Config {
 			PageLimit:      0,
 			ZeroBasedIndex: false,
 		},
-		TimeBasedOffset: TimeBasedOffsetConfig{
-			Enabled: false,
-		},
 		PollInterval: 5 * time.Minute,
 		ClientConfig: confighttp.ClientConfig{
 			Timeout: 10 * time.Second,
