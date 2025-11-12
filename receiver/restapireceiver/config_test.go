@@ -183,7 +183,7 @@ func TestConfig_Validate(t *testing.T) {
 					Mode: PaginationMode("invalid"),
 				},
 			},
-			expectedErr: "invalid pagination mode: invalid, must be one of: none, offset_limit, page_size",
+			expectedErr: "invalid pagination mode: invalid, must be one of: none, offset_limit, page_size, timestamp",
 		},
 		{
 			name: "offset_limit pagination missing offset field name",
@@ -290,37 +290,78 @@ func TestConfig_Validate(t *testing.T) {
 			expectedErr: "",
 		},
 		{
-			name: "time_based_offset enabled missing param name",
+			name: "timestamp pagination missing param name",
 			config: &Config{
 				URL:                  "https://api.example.com/data",
 				AuthMode:             string(authModeAPIKey),
 				AuthAPIKeyHeaderName: "X-API-Key",
 				AuthAPIKeyValue:      "test-key",
 				Pagination: PaginationConfig{
-					Mode: paginationModeNone,
-				},
-				TimeBasedOffset: TimeBasedOffsetConfig{
-					Enabled:         true,
-					ParamName:       "",
-					OffsetTimestamp: time.Now(),
+					Mode: paginationModeTimestamp,
+					Timestamp: TimestampPagination{
+						ParamName:          "",
+						TimestampFieldName: "ts",
+						PageSizeFieldName:  "perPage",
+						PageSize:           100,
+					},
 				},
 			},
-			expectedErr: "time_based_offset.param_name is required when time_based_offset.enabled is true",
+			expectedErr: "pagination.timestamp.param_name is required when pagination.mode is timestamp",
 		},
 		{
-			name: "valid time_based_offset",
+			name: "timestamp pagination missing timestamp field name",
 			config: &Config{
 				URL:                  "https://api.example.com/data",
 				AuthMode:             string(authModeAPIKey),
 				AuthAPIKeyHeaderName: "X-API-Key",
 				AuthAPIKeyValue:      "test-key",
 				Pagination: PaginationConfig{
-					Mode: paginationModeNone,
+					Mode: paginationModeTimestamp,
+					Timestamp: TimestampPagination{
+						ParamName:          "t0",
+						TimestampFieldName: "",
+						PageSizeFieldName:  "perPage",
+						PageSize:           100,
+					},
 				},
-				TimeBasedOffset: TimeBasedOffsetConfig{
-					Enabled:         true,
-					ParamName:       "since",
-					OffsetTimestamp: time.Now(),
+			},
+			expectedErr: "pagination.timestamp.timestamp_field_name is required when pagination.mode is timestamp",
+		},
+		{
+			name: "timestamp pagination missing page size field name",
+			config: &Config{
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(authModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "test-key",
+				Pagination: PaginationConfig{
+					Mode: paginationModeTimestamp,
+					Timestamp: TimestampPagination{
+						ParamName:          "t0",
+						TimestampFieldName: "ts",
+						PageSizeFieldName:  "",
+						PageSize:           100,
+					},
+				},
+			},
+			expectedErr: "pagination.timestamp.page_size_field_name is required when pagination.mode is timestamp",
+		},
+		{
+			name: "valid timestamp pagination",
+			config: &Config{
+				URL:                  "https://api.example.com/data",
+				AuthMode:             string(authModeAPIKey),
+				AuthAPIKeyHeaderName: "X-API-Key",
+				AuthAPIKeyValue:      "test-key",
+				Pagination: PaginationConfig{
+					Mode: paginationModeTimestamp,
+					Timestamp: TimestampPagination{
+						ParamName:          "t0",
+						TimestampFieldName: "ts",
+						PageSizeFieldName:  "perPage",
+						PageSize:           200,
+						InitialTimestamp:   time.Now(),
+					},
 				},
 			},
 			expectedErr: "",
@@ -347,7 +388,6 @@ func TestConfig_DefaultValues(t *testing.T) {
 	require.Equal(t, string(authModeAPIKey), cfg.AuthMode)
 	require.Equal(t, paginationModeNone, cfg.Pagination.Mode)
 	require.Equal(t, 5*time.Minute, cfg.PollInterval)
-	require.False(t, cfg.TimeBasedOffset.Enabled)
 	require.Equal(t, 0, cfg.Pagination.PageLimit)
 	require.False(t, cfg.Pagination.ZeroBasedIndex)
 }
