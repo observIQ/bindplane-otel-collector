@@ -35,7 +35,6 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 | `username` | string | | `false` | Username for basic auth (required if `auth_mode` is `basic`) |
 | `password` | string | | `false` | Password for basic auth (required if `auth_mode` is `basic`) |
 | `pagination` | object | | `false` | Pagination configuration (see below) |
-| `time_based_offset` | object | | `false` | Time-based offset configuration (see below) |
 | `poll_interval` | duration | `5m` | `false` | The interval between API polls |
 | `storage` | component | | `false` | The component ID of a storage extension for checkpointing |
 | `timeout` | duration | `10s` | `false` | HTTP client timeout |
@@ -44,7 +43,7 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `pagination.mode` | string | `none` | `false` | Pagination mode: `none`, `offset_limit`, or `page_size` |
+| `pagination.mode` | string | `none` | `false` | Pagination mode: `none`, `offset_limit`, `page_size`, or `timestamp` |
 | `pagination.total_record_count_field` | string | | `false` | Field name in response containing total record count |
 | `pagination.page_limit` | int | `0` | `false` | Maximum number of pages to fetch (0 = no limit) |
 | `pagination.zero_based_index` | bool | `false` | `false` | Indicates that the requested data starts at index 0 |
@@ -64,15 +63,17 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 | `pagination.page_size.page_num_field_name` | string | | `false` | Query parameter name for page number |
 | `pagination.page_size.page_size_field_name` | string | | `false` | Query parameter name for page size |
 | `pagination.page_size.starting_page` | int | `1` | `false` | Starting page number |
-| `pagination.page_size.total_pages_field_name` | string | | `false` | Field name in response containing total pages |
+| `pagination.page_size.total_pages_field_name` | string | | `false` | Field name in response containing total page count |
 
-### Time-Based Offset Configuration
+#### Timestamp-Based Pagination
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `time_based_offset.enabled` | bool | `false` | `false` | Enable time-based offset tracking |
-| `time_based_offset.param_name` | string | | `false` | Query parameter name for timestamp (required if enabled) |
-| `time_based_offset.offset_timestamp` | string | | `false` | Initial timestamp offset (RFC3339 format). If not set, defaults to one `poll_interval` ago |
+| `pagination.timestamp.param_name` | string | | `true` | Query parameter name for timestamp (e.g., "t0", "since", "after", "start_time") |
+| `pagination.timestamp.timestamp_field_name` | string | | `true` | Field name in each response item containing the timestamp (e.g., "ts", "timestamp") |
+| `pagination.timestamp.page_size_field_name` | string | | `true` | Query parameter name for page size (e.g., "perPage", "limit") |
+| `pagination.timestamp.page_size` | int | `100` | `false` | Page size to use |
+| `pagination.timestamp.initial_timestamp` | string | | `false` | Initial timestamp to start from (RFC3339 format). If not set, starts from beginning |
 
 ## Example Configurations
 
@@ -129,7 +130,7 @@ receivers:
     storage: file_storage
 ```
 
-### Time-Based Offset with Page/Size Pagination
+### Timestamp Pagination
 
 ```yaml
 receivers:
@@ -140,17 +141,13 @@ receivers:
     auth_mode: bearer
     bearer_token: "token"
     pagination:
-      mode: page_size
-      page_size:
-        page_num_field_name: "page"
-        page_size_field_name: "size"
-        starting_page: 1
-        total_pages_field_name: "total_pages"
-      page_limit: 100
-    time_based_offset:
-      enabled: true
-      param_name: "since"
-      offset_timestamp: "2024-01-01T00:00:00Z"
+      mode: timestamp
+      timestamp:
+        param_name: "t0"
+        timestamp_field_name: "ts"
+        page_size_field_name: "perPage"
+        page_size: 200
+        initial_timestamp: "2024-01-01T00:00:00Z"
     storage: file_storage
 
 extensions:
@@ -185,9 +182,10 @@ When using the second format, specify the field name in `response_field` (e.g., 
 
 ## Checkpointing
 
-When a storage extension is configured, the receiver saves its pagination state and time offset to storage. This allows the receiver to resume from where it left off after a restart, preventing duplicate data collection.
+When a storage extension is configured, the receiver saves its pagination state to storage. This allows the receiver to resume from where it left off after a restart, preventing duplicate data collection.
 
 The checkpoint includes:
-- Current pagination state (offset/page number)
-- Time-based offset timestamp
+- Current pagination state (offset/page number/timestamp)
 - Number of pages fetched
+
+For timestamp-based pagination, the timestamp is reset after each poll cycle to the initial timestamp, ensuring each poll starts fresh and only collects new data based on the time filter.

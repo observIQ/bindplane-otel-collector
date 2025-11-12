@@ -50,17 +50,18 @@ const (
 	paginationModeNone        PaginationMode = "none"
 	paginationModeOffsetLimit PaginationMode = "offset_limit"
 	paginationModePageSize    PaginationMode = "page_size"
+	paginationModeTimestamp   PaginationMode = "timestamp"
 )
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface
 func (m *PaginationMode) UnmarshalText(text []byte) error {
 	mode := PaginationMode(text)
 	switch mode {
-	case paginationModeNone, paginationModeOffsetLimit, paginationModePageSize:
+	case paginationModeNone, paginationModeOffsetLimit, paginationModePageSize, paginationModeTimestamp:
 		*m = mode
 		return nil
 	default:
-		return fmt.Errorf("invalid pagination mode: %s, must be one of: none, offset_limit, page_size", text)
+		return fmt.Errorf("invalid pagination mode: %s, must be one of: none, offset_limit, page_size, timestamp", text)
 	}
 }
 
@@ -85,9 +86,6 @@ type Config struct {
 	// Pagination defines pagination configuration.
 	Pagination PaginationConfig `mapstructure:"pagination"`
 
-	// TimeBasedOffset defines time-based offset configuration.
-	TimeBasedOffset TimeBasedOffsetConfig `mapstructure:"time_based_offset"`
-
 	// PollInterval is the interval between API polls.
 	PollInterval time.Duration `mapstructure:"poll_interval"`
 
@@ -108,6 +106,9 @@ type PaginationConfig struct {
 
 	// PageSize defines page/size pagination.
 	PageSize PageSizePagination `mapstructure:"page_size"`
+
+	// Timestamp defines timestamp-based pagination.
+	Timestamp TimestampPagination `mapstructure:"timestamp"`
 
 	// TotalRecordCountField is the name of the field in the response that contains the total record count.
 	TotalRecordCountField string `mapstructure:"total_record_count_field"`
@@ -146,16 +147,25 @@ type PageSizePagination struct {
 	TotalPagesFieldName string `mapstructure:"total_pages_field_name"`
 }
 
-// TimeBasedOffsetConfig defines time-based offset configuration.
-type TimeBasedOffsetConfig struct {
-	// Enabled indicates whether time-based offset is enabled.
-	Enabled bool `mapstructure:"enabled"`
-
-	// ParamName is the name of the query parameter for the time-based offset.
+// TimestampPagination defines timestamp-based pagination configuration.
+type TimestampPagination struct {
+	// ParamName is the name of the query parameter for the timestamp (e.g., "t0", "since", "after", "start_time").
 	ParamName string `mapstructure:"param_name"`
 
-	// OffsetTimestamp is the initial offset timestamp.
-	OffsetTimestamp time.Time `mapstructure:"offset_timestamp"`
+	// TimestampFieldName is the name of the field in each response item that contains the timestamp value.
+	// This is used to extract the timestamp from the last item for the next page.
+	// For Meraki API, this is typically "ts" (timestamp).
+	TimestampFieldName string `mapstructure:"timestamp_field_name"`
+
+	// PageSizeFieldName is the name of the query parameter for page size (e.g., "perPage", "limit").
+	PageSizeFieldName string `mapstructure:"page_size_field_name"`
+
+	// PageSize is the page size to use.
+	PageSize int `mapstructure:"page_size"`
+
+	// InitialTimestamp is the initial timestamp to start from (optional).
+	// If not set, will start from the beginning.
+	InitialTimestamp time.Time `mapstructure:"initial_timestamp"`
 }
 
 // Validate validates the configuration.
@@ -201,10 +211,10 @@ func (c *Config) Validate() error {
 
 	// Validate pagination mode
 	switch c.Pagination.Mode {
-	case paginationModeNone, paginationModeOffsetLimit, paginationModePageSize:
+	case paginationModeNone, paginationModeOffsetLimit, paginationModePageSize, paginationModeTimestamp:
 		// Valid modes
 	default:
-		return fmt.Errorf("invalid pagination mode: %s, must be one of: none, offset_limit, page_size", c.Pagination.Mode)
+		return fmt.Errorf("invalid pagination mode: %s, must be one of: none, offset_limit, page_size, timestamp", c.Pagination.Mode)
 	}
 
 	// Validate pagination mode specific requirements
@@ -223,12 +233,15 @@ func (c *Config) Validate() error {
 		if c.Pagination.PageSize.PageSizeFieldName == "" {
 			return fmt.Errorf("pagination.page_size.page_size_field_name is required when pagination.mode is page_size")
 		}
-	}
-
-	// Validate time-based offset
-	if c.TimeBasedOffset.Enabled {
-		if c.TimeBasedOffset.ParamName == "" {
-			return fmt.Errorf("time_based_offset.param_name is required when time_based_offset.enabled is true")
+	case paginationModeTimestamp:
+		if c.Pagination.Timestamp.ParamName == "" {
+			return fmt.Errorf("pagination.timestamp.param_name is required when pagination.mode is timestamp")
+		}
+		if c.Pagination.Timestamp.TimestampFieldName == "" {
+			return fmt.Errorf("pagination.timestamp.timestamp_field_name is required when pagination.mode is timestamp")
+		}
+		if c.Pagination.Timestamp.PageSizeFieldName == "" {
+			return fmt.Errorf("pagination.timestamp.page_size_field_name is required when pagination.mode is timestamp")
 		}
 	}
 

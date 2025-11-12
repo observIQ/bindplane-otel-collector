@@ -203,33 +203,50 @@ func TestRESTAPILogsReceiver_WithPagination(t *testing.T) {
 	require.GreaterOrEqual(t, totalRecords, 4)
 }
 
-func TestRESTAPILogsReceiver_WithTimeBasedOffset(t *testing.T) {
+func TestRESTAPILogsReceiver_WithTimestampPagination(t *testing.T) {
 	var lastTimestamp string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Capture the timestamp parameter
-		lastTimestamp = r.URL.Query().Get("since")
+	var pageSize string
+	pageCount := 0
+	initialTime := time.Now().Add(-1 * time.Hour)
 
-		response := []map[string]any{
-			{"id": "1", "message": "test", "timestamp": time.Now().Format(time.RFC3339)},
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Capture the timestamp and page size parameters
+		lastTimestamp = r.URL.Query().Get("t0")
+		pageSize = r.URL.Query().Get("perPage")
+
+		var response []map[string]any
+		if pageCount == 0 {
+			// First page - return full page
+			response = []map[string]any{
+				{"id": "1", "message": "test1", "ts": time.Now().Add(-30 * time.Minute).Format(time.RFC3339)},
+				{"id": "2", "message": "test2", "ts": time.Now().Add(-20 * time.Minute).Format(time.RFC3339)},
+			}
+		} else {
+			// Second page - return partial page to stop pagination
+			response = []map[string]any{
+				{"id": "3", "message": "test3", "ts": time.Now().Add(-10 * time.Minute).Format(time.RFC3339)},
+			}
 		}
+		pageCount++
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer server.Close()
 
-	initialTime := time.Now().Add(-1 * time.Hour)
 	cfg := &Config{
 		URL:                  server.URL,
 		AuthMode:             string(authModeAPIKey),
 		AuthAPIKeyHeaderName: "X-API-Key",
 		AuthAPIKeyValue:      "test-key",
 		Pagination: PaginationConfig{
-			Mode: paginationModeNone,
-		},
-		TimeBasedOffset: TimeBasedOffsetConfig{
-			Enabled:         true,
-			ParamName:       "since",
-			OffsetTimestamp: initialTime,
+			Mode: paginationModeTimestamp,
+			Timestamp: TimestampPagination{
+				ParamName:          "t0",
+				TimestampFieldName: "ts",
+				PageSizeFieldName:  "perPage",
+				PageSize:           200,
+				InitialTimestamp:   initialTime,
+			},
 		},
 		PollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
@@ -246,7 +263,7 @@ func TestRESTAPILogsReceiver_WithTimeBasedOffset(t *testing.T) {
 	err = receiver.Start(ctx, host)
 	require.NoError(t, err)
 
-	// Wait for a poll
+	// Wait for a poll cycle (which will fetch all pages)
 	time.Sleep(200 * time.Millisecond)
 
 	err = receiver.Shutdown(ctx)
@@ -254,6 +271,11 @@ func TestRESTAPILogsReceiver_WithTimeBasedOffset(t *testing.T) {
 
 	// Should have used the timestamp parameter
 	require.NotEmpty(t, lastTimestamp)
+	require.Contains(t, lastTimestamp, "T") // RFC3339 format check
+	// Should have used the page size parameter
+	require.Equal(t, "200", pageSize)
+	// Should have fetched multiple pages
+	require.Greater(t, pageCount, 1)
 }
 
 func TestRESTAPILogsReceiver_ErrorHandling(t *testing.T) {
