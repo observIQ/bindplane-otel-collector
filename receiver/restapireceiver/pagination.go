@@ -17,6 +17,7 @@ package restapireceiver
 import (
 	"fmt"
 	"net/url"
+	"time"
 )
 
 // paginationState tracks the current state of pagination.
@@ -28,6 +29,9 @@ type paginationState struct {
 	// For page/size pagination
 	currentPage int
 	pageSize    int
+
+	// For timestamp-based pagination
+	currentTimestamp time.Time
 
 	// Metadata
 	totalRecords int
@@ -59,6 +63,17 @@ func newPaginationState(cfg *Config) *paginationState {
 			// Use a default page size if not specified
 			state.pageSize = 20
 		}
+
+	case paginationModeTimestamp:
+		// Set initial timestamp if provided, otherwise start from zero time
+		if !cfg.Pagination.Timestamp.InitialTimestamp.IsZero() {
+			state.currentTimestamp = cfg.Pagination.Timestamp.InitialTimestamp
+		}
+		if cfg.Pagination.Timestamp.PageSize > 0 {
+			state.pageSize = cfg.Pagination.Timestamp.PageSize
+		} else {
+			state.pageSize = 100 // Default page size for timestamp pagination
+		}
 	}
 
 	return state
@@ -85,6 +100,22 @@ func buildPaginationParams(cfg *Config, state *paginationState) url.Values {
 			params.Set(cfg.Pagination.PageSize.PageSizeFieldName, fmt.Sprintf("%d", state.pageSize))
 		}
 
+	case paginationModeTimestamp:
+		// Add page size parameter
+		if cfg.Pagination.Timestamp.PageSizeFieldName != "" {
+			params.Set(cfg.Pagination.Timestamp.PageSizeFieldName, fmt.Sprintf("%d", state.pageSize))
+		}
+		// Add timestamp parameter if we have one
+		// For "starting after" semantics, we increment by 1 nanosecond to ensure
+		// we don't get the same item again if multiple items share the same timestamp
+		if !state.currentTimestamp.IsZero() {
+			if cfg.Pagination.Timestamp.ParamName != "" {
+				// Increment by 1 nanosecond to ensure we get items strictly after this timestamp
+				timestampForRequest := state.currentTimestamp.Add(time.Nanosecond)
+				params.Set(cfg.Pagination.Timestamp.ParamName, timestampForRequest.Format(time.RFC3339))
+			}
+		}
+
 	case paginationModeNone:
 		// No pagination parameters
 	}
@@ -101,6 +132,9 @@ func parsePaginationResponse(cfg *Config, response any, state *paginationState) 
 
 	case paginationModePageSize:
 		return parsePageSizeResponse(cfg, response, state)
+
+	case paginationModeTimestamp:
+		return parseTimestampResponse(cfg, response, state)
 
 	case paginationModeNone:
 		return false, nil
@@ -177,6 +211,89 @@ func parsePageSizeResponse(cfg *Config, response any, state *paginationState) (b
 	return false, nil // Partial page, no more
 }
 
+// parseTimestampResponse parses the response for timestamp-based pagination.
+func parseTimestampResponse(cfg *Config, response any, state *paginationState) (bool, error) {
+	// Extract data array from response
+	var dataArray []any
+	if arr, ok := response.([]any); ok {
+		dataArray = arr
+	} else if responseMap, ok := response.(map[string]any); ok {
+		// Try to find data field
+		for _, fieldName := range []string{"data", "items", "results", "records"} {
+			if dataVal, exists := responseMap[fieldName]; exists {
+				if arr, ok := dataVal.([]any); ok {
+					dataArray = arr
+					break
+				}
+			}
+		}
+		// If response_field is configured, use that
+		if cfg.ResponseField != "" {
+			if dataVal, exists := responseMap[cfg.ResponseField]; exists {
+				if arr, ok := dataVal.([]any); ok {
+					dataArray = arr
+				}
+			}
+		}
+	}
+
+	// If no data, no more pages
+	if len(dataArray) == 0 {
+		return false, nil
+	}
+
+	// Extract timestamp from last item for next page
+	var newTimestamp time.Time
+	lastItem, ok := dataArray[len(dataArray)-1].(map[string]any)
+	if ok && cfg.Pagination.Timestamp.TimestampFieldName != "" {
+		if timestampVal, exists := lastItem[cfg.Pagination.Timestamp.TimestampFieldName]; exists {
+			// Try to parse timestamp - could be string (RFC3339) or Unix timestamp
+			if timestampStr, ok := timestampVal.(string); ok {
+				if parsedTime, err := time.Parse(time.RFC3339, timestampStr); err == nil {
+					newTimestamp = parsedTime
+				} else if parsedTime, err := time.Parse(time.RFC3339Nano, timestampStr); err == nil {
+					newTimestamp = parsedTime
+				}
+			} else if timestampFloat, ok := timestampVal.(float64); ok {
+				// Unix timestamp (seconds or milliseconds)
+				if timestampFloat > 1e10 {
+					// Likely milliseconds
+					newTimestamp = time.Unix(0, int64(timestampFloat*1e6))
+				} else {
+					// Likely seconds
+					newTimestamp = time.Unix(int64(timestampFloat), 0)
+				}
+			} else if timestampInt, ok := timestampVal.(int64); ok {
+				if timestampInt > 1e10 {
+					// Likely milliseconds
+					newTimestamp = time.Unix(0, timestampInt*1e6)
+				} else {
+					// Likely seconds
+					newTimestamp = time.Unix(timestampInt, 0)
+				}
+			}
+		}
+	}
+
+	// If we got fewer items than pageSize, definitely no more pages
+	if len(dataArray) < state.pageSize {
+		if !newTimestamp.IsZero() {
+			state.currentTimestamp = newTimestamp
+		}
+		return false, nil
+	}
+
+	// If we got exactly pageSize items, assume there might be more
+	// Update timestamp and continue pagination
+	if !newTimestamp.IsZero() {
+		state.currentTimestamp = newTimestamp
+		return true, nil
+	}
+
+	// No timestamp extracted, can't paginate further
+	return false, nil
+}
+
 // getDataCount extracts the count of data items from the response.
 func getDataCount(response any) int {
 	// If response is directly an array
@@ -221,6 +338,10 @@ func updatePaginationState(cfg *Config, state *paginationState) {
 		} else {
 			state.currentPage++
 		}
+		state.pagesFetched++
+
+	case paginationModeTimestamp:
+		// Timestamp is updated in parseTimestampResponse
 		state.pagesFetched++
 	}
 }
