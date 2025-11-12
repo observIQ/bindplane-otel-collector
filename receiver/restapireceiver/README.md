@@ -47,7 +47,7 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 | `pagination.mode` | string | `none` | `false` | Pagination mode: `none`, `offset_limit`, or `page_size` |
 | `pagination.total_record_count_field` | string | | `false` | Field name in response containing total record count |
 | `pagination.page_limit` | int | `0` | `false` | Maximum number of pages to fetch (0 = no limit) |
-| `pagination.zero_based_index` | bool | `false` | `false` | Whether pagination starts at 0 (for page/size mode) |
+| `pagination.zero_based_index` | bool | `false` | `false` | Indicates that the requested data starts at index 0 |
 
 #### Offset/Limit Pagination
 
@@ -72,7 +72,7 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 |-------|------|---------|----------|-------------|
 | `time_based_offset.enabled` | bool | `false` | `false` | Enable time-based offset tracking |
 | `time_based_offset.param_name` | string | | `false` | Query parameter name for timestamp (required if enabled) |
-| `time_based_offset.offset_timestamp` | string | | `false` | Initial timestamp offset (RFC3339 format). If not set, defaults to poll_interval ago |
+| `time_based_offset.offset_timestamp` | string | | `false` | Initial timestamp offset (RFC3339 format). If not set, defaults to one `poll_interval` ago |
 
 ## Example Configurations
 
