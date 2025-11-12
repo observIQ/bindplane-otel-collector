@@ -79,8 +79,8 @@ type Config struct {
 	AuthAPIKeyHeaderName string `mapstructure:"apikey_header_name"`
 	AuthAPIKeyValue      string `mapstructure:"apikey_value"`
 	AuthBearerToken      string `mapstructure:"bearer_token"`
-	AuthBasicUsername    string `mapstructure:"basic_username"`
-	AuthBasicPassword    string `mapstructure:"basic_password"`
+	AuthBasicUsername    string `mapstructure:"username"`
+	AuthBasicPassword    string `mapstructure:"password"`
 
 	// Pagination defines pagination configuration.
 	Pagination PaginationConfig `mapstructure:"pagination"`
