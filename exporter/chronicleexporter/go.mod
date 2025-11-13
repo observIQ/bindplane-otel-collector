@@ -5,8 +5,8 @@ go 1.24.4
 require (
 	github.com/golang/mock v1.7.0-rc.1
 	github.com/google/uuid v1.6.0
-	github.com/observiq/bindplane-otel-collector v1.87.3
-	github.com/observiq/bindplane-otel-collector/expr v1.87.3
+	github.com/observiq/bindplane-otel-collector/expr v1.87.8
+	github.com/observiq/bindplane-otel-collector/internal/os v1.87.8
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.138.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.11.1
@@ -27,7 +27,7 @@ require (
 	go.uber.org/goleak v1.3.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20251009144603-d2f985daa21b
-	golang.org/x/oauth2 v0.32.0
+	golang.org/x/oauth2 v0.33.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20250922171735-9219d122eba9
 	google.golang.org/grpc v1.76.0
 	google.golang.org/protobuf v1.36.10
@@ -105,6 +105,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/observiq/bindplane-otel-collector => ../../
+replace github.com/observiq/bindplane-otel-collector/internal/os => ../../internal/os
 
 replace github.com/observiq/bindplane-otel-collector/expr => ../../expr

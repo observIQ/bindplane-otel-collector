@@ -21,6 +21,7 @@ opentelemetry-java-contrib-jmx-metrics.jar
 VERSION.txt
 release_deps
 /tmp
+windows-archive
 
 # OpAmp Files
 collector*.yaml
