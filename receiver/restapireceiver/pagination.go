@@ -125,7 +125,8 @@ func buildPaginationParams(cfg *Config, state *paginationState) url.Values {
 
 // parsePaginationResponse parses the pagination response to determine if there are more pages.
 // It also updates the state with metadata from the response.
-func parsePaginationResponse(cfg *Config, response any, state *paginationState) (bool, error) {
+// The extractedData parameter contains the already-extracted data array from extractDataFromResponse.
+func parsePaginationResponse(cfg *Config, response any, extractedData []map[string]any, state *paginationState) (bool, error) {
 	switch cfg.Pagination.Mode {
 	case paginationModeOffsetLimit:
 		return parseOffsetLimitResponse(cfg, response, state)
@@ -134,7 +135,7 @@ func parsePaginationResponse(cfg *Config, response any, state *paginationState) 
 		return parsePageSizeResponse(cfg, response, state)
 
 	case paginationModeTimestamp:
-		return parseTimestampResponse(cfg, response, state)
+		return parseTimestampResponse(cfg, extractedData, state)
 
 	case paginationModeNone:
 		return false, nil
@@ -212,31 +213,8 @@ func parsePageSizeResponse(cfg *Config, response any, state *paginationState) (b
 }
 
 // parseTimestampResponse parses the response for timestamp-based pagination.
-func parseTimestampResponse(cfg *Config, response any, state *paginationState) (bool, error) {
-	// Extract data array from response
-	var dataArray []any
-	if arr, ok := response.([]any); ok {
-		dataArray = arr
-	} else if responseMap, ok := response.(map[string]any); ok {
-		// Try to find data field
-		for _, fieldName := range []string{"data", "items", "results", "records"} {
-			if dataVal, exists := responseMap[fieldName]; exists {
-				if arr, ok := dataVal.([]any); ok {
-					dataArray = arr
-					break
-				}
-			}
-		}
-		// If response_field is configured, use that
-		if cfg.ResponseField != "" {
-			if dataVal, exists := responseMap[cfg.ResponseField]; exists {
-				if arr, ok := dataVal.([]any); ok {
-					dataArray = arr
-				}
-			}
-		}
-	}
-
+// The dataArray parameter contains the already-extracted data from extractDataFromResponse.
+func parseTimestampResponse(cfg *Config, dataArray []map[string]any, state *paginationState) (bool, error) {
 	// If no data, no more pages
 	if len(dataArray) == 0 {
 		return false, nil
@@ -244,8 +222,8 @@ func parseTimestampResponse(cfg *Config, response any, state *paginationState) (
 
 	// Extract timestamp from last item for next page
 	var newTimestamp time.Time
-	lastItem, ok := dataArray[len(dataArray)-1].(map[string]any)
-	if ok && cfg.Pagination.Timestamp.TimestampFieldName != "" {
+	lastItem := dataArray[len(dataArray)-1]
+	if cfg.Pagination.Timestamp.TimestampFieldName != "" {
 		if timestampVal, exists := lastItem[cfg.Pagination.Timestamp.TimestampFieldName]; exists {
 			// Try to parse timestamp - could be string (RFC3339) or Unix timestamp
 			if timestampStr, ok := timestampVal.(string); ok {
@@ -283,15 +261,17 @@ func parseTimestampResponse(cfg *Config, response any, state *paginationState) (
 		return false, nil
 	}
 
-	// If we got exactly pageSize items, assume there might be more
-	// Update timestamp and continue pagination
+	// If we got exactly pageSize items, there might be more
+	// However, only continue if we successfully extracted a timestamp
 	if !newTimestamp.IsZero() {
 		state.currentTimestamp = newTimestamp
 		return true, nil
 	}
 
-	// No timestamp extracted, can't paginate further
-	return false, nil
+	// Got a full page but couldn't extract timestamp
+	// This is unusual - could indicate data structure issue
+	// To be safe and avoid infinite loops, we'll stop here
+	return false, fmt.Errorf("received full page (%d items) but failed to extract timestamp from last item", len(dataArray))
 }
 
 // getDataCount extracts the count of data items from the response.

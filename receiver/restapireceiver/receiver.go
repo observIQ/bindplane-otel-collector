@@ -200,7 +200,8 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) error {
 		}
 
 		// Parse pagination response to check if there are more pages
-		hasMore, err := parsePaginationResponse(r.cfg, fullResponse, r.paginationState)
+		// Pass the already-extracted data array to avoid re-extraction inconsistencies
+		hasMore, err := parsePaginationResponse(r.cfg, fullResponse, data, r.paginationState)
 		if err != nil {
 			r.logger.Warn("failed to parse pagination response", zap.Error(err))
 			break
@@ -503,7 +504,8 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) error {
 		}
 
 		// Parse pagination response to check if there are more pages
-		hasMore, err := parsePaginationResponse(r.cfg, fullResponse, r.paginationState)
+		// Pass the already-extracted data array to avoid re-extraction inconsistencies
+		hasMore, err := parsePaginationResponse(r.cfg, fullResponse, data, r.paginationState)
 		if err != nil {
 			r.logger.Warn("failed to parse pagination response", zap.Error(err))
 			break
