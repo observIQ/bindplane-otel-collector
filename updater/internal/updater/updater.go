@@ -152,6 +152,9 @@ func (u *Updater) generateLinuxServiceFiles() error {
 
 // Update performs the update of the collector binary
 func (u *Updater) Update() error {
+	// Ensure we clean up the package status artifact after any update state
+	defer u.removePackageStatusArtifact()
+
 	// Generate service files before stopping the service. If
 	// this fails, the collector will still be running.
 	if runtime.GOOS == "linux" {
@@ -229,12 +232,7 @@ func (u *Updater) Update() error {
 		return fmt.Errorf("failed while monitoring for success: %w", err)
 	}
 
-	// Successful update
 	u.logger.Info("Update Complete")
-	// safely remove the package status artifact now that we've successfully updated
-	if removeErr := os.Remove(packagestate.DefaultFileName); removeErr != nil {
-		u.logger.Warn("Failed to remove package status artifact after successful update", zap.Error(removeErr))
-	}
 	return nil
 }
 
@@ -244,4 +242,15 @@ func (u *Updater) removeTmpDir() {
 	if err != nil {
 		u.logger.Error("failed to remove temporary directory", zap.Error(err))
 	}
+}
+
+// removePackageStatusArtifact removes the default package status artifact.
+// if left on disk then the collectors will get confused about state and may think they've already updated
+func (u *Updater) removePackageStatusArtifact() {
+	err := os.Remove(packagestate.DefaultFileName)
+	if err != nil {
+		u.logger.Error("failed to remove package status artifact", zap.Error(err))
+		return
+	}
+	u.logger.Debug("package status artifact removed")
 }
