@@ -34,22 +34,15 @@ func TestNewRESTAPIClient(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "valid config with no auth",
-			cfg: &Config{
-				URL:          "https://api.example.com/data",
-				AuthMode:     string(authModeAPIKey),
-				ClientConfig: confighttp.ClientConfig{},
-			},
-			wantErr: false,
-		},
-		{
 			name: "valid config with apikey auth",
 			cfg: &Config{
-				URL:                  "https://api.example.com/data",
-				AuthMode:             string(authModeAPIKey),
-				AuthAPIKeyHeaderName: "X-API-Key",
-				AuthAPIKeyValue:      "test-key",
-				ClientConfig:         confighttp.ClientConfig{},
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeAPIKey,
+				APIKeyConfig: APIKeyConfig{
+					HeaderName: "X-API-Key",
+					Value:      "test-key",
+				},
+				ClientConfig: confighttp.ClientConfig{},
 			},
 			wantErr: false,
 		},
@@ -90,11 +83,13 @@ func TestRESTAPIClient_GetJSON_NoAuth(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
-		ClientConfig:         confighttp.ClientConfig{},
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
+		ClientConfig: confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -129,11 +124,13 @@ func TestRESTAPIClient_GetJSON_APIKeyAuth(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-api-key",
-		ClientConfig:         confighttp.ClientConfig{},
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-api-key",
+		},
+		ClientConfig: confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -164,10 +161,12 @@ func TestRESTAPIClient_GetJSON_BearerAuth(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:             server.URL,
-		AuthMode:        string(authModeBearer),
-		AuthBearerToken: "test-token",
-		ClientConfig:    confighttp.ClientConfig{},
+		URL:      server.URL,
+		AuthMode: authModeBearer,
+		BearerConfig: BearerConfig{
+			Token: "test-token",
+		},
+		ClientConfig: confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -201,11 +200,13 @@ func TestRESTAPIClient_GetJSON_BasicAuth(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:               server.URL,
-		AuthMode:          string(authModeBasic),
-		AuthBasicUsername: "testuser",
-		AuthBasicPassword: "testpass",
-		ClientConfig:      confighttp.ClientConfig{},
+		URL:      server.URL,
+		AuthMode: authModeBasic,
+		BasicConfig: BasicConfig{
+			Username: "testuser",
+			Password: "testpass",
+		},
+		ClientConfig: confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -238,12 +239,14 @@ func TestRESTAPIClient_GetJSON_AkamaiEdgeGridAuth(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                    server.URL,
-		AuthMode:               string(authModeAkamaiEdgeGrid),
-		AuthAkamaiAccessToken:  "test-access-token",
-		AuthAkamaiClientToken:  "test-client-token",
-		AuthAkamaiClientSecret: "test-client-secret",
-		ClientConfig:           confighttp.ClientConfig{},
+		URL:      server.URL,
+		AuthMode: authModeAkamaiEdgeGrid,
+		AkamaiEdgeGridConfig: AkamaiEdgeGridConfig{
+			AccessToken:  "test-access-token",
+			ClientToken:  "test-client-token",
+			ClientSecret: "test-client-secret",
+		},
+		ClientConfig: confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -275,11 +278,13 @@ func TestRESTAPIClient_GetJSON_WithQueryParams(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
-		ClientConfig:         confighttp.ClientConfig{},
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
+		ClientConfig: confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -315,12 +320,14 @@ func TestRESTAPIClient_GetJSON_ResponseField(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		ResponseField:        "data",
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
-		ClientConfig:         confighttp.ClientConfig{},
+		URL:           server.URL,
+		ResponseField: "data",
+		AuthMode:      authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
+		ClientConfig: confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -347,11 +354,13 @@ func TestRESTAPIClient_GetJSON_HTTPError(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
-		ClientConfig:         confighttp.ClientConfig{},
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
+		ClientConfig: confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -377,11 +386,13 @@ func TestRESTAPIClient_GetJSON_InvalidJSON(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
-		ClientConfig:         confighttp.ClientConfig{},
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
+		ClientConfig: confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()
@@ -407,11 +418,13 @@ func TestRESTAPIClient_GetJSON_EmptyArray(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
-		ClientConfig:         confighttp.ClientConfig{},
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
+		ClientConfig: confighttp.ClientConfig{},
 	}
 
 	ctx := context.Background()

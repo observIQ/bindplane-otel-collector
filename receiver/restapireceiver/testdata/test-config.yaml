@@ -4,8 +4,9 @@ receivers:
     response_field: data
     poll_interval: 5m
     auth_mode: apikey
-    apikey_header_name: X-API-Key
-    apikey_value: test-key
+    apikey:
+      header_name: X-API-Key
+      value: test-key
     pagination:
       mode: page_size
       page_size:
