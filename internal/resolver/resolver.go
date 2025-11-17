@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package resolver provides a DNS resolver that caches DNS lookups using an LRU cache.
+// It always attempts fresh lookups first and falls back to cached results when lookups fail.
 package resolver
 
 import (
@@ -128,7 +130,7 @@ func (r *Resolver) initMetrics(mp metric.MeterProvider, cacheCapacity int) error
 	r.cacheMissesCounter = cacheMissesCounter
 
 	_, err = meter.RegisterCallback(
-		func(ctx context.Context, o metric.Observer) error {
+		func(_ context.Context, o metric.Observer) error {
 			o.ObserveInt64(r.cacheSizeGauge, int64(r.cache.Len()))
 			o.ObserveInt64(r.cacheCapacityGauge, int64(cacheCapacity))
 			return nil

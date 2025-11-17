@@ -3,12 +3,13 @@ module github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter
 go 1.24.4
 
 require (
+	github.com/goccy/go-json v0.10.5
 	github.com/golang/mock v1.7.0-rc.1
 	github.com/google/uuid v1.6.0
 	github.com/observiq/bindplane-otel-collector/expr v1.87.8
 	github.com/observiq/bindplane-otel-collector/internal/os v1.87.8
 	github.com/observiq/bindplane-otel-collector/internal/resolver v1.87.8
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.198.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.139.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.45.0
@@ -49,7 +50,6 @@ require (
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
-	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect

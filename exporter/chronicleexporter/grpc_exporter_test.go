@@ -21,7 +21,6 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadatatest"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
-	"github.com/observiq/bindplane-otel-collector/internal/resolver"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumererror"
@@ -163,7 +162,7 @@ func TestGRPCExporter(t *testing.T) {
 			defer func() {
 				grpcClientParams = secureGPPCClientParams
 			}()
-			grpcClientParams = func(string, oauth2.TokenSource, *resolver.Resolver) (string, []grpc.DialOption) {
+			grpcClientParams = func(string, oauth2.TokenSource) (string, []grpc.DialOption) {
 				return endpoint, []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 			}
 
@@ -408,7 +407,7 @@ func TestGRPCExporterTelemetry(t *testing.T) {
 			defer func() {
 				grpcClientParams = secureGPPCClientParams
 			}()
-			grpcClientParams = func(string, oauth2.TokenSource, *resolver.Resolver) (string, []grpc.DialOption) {
+			grpcClientParams = func(string, oauth2.TokenSource) (string, []grpc.DialOption) {
 				return endpoint, []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 			}
 
