@@ -94,6 +94,29 @@ type Config struct {
 
 	// StorageID is the optional storage extension ID for checkpointing.
 	StorageID *component.ID `mapstructure:"storage"`
+
+	// Metrics defines configuration for metrics extraction.
+	Metrics MetricsConfig `mapstructure:"metrics"`
+}
+
+// MetricsConfig defines configuration for extracting metrics from API responses.
+type MetricsConfig struct {
+	// NameField is the name of the field in each response item that contains the metric name.
+	// If not specified or not found, defaults to "restapi.metric".
+	NameField string `mapstructure:"name_field"`
+
+	// DescriptionField is the name of the field in each response item that contains the metric description.
+	// If not specified or not found, defaults to "Metric from REST API".
+	DescriptionField string `mapstructure:"description_field"`
+
+	// TypeField is the name of the field in each response item that contains the metric type.
+	// Valid types: "gauge", "sum", "histogram", "summary".
+	// If not specified or not found, defaults to "gauge".
+	TypeField string `mapstructure:"type_field"`
+
+	// UnitField is the name of the field in each response item that contains the metric unit.
+	// If not specified or not found, no unit will be set.
+	UnitField string `mapstructure:"unit_field"`
 }
 
 // PaginationConfig defines pagination configuration.

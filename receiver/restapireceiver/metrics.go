@@ -24,7 +24,7 @@ import (
 
 // convertJSONToMetrics converts an array of JSON objects to pmetric.Metrics.
 // Each JSON object becomes one metric data point.
-func convertJSONToMetrics(data []map[string]any, logger *zap.Logger) pmetric.Metrics {
+func convertJSONToMetrics(data []map[string]any, cfg *MetricsConfig, logger *zap.Logger) pmetric.Metrics {
 	metrics := pmetric.NewMetrics()
 	resourceMetrics := metrics.ResourceMetrics().AppendEmpty()
 	scopeMetrics := resourceMetrics.ScopeMetrics().AppendEmpty()
@@ -39,28 +39,117 @@ func convertJSONToMetrics(data []map[string]any, logger *zap.Logger) pmetric.Met
 			continue
 		}
 
-		// Create a new metric
-		metric := scopeMetrics.Metrics().AppendEmpty()
-		metric.SetName("restapi.metric")
-		metric.SetDescription("Metric from REST API")
-
-		// Create gauge data point
-		gauge := metric.SetEmptyGauge()
-		dataPoint := gauge.DataPoints().AppendEmpty()
-
-		// Set the value
-		dataPoint.SetDoubleValue(*value)
-
-		// Set timestamp
-		timestamp := extractTimestamp(item)
-		if timestamp > 0 {
-			dataPoint.SetTimestamp(timestamp)
-		} else {
-			dataPoint.SetTimestamp(now)
+		// Extract metric name (defaults to "restapi.metric")
+		metricName := "restapi.metric"
+		if cfg.NameField != "" {
+			if nameVal, ok := item[cfg.NameField]; ok {
+				if nameStr, ok := nameVal.(string); ok && nameStr != "" {
+					metricName = nameStr
+				}
+			}
 		}
 
-		// Set attributes from all non-value fields
-		attrs := dataPoint.Attributes()
+		// Extract metric description (defaults to "Metric from REST API")
+		metricDescription := "Metric from REST API"
+		if cfg.DescriptionField != "" {
+			if descVal, ok := item[cfg.DescriptionField]; ok {
+				if descStr, ok := descVal.(string); ok && descStr != "" {
+					metricDescription = descStr
+				}
+			}
+		}
+
+		// Extract metric type (defaults to "gauge")
+		metricType := "gauge"
+		if cfg.TypeField != "" {
+			if typeVal, ok := item[cfg.TypeField]; ok {
+				if typeStr, ok := typeVal.(string); ok && typeStr != "" {
+					metricType = typeStr
+				}
+			}
+		}
+
+		// Extract metric unit (defaults to empty string)
+		metricUnit := ""
+		if cfg.UnitField != "" {
+			if unitVal, ok := item[cfg.UnitField]; ok {
+				if unitStr, ok := unitVal.(string); ok && unitStr != "" {
+					metricUnit = unitStr
+				}
+			}
+		}
+
+		// Create a new metric
+		metric := scopeMetrics.Metrics().AppendEmpty()
+		metric.SetName(metricName)
+		metric.SetDescription(metricDescription)
+		if metricUnit != "" {
+			metric.SetUnit(metricUnit)
+		}
+
+		// Create metric data point based on type
+		var dataPointAttrs pcommon.Map
+		switch metricType {
+		case "sum":
+			sum := metric.SetEmptySum()
+			sum.SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
+			sum.SetIsMonotonic(false) // Can be configured if needed
+			dataPoint := sum.DataPoints().AppendEmpty()
+			dataPoint.SetDoubleValue(*value)
+			dataPointAttrs = dataPoint.Attributes()
+
+			// Set timestamp
+			timestamp := extractTimestamp(item)
+			if timestamp > 0 {
+				dataPoint.SetTimestamp(timestamp)
+			} else {
+				dataPoint.SetTimestamp(now)
+			}
+		case "histogram":
+			histogram := metric.SetEmptyHistogram()
+			histogram.SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
+			dataPoint := histogram.DataPoints().AppendEmpty()
+			dataPoint.SetCount(1)
+			dataPoint.SetSum(*value)
+			dataPointAttrs = dataPoint.Attributes()
+
+			// Set timestamp
+			timestamp := extractTimestamp(item)
+			if timestamp > 0 {
+				dataPoint.SetTimestamp(timestamp)
+			} else {
+				dataPoint.SetTimestamp(now)
+			}
+		case "summary":
+			summary := metric.SetEmptySummary()
+			dataPoint := summary.DataPoints().AppendEmpty()
+			dataPoint.SetCount(1)
+			dataPoint.SetSum(*value)
+			dataPointAttrs = dataPoint.Attributes()
+
+			// Set timestamp
+			timestamp := extractTimestamp(item)
+			if timestamp > 0 {
+				dataPoint.SetTimestamp(timestamp)
+			} else {
+				dataPoint.SetTimestamp(now)
+			}
+		default: // "gauge" or any unknown type defaults to gauge
+			gauge := metric.SetEmptyGauge()
+			dataPoint := gauge.DataPoints().AppendEmpty()
+			dataPoint.SetDoubleValue(*value)
+			dataPointAttrs = dataPoint.Attributes()
+
+			// Set timestamp
+			timestamp := extractTimestamp(item)
+			if timestamp > 0 {
+				dataPoint.SetTimestamp(timestamp)
+			} else {
+				dataPoint.SetTimestamp(now)
+			}
+		}
+
+		// Set attributes from all non-value, non-metric-metadata fields
 		for key, val := range item {
 			// Skip the value field itself
 			if key == valueKey {
@@ -70,8 +159,21 @@ func convertJSONToMetrics(data []map[string]any, logger *zap.Logger) pmetric.Met
 			if isTimestampField(key) {
 				continue
 			}
+			// Skip metric metadata fields
+			if cfg.NameField != "" && key == cfg.NameField {
+				continue
+			}
+			if cfg.DescriptionField != "" && key == cfg.DescriptionField {
+				continue
+			}
+			if cfg.TypeField != "" && key == cfg.TypeField {
+				continue
+			}
+			if cfg.UnitField != "" && key == cfg.UnitField {
+				continue
+			}
 			// Add as attribute
-			setAttribute(attrs, key, val)
+			setAttribute(dataPointAttrs, key, val)
 		}
 	}
 

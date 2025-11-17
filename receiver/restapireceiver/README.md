@@ -75,6 +75,19 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 | `pagination.timestamp.page_size` | int | `100` | `false` | Page size to use |
 | `pagination.timestamp.initial_timestamp` | string | | `false` | Initial timestamp to start from (RFC3339 format). If not set, starts from beginning |
 
+### Metrics Configuration
+
+The metrics configuration allows you to customize how metrics are extracted from API responses.
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `metrics.name_field` | string | | `false` | Field name in each response item containing the metric name. If not specified or not found, defaults to `restapi.metric` |
+| `metrics.description_field` | string | | `false` | Field name in each response item containing the metric description. If not specified or not found, defaults to `Metric from REST API` |
+| `metrics.type_field` | string | | `false` | Field name in each response item containing the metric type (`gauge`, `sum`, `histogram`, `summary`). If not specified or not found, defaults to `gauge` |
+| `metrics.unit_field` | string | | `false` | Field name in each response item containing the metric unit. If not specified or not found, no unit is set |
+
+**Note:** When field names are configured, those fields are automatically excluded from metric attributes to avoid duplication.
+
 ## Example Configurations
 
 ### Basic Configuration (No Auth, No Pagination)
@@ -153,6 +166,56 @@ receivers:
 extensions:
   file_storage:
     directory: /var/lib/otelcol/storage
+```
+
+### Metrics with Custom Field Mappings
+
+```yaml
+receivers:
+  restapi/metrics:
+    url: "https://api.example.com/metrics"
+    response_field: "metrics"
+    poll_interval: 1m
+    auth_mode: apikey
+    apikey_header_name: "X-API-Key"
+    apikey_value: "your-api-key-here"
+    metrics:
+      name_field: "metric_name"
+      description_field: "metric_description"
+      type_field: "metric_type"
+      unit_field: "unit"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [restapi/metrics]
+      exporters: [otlp]
+```
+
+This configuration would work with an API response like:
+```json
+{
+  "metrics": [
+    {
+      "metric_name": "cpu.usage",
+      "metric_description": "CPU usage percentage",
+      "metric_type": "gauge",
+      "unit": "%",
+      "value": 45.5,
+      "host": "server1",
+      "environment": "production"
+    },
+    {
+      "metric_name": "memory.used",
+      "metric_description": "Memory used in bytes",
+      "metric_type": "sum",
+      "unit": "bytes",
+      "value": 8589934592,
+      "host": "server1",
+      "environment": "production"
+    }
+  ]
+}
 ```
 
 ## Response Format
