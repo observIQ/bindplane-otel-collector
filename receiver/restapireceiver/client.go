@@ -263,6 +263,16 @@ func (c *defaultRESTAPIClient) applyAuth(req *http.Request) error {
 		req.SetBasicAuth(c.cfg.AuthBasicUsername, c.cfg.AuthBasicPassword)
 		return nil
 
+	case authModeAkamaiEdgeGrid:
+		// Akamai EdgeGrid authentication
+		if c.cfg.AuthAkamaiAccessToken == "" || c.cfg.AuthAkamaiClientToken == "" || c.cfg.AuthAkamaiClientSecret == "" {
+			return fmt.Errorf("Akamai EdgeGrid access token, client token, and client secret are required")
+		}
+		req.Header.Set("Authorization", "Bearer "+c.cfg.AuthAkamaiAccessToken)
+		req.Header.Set("X-Akamai-Client-Token", c.cfg.AuthAkamaiClientToken)
+		req.Header.Set("X-Akamai-Client-Secret", c.cfg.AuthAkamaiClientSecret)
+		return nil
+
 	default:
 		return fmt.Errorf("unsupported auth mode: %s", c.cfg.AuthMode)
 	}

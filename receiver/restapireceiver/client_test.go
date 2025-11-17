@@ -221,6 +221,44 @@ func TestRESTAPIClient_GetJSON_BasicAuth(t *testing.T) {
 	require.Len(t, data, 1)
 }
 
+func TestRESTAPIClient_GetJSON_AkamaiEdgeGridAuth(t *testing.T) {
+	// Create a test server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify Akamai EdgeGrid auth headers
+		require.Equal(t, "Bearer test-access-token", r.Header.Get("Authorization"))
+		require.Equal(t, "test-client-token", r.Header.Get("X-Akamai-Client-Token"))
+		require.Equal(t, "test-client-secret", r.Header.Get("X-Akamai-Client-Secret"))
+
+		response := []map[string]any{
+			{"id": "1"},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	cfg := &Config{
+		URL:                    server.URL,
+		AuthMode:               string(authModeAkamaiEdgeGrid),
+		AuthAkamaiAccessToken:  "test-access-token",
+		AuthAkamaiClientToken:  "test-client-token",
+		AuthAkamaiClientSecret: "test-client-secret",
+		ClientConfig:           confighttp.ClientConfig{},
+	}
+
+	ctx := context.Background()
+	host := componenttest.NewNopHost()
+	settings := componenttest.NewNopTelemetrySettings()
+
+	client, err := newRESTAPIClient(ctx, settings, cfg, host)
+	require.NoError(t, err)
+
+	params := url.Values{}
+	data, err := client.GetJSON(ctx, server.URL, params)
+	require.NoError(t, err)
+	require.Len(t, data, 1)
+}
+
 func TestRESTAPIClient_GetJSON_WithQueryParams(t *testing.T) {
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

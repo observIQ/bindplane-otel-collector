@@ -26,20 +26,21 @@ import (
 type AuthMode string
 
 const (
-	authModeAPIKey AuthMode = "apikey"
-	authModeBearer AuthMode = "bearer"
-	authModeBasic  AuthMode = "basic"
+	authModeAPIKey         AuthMode = "apikey"
+	authModeBearer         AuthMode = "bearer"
+	authModeBasic          AuthMode = "basic"
+	authModeAkamaiEdgeGrid AuthMode = "akamai_edgegrid"
 )
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface
 func (m *AuthMode) UnmarshalText(text []byte) error {
 	mode := AuthMode(text)
 	switch mode {
-	case authModeAPIKey, authModeBearer, authModeBasic:
+	case authModeAPIKey, authModeBearer, authModeBasic, authModeAkamaiEdgeGrid:
 		*m = mode
 		return nil
 	default:
-		return fmt.Errorf("invalid auth mode: %s, must be one of: none, apikey, bearer, basic", text)
+		return fmt.Errorf("invalid auth mode: %s, must be one of: none, apikey, bearer, basic, akamai_edgegrid", text)
 	}
 }
 
@@ -82,6 +83,11 @@ type Config struct {
 	AuthBearerToken      string `mapstructure:"bearer_token"`
 	AuthBasicUsername    string `mapstructure:"username"`
 	AuthBasicPassword    string `mapstructure:"password"`
+
+	// Akamai EdgeGrid authentication
+	AuthAkamaiAccessToken  string `mapstructure:"akamai_access_token"`
+	AuthAkamaiClientToken  string `mapstructure:"akamai_client_token"`
+	AuthAkamaiClientSecret string `mapstructure:"akamai_client_secret"`
 
 	// Pagination defines pagination configuration.
 	Pagination PaginationConfig `mapstructure:"pagination"`
@@ -215,10 +221,10 @@ func (c *Config) Validate() error {
 
 	// Validate auth mode
 	switch c.AuthMode {
-	case string(authModeAPIKey), string(authModeBearer), string(authModeBasic):
+	case string(authModeAPIKey), string(authModeBearer), string(authModeBasic), string(authModeAkamaiEdgeGrid):
 		// Valid modes
 	default:
-		return fmt.Errorf("invalid auth mode: %s, must be one of: apikey, bearer, basic", c.AuthMode)
+		return fmt.Errorf("invalid auth mode: %s, must be one of: apikey, bearer, basic, akamai_edgegrid", c.AuthMode)
 	}
 
 	// Validate auth mode specific requirements
@@ -240,6 +246,16 @@ func (c *Config) Validate() error {
 		}
 		if c.AuthBasicPassword == "" {
 			return fmt.Errorf("basic_password is required when auth_mode is basic")
+		}
+	case string(authModeAkamaiEdgeGrid):
+		if c.AuthAkamaiAccessToken == "" {
+			return fmt.Errorf("akamai_access_token is required when auth_mode is akamai_edgegrid")
+		}
+		if c.AuthAkamaiClientToken == "" {
+			return fmt.Errorf("akamai_client_token is required when auth_mode is akamai_edgegrid")
+		}
+		if c.AuthAkamaiClientSecret == "" {
+			return fmt.Errorf("akamai_client_secret is required when auth_mode is akamai_edgegrid")
 		}
 	}
 
