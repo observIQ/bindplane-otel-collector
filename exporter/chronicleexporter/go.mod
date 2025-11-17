@@ -7,7 +7,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/observiq/bindplane-otel-collector/expr v1.87.8
 	github.com/observiq/bindplane-otel-collector/internal/os v1.87.8
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.139.0
+	github.com/observiq/bindplane-otel-collector/internal/resolver v1.87.8
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.198.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.45.0
@@ -52,6 +53,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
+	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
@@ -102,5 +104,7 @@ require (
 )
 
 replace github.com/observiq/bindplane-otel-collector/internal/os => ../../internal/os
+
+replace github.com/observiq/bindplane-otel-collector/internal/resolver => ../../internal/resolver
 
 replace github.com/observiq/bindplane-otel-collector/expr => ../../expr

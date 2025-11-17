@@ -29,6 +29,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	ios "github.com/observiq/bindplane-otel-collector/internal/os"
+	"github.com/observiq/bindplane-otel-collector/internal/resolver"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
@@ -51,6 +52,7 @@ type httpExporter struct {
 	set       component.TelemetrySettings
 	marshaler *protoMarshaler
 	client    *http.Client
+	resolver  *resolver.Resolver
 
 	telemetry        *metadata.TelemetryBuilder
 	metricAttributes attribute.Set
@@ -90,11 +92,26 @@ func (exp *httpExporter) Capabilities() consumer.Capabilities {
 }
 
 func (exp *httpExporter) Start(ctx context.Context, _ component.Host) error {
+	r, err := resolver.New(exp.set.MeterProvider, exp.set.Logger.Named("resolver"), dnsCacheCapacity)
+	if err != nil {
+		return fmt.Errorf("create DNS resolver: %w", err)
+	}
+	exp.resolver = r
+
 	ts, err := tokenSource(ctx, exp.cfg)
 	if err != nil {
 		return fmt.Errorf("load Google credentials: %w", err)
 	}
-	exp.client = oauth2.NewClient(context.Background(), ts)
+
+	baseTransport := &http.Transport{
+		DialContext: exp.resolver.DialContext,
+	}
+	exp.client = &http.Client{
+		Transport: &oauth2.Transport{
+			Base:   baseTransport,
+			Source: ts,
+		},
+	}
 
 	if exp.cfg.ValidateLogTypes {
 		exp.marshaler.logTypes = exp.loadLogTypes(ctx)

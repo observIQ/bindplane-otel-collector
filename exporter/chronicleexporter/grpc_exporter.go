@@ -17,12 +17,14 @@ package chronicleexporter
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	ios "github.com/observiq/bindplane-otel-collector/internal/os"
+	"github.com/observiq/bindplane-otel-collector/internal/resolver"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
@@ -48,9 +50,10 @@ type grpcExporter struct {
 	exporterID string
 	marshaler  *protoMarshaler
 
-	client  api.IngestionServiceV2Client
-	conn    *grpc.ClientConn
-	metrics *hostMetricsReporter
+	client   api.IngestionServiceV2Client
+	conn     *grpc.ClientConn
+	metrics  *hostMetricsReporter
+	resolver *resolver.Resolver
 
 	telemetry        *metadata.TelemetryBuilder
 	metricAttributes attribute.Set
@@ -91,11 +94,17 @@ func (exp *grpcExporter) Capabilities() consumer.Capabilities {
 }
 
 func (exp *grpcExporter) Start(ctx context.Context, _ component.Host) error {
+	r, err := resolver.New(exp.set.MeterProvider, exp.set.Logger.Named("resolver"), dnsCacheCapacity)
+	if err != nil {
+		return fmt.Errorf("create DNS resolver: %w", err)
+	}
+	exp.resolver = r
+
 	ts, err := tokenSource(ctx, exp.cfg)
 	if err != nil {
 		return fmt.Errorf("load Google credentials: %w", err)
 	}
-	endpoint, dialOpts := grpcClientParams(exp.cfg.Endpoint, ts)
+	endpoint, dialOpts := grpcClientParams(exp.cfg.Endpoint, ts, exp.resolver)
 	conn, err := grpc.NewClient(endpoint, dialOpts...)
 	if err != nil {
 		return fmt.Errorf("dial: %w", err)
@@ -246,9 +255,18 @@ func (exp *grpcExporter) buildOptions() []grpc.CallOption {
 }
 
 // Override for testing
-var grpcClientParams = func(cfgEndpoint string, ts oauth2.TokenSource) (string, []grpc.DialOption) {
-	return cfgEndpoint + ":443", []grpc.DialOption{
+var grpcClientParams = func(cfgEndpoint string, ts oauth2.TokenSource, r *resolver.Resolver) (string, []grpc.DialOption) {
+	dialOpts := []grpc.DialOption{
 		grpc.WithPerRPCCredentials(oauth.TokenSource{TokenSource: ts}),
 		grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, "")),
 	}
+
+	// Use custom resolver if available
+	if r != nil {
+		dialOpts = append(dialOpts, grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+			return r.DialContext(ctx, "tcp", addr)
+		}))
+	}
+
+	return cfgEndpoint + ":443", dialOpts
 }

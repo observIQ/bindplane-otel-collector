@@ -32,6 +32,9 @@ const (
 	noCompression = "none"
 	protocolHTTPS = "https"
 	protocolGRPC  = "gRPC"
+
+	// dnsCacheCapacity is the capacity of the DNS cache used by the resolver.
+	dnsCacheCapacity = 1000
 )
 
 // Config defines configuration for the Chronicle exporter.
