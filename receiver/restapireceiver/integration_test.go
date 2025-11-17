@@ -49,11 +49,13 @@ func TestIntegration_EndToEnd_Logs(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		ResponseField:        "logs",
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
+		URL:           server.URL,
+		ResponseField: "logs",
+		AuthMode:      authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},
@@ -101,10 +103,12 @@ func TestIntegration_EndToEnd_Metrics(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},
@@ -181,10 +185,12 @@ func TestIntegration_WithPaginationAndAuth(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:             server.URL,
-		ResponseField:   "data",
-		AuthMode:        string(authModeBearer),
-		AuthBearerToken: "test-token-123",
+		URL:           server.URL,
+		ResponseField: "data",
+		AuthMode:      authModeBearer,
+		BearerConfig: BearerConfig{
+			Token: "test-token-123",
+		},
 		Pagination: PaginationConfig{
 			Mode: paginationModeOffsetLimit,
 			OffsetLimit: OffsetLimitPagination{
@@ -260,10 +266,12 @@ func TestIntegration_TimestampPagination(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
 		Pagination: PaginationConfig{
 			Mode: paginationModeTimestamp,
 			Timestamp: TimestampPagination{
@@ -325,10 +333,12 @@ func TestIntegration_ErrorRecovery(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},
