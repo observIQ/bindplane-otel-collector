@@ -30,7 +30,8 @@ func TestConvertJSONToMetrics_SimpleArray(t *testing.T) {
 	}
 
 	logger := zap.NewNop()
-	metrics := convertJSONToMetrics(data, logger)
+	cfg := &MetricsConfig{}
+	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	require.Equal(t, 1, metrics.ResourceMetrics().Len())
 	require.Equal(t, 1, metrics.ResourceMetrics().At(0).ScopeMetrics().Len())
@@ -65,7 +66,8 @@ func TestConvertJSONToMetrics_SimpleArray(t *testing.T) {
 func TestConvertJSONToMetrics_EmptyArray(t *testing.T) {
 	data := []map[string]any{}
 	logger := zap.NewNop()
-	metrics := convertJSONToMetrics(data, logger)
+	cfg := &MetricsConfig{}
+	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	require.Equal(t, 1, metrics.ResourceMetrics().Len())
 	require.Equal(t, 1, metrics.ResourceMetrics().At(0).ScopeMetrics().Len())
@@ -80,7 +82,8 @@ func TestConvertJSONToMetrics_WithNumericValue(t *testing.T) {
 	}
 
 	logger := zap.NewNop()
-	metrics := convertJSONToMetrics(data, logger)
+	cfg := &MetricsConfig{}
+	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	require.Equal(t, 3, metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().Len())
 
@@ -116,7 +119,8 @@ func TestConvertJSONToMetrics_WithAttributes(t *testing.T) {
 	}
 
 	logger := zap.NewNop()
-	metrics := convertJSONToMetrics(data, logger)
+	cfg := &MetricsConfig{}
+	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	metric := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().At(0)
 	gauge := metric.Gauge()
@@ -137,7 +141,8 @@ func TestConvertJSONToMetrics_NoValueField(t *testing.T) {
 	}
 
 	logger := zap.NewNop()
-	metrics := convertJSONToMetrics(data, logger)
+	cfg := &MetricsConfig{}
+	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	// Should still create metrics, using first numeric field as value
 	require.Equal(t, 2, metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().Len())
@@ -155,7 +160,8 @@ func TestConvertJSONToMetrics_NoNumericValue(t *testing.T) {
 	}
 
 	logger := zap.NewNop()
-	metrics := convertJSONToMetrics(data, logger)
+	cfg := &MetricsConfig{}
+	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	// Should skip items without numeric values
 	require.Equal(t, 0, metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().Len())
@@ -167,7 +173,8 @@ func TestConvertJSONToMetrics_WithTimestamp(t *testing.T) {
 	}
 
 	logger := zap.NewNop()
-	metrics := convertJSONToMetrics(data, logger)
+	cfg := &MetricsConfig{}
+	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	metric := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().At(0)
 	gauge := metric.Gauge()
@@ -187,7 +194,8 @@ func TestConvertJSONToMetrics_MultipleMetrics(t *testing.T) {
 	}
 
 	logger := zap.NewNop()
-	metrics := convertJSONToMetrics(data, logger)
+	cfg := &MetricsConfig{}
+	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	require.Equal(t, 5, metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().Len())
 
@@ -213,7 +221,8 @@ func TestConvertJSONToMetrics_WithNestedFields(t *testing.T) {
 	}
 
 	logger := zap.NewNop()
-	metrics := convertJSONToMetrics(data, logger)
+	cfg := &MetricsConfig{}
+	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	metric := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().At(0)
 	gauge := metric.Gauge()
@@ -223,4 +232,184 @@ func TestConvertJSONToMetrics_WithNestedFields(t *testing.T) {
 	// Nested fields should be flattened or preserved as attributes
 	// For simplicity, we'll convert nested maps to string attributes
 	require.NotNil(t, attrs.AsRaw()["metadata"])
+}
+
+func TestConvertJSONToMetrics_WithCustomNameField(t *testing.T) {
+	data := []map[string]any{
+		{"value": 42.5, "metric_name": "cpu_usage", "host": "server1"},
+		{"value": 100.0, "metric_name": "memory_usage", "host": "server2"},
+	}
+
+	logger := zap.NewNop()
+	cfg := &MetricsConfig{
+		NameField: "metric_name",
+	}
+	metrics := convertJSONToMetrics(data, cfg, logger)
+
+	scopeMetrics := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0)
+	require.Equal(t, 2, scopeMetrics.Metrics().Len())
+
+	// Check first metric name
+	metric1 := scopeMetrics.Metrics().At(0)
+	require.Equal(t, "cpu_usage", metric1.Name())
+
+	// Check second metric name
+	metric2 := scopeMetrics.Metrics().At(1)
+	require.Equal(t, "memory_usage", metric2.Name())
+}
+
+func TestConvertJSONToMetrics_WithCustomDescriptionField(t *testing.T) {
+	data := []map[string]any{
+		{"value": 42.5, "metric_desc": "CPU usage percentage", "host": "server1"},
+	}
+
+	logger := zap.NewNop()
+	cfg := &MetricsConfig{
+		DescriptionField: "metric_desc",
+	}
+	metrics := convertJSONToMetrics(data, cfg, logger)
+
+	metric := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().At(0)
+	require.Equal(t, "CPU usage percentage", metric.Description())
+}
+
+func TestConvertJSONToMetrics_WithCustomTypeField(t *testing.T) {
+	data := []map[string]any{
+		{"value": 42.5, "metric_type": "sum", "host": "server1"},
+		{"value": 100.0, "metric_type": "gauge", "host": "server2"},
+		{"value": 75.0, "metric_type": "histogram", "host": "server3"},
+	}
+
+	logger := zap.NewNop()
+	cfg := &MetricsConfig{
+		TypeField: "metric_type",
+	}
+	metrics := convertJSONToMetrics(data, cfg, logger)
+
+	scopeMetrics := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0)
+	require.Equal(t, 3, scopeMetrics.Metrics().Len())
+
+	// Check sum metric
+	metric1 := scopeMetrics.Metrics().At(0)
+	require.Equal(t, pmetric.MetricTypeSum, metric1.Type())
+	sum := metric1.Sum()
+	require.Equal(t, 1, sum.DataPoints().Len())
+	require.Equal(t, 42.5, sum.DataPoints().At(0).DoubleValue())
+
+	// Check gauge metric
+	metric2 := scopeMetrics.Metrics().At(1)
+	require.Equal(t, pmetric.MetricTypeGauge, metric2.Type())
+
+	// Check histogram metric
+	metric3 := scopeMetrics.Metrics().At(2)
+	require.Equal(t, pmetric.MetricTypeHistogram, metric3.Type())
+}
+
+func TestConvertJSONToMetrics_WithUnitField(t *testing.T) {
+	data := []map[string]any{
+		{"value": 42.5, "unit": "bytes", "host": "server1"},
+		{"value": 100.0, "unit": "percent", "host": "server2"},
+	}
+
+	logger := zap.NewNop()
+	cfg := &MetricsConfig{
+		UnitField: "unit",
+	}
+	metrics := convertJSONToMetrics(data, cfg, logger)
+
+	scopeMetrics := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0)
+	require.Equal(t, 2, scopeMetrics.Metrics().Len())
+
+	// Check first metric unit
+	metric1 := scopeMetrics.Metrics().At(0)
+	require.Equal(t, "bytes", metric1.Unit())
+
+	// Check second metric unit
+	metric2 := scopeMetrics.Metrics().At(1)
+	require.Equal(t, "percent", metric2.Unit())
+}
+
+func TestConvertJSONToMetrics_WithDefaults(t *testing.T) {
+	data := []map[string]any{
+		{"value": 42.5, "host": "server1"},
+		{"value": 100.0, "host": "server2"},
+	}
+
+	logger := zap.NewNop()
+	cfg := &MetricsConfig{}
+	metrics := convertJSONToMetrics(data, cfg, logger)
+
+	scopeMetrics := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0)
+	require.Equal(t, 2, scopeMetrics.Metrics().Len())
+
+	// Check that hardcoded defaults are used
+	metric1 := scopeMetrics.Metrics().At(0)
+	require.Equal(t, "restapi.metric", metric1.Name())
+	require.Equal(t, "Metric from REST API", metric1.Description())
+	require.Equal(t, pmetric.MetricTypeGauge, metric1.Type())
+	require.Equal(t, "", metric1.Unit())
+}
+
+func TestConvertJSONToMetrics_FieldOverridesDefaults(t *testing.T) {
+	data := []map[string]any{
+		{"value": 42.5, "metric_name": "specific.metric", "metric_type": "gauge", "host": "server1"},
+	}
+
+	logger := zap.NewNop()
+	cfg := &MetricsConfig{
+		NameField: "metric_name",
+		TypeField: "metric_type",
+	}
+	metrics := convertJSONToMetrics(data, cfg, logger)
+
+	metric := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().At(0)
+
+	// Field values should override hardcoded defaults
+	require.Equal(t, "specific.metric", metric.Name())
+	require.Equal(t, pmetric.MetricTypeGauge, metric.Type())
+	// Description should use hardcoded default (not specified in data)
+	require.Equal(t, "Metric from REST API", metric.Description())
+}
+
+func TestConvertJSONToMetrics_AllFieldsConfigured(t *testing.T) {
+	data := []map[string]any{
+		{
+			"value":       42.5,
+			"metric_name": "custom.cpu.usage",
+			"metric_desc": "CPU usage in percent",
+			"metric_type": "gauge",
+			"metric_unit": "%",
+			"host":        "server1",
+			"environment": "production",
+		},
+	}
+
+	logger := zap.NewNop()
+	cfg := &MetricsConfig{
+		NameField:        "metric_name",
+		DescriptionField: "metric_desc",
+		TypeField:        "metric_type",
+		UnitField:        "metric_unit",
+	}
+	metrics := convertJSONToMetrics(data, cfg, logger)
+
+	metric := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().At(0)
+
+	// Check all metric properties
+	require.Equal(t, "custom.cpu.usage", metric.Name())
+	require.Equal(t, "CPU usage in percent", metric.Description())
+	require.Equal(t, pmetric.MetricTypeGauge, metric.Type())
+	require.Equal(t, "%", metric.Unit())
+
+	// Check that metric fields are not included in attributes
+	gauge := metric.Gauge()
+	dp := gauge.DataPoints().At(0)
+	attrs := dp.Attributes()
+
+	require.Equal(t, "server1", attrs.AsRaw()["host"])
+	require.Equal(t, "production", attrs.AsRaw()["environment"])
+	require.NotContains(t, attrs.AsRaw(), "metric_name")
+	require.NotContains(t, attrs.AsRaw(), "metric_desc")
+	require.NotContains(t, attrs.AsRaw(), "metric_type")
+	require.NotContains(t, attrs.AsRaw(), "metric_unit")
 }
