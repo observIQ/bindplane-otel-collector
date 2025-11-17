@@ -76,18 +76,11 @@ type Config struct {
 	ResponseField string `mapstructure:"response_field"`
 
 	// Auth defines authentication configuration.
-	AuthMode string `mapstructure:"auth_mode"`
-
-	AuthAPIKeyHeaderName string `mapstructure:"apikey_header_name"`
-	AuthAPIKeyValue      string `mapstructure:"apikey_value"`
-	AuthBearerToken      string `mapstructure:"bearer_token"`
-	AuthBasicUsername    string `mapstructure:"username"`
-	AuthBasicPassword    string `mapstructure:"password"`
-
-	// Akamai EdgeGrid authentication
-	AuthAkamaiAccessToken  string `mapstructure:"akamai_access_token"`
-	AuthAkamaiClientToken  string `mapstructure:"akamai_client_token"`
-	AuthAkamaiClientSecret string `mapstructure:"akamai_client_secret"`
+	AuthMode             AuthMode             `mapstructure:"auth_mode"`
+	APIKeyConfig         APIKeyConfig         `mapstructure:"apikey"`
+	BearerConfig         BearerConfig         `mapstructure:"bearer"`
+	BasicConfig          BasicConfig          `mapstructure:"basic"`
+	AkamaiEdgeGridConfig AkamaiEdgeGridConfig `mapstructure:"akamai_edgegrid"`
 
 	// Pagination defines pagination configuration.
 	Pagination PaginationConfig `mapstructure:"pagination"`
@@ -134,6 +127,30 @@ type MetricsConfig struct {
 	// Only applies to sum and histogram metrics.
 	// If not specified or not found, defaults to "cumulative".
 	AggregationTemporalityField string `mapstructure:"aggregation_temporality_field"`
+}
+
+// APIKeyConfig defines API key authentication configuration.
+type APIKeyConfig struct {
+	HeaderName string `mapstructure:"header_name"`
+	Value      string `mapstructure:"value"`
+}
+
+// BearerConfig defines bearer token authentication configuration.
+type BearerConfig struct {
+	Token string `mapstructure:"token"`
+}
+
+// BasicConfig defines basic authentication configuration.
+type BasicConfig struct {
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
+}
+
+// AkamaiEdgeGridConfig defines Akamai EdgeGrid authentication configuration.
+type AkamaiEdgeGridConfig struct {
+	AccessToken  string `mapstructure:"access_token"`
+	ClientToken  string `mapstructure:"client_token"`
+	ClientSecret string `mapstructure:"client_secret"`
 }
 
 // PaginationConfig defines pagination configuration.
@@ -221,7 +238,7 @@ func (c *Config) Validate() error {
 
 	// Validate auth mode
 	switch c.AuthMode {
-	case string(authModeAPIKey), string(authModeBearer), string(authModeBasic), string(authModeAkamaiEdgeGrid):
+	case authModeAPIKey, authModeBearer, authModeBasic, authModeAkamaiEdgeGrid:
 		// Valid modes
 	default:
 		return fmt.Errorf("invalid auth mode: %s, must be one of: apikey, bearer, basic, akamai_edgegrid", c.AuthMode)
@@ -229,32 +246,32 @@ func (c *Config) Validate() error {
 
 	// Validate auth mode specific requirements
 	switch c.AuthMode {
-	case string(authModeAPIKey):
-		if c.AuthAPIKeyHeaderName == "" {
+	case authModeAPIKey:
+		if c.APIKeyConfig.HeaderName == "" {
 			return fmt.Errorf("apikey_header_name is required when auth_mode is apikey")
 		}
-		if c.AuthAPIKeyValue == "" {
+		if c.APIKeyConfig.Value == "" {
 			return fmt.Errorf("apikey_value is required when auth_mode is apikey")
 		}
-	case string(authModeBearer):
-		if c.AuthBearerToken == "" {
+	case authModeBearer:
+		if c.BearerConfig.Token == "" {
 			return fmt.Errorf("bearer_token is required when auth_mode is bearer")
 		}
-	case string(authModeBasic):
-		if c.AuthBasicUsername == "" {
+	case authModeBasic:
+		if c.BasicConfig.Username == "" {
 			return fmt.Errorf("basic_username is required when auth_mode is basic")
 		}
-		if c.AuthBasicPassword == "" {
+		if c.BasicConfig.Password == "" {
 			return fmt.Errorf("basic_password is required when auth_mode is basic")
 		}
-	case string(authModeAkamaiEdgeGrid):
-		if c.AuthAkamaiAccessToken == "" {
+	case authModeAkamaiEdgeGrid:
+		if c.AkamaiEdgeGridConfig.AccessToken == "" {
 			return fmt.Errorf("akamai_access_token is required when auth_mode is akamai_edgegrid")
 		}
-		if c.AuthAkamaiClientToken == "" {
+		if c.AkamaiEdgeGridConfig.ClientToken == "" {
 			return fmt.Errorf("akamai_client_token is required when auth_mode is akamai_edgegrid")
 		}
-		if c.AuthAkamaiClientSecret == "" {
+		if c.AkamaiEdgeGridConfig.ClientSecret == "" {
 			return fmt.Errorf("akamai_client_secret is required when auth_mode is akamai_edgegrid")
 		}
 	}

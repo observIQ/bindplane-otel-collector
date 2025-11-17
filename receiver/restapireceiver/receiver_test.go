@@ -41,10 +41,12 @@ func TestRESTAPILogsReceiver_StartShutdown(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},
@@ -85,10 +87,12 @@ func TestRESTAPIMetricsReceiver_StartShutdown(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},
@@ -155,11 +159,13 @@ func TestRESTAPILogsReceiver_WithPagination(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		ResponseField:        "data",
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
+		URL:           server.URL,
+		ResponseField: "data",
+		AuthMode:      authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
 		Pagination: PaginationConfig{
 			Mode: paginationModeOffsetLimit,
 			OffsetLimit: OffsetLimitPagination{
@@ -234,10 +240,12 @@ func TestRESTAPILogsReceiver_WithTimestampPagination(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
 		Pagination: PaginationConfig{
 			Mode: paginationModeTimestamp,
 			Timestamp: TimestampPagination{
@@ -286,10 +294,12 @@ func TestRESTAPILogsReceiver_ErrorHandling(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},
@@ -326,10 +336,12 @@ func TestRESTAPILogsReceiver_EmptyResponse(t *testing.T) {
 	defer server.Close()
 
 	cfg := &Config{
-		URL:                  server.URL,
-		AuthMode:             string(authModeAPIKey),
-		AuthAPIKeyHeaderName: "X-API-Key",
-		AuthAPIKeyValue:      "test-key",
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},

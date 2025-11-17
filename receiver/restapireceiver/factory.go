@@ -40,7 +40,11 @@ func NewFactory() receiver.Factory {
 func createDefaultConfig() component.Config {
 	return &Config{
 		URL:      "",
-		AuthMode: string(authModeAPIKey),
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
 		Pagination: PaginationConfig{
 			Mode:           paginationModeNone,
 			PageLimit:      0,

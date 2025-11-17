@@ -237,40 +237,40 @@ func (c *defaultRESTAPIClient) GetFullResponse(ctx context.Context, requestURL s
 
 // applyAuth applies authentication headers to the request based on the configured auth mode.
 func (c *defaultRESTAPIClient) applyAuth(req *http.Request) error {
-	switch AuthMode(c.cfg.AuthMode) {
+	switch c.cfg.AuthMode {
 
 	case authModeAPIKey:
 		// API key authentication
-		if c.cfg.AuthAPIKeyHeaderName == "" || c.cfg.AuthAPIKeyValue == "" {
+		if c.cfg.APIKeyConfig.HeaderName == "" || c.cfg.APIKeyConfig.Value == "" {
 			return fmt.Errorf("API key header name and value are required")
 		}
-		req.Header.Set(c.cfg.AuthAPIKeyHeaderName, c.cfg.AuthAPIKeyValue)
+		req.Header.Set(c.cfg.APIKeyConfig.HeaderName, c.cfg.APIKeyConfig.Value)
 		return nil
 
 	case authModeBearer:
 		// Bearer token authentication
-		if c.cfg.AuthBearerToken == "" {
+		if c.cfg.BearerConfig.Token == "" {
 			return fmt.Errorf("bearer token is required")
 		}
-		req.Header.Set("Authorization", "Bearer "+c.cfg.AuthBearerToken)
+		req.Header.Set("Authorization", "Bearer "+c.cfg.BearerConfig.Token)
 		return nil
 
 	case authModeBasic:
 		// Basic authentication
-		if c.cfg.AuthBasicUsername == "" || c.cfg.AuthBasicPassword == "" {
+		if c.cfg.BasicConfig.Username == "" || c.cfg.BasicConfig.Password == "" {
 			return fmt.Errorf("basic auth username and password are required")
 		}
-		req.SetBasicAuth(c.cfg.AuthBasicUsername, c.cfg.AuthBasicPassword)
+		req.SetBasicAuth(c.cfg.BasicConfig.Username, c.cfg.BasicConfig.Password)
 		return nil
 
 	case authModeAkamaiEdgeGrid:
 		// Akamai EdgeGrid authentication
-		if c.cfg.AuthAkamaiAccessToken == "" || c.cfg.AuthAkamaiClientToken == "" || c.cfg.AuthAkamaiClientSecret == "" {
-			return fmt.Errorf("Akamai EdgeGrid access token, client token, and client secret are required")
+		if c.cfg.AkamaiEdgeGridConfig.AccessToken == "" || c.cfg.AkamaiEdgeGridConfig.ClientToken == "" || c.cfg.AkamaiEdgeGridConfig.ClientSecret == "" {
+			return fmt.Errorf("akamai edgegrid access token, client token, and client secret are required")
 		}
-		req.Header.Set("Authorization", "Bearer "+c.cfg.AuthAkamaiAccessToken)
-		req.Header.Set("X-Akamai-Client-Token", c.cfg.AuthAkamaiClientToken)
-		req.Header.Set("X-Akamai-Client-Secret", c.cfg.AuthAkamaiClientSecret)
+		req.Header.Set("Authorization", "Bearer "+c.cfg.AkamaiEdgeGridConfig.AccessToken)
+		req.Header.Set("X-Akamai-Client-Token", c.cfg.AkamaiEdgeGridConfig.ClientToken)
+		req.Header.Set("X-Akamai-Client-Secret", c.cfg.AkamaiEdgeGridConfig.ClientSecret)
 		return nil
 
 	default:
