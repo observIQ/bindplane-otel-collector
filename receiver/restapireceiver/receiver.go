@@ -488,7 +488,7 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) error {
 		data := extractDataFromResponse(fullResponse, r.cfg.ResponseField, r.logger)
 
 		// Convert to metrics
-		metrics := convertJSONToMetrics(data, r.logger)
+		metrics := convertJSONToMetrics(data, &r.cfg.Metrics, r.logger)
 
 		// Consume metrics if any
 		if metrics.MetricCount() > 0 {
