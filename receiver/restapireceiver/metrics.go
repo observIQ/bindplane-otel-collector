@@ -79,6 +79,29 @@ func convertJSONToMetrics(data []map[string]any, cfg *MetricsConfig, logger *zap
 			}
 		}
 
+		// Extract monotonic flag for sum metrics (defaults to false for safety)
+		isMonotonic := false
+		if cfg.MonotonicField != "" {
+			if monotonicVal, ok := item[cfg.MonotonicField]; ok {
+				if monotonicBool, ok := monotonicVal.(bool); ok {
+					isMonotonic = monotonicBool
+				}
+			}
+		}
+
+		// Extract aggregation temporality (defaults to "cumulative")
+		aggregationTemporality := pmetric.AggregationTemporalityCumulative
+		if cfg.AggregationTemporalityField != "" {
+			if aggVal, ok := item[cfg.AggregationTemporalityField]; ok {
+				if aggStr, ok := aggVal.(string); ok {
+					if aggStr == "delta" {
+						aggregationTemporality = pmetric.AggregationTemporalityDelta
+					}
+					// "cumulative" or any other value defaults to cumulative
+				}
+			}
+		}
+
 		// Create a new metric
 		metric := scopeMetrics.Metrics().AppendEmpty()
 		metric.SetName(metricName)
@@ -92,8 +115,8 @@ func convertJSONToMetrics(data []map[string]any, cfg *MetricsConfig, logger *zap
 		switch metricType {
 		case "sum":
 			sum := metric.SetEmptySum()
-			sum.SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
-			sum.SetIsMonotonic(false) // Can be configured if needed
+			sum.SetAggregationTemporality(aggregationTemporality)
+			sum.SetIsMonotonic(isMonotonic)
 			dataPoint := sum.DataPoints().AppendEmpty()
 			dataPoint.SetDoubleValue(*value)
 			dataPointAttrs = dataPoint.Attributes()
@@ -107,7 +130,7 @@ func convertJSONToMetrics(data []map[string]any, cfg *MetricsConfig, logger *zap
 			}
 		case "histogram":
 			histogram := metric.SetEmptyHistogram()
-			histogram.SetAggregationTemporality(pmetric.AggregationTemporalityCumulative)
+			histogram.SetAggregationTemporality(aggregationTemporality)
 			dataPoint := histogram.DataPoints().AppendEmpty()
 			dataPoint.SetCount(1)
 			dataPoint.SetSum(*value)
@@ -170,6 +193,12 @@ func convertJSONToMetrics(data []map[string]any, cfg *MetricsConfig, logger *zap
 				continue
 			}
 			if cfg.UnitField != "" && key == cfg.UnitField {
+				continue
+			}
+			if cfg.MonotonicField != "" && key == cfg.MonotonicField {
+				continue
+			}
+			if cfg.AggregationTemporalityField != "" && key == cfg.AggregationTemporalityField {
 				continue
 			}
 			// Add as attribute

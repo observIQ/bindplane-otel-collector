@@ -85,6 +85,8 @@ The metrics configuration allows you to customize how metrics are extracted from
 | `metrics.description_field` | string | | `false` | Field name in each response item containing the metric description. If not specified or not found, defaults to `Metric from REST API` |
 | `metrics.type_field` | string | | `false` | Field name in each response item containing the metric type (`gauge`, `sum`, `histogram`, `summary`). If not specified or not found, defaults to `gauge` |
 | `metrics.unit_field` | string | | `false` | Field name in each response item containing the metric unit. If not specified or not found, no unit is set |
+| `metrics.monotonic_field` | string | | `false` | Field name in each response item indicating if a sum metric is monotonic (boolean). Only applies to `sum` metrics. If not specified or not found, defaults to `false` for safety |
+| `metrics.aggregation_temporality_field` | string | | `false` | Field name in each response item containing the aggregation temporality (`cumulative` or `delta`). Only applies to `sum` and `histogram` metrics. If not specified or not found, defaults to `cumulative` |
 
 **Note:** When field names are configured, those fields are automatically excluded from metric attributes to avoid duplication.
 
@@ -184,6 +186,8 @@ receivers:
       description_field: "metric_description"
       type_field: "metric_type"
       unit_field: "unit"
+      monotonic_field: "is_monotonic"
+      aggregation_temporality_field: "aggregation"
 
 service:
   pipelines:
@@ -206,10 +210,12 @@ This configuration would work with an API response like:
       "environment": "production"
     },
     {
-      "metric_name": "memory.used",
-      "metric_description": "Memory used in bytes",
+      "metric_name": "http.requests.total",
+      "metric_description": "Total HTTP requests",
       "metric_type": "sum",
-      "unit": "bytes",
+      "unit": "requests",
+      "is_monotonic": true,
+      "aggregation": "cumulative",
       "value": 8589934592,
       "host": "server1",
       "environment": "production"

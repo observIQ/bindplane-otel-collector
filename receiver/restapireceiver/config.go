@@ -117,6 +117,17 @@ type MetricsConfig struct {
 	// UnitField is the name of the field in each response item that contains the metric unit.
 	// If not specified or not found, no unit will be set.
 	UnitField string `mapstructure:"unit_field"`
+
+	// MonotonicField is the name of the field in each response item that indicates if a sum metric is monotonic.
+	// Only applies to sum metrics. Should contain a boolean value.
+	// If not specified or not found, defaults to false for safety.
+	MonotonicField string `mapstructure:"monotonic_field"`
+
+	// AggregationTemporalityField is the name of the field in each response item that contains the aggregation temporality.
+	// Valid values: "cumulative", "delta".
+	// Only applies to sum and histogram metrics.
+	// If not specified or not found, defaults to "cumulative".
+	AggregationTemporalityField string `mapstructure:"aggregation_temporality_field"`
 }
 
 // PaginationConfig defines pagination configuration.
