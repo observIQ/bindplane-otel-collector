@@ -68,7 +68,7 @@ func TestConfig_Validate(t *testing.T) {
 					Mode: paginationModeNone,
 				},
 			},
-			expectedErr: "invalid auth mode: invalid, must be one of: apikey, bearer, basic",
+			expectedErr: "invalid auth mode: invalid, must be one of: apikey, bearer, basic, akamai_edgegrid",
 		},
 		{
 			name: "apikey auth missing header name",
@@ -166,6 +166,62 @@ func TestConfig_Validate(t *testing.T) {
 				AuthMode:          string(authModeBasic),
 				AuthBasicUsername: "test-user",
 				AuthBasicPassword: "test-password",
+				Pagination: PaginationConfig{
+					Mode: paginationModeNone,
+				},
+			},
+			expectedErr: "",
+		},
+		{
+			name: "akamai edgegrid auth missing access token",
+			config: &Config{
+				URL:                    "https://api.example.com/data",
+				AuthMode:               string(authModeAkamaiEdgeGrid),
+				AuthAkamaiAccessToken:  "",
+				AuthAkamaiClientToken:  "test-client-token",
+				AuthAkamaiClientSecret: "test-client-secret",
+				Pagination: PaginationConfig{
+					Mode: paginationModeNone,
+				},
+			},
+			expectedErr: "akamai_access_token is required when auth_mode is akamai_edgegrid",
+		},
+		{
+			name: "akamai edgegrid auth missing client token",
+			config: &Config{
+				URL:                    "https://api.example.com/data",
+				AuthMode:               string(authModeAkamaiEdgeGrid),
+				AuthAkamaiAccessToken:  "test-access-token",
+				AuthAkamaiClientToken:  "",
+				AuthAkamaiClientSecret: "test-client-secret",
+				Pagination: PaginationConfig{
+					Mode: paginationModeNone,
+				},
+			},
+			expectedErr: "akamai_client_token is required when auth_mode is akamai_edgegrid",
+		},
+		{
+			name: "akamai edgegrid auth missing client secret",
+			config: &Config{
+				URL:                    "https://api.example.com/data",
+				AuthMode:               string(authModeAkamaiEdgeGrid),
+				AuthAkamaiAccessToken:  "test-access-token",
+				AuthAkamaiClientToken:  "test-client-token",
+				AuthAkamaiClientSecret: "",
+				Pagination: PaginationConfig{
+					Mode: paginationModeNone,
+				},
+			},
+			expectedErr: "akamai_client_secret is required when auth_mode is akamai_edgegrid",
+		},
+		{
+			name: "valid akamai edgegrid auth",
+			config: &Config{
+				URL:                    "https://api.example.com/data",
+				AuthMode:               string(authModeAkamaiEdgeGrid),
+				AuthAkamaiAccessToken:  "test-access-token",
+				AuthAkamaiClientToken:  "test-client-token",
+				AuthAkamaiClientSecret: "test-client-secret",
 				Pagination: PaginationConfig{
 					Mode: paginationModeNone,
 				},

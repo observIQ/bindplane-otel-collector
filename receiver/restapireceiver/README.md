@@ -10,7 +10,7 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 ## How It Works
 
 1. The receiver polls a configured REST API endpoint at a specified interval.
-2. It handles authentication (API Key, Bearer Token, or Basic Auth).
+2. It handles authentication (API Key, Bearer Token, Basic Auth, or Akamai EdgeGrid).
 3. It supports pagination to fetch all available data.
 4. It can track time-based offsets to avoid duplicate data collection.
 5. It converts JSON responses to OpenTelemetry logs or metrics.
@@ -28,12 +28,15 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 |-------|------|---------|----------|-------------|
 | `url` | string | | `true` | The base URL for the REST API endpoint |
 | `response_field` | string | | `false` | The name of the field in the response that contains the array of items. If empty, the response is assumed to be a top-level array |
-| `auth_mode` | string | `apikey` | `false` | Authentication mode: `apikey`, `bearer`, or `basic` |
+| `auth_mode` | string | `apikey` | `false` | Authentication mode: `apikey`, `bearer`, `basic`, or `akamai_edgegrid` |
 | `apikey_header_name` | string | | `false` | Header name for API key (required if `auth_mode` is `apikey`) |
 | `apikey_value` | string | | `false` | API key value (required if `auth_mode` is `apikey`) |
 | `bearer_token` | string | | `false` | Bearer token value (required if `auth_mode` is `bearer`) |
 | `username` | string | | `false` | Username for basic auth (required if `auth_mode` is `basic`) |
 | `password` | string | | `false` | Password for basic auth (required if `auth_mode` is `basic`) |
+| `akamai_access_token` | string | | `false` | Akamai EdgeGrid access token (required if `auth_mode` is `akamai_edgegrid`) |
+| `akamai_client_token` | string | | `false` | Akamai EdgeGrid client token (required if `auth_mode` is `akamai_edgegrid`) |
+| `akamai_client_secret` | string | | `false` | Akamai EdgeGrid client secret (required if `auth_mode` is `akamai_edgegrid`) |
 | `pagination` | object | | `false` | Pagination configuration (see below) |
 | `poll_interval` | duration | `5m` | `false` | The interval between API polls |
 | `storage` | component | | `false` | The component ID of a storage extension for checkpointing |
@@ -143,6 +146,19 @@ receivers:
         starting_offset: 0
       total_record_count_field: "total"
     storage: file_storage
+```
+
+### Akamai EdgeGrid Authentication
+
+```yaml
+receivers:
+  restapi:
+    url: "https://api.akamai.com/endpoint"
+    poll_interval: 5m
+    auth_mode: akamai_edgegrid
+    akamai_access_token: "your-access-token"
+    akamai_client_token: "your-client-token"
+    akamai_client_secret: "your-client-secret"
 ```
 
 ### Timestamp Pagination
