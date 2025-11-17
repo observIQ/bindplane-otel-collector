@@ -413,3 +413,147 @@ func TestConvertJSONToMetrics_AllFieldsConfigured(t *testing.T) {
 	require.NotContains(t, attrs.AsRaw(), "metric_type")
 	require.NotContains(t, attrs.AsRaw(), "metric_unit")
 }
+
+func TestConvertJSONToMetrics_WithMonotonicField(t *testing.T) {
+	data := []map[string]any{
+		{"value": 100.0, "metric_type": "sum", "is_monotonic": true, "host": "server1"},
+		{"value": 50.0, "metric_type": "sum", "is_monotonic": false, "host": "server2"},
+	}
+
+	logger := zap.NewNop()
+	cfg := &MetricsConfig{
+		TypeField:      "metric_type",
+		MonotonicField: "is_monotonic",
+	}
+	metrics := convertJSONToMetrics(data, cfg, logger)
+
+	scopeMetrics := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0)
+	require.Equal(t, 2, scopeMetrics.Metrics().Len())
+
+	// Check first metric is monotonic
+	metric1 := scopeMetrics.Metrics().At(0)
+	require.Equal(t, pmetric.MetricTypeSum, metric1.Type())
+	sum1 := metric1.Sum()
+	require.True(t, sum1.IsMonotonic())
+	require.Equal(t, 100.0, sum1.DataPoints().At(0).DoubleValue())
+
+	// Check second metric is not monotonic
+	metric2 := scopeMetrics.Metrics().At(1)
+	require.Equal(t, pmetric.MetricTypeSum, metric2.Type())
+	sum2 := metric2.Sum()
+	require.False(t, sum2.IsMonotonic())
+	require.Equal(t, 50.0, sum2.DataPoints().At(0).DoubleValue())
+
+	// Verify monotonic field is not in attributes
+	require.NotContains(t, sum1.DataPoints().At(0).Attributes().AsRaw(), "is_monotonic")
+}
+
+func TestConvertJSONToMetrics_WithAggregationTemporalityField(t *testing.T) {
+	data := []map[string]any{
+		{"value": 100.0, "metric_type": "sum", "aggregation": "cumulative", "host": "server1"},
+		{"value": 50.0, "metric_type": "sum", "aggregation": "delta", "host": "server2"},
+		{"value": 75.0, "metric_type": "histogram", "aggregation": "delta", "host": "server3"},
+	}
+
+	logger := zap.NewNop()
+	cfg := &MetricsConfig{
+		TypeField:                   "metric_type",
+		AggregationTemporalityField: "aggregation",
+	}
+	metrics := convertJSONToMetrics(data, cfg, logger)
+
+	scopeMetrics := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0)
+	require.Equal(t, 3, scopeMetrics.Metrics().Len())
+
+	// Check first metric is cumulative
+	metric1 := scopeMetrics.Metrics().At(0)
+	require.Equal(t, pmetric.MetricTypeSum, metric1.Type())
+	sum1 := metric1.Sum()
+	require.Equal(t, pmetric.AggregationTemporalityCumulative, sum1.AggregationTemporality())
+
+	// Check second metric is delta
+	metric2 := scopeMetrics.Metrics().At(1)
+	require.Equal(t, pmetric.MetricTypeSum, metric2.Type())
+	sum2 := metric2.Sum()
+	require.Equal(t, pmetric.AggregationTemporalityDelta, sum2.AggregationTemporality())
+
+	// Check third metric (histogram) is delta
+	metric3 := scopeMetrics.Metrics().At(2)
+	require.Equal(t, pmetric.MetricTypeHistogram, metric3.Type())
+	histogram := metric3.Histogram()
+	require.Equal(t, pmetric.AggregationTemporalityDelta, histogram.AggregationTemporality())
+
+	// Verify aggregation field is not in attributes
+	require.NotContains(t, sum1.DataPoints().At(0).Attributes().AsRaw(), "aggregation")
+}
+
+func TestConvertJSONToMetrics_SumWithAllProperties(t *testing.T) {
+	data := []map[string]any{
+		{
+			"value":                   1234.56,
+			"metric_name":             "http.requests.total",
+			"metric_desc":             "Total HTTP requests",
+			"metric_type":             "sum",
+			"metric_unit":             "requests",
+			"is_monotonic":            true,
+			"aggregation_temporality": "cumulative",
+			"service":                 "api",
+			"environment":             "production",
+		},
+	}
+
+	logger := zap.NewNop()
+	cfg := &MetricsConfig{
+		NameField:                   "metric_name",
+		DescriptionField:            "metric_desc",
+		TypeField:                   "metric_type",
+		UnitField:                   "metric_unit",
+		MonotonicField:              "is_monotonic",
+		AggregationTemporalityField: "aggregation_temporality",
+	}
+	metrics := convertJSONToMetrics(data, cfg, logger)
+
+	metric := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().At(0)
+
+	// Check all metric properties
+	require.Equal(t, "http.requests.total", metric.Name())
+	require.Equal(t, "Total HTTP requests", metric.Description())
+	require.Equal(t, pmetric.MetricTypeSum, metric.Type())
+	require.Equal(t, "requests", metric.Unit())
+
+	// Check sum-specific properties
+	sum := metric.Sum()
+	require.True(t, sum.IsMonotonic())
+	require.Equal(t, pmetric.AggregationTemporalityCumulative, sum.AggregationTemporality())
+	require.Equal(t, 1234.56, sum.DataPoints().At(0).DoubleValue())
+
+	// Check that only non-metadata fields are in attributes
+	attrs := sum.DataPoints().At(0).Attributes()
+	require.Equal(t, "api", attrs.AsRaw()["service"])
+	require.Equal(t, "production", attrs.AsRaw()["environment"])
+	require.NotContains(t, attrs.AsRaw(), "metric_name")
+	require.NotContains(t, attrs.AsRaw(), "metric_desc")
+	require.NotContains(t, attrs.AsRaw(), "metric_type")
+	require.NotContains(t, attrs.AsRaw(), "metric_unit")
+	require.NotContains(t, attrs.AsRaw(), "is_monotonic")
+	require.NotContains(t, attrs.AsRaw(), "aggregation_temporality")
+}
+
+func TestConvertJSONToMetrics_DefaultMonotonicAndAggregation(t *testing.T) {
+	data := []map[string]any{
+		{"value": 100.0, "metric_type": "sum", "host": "server1"},
+	}
+
+	logger := zap.NewNop()
+	cfg := &MetricsConfig{
+		TypeField: "metric_type",
+	}
+	metrics := convertJSONToMetrics(data, cfg, logger)
+
+	metric := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().At(0)
+	sum := metric.Sum()
+
+	// Should default to non-monotonic (safe default) and cumulative
+	require.False(t, sum.IsMonotonic())
+	require.Equal(t, pmetric.AggregationTemporalityCumulative, sum.AggregationTemporality())
+}
