@@ -140,13 +140,20 @@ func TestGetRequiredFactories(t *testing.T) {
 			switch tc.expectedErr {
 			case nil:
 				require.NoError(t, err)
-				require.Equal(t, tc.expectedResult, factories)
+				RequireEqualFactories(t, tc.expectedResult, factories)
+
 			default:
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr.Error())
 			}
 		})
 	}
+}
+
+func RequireEqualFactories(t *testing.T, expected *otelcol.Factories, actual *otelcol.Factories) {
+	// Ignore telemetry factory for comparison
+	actual.Telemetry = nil
+	require.Equal(t, expected, actual)
 }
 
 // MockHost is a mock type for the component.Host type

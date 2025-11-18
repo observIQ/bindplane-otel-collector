@@ -22,6 +22,7 @@ import (
 	"net/http"
 
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config/configopaque"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -128,9 +129,10 @@ func (le *logsExporter) sendLogs(ctx context.Context, logs []any) error {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	for key, value := range le.cfg.ClientConfig.Headers {
+	le.cfg.ClientConfig.Headers.Iter(func(key string, value configopaque.String) bool {
 		request.Header.Set(key, string(value))
-	}
+		return true
+	})
 
 	request.Header.Set("Content-Type", le.cfg.ContentType)
 
