@@ -479,6 +479,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/expr v1.87.8 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/aws v1.87.8 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.87.8 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/resolver v1.87.8 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.87.8 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/okta/okta-sdk-golang/v2 v2.20.0 // indirect
@@ -975,6 +976,8 @@ replace github.com/observiq/bindplane-otel-collector/internal/os => ./internal/o
 replace github.com/observiq/bindplane-otel-collector/internal/rehydration => ./internal/rehydration
 
 replace github.com/observiq/bindplane-otel-collector/internal/report => ./internal/report
+
+replace github.com/observiq/bindplane-otel-collector/internal/resolver => ./internal/resolver
 
 replace github.com/observiq/bindplane-otel-collector/internal/storageclient => ./internal/storageclient
 
