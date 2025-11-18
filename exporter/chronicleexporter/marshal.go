@@ -16,10 +16,11 @@ package chronicleexporter
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
+
+	json "github.com/goccy/go-json"
 
 	"github.com/google/uuid"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
