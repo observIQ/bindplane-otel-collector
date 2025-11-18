@@ -17,6 +17,54 @@ import (
 )
 
 // ----------------------------------------------------------------------
+// In-Memory Storage Client for Testing
+// ----------------------------------------------------------------------
+
+type inMemoryStorageClient struct {
+	data map[string][]byte
+}
+
+func newInMemoryStorageClient() *inMemoryStorageClient {
+	return &inMemoryStorageClient{
+		data: make(map[string][]byte),
+	}
+}
+
+func (m *inMemoryStorageClient) Set(ctx context.Context, key string, value []byte) error {
+	m.data[key] = value
+	return nil
+}
+
+func (m *inMemoryStorageClient) Get(ctx context.Context, key string) ([]byte, error) {
+	val, ok := m.data[key]
+	if !ok {
+		return nil, nil
+	}
+	return val, nil
+}
+
+func (m *inMemoryStorageClient) Delete(ctx context.Context, key string) error {
+	delete(m.data, key)
+	return nil
+}
+
+func (m *inMemoryStorageClient) Batch(ctx context.Context, ops ...*storage.Operation) error {
+	for _, op := range ops {
+		switch op.Type {
+		case storage.Set:
+			m.data[op.Key] = op.Value
+		case storage.Delete:
+			delete(m.data, op.Key)
+		}
+	}
+	return nil
+}
+
+func (m *inMemoryStorageClient) Close(ctx context.Context) error {
+	return nil
+}
+
+// ----------------------------------------------------------------------
 // Mock Client
 // ----------------------------------------------------------------------
 
@@ -218,26 +266,48 @@ func TestPollEndpointError(t *testing.T) {
 // ----------------------------------------------------------------------
 
 func TestCheckpointSaveLoad(t *testing.T) {
+	// Save original registry
+	originalRegistry := EndpointRegistry
+	defer func() {
+		EndpointRegistry = originalRegistry
+	}()
+
+	// Ensure the endpoint is in the registry for loadCheckpoint to find it
+	EndpointRegistry = map[KandjiEndpoint]EndpointSpec{
+		"GET /audit/events": {
+			ResponseType: AuditEventsResponse{},
+		},
+	}
+
 	cfg := createMinimalConfig()
 	sink := &consumertest.LogsSink{}
 	l := newKandjiLogs(cfg, receivertest.NewNopSettings(typ), sink)
 
-	// Use in-memory storage client
-	mem := storage.NewNopClient()
+	// Use in-memory storage client that actually stores data
+	mem := newInMemoryStorageClient()
 	l.storageClient = mem
 
 	ep := KandjiEndpoint("GET /audit/events")
+	// Use a cursor value that will pass normalizeCursor validation
+	// normalizeCursor calls sanitizeCursor which just trims and returns the value
+	// if it doesn't match URL patterns, so "abc123" should work fine
 	cursor := "abc123"
 	l.cursors[ep] = &cursor
 
 	err := l.checkpoint(context.Background())
 	require.NoError(t, err)
 
+	// Verify it was saved
+	key := logStorageKeyPrefix + string(ep)
+	saved, err := mem.Get(context.Background(), key)
+	require.NoError(t, err)
+	require.NotNil(t, saved)
+
 	// Clear then reload
 	l.cursors = map[KandjiEndpoint]*string{}
 	l.loadCheckpoint(context.Background())
 
-	require.NotNil(t, l.cursors[ep])
+	require.NotNil(t, l.cursors[ep], "cursor should be loaded from storage")
 	require.Equal(t, "abc123", *l.cursors[ep])
 }
 
