@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.39.6
 	github.com/aws/aws-sdk-go-v2/config v1.31.18
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.20.5
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.90.0
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.90.2
 	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.87.8
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.87.8
 	github.com/observiq/bindplane-otel-collector/internal/testutils v1.87.8
