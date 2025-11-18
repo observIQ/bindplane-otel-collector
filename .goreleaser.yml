@@ -4,7 +4,7 @@ project_name: observiq-otel-collector
 
 before:
   hooks:
-    - make release-prep CURR_VERSION={{ .Version }}
+    - make release-prep-gpg CURR_VERSION={{ .Version }}
 
 # https://goreleaser.com/customization/build/
 builds:
@@ -87,6 +87,9 @@ archives:
         strip_parent: true
       - src: release_deps/com.observiq.collector.plist
         dst: "install"
+        strip_parent: true
+      - src: release_deps/gpg/*
+        dst: gpg
         strip_parent: true
 
 nfpms:
@@ -741,6 +744,7 @@ release:
     - glob: "./observiq-otel-collector*.msi.sig"
     - glob: "./scripts/install/install_unix.sh"
     - glob: "./scripts/install/install_macos.sh"
+    - glob: "./release_deps/gpg-keys.zip"
 
 # https://console.cloud.google.com/storage/browser/bdot-release
 blobs:
@@ -752,6 +756,7 @@ blobs:
       - glob: "./observiq-otel-collector*.msi.sig"
       - glob: "./scripts/install/install_unix.sh"
       - glob: "./scripts/install/install_macos.sh"
+      - glob: "./release_deps/gpg-keys.zip"
 
 # https://goreleaser.com/customization/changelog/
 changelog:

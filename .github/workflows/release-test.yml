@@ -166,7 +166,10 @@ jobs:
       - name: Create artifact archive
         run: |
           mkdir artifacts
+          mkdir artifacts/gpg
           cp ./scripts/install/*.sh ./artifacts
+          cp ./signature/gpg/bdot-public-gpg-key.asc ./artifacts/gpg/bdot-public-gpg-key.asc
+          cp -r ./signature/gpg/revocations ./artifacts/gpg/revocations
           cp ./observiq-otel-collector.msi/observiq-otel-collector.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
           cp ./windows-archive/windows_amd64/*.zip ./artifacts

@@ -242,10 +242,17 @@ release-prep:
 	@echo 'v$(CURR_VERSION)' > release_deps/VERSION.txt
 	./buildscripts/download-dependencies.sh release_deps
 	@cp -r ./plugins release_deps/
+	@cp -r ./signature/gpg release_deps/gpg
+	@rm release_deps/gpg/revocations.md
 	@cp config/example.yaml release_deps/config.yaml
 	@cp config/logging.yaml release_deps/logging.yaml
 	@cp service/com.observiq.collector.plist release_deps/com.observiq.collector.plist
 	@jq ".files[] | select(.service != null)" windows/wix.json >> release_deps/windows_service.json
+
+.PHONY: release-prep-gpg
+release-prep-gpg:
+	$(MAKE) release-prep
+	@cd release_deps/gpg && zip -r ../gpg-keys.zip .
 
 # Build and sign, skip release and ignore dirty git tree
 .PHONY: release-test
