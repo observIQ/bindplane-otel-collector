@@ -29,18 +29,44 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 | `url` | string | | `true` | The base URL for the REST API endpoint |
 | `response_field` | string | | `false` | The name of the field in the response that contains the array of items. If empty, the response is assumed to be a top-level array |
 | `auth_mode` | string | `apikey` | `false` | Authentication mode: `apikey`, `bearer`, `basic`, or `akamai_edgegrid` |
-| `apikey_header_name` | string | | `false` | Header name for API key (required if `auth_mode` is `apikey`) |
-| `apikey_value` | string | | `false` | API key value (required if `auth_mode` is `apikey`) |
-| `bearer_token` | string | | `false` | Bearer token value (required if `auth_mode` is `bearer`) |
-| `username` | string | | `false` | Username for basic auth (required if `auth_mode` is `basic`) |
-| `password` | string | | `false` | Password for basic auth (required if `auth_mode` is `basic`) |
-| `akamai_access_token` | string | | `false` | Akamai EdgeGrid access token (required if `auth_mode` is `akamai_edgegrid`) |
-| `akamai_client_token` | string | | `false` | Akamai EdgeGrid client token (required if `auth_mode` is `akamai_edgegrid`) |
-| `akamai_client_secret` | string | | `false` | Akamai EdgeGrid client secret (required if `auth_mode` is `akamai_edgegrid`) |
+| `apikey` | object | | `false` | API Key configuration (see below) |
+| `bearer` | object | | `false` | Bearer Token configuration (see below) |
+| `basic` | object | | `false` | Basic Auth configuration (see below) |
+| `akamai_edgegrid` | object | | `false` | Akamai EdgeGrid configuration (see below) |
 | `pagination` | object | | `false` | Pagination configuration (see below) |
 | `poll_interval` | duration | `5m` | `false` | The interval between API polls |
 | `storage` | component | | `false` | The component ID of a storage extension for checkpointing |
 | `timeout` | duration | `10s` | `false` | HTTP client timeout |
+
+### Auth Mode Configuration
+
+#### API Key
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `apikey_header_name` | string | | `true` | Header name for API key (required if `auth_mode` is `apikey`) |
+| `apikey_value` | string | | `true` | API key value (required if `auth_mode` is `apikey`) |
+
+#### Bearer Token
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `bearer_token` | string | | `true` | Bearer token value (required if `auth_mode` is `bearer`) |
+
+#### Basic Auth
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `username` | string | | `true` | Username for basic auth (required if `auth_mode` is `basic`) |
+| `password` | string | | `true` | Password for basic auth |
+
+#### Akamai EdgeGrid
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `akamai_access_token` | string || `true` | Akamai EdgeGrid access token |
+| `akamai_client_token` | string || `true` | Akamai EdgeGrid client token |
+| `akamai_client_secret` | string || `true` | Akamai EdgeGrid client secret |
 
 ### Pagination Configuration
 
