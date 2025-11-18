@@ -22,7 +22,6 @@ import (
 	"net"
 
 	lru "github.com/hashicorp/golang-lru/v2"
-	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 )
 
@@ -44,23 +43,13 @@ type Resolver struct {
 	// hashicorp/golang-lru is a thread-safe LRU cache implementation
 	cache *lru.Cache[string, []net.IPAddr]
 
-	// metrics
-	cacheSizeGauge     metric.Int64ObservableGauge
-	cacheCapacityGauge metric.Int64ObservableGauge
-	cacheHitsCounter   metric.Int64Counter
-	cacheMissesCounter metric.Int64Counter
-
 	logger *zap.Logger
 }
 
-// New creates a new cached DNS resolver. New requires a MeterProvider, Logger, and cache capacity.
-func New(mp metric.MeterProvider, logger *zap.Logger, cacheCapacity int) (*Resolver, error) {
+// New creates a new cached DNS resolver. New requires a Logger, and cache capacity.
+func New(logger *zap.Logger, cacheCapacity int) (*Resolver, error) {
 	if logger == nil {
 		return nil, fmt.Errorf("Logger is required")
-	}
-
-	if mp == nil {
-		return nil, fmt.Errorf("MeterProvider is required")
 	}
 
 	if cacheCapacity <= 0 {
@@ -78,71 +67,7 @@ func New(mp metric.MeterProvider, logger *zap.Logger, cacheCapacity int) (*Resol
 		logger:       logger,
 	}
 
-	if err := r.initMetrics(mp, cacheCapacity); err != nil {
-		return nil, fmt.Errorf("failed to initialize metrics: %w", err)
-	}
-
 	return r, nil
-}
-
-// initMetrics initializes OpenTelemetry metrics for the resolver.
-func (r *Resolver) initMetrics(mp metric.MeterProvider, cacheCapacity int) error {
-	meter := mp.Meter(meterName)
-
-	cacheSizeGauge, err := meter.Int64ObservableGauge(
-		"dns_resolver_cache_size",
-		metric.WithDescription("Current number of entries in the DNS resolver cache"),
-		metric.WithUnit("{entries}"),
-	)
-	if err != nil {
-		return fmt.Errorf("create cache_size gauge: %w", err)
-	}
-	r.cacheSizeGauge = cacheSizeGauge
-
-	cacheCapacityGauge, err := meter.Int64ObservableGauge(
-		"dns_resolver_cache_capacity",
-		metric.WithDescription("Maximum number of entries the DNS resolver cache can hold"),
-		metric.WithUnit("{entries}"),
-	)
-	if err != nil {
-		return fmt.Errorf("create cache_capacity gauge: %w", err)
-	}
-	r.cacheCapacityGauge = cacheCapacityGauge
-
-	cacheHitsCounter, err := meter.Int64Counter(
-		"dns_resolver_cache_fallback_hits",
-		metric.WithDescription("Number of DNS lookups that fell back to cached results after lookup failure"),
-		metric.WithUnit("{hits}"),
-	)
-	if err != nil {
-		return fmt.Errorf("create cache_fallback_hits counter: %w", err)
-	}
-	r.cacheHitsCounter = cacheHitsCounter
-
-	cacheMissesCounter, err := meter.Int64Counter(
-		"dns_resolver_cache_fallback_misses",
-		metric.WithDescription("Number of DNS lookups that failed with no cached result available for fallback"),
-		metric.WithUnit("{misses}"),
-	)
-	if err != nil {
-		return fmt.Errorf("create cache_fallback_misses counter: %w", err)
-	}
-	r.cacheMissesCounter = cacheMissesCounter
-
-	_, err = meter.RegisterCallback(
-		func(_ context.Context, o metric.Observer) error {
-			o.ObserveInt64(r.cacheSizeGauge, int64(r.cache.Len()))
-			o.ObserveInt64(r.cacheCapacityGauge, int64(cacheCapacity))
-			return nil
-		},
-		r.cacheSizeGauge,
-		r.cacheCapacityGauge,
-	)
-	if err != nil {
-		return fmt.Errorf("register metric callbacks: %w", err)
-	}
-
-	return nil
 }
 
 // DialContext provides a function that can be used as the DialContext for http.Transport.
@@ -208,13 +133,11 @@ func (r *Resolver) lookupIPAddr(ctx context.Context, host string) ([]net.IPAddr,
 	cached, ok := r.cache.Get(host)
 	if ok {
 		// Return cached result as fallback
-		r.cacheHitsCounter.Add(ctx, 1)
 		r.logger.Debug("DNS lookup failed, using cached result", zap.String(logFieldHostname, host), zap.Any(logFieldAddresses, cached), zap.Error(err))
 		return cached, nil
 	}
 
 	// No cache entry available - return the lookup error
-	r.cacheMissesCounter.Add(ctx, 1)
 	r.logger.Debug("DNS lookup failed and no cache entry available", zap.String(logFieldHostname, host), zap.Error(err))
 	return nil, fmt.Errorf("lookup IP address for host %s: %w", host, err)
 }

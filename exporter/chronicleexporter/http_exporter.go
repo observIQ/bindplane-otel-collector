@@ -92,7 +92,7 @@ func (exp *httpExporter) Capabilities() consumer.Capabilities {
 }
 
 func (exp *httpExporter) Start(ctx context.Context, _ component.Host) error {
-	r, err := resolver.New(exp.set.MeterProvider, exp.set.Logger.Named("resolver"), dnsCacheCapacity)
+	r, err := resolver.New(exp.set.Logger.Named("resolver"), dnsCacheCapacity)
 	if err != nil {
 		return fmt.Errorf("create DNS resolver: %w", err)
 	}

@@ -19,22 +19,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	otelmetric "go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/sdk/metric"
-	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 )
 
-// testMeterProvider returns a MeterProvider for use in tests
-func testMeterProvider() otelmetric.MeterProvider {
-	return metric.NewMeterProvider()
-}
-
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name          string
-		mp            otelmetric.MeterProvider
 		logger        *zap.Logger
 		cacheSize     int
 		wantErr       bool
@@ -42,44 +33,25 @@ func TestNew(t *testing.T) {
 	}{
 		{
 			name:      "valid cache size",
-			mp:        testMeterProvider(),
 			logger:    zap.NewNop(),
 			cacheSize: 100,
 			wantErr:   false,
 		},
 		{
 			name:      "custom cache size",
-			mp:        testMeterProvider(),
 			logger:    zap.NewNop(),
 			cacheSize: 500,
 			wantErr:   false,
 		},
 		{
-			name:      "with metrics",
-			mp:        metric.NewMeterProvider(),
-			logger:    zap.NewNop(),
-			cacheSize: 100,
-			wantErr:   false,
-		},
-		{
 			name:          "nil Logger returns error",
-			mp:            testMeterProvider(),
 			logger:        nil,
 			cacheSize:     100,
 			wantErr:       true,
 			errorContains: "Logger is required",
 		},
 		{
-			name:          "nil MeterProvider returns error",
-			mp:            nil,
-			logger:        zap.NewNop(),
-			cacheSize:     100,
-			wantErr:       true,
-			errorContains: "MeterProvider is required",
-		},
-		{
 			name:          "zero cache size returns error",
-			mp:            testMeterProvider(),
 			logger:        zap.NewNop(),
 			cacheSize:     0,
 			wantErr:       true,
@@ -87,7 +59,6 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name:          "negative cache size returns error",
-			mp:            testMeterProvider(),
 			logger:        zap.NewNop(),
 			cacheSize:     -1,
 			wantErr:       true,
@@ -97,7 +68,7 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r, err := New(tt.mp, tt.logger, tt.cacheSize)
+			r, err := New(tt.logger, tt.cacheSize)
 			if tt.wantErr {
 				require.Error(t, err)
 				require.Nil(t, r)
@@ -116,7 +87,7 @@ func TestResolver_lookupIPAddr(t *testing.T) {
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
-	r, err := New(testMeterProvider(), logger, 10)
+	r, err := New(logger, 10)
 	require.NoError(t, err)
 	require.NotNil(t, r)
 
@@ -138,11 +109,7 @@ func TestResolver_lookupIPAddr_CacheHit(t *testing.T) {
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
-	reader := metric.NewManualReader()
-	mp := metric.NewMeterProvider(metric.WithReader(reader))
-	defer mp.Shutdown(ctx)
-
-	r, err := New(mp, logger, 10)
+	r, err := New(logger, 10)
 	require.NoError(t, err)
 
 	// First lookup - cache miss
@@ -153,17 +120,15 @@ func TestResolver_lookupIPAddr_CacheHit(t *testing.T) {
 	_, err = r.lookupIPAddr(ctx, "localhost")
 	require.NoError(t, err)
 
-	// Collect metrics
-	var rm metricdata.ResourceMetrics
-	err = reader.Collect(ctx, &rm)
-	require.NoError(t, err)
+	// Verify cache has the entry
+	require.Equal(t, 1, r.cache.Len())
 }
 
 func TestResolver_lookupIPAddr_InvalidHost(t *testing.T) {
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
-	r, err := New(testMeterProvider(), logger, 10)
+	r, err := New(logger, 10)
 	require.NoError(t, err)
 
 	// Test lookup of invalid hostname
@@ -175,7 +140,7 @@ func TestResolver_DialContext(t *testing.T) {
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
-	r, err := New(testMeterProvider(), logger, 10)
+	r, err := New(logger, 10)
 	require.NoError(t, err)
 
 	// Test dialing localhost
@@ -194,7 +159,7 @@ func TestResolver_DialContext_InvalidAddress(t *testing.T) {
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
-	r, err := New(testMeterProvider(), logger, 10)
+	r, err := New(logger, 10)
 	require.NoError(t, err)
 
 	// Test with invalid address format
@@ -207,7 +172,7 @@ func TestResolver_CacheEviction(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 
 	// Create resolver with small cache
-	r, err := New(testMeterProvider(), logger, 2)
+	r, err := New(logger, 2)
 	require.NoError(t, err)
 
 	// Add entries to fill cache
@@ -225,14 +190,11 @@ func TestResolver_CacheEviction(t *testing.T) {
 	require.Equal(t, 2, r.cache.Len())
 }
 
-func TestResolver_Metrics(t *testing.T) {
+func TestResolver_MultipleLookups(t *testing.T) {
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
-	reader := metric.NewManualReader()
-	mp := metric.NewMeterProvider(metric.WithReader(reader))
-
-	r, err := New(mp, logger, 100)
+	r, err := New(logger, 100)
 	require.NoError(t, err)
 
 	// Perform lookups
@@ -245,20 +207,15 @@ func TestResolver_Metrics(t *testing.T) {
 	_, err = r.lookupIPAddr(ctx, "127.0.0.1") // cache miss
 	require.NoError(t, err)
 
-	// Collect metrics
-	var rm metricdata.ResourceMetrics
-	err = reader.Collect(ctx, &rm)
-	require.NoError(t, err)
-
-	// Verify metrics were recorded
-	require.NotEmpty(t, rm.ScopeMetrics)
+	// Verify cache has entries
+	require.GreaterOrEqual(t, r.cache.Len(), 1)
 }
 
 func TestResolver_ConcurrentAccess(t *testing.T) {
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
-	r, err := New(testMeterProvider(), logger, 100)
+	r, err := New(logger, 100)
 	require.NoError(t, err)
 
 	// Concurrent lookups
@@ -284,7 +241,7 @@ func TestResolver_CacheSize(t *testing.T) {
 	logger := zap.NewNop()
 
 	cacheSize := 1000
-	r, err := New(testMeterProvider(), logger, cacheSize)
+	r, err := New(logger, cacheSize)
 	require.NoError(t, err)
 	require.NotNil(t, r)
 	// Verify cache was created with correct size by checking it can hold that many items
@@ -295,7 +252,7 @@ func TestResolver_HTTPClientIntegration(t *testing.T) {
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
-	r, err := New(testMeterProvider(), logger, 100)
+	r, err := New(logger, 100)
 	require.NoError(t, err)
 
 	// Test that DialContext works (even if connection fails, DNS should work)
