@@ -26,8 +26,6 @@ import (
 	"go.opentelemetry.io/collector/scraper/scraperhelper"
 )
 
-var clientSecretRegEx = regexp.MustCompile("^[a-zA-Z0-9-_.~]{1,40}$")
-
 type LogsConfig struct {
 	PollInterval time.Duration `mapstructure:"poll_interval"`
 }
