@@ -33,6 +33,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver v1.87.8
 	github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver v1.87.8
 	github.com/observiq/bindplane-otel-collector/receiver/httpreceiver v1.87.8
+	github.com/observiq/bindplane-otel-collector/receiver/kandjireceiver v1.87.8
 	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.87.8
 	github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver v1.87.8
 	github.com/observiq/bindplane-otel-collector/receiver/oktareceiver v1.87.8
@@ -1044,6 +1045,8 @@ replace github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs
 replace github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver => ./receiver/googlecloudstoragerehydrationreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/httpreceiver => ./receiver/httpreceiver
+
+replace github.com/observiq/bindplane-otel-collector/receiver/kandjireceiver => ./receiver/kandjireceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/m365receiver => ./receiver/m365receiver
 
