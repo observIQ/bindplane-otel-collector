@@ -245,12 +245,6 @@ github.com/open-telemetry/opentelemetry-collector-contrib/internal/common v0.138
 github.com/open-telemetry/opentelemetry-collector-contrib/internal/common v0.138.0/go.mod h1:Ia+EFnhXCJeScn3VFQa5wklR4ETCuln32y3/RxOIpis=
 github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.138.0 h1:dLwfqGO0ZTo72Otdry6M6fwhxC0VNkdool09TvDk/+s=
 github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.138.0/go.mod h1:wmAINjFmYgvVvFDbMDIdr+G3XNElGz1xS7agvBVtQic=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.138.0 h1:dOVIrI/Hp1KsvPSY+6KkSzmyCpCYYXdtueRy9l3sAhg=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.138.0/go.mod h1:91O/xSJsklspoIQENWGPe9DCUOsf1oeo0PE1j2JY6p8=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.138.0 h1:z8dtQhu0HLy7bNfton2m0QdzNN1L95hbXQ5rScHL5BM=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.138.0/go.mod h1:vXqe3Wa4lOj+k+au737GaIc4tMzBdlwr8eX2/1qK5AA=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.138.0 h1:34HE7sAjlXlzL1HAbDxOBKFdU3tTQcmgFVvjnts67DA=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.138.0/go.mod h1:XzBJKpG3Gi3GMyWF+7NgVl219PaGTl4+RaNo8f8KAZs=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.138.0 h1:JT6xoQ/lSbHTfQpk7WkEnVM04BjxPGU77DP8JIOxYoU=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.138.0/go.mod h1:7mGMnOuPu9kz90BipuCZhtqoEK/025oBlOhsRXMc5Zc=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
