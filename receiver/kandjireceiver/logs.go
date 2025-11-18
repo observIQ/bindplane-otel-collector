@@ -13,18 +13,22 @@ import (
 	"go.opentelemetry.io/collector/extension/xextension/storage"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/collector/receiver"
 	"go.uber.org/zap"
 )
 
+// -------------------------------------------------------------------
+// Constants
+// -------------------------------------------------------------------
+
 const (
-	logStorageKey = "kandji_last_log_cursor"
+	logStorageKeyPrefix = "kandji_cursor_"
 )
 
-// ------------------------------------------------------------
-// Internal types
-// ------------------------------------------------------------
+// -------------------------------------------------------------------
+// Shared stats (exposed to metrics scraper)
+// -------------------------------------------------------------------
 
-// Shared through metrics scraper
 type logStats struct {
 	TotalRequests int64
 	TotalErrors   int64
@@ -47,9 +51,9 @@ func (ls *logStats) add(s scrapeStats) {
 	ls.LastLatencyMs = s.LatencyMs
 }
 
-// ------------------------------------------------------------
-// Logs Receiver struct
-// ------------------------------------------------------------
+// -------------------------------------------------------------------
+// Logs Receiver
+// -------------------------------------------------------------------
 
 type kandjiLogsReceiver struct {
 	settings      component.TelemetrySettings
@@ -60,19 +64,24 @@ type kandjiLogsReceiver struct {
 	storageClient storage.Client
 	id            component.ID
 
-	wg        *sync.WaitGroup
-	cancel    context.CancelFunc
-	mu        sync.Mutex
-	cursor    *string // Kandji pagination cursor
-	stats     *logStats
-	startedAt time.Time
+	wg     *sync.WaitGroup
+	cancel context.CancelFunc
+
+	mu      sync.Mutex
+	cursors map[KandjiEndpoint]*string // checkpointed per-endpoint
+
+	stats *logStats
 }
 
-// ------------------------------------------------------------
+// -------------------------------------------------------------------
 // Constructor
-// ------------------------------------------------------------
+// -------------------------------------------------------------------
 
-func newKandjiLogs(cfg *Config, settings component.Settings, consumer consumer.Logs) *kandjiLogsReceiver {
+func newKandjiLogs(
+	cfg *Config,
+	settings receiver.Settings,
+	consumer consumer.Logs,
+) *kandjiLogsReceiver {
 	return &kandjiLogsReceiver{
 		settings: settings.TelemetrySettings,
 		logger:   settings.Logger,
@@ -81,12 +90,13 @@ func newKandjiLogs(cfg *Config, settings component.Settings, consumer consumer.L
 		id:       settings.ID,
 		wg:       &sync.WaitGroup{},
 		stats:    &logStats{},
+		cursors:  map[KandjiEndpoint]*string{},
 	}
 }
 
-// ------------------------------------------------------------
+// -------------------------------------------------------------------
 // Start + Shutdown
-// ------------------------------------------------------------
+// -------------------------------------------------------------------
 
 func (l *kandjiLogsReceiver) Start(ctx context.Context, host component.Host) error {
 
@@ -102,17 +112,19 @@ func (l *kandjiLogsReceiver) Start(ctx context.Context, host component.Host) err
 		l.cfg.Region,
 		l.cfg.ApiKey,
 		l.cfg.BaseHost,
+		l.logger,
 	)
 
-	// Storage checkpoint
+	// Storage checkpoint (StorageID should be on your Config, like m365)
 	stc, err := adapter.GetStorageClient(ctx, host, l.cfg.StorageID, l.id)
 	if err != nil {
 		return fmt.Errorf("failed to get storage client: %w", err)
 	}
 	l.storageClient = stc
+
 	l.loadCheckpoint(ctx)
 
-	// Start polling loop
+	// Poll loop
 	cancelCtx, cancel := context.WithCancel(ctx)
 	l.cancel = cancel
 
@@ -132,13 +144,21 @@ func (l *kandjiLogsReceiver) Shutdown(ctx context.Context) error {
 	return l.storageClient.Close(ctx)
 }
 
-// ------------------------------------------------------------
+// -------------------------------------------------------------------
 // Poll Loop
-// ------------------------------------------------------------
+// -------------------------------------------------------------------
 
 func (l *kandjiLogsReceiver) startPolling(ctx context.Context) error {
-	t := time.NewTicker(l.cfg.LogPollInterval())
+	// Assuming you've added something like:
+	//   Logs struct { PollInterval time.Duration `mapstructure:"poll_interval"` }
+	t := time.NewTicker(l.cfg.Logs.PollInterval)
 	l.wg.Add(1)
+
+	// Do an initial poll immediately, then continue with ticker
+	l.logger.Info("performing initial poll")
+	if err := l.pollAll(ctx); err != nil {
+		l.logger.Error("initial polling error", zap.Error(err))
+	}
 
 	go func() {
 		defer l.wg.Done()
@@ -147,10 +167,12 @@ func (l *kandjiLogsReceiver) startPolling(ctx context.Context) error {
 		for {
 			select {
 			case <-t.C:
-				if err := l.poll(ctx); err != nil {
+				l.logger.Info("ticker fired, calling pollAll")
+				if err := l.pollAll(ctx); err != nil {
 					l.logger.Error("polling error", zap.Error(err))
 				}
 			case <-ctx.Done():
+				l.logger.Info("polling context cancelled")
 				return
 			}
 		}
@@ -159,68 +181,165 @@ func (l *kandjiLogsReceiver) startPolling(ctx context.Context) error {
 	return nil
 }
 
-// ------------------------------------------------------------
-// Poll Kandji Audit Logs
-// ------------------------------------------------------------
+// -------------------------------------------------------------------
+// Poll ALL log endpoints from registry
+// -------------------------------------------------------------------
 
-func (l *kandjiLogsReceiver) poll(ctx context.Context) error {
-	l.logger.Debug("polling kandji audit logs")
+func (l *kandjiLogsReceiver) pollAll(ctx context.Context) error {
+	l.logger.Info("pollAll started", zap.Int("total_endpoints", len(EndpointRegistry)))
 
-	params := map[string]any{
-		"limit":   500,
-		"sort_by": "-occurred_at",
+	if l.consumer == nil {
+		l.logger.Error("consumer is nil - logs cannot be emitted")
+		return fmt.Errorf("consumer is nil")
 	}
 
-	if l.cursor != nil {
-		params["cursor"] = *l.cursor
+	foundCount := 0
+	for ep, spec := range EndpointRegistry {
+		// For now, treat any endpoint whose ResponseType is AuditEventsResponse
+		// as a "log endpoint". This avoids needing a LogEnabled flag on EndpointSpec.
+		// Check both value and pointer types
+		_, isValueType := spec.ResponseType.(AuditEventsResponse)
+		_, isPtrType := spec.ResponseType.(*AuditEventsResponse)
+
+		if !isValueType && !isPtrType {
+			l.logger.Debug("skipping endpoint - not AuditEventsResponse",
+				zap.String("endpoint", string(ep)),
+				zap.String("response_type", fmt.Sprintf("%T", spec.ResponseType)),
+			)
+			continue
+		}
+
+		foundCount++
+		l.logger.Info("polling log endpoint",
+			zap.String("endpoint", string(ep)),
+		)
+
+		if err := l.pollEndpoint(ctx, ep, spec); err != nil {
+			l.logger.Error("failed polling kandji logs",
+				zap.String("endpoint", string(ep)),
+				zap.Error(err),
+			)
+		}
 	}
 
-	for {
-		out, stats, next, err := l.fetchAuditPage(ctx, params)
-		l.stats.add(stats)
-
-		if err != nil {
-			return err
-		}
-
-		if err := l.emitLogs(out); err != nil {
-			l.logger.Error("consume logs failed", zap.Error(err))
-		}
-
-		if next == nil || *next == "" {
-			break
-		}
-
-		nextVal := *next
-		l.cursor = &nextVal
-		params["cursor"] = nextVal
-	}
+	l.logger.Info("pollAll completed",
+		zap.Int("found_log_endpoints", foundCount),
+	)
 
 	return l.checkpoint(ctx)
 }
 
-// ------------------------------------------------------------
-// Fetch a single page of audit logs
-// ------------------------------------------------------------
+// -------------------------------------------------------------------
+// Poll a single endpoint
+// -------------------------------------------------------------------
 
-func (l *kandjiLogsReceiver) fetchAuditPage(
+func (l *kandjiLogsReceiver) pollEndpoint(
 	ctx context.Context,
+	ep KandjiEndpoint,
+	spec EndpointSpec,
+) error {
+
+	// Seed params from registry ParamSpec
+	params := map[string]any{}
+	for _, p := range spec.Params {
+		switch p.Name {
+		case "limit":
+			// default reasonable max page size
+			params[p.Name] = 500
+		case "sort_by":
+			// default newest first if supported
+			params[p.Name] = "-occurred_at"
+		}
+	}
+
+	// Insert cursor for continuation
+	l.mu.Lock()
+	if cur, ok := l.cursors[ep]; ok && cur != nil {
+		if normalized := normalizeCursor(cur); normalized != nil {
+			l.cursors[ep] = normalized
+			params["cursor"] = *normalized
+		} else {
+			delete(l.cursors, ep)
+		}
+	}
+	l.mu.Unlock()
+
+	page := 1
+	for {
+		l.logger.Info("kandji logs request",
+			zap.String("endpoint", string(ep)),
+			zap.Int("page", page),
+			zap.Any("params", params),
+		)
+
+		resp, stats, next, err := l.fetchPage(ctx, ep, params)
+		l.stats.add(stats)
+
+		if err != nil {
+			l.logger.Error("fetchPage failed", zap.Error(err))
+			return err
+		}
+
+		l.logger.Info("calling emitLogs",
+			zap.String("endpoint", string(ep)),
+			zap.Int("num_records", len(resp.Results)),
+		)
+
+		if err := l.emitLogs(ep, resp); err != nil {
+			l.logger.Error("log consumption failed", zap.Error(err))
+		} else {
+			l.logger.Info("emitLogs completed successfully",
+				zap.String("endpoint", string(ep)),
+				zap.Int("num_records", len(resp.Results)),
+			)
+		}
+
+		nextCursor := normalizeCursor(next)
+		if nextCursor == nil {
+			break
+		}
+
+		l.logger.Info("kandji logs response",
+			zap.String("endpoint", string(ep)),
+			zap.Int("page", page),
+			zap.Int64("records", int64(len(resp.Results))),
+			zap.Float64("latency_ms", stats.LatencyMs),
+			zap.Int64("bytes", stats.Bytes),
+			zap.Stringp("next_cursor", nextCursor),
+		)
+
+		l.mu.Lock()
+		l.cursors[ep] = nextCursor
+		l.mu.Unlock()
+
+		params["cursor"] = *nextCursor
+		page++
+	}
+
+	return nil
+}
+
+// -------------------------------------------------------------------
+// Fetch a single page for ANY log endpoint
+// -------------------------------------------------------------------
+
+func (l *kandjiLogsReceiver) fetchPage(
+	ctx context.Context,
+	ep KandjiEndpoint,
 	params map[string]any,
 ) (*AuditEventsResponse, scrapeStats, *string, error) {
-
-	ep := EPAuditEventsList
-	spec := EndpointRegistry[ep]
 
 	out := &AuditEventsResponse{}
 
 	t0 := time.Now()
-	err := l.client.CallAPI(ctx, ep, params, out)
+	statusCode, err := l.client.CallAPI(ctx, ep, params, out)
 	latency := time.Since(t0).Milliseconds()
 
 	stats := scrapeStats{
-		CallCount: 1,
-		LatencyMs: float64(latency),
-		Pages:     1,
+		CallCount:  1,
+		LatencyMs:  float64(latency),
+		Pages:      1,
+		HTTPStatus: statusCode,
 	}
 
 	if err != nil {
@@ -238,33 +357,75 @@ func (l *kandjiLogsReceiver) fetchAuditPage(
 	return out, stats, out.Next, nil
 }
 
-// ------------------------------------------------------------
-// Convert API response → OTel logs
-// ------------------------------------------------------------
+// -------------------------------------------------------------------
+// Emit logs
+// -------------------------------------------------------------------
 
-func (l *kandjiLogsReceiver) emitLogs(resp *AuditEventsResponse) error {
+func (l *kandjiLogsReceiver) emitLogs(
+	ep KandjiEndpoint,
+	resp *AuditEventsResponse,
+) error {
+
+	l.logger.Info("emitLogs called",
+		zap.String("endpoint", string(ep)),
+		zap.Int("num_results", len(resp.Results)),
+		zap.Bool("consumer_is_nil", l.consumer == nil),
+	)
+
+	if l.consumer == nil {
+		l.logger.Error("consumer is nil in emitLogs - cannot emit logs")
+		return fmt.Errorf("consumer is nil")
+	}
+
 	if len(resp.Results) == 0 {
+		l.logger.Info("emitLogs: no results to emit")
 		return nil
 	}
 
 	logs := plog.NewLogs()
 	rl := logs.ResourceLogs().AppendEmpty()
 	sl := rl.ScopeLogs().AppendEmpty()
+
+	// Set scope name and version (required by many exporters)
+	sl.Scope().SetName("kandji")
+	sl.Scope().SetVersion("1.0.0")
+
 	scope := sl.LogRecords()
 
 	attrs := rl.Resource().Attributes()
 	attrs.PutStr("kandji.region", l.cfg.Region)
 	attrs.PutStr("kandji.subdomain", l.cfg.SubDomain)
-	attrs.PutStr("kandji.audit.type", "events")
+	attrs.PutStr("kandji.endpoint", string(ep))
+	attrs.PutStr("kandji.log_type", "audit_events")
 
 	for _, ev := range resp.Results {
 		lr := scope.AppendEmpty()
 
-		body, _ := json.Marshal(ev)
-		lr.Body().SetStr(string(body))
+		// full event JSON as body (easy for downstream search)
+		body, err := json.Marshal(ev)
+		if err != nil {
+			l.logger.Warn("failed to marshal event to JSON", zap.Error(err))
+			continue
+		}
 
-		ts, _ := time.Parse(time.RFC3339Nano, ev.OccurredAt)
-		lr.SetTimestamp(pcommon.NewTimestampFromTime(ts))
+		// Set body - using the correct pdata API
+		bodyVal := lr.Body()
+		bodyVal.SetStr(string(body))
+
+		ts, err := time.Parse(time.RFC3339Nano, ev.OccurredAt)
+		if err != nil {
+			// fall back to "now" if parse fails
+			l.logger.Warn("failed to parse occurred_at, using current time",
+				zap.String("occurred_at", ev.OccurredAt),
+				zap.Error(err),
+			)
+			now := time.Now().UTC()
+			lr.SetTimestamp(pcommon.NewTimestampFromTime(now))
+			lr.SetObservedTimestamp(pcommon.NewTimestampFromTime(now))
+		} else {
+			lr.SetTimestamp(pcommon.NewTimestampFromTime(ts))
+			lr.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now().UTC()))
+		}
 
 		m := lr.Attributes()
 		m.PutStr("id", ev.ID)
@@ -276,42 +437,91 @@ func (l *kandjiLogsReceiver) emitLogs(resp *AuditEventsResponse) error {
 		m.PutStr("target.component", ev.TargetComponent)
 	}
 
-	return l.consumer.ConsumeLogs(context.Background(), logs)
-}
+	totalRecords := scope.Len()
+	l.logger.Info("calling consumer.ConsumeLogs",
+		zap.String("endpoint", string(ep)),
+		zap.Int("total_log_records", totalRecords),
+		zap.Bool("consumer_is_nil", l.consumer == nil),
+		zap.Int("resource_logs_count", logs.ResourceLogs().Len()),
+	)
 
-// ------------------------------------------------------------
-// Checkpointing
-// ------------------------------------------------------------
-
-func (l *kandjiLogsReceiver) checkpoint(ctx context.Context) error {
-	if l.cursor == nil {
+	if totalRecords == 0 {
+		l.logger.Warn("no log records to emit")
 		return nil
 	}
 
-	b, _ := json.Marshal(map[string]string{
-		"cursor": *l.cursor,
-	})
-	return l.storageClient.Set(ctx, logStorageKey, b)
+	err := l.consumer.ConsumeLogs(context.Background(), logs)
+	if err != nil {
+		l.logger.Error("consumer.ConsumeLogs returned error", zap.Error(err))
+	} else {
+		l.logger.Info("consumer.ConsumeLogs completed successfully",
+			zap.String("endpoint", string(ep)),
+			zap.Int("total_log_records", scope.Len()),
+		)
+	}
+
+	return err
+}
+
+// -------------------------------------------------------------------
+// Checkpoint
+// -------------------------------------------------------------------
+
+func (l *kandjiLogsReceiver) checkpoint(ctx context.Context) error {
+	for ep, cur := range l.cursors {
+		cur = normalizeCursor(cur)
+		if cur == nil {
+			continue
+		}
+
+		data, _ := json.Marshal(map[string]string{
+			"cursor": *cur,
+		})
+
+		key := logStorageKeyPrefix + string(ep)
+		if err := l.storageClient.Set(ctx, key, data); err != nil {
+			l.logger.Error("failed to write cursor checkpoint",
+				zap.String("endpoint", string(ep)),
+				zap.Error(err),
+			)
+		} else {
+			l.logger.Debug("cursor checkpoint saved",
+				zap.String("endpoint", string(ep)),
+				zap.String("cursor", *cur),
+			)
+		}
+	}
+	return nil
 }
 
 func (l *kandjiLogsReceiver) loadCheckpoint(ctx context.Context) {
-	b, err := l.storageClient.Get(ctx, logStorageKey)
-	if err != nil || b == nil {
-		l.cursor = nil
-		return
-	}
+	for ep := range EndpointRegistry {
+		key := logStorageKeyPrefix + string(ep)
 
-	var v map[string]string
-	if json.Unmarshal(b, &v) == nil {
-		if cur, ok := v["cursor"]; ok {
-			l.cursor = &cur
+		b, err := l.storageClient.Get(ctx, key)
+		if err != nil || b == nil {
+			continue
+		}
+
+		var v map[string]string
+		if json.Unmarshal(b, &v) == nil {
+			if cur, ok := v["cursor"]; ok {
+				c := cur
+				if normalized := normalizeCursor(&c); normalized != nil {
+					l.cursors[ep] = normalized
+					l.logger.Debug("cursor checkpoint loaded",
+						zap.String("endpoint", string(ep)),
+						zap.String("cursor", *normalized),
+					)
+				}
+			}
 		}
 	}
 }
 
-// ------------------------------------------------------------
-// Exposed to scraper.go to publish metrics
-// ------------------------------------------------------------
+// -------------------------------------------------------------------
+// Stats exposed to metrics scraper
+// -------------------------------------------------------------------
 
 func (l *kandjiLogsReceiver) Stats() logStats {
 	l.stats.mu.Lock()
