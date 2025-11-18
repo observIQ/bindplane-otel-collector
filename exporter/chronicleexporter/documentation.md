@@ -8,48 +8,48 @@ The following telemetry is emitted by this component.
 
 ### otelcol_exporter_batch_size
 
-The number of logs in a batch.
+The number of logs in a batch. [Alpha]
 
-| Unit | Metric Type | Value Type |
-| ---- | ----------- | ---------- |
-| {logs} | Histogram | Int |
+| Unit | Metric Type | Value Type | Stability |
+| ---- | ----------- | ---------- | --------- |
+| {logs} | Histogram | Int | Alpha |
 
 ### otelcol_exporter_logs_send_failed
 
-The number of times ConsumeLogs failed, triggering a retry by the collector pipeline.
+The number of times ConsumeLogs failed, triggering a retry by the collector pipeline. [Alpha]
 
-| Unit | Metric Type | Value Type | Monotonic |
-| ---- | ----------- | ---------- | --------- |
-| {failures} | Sum | Int | true |
+| Unit | Metric Type | Value Type | Monotonic | Stability |
+| ---- | ----------- | ---------- | --------- | --------- |
+| {failures} | Sum | Int | true | Alpha |
 
 ### otelcol_exporter_payload_size
 
-The size of the payload in bytes.
+The size of the payload in bytes. [Alpha]
 
-| Unit | Metric Type | Value Type |
-| ---- | ----------- | ---------- |
-| B | Histogram | Int |
+| Unit | Metric Type | Value Type | Stability |
+| ---- | ----------- | ---------- | --------- |
+| B | Histogram | Int | Alpha |
 
 ### otelcol_exporter_raw_bytes
 
-The total number of raw bytes sent.
+The total number of raw bytes sent. [Alpha]
 
-| Unit | Metric Type | Value Type | Monotonic |
-| ---- | ----------- | ---------- | --------- |
-| B | Sum | Int | false |
+| Unit | Metric Type | Value Type | Monotonic | Stability |
+| ---- | ----------- | ---------- | --------- | --------- |
+| B | Sum | Int | false | Alpha |
 
 ### otelcol_exporter_request_count
 
-The total number of requests made.
+The total number of requests made. [Alpha]
 
-| Unit | Metric Type | Value Type | Monotonic |
-| ---- | ----------- | ---------- | --------- |
-| {requests} | Sum | Int | false |
+| Unit | Metric Type | Value Type | Monotonic | Stability |
+| ---- | ----------- | ---------- | --------- | --------- |
+| {requests} | Sum | Int | false | Alpha |
 
 ### otelcol_exporter_request_latency
 
-The latency of the request in milliseconds.
+The latency of the request in milliseconds. [Alpha]
 
-| Unit | Metric Type | Value Type |
-| ---- | ----------- | ---------- |
-| ms | Histogram | Int |
+| Unit | Metric Type | Value Type | Stability |
+| ---- | ----------- | ---------- | --------- |
+| ms | Histogram | Int | Alpha |

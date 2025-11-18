@@ -18,15 +18,15 @@ The status of the ABAP update process.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Update > Update > AbapErrorInUpdate.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| 1 | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| 1 | Sum | Int | Cumulative | false | Alpha |
 
 #### Attributes
 
-| Name | Description | Values | Optional |
+| Name | Description | Values | Requirement Level |
 | ---- | ----------- | ------ | -------- |
-| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` | false |
+| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` | Recommended |
 
 ### sapnetweaver.cache.evictions
 
@@ -34,9 +34,9 @@ The number of evicted entries.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > Server Cache > EvictedEntries.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {entries} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {entries} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.cache.hits
 
@@ -44,9 +44,9 @@ The cache hit percentage.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > Server Cache > CacheHits.
 
-| Unit | Metric Type | Value Type |
-| ---- | ----------- | ---------- |
-| % | Gauge | Int |
+| Unit | Metric Type | Value Type | Stability |
+| ---- | ----------- | ---------- | --------- |
+| % | Gauge | Int | Alpha |
 
 ### sapnetweaver.connection.error.count
 
@@ -54,9 +54,9 @@ The amount of connection errors.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General > StatNoOfConnectErrors.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {connections} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {connections} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.cpu.system.utilization
 
@@ -64,9 +64,9 @@ The system CPU utilization percentage.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems> CPU > System Utilization.
 
-| Unit | Metric Type | Value Type |
-| ---- | ----------- | ---------- |
-| % | Gauge | Int |
+| Unit | Metric Type | Value Type | Stability |
+| ---- | ----------- | ---------- | --------- |
+| % | Gauge | Int | Alpha |
 
 ### sapnetweaver.cpu.utilization
 
@@ -74,9 +74,9 @@ The CPU utilization percentage.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems> CPU > CPU_Utilization.
 
-| Unit | Metric Type | Value Type |
-| ---- | ----------- | ---------- |
-| % | Gauge | Int |
+| Unit | Metric Type | Value Type | Stability |
+| ---- | ----------- | ---------- | --------- |
+| % | Gauge | Int | Alpha |
 
 ### sapnetweaver.database.dialog.request.time
 
@@ -84,9 +84,9 @@ The average time for processing logical database requests calls to the SAP datab
 
 Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Dialog > DBRequestTime.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| ms | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| ms | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.host.memory.virtual.overhead
 
@@ -94,9 +94,9 @@ Virtualization System Memory Overhead.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems > Memory > Memory Overhead.
 
-| Unit | Metric Type | Value Type |
-| ---- | ----------- | ---------- |
-| By | Gauge | Int |
+| Unit | Metric Type | Value Type | Stability |
+| ---- | ----------- | ---------- | --------- |
+| By | Gauge | Int | Alpha |
 
 ### sapnetweaver.host.memory.virtual.swap
 
@@ -104,9 +104,9 @@ Virtualization System Swap Memory.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > FileSystems > Memory_Virtualization_Virtual_System > Memory Swapped Out.
 
-| Unit | Metric Type | Value Type |
-| ---- | ----------- | ---------- |
-| By | Gauge | Int |
+| Unit | Metric Type | Value Type | Stability |
+| ---- | ----------- | ---------- | --------- |
+| By | Gauge | Int | Alpha |
 
 ### sapnetweaver.host.spool_list.utilization
 
@@ -114,9 +114,9 @@ The host spool list used percentage.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Spool > SpoolService > HostspoolListUsed.
 
-| Unit | Metric Type | Value Type |
-| ---- | ----------- | ---------- |
-| % | Gauge | Int |
+| Unit | Metric Type | Value Type | Stability |
+| ---- | ----------- | ---------- | --------- |
+| % | Gauge | Int | Alpha |
 
 ### sapnetweaver.locks.dequeue.errors.count
 
@@ -124,9 +124,9 @@ The dequeued locks error count.
 
 Collected from SAPControl Web Service Interface > EnqGetStatistic.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {errors} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {errors} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.locks.enqueue.current.count
 
@@ -134,9 +134,9 @@ The current number of enqueued locks.
 
 Collected from SAPControl Web Service Interface > EnqGetStatistic.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {locks} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {locks} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.locks.enqueue.errors.count
 
@@ -144,9 +144,9 @@ The enqueued locks error count.
 
 Collected from SAPControl Web Service Interface > EnqGetStatistic.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {errors} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {errors} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.locks.enqueue.high.count
 
@@ -154,9 +154,9 @@ The high number of enqueued locks.
 
 Collected from SAPControl Web Service Interface > EnqGetStatistic.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {locks} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {locks} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.locks.enqueue.lock_time
 
@@ -164,9 +164,9 @@ The enqueued locks time.
 
 Collected from SAPControl Web Service Interface > EnqGetStatistic.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| ms | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| ms | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.locks.enqueue.lock_wait_time
 
@@ -174,9 +174,9 @@ The enqueued locks wait time.
 
 Collected from SAPControl Web Service Interface > EnqGetStatistic.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| ms | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| ms | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.locks.enqueue.max.count
 
@@ -184,9 +184,9 @@ The max number of enqueued locks.
 
 Collected from SAPControl Web Service Interface > EnqGetStatistic.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {locks} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {locks} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.memory.configured
 
@@ -194,9 +194,9 @@ The amount of configured memory.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems > Memory > Configured Memory.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| By | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| By | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.memory.free
 
@@ -204,9 +204,9 @@ The amount of free memory.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems > Memory > Free Memory.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| By | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| By | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.memory.swap_space.utilization
 
@@ -214,9 +214,9 @@ The swap space utilization percentage.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems >  Swap_Space > Percentage_Used.
 
-| Unit | Metric Type | Value Type |
-| ---- | ----------- | ---------- |
-| % | Gauge | Int |
+| Unit | Metric Type | Value Type | Stability |
+| ---- | ----------- | ---------- | --------- |
+| % | Gauge | Int | Alpha |
 
 ### sapnetweaver.process_availability
 
@@ -224,17 +224,17 @@ The processes availability directly started by the sapstartsrv Web service.
 
 Collected from SAPControl Web Service Interface > GetProcessList.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| 1 | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| 1 | Sum | Int | Cumulative | false | Alpha |
 
 #### Attributes
 
-| Name | Description | Values | Optional |
+| Name | Description | Values | Requirement Level |
 | ---- | ----------- | ------ | -------- |
-| process_name | The name value from GetProcessList. | Any Str | false |
-| process_description | The description value from GetProcessList. | Any Str | false |
-| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` | false |
+| process_name | The name value from GetProcessList. | Any Str | Recommended |
+| process_description | The description value from GetProcessList. | Any Str | Recommended |
+| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` | Recommended |
 
 ### sapnetweaver.queue.count
 
@@ -242,15 +242,15 @@ The queue length.
 
 Collected from SAPControl Web Service Interface > GetQueueStatistic.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| 1 | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| 1 | Sum | Int | Cumulative | false | Alpha |
 
 #### Attributes
 
-| Name | Description | Values | Optional |
+| Name | Description | Values | Requirement Level |
 | ---- | ----------- | ------ | -------- |
-| wp_type | The work processor type. | Any Str | false |
+| wp_type | The work processor type. | Any Str | Recommended |
 
 ### sapnetweaver.queue_max.count
 
@@ -258,15 +258,15 @@ The max queue length.
 
 Collected from SAPControl Web Service Interface > GetQueueStatistic.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| 1 | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| 1 | Sum | Int | Cumulative | false | Alpha |
 
 #### Attributes
 
-| Name | Description | Values | Optional |
+| Name | Description | Values | Requirement Level |
 | ---- | ----------- | ------ | -------- |
-| wp_type | The work processor type. | Any Str | false |
+| wp_type | The work processor type. | Any Str | Recommended |
 
 ### sapnetweaver.queue_peak.count
 
@@ -274,15 +274,15 @@ The peak queue length.
 
 Collected from SAPControl Web Service Interface > GetQueueStatistic.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| 1 | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| 1 | Sum | Int | Cumulative | false | Alpha |
 
 #### Attributes
 
-| Name | Description | Values | Optional |
+| Name | Description | Values | Requirement Level |
 | ---- | ----------- | ------ | -------- |
-| wp_type | The work processor type. | Any Str | false |
+| wp_type | The work processor type. | Any Str | Recommended |
 
 ### sapnetweaver.request.count
 
@@ -290,9 +290,9 @@ The amount of requests made.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General >  StatNoOfRequests.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {requests} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {requests} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.request.timeout.count
 
@@ -300,23 +300,23 @@ The amount of timed out requests.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General >  StatNoOfTimeouts.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {timeouts} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {timeouts} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.response.duration
 
 The response time duration.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| ms | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| ms | Sum | Int | Cumulative | false | Alpha |
 
 #### Attributes
 
-| Name | Description | Values | Optional |
+| Name | Description | Values | Requirement Level |
 | ---- | ----------- | ------ | -------- |
-| response_type | The response type. | Str: ``transaction``, ``dialog``, ``dialogRFC``, ``http`` | false |
+| response_type | The response type. | Str: ``transaction``, ``dialog``, ``dialogRFC``, ``http`` | Recommended |
 
 ### sapnetweaver.session.count
 
@@ -324,9 +324,9 @@ The amount of sessions created.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > R3ServiceS > ITS > Number of Sessions.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {sessions} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {sessions} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.sessions.browser.count
 
@@ -334,9 +334,9 @@ The number of Browser Sessions.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > ... Sessions AS Java > Browser Sessions.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {sessions} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {sessions} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.sessions.ejb.count
 
@@ -344,9 +344,9 @@ The number of EJB Sessions.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > ... Sessions AS Java > EJB Sessions.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {sessions} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {sessions} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.sessions.http.count
 
@@ -354,9 +354,9 @@ The number of HTTP Sessions.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > ... Web Container > CurrentHttpSessions.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {sessions} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {sessions} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.sessions.security.count
 
@@ -364,9 +364,9 @@ The number of Security Sessions.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > ... Web Container > CurrentSecuritySessions.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {sessions} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {sessions} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.sessions.web.count
 
@@ -374,9 +374,9 @@ The number of Web Sessions.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > ... Sessions AS Java > Web Sessions.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {sessions} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {sessions} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.short_dumps.rate
 
@@ -384,9 +384,9 @@ The rate of Short Dumps.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > R3Abap > Shortdumps Frequency.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {dumps}/min | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {dumps}/min | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.spool.request.error.count
 
@@ -394,9 +394,9 @@ The number of spool work processes that have encountered errors.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Spool > SpoolService > ErrorsInWpSPO.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {errors} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {errors} | Sum | Int | Cumulative | false | Alpha |
 
 ### sapnetweaver.system.instance_availability
 
@@ -404,18 +404,18 @@ The availability status of each system instance.
 
 Collected from SAPControl Web Service Interface > GetSystemInstanceList.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| 1 | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| 1 | Sum | Int | Cumulative | false | Alpha |
 
 #### Attributes
 
-| Name | Description | Values | Optional |
+| Name | Description | Values | Requirement Level |
 | ---- | ----------- | ------ | -------- |
-| hostname | The SAP hostname. | Any Str | false |
-| instance_number | The instance number | Any Int | false |
-| feature | The service availability. | Any Str | false |
-| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` | false |
+| hostname | The SAP hostname. | Any Str | Recommended |
+| instance_number | The instance number | Any Int | Recommended |
+| feature | The service availability. | Any Str | Recommended |
+| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` | Recommended |
 
 ### sapnetweaver.work_process.active.count
 
@@ -423,17 +423,17 @@ The number of free ABAP work processes in the system.
 
 Collected from SAPControl Web Service Interface > ABAPGetSystemWPTable.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| {work_processes} | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| {work_processes} | Sum | Int | Cumulative | false | Alpha |
 
 #### Attributes
 
-| Name | Description | Values | Optional |
+| Name | Description | Values | Requirement Level |
 | ---- | ----------- | ------ | -------- |
-| instance | The SAP instance name. | Any Str | false |
-| wp_type | The work processor type. | Any Str | false |
-| wp_status | The work processor status. | Any Str | false |
+| instance | The SAP instance name. | Any Str | Recommended |
+| wp_type | The work processor type. | Any Str | Recommended |
+| wp_status | The work processor status. | Any Str | Recommended |
 
 ### sapnetweaver.work_process.job.aborted.status
 
@@ -441,15 +441,15 @@ The status of aborted jobs on an application server.
 
 Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Background > AbortedJobs.
 
-| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic |
-| ---- | ----------- | ---------- | ----------------------- | --------- |
-| 1 | Sum | Int | Cumulative | false |
+| Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
+| ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
+| 1 | Sum | Int | Cumulative | false | Alpha |
 
 #### Attributes
 
-| Name | Description | Values | Optional |
+| Name | Description | Values | Requirement Level |
 | ---- | ----------- | ------ | -------- |
-| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` | false |
+| state | The control state color. | Str: ``gray``, ``green``, ``yellow``, ``red`` | Recommended |
 
 ## Resource Attributes
 
