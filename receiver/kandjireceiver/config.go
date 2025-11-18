@@ -31,10 +31,11 @@ type LogsConfig struct {
 type Config struct {
 	ClientConfig confighttp.ClientConfig `mapstructure:",squash"`
 
-	Region    string `mapstructure:"region"`
-	SubDomain string `mapstructure:"subdomain"`
-	ApiKey    string `mapstructure:"api_key"`
-	BaseHost  string `mapstructure:"base_host"`
+	Region         string                    `mapstructure:"region"`
+	SubDomain      string                    `mapstructure:"subdomain"`
+	ApiKey         string                    `mapstructure:"api_key"`
+	BaseHost       string                    `mapstructure:"base_host"`
+	EndpointParams map[string]map[string]any `mapstructure:"endpoint_params"`
 
 	Logs      LogsConfig    `mapstructure:"logs"`
 	StorageID *component.ID `mapstructure:"storage_id"`
@@ -69,6 +70,26 @@ func (c *Config) Validate() error {
 	if c.BaseHost != "" {
 		if !regexp.MustCompile(`^[a-zA-Z0-9.-]+$`).MatchString(c.BaseHost) {
 			return fmt.Errorf("base_host %q is not a valid hostname", c.BaseHost)
+		}
+	}
+
+	for epStr, params := range c.EndpointParams {
+		ep := KandjiEndpoint(epStr)
+
+		spec, ok := EndpointRegistry[ep]
+		if !ok {
+			return fmt.Errorf(
+				"endpoint_params: unknown endpoint %q; must match a KandjiEndpoint key in the registry",
+				epStr,
+			)
+		}
+
+		if err := ValidateParams(ep, params); err != nil {
+			return fmt.Errorf(
+				"endpoint_params validation failed for endpoint %q: %w",
+				spec.Path,
+				err,
+			)
 		}
 	}
 

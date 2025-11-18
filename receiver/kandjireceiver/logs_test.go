@@ -182,7 +182,7 @@ func TestPollEndpoint(t *testing.T) {
 		Params:       []ParamSpec{{Name: "limit"}, {Name: "sort_by"}},
 	}
 
-	err := l.pollEndpoint(context.Background(), "GET /audit/events", spec)
+	err := l.pollEndpoint(context.Background(), "GET /audit/events", spec, nil)
 	require.NoError(t, err)
 	require.Equal(t, 2, sink.LogRecordCount())
 }
@@ -256,7 +256,7 @@ func TestPollEndpointError(t *testing.T) {
 		Params:       []ParamSpec{{Name: "limit"}},
 	}
 
-	err := l.pollEndpoint(context.Background(), "GET /audit/events", spec)
+	err := l.pollEndpoint(context.Background(), "GET /audit/events", spec, nil)
 	require.Error(t, err)
 	require.Equal(t, 0, sink.LogRecordCount())
 }

@@ -60,8 +60,8 @@ func newKandjiLogs(
 		consumer: consumer,
 		cfg:      cfg,
 		id:       settings.ID,
-		wg:      &sync.WaitGroup{},
-		cursors: map[KandjiEndpoint]*string{},
+		wg:       &sync.WaitGroup{},
+		cursors:  map[KandjiEndpoint]*string{},
 	}
 }
 
@@ -157,25 +157,34 @@ func (l *kandjiLogsReceiver) startPolling(ctx context.Context) error {
 // -------------------------------------------------------------------
 
 func (l *kandjiLogsReceiver) pollAll(ctx context.Context) error {
-	l.logger.Info("pollAll started", zap.Int("total_endpoints", len(EndpointRegistry)))
+	l.logger.Info("pollAll started",
+		zap.Int("configured_endpoints", len(l.cfg.EndpointParams)),
+	)
 
 	if l.consumer == nil {
 		l.logger.Error("consumer is nil - logs cannot be emitted")
 		return fmt.Errorf("consumer is nil")
 	}
 
+	// Poll only endpoints configured in endpoint_params
+	// Each endpoint gets its configured query parameters
 	foundCount := 0
-	for ep, spec := range EndpointRegistry {
-		// For now, treat any endpoint whose ResponseType is AuditEventsResponse
-		// as a "log endpoint". This avoids needing a LogEnabled flag on EndpointSpec.
-		// Check both value and pointer types
+	for epStr, params := range l.cfg.EndpointParams {
+		ep := KandjiEndpoint(epStr)
+		spec, ok := EndpointRegistry[ep]
+		if !ok {
+			l.logger.Warn("endpoint in endpoint_params not found in registry",
+				zap.String("endpoint", epStr),
+			)
+			continue
+		}
+
+		// Only poll endpoints that return AuditEventsResponse
 		_, isValueType := spec.ResponseType.(AuditEventsResponse)
 		_, isPtrType := spec.ResponseType.(*AuditEventsResponse)
-
 		if !isValueType && !isPtrType {
 			l.logger.Debug("skipping endpoint - not AuditEventsResponse",
-				zap.String("endpoint", string(ep)),
-				zap.String("response_type", fmt.Sprintf("%T", spec.ResponseType)),
+				zap.String("endpoint", epStr),
 			)
 			continue
 		}
@@ -183,9 +192,10 @@ func (l *kandjiLogsReceiver) pollAll(ctx context.Context) error {
 		foundCount++
 		l.logger.Info("polling log endpoint",
 			zap.String("endpoint", string(ep)),
+			zap.Any("params", params),
 		)
 
-		if err := l.pollEndpoint(ctx, ep, spec); err != nil {
+		if err := l.pollEndpoint(ctx, ep, spec, params); err != nil {
 			l.logger.Error("failed polling kandji logs",
 				zap.String("endpoint", string(ep)),
 				zap.Error(err),
@@ -208,18 +218,31 @@ func (l *kandjiLogsReceiver) pollEndpoint(
 	ctx context.Context,
 	ep KandjiEndpoint,
 	spec EndpointSpec,
+	endpointParams map[string]any,
 ) error {
 
-	// Seed params from registry ParamSpec
-	params := map[string]any{}
-	for _, p := range spec.Params {
-		switch p.Name {
-		case "limit":
-			// default reasonable max page size
-			params[p.Name] = 500
-		case "sort_by":
-			// default newest first if supported
-			params[p.Name] = "-occurred_at"
+	// Start with configured endpoint_params from config
+	// These are the query parameters for the HTTP request
+	params := make(map[string]any)
+	for k, v := range endpointParams {
+		params[k] = v
+	}
+
+	// Apply defaults for common params if not provided
+	if _, hasLimit := params["limit"]; !hasLimit {
+		for _, p := range spec.Params {
+			if p.Name == "limit" {
+				params["limit"] = 500 // default reasonable max page size
+				break
+			}
+		}
+	}
+	if _, hasSortBy := params["sort_by"]; !hasSortBy {
+		for _, p := range spec.Params {
+			if p.Name == "sort_by" {
+				params["sort_by"] = "-occurred_at" // default newest first
+				break
+			}
 		}
 	}
 
@@ -488,4 +511,3 @@ func (l *kandjiLogsReceiver) loadCheckpoint(ctx context.Context) {
 		}
 	}
 }
-

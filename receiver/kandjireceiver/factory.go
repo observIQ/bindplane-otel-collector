@@ -49,7 +49,8 @@ func createDefaultConfig() component.Config {
 			PollInterval: 5 * time.Minute,
 		},
 
-		StorageID: nil,
+		StorageID:      nil,
+		EndpointParams: map[string]map[string]any{},
 	}
 }
 
