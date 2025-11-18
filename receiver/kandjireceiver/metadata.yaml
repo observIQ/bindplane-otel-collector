@@ -1,0 +1,109 @@
+type: kandji
+
+status:
+  class: receiver
+  stability:
+    alpha: [metrics]
+
+# Resource-level attributes
+resource_attributes:
+  kandji.subdomain:
+    type: string
+    description: The Kandji tenant subdomain (e.g., acme.kandji.io)
+    enabled: true
+
+  kandji.region:
+    type: string
+    description: The Kandji environment region (US or EU)
+    enabled: true
+
+# Metric attribute definitions (NO 'enabled' allowed here)
+attributes:
+  endpoint:
+    description: Kandji API endpoint being scraped
+    type: string
+
+  status:
+    description: API call status (success/error)
+    type: string
+    enum: [success, error]
+
+  http_status:
+    description: Raw HTTP status code
+    type: string
+
+  reason:
+    description: Error reason category (http_error, json_error, timeout, rate_limit)
+    type: string
+    enum: [http_error, json_error, timeout, rate_limit]
+
+# ---------------------------------------------------------
+# Metrics
+# ---------------------------------------------------------
+
+metrics:
+  kandji.api.calls:
+    enabled: true
+    description: Total number of Kandji API calls performed by the receiver.
+    unit: "1"
+    sum:
+      value_type: int
+      monotonic: true
+      aggregation_temporality: delta
+    attributes: [endpoint, status, http_status]
+
+  kandji.api.errors:
+    enabled: true
+    description: Number of Kandji API requests that failed.
+    unit: "1"
+    sum:
+      value_type: int
+      monotonic: true
+      aggregation_temporality: delta
+    attributes: [endpoint, reason]
+
+  kandji.api.latency:
+    enabled: true
+    description: Kandji API call duration per endpoint.
+    unit: "ms"
+    gauge:
+      value_type: double
+    attributes: [endpoint]
+
+  kandji.records.received:
+    enabled: true
+    description: Number of records returned from Kandji API responses.
+    unit: "1"
+    sum:
+      value_type: int
+      monotonic: true
+      aggregation_temporality: delta
+    attributes: [endpoint]
+
+  kandji.data.bytes:
+    enabled: true
+    description: Total number of bytes returned in Kandji API responses.
+    unit: "By"
+    sum:
+      value_type: int
+      monotonic: true
+      aggregation_temporality: delta
+    attributes: [endpoint]
+
+  kandji.pagination.pages:
+    enabled: true
+    description: Number of pagination pages processed for Kandji API calls.
+    unit: "1"
+    sum:
+      value_type: int
+      monotonic: true
+      aggregation_temporality: delta
+    attributes: [endpoint]
+
+  kandji.scrape.duration:
+    enabled: true
+    description: Duration of the entire Kandji scrape cycle.
+    unit: "ms"
+    gauge:
+      value_type: double
+    attributes: []
