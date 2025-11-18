@@ -18,14 +18,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/receiver/kandjireceiver/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"
 	"go.opentelemetry.io/collector/scraper"
 	"go.opentelemetry.io/collector/scraper/scraperhelper"
-
-	"github.com/observiq/bindplane-otel-collector/receiver/kandjireceiver/internal/metadata"
 )
 
 // NewFactory creates a factory for the Kandji receiver.
@@ -34,6 +33,7 @@ func NewFactory() receiver.Factory {
 		metadata.Type,
 		createDefaultConfig,
 		receiver.WithMetrics(createMetricsReceiver, metadata.MetricsStability),
+		receiver.WithLogs(createLogsReceiver, component.StabilityLevelAlpha),
 	)
 }
 
@@ -49,7 +49,7 @@ func createDefaultConfig() component.Config {
 		Region:    "US",
 		SubDomain: "",
 		ApiKey:    "",
-		BaseHost:  "kandji.io",
+		BaseHost:  "api.kandji.io",
 
 		Logs: LogsConfig{
 			PollInterval: 5 * time.Minute,
@@ -86,4 +86,14 @@ func createMetricsReceiver(
 		cons,
 		scraperhelper.AddScraper(metadata.Type, s),
 	)
+}
+
+func createLogsReceiver(
+	_ context.Context,
+	params receiver.Settings,
+	rConf component.Config,
+	consumer consumer.Logs,
+) (receiver.Logs, error) {
+	cfg := rConf.(*Config)
+	return newKandjiLogs(cfg, params, consumer), nil
 }
