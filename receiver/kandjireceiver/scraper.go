@@ -3,6 +3,7 @@ package kandjireceiver // import "github.com/observiq/bindplane-otel-collector/r
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
@@ -15,7 +16,7 @@ import (
 )
 
 type kClient interface {
-	CallAPI(ctx context.Context, ep KandjiEndpoint, params map[string]any, out any) error
+	CallAPI(ctx context.Context, ep KandjiEndpoint, params map[string]any, out any) (int, error)
 	Shutdown() error
 }
 
@@ -56,6 +57,7 @@ func (k *kandjiScraper) start(ctx context.Context, host component.Host) error {
 		k.cfg.Region,
 		k.cfg.ApiKey,
 		k.cfg.BaseHost,
+		k.logger,
 	)
 
 	k.logger.Info("Kandji scraper started",
@@ -75,8 +77,13 @@ func (k *kandjiScraper) scrape(ctx context.Context) (pmetric.Metrics, error) {
 	scrapeStart := time.Now()
 	md := pmetric.NewMetrics()
 
-	k.logger.Debug("scrape cycle started",
+	k.logger.Info("scrape cycle started",
 		zap.Int("num_endpoints", len(k.cfg.EndpointParams)))
+
+	if len(k.cfg.EndpointParams) == 0 {
+		k.logger.Warn("no endpoints configured in endpoint_params")
+		return k.mb.Emit(metadata.WithResource(k.rb.Emit())), nil
+	}
 
 	for epStr, paramCfg := range k.cfg.EndpointParams {
 
@@ -86,6 +93,10 @@ func (k *kandjiScraper) scrape(ctx context.Context) (pmetric.Metrics, error) {
 			k.logger.Error("unknown endpoint in configuration", zap.String("endpoint", epStr))
 			continue
 		}
+
+		k.logger.Info("scraping endpoint",
+			zap.String("endpoint", epStr),
+			zap.Bool("supports_pagination", spec.SupportsPagination))
 
 		if spec.SupportsPagination {
 			if err := k.scrapePaginated(ctx, md, ep, paramCfg); err != nil {
@@ -108,7 +119,7 @@ func (k *kandjiScraper) scrape(ctx context.Context) (pmetric.Metrics, error) {
 	// Emit metrics with resource attributes
 	result := k.mb.Emit(metadata.WithResource(k.rb.Emit()))
 
-	k.logger.Debug("scrape cycle completed",
+	k.logger.Info("scrape cycle completed",
 		zap.Duration("duration", time.Since(scrapeStart)))
 
 	return result, nil
@@ -128,13 +139,14 @@ func (k *kandjiScraper) fetchPage(
 	out = cloneResponseType(spec.ResponseType)
 
 	t0 := time.Now()
-	err = k.client.CallAPI(ctx, ep, params, out)
+	statusCode, err := k.client.CallAPI(ctx, ep, params, out)
 	latency := time.Since(t0)
 
 	stats = scrapeStats{
 		CallCount:        1,
 		LatencyMs:        float64(latency.Milliseconds()),
 		ScrapeDurationMs: float64(latency.Milliseconds()),
+		HTTPStatus:       statusCode,
 	}
 
 	if err != nil {
@@ -176,9 +188,16 @@ func (k *kandjiScraper) scrapePaginated(
 ) error {
 
 	var cursor *string
+	page := 1
 
 	for {
 		pageParams := buildPageParams(params, cursor)
+
+		k.logger.Info("kandji metrics request",
+			zap.String("endpoint", string(ep)),
+			zap.Int("page", page),
+			zap.Any("params", pageParams),
+		)
 
 		_, stats, next, err := k.fetchPage(ctx, ep, pageParams)
 		if err != nil {
@@ -188,11 +207,21 @@ func (k *kandjiScraper) scrapePaginated(
 
 		k.recordMetrics(ep, stats)
 
+		k.logger.Info("kandji metrics response",
+			zap.String("endpoint", string(ep)),
+			zap.Int("page", page),
+			zap.Int64("records", stats.RecordCount),
+			zap.Float64("latency_ms", stats.LatencyMs),
+			zap.Int64("bytes", stats.Bytes),
+			zap.Stringp("next_cursor", next),
+		)
+
 		if next == nil || *next == "" {
 			return nil
 		}
 
 		cursor = next
+		page++
 	}
 }
 
@@ -217,7 +246,7 @@ func getRecordCount(out any) int64 {
 func extractNextCursor(out any) *string {
 	switch v := out.(type) {
 	case *AuditEventsResponse:
-		return v.Next
+		return normalizeCursor(v.Next)
 	default:
 		return nil
 	}
@@ -234,7 +263,7 @@ func (k *kandjiScraper) recordMetrics(ep KandjiEndpoint, stats scrapeStats) {
 		stats.CallCount,
 		string(ep),
 		statusAttr,
-		string(stats.HTTPStatus),
+		strconv.Itoa(stats.HTTPStatus),
 	)
 
 	if stats.ErrorCount > 0 {
