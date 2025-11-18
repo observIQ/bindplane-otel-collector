@@ -29,18 +29,6 @@ func TestType(t *testing.T) {
 	require.EqualValues(t, "kandji", ft.String())
 }
 
-func TestCreateMetricsReceiver(t *testing.T) {
-	factory := NewFactory()
-	test, err := factory.CreateMetrics(
-		context.Background(),
-		receivertest.NewNopSettings(typ),
-		createDefaultConfig(),
-		consumertest.NewNop(),
-	)
-	require.NoError(t, err)
-	require.NotNil(t, test)
-}
-
 func TestCreateLogsReceiver(t *testing.T) {
 	factory := NewFactory()
 	test, err := factory.CreateLogs(

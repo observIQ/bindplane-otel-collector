@@ -26,32 +26,6 @@ const (
 )
 
 // -------------------------------------------------------------------
-// Shared stats (exposed to metrics scraper)
-// -------------------------------------------------------------------
-
-type logStats struct {
-	TotalRequests int64
-	TotalErrors   int64
-	TotalRecords  int64
-	TotalBytes    int64
-	TotalPages    int64
-	LastLatencyMs float64
-	mu            sync.Mutex
-}
-
-func (ls *logStats) add(s scrapeStats) {
-	ls.mu.Lock()
-	defer ls.mu.Unlock()
-
-	ls.TotalRequests += s.CallCount
-	ls.TotalErrors += s.ErrorCount
-	ls.TotalRecords += s.RecordCount
-	ls.TotalBytes += s.Bytes
-	ls.TotalPages += s.Pages
-	ls.LastLatencyMs = s.LatencyMs
-}
-
-// -------------------------------------------------------------------
 // Logs Receiver
 // -------------------------------------------------------------------
 
@@ -69,8 +43,6 @@ type kandjiLogsReceiver struct {
 
 	mu      sync.Mutex
 	cursors map[KandjiEndpoint]*string // checkpointed per-endpoint
-
-	stats *logStats
 }
 
 // -------------------------------------------------------------------
@@ -88,9 +60,8 @@ func newKandjiLogs(
 		consumer: consumer,
 		cfg:      cfg,
 		id:       settings.ID,
-		wg:       &sync.WaitGroup{},
-		stats:    &logStats{},
-		cursors:  map[KandjiEndpoint]*string{},
+		wg:      &sync.WaitGroup{},
+		cursors: map[KandjiEndpoint]*string{},
 	}
 }
 
@@ -273,7 +244,6 @@ func (l *kandjiLogsReceiver) pollEndpoint(
 		)
 
 		resp, stats, next, err := l.fetchPage(ctx, ep, params)
-		l.stats.add(stats)
 
 		if err != nil {
 			l.logger.Error("fetchPage failed", zap.Error(err))
@@ -519,12 +489,3 @@ func (l *kandjiLogsReceiver) loadCheckpoint(ctx context.Context) {
 	}
 }
 
-// -------------------------------------------------------------------
-// Stats exposed to metrics scraper
-// -------------------------------------------------------------------
-
-func (l *kandjiLogsReceiver) Stats() logStats {
-	l.stats.mu.Lock()
-	defer l.stats.mu.Unlock()
-	return *l.stats
-}

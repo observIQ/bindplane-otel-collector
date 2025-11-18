@@ -12,6 +12,11 @@ import (
 	"go.uber.org/zap"
 )
 
+type kClient interface {
+	CallAPI(ctx context.Context, ep KandjiEndpoint, params map[string]any, out any) (int, error)
+	Shutdown() error
+}
+
 type kandjiClient struct {
 	client *http.Client
 

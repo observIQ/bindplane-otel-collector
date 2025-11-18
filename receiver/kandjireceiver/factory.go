@@ -23,8 +23,6 @@ import (
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"
-	"go.opentelemetry.io/collector/scraper"
-	"go.opentelemetry.io/collector/scraper/scraperhelper"
 )
 
 // NewFactory creates a factory for the Kandji receiver.
@@ -32,16 +30,12 @@ func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
 		metadata.Type,
 		createDefaultConfig,
-		receiver.WithMetrics(createMetricsReceiver, metadata.MetricsStability),
 		receiver.WithLogs(createLogsReceiver, component.StabilityLevelAlpha),
 	)
 }
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		ControllerConfig: scraperhelper.ControllerConfig{
-			CollectionInterval: 5 * time.Minute,
-		},
 		ClientConfig: confighttp.ClientConfig{
 			Timeout: 15 * time.Second,
 		},
@@ -55,37 +49,8 @@ func createDefaultConfig() component.Config {
 			PollInterval: 5 * time.Minute,
 		},
 
-		StorageID:      nil,
-		EndpointParams: map[string]map[string]any{},
+		StorageID: nil,
 	}
-}
-
-func createMetricsReceiver(
-	_ context.Context,
-	params receiver.Settings,
-	rConf component.Config,
-	cons consumer.Metrics,
-) (receiver.Metrics, error) {
-
-	cfg := rConf.(*Config)
-
-	scr := newKandjiScraper(params, cfg)
-
-	s, err := scraper.NewMetrics(
-		scr.scrape,
-		scraper.WithStart(scr.start),
-		scraper.WithShutdown(scr.shutdown),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return scraperhelper.NewMetricsController(
-		&cfg.ControllerConfig,
-		params,
-		cons,
-		scraperhelper.AddScraper(metadata.Type, s),
-	)
 }
 
 func createLogsReceiver(
