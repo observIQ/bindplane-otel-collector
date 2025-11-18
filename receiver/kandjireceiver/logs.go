@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -223,9 +224,15 @@ func (l *kandjiLogsReceiver) pollEndpoint(
 
 	// Start with configured endpoint_params from config
 	// These are the query parameters for the HTTP request
+	// Note: ValidateParams will sanitize string values, but we do basic validation here too
 	params := make(map[string]any)
 	for k, v := range endpointParams {
-		params[k] = v
+		// Basic sanitization: trim string values
+		if strVal, ok := v.(string); ok {
+			params[k] = strings.TrimSpace(strVal)
+		} else {
+			params[k] = v
+		}
 	}
 
 	// Apply defaults for common params if not provided

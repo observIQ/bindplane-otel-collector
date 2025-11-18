@@ -3,14 +3,63 @@ package kandjireceiver
 import (
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
+	"unicode"
 )
+
+// validateParamName ensures parameter names are safe (alphanumeric + underscore/hyphen)
+func validateParamName(name string) bool {
+	matched, _ := regexp.MatchString(`^[a-zA-Z0-9_-]+$`, name)
+	return matched
+}
+
+// sanitizeStringParam trims whitespace and removes control characters from string params
+func sanitizeStringParam(value string, constraints *ParamConstraints) string {
+	// Trim whitespace
+	sanitized := strings.TrimSpace(value)
+
+	// Remove control characters (keep printable chars, newline, tab, carriage return)
+	var b strings.Builder
+	for _, r := range sanitized {
+		if unicode.IsPrint(r) || r == '\n' || r == '\t' || r == '\r' {
+			b.WriteRune(r)
+		}
+	}
+	sanitized = b.String()
+
+	// Apply length constraints if specified
+	if constraints != nil {
+		if constraints.MaxLen != nil && len(sanitized) > *constraints.MaxLen {
+			sanitized = sanitized[:*constraints.MaxLen]
+		}
+		if constraints.MinLen != nil && len(sanitized) < *constraints.MinLen {
+			// Return empty if below min length (will be caught by validation)
+			return ""
+		}
+	}
+
+	return sanitized
+}
+
+// validateUUIDFormat checks if a string is a valid UUID format
+func validateUUIDFormat(value string) bool {
+	matched, _ := regexp.MatchString(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`, value)
+	return matched
+}
 
 func ValidateParams(ep KandjiEndpoint, params map[string]any) error {
 	spec, ok := EndpointRegistry[ep]
 	if !ok {
 		return fmt.Errorf("unknown endpoint: %s", ep)
+	}
+
+	// Validate all parameter names in the map
+	for paramName := range params {
+		if !validateParamName(paramName) {
+			return fmt.Errorf("invalid parameter name: %q (must be alphanumeric with underscores/hyphens)", paramName)
+		}
 	}
 
 	for _, p := range spec.Params {
@@ -26,8 +75,26 @@ func ValidateParams(ep KandjiEndpoint, params map[string]any) error {
 
 		switch p.Type {
 		case ParamString:
-			if _, ok := v.(string); !ok {
+			sv, ok := v.(string)
+			if !ok {
 				return fmt.Errorf("param %s must be string", p.Name)
+			}
+
+			// Sanitize string parameter
+			sanitized := sanitizeStringParam(sv, p.Constraints)
+			if sanitized != sv {
+				// Update the param map with sanitized value
+				params[p.Name] = sanitized
+			}
+
+			// Apply length constraints
+			if p.Constraints != nil {
+				if p.Constraints.MaxLen != nil && len(sanitized) > *p.Constraints.MaxLen {
+					return fmt.Errorf("param %s exceeds max length of %d", p.Name, *p.Constraints.MaxLen)
+				}
+				if p.Constraints.MinLen != nil && len(sanitized) < *p.Constraints.MinLen {
+					return fmt.Errorf("param %s must be at least %d characters", p.Name, *p.Constraints.MinLen)
+				}
 			}
 		case ParamInt:
 			intval, ok := v.(int)
@@ -49,19 +116,34 @@ func ValidateParams(ep KandjiEndpoint, params map[string]any) error {
 				return fmt.Errorf("param %s must be bool", p.Name)
 			}
 		case ParamUUID:
-			if _, ok := v.(string); !ok {
+			sv, ok := v.(string)
+			if !ok {
 				return fmt.Errorf("param %s must be UUID string", p.Name)
 			}
-			// could add UUID format check here later
+			// Validate UUID format (8-4-4-4-12 hex digits)
+			sv = strings.TrimSpace(sv)
+			if !validateUUIDFormat(sv) {
+				return fmt.Errorf("param %s must be a valid UUID format (e.g., 123e4567-e89b-12d3-a456-426614174000)", p.Name)
+			}
+			// Update with trimmed value
+			if sv != v.(string) {
+				params[p.Name] = sv
+			}
 		case ParamTime:
 			s, ok := v.(string)
 			if !ok {
 				return fmt.Errorf("param %s must be RFC3339 string", p.Name)
 			}
+			// Trim whitespace for time strings
+			s = strings.TrimSpace(s)
 
 			t, err := time.Parse(time.RFC3339, s)
 			if err != nil {
 				return fmt.Errorf("param %s must be valid RFC3339 time: %v", p.Name, err)
+			}
+			// Update with trimmed value
+			if s != v.(string) {
+				params[p.Name] = s
 			}
 
 			if p.Constraints != nil {
@@ -94,9 +176,12 @@ func ValidateParams(ep KandjiEndpoint, params map[string]any) error {
 			if !ok {
 				return fmt.Errorf("param %s must be string enum", p.Name)
 			}
+			// Trim whitespace for enum values
+			sv = strings.TrimSpace(sv)
 			if len(p.AllowedVals) > 0 {
 				valid := false
 				for _, allowed := range p.AllowedVals {
+					// Case-sensitive exact match
 					if sv == allowed {
 						valid = true
 						break
@@ -105,6 +190,10 @@ func ValidateParams(ep KandjiEndpoint, params map[string]any) error {
 				if !valid {
 					return fmt.Errorf("param %s must be one of %v", p.Name, p.AllowedVals)
 				}
+			}
+			// Update with trimmed value
+			if sv != v.(string) {
+				params[p.Name] = sv
 			}
 		case ParamFloat:
 			if _, ok := v.(float64); !ok {
