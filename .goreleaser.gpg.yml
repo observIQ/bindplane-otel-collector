@@ -79,6 +79,9 @@ archives:
       - src: release_deps/windows_service.json
         dst: install
         strip_parent: true
+      - src: release_deps/gpg/*
+        dst: gpg
+        strip_parent: true
     format_overrides:
       - goos: windows
         format: zip

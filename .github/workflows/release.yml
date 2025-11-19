@@ -164,6 +164,12 @@ jobs:
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+      - name: Write signing key for nFPM
+        shell: bash
+        run: |
+          cat > ci-signing-key.asc <<'EOF'
+          ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
+          EOF
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -174,11 +180,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
+          SIGNING_KEY_FILE: ci-signing-key.asc
       # Create artifact bundle and upload to release
       - name: Create artifact archive
         run: |
           mkdir artifacts
+          mkdir artifacts/gpg
           cp ./scripts/install/*.sh ./artifacts
+          cp ./release_deps/gpg/bdot-public-gpg-key.asc ./artifacts/gpg/bdot-public-gpg-key.asc
+          cp -r ./release_deps/gpg/revocations ./artifacts/gpg/revocations
           cp ./observiq-otel-collector.msi/observiq-otel-collector.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
           cp ./windows-archive/windows_amd64/*.zip ./artifacts
@@ -195,6 +205,8 @@ jobs:
         run: |
           gsutil cp ./scripts/install/install_unix.sh gs://bdot-release/latest/install_unix.sh
           gsutil cp ./scripts/install/install_macos.sh gs://bdot-release/latest/install_macos.sh
+          gsutil cp ./release_deps/gpg/bdot-public-gpg-key.asc gs://bdot-release/latest/gpg/bdot-public-gpg-key.asc
+          gsutil cp -r ./release_deps/gpg/revocations gs://bdot-release/latest/gpg/revocations/
       - name: Upload artifact bundle to release
         uses: AButler/upload-release-assets@v2.0
         with:
