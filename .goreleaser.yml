@@ -108,6 +108,12 @@ nfpms:
       - rpm
       - deb
     bindir: /usr/share/observiq-otel-collector/stage/observiq-otel-collector
+    deb:
+      signature:
+        key_file: "{{ .Env.SIGNING_KEY_FILE }}"
+    rpm:
+      signature:
+        key_file: "{{ .Env.SIGNING_KEY_FILE }}"
     contents:
       # This file was previously managed by the package
       # therefore it must be marked as a ghost file to
