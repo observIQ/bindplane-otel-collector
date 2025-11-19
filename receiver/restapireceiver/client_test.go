@@ -225,10 +225,15 @@ func TestRESTAPIClient_GetJSON_BasicAuth(t *testing.T) {
 func TestRESTAPIClient_GetJSON_AkamaiEdgeGridAuth(t *testing.T) {
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify Akamai EdgeGrid auth headers
-		require.Equal(t, "Bearer test-access-token", r.Header.Get("Authorization"))
-		require.Equal(t, "test-client-token", r.Header.Get("X-Akamai-Client-Token"))
-		require.Equal(t, "test-client-secret", r.Header.Get("X-Akamai-Client-Secret"))
+		// Verify Akamai EdgeGrid auth header format
+		authHeader := r.Header.Get("Authorization")
+		require.NotEmpty(t, authHeader)
+		require.Contains(t, authHeader, "EG1-HMAC-SHA256")
+		require.Contains(t, authHeader, "client_token=test-client-token")
+		require.Contains(t, authHeader, "access_token=test-access-token")
+		require.Contains(t, authHeader, "timestamp=")
+		require.Contains(t, authHeader, "nonce=")
+		require.Contains(t, authHeader, "signature=")
 
 		response := []map[string]any{
 			{"id": "1"},
