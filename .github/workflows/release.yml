@@ -180,8 +180,8 @@ jobs:
           mkdir artifacts
           mkdir artifacts/gpg
           cp ./scripts/install/*.sh ./artifacts
-          cp ./signature/gpg/bdot-public-gpg-key.asc ./artifacts/gpg/bdot-public-gpg-key.asc
-          cp -r ./signature/gpg/revocations ./artifacts/gpg/revocations
+          cp ./release_deps/gpg/bdot-public-gpg-key.asc ./artifacts/gpg/bdot-public-gpg-key.asc
+          cp -r ./release_deps/gpg/revocations ./artifacts/gpg/revocations
           cp ./observiq-otel-collector.msi/observiq-otel-collector.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
           cp ./windows-archive/windows_amd64/*.zip ./artifacts
@@ -198,8 +198,8 @@ jobs:
         run: |
           gsutil cp ./scripts/install/install_unix.sh gs://bdot-release/latest/install_unix.sh
           gsutil cp ./scripts/install/install_macos.sh gs://bdot-release/latest/install_macos.sh
-          gsutil cp ./signature/gpg/bdot-public-gpg-key.asc gs://bdot-release/latest/gpg/bdot-public-gpg-key.asc
-          gsutil cp -r ./signature/gpg/revocations gs://bdot-release/latest/gpg/revocations/
+          gsutil cp ./release_deps/gpg/bdot-public-gpg-key.asc gs://bdot-release/latest/gpg/bdot-public-gpg-key.asc
+          gsutil cp -r ./release_deps/gpg/revocations gs://bdot-release/latest/gpg/revocations/
       - name: Upload artifact bundle to release
         uses: AButler/upload-release-assets@v2.0
         with:

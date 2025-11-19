@@ -244,6 +244,7 @@ release-prep:
 	@cp -r ./plugins release_deps/
 	@cp -r ./signature/gpg release_deps/gpg
 	@rm release_deps/gpg/revocations.md
+	@rm release_deps/gpg/revocations/.keep
 	@cp config/example.yaml release_deps/config.yaml
 	@cp config/logging.yaml release_deps/logging.yaml
 	@cp service/com.observiq.collector.plist release_deps/com.observiq.collector.plist
