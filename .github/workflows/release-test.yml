@@ -251,7 +251,6 @@ jobs:
           merge-multiple: true
           path: dist/
 
-      - name: Run GoReleaser (merge)
       - name: Write signing key for nFPM
         shell: bash
         run: |
@@ -259,7 +258,7 @@ jobs:
           ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
           EOF
 
-      - name: Run GoReleaser
+      - name: Run GoReleaser (merge)
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
