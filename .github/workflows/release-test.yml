@@ -171,6 +171,11 @@ jobs:
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           SIGNING_KEY_FILE: ci-signing-key.asc
 
+      - name: Debug list dist/
+        run: |
+          tree dist/
+          du -sh dist/
+
       - name: Create artifact archive
         run: |
           mkdir artifacts
