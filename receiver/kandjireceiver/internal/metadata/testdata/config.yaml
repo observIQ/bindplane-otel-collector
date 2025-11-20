@@ -1,0 +1,63 @@
+default:
+all_set:
+  metrics:
+    kandji.api.calls:
+      enabled: true
+    kandji.api.errors:
+      enabled: true
+    kandji.api.latency:
+      enabled: true
+    kandji.data.bytes:
+      enabled: true
+    kandji.pagination.pages:
+      enabled: true
+    kandji.records.received:
+      enabled: true
+    kandji.scrape.duration:
+      enabled: true
+  resource_attributes:
+    kandji.region:
+      enabled: true
+    kandji.subdomain:
+      enabled: true
+none_set:
+  metrics:
+    kandji.api.calls:
+      enabled: false
+    kandji.api.errors:
+      enabled: false
+    kandji.api.latency:
+      enabled: false
+    kandji.data.bytes:
+      enabled: false
+    kandji.pagination.pages:
+      enabled: false
+    kandji.records.received:
+      enabled: false
+    kandji.scrape.duration:
+      enabled: false
+  resource_attributes:
+    kandji.region:
+      enabled: false
+    kandji.subdomain:
+      enabled: false
+filter_set_include:
+  resource_attributes:
+    kandji.region:
+      enabled: true
+      metrics_include:
+        - regexp: ".*"
+    kandji.subdomain:
+      enabled: true
+      metrics_include:
+        - regexp: ".*"
+filter_set_exclude:
+  resource_attributes:
+    kandji.region:
+      enabled: true
+      metrics_exclude:
+        - strict: "kandji.region-val"
+    kandji.subdomain:
+      enabled: true
+      metrics_exclude:
+        - strict: "kandji.subdomain-val"
