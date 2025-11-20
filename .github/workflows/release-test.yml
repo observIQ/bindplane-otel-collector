@@ -33,10 +33,11 @@ jobs:
           args: release --skip=publish --skip=validate --skip=sign --clean --split --config=.goreleaser-windows.yml
         env:
           GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           GGOOS: windows
           GGOARCH: amd64
+          SKIP_DOCKER_PUSH: true
       - name: Copy Windows Collector Binary
         run: cp dist/windows/collector_windows_amd64_v1/observiq-otel-collector.exe windows/observiq-otel-collector.exe
       - name: Copy Windows Updater Binary
@@ -186,7 +187,7 @@ jobs:
           GGOOS: ${{ matrix.goos }}
           GGOARCH: ${{ matrix.goarch }}
           SIGNING_KEY_FILE: ci-signing-key.asc
-          SKIP_DOCKER_PUSH: 'true'
+          SKIP_DOCKER_PUSH: true
 
       - name: Upload dist artifacts
         uses: namespace-actions/upload-artifact@v1
@@ -278,7 +279,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           SIGNING_KEY_FILE: ci-signing-key.asc
-          SKIP_DOCKER_PUSH: 'true'
+          SKIP_DOCKER_PUSH: true
 
       - name: Create artifact archive
         run: |
