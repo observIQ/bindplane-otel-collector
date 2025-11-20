@@ -30,6 +30,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"go.opentelemetry.io/collector/component"
 	"go.uber.org/zap"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/clientcredentials"
 )
 
 // restAPIClient is an interface for making REST API requests.
@@ -49,6 +51,7 @@ type defaultRESTAPIClient struct {
 	cfg           *Config
 	logger        *zap.Logger
 	responseField string
+	tokenSource   oauth2.TokenSource
 }
 
 // newRESTAPIClient creates a new REST API client.
@@ -63,12 +66,23 @@ func newRESTAPIClient(
 		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
 	}
 
-	return &defaultRESTAPIClient{
+	client := &defaultRESTAPIClient{
 		client:        httpClient,
 		cfg:           cfg,
 		logger:        settings.Logger,
 		responseField: cfg.ResponseField,
-	}, nil
+	}
+
+	// Initialize OAuth2 token source if OAuth2 auth mode is configured
+	if cfg.AuthMode == authModeOAuth2 {
+		tokenSource, err := client.createOAuth2TokenSource(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create OAuth2 token source: %w", err)
+		}
+		client.tokenSource = tokenSource
+	}
+
+	return client, nil
 }
 
 // GetJSON fetches JSON data from the specified URL with the given query parameters.
@@ -315,6 +329,27 @@ func makeSignature(data, key string) string {
 	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
 }
 
+// createOAuth2TokenSource creates an OAuth2 token source for client credentials flow.
+func (c *defaultRESTAPIClient) createOAuth2TokenSource(ctx context.Context) (oauth2.TokenSource, error) {
+	oauthConfig := clientcredentials.Config{
+		ClientID:       c.cfg.OAuth2Config.ClientID,
+		ClientSecret:   c.cfg.OAuth2Config.ClientSecret,
+		TokenURL:       c.cfg.OAuth2Config.TokenURL,
+		Scopes:         c.cfg.OAuth2Config.Scopes,
+		EndpointParams: url.Values{},
+	}
+
+	// Add any additional endpoint parameters
+	for key, value := range c.cfg.OAuth2Config.EndpointParams {
+		oauthConfig.EndpointParams.Add(key, value)
+	}
+
+	// Use the existing HTTP client for OAuth2 requests
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, c.client)
+
+	return oauthConfig.TokenSource(ctx), nil
+}
+
 // applyAuth applies authentication headers to the request based on the configured auth mode.
 func (c *defaultRESTAPIClient) applyAuth(req *http.Request) error {
 	switch c.cfg.AuthMode {
@@ -341,6 +376,18 @@ func (c *defaultRESTAPIClient) applyAuth(req *http.Request) error {
 			return fmt.Errorf("basic auth username and password are required")
 		}
 		req.SetBasicAuth(c.cfg.BasicConfig.Username, c.cfg.BasicConfig.Password)
+		return nil
+
+	case authModeOAuth2:
+		// OAuth2 client credentials authentication
+		if c.tokenSource == nil {
+			return fmt.Errorf("OAuth2 token source not initialized")
+		}
+		token, err := c.tokenSource.Token()
+		if err != nil {
+			return fmt.Errorf("failed to get OAuth2 token: %w", err)
+		}
+		req.Header.Set("Authorization", "Bearer "+token.AccessToken)
 		return nil
 
 	case authModeAkamaiEdgeGrid:

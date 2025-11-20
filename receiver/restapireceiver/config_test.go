@@ -72,7 +72,7 @@ func TestConfig_Validate(t *testing.T) {
 					Mode: paginationModeNone,
 				},
 			},
-			expectedErr: "invalid auth mode: invalid, must be one of: apikey, bearer, basic, akamai_edgegrid",
+			expectedErr: "invalid auth mode: invalid, must be one of: apikey, bearer, basic, oauth2, akamai_edgegrid",
 		},
 		{
 			name: "apikey auth missing header name",
@@ -185,6 +185,106 @@ func TestConfig_Validate(t *testing.T) {
 				BasicConfig: BasicConfig{
 					Username: "test-user",
 					Password: "test-password",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeNone,
+				},
+			},
+			expectedErr: "",
+		},
+		{
+			name: "oauth2 auth missing client_id",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeOAuth2,
+				OAuth2Config: OAuth2Config{
+					ClientID:     "",
+					ClientSecret: "test-client-secret",
+					TokenURL:     "https://oauth.example.com/token",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeNone,
+				},
+			},
+			expectedErr: "oauth2_client_id is required when auth_mode is oauth2",
+		},
+		{
+			name: "oauth2 auth missing client_secret",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeOAuth2,
+				OAuth2Config: OAuth2Config{
+					ClientID:     "test-client-id",
+					ClientSecret: "",
+					TokenURL:     "https://oauth.example.com/token",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeNone,
+				},
+			},
+			expectedErr: "oauth2_client_secret is required when auth_mode is oauth2",
+		},
+		{
+			name: "oauth2 auth missing token_url",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeOAuth2,
+				OAuth2Config: OAuth2Config{
+					ClientID:     "test-client-id",
+					ClientSecret: "test-client-secret",
+					TokenURL:     "",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeNone,
+				},
+			},
+			expectedErr: "oauth2_token_url is required when auth_mode is oauth2",
+		},
+		{
+			name: "valid oauth2 auth",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeOAuth2,
+				OAuth2Config: OAuth2Config{
+					ClientID:     "test-client-id",
+					ClientSecret: "test-client-secret",
+					TokenURL:     "https://oauth.example.com/token",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeNone,
+				},
+			},
+			expectedErr: "",
+		},
+		{
+			name: "valid oauth2 auth with scopes",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeOAuth2,
+				OAuth2Config: OAuth2Config{
+					ClientID:     "test-client-id",
+					ClientSecret: "test-client-secret",
+					TokenURL:     "https://oauth.example.com/token",
+					Scopes:       []string{"read", "write"},
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeNone,
+				},
+			},
+			expectedErr: "",
+		},
+		{
+			name: "valid oauth2 auth with endpoint params",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeOAuth2,
+				OAuth2Config: OAuth2Config{
+					ClientID:     "test-client-id",
+					ClientSecret: "test-client-secret",
+					TokenURL:     "https://oauth.example.com/token",
+					EndpointParams: map[string]string{
+						"audience": "https://api.example.com",
+					},
 				},
 				Pagination: PaginationConfig{
 					Mode: paginationModeNone,

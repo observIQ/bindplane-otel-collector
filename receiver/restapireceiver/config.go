@@ -29,6 +29,7 @@ const (
 	authModeAPIKey         AuthMode = "apikey"
 	authModeBearer         AuthMode = "bearer"
 	authModeBasic          AuthMode = "basic"
+	authModeOAuth2         AuthMode = "oauth2"
 	authModeAkamaiEdgeGrid AuthMode = "akamai_edgegrid"
 )
 
@@ -36,11 +37,11 @@ const (
 func (m *AuthMode) UnmarshalText(text []byte) error {
 	mode := AuthMode(text)
 	switch mode {
-	case authModeAPIKey, authModeBearer, authModeBasic, authModeAkamaiEdgeGrid:
+	case authModeAPIKey, authModeBearer, authModeBasic, authModeOAuth2, authModeAkamaiEdgeGrid:
 		*m = mode
 		return nil
 	default:
-		return fmt.Errorf("invalid auth mode: %s, must be one of: none, apikey, bearer, basic, akamai_edgegrid", text)
+		return fmt.Errorf("invalid auth mode: %s, must be one of: none, apikey, bearer, basic, oauth2, akamai_edgegrid", text)
 	}
 }
 
@@ -80,6 +81,7 @@ type Config struct {
 	APIKeyConfig         APIKeyConfig         `mapstructure:"apikey"`
 	BearerConfig         BearerConfig         `mapstructure:"bearer"`
 	BasicConfig          BasicConfig          `mapstructure:"basic"`
+	OAuth2Config         OAuth2Config         `mapstructure:"oauth2"`
 	AkamaiEdgeGridConfig AkamaiEdgeGridConfig `mapstructure:"akamai_edgegrid"`
 
 	// Pagination defines pagination configuration.
@@ -144,6 +146,15 @@ type BearerConfig struct {
 type BasicConfig struct {
 	Username string `mapstructure:"username"`
 	Password string `mapstructure:"password"`
+}
+
+// OAuth2Config defines OAuth2 client credentials authentication configuration.
+type OAuth2Config struct {
+	ClientID       string            `mapstructure:"client_id"`
+	ClientSecret   string            `mapstructure:"client_secret"`
+	TokenURL       string            `mapstructure:"token_url"`
+	Scopes         []string          `mapstructure:"scopes"`
+	EndpointParams map[string]string `mapstructure:"endpoint_params"`
 }
 
 // AkamaiEdgeGridConfig defines Akamai EdgeGrid authentication configuration.
@@ -238,10 +249,10 @@ func (c *Config) Validate() error {
 
 	// Validate auth mode
 	switch c.AuthMode {
-	case authModeAPIKey, authModeBearer, authModeBasic, authModeAkamaiEdgeGrid:
+	case authModeAPIKey, authModeBearer, authModeBasic, authModeOAuth2, authModeAkamaiEdgeGrid:
 		// Valid modes
 	default:
-		return fmt.Errorf("invalid auth mode: %s, must be one of: apikey, bearer, basic, akamai_edgegrid", c.AuthMode)
+		return fmt.Errorf("invalid auth mode: %s, must be one of: apikey, bearer, basic, oauth2, akamai_edgegrid", c.AuthMode)
 	}
 
 	// Validate auth mode specific requirements
@@ -263,6 +274,16 @@ func (c *Config) Validate() error {
 		}
 		if c.BasicConfig.Password == "" {
 			return fmt.Errorf("basic_password is required when auth_mode is basic")
+		}
+	case authModeOAuth2:
+		if c.OAuth2Config.ClientID == "" {
+			return fmt.Errorf("oauth2_client_id is required when auth_mode is oauth2")
+		}
+		if c.OAuth2Config.ClientSecret == "" {
+			return fmt.Errorf("oauth2_client_secret is required when auth_mode is oauth2")
+		}
+		if c.OAuth2Config.TokenURL == "" {
+			return fmt.Errorf("oauth2_token_url is required when auth_mode is oauth2")
 		}
 	case authModeAkamaiEdgeGrid:
 		if c.AkamaiEdgeGridConfig.AccessToken == "" {

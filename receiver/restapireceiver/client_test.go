@@ -222,6 +222,140 @@ func TestRESTAPIClient_GetJSON_BasicAuth(t *testing.T) {
 	require.Len(t, data, 1)
 }
 
+func TestRESTAPIClient_GetJSON_OAuth2Auth(t *testing.T) {
+	// Create a mock OAuth2 token server
+	tokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify it's a token request
+		require.Equal(t, "POST", r.Method)
+		require.Equal(t, "/token", r.URL.Path)
+
+		// Parse form data
+		err := r.ParseForm()
+		require.NoError(t, err)
+
+		// Verify grant type (client credentials can be sent in Authorization header or form)
+		require.Equal(t, "client_credentials", r.Form.Get("grant_type"))
+
+		// Verify client credentials - they can be in form or Authorization header
+		clientID := r.Form.Get("client_id")
+		clientSecret := r.Form.Get("client_secret")
+		if clientID == "" {
+			// Check Authorization header for Basic auth
+			username, password, ok := r.BasicAuth()
+			require.True(t, ok)
+			clientID = username
+			clientSecret = password
+		}
+		require.Equal(t, "test-client-id", clientID)
+		require.Equal(t, "test-client-secret", clientSecret)
+
+		// Return access token
+		response := map[string]any{
+			"access_token": "test-oauth2-token",
+			"token_type":   "Bearer",
+			"expires_in":   3600,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer tokenServer.Close()
+
+	// Create API test server
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify OAuth2 bearer token
+		require.Equal(t, "Bearer test-oauth2-token", r.Header.Get("Authorization"))
+
+		response := []map[string]any{
+			{"id": "1"},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer apiServer.Close()
+
+	cfg := &Config{
+		URL:      apiServer.URL,
+		AuthMode: authModeOAuth2,
+		OAuth2Config: OAuth2Config{
+			ClientID:     "test-client-id",
+			ClientSecret: "test-client-secret",
+			TokenURL:     tokenServer.URL + "/token",
+		},
+		ClientConfig: confighttp.ClientConfig{},
+	}
+
+	ctx := context.Background()
+	host := componenttest.NewNopHost()
+	settings := componenttest.NewNopTelemetrySettings()
+
+	client, err := newRESTAPIClient(ctx, settings, cfg, host)
+	require.NoError(t, err)
+
+	params := url.Values{}
+	data, err := client.GetJSON(ctx, apiServer.URL, params)
+	require.NoError(t, err)
+	require.Len(t, data, 1)
+}
+
+func TestRESTAPIClient_GetJSON_OAuth2Auth_WithScopes(t *testing.T) {
+	// Create a mock OAuth2 token server
+	tokenServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Parse form data
+		err := r.ParseForm()
+		require.NoError(t, err)
+
+		// Verify scopes are included
+		require.Equal(t, "read write", r.Form.Get("scope"))
+
+		// Return access token
+		response := map[string]any{
+			"access_token": "test-oauth2-token-with-scopes",
+			"token_type":   "Bearer",
+			"expires_in":   3600,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer tokenServer.Close()
+
+	// Create API test server
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify OAuth2 bearer token
+		require.Equal(t, "Bearer test-oauth2-token-with-scopes", r.Header.Get("Authorization"))
+
+		response := []map[string]any{
+			{"id": "1"},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer apiServer.Close()
+
+	cfg := &Config{
+		URL:      apiServer.URL,
+		AuthMode: authModeOAuth2,
+		OAuth2Config: OAuth2Config{
+			ClientID:     "test-client-id",
+			ClientSecret: "test-client-secret",
+			TokenURL:     tokenServer.URL + "/token",
+			Scopes:       []string{"read", "write"},
+		},
+		ClientConfig: confighttp.ClientConfig{},
+	}
+
+	ctx := context.Background()
+	host := componenttest.NewNopHost()
+	settings := componenttest.NewNopTelemetrySettings()
+
+	client, err := newRESTAPIClient(ctx, settings, cfg, host)
+	require.NoError(t, err)
+
+	params := url.Values{}
+	data, err := client.GetJSON(ctx, apiServer.URL, params)
+	require.NoError(t, err)
+	require.Len(t, data, 1)
+}
+
 func TestRESTAPIClient_GetJSON_AkamaiEdgeGridAuth(t *testing.T) {
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

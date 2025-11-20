@@ -28,10 +28,11 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 |-------|------|---------|----------|-------------|
 | `url` | string | | `true` | The base URL for the REST API endpoint |
 | `response_field` | string | | `false` | The name of the field in the response that contains the array of items. If empty, the response is assumed to be a top-level array |
-| `auth_mode` | string | `apikey` | `false` | Authentication mode: `apikey`, `bearer`, `basic`, or `akamai_edgegrid` |
+| `auth_mode` | string | `apikey` | `false` | Authentication mode: `apikey`, `bearer`, `basic`, `oauth2`, or `akamai_edgegrid` |
 | `apikey` | object | | `false` | API Key configuration (see below) |
 | `bearer` | object | | `false` | Bearer Token configuration (see below) |
 | `basic` | object | | `false` | Basic Auth configuration (see below) |
+| `oauth2` | object | | `false` | OAuth2 Client Credentials configuration (see below) |
 | `akamai_edgegrid` | object | | `false` | Akamai EdgeGrid configuration (see below) |
 | `pagination` | object | | `false` | Pagination configuration (see below) |
 | `poll_interval` | duration | `5m` | `false` | The interval between API polls |
@@ -59,6 +60,16 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 |-------|------|---------|----------|-------------|
 | `username` | string | | `true` | Username for basic auth (required if `auth_mode` is `basic`) |
 | `password` | string | | `true` | Password for basic auth |
+
+#### OAuth2 Client Credentials
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `client_id` | string | | `true` | OAuth2 client ID (required if `auth_mode` is `oauth2`) |
+| `client_secret` | string | | `true` | OAuth2 client secret (required if `auth_mode` is `oauth2`) |
+| `token_url` | string | | `true` | OAuth2 token endpoint URL (required if `auth_mode` is `oauth2`) |
+| `scopes` | []string | | `false` | OAuth2 scopes to request |
+| `endpoint_params` | map[string]string | | `false` | Additional parameters to send to the token endpoint |
 
 #### Akamai EdgeGrid
 
@@ -162,8 +173,9 @@ receivers:
     response_field: "data"
     poll_interval: 5m
     auth_mode: basic
-    username: "user"
-    password: "pass"
+    basic:
+      username: "user"
+      password: "pass"
     pagination:
       mode: offset_limit
       offset_limit:
@@ -174,6 +186,40 @@ receivers:
     storage: file_storage
 ```
 
+### OAuth2 Client Credentials Authentication
+
+```yaml
+receivers:
+  restapi:
+    url: "https://api.example.com/data"
+    poll_interval: 5m
+    auth_mode: oauth2
+    oauth2:
+      client_id: "your-client-id"
+      client_secret: "your-client-secret"
+      token_url: "https://oauth.example.com/token"
+```
+
+### OAuth2 with Scopes and Custom Parameters
+
+```yaml
+receivers:
+  restapi:
+    url: "https://api.example.com/data"
+    poll_interval: 5m
+    auth_mode: oauth2
+    oauth2:
+      client_id: "your-client-id"
+      client_secret: "your-client-secret"
+      token_url: "https://oauth.example.com/token"
+      scopes:
+        - "read"
+        - "write"
+      endpoint_params:
+        audience: "https://api.example.com"
+        resource: "https://api.example.com"
+```
+
 ### Akamai EdgeGrid Authentication
 
 ```yaml
@@ -182,9 +228,10 @@ receivers:
     url: "https://api.akamai.com/endpoint"
     poll_interval: 5m
     auth_mode: akamai_edgegrid
-    akamai_access_token: "your-access-token"
-    akamai_client_token: "your-client-token"
-    akamai_client_secret: "your-client-secret"
+    akamai_edgegrid:
+      access_token: "your-access-token"
+      client_token: "your-client-token"
+      client_secret: "your-client-secret"
 ```
 
 ### Timestamp Pagination
