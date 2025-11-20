@@ -337,6 +337,7 @@ dockers:
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-amd64:{{ .Version }}-minimal"
     dockerfile: ./docker/Dockerfile.scratch
     use: buildx
+    skip_push: '{{ .Env.SKIP_DOCKER_PUSH }}'
     build_flag_templates:
       - "--label=created={{.Date}}"
       - "--label=title={{.ProjectName}}"
@@ -364,6 +365,7 @@ dockers:
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-arm64:{{ .Version }}-minimal"
     dockerfile: ./docker/Dockerfile.scratch
     use: buildx
+    skip_push: '{{ .Env.SKIP_DOCKER_PUSH }}'
     build_flag_templates:
       - "--label=created={{.Date}}"
       - "--label=title={{.ProjectName}}"
@@ -391,6 +393,7 @@ dockers:
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-ppc64le:{{ .Version }}-minimal"
     dockerfile: ./docker/Dockerfile.scratch
     use: buildx
+    skip_push: '{{ .Env.SKIP_DOCKER_PUSH }}'
     build_flag_templates:
       - "--label=created={{.Date}}"
       - "--label=title={{.ProjectName}}"
@@ -429,6 +432,7 @@ dockers:
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-amd64:{{ .Version }}"
     dockerfile: ./docker/Dockerfile.ubuntu
     use: buildx
+    skip_push: '{{ .Env.SKIP_DOCKER_PUSH }}'
     build_flag_templates:
       - "--label=created={{.Date}}"
       - "--label=title={{.ProjectName}}"
@@ -467,6 +471,7 @@ dockers:
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-arm64:{{ .Version }}"
     dockerfile: ./docker/Dockerfile.ubuntu
     use: buildx
+    skip_push: '{{ .Env.SKIP_DOCKER_PUSH }}'
     build_flag_templates:
       - "--label=created={{.Date}}"
       - "--label=title={{.ProjectName}}"
@@ -505,6 +510,7 @@ dockers:
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-ppc64le:{{ .Version }}"
     dockerfile: ./docker/Dockerfile.ubuntu
     use: buildx
+    skip_push: '{{ .Env.SKIP_DOCKER_PUSH }}'
     build_flag_templates:
       - "--label=created={{.Date}}"
       - "--label=title={{.ProjectName}}"
@@ -538,6 +544,7 @@ dockers:
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-amd64:{{ .Version }}-ubi8"
     dockerfile: ./docker/Dockerfile.ubi8
     use: buildx
+    skip_push: '{{ .Env.SKIP_DOCKER_PUSH }}'
     build_flag_templates:
       - "--label=created={{.Date}}"
       - "--label=title={{.ProjectName}}"
@@ -570,6 +577,7 @@ dockers:
       - "us-central1-docker.pkg.dev/observiq-containers/agent/bindplane-agent-arm64:{{ .Version }}-ubi8"
     dockerfile: ./docker/Dockerfile.ubi8
     use: buildx
+    skip_push: '{{ .Env.SKIP_DOCKER_PUSH }}'
     build_flag_templates:
       - "--label=created={{.Date}}"
       - "--label=title={{.ProjectName}}"
