@@ -38,9 +38,9 @@ jobs:
           GGOOS: windows
           GGOARCH: amd64
       - name: Copy Windows Collector Binary
-        run: cp dist/windows_amd64/collector_windows_amd64_v1/observiq-otel-collector.exe windows/observiq-otel-collector.exe
+        run: cp dist/collector_windows_amd64_v1/observiq-otel-collector.exe windows/observiq-otel-collector.exe
       - name: Copy Windows Updater Binary
-        run: cp dist/windows_amd64/updater_windows_amd64_v1/updater.exe windows/updater.exe
+        run: cp dist/updater_windows_amd64_v1/updater.exe windows/updater.exe
       - name: Copy Plugins to MSI Build Directory
         run: cp -r release_deps/plugins windows/
       - name: Copy Example Config
@@ -166,6 +166,13 @@ jobs:
         with:
           path: ~/.cache/goreleaser
 
+      - name: Write signing key for nFPM
+        shell: bash
+        run: |
+          cat > ci-signing-key.asc <<'EOF'
+          ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
+          EOF
+
       - name: Run GoReleaser (split)
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -178,6 +185,7 @@ jobs:
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           GGOOS: ${{ matrix.goos }}
           GGOARCH: ${{ matrix.goarch }}
+          SIGNING_KEY_FILE: ci-signing-key.asc
 
       - name: Upload dist artifacts
         uses: namespace-actions/upload-artifact@v1
@@ -279,7 +287,7 @@ jobs:
           cp -r ./release_deps/gpg/revocations ./artifacts/gpg/revocations
           cp ./observiq-otel-collector.msi/observiq-otel-collector.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
-          cp ./windows-archive/windows_amd64/*.zip ./artifacts
+          cp ./windows-archive/windows/*.zip ./artifacts
           cp ./dist/*.rpm ./artifacts
           cp ./dist/*.deb ./artifacts
           cp ./dist/*SHA256SUMS ./artifacts
