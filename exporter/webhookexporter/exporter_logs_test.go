@@ -46,7 +46,12 @@ func TestNewLogsExporter(t *testing.T) {
 			cfg: &SignalConfig{
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: "http://localhost:8080",
-					Headers:  map[string]configopaque.String{"X-Test": configopaque.String("test-value")},
+					Headers: configopaque.MapList{
+						{
+							Name:  "X-Test",
+							Value: configopaque.String("test-value"),
+						},
+					},
 				},
 				Verb:        POST,
 				ContentType: "application/json",
@@ -153,7 +158,12 @@ func TestLogsDataPusher(t *testing.T) {
 			cfg := &SignalConfig{
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: server.URL,
-					Headers:  map[string]configopaque.String{"X-Test": configopaque.String("test-value")},
+					Headers: configopaque.MapList{
+						{
+							Name:  "X-Test",
+							Value: configopaque.String("test-value"),
+						},
+					},
 				},
 				Verb:        POST,
 				ContentType: "application/json",
@@ -212,7 +222,12 @@ func TestLogsDataPusherIntegration(t *testing.T) {
 			cfg := &SignalConfig{
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: server.URL,
-					Headers:  map[string]configopaque.String{"X-Test": configopaque.String("test-value")},
+					Headers: configopaque.MapList{
+						{
+							Name:  "X-Test",
+							Value: configopaque.String("test-value"),
+						},
+					},
 				},
 				Verb:        POST,
 				ContentType: "application/json",

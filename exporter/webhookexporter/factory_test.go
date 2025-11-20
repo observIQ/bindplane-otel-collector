@@ -49,8 +49,11 @@ func TestCreateDefaultConfig(t *testing.T) {
 		ClientConfig: confighttp.ClientConfig{
 			Endpoint: "https://localhost",
 			Timeout:  30 * time.Second,
-			Headers: map[string]configopaque.String{
-				"User-Agent": configopaque.String(expectedUserAgent),
+			Headers: configopaque.MapList{
+				{
+					Name:  "User-Agent",
+					Value: configopaque.String(expectedUserAgent),
+				},
 			},
 		},
 		Verb:             POST,
