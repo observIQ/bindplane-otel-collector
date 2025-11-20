@@ -270,6 +270,10 @@ jobs:
 
       - name: Create GPG keys archive
         run: |
+          mkdir -p release_deps
+          cp -r ./signature/gpg release_deps/gpg
+          rm -f release_deps/gpg/revocations.md
+          rm -f release_deps/gpg/revocations/.keep
           cd release_deps/gpg
           zip -r ../gpg-keys.zip .
 
