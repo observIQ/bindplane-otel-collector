@@ -170,6 +170,23 @@ jobs:
           cat > ci-signing-key.asc <<'EOF'
           ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
           EOF
+
+          cat > ci-signing-key-password.txt <<'EOF'
+          ${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}
+          EOF
+
+          # Decrypt the key and export it without a passphrase
+          # Open the password file on file descriptor 3 and pass it to gpg
+          gpg --batch --yes --passphrase-fd 3 3<ci-signing-key-password.txt --import ci-signing-key.asc
+
+          # Export the decrypted key without passphrase protection  
+          gpg --batch --yes --pinentry-mode loopback --passphrase "${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}" --export-secret-keys --armor > ci-signing-key-decrypted.asc
+
+          # Use the decrypted key
+          mv ci-signing-key-decrypted.asc ci-signing-key.asc
+
+          # Clean up password file
+          rm ci-signing-key-password.txt
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -181,7 +198,6 @@ jobs:
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
           SIGNING_KEY_FILE: ci-signing-key.asc
-          GPG_PASSPHRASE: ${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}
       # Create artifact bundle and upload to release
       - name: Create artifact archive
         run: |
