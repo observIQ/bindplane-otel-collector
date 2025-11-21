@@ -206,7 +206,7 @@ jobs:
           tar -czvf observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz -C ./artifacts .
 
       - name: Sign artifact archive
-        run: cosign sign-blob --key=cosign.key --output-signature ./observiq-otel-collector-${{ github.ref_name }}-artifacts.tar.gz.sig ./observiq-otel-collector-${{ github.ref_name }}-artifacts.tar.gz
+        run: cosign sign-blob --key=cosign.key --output-signature ./observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz.sig ./observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
