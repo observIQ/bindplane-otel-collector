@@ -268,6 +268,13 @@ jobs:
           ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
           EOF
 
+      - name: Prepare GPG files for artifact archive
+        run: |
+          mkdir -p release_deps
+          cp -r ./signature/gpg release_deps/gpg
+          rm -f release_deps/gpg/revocations.md
+          rm -f release_deps/gpg/revocations/.keep
+
       - name: Run GoReleaser (merge)
         uses: goreleaser/goreleaser-action@v6
         with:
