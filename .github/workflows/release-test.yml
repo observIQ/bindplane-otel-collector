@@ -173,23 +173,11 @@ jobs:
           ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
           EOF
 
-          cat > ci-signing-key-password.txt <<'EOF'
-          ${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}
-          EOF
+          # Import and immediately export without passphrase
+          gpg --batch --yes --passphrase "${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}" --pinentry-mode loopback --import ci-signing-key.asc
 
-          # Decrypt the key and export it without a passphrase
-          # Open the password file on file descriptor 3 and pass it to gpg
-          gpg --batch --yes --passphrase-fd 3 3<ci-signing-key-password.txt --import ci-signing-key.asc
-
-          # Export the decrypted key without passphrase protection  
-          gpg --batch --yes --pinentry-mode loopback --passphrase "${{ secrets.GPG_SIGNING_KEY_PASSPHRASE }}" --export-secret-keys --armor > ci-signing-key-decrypted.asc
-
-          # Use the decrypted key
-          mv ci-signing-key-decrypted.asc ci-signing-key.asc
-
-          # Clean up password file
-          rm ci-signing-key-password.txt
-
+          # Export without passphrase protection
+          gpg --batch --yes --passphrase "" --pinentry-mode loopback --armor --export-secret-keys > ci-signing-key.asc
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
