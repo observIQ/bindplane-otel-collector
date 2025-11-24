@@ -52,8 +52,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.140.1 h1
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.140.1/go.mod h1:DttyhquY4ngzSvyXEHd05Vitqs0A2SNcUS2aHTozfHc=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.140.1 h1:5zdlILo6x679XTKPvh9DWS8tEbl77dwGNXreHvsJsj8=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.140.1/go.mod h1:4t2oYJvSFkEhcHYI7sW+p8jMloYe1DXEdGBrtAwDEYg=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.139.0 h1:6/j0Ta8ZJnmAFVEoC3aZ1Hs19RB4fHzlN6kOZhsBJqM=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.139.0/go.mod h1:VfA8xHz4xg7Fyj5bBsCDbOO3iVYzDn9wP/QFsjcAE5c=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.140.1 h1:iGHaaWOHhW8CiPl6QeKL0xox2W/IxgEsqOgp8Riwvk4=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.140.1/go.mod h1:dmTMbAeRerdQTEolwoGHdAuTY8K232AqPlOPLuNK5gA=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
