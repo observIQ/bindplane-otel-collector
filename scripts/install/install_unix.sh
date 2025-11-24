@@ -387,7 +387,7 @@ setup_installation()
       set_proxy
       set_file_names
     else
-      collector_out_file_path="$package_path"
+      package_out_file_path="$package_path"
       gpg_zip_out_file_path="$gpg_zip_path"
     fi
 
@@ -779,7 +779,7 @@ install_package()
       info "Downloading GPG public key from $gpg_zip_download_url..."
     fi
 
-    eval curl -L "$proxy_args" "$gpg_zip_download_url" -o "$gpg_zip_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download GPG zip file"
+    eval curl -L "$proxy_args" "$gpg_zip_download_url" -o "$gpg_zip_out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download GPG zip file"
     succeeded
   fi
 
