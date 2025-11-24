@@ -118,6 +118,7 @@ jobs:
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x64
     strategy:
       fail-fast: false
+      max-parallel: 3
       matrix:
         include:
           - goos: linux
