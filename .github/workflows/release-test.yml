@@ -115,7 +115,7 @@ jobs:
   # This significantly reduces build time by parallelizing work across multiple runners
   release-test-split:
     name: Release Test Split - ${{ matrix.goos }}/${{ matrix.goarch }}
-    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-large
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x64
     strategy:
       fail-fast: false
       matrix:
