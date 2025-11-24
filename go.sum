@@ -1237,6 +1237,8 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dennwc/varint v1.0.0 h1:kGNFFSSw8ToIy3obO/kKr8U9GZYUAxQEVuix4zfDWzE=
 github.com/dennwc/varint v1.0.0/go.mod h1:hnItb35rvZvJrbTALZtY/iQfDs48JKRG1RPpgziApxA=
+github.com/dentonk/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20251114175358-51a08c9ab14f h1:uI3YG3Ng7Pm/Gv8QRuSpE3SWsoJ69u9z4NvCF9oAO+E=
+github.com/dentonk/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20251114175358-51a08c9ab14f/go.mod h1:kSBN12O3Yuuf5u2hbiZQqwas7bDzX1oCJyYmB4HOUiE=
 github.com/devigned/tab v0.1.1 h1:3mD6Kb1mUOYeLpJvTVSDwSg5ZsfSxfvxGRTxRsJsITA=
 github.com/devigned/tab v0.1.1/go.mod h1:XG9mPq0dFghrYvoBF3xdRrJzSTX1b7IQrvaL9mzjeJY=
 github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2/go.mod h1:SqUrOPUnsFjfmXRMNPybcSiG0BgUW2AuFH8PAnS2iTw=
@@ -2216,8 +2218,6 @@ github.com/open-telemetry/opentelemetry-collector-contrib/pkg/resourcetotelemetr
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/resourcetotelemetry v0.139.0/go.mod h1:X34iQ8LHOZDVH4Fm5Awogxll1eMLZp7hz8In+BwE0z4=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling v0.139.0 h1:P5Th1GLB/000etutmL3kdkDpi4irv+Ud/Yqf9Tb9Xy4=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling v0.139.0/go.mod h1:VvxfBHY48OowOKtYk+YUTNKki8J2y4P0csz7i9ZCbSo=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.139.0 h1:gnUrm1NRwl4nvdMVCvckkElBI7SrWZP/lWkiuL9Eqqg=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.139.0/go.mod h1:kSBN12O3Yuuf5u2hbiZQqwas7bDzX1oCJyYmB4HOUiE=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/azure v0.139.0 h1:+5O3z/dcvY0RaSRS/cmu42FFlUTqMdwSTBMF/mjpYs8=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/azure v0.139.0/go.mod h1:6IIdFX2x3KXNFPqrEwSqqy0BAgZlbyzpKDZny2GUBss=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/azurelogs v0.139.0 h1:eQ9rvSTJ/D11kVon80fWdCkbebY9XUz7iL5vcvNhglk=

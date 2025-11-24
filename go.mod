@@ -1078,3 +1078,5 @@ replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/rout
 // Keep at v0.137.0 to avoid new breaking changes in the Google Cloud Log Entry Encoding Extension
 // Linear ticket tracking deprecation: https://linear.app/bindplane/issue/FLEET-235/deprecation-googlecloudlogentry-encoding-extension-v01380-vpc-flow
 replace github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension => github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension v0.137.0
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza => github.com/dentonk/opentelemetry-collector-contrib/pkg/stanza v0.0.0-20251114175358-51a08c9ab14f
