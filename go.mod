@@ -210,7 +210,7 @@ require (
 require (
 	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.87.8
 	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.87.8
-	github.com/observiq/bindplane-otel-collector/internal/os v1.87.8
+	github.com/observiq/bindplane-otel-collector/internal/osinfo v1.87.8
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.87.8
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.87.8
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.140.1
@@ -528,7 +528,7 @@ require (
 	github.com/secure-systems-lab/go-securesystemslib v0.9.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shirou/gopsutil/v4 v4.25.10 // indirect
-	github.com/shoenig/go-m1cpu v0.1.6 // indirect
+	github.com/shoenig/go-m1cpu v0.1.7 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/shurcooL/httpfs v0.0.0-20230704072500-f1e31cf0ba5c // indirect
 	github.com/spf13/cast v1.10.0 // indirect
@@ -820,7 +820,7 @@ require (
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/lightstep/go-expohisto v1.0.0 // indirect
 	github.com/linode/linodego v1.59.0 // indirect
-	github.com/lufia/plan9stats v0.0.0-20250317134145-8bc96cf8fc35 // indirect
+	github.com/lufia/plan9stats v0.0.0-20251013123823-9fd1530e3ec3 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -901,8 +901,8 @@ require (
 	github.com/tidwall/tinylru v1.2.1 // indirect
 	github.com/tidwall/wal v1.2.1 // indirect
 	github.com/tinylib/msgp v1.5.0 // indirect
-	github.com/tklauser/go-sysconf v0.3.15 // indirect
-	github.com/tklauser/numcpus v0.10.0 // indirect
+	github.com/tklauser/go-sysconf v0.3.16 // indirect
+	github.com/tklauser/numcpus v0.11.0 // indirect
 	github.com/vmware/govmomi v0.50.0 // indirect
 	github.com/vultr/govultr/v2 v2.17.2 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
@@ -969,7 +969,7 @@ replace github.com/observiq/bindplane-otel-collector/internal/aws => ./internal/
 
 replace github.com/observiq/bindplane-otel-collector/internal/measurements => ./internal/measurements
 
-replace github.com/observiq/bindplane-otel-collector/internal/os => ./internal/os
+replace github.com/observiq/bindplane-otel-collector/internal/osinfo => ./internal/osinfo
 
 replace github.com/observiq/bindplane-otel-collector/internal/rehydration => ./internal/rehydration
 
