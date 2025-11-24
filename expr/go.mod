@@ -3,11 +3,11 @@ module github.com/observiq/bindplane-otel-collector/expr
 go 1.24.4
 
 require (
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.139.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.140.1
 	github.com/stretchr/testify v1.11.1
-	go.opentelemetry.io/collector/component v1.45.0
-	go.opentelemetry.io/collector/component/componenttest v0.139.0
-	go.opentelemetry.io/collector/pdata v1.45.0
+	go.opentelemetry.io/collector/component v1.46.0
+	go.opentelemetry.io/collector/component/componenttest v0.140.0
+	go.opentelemetry.io/collector/pdata v1.46.0
 )
 
 require (
@@ -28,14 +28,14 @@ require (
 	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/magefile/mage v1.15.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.139.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.140.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	github.com/ua-parser/uap-go v0.0.0-20240611065828-3a4781585db6 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/collector/featuregate v1.45.0 // indirect
-	go.opentelemetry.io/collector/pdata/pprofile v0.139.0 // indirect
+	go.opentelemetry.io/collector/featuregate v1.46.0 // indirect
+	go.opentelemetry.io/collector/pdata/pprofile v0.140.0 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.38.0 // indirect
@@ -54,6 +54,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/net v0.44.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect; indirectgopkg.in/natefinch/lumberjack.v2
-	golang.org/x/text v0.29.0 // indirect
+	golang.org/x/sys v0.37.0 // indirect; indirectgopkg.in/natefinch/lumberjack.v2
+	golang.org/x/text v0.30.0 // indirect
 )
