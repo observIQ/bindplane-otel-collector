@@ -1110,8 +1110,8 @@ github.com/aws/aws-sdk-go-v2/service/kinesis v1.42.2 h1:QOfqWXjKaRF2b36jvUI5jHag
 github.com/aws/aws-sdk-go-v2/service/kinesis v1.42.2/go.mod h1:jTDNZao/9uv/6JeaeDWEqA4s+l6c8+cqaDeYFpM+818=
 github.com/aws/aws-sdk-go-v2/service/lightsail v1.49.1 h1:J1A0VJlt5HgUX6s11Obe9zrBDECeE2uhQc7Dwhdei9o=
 github.com/aws/aws-sdk-go-v2/service/lightsail v1.49.1/go.mod h1:WEOSRNyfIfvgrD9MuSIGrogKyuFahaVMziVq1pHI0NQ=
-github.com/aws/aws-sdk-go-v2/service/s3 v1.90.1 h1:kKJk9r6iLMfCGy8RL9GWg3n9gUE1IpSwqYP3/5bdL1s=
-github.com/aws/aws-sdk-go-v2/service/s3 v1.90.1/go.mod h1:+wArOOrcHUevqdto9k1tKOF5++YTe9JEcPSc9Tx2ZSw=
+github.com/aws/aws-sdk-go-v2/service/s3 v1.90.2 h1:DhdbtDl4FdNlj31+xiRXANxEE+eC7n8JQz+/ilwQ8Uc=
+github.com/aws/aws-sdk-go-v2/service/s3 v1.90.2/go.mod h1:+wArOOrcHUevqdto9k1tKOF5++YTe9JEcPSc9Tx2ZSw=
 github.com/aws/aws-sdk-go-v2/service/servicediscovery v1.39.15 h1:f4rrodaG1r72h7qF2b1245nzcLUfN4OdgyQF2nw5+Jw=
 github.com/aws/aws-sdk-go-v2/service/servicediscovery v1.39.15/go.mod h1:lYyuDbeQ6vtjRP4gb9h2MReluEb0US5u+07X84akGKg=
 github.com/aws/aws-sdk-go-v2/service/sqs v1.42.14 h1:VB/VRA5FLpYqUMR9jHyihkg2qTk2u7MIkwKFKf2870Y=
