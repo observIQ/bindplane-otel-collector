@@ -297,10 +297,11 @@ jobs:
           cp ./release_deps/gpg/bdot-public-gpg-key.asc ./artifacts/gpg/bdot-public-gpg-key.asc
           cp -r ./release_deps/gpg/revocations ./artifacts/gpg/revocations
           cp ./observiq-otel-collector.msi/observiq-otel-collector.msi ./artifacts
-          cp ./dist/*tar.gz ./artifacts
+          cp ./dist/linux/*.tar.gz ./artifacts
+          cp ./dist/darwin/*.tar.gz ./artifacts
           cp ./windows-archive/windows/*.zip ./artifacts
-          cp ./dist/*.rpm ./artifacts
-          cp ./dist/*.deb ./artifacts
+          cp ./dist/linux/*.rpm ./artifacts
+          cp ./dist/linux/*.deb ./artifacts
           cp ./dist/*SHA256SUMS ./artifacts
           tar -czvf observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz -C ./artifacts .
 
