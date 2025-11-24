@@ -256,6 +256,7 @@ jobs:
             artifacts apt upload stable-deb \
             --location us-central1 \
             --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_arm64.deb
+
       - name: Upload Bindplane Linux ARM64 RPM Package
         run: |
           gcloud \

@@ -144,6 +144,20 @@ jobs:
           tree windows-archive
           du -sh windows-archive
 
+      - name: Install cosign
+        run: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
+      - name: Build cosign key file
+        run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
+        shell: bash
+        env:
+          COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
+
+      - name: Sign MSI
+        run: cosign sign-blob --key=cosign.key --output-signature ./observiq-otel-collector.msi/observiq-otel-collector.msi.sig ./observiq-otel-collector.msi/observiq-otel-collector.msi
+        shell: bash
+        env:
+          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+
       - name: Set VERSION
         run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
 
@@ -158,18 +172,23 @@ jobs:
           cat > ci-signing-key.asc <<'EOF'
           ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
           EOF
-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
           version: "v2.12.5"
-          args: release --skip=publish --skip=validate --skip=sign --clean
+          args: release --skip=publish --skip=validate --clean
         env:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           SIGNING_KEY_FILE: ci-signing-key.asc
+          COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
+
+      - name: Debug list dist/
+        run: |
+          tree dist/
+          du -sh dist/
 
       - name: Create artifact archive
         run: |
@@ -185,6 +204,12 @@ jobs:
           cp ./dist/*.deb ./artifacts
           cp ./dist/*SHA256SUMS ./artifacts
           tar -czvf observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz -C ./artifacts .
+
+      - name: Sign artifact archive
+        run: cosign sign-blob --key=cosign.key --output-signature ./observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz.sig ./observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz
+        shell: bash
+        env:
+          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
 
       - name: Check Artifacts Directory
         run: |
@@ -232,6 +257,7 @@ jobs:
             artifacts apt upload devel-deb \
             --location us-central1 \
             --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_arm64.deb
+
       - name: Upload Bindplane Linux ARM64 RPM Package
         run: |
           gcloud \
