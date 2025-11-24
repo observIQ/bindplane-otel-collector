@@ -255,12 +255,59 @@ jobs:
           path: ~/.cache/goreleaser
 
       # Download all artifacts from the parallel split builds
-      - name: Download dist artifacts
+      # Download each artifact to its own directory first to avoid corruption
+      - name: Download Linux AMD64 artifacts
         uses: actions/download-artifact@v6
         with:
-          pattern: dist-*
-          merge-multiple: true
-          path: dist/
+          name: dist-linux-amd64
+          path: dist-temp/linux-amd64
+
+      - name: Download Linux ARM64 artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: dist-linux-arm64
+          path: dist-temp/linux-arm64
+
+      - name: Download Linux ARM artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: dist-linux-arm
+          path: dist-temp/linux-arm
+
+      - name: Download Linux PPC64 artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: dist-linux-ppc64
+          path: dist-temp/linux-ppc64
+
+      - name: Download Linux PPC64LE artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: dist-linux-ppc64le
+          path: dist-temp/linux-ppc64le
+
+      - name: Download Darwin AMD64 artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: dist-darwin-amd64
+          path: dist-temp/darwin-amd64
+
+      - name: Download Darwin ARM64 artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: dist-darwin-arm64
+          path: dist-temp/darwin-arm64
+
+      - name: Manually merge dist artifacts
+        run: |
+          mkdir -p dist
+          cp -r dist-temp/linux-amd64/* dist/
+          cp -r dist-temp/linux-arm64/* dist/
+          cp -r dist-temp/linux-arm/* dist/
+          cp -r dist-temp/linux-ppc64/* dist/
+          cp -r dist-temp/linux-ppc64le/* dist/
+          cp -r dist-temp/darwin-amd64/* dist/
+          cp -r dist-temp/darwin-arm64/* dist/
 
       - name: Write signing key for nFPM
         shell: bash
@@ -351,6 +398,7 @@ jobs:
             artifacts apt upload devel-deb \
             --location us-central1 \
             --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_arm64.deb
+
       - name: Upload Bindplane Linux ARM64 RPM Package
         run: |
           gcloud \
