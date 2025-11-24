@@ -193,9 +193,7 @@ jobs:
           cp ./dist/*tar.gz ./artifacts
           cp ./windows-archive/windows_amd64/*.zip ./artifacts
           cp ./dist/*.rpm ./artifacts
-          cp ./dist/*.rpm.sig ./artifacts
           cp ./dist/*.deb ./artifacts
-          cp ./dist/*.deb.sig ./artifacts
           cp ./dist/*SHA256SUMS ./artifacts
           tar -czvf observiq-otel-collector-${{ github.ref_name }}-artifacts.tar.gz -C ./artifacts .
       - name: Sign artifact archive
