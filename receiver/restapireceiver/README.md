@@ -28,6 +28,7 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 |-------|------|---------|----------|-------------|
 | `url` | string | | `true` | The base URL for the REST API endpoint |
 | `response_field` | string | | `false` | The name of the field in the response that contains the array of items. If empty, the response is assumed to be a top-level array |
+| `metrics` | object | | `false` | Metrics configuration (see below) |
 | `auth_mode` | string | `apikey` | `false` | Authentication mode: `apikey`, `bearer`, `basic`, `oauth2`, or `akamai_edgegrid` |
 | `apikey` | object | | `false` | API Key configuration (see below) |
 | `bearer` | object | | `false` | Bearer Token configuration (see below) |
@@ -126,7 +127,7 @@ The metrics configuration allows you to customize how metrics are extracted from
 | `metrics.type_field` | string | | `false` | Field name in each response item containing the metric type (`gauge`, `sum`, `histogram`, `summary`). If not specified or not found, defaults to `gauge` |
 | `metrics.unit_field` | string | | `false` | Field name in each response item containing the metric unit. If not specified or not found, no unit is set |
 | `metrics.monotonic_field` | string | | `false` | Field name in each response item indicating if a sum metric is monotonic (boolean). Only applies to `sum` metrics. If not specified or not found, defaults to `false` for safety |
-| `metrics.aggregation_temporality_field` | string | | `false` | Field name in each response item containing the aggregation temporality (`cumulative` or `delta`). Only applies to `sum` and `histogram` metrics. If not specified or not found, defaults to `cumulative` |
+| `metrics.aggregation_temporality_field` | string | | `false` | Field name in each response item containing the aggregation temporality (`cumulative` or `delta`). If not specified or not found, defaults to `cumulative` |
 
 **Note:** When field names are configured, those fields are automatically excluded from metric attributes to avoid duplication.
 
