@@ -334,7 +334,7 @@ jobs:
             --project bindplane-repository \
             artifacts apt upload devel-deb \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_amd64.deb
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_amd64.deb
 
       - name: Upload Bindplane Linux AMD64 RPM Package
         run: |
@@ -342,7 +342,7 @@ jobs:
             --project bindplane-repository \
             artifacts yum upload devel-rpm \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_amd64.rpm
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_amd64.rpm
 
       - name: Upload Bindplane Linux ARM64 Deb Package
         run: |
@@ -350,14 +350,14 @@ jobs:
             --project bindplane-repository \
             artifacts apt upload devel-deb \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_arm64.deb
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_arm64.deb
       - name: Upload Bindplane Linux ARM64 RPM Package
         run: |
           gcloud \
             --project bindplane-repository \
             artifacts yum upload devel-rpm \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_arm64.rpm
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_arm64.rpm
 
       - name: Upload Bindplane Linux ARM32 Deb Package
         run: |
@@ -365,7 +365,7 @@ jobs:
             --project bindplane-repository \
             artifacts apt upload devel-deb \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_arm.deb
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_arm.deb
 
       - name: Upload Bindplane Linux ARM32 RPM Package
         run: |
@@ -373,7 +373,7 @@ jobs:
             --project bindplane-repository \
             artifacts yum upload devel-rpm \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_arm.rpm
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_arm.rpm
 
       - name: Upload Bindplane Linux PPC64LE Deb Package
         run: |
@@ -381,7 +381,7 @@ jobs:
             --project bindplane-repository \
             artifacts apt upload devel-deb \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64le.deb
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64le.deb
 
       - name: Upload Bindplane Linux PPC64LE RPM Package
         run: |
@@ -389,7 +389,7 @@ jobs:
             --project bindplane-repository \
             artifacts yum upload devel-rpm \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64le.rpm
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64le.rpm
 
       - name: Upload Bindplane Linux PPC64 Deb Package
         run: |
@@ -397,7 +397,7 @@ jobs:
             --project bindplane-repository \
             artifacts apt upload devel-deb \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64.deb
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64.deb
 
       - name: Upload Bindplane Linux PPC64 RPM Package
         run: |
@@ -405,4 +405,4 @@ jobs:
             --project bindplane-repository \
             artifacts yum upload devel-rpm \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64.rpm
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64.rpm
