@@ -178,6 +178,10 @@ func parsePayload(payload []byte, contentType string) ([]map[string]any, error) 
 		return nil, fmt.Errorf("empty payload")
 	}
 
+	if !isJSONContentTypeHeader(contentType) {
+		return parsePayloadAsText(payload)
+	}
+
 	firstChar := seekFirstNonWhitespace(string(payload))
 	switch firstChar {
 	case "{":
@@ -193,13 +197,7 @@ func parsePayload(payload []byte, contentType string) ([]map[string]any, error) 
 		}
 		return parseJSONArray(rawLogsArray)
 	default:
-		// If content-type indicates JSON but payload doesn't start with { or [,
-		// this is likely malformed JSON
-		if isJSONContentTypeHeader(contentType) {
-			return nil, fmt.Errorf("malformed JSON payload")
-		}
-		// Otherwise, treat as plain text
-		return parsePayloadAsText(payload)
+		return nil, fmt.Errorf("malformed JSON payload")
 	}
 }
 
