@@ -36,7 +36,7 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 | `oauth2` | object | | `false` | OAuth2 Client Credentials configuration (see below) |
 | `akamai_edgegrid` | object | | `false` | Akamai EdgeGrid configuration (see below) |
 | `pagination` | object | | `false` | Pagination configuration (see below) |
-| `poll_interval` | duration | `5m` | `false` | The interval between API polls |
+| `max_poll_interval` | duration | `5m` | `false` | Maximum interval between API polls. The receiver uses adaptive polling that starts fast and backs off when no data is returned, up to this maximum. |
 | `storage` | component | | `false` | The component ID of a storage extension for checkpointing |
 | `timeout` | duration | `10s` | `false` | HTTP client timeout |
 
@@ -139,7 +139,7 @@ The metrics configuration allows you to customize how metrics are extracted from
 receivers:
   restapi:
     url: "https://api.example.com/data"
-    poll_interval: 5m
+    max_poll_interval: 5m
 ```
 
 ### API Key Authentication
@@ -148,7 +148,7 @@ receivers:
 receivers:
   restapi:
     url: "https://api.example.com/events"
-    poll_interval: 10m
+    max_poll_interval: 10m
     auth_mode: apikey
     apikey_header_name: "X-API-Key"
     apikey_value: "your-api-key-here"
@@ -160,7 +160,7 @@ receivers:
 receivers:
   restapi:
     url: "https://api.example.com/metrics"
-    poll_interval: 5m
+    max_poll_interval: 5m
     auth_mode: bearer
     bearer_token: "your-bearer-token-here"
 ```
@@ -172,7 +172,7 @@ receivers:
   restapi:
     url: "https://api.example.com/logs"
     response_field: "data"
-    poll_interval: 5m
+    max_poll_interval: 5m
     auth_mode: basic
     basic:
       username: "user"
@@ -193,7 +193,7 @@ receivers:
 receivers:
   restapi:
     url: "https://api.example.com/data"
-    poll_interval: 5m
+    max_poll_interval: 5m
     auth_mode: oauth2
     oauth2:
       client_id: "your-client-id"
@@ -207,7 +207,7 @@ receivers:
 receivers:
   restapi:
     url: "https://api.example.com/data"
-    poll_interval: 5m
+    max_poll_interval: 5m
     auth_mode: oauth2
     oauth2:
       client_id: "your-client-id"
@@ -227,7 +227,7 @@ receivers:
 receivers:
   restapi:
     url: "https://api.akamai.com/endpoint"
-    poll_interval: 5m
+    max_poll_interval: 5m
     auth_mode: akamai_edgegrid
     akamai_edgegrid:
       access_token: "your-access-token"
@@ -242,7 +242,7 @@ receivers:
   restapi:
     url: "https://api.example.com/events"
     response_field: "items"
-    poll_interval: 15m
+    max_poll_interval: 15m
     auth_mode: bearer
     bearer_token: "token"
     pagination:
@@ -267,7 +267,7 @@ receivers:
   restapi/metrics:
     url: "https://api.example.com/metrics"
     response_field: "metrics"
-    poll_interval: 1m
+    max_poll_interval: 1m
     auth_mode: apikey
     apikey_header_name: "X-API-Key"
     apikey_value: "your-api-key-here"
