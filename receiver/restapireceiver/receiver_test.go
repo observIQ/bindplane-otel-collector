@@ -97,7 +97,7 @@ func TestRESTAPIMetricsReceiver_StartShutdown(t *testing.T) {
 			Mode: paginationModeNone,
 		},
 		MaxPollInterval: 100 * time.Millisecond,
-		ClientConfig: confighttp.ClientConfig{},
+		ClientConfig:    confighttp.ClientConfig{},
 	}
 
 	sink := new(consumertest.MetricsSink)
@@ -176,7 +176,7 @@ func TestRESTAPILogsReceiver_WithPagination(t *testing.T) {
 			TotalRecordCountField: "total",
 		},
 		MaxPollInterval: 100 * time.Millisecond,
-		ClientConfig: confighttp.ClientConfig{},
+		ClientConfig:    confighttp.ClientConfig{},
 	}
 
 	sink := new(consumertest.LogsSink)
@@ -257,7 +257,7 @@ func TestRESTAPILogsReceiver_WithTimestampPagination(t *testing.T) {
 			},
 		},
 		MaxPollInterval: 100 * time.Millisecond,
-		ClientConfig: confighttp.ClientConfig{},
+		ClientConfig:    confighttp.ClientConfig{},
 	}
 
 	sink := new(consumertest.LogsSink)
@@ -304,7 +304,7 @@ func TestRESTAPILogsReceiver_ErrorHandling(t *testing.T) {
 			Mode: paginationModeNone,
 		},
 		MaxPollInterval: 100 * time.Millisecond,
-		ClientConfig: confighttp.ClientConfig{},
+		ClientConfig:    confighttp.ClientConfig{},
 	}
 
 	sink := new(consumertest.LogsSink)
@@ -346,7 +346,7 @@ func TestRESTAPILogsReceiver_EmptyResponse(t *testing.T) {
 			Mode: paginationModeNone,
 		},
 		MaxPollInterval: 100 * time.Millisecond,
-		ClientConfig: confighttp.ClientConfig{},
+		ClientConfig:    confighttp.ClientConfig{},
 	}
 
 	sink := new(consumertest.LogsSink)
@@ -400,7 +400,7 @@ func TestRESTAPILogsReceiver_NestedResponseField(t *testing.T) {
 			Mode: paginationModeNone,
 		},
 		MaxPollInterval: 100 * time.Millisecond,
-		ClientConfig: confighttp.ClientConfig{},
+		ClientConfig:    confighttp.ClientConfig{},
 	}
 
 	sink := new(consumertest.LogsSink)
@@ -465,7 +465,7 @@ func TestRESTAPILogsReceiver_DeeplyNestedResponseField(t *testing.T) {
 			Mode: paginationModeNone,
 		},
 		MaxPollInterval: 100 * time.Millisecond,
-		ClientConfig: confighttp.ClientConfig{},
+		ClientConfig:    confighttp.ClientConfig{},
 	}
 
 	sink := new(consumertest.LogsSink)
