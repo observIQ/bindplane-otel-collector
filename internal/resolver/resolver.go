@@ -18,6 +18,7 @@ package resolver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 
@@ -84,60 +85,61 @@ func New(logger *zap.Logger, cacheCapacity int) (*Resolver, error) {
 //		},
 //	}
 func (r *Resolver) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	r.logger.Debug("Dialing new connection", zap.String("network", network), zap.String("address", address))
+	return nil, errors.New("forced dns failure !!!")
+	// r.logger.Debug("Dialing new connection", zap.String("network", network), zap.String("address", address))
 
-	host, port, err := net.SplitHostPort(address)
-	if err != nil {
-		return nil, fmt.Errorf("split host and port for address %s: %w", address, err)
-	}
+	// host, port, err := net.SplitHostPort(address)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("split host and port for address %s: %w", address, err)
+	// }
 
-	addrs, err := r.lookupIPAddr(ctx, host)
-	if err != nil {
-		return nil, fmt.Errorf("lookup IP addresses for host %s: %w", host, err)
-	}
+	// addrs, err := r.lookupIPAddr(ctx, host)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("lookup IP addresses for host %s: %w", host, err)
+	// }
 
-	if len(addrs) == 0 {
-		return nil, fmt.Errorf("no addresses found for host: %s", host)
-	}
+	// if len(addrs) == 0 {
+	// 	return nil, fmt.Errorf("no addresses found for host: %s", host)
+	// }
 
-	var lastErr error
-	for _, addr := range addrs {
-		dialer := &net.Dialer{}
-		conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(addr.IP.String(), port))
-		if err == nil {
-			r.logger.Debug("Dialed successfully", zap.String("address", addr.IP.String()))
-			return conn, nil
-		}
-		lastErr = err
-	}
+	// var lastErr error
+	// for _, addr := range addrs {
+	// 	dialer := &net.Dialer{}
+	// 	conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(addr.IP.String(), port))
+	// 	if err == nil {
+	// 		r.logger.Debug("Dialed successfully", zap.String("address", addr.IP.String()))
+	// 		return conn, nil
+	// 	}
+	// 	lastErr = err
+	// }
 
-	return nil, fmt.Errorf("failed to dial %s: %w", address, lastErr)
+	// return nil, fmt.Errorf("failed to dial %s: %w", address, lastErr)
 }
 
 // lookupIPAddr looks up host using the local resolver and returns a slice of
 // IP addresses. It always attempts a fresh lookup first, caching the result if successful.
 // If the lookup fails, it returns the cached result if available, otherwise returns the lookup error.
-func (r *Resolver) lookupIPAddr(ctx context.Context, host string) ([]net.IPAddr, error) {
-	r.logger.Debug("Looking up IP addresses for host", zap.String("host", host))
+// func (r *Resolver) lookupIPAddr(ctx context.Context, host string) ([]net.IPAddr, error) {
+// 	r.logger.Debug("Looking up IP addresses for host", zap.String("host", host))
 
-	// Always attempt a fresh lookup first
-	addrs, err := r.baseResolver.LookupIPAddr(ctx, host)
-	if err == nil {
-		// Lookup succeeded - cache the result and return it
-		r.cache.Add(host, addrs)
-		r.logger.Debug("DNS lookup succeeded and cached", zap.String(logFieldHostname, host), zap.Any(logFieldAddresses, addrs))
-		return addrs, nil
-	}
+// 	// Always attempt a fresh lookup first
+// 	addrs, err := r.baseResolver.LookupIPAddr(ctx, host)
+// 	if err == nil {
+// 		// Lookup succeeded - cache the result and return it
+// 		r.cache.Add(host, addrs)
+// 		r.logger.Debug("DNS lookup succeeded and cached", zap.String(logFieldHostname, host), zap.Any(logFieldAddresses, addrs))
+// 		return addrs, nil
+// 	}
 
-	// Lookup failed - check if we have a cached result
-	cached, ok := r.cache.Get(host)
-	if ok {
-		// Return cached result as fallback
-		r.logger.Debug("DNS lookup failed, using cached result", zap.String(logFieldHostname, host), zap.Any(logFieldAddresses, cached), zap.Error(err))
-		return cached, nil
-	}
+// 	// Lookup failed - check if we have a cached result
+// 	cached, ok := r.cache.Get(host)
+// 	if ok {
+// 		// Return cached result as fallback
+// 		r.logger.Debug("DNS lookup failed, using cached result", zap.String(logFieldHostname, host), zap.Any(logFieldAddresses, cached), zap.Error(err))
+// 		return cached, nil
+// 	}
 
-	// No cache entry available - return the lookup error
-	r.logger.Debug("DNS lookup failed and no cache entry available", zap.String(logFieldHostname, host), zap.Error(err))
-	return nil, fmt.Errorf("lookup IP address for host %s: %w", host, err)
-}
+// 	// No cache entry available - return the lookup error
+// 	r.logger.Debug("DNS lookup failed and no cache entry available", zap.String(logFieldHostname, host), zap.Error(err))
+// 	return nil, fmt.Errorf("lookup IP address for host %s: %w", host, err)
+// }
