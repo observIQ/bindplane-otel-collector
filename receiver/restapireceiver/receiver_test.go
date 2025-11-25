@@ -369,3 +369,216 @@ func TestRESTAPILogsReceiver_EmptyResponse(t *testing.T) {
 	// Empty responses should be handled gracefully
 	// May or may not have logs depending on implementation
 }
+
+func TestRESTAPILogsReceiver_NestedResponseField(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		response := map[string]any{
+			"response": map[string]any{
+				"data": []map[string]any{
+					{"id": "1", "message": "nested test 1"},
+					{"id": "2", "message": "nested test 2"},
+				},
+			},
+			"meta": map[string]any{
+				"total": 2,
+			},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	cfg := &Config{
+		URL:           server.URL,
+		ResponseField: "response.data", // Using dot notation for nested field
+		AuthMode:      authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
+		Pagination: PaginationConfig{
+			Mode: paginationModeNone,
+		},
+		PollInterval: 100 * time.Millisecond,
+		ClientConfig: confighttp.ClientConfig{},
+	}
+
+	sink := new(consumertest.LogsSink)
+	params := receivertest.NewNopSettings(metadata.Type)
+	receiver, err := newRESTAPILogsReceiver(params, cfg, sink)
+	require.NoError(t, err)
+	require.NotNil(t, receiver)
+
+	host := componenttest.NewNopHost()
+	ctx := context.Background()
+
+	err = receiver.Start(ctx, host)
+	require.NoError(t, err)
+
+	// Wait a bit for polling
+	time.Sleep(200 * time.Millisecond)
+
+	err = receiver.Shutdown(ctx)
+	require.NoError(t, err)
+
+	// Should have received logs from nested field
+	allLogs := sink.AllLogs()
+	require.Greater(t, len(allLogs), 0)
+
+	// Count total log records - should have 2 from the nested data
+	totalRecords := 0
+	for _, logs := range allLogs {
+		totalRecords += logs.LogRecordCount()
+	}
+	require.GreaterOrEqual(t, totalRecords, 2)
+}
+
+func TestRESTAPILogsReceiver_DeeplyNestedResponseField(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		response := map[string]any{
+			"api": map[string]any{
+				"response": map[string]any{
+					"results": map[string]any{
+						"items": []map[string]any{
+							{"id": "1", "message": "deeply nested 1"},
+							{"id": "2", "message": "deeply nested 2"},
+							{"id": "3", "message": "deeply nested 3"},
+						},
+					},
+				},
+			},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	cfg := &Config{
+		URL:           server.URL,
+		ResponseField: "api.response.results.items", // Multiple levels of nesting
+		AuthMode:      authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
+		Pagination: PaginationConfig{
+			Mode: paginationModeNone,
+		},
+		PollInterval: 100 * time.Millisecond,
+		ClientConfig: confighttp.ClientConfig{},
+	}
+
+	sink := new(consumertest.LogsSink)
+	params := receivertest.NewNopSettings(metadata.Type)
+	receiver, err := newRESTAPILogsReceiver(params, cfg, sink)
+	require.NoError(t, err)
+
+	host := componenttest.NewNopHost()
+	ctx := context.Background()
+
+	err = receiver.Start(ctx, host)
+	require.NoError(t, err)
+
+	// Wait a bit for polling
+	time.Sleep(200 * time.Millisecond)
+
+	err = receiver.Shutdown(ctx)
+	require.NoError(t, err)
+
+	// Should have received logs from deeply nested field
+	allLogs := sink.AllLogs()
+	require.Greater(t, len(allLogs), 0)
+
+	// Count total log records - should have 3 from the nested items
+	totalRecords := 0
+	for _, logs := range allLogs {
+		totalRecords += logs.LogRecordCount()
+	}
+	require.GreaterOrEqual(t, totalRecords, 3)
+}
+
+func TestGetNestedField(t *testing.T) {
+	tests := []struct {
+		name     string
+		data     map[string]any
+		path     string
+		expected any
+		found    bool
+	}{
+		{
+			name:     "single level",
+			data:     map[string]any{"data": []any{"item1", "item2"}},
+			path:     "data",
+			expected: []any{"item1", "item2"},
+			found:    true,
+		},
+		{
+			name: "two levels",
+			data: map[string]any{
+				"response": map[string]any{
+					"data": []any{"item1", "item2"},
+				},
+			},
+			path:     "response.data",
+			expected: []any{"item1", "item2"},
+			found:    true,
+		},
+		{
+			name: "three levels",
+			data: map[string]any{
+				"api": map[string]any{
+					"response": map[string]any{
+						"items": []any{"a", "b", "c"},
+					},
+				},
+			},
+			path:     "api.response.items",
+			expected: []any{"a", "b", "c"},
+			found:    true,
+		},
+		{
+			name:     "field not found",
+			data:     map[string]any{"other": "value"},
+			path:     "data",
+			expected: nil,
+			found:    false,
+		},
+		{
+			name: "nested field not found",
+			data: map[string]any{
+				"response": map[string]any{
+					"other": "value",
+				},
+			},
+			path:     "response.data",
+			expected: nil,
+			found:    false,
+		},
+		{
+			name: "intermediate not a map",
+			data: map[string]any{
+				"response": "not a map",
+			},
+			path:     "response.data",
+			expected: nil,
+			found:    false,
+		},
+		{
+			name:     "empty path returns first part as empty string key lookup",
+			data:     map[string]any{"": "empty key value"},
+			path:     "",
+			expected: "empty key value",
+			found:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, found := getNestedField(tt.data, tt.path)
+			require.Equal(t, tt.found, found)
+			if found {
+				require.Equal(t, tt.expected, result)
+			}
+		})
+	}
+}

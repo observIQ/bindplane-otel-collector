@@ -27,7 +27,7 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
 | `url` | string | | `true` | The base URL for the REST API endpoint |
-| `response_field` | string | | `false` | The name of the field in the response that contains the array of items. If empty, the response is assumed to be a top-level array |
+| `response_field` | string | | `false` | The name of the field in the response that contains the array of items. If empty, the response is assumed to be a top-level array. For nested fields, use dot notation (e.g., `response.data`) |
 | `metrics` | object | | `false` | Metrics configuration (see below) |
 | `auth_mode` | string | `apikey` | `false` | Authentication mode: `apikey`, `bearer`, `basic`, `oauth2`, or `akamai_edgegrid` |
 | `apikey` | object | | `false` | API Key configuration (see below) |
