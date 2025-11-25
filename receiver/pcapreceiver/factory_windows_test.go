@@ -31,7 +31,7 @@ func TestCreateDefaultConfig_Windows(t *testing.T) {
 
 	pcapCfg, ok := cfg.(*Config)
 	require.True(t, ok)
-	require.Equal(t, "1", pcapCfg.Interface) // Windows default is numeric ID "1"
+	require.Equal(t, `\Device\NPF_{12345678-1234-1234-1234-123456789012}`, pcapCfg.Interface)
 	require.Equal(t, 65535, pcapCfg.SnapLen)
 	require.True(t, pcapCfg.Promiscuous)
 	require.True(t, pcapCfg.ParseAttributes)
