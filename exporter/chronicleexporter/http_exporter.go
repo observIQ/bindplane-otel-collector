@@ -103,76 +103,91 @@ func (exp *httpExporter) Start(ctx context.Context, _ component.Host) error {
 	return nil
 }
 
+// loadLogTypes fetches all valid log types from the Chronicle API using pagination.
+// Each HTTP request gets its own 10-second timeout context. The function iteratively
+// requests log types, following NextPageToken until all pages are retrieved. Each
+// log type name is extracted and stored in a map for validation purposes. Returns nil on any error.
 func (exp *httpExporter) loadLogTypes(ctx context.Context) map[string]exists {
+	logger := exp.set.Logger.Named("loadLogTypes")
 
 	logTypes := make(map[string]exists)
+	// endpoint is mutated in the loop to append
+	// pageToken query parameter for pagination
 	endpoint := getLogTypesEndpoint(exp.cfg)
 
-	request, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
-	if err != nil {
-		exp.set.Logger.Warn("Failed to create request for loading log types", zap.Error(err))
-		return nil
+	// https://cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.logTypes/list
+	type logType struct {
+		Name string `json:"name"`
 	}
 
-	// time out after 10 seconds
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
+	type logTypeResponse struct {
+		LogTypes      []logType `json:"logTypes"`
+		NextPageToken string    `json:"nextPageToken"`
+	}
 
+	count := 0
 	for {
+		// Collector shutdown should cause loadLogTypes to bail early.
 		if err := ctx.Err(); err != nil {
-			exp.set.Logger.Warn("Context cancelled for loading log types", zap.Error(err))
+			logger.Warn("Context cancelled for loading log types", zap.Error(err))
 			return nil
-		}
-		resp, err := exp.client.Do(request)
-		if err != nil {
-			exp.set.Logger.Warn("Failed to send request to Chronicle for loading log types", zap.Error(err))
-			return nil
-		}
-		// https://cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.logTypes/list
-		type logType struct {
-			Name string `json:"name"`
-		}
-
-		type logTypeResponse struct {
-			LogTypes      []logType `json:"logTypes"`
-			NextPageToken string    `json:"nextPageToken"`
 		}
 
 		var response logTypeResponse
+		err := func(ctx context.Context) error {
+			ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
 
-		respBody, err := io.ReadAll(resp.Body)
-		if err := resp.Body.Close(); err != nil {
-			exp.set.Logger.Warn("Failed to close response body for loading log types", zap.Error(err))
-		}
+			request, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
+			if err != nil {
+				return fmt.Errorf("create request: %w", err)
+			}
 
-		if err == nil && resp.StatusCode == http.StatusOK {
+			resp, err := exp.client.Do(request)
+			if err != nil {
+				return fmt.Errorf("do request: %w", err)
+			}
+			defer func() {
+				if err := resp.Body.Close(); err != nil {
+					logger.Warn("Failed to close response body", zap.Error(err))
+				}
+			}()
+
+			if resp.StatusCode != http.StatusOK {
+				return fmt.Errorf("received non-OK status: %s", resp.Status)
+			}
+
+			respBody, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return fmt.Errorf("read response body: %w", err)
+			}
+
 			if err := json.Unmarshal(respBody, &response); err != nil {
-				exp.set.Logger.Warn("Failed to unmarshal response body", zap.Error(err))
-				return nil
+				return fmt.Errorf("unmarshal response: %w", err)
 			}
-			for _, logType := range response.LogTypes {
-				logTypes[parseLogTypes(logType.Name)] = exists{}
-			}
-		}
+
+			return nil
+		}(ctx)
 
 		if err != nil {
-			exp.set.Logger.Warn("Failed to read response body for loading log types", zap.Error(err))
+			logger.Warn("Failed to load log types from Chronicle", zap.Error(err))
 			return nil
 		}
-		if resp.StatusCode != http.StatusOK {
-			exp.set.Logger.Warn("Received non-OK response from Chronicle for loading log types", zap.String("status", resp.Status), zap.ByteString("response", respBody))
-			return nil
+
+		for _, logType := range response.LogTypes {
+			logTypes[parseLogTypes(logType.Name)] = exists{}
 		}
+
 		if response.NextPageToken == "" {
 			break
 		}
-		request, err = http.NewRequestWithContext(ctx, "GET", endpoint+"?pageToken="+response.NextPageToken, nil)
-		if err != nil {
-			exp.set.Logger.Warn("Failed to create request for loading log types", zap.Error(err))
-			return nil
-		}
+		endpoint = getLogTypesEndpoint(exp.cfg) + "?pageToken=" + response.NextPageToken
 
+		count++
 	}
+
+	logger.Debug("Loaded log types", zap.Int("request_count", count), zap.Int("log_type_count", len(logTypes)))
+
 	return logTypes
 }
 
