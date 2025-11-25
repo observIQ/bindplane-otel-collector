@@ -1,0 +1,55 @@
+resourceLogs:
+  - resource: {}
+    scopeLogs:
+      - logRecords:
+          - body:
+              kvlistValue:
+                values:
+                  - key: service
+                    value:
+                      stringValue: custom_file
+                  - key: ddsource
+                    value:
+                      stringValue: my_app
+                  - key: ddtags
+                    value:
+                      stringValue: filename:dd-log-file.log
+                  - key: message
+                    value:
+                      stringValue: 2023/11/06 08:09:10 Generic event
+                  - key: status
+                    value:
+                      stringValue: info
+                  - key: timestamp
+                    value:
+                      doubleValue: 1.699276151086e+12
+                  - key: hostname
+                    value:
+                      stringValue: developer-MBP-2.hsd1.mi.comcast.net
+            observedTimeUnixNano: "1764083243347576000"
+          - body:
+              kvlistValue:
+                values:
+                  - key: hostname
+                    value:
+                      stringValue: developer-MBP-2.hsd1.mi.comcast.net
+                  - key: service
+                    value:
+                      stringValue: custom_file
+                  - key: ddsource
+                    value:
+                      stringValue: my_app
+                  - key: ddtags
+                    value:
+                      stringValue: filename:dd-log-file.log
+                  - key: message
+                    value:
+                      stringValue: 2023/11/06 08:09:10 Generic event
+                  - key: status
+                    value:
+                      stringValue: info
+                  - key: timestamp
+                    value:
+                      doubleValue: 1.699276151086e+12
+            observedTimeUnixNano: "1764083243347576000"
+        scope: {}

@@ -17,10 +17,10 @@ package httpreceiver
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 	"unicode"
@@ -134,7 +134,8 @@ func (r *httpLogsReceiver) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 	}
 
 	// parse []byte into map structure
-	logs, err := parsePayload(payload)
+	contentType := req.Header.Get("Content-Type")
+	logs, err := parsePayload(payload, contentType)
 	if err != nil {
 		rw.WriteHeader(http.StatusUnprocessableEntity)
 		r.logger.Error("failed to convert log request payload to maps", zap.Error(err), zap.String("payload", string(payload)))
@@ -171,7 +172,12 @@ func (r *httpLogsReceiver) processLogs(now pcommon.Timestamp, logs []map[string]
 }
 
 // parsePayload transforms the payload into []map[string]any structure
-func parsePayload(payload []byte) ([]map[string]any, error) {
+func parsePayload(payload []byte, contentType string) ([]map[string]any, error) {
+	// Handle empty payloads
+	if len(payload) == 0 {
+		return nil, fmt.Errorf("empty payload")
+	}
+
 	firstChar := seekFirstNonWhitespace(string(payload))
 	switch firstChar {
 	case "{":
@@ -187,8 +193,24 @@ func parsePayload(payload []byte) ([]map[string]any, error) {
 		}
 		return parseJSONArray(rawLogsArray)
 	default:
-		return nil, errors.New("unsupported payload format, expected either a JSON object or array")
+		// If content-type indicates JSON but payload doesn't start with { or [,
+		// this is likely malformed JSON
+		if isJSONContentTypeHeader(contentType) {
+			return nil, fmt.Errorf("malformed JSON payload")
+		}
+		// Otherwise, treat as plain text
+		return parsePayloadAsText(payload)
 	}
+}
+
+// isJSONContentTypeHeader checks if the content type indicates JSON
+func isJSONContentTypeHeader(contentType string) bool {
+	if contentType == "" {
+		return false
+	}
+	// Handle content types like "application/json", "application/json; charset=utf-8", etc.
+	ct := strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0]))
+	return ct == "application/json" || strings.HasSuffix(ct, "+json")
 }
 
 // seekFirstNonWhitespace finds the first non whitespace character of the string
@@ -218,4 +240,8 @@ func parseJSONArray(rawLogs []json.RawMessage) ([]map[string]any, error) {
 		logs = append(logs, log)
 	}
 	return logs, nil
+}
+
+func parsePayloadAsText(payload []byte) ([]map[string]any, error) {
+	return []map[string]any{{"body": string(payload)}}, nil
 }
