@@ -60,7 +60,7 @@ func TestIntegration_EndToEnd_Logs(t *testing.T) {
 			Mode: paginationModeNone,
 		},
 		MaxPollInterval: 100 * time.Millisecond,
-		ClientConfig: confighttp.ClientConfig{},
+		ClientConfig:    confighttp.ClientConfig{},
 	}
 
 	sink := new(consumertest.LogsSink)
@@ -113,7 +113,7 @@ func TestIntegration_EndToEnd_Metrics(t *testing.T) {
 			Mode: paginationModeNone,
 		},
 		MaxPollInterval: 100 * time.Millisecond,
-		ClientConfig: confighttp.ClientConfig{},
+		ClientConfig:    confighttp.ClientConfig{},
 	}
 
 	sink := new(consumertest.MetricsSink)
@@ -201,7 +201,7 @@ func TestIntegration_WithPaginationAndAuth(t *testing.T) {
 			TotalRecordCountField: "total",
 		},
 		MaxPollInterval: 100 * time.Millisecond,
-		ClientConfig: confighttp.ClientConfig{},
+		ClientConfig:    confighttp.ClientConfig{},
 	}
 
 	sink := new(consumertest.LogsSink)
@@ -283,7 +283,7 @@ func TestIntegration_TimestampPagination(t *testing.T) {
 			},
 		},
 		MaxPollInterval: 100 * time.Millisecond,
-		ClientConfig: confighttp.ClientConfig{},
+		ClientConfig:    confighttp.ClientConfig{},
 	}
 
 	sink := new(consumertest.LogsSink)
@@ -343,7 +343,7 @@ func TestIntegration_ErrorRecovery(t *testing.T) {
 			Mode: paginationModeNone,
 		},
 		MaxPollInterval: 100 * time.Millisecond,
-		ClientConfig: confighttp.ClientConfig{},
+		ClientConfig:    confighttp.ClientConfig{},
 	}
 
 	sink := new(consumertest.LogsSink)

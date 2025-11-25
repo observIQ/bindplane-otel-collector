@@ -39,7 +39,6 @@ const (
 	backoffMultiplier = 2.0                   // Multiplier for increasing interval on empty responses
 )
 
-
 // checkpointData represents the data stored in the checkpoint.
 type checkpointData struct {
 	PaginationState *paginationState `json:"pagination_state"`
