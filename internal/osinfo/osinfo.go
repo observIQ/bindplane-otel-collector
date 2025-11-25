@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package os handles grabbing OS info from the system
-package os
+// Package osinfo handles grabbing OS info from the system
+package osinfo
 
 import (
 	"fmt"
