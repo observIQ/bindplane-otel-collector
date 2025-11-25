@@ -33,7 +33,12 @@ import (
 
 const (
 	checkpointStorageKey = "restapi_checkpoint"
+
+	// Adaptive polling constants
+	minPollInterval   = 10 * time.Millisecond // Minimum poll interval (fastest polling rate)
+	backoffMultiplier = 2.0                   // Multiplier for increasing interval on empty responses
 )
+
 
 // checkpointData represents the data stored in the checkpoint.
 type checkpointData struct {
@@ -50,11 +55,11 @@ type restAPILogsReceiver struct {
 	storageClient storage.Client
 	id            component.ID
 
-	wg              sync.WaitGroup
-	mu              sync.Mutex
-	pollInterval    time.Duration
-	cancel          context.CancelFunc
-	paginationState *paginationState
+	wg                  sync.WaitGroup
+	mu                  sync.Mutex
+	currentPollInterval time.Duration // current adaptive poll interval
+	cancel              context.CancelFunc
+	paginationState     *paginationState
 }
 
 // newRESTAPILogsReceiver creates a new REST API logs receiver.
@@ -64,12 +69,11 @@ func newRESTAPILogsReceiver(
 	consumer consumer.Logs,
 ) (*restAPILogsReceiver, error) {
 	return &restAPILogsReceiver{
-		settings:     params.TelemetrySettings,
-		logger:       params.Logger,
-		consumer:     consumer,
-		cfg:          cfg,
-		id:           params.ID,
-		pollInterval: cfg.PollInterval,
+		settings: params.TelemetrySettings,
+		logger:   params.Logger,
+		consumer: consumer,
+		cfg:      cfg,
+		id:       params.ID,
 	}, nil
 }
 
@@ -130,24 +134,32 @@ func (r *restAPILogsReceiver) Shutdown(ctx context.Context) error {
 
 // startPolling starts the polling goroutine.
 func (r *restAPILogsReceiver) startPolling(ctx context.Context) error {
+	// Initialize with minimum poll interval for responsive startup
+	r.currentPollInterval = minPollInterval
+
 	// Run immediately on startup
-	if err := r.poll(ctx); err != nil {
+	recordCount, err := r.poll(ctx)
+	if err != nil {
 		r.logger.Error("error on initial poll", zap.Error(err))
 		// Continue with periodic polling even if initial poll fails
 	}
+	r.adjustPollInterval(recordCount)
 
-	// Start periodic polling
-	ticker := time.NewTicker(r.pollInterval)
+	// Start periodic polling with adaptive timer
+	timer := time.NewTimer(r.currentPollInterval)
 	r.wg.Add(1)
 	go func() {
 		defer r.wg.Done()
-		defer ticker.Stop()
+		defer timer.Stop()
 		for {
 			select {
-			case <-ticker.C:
-				if err := r.poll(ctx); err != nil {
+			case <-timer.C:
+				recordCount, err := r.poll(ctx)
+				if err != nil {
 					r.logger.Error("error while polling", zap.Error(err))
 				}
+				r.adjustPollInterval(recordCount)
+				timer.Reset(r.currentPollInterval)
 			case <-ctx.Done():
 				return
 			}
@@ -156,10 +168,37 @@ func (r *restAPILogsReceiver) startPolling(ctx context.Context) error {
 	return nil
 }
 
-// poll performs a single polling cycle.
-func (r *restAPILogsReceiver) poll(ctx context.Context) error {
+// adjustPollInterval adjusts the poll interval based on whether data was received.
+func (r *restAPILogsReceiver) adjustPollInterval(recordCount int) {
+	if recordCount > 0 {
+		// Data received - reset to minimum interval for responsive polling
+		if r.currentPollInterval != minPollInterval {
+			r.logger.Debug("resetting poll interval after receiving data",
+				zap.Duration("new_interval", minPollInterval),
+				zap.Duration("previous_interval", r.currentPollInterval))
+			r.currentPollInterval = minPollInterval
+		}
+	} else {
+		// No data - increase interval (backoff) up to max
+		newInterval := time.Duration(float64(r.currentPollInterval) * backoffMultiplier)
+		if newInterval > r.cfg.MaxPollInterval {
+			newInterval = r.cfg.MaxPollInterval
+		}
+		if newInterval != r.currentPollInterval {
+			r.logger.Debug("increasing poll interval due to no data",
+				zap.Duration("new_interval", newInterval),
+				zap.Duration("previous_interval", r.currentPollInterval))
+			r.currentPollInterval = newInterval
+		}
+	}
+}
+
+// poll performs a single polling cycle. Returns the total number of records received.
+func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	totalRecords := 0
 
 	// Build request URL with pagination
 	requestURL := r.cfg.URL
@@ -178,7 +217,7 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) error {
 		// Get full response to parse pagination info and extract data
 		fullResponse, err := r.client.GetFullResponse(ctx, requestURL, params)
 		if err != nil {
-			return fmt.Errorf("failed to get full response: %w", err)
+			return totalRecords, fmt.Errorf("failed to get full response: %w", err)
 		}
 
 		// Extract data array from response
@@ -189,8 +228,9 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) error {
 
 		// Consume logs if any
 		if logs.LogRecordCount() > 0 {
+			totalRecords += logs.LogRecordCount()
 			if err := r.consumer.ConsumeLogs(ctx, logs); err != nil {
-				return fmt.Errorf("failed to consume logs: %w", err)
+				return totalRecords, fmt.Errorf("failed to consume logs: %w", err)
 			}
 		}
 
@@ -255,7 +295,7 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) error {
 		r.paginationState.pagesFetched = 0
 	}
 
-	return nil
+	return totalRecords, nil
 }
 
 // loadCheckpoint loads the checkpoint from storage.
@@ -373,11 +413,11 @@ type restAPIMetricsReceiver struct {
 	storageClient storage.Client
 	id            component.ID
 
-	wg              sync.WaitGroup
-	mu              sync.Mutex
-	pollInterval    time.Duration
-	cancel          context.CancelFunc
-	paginationState *paginationState
+	wg                  sync.WaitGroup
+	mu                  sync.Mutex
+	currentPollInterval time.Duration // current adaptive poll interval
+	cancel              context.CancelFunc
+	paginationState     *paginationState
 }
 
 // newRESTAPIMetricsReceiver creates a new REST API metrics receiver.
@@ -387,12 +427,11 @@ func newRESTAPIMetricsReceiver(
 	consumer consumer.Metrics,
 ) (*restAPIMetricsReceiver, error) {
 	return &restAPIMetricsReceiver{
-		settings:     params.TelemetrySettings,
-		logger:       params.Logger,
-		consumer:     consumer,
-		cfg:          cfg,
-		id:           params.ID,
-		pollInterval: cfg.PollInterval,
+		settings: params.TelemetrySettings,
+		logger:   params.Logger,
+		consumer: consumer,
+		cfg:      cfg,
+		id:       params.ID,
 	}, nil
 }
 
@@ -453,24 +492,32 @@ func (r *restAPIMetricsReceiver) Shutdown(ctx context.Context) error {
 
 // startPolling starts the polling goroutine.
 func (r *restAPIMetricsReceiver) startPolling(ctx context.Context) error {
+	// Initialize with minimum poll interval for responsive startup
+	r.currentPollInterval = minPollInterval
+
 	// Run immediately on startup
-	if err := r.poll(ctx); err != nil {
+	recordCount, err := r.poll(ctx)
+	if err != nil {
 		r.logger.Error("error on initial poll", zap.Error(err))
 		// Continue with periodic polling even if initial poll fails
 	}
+	r.adjustPollInterval(recordCount)
 
-	// Start periodic polling
-	ticker := time.NewTicker(r.pollInterval)
+	// Start periodic polling with adaptive timer
+	timer := time.NewTimer(r.currentPollInterval)
 	r.wg.Add(1)
 	go func() {
 		defer r.wg.Done()
-		defer ticker.Stop()
+		defer timer.Stop()
 		for {
 			select {
-			case <-ticker.C:
-				if err := r.poll(ctx); err != nil {
+			case <-timer.C:
+				recordCount, err := r.poll(ctx)
+				if err != nil {
 					r.logger.Error("error while polling", zap.Error(err))
 				}
+				r.adjustPollInterval(recordCount)
+				timer.Reset(r.currentPollInterval)
 			case <-ctx.Done():
 				return
 			}
@@ -479,10 +526,37 @@ func (r *restAPIMetricsReceiver) startPolling(ctx context.Context) error {
 	return nil
 }
 
-// poll performs a single polling cycle.
-func (r *restAPIMetricsReceiver) poll(ctx context.Context) error {
+// adjustPollInterval adjusts the poll interval based on whether data was received.
+func (r *restAPIMetricsReceiver) adjustPollInterval(recordCount int) {
+	if recordCount > 0 {
+		// Data received - reset to minimum interval for responsive polling
+		if r.currentPollInterval != minPollInterval {
+			r.logger.Debug("resetting poll interval after receiving data",
+				zap.Duration("new_interval", minPollInterval),
+				zap.Duration("previous_interval", r.currentPollInterval))
+			r.currentPollInterval = minPollInterval
+		}
+	} else {
+		// No data - increase interval (backoff) up to max
+		newInterval := time.Duration(float64(r.currentPollInterval) * backoffMultiplier)
+		if newInterval > r.cfg.MaxPollInterval {
+			newInterval = r.cfg.MaxPollInterval
+		}
+		if newInterval != r.currentPollInterval {
+			r.logger.Debug("increasing poll interval due to no data",
+				zap.Duration("new_interval", newInterval),
+				zap.Duration("previous_interval", r.currentPollInterval))
+			r.currentPollInterval = newInterval
+		}
+	}
+}
+
+// poll performs a single polling cycle. Returns the total number of records received.
+func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	totalRecords := 0
 
 	// Build request URL with pagination
 	requestURL := r.cfg.URL
@@ -501,7 +575,7 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) error {
 		// Get full response to parse pagination info and extract data
 		fullResponse, err := r.client.GetFullResponse(ctx, requestURL, params)
 		if err != nil {
-			return fmt.Errorf("failed to get full response: %w", err)
+			return totalRecords, fmt.Errorf("failed to get full response: %w", err)
 		}
 
 		// Extract data array from response
@@ -512,8 +586,9 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) error {
 
 		// Consume metrics if any
 		if metrics.MetricCount() > 0 {
+			totalRecords += metrics.MetricCount()
 			if err := r.consumer.ConsumeMetrics(ctx, metrics); err != nil {
-				return fmt.Errorf("failed to consume metrics: %w", err)
+				return totalRecords, fmt.Errorf("failed to consume metrics: %w", err)
 			}
 		}
 
@@ -578,7 +653,7 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) error {
 		r.paginationState.pagesFetched = 0
 	}
 
-	return nil
+	return totalRecords, nil
 }
 
 // loadCheckpoint loads the checkpoint from storage.

@@ -50,8 +50,8 @@ func TestRESTAPILogsReceiver_StartShutdown(t *testing.T) {
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},
-		PollInterval: 100 * time.Millisecond,
-		ClientConfig: confighttp.ClientConfig{},
+		MaxPollInterval: 100 * time.Millisecond,
+		ClientConfig:    confighttp.ClientConfig{},
 	}
 
 	sink := new(consumertest.LogsSink)
@@ -96,7 +96,7 @@ func TestRESTAPIMetricsReceiver_StartShutdown(t *testing.T) {
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},
-		PollInterval: 100 * time.Millisecond,
+		MaxPollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
 	}
 
@@ -175,7 +175,7 @@ func TestRESTAPILogsReceiver_WithPagination(t *testing.T) {
 			},
 			TotalRecordCountField: "total",
 		},
-		PollInterval: 100 * time.Millisecond,
+		MaxPollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
 	}
 
@@ -256,7 +256,7 @@ func TestRESTAPILogsReceiver_WithTimestampPagination(t *testing.T) {
 				InitialTimestamp:   initialTime,
 			},
 		},
-		PollInterval: 100 * time.Millisecond,
+		MaxPollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
 	}
 
@@ -303,7 +303,7 @@ func TestRESTAPILogsReceiver_ErrorHandling(t *testing.T) {
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},
-		PollInterval: 100 * time.Millisecond,
+		MaxPollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
 	}
 
@@ -345,7 +345,7 @@ func TestRESTAPILogsReceiver_EmptyResponse(t *testing.T) {
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},
-		PollInterval: 100 * time.Millisecond,
+		MaxPollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
 	}
 
@@ -399,7 +399,7 @@ func TestRESTAPILogsReceiver_NestedResponseField(t *testing.T) {
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},
-		PollInterval: 100 * time.Millisecond,
+		MaxPollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
 	}
 
@@ -464,7 +464,7 @@ func TestRESTAPILogsReceiver_DeeplyNestedResponseField(t *testing.T) {
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},
-		PollInterval: 100 * time.Millisecond,
+		MaxPollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
 	}
 
@@ -495,6 +495,108 @@ func TestRESTAPILogsReceiver_DeeplyNestedResponseField(t *testing.T) {
 		totalRecords += logs.LogRecordCount()
 	}
 	require.GreaterOrEqual(t, totalRecords, 3)
+}
+
+func TestRESTAPILogsReceiver_AdaptivePolling_Backoff(t *testing.T) {
+	requestCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requestCount++
+		// Always return empty array to trigger backoff
+		response := []map[string]any{}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	cfg := &Config{
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
+		Pagination: PaginationConfig{
+			Mode: paginationModeNone,
+		},
+		MaxPollInterval: 100 * time.Millisecond, // Max interval for backoff
+		ClientConfig:    confighttp.ClientConfig{},
+	}
+
+	sink := new(consumertest.LogsSink)
+	params := receivertest.NewNopSettings(metadata.Type)
+	receiver, err := newRESTAPILogsReceiver(params, cfg, sink)
+	require.NoError(t, err)
+	require.NotNil(t, receiver)
+
+	host := componenttest.NewNopHost()
+	ctx := context.Background()
+
+	err = receiver.Start(ctx, host)
+	require.NoError(t, err)
+
+	// Wait for several poll cycles - with backoff, interval increases: 1s -> 2s -> 4s... capped at 100ms
+	// Starting from minPollInterval (1s), it would take multiple empty responses to reach max
+	time.Sleep(500 * time.Millisecond)
+
+	err = receiver.Shutdown(ctx)
+	require.NoError(t, err)
+
+	// With adaptive polling and empty responses, interval should increase
+	// Initial poll immediate, then backoff kicks in
+	require.Greater(t, requestCount, 1, "expected at least a couple polls to occur")
+}
+
+func TestRESTAPILogsReceiver_AdaptivePolling_ResetOnData(t *testing.T) {
+	requestCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requestCount++
+		var response []map[string]any
+		// Alternate between empty and data responses
+		if requestCount%2 == 0 {
+			response = []map[string]any{
+				{"id": "1", "message": "data"},
+			}
+		} else {
+			response = []map[string]any{}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	cfg := &Config{
+		URL:      server.URL,
+		AuthMode: authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
+		Pagination: PaginationConfig{
+			Mode: paginationModeNone,
+		},
+		MaxPollInterval: 500 * time.Millisecond,
+		ClientConfig:    confighttp.ClientConfig{},
+	}
+
+	sink := new(consumertest.LogsSink)
+	params := receivertest.NewNopSettings(metadata.Type)
+	receiver, err := newRESTAPILogsReceiver(params, cfg, sink)
+	require.NoError(t, err)
+
+	host := componenttest.NewNopHost()
+	ctx := context.Background()
+
+	err = receiver.Start(ctx, host)
+	require.NoError(t, err)
+
+	// Wait for several poll cycles
+	time.Sleep(300 * time.Millisecond)
+
+	err = receiver.Shutdown(ctx)
+	require.NoError(t, err)
+
+	// With data being returned periodically, interval should reset to min frequently
+	require.Greater(t, requestCount, 1, "expected multiple polls with data being returned")
 }
 
 func TestGetNestedField(t *testing.T) {

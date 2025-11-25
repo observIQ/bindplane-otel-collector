@@ -2,7 +2,7 @@ receivers:
   restapi:
     url: https://api.example.com/data
     response_field: data
-    poll_interval: 5m
+    max_poll_interval: 5m
     auth_mode: apikey
     apikey:
       header_name: X-API-Key

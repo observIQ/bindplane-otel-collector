@@ -87,8 +87,10 @@ type Config struct {
 	// Pagination defines pagination configuration.
 	Pagination PaginationConfig `mapstructure:"pagination"`
 
-	// PollInterval is the interval between API polls.
-	PollInterval time.Duration `mapstructure:"poll_interval"`
+	// MaxPollInterval is the maximum interval between API polls.
+	// The receiver uses adaptive polling that starts with a short interval and
+	// backs off when no data is returned, up to this maximum.
+	MaxPollInterval time.Duration `mapstructure:"max_poll_interval"`
 
 	// ClientConfig defines HTTP client configuration.
 	ClientConfig confighttp.ClientConfig `mapstructure:",squash"`
