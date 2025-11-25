@@ -59,7 +59,7 @@ func TestIntegration_EndToEnd_Logs(t *testing.T) {
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},
-		PollInterval: 100 * time.Millisecond,
+		MaxPollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
 	}
 
@@ -112,7 +112,7 @@ func TestIntegration_EndToEnd_Metrics(t *testing.T) {
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},
-		PollInterval: 100 * time.Millisecond,
+		MaxPollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
 	}
 
@@ -200,7 +200,7 @@ func TestIntegration_WithPaginationAndAuth(t *testing.T) {
 			},
 			TotalRecordCountField: "total",
 		},
-		PollInterval: 100 * time.Millisecond,
+		MaxPollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
 	}
 
@@ -282,7 +282,7 @@ func TestIntegration_TimestampPagination(t *testing.T) {
 				InitialTimestamp:   initialTime,
 			},
 		},
-		PollInterval: 100 * time.Millisecond,
+		MaxPollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
 	}
 
@@ -342,7 +342,7 @@ func TestIntegration_ErrorRecovery(t *testing.T) {
 		Pagination: PaginationConfig{
 			Mode: paginationModeNone,
 		},
-		PollInterval: 100 * time.Millisecond,
+		MaxPollInterval: 100 * time.Millisecond,
 		ClientConfig: confighttp.ClientConfig{},
 	}
 

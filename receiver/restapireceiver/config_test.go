@@ -591,7 +591,7 @@ func TestConfig_DefaultValues(t *testing.T) {
 
 	require.Equal(t, authModeAPIKey, cfg.AuthMode)
 	require.Equal(t, paginationModeNone, cfg.Pagination.Mode)
-	require.Equal(t, 5*time.Minute, cfg.PollInterval)
+	require.Equal(t, 5*time.Minute, cfg.MaxPollInterval)
 	require.Equal(t, 0, cfg.Pagination.PageLimit)
 	require.False(t, cfg.Pagination.ZeroBasedIndex)
 }
@@ -623,7 +623,7 @@ func TestLoadConfigFromYAML(t *testing.T) {
 	// Verify the config values were parsed correctly
 	require.Equal(t, "https://api.example.com/data", restapiCfg.URL)
 	require.Equal(t, "data", restapiCfg.ResponseField)
-	require.Equal(t, 5*time.Minute, restapiCfg.PollInterval)
+	require.Equal(t, 5*time.Minute, restapiCfg.MaxPollInterval)
 	require.Equal(t, authModeAPIKey, restapiCfg.AuthMode)
 	require.Equal(t, "test-key", restapiCfg.APIKeyConfig.Value)
 	require.Equal(t, "X-API-Key", restapiCfg.APIKeyConfig.HeaderName)
