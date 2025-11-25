@@ -166,11 +166,22 @@ func (o *OpAMPGateway) HandleUpstreamClose(ctx context.Context, connection *upst
 // logging helpers
 
 func logDownstreamMessage(logger *zap.Logger, msg string, agentID string, messageNumber int, messageBytes int, message *protobufs.ServerToAgent) {
-	logger.Info(msg, zap.String("agent.id", agentID), zap.Int("message.number", messageNumber), zap.Int("message.bytes", messageBytes), zap.Strings("components", downstreamMessageComponents(message)))
+	logger.Info(msg,
+		zap.String("agent.id", agentID),
+		zap.Int("message.number", messageNumber),
+		zap.Int("message.bytes", messageBytes),
+		zap.Strings("components", downstreamMessageComponents(message)),
+	)
 }
 
 func logUpstreamMessage(logger *zap.Logger, msg string, agentID string, messageNumber int, messageBytes int, message *protobufs.AgentToServer) {
-	logger.Info(msg, zap.String("agent.id", agentID), zap.Int("message.number", messageNumber), zap.Int("message.bytes", messageBytes), zap.Strings("components", upstreamMessageComponents(message)))
+	logger.Info(msg,
+		zap.String("agent.id", agentID),
+		zap.Int("message.number", messageNumber),
+		zap.Int("message.bytes", messageBytes),
+		zap.Strings("components", upstreamMessageComponents(message)),
+		zap.Uint64("sequenceNum", message.SequenceNum),
+	)
 }
 
 func downstreamMessageComponents(serverToAgent *protobufs.ServerToAgent) []string {
