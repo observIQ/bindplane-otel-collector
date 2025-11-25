@@ -86,9 +86,3 @@ func TestStart_InvalidConfig(t *testing.T) {
 		})
 	}
 }
-
-// Note: Integration tests for packet capture with go-pcap would require:
-// 1. Npcap installed on the test system
-// 2. A valid network interface
-// 3. Permission to capture packets
-// These tests should be run manually or in a properly configured Windows CI environment

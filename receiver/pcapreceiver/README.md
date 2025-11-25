@@ -55,20 +55,11 @@ tcpdump --version
 
 ### Windows
 
-**Tool**: Requires Wireshark (which includes Npcap). Ensure `dumpcap.exe` is available (typically from Wireshark installation, or specify `executable_path`).
+**Tool**: Requires Npcap driver (included with Wireshark, or install standalone from https://npcap.com/).
 
-- Install Wireshark: `https://www.wireshark.org/download.html` (includes Npcap during installation)
-- List interfaces:
-  ```powershell
-  dumpcap.exe -D
-  ```
-- Optional: set explicit path in config:
-  ```yaml
-  receivers:
-    pcap:
-      interface: 1
-      executable_path: "C:\\Program Files\\Wireshark\\dumpcap.exe"
-  ```
+- Install Npcap: https://npcap.com/ (or install Wireshark which includes Npcap)
+- List interfaces using PowerShell or the Npcap SDK tools
+- Interface names on Windows use Npcap device paths (e.g., `\Device\NPF_{GUID}`)
 
 **Privileges**: Run as Administrator if Npcap was installed in Admin-only mode, or reinstall Npcap without Admin-only mode to allow non-admin capture.
 
@@ -80,9 +71,10 @@ tcpdump --version
 
 ## How It Works
 
-1. The receiver spawns a capture tool process (`tcpdump` on macOS/Linux, `dumpcap` on Windows) with the specified interface and filter.
-2. The capture tool outputs packet data in hex format (`-xx` flag for tcpdump, `-x` flag for dumpcap).
-3. The receiver parses the text output to extract:
+1. The receiver captures packets using platform-specific methods:
+   - **macOS/Linux**: Spawns a `tcpdump` process with the specified interface and filter, parsing hex output (`-xx` flag).
+   - **Windows**: Uses the `gopacket/pcap` library to capture packets directly via the Npcap driver.
+2. The receiver parses the captured data to extract:
    - Network protocol (IP, IPv6, ARP)
    - Transport protocol (TCP, UDP, ICMP)
    - Source and destination addresses
@@ -94,14 +86,13 @@ tcpdump --version
 
 | Field         | Type   | Default | Required | Description                                                  |
 | ------------- | ------ | ------- | -------- | ------------------------------------------------------------ |
-| `interface`   | string | `any`* | No      | Network interface to capture packets from (e.g., `en0`, `eth0`). |
+| `interface`   | string | `any`* | No      | Network interface to capture packets from (e.g., `en0`, `eth0`, `\Device\NPF_{GUID}`). |
 | `filter`      | string | `""`    | No       | BPF (Berkeley Packet Filter) expression to filter packets.    |
 | `snaplen`     | int    | `65535` | No       | Maximum bytes to capture per packet (64-65535).             |
 | `promiscuous` | bool   | `true`  | No       | Enable promiscuous mode to capture all network traffic.     |
-| `executable_path` | string | `dumpcap` | No | Windows only, optional path to `dumpcap` executable. |
 | `parse_attributes` | bool | `true` | No | Parse network attributes and add them to the logs. |
 
-\* Defaults to `"1"` on Windows 
+\* On Windows, defaults to an Npcap device path (e.g., `\Device\NPF_{GUID}`)
 
 ### Interface Names
 
@@ -110,10 +101,11 @@ To list available interfaces on macOS/Linux:
 tcpdump -D
 ```
 
-To list available interfaces on Windows:
-```bash
-dumpcap -D
+To list available interfaces on Windows, you can use PowerShell:
+```powershell
+Get-NetAdapter | Select-Object Name, InterfaceDescription, ifIndex
 ```
+Or use the Npcap SDK tools if installed. Interface names on Windows are Npcap device paths (e.g., `\Device\NPF_{12345678-1234-1234-1234-123456789012}`).
 
 ### BPF Filters
 
@@ -223,12 +215,20 @@ getcap /usr/sbin/tcpdump
 
 ### "tcpdump: command not found"
 
-**Error**: `failed to start capture command: tcpdump: command not found` or `dumpcap.exe not found`
+**Error**: `failed to start capture command: tcpdump: command not found`
 
 **Solution**:
 - macOS: `tcpdump` should be pre-installed. Check `/usr/sbin/tcpdump`.
 - Linux: Install: `apt install tcpdump` or `yum install tcpdump`.
-- Windows: Install Wireshark (which includes Npcap) from `https://www.wireshark.org/download.html`. `dumpcap.exe` is typically located at `C:\Program Files\Wireshark\dumpcap.exe`. Ensure it's on PATH or configure `executable_path`.
+
+### "Npcap driver not available" (Windows)
+
+**Error**: `Npcap driver not available` or `failed to open capture handle`
+
+**Solution**:
+- Install Npcap from https://npcap.com/ (or install Wireshark which includes Npcap)
+- Ensure Npcap is properly installed and the service is running
+- Try reinstalling Npcap if the driver is not detected
 
 ### "No such device exists"
 
