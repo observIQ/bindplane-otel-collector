@@ -26,11 +26,10 @@ import (
 // createDefaultConfig creates the default configuration for the receiver on Windows
 func createDefaultConfig() component.Config {
 	return &Config{
-		Interface:       "1",   // Default Windows interface (numeric ID, typically the first interface)
-		SnapLen:         65535, // Maximum snapshot length
-		Promiscuous:     true,  // Enable promiscuous mode by default
-		ParseAttributes: true,  // Parse attributes by default
-		ExecutablePath:  "dumpcap",
+		Interface:       `\Device\NPF_{12345678-1234-1234-1234-123456789012}`, // Default Windows interface (NPF device path)
+		SnapLen:         65535,                                                 // Maximum snapshot length
+		Promiscuous:     true,                                                  // Enable promiscuous mode by default
+		ParseAttributes: true,                                                  // Parse attributes by default
 	}
 }
 
