@@ -16,7 +16,7 @@ This receiver is capable of collecting logs for a variety of services, serving a
 
 ## Supported Formats
 
-The receiver automatically detects and handles different payload formats based on the `Content-Type` header:
+The receiver handles different payload formats based on the `Content-Type` header:
 
 ### JSON Payloads (`Content-Type: application/json`)
 - **JSON Object**: Single log entry as a JSON object
@@ -31,13 +31,19 @@ The receiver automatically detects and handles different payload formats based o
   ]
   ```
 
-### Text Payloads (any other `Content-Type` or no header)
-Plain text payloads are automatically wrapped in a log structure with a `body` field:
+### Text Payloads (`Content-Type: text/*`)
+Plain text payloads with a `text/*` content type (e.g., `text/plain`) are automatically wrapped in a log structure with a `body` field:
 ```
 This is a plain text log message
 ```
 
-**Note**: If `Content-Type: application/json` is specified but the payload is not valid JSON, the request will be rejected with a 422 status code.
+### No Content-Type Header
+For backward compatibility, if no `Content-Type` header is provided, the receiver will attempt to parse the payload as JSON. If the payload is not valid JSON, the request will be rejected with a 422 status code.
+
+### Important Notes
+- If `Content-Type: application/json` is specified but the payload is not valid JSON, the request will be rejected with a 422 status code.
+- Content types with `+json` suffix (e.g., `application/ld+json`) are treated as JSON.
+- Any other content types not explicitly supported will be rejected with a 422 status code.
 
 ## Configuration
 | Field                | Type      | Default          | Required | Description                                                                                                                                                                            |
