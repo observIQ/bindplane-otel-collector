@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -298,13 +299,32 @@ func (r *restAPILogsReceiver) saveCheckpoint(ctx context.Context) error {
 	return r.storageClient.Set(ctx, checkpointStorageKey, bytes)
 }
 
+// getNestedField retrieves a value from a nested map using dot notation.
+// For example, "response.data" will navigate to response["response"]["data"].
+func getNestedField(data map[string]any, path string) (any, bool) {
+	parts := strings.Split(path, ".")
+	current := any(data)
+
+	for _, part := range parts {
+		m, ok := current.(map[string]any)
+		if !ok {
+			return nil, false
+		}
+		current, ok = m[part]
+		if !ok {
+			return nil, false
+		}
+	}
+	return current, true
+}
+
 // extractDataFromResponse extracts the data array from the full response.
 func extractDataFromResponse(response map[string]any, responseField string, logger *zap.Logger) []map[string]any {
 	var dataArray []any
 
 	if responseField != "" {
-		// Response has a field containing the array
-		fieldValue, ok := response[responseField]
+		// Response has a field containing the array (supports dot notation for nested fields)
+		fieldValue, ok := getNestedField(response, responseField)
 		if !ok {
 			logger.Warn("response field not found", zap.String("field", responseField))
 			return []map[string]any{}
