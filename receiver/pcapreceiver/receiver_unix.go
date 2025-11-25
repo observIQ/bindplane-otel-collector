@@ -149,9 +149,9 @@ func (r *pcapReceiver) buildCaptureCommand() *exec.Cmd {
 	return newCommand(
 		"tcpdump",
 		"-i", r.config.Interface,
-		"-n",              // Don't convert addresses to names
-		"-tt",             // Print timestamps as Unix time
-		"-x",              // Print hex data
+		"-n",                                      // Don't convert addresses to names
+		"-tt",                                     // Print timestamps as Unix time
+		"-x",                                      // Print hex data
 		"-s", fmt.Sprintf("%d", r.config.SnapLen), // Snapshot length
 		r.config.Filter, // BPF filter
 	)

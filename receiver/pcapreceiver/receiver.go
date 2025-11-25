@@ -32,16 +32,16 @@ import (
 
 // pcapReceiver receives network packets via tcpdump and emits them as logs
 type pcapReceiver struct {
-	id          component.ID
-	telemetry   component.TelemetrySettings
-	metrics     *metadata.TelemetryBuilder
-	config      *Config
-	logger      *zap.Logger
-	consumer    consumer.Logs
-	cancel      context.CancelFunc
-	cmd         *exec.Cmd    // Used on Unix systems for tcpdump process
-	pcapHandle  interface{}  // Used on Windows for go-pcap handle
-	obsrecv     *receiverhelper.ObsReport
+	id         component.ID
+	telemetry  component.TelemetrySettings
+	metrics    *metadata.TelemetryBuilder
+	config     *Config
+	logger     *zap.Logger
+	consumer   consumer.Logs
+	cancel     context.CancelFunc
+	cmd        *exec.Cmd   // Used on Unix systems for tcpdump process
+	pcapHandle interface{} // Used on Windows for go-pcap handle
+	obsrecv    *receiverhelper.ObsReport
 }
 
 // newReceiver creates a new PCAP receiver
