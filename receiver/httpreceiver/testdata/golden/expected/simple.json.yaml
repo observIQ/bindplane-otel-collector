@@ -5,9 +5,6 @@ resourceLogs:
           - body:
               kvlistValue:
                 values:
-                  - key: ddtags
-                    value:
-                      stringValue: filename:dd-log-file.log
                   - key: message
                     value:
                       stringValue: 2023/11/06 08:09:10 Generic event
@@ -26,5 +23,8 @@ resourceLogs:
                   - key: ddsource
                     value:
                       stringValue: my_app
-            observedTimeUnixNano: "1764083243347024000"
+                  - key: ddtags
+                    value:
+                      stringValue: filename:dd-log-file.log
+            observedTimeUnixNano: "1764087226964675000"
         scope: {}

@@ -26,6 +26,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -502,7 +503,8 @@ func TestGoldens(t *testing.T) {
 
 			content, err := os.ReadFile(filepath.Join("testdata", "golden", "input", tc.desc))
 			require.NoError(t, err)
-			tc.request.Body = io.NopCloser(bytes.NewBufferString(string(content)))
+			// need to trim space to accomodate running the test on windows with different line endings
+			tc.request.Body = io.NopCloser(bytes.NewBufferString(strings.TrimSpace(string(content))))
 
 			rec := httptest.NewRecorder()
 			r.ServeHTTP(rec, tc.request)
