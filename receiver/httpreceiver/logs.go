@@ -178,7 +178,9 @@ func parsePayload(payload []byte, contentType string) ([]map[string]any, error) 
 		return nil, fmt.Errorf("empty payload")
 	}
 
-	if !isJSONContentTypeHeader(contentType) {
+	// If Content-Type is explicitly set to non-JSON, treat as text immediately.
+	// Otherwise, attempt JSON parsing for backwards compatibility with clients that don't send Content-Type headers.
+	if contentType != "" && !isJSONContentTypeHeader(contentType) {
 		return parsePayloadAsText(payload)
 	}
 
@@ -197,15 +199,15 @@ func parsePayload(payload []byte, contentType string) ([]map[string]any, error) 
 		}
 		return parseJSONArray(rawLogsArray)
 	default:
-		return nil, fmt.Errorf("malformed JSON payload")
+		if isJSONContentTypeHeader(contentType) {
+			return nil, fmt.Errorf("malformed JSON payload")
+		}
+		return parsePayloadAsText(payload)
 	}
 }
 
 // isJSONContentTypeHeader checks if the content type indicates JSON
 func isJSONContentTypeHeader(contentType string) bool {
-	if contentType == "" {
-		return false
-	}
 	// Handle content types like "application/json", "application/json; charset=utf-8", etc.
 	ct := strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0]))
 	return ct == "application/json" || strings.HasSuffix(ct, "+json")
