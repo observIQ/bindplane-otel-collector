@@ -46,7 +46,7 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-// tests parsePayload() and processLogs()
+// tests parsePayloadForContentType() and processLogs()
 func TestPayloadToLogRecord(t *testing.T) {
 	testCases := []struct {
 		desc         string
@@ -102,7 +102,7 @@ func TestPayloadToLogRecord(t *testing.T) {
 				},
 			}, &consumertest.LogsSink{})
 			var logs plog.Logs
-			raw, err := parsePayload([]byte(tc.payload), "application/json")
+			raw, err := parsePayloadForContentType([]byte(tc.payload), "application/json")
 			if err == nil {
 				logs = r.processLogs(pcommon.NewTimestampFromTime(time.Now()), raw)
 			}
@@ -376,8 +376,8 @@ func TestServeHTTP(t *testing.T) {
 				},
 				Body: io.NopCloser(bytes.NewBufferString("plain text log without content-type")),
 			},
-			expectedStatusCode: http.StatusOK,
-			logExpected:        true,
+			expectedStatusCode: http.StatusUnprocessableEntity,
+			logExpected:        false,
 			consumerFailure:    false,
 		},
 		{
@@ -545,6 +545,27 @@ func TestIsJSONContentType(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.contentType, func(t *testing.T) {
 			result := isJSONContentTypeHeader(tc.contentType)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestIsTextContentType(t *testing.T) {
+	testCases := []struct {
+		contentType string
+		expected    bool
+	}{
+		{"text/plain", true},
+		{"text/html", true},
+		{"application/json", false},
+		{"application/xml", false},
+		{"text/json", true},
+		{"", false},
+		{"   ", false},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.contentType, func(t *testing.T) {
+			result := isTextContentType(tc.contentType)
 			assert.Equal(t, tc.expected, result)
 		})
 	}

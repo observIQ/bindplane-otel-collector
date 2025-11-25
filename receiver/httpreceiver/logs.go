@@ -135,7 +135,7 @@ func (r *httpLogsReceiver) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 
 	// parse []byte into map structure
 	contentType := req.Header.Get("Content-Type")
-	logs, err := parsePayload(payload, contentType)
+	logs, err := parsePayloadForContentType(payload, contentType)
 	if err != nil {
 		rw.WriteHeader(http.StatusUnprocessableEntity)
 		r.logger.Error("failed to convert log request payload to maps", zap.Error(err), zap.String("payload", string(payload)))
@@ -171,19 +171,27 @@ func (r *httpLogsReceiver) processLogs(now pcommon.Timestamp, logs []map[string]
 	return pLogs
 }
 
-// parsePayload transforms the payload into []map[string]any structure
-func parsePayload(payload []byte, contentType string) ([]map[string]any, error) {
-	// Handle empty payloads
+func parsePayloadForContentType(payload []byte, contentType string) ([]map[string]any, error) {
 	if len(payload) == 0 {
 		return nil, fmt.Errorf("empty payload")
 	}
 
-	// If Content-Type is explicitly set to non-JSON, treat as text immediately.
-	// Otherwise, attempt JSON parsing for backwards compatibility with clients that don't send Content-Type headers.
-	if contentType != "" && !isJSONContentTypeHeader(contentType) {
-		return parsePayloadAsText(payload)
+	// for backwards-compatibility, if the content type is not being set, we will treat the payload as JSON if it is valid JSON
+	if contentType == "" {
+		return parsePayloadAsJSON(payload)
 	}
 
+	switch {
+	case isJSONContentTypeHeader(contentType):
+		return parsePayloadAsJSON(payload)
+	case isTextContentType(contentType):
+		return parsePayloadAsText(payload)
+	default:
+		return nil, fmt.Errorf("unsupported content type: %s", contentType)
+	}
+}
+
+func parsePayloadAsJSON(payload []byte) ([]map[string]any, error) {
 	firstChar := seekFirstNonWhitespace(string(payload))
 	switch firstChar {
 	case "{":
@@ -198,12 +206,8 @@ func parsePayload(payload []byte, contentType string) ([]map[string]any, error) 
 			return nil, err
 		}
 		return parseJSONArray(rawLogsArray)
-	default:
-		if isJSONContentTypeHeader(contentType) {
-			return nil, fmt.Errorf("malformed JSON payload")
-		}
-		return parsePayloadAsText(payload)
 	}
+	return nil, fmt.Errorf("malformed JSON payload")
 }
 
 // isJSONContentTypeHeader checks if the content type indicates JSON
@@ -211,6 +215,10 @@ func isJSONContentTypeHeader(contentType string) bool {
 	// Handle content types like "application/json", "application/json; charset=utf-8", etc.
 	ct := strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0]))
 	return ct == "application/json" || strings.HasSuffix(ct, "+json")
+}
+
+func isTextContentType(contentType string) bool {
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0])), "text/")
 }
 
 // seekFirstNonWhitespace finds the first non whitespace character of the string
