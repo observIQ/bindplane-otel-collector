@@ -7,23 +7,41 @@ jobs:
     if: github.actor != 'dependabot[bot]'
     strategy:
       fail-fast: false
+      max-parallel: 4
       matrix:
         include:
+          # Ubuntu - All tests
           - os: ubuntu
             runner: namespace-profile-bindplane-default-ubuntu-24-04-32x64
-            go_mod_path: /home/runner/go/pkg/mod
-            go_bin_path: /home/runner/go/bin
             test_cmd: sudo make test-updater-integration
+          # macOS - All tests
           - os: macos
             runner: namespace-profile-bindplane-default-macos-15
-            go_mod_path: /Users/runner/go/pkg/mod
-            go_bin_path: /Users/runner/go/bin
             test_cmd: make test-updater-integration
+          # Windows - Receivers
           - os: windows
-            runner: namespace-profile-bindplane-default-windows-2022-32x64
-            go_mod_path: C:\Users\runneradmin\go\pkg\mod
-            go_bin_path: C:\Users\runneradmin\go\bin
-            go_build_path: C:\Users\runneradmin\AppData\Local\go-build
+            target: receivers
+            runner: namespace-profile-bindplane-default-windows-2022-8x16
+            test_cmd: make test-updater-integration
+          # Windows - Processors
+          - os: windows
+            target: processors
+            runner: namespace-profile-bindplane-default-windows-2022-8x16
+            test_cmd: make test-updater-integration
+          # Windows - Exporters
+          - os: windows
+            target: exporters
+            runner: namespace-profile-bindplane-default-windows-2022-8x16
+            test_cmd: make test-updater-integration
+          # Windows - Extensions
+          - os: windows
+            target: extensions
+            runner: namespace-profile-bindplane-default-windows-2022-8x16
+            test_cmd: make test-updater-integration
+          # Windows - Other
+          - os: windows
+            target: other
+            runner: namespace-profile-bindplane-default-windows-2022-8x16
             test_cmd: make test-updater-integration
     runs-on: ${{ matrix.runner }}
     steps:
@@ -51,19 +69,19 @@ jobs:
         if: matrix.os == 'ubuntu'
         uses: namespacelabs/nscloud-cache-action@v1
         with:
-          path: ${{ matrix.go_mod_path }}
+          path: /home/runner/go/pkg/mod
 
       - name: Cache Go modules (macOS)
         if: matrix.os == 'macos'
         uses: namespacelabs/nscloud-cache-action@v1
         with:
-          path: ${{ matrix.go_mod_path }}
+          path: /Users/runner/go/pkg/mod
 
       - name: Cache Go modules (Windows)
         if: matrix.os == 'windows'
         uses: actions/cache@v4
         with:
-          path: ${{ matrix.go_mod_path }}
+          path: C:\Users\runneradmin\go\pkg\mod
           key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-mod-
@@ -72,7 +90,7 @@ jobs:
         if: matrix.os == 'windows'
         uses: actions/cache@v4
         with:
-          path: ${{ matrix.go_build_path }}
+          path: C:\Users\runneradmin\AppData\Local\go-build
           key: ${{ runner.os }}-go-build-${{ hashFiles('**/*.go') }}
           restore-keys: |
             ${{ runner.os }}-go-build-
@@ -81,19 +99,19 @@ jobs:
         if: matrix.os == 'ubuntu'
         uses: namespacelabs/nscloud-cache-action@v1
         with:
-          path: ${{ matrix.go_bin_path }}
+          path: /home/runner/go/bin
 
       - name: Cache Tools (macOS)
         if: matrix.os == 'macos'
         uses: namespacelabs/nscloud-cache-action@v1
         with:
-          path: ${{ matrix.go_bin_path }}
+          path: /Users/runner/go/bin
 
       - name: Cache Tools (Windows)
         if: matrix.os == 'windows'
         uses: actions/cache@v4
         with:
-          path: ${{ matrix.go_bin_path }}
+          path: C:\Users\runneradmin\go\bin
           key: ${{ runner.os }}-go-tools-${{ hashFiles('internal/tools/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-tools-
@@ -101,10 +119,18 @@ jobs:
       - name: Install Tools
         run: make install-tools-ci
 
-      - name: Run Tests
+      - name: Run Component Tests
+        if: matrix.os == 'windows'
+        run: make test-${{ matrix.target }}
+
+      - name: Run All Tests
+        if: matrix.os != 'windows'
         run: make test
 
+      # Run updater integration tests for Ubuntu and macOS (always)
+      # For Windows, only run when target is 'other'
       - name: Run Updater Integration Tests
+        if: matrix.os != 'windows' || matrix.target == 'other'
         run: ${{ matrix.test_cmd }}
 
   test-summary:
