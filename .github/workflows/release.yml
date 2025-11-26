@@ -35,8 +35,6 @@ jobs:
         run: cp config/example.yaml windows/config.yaml
       - name: Copy Logging Config
         run: cp config/logging.yaml windows/logging.yaml
-      - name: Copy JMX Receiver Jar
-        run: cp release_deps/opentelemetry-java-contrib-jmx-metrics.jar windows/opentelemetry-java-contrib-jmx-metrics.jar
       - name: Copy LICENSE
         run: cp LICENSE windows/LICENSE
       - name: Copy VERSION file

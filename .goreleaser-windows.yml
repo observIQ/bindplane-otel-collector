@@ -50,9 +50,6 @@ archives:
     name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     files:
       - LICENSE
-      - src: release_deps/opentelemetry-java-contrib-jmx-metrics.jar
-        dst: "."
-        strip_parent: true
       - src: release_deps/config.yaml
         dst: "."
         strip_parent: true
