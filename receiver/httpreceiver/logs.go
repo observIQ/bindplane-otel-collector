@@ -35,7 +35,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const contentTypeAttribute = "http.request.header.content-type"
+
 type httpLogsReceiver struct {
+	config            *Config
 	path              string
 	serverSettings    *confighttp.ServerConfig
 	telemetrySettings component.TelemetrySettings
@@ -48,6 +51,7 @@ type httpLogsReceiver struct {
 // newHTTPLogsReceiver returns a newly configured httpLogsReceiver
 func newHTTPLogsReceiver(params receiver.Settings, cfg *Config, consumer consumer.Logs) (*httpLogsReceiver, error) {
 	return &httpLogsReceiver{
+		config:            cfg,
 		path:              cfg.Path,
 		serverSettings:    &cfg.ServerConfig,
 		telemetrySettings: params.TelemetrySettings,
@@ -133,9 +137,11 @@ func (r *httpLogsReceiver) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 		return
 	}
 
+	now := pcommon.NewTimestampFromTime(time.Now())
+
 	// parse []byte into map structure
 	contentType := req.Header.Get("Content-Type")
-	logs, err := parsePayloadForContentType(payload, contentType)
+	logs, err := r.parsePayloadForContentType(now, payload, contentType)
 	if err != nil {
 		rw.WriteHeader(http.StatusUnprocessableEntity)
 		r.logger.Error("failed to convert log request payload to maps", zap.Error(err), zap.String("payload", string(payload)))
@@ -143,7 +149,7 @@ func (r *httpLogsReceiver) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 	}
 
 	// consume logs after processing
-	if err := r.consumer.ConsumeLogs(req.Context(), r.processLogs(pcommon.NewTimestampFromTime(time.Now()), logs)); err != nil {
+	if err := r.consumer.ConsumeLogs(req.Context(), *logs); err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		r.logger.Error("failed to consume logs", zap.Error(err))
 		return
@@ -153,7 +159,7 @@ func (r *httpLogsReceiver) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 }
 
 // processLogs transforms the parsed payload into plog.Logs
-func (r *httpLogsReceiver) processLogs(now pcommon.Timestamp, logs []map[string]any) plog.Logs {
+func (r *httpLogsReceiver) processLogs(now pcommon.Timestamp, logs []map[string]any, contentType string) *plog.Logs {
 	pLogs := plog.NewLogs()
 	resourceLogs := pLogs.ResourceLogs().AppendEmpty()
 	scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
@@ -166,32 +172,48 @@ func (r *httpLogsReceiver) processLogs(now pcommon.Timestamp, logs []map[string]
 		if err := logRecord.Body().SetEmptyMap().FromRaw(log); err != nil {
 			r.logger.Warn("unable to set log body", zap.Error(err))
 		}
+		logRecord.Attributes().PutStr(contentTypeAttribute, contentType)
 	}
 
-	return pLogs
+	return &pLogs
 }
 
-func parsePayloadForContentType(payload []byte, contentType string) ([]map[string]any, error) {
+func (r *httpLogsReceiver) parsePayloadForContentType(now pcommon.Timestamp, payload []byte, contentType string) (*plog.Logs, error) {
 	if len(payload) == 0 {
 		return nil, fmt.Errorf("empty payload")
 	}
 
+	if r.config.Raw {
+		return r.parsePayloadAsText(now, payload, contentType)
+	}
+
 	// for backwards-compatibility, if the content type is not being set, we will treat the payload as JSON if it is valid JSON
 	if contentType == "" {
-		return parsePayloadAsJSON(payload)
+		return r.parsePayloadAsJSON(now, payload, contentType)
 	}
 
 	switch {
 	case isJSONContentTypeHeader(contentType):
-		return parsePayloadAsJSON(payload)
+		return r.parsePayloadAsJSON(now, payload, contentType)
 	case isTextContentType(contentType):
-		return parsePayloadAsText(payload)
+		return r.parsePayloadAsText(now, payload, contentType)
 	default:
 		return nil, fmt.Errorf("unsupported content type: %s", contentType)
 	}
 }
 
-func parsePayloadAsJSON(payload []byte) ([]map[string]any, error) {
+func (r *httpLogsReceiver) parsePayloadAsText(now pcommon.Timestamp, payload []byte, contentType string) (*plog.Logs, error) {
+	logs := plog.NewLogs()
+	resourceLogs := logs.ResourceLogs().AppendEmpty()
+	scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
+	logRecord := scopeLogs.LogRecords().AppendEmpty()
+	logRecord.Body().SetStr(string(payload))
+	logRecord.SetObservedTimestamp(now)
+	logRecord.Attributes().PutStr(contentTypeAttribute, contentType)
+	return &logs, nil
+}
+
+func (r *httpLogsReceiver) parsePayloadAsJSON(now pcommon.Timestamp, payload []byte, contentType string) (*plog.Logs, error) {
 	firstChar := seekFirstNonWhitespace(string(payload))
 	switch firstChar {
 	case "{":
@@ -199,13 +221,13 @@ func parsePayloadAsJSON(payload []byte) ([]map[string]any, error) {
 		if err := json.Unmarshal(payload, &rawLogObject); err != nil {
 			return nil, err
 		}
-		return []map[string]any{rawLogObject}, nil
+		return r.processLogs(now, []map[string]any{rawLogObject}, contentType), nil
 	case "[":
 		rawLogsArray := []json.RawMessage{}
 		if err := json.Unmarshal(payload, &rawLogsArray); err != nil {
 			return nil, err
 		}
-		return parseJSONArray(rawLogsArray)
+		return r.parseJSONArray(now, rawLogsArray, contentType)
 	}
 	return nil, fmt.Errorf("malformed JSON payload")
 }
@@ -235,7 +257,7 @@ func seekFirstNonWhitespace(s string) string {
 }
 
 // parseJSONArray parses a []json.RawMessage into an array of map[string]any
-func parseJSONArray(rawLogs []json.RawMessage) ([]map[string]any, error) {
+func (r *httpLogsReceiver) parseJSONArray(now pcommon.Timestamp, rawLogs []json.RawMessage, contentType string) (*plog.Logs, error) {
 	logs := make([]map[string]any, 0, len(rawLogs))
 	for _, l := range rawLogs {
 		if len(l) == 0 {
@@ -247,9 +269,5 @@ func parseJSONArray(rawLogs []json.RawMessage) ([]map[string]any, error) {
 		}
 		logs = append(logs, log)
 	}
-	return logs, nil
-}
-
-func parsePayloadAsText(payload []byte) ([]map[string]any, error) {
-	return []map[string]any{{"body": string(payload)}}, nil
+	return r.processLogs(now, logs, contentType), nil
 }

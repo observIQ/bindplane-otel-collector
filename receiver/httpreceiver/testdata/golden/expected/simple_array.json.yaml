@@ -2,9 +2,16 @@ resourceLogs:
   - resource: {}
     scopeLogs:
       - logRecords:
-          - body:
+          - attributes:
+              - key: http.request.header.content-type
+                value:
+                  stringValue: application/json
+            body:
               kvlistValue:
                 values:
+                  - key: hostname
+                    value:
+                      stringValue: developer-MBP-2.hsd1.mi.comcast.net
                   - key: service
                     value:
                       stringValue: custom_file
@@ -23,13 +30,20 @@ resourceLogs:
                   - key: timestamp
                     value:
                       doubleValue: 1.699276151086e+12
-                  - key: hostname
-                    value:
-                      stringValue: developer-MBP-2.hsd1.mi.comcast.net
-            observedTimeUnixNano: "1764087226965216000"
-          - body:
+            observedTimeUnixNano: "1764172980649240000"
+          - attributes:
+              - key: http.request.header.content-type
+                value:
+                  stringValue: application/json
+            body:
               kvlistValue:
                 values:
+                  - key: hostname
+                    value:
+                      stringValue: developer-MBP-3.hsd1.mi.comcast.net
+                  - key: service
+                    value:
+                      stringValue: custom_file_2
                   - key: ddsource
                     value:
                       stringValue: my_app_2
@@ -45,11 +59,5 @@ resourceLogs:
                   - key: timestamp
                     value:
                       doubleValue: 1.699276151086e+12
-                  - key: hostname
-                    value:
-                      stringValue: developer-MBP-3.hsd1.mi.comcast.net
-                  - key: service
-                    value:
-                      stringValue: custom_file_2
-            observedTimeUnixNano: "1764087226965216000"
+            observedTimeUnixNano: "1764172980649240000"
         scope: {}

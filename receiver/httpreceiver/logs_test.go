@@ -82,6 +82,7 @@ func TestPayloadToLogRecord(t *testing.T) {
 
 				logRecord := scopeLogs.LogRecords().AppendEmpty()
 				logRecord.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
+				logRecord.Attributes().PutStr(contentTypeAttribute, "application/json")
 
 				var log map[string]any
 				require.NoError(t, json.Unmarshal(rawLog, &log))
@@ -92,6 +93,7 @@ func TestPayloadToLogRecord(t *testing.T) {
 		},
 	}
 
+	now := pcommon.NewTimestampFromTime(time.Now())
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			r := newReceiver(t, &Config{
@@ -102,9 +104,9 @@ func TestPayloadToLogRecord(t *testing.T) {
 				},
 			}, &consumertest.LogsSink{})
 			var logs plog.Logs
-			raw, err := parsePayloadForContentType([]byte(tc.payload), "application/json")
+			raw, err := r.parsePayloadForContentType(now, []byte(tc.payload), "application/json")
 			if err == nil {
-				logs = r.processLogs(pcommon.NewTimestampFromTime(time.Now()), raw)
+				logs = *r.processLogs(now, []map[string]any{{"body": tc.payload}}, "application/json")
 			}
 
 			if tc.expectedErr != nil {
@@ -114,7 +116,7 @@ func TestPayloadToLogRecord(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, logs)
-				require.NoError(t, plogtest.CompareLogs(tc.expectedLogs(t, tc.payload), logs, plogtest.IgnoreObservedTimestamp()))
+				require.NoError(t, plogtest.CompareLogs(tc.expectedLogs(t, tc.payload), *raw, plogtest.IgnoreObservedTimestamp()))
 			}
 		})
 	}
@@ -132,6 +134,7 @@ func expectedLogs(t *testing.T, payload string) plog.Logs {
 		logRecord := scopeLogs.LogRecords().AppendEmpty()
 
 		logRecord.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
+		logRecord.Attributes().PutStr(contentTypeAttribute, "application/json")
 
 		var log map[string]any
 		require.NoError(t, json.Unmarshal(l, &log))
@@ -424,6 +427,27 @@ func TestServeHTTP(t *testing.T) {
 			logExpected:        false,
 			consumerFailure:    false,
 		},
+		{
+			desc: "no content-type header",
+			cfg: &Config{
+				Path: "",
+				ServerConfig: confighttp.ServerConfig{
+					Endpoint: "localhost:12345",
+					TLS:      configoptional.Some(configtls.ServerConfig{}),
+				},
+			},
+			request: &http.Request{
+				Method: "POST",
+				URL:    &url.URL{},
+				Header: map[string][]string{
+					textproto.CanonicalMIMEHeaderKey("Content-Encoding"): {"identity"},
+				},
+				Body: io.NopCloser(bytes.NewBufferString(`{"message": "test with charset"}`)),
+			},
+			expectedStatusCode: http.StatusOK,
+			logExpected:        true,
+			consumerFailure:    false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -452,13 +476,22 @@ func TestServeHTTP(t *testing.T) {
 }
 
 func TestGoldens(t *testing.T) {
+	defaultConfig := func() *Config {
+		return &Config{
+			ServerConfig: confighttp.ServerConfig{
+				Endpoint: "localhost:12345",
+			},
+		}
+	}
 	testCases := []struct {
 		desc          string
+		config        func() *Config
 		request       *http.Request
 		expectedError error
 	}{
 		{
-			desc: "simple.json",
+			desc:   "simple.json",
+			config: defaultConfig,
 			request: &http.Request{
 				Method: "POST",
 				URL:    &url.URL{},
@@ -469,7 +502,8 @@ func TestGoldens(t *testing.T) {
 			},
 		},
 		{
-			desc: "simple_array.json",
+			desc:   "simple_array.json",
+			config: defaultConfig,
 			request: &http.Request{
 				Method: "POST",
 				URL:    &url.URL{},
@@ -480,7 +514,24 @@ func TestGoldens(t *testing.T) {
 			},
 		},
 		{
-			desc: "simple.txt",
+			desc: "simple_json_raw.json",
+			config: func() *Config {
+				c := defaultConfig()
+				c.Raw = true
+				return c
+			},
+			request: &http.Request{
+				Method: "POST",
+				URL:    &url.URL{},
+				Header: map[string][]string{
+					textproto.CanonicalMIMEHeaderKey("Content-Encoding"): {"identity"},
+					textproto.CanonicalMIMEHeaderKey("Content-Type"):     {"application/json"},
+				},
+			},
+		},
+		{
+			desc:   "simple.txt",
+			config: defaultConfig,
 			request: &http.Request{
 				Method: "POST",
 				URL:    &url.URL{},
@@ -495,11 +546,7 @@ func TestGoldens(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			consumer := &consumertest.LogsSink{}
-			r := newReceiver(t, &Config{
-				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
-				},
-			}, consumer)
+			r := newReceiver(t, tc.config(), consumer)
 
 			content, err := os.ReadFile(filepath.Join("testdata", "golden", "input", tc.desc))
 			require.NoError(t, err)

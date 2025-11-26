@@ -2,11 +2,11 @@ resourceLogs:
   - resource: {}
     scopeLogs:
       - logRecords:
-          - body:
-              kvlistValue:
-                values:
-                  - key: body
-                    value:
-                      stringValue: <34>1 2023-11-07T14:44:00Z mymachine su - ID47 - 'su root' failed for lonvick on /dev/pts/8
-            observedTimeUnixNano: "1764087226965419000"
+          - attributes:
+              - key: http.request.header.content-type
+                value:
+                  stringValue: text/plain
+            body:
+              stringValue: <34>1 2023-11-07T14:44:00Z mymachine su - ID47 - 'su root' failed for lonvick on /dev/pts/8
+            observedTimeUnixNano: "1764172980649796000"
         scope: {}

@@ -2,7 +2,11 @@ resourceLogs:
   - resource: {}
     scopeLogs:
       - logRecords:
-          - body:
+          - attributes:
+              - key: http.request.header.content-type
+                value:
+                  stringValue: application/json
+            body:
               kvlistValue:
                 values:
                   - key: message
@@ -26,5 +30,5 @@ resourceLogs:
                   - key: ddtags
                     value:
                       stringValue: filename:dd-log-file.log
-            observedTimeUnixNano: "1764087226964675000"
+            observedTimeUnixNano: "1764172980648182000"
         scope: {}
