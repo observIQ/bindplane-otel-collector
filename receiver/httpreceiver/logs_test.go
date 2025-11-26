@@ -24,9 +24,13 @@ import (
 	"net/http/httptest"
 	"net/textproto"
 	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest/plogtest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,7 +46,7 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-// tests parsePayload() and processLogs()
+// tests parsePayloadForContentType() and processLogs()
 func TestPayloadToLogRecord(t *testing.T) {
 	testCases := []struct {
 		desc         string
@@ -78,6 +82,7 @@ func TestPayloadToLogRecord(t *testing.T) {
 
 				logRecord := scopeLogs.LogRecords().AppendEmpty()
 				logRecord.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
+				logRecord.Attributes().PutStr(contentTypeAttribute, "application/json")
 
 				var log map[string]any
 				require.NoError(t, json.Unmarshal(rawLog, &log))
@@ -88,6 +93,7 @@ func TestPayloadToLogRecord(t *testing.T) {
 		},
 	}
 
+	now := pcommon.NewTimestampFromTime(time.Now())
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			r := newReceiver(t, &Config{
@@ -98,11 +104,7 @@ func TestPayloadToLogRecord(t *testing.T) {
 				},
 			}, &consumertest.LogsSink{})
 			var logs plog.Logs
-			raw, err := parsePayload([]byte(tc.payload))
-			if err == nil {
-				logs = r.processLogs(pcommon.NewTimestampFromTime(time.Now()), raw)
-			}
-
+			raw, err := r.parsePayloadForContentType(now, []byte(tc.payload), "application/json")
 			if tc.expectedErr != nil {
 				require.Error(t, err)
 				require.Nil(t, logs)
@@ -110,7 +112,7 @@ func TestPayloadToLogRecord(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, logs)
-				require.NoError(t, plogtest.CompareLogs(tc.expectedLogs(t, tc.payload), logs, plogtest.IgnoreObservedTimestamp()))
+				require.NoError(t, plogtest.CompareLogs(tc.expectedLogs(t, tc.payload), *raw, plogtest.IgnoreObservedTimestamp()))
 			}
 		})
 	}
@@ -128,6 +130,7 @@ func expectedLogs(t *testing.T, payload string) plog.Logs {
 		logRecord := scopeLogs.LogRecords().AppendEmpty()
 
 		logRecord.SetObservedTimestamp(pcommon.NewTimestampFromTime(time.Now()))
+		logRecord.Attributes().PutStr(contentTypeAttribute, "application/json")
 
 		var log map[string]any
 		require.NoError(t, json.Unmarshal(l, &log))
@@ -311,6 +314,136 @@ func TestServeHTTP(t *testing.T) {
 			logExpected:        true,
 			consumerFailure:    false,
 		},
+		{
+			desc: "simple; text",
+			cfg: &Config{
+				Path: "",
+				ServerConfig: confighttp.ServerConfig{
+					Endpoint: "localhost:12345",
+					TLS:      configoptional.Some(configtls.ServerConfig{}),
+				},
+			},
+			request: &http.Request{
+				Method: "POST",
+				URL:    &url.URL{},
+				Header: map[string][]string{
+					textproto.CanonicalMIMEHeaderKey("Content-Encoding"): {"identity"},
+					textproto.CanonicalMIMEHeaderKey("Content-Type"):     {"text/plain"},
+				},
+				Body: io.NopCloser(bytes.NewBufferString("test log message")),
+			},
+			expectedStatusCode: http.StatusOK,
+			logExpected:        true,
+			consumerFailure:    false,
+		},
+		{
+			desc: "empty payload",
+			cfg: &Config{
+				Path: "",
+				ServerConfig: confighttp.ServerConfig{
+					Endpoint: "localhost:12345",
+					TLS:      configoptional.Some(configtls.ServerConfig{}),
+				},
+			},
+			request: &http.Request{
+				Method: "POST",
+				URL:    &url.URL{},
+				Header: map[string][]string{
+					textproto.CanonicalMIMEHeaderKey("Content-Encoding"): {"identity"},
+					textproto.CanonicalMIMEHeaderKey("Content-Type"):     {"text/plain"},
+				},
+				Body: io.NopCloser(bytes.NewBufferString("")),
+			},
+			expectedStatusCode: http.StatusUnprocessableEntity,
+			logExpected:        false,
+			consumerFailure:    false,
+		},
+		{
+			desc: "text without content-type header",
+			cfg: &Config{
+				Path: "",
+				ServerConfig: confighttp.ServerConfig{
+					Endpoint: "localhost:12345",
+					TLS:      configoptional.Some(configtls.ServerConfig{}),
+				},
+			},
+			request: &http.Request{
+				Method: "POST",
+				URL:    &url.URL{},
+				Header: map[string][]string{
+					textproto.CanonicalMIMEHeaderKey("Content-Encoding"): {"identity"},
+				},
+				Body: io.NopCloser(bytes.NewBufferString("plain text log without content-type")),
+			},
+			expectedStatusCode: http.StatusUnprocessableEntity,
+			logExpected:        false,
+			consumerFailure:    false,
+		},
+		{
+			desc: "json with charset",
+			cfg: &Config{
+				Path: "",
+				ServerConfig: confighttp.ServerConfig{
+					Endpoint: "localhost:12345",
+					TLS:      configoptional.Some(configtls.ServerConfig{}),
+				},
+			},
+			request: &http.Request{
+				Method: "POST",
+				URL:    &url.URL{},
+				Header: map[string][]string{
+					textproto.CanonicalMIMEHeaderKey("Content-Encoding"): {"identity"},
+					textproto.CanonicalMIMEHeaderKey("Content-Type"):     {"application/json; charset=utf-8"},
+				},
+				Body: io.NopCloser(bytes.NewBufferString(`{"message": "test with charset"}`)),
+			},
+			expectedStatusCode: http.StatusOK,
+			logExpected:        true,
+			consumerFailure:    false,
+		},
+		{
+			desc: "malformed json with charset",
+			cfg: &Config{
+				Path: "",
+				ServerConfig: confighttp.ServerConfig{
+					Endpoint: "localhost:12345",
+					TLS:      configoptional.Some(configtls.ServerConfig{}),
+				},
+			},
+			request: &http.Request{
+				Method: "POST",
+				URL:    &url.URL{},
+				Header: map[string][]string{
+					textproto.CanonicalMIMEHeaderKey("Content-Encoding"): {"identity"},
+					textproto.CanonicalMIMEHeaderKey("Content-Type"):     {"application/json; charset=utf-8"},
+				},
+				Body: io.NopCloser(bytes.NewBufferString(`not valid json`)),
+			},
+			expectedStatusCode: http.StatusUnprocessableEntity,
+			logExpected:        false,
+			consumerFailure:    false,
+		},
+		{
+			desc: "no content-type header",
+			cfg: &Config{
+				Path: "",
+				ServerConfig: confighttp.ServerConfig{
+					Endpoint: "localhost:12345",
+					TLS:      configoptional.Some(configtls.ServerConfig{}),
+				},
+			},
+			request: &http.Request{
+				Method: "POST",
+				URL:    &url.URL{},
+				Header: map[string][]string{
+					textproto.CanonicalMIMEHeaderKey("Content-Encoding"): {"identity"},
+				},
+				Body: io.NopCloser(bytes.NewBufferString(`{"message": "test with charset"}`)),
+			},
+			expectedStatusCode: http.StatusOK,
+			logExpected:        true,
+			consumerFailure:    false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -334,6 +467,151 @@ func TestServeHTTP(t *testing.T) {
 					assert.Equal(t, 0, consumer.(*consumertest.LogsSink).LogRecordCount(), "Received log record when it should have been dropped")
 				}
 			}
+		})
+	}
+}
+
+func TestGoldens(t *testing.T) {
+	defaultConfig := func() *Config {
+		return &Config{
+			ServerConfig: confighttp.ServerConfig{
+				Endpoint: "localhost:12345",
+			},
+		}
+	}
+	testCases := []struct {
+		desc          string
+		config        func() *Config
+		request       *http.Request
+		expectedError error
+	}{
+		{
+			desc:   "simple.json",
+			config: defaultConfig,
+			request: &http.Request{
+				Method: "POST",
+				URL:    &url.URL{},
+				Header: map[string][]string{
+					textproto.CanonicalMIMEHeaderKey("Content-Encoding"): {"identity"},
+					textproto.CanonicalMIMEHeaderKey("Content-Type"):     {"application/json"},
+				},
+			},
+		},
+		{
+			desc:   "simple_array.json",
+			config: defaultConfig,
+			request: &http.Request{
+				Method: "POST",
+				URL:    &url.URL{},
+				Header: map[string][]string{
+					textproto.CanonicalMIMEHeaderKey("Content-Encoding"): {"identity"},
+					textproto.CanonicalMIMEHeaderKey("Content-Type"):     {"application/json"},
+				},
+			},
+		},
+		{
+			desc: "simple_json_raw.json",
+			config: func() *Config {
+				c := defaultConfig()
+				c.Raw = true
+				return c
+			},
+			request: &http.Request{
+				Method: "POST",
+				URL:    &url.URL{},
+				Header: map[string][]string{
+					textproto.CanonicalMIMEHeaderKey("Content-Encoding"): {"identity"},
+					textproto.CanonicalMIMEHeaderKey("Content-Type"):     {"application/json"},
+				},
+			},
+		},
+		{
+			desc:   "simple.txt",
+			config: defaultConfig,
+			request: &http.Request{
+				Method: "POST",
+				URL:    &url.URL{},
+				Header: map[string][]string{
+					textproto.CanonicalMIMEHeaderKey("Content-Encoding"): {"identity"},
+					textproto.CanonicalMIMEHeaderKey("Content-Type"):     {"text/plain"},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			consumer := &consumertest.LogsSink{}
+			r := newReceiver(t, tc.config(), consumer)
+
+			content, err := os.ReadFile(filepath.Join("testdata", "golden", "input", tc.desc))
+			require.NoError(t, err)
+			// normalize line endings to handle Windows \r\n
+			normalizedContent := strings.ReplaceAll(string(content), "\r\n", "\n")
+			normalizedContent = strings.TrimSpace(normalizedContent)
+			tc.request.Body = io.NopCloser(bytes.NewBufferString(normalizedContent))
+
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, tc.request)
+			require.Equal(t, http.StatusOK, rec.Code)
+
+			if tc.expectedError != nil {
+				require.ErrorContains(t, err, tc.expectedError.Error())
+				return
+			}
+
+			logs, err := golden.ReadLogs(filepath.Join("testdata", "golden", "expected", tc.desc+".yaml"))
+			require.NoError(t, err)
+			err = plogtest.CompareLogs(logs, consumer.AllLogs()[0], plogtest.IgnoreObservedTimestamp())
+			require.NoError(t, err)
+		})
+	}
+
+}
+
+func TestIsJSONContentType(t *testing.T) {
+	testCases := []struct {
+		contentType string
+		expected    bool
+	}{
+		{"application/json", true},
+		{"application/json; charset=utf-8", true},
+		{"application/json;charset=utf-8", true},
+		{"APPLICATION/JSON", true},
+		{"application/vnd.api+json", true},
+		{"application/ld+json", true},
+		{"text/plain", false},
+		{"text/html", false},
+		{"application/xml", false},
+		{"", false},
+		{"   ", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.contentType, func(t *testing.T) {
+			result := isJSONContentTypeHeader(tc.contentType)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestIsTextContentType(t *testing.T) {
+	testCases := []struct {
+		contentType string
+		expected    bool
+	}{
+		{"text/plain", true},
+		{"text/html", true},
+		{"application/json", false},
+		{"application/xml", false},
+		{"text/json", true},
+		{"", false},
+		{"   ", false},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.contentType, func(t *testing.T) {
+			result := isTextContentType(tc.contentType)
+			assert.Equal(t, tc.expected, result)
 		})
 	}
 }

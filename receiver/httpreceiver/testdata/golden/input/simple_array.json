@@ -1,0 +1,20 @@
+[
+    {
+        "message": "2023/11/06 08:09:10 Generic event",
+        "status": "info",
+        "timestamp": 1699276151086,
+        "hostname": "developer-MBP-2.hsd1.mi.comcast.net",
+        "service": "custom_file",
+        "ddsource": "my_app",
+        "ddtags": "filename:dd-log-file.log"
+    },
+    {
+        "message": "2023/11/06 08:09:10 Generic event",
+        "status": "debug",
+        "timestamp": 1699276151086,
+        "hostname": "developer-MBP-3.hsd1.mi.comcast.net",
+        "service": "custom_file_2",
+        "ddsource": "my_app_2",
+        "ddtags": "filename:dd-log-file.log"
+    }
+]
