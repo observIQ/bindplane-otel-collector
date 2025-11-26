@@ -105,10 +105,6 @@ func TestPayloadToLogRecord(t *testing.T) {
 			}, &consumertest.LogsSink{})
 			var logs plog.Logs
 			raw, err := r.parsePayloadForContentType(now, []byte(tc.payload), "application/json")
-			if err == nil {
-				logs = *r.processLogs(now, []map[string]any{{"body": tc.payload}}, "application/json")
-			}
-
 			if tc.expectedErr != nil {
 				require.Error(t, err)
 				require.Nil(t, logs)
