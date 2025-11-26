@@ -44,12 +44,14 @@ For backward compatibility, if no `Content-Type` header is provided, the receive
 - If `Content-Type: application/json` is specified but the payload is not valid JSON, the request will be rejected with a 422 status code.
 - Content types with `+json` suffix (e.g., `application/ld+json`) are treated as JSON.
 - Any other content types not explicitly supported will be rejected with a 422 status code.
+- When the `raw` configuration parameter is set to `true`, all content-type detection is bypassed and payloads are always treated as plain text.
 
 ## Configuration
 | Field                | Type      | Default          | Required | Description                                                                                                                                                                            |
 |----------------------|-----------|------------------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | endpoint             |  string   |                  | `true`   | The hostname and port the receiver should listen on for logs being sent as HTTP POST requests.                                                                                         |
 | path                 |  string   |                  | `false`  | Specifies a path the receiver should be listening to for logs. Useful when the log source also sends other data to the endpoint, such as metrics.                                      |
+| raw                  |  bool     |  `false`         | `false`  | When set to `true`, all payloads will be treated as plain text regardless of the `Content-Type` header. The entire payload will be stored as a string in the log body.               |
 | tls.key_file         |  string   |                  | `false`  | Configure the receiver to use TLS.                                                                                                                                                     |
 | tls.cert_file        |  string   |                  | `false`  | Configure the receiver to use TLS.                                                                                                                                                     |
 
@@ -79,6 +81,26 @@ receivers:
     tls:
       key_file: "certs/server.key"
       cert_file: "certs/server.crt"
+exporters:
+  googlecloud:
+    project: my-gcp-project
+
+service:
+  pipelines:
+    logs:
+      receivers: [http]
+      exporters: [googlecloud]
+```
+
+### Example Configuration With Raw Mode
+Use `raw: true` to force all incoming payloads to be treated as plain text, regardless of `Content-Type` header. This is useful when you want to preserve the exact format of incoming logs without any JSON parsing.
+
+```yaml
+receivers:
+  http:
+    endpoint: "localhost:12345"
+    path: "/logs"
+    raw: true
 exporters:
   googlecloud:
     project: my-gcp-project

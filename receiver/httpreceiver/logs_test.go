@@ -550,8 +550,10 @@ func TestGoldens(t *testing.T) {
 
 			content, err := os.ReadFile(filepath.Join("testdata", "golden", "input", tc.desc))
 			require.NoError(t, err)
-			// need to trim space to accomodate running the test on windows with different line endings
-			tc.request.Body = io.NopCloser(bytes.NewBufferString(strings.TrimSpace(string(content))))
+			// normalize line endings to handle Windows \r\n
+			normalizedContent := strings.ReplaceAll(string(content), "\r\n", "\n")
+			normalizedContent = strings.TrimSpace(normalizedContent)
+			tc.request.Body = io.NopCloser(bytes.NewBufferString(normalizedContent))
 
 			rec := httptest.NewRecorder()
 			r.ServeHTTP(rec, tc.request)
