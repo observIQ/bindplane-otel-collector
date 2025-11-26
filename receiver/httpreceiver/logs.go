@@ -139,12 +139,12 @@ func (r *httpLogsReceiver) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 
 	now := pcommon.NewTimestampFromTime(time.Now())
 
-	// parse []byte into map structure
+	// parse []byte into plog.Logs
 	contentType := req.Header.Get("Content-Type")
 	logs, err := r.parsePayloadForContentType(now, payload, contentType)
 	if err != nil {
 		rw.WriteHeader(http.StatusUnprocessableEntity)
-		r.logger.Error("failed to convert log request payload to maps", zap.Error(err), zap.String("payload", string(payload)))
+		r.logger.Error("failed to process log payload", zap.Error(err), zap.String("payload", string(payload)))
 		return
 	}
 
@@ -158,8 +158,8 @@ func (r *httpLogsReceiver) ServeHTTP(rw http.ResponseWriter, req *http.Request) 
 	rw.WriteHeader(http.StatusOK)
 }
 
-// processLogs transforms the parsed payload into plog.Logs
-func (r *httpLogsReceiver) processLogs(now pcommon.Timestamp, logs []map[string]any, contentType string) *plog.Logs {
+// processJSONLogs transforms the parsed JSON payload into plog.Logs
+func (r *httpLogsReceiver) processJSONLogs(now pcommon.Timestamp, logs []map[string]any, contentType string) *plog.Logs {
 	pLogs := plog.NewLogs()
 	resourceLogs := pLogs.ResourceLogs().AppendEmpty()
 	scopeLogs := resourceLogs.ScopeLogs().AppendEmpty()
@@ -221,7 +221,7 @@ func (r *httpLogsReceiver) parsePayloadAsJSON(now pcommon.Timestamp, payload []b
 		if err := json.Unmarshal(payload, &rawLogObject); err != nil {
 			return nil, err
 		}
-		return r.processLogs(now, []map[string]any{rawLogObject}, contentType), nil
+		return r.processJSONLogs(now, []map[string]any{rawLogObject}, contentType), nil
 	case "[":
 		rawLogsArray := []json.RawMessage{}
 		if err := json.Unmarshal(payload, &rawLogsArray); err != nil {
@@ -269,5 +269,5 @@ func (r *httpLogsReceiver) parseJSONArray(now pcommon.Timestamp, rawLogs []json.
 		}
 		logs = append(logs, log)
 	}
-	return r.processLogs(now, logs, contentType), nil
+	return r.processJSONLogs(now, logs, contentType), nil
 }
