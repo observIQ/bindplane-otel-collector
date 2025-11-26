@@ -37,22 +37,10 @@ func TestServiceFileDir(t *testing.T) {
 	require.Equal(t, filepath.Join("install", "install"), ServiceFileDir("install"))
 }
 
-func TestSpecialJarDir(t *testing.T) {
-	require.Equal(t, filepath.Join("install", ".."), SpecialJarDir("install"))
-}
-
 func TestBackupServiceFile(t *testing.T) {
 	require.Equal(t, filepath.Join("install", "tmp", "rollback", "backup.service"), BackupServiceFile("install"))
 }
 
 func TestLogFile(t *testing.T) {
 	require.Equal(t, filepath.Join("install", "log", "updater.log"), LogFile("install"))
-}
-
-func TestLatestJMXJarFile(t *testing.T) {
-	require.Equal(t, filepath.Join("latest", "opentelemetry-java-contrib-jmx-metrics.jar"), LatestJMXJarFile("latest"))
-}
-
-func TestSpecialJMXJarFile(t *testing.T) {
-	require.Equal(t, filepath.Join("install", "..", "opentelemetry-java-contrib-jmx-metrics.jar"), SpecialJMXJarFile("install"))
 }

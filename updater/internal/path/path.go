@@ -39,12 +39,6 @@ func ServiceFileDir(installDir string) string {
 	return filepath.Join(installDir, "install")
 }
 
-// SpecialJarDir gets the directory where linux and darwin installs put the JMX jar
-// Keeping this relative for now so we don't have to deal with /opt in tests
-func SpecialJarDir(installDir string) string {
-	return filepath.Join(installDir, "..")
-}
-
 // BackupServiceFile returns the full path to the backup service file
 func BackupServiceFile(installDir string) string {
 	return filepath.Join(BackupDir(installDir), "backup.service")
@@ -53,14 +47,4 @@ func BackupServiceFile(installDir string) string {
 // LogFile returns the full path to the log file for the updater
 func LogFile(installDir string) string {
 	return filepath.Join(installDir, "log", "updater.log")
-}
-
-// LatestJMXJarFile returns the full path to the latest JMX jar to be installed
-func LatestJMXJarFile(latestDir string) string {
-	return filepath.Join(latestDir, "opentelemetry-java-contrib-jmx-metrics.jar")
-}
-
-// SpecialJMXJarFile returns the full path to the JMX Jar on linux and darwin installs
-func SpecialJMXJarFile(installDir string) string {
-	return filepath.Join(SpecialJarDir(installDir), "opentelemetry-java-contrib-jmx-metrics.jar")
 }
