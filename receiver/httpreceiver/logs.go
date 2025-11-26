@@ -187,18 +187,14 @@ func (r *httpLogsReceiver) parsePayloadForContentType(now pcommon.Timestamp, pay
 		return r.parsePayloadAsText(now, payload, contentType)
 	}
 
-	// for backwards-compatibility, if the content type is not being set, we will treat the payload as JSON if it is valid JSON
-	if contentType == "" {
-		return r.parsePayloadAsJSON(now, payload, contentType)
-	}
-
 	switch {
 	case isJSONContentTypeHeader(contentType):
 		return r.parsePayloadAsJSON(now, payload, contentType)
 	case isTextContentType(contentType):
 		return r.parsePayloadAsText(now, payload, contentType)
 	default:
-		return nil, fmt.Errorf("unsupported content type: %s", contentType)
+		// for backwards-compatibility, if the content type is not being set, we will treat the payload as JSON if it is valid JSON
+		return r.parsePayloadAsJSON(now, payload, contentType)
 	}
 }
 
