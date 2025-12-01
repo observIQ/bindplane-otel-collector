@@ -102,10 +102,20 @@ tcpdump -D
 ```
 
 To list available interfaces on Windows, you can use PowerShell:
+If you have Wireshark installed, use the `dumpcap` executable:
 ```powershell
-Get-NetAdapter | Select-Object Name, InterfaceDescription, ifIndex
+C:\\path-to-wireshark-installation\dumpcap.exe -D
 ```
-Or use the Npcap SDK tools if installed. Interface names on Windows are Npcap device paths (e.g., `\Device\NPF_{12345678-1234-1234-1234-123456789012}`).
+
+Otherwise, use `Get-NetAdapter`:
+```powershell
+Get-NetAdapter | Select-Object DeviceName
+```
+This result will have the interface names, but not in the Npcap format that the receiver expects. To convert it to the correct format, insert `\NPF_`
+```
+\Device\{1D5B8F34-3D34-47E7-960B-E18EBC729A13} -> \Device\NPF_{1D5B8F34-3D34-47E7-960B-E18EBC729A13}
+```
+
 
 ### BPF Filters
 
