@@ -44,6 +44,22 @@ import (
 
 const httpScope = "https://www.googleapis.com/auth/cloud-platform"
 
+const (
+	// stdlib defaults to 2. Under heavy load, higher default values are
+	// useful for avoiding re-connections.
+	defaultHTTPClientMaxIdleConnsPerHost = 10
+
+	// stdlib default is 0 (no timeout), best practice is to set a timeout
+	defaultHTTPClientResponseHeaderTimeout = 10 * time.Second
+
+	// Settings mirror stdlib defaults
+	// https://pkg.go.dev/net/http#RoundTripper
+	defaultHTTPClientMaxIdleConns          = 100
+	defaultHTTPClientIdleConnTimeout       = 90 * time.Second
+	defaultHTTPClientTLSHandshakeTimeout   = 10 * time.Second
+	defaultHTTPClientExpectContinueTimeout = 1 * time.Second
+)
+
 type exists struct{}
 
 type httpExporter struct {
@@ -51,6 +67,7 @@ type httpExporter struct {
 	set       component.TelemetrySettings
 	marshaler *protoMarshaler
 	client    *http.Client
+	transport *http.Transport
 
 	telemetry        *metadata.TelemetryBuilder
 	metricAttributes attribute.Set
@@ -94,7 +111,24 @@ func (exp *httpExporter) Start(ctx context.Context, _ component.Host) error {
 	if err != nil {
 		return fmt.Errorf("load Google credentials: %w", err)
 	}
-	exp.client = oauth2.NewClient(context.Background(), ts)
+
+	exp.transport = &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          defaultHTTPClientMaxIdleConns,
+		MaxIdleConnsPerHost:   defaultHTTPClientMaxIdleConnsPerHost,
+		IdleConnTimeout:       defaultHTTPClientIdleConnTimeout,
+		TLSHandshakeTimeout:   defaultHTTPClientTLSHandshakeTimeout,
+		ExpectContinueTimeout: defaultHTTPClientExpectContinueTimeout,
+		ResponseHeaderTimeout: defaultHTTPClientResponseHeaderTimeout,
+	}
+
+	exp.client = &http.Client{
+		Transport: &oauth2.Transport{
+			Base:   exp.transport,
+			Source: ts,
+		},
+	}
 
 	if exp.cfg.ValidateLogTypes {
 		exp.marshaler.logTypes = exp.loadLogTypes(ctx)
@@ -191,12 +225,8 @@ func parseLogTypes(logTypes string) string {
 }
 
 func (exp *httpExporter) Shutdown(context.Context) error {
-	defer http.DefaultTransport.(*http.Transport).CloseIdleConnections()
-	if exp.client != nil {
-		t := exp.client.Transport.(*oauth2.Transport)
-		if t.Base != nil {
-			t.Base.(*http.Transport).CloseIdleConnections()
-		}
+	if exp.transport != nil {
+		exp.transport.CloseIdleConnections()
 	}
 	return nil
 }
