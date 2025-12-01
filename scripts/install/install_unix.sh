@@ -55,8 +55,8 @@ error_mode=false
 # package_out_file_path is the full path to the downloaded package (e.g. "/tmp/observiq-otel-collector_linux_amd64.deb")
 package_out_file_path="unknown"
 
-# gpg_zip_out_file_path is the full path to the downloaded GPG zip file (e.g. "/tmp/bdot-gpg-keys.zip")
-gpg_zip_out_file_path="unknown"
+# gpg_tar_out_file_path is the full path to the downloaded GPG tar.gz file (e.g. "/tmp/bdot-gpg-keys.tar.gz")
+gpg_tar_out_file_path="unknown"
 
 offline_installation=false
 
@@ -221,27 +221,27 @@ Usage:
       If not provided, this will default to Bindplane Agent\'s GitHub releases.
       Example: '-l http://my.domain.org/observiq-otel-collector' will download from there.
 
-  $(fg_yellow '-gl, --gpg-zip-url')
-      Defines the URL that the GPG zip file will be downloaded from.
+  $(fg_yellow '-gl, --gpg-tar-url')
+      Defines the URL that the GPG tar file will be downloaded from.
       If not provided, this will default to Bindplane Agent\'s GitHub releases.
-      Example: '-gl http://my.domain.org/bdot-gpg-keys.zip' will download from there.
+      Example: '-gl http://my.domain.org/bdot-gpg-keys.tar.gz' will download from there.
 
   $(fg_yellow '-b, --base-url')
-      Defines the base of the download URL used in conjunction with the version to download the package and GPG zip file.
+      Defines the base of the download URL used in conjunction with the version to download the package and GPG tar file.
       '{base_url}/v{version}/{PACKAGE_NAME}_v{version}_linux_{os_arch}.{package_type}'
       and
-      '{base_url}/v{version}/gpg-keys.zip'
+      '{base_url}/v{version}/gpg-keys.tar.gz'
       If not provided, this will default to '$DOWNLOAD_BASE'.
       Example: '-b http://my.domain.org/observiq-otel-collector/binaries' will be used as the base of the download URL.
 
   $(fg_yellow '-f, --file')
       Install Agent from a local file instead of downloading from a URL.
       Example: '-f /path/to/observiq-otel-collector_v1.2.12_linux_amd64.deb' will install from the local file.
-      Required if '--gpg-zip-file' is specified.
+      Required if '--gpg-tar-file' is specified.
 
-  $(fg_yellow '-gf, --gpg-zip-file')
-      Verify the Agent from a local GPG zip file instead of downloading from a URL.
-      Example: '-gf /path/to/bdot-gpg-keys.zip' will verify from the local file.
+  $(fg_yellow '-gf, --gpg-tar-file')
+      Verify the Agent from a local GPG tar file instead of downloading from a URL.
+      Example: '-gf /path/to/bdot-gpg-keys.tar.gz' will verify from the local file.
       Required if '--file' is specified.
 
   $(fg_yellow '-x, --proxy')
@@ -388,7 +388,7 @@ setup_installation()
       set_file_names
     else
       package_out_file_path="$package_path"
-      gpg_zip_out_file_path="$gpg_zip_path"
+      gpg_tar_out_file_path="$gpg_tar_path"
     fi
 
     set_opamp_endpoint
@@ -407,7 +407,7 @@ set_file_names() {
   fi
   package_out_file_path="$TMP_DIR/$package_file_name"
 
-  gpg_zip_out_file_path="$TMP_DIR/bdot-gpg-keys.zip"
+  gpg_tar_out_file_path="$TMP_DIR/bdot-gpg-keys.tar.gz"
 }
 
 set_proxy()
@@ -510,14 +510,14 @@ set_download_urls()
     collector_download_url="$url"
   fi
 
-  if [ -z "$gpg_zip_url" ]; then
+  if [ -z "$gpg_tar_url" ]; then
     if [ -z "$base_url" ] ; then
       base_url=$DOWNLOAD_BASE
     fi
 
-    gpg_zip_download_url="$base_url/v$version/gpg-keys.zip"
+    gpg_tar_download_url="$base_url/v$version/gpg-keys.tar.gz"
   else
-    gpg_zip_download_url="$gpg_zip_url"
+    gpg_tar_download_url="$gpg_tar_url"
   fi
 }
 
@@ -631,12 +631,12 @@ interactive_check()
 
 offline_check()
 {
-  # Ensure that both package_path and gpg_zip_path are either both set or both unset
-  if { [ -n "$package_path" ] && [ -z "$gpg_zip_path" ]; } || { [ -z "$package_path" ] && [ -n "$gpg_zip_path" ]; }; then
-    error_exit "$LINENO" "Both --file and --gpg-public-key-file must be specified together, or neither should be specified."
+  # Ensure that both package_path and gpg_tar_path are either both set or both unset
+  if { [ -n "$package_path" ] && [ -z "$gpg_tar_path" ]; } || { [ -z "$package_path" ] && [ -n "$gpg_tar_path" ]; }; then
+    error_exit "$LINENO" "Both --file and --gpg-tar-file must be specified together, or neither should be specified."
   fi
 
-  if [ -n "$package_path" ] && [ -n "$gpg_zip_path" ]; then
+  if [ -n "$package_path" ] && [ -n "$gpg_tar_path" ]; then
     offline_installation=true
   fi
 }
@@ -774,12 +774,12 @@ install_package()
     eval curl -L "$proxy_args" "$collector_download_url" -o "$package_out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
 
     if [ -n "$proxy" ]; then
-      info "Downloading GPG public key from $gpg_zip_download_url using proxy..."
+      info "Downloading GPG key tar file from $gpg_tar_download_url using proxy..."
     else 
-      info "Downloading GPG public key from $gpg_zip_download_url..."
+      info "Downloading GPG key tar file from $gpg_tar_download_url..."
     fi
 
-    eval curl -L "$proxy_args" "$gpg_zip_download_url" -o "$gpg_zip_out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download GPG zip file"
+    eval curl -L "$proxy_args" "$gpg_tar_download_url" -o "$gpg_tar_out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download GPG tar file"
     succeeded
   fi
 
@@ -837,15 +837,11 @@ install_package()
 }
 
 verify_package() {
-  if ! command -v unzip > /dev/null 2>&1; then
-    error "unzip is not installed, cannot perform package signature verification"
-    return 1
-  fi
-
   [ -d "$TMP_DIR/gpg" ] && rm -rf "$TMP_DIR/gpg"
+  mkdir -p "$TMP_DIR/gpg"
 
-  if ! unzip "$gpg_zip_out_file_path" -d "$TMP_DIR/gpg" > /dev/null 2>&1; then
-    error "Failed to unzip GPG zip file"
+  if ! tar -xzf "$gpg_tar_out_file_path" -C "$TMP_DIR/gpg" > /dev/null 2>&1; then
+    error "Failed to extract GPG key tar file"
     return 1
   fi
 
@@ -1086,12 +1082,12 @@ main()
           version=$2 ; shift 2 ;;
         -l|--url)
           url=$2 ; shift 2 ;;
-        -gl|--gpg-zip-url)
-          gpg_zip_url=$2 ; shift 2 ;;
+        -gl|--gpg-tar-url)
+          gpg_tar_url=$2 ; shift 2 ;;
         -f|--file)
           package_path=$2 ; shift 2 ;;
-        -gf|--gpg-zip-file)
-          gpg_zip_path=$2 ; shift 2 ;;
+        -gf|--gpg-tar-file)
+          gpg_tar_path=$2 ; shift 2 ;;
         -x|--proxy)
           proxy=$2 ; shift 2 ;;
         -U|--proxy-user)

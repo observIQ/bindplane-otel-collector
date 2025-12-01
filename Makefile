@@ -253,7 +253,7 @@ release-prep:
 .PHONY: release-prep-gpg
 release-prep-gpg:
 	$(MAKE) release-prep
-	@cd release_deps/gpg && zip -r ../gpg-keys.zip .
+	@cd release_deps/gpg && tar -czf ../gpg-keys.tar.gz .
 
 # Build and sign, skip release and ignore dirty git tree
 .PHONY: release-test
