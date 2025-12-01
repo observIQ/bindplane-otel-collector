@@ -854,14 +854,14 @@ verify_package() {
         return 0
       fi
 
-      if ! gpg --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" > /dev/null 2>&1; then
+      if ! GNUPGHOME="$TMP_DIR/gpg" gpg --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" > /dev/null 2>&1; then
         error "Failed to import public key"
         return 1
       fi
       # if there are any revocation keys, import them
       if compgen -G "$TMP_DIR/gpg/deb-revocations/*" > /dev/null; then
         for key in "$TMP_DIR/gpg/deb-revocations/"*; do
-          if ! gpg --import "$key" > /dev/null 2>&1; then
+          if ! GNUPGHOME="$TMP_DIR/gpg" gpg --import "$key" > /dev/null 2>&1; then
             error "Failed to import revocation key"
             return 1
           fi
@@ -876,7 +876,7 @@ verify_package() {
       set +e
       # Run pipeline, capture both output and exit code
       OUTPUT=$(ar p "$package_out_file_path" debian-binary control.tar.gz data.tar.gz | \
-              gpg --verify _gpgorigin - 2>&1)
+              GNUPGHOME="$TMP_DIR/gpg" gpg --verify _gpgorigin - 2>&1)
       EXIT_CODE=$?
       set -e
 
