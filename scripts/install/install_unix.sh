@@ -66,7 +66,7 @@ offline_installation=false
 # rpm --import <revoked_public_key>.asc
 # rpm -q gpg-pubkey, it's one of these
 # rpm -q gpg-pubkey --info, go find the BDOT public key and use the version and release numbers from there.
-RPM_GPG_KEYS_TO_REMOVE=()
+RPM_GPG_KEYS_TO_REMOVE=[]
 
 # Colors
 if [ "$non_interactive" = "false" ]; then
@@ -864,7 +864,7 @@ verify_package() {
         return 1
       fi
       # if there are any revocation keys, import them
-      if compgen -G "$TMP_DIR/gpg/deb-revocations/*" > /dev/null; then
+      if [ -n "$(ls -A "$TMP_DIR/gpg/deb-revocations/" 2>/dev/null)" ]; then
         for key in "$TMP_DIR/gpg/deb-revocations/"*; do
           if ! GNUPGHOME="$TMP_DIR/gpg" gpg --import "$key" > /dev/null 2>&1; then
             error "Failed to import revocation key"
@@ -891,7 +891,7 @@ verify_package() {
       set -e
 
       # Fail if gpg failed
-      if [[ $EXIT_CODE -ne 0 ]]; then
+      if [ $EXIT_CODE -ne 0 ]; then
         error "Package signature is invalid"
         return 1
       fi
@@ -924,12 +924,17 @@ verify_package() {
         error "Failed to verify package signature"
         return 1
       fi
+
+      success "Package signature is valid and not revoked"
       ;;
     *)
       error "Unrecognized package type"
       return 1
       ;;
   esac
+
+  rm -rf "$TMP_DIR/gpg"
+
   return 0
 }
 
