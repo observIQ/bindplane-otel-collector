@@ -29,11 +29,11 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
-          version: "v2.12.5"
+          version: "v2.13.0"
           args: release --skip=publish --skip=validate --skip=sign --clean --split --config=.goreleaser-windows.yml
         env:
           GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}
-          GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           GGOOS: windows
           GGOARCH: amd64
@@ -179,7 +179,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
-          version: "v2.12.5"
+          version: "v2.13.0"
           args: release --skip=publish --skip=validate --skip=sign --clean --split
         env:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
@@ -191,7 +191,7 @@ jobs:
           SKIP_DOCKER_PUSH: true
 
       - name: Upload dist artifacts
-        uses: actions/upload-artifact@v5
+        uses: namespace-actions/upload-artifact@v1
         with:
           name: dist-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/
@@ -271,43 +271,43 @@ jobs:
       # Download all artifacts from the parallel split builds
       # Download each artifact to its own directory first to avoid corruption
       - name: Download Linux AMD64 artifacts
-        uses: actions/download-artifact@v6
+        uses: namespace-actions/download-artifact@v1
         with:
           name: dist-linux-amd64
           path: dist-temp/linux-amd64
 
       - name: Download Linux ARM64 artifacts
-        uses: actions/download-artifact@v6
+        uses: namespace-actions/download-artifact@v1
         with:
           name: dist-linux-arm64
           path: dist-temp/linux-arm64
 
       - name: Download Linux ARM artifacts
-        uses: actions/download-artifact@v6
+        uses: namespace-actions/download-artifact@v1
         with:
           name: dist-linux-arm
           path: dist-temp/linux-arm
 
       - name: Download Linux PPC64 artifacts
-        uses: actions/download-artifact@v6
+        uses: namespace-actions/download-artifact@v1
         with:
           name: dist-linux-ppc64
           path: dist-temp/linux-ppc64
 
       - name: Download Linux PPC64LE artifacts
-        uses: actions/download-artifact@v6
+        uses: namespace-actions/download-artifact@v1
         with:
           name: dist-linux-ppc64le
           path: dist-temp/linux-ppc64le
 
       - name: Download Darwin AMD64 artifacts
-        uses: actions/download-artifact@v6
+        uses: namespace-actions/download-artifact@v1
         with:
           name: dist-darwin-amd64
           path: dist-temp/darwin-amd64
 
       - name: Download Darwin ARM64 artifacts
-        uses: actions/download-artifact@v6
+        uses: namespace-actions/download-artifact@v1
         with:
           name: dist-darwin-arm64
           path: dist-temp/darwin-arm64
@@ -333,7 +333,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
-          version: "v2.12.5"
+          version: "v2.13.0"
           args: continue --merge --skip=publish
         env:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
@@ -376,7 +376,7 @@ jobs:
           du -sh artifacts
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v5
+        uses: namespace-actions/upload-artifact@v1
         with:
           name: dist-artifacts
           path: dist/
