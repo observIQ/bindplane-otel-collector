@@ -837,7 +837,12 @@ install_package()
 }
 
 verify_package() {
-  if ! unzip "$gpg_zip_path" -d "$TMP_DIR" > /dev/null 2>&1; then
+  if ! command -v unzip > /dev/null 2>&1; then
+    error "unzip is not installed, cannot perform package signature verification"
+    return 1
+  fi
+
+  if ! unzip "$gpg_zip_path" -d "$TMP_DIR/gpg" > /dev/null 2>&1; then
     error "Failed to unzip GPG zip file"
     return 1
   fi
@@ -868,15 +873,20 @@ verify_package() {
         done
       fi
 
-      if ! ar x "$package_out_file_path" _gpgorigin > /dev/null 2>&1; then
+      if ! ar x "$package_out_file_path" "_gpgorigin" > /dev/null 2>&1; then
         error "Failed to extract package signature"
+        return 1
+      fi
+
+      if ! mv "_gpgorigin" "$TMP_DIR/gpg/_gpgorigin"; then
+        error "Failed to move package signature to temporary directory"
         return 1
       fi
 
       set +e
       # Run pipeline, capture both output and exit code
       OUTPUT=$(ar p "$package_out_file_path" debian-binary control.tar.gz data.tar.gz | \
-              GNUPGHOME="$TMP_DIR/gpg" gpg --verify _gpgorigin - 2>&1)
+              GNUPGHOME="$TMP_DIR/gpg" gpg --verify "$TMP_DIR/gpg/_gpgorigin" - 2>&1)
       EXIT_CODE=$?
       set -e
 
