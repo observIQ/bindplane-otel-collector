@@ -510,7 +510,7 @@ set_download_urls()
     collector_download_url="$url"
   fi
 
-  if [ -n "$gpg_zip_url" ]; then
+  if [ -z "$gpg_zip_url" ]; then
     if [ -z "$base_url" ] ; then
       base_url=$DOWNLOAD_BASE
     fi
@@ -842,7 +842,9 @@ verify_package() {
     return 1
   fi
 
-  if ! unzip "$gpg_zip_path" -d "$TMP_DIR/gpg" > /dev/null 2>&1; then
+  [ -d "$TMP_DIR/gpg" ] && rm -rf "$TMP_DIR/gpg"
+
+  if ! unzip "$gpg_zip_out_file_path" -d "$TMP_DIR/gpg" > /dev/null 2>&1; then
     error "Failed to unzip GPG zip file"
     return 1
   fi
@@ -932,8 +934,6 @@ verify_package() {
       return 1
       ;;
   esac
-
-  rm -rf "$TMP_DIR/gpg"
 
   return 0
 }
