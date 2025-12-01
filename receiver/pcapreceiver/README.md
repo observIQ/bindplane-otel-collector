@@ -1,6 +1,6 @@
 # PCAP Receiver
 
-The PCAP Receiver captures network packets and emits them as OpenTelemetry logs. It uses system-native command-line tools (`tcpdump` on macOS/Linux, `dumpcap` on Windows) to capture packets directly from a network interface.
+The PCAP Receiver captures network packets and emits them as OpenTelemetry logs. It uses system-native tools (`tcpdump` on macOS/Linux, `Npcap` on Windows) to capture packets directly from a network interface.
 
 ## Supported Pipelines
 
