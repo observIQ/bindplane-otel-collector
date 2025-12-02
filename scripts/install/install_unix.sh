@@ -900,14 +900,36 @@ verify_package() {
         return 1
       fi
 
-      success "Package signature is valid and not revoked"
-      ;;
-    rpm)
-      if ! rpm --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" > /dev/null 2>&1; then
-        error "Failed to import public key"
+      if echo "$OUTPUT" | grep -q "key has expired"; then
+        error "Package signature is from an expired key"
         return 1
       fi
-      # if there are any revocation keys, remove them
+
+      success "Package signature is valid, not revoked, and subkey is not expired"
+      ;;
+    rpm)
+      set +e
+      # Capture stderr from rpm --import
+      IMPORT_OUTPUT=$(rpm --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" 2>&1)
+      IMPORT_EXIT_CODE=$?
+      set -e
+
+      # Fail if rpm --import itself fails
+      if [ $IMPORT_EXIT_CODE -ne 0 ]; then
+          error "Failed to import public key"
+          return 1
+      fi
+
+      # Extract the signing key ID for your package
+      SIGNING_KEYID=$(rpm -qp --qf '%{SIGPGP:pgpsig}\n' "$package_out_file_path" | awk '{print toupper($NF)}')
+
+      # Check if import output contains an expired subkey matching the signing key
+      if echo "$IMPORT_OUTPUT" | grep -q "Subkey ${SIGNING_KEYID} is expired"; then
+          error "Package signature is from an expired key"
+          return 1
+      fi
+
+      # Remove revoked keys (your existing logic)
       if [ ${#RPM_GPG_KEYS_TO_REMOVE[@]} -gt 0 ]; then
         for key in "${RPM_GPG_KEYS_TO_REMOVE[@]}"; do
           if rpm -q "$key" > /dev/null 2>&1; then
@@ -923,7 +945,7 @@ verify_package() {
         return 1
       fi
 
-      success "Package signature is valid and not revoked"
+      success "Package signature is valid, not revoked, and subkey is not expired"
       ;;
     *)
       error "Unrecognized package type"
