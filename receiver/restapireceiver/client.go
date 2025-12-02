@@ -34,6 +34,8 @@ import (
 	"golang.org/x/oauth2/clientcredentials"
 )
 
+var _ restAPIClient = (*defaultRESTAPIClient)(nil)
+
 // restAPIClient is an interface for making REST API requests.
 // This interface allows for easier testing by enabling mock implementations.
 type restAPIClient interface {
@@ -43,6 +45,8 @@ type restAPIClient interface {
 	// GetFullResponse fetches the full JSON response from the specified URL.
 	// Returns the full response as map[string]any for pagination parsing.
 	GetFullResponse(ctx context.Context, requestURL string, params url.Values) (map[string]any, error)
+	// Shutdown shuts down the REST API client.
+	Shutdown(ctx context.Context) error
 }
 
 // defaultRESTAPIClient is the default implementation of restAPIClient.
@@ -83,6 +87,11 @@ func newRESTAPIClient(
 	}
 
 	return client, nil
+}
+
+// Shutdown shuts down the REST API client.
+func (c *defaultRESTAPIClient) Shutdown(ctx context.Context) error {
+	return nil
 }
 
 // GetJSON fetches JSON data from the specified URL with the given query parameters.

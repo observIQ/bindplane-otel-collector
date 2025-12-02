@@ -76,6 +76,12 @@ func newPaginationState(cfg *Config) *paginationState {
 		}
 	}
 
+	// Set limit if configured for offset/limit pagination
+	if cfg.Pagination.Mode == paginationModeOffsetLimit &&
+		cfg.Pagination.OffsetLimit.LimitFieldName != "" {
+		state.limit = 10 // reasonable default
+	}
+
 	return state
 }
 

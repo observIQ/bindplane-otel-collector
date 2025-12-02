@@ -40,8 +40,10 @@ func convertJSONToLogs(data []map[string]any, logger *zap.Logger) plog.Logs {
 		// Set body as map from JSON object
 		if err := logRecord.Body().SetEmptyMap().FromRaw(item); err != nil {
 			logger.Warn("unable to set log body", zap.Error(err))
-			// Fallback to string representation
-			logRecord.Body().SetStr("failed to parse log body")
+			// Drop the log record
+			scopeLogs.LogRecords().RemoveIf(func(lr plog.LogRecord) bool {
+				return lr.Body().Equal(logRecord.Body())
+			})
 			continue
 		}
 
