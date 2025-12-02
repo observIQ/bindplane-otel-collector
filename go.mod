@@ -176,8 +176,8 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.5 // indirect
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
-	go.opentelemetry.io/collector/component v1.46.0
-	go.opentelemetry.io/collector/confmap v1.46.0
+	go.opentelemetry.io/collector/component v1.47.0
+	go.opentelemetry.io/collector/confmap v1.47.0
 	go.opentelemetry.io/collector/confmap/provider/envprovider v1.46.0
 	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.46.0
 	go.opentelemetry.io/collector/confmap/provider/httpsprovider v1.46.0
@@ -190,11 +190,11 @@ require (
 	go.opentelemetry.io/collector/exporter/nopexporter v0.140.0
 	go.opentelemetry.io/collector/exporter/otlpexporter v0.140.0
 	go.opentelemetry.io/collector/exporter/otlphttpexporter v0.140.0
-	go.opentelemetry.io/collector/extension v1.46.0
+	go.opentelemetry.io/collector/extension v1.47.0
 	go.opentelemetry.io/collector/extension/zpagesextension v0.140.0
-	go.opentelemetry.io/collector/featuregate v1.46.0
+	go.opentelemetry.io/collector/featuregate v1.47.0
 	go.opentelemetry.io/collector/otelcol v0.140.0
-	go.opentelemetry.io/collector/pdata v1.46.0
+	go.opentelemetry.io/collector/pdata v1.47.0
 	go.opentelemetry.io/collector/processor v1.46.0
 	go.opentelemetry.io/collector/processor/batchprocessor v0.140.0
 	go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.140.0
@@ -210,6 +210,7 @@ require (
 require (
 	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.87.8
 	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.87.8
+	github.com/observiq/bindplane-otel-collector/extension/badgerextension v0.0.0-00010101000000-000000000000
 	github.com/observiq/bindplane-otel-collector/internal/osinfo v1.87.8
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.87.8
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.87.8
@@ -230,7 +231,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.140.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otelarrowreceiver v0.140.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver v0.140.1
-	go.opentelemetry.io/collector/extension/extensiontest v0.140.0
+	go.opentelemetry.io/collector/extension/extensiontest v0.141.0
 	go.opentelemetry.io/collector/processor/processorhelper v0.140.0
 	go.opentelemetry.io/collector/processor/processortest v0.140.0
 	go.opentelemetry.io/collector/service v0.140.0
@@ -395,6 +396,8 @@ require (
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/typeurl/v2 v2.2.3 // indirect
 	github.com/coreos/go-oidc/v3 v3.16.0 // indirect
+	github.com/dgraph-io/badger/v4 v4.8.0 // indirect
+	github.com/dgraph-io/ristretto/v2 v2.3.0 // indirect
 	github.com/dgryski/go-metro v0.0.0-20180109044635-280f6062b5bc // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/digitalocean/go-metadata v0.0.0-20250129100319-e3650a3df44b // indirect
@@ -560,7 +563,7 @@ require (
 	go.opentelemetry.io/collector v0.140.0 // indirect
 	go.opentelemetry.io/collector/client v1.46.0 // indirect
 	go.opentelemetry.io/collector/component/componentstatus v0.140.0 // indirect
-	go.opentelemetry.io/collector/component/componenttest v0.140.0 // indirect
+	go.opentelemetry.io/collector/component/componenttest v0.141.0 // indirect
 	go.opentelemetry.io/collector/config/configauth v1.46.0 // indirect
 	go.opentelemetry.io/collector/config/configcompression v1.46.0 // indirect
 	go.opentelemetry.io/collector/config/configgrpc v0.140.0 // indirect
@@ -586,7 +589,7 @@ require (
 	go.opentelemetry.io/collector/extension/extensionauth v1.46.0 // indirect
 	go.opentelemetry.io/collector/extension/extensioncapabilities v0.140.0 // indirect
 	go.opentelemetry.io/collector/extension/extensionmiddleware v0.140.0 // indirect
-	go.opentelemetry.io/collector/extension/xextension v0.140.0 // indirect
+	go.opentelemetry.io/collector/extension/xextension v0.141.0 // indirect
 	go.opentelemetry.io/collector/filter v0.140.0 // indirect
 	go.opentelemetry.io/collector/internal/fanoutconsumer v0.140.0 // indirect
 	go.opentelemetry.io/collector/internal/memorylimiter v0.140.0 // indirect
@@ -773,7 +776,7 @@ require (
 	// (Dakota): cadvisor only works on version `v0.49.1-0.20240628164550-89f779d86055` until they release v0.50.0 with updated docker dep
 	// https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/33870
 	github.com/google/cadvisor v0.53.0 // indirect
-	github.com/google/flatbuffers v25.2.10+incompatible // indirect
+	github.com/google/flatbuffers v25.9.23+incompatible // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.7 // indirect
@@ -814,7 +817,7 @@ require (
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/karrick/godirwalk v1.17.0 // indirect
-	github.com/klauspost/compress v1.18.1 // indirect
+	github.com/klauspost/compress v1.18.2 // indirect
 	github.com/knadh/koanf v1.5.0 // indirect
 	github.com/kolo/xmlrpc v0.0.0-20220921171641-a4b6fa1dd06b // indirect
 	github.com/leodido/ragel-machinery v0.0.0-20190525184631-5f46317e436b // indirect
@@ -982,6 +985,8 @@ replace github.com/observiq/bindplane-otel-collector/internal/testutils => ./int
 
 // Extensions
 replace github.com/observiq/bindplane-otel-collector/extension/awss3eventextension => ./extension/awss3eventextension
+
+replace github.com/observiq/bindplane-otel-collector/extension/badgerextension => ./extension/badgerextension
 
 // Exporters
 replace github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter => ./exporter/azureblobexporter
