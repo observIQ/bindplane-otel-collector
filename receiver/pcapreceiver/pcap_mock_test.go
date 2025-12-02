@@ -124,13 +124,23 @@ func (h *mockPcapHandle) withSetBPFError(err error) *mockPcapHandle {
 	return h
 }
 
+// withPackets configures the mock to return the given packets from ReadPacketData
+func (h *mockPcapHandle) withPackets(packets ...mockPacket) *mockPcapHandle {
+	h.packets = packets
+	return h
+}
+
 // newMockPcapInterface creates a new mock pcap interface
 func newMockPcapInterface() *mockPcapInterface {
 	return &mockPcapInterface{}
 }
 
 // setupMock temporarily replaces the global pcapOps with the provided mock
-// and returns a cleanup function to restore the original
+// and returns a cleanup function to restore the original.
+//
+// NOTE: Tests using setupMock must NOT use t.Parallel() as they modify
+// the global pcapOps variable. Running such tests in parallel would cause
+// race conditions and unpredictable behavior.
 func setupMock(mock PcapInterface) func() {
 	original := pcapOps
 	pcapOps = mock
@@ -139,20 +149,23 @@ func setupMock(mock PcapInterface) func() {
 	}
 }
 
+// errNpcapNotInstalled simulates the Npcap not installed error
+var errNpcapNotInstalled = errors.New("wpcap.dll not found")
+
 // Sample TCP packet bytes (Ethernet + IPv4 + TCP SYN)
-// This is a minimal valid packet for testing
+// This is a minimal valid packet for testing the packet processing path
 var sampleTCPPacket = []byte{
 	// Ethernet header (14 bytes)
 	0x00, 0x11, 0x22, 0x33, 0x44, 0x55, // Dst MAC
 	0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, // Src MAC
 	0x08, 0x00, // EtherType: IPv4
 	// IPv4 header (20 bytes)
-	0x45, 0x00, 0x00, 0x28, // Version/IHL, DSCP/ECN, Total Length
+	0x45, 0x00, 0x00, 0x28, // Version/IHL, DSCP/ECN, Total Length (40 bytes)
 	0x00, 0x01, 0x00, 0x00, // ID, Flags/Fragment
 	0x40, 0x06, 0x00, 0x00, // TTL, Protocol (TCP), Checksum
 	0xc0, 0xa8, 0x01, 0x64, // Src IP: 192.168.1.100
 	0xc0, 0xa8, 0x01, 0x01, // Dst IP: 192.168.1.1
-	// TCP header (20 bytes minimum)
+	// TCP header (20 bytes)
 	0xd4, 0x31, // Src Port: 54321
 	0x01, 0xbb, // Dst Port: 443
 	0x00, 0x00, 0x00, 0x01, // Seq number
@@ -178,24 +191,3 @@ var sampleUDPPacket = []byte{
 	0x00, 0x35, // Dst Port: 53
 	0x00, 0x08, 0x00, 0x00, // Length, Checksum
 }
-
-// Sample ICMP packet bytes (Ethernet + IPv4 + ICMP echo request)
-var sampleICMPPacket = []byte{
-	// Ethernet header (14 bytes)
-	0x00, 0x11, 0x22, 0x33, 0x44, 0x55, // Dst MAC
-	0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, // Src MAC
-	0x08, 0x00, // EtherType: IPv4
-	// IPv4 header (20 bytes)
-	0x45, 0x00, 0x00, 0x1c, // Version/IHL, DSCP/ECN, Total Length
-	0x00, 0x01, 0x00, 0x00, // ID, Flags/Fragment
-	0x40, 0x01, 0x00, 0x00, // TTL, Protocol (ICMP), Checksum
-	0xc0, 0xa8, 0x01, 0x64, // Src IP: 192.168.1.100
-	0xc0, 0xa8, 0x01, 0x01, // Dst IP: 192.168.1.1
-	// ICMP header (8 bytes)
-	0x08, 0x00, // Type (echo request), Code
-	0x00, 0x00, // Checksum
-	0x00, 0x01, 0x00, 0x01, // ID, Seq
-}
-
-// errNpcapNotInstalled simulates the Npcap not installed error
-var errNpcapNotInstalled = errors.New("wpcap.dll not found")

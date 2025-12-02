@@ -51,7 +51,7 @@ func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
 		time.Second, // Timeout for packet buffer
 	)
 	if err != nil {
-		return fmt.Errorf("failed to open capture handle: %w. Ensure Npcap is installed and the interface exists", err)
+		return fmt.Errorf("failed to open capture handle. Ensure Npcap is installed and the interface exists: %w", err)
 	}
 
 	// Set BPF filter if configured

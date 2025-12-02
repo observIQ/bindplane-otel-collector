@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/gopacket"
 	"github.com/google/gopacket/pcap"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
@@ -326,4 +327,209 @@ func TestShutdown_Windows_NoHandle(t *testing.T) {
 	// Shutdown without starting (no handle)
 	err := receiver.Shutdown(context.Background())
 	require.NoError(t, err)
+}
+
+func TestReadPacketsWindows_TCPPacket(t *testing.T) {
+	testInterface := `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
+	cfg := &Config{
+		Interface:       testInterface,
+		SnapLen:         65535,
+		Promiscuous:     true,
+		ParseAttributes: true,
+	}
+	sink := &consumertest.LogsSink{}
+	receiver := newTestReceiver(t, cfg, nil, sink)
+
+	// Create a mock handle that returns a TCP packet then EOF
+	mockHandle := newMockPcapHandle().withPackets(
+		mockPacket{
+			data: sampleTCPPacket,
+			ci: gopacket.CaptureInfo{
+				Timestamp:     time.Now(),
+				CaptureLength: len(sampleTCPPacket),
+				Length:        len(sampleTCPPacket),
+			},
+		},
+	)
+
+	mock := newMockPcapInterface().
+		withDevices(pcap.Interface{Name: testInterface}).
+		withOpenHandle(mockHandle)
+	cleanup := setupMock(mock)
+	defer cleanup()
+
+	ctx := context.Background()
+	err := receiver.Start(ctx, componenttest.NewNopHost())
+	require.NoError(t, err)
+
+	// Wait for packet to be processed
+	require.Eventually(t, func() bool {
+		return sink.LogRecordCount() >= 1
+	}, 2*time.Second, 10*time.Millisecond, "Expected at least 1 log record")
+
+	// Shutdown
+	err = receiver.Shutdown(ctx)
+	require.NoError(t, err)
+
+	// Verify packet attributes
+	logs := sink.AllLogs()
+	require.GreaterOrEqual(t, len(logs), 1)
+	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
+	attrs := logRecord.Attributes()
+
+	// Check network type
+	networkType, ok := attrs.Get("network.type")
+	require.True(t, ok)
+	require.Equal(t, "IP", networkType.AsString())
+
+	// Check transport
+	transport, ok := attrs.Get("network.transport")
+	require.True(t, ok)
+	require.Equal(t, "TCP", transport.AsString())
+
+	// Check source address
+	srcAddr, ok := attrs.Get("source.address")
+	require.True(t, ok)
+	require.Equal(t, "192.168.1.100", srcAddr.AsString())
+
+	// Check destination address
+	dstAddr, ok := attrs.Get("destination.address")
+	require.True(t, ok)
+	require.Equal(t, "192.168.1.1", dstAddr.AsString())
+
+	// Check ports
+	srcPort, ok := attrs.Get("source.port")
+	require.True(t, ok)
+	require.Equal(t, int64(54321), srcPort.Int())
+
+	dstPort, ok := attrs.Get("destination.port")
+	require.True(t, ok)
+	require.Equal(t, int64(443), dstPort.Int())
+}
+
+func TestReadPacketsWindows_UDPPacket(t *testing.T) {
+	testInterface := `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
+	cfg := &Config{
+		Interface:       testInterface,
+		SnapLen:         65535,
+		Promiscuous:     true,
+		ParseAttributes: true,
+	}
+	sink := &consumertest.LogsSink{}
+	receiver := newTestReceiver(t, cfg, nil, sink)
+
+	// Create a mock handle that returns a UDP packet then EOF
+	mockHandle := newMockPcapHandle().withPackets(
+		mockPacket{
+			data: sampleUDPPacket,
+			ci: gopacket.CaptureInfo{
+				Timestamp:     time.Now(),
+				CaptureLength: len(sampleUDPPacket),
+				Length:        len(sampleUDPPacket),
+			},
+		},
+	)
+
+	mock := newMockPcapInterface().
+		withDevices(pcap.Interface{Name: testInterface}).
+		withOpenHandle(mockHandle)
+	cleanup := setupMock(mock)
+	defer cleanup()
+
+	ctx := context.Background()
+	err := receiver.Start(ctx, componenttest.NewNopHost())
+	require.NoError(t, err)
+
+	// Wait for packet to be processed
+	require.Eventually(t, func() bool {
+		return sink.LogRecordCount() >= 1
+	}, 2*time.Second, 10*time.Millisecond, "Expected at least 1 log record")
+
+	// Shutdown
+	err = receiver.Shutdown(ctx)
+	require.NoError(t, err)
+
+	// Verify packet attributes
+	logs := sink.AllLogs()
+	require.GreaterOrEqual(t, len(logs), 1)
+	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
+	attrs := logRecord.Attributes()
+
+	// Check transport
+	transport, ok := attrs.Get("network.transport")
+	require.True(t, ok)
+	require.Equal(t, "UDP", transport.AsString())
+
+	// Check source address
+	srcAddr, ok := attrs.Get("source.address")
+	require.True(t, ok)
+	require.Equal(t, "10.0.0.5", srcAddr.AsString())
+
+	// Check destination address
+	dstAddr, ok := attrs.Get("destination.address")
+	require.True(t, ok)
+	require.Equal(t, "8.8.8.8", dstAddr.AsString())
+
+	// Check ports
+	srcPort, ok := attrs.Get("source.port")
+	require.True(t, ok)
+	require.Equal(t, int64(12345), srcPort.Int())
+
+	dstPort, ok := attrs.Get("destination.port")
+	require.True(t, ok)
+	require.Equal(t, int64(53), dstPort.Int())
+}
+
+func TestReadPacketsWindows_MultiplePackets(t *testing.T) {
+	testInterface := `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
+	cfg := &Config{
+		Interface:       testInterface,
+		SnapLen:         65535,
+		Promiscuous:     true,
+		ParseAttributes: true,
+	}
+	sink := &consumertest.LogsSink{}
+	receiver := newTestReceiver(t, cfg, nil, sink)
+
+	// Create a mock handle that returns multiple packets then EOF
+	mockHandle := newMockPcapHandle().withPackets(
+		mockPacket{
+			data: sampleTCPPacket,
+			ci: gopacket.CaptureInfo{
+				Timestamp:     time.Now(),
+				CaptureLength: len(sampleTCPPacket),
+				Length:        len(sampleTCPPacket),
+			},
+		},
+		mockPacket{
+			data: sampleUDPPacket,
+			ci: gopacket.CaptureInfo{
+				Timestamp:     time.Now(),
+				CaptureLength: len(sampleUDPPacket),
+				Length:        len(sampleUDPPacket),
+			},
+		},
+	)
+
+	mock := newMockPcapInterface().
+		withDevices(pcap.Interface{Name: testInterface}).
+		withOpenHandle(mockHandle)
+	cleanup := setupMock(mock)
+	defer cleanup()
+
+	ctx := context.Background()
+	err := receiver.Start(ctx, componenttest.NewNopHost())
+	require.NoError(t, err)
+
+	// Wait for both packets to be processed
+	require.Eventually(t, func() bool {
+		return sink.LogRecordCount() >= 2
+	}, 2*time.Second, 10*time.Millisecond, "Expected at least 2 log records")
+
+	// Shutdown
+	err = receiver.Shutdown(ctx)
+	require.NoError(t, err)
+
+	// Verify we got both packets
+	require.GreaterOrEqual(t, sink.LogRecordCount(), 2)
 }
