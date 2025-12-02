@@ -451,8 +451,9 @@ func TestGolden(t *testing.T) {
 			content, err := os.ReadFile(inputPath)
 			require.NoError(t, err)
 
-			// Parse and process the packet
-			lines := strings.Split(string(content), "\n")
+			// Parse and process the packet (normalize line endings for Windows)
+			contentStr := strings.ReplaceAll(string(content), "\r\n", "\n")
+			lines := strings.Split(contentStr, "\n")
 			ctx := context.Background()
 			receiver.processPacket(ctx, lines)
 
@@ -488,8 +489,9 @@ func TestGolden_NoAttributes(t *testing.T) {
 	content, err := os.ReadFile(inputPath)
 	require.NoError(t, err)
 
-	// Parse and process the packet
-	lines := strings.Split(string(content), "\n")
+	// Parse and process the packet (normalize line endings for Windows)
+	contentStr := strings.ReplaceAll(string(content), "\r\n", "\n")
+	lines := strings.Split(contentStr, "\n")
 	ctx := context.Background()
 	receiver.processPacket(ctx, lines)
 
