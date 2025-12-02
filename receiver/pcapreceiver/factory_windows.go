@@ -49,7 +49,7 @@ func createLogsReceiver(
 	if err := receiverCfg.Validate(); err != nil {
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
-	params.Logger.Warn("PCAP receiver on Windows requires Wireshark (dumpcap.exe). Ensure Wireshark is installed and run as Administrator if necessary")
+	params.Logger.Warn("PCAP receiver on Windows requires Npcap. Ensure Npcap is installed and the interface is available.")
 	receiver, err := newReceiver(settings, receiverCfg, params.Logger, consumer, tb)
 	if err != nil {
 		return nil, err

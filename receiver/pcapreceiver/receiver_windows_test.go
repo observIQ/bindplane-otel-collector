@@ -18,555 +18,218 @@ package pcapreceiver
 
 import (
 	"context"
-	"encoding/binary"
-	"io"
-	"os"
-	"os/exec"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcapgo"
+	"github.com/google/gopacket/pcap"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
-	"go.uber.org/zap/zaptest"
 )
 
-func TestCheckPrivileges_Windows_DumpcapAvailable(t *testing.T) {
-	cfg := &Config{Interface: "1"}
+func TestCheckPrivileges_Windows_Success(t *testing.T) {
+	testInterface := `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
+	cfg := &Config{Interface: testInterface}
 	receiver := newTestReceiver(t, cfg, nil, nil)
 
-	// This will try to actually run dumpcap, so it may fail if Wireshark is not installed
-	// We just verify it doesn't panic and handles errors gracefully
+	// Set up mock with the interface present
+	mock := newMockPcapInterface().withDevices(
+		pcap.Interface{
+			Name:        testInterface,
+			Description: "Test Network Interface",
+		},
+	)
+	cleanup := setupMock(mock)
+	defer cleanup()
+
 	err := receiver.checkPrivileges()
-	// If dumpcap is available, should succeed or fail with a specific error
-	// If not available, should fail with installation error
-	if err != nil {
-		require.Contains(t, err.Error(), "dumpcap", err.Error())
-	}
+	require.NoError(t, err)
 }
 
-func TestCheckPrivileges_Windows_ExecutablePath(t *testing.T) {
-	// Save original newCommand
-	originalNewCommand := newCommand
-	defer func() {
-		newCommand = originalNewCommand
-	}()
-
-	// Mock command that succeeds
-	mockCmd := &exec.Cmd{
-		Process: &os.Process{Pid: 12345},
-	}
-	var calledArgs []string
-	newCommand = func(name string, arg ...string) *exec.Cmd {
-		calledArgs = arg
-		cmd := exec.Command("echo", "test")
-		cmd.Process = mockCmd.Process
-		return cmd
-	}
-
-	cfg := &Config{
-		Interface:      "1",
-		ExecutablePath: `C:\Program Files\Wireshark\dumpcap.exe`,
-	}
+func TestCheckPrivileges_Windows_NpcapNotInstalled(t *testing.T) {
+	cfg := &Config{Interface: `\Device\NPF_{12345678-1234-1234-1234-123456789012}`}
 	receiver := newTestReceiver(t, cfg, nil, nil)
 
-	// Will try to run the command, which will fail in mock but we can verify args
-	_ = receiver.checkPrivileges()
-	// Verify that the executable path was used
-	require.NotEmpty(t, calledArgs)
-}
-
-func TestCheckPrivileges_Windows_DumpcapNotFound(t *testing.T) {
-	// Save original newCommand
-	originalNewCommand := newCommand
-	defer func() {
-		newCommand = originalNewCommand
-	}()
-
-	// Mock command that fails (simulating dumpcap not found)
-	newCommand = func(name string, arg ...string) *exec.Cmd {
-		cmd := exec.Command("nonexistent-command")
-		return cmd
-	}
-
-	cfg := &Config{Interface: "1"}
-	receiver := newTestReceiver(t, cfg, nil, nil)
+	// Set up mock to return Npcap not installed error
+	mock := newMockPcapInterface().withFindAllError(errNpcapNotInstalled)
+	cleanup := setupMock(mock)
+	defer cleanup()
 
 	err := receiver.checkPrivileges()
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "dumpcap")
+	require.Contains(t, err.Error(), "Npcap")
 }
 
-func TestReadPacketsWindows_ValidPacket(t *testing.T) {
-	cfg := &Config{Interface: "1", ParseAttributes: true}
-	sink := &consumertest.LogsSink{}
-	logger := zaptest.NewLogger(t)
-	receiver := newTestReceiver(t, cfg, logger, sink)
+func TestCheckPrivileges_Windows_NoDevices(t *testing.T) {
+	cfg := &Config{Interface: `\Device\NPF_{12345678-1234-1234-1234-123456789012}`}
+	receiver := newTestReceiver(t, cfg, nil, nil)
 
-	// Create a PCAP writer to generate valid PCAP data
-	pr, pw := io.Pipe()
-	stdout := io.NopCloser(pr)
+	// Set up mock with no devices
+	mock := newMockPcapInterface().withDevices()
+	cleanup := setupMock(mock)
+	defer cleanup()
 
-	// Write PCAP file header and packet in a goroutine
-	go func() {
-		defer pw.Close()
-		writer := pcapgo.NewWriter(pw)
-		writer.WriteFileHeader(65535, layers.LinkTypeEthernet)
-
-		// Create a simple TCP packet
-		buf := make([]byte, 0, 60)
-		// Ethernet header (14 bytes)
-		ethHeader := make([]byte, 14)
-		binary.BigEndian.PutUint16(ethHeader[12:14], 0x0800) // EtherType: IPv4
-		buf = append(buf, ethHeader...)
-		// IP header (20 bytes)
-		ipHeader := make([]byte, 20)
-		ipHeader[0] = 0x45                            // Version 4, IHL 5
-		ipHeader[1] = 0x00                            // TOS
-		binary.BigEndian.PutUint16(ipHeader[2:4], 60) // Total length
-		ipHeader[9] = 6                               // Protocol: TCP
-		ipHeader[12] = 192                            // Source IP: 192.168.1.100
-		ipHeader[13] = 168
-		ipHeader[14] = 1
-		ipHeader[15] = 100
-		ipHeader[16] = 192 // Dest IP: 192.168.1.1
-		ipHeader[17] = 168
-		ipHeader[18] = 1
-		ipHeader[19] = 1
-		buf = append(buf, ipHeader...)
-		// TCP header (20 bytes)
-		tcpHeader := make([]byte, 20)
-		binary.BigEndian.PutUint16(tcpHeader[0:2], 54321) // Source port
-		binary.BigEndian.PutUint16(tcpHeader[2:4], 443)   // Dest port
-		buf = append(buf, tcpHeader...)
-		// Payload (6 bytes)
-		buf = append(buf, []byte("hello")...)
-
-		ci := gopacket.CaptureInfo{
-			Timestamp:     time.Now(),
-			CaptureLength: len(buf),
-			Length:        len(buf),
-		}
-		writer.WritePacket(ci, buf)
-	}()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	go receiver.readPacketsWindows(ctx, stdout)
-
-	// Wait for packet to be processed
-	require.Eventually(t, func() bool {
-		return sink.LogRecordCount() == 1
-	}, 2*time.Second, 10*time.Millisecond)
-
-	logs := sink.AllLogs()
-	require.Len(t, logs, 1)
-	require.Equal(t, 1, logs[0].LogRecordCount())
-
-	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
-	attrs := logRecord.Attributes()
-
-	protocol, ok := attrs.Get("network.type")
-	require.True(t, ok)
-	require.Equal(t, "IP", protocol.AsString())
-
-	interfaceName, ok := attrs.Get("network.interface.name")
-	require.True(t, ok)
-	require.Equal(t, "1", interfaceName.AsString())
-
-	transport, ok := attrs.Get("network.transport")
-	require.True(t, ok)
-	require.Equal(t, "TCP", transport.AsString())
+	err := receiver.checkPrivileges()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "no network interfaces found")
 }
 
-func TestReadPacketsWindows_MultiplePackets(t *testing.T) {
-	cfg := &Config{Interface: "1"}
-	sink := &consumertest.LogsSink{}
-	logger := zaptest.NewLogger(t)
-	receiver := newTestReceiver(t, cfg, logger, sink)
+func TestCheckPrivileges_Windows_InterfaceNotFound(t *testing.T) {
+	cfg := &Config{Interface: `\Device\NPF_{nonexistent-guid}`}
+	receiver := newTestReceiver(t, cfg, nil, nil)
 
-	pr, pw := io.Pipe()
-	stdout := io.NopCloser(pr)
+	// Set up mock with different interface
+	mock := newMockPcapInterface().withDevices(
+		pcap.Interface{
+			Name:        `\Device\NPF_{12345678-1234-1234-1234-123456789012}`,
+			Description: "Test Network Interface",
+		},
+	)
+	cleanup := setupMock(mock)
+	defer cleanup()
 
-	go func() {
-		defer pw.Close()
-		writer := pcapgo.NewWriter(pw)
-		writer.WriteFileHeader(65535, layers.LinkTypeEthernet)
-
-		// Create two packets
-		for i := 0; i < 2; i++ {
-			buf := make([]byte, 0, 60)
-			// Ethernet header (14 bytes)
-			ethHeader := make([]byte, 14)
-			binary.BigEndian.PutUint16(ethHeader[12:14], 0x0800) // EtherType: IPv4
-			buf = append(buf, ethHeader...)
-			ipHeader := make([]byte, 20)
-			ipHeader[0] = 0x45
-			binary.BigEndian.PutUint16(ipHeader[2:4], 60)
-			ipHeader[9] = 6    // Protocol: TCP
-			ipHeader[12] = 192 // Source IP: 192.168.1.100
-			ipHeader[13] = 168
-			ipHeader[14] = 1
-			ipHeader[15] = 100
-			ipHeader[16] = 192 // Dest IP: 192.168.1.1
-			ipHeader[17] = 168
-			ipHeader[18] = 1
-			ipHeader[19] = 1
-			buf = append(buf, ipHeader...)
-			tcpHeader := make([]byte, 20)
-			binary.BigEndian.PutUint16(tcpHeader[0:2], uint16(54321+i))
-			binary.BigEndian.PutUint16(tcpHeader[2:4], 443)
-			buf = append(buf, tcpHeader...)
-			buf = append(buf, []byte("hello")...)
-
-			ci := gopacket.CaptureInfo{
-				Timestamp:     time.Now(),
-				CaptureLength: len(buf),
-				Length:        len(buf),
-			}
-			writer.WritePacket(ci, buf)
-		}
-	}()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	go receiver.readPacketsWindows(ctx, stdout)
-
-	require.Eventually(t, func() bool {
-		return sink.LogRecordCount() == 2
-	}, 2*time.Second, 10*time.Millisecond)
-
-	logs := sink.AllLogs()
-	require.Len(t, logs, 2)
+	err := receiver.checkPrivileges()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not found")
+	require.Contains(t, err.Error(), "Available interfaces")
 }
 
-func TestReadPacketsWindows_EmptyInput(t *testing.T) {
-	cfg := &Config{Interface: "1"}
+func TestStart_Success(t *testing.T) {
+	testInterface := `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
+	cfg := &Config{
+		Interface:       testInterface,
+		SnapLen:         65535,
+		Promiscuous:     true,
+		ParseAttributes: true,
+	}
 	sink := &consumertest.LogsSink{}
-	logger := zaptest.NewLogger(t)
-	receiver := newTestReceiver(t, cfg, logger, sink)
+	receiver := newTestReceiver(t, cfg, nil, sink)
 
-	// Empty PCAP file (just header)
-	pr, pw := io.Pipe()
-	stdout := io.NopCloser(pr)
+	// Set up mock with successful operations
+	mockHandle := newMockPcapHandle()
+	mock := newMockPcapInterface().
+		withDevices(pcap.Interface{Name: testInterface}).
+		withOpenHandle(mockHandle)
+	cleanup := setupMock(mock)
+	defer cleanup()
 
-	go func() {
-		defer pw.Close()
-		writer := pcapgo.NewWriter(pw)
-		writer.WriteFileHeader(65535, layers.LinkTypeEthernet)
-		// No packets
-	}()
+	ctx := context.Background()
+	err := receiver.Start(ctx, componenttest.NewNopHost())
+	require.NoError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	// Verify handle was stored
+	require.NotNil(t, receiver.pcapHandle)
 
-	go receiver.readPacketsWindows(ctx, stdout)
-
-	// Wait a bit - should handle EOF gracefully
-	time.Sleep(200 * time.Millisecond)
-	require.Equal(t, 0, sink.LogRecordCount())
+	// Shutdown
+	err = receiver.Shutdown(ctx)
+	require.NoError(t, err)
+	require.True(t, mockHandle.closed)
 }
 
-func TestReadPacketsWindows_InvalidPCAPData(t *testing.T) {
-	cfg := &Config{Interface: "1"}
+func TestStart_WithBPFFilter(t *testing.T) {
+	testInterface := `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
+	cfg := &Config{
+		Interface:       testInterface,
+		SnapLen:         65535,
+		Promiscuous:     true,
+		Filter:          "tcp port 443",
+		ParseAttributes: true,
+	}
 	sink := &consumertest.LogsSink{}
-	logger := zaptest.NewLogger(t)
-	receiver := newTestReceiver(t, cfg, logger, sink)
+	receiver := newTestReceiver(t, cfg, nil, sink)
 
-	// Invalid PCAP data
-	stdout := io.NopCloser(strings.NewReader("invalid pcap data"))
+	// Set up mock with successful operations
+	mockHandle := newMockPcapHandle()
+	mock := newMockPcapInterface().
+		withDevices(pcap.Interface{Name: testInterface}).
+		withOpenHandle(mockHandle)
+	cleanup := setupMock(mock)
+	defer cleanup()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := context.Background()
+	err := receiver.Start(ctx, componenttest.NewNopHost())
+	require.NoError(t, err)
 
-	go receiver.readPacketsWindows(ctx, stdout)
-
-	// Wait for error to be handled
-	time.Sleep(200 * time.Millisecond)
-	// Should handle error gracefully
-	require.Equal(t, 0, sink.LogRecordCount())
+	// Shutdown
+	err = receiver.Shutdown(ctx)
+	require.NoError(t, err)
 }
 
-func TestReadPacketsWindows_ContextCancellation(t *testing.T) {
-	cfg := &Config{Interface: "1"}
+func TestStart_BPFFilterError(t *testing.T) {
+	testInterface := `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
+	cfg := &Config{
+		Interface:       testInterface,
+		SnapLen:         65535,
+		Promiscuous:     true,
+		Filter:          "invalid filter syntax",
+		ParseAttributes: true,
+	}
 	sink := &consumertest.LogsSink{}
-	logger := zaptest.NewLogger(t)
-	receiver := newTestReceiver(t, cfg, logger, sink)
+	receiver := newTestReceiver(t, cfg, nil, sink)
 
-	pr, pw := io.Pipe()
-	stdout := io.NopCloser(pr)
+	// Set up mock with BPF filter error
+	mockHandle := newMockPcapHandle().withSetBPFError(errNpcapNotInstalled)
+	mock := newMockPcapInterface().
+		withDevices(pcap.Interface{Name: testInterface}).
+		withOpenHandle(mockHandle)
+	cleanup := setupMock(mock)
+	defer cleanup()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
+	err := receiver.Start(ctx, componenttest.NewNopHost())
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to set BPF filter")
 
-	go func() {
-		defer pw.Close()
-		writer := pcapgo.NewWriter(pw)
-		writer.WriteFileHeader(65535, layers.LinkTypeEthernet)
-
-		// Write one packet
-		buf := make([]byte, 0, 60)
-		// Ethernet header (14 bytes)
-		ethHeader := make([]byte, 14)
-		binary.BigEndian.PutUint16(ethHeader[12:14], 0x0800) // EtherType: IPv4
-		buf = append(buf, ethHeader...)
-		ipHeader := make([]byte, 20)
-		ipHeader[0] = 0x45
-		binary.BigEndian.PutUint16(ipHeader[2:4], 60)
-		ipHeader[9] = 6    // Protocol: TCP
-		ipHeader[12] = 192 // Source IP: 192.168.1.100
-		ipHeader[13] = 168
-		ipHeader[14] = 1
-		ipHeader[15] = 100
-		ipHeader[16] = 192 // Dest IP: 192.168.1.1
-		ipHeader[17] = 168
-		ipHeader[18] = 1
-		ipHeader[19] = 1
-		buf = append(buf, ipHeader...)
-		tcpHeader := make([]byte, 20)
-		buf = append(buf, tcpHeader...)
-		buf = append(buf, []byte("hello")...)
-
-		ci := gopacket.CaptureInfo{
-			Timestamp:     time.Now(),
-			CaptureLength: len(buf),
-			Length:        len(buf),
-		}
-		writer.WritePacket(ci, buf)
-
-		// Wait a bit before canceling
-		time.Sleep(50 * time.Millisecond)
-		cancel()
-	}()
-
-	go receiver.readPacketsWindows(ctx, stdout)
-
-	// Wait for cancellation
-	time.Sleep(200 * time.Millisecond)
-
-	// Should have processed at least one packet before cancellation
-	_ = sink.LogRecordCount()
+	// Handle should be closed on error
+	require.True(t, mockHandle.closed)
 }
 
-func TestReadPacketsWindows_UDPPacket(t *testing.T) {
-	cfg := &Config{Interface: "1", ParseAttributes: true}
+func TestStart_OpenLiveError(t *testing.T) {
+	testInterface := `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
+	cfg := &Config{
+		Interface:       testInterface,
+		SnapLen:         65535,
+		Promiscuous:     true,
+		ParseAttributes: true,
+	}
 	sink := &consumertest.LogsSink{}
-	logger := zaptest.NewLogger(t)
-	receiver := newTestReceiver(t, cfg, logger, sink)
+	receiver := newTestReceiver(t, cfg, nil, sink)
 
-	pr, pw := io.Pipe()
-	stdout := io.NopCloser(pr)
+	// Set up mock with OpenLive error
+	mock := newMockPcapInterface().
+		withDevices(pcap.Interface{Name: testInterface}).
+		withOpenError(errNpcapNotInstalled)
+	cleanup := setupMock(mock)
+	defer cleanup()
 
-	go func() {
-		defer pw.Close()
-		writer := pcapgo.NewWriter(pw)
-		writer.WriteFileHeader(65535, layers.LinkTypeEthernet)
-
-		// Create UDP packet
-		buf := make([]byte, 0, 42)
-		// Ethernet header (14 bytes)
-		ethHeader := make([]byte, 14)
-		binary.BigEndian.PutUint16(ethHeader[12:14], 0x0800) // EtherType: IPv4
-		buf = append(buf, ethHeader...)
-		ipHeader := make([]byte, 20)
-		ipHeader[0] = 0x45
-		ipHeader[9] = 17 // UDP protocol
-		binary.BigEndian.PutUint16(ipHeader[2:4], 42)
-		ipHeader[12] = 192 // Source IP: 192.168.1.100
-		ipHeader[13] = 168
-		ipHeader[14] = 1
-		ipHeader[15] = 100
-		ipHeader[16] = 192 // Dest IP: 192.168.1.1
-		ipHeader[17] = 168
-		ipHeader[18] = 1
-		ipHeader[19] = 1
-		buf = append(buf, ipHeader...)
-		udpHeader := make([]byte, 8)
-		binary.BigEndian.PutUint16(udpHeader[0:2], 12345) // Source port
-		binary.BigEndian.PutUint16(udpHeader[2:4], 53)    // Dest port (DNS)
-		buf = append(buf, udpHeader...)
-		buf = append(buf, []byte("data")...)
-
-		ci := gopacket.CaptureInfo{
-			Timestamp:     time.Now(),
-			CaptureLength: len(buf),
-			Length:        len(buf),
-		}
-		writer.WritePacket(ci, buf)
-	}()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	go receiver.readPacketsWindows(ctx, stdout)
-
-	require.Eventually(t, func() bool {
-		return sink.LogRecordCount() == 1
-	}, 2*time.Second, 10*time.Millisecond)
-
-	logs := sink.AllLogs()
-	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
-	attrs := logRecord.Attributes()
-
-	interfaceName, ok := attrs.Get("network.interface.name")
-	require.True(t, ok)
-	require.Equal(t, "1", interfaceName.AsString())
-
-	transport, ok := attrs.Get("network.transport")
-	require.True(t, ok)
-	require.Equal(t, "UDP", transport.AsString())
+	ctx := context.Background()
+	err := receiver.Start(ctx, componenttest.NewNopHost())
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to open capture handle")
 }
 
-func TestReadPacketsWindows_IPv6Packet(t *testing.T) {
-	cfg := &Config{Interface: "1", ParseAttributes: true}
+func TestStart_PrivilegeCheckFails_NoError(t *testing.T) {
+	// When checkPrivileges fails, Start should log a warning but return nil
+	testInterface := `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
+	cfg := &Config{
+		Interface:       testInterface,
+		SnapLen:         65535,
+		Promiscuous:     true,
+		ParseAttributes: true,
+	}
 	sink := &consumertest.LogsSink{}
-	logger := zaptest.NewLogger(t)
-	receiver := newTestReceiver(t, cfg, logger, sink)
+	receiver := newTestReceiver(t, cfg, nil, sink)
 
-	pr, pw := io.Pipe()
-	stdout := io.NopCloser(pr)
+	// Set up mock with Npcap not installed
+	mock := newMockPcapInterface().withFindAllError(errNpcapNotInstalled)
+	cleanup := setupMock(mock)
+	defer cleanup()
 
-	go func() {
-		defer pw.Close()
-		writer := pcapgo.NewWriter(pw)
-		writer.WriteFileHeader(65535, layers.LinkTypeEthernet)
-
-		// Create IPv6 packet
-		buf := make([]byte, 0, 74)
-		// Ethernet header (14 bytes)
-		ethHeader := make([]byte, 14)
-		binary.BigEndian.PutUint16(ethHeader[12:14], 0x86DD) // EtherType: IPv6
-		buf = append(buf, ethHeader...)
-		ipv6Header := make([]byte, 40)
-		ipv6Header[0] = 0x60 // Version 6
-		ipv6Header[6] = 6    // Next header: TCP
-		// Source IPv6: 2001:db8::1
-		ipv6Header[8] = 0x20
-		ipv6Header[9] = 0x01
-		ipv6Header[10] = 0x0d
-		ipv6Header[11] = 0xb8
-		ipv6Header[14] = 0x00
-		ipv6Header[15] = 0x01
-		// Dest IPv6: 2001:db8::2
-		ipv6Header[24] = 0x20
-		ipv6Header[25] = 0x01
-		ipv6Header[26] = 0x0d
-		ipv6Header[27] = 0xb8
-		ipv6Header[30] = 0x00
-		ipv6Header[31] = 0x02
-		buf = append(buf, ipv6Header...)
-		tcpHeader := make([]byte, 20)
-		binary.BigEndian.PutUint16(tcpHeader[0:2], 8080)
-		binary.BigEndian.PutUint16(tcpHeader[2:4], 80)
-		buf = append(buf, tcpHeader...)
-
-		ci := gopacket.CaptureInfo{
-			Timestamp:     time.Now(),
-			CaptureLength: len(buf),
-			Length:        len(buf),
-		}
-		writer.WritePacket(ci, buf)
-	}()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	go receiver.readPacketsWindows(ctx, stdout)
-
-	require.Eventually(t, func() bool {
-		return sink.LogRecordCount() == 1
-	}, 2*time.Second, 10*time.Millisecond)
-
-	logs := sink.AllLogs()
-	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
-	attrs := logRecord.Attributes()
-
-	protocol, ok := attrs.Get("network.type")
-	require.True(t, ok)
-	// Note: pcapgo parser may report "IPv6" instead of "IP6"
-	require.Contains(t, []string{"IP6", "IPv6"}, protocol.AsString())
-
-	interfaceName, ok := attrs.Get("network.interface.name")
-	require.True(t, ok)
-	require.Equal(t, "1", interfaceName.AsString())
-}
-
-func TestReadPacketsWindows_ICMPPacket(t *testing.T) {
-	cfg := &Config{Interface: "1", ParseAttributes: true}
-	sink := &consumertest.LogsSink{}
-	logger := zaptest.NewLogger(t)
-	receiver := newTestReceiver(t, cfg, logger, sink)
-
-	pr, pw := io.Pipe()
-	stdout := io.NopCloser(pr)
-
-	go func() {
-		defer pw.Close()
-		writer := pcapgo.NewWriter(pw)
-		writer.WriteFileHeader(65535, layers.LinkTypeEthernet)
-
-		// Create ICMP packet
-		buf := make([]byte, 0, 42)
-		// Ethernet header (14 bytes)
-		ethHeader := make([]byte, 14)
-		binary.BigEndian.PutUint16(ethHeader[12:14], 0x0800) // EtherType: IPv4
-		buf = append(buf, ethHeader...)
-		ipHeader := make([]byte, 20)
-		ipHeader[0] = 0x45
-		ipHeader[9] = 1 // ICMP protocol
-		binary.BigEndian.PutUint16(ipHeader[2:4], 42)
-		ipHeader[12] = 192 // Source IP: 192.168.1.100
-		ipHeader[13] = 168
-		ipHeader[14] = 1
-		ipHeader[15] = 100
-		ipHeader[16] = 192 // Dest IP: 192.168.1.1
-		ipHeader[17] = 168
-		ipHeader[18] = 1
-		ipHeader[19] = 1
-		buf = append(buf, ipHeader...)
-		icmpHeader := make([]byte, 8)
-		icmpHeader[0] = 8 // Echo request
-		buf = append(buf, icmpHeader...)
-
-		ci := gopacket.CaptureInfo{
-			Timestamp:     time.Now(),
-			CaptureLength: len(buf),
-			Length:        len(buf),
-		}
-		writer.WritePacket(ci, buf)
-	}()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	go receiver.readPacketsWindows(ctx, stdout)
-
-	require.Eventually(t, func() bool {
-		return sink.LogRecordCount() == 1
-	}, 2*time.Second, 10*time.Millisecond)
-
-	logs := sink.AllLogs()
-	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
-	attrs := logRecord.Attributes()
-
-	interfaceName, ok := attrs.Get("network.interface.name")
-	require.True(t, ok)
-	require.Equal(t, "1", interfaceName.AsString())
-
-	transport, ok := attrs.Get("network.transport")
-	require.True(t, ok)
-	require.Equal(t, "ICMP", transport.AsString())
-
-	// ICMP should not have ports
-	_, srcPortExists := attrs.Get("source.port")
-	_, dstPortExists := attrs.Get("destination.port")
-	require.False(t, srcPortExists)
-	require.False(t, dstPortExists)
+	ctx := context.Background()
+	err := receiver.Start(ctx, componenttest.NewNopHost())
+	// Should not return error, just log warning
+	require.NoError(t, err)
 }
 
 func TestStart_InvalidConfig(t *testing.T) {
@@ -592,7 +255,7 @@ func TestStart_InvalidConfig(t *testing.T) {
 		{
 			name: "invalid filter",
 			config: &Config{
-				Interface: "1",
+				Interface: `\Device\NPF_{12345678-1234-1234-1234-123456789012}`,
 				Filter:    "tcp port 80 && whoami",
 			},
 			wantError: "invalid character",
@@ -600,7 +263,7 @@ func TestStart_InvalidConfig(t *testing.T) {
 		{
 			name: "invalid snaplen",
 			config: &Config{
-				Interface: "1",
+				Interface: `\Device\NPF_{12345678-1234-1234-1234-123456789012}`,
 				SnapLen:   10,
 			},
 			wantError: "snaplen must be between",
@@ -616,4 +279,257 @@ func TestStart_InvalidConfig(t *testing.T) {
 			require.Contains(t, err.Error(), tt.wantError)
 		})
 	}
+}
+
+func TestShutdown_Windows(t *testing.T) {
+	testInterface := `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
+	cfg := &Config{
+		Interface:   testInterface,
+		SnapLen:     65535,
+		Promiscuous: true,
+	}
+	receiver := newTestReceiver(t, cfg, nil, nil)
+
+	// Set up mock
+	mockHandle := newMockPcapHandle()
+	mock := newMockPcapInterface().
+		withDevices(pcap.Interface{Name: testInterface}).
+		withOpenHandle(mockHandle)
+	cleanup := setupMock(mock)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	// Start receiver
+	err := receiver.Start(ctx, componenttest.NewNopHost())
+	require.NoError(t, err)
+
+	// Wait a short time for goroutines to start
+	time.Sleep(10 * time.Millisecond)
+
+	// Shutdown
+	err = receiver.Shutdown(ctx)
+	require.NoError(t, err)
+
+	// Verify handle was closed
+	require.True(t, mockHandle.closed)
+}
+
+func TestShutdown_Windows_NoHandle(t *testing.T) {
+	testInterface := `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
+	cfg := &Config{
+		Interface:   testInterface,
+		SnapLen:     65535,
+		Promiscuous: true,
+	}
+	receiver := newTestReceiver(t, cfg, nil, nil)
+
+	// Shutdown without starting (no handle)
+	err := receiver.Shutdown(context.Background())
+	require.NoError(t, err)
+}
+
+func TestReadPacketsWindows_TCPPacket(t *testing.T) {
+	testInterface := `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
+	cfg := &Config{
+		Interface:       testInterface,
+		SnapLen:         65535,
+		Promiscuous:     true,
+		ParseAttributes: true,
+	}
+	sink := &consumertest.LogsSink{}
+	receiver := newTestReceiver(t, cfg, nil, sink)
+
+	// Create a mock handle that returns a TCP packet then EOF
+	mockHandle := newMockPcapHandle().withPackets(
+		mockPacket{
+			data: sampleTCPPacket,
+			ci: gopacket.CaptureInfo{
+				Timestamp:     time.Now(),
+				CaptureLength: len(sampleTCPPacket),
+				Length:        len(sampleTCPPacket),
+			},
+		},
+	)
+
+	mock := newMockPcapInterface().
+		withDevices(pcap.Interface{Name: testInterface}).
+		withOpenHandle(mockHandle)
+	cleanup := setupMock(mock)
+	defer cleanup()
+
+	ctx := context.Background()
+	err := receiver.Start(ctx, componenttest.NewNopHost())
+	require.NoError(t, err)
+
+	// Wait for packet to be processed
+	require.Eventually(t, func() bool {
+		return sink.LogRecordCount() >= 1
+	}, 2*time.Second, 10*time.Millisecond, "Expected at least 1 log record")
+
+	// Shutdown
+	err = receiver.Shutdown(ctx)
+	require.NoError(t, err)
+
+	// Verify packet attributes
+	logs := sink.AllLogs()
+	require.GreaterOrEqual(t, len(logs), 1)
+	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
+	attrs := logRecord.Attributes()
+
+	// Check network type
+	networkType, ok := attrs.Get("network.type")
+	require.True(t, ok)
+	require.Equal(t, "IP", networkType.AsString())
+
+	// Check transport
+	transport, ok := attrs.Get("network.transport")
+	require.True(t, ok)
+	require.Equal(t, "TCP", transport.AsString())
+
+	// Check source address
+	srcAddr, ok := attrs.Get("source.address")
+	require.True(t, ok)
+	require.Equal(t, "192.168.1.100", srcAddr.AsString())
+
+	// Check destination address
+	dstAddr, ok := attrs.Get("destination.address")
+	require.True(t, ok)
+	require.Equal(t, "192.168.1.1", dstAddr.AsString())
+
+	// Check ports
+	srcPort, ok := attrs.Get("source.port")
+	require.True(t, ok)
+	require.Equal(t, int64(54321), srcPort.Int())
+
+	dstPort, ok := attrs.Get("destination.port")
+	require.True(t, ok)
+	require.Equal(t, int64(443), dstPort.Int())
+}
+
+func TestReadPacketsWindows_UDPPacket(t *testing.T) {
+	testInterface := `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
+	cfg := &Config{
+		Interface:       testInterface,
+		SnapLen:         65535,
+		Promiscuous:     true,
+		ParseAttributes: true,
+	}
+	sink := &consumertest.LogsSink{}
+	receiver := newTestReceiver(t, cfg, nil, sink)
+
+	// Create a mock handle that returns a UDP packet then EOF
+	mockHandle := newMockPcapHandle().withPackets(
+		mockPacket{
+			data: sampleUDPPacket,
+			ci: gopacket.CaptureInfo{
+				Timestamp:     time.Now(),
+				CaptureLength: len(sampleUDPPacket),
+				Length:        len(sampleUDPPacket),
+			},
+		},
+	)
+
+	mock := newMockPcapInterface().
+		withDevices(pcap.Interface{Name: testInterface}).
+		withOpenHandle(mockHandle)
+	cleanup := setupMock(mock)
+	defer cleanup()
+
+	ctx := context.Background()
+	err := receiver.Start(ctx, componenttest.NewNopHost())
+	require.NoError(t, err)
+
+	// Wait for packet to be processed
+	require.Eventually(t, func() bool {
+		return sink.LogRecordCount() >= 1
+	}, 2*time.Second, 10*time.Millisecond, "Expected at least 1 log record")
+
+	// Shutdown
+	err = receiver.Shutdown(ctx)
+	require.NoError(t, err)
+
+	// Verify packet attributes
+	logs := sink.AllLogs()
+	require.GreaterOrEqual(t, len(logs), 1)
+	logRecord := logs[0].ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
+	attrs := logRecord.Attributes()
+
+	// Check transport
+	transport, ok := attrs.Get("network.transport")
+	require.True(t, ok)
+	require.Equal(t, "UDP", transport.AsString())
+
+	// Check source address
+	srcAddr, ok := attrs.Get("source.address")
+	require.True(t, ok)
+	require.Equal(t, "10.0.0.5", srcAddr.AsString())
+
+	// Check destination address
+	dstAddr, ok := attrs.Get("destination.address")
+	require.True(t, ok)
+	require.Equal(t, "8.8.8.8", dstAddr.AsString())
+
+	// Check ports
+	srcPort, ok := attrs.Get("source.port")
+	require.True(t, ok)
+	require.Equal(t, int64(12345), srcPort.Int())
+
+	dstPort, ok := attrs.Get("destination.port")
+	require.True(t, ok)
+	require.Equal(t, int64(53), dstPort.Int())
+}
+
+func TestReadPacketsWindows_MultiplePackets(t *testing.T) {
+	testInterface := `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
+	cfg := &Config{
+		Interface:       testInterface,
+		SnapLen:         65535,
+		Promiscuous:     true,
+		ParseAttributes: true,
+	}
+	sink := &consumertest.LogsSink{}
+	receiver := newTestReceiver(t, cfg, nil, sink)
+
+	// Create a mock handle that returns multiple packets then EOF
+	mockHandle := newMockPcapHandle().withPackets(
+		mockPacket{
+			data: sampleTCPPacket,
+			ci: gopacket.CaptureInfo{
+				Timestamp:     time.Now(),
+				CaptureLength: len(sampleTCPPacket),
+				Length:        len(sampleTCPPacket),
+			},
+		},
+		mockPacket{
+			data: sampleUDPPacket,
+			ci: gopacket.CaptureInfo{
+				Timestamp:     time.Now(),
+				CaptureLength: len(sampleUDPPacket),
+				Length:        len(sampleUDPPacket),
+			},
+		},
+	)
+
+	mock := newMockPcapInterface().
+		withDevices(pcap.Interface{Name: testInterface}).
+		withOpenHandle(mockHandle)
+	cleanup := setupMock(mock)
+	defer cleanup()
+
+	ctx := context.Background()
+	err := receiver.Start(ctx, componenttest.NewNopHost())
+	require.NoError(t, err)
+
+	// Wait for both packets to be processed
+	require.Eventually(t, func() bool {
+		return sink.LogRecordCount() >= 2
+	}, 2*time.Second, 10*time.Millisecond, "Expected at least 2 log records")
+
+	// Shutdown
+	err = receiver.Shutdown(ctx)
+	require.NoError(t, err)
+
+	// Verify we got both packets
+	require.GreaterOrEqual(t, sink.LogRecordCount(), 2)
 }
