@@ -5,6 +5,10 @@ status:
   stability:
     alpha: [logs]
 
+tests:
+  config:
+    interface: "eth0"
+
 telemetry:
   metrics:
     pcap.packets_captured:

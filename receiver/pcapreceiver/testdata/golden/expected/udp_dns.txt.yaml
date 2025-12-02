@@ -1,0 +1,32 @@
+resourceLogs:
+  - resource: {}
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: destination.address
+                value:
+                  stringValue: "8.8.8.8"
+              - key: destination.port
+                value:
+                  intValue: "53"
+              - key: network.interface.name
+                value:
+                  stringValue: eth0
+              - key: network.transport
+                value:
+                  stringValue: UDP
+              - key: network.type
+                value:
+                  stringValue: IP
+              - key: packet.length
+                value:
+                  intValue: "32"
+              - key: source.address
+                value:
+                  stringValue: "10.0.0.5"
+              - key: source.port
+                value:
+                  intValue: "12345"
+            body:
+              stringValue: "0x450000390000400040113cc60a00000508080808303900350025123430390100"
+        scope: {}

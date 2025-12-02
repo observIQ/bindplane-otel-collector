@@ -15,7 +15,7 @@
 //go:generate mdatagen metadata.yaml
 
 // Package pcapreceiver implements a receiver that captures network packets
-// using system CLI tools (tcpdump on macOS/Linux, dumpcap on Windows) and
+// using system CLI tools (tcpdump on macOS/Linux, Npcap on Windows) and
 // emits them as OpenTelemetry logs with hex-encoded packet bodies and
 // structured attributes.
 //

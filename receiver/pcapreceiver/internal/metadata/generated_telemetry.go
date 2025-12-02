@@ -60,7 +60,7 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 	var err, errs error
 	builder.PcapPacketsCaptured, err = builder.meter.Int64Counter(
 		"otelcol_pcap.packets_captured",
-		metric.WithDescription("The number of packets captured by the PCAP receiver [Alpha]"),
+		metric.WithDescription("The number of packets captured by the PCAP receiver [alpha]"),
 		metric.WithUnit("{packets}"),
 	)
 	errs = errors.Join(errs, err)

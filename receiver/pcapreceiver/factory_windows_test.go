@@ -23,6 +23,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/receiver/receivertest"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
 )
 
 func TestCreateDefaultConfig_Windows(t *testing.T) {
@@ -31,7 +34,7 @@ func TestCreateDefaultConfig_Windows(t *testing.T) {
 
 	pcapCfg, ok := cfg.(*Config)
 	require.True(t, ok)
-	require.Equal(t, "1", pcapCfg.Interface) // Windows default is numeric ID "1"
+	require.Equal(t, "", pcapCfg.Interface)
 	require.Equal(t, 65535, pcapCfg.SnapLen)
 	require.True(t, pcapCfg.Promiscuous)
 	require.True(t, pcapCfg.ParseAttributes)
@@ -41,10 +44,23 @@ func TestCreateLogsReceiver_Windows(t *testing.T) {
 	factory := NewFactory()
 	cfg := createDefaultConfig()
 
-	settings := receivertest.NewNopSettings(factory.Type())
-	consumer := consumertest.NewNop()
+	// Set a valid interface for the test
+	pcapCfg := cfg.(*Config)
+	pcapCfg.Interface = `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
 
-	recv, err := factory.CreateLogs(context.Background(), settings, cfg, consumer)
+	// Create an observed logger to capture log messages
+	core, observed := observer.New(zapcore.WarnLevel)
+
+	settings := receivertest.NewNopSettings(factory.Type())
+	settings.Logger = zap.New(core)
+
+	recv, err := factory.CreateLogs(context.Background(), settings, cfg, consumertest.NewNop())
 	require.NoError(t, err)
 	require.NotNil(t, recv)
+
+	// Verify the Npcap warning was logged
+	logs := observed.All()
+	require.Len(t, logs, 1)
+	require.Equal(t, zapcore.WarnLevel, logs[0].Level)
+	require.Contains(t, logs[0].Message, "PCAP receiver on Windows requires Npcap")
 }

@@ -1,0 +1,32 @@
+resourceLogs:
+  - resource: {}
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: destination.address
+                value:
+                  stringValue: "2001:db8::2"
+              - key: destination.port
+                value:
+                  intValue: "80"
+              - key: network.interface.name
+                value:
+                  stringValue: eth0
+              - key: network.transport
+                value:
+                  stringValue: TCP
+              - key: network.type
+                value:
+                  stringValue: IP6
+              - key: packet.length
+                value:
+                  intValue: "48"
+              - key: source.address
+                value:
+                  stringValue: "2001:db8::1"
+              - key: source.port
+                value:
+                  intValue: "8080"
+            body:
+              stringValue: "0x600000000014064020010db800000000000000000000000120010db80000000000000000000000021f9000503ade68b1"
+        scope: {}

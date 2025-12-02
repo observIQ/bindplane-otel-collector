@@ -26,11 +26,10 @@ import (
 // createDefaultConfig creates the default configuration for the receiver on Windows
 func createDefaultConfig() component.Config {
 	return &Config{
-		Interface:       "1",   // Default Windows interface (numeric ID, typically the first interface)
+		Interface:       "",    // Device names for Npcap use GUIDs, so we can't rely on a default value
 		SnapLen:         65535, // Maximum snapshot length
 		Promiscuous:     true,  // Enable promiscuous mode by default
 		ParseAttributes: true,  // Parse attributes by default
-		ExecutablePath:  "dumpcap",
 	}
 }
 

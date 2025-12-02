@@ -1,0 +1,26 @@
+resourceLogs:
+  - resource: {}
+    scopeLogs:
+      - logRecords:
+          - attributes:
+              - key: destination.address
+                value:
+                  stringValue: "192.168.1.1"
+              - key: network.interface.name
+                value:
+                  stringValue: eth0
+              - key: network.transport
+                value:
+                  stringValue: ICMP
+              - key: network.type
+                value:
+                  stringValue: IP
+              - key: packet.length
+                value:
+                  intValue: "32"
+              - key: source.address
+                value:
+                  stringValue: "192.168.1.100"
+            body:
+              stringValue: "0x45000054000040004001b6e8c0a80164c0a801010800f7ff04d2000100010203"
+        scope: {}
