@@ -46,7 +46,7 @@ type restAPIClient interface {
 	// Returns the full response as map[string]any for pagination parsing.
 	GetFullResponse(ctx context.Context, requestURL string, params url.Values) (map[string]any, error)
 	// Shutdown shuts down the REST API client.
-	Shutdown(ctx context.Context) error
+	Shutdown() error
 }
 
 // defaultRESTAPIClient is the default implementation of restAPIClient.
@@ -90,7 +90,7 @@ func newRESTAPIClient(
 }
 
 // Shutdown shuts down the REST API client.
-func (c *defaultRESTAPIClient) Shutdown(ctx context.Context) error {
+func (c *defaultRESTAPIClient) Shutdown() error {
 	return nil
 }
 
