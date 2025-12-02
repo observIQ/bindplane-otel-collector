@@ -44,11 +44,10 @@ type checkpointData struct {
 	PaginationState *paginationState `json:"pagination_state"`
 }
 
-// restAPILogsReceiver is a receiver that pulls logs from a REST API.
-type restAPILogsReceiver struct {
+// baseReceiver contains shared functionality for REST API receivers.
+type baseReceiver struct {
 	settings      component.TelemetrySettings
 	logger        *zap.Logger
-	consumer      consumer.Logs
 	cfg           *Config
 	client        restAPIClient
 	storageClient storage.Client
@@ -61,53 +60,228 @@ type restAPILogsReceiver struct {
 	paginationState     *paginationState
 }
 
+// initializeClient creates the HTTP client.
+func (b *baseReceiver) initializeClient(ctx context.Context, host component.Host) error {
+	client, err := newRESTAPIClient(ctx, b.settings, b.cfg, host)
+	if err != nil {
+		return fmt.Errorf("failed to create REST API client: %w", err)
+	}
+	b.client = client
+	return nil
+}
+
+// initializeStorage sets up storage and loads checkpoint if configured.
+func (b *baseReceiver) initializeStorage(ctx context.Context, host component.Host) error {
+	if b.cfg.StorageID != nil {
+		storageClient, err := adapter.GetStorageClient(ctx, host, b.cfg.StorageID, b.id)
+		if err != nil {
+			return fmt.Errorf("failed to get storage client: %w", err)
+		}
+		b.storageClient = storageClient
+		b.loadCheckpoint(ctx)
+	} else {
+		b.storageClient = storage.NewNopClient()
+	}
+	return nil
+}
+
+// initializePagination sets up pagination state.
+func (b *baseReceiver) initializePagination() {
+	b.paginationState = newPaginationState(b.cfg)
+}
+
+// shutdownBase handles common shutdown logic.
+func (b *baseReceiver) shutdownBase(ctx context.Context, receiverType string) error {
+	b.logger.Debug(fmt.Sprintf("shutting down REST API %s receiver", receiverType))
+	if b.cancel != nil {
+		b.cancel()
+	}
+	b.wg.Wait()
+
+	if b.storageClient != nil {
+		if err := b.saveCheckpoint(ctx); err != nil {
+			b.logger.Error("failed to save checkpoint", zap.Error(err))
+		}
+		return b.storageClient.Close(ctx)
+	}
+
+	return nil
+}
+
+// adjustPollInterval adjusts the poll interval based on whether data was received.
+func (b *baseReceiver) adjustPollInterval(recordCount int) {
+	if recordCount > 0 {
+		// Data received - reset to minimum interval for responsive polling
+		if b.currentPollInterval != minPollInterval {
+			b.logger.Debug("resetting poll interval after receiving data",
+				zap.Duration("new_interval", minPollInterval),
+				zap.Duration("previous_interval", b.currentPollInterval))
+			b.currentPollInterval = minPollInterval
+		}
+	} else {
+		// No data - increase interval (backoff) up to max
+		newInterval := time.Duration(float64(b.currentPollInterval) * backoffMultiplier)
+		if newInterval > b.cfg.MaxPollInterval {
+			newInterval = b.cfg.MaxPollInterval
+		}
+		if newInterval != b.currentPollInterval {
+			b.logger.Debug("increasing poll interval due to no data",
+				zap.Duration("new_interval", newInterval),
+				zap.Duration("previous_interval", b.currentPollInterval))
+			b.currentPollInterval = newInterval
+		}
+	}
+}
+
+// loadCheckpoint loads the checkpoint from storage.
+func (b *baseReceiver) loadCheckpoint(ctx context.Context) {
+	bytes, err := b.storageClient.Get(ctx, checkpointStorageKey)
+	if err != nil {
+		b.logger.Info("unable to load checkpoint, starting fresh", zap.Error(err))
+		return
+	}
+
+	if bytes == nil {
+		return
+	}
+
+	var checkpoint checkpointData
+	if err := jsoniter.Unmarshal(bytes, &checkpoint); err != nil {
+		b.logger.Warn("unable to decode checkpoint, starting fresh", zap.Error(err))
+		return
+	}
+
+	if checkpoint.PaginationState != nil {
+		b.paginationState = checkpoint.PaginationState
+	}
+}
+
+// saveCheckpoint saves the checkpoint to storage.
+func (b *baseReceiver) saveCheckpoint(ctx context.Context) error {
+	if b.storageClient == nil || b.paginationState == nil {
+		return nil // No storage client or pagination state, nothing to save
+	}
+
+	checkpoint := checkpointData{
+		PaginationState: b.paginationState,
+	}
+
+	bytes, err := jsoniter.Marshal(checkpoint)
+	if err != nil {
+		return fmt.Errorf("failed to marshal checkpoint: %w", err)
+	}
+
+	return b.storageClient.Set(ctx, checkpointStorageKey, bytes)
+}
+
+// fetchDataPage fetches a single page of data from the API.
+// Returns the full response, extracted data, and any error.
+func (b *baseReceiver) fetchDataPage(ctx context.Context, requestURL string, params url.Values) (map[string]any, []map[string]any, error) {
+	fullResponse, err := b.client.GetFullResponse(ctx, requestURL, params)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get full response: %w", err)
+	}
+
+	data := extractDataFromResponse(fullResponse, b.cfg.ResponseField, b.logger)
+	return fullResponse, data, nil
+}
+
+// handlePagination checks if there are more pages and updates pagination state.
+// Returns true if there are more pages to fetch.
+func (b *baseReceiver) handlePagination(fullResponse map[string]any, data []map[string]any) (bool, url.Values) {
+	// Check pagination mode
+	if b.cfg.Pagination.Mode == paginationModeNone {
+		return false, nil
+	}
+
+	// Parse pagination response to check if there are more pages
+	hasMore, err := parsePaginationResponse(b.cfg, fullResponse, data, b.paginationState)
+	if err != nil {
+		b.logger.Warn("failed to parse pagination response", zap.Error(err))
+		return false, nil
+	}
+
+	// Check page limit
+	if !checkPageLimit(b.cfg, b.paginationState) {
+		b.logger.Debug("page limit reached, stopping pagination")
+		return false, nil
+	}
+
+	if !hasMore {
+		return false, nil
+	}
+
+	// Update pagination state for next page
+	if b.cfg.Pagination.Mode == paginationModeOffsetLimit {
+		dataCount := getDataCount(fullResponse)
+		if dataCount > 0 {
+			b.paginationState.currentOffset += dataCount
+			b.paginationState.pagesFetched++
+		} else {
+			updatePaginationState(b.cfg, b.paginationState)
+		}
+	} else {
+		updatePaginationState(b.cfg, b.paginationState)
+	}
+
+	// Rebuild params with new pagination state
+	params := url.Values{}
+	paginationParams := buildPaginationParams(b.cfg, b.paginationState)
+	for key, values := range paginationParams {
+		for _, value := range values {
+			params.Add(key, value)
+		}
+	}
+
+	return true, params
+}
+
+// resetTimestampPagination resets timestamp pagination state after a poll cycle.
+func (b *baseReceiver) resetTimestampPagination() {
+	if b.cfg.Pagination.Mode == paginationModeTimestamp {
+		if !b.cfg.Pagination.Timestamp.InitialTimestamp.IsZero() {
+			b.paginationState.currentTimestamp = b.cfg.Pagination.Timestamp.InitialTimestamp
+		} else {
+			b.paginationState.currentTimestamp = time.Time{}
+		}
+		b.paginationState.pagesFetched = 0
+	}
+}
+
+// restAPILogsReceiver is a receiver that pulls logs from a REST API.
+type restAPILogsReceiver struct {
+	baseReceiver
+	consumer consumer.Logs
+}
+
 // newRESTAPILogsReceiver creates a new REST API logs receiver.
 func newRESTAPILogsReceiver(
 	params receiver.Settings,
 	cfg *Config,
-	consumer consumer.Logs,
+	cons consumer.Logs,
 ) (*restAPILogsReceiver, error) {
 	return &restAPILogsReceiver{
-		settings: params.TelemetrySettings,
-		logger:   params.Logger,
-		consumer: consumer,
-		cfg:      cfg,
-		id:       params.ID,
+		baseReceiver: baseReceiver{
+			settings: params.TelemetrySettings,
+			logger:   params.Logger,
+			cfg:      cfg,
+			id:       params.ID,
+		},
+		consumer: cons,
 	}, nil
 }
 
 // Start starts the receiver.
 func (r *restAPILogsReceiver) Start(ctx context.Context, host component.Host) error {
-	// Create HTTP client
-	client, err := newRESTAPIClient(ctx, r.settings, r.cfg, host)
-	if err != nil {
-		return fmt.Errorf("failed to create REST API client: %w", err)
+	if err := r.initializeClient(ctx, host); err != nil {
+		return err
 	}
-	r.client = client
-
-	// Initialize storage client if configured
-	if r.cfg.StorageID != nil {
-		storageClient, err := adapter.GetStorageClient(ctx, host, r.cfg.StorageID, r.id)
-		if err != nil {
-			return fmt.Errorf("failed to get storage client: %w", err)
-		}
-		r.storageClient = storageClient
-		r.loadCheckpoint(ctx)
-	} else {
-		r.storageClient = storage.NewNopClient()
-		r.loadCheckpoint(ctx) // Still load checkpoint even with nop client
+	if err := r.initializeStorage(ctx, host); err != nil {
+		return err
 	}
+	r.initializePagination()
 
-	// Initialize pagination state
-	r.paginationState = newPaginationState(r.cfg)
-	// Set limit if configured
-	if r.cfg.Pagination.Mode == paginationModeOffsetLimit && r.cfg.Pagination.OffsetLimit.LimitFieldName != "" {
-		// Use a reasonable default limit (can be overridden by API)
-		r.paginationState.limit = 10
-	}
-
-	// Start polling
-	cancelCtx, cancel := context.WithCancel(ctx)
+	cancelCtx, cancel := context.WithCancel(context.Background())
 	r.cancel = cancel
 
 	return r.startPolling(cancelCtx)
@@ -115,20 +289,7 @@ func (r *restAPILogsReceiver) Start(ctx context.Context, host component.Host) er
 
 // Shutdown stops the receiver.
 func (r *restAPILogsReceiver) Shutdown(ctx context.Context) error {
-	r.logger.Debug("shutting down REST API logs receiver")
-	if r.cancel != nil {
-		r.cancel()
-	}
-	r.wg.Wait()
-
-	if r.storageClient != nil {
-		if err := r.saveCheckpoint(ctx); err != nil {
-			r.logger.Error("failed to save checkpoint", zap.Error(err))
-		}
-		return r.storageClient.Close(ctx)
-	}
-
-	return nil
+	return r.shutdownBase(ctx, "logs")
 }
 
 // startPolling starts the polling goroutine.
@@ -167,31 +328,6 @@ func (r *restAPILogsReceiver) startPolling(ctx context.Context) error {
 	return nil
 }
 
-// adjustPollInterval adjusts the poll interval based on whether data was received.
-func (r *restAPILogsReceiver) adjustPollInterval(recordCount int) {
-	if recordCount > 0 {
-		// Data received - reset to minimum interval for responsive polling
-		if r.currentPollInterval != minPollInterval {
-			r.logger.Debug("resetting poll interval after receiving data",
-				zap.Duration("new_interval", minPollInterval),
-				zap.Duration("previous_interval", r.currentPollInterval))
-			r.currentPollInterval = minPollInterval
-		}
-	} else {
-		// No data - increase interval (backoff) up to max
-		newInterval := time.Duration(float64(r.currentPollInterval) * backoffMultiplier)
-		if newInterval > r.cfg.MaxPollInterval {
-			newInterval = r.cfg.MaxPollInterval
-		}
-		if newInterval != r.currentPollInterval {
-			r.logger.Debug("increasing poll interval due to no data",
-				zap.Duration("new_interval", newInterval),
-				zap.Duration("previous_interval", r.currentPollInterval))
-			r.currentPollInterval = newInterval
-		}
-	}
-}
-
 // poll performs a single polling cycle. Returns the total number of records received.
 func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
 	r.mu.Lock()
@@ -199,33 +335,18 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
 
 	totalRecords := 0
 
-	// Build request URL with pagination
-	requestURL := r.cfg.URL
-	params := url.Values{}
-
-	// Add pagination parameters
-	paginationParams := buildPaginationParams(r.cfg, r.paginationState)
-	for key, values := range paginationParams {
-		for _, value := range values {
-			params.Add(key, value)
-		}
-	}
+	// Build initial pagination parameters
+	params := buildPaginationParams(r.cfg, r.paginationState)
 
 	// Handle pagination - fetch all pages in this poll cycle
 	for {
-		// Get full response to parse pagination info and extract data
-		fullResponse, err := r.client.GetFullResponse(ctx, requestURL, params)
+		fullResponse, data, err := r.fetchDataPage(ctx, r.cfg.URL, params)
 		if err != nil {
-			return totalRecords, fmt.Errorf("failed to get full response: %w", err)
+			return totalRecords, err
 		}
 
-		// Extract data array from response
-		data := extractDataFromResponse(fullResponse, r.cfg.ResponseField, r.logger)
-
-		// Convert to logs
+		// Convert to logs and consume
 		logs := convertJSONToLogs(data, r.logger)
-
-		// Consume logs if any
 		if logs.LogRecordCount() > 0 {
 			totalRecords += logs.LogRecordCount()
 			if err := r.consumer.ConsumeLogs(ctx, logs); err != nil {
@@ -233,109 +354,16 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
 			}
 		}
 
-		// Check pagination
-		if r.cfg.Pagination.Mode == paginationModeNone {
-			// No pagination, we're done
-			break
-		}
-
-		// Parse pagination response to check if there are more pages
-		// Pass the already-extracted data array to avoid re-extraction inconsistencies
-		hasMore, err := parsePaginationResponse(r.cfg, fullResponse, data, r.paginationState)
-		if err != nil {
-			r.logger.Warn("failed to parse pagination response", zap.Error(err))
-			break
-		}
-
-		// Check page limit
-		if !checkPageLimit(r.cfg, r.paginationState) {
-			r.logger.Debug("page limit reached, stopping pagination")
-			break
-		}
-
+		// Check for more pages
+		hasMore, nextParams := r.handlePagination(fullResponse, data)
 		if !hasMore {
-			// No more pages
 			break
 		}
-
-		// Update pagination state for next page
-		// For offset/limit, use actual data count instead of limit
-		if r.cfg.Pagination.Mode == paginationModeOffsetLimit {
-			dataCount := getDataCount(fullResponse)
-			if dataCount > 0 {
-				r.paginationState.currentOffset += dataCount
-				r.paginationState.pagesFetched++
-			} else {
-				// Fallback to using limit
-				updatePaginationState(r.cfg, r.paginationState)
-			}
-		} else {
-			updatePaginationState(r.cfg, r.paginationState)
-		}
-
-		// Rebuild params with new pagination state
-		params = url.Values{}
-		paginationParams := buildPaginationParams(r.cfg, r.paginationState)
-		for key, values := range paginationParams {
-			for _, value := range values {
-				params.Add(key, value)
-			}
-		}
+		params = nextParams
 	}
 
-	// Reset timestamp after completing poll cycle
-	// This ensures next poll starts fresh from the initial timestamp
-	if r.cfg.Pagination.Mode == paginationModeTimestamp {
-		if !r.cfg.Pagination.Timestamp.InitialTimestamp.IsZero() {
-			r.paginationState.currentTimestamp = r.cfg.Pagination.Timestamp.InitialTimestamp
-		} else {
-			r.paginationState.currentTimestamp = time.Time{}
-		}
-		r.paginationState.pagesFetched = 0
-	}
-
+	r.resetTimestampPagination()
 	return totalRecords, nil
-}
-
-// loadCheckpoint loads the checkpoint from storage.
-func (r *restAPILogsReceiver) loadCheckpoint(ctx context.Context) {
-	bytes, err := r.storageClient.Get(ctx, checkpointStorageKey)
-	if err != nil {
-		r.logger.Info("unable to load checkpoint, starting fresh", zap.Error(err))
-		return
-	}
-
-	if bytes == nil {
-		return
-	}
-
-	var checkpoint checkpointData
-	if err := jsoniter.Unmarshal(bytes, &checkpoint); err != nil {
-		r.logger.Warn("unable to decode checkpoint, starting fresh", zap.Error(err))
-		return
-	}
-
-	if checkpoint.PaginationState != nil {
-		r.paginationState = checkpoint.PaginationState
-	}
-}
-
-// saveCheckpoint saves the checkpoint to storage.
-func (r *restAPILogsReceiver) saveCheckpoint(ctx context.Context) error {
-	if r.storageClient == nil || r.paginationState == nil {
-		return nil // No storage client or pagination state, nothing to save
-	}
-
-	checkpoint := checkpointData{
-		PaginationState: r.paginationState,
-	}
-
-	bytes, err := jsoniter.Marshal(checkpoint)
-	if err != nil {
-		return fmt.Errorf("failed to marshal checkpoint: %w", err)
-	}
-
-	return r.storageClient.Set(ctx, checkpointStorageKey, bytes)
 }
 
 // getNestedField retrieves a value from a nested map using dot notation.
@@ -404,68 +432,38 @@ func extractDataFromResponse(response map[string]any, responseField string, logg
 
 // restAPIMetricsReceiver is a receiver that pulls metrics from a REST API.
 type restAPIMetricsReceiver struct {
-	settings      component.TelemetrySettings
-	logger        *zap.Logger
-	consumer      consumer.Metrics
-	cfg           *Config
-	client        restAPIClient
-	storageClient storage.Client
-	id            component.ID
-
-	wg                  sync.WaitGroup
-	mu                  sync.Mutex
-	currentPollInterval time.Duration // current adaptive poll interval
-	cancel              context.CancelFunc
-	paginationState     *paginationState
+	baseReceiver
+	consumer consumer.Metrics
 }
 
 // newRESTAPIMetricsReceiver creates a new REST API metrics receiver.
 func newRESTAPIMetricsReceiver(
 	params receiver.Settings,
 	cfg *Config,
-	consumer consumer.Metrics,
+	cons consumer.Metrics,
 ) (*restAPIMetricsReceiver, error) {
 	return &restAPIMetricsReceiver{
-		settings: params.TelemetrySettings,
-		logger:   params.Logger,
-		consumer: consumer,
-		cfg:      cfg,
-		id:       params.ID,
+		baseReceiver: baseReceiver{
+			settings: params.TelemetrySettings,
+			logger:   params.Logger,
+			cfg:      cfg,
+			id:       params.ID,
+		},
+		consumer: cons,
 	}, nil
 }
 
 // Start starts the receiver.
 func (r *restAPIMetricsReceiver) Start(ctx context.Context, host component.Host) error {
-	// Create HTTP client
-	client, err := newRESTAPIClient(ctx, r.settings, r.cfg, host)
-	if err != nil {
-		return fmt.Errorf("failed to create REST API client: %w", err)
+	if err := r.initializeClient(ctx, host); err != nil {
+		return err
 	}
-	r.client = client
-
-	// Initialize storage client if configured
-	if r.cfg.StorageID != nil {
-		storageClient, err := adapter.GetStorageClient(ctx, host, r.cfg.StorageID, r.id)
-		if err != nil {
-			return fmt.Errorf("failed to get storage client: %w", err)
-		}
-		r.storageClient = storageClient
-		r.loadCheckpoint(ctx)
-	} else {
-		r.storageClient = storage.NewNopClient()
-		r.loadCheckpoint(ctx) // Still load checkpoint even with nop client
+	if err := r.initializeStorage(ctx, host); err != nil {
+		return err
 	}
+	r.initializePagination()
 
-	// Initialize pagination state
-	r.paginationState = newPaginationState(r.cfg)
-	// Set limit if configured
-	if r.cfg.Pagination.Mode == paginationModeOffsetLimit && r.cfg.Pagination.OffsetLimit.LimitFieldName != "" {
-		// Use a reasonable default limit (can be overridden by API)
-		r.paginationState.limit = 10
-	}
-
-	// Start polling
-	cancelCtx, cancel := context.WithCancel(ctx)
+	cancelCtx, cancel := context.WithCancel(context.Background())
 	r.cancel = cancel
 
 	return r.startPolling(cancelCtx)
@@ -473,20 +471,7 @@ func (r *restAPIMetricsReceiver) Start(ctx context.Context, host component.Host)
 
 // Shutdown stops the receiver.
 func (r *restAPIMetricsReceiver) Shutdown(ctx context.Context) error {
-	r.logger.Debug("shutting down REST API metrics receiver")
-	if r.cancel != nil {
-		r.cancel()
-	}
-	r.wg.Wait()
-
-	if r.storageClient != nil {
-		if err := r.saveCheckpoint(ctx); err != nil {
-			r.logger.Error("failed to save checkpoint", zap.Error(err))
-		}
-		return r.storageClient.Close(ctx)
-	}
-
-	return nil
+	return r.shutdownBase(ctx, "metrics")
 }
 
 // startPolling starts the polling goroutine.
@@ -525,31 +510,6 @@ func (r *restAPIMetricsReceiver) startPolling(ctx context.Context) error {
 	return nil
 }
 
-// adjustPollInterval adjusts the poll interval based on whether data was received.
-func (r *restAPIMetricsReceiver) adjustPollInterval(recordCount int) {
-	if recordCount > 0 {
-		// Data received - reset to minimum interval for responsive polling
-		if r.currentPollInterval != minPollInterval {
-			r.logger.Debug("resetting poll interval after receiving data",
-				zap.Duration("new_interval", minPollInterval),
-				zap.Duration("previous_interval", r.currentPollInterval))
-			r.currentPollInterval = minPollInterval
-		}
-	} else {
-		// No data - increase interval (backoff) up to max
-		newInterval := time.Duration(float64(r.currentPollInterval) * backoffMultiplier)
-		if newInterval > r.cfg.MaxPollInterval {
-			newInterval = r.cfg.MaxPollInterval
-		}
-		if newInterval != r.currentPollInterval {
-			r.logger.Debug("increasing poll interval due to no data",
-				zap.Duration("new_interval", newInterval),
-				zap.Duration("previous_interval", r.currentPollInterval))
-			r.currentPollInterval = newInterval
-		}
-	}
-}
-
 // poll performs a single polling cycle. Returns the total number of records received.
 func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
 	r.mu.Lock()
@@ -557,33 +517,18 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
 
 	totalRecords := 0
 
-	// Build request URL with pagination
-	requestURL := r.cfg.URL
-	params := url.Values{}
-
-	// Add pagination parameters
-	paginationParams := buildPaginationParams(r.cfg, r.paginationState)
-	for key, values := range paginationParams {
-		for _, value := range values {
-			params.Add(key, value)
-		}
-	}
+	// Build initial pagination parameters
+	params := buildPaginationParams(r.cfg, r.paginationState)
 
 	// Handle pagination - fetch all pages in this poll cycle
 	for {
-		// Get full response to parse pagination info and extract data
-		fullResponse, err := r.client.GetFullResponse(ctx, requestURL, params)
+		fullResponse, data, err := r.fetchDataPage(ctx, r.cfg.URL, params)
 		if err != nil {
-			return totalRecords, fmt.Errorf("failed to get full response: %w", err)
+			return totalRecords, err
 		}
 
-		// Extract data array from response
-		data := extractDataFromResponse(fullResponse, r.cfg.ResponseField, r.logger)
-
-		// Convert to metrics
+		// Convert to metrics and consume
 		metrics := convertJSONToMetrics(data, &r.cfg.Metrics, r.logger)
-
-		// Consume metrics if any
 		if metrics.MetricCount() > 0 {
 			totalRecords += metrics.MetricCount()
 			if err := r.consumer.ConsumeMetrics(ctx, metrics); err != nil {
@@ -591,107 +536,14 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
 			}
 		}
 
-		// Check pagination
-		if r.cfg.Pagination.Mode == paginationModeNone {
-			// No pagination, we're done
-			break
-		}
-
-		// Parse pagination response to check if there are more pages
-		// Pass the already-extracted data array to avoid re-extraction inconsistencies
-		hasMore, err := parsePaginationResponse(r.cfg, fullResponse, data, r.paginationState)
-		if err != nil {
-			r.logger.Warn("failed to parse pagination response", zap.Error(err))
-			break
-		}
-
-		// Check page limit
-		if !checkPageLimit(r.cfg, r.paginationState) {
-			r.logger.Debug("page limit reached, stopping pagination")
-			break
-		}
-
+		// Check for more pages
+		hasMore, nextParams := r.handlePagination(fullResponse, data)
 		if !hasMore {
-			// No more pages
 			break
 		}
-
-		// Update pagination state for next page
-		// For offset/limit, use actual data count instead of limit
-		if r.cfg.Pagination.Mode == paginationModeOffsetLimit {
-			dataCount := getDataCount(fullResponse)
-			if dataCount > 0 {
-				r.paginationState.currentOffset += dataCount
-				r.paginationState.pagesFetched++
-			} else {
-				// Fallback to using limit
-				updatePaginationState(r.cfg, r.paginationState)
-			}
-		} else {
-			updatePaginationState(r.cfg, r.paginationState)
-		}
-
-		// Rebuild params with new pagination state
-		params = url.Values{}
-		paginationParams := buildPaginationParams(r.cfg, r.paginationState)
-		for key, values := range paginationParams {
-			for _, value := range values {
-				params.Add(key, value)
-			}
-		}
+		params = nextParams
 	}
 
-	// Reset timestamp after completing poll cycle
-	// This ensures next poll starts fresh from the initial timestamp
-	if r.cfg.Pagination.Mode == paginationModeTimestamp {
-		if !r.cfg.Pagination.Timestamp.InitialTimestamp.IsZero() {
-			r.paginationState.currentTimestamp = r.cfg.Pagination.Timestamp.InitialTimestamp
-		} else {
-			r.paginationState.currentTimestamp = time.Time{}
-		}
-		r.paginationState.pagesFetched = 0
-	}
-
+	r.resetTimestampPagination()
 	return totalRecords, nil
-}
-
-// loadCheckpoint loads the checkpoint from storage.
-func (r *restAPIMetricsReceiver) loadCheckpoint(ctx context.Context) {
-	bytes, err := r.storageClient.Get(ctx, checkpointStorageKey)
-	if err != nil {
-		r.logger.Info("unable to load checkpoint, starting fresh", zap.Error(err))
-		return
-	}
-
-	if bytes == nil {
-		return
-	}
-
-	var checkpoint checkpointData
-	if err := jsoniter.Unmarshal(bytes, &checkpoint); err != nil {
-		r.logger.Warn("unable to decode checkpoint, starting fresh", zap.Error(err))
-		return
-	}
-
-	if checkpoint.PaginationState != nil {
-		r.paginationState = checkpoint.PaginationState
-	}
-}
-
-// saveCheckpoint saves the checkpoint to storage.
-func (r *restAPIMetricsReceiver) saveCheckpoint(ctx context.Context) error {
-	if r.storageClient == nil || r.paginationState == nil {
-		return nil // No storage client or pagination state, nothing to save
-	}
-
-	checkpoint := checkpointData{
-		PaginationState: r.paginationState,
-	}
-
-	bytes, err := jsoniter.Marshal(checkpoint)
-	if err != nil {
-		return fmt.Errorf("failed to marshal checkpoint: %w", err)
-	}
-
-	return r.storageClient.Set(ctx, checkpointStorageKey, bytes)
 }
