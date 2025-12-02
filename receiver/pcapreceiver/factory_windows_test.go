@@ -44,6 +44,10 @@ func TestCreateLogsReceiver_Windows(t *testing.T) {
 	factory := NewFactory()
 	cfg := createDefaultConfig()
 
+	// Set a valid interface for the test
+	pcapCfg := cfg.(*Config)
+	pcapCfg.Interface = `\Device\NPF_{12345678-1234-1234-1234-123456789012}`
+
 	// Create an observed logger to capture log messages
 	core, observed := observer.New(zapcore.WarnLevel)
 
