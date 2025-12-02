@@ -29,7 +29,7 @@ import (
 
 // Start starts the packet capture using gopacket/pcap on Windows
 func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
-	r.logger.Info("Starting PCAP receiver", zap.String("interface", r.config.Interface))
+	r.logger.Debug("Starting PCAP receiver", zap.String("interface", r.config.Interface))
 
 	// Validate configuration first
 	if err := r.config.Validate(); err != nil {
@@ -79,7 +79,7 @@ func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
 	// Start goroutine to read and parse packets
 	go r.readPacketsWindows(ctx, handle)
 
-	r.logger.Info("PCAP receiver started successfully")
+	r.logger.Debug("PCAP receiver started successfully")
 	return nil
 }
 

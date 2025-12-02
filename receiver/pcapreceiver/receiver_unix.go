@@ -101,7 +101,7 @@ func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
 
 // Shutdown stops the packet capture on Unix systems
 func (r *pcapReceiver) Shutdown(_ context.Context) error {
-	r.logger.Info("Shutting down PCAP receiver")
+	r.logger.Debug("Shutting down PCAP receiver")
 
 	if r.cancel != nil {
 		r.cancel()
@@ -140,7 +140,7 @@ func (r *pcapReceiver) Shutdown(_ context.Context) error {
 		r.logger.Warn("No tcpdump process to shutdown")
 	}
 
-	r.logger.Info("PCAP receiver shut down")
+	r.logger.Debug("PCAP receiver shut down")
 	return nil
 }
 
