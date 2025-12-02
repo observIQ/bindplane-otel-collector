@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/google/gopacket"
-	"github.com/google/gopacket/pcap"
 	"github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver/parser"
 	"go.opentelemetry.io/collector/component"
 	"go.uber.org/zap"
@@ -45,7 +44,7 @@ func (r *pcapReceiver) Start(ctx context.Context, _ component.Host) error {
 	}
 
 	// Open live capture handle
-	handle, err := pcap.OpenLive(
+	handle, err := pcapOps.OpenLive(
 		r.config.Interface,
 		int32(r.config.SnapLen),
 		r.config.Promiscuous,
@@ -93,7 +92,7 @@ func (r *pcapReceiver) Shutdown(_ context.Context) error {
 	}
 
 	if r.pcapHandle != nil {
-		if handle, ok := r.pcapHandle.(*pcap.Handle); ok {
+		if handle, ok := r.pcapHandle.(PcapHandle); ok {
 			r.logger.Debug("Closing pcap handle")
 			handle.Close()
 			r.logger.Debug("Pcap handle closed successfully")
@@ -109,7 +108,7 @@ func (r *pcapReceiver) Shutdown(_ context.Context) error {
 // checkPrivileges checks if Npcap driver is available on Windows
 func (r *pcapReceiver) checkPrivileges() error {
 	// Try to find all devices to validate Npcap presence
-	devices, err := pcap.FindAllDevs()
+	devices, err := pcapOps.FindAllDevs()
 	if err != nil {
 		return fmt.Errorf("Npcap driver not available: %w. Install Npcap from https://npcap.com/ (included with Wireshark)", err)
 	}
@@ -139,13 +138,8 @@ func (r *pcapReceiver) checkPrivileges() error {
 	return nil
 }
 
-// readPackets reads and parses packets using gopacket/pcap (Windows only)
-func (r *pcapReceiver) readPackets(ctx context.Context, handle *pcap.Handle) {
-	r.readPacketsWindows(ctx, handle)
-}
-
 // readPacketsWindows reads and parses packets from gopacket/pcap (Windows only)
-func (r *pcapReceiver) readPacketsWindows(ctx context.Context, handle *pcap.Handle) {
+func (r *pcapReceiver) readPacketsWindows(ctx context.Context, handle PcapHandle) {
 	r.logger.Debug("Starting Windows packet reader goroutine (gopacket/pcap)")
 	defer r.logger.Debug("Windows packet reader goroutine exiting")
 
