@@ -16,7 +16,6 @@
 package rollback
 
 import (
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -81,18 +80,6 @@ func (r filesystemRollbacker) Backup() error {
 	// Copy all the files in the install directory to the backup directory
 	if err := backupFiles(r.logger, r.installDir, r.backupDir); err != nil {
 		return fmt.Errorf("failed to copy files to backup dir: %w", err)
-	}
-
-	// If JMX jar exists outside of install directory, make sure that gets backed up
-	jarPath := path.SpecialJMXJarFile(r.installDir)
-	_, err := os.Stat(jarPath)
-	switch {
-	case err == nil:
-		if err := backupFile(r.logger, jarPath, r.backupDir); err != nil {
-			return fmt.Errorf("failed to copy JMX jar to jar backup dir: %w", err)
-		}
-	case !errors.Is(err, os.ErrNotExist):
-		return fmt.Errorf("failed determine where currently installed JMX jar is: %w", err)
 	}
 
 	// Backup the service configuration so we can reload it in case of rollback
