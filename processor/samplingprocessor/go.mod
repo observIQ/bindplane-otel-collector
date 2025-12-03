@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/processor/samplingprocessor
 go 1.24.4
 
 require (
-	github.com/observiq/bindplane-otel-collector/expr v1.88.0
+	github.com/observiq/bindplane-otel-collector/expr v1.88.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.140.1
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.46.0
