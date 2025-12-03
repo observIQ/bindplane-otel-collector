@@ -138,6 +138,64 @@ misspell-fix:
 test:
 	$(MAKE) for-all CMD="gotestsum --rerun-fails --packages="./..." -- -race"
 
+.PHONY: test-receivers
+test-receivers:
+	@set -e; for dir in $(ALL_MODULES); do \
+		if echo "$${dir}" | grep -qE "^\.?/?receiver/"; then \
+			(cd "$${dir}" && \
+				echo "running tests in $${dir}" && \
+				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		fi; \
+	done
+
+.PHONY: test-processors
+test-processors:
+	@set -e; for dir in $(ALL_MODULES); do \
+		if echo "$${dir}" | grep -qE "^\.?/?processor/"; then \
+			(cd "$${dir}" && \
+				echo "running tests in $${dir}" && \
+				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		fi; \
+	done
+
+.PHONY: test-exporters
+test-exporters:
+	@set -e; for dir in $(ALL_MODULES); do \
+		if echo "$${dir}" | grep -qE "^\.?/?exporter/"; then \
+			(cd "$${dir}" && \
+				echo "running tests in $${dir}" && \
+				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		fi; \
+	done
+
+.PHONY: test-extensions
+test-extensions:
+	@set -e; for dir in $(ALL_MODULES); do \
+		if echo "$${dir}" | grep -qE "^\.?/?extension/"; then \
+			(cd "$${dir}" && \
+				echo "running tests in $${dir}" && \
+				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		fi; \
+	done
+
+.PHONY: test-other
+test-other:
+	@PACKAGES=$$(go list ./... | grep -v "/receiver" | grep -v "/processor" | grep -v "/exporter" | grep -v "/extension" | tr '\n' ' '); \
+	if [ -n "$$PACKAGES" ]; then \
+		gotestsum --rerun-fails --packages="$$PACKAGES" -- -race; \
+	fi
+	@set -e; for dir in $(ALL_MODULES); do \
+		if [ "$${dir}" = "." ]; then \
+			continue; \
+		elif echo "$${dir}" | grep -qE "^(receiver|processor|exporter|extension)/"; then \
+			continue; \
+		else \
+			(cd "$${dir}" && \
+				echo "running tests in $${dir}" && \
+				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		fi; \
+	done
+
 .PHONY: test-no-race
 test-no-race:
 	$(MAKE) for-all CMD="gotestsum --rerun-fails --packages="./..." "
