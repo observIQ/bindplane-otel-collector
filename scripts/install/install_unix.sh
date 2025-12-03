@@ -847,105 +847,14 @@ verify_package() {
 
   case "$package_type" in
     deb)
-      if ! command -v gpg > /dev/null 2>&1; then
-        info "gpg is not installed, skipping signature verification"
-        return 0
-      fi
-
-      if ! command -v ar > /dev/null 2>&1; then
-        info "ar is not installed, skipping signature verification"
-        return 0
-      fi
-
-      if ! GNUPGHOME="$TMP_DIR/gpg" gpg --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" > /dev/null 2>&1; then
-        error "Failed to import public key"
+      if ! verify_package_deb; then
         return 1
       fi
-      # if there are any revocation keys, import them
-      if [ -n "$(ls -A "$TMP_DIR/gpg/deb-revocations/" 2>/dev/null)" ]; then
-        for key in "$TMP_DIR/gpg/deb-revocations/"*; do
-          if ! GNUPGHOME="$TMP_DIR/gpg" gpg --import "$key" > /dev/null 2>&1; then
-            error "Failed to import revocation key"
-            return 1
-          fi
-        done
-      fi
-
-      if ! ar x "$package_out_file_path" "_gpgorigin" > /dev/null 2>&1; then
-        error "Failed to extract package signature"
-        return 1
-      fi
-
-      if ! mv "_gpgorigin" "$TMP_DIR/gpg/_gpgorigin"; then
-        error "Failed to move package signature to temporary directory"
-        return 1
-      fi
-
-      set +e
-      # Run pipeline, capture both output and exit code
-      OUTPUT=$(ar p "$package_out_file_path" debian-binary control.tar.gz data.tar.gz | \
-              GNUPGHOME="$TMP_DIR/gpg" gpg --verify "$TMP_DIR/gpg/_gpgorigin" - 2>&1)
-      EXIT_CODE=$?
-      set -e
-
-      # Fail if gpg failed
-      if [ $EXIT_CODE -ne 0 ]; then
-        error "Package signature is invalid"
-        return 1
-      fi
-
-      # Fail if key is revoked
-      if echo "$OUTPUT" | grep -q "key has been revoked"; then
-        error "Package signature is from a revoked key"
-        return 1
-      fi
-
-      if echo "$OUTPUT" | grep -q "key has expired"; then
-        error "Package signature is from an expired key"
-        return 1
-      fi
-
-      success "Package signature is valid, not revoked, and subkey is not expired"
       ;;
     rpm)
-      set +e
-      # Capture stderr from rpm --import
-      IMPORT_OUTPUT=$(rpm --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" 2>&1)
-      IMPORT_EXIT_CODE=$?
-      set -e
-
-      # Fail if rpm --import itself fails
-      if [ $IMPORT_EXIT_CODE -ne 0 ]; then
-          error "Failed to import public key"
-          return 1
-      fi
-
-      # Extract the signing key ID for your package
-      SIGNING_KEYID=$(rpm -qp --qf '%{SIGPGP:pgpsig}\n' "$package_out_file_path" | awk '{print toupper($NF)}')
-
-      # Check if import output contains an expired subkey matching the signing key
-      if echo "$IMPORT_OUTPUT" | grep -q "Subkey ${SIGNING_KEYID} is expired"; then
-          error "Package signature is from an expired key"
-          return 1
-      fi
-
-      # Remove revoked keys (your existing logic)
-      if [ ${#RPM_GPG_KEYS_TO_REMOVE[@]} -gt 0 ]; then
-        for key in "${RPM_GPG_KEYS_TO_REMOVE[@]}"; do
-          if rpm -q "$key" > /dev/null 2>&1; then
-            if ! rpm -e "$key" > /dev/null 2>&1; then
-              error "Failed to remove revocation key"
-              return 1
-            fi
-          fi
-        done
-      fi
-      if ! rpm --checksig -v "$package_out_file_path" > /dev/null 2>&1; then
-        error "Failed to verify package signature"
+      if ! verify_package_rpm; then
         return 1
       fi
-
-      success "Package signature is valid, not revoked, and subkey is not expired"
       ;;
     *)
       error "Unrecognized package type"
@@ -953,6 +862,111 @@ verify_package() {
       ;;
   esac
 
+  return 0
+}
+
+verify_package_deb() {
+  if ! command -v gpg > /dev/null 2>&1; then
+    info "gpg is not installed, skipping signature verification"
+    return 0
+  fi
+
+  if ! command -v ar > /dev/null 2>&1; then
+    info "ar is not installed, skipping signature verification"
+    return 0
+  fi
+
+  if ! GNUPGHOME="$TMP_DIR/gpg" gpg --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" > /dev/null 2>&1; then
+    error "Failed to import public key"
+    return 1
+  fi
+  # if there are any revocation keys, import them
+  if [ -n "$(ls -A "$TMP_DIR/gpg/deb-revocations/" 2>/dev/null)" ]; then
+    for key in "$TMP_DIR/gpg/deb-revocations/"*; do
+      if ! GNUPGHOME="$TMP_DIR/gpg" gpg --import "$key" > /dev/null 2>&1; then
+        error "Failed to import revocation key"
+        return 1
+      fi
+    done
+  fi
+
+  if ! ar x "$package_out_file_path" "_gpgorigin" > /dev/null 2>&1; then
+    error "Failed to extract package signature"
+    return 1
+  fi
+
+  if ! mv "_gpgorigin" "$TMP_DIR/gpg/_gpgorigin"; then
+    error "Failed to move package signature to temporary directory"
+    return 1
+  fi
+
+  set +e
+  # Run pipeline, capture both output and exit code
+  OUTPUT=$(ar p "$package_out_file_path" debian-binary control.tar.gz data.tar.gz | \
+          GNUPGHOME="$TMP_DIR/gpg" gpg --verify "$TMP_DIR/gpg/_gpgorigin" - 2>&1)
+  EXIT_CODE=$?
+  set -e
+
+  # Fail if gpg failed
+  if [ $EXIT_CODE -ne 0 ]; then
+    error "Package signature is invalid"
+    return 1
+  fi
+
+  # Fail if key is revoked
+  if echo "$OUTPUT" | grep -q "key has been revoked"; then
+    error "Package signature is from a revoked key"
+    return 1
+  fi
+
+  if echo "$OUTPUT" | grep -q "key has expired"; then
+    error "Package signature is from an expired key"
+    return 1
+  fi
+
+  success "Package signature is valid, not revoked, and subkey is not expired"
+  return 0
+}
+
+verify_package_rpm() {
+  set +e
+  # Capture stderr from rpm --import
+  IMPORT_OUTPUT=$(rpm --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" 2>&1)
+  IMPORT_EXIT_CODE=$?
+  set -e
+
+  # Fail if rpm --import itself fails
+  if [ $IMPORT_EXIT_CODE -ne 0 ]; then
+      error "Failed to import public key"
+      return 1
+  fi
+
+  # Extract the signing key ID for your package
+  SIGNING_KEYID=$(rpm -qp --qf '%{SIGPGP:pgpsig}\n' "$package_out_file_path" | awk '{print toupper($NF)}')
+
+  # Check if import output contains an expired subkey matching the signing key
+  if echo "$IMPORT_OUTPUT" | grep -q "Subkey ${SIGNING_KEYID} is expired"; then
+      error "Package signature is from an expired key"
+      return 1
+  fi
+
+  # Remove revoked keys (your existing logic)
+  if [ ${#RPM_GPG_KEYS_TO_REMOVE[@]} -gt 0 ]; then
+    for key in "${RPM_GPG_KEYS_TO_REMOVE[@]}"; do
+      if rpm -q "$key" > /dev/null 2>&1; then
+        if ! rpm -e "$key" > /dev/null 2>&1; then
+          error "Failed to remove revocation key"
+          return 1
+        fi
+      fi
+    done
+  fi
+  if ! rpm --checksig -v "$package_out_file_path" > /dev/null 2>&1; then
+    error "Failed to verify package signature"
+    return 1
+  fi
+
+  success "Package signature is valid, not revoked, and subkey is not expired"
   return 0
 }
 
