@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/processor/snapshotprocessor
 go 1.24.4
 
 require (
-	github.com/observiq/bindplane-otel-collector/internal/report v1.87.8
+	github.com/observiq/bindplane-otel-collector/internal/report v1.88.0
 	github.com/open-telemetry/opamp-go v0.22.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampcustommessages v0.140.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.140.1
