@@ -873,6 +873,7 @@ release:
     - glob: "./scripts/install/install_macos.sh"
     - glob: "./release_deps/gpg-keys.tar.gz"
     - glob: "./windows-archive/windows_amd64/*.zip"
+    - glob: "./windows-archive/windows_amd64/*.zip.sig"
 
 # https://console.cloud.google.com/storage/browser/bdot-release
 blobs:
@@ -886,6 +887,7 @@ blobs:
       - glob: "./scripts/install/install_macos.sh"
       - glob: "./release_deps/gpg-keys.tar.gz"
       - glob: "./windows-archive/windows_amd64/*.zip"
+      - glob: "./windows-archive/windows_amd64/*.zip.sig"
 
 # https://goreleaser.com/customization/changelog/
 changelog:
