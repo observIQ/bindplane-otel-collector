@@ -52,8 +52,21 @@ indent=""
 non_interactive=false
 error_mode=false
 
-# out_file_path is the full path to the downloaded package (e.g. "/tmp/observiq-otel-collector_linux_amd64.deb")
-out_file_path="unknown"
+# package_out_file_path is the full path to the downloaded package (e.g. "/tmp/observiq-otel-collector_linux_amd64.deb")
+package_out_file_path="unknown"
+
+# gpg_tar_out_file_path is the full path to the downloaded GPG tar.gz file (e.g. "/tmp/bdot-gpg-keys.tar.gz")
+gpg_tar_out_file_path="unknown"
+
+offline_installation=false
+
+# RPM_GPG_KEYS_TO_REMOVE is a list of GPG keys to remove from the RPM package. This is used for revoked keys. Deb packages are handled differently.
+# The entries in this should be formatted similarly to gpg-pubkey-<version>-<release>
+# The entries can be found by importing the revoked public key and then exploring the RPM database for the key.
+# rpm --import <revoked_public_key>.asc
+# rpm -q gpg-pubkey, it's one of these
+# rpm -q gpg-pubkey --info, go find the BDOT public key and use the version and release numbers from there.
+RPM_GPG_KEYS_TO_REMOVE=[]
 
 # Colors
 if [ "$non_interactive" = "false" ]; then
@@ -208,13 +221,28 @@ Usage:
       If not provided, this will default to Bindplane Agent\'s GitHub releases.
       Example: '-l http://my.domain.org/observiq-otel-collector' will download from there.
 
+  $(fg_yellow '-gl, --gpg-tar-url')
+      Defines the URL that the GPG tar file will be downloaded from.
+      If not provided, this will default to Bindplane Agent\'s GitHub releases.
+      Example: '-gl http://my.domain.org/bdot-gpg-keys.tar.gz' will download from there.
+
   $(fg_yellow '-b, --base-url')
-      Defines the base of the download URL as '{base_url}/v{version}/{PACKAGE_NAME}_v{version}_linux_{os_arch}.{package_type}'.
+      Defines the base of the download URL used in conjunction with the version to download the package and GPG tar file.
+      '{base_url}/v{version}/{PACKAGE_NAME}_v{version}_linux_{os_arch}.{package_type}'
+      and
+      '{base_url}/v{version}/gpg-keys.tar.gz'
       If not provided, this will default to '$DOWNLOAD_BASE'.
       Example: '-b http://my.domain.org/observiq-otel-collector/binaries' will be used as the base of the download URL.
 
   $(fg_yellow '-f, --file')
       Install Agent from a local file instead of downloading from a URL.
+      Example: '-f /path/to/observiq-otel-collector_v1.2.12_linux_amd64.deb' will install from the local file.
+      Required if '--gpg-tar-file' is specified.
+
+  $(fg_yellow '-gf, --gpg-tar-file')
+      Verify the Agent from a local GPG tar file instead of downloading from a URL.
+      Example: '-gf /path/to/bdot-gpg-keys.tar.gz' will verify from the local file.
+      Required if '--file' is specified.
 
   $(fg_yellow '-x, --proxy')
       Defines the proxy server to be used for communication by the install script.
@@ -353,13 +381,14 @@ setup_installation()
     set_os_arch
     set_package_type
 
-    # if package_path is not set then download the package
-    if [ -z "$package_path" ]; then
+    # if offline_installation is false then download the package
+    if [ "$offline_installation" = "false" ]; then
       set_download_urls
       set_proxy
-      set_file_name
+      set_file_names
     else
-      out_file_path="$package_path"
+      package_out_file_path="$package_path"
+      gpg_tar_out_file_path="$gpg_tar_path"
     fi
 
     set_opamp_endpoint
@@ -370,13 +399,15 @@ setup_installation()
     decrease_indent
 }
 
-set_file_name() {
+set_file_names() {
   if [ -z "$version" ] ; then
     package_file_name="${PACKAGE_NAME}_linux_${arch}.${package_type}"
   else
     package_file_name="${PACKAGE_NAME}_v${version}_linux_${arch}.${package_type}"
   fi
-    out_file_path="$TMP_DIR/$package_file_name"
+  package_out_file_path="$TMP_DIR/$package_file_name"
+
+  gpg_tar_out_file_path="$TMP_DIR/bdot-gpg-keys.tar.gz"
 }
 
 set_proxy()
@@ -477,6 +508,16 @@ set_download_urls()
     collector_download_url="$base_url/v$version/${PACKAGE_NAME}_v${version}_linux_${os_arch}.${package_type}"
   else
     collector_download_url="$url"
+  fi
+
+  if [ -z "$gpg_tar_url" ]; then
+    if [ -z "$base_url" ] ; then
+      base_url=$DOWNLOAD_BASE
+    fi
+
+    gpg_tar_download_url="$base_url/v$version/gpg-keys.tar.gz"
+  else
+    gpg_tar_download_url="$gpg_tar_url"
   fi
 }
 
@@ -585,6 +626,18 @@ interactive_check()
   then 
     failed
     error_exit "$LINENO" "Checking the Bindplane server URL is not compatible with quiet (non-interactive) mode."
+  fi
+}
+
+offline_check()
+{
+  # Ensure that both package_path and gpg_tar_path are either both set or both unset
+  if { [ -n "$package_path" ] && [ -z "$gpg_tar_path" ]; } || { [ -z "$package_path" ] && [ -n "$gpg_tar_path" ]; }; then
+    error_exit "$LINENO" "Both --file and --gpg-tar-file must be specified together, or neither should be specified."
+  fi
+
+  if [ -n "$package_path" ] && [ -n "$gpg_tar_path" ]; then
+    offline_installation=true
   fi
 }
 
@@ -703,7 +756,7 @@ install_package()
   increase_indent
 
   # if the user didn't specify a local file then download the package
-  if [ -z "$package_path" ]; then
+  if [ "$offline_installation" = "false" ]; then
     proxy_args=""
     if [ -n "$proxy" ]; then
       proxy_args="-x $proxy"
@@ -714,10 +767,19 @@ install_package()
 
     if [ -n "$proxy" ]; then
       info "Downloading package from $collector_download_url using proxy..."
+    else 
+      info "Downloading package from $collector_download_url..."
     fi
 
-    info "Downloading package from $collector_download_url..."
-    eval curl -L "$proxy_args" "$collector_download_url" -o "$out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
+    eval curl -L "$proxy_args" "$collector_download_url" -o "$package_out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
+
+    if [ -n "$proxy" ]; then
+      info "Downloading GPG key tar file from $gpg_tar_download_url using proxy..."
+    else 
+      info "Downloading GPG key tar file from $gpg_tar_download_url..."
+    fi
+
+    eval curl -L "$proxy_args" "$gpg_tar_download_url" -o "$gpg_tar_out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download GPG tar file"
     succeeded
   fi
 
@@ -728,6 +790,7 @@ install_package()
     dpkg -s "observiq-otel-collector" > /dev/null 2>&1 && dpkg --purge "observiq-otel-collector" > /dev/null 2>&1
   fi
 
+  verify_package || error_exit "$LINENO" "Failed to verify package"
   unpack_package || error_exit "$LINENO" "Failed to extract package"
   succeeded
 
@@ -773,14 +836,148 @@ install_package()
   decrease_indent
 }
 
+verify_package() {
+  [ -d "$TMP_DIR/gpg" ] && rm -rf "$TMP_DIR/gpg"
+  mkdir -p "$TMP_DIR/gpg"
+
+  if ! tar -xzf "$gpg_tar_out_file_path" -C "$TMP_DIR/gpg" > /dev/null 2>&1; then
+    error "Failed to extract GPG key tar file"
+    return 1
+  fi
+
+  case "$package_type" in
+    deb)
+      if ! verify_package_deb; then
+        return 1
+      fi
+      ;;
+    rpm)
+      if ! verify_package_rpm; then
+        return 1
+      fi
+      ;;
+    *)
+      error "Unrecognized package type"
+      return 1
+      ;;
+  esac
+
+  return 0
+}
+
+verify_package_deb() {
+  if ! command -v gpg > /dev/null 2>&1; then
+    info "gpg is not installed, skipping signature verification"
+    return 0
+  fi
+
+  if ! command -v ar > /dev/null 2>&1; then
+    info "ar is not installed, skipping signature verification"
+    return 0
+  fi
+
+  if ! GNUPGHOME="$TMP_DIR/gpg" gpg --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" > /dev/null 2>&1; then
+    error "Failed to import public key"
+    return 1
+  fi
+  # if there are any revocation keys, import them
+  if [ -n "$(ls -A "$TMP_DIR/gpg/deb-revocations/" 2>/dev/null)" ]; then
+    for key in "$TMP_DIR/gpg/deb-revocations/"*; do
+      if ! GNUPGHOME="$TMP_DIR/gpg" gpg --import "$key" > /dev/null 2>&1; then
+        error "Failed to import revocation key"
+        return 1
+      fi
+    done
+  fi
+
+  if ! ar x "$package_out_file_path" "_gpgorigin" > /dev/null 2>&1; then
+    error "Failed to extract package signature"
+    return 1
+  fi
+
+  if ! mv "_gpgorigin" "$TMP_DIR/gpg/_gpgorigin"; then
+    error "Failed to move package signature to temporary directory"
+    return 1
+  fi
+
+  set +e
+  # Run pipeline, capture both output and exit code
+  OUTPUT=$(ar p "$package_out_file_path" debian-binary control.tar.gz data.tar.gz | \
+          GNUPGHOME="$TMP_DIR/gpg" gpg --verify "$TMP_DIR/gpg/_gpgorigin" - 2>&1)
+  EXIT_CODE=$?
+  set -e
+
+  # Fail if gpg failed
+  if [ $EXIT_CODE -ne 0 ]; then
+    error "Package signature is invalid"
+    return 1
+  fi
+
+  # Fail if key is revoked
+  if echo "$OUTPUT" | grep -q "key has been revoked"; then
+    error "Package signature is from a revoked key"
+    return 1
+  fi
+
+  if echo "$OUTPUT" | grep -q "key has expired"; then
+    error "Package signature is from an expired key"
+    return 1
+  fi
+
+  success "Package signature is valid, not revoked, and subkey is not expired"
+  return 0
+}
+
+verify_package_rpm() {
+  set +e
+  # Capture stderr from rpm --import
+  IMPORT_OUTPUT=$(rpm --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" 2>&1)
+  IMPORT_EXIT_CODE=$?
+  set -e
+
+  # Fail if rpm --import itself fails
+  if [ $IMPORT_EXIT_CODE -ne 0 ]; then
+      error "Failed to import public key"
+      return 1
+  fi
+
+  # Extract the signing key ID for your package
+  SIGNING_KEYID=$(rpm -qp --qf '%{SIGPGP:pgpsig}\n' "$package_out_file_path" | awk '{print toupper($NF)}')
+
+  # Check if import output contains an expired subkey matching the signing key
+  if echo "$IMPORT_OUTPUT" | grep -q "Subkey ${SIGNING_KEYID} is expired"; then
+      error "Package signature is from an expired key"
+      return 1
+  fi
+
+  # Remove revoked keys (your existing logic)
+  if [ ${#RPM_GPG_KEYS_TO_REMOVE[@]} -gt 0 ]; then
+    for key in "${RPM_GPG_KEYS_TO_REMOVE[@]}"; do
+      if rpm -q "$key" > /dev/null 2>&1; then
+        if ! rpm -e "$key" > /dev/null 2>&1; then
+          error "Failed to remove revocation key"
+          return 1
+        fi
+      fi
+    done
+  fi
+  if ! rpm --checksig -v "$package_out_file_path" > /dev/null 2>&1; then
+    error "Failed to verify package signature"
+    return 1
+  fi
+
+  success "Package signature is valid, not revoked, and subkey is not expired"
+  return 0
+}
+
 unpack_package()
 {
   case "$package_type" in
     deb)
-      dpkg --force-confold -i "$out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
+      dpkg --force-confold -i "$package_out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
       ;;
     rpm)
-      rpm -U "$out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
+      rpm -U "$package_out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
       ;;
     *)
       error "Unrecognized package type"
@@ -921,8 +1118,12 @@ main()
           version=$2 ; shift 2 ;;
         -l|--url)
           url=$2 ; shift 2 ;;
+        -gl|--gpg-tar-url)
+          gpg_tar_url=$2 ; shift 2 ;;
         -f|--file)
           package_path=$2 ; shift 2 ;;
+        -gf|--gpg-tar-file)
+          gpg_tar_path=$2 ; shift 2 ;;
         -x|--proxy)
           proxy=$2 ; shift 2 ;;
         -U|--proxy-user)
@@ -974,6 +1175,7 @@ main()
   validate_version
   interactive_check
   connection_check
+  offline_check
   setup_installation
   install_package
   display_results

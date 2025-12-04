@@ -16,7 +16,6 @@
 package install
 
 import (
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -63,11 +62,6 @@ func NewInstaller(logger *zap.Logger, installDir string, service service.Service
 // as well as installing the new service file using the installer's Service interface.
 // It then starts the service.
 func (i archiveInstaller) Install(rb rollback.Rollbacker) error {
-	// If JMX jar exists outside of install directory, make sure that gets backed up
-	if err := i.attemptSpecialJMXJarInstall(rb); err != nil {
-		return fmt.Errorf("failed to process special JMX jar: %w", err)
-	}
-
 	// install files that go to installDirPath to their correct location,
 	// excluding any config files (logging.yaml, config.yaml, manager.yaml)
 	if err := installFiles(i.logger, i.latestDir, i.installDir, i.backupDir, rb); err != nil {
@@ -145,27 +139,6 @@ func installFiles(logger *zap.Logger, inputPath, installDir, backupDir string, r
 
 	if err != nil {
 		return fmt.Errorf("failed to walk latest dir: %w", err)
-	}
-
-	return nil
-}
-
-func (i archiveInstaller) attemptSpecialJMXJarInstall(rb rollback.Rollbacker) error {
-	jarPath := path.SpecialJMXJarFile(i.installDir)
-	jarDirPath := path.SpecialJarDir(i.installDir)
-	latestJarPath := path.LatestJMXJarFile(i.latestDir)
-	_, err := os.Stat(jarPath)
-	switch {
-	case err == nil:
-		if err := installFile(i.logger, latestJarPath, jarDirPath, i.backupDir, rb); err != nil {
-			return fmt.Errorf("failed to install JMX jar from latest directory: %w", err)
-		}
-		// Just log this error as the worst case is that there will be two jars copied over
-		if err = os.Remove(latestJarPath); err != nil {
-			i.logger.Warn("Failed to remove JMX jar from latest directory", zap.Error(err))
-		}
-	case !errors.Is(err, os.ErrNotExist):
-		return fmt.Errorf("failed determine where currently installed JMX jar is: %w", err)
 	}
 
 	return nil
