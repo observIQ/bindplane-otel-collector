@@ -162,6 +162,11 @@ jobs:
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+      - name: Sign Windows 64-bit ZIP Archive
+        run: cosign sign-blob --key=cosign.key --output-signature ./windows-archive/windows_amd64/observiq-otel-collector-${{ github.ref_name }}-windows-amd64.zip.sig ./windows-archive/windows_amd64/observiq-otel-collector-${{ github.ref_name }}-windows-amd64.zip
+        shell: bash
+        env:
+          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
       - name: Write signing key for nFPM
         shell: bash
         run: |
