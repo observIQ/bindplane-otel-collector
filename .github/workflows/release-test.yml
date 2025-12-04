@@ -7,31 +7,41 @@ on:
         required: true
         default: "v0.0.1"
 
+# Concurrency group ensures only one test release runs at a time
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-64bit-msi:
-    runs-on: windows-2022
+    runs-on: namespace-profile-bindplane-default-windows-2022-32x64
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Run GoReleaser
+          cache-dependency-path: "**/go.sum"
+
+      - name: Run GoReleaser (split)
         uses: goreleaser/goreleaser-action@v6
         with:
-          # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser-pro
-          version: "v2.12.5"
-          args: release --single-target --skip=validate,publish --clean --config=.goreleaser-windows.yml
+          version: "v2.13.0"
+          args: release --skip=publish --skip=validate --skip=sign --clean --split --config=.goreleaser-windows.yml
         env:
           GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          GGOOS: windows
+          GGOARCH: amd64
+          SKIP_DOCKER_PUSH: true
       - name: Copy Windows Collector Binary
-        run: cp dist/windows_amd64/collector_windows_amd64_v1/observiq-otel-collector.exe windows/observiq-otel-collector.exe
+        run: cp dist/windows/collector_windows_amd64_v1/observiq-otel-collector.exe windows/observiq-otel-collector.exe
       - name: Copy Windows Updater Binary
-        run: cp dist/windows_amd64/updater_windows_amd64_v1/updater.exe windows/updater.exe
+        run: cp dist/windows/updater_windows_amd64_v1/updater.exe windows/updater.exe
       - name: Copy Plugins to MSI Build Directory
         run: cp -r release_deps/plugins windows/
       - name: Copy Example Config
@@ -78,25 +88,117 @@ jobs:
           smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/observiq-otel-collector.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
         shell: cmd
       - name: "Upload MSI"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: observiq-otel-collector.msi
           path: C:/build/observiq-otel-collector.msi
           # Short lived because this is meant as an action for developers
           retention-days: 1
-      - name: "DEBUG: List dist/"
-        run: tree /F dist/
+      - name: "Upload Windows dist artifacts"
+        uses: actions/upload-artifact@v5
+        with:
+          name: dist-windows-amd64
+          path: dist/
+          retention-days: 1
+
       - name: "Upload Windows ZIP Archive"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: windows-archive
           path: dist/**/*.zip
           # Short lived because this is meant as an action for developers
           retention-days: 1
 
-  release-test:
+  # Split release-test job: builds binaries and packages in parallel for each OS/arch combination
+  # This significantly reduces build time by parallelizing work across multiple runners
+  release-test-split:
+    name: Release Test Split - ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x64
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: linux
+            goarch: arm
+          - goos: linux
+            goarch: ppc64
+          - goos: linux
+            goarch: ppc64le
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          # Note: windows/amd64 build happens in build-64bit-msi job due to MSI packaging requirements
+    steps:
+      - name: Checkout Repo
+        uses: namespacelabs/nscloud-checkout-action@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false # Use Namespace caching instead
+
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set VERSION
+        run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+
+      - name: Cache Goreleaser Build
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: ~/.cache/goreleaser
+
+      - name: Write signing key for nFPM
+        shell: bash
+        run: |
+          cat > ci-signing-key.asc <<'EOF'
+          ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
+          EOF
+
+      - name: Run GoReleaser (split)
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser-pro
+          version: "v2.13.0"
+          args: release --skip=publish --skip=validate --skip=sign --clean --split
+        env:
+          GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
+          GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          GGOOS: ${{ matrix.goos }}
+          GGOARCH: ${{ matrix.goarch }}
+          SIGNING_KEY_FILE: ci-signing-key.asc
+          SKIP_DOCKER_PUSH: true
+
+      - name: Upload dist artifacts
+        uses: namespace-actions/upload-artifact@v1
+        with:
+          name: dist-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/
+          retention-days: 1
+
+  # Merge release-test job: combines all split artifacts and performs package uploads
+  merge-release-test:
+    needs: [build-64bit-msi, release-test-split]
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
-    needs: [build-64bit-msi]
     steps:
       - name: Checkout Repo
         uses: namespacelabs/nscloud-checkout-action@v7
@@ -121,13 +223,13 @@ jobs:
         uses: docker/setup-qemu-action@v2
         
       - name: Retrieve Windows 64-bit MSI Installer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: observiq-otel-collector.msi
           path: observiq-otel-collector.msi
 
       - name: Retrieve Windows 64-bit ZIP Archive
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: windows-archive
           path: windows-archive
@@ -164,6 +266,61 @@ jobs:
         with:
           path: ~/.cache/goreleaser
 
+      # Download all artifacts from the parallel split builds
+      # Download each artifact to its own directory first to avoid corruption
+      - name: Download Linux AMD64 artifacts
+        uses: namespace-actions/download-artifact@v1
+        with:
+          name: dist-linux-amd64
+          path: dist-temp/linux-amd64
+
+      - name: Download Linux ARM64 artifacts
+        uses: namespace-actions/download-artifact@v1
+        with:
+          name: dist-linux-arm64
+          path: dist-temp/linux-arm64
+
+      - name: Download Linux ARM artifacts
+        uses: namespace-actions/download-artifact@v1
+        with:
+          name: dist-linux-arm
+          path: dist-temp/linux-arm
+
+      - name: Download Linux PPC64 artifacts
+        uses: namespace-actions/download-artifact@v1
+        with:
+          name: dist-linux-ppc64
+          path: dist-temp/linux-ppc64
+
+      - name: Download Linux PPC64LE artifacts
+        uses: namespace-actions/download-artifact@v1
+        with:
+          name: dist-linux-ppc64le
+          path: dist-temp/linux-ppc64le
+
+      - name: Download Darwin AMD64 artifacts
+        uses: namespace-actions/download-artifact@v1
+        with:
+          name: dist-darwin-amd64
+          path: dist-temp/darwin-amd64
+
+      - name: Download Darwin ARM64 artifacts
+        uses: namespace-actions/download-artifact@v1
+        with:
+          name: dist-darwin-arm64
+          path: dist-temp/darwin-arm64
+
+      - name: Manually merge dist artifacts
+        run: |
+          mkdir -p dist
+          cp -r dist-temp/linux-amd64/* dist/
+          cp -r dist-temp/linux-arm64/* dist/
+          cp -r dist-temp/linux-arm/* dist/
+          cp -r dist-temp/linux-ppc64/* dist/
+          cp -r dist-temp/linux-ppc64le/* dist/
+          cp -r dist-temp/darwin-amd64/* dist/
+          cp -r dist-temp/darwin-arm64/* dist/
+
       - name: Write signing key for nFPM
         shell: bash
         run: |
@@ -174,13 +331,14 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
-          version: "v2.12.5"
-          args: release --skip=publish --skip=validate --clean
+          version: "v2.13.0"
+          args: continue --merge --skip=publish
         env:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           SIGNING_KEY_FILE: ci-signing-key.asc
+          SKIP_DOCKER_PUSH: true
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
 
       - name: Debug list dist/
@@ -197,10 +355,11 @@ jobs:
           cp ./release_deps/gpg/rpm-revocations.txt ./artifacts/gpg/rpm-revocations.txt
           cp -r ./release_deps/gpg/deb-revocations ./artifacts/gpg/deb-revocations
           cp ./observiq-otel-collector.msi/observiq-otel-collector.msi ./artifacts
-          cp ./dist/*tar.gz ./artifacts
-          cp ./windows-archive/windows_amd64/*.zip ./artifacts
-          cp ./dist/*.rpm ./artifacts
-          cp ./dist/*.deb ./artifacts
+          cp ./dist/linux/*.tar.gz ./artifacts
+          cp ./dist/darwin/*.tar.gz ./artifacts
+          cp ./windows-archive/windows/*.zip ./artifacts
+          cp ./dist/linux/*.rpm ./artifacts
+          cp ./dist/linux/*.deb ./artifacts
           cp ./dist/*SHA256SUMS ./artifacts
           tar -czvf observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz -C ./artifacts .
 
@@ -239,7 +398,7 @@ jobs:
             --project bindplane-repository \
             artifacts apt upload devel-deb \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_amd64.deb
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_amd64.deb
 
       - name: Upload Bindplane Linux AMD64 RPM Package
         run: |
@@ -247,7 +406,7 @@ jobs:
             --project bindplane-repository \
             artifacts yum upload devel-rpm \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_amd64.rpm
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_amd64.rpm
 
       - name: Upload Bindplane Linux ARM64 Deb Package
         run: |
@@ -255,7 +414,7 @@ jobs:
             --project bindplane-repository \
             artifacts apt upload devel-deb \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_arm64.deb
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_arm64.deb
 
       - name: Upload Bindplane Linux ARM64 RPM Package
         run: |
@@ -263,7 +422,7 @@ jobs:
             --project bindplane-repository \
             artifacts yum upload devel-rpm \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_arm64.rpm
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_arm64.rpm
 
       - name: Upload Bindplane Linux ARM32 Deb Package
         run: |
@@ -271,7 +430,7 @@ jobs:
             --project bindplane-repository \
             artifacts apt upload devel-deb \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_arm.deb
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_arm.deb
 
       - name: Upload Bindplane Linux ARM32 RPM Package
         run: |
@@ -279,7 +438,7 @@ jobs:
             --project bindplane-repository \
             artifacts yum upload devel-rpm \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_arm.rpm
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_arm.rpm
 
       - name: Upload Bindplane Linux PPC64LE Deb Package
         run: |
@@ -287,7 +446,7 @@ jobs:
             --project bindplane-repository \
             artifacts apt upload devel-deb \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64le.deb
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64le.deb
 
       - name: Upload Bindplane Linux PPC64LE RPM Package
         run: |
@@ -295,7 +454,7 @@ jobs:
             --project bindplane-repository \
             artifacts yum upload devel-rpm \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64le.rpm
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64le.rpm
 
       - name: Upload Bindplane Linux PPC64 Deb Package
         run: |
@@ -303,7 +462,7 @@ jobs:
             --project bindplane-repository \
             artifacts apt upload devel-deb \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64.deb
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64.deb
 
       - name: Upload Bindplane Linux PPC64 RPM Package
         run: |
@@ -311,4 +470,4 @@ jobs:
             --project bindplane-repository \
             artifacts yum upload devel-rpm \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64.rpm
+            --source dist/linux/observiq-otel-collector_${{ env.VERSION }}_linux_ppc64.rpm
