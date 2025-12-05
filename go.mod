@@ -1074,7 +1074,3 @@ replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 // Keep at v0.132.0 since the Routing processor was removed in v0.133.0
 // Linear ticket tracking deprecation: https://linear.app/bindplane/issue/BPOP-3999/deprecation-routing-processor-v01330
 replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/routingprocessor => github.com/open-telemetry/opentelemetry-collector-contrib/processor/routingprocessor v0.132.0
-
-// Keep at v0.137.0 to avoid new breaking changes in the Google Cloud Log Entry Encoding Extension
-// Linear ticket tracking deprecation: https://linear.app/bindplane/issue/FLEET-235/deprecation-googlecloudlogentry-encoding-extension-v01380-vpc-flow
-replace github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension => github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension v0.137.0
