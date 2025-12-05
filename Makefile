@@ -318,10 +318,10 @@ release-prep-gpg:
 release-test:
 # If there is no MSI in the root dir, we'll create a dummy one so that goreleaser can complete successfully
 	if [ ! -e "./observiq-otel-collector.msi" ]; then touch ./observiq-otel-collector.msi; fi
-	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
+	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
 
 build-single:
-	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --skip=publish --clean --skip=validate --snapshot --single-target
+	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --skip=publish --skip=sign --clean --skip=validate --snapshot --single-target
 
 
 .PHONY: for-all
