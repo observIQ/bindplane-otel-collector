@@ -104,7 +104,6 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/probabilisticsamplerprocessor v0.140.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.140.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.140.1
-	github.com/open-telemetry/opentelemetry-collector-contrib/processor/routingprocessor v0.140.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/spanprocessor v0.140.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor v0.140.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.140.1
@@ -1070,7 +1069,3 @@ replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
 
 // github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension.test is forcing this dep to be updated, but it isn't compatible with the linux build process, so replacing to last stable version
 replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
-
-// Keep at v0.132.0 since the Routing processor was removed in v0.133.0
-// Linear ticket tracking deprecation: https://linear.app/bindplane/issue/BPOP-3999/deprecation-routing-processor-v01330
-replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/routingprocessor => github.com/open-telemetry/opentelemetry-collector-contrib/processor/routingprocessor v0.132.0
