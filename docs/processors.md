@@ -32,7 +32,6 @@ Below is a list of supported processors with links to their documentation pages.
 | Resource Attribute Transposer Processor | [resourceattributetransposerprocessor](../processor/resourceattributetransposerprocessor/README.md)                                                                |
 | Resource Detection Processor            | [resourcedetectionprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/processor/resourcedetectionprocessor/README.md)       |
 | Resource Processor                      | [resourceprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/processor/resourceprocessor/README.md)                         |
-| Routing Processor                       | [routingprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/processor/routingprocessor/README.md)                           |
 | Sampling Processor                      | [samplingprocessor](../processor/samplingprocessor/README.md)                                                                                                      |
 | Span Processor                          | [spanprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/processor/spanprocessor/README.md)                                 |
 | Tail Sampling Processor                 | [tailsamplingprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/processor/tailsamplingprocessor/README.md)                 |
