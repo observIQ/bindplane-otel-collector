@@ -132,7 +132,14 @@ func TestLogsDataPusher(t *testing.T) {
 			serverResponse: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			},
-			expectedError: "failed to send request: 500 Internal Server Error",
+			expectedError: "failed to send request: method=POST, url=",
+		},
+		{
+			name: "server error includes request body and status",
+			serverResponse: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusBadRequest)
+			},
+			expectedError: "body=",
 		},
 		{
 			name: "connection error",
