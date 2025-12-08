@@ -136,10 +136,10 @@ func (le *logsExporter) sendLogs(ctx context.Context, logs []any) error {
 
 	request.Header.Set("Content-Type", le.cfg.ContentType)
 
-	le.logger.Debug("sending request", zap.String("endpoint", le.cfg.ClientConfig.Endpoint), zap.String("body", string(body)), zap.String("method", string(le.cfg.Verb)))
+	le.logger.Debug("sending request", zap.String("endpoint", le.cfg.ClientConfig.Endpoint), zap.String("body", string(body)), zap.String("method", request.Method))
 	response, err := le.client.Do(request)
 	if err != nil {
-		return fmt.Errorf("failed to send request: %s, error: %w", request.URL.String(), err)
+		return fmt.Errorf("failed to send request: method=%s, url=%s, body=%s, error=%w", request.Method, request.URL.String(), string(body), err)
 	}
 	defer response.Body.Close()
 
