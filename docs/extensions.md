@@ -9,6 +9,8 @@ Below is a list of supported extensions with links to their documentation pages.
 | Authenticator - OAuth2 Client Credentials   | [oauth2clientauthextension](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/extension/oauth2clientauthextension/README.md)                                |
 | Authenticator - OIDC Extension              | [oidcauthextension](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/extension/oidcauthextension/README.md)                                                |
 | Authenticator - Sigv4 Extension             | [sigv4authextension](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/extension/sigv4authextension/README.md)                                              |
+| Badger Storage Extension                    | [badgerextension](../extension/badgerextension/README.md)                                                                                                                                |
+
 | BindPlane Extension                         | [bindplaneextension](../extension/bindplaneextension/README.md)                                                                                                                           |
 | Cgroup Runtime Extension                    | [cgroupruntimeextension](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/extension/cgroupruntimeextension)                                                |
 | Encoding - AVRO Log Extension               | [avrologencodingextension](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/extension/encoding/avrologencodingextension/README.md)                         |

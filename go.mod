@@ -209,6 +209,7 @@ require (
 require (
 	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.88.1
 	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.88.1
+	github.com/observiq/bindplane-otel-collector/extension/badgerextension v1.88.1
 	github.com/observiq/bindplane-otel-collector/internal/osinfo v1.88.1
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.88.1
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.88.1
@@ -394,6 +395,8 @@ require (
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/typeurl/v2 v2.2.3 // indirect
 	github.com/coreos/go-oidc/v3 v3.16.0 // indirect
+	github.com/dgraph-io/badger/v4 v4.8.0 // indirect
+	github.com/dgraph-io/ristretto/v2 v2.3.0 // indirect
 	github.com/dgryski/go-metro v0.0.0-20180109044635-280f6062b5bc // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/digitalocean/go-metadata v0.0.0-20250129100319-e3650a3df44b // indirect
@@ -772,7 +775,7 @@ require (
 	// (Dakota): cadvisor only works on version `v0.49.1-0.20240628164550-89f779d86055` until they release v0.50.0 with updated docker dep
 	// https://github.com/open-telemetry/opentelemetry-collector-contrib/pull/33870
 	github.com/google/cadvisor v0.53.0 // indirect
-	github.com/google/flatbuffers v25.2.10+incompatible // indirect
+	github.com/google/flatbuffers v25.9.23+incompatible // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.7 // indirect
@@ -813,7 +816,7 @@ require (
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/karrick/godirwalk v1.17.0 // indirect
-	github.com/klauspost/compress v1.18.1 // indirect
+	github.com/klauspost/compress v1.18.2 // indirect
 	github.com/knadh/koanf v1.5.0 // indirect
 	github.com/kolo/xmlrpc v0.0.0-20220921171641-a4b6fa1dd06b // indirect
 	github.com/leodido/ragel-machinery v0.0.0-20190525184631-5f46317e436b // indirect
@@ -981,6 +984,8 @@ replace github.com/observiq/bindplane-otel-collector/internal/testutils => ./int
 
 // Extensions
 replace github.com/observiq/bindplane-otel-collector/extension/awss3eventextension => ./extension/awss3eventextension
+
+replace github.com/observiq/bindplane-otel-collector/extension/badgerextension => ./extension/badgerextension
 
 // Exporters
 replace github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter => ./exporter/azureblobexporter
