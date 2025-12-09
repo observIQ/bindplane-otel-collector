@@ -110,7 +110,14 @@ func (b *badgerExtension) runGC(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			b.clientsMutex.RLock()
+			clients := make([]client.Client, 0, len(b.clients))
 			for _, c := range b.clients {
+				clients = append(clients, c)
+			}
+			b.clientsMutex.RUnlock()
+
+			for _, c := range clients {
 				go func(client client.Client) {
 					if err := client.RunValueLogGC(b.cfg.BlobGarbageCollection.DiscardRatio); err != nil {
 						b.logger.Warn("value log garbage collection failed", zap.Error(err))
@@ -126,6 +133,9 @@ func (b *badgerExtension) Shutdown(ctx context.Context) error {
 	if b.gcContextCancel != nil {
 		b.gcContextCancel()
 	}
+
+	b.clientsMutex.Lock()
+	defer b.clientsMutex.Unlock()
 
 	for _, c := range b.clients {
 		if err := c.Close(ctx); err != nil {

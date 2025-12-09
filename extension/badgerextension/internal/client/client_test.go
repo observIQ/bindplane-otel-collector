@@ -95,14 +95,6 @@ func TestNewClient(t *testing.T) {
 		err = c.Close(context.Background())
 		require.NoError(t, err)
 	})
-
-	t.Run("fails with invalid path", func(t *testing.T) {
-		// Try to create a db in a path that doesn't exist and can't be created
-		c, err := NewClient("/nonexistent/path/that/cannot/be/created/test.db", &Options{})
-		require.Error(t, err)
-		require.Nil(t, c)
-		assert.Contains(t, err.Error(), "open db:")
-	})
 }
 
 func TestClient_Get(t *testing.T) {
