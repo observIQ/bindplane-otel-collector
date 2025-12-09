@@ -17,6 +17,7 @@ package badgerextension
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -208,9 +209,10 @@ func TestBadgerExtension_GetClient(t *testing.T) {
 
 	t.Run("handles invalid path error", func(t *testing.T) {
 		logger := zap.NewNop()
+		path := filepath.Join(t.TempDir(), "nonexistent", "path", "that", "cannot", "be", "created")
 		cfg := &Config{
 			Directory: &DirectoryConfig{
-				Path: "/nonexistent/path/that/cannot/be/created",
+				Path: path,
 			},
 		}
 
