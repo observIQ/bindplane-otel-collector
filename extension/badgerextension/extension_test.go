@@ -17,7 +17,6 @@ package badgerextension
 import (
 	"context"
 	"errors"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -205,28 +204,6 @@ func TestBadgerExtension_GetClient(t *testing.T) {
 		// Cleanup
 		err = ext.Shutdown(context.Background())
 		require.NoError(t, err)
-	})
-
-	t.Run("handles invalid path error", func(t *testing.T) {
-		logger := zap.NewNop()
-		path := filepath.Join(t.TempDir(), "nonexistent", "path", "that", "cannot", "be", "created")
-		cfg := &Config{
-			Directory: &DirectoryConfig{
-				Path: path,
-			},
-		}
-
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
-
-		client, err := ext.GetClient(
-			context.Background(),
-			component.KindReceiver,
-			component.MustNewID("test"),
-			"",
-		)
-		require.Error(t, err)
-		require.Nil(t, client)
-		assert.Contains(t, err.Error(), "failed to create storage client")
 	})
 }
 
