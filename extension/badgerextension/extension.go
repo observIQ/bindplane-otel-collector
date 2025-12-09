@@ -16,7 +16,6 @@ package badgerextension
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -111,15 +110,12 @@ func (b *badgerExtension) runGC(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			var errs error
 			for _, c := range b.clients {
-				go func(c client.Client) {
-					errs = errors.Join(errs, c.RunValueLogGC(b.cfg.BlobGarbageCollection.DiscardRatio))
+				go func(client client.Client) {
+					if err := client.RunValueLogGC(b.cfg.BlobGarbageCollection.DiscardRatio); err != nil {
+						b.logger.Warn("value log garbage collection failed", zap.Error(err))
+					}
 				}(c)
-			}
-
-			if errs != nil {
-				b.logger.Error("failed to run garbage collection for some clients", zap.Error(errs))
 			}
 		}
 	}
