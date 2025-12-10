@@ -50,7 +50,7 @@ func TestConfigValidate(t *testing.T) {
 				}
 				return cfg
 			},
-			expectedError: errors.New("blob garbage collection interval must be greater than 0"),
+			expectedError: errors.New("blob garbage collection interval cannot be negative"),
 		},
 		{
 			name: "bad gc discard ratio",

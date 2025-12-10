@@ -53,7 +53,7 @@ func (c *Config) Validate() error {
 
 	if c.BlobGarbageCollection != nil {
 		if c.BlobGarbageCollection.Interval < 0 {
-			return errors.New("blob garbage collection interval must be greater than 0")
+			return errors.New("blob garbage collection interval cannot be negative")
 		}
 		if c.BlobGarbageCollection.DiscardRatio <= 0 || c.BlobGarbageCollection.DiscardRatio >= 1 {
 			return errors.New("blob garbage collection discard ratio must be between 0 and 1")
