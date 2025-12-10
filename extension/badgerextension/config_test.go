@@ -46,7 +46,7 @@ func TestConfigValidate(t *testing.T) {
 					Path: t.TempDir(),
 				}
 				cfg.BlobGarbageCollection = &BlobGarbageCollectionConfig{
-					Interval: 0,
+					Interval: -1,
 				}
 				return cfg
 			},

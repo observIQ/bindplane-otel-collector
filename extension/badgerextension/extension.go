@@ -93,7 +93,7 @@ func (b *badgerExtension) clientOptions() *client.Options {
 
 // Start starts the badger storage extension
 func (b *badgerExtension) Start(_ context.Context, _ component.Host) error {
-	if b.cfg.BlobGarbageCollection != nil {
+	if b.cfg.BlobGarbageCollection != nil && b.cfg.BlobGarbageCollection.Interval > 0 {
 		// start background task for running blob garbage collection
 		ctx, cancel := context.WithCancel(context.Background())
 		b.gcContextCancel = cancel
