@@ -67,6 +67,45 @@ func TestConfigValidate(t *testing.T) {
 			},
 			expectedError: errors.New("blob garbage collection discard ratio must be between 0 and 1"),
 		},
+		{
+			name: "empty file path",
+			config: func() *Config {
+				cfg := createDefaultConfig().(*Config)
+				cfg.Directory = &DirectoryConfig{
+					Path: "",
+				}
+				return cfg
+			},
+			expectedError: errors.New("a file path for the directory is required"),
+		},
+		{
+			name: "negative memory table size",
+			config: func() *Config {
+				cfg := createDefaultConfig().(*Config)
+				cfg.Directory = &DirectoryConfig{
+					Path: t.TempDir(),
+				}
+				cfg.Memory = &MemoryConfig{
+					TableSize: -1,
+				}
+				return cfg
+			},
+			expectedError: errors.New("memory table size must not be negative"),
+		},
+		{
+			name: "negative memory block cache size",
+			config: func() *Config {
+				cfg := createDefaultConfig().(*Config)
+				cfg.Directory = &DirectoryConfig{
+					Path: t.TempDir(),
+				}
+				cfg.Memory = &MemoryConfig{
+					BlockCacheSize: -1,
+				}
+				return cfg
+			},
+			expectedError: errors.New("memory block cache size must not be negative"),
+		},
 	}
 
 	for _, tt := range tests {

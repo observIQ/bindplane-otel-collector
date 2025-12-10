@@ -48,7 +48,7 @@ type MemoryConfig struct {
 // Validate validate the config
 func (c *Config) Validate() error {
 	if c.Directory == nil || c.Directory.Path == "" {
-		return errors.New("a file path is required")
+		return errors.New("a file path for the directory is required")
 	}
 
 	if c.BlobGarbageCollection != nil {
@@ -61,11 +61,11 @@ func (c *Config) Validate() error {
 	}
 
 	if c.Memory != nil {
-		if c.Memory.TableSize <= 0 {
-			return errors.New("memory table size must be greater than 0")
+		if c.Memory.TableSize < 0 {
+			return errors.New("memory table size must not be negative")
 		}
-		if c.Memory.BlockCacheSize <= 0 {
-			return errors.New("memory block cache size must be greater than 0")
+		if c.Memory.BlockCacheSize < 0 {
+			return errors.New("memory block cache size must not be negative")
 		}
 	}
 

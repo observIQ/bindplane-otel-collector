@@ -14,6 +14,14 @@ type Client struct {
 	mock.Mock
 }
 
+type Client_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *Client) EXPECT() *Client_Expecter {
+	return &Client_Expecter{mock: &_m.Mock}
+}
+
 // Batch provides a mock function with given fields: ctx, ops
 func (_m *Client) Batch(ctx context.Context, ops ...*storage.Operation) error {
 	_va := make([]interface{}, len(ops))
@@ -39,6 +47,42 @@ func (_m *Client) Batch(ctx context.Context, ops ...*storage.Operation) error {
 	return r0
 }
 
+// Client_Batch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Batch'
+type Client_Batch_Call struct {
+	*mock.Call
+}
+
+// Batch is a helper method to define mock.On call
+//   - ctx context.Context
+//   - ops ...*storage.Operation
+func (_e *Client_Expecter) Batch(ctx interface{}, ops ...interface{}) *Client_Batch_Call {
+	return &Client_Batch_Call{Call: _e.mock.On("Batch",
+		append([]interface{}{ctx}, ops...)...)}
+}
+
+func (_c *Client_Batch_Call) Run(run func(ctx context.Context, ops ...*storage.Operation)) *Client_Batch_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]*storage.Operation, len(args)-1)
+		for i, a := range args[1:] {
+			if a != nil {
+				variadicArgs[i] = a.(*storage.Operation)
+			}
+		}
+		run(args[0].(context.Context), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *Client_Batch_Call) Return(_a0 error) *Client_Batch_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Client_Batch_Call) RunAndReturn(run func(context.Context, ...*storage.Operation) error) *Client_Batch_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Close provides a mock function with given fields: ctx
 func (_m *Client) Close(ctx context.Context) error {
 	ret := _m.Called(ctx)
@@ -57,6 +101,34 @@ func (_m *Client) Close(ctx context.Context) error {
 	return r0
 }
 
+// Client_Close_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Close'
+type Client_Close_Call struct {
+	*mock.Call
+}
+
+// Close is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *Client_Expecter) Close(ctx interface{}) *Client_Close_Call {
+	return &Client_Close_Call{Call: _e.mock.On("Close", ctx)}
+}
+
+func (_c *Client_Close_Call) Run(run func(ctx context.Context)) *Client_Close_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *Client_Close_Call) Return(_a0 error) *Client_Close_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Client_Close_Call) RunAndReturn(run func(context.Context) error) *Client_Close_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Delete provides a mock function with given fields: ctx, key
 func (_m *Client) Delete(ctx context.Context, key string) error {
 	ret := _m.Called(ctx, key)
@@ -73,6 +145,35 @@ func (_m *Client) Delete(ctx context.Context, key string) error {
 	}
 
 	return r0
+}
+
+// Client_Delete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Delete'
+type Client_Delete_Call struct {
+	*mock.Call
+}
+
+// Delete is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key string
+func (_e *Client_Expecter) Delete(ctx interface{}, key interface{}) *Client_Delete_Call {
+	return &Client_Delete_Call{Call: _e.mock.On("Delete", ctx, key)}
+}
+
+func (_c *Client_Delete_Call) Run(run func(ctx context.Context, key string)) *Client_Delete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *Client_Delete_Call) Return(_a0 error) *Client_Delete_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Client_Delete_Call) RunAndReturn(run func(context.Context, string) error) *Client_Delete_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // Get provides a mock function with given fields: ctx, key
@@ -105,6 +206,35 @@ func (_m *Client) Get(ctx context.Context, key string) ([]byte, error) {
 	return r0, r1
 }
 
+// Client_Get_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Get'
+type Client_Get_Call struct {
+	*mock.Call
+}
+
+// Get is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key string
+func (_e *Client_Expecter) Get(ctx interface{}, key interface{}) *Client_Get_Call {
+	return &Client_Get_Call{Call: _e.mock.On("Get", ctx, key)}
+}
+
+func (_c *Client_Get_Call) Run(run func(ctx context.Context, key string)) *Client_Get_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *Client_Get_Call) Return(_a0 []byte, _a1 error) *Client_Get_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Client_Get_Call) RunAndReturn(run func(context.Context, string) ([]byte, error)) *Client_Get_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RunValueLogGC provides a mock function with given fields: discardRatio
 func (_m *Client) RunValueLogGC(discardRatio float64) error {
 	ret := _m.Called(discardRatio)
@@ -123,6 +253,34 @@ func (_m *Client) RunValueLogGC(discardRatio float64) error {
 	return r0
 }
 
+// Client_RunValueLogGC_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RunValueLogGC'
+type Client_RunValueLogGC_Call struct {
+	*mock.Call
+}
+
+// RunValueLogGC is a helper method to define mock.On call
+//   - discardRatio float64
+func (_e *Client_Expecter) RunValueLogGC(discardRatio interface{}) *Client_RunValueLogGC_Call {
+	return &Client_RunValueLogGC_Call{Call: _e.mock.On("RunValueLogGC", discardRatio)}
+}
+
+func (_c *Client_RunValueLogGC_Call) Run(run func(discardRatio float64)) *Client_RunValueLogGC_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(float64))
+	})
+	return _c
+}
+
+func (_c *Client_RunValueLogGC_Call) Return(_a0 error) *Client_RunValueLogGC_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Client_RunValueLogGC_Call) RunAndReturn(run func(float64) error) *Client_RunValueLogGC_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Set provides a mock function with given fields: ctx, key, value
 func (_m *Client) Set(ctx context.Context, key string, value []byte) error {
 	ret := _m.Called(ctx, key, value)
@@ -139,6 +297,36 @@ func (_m *Client) Set(ctx context.Context, key string, value []byte) error {
 	}
 
 	return r0
+}
+
+// Client_Set_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Set'
+type Client_Set_Call struct {
+	*mock.Call
+}
+
+// Set is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key string
+//   - value []byte
+func (_e *Client_Expecter) Set(ctx interface{}, key interface{}, value interface{}) *Client_Set_Call {
+	return &Client_Set_Call{Call: _e.mock.On("Set", ctx, key, value)}
+}
+
+func (_c *Client_Set_Call) Run(run func(ctx context.Context, key string, value []byte)) *Client_Set_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].([]byte))
+	})
+	return _c
+}
+
+func (_c *Client_Set_Call) Return(_a0 error) *Client_Set_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Client_Set_Call) RunAndReturn(run func(context.Context, string, []byte) error) *Client_Set_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // NewClient creates a new instance of Client. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

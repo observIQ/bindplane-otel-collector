@@ -90,7 +90,7 @@ service:
 Each component that uses the badger extension gets an isolated database instance at:
 
 ```
-{directory.path}/{kind}_{type}_{name}/
+{directory.path}/{kind}_{type}_{component_name}_{name}/
 ```
 
 For example, with `directory.path: $OIQ_OTEL_COLLECTOR_STORAGE`:

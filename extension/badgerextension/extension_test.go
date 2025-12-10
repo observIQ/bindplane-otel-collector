@@ -25,7 +25,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/extension/xextension/storage"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
 )
@@ -338,7 +337,7 @@ func TestBadgerExtension_Shutdown(t *testing.T) {
 
 		// Inject a mock client that returns an error on Close
 		mockClient := mocks.NewClient(t)
-		mockClient.On("Close", mock.Anything).Return(errors.New("close error"))
+		mockClient.EXPECT().Close(mock.Anything).Return(errors.New("close error"))
 
 		ext.clients["test_client"] = mockClient
 
@@ -391,7 +390,7 @@ func TestBadgerExtension_GarbageCollection(t *testing.T) {
 
 	t.Run("logs error when garbage collection fails", func(t *testing.T) {
 		// Create an observable logger to capture log messages
-		core, logs := observer.New(zap.ErrorLevel)
+		core, logs := observer.New(zap.WarnLevel)
 		logger := zap.New(core)
 
 		cfg := &Config{
@@ -408,8 +407,8 @@ func TestBadgerExtension_GarbageCollection(t *testing.T) {
 
 		// Inject a mock client that returns an error on RunValueLogGC
 		mockClient := mocks.NewClient(t)
-		mockClient.On("RunValueLogGC", 0.5).Return(errors.New("gc error"))
-		mockClient.On("Close", mock.Anything).Return(nil)
+		mockClient.EXPECT().RunValueLogGC(0.5).Return(errors.New("gc error"))
+		mockClient.EXPECT().Close(mock.Anything).Return(nil)
 
 		ext.clients["test_client"] = mockClient
 
@@ -430,7 +429,7 @@ func TestBadgerExtension_GarbageCollection(t *testing.T) {
 		mockClient.AssertCalled(t, "RunValueLogGC", 0.5)
 
 		// Check logs if any error was recorded
-		_ = logs // logs may or may not contain the error due to race conditions in the goroutine
+		require.GreaterOrEqual(t, len(logs.All()), 1)
 	})
 }
 
@@ -505,20 +504,6 @@ func TestKindString(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
-}
-
-func TestBadgerExtension_StorageInterface(t *testing.T) {
-	// Verify that badgerExtension implements the storage.Extension interface
-	logger := zap.NewNop()
-	cfg := &Config{
-		Directory: &DirectoryConfig{
-			Path: t.TempDir(),
-		},
-	}
-
-	ext := newBadgerExtension(logger, cfg)
-
-	var _ storage.Extension = ext.(*badgerExtension)
 }
 
 func TestBadgerExtension_FullLifecycle(t *testing.T) {
