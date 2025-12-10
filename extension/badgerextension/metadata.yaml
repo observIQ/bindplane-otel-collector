@@ -1,0 +1,9 @@
+type: badger
+
+status:
+  class: extension
+  stability:
+    alpha: [extension]
+
+tests:
+  config:
