@@ -18,6 +18,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs"
 	"github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/httpreceiver"
@@ -122,6 +123,7 @@ var defaultReceivers = []receiver.Factory{
 	awsxrayreceiver.NewFactory(),
 	azureblobreceiver.NewFactory(),
 	azureblobrehydrationreceiver.NewFactory(),
+	azureblobpollingreceiver.NewFactory(),
 	azureeventhubreceiver.NewFactory(),
 	bigipreceiver.NewFactory(),
 	carbonreceiver.NewFactory(),
