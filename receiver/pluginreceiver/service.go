@@ -19,7 +19,6 @@ import (
 
 	"go.opentelemetry.io/collector/otelcol"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 // Service is an interface for running an internal open telemetry service
@@ -30,25 +29,22 @@ type Service interface {
 }
 
 // createService creates a default Service for running an open telemetry pipeline
-func createService(factories otelcol.Factories, configProviderSettings otelcol.ConfigProviderSettings, logger *zap.Logger) (Service, error) {
+func createService(factories otelcol.Factories, configProviderSettings otelcol.ConfigProviderSettings) (Service, error) {
 	settings := otelcol.CollectorSettings{
 		Factories:               func() (otelcol.Factories, error) { return factories, nil },
 		DisableGracefulShutdown: true,
 		ConfigProviderSettings:  configProviderSettings,
-		LoggingOptions:          createServiceLoggerOpts(logger),
+		LoggingOptions:          createServiceLoggerOpts(),
 	}
 
 	return otelcol.NewCollector(settings)
 }
 
 // createServiceLoggerOpts creates the default logger opts for a Service
-func createServiceLoggerOpts(baseLogger *zap.Logger) []zap.Option {
+func createServiceLoggerOpts() []zap.Option {
 	levelOpt := zap.IncreaseLevel(zap.ErrorLevel)
-	coreOpt := zap.WrapCore(func(zapcore.Core) zapcore.Core {
-		return baseLogger.Core()
-	})
-	return []zap.Option{coreOpt, levelOpt}
+	return []zap.Option{levelOpt}
 }
 
 // createServiceFunc is a function used to create a service
-type createServiceFunc func(factories otelcol.Factories, configProviderSettings otelcol.ConfigProviderSettings, logger *zap.Logger) (Service, error)
+type createServiceFunc func(factories otelcol.Factories, configProviderSettings otelcol.ConfigProviderSettings) (Service, error)
