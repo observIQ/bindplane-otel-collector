@@ -48,7 +48,7 @@ func createLogsReceiver(
 	if err := receiverCfg.Validate(); err != nil {
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
-	params.Logger.Warn("PCAP receiver requires root privileges or tcpdump capabilities (cap_net_raw,cap_net_admin). Ensure the collector has sufficient privileges to capture network packets")
+
 	receiver, err := newReceiver(settings, receiverCfg, params.Logger, consumer, tb)
 	if err != nil {
 		return nil, err
