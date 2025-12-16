@@ -64,6 +64,17 @@ func TestConfig_Validate(t *testing.T) {
 			expectedErr: "url is required",
 		},
 		{
+			name: "valid config with no auth",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeNone,
+				Pagination: PaginationConfig{
+					Mode: paginationModeNone,
+				},
+			},
+			expectedErr: "",
+		},
+		{
 			name: "invalid auth mode",
 			config: &Config{
 				URL:      "https://api.example.com/data",
@@ -72,7 +83,7 @@ func TestConfig_Validate(t *testing.T) {
 					Mode: paginationModeNone,
 				},
 			},
-			expectedErr: "invalid auth mode: invalid, must be one of: apikey, bearer, basic, oauth2, akamai_edgegrid",
+			expectedErr: "invalid auth mode: invalid, must be one of: none, apikey, bearer, basic, oauth2, akamai_edgegrid",
 		},
 		{
 			name: "apikey auth missing header name",
@@ -87,7 +98,7 @@ func TestConfig_Validate(t *testing.T) {
 					Mode: paginationModeNone,
 				},
 			},
-			expectedErr: "apikey_header_name is required when auth_mode is apikey",
+			expectedErr: "header_name is required when auth_mode is apikey",
 		},
 		{
 			name: "apikey auth missing value",
@@ -102,7 +113,7 @@ func TestConfig_Validate(t *testing.T) {
 					Mode: paginationModeNone,
 				},
 			},
-			expectedErr: "apikey_value is required when auth_mode is apikey",
+			expectedErr: "value is required when auth_mode is apikey",
 		},
 		{
 			name: "valid apikey auth",
@@ -131,7 +142,7 @@ func TestConfig_Validate(t *testing.T) {
 					Mode: paginationModeNone,
 				},
 			},
-			expectedErr: "bearer_token is required when auth_mode is bearer",
+			expectedErr: "token is required when auth_mode is bearer",
 		},
 		{
 			name: "valid bearer auth",
@@ -160,7 +171,7 @@ func TestConfig_Validate(t *testing.T) {
 					Mode: paginationModeNone,
 				},
 			},
-			expectedErr: "basic_username is required when auth_mode is basic",
+			expectedErr: "username is required when auth_mode is basic",
 		},
 		{
 			name: "basic auth missing password",
@@ -175,7 +186,7 @@ func TestConfig_Validate(t *testing.T) {
 					Mode: paginationModeNone,
 				},
 			},
-			expectedErr: "basic_password is required when auth_mode is basic",
+			expectedErr: "password is required when auth_mode is basic",
 		},
 		{
 			name: "valid basic auth",
@@ -206,7 +217,7 @@ func TestConfig_Validate(t *testing.T) {
 					Mode: paginationModeNone,
 				},
 			},
-			expectedErr: "oauth2_client_id is required when auth_mode is oauth2",
+			expectedErr: "client_id is required when auth_mode is oauth2",
 		},
 		{
 			name: "oauth2 auth missing client_secret",
@@ -222,7 +233,7 @@ func TestConfig_Validate(t *testing.T) {
 					Mode: paginationModeNone,
 				},
 			},
-			expectedErr: "oauth2_client_secret is required when auth_mode is oauth2",
+			expectedErr: "client_secret is required when auth_mode is oauth2",
 		},
 		{
 			name: "oauth2 auth missing token_url",
@@ -238,7 +249,7 @@ func TestConfig_Validate(t *testing.T) {
 					Mode: paginationModeNone,
 				},
 			},
-			expectedErr: "oauth2_token_url is required when auth_mode is oauth2",
+			expectedErr: "token_url is required when auth_mode is oauth2",
 		},
 		{
 			name: "valid oauth2 auth",
@@ -306,7 +317,7 @@ func TestConfig_Validate(t *testing.T) {
 					Mode: paginationModeNone,
 				},
 			},
-			expectedErr: "akamai_access_token is required when auth_mode is akamai_edgegrid",
+			expectedErr: "access_token is required when auth_mode is akamai_edgegrid",
 		},
 		{
 			name: "akamai edgegrid auth missing client token",
@@ -321,7 +332,7 @@ func TestConfig_Validate(t *testing.T) {
 					Mode: paginationModeNone,
 				},
 			},
-			expectedErr: "akamai_client_token is required when auth_mode is akamai_edgegrid",
+			expectedErr: "client_token is required when auth_mode is akamai_edgegrid",
 		},
 		{
 			name: "akamai edgegrid auth missing client secret",
@@ -336,7 +347,7 @@ func TestConfig_Validate(t *testing.T) {
 					Mode: paginationModeNone,
 				},
 			},
-			expectedErr: "akamai_client_secret is required when auth_mode is akamai_edgegrid",
+			expectedErr: "client_secret is required when auth_mode is akamai_edgegrid",
 		},
 		{
 			name: "valid akamai edgegrid auth",
@@ -386,7 +397,7 @@ func TestConfig_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: "pagination.offset_limit.offset_field_name is required when pagination.mode is offset_limit",
+			expectedErr: "offset_field_name is required when pagination.mode is offset_limit",
 		},
 		{
 			name: "offset_limit pagination missing limit field name",
@@ -405,7 +416,7 @@ func TestConfig_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: "pagination.offset_limit.limit_field_name is required when pagination.mode is offset_limit",
+			expectedErr: "limit_field_name is required when pagination.mode is offset_limit",
 		},
 		{
 			name: "valid offset_limit pagination",
@@ -444,7 +455,7 @@ func TestConfig_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: "pagination.page_size.page_num_field_name is required when pagination.mode is page_size",
+			expectedErr: "page_num_field_name is required when pagination.mode is page_size",
 		},
 		{
 			name: "page_size pagination missing page size field name",
@@ -463,7 +474,7 @@ func TestConfig_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: "pagination.page_size.page_size_field_name is required when pagination.mode is page_size",
+			expectedErr: "page_size_field_name is required when pagination.mode is page_size",
 		},
 		{
 			name: "valid page_size pagination",
@@ -504,7 +515,7 @@ func TestConfig_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: "pagination.timestamp.param_name is required when pagination.mode is timestamp",
+			expectedErr: "param_name is required when pagination.mode is timestamp",
 		},
 		{
 			name: "timestamp pagination missing timestamp field name",
@@ -525,7 +536,7 @@ func TestConfig_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: "pagination.timestamp.timestamp_field_name is required when pagination.mode is timestamp",
+			expectedErr: "timestamp_field_name is required when pagination.mode is timestamp",
 		},
 		{
 			name: "timestamp pagination missing page size field name",
@@ -546,7 +557,7 @@ func TestConfig_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: "pagination.timestamp.page_size_field_name is required when pagination.mode is timestamp",
+			expectedErr: "page_size_field_name is required when pagination.mode is timestamp",
 		},
 		{
 			name: "valid timestamp pagination",
@@ -589,7 +600,7 @@ func TestConfig_DefaultValues(t *testing.T) {
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig().(*Config)
 
-	require.Equal(t, authModeAPIKey, cfg.AuthMode)
+	require.Equal(t, authModeNone, cfg.AuthMode)
 	require.Equal(t, paginationModeNone, cfg.Pagination.Mode)
 	require.Equal(t, 5*time.Minute, cfg.MaxPollInterval)
 	require.Equal(t, 0, cfg.Pagination.PageLimit)

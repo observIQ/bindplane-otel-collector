@@ -10,7 +10,7 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 ## How It Works
 
 1. The receiver polls a configured REST API endpoint at a specified interval.
-2. It handles authentication (API Key, Bearer Token, Basic Auth, or Akamai EdgeGrid).
+2. It handles authentication (None, API Key, Bearer Token, Basic Auth, OAuth2, or Akamai EdgeGrid).
 3. It supports pagination to fetch all available data.
 4. It can track time-based offsets to avoid duplicate data collection.
 5. It converts JSON responses to OpenTelemetry logs or metrics.
@@ -29,7 +29,7 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 | `url` | string | | `true` | The base URL for the REST API endpoint |
 | `response_field` | string | | `false` | The name of the field in the response that contains the array of items. If empty, the response is assumed to be a top-level array. For nested fields, use dot notation (e.g., `response.data`) |
 | `metrics` | object | | `false` | Metrics configuration (see below) |
-| `auth_mode` | string | `apikey` | `false` | Authentication mode: `apikey`, `bearer`, `basic`, `oauth2`, or `akamai_edgegrid` |
+| `auth_mode` | string | `none` | `false` | Authentication mode: `none`, `apikey`, `bearer`, `basic`, `oauth2`, or `akamai_edgegrid` |
 | `apikey` | object | | `false` | API Key configuration (see below) |
 | `bearer` | object | | `false` | Bearer Token configuration (see below) |
 | `basic` | object | | `false` | Basic Auth configuration (see below) |
@@ -41,6 +41,10 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 | `timeout` | duration | `10s` | `false` | HTTP client timeout |
 
 ### Auth Mode Configuration
+
+#### None (No Authentication)
+
+Use `auth_mode: none` for public APIs that don't require authentication. No additional configuration is needed.
 
 #### API Key
 

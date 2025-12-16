@@ -109,6 +109,42 @@ func TestRESTAPIClient_GetJSON_NoAuth(t *testing.T) {
 	require.Equal(t, "test2", data[1]["name"])
 }
 
+func TestRESTAPIClient_GetJSON_NoAuthMode(t *testing.T) {
+	// Create a test server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify no Authorization header is set
+		require.Empty(t, r.Header.Get("Authorization"))
+
+		// Return JSON array
+		response := []map[string]any{
+			{"id": "1", "name": "public-data"},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	cfg := &Config{
+		URL:          server.URL,
+		AuthMode:     authModeNone,
+		ClientConfig: confighttp.ClientConfig{},
+	}
+
+	ctx := context.Background()
+	host := componenttest.NewNopHost()
+	settings := componenttest.NewNopTelemetrySettings()
+
+	client, err := newRESTAPIClient(ctx, settings, cfg, host)
+	require.NoError(t, err)
+
+	params := url.Values{}
+	data, err := client.GetJSON(ctx, server.URL, params)
+	require.NoError(t, err)
+	require.Len(t, data, 1)
+	require.Equal(t, "1", data[0]["id"])
+	require.Equal(t, "public-data", data[0]["name"])
+}
+
 func TestRESTAPIClient_GetJSON_APIKeyAuth(t *testing.T) {
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

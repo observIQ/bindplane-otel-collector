@@ -364,6 +364,10 @@ func (c *defaultRESTAPIClient) createOAuth2TokenSource(ctx context.Context) (oau
 func (c *defaultRESTAPIClient) applyAuth(req *http.Request) error {
 	switch c.cfg.AuthMode {
 
+	case authModeNone:
+		// No authentication required
+		return nil
+
 	case authModeAPIKey:
 		// API key authentication
 		if c.cfg.APIKeyConfig.HeaderName == "" || c.cfg.APIKeyConfig.Value == "" {

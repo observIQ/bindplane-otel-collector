@@ -26,6 +26,7 @@ import (
 type AuthMode string
 
 const (
+	authModeNone           AuthMode = "none"
 	authModeAPIKey         AuthMode = "apikey"
 	authModeBearer         AuthMode = "bearer"
 	authModeBasic          AuthMode = "basic"
@@ -37,7 +38,7 @@ const (
 func (m *AuthMode) UnmarshalText(text []byte) error {
 	mode := AuthMode(text)
 	switch mode {
-	case authModeAPIKey, authModeBearer, authModeBasic, authModeOAuth2, authModeAkamaiEdgeGrid:
+	case authModeNone, authModeAPIKey, authModeBearer, authModeBasic, authModeOAuth2, authModeAkamaiEdgeGrid:
 		*m = mode
 		return nil
 	default:
@@ -251,51 +252,51 @@ func (c *Config) Validate() error {
 
 	// Validate auth mode
 	switch c.AuthMode {
-	case authModeAPIKey, authModeBearer, authModeBasic, authModeOAuth2, authModeAkamaiEdgeGrid:
+	case authModeNone, authModeAPIKey, authModeBearer, authModeBasic, authModeOAuth2, authModeAkamaiEdgeGrid:
 		// Valid modes
 	default:
-		return fmt.Errorf("invalid auth mode: %s, must be one of: apikey, bearer, basic, oauth2, akamai_edgegrid", c.AuthMode)
+		return fmt.Errorf("invalid auth mode: %s, must be one of: none, apikey, bearer, basic, oauth2, akamai_edgegrid", c.AuthMode)
 	}
 
 	// Validate auth mode specific requirements
 	switch c.AuthMode {
 	case authModeAPIKey:
 		if c.APIKeyConfig.HeaderName == "" {
-			return fmt.Errorf("apikey_header_name is required when auth_mode is apikey")
+			return fmt.Errorf("header_name is required when auth_mode is apikey")
 		}
 		if c.APIKeyConfig.Value == "" {
-			return fmt.Errorf("apikey_value is required when auth_mode is apikey")
+			return fmt.Errorf("value is required when auth_mode is apikey")
 		}
 	case authModeBearer:
 		if c.BearerConfig.Token == "" {
-			return fmt.Errorf("bearer_token is required when auth_mode is bearer")
+			return fmt.Errorf("token is required when auth_mode is bearer")
 		}
 	case authModeBasic:
 		if c.BasicConfig.Username == "" {
-			return fmt.Errorf("basic_username is required when auth_mode is basic")
+			return fmt.Errorf("username is required when auth_mode is basic")
 		}
 		if c.BasicConfig.Password == "" {
-			return fmt.Errorf("basic_password is required when auth_mode is basic")
+			return fmt.Errorf("password is required when auth_mode is basic")
 		}
 	case authModeOAuth2:
 		if c.OAuth2Config.ClientID == "" {
-			return fmt.Errorf("oauth2_client_id is required when auth_mode is oauth2")
+			return fmt.Errorf("client_id is required when auth_mode is oauth2")
 		}
 		if c.OAuth2Config.ClientSecret == "" {
-			return fmt.Errorf("oauth2_client_secret is required when auth_mode is oauth2")
+			return fmt.Errorf("client_secret is required when auth_mode is oauth2")
 		}
 		if c.OAuth2Config.TokenURL == "" {
-			return fmt.Errorf("oauth2_token_url is required when auth_mode is oauth2")
+			return fmt.Errorf("token_url is required when auth_mode is oauth2")
 		}
 	case authModeAkamaiEdgeGrid:
 		if c.AkamaiEdgeGridConfig.AccessToken == "" {
-			return fmt.Errorf("akamai_access_token is required when auth_mode is akamai_edgegrid")
+			return fmt.Errorf("access_token is required when auth_mode is akamai_edgegrid")
 		}
 		if c.AkamaiEdgeGridConfig.ClientToken == "" {
-			return fmt.Errorf("akamai_client_token is required when auth_mode is akamai_edgegrid")
+			return fmt.Errorf("client_token is required when auth_mode is akamai_edgegrid")
 		}
 		if c.AkamaiEdgeGridConfig.ClientSecret == "" {
-			return fmt.Errorf("akamai_client_secret is required when auth_mode is akamai_edgegrid")
+			return fmt.Errorf("client_secret is required when auth_mode is akamai_edgegrid")
 		}
 	}
 
@@ -311,27 +312,27 @@ func (c *Config) Validate() error {
 	switch c.Pagination.Mode {
 	case paginationModeOffsetLimit:
 		if c.Pagination.OffsetLimit.OffsetFieldName == "" {
-			return fmt.Errorf("pagination.offset_limit.offset_field_name is required when pagination.mode is offset_limit")
+			return fmt.Errorf("offset_field_name is required when pagination.mode is offset_limit")
 		}
 		if c.Pagination.OffsetLimit.LimitFieldName == "" {
-			return fmt.Errorf("pagination.offset_limit.limit_field_name is required when pagination.mode is offset_limit")
+			return fmt.Errorf("limit_field_name is required when pagination.mode is offset_limit")
 		}
 	case paginationModePageSize:
 		if c.Pagination.PageSize.PageNumFieldName == "" {
-			return fmt.Errorf("pagination.page_size.page_num_field_name is required when pagination.mode is page_size")
+			return fmt.Errorf("page_num_field_name is required when pagination.mode is page_size")
 		}
 		if c.Pagination.PageSize.PageSizeFieldName == "" {
-			return fmt.Errorf("pagination.page_size.page_size_field_name is required when pagination.mode is page_size")
+			return fmt.Errorf("page_size_field_name is required when pagination.mode is page_size")
 		}
 	case paginationModeTimestamp:
 		if c.Pagination.Timestamp.ParamName == "" {
-			return fmt.Errorf("pagination.timestamp.param_name is required when pagination.mode is timestamp")
+			return fmt.Errorf("param_name is required when pagination.mode is timestamp")
 		}
 		if c.Pagination.Timestamp.TimestampFieldName == "" {
-			return fmt.Errorf("pagination.timestamp.timestamp_field_name is required when pagination.mode is timestamp")
+			return fmt.Errorf("timestamp_field_name is required when pagination.mode is timestamp")
 		}
 		if c.Pagination.Timestamp.PageSizeFieldName == "" {
-			return fmt.Errorf("pagination.timestamp.page_size_field_name is required when pagination.mode is timestamp")
+			return fmt.Errorf("page_size_field_name is required when pagination.mode is timestamp")
 		}
 	}
 
