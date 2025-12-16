@@ -191,9 +191,9 @@ require (
 	go.opentelemetry.io/collector/exporter/otlphttpexporter v0.140.0
 	go.opentelemetry.io/collector/extension v1.46.0
 	go.opentelemetry.io/collector/extension/zpagesextension v0.140.0
-	go.opentelemetry.io/collector/featuregate v1.46.0
+	go.opentelemetry.io/collector/featuregate v1.47.0
 	go.opentelemetry.io/collector/otelcol v0.140.0
-	go.opentelemetry.io/collector/pdata v1.46.0
+	go.opentelemetry.io/collector/pdata v1.47.0
 	go.opentelemetry.io/collector/processor v1.46.0
 	go.opentelemetry.io/collector/processor/batchprocessor v0.140.0
 	go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.140.0
@@ -210,6 +210,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.88.1
 	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.88.1
 	github.com/observiq/bindplane-otel-collector/extension/badgerextension v1.88.1
+	github.com/observiq/bindplane-otel-collector/extension/pebbleextension v1.88.1
 	github.com/observiq/bindplane-otel-collector/internal/osinfo v1.88.1
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.88.1
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.88.1
@@ -389,6 +390,12 @@ require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575 // indirect
+	github.com/cockroachdb/errors v1.11.3 // indirect
+	github.com/cockroachdb/fifo v0.0.0-20240606204812-0bbfbd93a7ce // indirect
+	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
+	github.com/cockroachdb/pebble v1.1.5 // indirect
+	github.com/cockroachdb/redact v1.1.5 // indirect
+	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/containerd/containerd/api v1.9.0 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
@@ -417,6 +424,7 @@ require (
 	github.com/facette/natsort v0.0.0-20181210072756-2cd4dd1e2dcb // indirect
 	github.com/foxboron/go-tpm-keyfiles v0.0.0-20250903184740-5d135037bd4d // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
+	github.com/getsentry/sentry-go v0.27.0 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
@@ -456,6 +464,8 @@ require (
 	github.com/klauspost/asmfmt v1.3.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/knadh/koanf/v2 v2.3.0 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/leodido/go-syslog/v4 v4.3.0 // indirect
 	github.com/lestrrat-go/strftime v1.1.1 // indirect
@@ -528,6 +538,7 @@ require (
 	github.com/rdforte/gomaxecs v1.1.1 // indirect
 	github.com/redis/go-redis/v9 v9.16.0 // indirect
 	github.com/richardartoul/molecule v1.0.1-0.20240531184615-7ca0df43c0b3 // indirect
+	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.9.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shirou/gopsutil/v4 v4.25.10 // indirect
@@ -986,6 +997,8 @@ replace github.com/observiq/bindplane-otel-collector/internal/testutils => ./int
 replace github.com/observiq/bindplane-otel-collector/extension/awss3eventextension => ./extension/awss3eventextension
 
 replace github.com/observiq/bindplane-otel-collector/extension/badgerextension => ./extension/badgerextension
+
+replace github.com/observiq/bindplane-otel-collector/extension/pebbleextension => ./extension/pebbleextension
 
 // Exporters
 replace github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter => ./exporter/azureblobexporter

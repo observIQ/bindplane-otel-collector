@@ -63,8 +63,7 @@ func TestPebbleExtension_GetClient(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, client)
 
-		// Verify the client was stored
-		assert.Len(t, ext.clients, 1)
+		require.Len(t, ext.clients, 1)
 	})
 
 	t.Run("creates client with name", func(t *testing.T) {
@@ -89,7 +88,7 @@ func TestPebbleExtension_GetClient(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, client)
 
-		assert.Len(t, ext.clients, 1)
+		require.Len(t, ext.clients, 1)
 	})
 
 	t.Run("returns existing client", func(t *testing.T) {
@@ -127,8 +126,8 @@ func TestPebbleExtension_GetClient(t *testing.T) {
 		require.NotNil(t, client2)
 
 		// Should be the same client
-		assert.Equal(t, client1, client2)
-		assert.Len(t, ext.clients, 1)
+		require.Equal(t, client1, client2)
+		require.Len(t, ext.clients, 1)
 	})
 
 	t.Run("creates different clients for different components", func(t *testing.T) {
@@ -162,8 +161,8 @@ func TestPebbleExtension_GetClient(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, client2)
 
-		assert.NotEqual(t, client1, client2)
-		assert.Len(t, ext.clients, 2)
+		require.NotEqual(t, client1, client2)
+		require.Len(t, ext.clients, 2)
 	})
 
 	t.Run("creates client with named component ID", func(t *testing.T) {
@@ -189,7 +188,7 @@ func TestPebbleExtension_GetClient(t *testing.T) {
 		require.NotNil(t, client)
 
 		// Verify the client was stored with the correct key
-		assert.Len(t, ext.clients, 1)
+		require.Len(t, ext.clients, 1)
 	})
 }
 
@@ -261,7 +260,7 @@ func TestPebbleExtension_Shutdown(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		assert.Len(t, ext.clients, 2)
+		require.Len(t, ext.clients, 2)
 	})
 }
 
@@ -301,7 +300,7 @@ func TestKindString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := kindString(tt.kind)
-			assert.Equal(t, tt.expected, result)
+			require.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -338,14 +337,14 @@ func TestPebbleExtension_FullLifecycle(t *testing.T) {
 
 		val, err := client.Get(ctx, "test_key")
 		require.NoError(t, err)
-		assert.Equal(t, []byte("test_value"), val)
+		require.Equal(t, []byte("test_value"), val)
 
 		err = client.Delete(ctx, "test_key")
 		require.NoError(t, err)
 
 		val, err = client.Get(ctx, "test_key")
 		require.NoError(t, err)
-		assert.Nil(t, val)
+		require.Nil(t, val)
 	})
 
 	t.Run("multiple clients lifecycle", func(t *testing.T) {
@@ -388,14 +387,14 @@ func TestPebbleExtension_FullLifecycle(t *testing.T) {
 
 		val, err := client1.Get(context.Background(), "key1")
 		require.NoError(t, err)
-		assert.Equal(t, []byte("value1"), val)
+		require.Equal(t, []byte("value1"), val)
 
 		val, err = client1.Get(context.Background(), "key2")
 		require.NoError(t, err)
-		assert.Nil(t, val) // Should not find key2 in client1's storage
+		require.Nil(t, val) // Should not find key2 in client1's storage
 
 		val, err = client2.Get(context.Background(), "key2")
 		require.NoError(t, err)
-		assert.Equal(t, []byte("value2"), val)
+		require.Equal(t, []byte("value2"), val)
 	})
 }

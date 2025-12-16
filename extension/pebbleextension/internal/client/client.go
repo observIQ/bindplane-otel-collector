@@ -37,6 +37,7 @@ type DBClient interface {
 	Set(key []byte, value []byte, opts *pebble.WriteOptions) error
 	Delete(key []byte, opts *pebble.WriteOptions) error
 	NewBatch() *pebble.Batch
+	// Flush for the memtable is written to disk for Pebble
 	Flush() error
 	Close() error
 }
@@ -217,6 +218,6 @@ func (c *client) Close(_ context.Context) error {
 	if err != nil {
 		return fmt.Errorf("flush db: %w", err)
 	}
-	c.db.Close()
-	return nil
+
+	return c.db.Close()
 }

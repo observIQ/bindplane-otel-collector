@@ -22,10 +22,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/observiq/bindplane-otel-collector/extension/pebbleextension/internal/client"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/extension/xextension/storage"
 	"go.uber.org/zap"
+
+	"github.com/observiq/bindplane-otel-collector/extension/pebbleextension/internal/client"
 )
 
 type pebbleExtension struct {

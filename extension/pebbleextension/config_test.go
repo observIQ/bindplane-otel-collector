@@ -68,6 +68,17 @@ func TestConfigValidate(t *testing.T) {
 			},
 			expectedError: errors.New("a directory path is required"),
 		},
+		{
+			name: "negative cache size",
+			config: func() *Config {
+				return &Config{
+					Cache: &CacheConfig{
+						Size: -1,
+					},
+				}
+			},
+			expectedError: errors.New("cache size must be greater than or equal to 0"),
+		},
 	}
 
 	for _, tt := range tests {
