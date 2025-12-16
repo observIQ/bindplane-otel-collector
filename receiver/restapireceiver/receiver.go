@@ -91,12 +91,17 @@ func (b *baseReceiver) initializePagination() {
 }
 
 // shutdownBase handles common shutdown logic.
-func (b *baseReceiver) shutdownBase(ctx context.Context, receiverType string) error {
-	b.logger.Debug(fmt.Sprintf("shutting down REST API %s receiver", receiverType))
+func (b *baseReceiver) shutdownBase(ctx context.Context) error {
 	if b.cancel != nil {
 		b.cancel()
 	}
 	b.wg.Wait()
+
+	if b.client != nil {
+		if err := b.client.Shutdown(); err != nil {
+			b.logger.Error("failed to shutdown client", zap.Error(err))
+		}
+	}
 
 	if b.storageClient != nil {
 		if err := b.saveCheckpoint(ctx); err != nil {
@@ -289,7 +294,8 @@ func (r *restAPILogsReceiver) Start(ctx context.Context, host component.Host) er
 
 // Shutdown stops the receiver.
 func (r *restAPILogsReceiver) Shutdown(ctx context.Context) error {
-	return r.shutdownBase(ctx, "logs")
+	r.logger.Debug("shutting down REST API logs receiver")
+	return r.shutdownBase(ctx)
 }
 
 // startPolling starts the polling goroutine.
@@ -471,7 +477,8 @@ func (r *restAPIMetricsReceiver) Start(ctx context.Context, host component.Host)
 
 // Shutdown stops the receiver.
 func (r *restAPIMetricsReceiver) Shutdown(ctx context.Context) error {
-	return r.shutdownBase(ctx, "metrics")
+	r.logger.Debug("shutting down REST API metrics receiver")
+	return r.shutdownBase(ctx)
 }
 
 // startPolling starts the polling goroutine.

@@ -91,6 +91,7 @@ func newRESTAPIClient(
 
 // Shutdown shuts down the REST API client.
 func (c *defaultRESTAPIClient) Shutdown() error {
+	c.client.CloseIdleConnections()
 	return nil
 }
 

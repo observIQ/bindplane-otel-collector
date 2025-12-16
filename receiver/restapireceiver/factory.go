@@ -42,8 +42,8 @@ func createDefaultConfig() component.Config {
 		URL:      "",
 		AuthMode: authModeAPIKey,
 		APIKeyConfig: APIKeyConfig{
-			HeaderName: "X-API-Key",
-			Value:      "test-key",
+			HeaderName: "",
+			Value:      "",
 		},
 		Pagination: PaginationConfig{
 			Mode:           paginationModeNone,
