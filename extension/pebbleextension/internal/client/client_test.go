@@ -15,7 +15,6 @@
 package client
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -28,9 +27,11 @@ func TestGet(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	v, err := client.Get(context.Background(), "test")
+	v, err := client.Get(t.Context(), "test")
 	require.NoError(t, err)
 	require.Nil(t, v)
+
+	require.NoError(t, client.Close(t.Context()))
 }
 
 func TestSet(t *testing.T) {
@@ -39,12 +40,14 @@ func TestSet(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = client.Set(context.Background(), "test", []byte("test"))
+	err = client.Set(t.Context(), "test", []byte("test"))
 	require.NoError(t, err)
 
-	v, err := client.Get(context.Background(), "test")
+	v, err := client.Get(t.Context(), "test")
 	require.NoError(t, err)
 	require.Equal(t, []byte("test"), v)
+
+	require.NoError(t, client.Close(t.Context()))
 }
 
 func TestDelete(t *testing.T) {
@@ -53,15 +56,17 @@ func TestDelete(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = client.Set(context.Background(), "test", []byte("test"))
+	err = client.Set(t.Context(), "test", []byte("test"))
 	require.NoError(t, err)
 
-	err = client.Delete(context.Background(), "test")
+	err = client.Delete(t.Context(), "test")
 	require.NoError(t, err)
 
-	v, err := client.Get(context.Background(), "test")
+	v, err := client.Get(t.Context(), "test")
 	require.NoError(t, err)
 	require.Nil(t, v)
+
+	require.NoError(t, client.Close(t.Context()))
 }
 
 func TestBatch(t *testing.T) {
@@ -70,22 +75,27 @@ func TestBatch(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = client.Batch(t.Context(), storage.SetOperation("test", []byte("test")))
+	err = client.Batch(t.Context(), storage.SetOperation("test0", []byte("test0")), storage.SetOperation("test1", []byte("test1")))
 	require.NoError(t, err)
 
-	v, err := client.Get(t.Context(), "test")
+	// validating that the Set was performed
+	v, err := client.Get(t.Context(), "test0")
 	require.NoError(t, err)
-	require.Equal(t, []byte("test"), v)
+	require.Equal(t, []byte("test0"), v)
 
-	getOp := storage.GetOperation("test")
-	err = client.Batch(t.Context(), getOp, storage.DeleteOperation("test"))
+	// batch deleting the items
+	err = client.Batch(t.Context(), storage.DeleteOperation("test0"), storage.DeleteOperation("test1"))
 	require.NoError(t, err)
 
-	require.NoError(t, err)
-	require.Equal(t, []byte("test"), getOp.Value)
-	v, err = client.Get(t.Context(), "test")
+	v, err = client.Get(t.Context(), "test0")
 	require.NoError(t, err)
 	require.Nil(t, v)
+
+	v, err = client.Get(t.Context(), "test1")
+	require.NoError(t, err)
+	require.Nil(t, v)
+
+	require.NoError(t, client.Close(t.Context()))
 }
 
 func TestClose(t *testing.T) {

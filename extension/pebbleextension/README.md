@@ -20,10 +20,6 @@ extensions:
     directory:
       path: /var/lib/otelcol/pebble
 
-processors:
-  batch:
-    storage: pebble
-
 exporters:
   otlp:
     endpoint: otelcol:4317
@@ -33,7 +29,6 @@ service:
   pipelines:
     logs:
       receivers: [otlp]
-      processors: [batch]
       exporters: [otlp]
 ```
 
@@ -59,10 +54,6 @@ extensions:
       size: 536870912  # 512MB cache
     sync: false
 
-processors:
-  batch:
-    storage: pebble
-
 exporters:
   otlp:
     endpoint: otelcol:4317
@@ -72,7 +63,6 @@ service:
   pipelines:
     logs:
       receivers: [otlp]
-      processors: [batch]
       exporters: [otlp]
 
 ```
