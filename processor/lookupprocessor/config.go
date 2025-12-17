@@ -17,6 +17,7 @@ package lookupprocessor
 
 import (
 	"errors"
+	"time"
 )
 
 const (
@@ -44,6 +45,25 @@ type Config struct {
 	CSV     string `mapstructure:"csv"`
 	Context string `mapstructure:"context"`
 	Field   string `mapstructure:"field"`
+}
+
+// APIConfig is the configuration for API-based lookups
+type APIConfig struct {
+	URL             string            `mapstructure:"url"`
+	Method          string            `mapstructure:"method"`
+	Headers         map[string]string `mapstructure:"headers"`
+	Timeout         time.Duration     `mapstructure:"timeout"`
+	ResponseMapping map[string]string `mapstructure:"response_mapping"`
+}
+
+// RedisConfig is the configuration for Redis-based lookups
+type RedisConfig struct {
+	Address   string `mapstructure:"address"`
+	Username  string `mapstructure:"username"`
+	Password  string `mapstructure:"password"`
+	DB        int    `mapstructure:"db"`
+	TLS       bool   `mapstructure:"tls"`
+	KeyPrefix string `mapstructure:"key_prefix"`
 }
 
 // Validate validates the processor configuration
