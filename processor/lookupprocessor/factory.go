@@ -17,6 +17,7 @@ package lookupprocessor
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -49,7 +50,11 @@ func NewFactory() processor.Factory {
 
 // createDefaultConfig creates the default configuration for the processor
 func createDefaultConfig() component.Config {
-	return &Config{}
+	cfg := &Config{
+		CacheEnabled: true,
+	}
+	cfg.SetDefaults()
+	return cfg
 }
 
 // createTracesProcessor creates a trace processor
@@ -64,7 +69,11 @@ func createTracesProcessor(
 		return nil, errInvalidConfigType
 	}
 
-	processor := newLookupProcessor(lookupCfg, set.Logger)
+	processor, err := newLookupProcessor(ctx, lookupCfg, set)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create lookup processor: %w", err)
+	}
+
 	return processorhelper.NewTraces(
 		ctx,
 		set,
@@ -89,7 +98,11 @@ func createLogsProcessor(
 		return nil, errInvalidConfigType
 	}
 
-	processor := newLookupProcessor(lookupCfg, set.Logger)
+	processor, err := newLookupProcessor(ctx, lookupCfg, set)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create lookup processor: %w", err)
+	}
+
 	return processorhelper.NewLogs(
 		ctx,
 		set,
@@ -114,7 +127,11 @@ func createMetricsProcessor(
 		return nil, errInvalidConfigType
 	}
 
-	processor := newLookupProcessor(lookupCfg, set.Logger)
+	processor, err := newLookupProcessor(ctx, lookupCfg, set)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create lookup processor: %w", err)
+	}
+
 	return processorhelper.NewMetrics(
 		ctx,
 		set,

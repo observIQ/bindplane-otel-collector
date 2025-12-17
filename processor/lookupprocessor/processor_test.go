@@ -131,7 +131,7 @@ func TestProcessLogs(t *testing.T) {
 
 			processor := lookupProcessor{
 				logger:  zap.NewNop(),
-				csvFile: csvFile,
+				source:  csvFile,
 				context: tc.context,
 				field:   tc.field,
 			}
@@ -231,7 +231,7 @@ func TestProcessTraces(t *testing.T) {
 
 			processor := lookupProcessor{
 				logger:  zap.NewNop(),
-				csvFile: csvFile,
+				source:  csvFile,
 				context: tc.context,
 				field:   tc.field,
 			}
@@ -365,7 +365,7 @@ func TestProcessMetrics(t *testing.T) {
 
 			processor := lookupProcessor{
 				logger:  zap.NewNop(),
-				csvFile: csvFile,
+				source:  csvFile,
 				context: tc.context,
 				field:   tc.field,
 			}
@@ -395,9 +395,9 @@ func TestAddLookupValues(t *testing.T) {
 	require.NoError(t, err)
 
 	processor := lookupProcessor{
-		logger:  zap.NewNop(),
-		csvFile: csvFile,
-		field:   "ip",
+		logger: zap.NewNop(),
+		source: csvFile,
+		field:  "ip",
 	}
 
 	processor.addLookupValues(sourceMap)

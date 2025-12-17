@@ -124,6 +124,11 @@ func findLookupIndex(headers []string, lookupColumn string) (int, error) {
 	return -1, errLookupColumnNotFound
 }
 
+// Close cleans up resources (no-op for CSV)
+func (c *CSVFile) Close() error {
+	return nil
+}
+
 // NewCSVFile creates a new CSVFile
 func NewCSVFile(filepath string, lookupColumn string) *CSVFile {
 	return &CSVFile{

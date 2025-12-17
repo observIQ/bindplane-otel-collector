@@ -27,14 +27,14 @@ func TestValidate(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "missing csv",
+			name: "missing context",
 			cfg:  Config{},
-			err:  errMissingCSV,
+			err:  errMissingContext,
 		},
 		{
-			name: "missing context",
-			cfg:  Config{CSV: "csv"},
-			err:  errMissingContext,
+			name: "missing csv when no source_type",
+			cfg:  Config{Context: "body", Field: "field"},
+			err:  errMissingCSV,
 		},
 		{
 			name: "missing field",

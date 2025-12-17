@@ -16,6 +16,7 @@ package lookupprocessor
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -24,37 +25,94 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
+	"go.opentelemetry.io/collector/processor"
 	"go.uber.org/zap"
 )
 
 // lookupProcessor is a lookupProcessor that looks up values and adds them to telemetry
 type lookupProcessor struct {
-	logger  *zap.Logger
-	csvFile *CSVFile
-	context string
-	field   string
-	cancel  context.CancelFunc
-	wg      *sync.WaitGroup
+	logger         *zap.Logger
+	source         LookupSource
+	baseSource     LookupSource // Source before cache wrapping
+	context        string
+	field          string
+	cancel         context.CancelFunc
+	wg             *sync.WaitGroup
+	cacheEnabled   bool
+	cacheTTL       time.Duration
+	cacheStorageID *component.ID
+	componentID    component.ID
 }
 
 // newLookupProcessor creates a new lookupProcessor
-func newLookupProcessor(cfg *Config, logger *zap.Logger) *lookupProcessor {
-	return &lookupProcessor{
-		logger:  logger,
-		csvFile: NewCSVFile(cfg.CSV, cfg.Field),
-		context: cfg.Context,
-		field:   cfg.Field,
-		wg:      &sync.WaitGroup{},
+func newLookupProcessor(ctx context.Context, cfg *Config, set processor.Settings) (*lookupProcessor, error) {
+	// Determine source type and create appropriate source
+	var source LookupSource
+	var err error
+
+	// Apply defaults
+	cfg.SetDefaults()
+
+	switch cfg.SourceType {
+	case sourceTypeCSV, "":
+		// CSV source (backward compatibility)
+		source = NewCSVFile(cfg.CSV, cfg.Field)
+	case sourceTypeRedis:
+		// Redis source
+		source, err = NewRedisSource(cfg.Redis, set.Logger)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Redis source: %w", err)
+		}
+	case sourceTypeAPI:
+		// API source
+		source, err = NewAPISource(cfg.API, set.Logger)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create API source: %w", err)
+		}
+	default:
+		return nil, fmt.Errorf("unsupported source type: %s", cfg.SourceType)
 	}
+
+	return &lookupProcessor{
+		logger:         set.Logger,
+		baseSource:     source,
+		source:         source,
+		context:        cfg.Context,
+		field:          cfg.Field,
+		wg:             &sync.WaitGroup{},
+		cacheEnabled:   cfg.CacheEnabled,
+		cacheTTL:       cfg.CacheTTL,
+		cacheStorageID: cfg.CacheStorageID,
+		componentID:    set.ID,
+	}, nil
 }
 
 // start starts the processor
-func (p *lookupProcessor) start(_ context.Context, _ component.Host) error {
-	ctx, cancel := context.WithCancel(context.Background())
+func (p *lookupProcessor) start(ctx context.Context, host component.Host) error {
+	// Initialize cache if enabled
+	if p.cacheEnabled {
+		cache, err := NewLookupCache(
+			ctx,
+			p.baseSource,
+			p.cacheTTL,
+			true,
+			p.cacheStorageID,
+			host,
+			p.componentID,
+			p.logger,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to initialize cache: %w", err)
+		}
+		p.source = cache
+		p.logger.Info("cache enabled", zap.Duration("ttl", p.cacheTTL))
+	}
+
+	ctxCancel, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
 
 	p.wg.Add(1)
-	go p.loadCSV(ctx)
+	go p.loadSource(ctxCancel)
 
 	return nil
 }
@@ -65,21 +123,30 @@ func (p *lookupProcessor) shutdown(context.Context) error {
 		p.cancel()
 	}
 	p.wg.Wait()
+
+	// Close the lookup source
+	if p.source != nil {
+		if err := p.source.Close(); err != nil {
+			p.logger.Error("failed to close lookup source", zap.Error(err))
+			return err
+		}
+	}
+
 	return nil
 }
 
-// loadCSV loads the csv into memory every minute until the context is canceled
-func (p *lookupProcessor) loadCSV(ctx context.Context) {
+// loadSource loads the lookup source into memory every minute until the context is canceled
+func (p *lookupProcessor) loadSource(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 	defer p.wg.Done()
 
 	for {
-		err := p.csvFile.Load()
+		err := p.source.Load()
 		if err != nil {
-			p.logger.Error("failed to load csv", zap.Error(err))
+			p.logger.Error("failed to load lookup source", zap.Error(err))
 		} else {
-			p.logger.Debug("csv loaded")
+			p.logger.Debug("lookup source loaded")
 		}
 
 		select {
@@ -300,9 +367,9 @@ func (p *lookupProcessor) addLookupValues(source pcommon.Map) {
 		return
 	}
 
-	mappedValues, err := p.csvFile.Lookup(lookupValue.AsString())
+	mappedValues, err := p.source.Lookup(lookupValue.AsString())
 	if err != nil {
-		p.logger.Debug("Could not find value in CSV", zap.String("value", lookupValue.AsString()), zap.Error(err))
+		p.logger.Debug("Could not find value in lookup source", zap.String("value", lookupValue.AsString()), zap.Error(err))
 		return
 	}
 

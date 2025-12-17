@@ -175,7 +175,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.5 // indirect
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
-	go.opentelemetry.io/collector/component v1.46.0
+	go.opentelemetry.io/collector/component v1.48.0
 	go.opentelemetry.io/collector/confmap v1.46.0
 	go.opentelemetry.io/collector/confmap/provider/envprovider v1.46.0
 	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.46.0
@@ -189,11 +189,11 @@ require (
 	go.opentelemetry.io/collector/exporter/nopexporter v0.140.0
 	go.opentelemetry.io/collector/exporter/otlpexporter v0.140.0
 	go.opentelemetry.io/collector/exporter/otlphttpexporter v0.140.0
-	go.opentelemetry.io/collector/extension v1.46.0
+	go.opentelemetry.io/collector/extension v1.48.0
 	go.opentelemetry.io/collector/extension/zpagesextension v0.140.0
-	go.opentelemetry.io/collector/featuregate v1.46.0
+	go.opentelemetry.io/collector/featuregate v1.48.0
 	go.opentelemetry.io/collector/otelcol v0.140.0
-	go.opentelemetry.io/collector/pdata v1.46.0
+	go.opentelemetry.io/collector/pdata v1.48.0
 	go.opentelemetry.io/collector/processor v1.46.0
 	go.opentelemetry.io/collector/processor/batchprocessor v0.140.0
 	go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.140.0
@@ -207,10 +207,14 @@ require (
 )
 
 require (
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.20.0
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.3
 	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.88.1
 	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.88.1
 	github.com/observiq/bindplane-otel-collector/extension/badgerextension v1.88.1
 	github.com/observiq/bindplane-otel-collector/internal/osinfo v1.88.1
+	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.88.1
+	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.88.1
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.88.1
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.88.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.140.1
@@ -231,9 +235,11 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otelarrowreceiver v0.140.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver v0.140.1
 	go.opentelemetry.io/collector/extension/extensiontest v0.140.0
+	go.opentelemetry.io/collector/pipeline v1.46.0
 	go.opentelemetry.io/collector/processor/processorhelper v0.140.0
 	go.opentelemetry.io/collector/processor/processortest v0.140.0
 	go.opentelemetry.io/collector/service v0.140.0
+	go.uber.org/goleak v1.3.0
 )
 
 require (
@@ -243,14 +249,12 @@ require (
 	cloud.google.com/go/pubsub/v2 v2.0.0 // indirect
 	cloud.google.com/go/storage v1.57.2 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.20.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/messaging/azeventhubs/v2 v2.0.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/monitor/ingestion/azlogs v1.1.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5 v5.7.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v4 v4.3.0 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.3 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.6.0 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/ClickHouse/ch-go v0.68.0 // indirect
@@ -481,8 +485,6 @@ require (
 	github.com/observiq/bindplane-otel-collector/counter v1.88.1 // indirect
 	github.com/observiq/bindplane-otel-collector/expr v1.88.1 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/aws v1.88.1 // indirect
-	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.88.1 // indirect
-	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.88.1 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/okta/okta-sdk-golang/v2 v2.20.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.140.1 // indirect
@@ -526,7 +528,7 @@ require (
 	github.com/prometheus/sigv4 v0.2.1 // indirect
 	github.com/puzpuzpuz/xsync/v3 v3.5.1 // indirect
 	github.com/rdforte/gomaxecs v1.1.1 // indirect
-	github.com/redis/go-redis/v9 v9.16.0 // indirect
+	github.com/redis/go-redis/v9 v9.17.2 // indirect
 	github.com/richardartoul/molecule v1.0.1-0.20240531184615-7ca0df43c0b3 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.9.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
@@ -588,7 +590,7 @@ require (
 	go.opentelemetry.io/collector/extension/extensionauth v1.46.0 // indirect
 	go.opentelemetry.io/collector/extension/extensioncapabilities v0.140.0 // indirect
 	go.opentelemetry.io/collector/extension/extensionmiddleware v0.140.0 // indirect
-	go.opentelemetry.io/collector/extension/xextension v0.140.0 // indirect
+	go.opentelemetry.io/collector/extension/xextension v0.142.0 // indirect
 	go.opentelemetry.io/collector/filter v0.140.0 // indirect
 	go.opentelemetry.io/collector/internal/fanoutconsumer v0.140.0 // indirect
 	go.opentelemetry.io/collector/internal/memorylimiter v0.140.0 // indirect
@@ -597,7 +599,6 @@ require (
 	go.opentelemetry.io/collector/pdata/pprofile v0.140.0 // indirect
 	go.opentelemetry.io/collector/pdata/testdata v0.140.0 // indirect
 	go.opentelemetry.io/collector/pdata/xpdata v0.140.0 // indirect
-	go.opentelemetry.io/collector/pipeline v1.46.0 // indirect
 	go.opentelemetry.io/collector/pipeline/xpipeline v0.140.0 // indirect
 	go.opentelemetry.io/collector/processor/processorhelper/xprocessorhelper v0.140.0 // indirect
 	go.opentelemetry.io/collector/processor/xprocessor v0.140.0 // indirect
@@ -628,7 +629,6 @@ require (
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/dig v1.19.0 // indirect
 	go.uber.org/fx v1.24.0 // indirect
-	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/zap/exp v0.3.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
@@ -796,7 +796,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
-	github.com/hashicorp/go-version v1.7.0 // indirect
+	github.com/hashicorp/go-version v1.8.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/nomad/api v0.0.0-20250930071859-eaa0fe0e27af // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
@@ -923,12 +923,12 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 // indirect
 	go.opentelemetry.io/contrib/propagators/b3 v1.38.0 // indirect
 	go.opentelemetry.io/contrib/zpages v0.63.0 // indirect
-	go.opentelemetry.io/otel v1.38.0 // indirect
+	go.opentelemetry.io/otel v1.39.0 // indirect
 	go.opentelemetry.io/otel/exporters/prometheus v0.60.0 // indirect
-	go.opentelemetry.io/otel/metric v1.38.0 // indirect
+	go.opentelemetry.io/otel/metric v1.39.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.38.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.38.0
-	go.opentelemetry.io/otel/trace v1.38.0 // indirect
+	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/crypto v0.45.0 // indirect
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
