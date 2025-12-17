@@ -50,10 +50,6 @@ type pollingReceiver struct {
 	pollInterval    time.Duration
 	initialLookback time.Duration
 
-	blobChan chan []*azureblob.BlobInfo
-	errChan  chan error
-	doneChan chan struct{}
-
 	// mutexes for ensuring a thread safe checkpoint
 	mut *sync.Mutex
 	wg  *sync.WaitGroup
@@ -134,9 +130,6 @@ func newPollingReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*poll
 		checkpointStore: storageclient.NewNopStorage(),
 		pollInterval:    cfg.PollInterval,
 		initialLookback: initialLookback,
-		blobChan:        make(chan []*azureblob.BlobInfo),
-		errChan:         make(chan error),
-		doneChan:        make(chan struct{}),
 		mut:             &sync.Mutex{},
 		wg:              &sync.WaitGroup{},
 		filenameRegex:   filenameRegex,
@@ -271,6 +264,11 @@ func (r *pollingReceiver) runPoll(ctx context.Context) {
 	r.lastBlobTime = nil
 
 	var prefix *string
+	// Create fresh channels for this poll to avoid closing already-closed channels
+	blobChan := make(chan []*azureblob.BlobInfo)
+	errChan := make(chan error)
+	doneChan := make(chan struct{})
+
 	if r.cfg.RootFolder != "" {
 		prefix = &r.cfg.RootFolder
 	}
@@ -279,7 +277,7 @@ func (r *pollingReceiver) runPoll(ctx context.Context) {
 	r.logger.Info("Starting poll", zap.Time("poll_time", pollStartTime))
 
 	// Stream blobs in a goroutine
-	go r.azureClient.StreamBlobs(ctx, r.cfg.Container, prefix, r.errChan, r.blobChan, r.doneChan)
+	go r.azureClient.StreamBlobs(ctx, r.cfg.Container, prefix, errChan, blobChan, doneChan)
 
 	totalProcessed := 0
 	for {
@@ -287,7 +285,7 @@ func (r *pollingReceiver) runPoll(ctx context.Context) {
 		case <-ctx.Done():
 			r.logger.Info("Context cancelled during poll")
 			return
-		case <-r.doneChan:
+		case <-doneChan:
 			r.logger.Info("Poll completed", 
 				zap.Int("total_processed", totalProcessed),
 				zap.Int("duration_seconds", int(time.Since(pollStartTime).Seconds())))
@@ -301,10 +299,10 @@ func (r *pollingReceiver) runPoll(ctx context.Context) {
 				r.logger.Error("Error saving checkpoint after poll", zap.Error(err))
 			}
 			return
-		case err := <-r.errChan:
+		case err := <-errChan:
 			r.logger.Error("Error during poll", zap.Error(err))
 			return
-		case br, ok := <-r.blobChan:
+		case br, ok := <-blobChan:
 			if !ok {
 				r.logger.Info("Poll completed", 
 					zap.Int("total_processed", totalProcessed),
