@@ -23,6 +23,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
+	"strings"
 
 	"go.opentelemetry.io/collector/component"
 	"go.uber.org/zap"
@@ -146,15 +148,35 @@ func (r *pcapReceiver) Shutdown(_ context.Context) error {
 
 // buildCaptureCommand builds the tcpdump capture command for Unix systems
 func (r *pcapReceiver) buildCaptureCommand() *exec.Cmd {
-	return newCommand(
-		"tcpdump",
+	args := []string{
 		"-i", r.config.Interface,
-		"-n",                                      // Don't convert addresses to names
-		"-tt",                                     // Print timestamps as Unix time
-		"-x",                                      // Print hex data
-		"-s", fmt.Sprintf("%d", r.config.SnapLen), // Snapshot length
-		r.config.Filter, // BPF filter
-	)
+		"-n",  // Don't resolve hostnames
+		"-xx", // Print packet data in hex with link-level headers
+		"-l",  // Line buffered output
+	}
+
+	// Add macOS-specific flag to include interface name in output
+	// Used to parse the interface name when capturing from "any" interface
+	if runtime.GOOS == "darwin" {
+		args = append(args, "--apple-md-print", "I")
+	}
+
+	// Add -p flag to disable promiscuous mode if requested
+	if !r.config.Promiscuous {
+		args = append(args, "-p")
+	}
+
+	// Add snapshot length
+	args = append(args, "-s", fmt.Sprintf("%d", r.config.SnapLen))
+
+	// Add filter if specified
+	if r.config.Filter != "" {
+		// Split filter into words for proper argument passing
+		filterParts := strings.Fields(r.config.Filter)
+		args = append(args, filterParts...)
+	}
+
+	return newCommand("tcpdump", args...)
 }
 
 // readStderr reads error messages from tcpdump
