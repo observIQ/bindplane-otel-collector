@@ -50,7 +50,7 @@ For advanced use cases, the following configuration levers are exposed:
 - **blob_garbage_collection**: Controls disk space reclamation. The defaults (5m interval, 0.5 discard ratio) work well for most scenarios.
 - **sync_writes**: Controls write durability. The default (`false`) provides good performance while surviving process crashes via memory-mapped writes.
 
-Refer to the [BadgerDB documentation](https://dgraph.io/docs/badger/) for detailed information about these settings.
+Refer to the [BadgerDB documentation](https://github.com/dgraph-io/badger) for detailed information about these settings.
 
 Full configuration example:
 
@@ -67,10 +67,6 @@ extensions:
       interval: 10m
       discard_ratio: 0.6
 
-processors:
-  batch:
-    storage: badger
-
 exporters:
   otlp:
     endpoint: otelcol:4317
@@ -80,7 +76,6 @@ service:
   pipelines:
     logs:
       receivers: [otlp]
-      processors: [batch]
       exporters: [otlp]
 
 ```
