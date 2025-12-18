@@ -153,6 +153,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/podmanreceiver v0.140.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/postgresqlreceiver v0.140.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.140.1
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusremotewritereceiver v0.140.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/rabbitmqreceiver v0.140.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/redisreceiver v0.140.1
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/riakreceiver v0.140.1

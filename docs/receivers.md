@@ -49,7 +49,7 @@ Below is a list of supported receivers with links to their documentation pages.
 | Kafka Receiver                             | [kafkareceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/receiver/kafkareceiver/README.md)                                   |
 | Kafka Metrics Receiver                     | [kafkametricsreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/receiver/kafkametricsreceiver/README.md)                     |
 | Libhoney Receiver                          | [libhoneyreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/receiver/libhoneyreceiver/README.md)                             |
-| macOS Unified Logging Receiver             | [macosunifiedloggingreceiver](../receiver/macosunifiedloggingreceiver/README.md)                             |
+| macOS Unified Logging Receiver             | [macosunifiedloggingreceiver](../receiver/macosunifiedloggingreceiver/README.md)                                                                                    |
 | Memcached Receiver                         | [memcachedreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/receiver/memcachedreceiver/README.md)                           |
 | Microsoft 365 Receiver                     | [m365receiver](../receiver/m365receiver/README.md)                                                                                                                  |
 | Microsoft IIS Receiver                     | [iisreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/receiver/iisreceiver/README.md)                                       |
@@ -68,6 +68,7 @@ Below is a list of supported receivers with links to their documentation pages.
 | PostgreSQL Receiver                        | [postgresqlreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/receiver/postgresqlreceiver/README.md)                         |
 | Prometheus Receiver                        | [prometheusreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/receiver/prometheusreceiver/README.md)                         |
 | Prometheus (Simple) Receiver               | [simpleprometheusreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/receiver/simpleprometheusreceiver/README.md)             |
+| Prometheus Remote Write Receiver           | [prometheusremotewrite](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/receiver/prometheusremotewritereceiver/README.md)           |
 | RabbitMQ Receiver                          | [rabbitmqreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/receiver/rabbitmqreceiver/README.md)                             |
 | Redis Receiver                             | [redisreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/receiver/redisreceiver/README.md)                                   |
 | Riak Receiver                              | [riakreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.140.1/receiver/riakreceiver/README.md)                                     |
