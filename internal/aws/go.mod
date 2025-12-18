@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-lambda-go v1.51.1
 	github.com/aws/aws-sdk-go-v2 v1.41.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.92.0
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.16
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.20
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.47.0
 	go.opentelemetry.io/collector/component/componenttest v0.141.0
