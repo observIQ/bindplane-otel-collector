@@ -14,7 +14,7 @@ require (
 	go.opentelemetry.io/collector/pdata v1.47.0
 	go.uber.org/goleak v1.3.0
 	go.uber.org/zap v1.27.1
-	golang.org/x/oauth2 v0.33.0
+	golang.org/x/oauth2 v0.34.0
 	google.golang.org/api v0.257.0
 )
 
