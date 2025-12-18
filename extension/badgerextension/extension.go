@@ -204,10 +204,13 @@ func (b *badgerExtension) monitor(ctx context.Context) {
 
 				opCounts := c.GetOperationCounts()
 				b.mb.ExtensionStorageClientOperationsCount.Add(ctx, opCounts.Get,
+					b.otelAttrs,
 					metric.WithAttributes(attribute.String(internal.OperationTypeAttribute, internal.OperationTypeGet)))
 				b.mb.ExtensionStorageClientOperationsCount.Add(ctx, opCounts.Set,
+					b.otelAttrs,
 					metric.WithAttributes(attribute.String(internal.OperationTypeAttribute, internal.OperationTypeSet)))
 				b.mb.ExtensionStorageClientOperationsCount.Add(ctx, opCounts.Delete,
+					b.otelAttrs,
 					metric.WithAttributes(attribute.String(internal.OperationTypeAttribute, internal.OperationTypeDelete)))
 			}
 			b.clientsMutex.RUnlock()
