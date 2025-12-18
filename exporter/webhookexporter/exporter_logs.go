@@ -58,7 +58,7 @@ func (le *logsExporter) Capabilities() consumer.Capabilities {
 
 func (le *logsExporter) start(_ context.Context, host component.Host) error {
 	le.logger.Info("starting webhook logs exporter")
-	client, err := le.cfg.ClientConfig.ToClient(context.Background(), host, le.settings)
+	client, err := le.cfg.ClientConfig.ToClient(context.Background(), host.GetExtensions(), le.settings)
 	if err != nil {
 		return fmt.Errorf("failed to create http client: %w", err)
 	}

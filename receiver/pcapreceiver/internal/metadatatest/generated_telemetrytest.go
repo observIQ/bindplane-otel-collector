@@ -24,7 +24,7 @@ func NewSettings(tt *componenttest.Telemetry) receiver.Settings {
 func AssertEqualPcapPacketsCaptured(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.DataPoint[int64], opts ...metricdatatest.Option) {
 	want := metricdata.Metrics{
 		Name:        "otelcol_pcap.packets_captured",
-		Description: "The number of packets captured by the PCAP receiver [alpha]",
+		Description: "The number of packets captured by the PCAP receiver [Alpha]",
 		Unit:        "{packets}",
 		Data: metricdata.Sum[int64]{
 			Temporality: metricdata.CumulativeTemporality,

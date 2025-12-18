@@ -8,8 +8,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.92.0
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.16
 	github.com/stretchr/testify v1.11.1
-	go.opentelemetry.io/collector/component v1.46.0
-	go.opentelemetry.io/collector/component/componenttest v0.140.0
+	go.opentelemetry.io/collector/component v1.47.0
+	go.opentelemetry.io/collector/component/componenttest v0.141.0
 	go.uber.org/zap v1.27.1
 )
 
@@ -35,14 +35,14 @@ require (
 	github.com/rogpeppe/go-internal v1.13.2-0.20241226121412-a5dc8ff20d0a // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/collector/featuregate v1.46.0 // indirect
-	go.opentelemetry.io/collector/pdata v1.46.0 // indirect
+	go.opentelemetry.io/collector/featuregate v1.47.0 // indirect
+	go.opentelemetry.io/collector/pdata v1.47.0 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.38.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/sys v0.37.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
