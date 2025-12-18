@@ -95,7 +95,7 @@ func TestInstallArtifacts(t *testing.T) {
 		require.NoError(t, err)
 		copyNestedTestTxtAction.FileCreated = true
 
-		require.Equal(t, len(actions), 4)
+		require.Equal(t, 4, len(actions))
 		require.Contains(t, actions, copyNestedTestTxtAction)
 		require.Contains(t, actions, copyTestTxtAction)
 		require.Contains(t, actions, action.NewServiceUpdateAction(installer.logger, installer.installDir))
@@ -142,7 +142,7 @@ func TestInstallArtifacts(t *testing.T) {
 		require.NoError(t, err)
 		copyNestedTestTxtAction.FileCreated = true
 
-		require.Equal(t, len(actions), 2)
+		require.Equal(t, 2, len(actions))
 		require.Contains(t, actions, copyNestedTestTxtAction)
 		require.Contains(t, actions, copyTestTxtAction)
 	})
@@ -189,7 +189,7 @@ func TestInstallArtifacts(t *testing.T) {
 		require.NoError(t, err)
 		copyNestedTestTxtAction.FileCreated = true
 
-		require.Equal(t, len(actions), 3)
+		require.Equal(t, 3, len(actions))
 		require.Contains(t, actions, copyNestedTestTxtAction)
 		require.Contains(t, actions, copyTestTxtAction)
 		require.Contains(t, actions, action.NewServiceUpdateAction(installer.logger, installer.installDir))
