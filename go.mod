@@ -84,6 +84,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.137.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/oauth2clientauthextension v0.137.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/oidcauthextension v0.137.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.137.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension v0.137.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/sigv4authextension v0.137.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.137.0
@@ -501,6 +502,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/configkafka v0.137.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/topic v0.137.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling v0.137.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/status v0.137.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/azure v0.137.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/azurelogs v0.137.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/scraper/zookeeperscraper v0.137.0 // indirect

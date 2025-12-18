@@ -28,6 +28,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/oauth2clientauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/oidcauthextension"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/sigv4authextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage"
@@ -57,4 +58,5 @@ var defaultExtensions = []extension.Factory{
 	redisstorageextension.NewFactory(),
 	sigv4authextension.NewFactory(),
 	zpagesextension.NewFactory(),
+	opampextension.NewFactory(),
 }
