@@ -124,7 +124,10 @@ func findLookupIndex(headers []string, lookupColumn string) (int, error) {
 	return -1, errLookupColumnNotFound
 }
 
-// NewCSVFile creates a new CSVFile
+// Close cleans up resources
+func (c *CSVFile) Close() error {
+	return nil
+}
 func NewCSVFile(filepath string, lookupColumn string) *CSVFile {
 	return &CSVFile{
 		mux:          &sync.RWMutex{},

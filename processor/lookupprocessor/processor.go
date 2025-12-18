@@ -16,6 +16,7 @@ package lookupprocessor
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -30,7 +31,7 @@ import (
 // lookupProcessor is a lookupProcessor that looks up values and adds them to telemetry
 type lookupProcessor struct {
 	logger  *zap.Logger
-	csvFile *CSVFile
+	source  LookupSource
 	context string
 	field   string
 	cancel  context.CancelFunc
@@ -38,14 +39,39 @@ type lookupProcessor struct {
 }
 
 // newLookupProcessor creates a new lookupProcessor
-func newLookupProcessor(cfg *Config, logger *zap.Logger) *lookupProcessor {
+func newLookupProcessor(cfg *Config, logger *zap.Logger) (*lookupProcessor, error) {
+	var source LookupSource
+	var err error
+
+	// Determine which source to use
+	switch {
+	case cfg.Redis != nil && (cfg.SourceType == "" || cfg.SourceType == "redis"):
+		source, err = NewRedisSource(cfg.Redis, logger)
+	case cfg.API != nil && (cfg.SourceType == "api"):
+		source, err = NewAPISource(cfg.API, logger)
+	case cfg.CSV != "" || cfg.SourceType == "csv":
+		// Default to CSV if no other source specified or explicitly set to csv
+		source = NewCSVFile(cfg.CSV, cfg.Field)
+	default:
+		// Should have been caught by validation, but safe fallback
+		if cfg.CSV != "" {
+			source = NewCSVFile(cfg.CSV, cfg.Field)
+		} else {
+			return nil, errMissingSource
+		}
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create lookup source: %w", err)
+	}
+
 	return &lookupProcessor{
 		logger:  logger,
-		csvFile: NewCSVFile(cfg.CSV, cfg.Field),
+		source:  source,
 		context: cfg.Context,
 		field:   cfg.Field,
 		wg:      &sync.WaitGroup{},
-	}
+	}, nil
 }
 
 // start starts the processor
@@ -54,7 +80,7 @@ func (p *lookupProcessor) start(_ context.Context, _ component.Host) error {
 	p.cancel = cancel
 
 	p.wg.Add(1)
-	go p.loadCSV(ctx)
+	go p.loadSource(ctx)
 
 	return nil
 }
@@ -65,21 +91,26 @@ func (p *lookupProcessor) shutdown(context.Context) error {
 		p.cancel()
 	}
 	p.wg.Wait()
+	
+	if p.source != nil {
+		return p.source.Close()
+	}
+	
 	return nil
 }
 
-// loadCSV loads the csv into memory every minute until the context is canceled
-func (p *lookupProcessor) loadCSV(ctx context.Context) {
+// loadSource loads the source into memory every minute until the context is canceled
+func (p *lookupProcessor) loadSource(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 	defer p.wg.Done()
 
 	for {
-		err := p.csvFile.Load()
+		err := p.source.Load()
 		if err != nil {
-			p.logger.Error("failed to load csv", zap.Error(err))
+			p.logger.Error("failed to load source", zap.Error(err))
 		} else {
-			p.logger.Debug("csv loaded")
+			p.logger.Debug("source loaded/refreshed")
 		}
 
 		select {
@@ -300,9 +331,9 @@ func (p *lookupProcessor) addLookupValues(source pcommon.Map) {
 		return
 	}
 
-	mappedValues, err := p.csvFile.Lookup(lookupValue.AsString())
+	mappedValues, err := p.source.Lookup(lookupValue.AsString())
 	if err != nil {
-		p.logger.Debug("Could not find value in CSV", zap.String("value", lookupValue.AsString()), zap.Error(err))
+		p.logger.Debug("Could not find value in source", zap.String("value", lookupValue.AsString()), zap.Error(err))
 		return
 	}
 

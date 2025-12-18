@@ -64,7 +64,10 @@ func createTracesProcessor(
 		return nil, errInvalidConfigType
 	}
 
-	processor := newLookupProcessor(lookupCfg, set.Logger)
+	processor, err := newLookupProcessor(lookupCfg, set.Logger)
+	if err != nil {
+		return nil, err
+	}
 	return processorhelper.NewTraces(
 		ctx,
 		set,
@@ -89,7 +92,10 @@ func createLogsProcessor(
 		return nil, errInvalidConfigType
 	}
 
-	processor := newLookupProcessor(lookupCfg, set.Logger)
+	processor, err := newLookupProcessor(lookupCfg, set.Logger)
+	if err != nil {
+		return nil, err
+	}
 	return processorhelper.NewLogs(
 		ctx,
 		set,
@@ -114,7 +120,10 @@ func createMetricsProcessor(
 		return nil, errInvalidConfigType
 	}
 
-	processor := newLookupProcessor(lookupCfg, set.Logger)
+	processor, err := newLookupProcessor(lookupCfg, set.Logger)
+	if err != nil {
+		return nil, err
+	}
 	return processorhelper.NewMetrics(
 		ctx,
 		set,

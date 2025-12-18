@@ -18,6 +18,8 @@ package lookupprocessor
 import (
 	"errors"
 	"time"
+
+	"go.opentelemetry.io/collector/component"
 )
 
 const (
@@ -30,21 +32,32 @@ const (
 )
 
 var (
-	// errMissingCSV is the error for missing required field 'csv'
-	errMissingCSV = errors.New("missing required field 'csv'")
 	// errMissingContext is the error for missing required field 'context'
 	errMissingContext = errors.New("missing required field 'context'")
 	// errMissingField is the error for missing required field 'field'
 	errMissingField = errors.New("missing required field 'field'")
 	// errInvalidContext is the error for an invalid context
 	errInvalidContext = errors.New("invalid context")
+	// errMissingSource is the error for missing source configuration
+	errMissingSource = errors.New("must specify either 'csv', 'redis', or 'api' configuration")
 )
 
 // Config is the configuration for the processor
 type Config struct {
-	CSV     string `mapstructure:"csv"`
-	Context string `mapstructure:"context"`
-	Field   string `mapstructure:"field"`
+	// Common fields
+	Context    string `mapstructure:"context"`
+	Field      string `mapstructure:"field"`
+	SourceType string `mapstructure:"source_type"`
+
+	// Cache configuration
+	CacheEnabled   bool             `mapstructure:"cache_enabled"`
+	CacheTTL       time.Duration    `mapstructure:"cache_ttl"`
+	CacheStorageID component.ID     `mapstructure:"cache_storage_id"`
+
+	// Source configurations
+	CSV   string       `mapstructure:"csv"`
+	Redis *RedisConfig `mapstructure:"redis"`
+	API   *APIConfig   `mapstructure:"api"`
 }
 
 // APIConfig is the configuration for API-based lookups
@@ -68,10 +81,6 @@ type RedisConfig struct {
 
 // Validate validates the processor configuration
 func (cfg Config) Validate() error {
-	if cfg.CSV == "" {
-		return errMissingCSV
-	}
-
 	if cfg.Context == "" {
 		return errMissingContext
 	}
@@ -84,6 +93,22 @@ func (cfg Config) Validate() error {
 	case bodyContext, attributesContext, resourceContext:
 	default:
 		return errInvalidContext
+	}
+
+	// Validate that at least one source is configured
+	sourceCount := 0
+	if cfg.CSV != "" {
+		sourceCount++
+	}
+	if cfg.Redis != nil {
+		sourceCount++
+	}
+	if cfg.API != nil {
+		sourceCount++
+	}
+
+	if sourceCount == 0 {
+		return errMissingSource
 	}
 
 	return nil
