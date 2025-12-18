@@ -2410,6 +2410,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/receiver/postgresqlrec
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/postgresqlreceiver v0.140.1/go.mod h1:W1UQi9ZgRG/CduF5rnPGcTfrk+zvQkzlnTvDQ+0DB0I=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.140.1 h1:JnMoU0u3T/zK/pOkRusYuBF5kspdYvaUKDsRl4smUE8=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.140.1/go.mod h1:AXkz/yYjDiJXIzCXTEB3/xSdFVxodFbHCN9fIjU/lag=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusremotewritereceiver v0.140.1 h1:2dl07Qtibw+t/ShvMsSPtAk5lxn7vbkDAnWJ74ROmUw=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusremotewritereceiver v0.140.1/go.mod h1:xWZyp0b5cumn2QkhXvzHRBeGLnbcC9dOhus22Ch0pYk=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/rabbitmqreceiver v0.140.1 h1:gRC7WmaMX1lEwlTKEJEU4kCLF56BlVoZhXu6I9zYn2s=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/rabbitmqreceiver v0.140.1/go.mod h1:4/8XwrLT1sr639UxonKpDoBtldRtWB2TrPHIBCf2b9w=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/redisreceiver v0.140.1 h1:gvBHBhrk6bYXqsKvdsPrArRmYBCfDmjSo6QvimsEPmg=
