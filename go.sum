@@ -1748,10 +1748,6 @@ github.com/hetznercloud/hcloud-go/v2 v2.32.0/go.mod h1:hAanyyfn9M0cMmZ68CXzPCF54
 github.com/hexops/gotextdiff v1.0.3 h1:gitA9+qJrrTCsiCl7+kh75nPqQt1cx4ZkudSTLoUqJM=
 github.com/hexops/gotextdiff v1.0.3/go.mod h1:pSWU5MAI3yDq+fZBTazCSJysOMbxWL1BSow5/V2vxeg=
 github.com/hjson/hjson-go/v4 v4.0.0/go.mod h1:KaYt3bTw3zhBjYqnXkYywcYctk0A2nxeEFTse3rH13E=
-github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.8 h1:zFL+QEHfxvSPeh+rQe9nPNuV18uk9OOxx2sWAi+nQUs=
-github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.8/go.mod h1:tAeoWOcfTHvkeqi+sfRtV61rgHWcrjm64z/debNkw/k=
-github.com/honeycombio/enhance-indexing-s3-exporter/index v0.0.7 h1:6mno6ChoEOF4TyruoJggf1952IsoqZHR9SlrhqPpVyw=
-github.com/honeycombio/enhance-indexing-s3-exporter/index v0.0.7/go.mod h1:bIoIWBMNa/LlD4Snftng5dHUM/pYCxPvukHogXE5un4=
 github.com/hooklift/gowsdl v0.5.0 h1:DE8RevqhGPLchumV/V7OwbCzfJ8lcozFg1uWC/ESCBQ=
 github.com/hooklift/gowsdl v0.5.0/go.mod h1:9kRc402w9Ci/Mek5a1DNgTmU14yPY8fMumxNVvxhis4=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=

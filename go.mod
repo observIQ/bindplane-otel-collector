@@ -208,7 +208,6 @@ require (
 )
 
 require (
-	github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.8
 	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.88.1
 	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.88.1
 	github.com/observiq/bindplane-otel-collector/extension/badgerextension v1.88.1
@@ -453,7 +452,6 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hectane/go-acl v0.0.0-20230122075934-ca0b05cb1adb // indirect
 	github.com/hetznercloud/hcloud-go/v2 v2.32.0 // indirect
-	github.com/honeycombio/enhance-indexing-s3-exporter/index v0.0.7 // indirect
 	github.com/influxdata/influxdb-observability/otel2influx v0.5.12 // indirect
 	github.com/itchyny/timefmt-go v0.1.7 // indirect
 	github.com/jaegertracing/jaeger-idl v0.6.0 // indirect
