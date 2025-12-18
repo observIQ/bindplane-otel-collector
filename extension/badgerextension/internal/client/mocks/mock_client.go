@@ -5,7 +5,10 @@ package mocks
 import (
 	context "context"
 
+	client "github.com/observiq/bindplane-otel-collector/extension/badgerextension/internal/client"
+
 	mock "github.com/stretchr/testify/mock"
+
 	storage "go.opentelemetry.io/collector/extension/xextension/storage"
 )
 
@@ -231,6 +234,106 @@ func (_c *Client_Get_Call) Return(_a0 []byte, _a1 error) *Client_Get_Call {
 }
 
 func (_c *Client_Get_Call) RunAndReturn(run func(context.Context, string) ([]byte, error)) *Client_Get_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetDiskUsage provides a mock function with no fields
+func (_m *Client) GetDiskUsage() (client.DiskUsage, error) {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetDiskUsage")
+	}
+
+	var r0 client.DiskUsage
+	var r1 error
+	if rf, ok := ret.Get(0).(func() (client.DiskUsage, error)); ok {
+		return rf()
+	}
+	if rf, ok := ret.Get(0).(func() client.DiskUsage); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(client.DiskUsage)
+	}
+
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Client_GetDiskUsage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetDiskUsage'
+type Client_GetDiskUsage_Call struct {
+	*mock.Call
+}
+
+// GetDiskUsage is a helper method to define mock.On call
+func (_e *Client_Expecter) GetDiskUsage() *Client_GetDiskUsage_Call {
+	return &Client_GetDiskUsage_Call{Call: _e.mock.On("GetDiskUsage")}
+}
+
+func (_c *Client_GetDiskUsage_Call) Run(run func()) *Client_GetDiskUsage_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *Client_GetDiskUsage_Call) Return(_a0 client.DiskUsage, _a1 error) *Client_GetDiskUsage_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Client_GetDiskUsage_Call) RunAndReturn(run func() (client.DiskUsage, error)) *Client_GetDiskUsage_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetOperationCounts provides a mock function with no fields
+func (_m *Client) GetOperationCounts() client.OperationCounts {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOperationCounts")
+	}
+
+	var r0 client.OperationCounts
+	if rf, ok := ret.Get(0).(func() client.OperationCounts); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(client.OperationCounts)
+	}
+
+	return r0
+}
+
+// Client_GetOperationCounts_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOperationCounts'
+type Client_GetOperationCounts_Call struct {
+	*mock.Call
+}
+
+// GetOperationCounts is a helper method to define mock.On call
+func (_e *Client_Expecter) GetOperationCounts() *Client_GetOperationCounts_Call {
+	return &Client_GetOperationCounts_Call{Call: _e.mock.On("GetOperationCounts")}
+}
+
+func (_c *Client_GetOperationCounts_Call) Run(run func()) *Client_GetOperationCounts_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *Client_GetOperationCounts_Call) Return(_a0 client.OperationCounts) *Client_GetOperationCounts_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Client_GetOperationCounts_Call) RunAndReturn(run func() client.OperationCounts) *Client_GetOperationCounts_Call {
 	_c.Call.Return(run)
 	return _c
 }

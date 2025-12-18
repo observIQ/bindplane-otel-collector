@@ -25,28 +25,43 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/extension"
 	"go.opentelemetry.io/collector/extension/xextension/storage"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 
+	"github.com/observiq/bindplane-otel-collector/extension/badgerextension/internal"
 	"github.com/observiq/bindplane-otel-collector/extension/badgerextension/internal/client"
+	"github.com/observiq/bindplane-otel-collector/extension/badgerextension/internal/metadata"
 )
 
 type badgerExtension struct {
-	logger *zap.Logger
-	cfg    *Config
+	logger    *zap.Logger
+	cfg       *Config
+	component component.ID
 
-	gcContextCancel context.CancelFunc
-	clientsMutex    sync.RWMutex
-	clients         map[string]client.Client
+	gcContextCancel   context.CancelFunc
+	otelAttrs         metric.MeasurementOption
+	clientsMutex      sync.RWMutex
+	clients           map[string]client.Client
+	doneChan          chan struct{}
+	telemetrySettings component.TelemetrySettings
+
+	mb *metadata.TelemetryBuilder
 }
 
 var _ storage.Extension = (*badgerExtension)(nil)
 
-func newBadgerExtension(logger *zap.Logger, cfg *Config) extension.Extension {
+func newBadgerExtension(logger *zap.Logger, cfg *Config, telemetrySettings component.TelemetrySettings, component component.ID) extension.Extension {
 	return &badgerExtension{
-		logger:       logger,
-		cfg:          cfg,
-		clients:      make(map[string]client.Client),
-		clientsMutex: sync.RWMutex{},
+		logger:    logger,
+		cfg:       cfg,
+		component: component,
+		otelAttrs: metric.WithAttributeSet(attribute.NewSet(
+			attribute.String(internal.ExtensionKey, component.String()),
+		)),
+		clients:           make(map[string]client.Client),
+		clientsMutex:      sync.RWMutex{},
+		telemetrySettings: telemetrySettings,
 	}
 }
 
@@ -86,30 +101,43 @@ func (b *badgerExtension) createClientForComponent(directory string, fullName st
 
 // clientOptions returns the options for the badger storage client to be used during client creation
 func (b *badgerExtension) clientOptions() *client.Options {
-	return &client.Options{
+	opts := &client.Options{
 		SyncWrites: b.cfg.SyncWrites,
 	}
+	return opts
 }
 
 // Start starts the badger storage extension
 func (b *badgerExtension) Start(_ context.Context, _ component.Host) error {
+	b.doneChan = make(chan struct{})
+
+	if b.cfg.Telemetry != nil && b.cfg.Telemetry.Enabled {
+		go b.monitor(context.Background())
+	}
+
 	if b.cfg.BlobGarbageCollection != nil && b.cfg.BlobGarbageCollection.Interval > 0 {
 		// start background task for running blob garbage collection
 		ctx, cancel := context.WithCancel(context.Background())
 		b.gcContextCancel = cancel
 		go b.runGC(ctx)
 	}
+
 	return nil
 }
 
+// runGC runs the garbage collection process in a loop
 func (b *badgerExtension) runGC(ctx context.Context) {
 	ticker := time.NewTicker(b.cfg.BlobGarbageCollection.Interval)
 	defer ticker.Stop()
 	for {
 		select {
+		case <-b.doneChan:
+			return
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			beginning := b.startGCOperation()
+
 			b.clientsMutex.RLock()
 			clients := make([]client.Client, 0, len(b.clients))
 			for _, c := range b.clients {
@@ -117,21 +145,101 @@ func (b *badgerExtension) runGC(ctx context.Context) {
 			}
 			b.clientsMutex.RUnlock()
 
+			// small optimization to avoid creating a wait group and iterating over clients if there are no clients
+			if len(clients) == 0 {
+				continue
+			}
+
+			wg := sync.WaitGroup{}
+			wg.Add(len(clients))
+
 			for _, c := range clients {
 				go func(client client.Client) {
+					defer wg.Done()
 					if err := client.RunValueLogGC(b.cfg.BlobGarbageCollection.DiscardRatio); err != nil {
 						b.logger.Warn("value log garbage collection failed", zap.Error(err))
 					}
 				}(c)
 			}
+			wg.Wait()
+			b.finishGCOperation(ctx, beginning)
 		}
 	}
+}
+
+func (b *badgerExtension) monitor(ctx context.Context) {
+	mb, err := metadata.NewTelemetryBuilder(b.telemetrySettings)
+	if err != nil {
+		b.logger.Error("failed to create telemetry builder", zap.Error(err))
+		return
+	}
+	b.mb = mb
+	defer mb.Shutdown()
+
+	ticker := time.NewTicker(b.cfg.Telemetry.UpdateInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-b.doneChan:
+			return
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			b.mb.ExtensionStorageClientCount.Record(ctx, int64(len(b.clients)))
+			b.clientsMutex.RLock()
+			for _, c := range b.clients {
+				diskUsage, err := c.GetDiskUsage()
+				if err != nil {
+					b.logger.Error("failed to get disk usage", zap.Error(err))
+					b.clientsMutex.RUnlock()
+					continue
+				}
+
+				b.mb.ExtensionStorageClientDiskUsageBytes.Record(ctx, diskUsage.LSMUsage,
+					b.otelAttrs,
+					metric.WithAttributes(attribute.String(internal.StorageTypeAttribute, internal.StorageTypeLSM)))
+				b.mb.ExtensionStorageClientDiskUsageBytes.Record(ctx, diskUsage.ValueLogUsage,
+					b.otelAttrs,
+					metric.WithAttributes(attribute.String(internal.StorageTypeAttribute, internal.StorageTypeValueLog)))
+
+				opCounts := c.GetOperationCounts()
+				b.mb.ExtensionStorageClientOperationsCount.Add(ctx, opCounts.Get,
+					metric.WithAttributes(attribute.String(internal.OperationTypeAttribute, internal.OperationTypeGet)))
+				b.mb.ExtensionStorageClientOperationsCount.Add(ctx, opCounts.Set,
+					metric.WithAttributes(attribute.String(internal.OperationTypeAttribute, internal.OperationTypeSet)))
+				b.mb.ExtensionStorageClientOperationsCount.Add(ctx, opCounts.Delete,
+					metric.WithAttributes(attribute.String(internal.OperationTypeAttribute, internal.OperationTypeDelete)))
+			}
+			b.clientsMutex.RUnlock()
+		}
+	}
+}
+
+// startGCOperation records the beginning of a garbage collection operation
+func (b *badgerExtension) startGCOperation() *time.Time {
+	if b.cfg.Telemetry == nil || !b.cfg.Telemetry.Enabled {
+		return nil
+	}
+	now := time.Now()
+	return &now
+}
+
+// finishGCOperation records the duration of a garbage collection operation
+func (b *badgerExtension) finishGCOperation(ctx context.Context, beginning *time.Time) {
+	if beginning == nil {
+		return
+	}
+	duration := time.Since(*beginning)
+	b.mb.ExtensionStorageClientGcDurationMilliseconds.Record(ctx, duration.Milliseconds())
 }
 
 // Shutdown shuts down the badger storage extension
 func (b *badgerExtension) Shutdown(ctx context.Context) error {
 	if b.gcContextCancel != nil {
 		b.gcContextCancel()
+	}
+	if b.doneChan != nil {
+		close(b.doneChan)
 	}
 
 	b.clientsMutex.Lock()
