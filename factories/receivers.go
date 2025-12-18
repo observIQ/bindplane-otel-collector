@@ -82,6 +82,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/podmanreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/postgresqlreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusremotewritereceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/rabbitmqreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/redisreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/riakreceiver"
@@ -171,6 +172,7 @@ var defaultReceivers = []receiver.Factory{
 	podmanreceiver.NewFactory(),
 	postgresqlreceiver.NewFactory(),
 	prometheusreceiver.NewFactory(),
+	prometheusremotewritereceiver.NewFactory(),
 	rabbitmqreceiver.NewFactory(),
 	redisreceiver.NewFactory(),
 	riakreceiver.NewFactory(),
