@@ -17,6 +17,7 @@ package lookupprocessor
 import (
 	"context"
 	"errors"
+	"time"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -49,7 +50,10 @@ func NewFactory() processor.Factory {
 
 // createDefaultConfig creates the default configuration for the processor
 func createDefaultConfig() component.Config {
-	return &Config{}
+	return &Config{
+		CacheEnabled: true,
+		CacheTTL:     5 * time.Minute,
+	}
 }
 
 // createTracesProcessor creates a trace processor
@@ -64,7 +68,7 @@ func createTracesProcessor(
 		return nil, errInvalidConfigType
 	}
 
-	processor, err := newLookupProcessor(lookupCfg, set.Logger)
+	processor, err := newLookupProcessor(lookupCfg, set.ID, set.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +96,7 @@ func createLogsProcessor(
 		return nil, errInvalidConfigType
 	}
 
-	processor, err := newLookupProcessor(lookupCfg, set.Logger)
+	processor, err := newLookupProcessor(lookupCfg, set.ID, set.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +124,7 @@ func createMetricsProcessor(
 		return nil, errInvalidConfigType
 	}
 
-	processor, err := newLookupProcessor(lookupCfg, set.Logger)
+	processor, err := newLookupProcessor(lookupCfg, set.ID, set.Logger)
 	if err != nil {
 		return nil, err
 	}

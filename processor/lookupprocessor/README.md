@@ -23,11 +23,11 @@ This processor is used to lookup values from multiple data sources including CSV
 | source_type    | string   | `csv`   | No       | The type of lookup source. Supported values are `csv`, `redis`, `api`. If not specified and `csv` is provided, defaults to `csv`. |
 
 ### Cache Configuration
-| Field            | Type          | Default | Description |
-| ---              | ---           | ---     | ---         |
-| cache_enabled    | boolean       | `true`  | Whether to enable local caching of lookup results. |
-| cache_ttl        | duration      | `5m`    | How long cached entries remain valid before requiring a refresh. |
-| cache_storage_id | component.ID  | ` `     | Optional reference to a storage extension for shared caching across processor instances. If not specified, uses processor-local storage. |
+| Field         | Type          | Default | Description |
+| ---           | ---           | ---     | ---         |
+| cache_enabled | boolean       | `true`  | Whether to enable local caching of lookup results. |
+| cache_ttl     | duration      | `5m`    | How long cached entries remain valid before requiring a refresh. |
+| storage       | component.ID  | ` `     | Optional reference to a storage extension for shared caching across processor instances. If not specified, uses processor-local storage. |
 
 ### CSV Source Configuration
 | Field | Type   | Default | Description |
@@ -208,7 +208,7 @@ processors:
                 Authorization: Bearer ${env:API_TOKEN}
         cache_enabled: true
         cache_ttl: 1h
-        cache_storage_id: file_storage
+        storage: file_storage
 
     lookup/user:
         source_type: redis
@@ -218,7 +218,7 @@ processors:
             address: redis:6379
         cache_enabled: true
         cache_ttl: 30m
-        cache_storage_id: file_storage
+        storage: file_storage
 
 service:
     extensions: [file_storage]

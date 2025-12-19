@@ -30,57 +30,82 @@ import (
 
 // lookupProcessor is a lookupProcessor that looks up values and adds them to telemetry
 type lookupProcessor struct {
-	logger  *zap.Logger
-	source  LookupSource
-	context string
-	field   string
-	cancel  context.CancelFunc
-	wg      *sync.WaitGroup
+	logger      *zap.Logger
+	source      LookupSource
+	context     string
+	field       string
+	cancel      context.CancelFunc
+	wg          *sync.WaitGroup
+	cfg         *Config
+	componentID component.ID
 }
 
 // newLookupProcessor creates a new lookupProcessor
-func newLookupProcessor(cfg *Config, logger *zap.Logger) (*lookupProcessor, error) {
+func newLookupProcessor(cfg *Config, componentID component.ID, logger *zap.Logger) (*lookupProcessor, error) {
+	return &lookupProcessor{
+		logger:      logger,
+		context:     cfg.Context,
+		field:       cfg.Field,
+		wg:          &sync.WaitGroup{},
+		cfg:         cfg,
+		componentID: componentID,
+	}, nil
+}
+
+// start starts the processor
+func (p *lookupProcessor) start(ctx context.Context, host component.Host) error {
 	var source LookupSource
 	var err error
 
 	// Determine which source to use
 	switch {
-	case cfg.Redis != nil && (cfg.SourceType == "" || cfg.SourceType == "redis"):
-		source, err = NewRedisSource(cfg.Redis, logger)
-	case cfg.API != nil && (cfg.SourceType == "api"):
-		source, err = NewAPISource(cfg.API, logger)
-	case cfg.CSV != "" || cfg.SourceType == "csv":
+	case p.cfg.Redis != nil && (p.cfg.SourceType == "" || p.cfg.SourceType == "redis"):
+		source, err = NewRedisSource(p.cfg.Redis, p.logger)
+	case p.cfg.API != nil && (p.cfg.SourceType == "api"):
+		source, err = NewAPISource(p.cfg.API, p.logger)
+	case p.cfg.CSV != "" || p.cfg.SourceType == "csv":
 		// Default to CSV if no other source specified or explicitly set to csv
-		source = NewCSVFile(cfg.CSV, cfg.Field)
+		source = NewCSVFile(p.cfg.CSV, p.cfg.Field)
 	default:
 		// Should have been caught by validation, but safe fallback
-		if cfg.CSV != "" {
-			source = NewCSVFile(cfg.CSV, cfg.Field)
+		if p.cfg.CSV != "" {
+			source = NewCSVFile(p.cfg.CSV, p.cfg.Field)
 		} else {
-			return nil, errMissingSource
+			return errMissingSource
 		}
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to create lookup source: %w", err)
+		return fmt.Errorf("failed to create lookup source: %w", err)
 	}
 
-	return &lookupProcessor{
-		logger:  logger,
-		source:  source,
-		context: cfg.Context,
-		field:   cfg.Field,
-		wg:      &sync.WaitGroup{},
-	}, nil
-}
+	// Wrap source with cache
+	cacheTTL := 5 * time.Minute // default
+	if p.cfg.CacheTTL > 0 {
+		cacheTTL = p.cfg.CacheTTL
+	}
 
-// start starts the processor
-func (p *lookupProcessor) start(_ context.Context, _ component.Host) error {
-	ctx, cancel := context.WithCancel(context.Background())
+	cachedSource, err := NewLookupCache(
+		ctx,
+		source,
+		cacheTTL,
+		p.cfg.CacheEnabled,
+		p.cfg.StorageID,
+		host,
+		p.componentID,
+		p.logger,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create lookup cache: %w", err)
+	}
+
+	p.source = cachedSource
+
+	backgroundCtx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
 
 	p.wg.Add(1)
-	go p.loadSource(ctx)
+	go p.loadSource(backgroundCtx)
 
 	return nil
 }

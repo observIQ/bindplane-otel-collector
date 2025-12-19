@@ -50,9 +50,9 @@ type Config struct {
 	SourceType string `mapstructure:"source_type"`
 
 	// Cache configuration
-	CacheEnabled   bool             `mapstructure:"cache_enabled"`
-	CacheTTL       time.Duration    `mapstructure:"cache_ttl"`
-	CacheStorageID component.ID     `mapstructure:"cache_storage_id"`
+	CacheEnabled bool          `mapstructure:"cache_enabled"`
+	CacheTTL     time.Duration `mapstructure:"cache_ttl"`
+	StorageID    *component.ID `mapstructure:"storage"`
 
 	// Source configurations
 	CSV   string       `mapstructure:"csv"`
