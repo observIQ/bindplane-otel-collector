@@ -2024,6 +2024,8 @@ github.com/nxadm/tail v1.4.11 h1:8feyoE3OzPrcshW5/MJ4sGESc5cqmGkGCWlco4l0bqY=
 github.com/nxadm/tail v1.4.11/go.mod h1:OTaG3NK980DZzxbRq6lEuzgU+mug70nY11sMd4JXXHc=
 github.com/oapi-codegen/runtime v1.0.0 h1:P4rqFX5fMFWqRzY9M/3YF9+aPSPPB06IzP2P7oOxrWo=
 github.com/oapi-codegen/runtime v1.0.0/go.mod h1:LmCUMQuPB4M/nLXilQXhHw+BLZdDb18B34OO356yJ/A=
+github.com/observIQ/opentelemetry-collector-contrib/connector/countconnector v0.0.0-20251219150306-cca738706365 h1:wSRblELHHvnbgTOZKUnVn6PlEKoDbWNyU9ffbjTKDGU=
+github.com/observIQ/opentelemetry-collector-contrib/connector/countconnector v0.0.0-20251219150306-cca738706365/go.mod h1:WWIV4ZzKc1vvj13OUT7/FgBZS+c4BNvaP93AmW2+Fns=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/ulid v1.3.1 h1:EGfNDEx6MqHz8B3uNV6QAib1UR2Lm97sHi3ocA6ESJ4=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
@@ -2044,8 +2046,6 @@ github.com/open-telemetry/opamp-go v0.22.0 h1:7UnsQgFFS7ffM09JQk+9aGVBAAlsLfcooZ
 github.com/open-telemetry/opamp-go v0.22.0/go.mod h1:339N71soCPrhHywbAcKUZJDODod581ZOxCpTkrl3zYQ=
 github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.141.0 h1:DlPRE1clp2YbhyhS45zf+tOtsF31BJgwMOJN/uNPa3E=
 github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.141.0/go.mod h1:7uBoqHH9ASMqC1ZLMoUlSbGo3VnatERuqdzg13k8gqA=
-github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.141.0 h1:y8IzZjno+U76YQL5UAWbp5E0zyyPlROo7pXl4p34d6E=
-github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.141.0/go.mod h1:aSecdbJDNP6UmnEfjciDfjl0pRskH58CsThmf4GyPUQ=
 github.com/open-telemetry/opentelemetry-collector-contrib/connector/failoverconnector v0.141.0 h1:+jGIHQr/Ww2fnYVHsr4mXegL3JYpVxQKeVJ9ulO3ZDs=
 github.com/open-telemetry/opentelemetry-collector-contrib/connector/failoverconnector v0.141.0/go.mod h1:ZZpY6N0UaT4YaRXZ30k/v+od/faVx0Y657AwdVt83oU=
 github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.141.0 h1:DKIP1GmKBBQ4aMPZGJwPUnxjgOR6xQgAXtcBmEe7W7k=
