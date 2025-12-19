@@ -1089,3 +1089,7 @@ replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
 replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/carbonexporter => github.com/open-telemetry/opentelemetry-collector-contrib/exporter/carbonexporter v0.140.1
+
+// Remove this replace directive with OTEL v0.143.0
+// Which will likely be included in the v1.90.0 release.
+replace github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector => github.com/observIQ/opentelemetry-collector-contrib/connector/countconnector v0.0.0-20251219150306-cca738706365
