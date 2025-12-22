@@ -916,7 +916,8 @@ install_package()
 verify_package() {
   # If GPG check is skipped, return success immediately
   if [ "$skip_gpg_check" = "true" ]; then
-    warn "Skipping GPG signature verification due to '--no-gpg-check' flag"
+    warn "GPG signature verification is being bypassed with the '--no-gpg-check' flag."
+    warn "This disables a critical security check and should only be used if your organization policies permit it."
     return 0
   fi
 
