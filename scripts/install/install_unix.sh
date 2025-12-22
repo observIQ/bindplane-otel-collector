@@ -818,8 +818,11 @@ install_package()
 
   # Verify the package signature, with optional user override on failure
   # Capture GPG verification output to display failure details
+  # Temporarily disable set -e to allow capture of failing command output
+  set +e
   gpg_verify_output=$(verify_package 2>&1)
   gpg_verify_exit_code=$?
+  set -e
   
   if [ $gpg_verify_exit_code -ne 0 ]; then
     if [ "$non_interactive" = "true" ]; then
