@@ -71,6 +71,7 @@ Below is a list of supported receivers with links to their documentation pages.
 | Prometheus Remote Write Receiver           | [prometheusremotewrite](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.141.0/receiver/prometheusremotewritereceiver/README.md)           |
 | RabbitMQ Receiver                          | [rabbitmqreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.141.0/receiver/rabbitmqreceiver/README.md)                             |
 | Redis Receiver                             | [redisreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.141.0/receiver/redisreceiver/README.md)                                   |
+| REST API Receiver                          | [restapireceiver](../receiver/restapireceiver/README.md) |
 | Riak Receiver                              | [riakreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.141.0/receiver/riakreceiver/README.md)                                     |
 | Route Receiver                             | [routereceiver](../receiver/routereceiver/README.md)                                                                                                                |
 | SAP Hana Receiver                          | [saphanamreceiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.141.0/receiver/saphanareceiver)                                        |
