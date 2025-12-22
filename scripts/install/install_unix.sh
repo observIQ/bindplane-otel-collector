@@ -817,14 +817,28 @@ install_package()
   fi
 
   # Verify the package signature, with optional user override on failure
-  if ! verify_package; then
+  # Capture GPG verification output to display failure details
+  gpg_verify_output=$(verify_package 2>&1)
+  gpg_verify_exit_code=$?
+  
+  if [ $gpg_verify_exit_code -ne 0 ]; then
     if [ "$non_interactive" = "true" ]; then
       # In quiet mode, fail immediately on GPG verification failure
+      if [ -n "$gpg_verify_output" ]; then
+        increase_indent
+        printf "%s\n" "$gpg_verify_output"
+        decrease_indent
+      fi
       error_exit "$LINENO" "Failed to verify package signature. Use '--no-gpg-check' to skip verification."
     else
-      # In interactive mode, prompt the user
+      # In interactive mode, show verification output, prompt the user, and explain failure
+      if [ -n "$gpg_verify_output" ]; then
+        increase_indent
+        printf "%s\n" "$gpg_verify_output"
+        decrease_indent
+      fi
+      
       increase_indent
-      error "Package signature verification failed."
       printf "\\n${indent}The package signature could not be verified. This may indicate:\n"
       printf "${indent}  - The GPG keys are not properly installed or accessible\n"
       printf "${indent}  - The package has been tampered with\n"
@@ -839,6 +853,12 @@ install_package()
       printf "\\n"
       
       if [ "$gpg_override_input" != "y" ] && [ "$gpg_override_input" != "Y" ]; then
+        if [ -n "$gpg_verify_output" ]; then
+          increase_indent
+          error "Verification failed due to:"
+          printf "%s\n" "$gpg_verify_output"
+          decrease_indent
+        fi
         error_exit "$LINENO" "Installation aborted due to GPG verification failure."
       fi
       
