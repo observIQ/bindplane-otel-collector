@@ -131,14 +131,14 @@ The metrics configuration allows you to customize how metrics are extracted from
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `metrics.name_field` | string | | `false` | Field name in each response item containing the metric name. If not specified or not found, defaults to `restapi.metric` |
+| `metrics.name_field` | string | | `true` | Field name in each response item containing the metric name. If not found, the metric will be dropped and a warning will be logged. |
 | `metrics.description_field` | string | | `false` | Field name in each response item containing the metric description. If not specified or not found, defaults to `Metric from REST API` |
 | `metrics.type_field` | string | | `false` | Field name in each response item containing the metric type (`gauge`, `sum`, `histogram`, `summary`). If not specified or not found, defaults to `gauge` |
 | `metrics.unit_field` | string | | `false` | Field name in each response item containing the metric unit. If not specified or not found, no unit is set |
 | `metrics.monotonic_field` | string | | `false` | Field name in each response item indicating if a sum metric is monotonic (boolean). Only applies to `sum` metrics. If not specified or not found, defaults to `false` for safety |
 | `metrics.aggregation_temporality_field` | string | | `false` | Field name in each response item containing the aggregation temporality (`cumulative` or `delta`). If not specified or not found, defaults to `cumulative` |
 
-**Note:** When field names are configured, those fields are automatically excluded from metric attributes to avoid duplication.
+**Note:** When field names are configured, those fields are automatically excluded from metric attributes to avoid duplication. If the `name_field` isn't found, the metric will be dropped.
 
 ## Example Configurations
 

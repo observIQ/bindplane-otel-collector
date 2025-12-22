@@ -12,4 +12,6 @@ tests:
     apikey:
       header_name: "X-API-Key"
       value: "test-key"
+    metrics:
+      name_field: "name"
 

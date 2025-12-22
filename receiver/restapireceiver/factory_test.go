@@ -56,6 +56,7 @@ func TestCreateMetricsReceiver(t *testing.T) {
 	cfg.AuthMode = authModeAPIKey
 	cfg.APIKeyConfig.HeaderName = "X-API-Key"
 	cfg.APIKeyConfig.Value = "test-key"
+	cfg.Metrics.NameField = "name"
 
 	test, err := factory.CreateMetrics(
 		context.Background(),
@@ -95,4 +96,23 @@ func TestCreateMetricsReceiver_InvalidConfig(t *testing.T) {
 	)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "url is required")
+}
+
+func TestCreateMetricsReceiver_MissingNameField(t *testing.T) {
+	factory := NewFactory()
+	cfg := factory.CreateDefaultConfig().(*Config)
+	cfg.URL = "https://api.example.com/data"
+	cfg.AuthMode = authModeAPIKey
+	cfg.APIKeyConfig.HeaderName = "X-API-Key"
+	cfg.APIKeyConfig.Value = "test-key"
+	// Metrics.NameField is empty, should fail validation
+
+	_, err := factory.CreateMetrics(
+		context.Background(),
+		receivertest.NewNopSettings(metadata.Type),
+		cfg,
+		consumertest.NewNop(),
+	)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "metrics.name_field is required")
 }

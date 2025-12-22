@@ -82,6 +82,10 @@ func createMetricsReceiver(
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 
+	if cfg.Metrics.NameField == "" {
+		return nil, fmt.Errorf("metrics.name_field is required")
+	}
+
 	rcvr, err := newRESTAPIMetricsReceiver(params, cfg, consumer)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create REST API metrics receiver: %w", err)
