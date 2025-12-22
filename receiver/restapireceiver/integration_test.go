@@ -114,6 +114,9 @@ func TestIntegration_EndToEnd_Metrics(t *testing.T) {
 		},
 		MaxPollInterval: 100 * time.Millisecond,
 		ClientConfig:    confighttp.ClientConfig{},
+		Metrics: MetricsConfig{
+			NameField: "metric",
+		},
 	}
 
 	sink := new(consumertest.MetricsSink)

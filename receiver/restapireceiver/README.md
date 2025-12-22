@@ -4,8 +4,11 @@ The REST API receiver is a generic receiver that can pull data from any REST API
 
 ## Supported Pipelines
 
+Alpha:
 - Logs
 - Metrics
+
+**Due to the wide range of use cases possible for this receiver, this component offers a best-effort integration with common API patterns, but may not completely align with every REST API.**
 
 ## How It Works
 
@@ -77,6 +80,8 @@ Use `auth_mode: none` for public APIs that don't require authentication. No addi
 | `endpoint_params` | map[string]string | | `false` | Additional parameters to send to the token endpoint |
 
 #### Akamai EdgeGrid
+
+**The Akamai API requires an enterprise license. This authentication method has not been tested against an Akamai API.**
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|

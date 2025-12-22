@@ -39,14 +39,18 @@ func convertJSONToMetrics(data []map[string]any, cfg *MetricsConfig, logger *zap
 			continue
 		}
 
-		// Extract metric name (defaults to "restapi.metric")
-		metricName := "restapi.metric"
+		// Extract metric name (required)
+		metricName := ""
 		if cfg.NameField != "" {
 			if nameVal, ok := item[cfg.NameField]; ok {
 				if nameStr, ok := nameVal.(string); ok && nameStr != "" {
 					metricName = nameStr
 				}
 			}
+		}
+		if metricName == "" {
+			logger.Warn("skipping item without metric name", zap.String("name_field", cfg.NameField), zap.Any("item", item))
+			continue
 		}
 
 		// Extract metric description (defaults to "Metric from REST API")

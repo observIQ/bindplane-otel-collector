@@ -30,7 +30,9 @@ func TestConvertJSONToMetrics_SimpleArray(t *testing.T) {
 	}
 
 	logger := zap.NewNop()
-	cfg := &MetricsConfig{}
+	cfg := &MetricsConfig{
+		NameField: "name",
+	}
 	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	require.Equal(t, 1, metrics.ResourceMetrics().Len())
@@ -42,7 +44,7 @@ func TestConvertJSONToMetrics_SimpleArray(t *testing.T) {
 
 	// Check first metric
 	metric1 := scopeMetrics.Metrics().At(0)
-	require.Equal(t, "restapi.metric", metric1.Name())
+	require.Equal(t, "metric1", metric1.Name())
 	require.Equal(t, pmetric.MetricTypeGauge, metric1.Type())
 
 	gauge := metric1.Gauge()
@@ -50,13 +52,9 @@ func TestConvertJSONToMetrics_SimpleArray(t *testing.T) {
 	dp1 := gauge.DataPoints().At(0)
 	require.Equal(t, 42.5, dp1.DoubleValue())
 
-	// Check attributes
-	attrs1 := dp1.Attributes()
-	require.Equal(t, "metric1", attrs1.AsRaw()["name"])
-
 	// Check second metric
 	metric2 := scopeMetrics.Metrics().At(1)
-	require.Equal(t, "restapi.metric", metric2.Name())
+	require.Equal(t, "metric2", metric2.Name())
 	gauge2 := metric2.Gauge()
 	require.Equal(t, 1, gauge2.DataPoints().Len())
 	dp2 := gauge2.DataPoints().At(0)
@@ -76,13 +74,15 @@ func TestConvertJSONToMetrics_EmptyArray(t *testing.T) {
 
 func TestConvertJSONToMetrics_WithNumericValue(t *testing.T) {
 	data := []map[string]any{
-		{"value": 42, "unit": "bytes"},
-		{"value": 99.99, "unit": "percent"},
-		{"value": int64(1000), "unit": "count"},
+		{"value": 42, "unit": "bytes", "name": "metric1"},
+		{"value": 99.99, "unit": "percent", "name": "metric2"},
+		{"value": int64(1000), "unit": "count", "name": "metric3"},
 	}
 
 	logger := zap.NewNop()
-	cfg := &MetricsConfig{}
+	cfg := &MetricsConfig{
+		NameField: "name",
+	}
 	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	require.Equal(t, 3, metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().Len())
@@ -111,6 +111,7 @@ func TestConvertJSONToMetrics_WithAttributes(t *testing.T) {
 	data := []map[string]any{
 		{
 			"value":    50.0,
+			"name":     "test.metric",
 			"service":  "api",
 			"env":      "prod",
 			"region":   "us-east-1",
@@ -119,7 +120,9 @@ func TestConvertJSONToMetrics_WithAttributes(t *testing.T) {
 	}
 
 	logger := zap.NewNop()
-	cfg := &MetricsConfig{}
+	cfg := &MetricsConfig{
+		NameField: "name",
+	}
 	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	metric := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().At(0)
@@ -141,7 +144,9 @@ func TestConvertJSONToMetrics_NoValueField(t *testing.T) {
 	}
 
 	logger := zap.NewNop()
-	cfg := &MetricsConfig{}
+	cfg := &MetricsConfig{
+		NameField: "name",
+	}
 	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	// Should still create metrics, using first numeric field as value
@@ -160,7 +165,9 @@ func TestConvertJSONToMetrics_NoNumericValue(t *testing.T) {
 	}
 
 	logger := zap.NewNop()
-	cfg := &MetricsConfig{}
+	cfg := &MetricsConfig{
+		NameField: "name",
+	}
 	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	// Should skip items without numeric values
@@ -169,11 +176,13 @@ func TestConvertJSONToMetrics_NoNumericValue(t *testing.T) {
 
 func TestConvertJSONToMetrics_WithTimestamp(t *testing.T) {
 	data := []map[string]any{
-		{"value": 42.0, "timestamp": "2023-01-01T00:00:00Z"},
+		{"value": 42.0, "name": "test.metric", "timestamp": "2023-01-01T00:00:00Z"},
 	}
 
 	logger := zap.NewNop()
-	cfg := &MetricsConfig{}
+	cfg := &MetricsConfig{
+		NameField: "name",
+	}
 	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	metric := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().At(0)
@@ -186,15 +195,17 @@ func TestConvertJSONToMetrics_WithTimestamp(t *testing.T) {
 
 func TestConvertJSONToMetrics_MultipleMetrics(t *testing.T) {
 	data := []map[string]any{
-		{"value": 1.0, "id": "1"},
-		{"value": 2.0, "id": "2"},
-		{"value": 3.0, "id": "3"},
-		{"value": 4.0, "id": "4"},
-		{"value": 5.0, "id": "5"},
+		{"value": 1.0, "name": "metric.1", "id": "1"},
+		{"value": 2.0, "name": "metric.2", "id": "2"},
+		{"value": 3.0, "name": "metric.3", "id": "3"},
+		{"value": 4.0, "name": "metric.4", "id": "4"},
+		{"value": 5.0, "name": "metric.5", "id": "5"},
 	}
 
 	logger := zap.NewNop()
-	cfg := &MetricsConfig{}
+	cfg := &MetricsConfig{
+		NameField: "name",
+	}
 	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	require.Equal(t, 5, metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().Len())
@@ -213,6 +224,7 @@ func TestConvertJSONToMetrics_WithNestedFields(t *testing.T) {
 	data := []map[string]any{
 		{
 			"value": 42.0,
+			"name":  "test.metric",
 			"metadata": map[string]any{
 				"source": "api",
 				"env":    "prod",
@@ -221,7 +233,9 @@ func TestConvertJSONToMetrics_WithNestedFields(t *testing.T) {
 	}
 
 	logger := zap.NewNop()
-	cfg := &MetricsConfig{}
+	cfg := &MetricsConfig{
+		NameField: "name",
+	}
 	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	metric := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().At(0)
@@ -260,11 +274,12 @@ func TestConvertJSONToMetrics_WithCustomNameField(t *testing.T) {
 
 func TestConvertJSONToMetrics_WithCustomDescriptionField(t *testing.T) {
 	data := []map[string]any{
-		{"value": 42.5, "metric_desc": "CPU usage percentage", "host": "server1"},
+		{"value": 42.5, "name": "cpu.usage", "metric_desc": "CPU usage percentage", "host": "server1"},
 	}
 
 	logger := zap.NewNop()
 	cfg := &MetricsConfig{
+		NameField:        "name",
 		DescriptionField: "metric_desc",
 	}
 	metrics := convertJSONToMetrics(data, cfg, logger)
@@ -275,13 +290,14 @@ func TestConvertJSONToMetrics_WithCustomDescriptionField(t *testing.T) {
 
 func TestConvertJSONToMetrics_WithCustomTypeField(t *testing.T) {
 	data := []map[string]any{
-		{"value": 42.5, "metric_type": "sum", "host": "server1"},
-		{"value": 100.0, "metric_type": "gauge", "host": "server2"},
-		{"value": 75.0, "metric_type": "histogram", "host": "server3"},
+		{"value": 42.5, "name": "metric1", "metric_type": "sum", "host": "server1"},
+		{"value": 100.0, "name": "metric2", "metric_type": "gauge", "host": "server2"},
+		{"value": 75.0, "name": "metric3", "metric_type": "histogram", "host": "server3"},
 	}
 
 	logger := zap.NewNop()
 	cfg := &MetricsConfig{
+		NameField: "name",
 		TypeField: "metric_type",
 	}
 	metrics := convertJSONToMetrics(data, cfg, logger)
@@ -307,12 +323,13 @@ func TestConvertJSONToMetrics_WithCustomTypeField(t *testing.T) {
 
 func TestConvertJSONToMetrics_WithUnitField(t *testing.T) {
 	data := []map[string]any{
-		{"value": 42.5, "unit": "bytes", "host": "server1"},
-		{"value": 100.0, "unit": "percent", "host": "server2"},
+		{"value": 42.5, "name": "metric1", "unit": "bytes", "host": "server1"},
+		{"value": 100.0, "name": "metric2", "unit": "percent", "host": "server2"},
 	}
 
 	logger := zap.NewNop()
 	cfg := &MetricsConfig{
+		NameField: "name",
 		UnitField: "unit",
 	}
 	metrics := convertJSONToMetrics(data, cfg, logger)
@@ -329,7 +346,7 @@ func TestConvertJSONToMetrics_WithUnitField(t *testing.T) {
 	require.Equal(t, "percent", metric2.Unit())
 }
 
-func TestConvertJSONToMetrics_WithDefaults(t *testing.T) {
+func TestConvertJSONToMetrics_WithoutNameField(t *testing.T) {
 	data := []map[string]any{
 		{"value": 42.5, "host": "server1"},
 		{"value": 100.0, "host": "server2"},
@@ -340,14 +357,8 @@ func TestConvertJSONToMetrics_WithDefaults(t *testing.T) {
 	metrics := convertJSONToMetrics(data, cfg, logger)
 
 	scopeMetrics := metrics.ResourceMetrics().At(0).ScopeMetrics().At(0)
-	require.Equal(t, 2, scopeMetrics.Metrics().Len())
-
-	// Check that hardcoded defaults are used
-	metric1 := scopeMetrics.Metrics().At(0)
-	require.Equal(t, "restapi.metric", metric1.Name())
-	require.Equal(t, "Metric from REST API", metric1.Description())
-	require.Equal(t, pmetric.MetricTypeGauge, metric1.Type())
-	require.Equal(t, "", metric1.Unit())
+	// Metrics without a name field should be dropped
+	require.Equal(t, 0, scopeMetrics.Metrics().Len())
 }
 
 func TestConvertJSONToMetrics_FieldOverridesDefaults(t *testing.T) {
@@ -416,12 +427,13 @@ func TestConvertJSONToMetrics_AllFieldsConfigured(t *testing.T) {
 
 func TestConvertJSONToMetrics_WithMonotonicField(t *testing.T) {
 	data := []map[string]any{
-		{"value": 100.0, "metric_type": "sum", "is_monotonic": true, "host": "server1"},
-		{"value": 50.0, "metric_type": "sum", "is_monotonic": false, "host": "server2"},
+		{"value": 100.0, "name": "metric1", "metric_type": "sum", "is_monotonic": true, "host": "server1"},
+		{"value": 50.0, "name": "metric2", "metric_type": "sum", "is_monotonic": false, "host": "server2"},
 	}
 
 	logger := zap.NewNop()
 	cfg := &MetricsConfig{
+		NameField:      "name",
 		TypeField:      "metric_type",
 		MonotonicField: "is_monotonic",
 	}
@@ -450,13 +462,14 @@ func TestConvertJSONToMetrics_WithMonotonicField(t *testing.T) {
 
 func TestConvertJSONToMetrics_WithAggregationTemporalityField(t *testing.T) {
 	data := []map[string]any{
-		{"value": 100.0, "metric_type": "sum", "aggregation": "cumulative", "host": "server1"},
-		{"value": 50.0, "metric_type": "sum", "aggregation": "delta", "host": "server2"},
-		{"value": 75.0, "metric_type": "histogram", "aggregation": "delta", "host": "server3"},
+		{"value": 100.0, "name": "metric1", "metric_type": "sum", "aggregation": "cumulative", "host": "server1"},
+		{"value": 50.0, "name": "metric2", "metric_type": "sum", "aggregation": "delta", "host": "server2"},
+		{"value": 75.0, "name": "metric3", "metric_type": "histogram", "aggregation": "delta", "host": "server3"},
 	}
 
 	logger := zap.NewNop()
 	cfg := &MetricsConfig{
+		NameField:                   "name",
 		TypeField:                   "metric_type",
 		AggregationTemporalityField: "aggregation",
 	}
@@ -541,11 +554,12 @@ func TestConvertJSONToMetrics_SumWithAllProperties(t *testing.T) {
 
 func TestConvertJSONToMetrics_DefaultMonotonicAndAggregation(t *testing.T) {
 	data := []map[string]any{
-		{"value": 100.0, "metric_type": "sum", "host": "server1"},
+		{"value": 100.0, "name": "test.metric", "metric_type": "sum", "host": "server1"},
 	}
 
 	logger := zap.NewNop()
 	cfg := &MetricsConfig{
+		NameField: "name",
 		TypeField: "metric_type",
 	}
 	metrics := convertJSONToMetrics(data, cfg, logger)

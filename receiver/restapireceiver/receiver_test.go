@@ -98,6 +98,9 @@ func TestRESTAPIMetricsReceiver_StartShutdown(t *testing.T) {
 		},
 		MaxPollInterval: 100 * time.Millisecond,
 		ClientConfig:    confighttp.ClientConfig{},
+		Metrics: MetricsConfig{
+			NameField: "name",
+		},
 	}
 
 	sink := new(consumertest.MetricsSink)
