@@ -581,6 +581,22 @@ func TestConfig_Validate(t *testing.T) {
 			},
 			expectedErr: "",
 		},
+		{
+			name: "negative max_poll_interval",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeAPIKey,
+				APIKeyConfig: APIKeyConfig{
+					HeaderName: "X-API-Key",
+					Value:      "test-key",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeNone,
+				},
+				MaxPollInterval: -1 * time.Minute,
+			},
+			expectedErr: "max_poll_interval must be greater than 0",
+		},
 	}
 
 	for _, tc := range testCases {

@@ -336,5 +336,14 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	// Apply default if not configured (zero value means not set)
+	if c.MaxPollInterval == 0 {
+		c.MaxPollInterval = 5 * time.Minute
+	}
+
+	if c.MaxPollInterval < 0 {
+		return fmt.Errorf("max_poll_interval must be greater than 0")
+	}
+
 	return nil
 }

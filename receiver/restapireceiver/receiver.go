@@ -162,6 +162,7 @@ func (b *baseReceiver) loadCheckpoint(ctx context.Context) {
 }
 
 // saveCheckpoint saves the checkpoint to storage.
+// Call this function after every pagination so that the checkpoint has up-to-date pagination state.
 func (b *baseReceiver) saveCheckpoint(ctx context.Context) error {
 	if b.storageClient == nil || b.paginationState == nil {
 		return nil // No storage client or pagination state, nothing to save
@@ -365,6 +366,11 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
 		if !hasMore {
 			break
 		}
+
+		if err := r.saveCheckpoint(ctx); err != nil {
+			r.logger.Error("failed to save checkpoint", zap.Error(err))
+		}
+
 		params = nextParams
 	}
 
@@ -548,6 +554,11 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
 		if !hasMore {
 			break
 		}
+
+		if err := r.saveCheckpoint(ctx); err != nil {
+			r.logger.Error("failed to save checkpoint", zap.Error(err))
+		}
+
 		params = nextParams
 	}
 

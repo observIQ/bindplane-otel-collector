@@ -319,11 +319,7 @@ func updatePaginationState(cfg *Config, state *paginationState) {
 		state.pagesFetched++
 
 	case paginationModePageSize:
-		if cfg.Pagination.ZeroBasedIndex {
-			state.currentPage++
-		} else {
-			state.currentPage++
-		}
+		state.currentPage++
 		state.pagesFetched++
 
 	case paginationModeTimestamp:
