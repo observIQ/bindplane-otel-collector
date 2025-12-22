@@ -65,7 +65,7 @@ func newRESTAPIClient(
 	cfg *Config,
 	host component.Host,
 ) (restAPIClient, error) {
-	httpClient, err := cfg.ClientConfig.ToClient(ctx, host, settings)
+	httpClient, err := cfg.ClientConfig.ToClient(ctx, host.GetExtensions(), settings)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
 	}
