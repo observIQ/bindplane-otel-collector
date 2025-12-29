@@ -790,7 +790,27 @@ install_package()
     dpkg -s "observiq-otel-collector" > /dev/null 2>&1 && dpkg --purge "observiq-otel-collector" > /dev/null 2>&1
   fi
 
-  verify_package || error_exit "$LINENO" "Failed to verify package"
+  # Verify the package signature and display detailed error information on failure
+  # Capture GPG verification output to display failure details
+  # Temporarily disable set -e to allow capture of failing command output
+  set +e
+  gpg_verify_output=$(verify_package 2>&1)
+  gpg_verify_exit_code=$?
+  set -e
+  
+  if [ $gpg_verify_exit_code -ne 0 ]; then
+    increase_indent
+    if [ -n "$gpg_verify_output" ]; then
+      printf "%s\n" "$gpg_verify_output"
+    fi
+    printf "\\n${indent}The package signature could not be verified. This may indicate:\n"
+    printf "${indent}  - The GPG keys are not properly installed or accessible\n"
+    printf "${indent}  - The package has been tampered with\n"
+    printf "${indent}  - The signing key has expired or been revoked\n"
+    printf "${indent}  - Network issues prevented GPG key retrieval\n"
+    decrease_indent
+    error_exit "$LINENO" "Failed to verify package"
+  fi
   unpack_package || error_exit "$LINENO" "Failed to extract package"
   succeeded
 
