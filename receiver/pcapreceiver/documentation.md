@@ -8,8 +8,8 @@ The following telemetry is emitted by this component.
 
 ### otelcol_pcap.packets_captured
 
-The number of packets captured by the PCAP receiver [alpha]
+The number of packets captured by the PCAP receiver [Alpha]
 
 | Unit | Metric Type | Value Type | Monotonic | Stability |
 | ---- | ----------- | ---------- | --------- | --------- |
-| {packets} | Sum | Int | true | alpha |
+| {packets} | Sum | Int | true | Alpha |

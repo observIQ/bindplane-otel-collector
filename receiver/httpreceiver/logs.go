@@ -69,7 +69,7 @@ func (r *httpLogsReceiver) Start(ctx context.Context, host component.Host) error
 func (r *httpLogsReceiver) startListening(ctx context.Context, host component.Host) error {
 	r.logger.Debug("starting receiver HTTP server")
 	var err error
-	r.server, err = r.serverSettings.ToServer(ctx, host, r.telemetrySettings, r)
+	r.server, err = r.serverSettings.ToServer(ctx, host.GetExtensions(), r.telemetrySettings, r)
 	if err != nil {
 		return fmt.Errorf("to server: %w", err)
 	}

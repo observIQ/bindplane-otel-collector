@@ -63,7 +63,7 @@ func newBindplaneAuditLogsReceiver(cfg *Config, logger *zap.Logger, consumer con
 }
 
 func (r *bindplaneAuditLogsReceiver) Start(ctx context.Context, host component.Host) error {
-	client, err := r.cfg.ClientConfig.ToClient(ctx, host, r.settings)
+	client, err := r.cfg.ClientConfig.ToClient(ctx, host.GetExtensions(), r.settings)
 	if err != nil {
 		return fmt.Errorf("failed to create HTTP client: %w", err)
 	}
