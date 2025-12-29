@@ -1,0 +1,105 @@
+# Example OpenTelemetry Collector Configuration
+# Demonstrating combined attribute-based grouping with byte-size batching
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # Example 1: Multi-tenant batch processor with byte limits
+  # Groups data by tenant ID and enforces byte-size limits per tenant
+  batch/multitenant:
+    # Group all data by tenant ID
+    batch_group_by_attributes:
+      - tenant.id
+    # Limit to 100 distinct tenants to control memory
+    batch_group_by_attribute_limit: 100
+    
+    # Send batches when they reach 5MB OR 10,000 items (whichever comes first)
+    send_batch_size: 10000
+    send_batch_size_bytes: 5242880  # 5MB
+    
+    # Split batches larger than 10MB
+    send_batch_max_size_bytes: 10485760  # 10MB
+    
+    # Also send every 10 seconds even if thresholds not reached
+    timeout: 10s
+
+  # Example 2: Service-based batching with strict byte limits
+  # Useful for multi-service deployments where you want to control bandwidth per service
+  batch/per_service:
+    # Group by service name
+    batch_group_by_attributes:
+      - service.name
+    batch_group_by_attribute_limit: 50
+    
+    # Primarily use byte-based batching (small item threshold)
+    send_batch_size: 100000  # Large number, unlikely to be hit
+    send_batch_size_bytes: 2097152  # 2MB - main trigger
+    send_batch_max_size_bytes: 4194304  # 4MB max
+    
+    timeout: 5s
+
+  # Example 3: Environment and service grouping with balanced thresholds
+  # Groups by both environment and service for isolation
+  batch/env_service:
+    # Group by multiple attributes
+    batch_group_by_attributes:
+      - deployment.environment
+      - service.name
+    batch_group_by_attribute_limit: 200
+    
+    # Use both thresholds equally
+    send_batch_size: 5000
+    send_batch_size_bytes: 1048576  # 1MB
+    
+    timeout: 15s
+
+  # Example 4: Byte-only batching with attribute grouping
+  # For scenarios where you want to control payload sizes strictly
+  batch/byte_focused:
+    batch_group_by_attributes:
+      - service.namespace
+      - service.name
+    batch_group_by_attribute_limit: 100
+    
+    # Byte thresholds only (item threshold = 0 means no item-based trigger)
+    send_batch_size: 0
+    send_batch_size_bytes: 524288    # 512KB
+    send_batch_max_size_bytes: 1048576  # 1MB
+    
+    timeout: 30s
+
+exporters:
+  otlp:
+    endpoint: backend:4317
+  
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    # Use different batch processors for different use cases
+    traces/multitenant:
+      receivers: [otlp]
+      processors: [batch/multitenant]
+      exporters: [otlp]
+    
+    traces/per_service:
+      receivers: [otlp]
+      processors: [batch/per_service]
+      exporters: [otlp]
+    
+    metrics:
+      receivers: [otlp]
+      processors: [batch/env_service]
+      exporters: [otlp]
+    
+    logs:
+      receivers: [otlp]
+      processors: [batch/byte_focused]
+      exporters: [otlp, debug]

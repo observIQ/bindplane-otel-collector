@@ -1,0 +1,73 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # Test 1: Byte-based batching only
+  batch/bytes:
+    send_batch_size_bytes: 1048576  # 1MB
+    send_batch_max_size_bytes: 5242880  # 5MB max
+    timeout: 10s
+
+  # Test 2: Attribute-based grouping by service name
+  batch/by_service:
+    batch_group_by_attributes:
+      - service.name
+    batch_group_by_attribute_limit: 100
+    send_batch_size: 1000
+    timeout: 5s
+
+  # Test 3: Combined - attribute grouping + byte batching
+  batch/combined:
+    # Group by service and tenant
+    batch_group_by_attributes:
+      - service.name
+      - tenant.id
+    batch_group_by_attribute_limit: 200
+    
+    # Use both byte and item thresholds
+    send_batch_size: 5000
+    send_batch_size_bytes: 2097152  # 2MB
+    send_batch_max_size_bytes: 10485760  # 10MB max
+    
+    timeout: 10s
+
+exporters:
+  debug:
+    verbosity: detailed
+  
+  otlp:
+    endpoint: localhost:4317
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    traces/test_bytes:
+      receivers: [otlp]
+      processors: [batch/bytes]
+      exporters: [debug]
+    
+    traces/test_by_service:
+      receivers: [otlp]
+      processors: [batch/by_service]
+      exporters: [debug]
+    
+    traces/test_combined:
+      receivers: [otlp]
+      processors: [batch/combined]
+      exporters: [debug]
+    
+    metrics:
+      receivers: [otlp]
+      processors: [batch/combined]
+      exporters: [debug]
+    
+    logs:
+      receivers: [otlp]
+      processors: [batch/combined]
+      exporters: [debug]
