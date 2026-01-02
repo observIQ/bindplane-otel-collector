@@ -36,10 +36,10 @@ import (
 	"golang.org/x/sys/windows/registry"
 	"golang.org/x/sys/windows/svc/eventlog"
 
+	"github.com/observiq/bindplane-otel-collector/receiver/windowseventlogreceiver/internal/metadata"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/adapter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/operator"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza/operator/input/windows"
-	"github.com/observiq/bindplane-otel-collector/receiver/windowseventlogreceiver/internal/metadata"
 )
 
 func TestDefaultConfig(t *testing.T) {
@@ -348,7 +348,7 @@ func TestExcludeProvider(t *testing.T) {
 func createTestConfig() *WindowsLogConfig {
 	return &WindowsLogConfig{
 		BaseConfig: adapter.BaseConfig{
-			Operators:      []operator.Config{},
+			Operators: []operator.Config{},
 		},
 		InputConfig: func() windows.Config {
 			c := windows.NewConfig()
@@ -369,7 +369,7 @@ func createTestConfigWithQuery() *WindowsLogConfig {
   `
 	return &WindowsLogConfig{
 		BaseConfig: adapter.BaseConfig{
-			Operators:      []operator.Config{},
+			Operators: []operator.Config{},
 		},
 		InputConfig: func() windows.Config {
 			c := windows.NewConfig()
