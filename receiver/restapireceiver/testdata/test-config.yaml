@@ -1,0 +1,17 @@
+receivers:
+  restapi:
+    url: https://api.example.com/data
+    response_field: data
+    max_poll_interval: 5m
+    auth_mode: apikey
+    apikey:
+      header_name: X-API-Key
+      value: test-key
+    pagination:
+      mode: page_size
+      page_size:
+        page_num_field_name: "page"
+        page_size_field_name: "size"
+        starting_page: 1
+        total_pages_field_name: "total_pages"
+      page_limit: 100
