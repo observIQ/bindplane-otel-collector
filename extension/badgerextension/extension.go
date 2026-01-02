@@ -57,7 +57,7 @@ func newBadgerExtension(logger *zap.Logger, cfg *Config, telemetrySettings compo
 		cfg:       cfg,
 		component: component,
 		otelAttrs: metric.WithAttributeSet(attribute.NewSet(
-			attribute.String(internal.ExtensionKey, component.String()),
+			attribute.String(internal.ExtensionAttribute, component.String()),
 		)),
 		clients:           make(map[string]client.Client),
 		clientsMutex:      sync.RWMutex{},

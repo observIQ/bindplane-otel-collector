@@ -16,8 +16,8 @@
 package internal // import "github.com/observiq/bindplane-otel-collector/extension/badgerextension/internal"
 
 const (
-	// ExtensionKey is the key for the extension attribute
-	ExtensionKey = "extension"
+	// ExtensionAttribute is the attribute for the extension
+	ExtensionAttribute = "extension"
 	// StorageTypeAttribute is the attribute for the type of storage client
 	StorageTypeAttribute = "storage_type"
 	// StorageTypeLSM is the attribute value for the LSM storage type

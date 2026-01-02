@@ -162,6 +162,7 @@ func (c *client) Batch(ctx context.Context, ops ...*storage.Operation) error {
 			c.opDelete.Add(1)
 			err = wb.Delete([]byte(op.Key))
 		case storage.Get:
+			c.opGet.Add(1)
 			value, err = c.Get(ctx, op.Key)
 			if err == nil {
 				op.Value = value
