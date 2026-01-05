@@ -249,11 +249,11 @@ var timestampFormats = []string{
 func parseTimestampResponse(cfg *Config, dataArray []map[string]any, state *paginationState, logger *zap.Logger) (bool, error) {
 	// If no data, no more pages
 	if len(dataArray) == 0 {
-		logger.Info("parseTimestampResponse: no data in response, no more pages")
+		logger.Debug("parseTimestampResponse: no data in response, no more pages")
 		return false, nil
 	}
 
-	logger.Info("parseTimestampResponse: processing response",
+	logger.Debug("parseTimestampResponse: processing response",
 		zap.Int("data_count", len(dataArray)),
 		zap.Int("page_size", state.pageSize),
 		zap.Time("current_state_timestamp", state.currentTimestamp))
@@ -277,7 +277,7 @@ func parseTimestampResponse(cfg *Config, dataArray []map[string]any, state *pagi
 			}
 		}
 
-		logger.Info("parseTimestampResponse: scanned all items for max timestamp",
+		logger.Debug("parseTimestampResponse: scanned all items for max timestamp",
 			zap.Int("item_count", len(dataArray)),
 			zap.Time("max_timestamp_found", maxTimestamp),
 			zap.Time("previous_timestamp", state.currentTimestamp))
@@ -285,7 +285,7 @@ func parseTimestampResponse(cfg *Config, dataArray []map[string]any, state *pagi
 
 	// If we got fewer items than pageSize, definitely no more pages
 	if len(dataArray) < state.pageSize {
-		logger.Info("parseTimestampResponse: partial page received, no more pages",
+		logger.Debug("parseTimestampResponse: partial page received, no more pages",
 			zap.Int("received", len(dataArray)),
 			zap.Int("page_size", state.pageSize),
 			zap.Time("max_timestamp", maxTimestamp),
@@ -299,7 +299,7 @@ func parseTimestampResponse(cfg *Config, dataArray []map[string]any, state *pagi
 	// If we got exactly pageSize items, there might be more
 	// However, only continue if we successfully extracted a timestamp
 	if !maxTimestamp.IsZero() {
-		logger.Info("parseTimestampResponse: full page received, more pages likely",
+		logger.Debug("parseTimestampResponse: full page received, more pages likely",
 			zap.Int("received", len(dataArray)),
 			zap.Time("max_timestamp", maxTimestamp),
 			zap.Time("old_timestamp", state.currentTimestamp))
@@ -312,7 +312,7 @@ func parseTimestampResponse(cfg *Config, dataArray []map[string]any, state *pagi
 	// Got a full page but couldn't extract timestamp
 	// This is unusual - could indicate data structure issue
 	// To be safe and avoid infinite loops, we'll stop here
-	logger.Info("parseTimestampResponse: full page but no timestamp extracted, stopping")
+	logger.Debug("parseTimestampResponse: full page but no timestamp extracted, stopping")
 	return false, fmt.Errorf("received full page (%d items) but failed to extract timestamp from any item", len(dataArray))
 }
 
