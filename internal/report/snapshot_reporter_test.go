@@ -304,8 +304,9 @@ func TestSnapshotReporterReport(t *testing.T) {
 							"test": {"value"},
 						},
 					},
-					Processor:    "snapshot",
-					PipelineType: "logs",
+					Processor:          "snapshot",
+					PipelineType:       "logs",
+					MaximumPayloadSize: 10000,
 				}
 
 				resp := &http.Response{
@@ -347,8 +348,9 @@ func TestSnapshotReporterReport(t *testing.T) {
 							"test": {"value"},
 						},
 					},
-					Processor:    "snapshot",
-					PipelineType: "traces",
+					Processor:          "snapshot",
+					PipelineType:       "traces",
+					MaximumPayloadSize: 10000,
 				}
 
 				resp := &http.Response{
@@ -390,8 +392,9 @@ func TestSnapshotReporterReport(t *testing.T) {
 							"test": {"value"},
 						},
 					},
-					Processor:    "snapshot",
-					PipelineType: "metrics",
+					Processor:          "snapshot",
+					PipelineType:       "metrics",
+					MaximumPayloadSize: 10000,
 				}
 
 				resp := &http.Response{
