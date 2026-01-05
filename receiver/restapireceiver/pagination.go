@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"net/url"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 // paginationState tracks the current state of pagination.
@@ -112,13 +114,24 @@ func buildPaginationParams(cfg *Config, state *paginationState) url.Values {
 			params.Set(cfg.Pagination.Timestamp.PageSizeFieldName, fmt.Sprintf("%d", state.pageSize))
 		}
 		// Add timestamp parameter if we have one
-		// For "starting after" semantics, we increment by 1 nanosecond to ensure
-		// we don't get the same item again if multiple items share the same timestamp
 		if !state.currentTimestamp.IsZero() {
 			if cfg.Pagination.Timestamp.ParamName != "" {
-				// Increment by 1 nanosecond to ensure we get items strictly after this timestamp
-				timestampForRequest := state.currentTimestamp.Add(time.Nanosecond)
-				params.Set(cfg.Pagination.Timestamp.ParamName, timestampForRequest.Format(time.RFC3339))
+				timestampForRequest := state.currentTimestamp
+				// Only add microsecond offset on subsequent requests (after first page fetch)
+				// to avoid re-fetching the last item. On the first request, use the exact
+				// initial_timestamp to ensure we don't miss the first record.
+				if state.pagesFetched > 0 {
+					// Increment by 1 microsecond to ensure we get items strictly after this timestamp.
+					// We use microsecond (not nanosecond) because most timestamp formats only preserve
+					// microsecond precision, so adding 1 nanosecond wouldn't change the formatted value.
+					timestampForRequest = timestampForRequest.Add(time.Microsecond)
+				}
+				// Use configured format or default to RFC3339
+				format := cfg.Pagination.Timestamp.TimestampFormat
+				if format == "" {
+					format = time.RFC3339
+				}
+				params.Set(cfg.Pagination.Timestamp.ParamName, timestampForRequest.Format(format))
 			}
 		}
 
@@ -132,7 +145,7 @@ func buildPaginationParams(cfg *Config, state *paginationState) url.Values {
 // parsePaginationResponse parses the pagination response to determine if there are more pages.
 // It also updates the state with metadata from the response.
 // The extractedData parameter contains the already-extracted data array from extractDataFromResponse.
-func parsePaginationResponse(cfg *Config, response any, extractedData []map[string]any, state *paginationState) (bool, error) {
+func parsePaginationResponse(cfg *Config, response any, extractedData []map[string]any, state *paginationState, logger *zap.Logger) (bool, error) {
 	switch cfg.Pagination.Mode {
 	case paginationModeOffsetLimit:
 		return parseOffsetLimitResponse(cfg, response, state)
@@ -141,7 +154,7 @@ func parsePaginationResponse(cfg *Config, response any, extractedData []map[stri
 		return parsePageSizeResponse(cfg, response, state)
 
 	case paginationModeTimestamp:
-		return parseTimestampResponse(cfg, extractedData, state)
+		return parseTimestampResponse(cfg, extractedData, state, logger)
 
 	case paginationModeNone:
 		return false, nil
@@ -218,66 +231,123 @@ func parsePageSizeResponse(cfg *Config, response any, state *paginationState) (b
 	return false, nil // Partial page, no more
 }
 
+// Common timestamp formats to try when parsing response timestamps
+var timestampFormats = []string{
+	time.RFC3339,
+	time.RFC3339Nano,
+	"2006-01-02T15:04:05.000000-07:00", // RFC3339 with microseconds
+	"2006-01-02T15:04:05.000000Z",      // RFC3339 with microseconds, UTC
+	"2006-01-02T15:04:05-07:00",        // RFC3339 without fractional seconds
+	"2006-01-02 15:04:05.000000-07:00", // Space separator with microseconds
+	"2006-01-02 15:04:05-07:00",        // Space separator without fractional
+	"2006-01-02 15:04:05",              // Simple datetime
+	"2006-01-02",                       // Date only
+}
+
 // parseTimestampResponse parses the response for timestamp-based pagination.
 // The dataArray parameter contains the already-extracted data from extractDataFromResponse.
-func parseTimestampResponse(cfg *Config, dataArray []map[string]any, state *paginationState) (bool, error) {
+func parseTimestampResponse(cfg *Config, dataArray []map[string]any, state *paginationState, logger *zap.Logger) (bool, error) {
 	// If no data, no more pages
 	if len(dataArray) == 0 {
+		logger.Info("parseTimestampResponse: no data in response, no more pages")
 		return false, nil
 	}
 
-	// Extract timestamp from last item for next page
-	var newTimestamp time.Time
-	lastItem := dataArray[len(dataArray)-1]
-	if cfg.Pagination.Timestamp.TimestampFieldName != "" {
-		if timestampVal, exists := lastItem[cfg.Pagination.Timestamp.TimestampFieldName]; exists {
-			// Try to parse timestamp - could be string (RFC3339) or Unix timestamp
-			if timestampStr, ok := timestampVal.(string); ok {
-				if parsedTime, err := time.Parse(time.RFC3339, timestampStr); err == nil {
-					newTimestamp = parsedTime
-				} else if parsedTime, err := time.Parse(time.RFC3339Nano, timestampStr); err == nil {
-					newTimestamp = parsedTime
-				}
-			} else if timestampFloat, ok := timestampVal.(float64); ok {
-				// Unix timestamp (seconds or milliseconds)
-				if timestampFloat > 1e10 {
-					// Likely milliseconds
-					newTimestamp = time.Unix(0, int64(timestampFloat*1e6))
-				} else {
-					// Likely seconds
-					newTimestamp = time.Unix(int64(timestampFloat), 0)
-				}
-			} else if timestampInt, ok := timestampVal.(int64); ok {
-				if timestampInt > 1e10 {
-					// Likely milliseconds
-					newTimestamp = time.Unix(0, timestampInt*1e6)
-				} else {
-					// Likely seconds
-					newTimestamp = time.Unix(timestampInt, 0)
+	logger.Info("parseTimestampResponse: processing response",
+		zap.Int("data_count", len(dataArray)),
+		zap.Int("page_size", state.pageSize),
+		zap.Time("current_state_timestamp", state.currentTimestamp))
+
+	// Find the maximum timestamp across ALL items in the response.
+	// This is critical because APIs may return data in any order (often descending/newest first).
+	// We need to track the newest timestamp seen to avoid re-fetching the same data.
+	var maxTimestamp time.Time
+	timestampField := cfg.Pagination.Timestamp.TimestampFieldName
+
+	if timestampField != "" {
+		for i, item := range dataArray {
+			if timestampVal, exists := item[timestampField]; exists {
+				parsedTime := parseTimestampValue(timestampVal)
+				if !parsedTime.IsZero() && parsedTime.After(maxTimestamp) {
+					maxTimestamp = parsedTime
+					logger.Debug("parseTimestampResponse: found newer timestamp",
+						zap.Int("item_index", i),
+						zap.Time("timestamp", parsedTime))
 				}
 			}
 		}
+
+		logger.Info("parseTimestampResponse: scanned all items for max timestamp",
+			zap.Int("item_count", len(dataArray)),
+			zap.Time("max_timestamp_found", maxTimestamp),
+			zap.Time("previous_timestamp", state.currentTimestamp))
 	}
 
 	// If we got fewer items than pageSize, definitely no more pages
 	if len(dataArray) < state.pageSize {
-		if !newTimestamp.IsZero() {
-			state.currentTimestamp = newTimestamp
+		logger.Info("parseTimestampResponse: partial page received, no more pages",
+			zap.Int("received", len(dataArray)),
+			zap.Int("page_size", state.pageSize),
+			zap.Time("max_timestamp", maxTimestamp),
+			zap.Time("old_timestamp", state.currentTimestamp))
+		if !maxTimestamp.IsZero() && maxTimestamp.After(state.currentTimestamp) {
+			state.currentTimestamp = maxTimestamp
 		}
 		return false, nil
 	}
 
 	// If we got exactly pageSize items, there might be more
 	// However, only continue if we successfully extracted a timestamp
-	if !newTimestamp.IsZero() {
-		state.currentTimestamp = newTimestamp
+	if !maxTimestamp.IsZero() {
+		logger.Info("parseTimestampResponse: full page received, more pages likely",
+			zap.Int("received", len(dataArray)),
+			zap.Time("max_timestamp", maxTimestamp),
+			zap.Time("old_timestamp", state.currentTimestamp))
+		if maxTimestamp.After(state.currentTimestamp) {
+			state.currentTimestamp = maxTimestamp
+		}
 		return true, nil
 	}
 
 	// Got a full page but couldn't extract timestamp
 	// This is unusual - could indicate data structure issue
 	// To be safe and avoid infinite loops, we'll stop here
-	return false, fmt.Errorf("received full page (%d items) but failed to extract timestamp from last item", len(dataArray))
+	logger.Info("parseTimestampResponse: full page but no timestamp extracted, stopping")
+	return false, fmt.Errorf("received full page (%d items) but failed to extract timestamp from any item", len(dataArray))
+}
+
+// parseTimestampValue parses a timestamp value from various formats.
+func parseTimestampValue(timestampVal any) time.Time {
+	var parsedTime time.Time
+
+	if timestampStr, ok := timestampVal.(string); ok {
+		// Try multiple timestamp formats
+		for _, format := range timestampFormats {
+			if t, err := time.Parse(format, timestampStr); err == nil {
+				parsedTime = t
+				break
+			}
+		}
+	} else if timestampFloat, ok := timestampVal.(float64); ok {
+		// Unix timestamp (seconds or milliseconds)
+		if timestampFloat > 1e10 {
+			// Likely milliseconds
+			parsedTime = time.Unix(0, int64(timestampFloat*1e6))
+		} else {
+			// Likely seconds
+			parsedTime = time.Unix(int64(timestampFloat), 0)
+		}
+	} else if timestampInt, ok := timestampVal.(int64); ok {
+		if timestampInt > 1e10 {
+			// Likely milliseconds
+			parsedTime = time.Unix(0, timestampInt*1e6)
+		} else {
+			// Likely seconds
+			parsedTime = time.Unix(timestampInt, 0)
+		}
+	}
+
+	return parsedTime
 }
 
 // getDataCount extracts the count of data items from the response.
