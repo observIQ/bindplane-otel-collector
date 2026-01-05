@@ -178,10 +178,8 @@ func TestLogsBufferConstructPayload(t *testing.T) {
 	payloadThree.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
 	logBuffer.Add(payloadThree)
 
-	compressedPayload, err := logBuffer.ConstructPayload(&plog.ProtoMarshaler{}, nil, nil, 1000)
-	require.NoError(t, err)
-
-	payload, err := decompress(compressedPayload)
+	// ConstructPayload now returns uncompressed data
+	payload, err := logBuffer.ConstructPayload(&plog.ProtoMarshaler{}, nil, nil, 10000)
 	require.NoError(t, err)
 
 	unmarshaler := &plog.ProtoUnmarshaler{}
@@ -207,16 +205,18 @@ func TestLogsBufferConstructPayloadSampling(t *testing.T) {
 		}
 		logBuffer.Add(payload)
 
-		// Use a small max size to force sampling
-		compressedPayload, err := logBuffer.ConstructPayload(&plog.ProtoMarshaler{}, nil, nil, 2000)
+		// Use a small max size to force sampling (size is checked against compressed payload internally)
+		// ConstructPayload returns uncompressed data
+		uncompressedPayload, err := logBuffer.ConstructPayload(&plog.ProtoMarshaler{}, nil, nil, 2000)
+		require.NoError(t, err)
+
+		// Verify that the compressed size fits within the limit
+		compressedPayload, err := compress(uncompressedPayload)
 		require.NoError(t, err)
 		require.LessOrEqual(t, len(compressedPayload), 2000)
 
-		decompressed, err := decompress(compressedPayload)
-		require.NoError(t, err)
-
 		unmarshaler := &plog.ProtoUnmarshaler{}
-		actual, err := unmarshaler.UnmarshalLogs(decompressed)
+		actual, err := unmarshaler.UnmarshalLogs(uncompressedPayload)
 		require.NoError(t, err)
 		// Should have fewer logs due to sampling (sampling was required to fit)
 		require.Less(t, actual.LogRecordCount(), 1000)
@@ -248,14 +248,12 @@ func TestLogsBufferConstructPayloadSampling(t *testing.T) {
 
 	t.Run("Empty buffer returns empty payload", func(t *testing.T) {
 		logBuffer := NewLogBuffer(100)
-		compressedPayload, err := logBuffer.ConstructPayload(&plog.ProtoMarshaler{}, nil, nil, 1000)
-		require.NoError(t, err)
-
-		decompressed, err := decompress(compressedPayload)
+		// ConstructPayload returns uncompressed data
+		payload, err := logBuffer.ConstructPayload(&plog.ProtoMarshaler{}, nil, nil, 1000)
 		require.NoError(t, err)
 
 		unmarshaler := &plog.ProtoUnmarshaler{}
-		actual, err := unmarshaler.UnmarshalLogs(decompressed)
+		actual, err := unmarshaler.UnmarshalLogs(payload)
 		require.NoError(t, err)
 		require.Equal(t, 0, actual.LogRecordCount())
 	})
@@ -425,10 +423,8 @@ func TestMetricBufferConstructPayload(t *testing.T) {
 	pThreeMetric.Gauge().DataPoints().AppendEmpty()
 	metricBuffer.Add(payloadThree)
 
-	compressedPayload, err := metricBuffer.ConstructPayload(&pmetric.ProtoMarshaler{}, nil, nil, 1000)
-	require.NoError(t, err)
-
-	payload, err := decompress(compressedPayload)
+	// ConstructPayload now returns uncompressed data
+	payload, err := metricBuffer.ConstructPayload(&pmetric.ProtoMarshaler{}, nil, nil, 10000)
 	require.NoError(t, err)
 
 	unmarshaler := &pmetric.ProtoUnmarshaler{}
@@ -455,16 +451,18 @@ func TestMetricBufferConstructPayloadSampling(t *testing.T) {
 		}
 		metricBuffer.Add(payload)
 
-		// Use a small max size to force sampling
-		compressedPayload, err := metricBuffer.ConstructPayload(&pmetric.ProtoMarshaler{}, nil, nil, 500)
+		// Use a small max size to force sampling (size is checked against compressed payload internally)
+		// ConstructPayload returns uncompressed data
+		uncompressedPayload, err := metricBuffer.ConstructPayload(&pmetric.ProtoMarshaler{}, nil, nil, 500)
+		require.NoError(t, err)
+
+		// Verify that the compressed size fits within the limit
+		compressedPayload, err := compress(uncompressedPayload)
 		require.NoError(t, err)
 		require.LessOrEqual(t, len(compressedPayload), 500)
 
-		decompressed, err := decompress(compressedPayload)
-		require.NoError(t, err)
-
 		unmarshaler := &pmetric.ProtoUnmarshaler{}
-		actual, err := unmarshaler.UnmarshalMetrics(decompressed)
+		actual, err := unmarshaler.UnmarshalMetrics(uncompressedPayload)
 		require.NoError(t, err)
 		// Should have fewer data points due to sampling
 		require.Less(t, actual.DataPointCount(), 500)
@@ -499,14 +497,12 @@ func TestMetricBufferConstructPayloadSampling(t *testing.T) {
 
 	t.Run("Empty buffer returns empty payload", func(t *testing.T) {
 		metricBuffer := NewMetricBuffer(100)
-		compressedPayload, err := metricBuffer.ConstructPayload(&pmetric.ProtoMarshaler{}, nil, nil, 1000)
-		require.NoError(t, err)
-
-		decompressed, err := decompress(compressedPayload)
+		// ConstructPayload returns uncompressed data
+		payload, err := metricBuffer.ConstructPayload(&pmetric.ProtoMarshaler{}, nil, nil, 1000)
 		require.NoError(t, err)
 
 		unmarshaler := &pmetric.ProtoUnmarshaler{}
-		actual, err := unmarshaler.UnmarshalMetrics(decompressed)
+		actual, err := unmarshaler.UnmarshalMetrics(payload)
 		require.NoError(t, err)
 		require.Equal(t, 0, actual.DataPointCount())
 	})
@@ -652,10 +648,8 @@ func TestTraceBufferConstructPayload(t *testing.T) {
 	payloadThree.ResourceSpans().AppendEmpty().ScopeSpans().AppendEmpty().Spans().AppendEmpty()
 	traceBuffer.Add(payloadThree)
 
-	compressedPayload, err := traceBuffer.ConstructPayload(&ptrace.ProtoMarshaler{}, nil, nil, 1000)
-	require.NoError(t, err)
-
-	payload, err := decompress(compressedPayload)
+	// ConstructPayload now returns uncompressed data
+	payload, err := traceBuffer.ConstructPayload(&ptrace.ProtoMarshaler{}, nil, nil, 10000)
 	require.NoError(t, err)
 
 	unmarshaler := &ptrace.ProtoUnmarshaler{}
@@ -680,16 +674,18 @@ func TestTraceBufferConstructPayloadSampling(t *testing.T) {
 		}
 		traceBuffer.Add(payload)
 
-		// Use a small max size to force sampling
-		compressedPayload, err := traceBuffer.ConstructPayload(&ptrace.ProtoMarshaler{}, nil, nil, 2000)
+		// Use a small max size to force sampling (size is checked against compressed payload internally)
+		// ConstructPayload returns uncompressed data
+		uncompressedPayload, err := traceBuffer.ConstructPayload(&ptrace.ProtoMarshaler{}, nil, nil, 2000)
+		require.NoError(t, err)
+
+		// Verify that the compressed size fits within the limit
+		compressedPayload, err := compress(uncompressedPayload)
 		require.NoError(t, err)
 		require.LessOrEqual(t, len(compressedPayload), 2000)
 
-		decompressed, err := decompress(compressedPayload)
-		require.NoError(t, err)
-
 		unmarshaler := &ptrace.ProtoUnmarshaler{}
-		actual, err := unmarshaler.UnmarshalTraces(decompressed)
+		actual, err := unmarshaler.UnmarshalTraces(uncompressedPayload)
 		require.NoError(t, err)
 		// Should have fewer spans due to sampling (sampling was required to fit)
 		require.Less(t, actual.SpanCount(), 1000)
@@ -721,14 +717,12 @@ func TestTraceBufferConstructPayloadSampling(t *testing.T) {
 
 	t.Run("Empty buffer returns empty payload", func(t *testing.T) {
 		traceBuffer := NewTraceBuffer(100)
-		compressedPayload, err := traceBuffer.ConstructPayload(&ptrace.ProtoMarshaler{}, nil, nil, 1000)
-		require.NoError(t, err)
-
-		decompressed, err := decompress(compressedPayload)
+		// ConstructPayload returns uncompressed data
+		payload, err := traceBuffer.ConstructPayload(&ptrace.ProtoMarshaler{}, nil, nil, 1000)
 		require.NoError(t, err)
 
 		unmarshaler := &ptrace.ProtoUnmarshaler{}
-		actual, err := unmarshaler.UnmarshalTraces(decompressed)
+		actual, err := unmarshaler.UnmarshalTraces(payload)
 		require.NoError(t, err)
 		require.Equal(t, 0, actual.SpanCount())
 	})

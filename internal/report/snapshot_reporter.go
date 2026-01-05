@@ -17,6 +17,7 @@ package report
 
 import (
 	"bytes"
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"net/http"
@@ -105,10 +106,15 @@ func (s *SnapshotReporter) Report(cfg any) error {
 		return errors.New("invalid config type")
 	}
 
-	// Gather payload (already gzip compressed)
-	compressedPayload, err := s.prepRequestPayload(ssCfg.Processor, ssCfg.PipelineType, ssCfg.SearchQuery, ssCfg.MinimumTimestamp, ssCfg.MaximumPayloadSize)
+	// Gather payload
+	payload, err := s.prepRequestPayload(ssCfg.Processor, ssCfg.PipelineType, ssCfg.SearchQuery, ssCfg.MinimumTimestamp, ssCfg.MaximumPayloadSize)
 	if err != nil {
 		return fmt.Errorf("prep request payload: %w", err)
+	}
+
+	compressedPayload, err := compress(payload)
+	if err != nil {
+		return fmt.Errorf("compress payload: %w", err)
 	}
 
 	// Prep request
@@ -229,4 +235,20 @@ func (s *SnapshotReporter) prepRequestPayload(componentID, pipelineType string, 
 	}
 
 	return
+}
+
+// compress gzip compresses the data
+func compress(data []byte) ([]byte, error) {
+	var b bytes.Buffer
+	w := gzip.NewWriter(&b)
+	_, err := w.Write(data)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(), nil
 }

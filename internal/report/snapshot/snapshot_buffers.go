@@ -88,7 +88,7 @@ func (l *LogBuffer) Add(ld plog.Logs) {
 	}
 }
 
-// ConstructPayload condenses the buffer and serializes to protobuf
+// ConstructPayload condenses the buffer and serializes to protobuf. Does not compress the payload to be compatible with both the snapshot reporter and the snapshot processor.
 // It ensures that the payload is less than the maximum payload size returning an error if it cannot sample logs within the maximum payload size.
 // Uses an increasing retention approach to sample the logs, starting at 1% and increasing by 25% until we reach the maximum payload size allowed.
 // Clears the buffer if it cannot sample logs within the maximum payload size. This should allow the next snapshot to have a valid payload size.
@@ -111,7 +111,7 @@ func (l *LogBuffer) ConstructPayload(logsMarshaler plog.Marshaler, searchQuery *
 	logPositions := generateLogPositions(filteredPayload)
 
 	var lastError error
-	lastCompressedPayload := []byte{}
+	lastPayload := []byte{}
 
 	// Try marshaling & compressing with decreasing retention: 1%, 25%, 50%, 75%, 100%
 	for retentionPercent := 0; retentionPercent <= 100; retentionPercent += 25 {
@@ -136,13 +136,13 @@ func (l *LogBuffer) ConstructPayload(logsMarshaler plog.Marshaler, searchQuery *
 			break
 		}
 
-		// If under max size, set the lastCompressedPayload and attempt the next retention percentage
-		lastCompressedPayload = compressedPayload
+		// If under max size, set the lastPayload and attempt the next retention percentage
+		lastPayload = payload
 	}
 
-	// If we found a compressed payload that is under the maximum payload size return it regardless of the lastError
-	if len(lastCompressedPayload) > 0 {
-		return lastCompressedPayload, nil
+	// If we found a payload that is under the maximum payload size return it regardless of the lastError
+	if len(lastPayload) > 0 {
+		return lastPayload, nil
 	}
 
 	// Encountered an error or we've tried all retentions and still can't fit the payload
@@ -213,7 +213,7 @@ func (l *MetricBuffer) Add(md pmetric.Metrics) {
 	}
 }
 
-// ConstructPayload condenses the buffer and serializes to protobuf
+// ConstructPayload condenses the buffer and serializes to protobuf. Does not compress the payload to be compatible with both the snapshot reporter and the snapshot processor.
 // It ensures that the payload is less than the maximum payload size returning an error if it cannot sample metrics within the maximum payload size.
 // Uses an increasing retention approach to sample the metrics, starting at 1% and increasing by 25% until we reach the maximum payload size allowed.
 // Clears the buffer if it cannot sample metrics within the maximum payload size. This should allow the next snapshot to have a valid payload size.
@@ -236,7 +236,7 @@ func (l *MetricBuffer) ConstructPayload(metricMarshaler pmetric.Marshaler, searc
 	dataPointPositions := generateDataPointPositions(filteredPayload)
 
 	var lastError error
-	lastCompressedPayload := []byte{}
+	lastPayload := []byte{}
 
 	// Try marshaling & compressing with decreasing retention: 1%, 25%, 50%, 75%, 100%
 	for retentionPercent := 0; retentionPercent <= 100; retentionPercent += 25 {
@@ -261,13 +261,13 @@ func (l *MetricBuffer) ConstructPayload(metricMarshaler pmetric.Marshaler, searc
 			break
 		}
 
-		// If under max size, set the lastCompressedPayload and attempt the next retention percentage
-		lastCompressedPayload = compressedPayload
+		// If under max size, set the lastPayload and attempt the next retention percentage
+		lastPayload = payload
 	}
 
-	// If we found a compressed payload that is under the maximum payload size return it regardless of the lastError
-	if len(lastCompressedPayload) > 0 {
-		return lastCompressedPayload, nil
+	// If we found a payload that is under the maximum payload size return it regardless of the lastError
+	if len(lastPayload) > 0 {
+		return lastPayload, nil
 	}
 
 	// Encountered an error or we've tried all retentions and still can't fit the payload
@@ -338,7 +338,7 @@ func (l *TraceBuffer) Add(td ptrace.Traces) {
 	}
 }
 
-// ConstructPayload condenses the buffer and serializes to protobuf
+// ConstructPayload condenses the buffer and serializes to protobuf. Does not compress the payload to be compatible with both the snapshot reporter and the snapshot processor.
 // It ensures that the payload is less than the maximum payload size returning an error if it cannot sample traces within the maximum payload size.
 // Uses an increasing retention approach to sample the traces, starting at 1% and increasing by 25% until we reach the maximum payload size allowed.
 // Clears the buffer if it cannot sample traces within the maximum payload size. This should allow the next snapshot to have a valid payload size.
@@ -361,7 +361,7 @@ func (l *TraceBuffer) ConstructPayload(traceMarshaler ptrace.Marshaler, searchQu
 	spanPositions := generateSpanPositions(filteredPayload)
 
 	var lastError error
-	lastCompressedPayload := []byte{}
+	lastPayload := []byte{}
 
 	// Try marshaling & compressing with decreasing retention: 1%, 25%, 50%, 75%, 100%
 	for retentionPercent := 0; retentionPercent <= 100; retentionPercent += 25 {
@@ -386,13 +386,13 @@ func (l *TraceBuffer) ConstructPayload(traceMarshaler ptrace.Marshaler, searchQu
 			break
 		}
 
-		// If under max size, set the lastCompressedPayload and attempt the next retention percentage
-		lastCompressedPayload = compressedPayload
+		// If under max size, set the lastPayload and attempt the next retention percentage
+		lastPayload = payload
 	}
 
-	// If we found a compressed payload that is under the maximum payload size return it regardless of the lastError
-	if len(lastCompressedPayload) > 0 {
-		return lastCompressedPayload, nil
+	// If we found a payload that is under the maximum payload size return it regardless of the lastError
+	if len(lastPayload) > 0 {
+		return lastPayload, nil
 	}
 
 	// Encountered an error or we've tried all retentions and still can't fit the payload
