@@ -4,14 +4,16 @@ The Badger Extension provides persistent storage for OpenTelemetry Collector com
 
 ## Configuration
 
-| Field                         | Type     | Default | Required | Description                                                                                       |
-| ----------------------------- | -------- | ------- | -------- | ------------------------------------------------------------------------------------------------- |
-| directory.path                | string   |         | `true`   | Directory path where BadgerDB files will be stored. Each component gets a subdirectory.           |
-| sync_writes                   | bool     | `false` | `false`  | Whether to sync writes to disk immediately. `false` survives process crashes via mmap.            |
-| memory.table_size             | int64    | 67108864 (64MB) | `false`  | Size of each memtable in bytes. Larger values improve write performance but use more memory.     |
-| memory.block_cache_size       | int64    | 268435456 (256MB) | `false`  | Size of block cache in bytes. Larger values improve read performance but use more memory.        |
-| blob_garbage_collection.interval | duration | 5m      | `false`  | Interval at which garbage collection runs on value logs. Set to 0 to disable.                    |
-| blob_garbage_collection.discard_ratio | float | 0.5    | `false`  | Fraction of invalid data in a value log file to trigger GC. Must be between 0 and 1.             |
+| Field                                 | Type     | Default           | Required | Description                                                                                  |
+| ------------------------------------- | -------- | ----------------- | -------- | -------------------------------------------------------------------------------------------- |
+| directory.path                        | string   |                   | `true`   | Directory path where BadgerDB files will be stored. Each component gets a subdirectory.      |
+| sync_writes                           | bool     | `true`           | `false`  | Whether to sync writes to disk immediately. `false` survives process crashes via mmap.       |
+| memory.table_size                     | int64    | 67108864 (64MB)   | `false`  | Size of each memtable in bytes. Larger values improve write performance but use more memory. |
+| memory.block_cache_size               | int64    | 268435456 (256MB) | `false`  | Size of block cache in bytes. Larger values improve read performance but use more memory.    |
+| blob_garbage_collection.interval      | duration | 5m                | `false`  | Interval at which garbage collection runs on value logs. Set to 0 to disable.                |
+| blob_garbage_collection.discard_ratio | float    | 0.5               | `false`  | Fraction of invalid data in a value log file to trigger GC. Must be between 0 and 1.         |
+| telemetry.enabled                     | bool     | `false`           | `false`  | Whether to enable telemetry collection for the badger extension.                             |
+| telemetry.update_interval             | duration | `1m`              | `false`  | The interval at which to update the telemetry metrics.                                       |
 
 ## Example Configuration
 
@@ -66,6 +68,9 @@ extensions:
     blob_garbage_collection:
       interval: 10m
       discard_ratio: 0.6
+    telemetry:
+      enabled: true
+      update_interval: 30s
 
 exporters:
   otlp:
