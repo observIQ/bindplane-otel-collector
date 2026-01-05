@@ -149,6 +149,9 @@ func BenchmarkQueuePattern(b *testing.B) {
 						if len(batch) >= bm.batchSize {
 							// Batch read
 							for _, k := range batch {
+								if k == "" {
+									continue
+								}
 								if _, err := c.Get(ctx, k); err != nil {
 									b.Errorf("failed to get: %v", err)
 									return

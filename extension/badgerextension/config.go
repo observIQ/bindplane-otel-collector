@@ -25,24 +25,40 @@ type Config struct {
 	SyncWrites            bool                         `mapstructure:"sync_writes"`
 	Memory                *MemoryConfig                `mapstructure:"memory,omitempty"`
 	BlobGarbageCollection *BlobGarbageCollectionConfig `mapstructure:"blob_garbage_collection,omitempty"`
+	Telemetry             *TelemetryConfig             `mapstructure:"telemetry,omitempty"`
+
+	_ struct{} // prevent unkeyed literal initialization
 }
 
 // DirectoryConfig configures the file storage parameters for the badger storage extension
 type DirectoryConfig struct {
-	Path string `mapstructure:"path"`
+	Path string   `mapstructure:"path"`
+	_    struct{} // prevent unkeyed literal initialization
 }
 
 // BlobGarbageCollectionConfig configures the blob garbage collection
 type BlobGarbageCollectionConfig struct {
 	Interval     time.Duration `mapstructure:"interval"`
 	DiscardRatio float64       `mapstructure:"discard_ratio"`
+	_            struct{}      // prevent unkeyed literal initialization
 }
 
 // MemoryConfig configures the memory parameters for the badger storage extension; this is intended to be used
 // for fine tuning if desired and should be considered an advanced configuration option.
 type MemoryConfig struct {
-	TableSize      int64 `mapstructure:"table_size"`
-	BlockCacheSize int64 `mapstructure:"block_cache_size"`
+	TableSize      int64    `mapstructure:"table_size"`
+	BlockCacheSize int64    `mapstructure:"block_cache_size"`
+	_              struct{} // prevent unkeyed literal initialization
+}
+
+// TelemetryConfig configures the telemetry parameters for the badger storage extension
+type TelemetryConfig struct {
+	// whether or not to enable telemetry
+	Enabled bool `mapstructure:"enabled"`
+
+	// the interval at which to update the telemetry
+	UpdateInterval time.Duration `mapstructure:"update_interval"`
+	_              struct{}      // prevent unkeyed literal initialization
 }
 
 // Validate validate the config
