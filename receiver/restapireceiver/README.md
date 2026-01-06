@@ -53,14 +53,14 @@ Use `auth_mode: none` for public APIs that don't require authentication. No addi
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `apikey_header_name` | string | | `true` | Header name for API key (required if `auth_mode` is `apikey`) |
-| `apikey_value` | string | | `true` | API key value (required if `auth_mode` is `apikey`) |
+| `header_name` | string | | `true` | Header name for API key (required if `auth_mode` is `apikey`) |
+| `value` | string | | `true` | API key value (required if `auth_mode` is `apikey`) |
 
 #### Bearer Token
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `bearer_token` | string | | `true` | Bearer token value (required if `auth_mode` is `bearer`) |
+| `token` | string | | `true` | Bearer token value (required if `auth_mode` is `bearer`) |
 
 #### Basic Auth
 
@@ -159,8 +159,9 @@ receivers:
     url: "https://api.example.com/events"
     max_poll_interval: 10m
     auth_mode: apikey
-    apikey_header_name: "X-API-Key"
-    apikey_value: "your-api-key-here"
+    apikey:
+      header_name: "X-API-Key"
+      value: "your-api-key-here"
 ```
 
 ### Bearer Token Authentication
@@ -171,7 +172,8 @@ receivers:
     url: "https://api.example.com/metrics"
     max_poll_interval: 5m
     auth_mode: bearer
-    bearer_token: "your-bearer-token-here"
+    bearer:
+      token: "your-bearer-token-here"
 ```
 
 ### Basic Authentication with Pagination
@@ -253,7 +255,8 @@ receivers:
     response_field: "items"
     max_poll_interval: 15m
     auth_mode: bearer
-    bearer_token: "token"
+    bearer:
+      token: "token"
     pagination:
       mode: timestamp
       timestamp:
@@ -278,8 +281,9 @@ receivers:
     response_field: "metrics"
     max_poll_interval: 1m
     auth_mode: apikey
-    apikey_header_name: "X-API-Key"
-    apikey_value: "your-api-key-here"
+    apikey:
+      header_name: "X-API-Key"
+      value: "your-api-key-here"
     metrics:
       name_field: "metric_name"
       description_field: "metric_description"
