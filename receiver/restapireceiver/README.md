@@ -121,9 +121,16 @@ Use `auth_mode: none` for public APIs that don't require authentication. No addi
 |-------|------|---------|----------|-------------|
 | `pagination.timestamp.param_name` | string | | `true` | Query parameter name for timestamp (e.g., "t0", "since", "after", "start_time") |
 | `pagination.timestamp.timestamp_field_name` | string | | `true` | Field name in each response item containing the timestamp (e.g., "ts", "timestamp") |
-| `pagination.timestamp.page_size_field_name` | string | | `true` | Query parameter name for page size (e.g., "perPage", "limit") |
+| `pagination.timestamp.timestamp_format` | string | RFC3339 | `false` | Go time format string for the timestamp query parameter (e.g., "20060102150405" for YYYYMMDDHHMMSS) |
+| `pagination.timestamp.page_size_field_name` | string | | `false` | Query parameter name for page size (e.g., "perPage", "limit") |
 | `pagination.timestamp.page_size` | int | `100` | `false` | Page size to use |
 | `pagination.timestamp.initial_timestamp` | string | | `false` | Initial timestamp to start from (RFC3339 format). If not set, starts from beginning |
+
+Common timestamp formats:
+- `2006-01-02T15:04:05Z07:00` - RFC3339 (default)
+- `20060102150405` - YYYYMMDDHHMMSS
+- `2006-01-02 15:04:05` - Date and time with space separator
+- `2006-01-02` - Date only
 
 ### Metrics Configuration
 
@@ -270,6 +277,26 @@ receivers:
 extensions:
   file_storage:
     directory: /var/lib/otelcol/storage
+```
+
+### Timestamp Pagination with Custom Format
+
+Some APIs require specific timestamp formats. Use `timestamp_format` to specify the Go time format string:
+
+```yaml
+receivers:
+  restapi:
+    url: "https://api.example.com/events"
+    response_field: "events"
+    max_poll_interval: 10s
+    auth_mode: none
+    pagination:
+      mode: timestamp
+      timestamp:
+        param_name: "min-date"
+        timestamp_field_name: "timestamp"
+        timestamp_format: "20060102150405"  # YYYYMMDDHHMMSS format
+        initial_timestamp: "2025-01-01T00:00:00Z"
 ```
 
 ### Metrics with Custom Field Mappings

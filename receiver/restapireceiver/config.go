@@ -228,6 +228,14 @@ type TimestampPagination struct {
 	// For Meraki API, this is typically "ts" (timestamp).
 	TimestampFieldName string `mapstructure:"timestamp_field_name"`
 
+	// TimestampFormat is the Go time format string for the timestamp query parameter.
+	// Common formats:
+	//   - "2006-01-02T15:04:05Z07:00" (RFC3339, default)
+	//   - "20060102150405" (YYYYMMDDHHMMSS)
+	//   - "2006-01-02 15:04:05"
+	// If not set, defaults to RFC3339.
+	TimestampFormat string `mapstructure:"timestamp_format"`
+
 	// PageSizeFieldName is the name of the query parameter for page size (e.g., "perPage", "limit").
 	PageSizeFieldName string `mapstructure:"page_size_field_name"`
 
@@ -330,9 +338,6 @@ func (c *Config) Validate() error {
 		}
 		if c.Pagination.Timestamp.TimestampFieldName == "" {
 			return fmt.Errorf("timestamp_field_name is required when pagination.mode is timestamp")
-		}
-		if c.Pagination.Timestamp.PageSizeFieldName == "" {
-			return fmt.Errorf("page_size_field_name is required when pagination.mode is timestamp")
 		}
 	}
 
