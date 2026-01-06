@@ -38,7 +38,8 @@ func NewFactory() extension.Factory {
 // createDefaultConfig creates a default configuration for the badger storage extension
 func createDefaultConfig() component.Config {
 	return &Config{
-		SyncWrites: true,
+		SyncWrites:    true,
+		StoragePrefix: "badger",
 		Memory: &MemoryConfig{
 			TableSize:      64 * 1024 * 1024,  // Default: 64MB
 			BlockCacheSize: 256 * 1024 * 1024, // Default: 256MB

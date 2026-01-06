@@ -26,7 +26,8 @@ type Config struct {
 
 // DirectoryConfig is the configuration for the directory
 type DirectoryConfig struct {
-	Path string `mapstructure:"path"`
+	Path       string `mapstructure:"path"`
+	PathPrefix string `mapstructure:"path_prefix"`
 }
 
 // CacheConfig is the configuration for the cache

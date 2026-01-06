@@ -184,8 +184,33 @@ func (c *client) Batch(ctx context.Context, ops ...*storage.Operation) error {
 	return nil
 }
 
-func (c *client) Close(_ context.Context) error {
-	return c.db.Close()
+func (c *client) Close(ctx context.Context) error {
+	err := c.db.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close badger client: %w", err)
+	}
+
+	isFullyClosed := make(chan struct{})
+	go func() {
+		defer close(isFullyClosed)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				if c.db.IsClosed() {
+					return
+				}
+			}
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-isFullyClosed:
+		return nil
+	}
 }
 
 func (c *client) RunValueLogGC(discardRatio float64) error {

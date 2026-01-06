@@ -16,6 +16,7 @@ package badgerextension
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -74,6 +75,10 @@ func (b *badgerExtension) GetClient(_ context.Context, kind component.Kind, ent 
 		fullName = fmt.Sprintf("%s_%s_%s_%s", kindString(kind), ent.Type(), ent.Name(), name)
 	}
 	fullName = strings.ReplaceAll(fullName, " ", "")
+
+	if b.cfg.StoragePrefix != "" {
+		fullName = fmt.Sprintf("%s_%s", b.cfg.StoragePrefix, fullName)
+	}
 
 	if b.clients != nil {
 		b.clientsMutex.RLock()
@@ -185,13 +190,21 @@ func (b *badgerExtension) monitor(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			b.mb.ExtensionStorageClientCount.Record(ctx, int64(len(b.clients)))
 			b.clientsMutex.RLock()
+			clientCount := len(b.clients)
+			// make a shallow copy of the clients under lock so we can process them outside of the lock
+			clients := make([]client.Client, 0, clientCount)
 			for _, c := range b.clients {
+				clients = append(clients, c)
+			}
+			b.clientsMutex.RUnlock()
+
+			b.mb.ExtensionStorageClientCount.Record(ctx, int64(clientCount))
+			// process clients outside of lock to avoid blocking other operations
+			for _, c := range clients {
 				diskUsage, err := c.GetDiskUsage()
 				if err != nil {
 					b.logger.Error("failed to get disk usage", zap.Error(err))
-					b.clientsMutex.RUnlock()
 					continue
 				}
 
@@ -213,7 +226,6 @@ func (b *badgerExtension) monitor(ctx context.Context) {
 					b.otelAttrs,
 					metric.WithAttributes(attribute.String(internal.OperationTypeAttribute, internal.OperationTypeDelete)))
 			}
-			b.clientsMutex.RUnlock()
 		}
 	}
 }
@@ -248,12 +260,13 @@ func (b *badgerExtension) Shutdown(ctx context.Context) error {
 	b.clientsMutex.Lock()
 	defer b.clientsMutex.Unlock()
 
+	var shutdownErrors error
 	for _, c := range b.clients {
 		if err := c.Close(ctx); err != nil {
-			return fmt.Errorf("failed to close badger client: %w", err)
+			shutdownErrors = errors.Join(shutdownErrors, fmt.Errorf("failed to close badger client: %w", err))
 		}
 	}
-	return nil
+	return shutdownErrors
 }
 
 func kindString(k component.Kind) string {

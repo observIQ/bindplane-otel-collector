@@ -26,6 +26,7 @@ type Config struct {
 	Memory                *MemoryConfig                `mapstructure:"memory,omitempty"`
 	BlobGarbageCollection *BlobGarbageCollectionConfig `mapstructure:"blob_garbage_collection,omitempty"`
 	Telemetry             *TelemetryConfig             `mapstructure:"telemetry,omitempty"`
+	StoragePrefix         string                       `mapstructure:"storage_prefix,omitempty"`
 
 	_ struct{} // prevent unkeyed literal initialization
 }
