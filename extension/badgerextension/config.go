@@ -26,15 +26,15 @@ type Config struct {
 	Memory                *MemoryConfig                `mapstructure:"memory,omitempty"`
 	BlobGarbageCollection *BlobGarbageCollectionConfig `mapstructure:"blob_garbage_collection,omitempty"`
 	Telemetry             *TelemetryConfig             `mapstructure:"telemetry,omitempty"`
-	StoragePrefix         string                       `mapstructure:"storage_prefix,omitempty"`
 
 	_ struct{} // prevent unkeyed literal initialization
 }
 
 // DirectoryConfig configures the file storage parameters for the badger storage extension
 type DirectoryConfig struct {
-	Path string   `mapstructure:"path"`
-	_    struct{} // prevent unkeyed literal initialization
+	Path       string   `mapstructure:"path"`
+	PathPrefix string   `mapstructure:"path_prefix"`
+	_          struct{} // prevent unkeyed literal initialization
 }
 
 // BlobGarbageCollectionConfig configures the blob garbage collection

@@ -76,8 +76,8 @@ func (b *badgerExtension) GetClient(_ context.Context, kind component.Kind, ent 
 	}
 	fullName = strings.ReplaceAll(fullName, " ", "")
 
-	if b.cfg.StoragePrefix != "" {
-		fullName = fmt.Sprintf("%s_%s", b.cfg.StoragePrefix, fullName)
+	if b.cfg.Directory.PathPrefix != "" {
+		fullName = fmt.Sprintf("%s_%s", b.cfg.Directory.PathPrefix, fullName)
 	}
 
 	if b.clients != nil {
