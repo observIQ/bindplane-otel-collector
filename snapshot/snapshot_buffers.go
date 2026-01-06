@@ -15,6 +15,8 @@
 package snapshot
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"sync"
 	"time"
@@ -86,8 +88,11 @@ func (l *LogBuffer) Add(ld plog.Logs) {
 	}
 }
 
-// ConstructPayload condenses the buffer and serializes to protobuf
-func (l *LogBuffer) ConstructPayload(logsMarshaler plog.Marshaler, searchQuery *string, minimumTimestamp *time.Time) ([]byte, error) {
+// ConstructPayload condenses the buffer and serializes to protobuf. Does not compress the payload to be compatible with both the snapshot reporter and the snapshot processor.
+// It ensures that the payload is less than the maximum payload size returning an error if it cannot sample logs within the maximum payload size.
+// Uses an increasing retention approach to sample the logs, starting at 1% and increasing by 25% until we reach the maximum payload size allowed.
+// Clears the buffer if it cannot sample logs within the maximum payload size. This should allow the next snapshot to have a valid payload size.
+func (l *LogBuffer) ConstructPayload(logsMarshaler plog.Marshaler, searchQuery *string, minimumTimestamp *time.Time, maximumPayloadSize int) ([]byte, error) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
@@ -102,12 +107,48 @@ func (l *LogBuffer) ConstructPayload(logsMarshaler plog.Marshaler, searchQuery *
 	// Filter the payload
 	filteredPayload := filterLogs(payloadLogs, searchQuery, minimumTimestamp)
 
-	payload, err := logsMarshaler.MarshalLogs(filteredPayload)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct payload: %w", err)
+	// Generate the positions of the log records in the payload
+	logPositions := generateLogPositions(filteredPayload)
+
+	var lastError error
+	lastPayload := []byte{}
+
+	// Try marshaling & compressing with increasing retention: 1%, 25%, 50%, 75%, 100%
+	for retentionPercent := 0; retentionPercent <= 100; retentionPercent += 25 {
+		// Sample the logs based on the positions and the retention percentage
+		logsToMarshal := randomSampleLogs(filteredPayload, logPositions, retentionPercent)
+
+		payload, err := logsMarshaler.MarshalLogs(logsToMarshal)
+		if err != nil {
+			lastError = fmt.Errorf("failed to construct payload: %w", err)
+			break
+		}
+
+		// Compress and check size
+		compressedPayload, err := compress(payload)
+		if err != nil {
+			lastError = fmt.Errorf("failed to compress payload: %w", err)
+			break
+		}
+
+		if len(compressedPayload) > maximumPayloadSize {
+			lastError = fmt.Errorf("snapshot buffer is too large to construct payload")
+			break
+		}
+
+		// If under max size, set the lastPayload and attempt the next retention percentage
+		lastPayload = payload
 	}
 
-	return payload, nil
+	// If we found a payload that is under the maximum payload size return it regardless of the lastError
+	if len(lastPayload) > 0 {
+		return lastPayload, nil
+	}
+
+	// Encountered an error or we've tried all retentions and still can't fit the payload
+	// so clear the buffer and return the last error seen
+	l.buffer = []plog.Logs{}
+	return nil, lastError
 }
 
 // MetricBuffer is a buffer for pmetric.Metrics
@@ -172,8 +213,11 @@ func (l *MetricBuffer) Add(md pmetric.Metrics) {
 	}
 }
 
-// ConstructPayload condenses the buffer and serializes to protobuf
-func (l *MetricBuffer) ConstructPayload(metricMarshaler pmetric.Marshaler, searchQuery *string, minimumTimestamp *time.Time) ([]byte, error) {
+// ConstructPayload condenses the buffer and serializes to protobuf. Does not compress the payload to be compatible with both the snapshot reporter and the snapshot processor.
+// It ensures that the payload is less than the maximum payload size returning an error if it cannot sample metrics within the maximum payload size.
+// Uses an increasing retention approach to sample the metrics, starting at 1% and increasing by 25% until we reach the maximum payload size allowed.
+// Clears the buffer if it cannot sample metrics within the maximum payload size. This should allow the next snapshot to have a valid payload size.
+func (l *MetricBuffer) ConstructPayload(metricMarshaler pmetric.Marshaler, searchQuery *string, minimumTimestamp *time.Time, maximumPayloadSize int) ([]byte, error) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
@@ -186,14 +230,50 @@ func (l *MetricBuffer) ConstructPayload(metricMarshaler pmetric.Marshaler, searc
 	l.buffer = []pmetric.Metrics{payloadMetrics}
 
 	// filter the payload
-	fitleredPayload := filterMetrics(payloadMetrics, searchQuery, minimumTimestamp)
+	filteredPayload := filterMetrics(payloadMetrics, searchQuery, minimumTimestamp)
 
-	payload, err := metricMarshaler.MarshalMetrics(fitleredPayload)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct payload: %w", err)
+	// Generate the positions of the data points in the payload
+	dataPointPositions := generateDataPointPositions(filteredPayload)
+
+	var lastError error
+	lastPayload := []byte{}
+
+	// Try marshaling & compressing with increasing retention: 1%, 25%, 50%, 75%, 100%
+	for retentionPercent := 0; retentionPercent <= 100; retentionPercent += 25 {
+		// Sample the metrics based on the positions and the retention percentage
+		metricsToMarshal := randomSampleMetrics(filteredPayload, dataPointPositions, retentionPercent)
+
+		payload, err := metricMarshaler.MarshalMetrics(metricsToMarshal)
+		if err != nil {
+			lastError = fmt.Errorf("failed to construct payload: %w", err)
+			break
+		}
+
+		// Compress and check size
+		compressedPayload, err := compress(payload)
+		if err != nil {
+			lastError = fmt.Errorf("failed to compress payload: %w", err)
+			break
+		}
+
+		if len(compressedPayload) > maximumPayloadSize {
+			lastError = fmt.Errorf("snapshot buffer is too large to construct payload")
+			break
+		}
+
+		// If under max size, set the lastPayload and attempt the next retention percentage
+		lastPayload = payload
 	}
 
-	return payload, nil
+	// If we found a payload that is under the maximum payload size return it regardless of the lastError
+	if len(lastPayload) > 0 {
+		return lastPayload, nil
+	}
+
+	// Encountered an error or we've tried all retentions and still can't fit the payload
+	// so clear the buffer and return the last error seen
+	l.buffer = []pmetric.Metrics{}
+	return nil, lastError
 }
 
 // TraceBuffer is a buffer for ptrace.Traces
@@ -258,8 +338,11 @@ func (l *TraceBuffer) Add(td ptrace.Traces) {
 	}
 }
 
-// ConstructPayload condenses the buffer and serializes to protobuf
-func (l *TraceBuffer) ConstructPayload(traceMarshaler ptrace.Marshaler, searchQuery *string, minimumTimestamp *time.Time) ([]byte, error) {
+// ConstructPayload condenses the buffer and serializes to protobuf. Does not compress the payload to be compatible with both the snapshot reporter and the snapshot processor.
+// It ensures that the payload is less than the maximum payload size returning an error if it cannot sample traces within the maximum payload size.
+// Uses an increasing retention approach to sample the traces, starting at 1% and increasing by 25% until we reach the maximum payload size allowed.
+// Clears the buffer if it cannot sample traces within the maximum payload size. This should allow the next snapshot to have a valid payload size.
+func (l *TraceBuffer) ConstructPayload(traceMarshaler ptrace.Marshaler, searchQuery *string, minimumTimestamp *time.Time, maximumPayloadSize int) ([]byte, error) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
@@ -274,10 +357,62 @@ func (l *TraceBuffer) ConstructPayload(traceMarshaler ptrace.Marshaler, searchQu
 	// Filter the payload
 	filteredPayload := filterTraces(payloadTraces, searchQuery, minimumTimestamp)
 
-	payload, err := traceMarshaler.MarshalTraces(filteredPayload)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct payload: %w", err)
+	// Generate the positions of the spans in the payload
+	spanPositions := generateSpanPositions(filteredPayload)
+
+	var lastError error
+	lastPayload := []byte{}
+
+	// Try marshaling & compressing with increasing retention: 1%, 25%, 50%, 75%, 100%
+	for retentionPercent := 0; retentionPercent <= 100; retentionPercent += 25 {
+		// Sample the traces based on the positions and the retention percentage
+		tracesToMarshal := randomSampleTraces(filteredPayload, spanPositions, retentionPercent)
+
+		payload, err := traceMarshaler.MarshalTraces(tracesToMarshal)
+		if err != nil {
+			lastError = fmt.Errorf("failed to construct payload: %w", err)
+			break
+		}
+
+		// Compress and check size
+		compressedPayload, err := compress(payload)
+		if err != nil {
+			lastError = fmt.Errorf("failed to compress payload: %w", err)
+			break
+		}
+
+		if len(compressedPayload) > maximumPayloadSize {
+			lastError = fmt.Errorf("snapshot buffer is too large to construct payload")
+			break
+		}
+
+		// If under max size, set the lastPayload and attempt the next retention percentage
+		lastPayload = payload
 	}
 
-	return payload, nil
+	// If we found a payload that is under the maximum payload size return it regardless of the lastError
+	if len(lastPayload) > 0 {
+		return lastPayload, nil
+	}
+
+	// Encountered an error or we've tried all retentions and still can't fit the payload
+	// so clear the buffer and return the last error seen
+	l.buffer = []ptrace.Traces{}
+	return nil, lastError
+}
+
+// compress gzip compresses the data
+func compress(data []byte) ([]byte, error) {
+	var b bytes.Buffer
+	w := gzip.NewWriter(&b)
+	_, err := w.Write(data)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(), nil
 }
