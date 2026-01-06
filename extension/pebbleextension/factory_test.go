@@ -31,6 +31,10 @@ func TestCreateDefaultConfig(t *testing.T) {
 	require.True(t, ok, "config should be of type *Config")
 
 	// Verify default values
-	require.False(t, pebbleCfg.Sync)
+	require.True(t, pebbleCfg.Sync)
 	require.Nil(t, pebbleCfg.Directory)
+
+	require.NotNil(t, pebbleCfg.Directory)
+	require.Empty(t, pebbleCfg.Directory.Path)
+	require.Equal(t, "pebble", pebbleCfg.Directory.PathPrefix)
 }
