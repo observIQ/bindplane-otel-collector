@@ -190,6 +190,34 @@ func TestSnapshotReporterReport(t *testing.T) {
 			},
 		},
 		{
+			desc: "Default max payload size when config option is empty",
+			testFunc: func(t *testing.T) {
+				cfg := &snapshotConfig{
+					Endpoint: &endpointConfig{
+						URL:     "http://someurl:9001",
+						Headers: map[string][]string{},
+					},
+					Processor:               "snapshot",
+					PipelineType:            "logs",
+					MaximumPayloadSizeBytes: 0, // not set
+				}
+
+				resp := &http.Response{
+					StatusCode: http.StatusOK,
+				}
+
+				client := mocks.NewMockClient(t)
+				client.On("Do", mock.Anything).Return(resp, nil)
+
+				reporter := NewSnapshotReporter(client)
+				err := reporter.Report(cfg)
+				assert.NoError(t, err)
+
+				// Verify the default was applied (10MiB = 10,485,760 bytes)
+				assert.Equal(t, 10485760, cfg.MaximumPayloadSizeBytes)
+			},
+		},
+		{
 			desc: "Valid logs report, no snapshot",
 			testFunc: func(t *testing.T) {
 				cfg := &snapshotConfig{

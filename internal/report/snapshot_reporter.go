@@ -106,6 +106,11 @@ func (s *SnapshotReporter) Report(cfg any) error {
 		return errors.New("invalid config type")
 	}
 
+	// If not specified, default to 10MB
+	if ssCfg.MaximumPayloadSizeBytes <= 0 {
+		ssCfg.MaximumPayloadSizeBytes = 10485760 //10MiB
+	}
+
 	// Gather payload
 	payload, err := s.prepRequestPayload(ssCfg.Processor, ssCfg.PipelineType, ssCfg.SearchQuery, ssCfg.MinimumTimestamp, ssCfg.MaximumPayloadSizeBytes)
 	if err != nil {

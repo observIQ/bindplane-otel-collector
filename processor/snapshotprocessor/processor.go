@@ -143,6 +143,11 @@ func (sp *snapshotProcessor) processSnapshotRequest(cm *protobufs.CustomMessage)
 
 	sp.logger.Debug("Processor ID on snapshot message matched", zap.Stringer("processor_id", req.Processor))
 
+	// If not specified, default to 10MiB
+	if req.MaximumPayloadSizeBytes <= 0 {
+		req.MaximumPayloadSizeBytes = 10485760 //10MiB
+	}
+
 	var report snapshotReport
 	switch req.PipelineType {
 	case "logs":
