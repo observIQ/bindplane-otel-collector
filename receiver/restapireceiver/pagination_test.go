@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestBuildPaginationParams_OffsetLimit(t *testing.T) {
@@ -152,7 +153,7 @@ func TestParsePaginationResponse_OffsetLimit_HasMore(t *testing.T) {
 	// Extract data for pagination parsing (not used for offset/limit mode)
 	data := extractDataFromResponse(response, "", nil)
 
-	hasMore, err := parsePaginationResponse(cfg, response, data, state)
+	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
 	require.True(t, hasMore)
 	require.Equal(t, 25, state.totalRecords)
@@ -186,7 +187,7 @@ func TestParsePaginationResponse_OffsetLimit_NoMore(t *testing.T) {
 	// Extract data for pagination parsing (not used for offset/limit mode)
 	data := extractDataFromResponse(response, "", nil)
 
-	hasMore, err := parsePaginationResponse(cfg, response, data, state)
+	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
 	require.False(t, hasMore)
 	require.Equal(t, 5, state.totalRecords)
@@ -219,7 +220,7 @@ func TestParsePaginationResponse_OffsetLimit_NoTotalField(t *testing.T) {
 	// Extract data for pagination parsing (not used for offset/limit mode)
 	data := extractDataFromResponse(response, "", nil)
 
-	hasMore, err := parsePaginationResponse(cfg, response, data, state)
+	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
 	require.True(t, hasMore) // Full page, assume more
 }
@@ -250,7 +251,7 @@ func TestParsePaginationResponse_OffsetLimit_PartialPage(t *testing.T) {
 	// Extract data for pagination parsing (not used for offset/limit mode)
 	data := extractDataFromResponse(response, "", nil)
 
-	hasMore, err := parsePaginationResponse(cfg, response, data, state)
+	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
 	require.False(t, hasMore) // Partial page, no more
 }
@@ -283,7 +284,7 @@ func TestParsePaginationResponse_PageSize_HasMore(t *testing.T) {
 	// Extract data for pagination parsing (not used for page/size mode)
 	data := extractDataFromResponse(response, "", nil)
 
-	hasMore, err := parsePaginationResponse(cfg, response, data, state)
+	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
 	require.True(t, hasMore)
 	require.Equal(t, 5, state.totalPages)
@@ -317,7 +318,7 @@ func TestParsePaginationResponse_PageSize_NoMore(t *testing.T) {
 	// Extract data for pagination parsing (not used for page/size mode)
 	data := extractDataFromResponse(response, "", nil)
 
-	hasMore, err := parsePaginationResponse(cfg, response, data, state)
+	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
 	require.False(t, hasMore)
 	require.Equal(t, 1, state.totalPages)
@@ -349,7 +350,7 @@ func TestParsePaginationResponse_PageSize_NoTotalPagesField(t *testing.T) {
 	// Extract data for pagination parsing (not used for page/size mode)
 	data := extractDataFromResponse(response, "", nil)
 
-	hasMore, err := parsePaginationResponse(cfg, response, data, state)
+	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
 	require.True(t, hasMore) // Full page, assume more
 }
@@ -380,7 +381,7 @@ func TestParsePaginationResponse_PageSize_PartialPage(t *testing.T) {
 	// Extract data for pagination parsing (not used for page/size mode)
 	data := extractDataFromResponse(response, "", nil)
 
-	hasMore, err := parsePaginationResponse(cfg, response, data, state)
+	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
 	require.False(t, hasMore) // Partial page, no more
 }
@@ -582,7 +583,7 @@ func TestParsePaginationResponse_WithDataArray(t *testing.T) {
 
 	// When response is directly an array, we need to handle it differently
 	// For now, we'll assume if we got a full page, there might be more
-	hasMore, err := parsePaginationResponse(cfg, responseMap, data, state)
+	hasMore, err := parsePaginationResponse(cfg, responseMap, data, state, zap.NewNop())
 	require.NoError(t, err)
 	require.True(t, hasMore) // Full page of 10 items
 }
