@@ -39,7 +39,6 @@ type snapshotRequest struct {
 	// with a timestamp higher than specified will be reported.
 	MinimumTimestamp *time.Time `yaml:"minimum_timestamp"`
 
-	// MaximumPayloadSize is the maximum size of the payload that should be sent.
-	// If not specified, defaults to 1MB.
-	MaximumPayloadSize int `yaml:"maximum_payload_size"`
+	// MaximumPayloadSizeBytes is the maximum size of the payload in bytes that should be sent to the endpoint.
+	MaximumPayloadSizeBytes int `yaml:"maximum_payload_size"`
 }

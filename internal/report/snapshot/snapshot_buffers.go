@@ -113,7 +113,7 @@ func (l *LogBuffer) ConstructPayload(logsMarshaler plog.Marshaler, searchQuery *
 	var lastError error
 	lastPayload := []byte{}
 
-	// Try marshaling & compressing with decreasing retention: 1%, 25%, 50%, 75%, 100%
+	// Try marshaling & compressing with increasing retention: 1%, 25%, 50%, 75%, 100%
 	for retentionPercent := 0; retentionPercent <= 100; retentionPercent += 25 {
 		// Sample the logs based on the positions and the retention percentage
 		logsToMarshal := randomSampleLogs(filteredPayload, logPositions, retentionPercent)
@@ -238,7 +238,7 @@ func (l *MetricBuffer) ConstructPayload(metricMarshaler pmetric.Marshaler, searc
 	var lastError error
 	lastPayload := []byte{}
 
-	// Try marshaling & compressing with decreasing retention: 1%, 25%, 50%, 75%, 100%
+	// Try marshaling & compressing with increasing retention: 1%, 25%, 50%, 75%, 100%
 	for retentionPercent := 0; retentionPercent <= 100; retentionPercent += 25 {
 		// Sample the metrics based on the positions and the retention percentage
 		metricsToMarshal := randomSampleMetrics(filteredPayload, dataPointPositions, retentionPercent)
@@ -363,7 +363,7 @@ func (l *TraceBuffer) ConstructPayload(traceMarshaler ptrace.Marshaler, searchQu
 	var lastError error
 	lastPayload := []byte{}
 
-	// Try marshaling & compressing with decreasing retention: 1%, 25%, 50%, 75%, 100%
+	// Try marshaling & compressing with increasing retention: 1%, 25%, 50%, 75%, 100%
 	for retentionPercent := 0; retentionPercent <= 100; retentionPercent += 25 {
 		// Sample the traces based on the positions and the retention percentage
 		tracesToMarshal := randomSampleTraces(filteredPayload, spanPositions, retentionPercent)

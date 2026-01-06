@@ -52,8 +52,8 @@ type snapshotConfig struct {
 	// with a timestamp higher than specified will be reported.
 	MinimumTimestamp *time.Time `yaml:"minimum_timestamp"`
 
-	// MaximumPayloadSize is the maximum size of the payload that should be sent to the endpoint
-	MaximumPayloadSize int `json:"maximum_payload_size" yaml:"maximum_payload_size,omitempty" mapstructure:"maximum_payload_size"`
+	// MaximumPayloadSizeBytes is the maximum size of the payload in bytes that should be sent to the endpoint.
+	MaximumPayloadSizeBytes int `json:"maximum_payload_size" yaml:"maximum_payload_size,omitempty" mapstructure:"maximum_payload_size"`
 }
 
 // endpointConfig is the configuration of a specific endpoint and full headers to include
@@ -107,7 +107,7 @@ func (s *SnapshotReporter) Report(cfg any) error {
 	}
 
 	// Gather payload
-	payload, err := s.prepRequestPayload(ssCfg.Processor, ssCfg.PipelineType, ssCfg.SearchQuery, ssCfg.MinimumTimestamp, ssCfg.MaximumPayloadSize)
+	payload, err := s.prepRequestPayload(ssCfg.Processor, ssCfg.PipelineType, ssCfg.SearchQuery, ssCfg.MinimumTimestamp, ssCfg.MaximumPayloadSizeBytes)
 	if err != nil {
 		return fmt.Errorf("prep request payload: %w", err)
 	}
