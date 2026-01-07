@@ -25,63 +25,64 @@ import (
 // paginationState tracks the current state of pagination.
 type paginationState struct {
 	// For offset/limit pagination
-	currentOffset int
-	limit         int
+	CurrentOffset int `json:"current_offset,omitempty"`
+	Limit         int `json:"limit,omitempty"`
 
 	// For page/size pagination
-	currentPage int
-	pageSize    int
+	CurrentPage int `json:"current_page,omitempty"`
+	PageSize    int `json:"page_size,omitempty"`
 
 	// For timestamp-based pagination
-	currentTimestamp time.Time
+	CurrentTimestamp  time.Time `json:"current_timestamp,omitempty"`
+	TimestampFromData bool      `json:"timestamp_from_data,omitempty"` // true if CurrentTimestamp was set from response data (vs initial config)
 
 	// Metadata
-	totalRecords int
-	totalPages   int
-	pagesFetched int
+	TotalRecords int `json:"total_records,omitempty"`
+	TotalPages   int `json:"total_pages,omitempty"`
+	PagesFetched int `json:"pages_fetched,omitempty"`
 }
 
 // newPaginationState creates a new pagination state based on the configuration.
 func newPaginationState(cfg *Config) *paginationState {
 	state := &paginationState{
-		limit:    10, // default limit
-		pageSize: 20, // default page size
+		Limit:    10, // default limit
+		PageSize: 20, // default page size
 	}
 
 	switch cfg.Pagination.Mode {
 	case paginationModeOffsetLimit:
-		state.currentOffset = cfg.Pagination.OffsetLimit.StartingOffset
+		state.CurrentOffset = cfg.Pagination.OffsetLimit.StartingOffset
 		// Use a default limit - this will be sent as a query parameter
 		// The actual page size may differ based on API response
-		state.limit = 10
+		state.Limit = 10
 
 	case paginationModePageSize:
 		if cfg.Pagination.ZeroBasedIndex {
-			state.currentPage = cfg.Pagination.PageSize.StartingPage
+			state.CurrentPage = cfg.Pagination.PageSize.StartingPage
 		} else {
-			state.currentPage = cfg.Pagination.PageSize.StartingPage
+			state.CurrentPage = cfg.Pagination.PageSize.StartingPage
 		}
 		if cfg.Pagination.PageSize.PageSizeFieldName != "" {
 			// Use a default page size if not specified
-			state.pageSize = 20
+			state.PageSize = 20
 		}
 
 	case paginationModeTimestamp:
 		// Set initial timestamp if provided, otherwise start from zero time
 		if !cfg.Pagination.Timestamp.InitialTimestamp.IsZero() {
-			state.currentTimestamp = cfg.Pagination.Timestamp.InitialTimestamp
+			state.CurrentTimestamp = cfg.Pagination.Timestamp.InitialTimestamp
 		}
 		if cfg.Pagination.Timestamp.PageSize > 0 {
-			state.pageSize = cfg.Pagination.Timestamp.PageSize
+			state.PageSize = cfg.Pagination.Timestamp.PageSize
 		} else {
-			state.pageSize = 100 // Default page size for timestamp pagination
+			state.PageSize = 100 // Default page size for timestamp pagination
 		}
 	}
 
 	// Set limit if configured for offset/limit pagination
 	if cfg.Pagination.Mode == paginationModeOffsetLimit &&
 		cfg.Pagination.OffsetLimit.LimitFieldName != "" {
-		state.limit = 10 // reasonable default
+		state.Limit = 10 // reasonable default
 	}
 
 	return state
@@ -94,33 +95,35 @@ func buildPaginationParams(cfg *Config, state *paginationState) url.Values {
 	switch cfg.Pagination.Mode {
 	case paginationModeOffsetLimit:
 		if cfg.Pagination.OffsetLimit.OffsetFieldName != "" {
-			params.Set(cfg.Pagination.OffsetLimit.OffsetFieldName, fmt.Sprintf("%d", state.currentOffset))
+			params.Set(cfg.Pagination.OffsetLimit.OffsetFieldName, fmt.Sprintf("%d", state.CurrentOffset))
 		}
 		if cfg.Pagination.OffsetLimit.LimitFieldName != "" {
-			params.Set(cfg.Pagination.OffsetLimit.LimitFieldName, fmt.Sprintf("%d", state.limit))
+			params.Set(cfg.Pagination.OffsetLimit.LimitFieldName, fmt.Sprintf("%d", state.Limit))
 		}
 
 	case paginationModePageSize:
 		if cfg.Pagination.PageSize.PageNumFieldName != "" {
-			params.Set(cfg.Pagination.PageSize.PageNumFieldName, fmt.Sprintf("%d", state.currentPage))
+			params.Set(cfg.Pagination.PageSize.PageNumFieldName, fmt.Sprintf("%d", state.CurrentPage))
 		}
 		if cfg.Pagination.PageSize.PageSizeFieldName != "" {
-			params.Set(cfg.Pagination.PageSize.PageSizeFieldName, fmt.Sprintf("%d", state.pageSize))
+			params.Set(cfg.Pagination.PageSize.PageSizeFieldName, fmt.Sprintf("%d", state.PageSize))
 		}
 
 	case paginationModeTimestamp:
 		// Add page size parameter
 		if cfg.Pagination.Timestamp.PageSizeFieldName != "" {
-			params.Set(cfg.Pagination.Timestamp.PageSizeFieldName, fmt.Sprintf("%d", state.pageSize))
+			params.Set(cfg.Pagination.Timestamp.PageSizeFieldName, fmt.Sprintf("%d", state.PageSize))
 		}
 		// Add timestamp parameter if we have one
-		if !state.currentTimestamp.IsZero() {
+		if !state.CurrentTimestamp.IsZero() {
 			if cfg.Pagination.Timestamp.ParamName != "" {
-				timestampForRequest := state.currentTimestamp
-				// Only add microsecond offset on subsequent requests (after first page fetch)
-				// to avoid re-fetching the last item. On the first request, use the exact
-				// initial_timestamp to ensure we don't miss the first record.
-				if state.pagesFetched > 0 {
+				timestampForRequest := state.CurrentTimestamp
+				// Check if we should add an offset to avoid re-fetching the same record.
+				// We add the offset when:
+				// 1. pagesFetched > 0: Within a poll cycle, after the first page
+				// 2. timestampFromData is true: The timestamp came from response data (not initial config),
+				//    meaning we've already fetched records up to this timestamp in a previous cycle
+				if state.PagesFetched > 0 || state.TimestampFromData {
 					// Increment by 1 microsecond to ensure we get items strictly after this timestamp.
 					// We use microsecond (not nanosecond) because most timestamp formats only preserve
 					// microsecond precision, so adding 1 nanosecond wouldn't change the formatted value.
@@ -171,9 +174,9 @@ func parseOffsetLimitResponse(cfg *Config, response any, state *paginationState)
 		if responseMap, ok := response.(map[string]any); ok {
 			if totalVal, exists := responseMap[cfg.Pagination.TotalRecordCountField]; exists {
 				if total, ok := totalVal.(float64); ok {
-					state.totalRecords = int(total)
+					state.TotalRecords = int(total)
 				} else if total, ok := totalVal.(int); ok {
-					state.totalRecords = total
+					state.TotalRecords = total
 				}
 			}
 		}
@@ -181,18 +184,18 @@ func parseOffsetLimitResponse(cfg *Config, response any, state *paginationState)
 
 	// Determine if there are more records
 	// If we have total records, compare current offset + actual items returned to total
-	if state.totalRecords > 0 {
+	if state.TotalRecords > 0 {
 		// Use actual data count if available, otherwise use limit
 		dataCount := getDataCount(response)
-		itemsProcessed := state.currentOffset + dataCount
-		hasMore := itemsProcessed < state.totalRecords
+		itemsProcessed := state.CurrentOffset + dataCount
+		hasMore := itemsProcessed < state.TotalRecords
 		return hasMore, nil
 	}
 
 	// If no total records field, check if we got a full page
 	// This is a heuristic: if we got exactly 'limit' items, assume there might be more
 	dataCount := getDataCount(response)
-	if dataCount >= state.limit {
+	if dataCount >= state.Limit {
 		return true, nil // Full page, assume more
 	}
 
@@ -206,9 +209,9 @@ func parsePageSizeResponse(cfg *Config, response any, state *paginationState) (b
 		if responseMap, ok := response.(map[string]any); ok {
 			if totalPagesVal, exists := responseMap[cfg.Pagination.PageSize.TotalPagesFieldName]; exists {
 				if totalPages, ok := totalPagesVal.(float64); ok {
-					state.totalPages = int(totalPages)
+					state.TotalPages = int(totalPages)
 				} else if totalPages, ok := totalPagesVal.(int); ok {
-					state.totalPages = totalPages
+					state.TotalPages = totalPages
 				}
 			}
 		}
@@ -216,15 +219,15 @@ func parsePageSizeResponse(cfg *Config, response any, state *paginationState) (b
 
 	// Determine if there are more pages
 	// If we have total pages, compare current page to total
-	if state.totalPages > 0 {
-		hasMore := state.currentPage < state.totalPages
+	if state.TotalPages > 0 {
+		hasMore := state.CurrentPage < state.TotalPages
 		return hasMore, nil
 	}
 
 	// If no total pages field, check if we got a full page
 	// This is a heuristic: if we got exactly 'pageSize' items, assume there might be more
 	dataCount := getDataCount(response)
-	if dataCount >= state.pageSize {
+	if dataCount >= state.PageSize {
 		return true, nil // Full page, assume more
 	}
 
@@ -255,8 +258,8 @@ func parseTimestampResponse(cfg *Config, dataArray []map[string]any, state *pagi
 
 	logger.Debug("parseTimestampResponse: processing response",
 		zap.Int("data_count", len(dataArray)),
-		zap.Int("page_size", state.pageSize),
-		zap.Time("current_state_timestamp", state.currentTimestamp))
+		zap.Int("page_size", state.PageSize),
+		zap.Time("current_state_timestamp", state.CurrentTimestamp))
 
 	// Find the maximum timestamp across ALL items in the response.
 	// This is critical because APIs may return data in any order (often descending/newest first).
@@ -280,18 +283,19 @@ func parseTimestampResponse(cfg *Config, dataArray []map[string]any, state *pagi
 		logger.Debug("parseTimestampResponse: scanned all items for max timestamp",
 			zap.Int("item_count", len(dataArray)),
 			zap.Time("max_timestamp_found", maxTimestamp),
-			zap.Time("previous_timestamp", state.currentTimestamp))
+			zap.Time("previous_timestamp", state.CurrentTimestamp))
 	}
 
 	// If we got fewer items than pageSize, definitely no more pages
-	if len(dataArray) < state.pageSize {
+	if len(dataArray) < state.PageSize {
 		logger.Debug("parseTimestampResponse: partial page received, no more pages",
 			zap.Int("received", len(dataArray)),
-			zap.Int("page_size", state.pageSize),
+			zap.Int("page_size", state.PageSize),
 			zap.Time("max_timestamp", maxTimestamp),
-			zap.Time("old_timestamp", state.currentTimestamp))
-		if !maxTimestamp.IsZero() && maxTimestamp.After(state.currentTimestamp) {
-			state.currentTimestamp = maxTimestamp
+			zap.Time("old_timestamp", state.CurrentTimestamp))
+		if !maxTimestamp.IsZero() && maxTimestamp.After(state.CurrentTimestamp) {
+			state.CurrentTimestamp = maxTimestamp
+			state.TimestampFromData = true // Mark that timestamp came from response data
 		}
 		return false, nil
 	}
@@ -302,9 +306,10 @@ func parseTimestampResponse(cfg *Config, dataArray []map[string]any, state *pagi
 		logger.Debug("parseTimestampResponse: full page received, more pages likely",
 			zap.Int("received", len(dataArray)),
 			zap.Time("max_timestamp", maxTimestamp),
-			zap.Time("old_timestamp", state.currentTimestamp))
-		if maxTimestamp.After(state.currentTimestamp) {
-			state.currentTimestamp = maxTimestamp
+			zap.Time("old_timestamp", state.CurrentTimestamp))
+		if maxTimestamp.After(state.CurrentTimestamp) {
+			state.CurrentTimestamp = maxTimestamp
+			state.TimestampFromData = true // Mark that timestamp came from response data
 		}
 		return true, nil
 	}
@@ -385,16 +390,16 @@ func getDataCount(response any) int {
 func updatePaginationState(cfg *Config, state *paginationState) {
 	switch cfg.Pagination.Mode {
 	case paginationModeOffsetLimit:
-		state.currentOffset += state.limit
-		state.pagesFetched++
+		state.CurrentOffset += state.Limit
+		state.PagesFetched++
 
 	case paginationModePageSize:
-		state.currentPage++
-		state.pagesFetched++
+		state.CurrentPage++
+		state.PagesFetched++
 
 	case paginationModeTimestamp:
 		// Timestamp is updated in parseTimestampResponse
-		state.pagesFetched++
+		state.PagesFetched++
 	}
 }
 
@@ -404,5 +409,5 @@ func checkPageLimit(cfg *Config, state *paginationState) bool {
 		return true // No limit
 	}
 
-	return state.pagesFetched < cfg.Pagination.PageLimit
+	return state.PagesFetched < cfg.Pagination.PageLimit
 }
