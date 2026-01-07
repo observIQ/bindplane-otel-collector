@@ -68,9 +68,21 @@ func newPaginationState(cfg *Config) *paginationState {
 		}
 
 	case paginationModeTimestamp:
-		// Set initial timestamp if provided, otherwise start from zero time
-		if !cfg.Pagination.Timestamp.InitialTimestamp.IsZero() {
-			state.CurrentTimestamp = cfg.Pagination.Timestamp.InitialTimestamp
+		// Set initial timestamp if provided, otherwise start from zero time.
+		// Config validation ensures the timestamp is parseable.
+		if cfg.Pagination.Timestamp.InitialTimestamp != "" {
+			// First try the user's configured format (they likely copied the timestamp from the API)
+			if cfg.Pagination.Timestamp.TimestampFormat != "" {
+				if t, err := time.Parse(cfg.Pagination.Timestamp.TimestampFormat, cfg.Pagination.Timestamp.InitialTimestamp); err == nil {
+					state.CurrentTimestamp = t
+				}
+			}
+			// Fall back to RFC3339 (the default format)
+			if state.CurrentTimestamp.IsZero() {
+				if t, err := time.Parse(time.RFC3339, cfg.Pagination.Timestamp.InitialTimestamp); err == nil {
+					state.CurrentTimestamp = t
+				}
+			}
 		}
 		if cfg.Pagination.Timestamp.PageSize > 0 {
 			state.PageSize = cfg.Pagination.Timestamp.PageSize

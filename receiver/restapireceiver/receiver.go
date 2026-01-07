@@ -86,8 +86,11 @@ func (b *baseReceiver) initializeStorage(ctx context.Context, host component.Hos
 }
 
 // initializePagination sets up pagination state.
+// Only creates a new state if one wasn't already loaded from checkpoint.
 func (b *baseReceiver) initializePagination() {
-	b.paginationState = newPaginationState(b.cfg)
+	if b.paginationState == nil {
+		b.paginationState = newPaginationState(b.cfg)
+	}
 }
 
 // shutdownBase handles common shutdown logic.

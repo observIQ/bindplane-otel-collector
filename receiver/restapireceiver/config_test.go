@@ -554,11 +554,53 @@ func TestConfig_Validate(t *testing.T) {
 						TimestampFieldName: "ts",
 						PageSizeFieldName:  "perPage",
 						PageSize:           200,
-						InitialTimestamp:   time.Now(),
+						InitialTimestamp:   time.Now().Format(time.RFC3339),
 					},
 				},
 			},
 			expectedErr: "",
+		},
+		{
+			name: "valid timestamp pagination with custom format",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeAPIKey,
+				APIKeyConfig: APIKeyConfig{
+					HeaderName: "X-API-Key",
+					Value:      "test-key",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeTimestamp,
+					Timestamp: TimestampPagination{
+						ParamName:          "min-date",
+						TimestampFieldName: "timestamp",
+						TimestampFormat:    "2006-01-02 15:04:05",
+						InitialTimestamp:   "2025-01-01 00:00:00",
+					},
+				},
+			},
+			expectedErr: "",
+		},
+		{
+			name: "invalid initial_timestamp format",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeAPIKey,
+				APIKeyConfig: APIKeyConfig{
+					HeaderName: "X-API-Key",
+					Value:      "test-key",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeTimestamp,
+					Timestamp: TimestampPagination{
+						ParamName:          "min-date",
+						TimestampFieldName: "timestamp",
+						TimestampFormat:    "2006-01-02 15:04:05",
+						InitialTimestamp:   "invalid-timestamp",
+					},
+				},
+			},
+			expectedErr: `initial_timestamp "invalid-timestamp" could not be parsed`,
 		},
 		{
 			name: "negative max_poll_interval",
