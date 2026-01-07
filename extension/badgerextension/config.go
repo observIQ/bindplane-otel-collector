@@ -32,8 +32,9 @@ type Config struct {
 
 // DirectoryConfig configures the file storage parameters for the badger storage extension
 type DirectoryConfig struct {
-	Path string   `mapstructure:"path"`
-	_    struct{} // prevent unkeyed literal initialization
+	Path       string   `mapstructure:"path"`
+	PathPrefix string   `mapstructure:"path_prefix"`
+	_          struct{} // prevent unkeyed literal initialization
 }
 
 // BlobGarbageCollectionConfig configures the blob garbage collection

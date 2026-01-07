@@ -468,6 +468,66 @@ func TestBadgerExtension_ClientOptions(t *testing.T) {
 	})
 }
 
+func TestBadgerExtension_PathPrefix(t *testing.T) {
+	t.Run("applies path prefix to client names", func(t *testing.T) {
+		logger := zap.NewNop()
+		cfg := &Config{
+			Directory: &DirectoryConfig{
+				Path:       t.TempDir(),
+				PathPrefix: "badger",
+			},
+		}
+
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
+
+		client, err := ext.GetClient(
+			context.Background(),
+			component.KindExporter,
+			component.MustNewID("otlp"),
+			"logs",
+		)
+		require.NoError(t, err)
+		require.NotNil(t, client)
+
+		// Verify that the client is stored with the prefixed key
+		assert.Len(t, ext.clients, 1)
+		for key := range ext.clients {
+			assert.Contains(t, key, "badger_")
+		}
+
+		err = ext.Shutdown(context.Background())
+		require.NoError(t, err)
+	})
+
+	t.Run("empty path prefix works without prefix", func(t *testing.T) {
+		logger := zap.NewNop()
+		cfg := &Config{
+			Directory: &DirectoryConfig{
+				Path:       t.TempDir(),
+				PathPrefix: "",
+			},
+		}
+		require.NoError(t, cfg.Validate())
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
+
+		client, err := ext.GetClient(
+			context.Background(),
+			component.KindExporter,
+			component.MustNewID("otlp"),
+			"logs",
+		)
+		require.NoError(t, err)
+		require.NotNil(t, client)
+
+		// With empty prefix, the key should not have underscore prefix pattern
+		assert.Len(t, ext.clients, 1)
+
+		// Cleanup
+		err = ext.Shutdown(context.Background())
+		require.NoError(t, err)
+	})
+}
+
 func TestKindString(t *testing.T) {
 	tests := []struct {
 		name     string

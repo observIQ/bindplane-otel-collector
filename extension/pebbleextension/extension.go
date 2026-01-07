@@ -56,6 +56,10 @@ func (p *pebbleExtension) GetClient(_ context.Context, kind component.Kind, ent 
 	}
 	fullName = strings.ReplaceAll(fullName, " ", "")
 
+	if p.cfg.Directory.PathPrefix != "" {
+		fullName = fmt.Sprintf("%s_%s", p.cfg.Directory.PathPrefix, fullName)
+	}
+
 	if p.clients != nil {
 		p.clientsMutex.RLock()
 		client, ok := p.clients[fullName]
