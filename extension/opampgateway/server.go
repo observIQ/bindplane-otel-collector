@@ -10,10 +10,20 @@ import (
 	"sync/atomic"
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
+
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
+	"github.com/open-telemetry/opamp-go/protobufs"
 	"go.uber.org/zap"
 )
+
+// authResponse holds the result of an authentication request
+type authResponse struct {
+	result OpampGatewayConnectResult
+	err    error
+}
 
 type server struct {
 	cfg    *OpAMPServer
@@ -43,6 +53,9 @@ type server struct {
 	downstreamConnectionCount atomic.Uint32
 
 	telemetry *metadata.TelemetryBuilder
+
+	// pendingAuthRequests tracks pending authentication requests awaiting responses
+	pendingAuthRequests *authRequests
 }
 
 var (
@@ -62,6 +75,7 @@ func newServer(cfg *OpAMPServer, telemetry *metadata.TelemetryBuilder, upstreamC
 		shutdownCtx:                ctx,
 		shutdownCancel:             cancel,
 		telemetry:                  telemetry,
+		pendingAuthRequests:        newAuthRequests(),
 	}
 }
 
@@ -85,7 +99,6 @@ func (s *server) Start() error {
 		s.httpServer.Addr,
 		func(l net.Listener) error {
 			defer s.httpServerServeWg.Done()
-			// TODO: add TLS support
 			return s.httpServer.Serve(l)
 		},
 	)
@@ -184,6 +197,7 @@ func (s *server) startHttpServer(addr string, serveFunc func(l net.Listener) err
 		return fmt.Errorf("listen: %w", err)
 	}
 	s.addr = ln.Addr()
+	s.logger.Info("server listening", zap.String("endpoint", s.addr.String()))
 
 	// Run the HTTP Server in background.
 	go func() {
@@ -201,12 +215,6 @@ func (s *server) startHttpServer(addr string, serveFunc func(l net.Listener) err
 
 // handleRequest handles accepting OpAMP connections and upgrading to a websocket connection
 func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
-	if !s.acceptOpAMPConnection(r) {
-		w.Header().Set("Retry-After", "30")
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
 	// the initial id is the remote address of the connection but once we have parsed the
 	// agent ID, we will use that as the id
 	id := fmt.Sprintf("downstream-%d-%s", s.downstreamConnectionCount.Add(1), r.RemoteAddr)
@@ -223,6 +231,25 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.logger.Info("assigned upstream connection", zap.String("downstream_connection_id", id), zap.String("upstream_connection_id", upstreamConnection.id))
+
+	// Authenticate the connection via the upstream OpAMP server
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	accepted, result := s.acceptOpAMPConnection(ctx, r, upstreamConnection, id)
+	if !accepted {
+		// Set response headers from the result
+		for key, value := range result.ResponseHeaders {
+			w.Header().Set(key, value)
+		}
+		// Use the HTTP status code from the result, default to 401 if not set
+		statusCode := result.HTTPStatusCode
+		if statusCode == 0 {
+			statusCode = http.StatusUnauthorized
+		}
+		w.WriteHeader(statusCode)
+		return
+	}
 
 	conn, err := s.wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -247,9 +274,152 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	}()
 }
 
-// acceptOpAMPConnection returns true if the connection should be accepted
-func (s *server) acceptOpAMPConnection(req *http.Request) bool {
-	s.logger.Info("connection request", zap.String("user-agent", req.UserAgent()))
-	// TODO: add authentication
+// acceptOpAMPConnection authenticates the connection by sending an OpampGatewayConnect
+// message to the upstream server and waiting for an OpampGatewayConnectResult response.
+// Returns true if the connection is accepted, along with the result containing status details.
+func (s *server) acceptOpAMPConnection(ctx context.Context, req *http.Request, upstreamConn *upstreamConnection, connectionID string) (bool, OpampGatewayConnectResult) {
+	s.logger.Info("connection request", zap.String("user-agent", req.UserAgent()), zap.String("remote_addr", req.RemoteAddr), zap.String("downstream_connection_id", connectionID), zap.String("upstream_connection_id", upstreamConn.id))
+
+	// Create a unique ID for this authentication request
+	requestUID := uuid.New().String()
+
+	// Create a channel to receive the authentication response
+	responseChan := make(chan authResponse, 1)
+
+	// Register the pending auth request
+	s.pendingAuthRequests.addRequest(requestUID, responseChan)
+
+	// Ensure cleanup
+	defer s.pendingAuthRequests.removeRequest(requestUID)
+
+	// Create the OpampGatewayConnect message with RequestUid for correlation
+	connectMsg := OpampGatewayConnect{
+		RequestUID:    requestUID,
+		RemoteAddress: req.RemoteAddr,
+		Headers:       req.Header,
+	}
+
+	// Marshal the connect message
+	connectData, err := jsoniter.Marshal(connectMsg)
+	if err != nil {
+		s.logger.Error("failed to marshal OpampGatewayConnect", zap.Error(err))
+		return false, OpampGatewayConnectResult{
+			Accept:         false,
+			HTTPStatusCode: http.StatusInternalServerError,
+		}
+	}
+
+	// Create the AgentToServer message with the custom message
+	agentToServer := &protobufs.AgentToServer{
+		CustomMessage: &protobufs.CustomMessage{
+			Capability: OpampGatewayCapability,
+			Type:       OpampGatewayConnectType,
+			Data:       connectData,
+		},
+	}
+
+	// Encode and send the message
+	msgData, err := encodeWSMessage(agentToServer)
+	if err != nil {
+		s.logger.Error("failed to encode auth message", zap.Error(err))
+		return false, OpampGatewayConnectResult{
+			Accept:         false,
+			HTTPStatusCode: http.StatusInternalServerError,
+		}
+	}
+
+	// Send the authentication request to upstream
+	msg := newMessage(0, msgData)
+	upstreamConn.send(msg)
+	s.logger.Debug("sent OpampGatewayConnect", zap.String("request_uid", requestUID))
+
+	// Wait for the response
+	select {
+	case <-ctx.Done():
+		s.logger.Warn("authentication timed out", zap.String("request_uid", requestUID))
+		return false, OpampGatewayConnectResult{
+			Accept:         false,
+			HTTPStatusCode: http.StatusGatewayTimeout,
+			ResponseHeaders: map[string]string{
+				"Retry-After": "30",
+			},
+		}
+	case resp := <-responseChan:
+		if resp.err != nil {
+			s.logger.Error("authentication error", zap.Error(resp.err), zap.String("request_uid", requestUID))
+			return false, OpampGatewayConnectResult{
+				Accept:         false,
+				HTTPStatusCode: http.StatusInternalServerError,
+			}
+		}
+		s.logger.Info("authentication result",
+			zap.Bool("accepted", resp.result.Accept),
+			zap.Int("status_code", resp.result.HTTPStatusCode),
+			zap.String("request_uid", requestUID))
+		return resp.result.Accept, resp.result
+	}
+}
+
+// handleAuthResponse processes an authentication response from upstream and routes it
+// to the waiting goroutine. Returns true if the message was an auth response.
+func (s *server) handleAuthResponse(customMsg *protobufs.CustomMessage) bool {
+	if customMsg == nil {
+		return false
+	}
+	if customMsg.Capability != OpampGatewayCapability || customMsg.Type != OpampGatewayConnectResultType {
+		return false
+	}
+
+	// Parse the result to get the RequestUid
+	var result OpampGatewayConnectResult
+	if err := jsoniter.Unmarshal(customMsg.Data, &result); err != nil {
+		s.logger.Error("failed to unmarshal OpampGatewayConnectResult", zap.Error(err))
+		return false
+	}
+
+	if result.RequestUID == "" {
+		s.logger.Debug("OpampGatewayConnectResult missing RequestUid")
+		return false
+	}
+
+	// Look up the pending auth request using RequestUid
+	responseChan, ok := s.pendingAuthRequests.getRequest(result.RequestUID)
+	if !ok {
+		s.logger.Debug("no pending auth request for RequestUid", zap.String("request_uid", result.RequestUID))
+		return false
+	}
+
+	// Send the response
+	responseChan <- authResponse{result: result}
 	return true
+}
+
+type authRequests struct {
+	mtx      sync.Mutex
+	requests map[string]chan<- authResponse
+}
+
+func newAuthRequests() *authRequests {
+	return &authRequests{
+		requests: make(map[string]chan<- authResponse),
+	}
+}
+
+func (a *authRequests) addRequest(requestUID string, responseChan chan<- authResponse) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	a.requests[requestUID] = responseChan
+}
+
+func (a *authRequests) getRequest(requestUID string) (chan<- authResponse, bool) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	responseChan, ok := a.requests[requestUID]
+	return responseChan, ok
+}
+
+func (a *authRequests) removeRequest(requestUID string) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	delete(a.requests, requestUID)
 }

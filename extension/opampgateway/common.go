@@ -38,6 +38,25 @@ func decodeWSMessage(bytes []byte, msg proto.Message) error {
 	return nil
 }
 
+// encodeWSMessage encodes a proto.Message into bytes suitable for websocket transmission.
+func encodeWSMessage(msg proto.Message) ([]byte, error) {
+	// Encode the message to protobuf
+	data, err := proto.Marshal(msg)
+	if err != nil {
+		return nil, fmt.Errorf("marshal proto: %w", err)
+	}
+
+	// Prepend the header (single zero byte)
+	header := make([]byte, binary.MaxVarintLen64)
+	n := binary.PutUvarint(header, wsMsgHeader)
+
+	result := make([]byte, n+len(data))
+	copy(result, header[:n])
+	copy(result[n:], data)
+
+	return result, nil
+}
+
 func writeWSMessage(con *websocket.Conn, msg []byte) error {
 	writer, err := con.NextWriter(websocket.BinaryMessage)
 	if err != nil {
