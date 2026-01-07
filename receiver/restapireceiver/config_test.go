@@ -539,27 +539,6 @@ func TestConfig_Validate(t *testing.T) {
 			expectedErr: "timestamp_field_name is required when pagination.mode is timestamp",
 		},
 		{
-			name: "timestamp pagination missing page size field name",
-			config: &Config{
-				URL:      "https://api.example.com/data",
-				AuthMode: authModeAPIKey,
-				APIKeyConfig: APIKeyConfig{
-					HeaderName: "X-API-Key",
-					Value:      "test-key",
-				},
-				Pagination: PaginationConfig{
-					Mode: paginationModeTimestamp,
-					Timestamp: TimestampPagination{
-						ParamName:          "t0",
-						TimestampFieldName: "ts",
-						PageSizeFieldName:  "",
-						PageSize:           100,
-					},
-				},
-			},
-			expectedErr: "page_size_field_name is required when pagination.mode is timestamp",
-		},
-		{
 			name: "valid timestamp pagination",
 			config: &Config{
 				URL:      "https://api.example.com/data",

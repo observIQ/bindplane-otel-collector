@@ -142,7 +142,7 @@ func (b *baseReceiver) adjustPollInterval(recordCount int) {
 func (b *baseReceiver) loadCheckpoint(ctx context.Context) {
 	bytes, err := b.storageClient.Get(ctx, checkpointStorageKey)
 	if err != nil {
-		b.logger.Info("unable to load checkpoint, starting fresh", zap.Error(err))
+		b.logger.Debug("unable to load checkpoint, starting fresh", zap.Error(err))
 		return
 	}
 
@@ -201,7 +201,7 @@ func (b *baseReceiver) handlePagination(fullResponse map[string]any, data []map[
 	}
 
 	// Parse pagination response to check if there are more pages
-	hasMore, err := parsePaginationResponse(b.cfg, fullResponse, data, b.paginationState)
+	hasMore, err := parsePaginationResponse(b.cfg, fullResponse, data, b.paginationState, b.logger)
 	if err != nil {
 		b.logger.Warn("failed to parse pagination response", zap.Error(err))
 		return false, nil
@@ -242,14 +242,16 @@ func (b *baseReceiver) handlePagination(fullResponse map[string]any, data []map[
 	return true, params
 }
 
-// resetTimestampPagination resets timestamp pagination state after a poll cycle.
+// resetTimestampPagination resets the pages fetched counter after a poll cycle.
+// The currentTimestamp is preserved so the next poll starts from where we left off,
+// preventing duplicate data from being fetched.
 func (b *baseReceiver) resetTimestampPagination() {
 	if b.cfg.Pagination.Mode == paginationModeTimestamp {
-		if !b.cfg.Pagination.Timestamp.InitialTimestamp.IsZero() {
-			b.paginationState.currentTimestamp = b.cfg.Pagination.Timestamp.InitialTimestamp
-		} else {
-			b.paginationState.currentTimestamp = time.Time{}
-		}
+		b.logger.Debug("resetting timestamp pagination state",
+			zap.Time("preserved_timestamp", b.paginationState.currentTimestamp),
+			zap.Int("pages_fetched_before_reset", b.paginationState.pagesFetched))
+		// Only reset the pages fetched counter, NOT the timestamp.
+		// The timestamp should persist between poll cycles to avoid re-fetching data.
 		b.paginationState.pagesFetched = 0
 	}
 }
@@ -345,11 +347,44 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
 	// Build initial pagination parameters
 	params := buildPaginationParams(r.cfg, r.paginationState)
 
+	r.logger.Debug("starting poll cycle",
+		zap.String("url", r.cfg.URL),
+		zap.String("pagination_mode", string(r.cfg.Pagination.Mode)),
+		zap.Time("current_timestamp", r.paginationState.currentTimestamp),
+		zap.Int("pages_fetched", r.paginationState.pagesFetched),
+		zap.String("params", params.Encode()))
+
 	// Handle pagination - fetch all pages in this poll cycle
+	pageNum := 0
 	for {
+		pageNum++
 		fullResponse, data, err := r.fetchDataPage(ctx, r.cfg.URL, params)
 		if err != nil {
 			return totalRecords, err
+		}
+
+		r.logger.Debug("fetched page",
+			zap.Int("page_num", pageNum),
+			zap.Int("records_in_page", len(data)),
+			zap.String("request_params", params.Encode()))
+
+		// Log first and last record timestamps if available for debugging duplicates
+		if len(data) > 0 && r.cfg.Pagination.Mode == paginationModeTimestamp {
+			timestampField := r.cfg.Pagination.Timestamp.TimestampFieldName
+			if timestampField != "" {
+				if firstTS, ok := data[0][timestampField]; ok {
+					r.logger.Debug("first record in page",
+						zap.Int("page_num", pageNum),
+						zap.Any("timestamp", firstTS),
+						zap.Any("record_preview", truncateRecord(data[0])))
+				}
+				if lastTS, ok := data[len(data)-1][timestampField]; ok {
+					r.logger.Debug("last record in page",
+						zap.Int("page_num", pageNum),
+						zap.Any("timestamp", lastTS),
+						zap.Any("record_preview", truncateRecord(data[len(data)-1])))
+				}
+			}
 		}
 
 		// Convert to logs and consume
@@ -363,6 +398,11 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
 
 		// Check for more pages
 		hasMore, nextParams := r.handlePagination(fullResponse, data)
+		r.logger.Debug("pagination decision",
+			zap.Int("page_num", pageNum),
+			zap.Bool("has_more", hasMore),
+			zap.Time("current_timestamp_state", r.paginationState.currentTimestamp))
+
 		if !hasMore {
 			break
 		}
@@ -374,8 +414,33 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
 		params = nextParams
 	}
 
+	r.logger.Debug("poll cycle complete",
+		zap.Int("total_records", totalRecords),
+		zap.Int("pages_fetched", pageNum),
+		zap.Time("final_timestamp_state", r.paginationState.currentTimestamp))
+
 	r.resetTimestampPagination()
 	return totalRecords, nil
+}
+
+// truncateRecord creates a preview of a record for logging, limiting to key fields.
+func truncateRecord(record map[string]any) map[string]any {
+	preview := make(map[string]any)
+	count := 0
+	for k, v := range record {
+		if count >= 3 {
+			preview["..."] = fmt.Sprintf("(%d more fields)", len(record)-3)
+			break
+		}
+		// Truncate long string values
+		if s, ok := v.(string); ok && len(s) > 50 {
+			preview[k] = s[:50] + "..."
+		} else {
+			preview[k] = v
+		}
+		count++
+	}
+	return preview
 }
 
 // getNestedField retrieves a value from a nested map using dot notation.
@@ -533,11 +598,44 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
 	// Build initial pagination parameters
 	params := buildPaginationParams(r.cfg, r.paginationState)
 
+	r.logger.Debug("starting poll cycle",
+		zap.String("url", r.cfg.URL),
+		zap.String("pagination_mode", string(r.cfg.Pagination.Mode)),
+		zap.Time("current_timestamp", r.paginationState.currentTimestamp),
+		zap.Int("pages_fetched", r.paginationState.pagesFetched),
+		zap.String("params", params.Encode()))
+
 	// Handle pagination - fetch all pages in this poll cycle
+	pageNum := 0
 	for {
+		pageNum++
 		fullResponse, data, err := r.fetchDataPage(ctx, r.cfg.URL, params)
 		if err != nil {
 			return totalRecords, err
+		}
+
+		r.logger.Debug("fetched page",
+			zap.Int("page_num", pageNum),
+			zap.Int("records_in_page", len(data)),
+			zap.String("request_params", params.Encode()))
+
+		// Log first and last record timestamps if available for debugging duplicates
+		if len(data) > 0 && r.cfg.Pagination.Mode == paginationModeTimestamp {
+			timestampField := r.cfg.Pagination.Timestamp.TimestampFieldName
+			if timestampField != "" {
+				if firstTS, ok := data[0][timestampField]; ok {
+					r.logger.Debug("first record in page",
+						zap.Int("page_num", pageNum),
+						zap.Any("timestamp", firstTS),
+						zap.Any("record_preview", truncateRecord(data[0])))
+				}
+				if lastTS, ok := data[len(data)-1][timestampField]; ok {
+					r.logger.Debug("last record in page",
+						zap.Int("page_num", pageNum),
+						zap.Any("timestamp", lastTS),
+						zap.Any("record_preview", truncateRecord(data[len(data)-1])))
+				}
+			}
 		}
 
 		// Convert to metrics and consume
@@ -551,6 +649,11 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
 
 		// Check for more pages
 		hasMore, nextParams := r.handlePagination(fullResponse, data)
+		r.logger.Debug("pagination decision",
+			zap.Int("page_num", pageNum),
+			zap.Bool("has_more", hasMore),
+			zap.Time("current_timestamp_state", r.paginationState.currentTimestamp))
+
 		if !hasMore {
 			break
 		}
@@ -561,6 +664,11 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
 
 		params = nextParams
 	}
+
+	r.logger.Debug("poll cycle complete",
+		zap.Int("total_records", totalRecords),
+		zap.Int("pages_fetched", pageNum),
+		zap.Time("final_timestamp_state", r.paginationState.currentTimestamp))
 
 	r.resetTimestampPagination()
 	return totalRecords, nil
