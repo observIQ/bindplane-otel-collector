@@ -283,7 +283,7 @@ func (c *upstreamConnection) ensureConnected(ctx context.Context, id string) (*w
 func (c *upstreamConnection) tryConnectOnce(ctx context.Context, id string) (*websocket.Conn, error) {
 	var resp *http.Response
 
-	c.logger.Info("Attempting to connect to upstream OpAMP server", zap.String("upstream_endpoint", c.settings.endpoint))
+	c.logger.Info("connecting to upstream OpAMP server", zap.String("upstream_endpoint", c.settings.endpoint))
 
 	conn, resp, err := c.dialer.DialContext(ctx, c.settings.endpoint, c.header(id))
 	if err != nil {
@@ -292,7 +292,7 @@ func (c *upstreamConnection) tryConnectOnce(ctx context.Context, id string) (*we
 		}
 		return nil, err
 	}
-	c.logger.Info("Successfully connected to upstream OpAMP server", zap.String("upstream_endpoint", conn.RemoteAddr().String()))
+	c.logger.Info("connected to upstream OpAMP server", zap.String("upstream_remote_addr", conn.RemoteAddr().String()))
 
 	// Successfully connected.
 	return conn, nil

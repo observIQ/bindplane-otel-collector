@@ -129,6 +129,12 @@ func (o *OpAMPGateway) HandleUpstreamMessage(ctx context.Context, connection *up
 		return fmt.Errorf("failed to decode ws message: %w", err)
 	}
 
+	// Check if this is an authentication response
+	if o.server.handleAuthResponse(m.GetCustomMessage()) {
+		o.logger.Debug("handled auth response", zap.Int("message_number", message.number))
+		return nil
+	}
+
 	agentID, err := parseAgentID(m.GetInstanceUid())
 	if err != nil {
 		return fmt.Errorf("parse agent id: %w, %s", err, m.String())
