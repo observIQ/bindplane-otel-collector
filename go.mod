@@ -1091,8 +1091,11 @@ replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
 // github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension.test is forcing this dep to be updated, but it isn't compatible with the linux build process, so replacing to last stable version
 replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 
-replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/carbonexporter => github.com/open-telemetry/opentelemetry-collector-contrib/exporter/carbonexporter v0.140.1
-
 // Remove this replace directive with OTEL v0.143.0
-// Which will likely be included in the v1.90.0 release.
 replace github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector => github.com/observIQ/opentelemetry-collector-contrib/connector/countconnector v0.0.0-20251219150306-cca738706365
+
+// Replaces to prevent breaking changes updating to OTEL v0.142.0. Remove after the v1.90.x release.
+replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awss3receiver => github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awss3receiver v0.141.0
+replace github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension => github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/googlecloudlogentryencodingextension v0.141.0
+replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusremotewriteexporter => github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusremotewriteexporter v0.141.0
+replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusremotewritereceiver => github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusremotewritereceiver v0.141.0
