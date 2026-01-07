@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"sync/atomic"
+	"time"
 
 	"github.com/dgraph-io/badger/v4"
 	"go.opentelemetry.io/collector/extension/xextension/storage"
@@ -192,12 +193,14 @@ func (c *client) Close(ctx context.Context) error {
 
 	isFullyClosed := make(chan struct{})
 	go func() {
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
 		defer close(isFullyClosed)
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			default:
+			case <-ticker.C:
 				if c.db.IsClosed() {
 					return
 				}
