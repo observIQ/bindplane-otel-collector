@@ -32,8 +32,6 @@ func TestCreateDefaultConfig(t *testing.T) {
 
 	// Verify default values
 	require.True(t, pebbleCfg.Sync)
-	require.Nil(t, pebbleCfg.Directory)
-
 	require.NotNil(t, pebbleCfg.Directory)
 	require.Empty(t, pebbleCfg.Directory.Path)
 	require.Equal(t, "pebble", pebbleCfg.Directory.PathPrefix)
