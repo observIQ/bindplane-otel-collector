@@ -24,7 +24,9 @@ import (
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadatatest"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/consumer/consumererror"
+	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/exportertest"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
@@ -74,7 +76,7 @@ func TestHTTPExporter(t *testing.T) {
 		cfg.Project = "fake"
 		cfg.Forwarder = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 		cfg.LogType = "FAKE"
-		cfg.QueueBatchConfig.Enabled = false
+		cfg.QueueBatchConfig = configoptional.None[exporterhelper.QueueBatchConfig]()
 		cfg.BackOffConfig.Enabled = false
 	}
 
@@ -209,7 +211,7 @@ func TestHTTPJSONCredentialsError(t *testing.T) {
 		cfg.Project = "fake"
 		cfg.Forwarder = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 		cfg.LogType = "FAKE"
-		cfg.QueueBatchConfig.Enabled = false
+		cfg.QueueBatchConfig = configoptional.None[exporterhelper.QueueBatchConfig]()
 		cfg.BackOffConfig.Enabled = false
 	}
 
@@ -252,7 +254,7 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 		cfg.Project = "fake"
 		cfg.Forwarder = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 		cfg.LogType = "FAKE"
-		cfg.QueueBatchConfig.Enabled = false
+		cfg.QueueBatchConfig = configoptional.None[exporterhelper.QueueBatchConfig]()
 		cfg.BackOffConfig.Enabled = false
 	}
 

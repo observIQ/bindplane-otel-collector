@@ -76,7 +76,7 @@ func createOTTLTracesProcessor(cfg *Config, params processor.Settings, consumer 
 		return nil, fmt.Errorf("invalid match expression: %w", err)
 	}
 
-	attrs, err := expr.MakeOTTLAttributeMap[ottlspan.TransformContext](cfg.OTTLAttributes, params.TelemetrySettings, expr.NewOTTLSpanExpression)
+	attrs, err := expr.MakeOTTLAttributeMap[*ottlspan.TransformContext](cfg.OTTLAttributes, params.TelemetrySettings, expr.NewOTTLSpanExpression)
 	if err != nil {
 		return nil, fmt.Errorf("invalid attribute expression: %w", err)
 	}

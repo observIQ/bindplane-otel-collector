@@ -29,6 +29,7 @@ import (
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/exportertest"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -577,71 +578,64 @@ func TestExtractLogsFromResourceLogs(t *testing.T) {
 func TestQueueBatchSettings(t *testing.T) {
 	testCases := []struct {
 		name          string
-		queueSettings exporterhelper.QueueBatchConfig
+		queueSettings configoptional.Optional[exporterhelper.QueueBatchConfig]
 		numLogs       int
 		expectError   bool
 		description   string
 	}{
 		{
 			name: "default queue settings",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled:      true,
+			queueSettings: configoptional.Some(exporterhelper.QueueBatchConfig{
 				QueueSize:    1000,
 				NumConsumers: 10,
-			},
+			}),
 			numLogs:     100,
 			expectError: false,
 			description: "Default queue settings should work properly",
 		},
 		{
-			name: "disabled queue",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled: false,
-			},
-			numLogs:     50,
-			expectError: false,
-			description: "Disabled queue should still process logs",
+			name:          "disabled queue",
+			queueSettings: configoptional.None[exporterhelper.QueueBatchConfig](),
+			numLogs:       50,
+			expectError:   false,
+			description:   "Disabled queue should still process logs",
 		},
 		{
 			name: "small queue size",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled:      true,
+			queueSettings: configoptional.Some(exporterhelper.QueueBatchConfig{
 				QueueSize:    10,
 				NumConsumers: 1,
-			},
+			}),
 			numLogs:     25,
 			expectError: false,
 			description: "Small queue size should handle logs appropriately",
 		},
 		{
 			name: "large queue size",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled:      true,
+			queueSettings: configoptional.Some(exporterhelper.QueueBatchConfig{
 				QueueSize:    10000,
 				NumConsumers: 100,
-			},
+			}),
 			numLogs:     1000,
 			expectError: false,
 			description: "Large queue size should handle many logs efficiently",
 		},
 		{
 			name: "single consumer",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled:      true,
+			queueSettings: configoptional.Some(exporterhelper.QueueBatchConfig{
 				QueueSize:    100,
 				NumConsumers: 1,
-			},
+			}),
 			numLogs:     50,
 			expectError: false,
 			description: "Single consumer should process logs sequentially",
 		},
 		{
 			name: "multiple consumers",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled:      true,
+			queueSettings: configoptional.Some(exporterhelper.QueueBatchConfig{
 				QueueSize:    500,
 				NumConsumers: 20,
-			},
+			}),
 			numLogs:     200,
 			expectError: false,
 			description: "Multiple consumers should process logs concurrently",
@@ -740,38 +734,34 @@ func TestQueueBatchSettings(t *testing.T) {
 func TestQueueBatchSettingsWithRetries(t *testing.T) {
 	testCases := []struct {
 		name          string
-		queueSettings exporterhelper.QueueBatchConfig
+		queueSettings configoptional.Optional[exporterhelper.QueueBatchConfig]
 		serverError   bool
 		expectedError bool
 		description   string
 	}{
 		{
 			name: "queue enabled with server error",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled:      true,
+			queueSettings: configoptional.Some(exporterhelper.QueueBatchConfig{
 				QueueSize:    100,
 				NumConsumers: 1,
-			},
+			}),
 			serverError:   true,
 			expectedError: true,
 			description:   "Queue should handle server errors appropriately",
 		},
 		{
-			name: "queue disabled with server error",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled: false,
-			},
+			name:          "queue disabled with server error",
+			queueSettings: configoptional.None[exporterhelper.QueueBatchConfig](),
 			serverError:   true,
 			expectedError: true,
 			description:   "Disabled queue should still handle server errors",
 		},
 		{
 			name: "queue enabled with successful requests",
-			queueSettings: exporterhelper.QueueBatchConfig{
-				Enabled:      true,
+			queueSettings: configoptional.Some(exporterhelper.QueueBatchConfig{
 				QueueSize:    50,
 				NumConsumers: 2,
-			},
+			}),
 			serverError:   false,
 			expectedError: false,
 			description:   "Queue should work correctly with successful requests",
