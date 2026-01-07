@@ -4,11 +4,12 @@ The Pebble Extension provides persistent storage for OpenTelemetry Collector com
 
 ## Configuration
 
-| Field              | Type     | Default | Required | Description                                                                                       |
-| ------------------ | -------- | ------- | -------- | ------------------------------------------------------------------------------------------------- |
-| directory.path     | string   |         | `true`   | Directory path where Pebble database files will be stored. Each component gets a subdirectory.    |
-| cache.size         | int64    | `0`     | `false`  | Size in bytes of the block cache. When 0, uses Pebble's default cache behavior. Larger values improve read performance at the cost of memory usage. |
-| sync               | bool     | `false` | `false`  | Whether to sync writes to disk immediately. `false` provides better performance while still being durable. |
+| Field              | Type     | Default   | Required | Description                                                                                       |
+| ------------------ | -------- | --------- | -------- | ------------------------------------------------------------------------------------------------- |
+| directory.path     | string   |           | `true`   | Directory path where Pebble database files will be stored. Each component gets a subdirectory.    |
+| directory.path_prefix | string | `pebble` | `false`  | Optional prefix added to component directory names. Prevents naming collisions when multiple storage extensions share the same directory. Set to empty string to disable. |
+| cache.size         | int64    | `0`       | `false`  | Size in bytes of the block cache. When 0, uses Pebble's default cache behavior. Larger values improve read performance at the cost of memory usage. |
+| sync               | bool     | `true`    | `false`  | Whether to sync writes to disk immediately. `true` provides safer durability guarantees. |
 
 ## Example Configuration
 
@@ -72,14 +73,34 @@ service:
 Each component that uses the pebble extension gets an isolated database instance at:
 
 ```
+{directory.path}/{path_prefix}_{kind}_{type}_{component_name}_{name}/
+```
+
+When `directory.path_prefix` is not set or is empty, the format becomes:
+
+```
 {directory.path}/{kind}_{type}_{component_name}_{name}/
 ```
 
-For example, with `directory.path: $OIQ_OTEL_COLLECTOR_STORAGE`:
+For example, with `directory.path: $OIQ_OTEL_COLLECTOR_STORAGE` and default prefix:
 
 ```
-$OIQ_OTEL_COLLECTOR_STORAGE/processor_batch_default/
-$OIQ_OTEL_COLLECTOR_STORAGE/exporter_otlp_backup/
+$OIQ_OTEL_COLLECTOR_STORAGE/pebble_processor_batch_default/
+$OIQ_OTEL_COLLECTOR_STORAGE/pebble_exporter_otlp_backup/
 ```
 
-This ensures components cannot interfere with each other's data.
+When sharing a storage directory with other extensions, the prefix prevents naming collisions:
+
+```yaml
+extensions:
+  badger:
+    directory:
+      path: /var/lib/otelcol/storage
+      path_prefix: badger
+  pebble:
+    directory:
+      path: /var/lib/otelcol/storage
+      path_prefix: pebble
+```
+
+This ensures components cannot interfere with each other's data, even when using multiple storage backends in the same directory.

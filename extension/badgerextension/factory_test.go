@@ -33,7 +33,9 @@ func TestCreateDefaultConfig(t *testing.T) {
 
 	// Verify default values
 	require.True(t, badgerCfg.SyncWrites)
-	require.Nil(t, badgerCfg.Directory)
+	require.NotNil(t, badgerCfg.Directory)
+	require.Empty(t, badgerCfg.Directory.Path)
+	require.Equal(t, "badger", badgerCfg.Directory.PathPrefix)
 
 	require.NotNil(t, badgerCfg.Memory)
 	require.Equal(t, int64(64*1024*1024), badgerCfg.Memory.TableSize)

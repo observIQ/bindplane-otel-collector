@@ -39,6 +39,9 @@ func NewFactory() extension.Factory {
 func createDefaultConfig() component.Config {
 	return &Config{
 		SyncWrites: true,
+		Directory: &DirectoryConfig{
+			PathPrefix: "badger",
+		},
 		Memory: &MemoryConfig{
 			TableSize:      64 * 1024 * 1024,  // Default: 64MB
 			BlockCacheSize: 256 * 1024 * 1024, // Default: 256MB
