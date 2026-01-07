@@ -35,7 +35,12 @@ func NewFactory() extension.Factory {
 }
 
 func createDefaultConfig() component.Config {
-	return &Config{}
+	return &Config{
+		Directory: &DirectoryConfig{
+			PathPrefix: "pebble",
+		},
+		Sync: true,
+	}
 }
 
 func createExtension(_ context.Context, set extension.Settings, cfg component.Config) (extension.Extension, error) {
