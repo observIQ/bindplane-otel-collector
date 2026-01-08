@@ -86,8 +86,11 @@ func (b *baseReceiver) initializeStorage(ctx context.Context, host component.Hos
 }
 
 // initializePagination sets up pagination state.
+// Only creates a new state if one wasn't already loaded from checkpoint.
 func (b *baseReceiver) initializePagination() {
-	b.paginationState = newPaginationState(b.cfg)
+	if b.paginationState == nil {
+		b.paginationState = newPaginationState(b.cfg)
+	}
 }
 
 // shutdownBase handles common shutdown logic.
@@ -221,8 +224,8 @@ func (b *baseReceiver) handlePagination(fullResponse map[string]any, data []map[
 	if b.cfg.Pagination.Mode == paginationModeOffsetLimit {
 		dataCount := getDataCount(fullResponse)
 		if dataCount > 0 {
-			b.paginationState.currentOffset += dataCount
-			b.paginationState.pagesFetched++
+			b.paginationState.CurrentOffset += dataCount
+			b.paginationState.PagesFetched++
 		} else {
 			updatePaginationState(b.cfg, b.paginationState)
 		}
@@ -248,11 +251,11 @@ func (b *baseReceiver) handlePagination(fullResponse map[string]any, data []map[
 func (b *baseReceiver) resetTimestampPagination() {
 	if b.cfg.Pagination.Mode == paginationModeTimestamp {
 		b.logger.Debug("resetting timestamp pagination state",
-			zap.Time("preserved_timestamp", b.paginationState.currentTimestamp),
-			zap.Int("pages_fetched_before_reset", b.paginationState.pagesFetched))
+			zap.Time("preserved_timestamp", b.paginationState.CurrentTimestamp),
+			zap.Int("pages_fetched_before_reset", b.paginationState.PagesFetched))
 		// Only reset the pages fetched counter, NOT the timestamp.
 		// The timestamp should persist between poll cycles to avoid re-fetching data.
-		b.paginationState.pagesFetched = 0
+		b.paginationState.PagesFetched = 0
 	}
 }
 
@@ -350,8 +353,8 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
 	r.logger.Debug("starting poll cycle",
 		zap.String("url", r.cfg.URL),
 		zap.String("pagination_mode", string(r.cfg.Pagination.Mode)),
-		zap.Time("current_timestamp", r.paginationState.currentTimestamp),
-		zap.Int("pages_fetched", r.paginationState.pagesFetched),
+		zap.Time("current_timestamp", r.paginationState.CurrentTimestamp),
+		zap.Int("pages_fetched", r.paginationState.PagesFetched),
 		zap.String("params", params.Encode()))
 
 	// Handle pagination - fetch all pages in this poll cycle
@@ -401,7 +404,7 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
 		r.logger.Debug("pagination decision",
 			zap.Int("page_num", pageNum),
 			zap.Bool("has_more", hasMore),
-			zap.Time("current_timestamp_state", r.paginationState.currentTimestamp))
+			zap.Time("current_timestamp_state", r.paginationState.CurrentTimestamp))
 
 		if !hasMore {
 			break
@@ -417,7 +420,7 @@ func (r *restAPILogsReceiver) poll(ctx context.Context) (int, error) {
 	r.logger.Debug("poll cycle complete",
 		zap.Int("total_records", totalRecords),
 		zap.Int("pages_fetched", pageNum),
-		zap.Time("final_timestamp_state", r.paginationState.currentTimestamp))
+		zap.Time("final_timestamp_state", r.paginationState.CurrentTimestamp))
 
 	r.resetTimestampPagination()
 	return totalRecords, nil
@@ -601,8 +604,8 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
 	r.logger.Debug("starting poll cycle",
 		zap.String("url", r.cfg.URL),
 		zap.String("pagination_mode", string(r.cfg.Pagination.Mode)),
-		zap.Time("current_timestamp", r.paginationState.currentTimestamp),
-		zap.Int("pages_fetched", r.paginationState.pagesFetched),
+		zap.Time("current_timestamp", r.paginationState.CurrentTimestamp),
+		zap.Int("pages_fetched", r.paginationState.PagesFetched),
 		zap.String("params", params.Encode()))
 
 	// Handle pagination - fetch all pages in this poll cycle
@@ -652,7 +655,7 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
 		r.logger.Debug("pagination decision",
 			zap.Int("page_num", pageNum),
 			zap.Bool("has_more", hasMore),
-			zap.Time("current_timestamp_state", r.paginationState.currentTimestamp))
+			zap.Time("current_timestamp_state", r.paginationState.CurrentTimestamp))
 
 		if !hasMore {
 			break
@@ -668,7 +671,7 @@ func (r *restAPIMetricsReceiver) poll(ctx context.Context) (int, error) {
 	r.logger.Debug("poll cycle complete",
 		zap.Int("total_records", totalRecords),
 		zap.Int("pages_fetched", pageNum),
-		zap.Time("final_timestamp_state", r.paginationState.currentTimestamp))
+		zap.Time("final_timestamp_state", r.paginationState.CurrentTimestamp))
 
 	r.resetTimestampPagination()
 	return totalRecords, nil

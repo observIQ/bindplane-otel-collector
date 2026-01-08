@@ -244,7 +244,8 @@ type TimestampPagination struct {
 
 	// InitialTimestamp is the initial timestamp to start from (optional).
 	// If not set, will start from the beginning.
-	InitialTimestamp time.Time `mapstructure:"initial_timestamp"`
+	// Accepts the configured timestamp_format or RFC3339 (e.g., "2025-01-01T00:00:00Z").
+	InitialTimestamp string `mapstructure:"initial_timestamp"`
 }
 
 // Validate validates the configuration.
@@ -338,6 +339,29 @@ func (c *Config) Validate() error {
 		}
 		if c.Pagination.Timestamp.TimestampFieldName == "" {
 			return fmt.Errorf("timestamp_field_name is required when pagination.mode is timestamp")
+		}
+		// Validate initial_timestamp format if provided
+		if c.Pagination.Timestamp.InitialTimestamp != "" {
+			var parsed bool
+			// First try the user's configured format (they likely copied the timestamp from the API)
+			if c.Pagination.Timestamp.TimestampFormat != "" {
+				if _, err := time.Parse(c.Pagination.Timestamp.TimestampFormat, c.Pagination.Timestamp.InitialTimestamp); err == nil {
+					parsed = true
+				}
+			}
+			// Fall back to RFC3339 (the default format)
+			if !parsed {
+				if _, err := time.Parse(time.RFC3339, c.Pagination.Timestamp.InitialTimestamp); err == nil {
+					parsed = true
+				}
+			}
+			if !parsed {
+				formatHint := "RFC3339 (e.g., 2025-01-01T00:00:00Z)"
+				if c.Pagination.Timestamp.TimestampFormat != "" {
+					formatHint = fmt.Sprintf("configured timestamp_format (%s) or RFC3339", c.Pagination.Timestamp.TimestampFormat)
+				}
+				return fmt.Errorf("initial_timestamp %q could not be parsed; must match %s", c.Pagination.Timestamp.InitialTimestamp, formatHint)
+			}
 		}
 	}
 

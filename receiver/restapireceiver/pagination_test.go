@@ -35,8 +35,8 @@ func TestBuildPaginationParams_OffsetLimit(t *testing.T) {
 	}
 
 	state := &paginationState{
-		currentOffset: 0,
-		limit:         10,
+		CurrentOffset: 0,
+		Limit:         10,
 	}
 
 	params := buildPaginationParams(cfg, state)
@@ -57,8 +57,8 @@ func TestBuildPaginationParams_OffsetLimit_NonZero(t *testing.T) {
 	}
 
 	state := &paginationState{
-		currentOffset: 20,
-		limit:         50,
+		CurrentOffset: 20,
+		Limit:         50,
 	}
 
 	params := buildPaginationParams(cfg, state)
@@ -80,8 +80,8 @@ func TestBuildPaginationParams_PageSize_OneBased(t *testing.T) {
 	}
 
 	state := &paginationState{
-		currentPage: 1,
-		pageSize:    20,
+		CurrentPage: 1,
+		PageSize:    20,
 	}
 
 	params := buildPaginationParams(cfg, state)
@@ -103,8 +103,8 @@ func TestBuildPaginationParams_PageSize_ZeroBased(t *testing.T) {
 	}
 
 	state := &paginationState{
-		currentPage: 0,
-		pageSize:    20,
+		CurrentPage: 0,
+		PageSize:    20,
 	}
 
 	params := buildPaginationParams(cfg, state)
@@ -146,8 +146,8 @@ func TestParsePaginationResponse_OffsetLimit_HasMore(t *testing.T) {
 	}
 
 	state := &paginationState{
-		currentOffset: 0,
-		limit:         10,
+		CurrentOffset: 0,
+		Limit:         10,
 	}
 
 	// Extract data for pagination parsing (not used for offset/limit mode)
@@ -156,7 +156,7 @@ func TestParsePaginationResponse_OffsetLimit_HasMore(t *testing.T) {
 	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
 	require.True(t, hasMore)
-	require.Equal(t, 25, state.totalRecords)
+	require.Equal(t, 25, state.TotalRecords)
 }
 
 func TestParsePaginationResponse_OffsetLimit_NoMore(t *testing.T) {
@@ -180,8 +180,8 @@ func TestParsePaginationResponse_OffsetLimit_NoMore(t *testing.T) {
 	}
 
 	state := &paginationState{
-		currentOffset: 0,
-		limit:         10,
+		CurrentOffset: 0,
+		Limit:         10,
 	}
 
 	// Extract data for pagination parsing (not used for offset/limit mode)
@@ -190,7 +190,7 @@ func TestParsePaginationResponse_OffsetLimit_NoMore(t *testing.T) {
 	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
 	require.False(t, hasMore)
-	require.Equal(t, 5, state.totalRecords)
+	require.Equal(t, 5, state.TotalRecords)
 }
 
 func TestParsePaginationResponse_OffsetLimit_NoTotalField(t *testing.T) {
@@ -213,8 +213,8 @@ func TestParsePaginationResponse_OffsetLimit_NoTotalField(t *testing.T) {
 	}
 
 	state := &paginationState{
-		currentOffset: 0,
-		limit:         10,
+		CurrentOffset: 0,
+		Limit:         10,
 	}
 
 	// Extract data for pagination parsing (not used for offset/limit mode)
@@ -244,8 +244,8 @@ func TestParsePaginationResponse_OffsetLimit_PartialPage(t *testing.T) {
 	}
 
 	state := &paginationState{
-		currentOffset: 0,
-		limit:         10,
+		CurrentOffset: 0,
+		Limit:         10,
 	}
 
 	// Extract data for pagination parsing (not used for offset/limit mode)
@@ -277,8 +277,8 @@ func TestParsePaginationResponse_PageSize_HasMore(t *testing.T) {
 	}
 
 	state := &paginationState{
-		currentPage: 1,
-		pageSize:    20,
+		CurrentPage: 1,
+		PageSize:    20,
 	}
 
 	// Extract data for pagination parsing (not used for page/size mode)
@@ -287,7 +287,7 @@ func TestParsePaginationResponse_PageSize_HasMore(t *testing.T) {
 	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
 	require.True(t, hasMore)
-	require.Equal(t, 5, state.totalPages)
+	require.Equal(t, 5, state.TotalPages)
 }
 
 func TestParsePaginationResponse_PageSize_NoMore(t *testing.T) {
@@ -311,8 +311,8 @@ func TestParsePaginationResponse_PageSize_NoMore(t *testing.T) {
 	}
 
 	state := &paginationState{
-		currentPage: 1,
-		pageSize:    20,
+		CurrentPage: 1,
+		PageSize:    20,
 	}
 
 	// Extract data for pagination parsing (not used for page/size mode)
@@ -321,7 +321,7 @@ func TestParsePaginationResponse_PageSize_NoMore(t *testing.T) {
 	hasMore, err := parsePaginationResponse(cfg, response, data, state, zap.NewNop())
 	require.NoError(t, err)
 	require.False(t, hasMore)
-	require.Equal(t, 1, state.totalPages)
+	require.Equal(t, 1, state.TotalPages)
 }
 
 func TestParsePaginationResponse_PageSize_NoTotalPagesField(t *testing.T) {
@@ -343,8 +343,8 @@ func TestParsePaginationResponse_PageSize_NoTotalPagesField(t *testing.T) {
 	}
 
 	state := &paginationState{
-		currentPage: 1,
-		pageSize:    5,
+		CurrentPage: 1,
+		PageSize:    5,
 	}
 
 	// Extract data for pagination parsing (not used for page/size mode)
@@ -374,8 +374,8 @@ func TestParsePaginationResponse_PageSize_PartialPage(t *testing.T) {
 	}
 
 	state := &paginationState{
-		currentPage: 1,
-		pageSize:    5,
+		CurrentPage: 1,
+		PageSize:    5,
 	}
 
 	// Extract data for pagination parsing (not used for page/size mode)
@@ -397,16 +397,16 @@ func TestUpdatePaginationState_OffsetLimit(t *testing.T) {
 	}
 
 	state := newPaginationState(cfg)
-	require.Equal(t, 0, state.currentOffset)
-	require.Equal(t, 10, state.limit) // default limit
+	require.Equal(t, 0, state.CurrentOffset)
+	require.Equal(t, 10, state.Limit) // default limit
 
 	// Update after fetching a page
-	state.currentOffset = 10
-	state.limit = 10
+	state.CurrentOffset = 10
+	state.Limit = 10
 
 	// Next page should be at offset 20
 	updatePaginationState(cfg, state)
-	require.Equal(t, 20, state.currentOffset)
+	require.Equal(t, 20, state.CurrentOffset)
 }
 
 func TestUpdatePaginationState_PageSize_OneBased(t *testing.T) {
@@ -421,14 +421,14 @@ func TestUpdatePaginationState_PageSize_OneBased(t *testing.T) {
 	}
 
 	state := newPaginationState(cfg)
-	require.Equal(t, 1, state.currentPage)
+	require.Equal(t, 1, state.CurrentPage)
 
 	// Update after fetching page 1
-	state.currentPage = 1
+	state.CurrentPage = 1
 
 	// Next page should be 2
 	updatePaginationState(cfg, state)
-	require.Equal(t, 2, state.currentPage)
+	require.Equal(t, 2, state.CurrentPage)
 }
 
 func TestUpdatePaginationState_PageSize_ZeroBased(t *testing.T) {
@@ -443,14 +443,14 @@ func TestUpdatePaginationState_PageSize_ZeroBased(t *testing.T) {
 	}
 
 	state := newPaginationState(cfg)
-	require.Equal(t, 0, state.currentPage)
+	require.Equal(t, 0, state.CurrentPage)
 
 	// Update after fetching page 0
-	state.currentPage = 0
+	state.CurrentPage = 0
 
 	// Next page should be 1
 	updatePaginationState(cfg, state)
-	require.Equal(t, 1, state.currentPage)
+	require.Equal(t, 1, state.CurrentPage)
 }
 
 func TestCheckPageLimit_WithinLimit(t *testing.T) {
@@ -462,8 +462,8 @@ func TestCheckPageLimit_WithinLimit(t *testing.T) {
 	}
 
 	state := &paginationState{
-		currentPage:  5,
-		pagesFetched: 5,
+		CurrentPage:  5,
+		PagesFetched: 5,
 	}
 
 	withinLimit := checkPageLimit(cfg, state)
@@ -479,8 +479,8 @@ func TestCheckPageLimit_ExceedsLimit(t *testing.T) {
 	}
 
 	state := &paginationState{
-		currentPage:  11,
-		pagesFetched: 11,
+		CurrentPage:  11,
+		PagesFetched: 11,
 	}
 
 	withinLimit := checkPageLimit(cfg, state)
@@ -496,8 +496,8 @@ func TestCheckPageLimit_NoLimit(t *testing.T) {
 	}
 
 	state := &paginationState{
-		currentPage:  100,
-		pagesFetched: 100,
+		CurrentPage:  100,
+		PagesFetched: 100,
 	}
 
 	withinLimit := checkPageLimit(cfg, state)
@@ -515,9 +515,9 @@ func TestNewPaginationState_OffsetLimit(t *testing.T) {
 	}
 
 	state := newPaginationState(cfg)
-	require.Equal(t, 5, state.currentOffset)
-	require.Equal(t, 10, state.limit) // default
-	require.Equal(t, 0, state.currentPage)
+	require.Equal(t, 5, state.CurrentOffset)
+	require.Equal(t, 10, state.Limit) // default
+	require.Equal(t, 0, state.CurrentPage)
 }
 
 func TestNewPaginationState_PageSize_OneBased(t *testing.T) {
@@ -532,9 +532,9 @@ func TestNewPaginationState_PageSize_OneBased(t *testing.T) {
 	}
 
 	state := newPaginationState(cfg)
-	require.Equal(t, 1, state.currentPage)
-	require.Equal(t, 20, state.pageSize) // default
-	require.Equal(t, 0, state.currentOffset)
+	require.Equal(t, 1, state.CurrentPage)
+	require.Equal(t, 20, state.PageSize) // default
+	require.Equal(t, 0, state.CurrentOffset)
 }
 
 func TestNewPaginationState_PageSize_ZeroBased(t *testing.T) {
@@ -549,9 +549,9 @@ func TestNewPaginationState_PageSize_ZeroBased(t *testing.T) {
 	}
 
 	state := newPaginationState(cfg)
-	require.Equal(t, 0, state.currentPage)
-	require.Equal(t, 20, state.pageSize) // default
-	require.Equal(t, 0, state.currentOffset)
+	require.Equal(t, 0, state.CurrentPage)
+	require.Equal(t, 20, state.PageSize) // default
+	require.Equal(t, 0, state.CurrentOffset)
 }
 
 func TestParsePaginationResponse_WithDataArray(t *testing.T) {
@@ -573,8 +573,8 @@ func TestParsePaginationResponse_WithDataArray(t *testing.T) {
 	json.Unmarshal(jsonBytes, &response)
 
 	state := &paginationState{
-		currentOffset: 0,
-		limit:         10,
+		CurrentOffset: 0,
+		Limit:         10,
 	}
 
 	// Extract data for pagination parsing
