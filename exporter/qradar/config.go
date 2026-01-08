@@ -21,6 +21,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/expr"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confignet"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
@@ -29,9 +30,9 @@ import (
 
 // Config defines configuration for the QRadar exporter.
 type Config struct {
-	TimeoutConfig    exporterhelper.TimeoutConfig    `mapstructure:",squash"`
-	QueueBatchConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
-	BackOffConfig    configretry.BackOffConfig       `mapstructure:"retry_on_failure"`
+	TimeoutConfig    exporterhelper.TimeoutConfig                             `mapstructure:",squash"`
+	QueueBatchConfig configoptional.Optional[exporterhelper.QueueBatchConfig] `mapstructure:"sending_queue"`
+	BackOffConfig    configretry.BackOffConfig                                `mapstructure:"retry_on_failure"`
 
 	// Syslog is the configuration for the connection to QRadar.
 	Syslog SyslogConfig `mapstructure:"syslog"`

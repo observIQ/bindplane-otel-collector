@@ -39,7 +39,7 @@ func (e OTTLExpression[T]) Execute(ctx context.Context, tCtx T) (any, error) {
 
 // NewOTTLSpanExpression creates a new expression for spans.
 // The expression is wrapped in an editor function, so only Converter functions and target expressions can be used.
-func NewOTTLSpanExpression(expression string, set component.TelemetrySettings) (*OTTLExpression[ottlspan.TransformContext], error) {
+func NewOTTLSpanExpression(expression string, set component.TelemetrySettings) (*OTTLExpression[*ottlspan.TransformContext], error) {
 	// Wrap the expression in the "value" function, since the ottl grammar expects a function first.
 	statementStr := fmt.Sprintf("value(%s)", expression)
 	statement, err := NewOTTLSpanStatement(statementStr, set)
@@ -47,14 +47,14 @@ func NewOTTLSpanExpression(expression string, set component.TelemetrySettings) (
 		return nil, err
 	}
 
-	return &OTTLExpression[ottlspan.TransformContext]{
+	return &OTTLExpression[*ottlspan.TransformContext]{
 		statement: statement,
 	}, nil
 }
 
 // NewOTTLMetricExpression creates a new expression for metrics.
 // The expression is wrapped in an editor function, so only Converter functions and target expressions can be used.
-func NewOTTLMetricExpression(expression string, set component.TelemetrySettings) (*OTTLExpression[ottlmetric.TransformContext], error) {
+func NewOTTLMetricExpression(expression string, set component.TelemetrySettings) (*OTTLExpression[*ottlmetric.TransformContext], error) {
 	// Wrap the expression in the "value" function, since the ottl grammar expects a function first.
 	statementStr := fmt.Sprintf("value(%s)", expression)
 	statement, err := NewOTTLMetricStatement(statementStr, set)
@@ -62,14 +62,14 @@ func NewOTTLMetricExpression(expression string, set component.TelemetrySettings)
 		return nil, err
 	}
 
-	return &OTTLExpression[ottlmetric.TransformContext]{
+	return &OTTLExpression[*ottlmetric.TransformContext]{
 		statement: statement,
 	}, nil
 }
 
 // NewOTTLDatapointExpression creates a new expression for datapoints.
 // The expression is wrapped in an editor function, so only Converter functions and target expressions can be used.
-func NewOTTLDatapointExpression(expression string, set component.TelemetrySettings) (*OTTLExpression[ottldatapoint.TransformContext], error) {
+func NewOTTLDatapointExpression(expression string, set component.TelemetrySettings) (*OTTLExpression[*ottldatapoint.TransformContext], error) {
 	// Wrap the expression in the "value" function, since the ottl grammar expects a function first.
 	statementStr := fmt.Sprintf("value(%s)", expression)
 	statement, err := NewOTTLDatapointStatement(statementStr, set)
@@ -77,14 +77,14 @@ func NewOTTLDatapointExpression(expression string, set component.TelemetrySettin
 		return nil, err
 	}
 
-	return &OTTLExpression[ottldatapoint.TransformContext]{
+	return &OTTLExpression[*ottldatapoint.TransformContext]{
 		statement: statement,
 	}, nil
 }
 
 // NewOTTLLogRecordExpression creates a new expression for log records.
 // The expression is wrapped in an editor function, so only Converter functions and target expressions can be used.
-func NewOTTLLogRecordExpression(expression string, set component.TelemetrySettings) (*OTTLExpression[ottllog.TransformContext], error) {
+func NewOTTLLogRecordExpression(expression string, set component.TelemetrySettings) (*OTTLExpression[*ottllog.TransformContext], error) {
 	// Wrap the expression in the "value" function, since the ottl grammar expects a function first.
 	statementStr := fmt.Sprintf("value(%s)", expression)
 	statement, err := NewOTTLLogRecordStatement(statementStr, set)
@@ -92,7 +92,7 @@ func NewOTTLLogRecordExpression(expression string, set component.TelemetrySettin
 		return nil, err
 	}
 
-	return &OTTLExpression[ottllog.TransformContext]{
+	return &OTTLExpression[*ottllog.TransformContext]{
 		statement: statement,
 	}, nil
 }

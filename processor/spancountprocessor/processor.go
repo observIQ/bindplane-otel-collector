@@ -36,8 +36,8 @@ type spanCountProcessor struct {
 	config    *Config
 	match     *expr.Expression
 	attrs     *expr.ExpressionMap
-	OTTLmatch *expr.OTTLCondition[ottlspan.TransformContext]
-	OTTLattrs *expr.OTTLAttributeMap[ottlspan.TransformContext]
+	OTTLmatch *expr.OTTLCondition[*ottlspan.TransformContext]
+	OTTLattrs *expr.OTTLAttributeMap[*ottlspan.TransformContext]
 	counter   *counter.TelemetryCounter
 	consumer  consumer.Traces
 	logger    *zap.Logger
@@ -62,8 +62,8 @@ func newExprProcessor(config *Config, consumer consumer.Traces, match *expr.Expr
 func newOTTLProcessor(
 	config *Config,
 	consumer consumer.Traces,
-	match *expr.OTTLCondition[ottlspan.TransformContext],
-	attrs *expr.OTTLAttributeMap[ottlspan.TransformContext],
+	match *expr.OTTLCondition[*ottlspan.TransformContext],
+	attrs *expr.OTTLAttributeMap[*ottlspan.TransformContext],
 	logger *zap.Logger) *spanCountProcessor {
 	return &spanCountProcessor{
 		config:    config,
@@ -130,7 +130,7 @@ func (p *spanCountProcessor) consumeTracesOTTL(ctx context.Context, t ptrace.Tra
 			spans := scopeSpan.Spans()
 			for k := 0; k < spans.Len(); k++ {
 				span := spans.At(k)
-				spanCtx := ottlspan.NewTransformContext(span, scopeSpan.Scope(), resource, scopeSpan, resourceSpan)
+				spanCtx := ottlspan.NewTransformContextPtr(resourceSpan, scopeSpan, span)
 				match, err := p.OTTLmatch.Match(ctx, spanCtx)
 				if err != nil {
 					p.logger.Error("Error while matching OTTL span", zap.Error(err))

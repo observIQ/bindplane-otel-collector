@@ -88,7 +88,7 @@ func TestLogCondition(t *testing.T) {
 			logResource := plog.NewResourceLogs()
 			tc.resource.CopyTo(logResource.Resource())
 
-			tCtx := ottllog.NewTransformContext(tc.log, tc.scope, tc.resource, logScope, logResource)
+			tCtx := ottllog.NewTransformContextPtr(logResource, logScope, tc.log)
 
 			expr, err := NewOTTLLogRecordCondition(tc.expression, componenttest.NewNopTelemetrySettings())
 			require.NoError(t, err)
@@ -162,7 +162,7 @@ func TestDatapointCondition(t *testing.T) {
 			metricResource := pmetric.NewResourceMetrics()
 			tc.resource.CopyTo(metricResource.Resource())
 
-			tCtx := ottldatapoint.NewTransformContext(dp, metric, tc.metricSlice, tc.scope, tc.resource, metricScope, metricResource)
+			tCtx := ottldatapoint.NewTransformContextPtr(metricResource, metricScope, metric, dp)
 
 			expr, err := NewOTTLDatapointCondition(tc.expression, componenttest.NewNopTelemetrySettings())
 			require.NoError(t, err)
@@ -233,7 +233,7 @@ func TestSpanCondition(t *testing.T) {
 			spanResource := ptrace.NewResourceSpans()
 			tc.resource.CopyTo(spanResource.Resource())
 
-			tCtx := ottlspan.NewTransformContext(tc.span, tc.scope, tc.resource, spanScope, spanResource)
+			tCtx := ottlspan.NewTransformContextPtr(spanResource, spanScope, tc.span)
 
 			expr, err := NewOTTLSpanCondition(tc.expression, componenttest.NewNopTelemetrySettings())
 			require.NoError(t, err)

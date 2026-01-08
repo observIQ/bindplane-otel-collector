@@ -25,7 +25,7 @@ import (
 )
 
 func TestExtractAttributes(t *testing.T) {
-	attrMap, err := MakeOTTLAttributeMap[ottllog.TransformContext](
+	attrMap, err := MakeOTTLAttributeMap[*ottllog.TransformContext](
 		map[string]string{
 			"key1":           `body["body_key"]`,
 			"attr1":          `attributes["key1"]`,
@@ -42,7 +42,7 @@ func TestExtractAttributes(t *testing.T) {
 	logResource := plog.NewResourceLogs()
 	testResource(t).CopyTo(logResource.Resource())
 
-	tCtx := ottllog.NewTransformContext(testLogRecord(t), logScope.Scope(), logResource.Resource(), logScope, logResource)
+	tCtx := ottllog.NewTransformContextPtr(logResource, logScope, testLogRecord(t))
 
 	mapOut := attrMap.ExtractAttributes(context.Background(), tCtx)
 

@@ -20,6 +20,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/config/confignet"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
@@ -27,7 +28,7 @@ import (
 func Test_createDefaultConfig(t *testing.T) {
 	expectedCfg := &Config{
 		TimeoutConfig:    exporterhelper.NewDefaultTimeoutConfig(),
-		QueueBatchConfig: exporterhelper.NewDefaultQueueConfig(),
+		QueueBatchConfig: configoptional.Some(exporterhelper.NewDefaultQueueConfig()),
 		BackOffConfig:    configretry.NewDefaultBackOffConfig(),
 		ExportType:       exportTypeSyslog,
 		Syslog: SyslogConfig{
