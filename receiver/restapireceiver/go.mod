@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/receiver/restapireceiver
 
-go 1.24.4
+go 1.24.11
 
 require (
 	github.com/json-iterator/go v1.1.12

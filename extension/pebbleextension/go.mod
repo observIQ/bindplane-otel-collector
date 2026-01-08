@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/extension/pebbleextension
 
-go 1.24.4
+go 1.24.11
 
 require (
 	github.com/cockroachdb/pebble v1.1.5
