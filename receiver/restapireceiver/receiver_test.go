@@ -256,7 +256,7 @@ func TestRESTAPILogsReceiver_WithTimestampPagination(t *testing.T) {
 				TimestampFieldName: "ts",
 				PageSizeFieldName:  "perPage",
 				PageSize:           200,
-				InitialTimestamp:   initialTime,
+				InitialTimestamp:   initialTime.Format(time.RFC3339),
 			},
 		},
 		MaxPollInterval: 100 * time.Millisecond,
