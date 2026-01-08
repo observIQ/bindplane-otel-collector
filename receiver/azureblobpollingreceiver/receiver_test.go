@@ -85,7 +85,7 @@ func TestPollingReceiver_runPoll(t *testing.T) {
 
 		// Verify checkpoint was updated with poll time after first poll
 		require.False(t, receiver.checkpoint.LastPollTime.IsZero())
-		
+
 		mockClient.AssertExpectations(t)
 	})
 
@@ -130,7 +130,7 @@ func TestPollingReceiver_runPoll(t *testing.T) {
 
 		// Verify checkpoint was updated with new poll time
 		require.True(t, receiver.checkpoint.LastPollTime.After(lastPollTime))
-		
+
 		mockClient.AssertExpectations(t)
 	})
 
@@ -166,7 +166,7 @@ func TestPollingReceiver_runPoll(t *testing.T) {
 			Run(func(args mock.Arguments) {
 				blobChan := args.Get(4).(chan []*azureblob.BlobInfo)
 				doneChan := args.Get(5).(chan struct{})
-				
+
 				// Send a batch of blobs
 				blobs := []*azureblob.BlobInfo{
 					{
@@ -189,7 +189,7 @@ func TestPollingReceiver_runPoll(t *testing.T) {
 
 		// Verify checkpoint poll time was updated
 		require.True(t, receiver.checkpoint.LastPollTime.After(beforePoll))
-		
+
 		mockClient.AssertExpectations(t)
 	})
 
@@ -215,16 +215,16 @@ func TestPollingReceiver_runPoll(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		
+
 		// Mock StreamBlobs to detect when called, then return from doneChan
 		mockClient.On("StreamBlobs", mock.Anything, "test-container", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 			Run(func(args mock.Arguments) {
 				doneChan := args.Get(5).(chan struct{})
 				close(doneChan)
 			})
-		
+
 		receiver.runPoll(ctx)
-		
+
 		mockClient.AssertExpectations(t)
 	})
 
@@ -259,7 +259,7 @@ func TestPollingReceiver_runPoll(t *testing.T) {
 			})
 
 		receiver.runPoll(ctx)
-		
+
 		mockClient.AssertExpectations(t)
 	})
 }
@@ -280,7 +280,7 @@ func TestPollingReceiver_InitialLookback(t *testing.T) {
 		defer func() { newAzureBlobClient = originalNewAzureBlobClient }()
 
 		mockClient := new(mockBlobClient)
-		newAzureBlobClient = func(connectionString string, batchSize, pageSize int) (azureblob.BlobClient, error) {
+		newAzureBlobClient = func(_ string, _ int, _ int) (azureblob.BlobClient, error) {
 			return mockClient, nil
 		}
 
@@ -310,7 +310,7 @@ func TestPollingReceiver_InitialLookback(t *testing.T) {
 		defer func() { newAzureBlobClient = originalNewAzureBlobClient }()
 
 		mockClient := new(mockBlobClient)
-		newAzureBlobClient = func(connectionString string, batchSize, pageSize int) (azureblob.BlobClient, error) {
+		newAzureBlobClient = func(_ string, _ int, _ int) (azureblob.BlobClient, error) {
 			return mockClient, nil
 		}
 

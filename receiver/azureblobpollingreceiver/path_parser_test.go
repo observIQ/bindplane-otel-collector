@@ -25,11 +25,11 @@ func TestParseTimeFromPattern(t *testing.T) {
 	t.Run("Placeholder pattern - full datetime", func(t *testing.T) {
 		pattern := "{year}/{month}/{day}/{hour}/{minute}/{second}/data.json"
 		blobPath := "2024/03/15/14/30/45/data.json"
-		
+
 		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
-		
+
 		expected := time.Date(2024, 3, 15, 14, 30, 45, 0, time.UTC)
 		require.Equal(t, expected, *parsedTime)
 	})
@@ -37,11 +37,11 @@ func TestParseTimeFromPattern(t *testing.T) {
 	t.Run("Placeholder pattern - date only", func(t *testing.T) {
 		pattern := "{year}/{month}/{day}/data.json"
 		blobPath := "2024/03/15/data.json"
-		
+
 		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
-		
+
 		expected := time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC)
 		require.Equal(t, expected, *parsedTime)
 	})
@@ -49,11 +49,11 @@ func TestParseTimeFromPattern(t *testing.T) {
 	t.Run("Placeholder pattern - with prefix", func(t *testing.T) {
 		pattern := "logs/{year}/{month}/{day}/file.json"
 		blobPath := "logs/2024/03/15/file.json"
-		
+
 		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
-		
+
 		expected := time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC)
 		require.Equal(t, expected, *parsedTime)
 	})
@@ -61,11 +61,11 @@ func TestParseTimeFromPattern(t *testing.T) {
 	t.Run("Placeholder pattern - year and month only", func(t *testing.T) {
 		pattern := "{year}/{month}/data.json"
 		blobPath := "2024/03/data.json"
-		
+
 		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
-		
+
 		// Day defaults to 1 when not provided
 		expected := time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC)
 		require.Equal(t, expected, *parsedTime)
@@ -74,7 +74,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 	t.Run("Placeholder pattern - missing year", func(t *testing.T) {
 		pattern := "{month}/{day}/data.json"
 		blobPath := "03/15/data.json"
-		
+
 		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
 		require.Error(t, err)
 		require.Nil(t, parsedTime)
@@ -84,7 +84,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 	t.Run("Placeholder pattern - path mismatch", func(t *testing.T) {
 		pattern := "{year}/{month}/{day}/data.json"
 		blobPath := "2024/03/data.json" // Missing day
-		
+
 		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
 		require.Error(t, err)
 		require.Nil(t, parsedTime)
@@ -94,11 +94,11 @@ func TestParseTimeFromPattern(t *testing.T) {
 	t.Run("Go time format - date and time", func(t *testing.T) {
 		pattern := "2006/01/02/15/04"
 		blobPath := "2024/03/15/14/30/data.json"
-		
+
 		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
-		
+
 		expected := time.Date(2024, 3, 15, 14, 30, 0, 0, time.UTC)
 		require.Equal(t, expected, *parsedTime)
 	})
@@ -106,11 +106,11 @@ func TestParseTimeFromPattern(t *testing.T) {
 	t.Run("Go time format - date only", func(t *testing.T) {
 		pattern := "2006/01/02"
 		blobPath := "2024/03/15/data.json"
-		
+
 		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
-		
+
 		expected := time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC)
 		require.Equal(t, expected, *parsedTime)
 	})
@@ -118,11 +118,11 @@ func TestParseTimeFromPattern(t *testing.T) {
 	t.Run("Go time format - with prefix", func(t *testing.T) {
 		pattern := "logs/2006/01/02"
 		blobPath := "logs/2024/03/15/file.json"
-		
+
 		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
-		
+
 		expected := time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC)
 		require.Equal(t, expected, *parsedTime)
 	})
@@ -130,7 +130,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 	t.Run("Go time format - fewer path components in blob", func(t *testing.T) {
 		pattern := "2006/01/02/15"
 		blobPath := "2024/03/15" // Missing hour component
-		
+
 		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
 		require.Error(t, err)
 		require.Nil(t, parsedTime)
@@ -140,7 +140,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 	t.Run("Go time format - invalid time values", func(t *testing.T) {
 		pattern := "2006/01/02"
 		blobPath := "2024/13/45/data.json" // Invalid month and day
-		
+
 		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
 		require.Error(t, err)
 		require.Nil(t, parsedTime)
@@ -149,11 +149,11 @@ func TestParseTimeFromPattern(t *testing.T) {
 	t.Run("Placeholder pattern - special characters in path", func(t *testing.T) {
 		pattern := "data.backup/{year}-{month}-{day}/file.json"
 		blobPath := "data.backup/2024-03-15/file.json"
-		
+
 		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
-		
+
 		expected := time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC)
 		require.Equal(t, expected, *parsedTime)
 	})
