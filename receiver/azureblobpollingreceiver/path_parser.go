@@ -48,14 +48,26 @@ func parseWithPlaceholders(blobPath, pattern string) (*time.Time, error) {
 		"{second}": `(\d{2})`,
 	}
 
-	// Track which placeholders are in the pattern
+	// Track which placeholders are in the pattern, in order
 	placeholders := []string{}
 	regexPattern := regexp.QuoteMeta(pattern)
 
-	for placeholder, regex := range placeholderMap {
-		if strings.Contains(pattern, placeholder) {
-			placeholders = append(placeholders, strings.Trim(placeholder, "{}"))
-			regexPattern = strings.Replace(regexPattern, regexp.QuoteMeta(placeholder), regex, -1)
+	// Find placeholders in order they appear in the pattern
+	for i := 0; i < len(pattern); {
+		if pattern[i] == '{' {
+			// Find the end of the placeholder
+			end := strings.Index(pattern[i:], "}")
+			if end == -1 {
+				break
+			}
+			placeholder := pattern[i : i+end+1]
+			if regex, ok := placeholderMap[placeholder]; ok {
+				placeholders = append(placeholders, strings.Trim(placeholder, "{}"))
+				regexPattern = strings.Replace(regexPattern, regexp.QuoteMeta(placeholder), regex, 1)
+			}
+			i += end + 1
+		} else {
+			i++
 		}
 	}
 
