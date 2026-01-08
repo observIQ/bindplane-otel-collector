@@ -5,7 +5,7 @@ go 1.24.4
 require (
 	github.com/aws/aws-lambda-go v1.51.1
 	github.com/aws/aws-sdk-go-v2 v1.41.0
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.94.0
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.95.0
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.20
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.48.0
