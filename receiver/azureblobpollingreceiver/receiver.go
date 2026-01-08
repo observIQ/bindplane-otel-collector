@@ -240,21 +240,21 @@ func (r *pollingReceiver) pollLoop(ctx context.Context) {
 // runPoll executes a single poll operation with dynamic time window
 func (r *pollingReceiver) runPoll(ctx context.Context) {
 	now := time.Now().UTC()
-	
+
 	// Calculate time window
 	var startingTime, endingTime time.Time
 	if r.checkpoint.LastPollTime.IsZero() {
 		// First poll - use initial lookback
 		startingTime = now.Add(-r.initialLookback)
-		r.logger.Info("First poll, using initial lookback", 
-			zap.Time("starting_time", startingTime), 
+		r.logger.Info("First poll, using initial lookback",
+			zap.Time("starting_time", startingTime),
 			zap.Time("ending_time", now),
 			zap.Duration("lookback", r.initialLookback))
 	} else {
 		// Subsequent polls - use last poll time
 		startingTime = r.checkpoint.LastPollTime
-		r.logger.Debug("Polling with dynamic window", 
-			zap.Time("starting_time", startingTime), 
+		r.logger.Debug("Polling with dynamic window",
+			zap.Time("starting_time", startingTime),
 			zap.Time("ending_time", now))
 	}
 	endingTime = now
@@ -286,15 +286,15 @@ func (r *pollingReceiver) runPoll(ctx context.Context) {
 			r.logger.Info("Context cancelled during poll")
 			return
 		case <-doneChan:
-			r.logger.Info("Poll completed", 
+			r.logger.Info("Poll completed",
 				zap.Int("total_processed", totalProcessed),
 				zap.Int("duration_seconds", int(time.Since(pollStartTime).Seconds())))
-			
+
 			// Update checkpoint with poll time
 			r.mut.Lock()
 			r.checkpoint.UpdatePollTime(endingTime)
 			r.mut.Unlock()
-			
+
 			if err := r.makeCheckpoint(ctx); err != nil {
 				r.logger.Error("Error saving checkpoint after poll", zap.Error(err))
 			}
@@ -304,15 +304,15 @@ func (r *pollingReceiver) runPoll(ctx context.Context) {
 			return
 		case br, ok := <-blobChan:
 			if !ok {
-				r.logger.Info("Poll completed", 
+				r.logger.Info("Poll completed",
 					zap.Int("total_processed", totalProcessed),
 					zap.Int("duration_seconds", int(time.Since(pollStartTime).Seconds())))
-				
+
 				// Update checkpoint with poll time
 				r.mut.Lock()
 				r.checkpoint.UpdatePollTime(endingTime)
 				r.mut.Unlock()
-				
+
 				if err := r.makeCheckpoint(ctx); err != nil {
 					r.logger.Error("Error saving checkpoint after poll", zap.Error(err))
 				}
@@ -328,7 +328,7 @@ func (r *pollingReceiver) runPoll(ctx context.Context) {
 func (r *pollingReceiver) processBlobs(ctx context.Context, blobs []*azureblob.BlobInfo, startingTime, endingTime time.Time) (numProcessedBlobs int) {
 	r.logger.Debug("Received a batch of blobs, parsing through them", zap.Int("num_blobs", len(blobs)))
 	processedBlobCount := atomic.Int64{}
-	
+
 	for _, blob := range blobs {
 		select {
 		case <-ctx.Done():
@@ -404,7 +404,7 @@ func (r *pollingReceiver) processBlobs(ctx context.Context, blobs []*azureblob.B
 					return
 				default:
 				}
-				
+
 				// Process and consume the blob
 				if err := r.processBlob(ctx, blob); err != nil {
 					if !errors.Is(err, context.Canceled) {
