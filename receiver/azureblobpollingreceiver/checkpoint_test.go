@@ -15,6 +15,7 @@
 package azureblobpollingreceiver //import "github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver"
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -109,5 +110,112 @@ func TestPollingCheckpoint(t *testing.T) {
 		cp := NewPollingCheckpoint()
 		err := cp.Unmarshal([]byte{})
 		require.NoError(t, err)
+	})
+
+	t.Run("ShouldParse with entity at same time as LastTs", func(t *testing.T) {
+		cp := NewPollingCheckpoint()
+		now := time.Now().UTC()
+
+		// Update checkpoint with first entity
+		cp.UpdateCheckpoint(now, "blob1")
+
+		// Should not parse same entity at same time
+		require.False(t, cp.ShouldParse(now, "blob1"))
+
+		// Should parse different entity at same time
+		require.True(t, cp.ShouldParse(now, "blob2"))
+	})
+
+	t.Run("ShouldParse with exactly LastTs time", func(t *testing.T) {
+		cp := NewPollingCheckpoint()
+		now := time.Now().UTC()
+
+		// Set LastTs
+		cp.UpdateCheckpoint(now, "blob1")
+
+		// Entity at exactly LastTs time should be processed if not already parsed
+		require.True(t, cp.ShouldParse(now, "blob2"))
+		require.False(t, cp.ShouldParse(now, "blob1"))
+	})
+
+	t.Run("UpdateCheckpoint preserves entities at same time", func(t *testing.T) {
+		cp := NewPollingCheckpoint()
+		now := time.Now().UTC()
+
+		// Add multiple entities at same time
+		cp.UpdateCheckpoint(now, "blob1")
+		cp.UpdateCheckpoint(now, "blob2")
+		cp.UpdateCheckpoint(now, "blob3")
+
+		// All entities should be tracked
+		require.Len(t, cp.ParsedEntities, 3)
+		require.Contains(t, cp.ParsedEntities, "blob1")
+		require.Contains(t, cp.ParsedEntities, "blob2")
+		require.Contains(t, cp.ParsedEntities, "blob3")
+		require.Equal(t, now, cp.LastTs)
+	})
+
+	t.Run("Marshal and Unmarshal with empty ParsedEntities", func(t *testing.T) {
+		cp := NewPollingCheckpoint()
+		now := time.Now().UTC().Truncate(time.Second)
+
+		cp.UpdatePollTime(now)
+		// Don't add any entities
+
+		// Marshal
+		data, err := cp.Marshal()
+		require.NoError(t, err)
+		require.NotEmpty(t, data)
+
+		// Unmarshal
+		cp2 := NewPollingCheckpoint()
+		err = cp2.Unmarshal(data)
+		require.NoError(t, err)
+
+		// Verify
+		require.Equal(t, cp.LastPollTime.Unix(), cp2.LastPollTime.Unix())
+		require.Empty(t, cp2.ParsedEntities)
+	})
+
+	t.Run("Marshal and Unmarshal with many entities", func(t *testing.T) {
+		cp := NewPollingCheckpoint()
+		now := time.Now().UTC().Truncate(time.Second)
+
+		cp.UpdatePollTime(now)
+		// Add many entities
+		for i := 0; i < 100; i++ {
+			blob := fmt.Sprintf("blob%d", i)
+			cp.UpdateCheckpoint(now, blob)
+		}
+
+		// Marshal
+		data, err := cp.Marshal()
+		require.NoError(t, err)
+		require.NotEmpty(t, data)
+
+		// Unmarshal
+		cp2 := NewPollingCheckpoint()
+		err = cp2.Unmarshal(data)
+		require.NoError(t, err)
+
+		// Verify all entities are preserved
+		require.Equal(t, cp.LastPollTime.Unix(), cp2.LastPollTime.Unix())
+		require.Equal(t, cp.LastTs.Unix(), cp2.LastTs.Unix())
+		require.Len(t, cp2.ParsedEntities, 100)
+		require.Equal(t, cp.ParsedEntities, cp2.ParsedEntities)
+	})
+
+	t.Run("Unmarshal invalid JSON", func(t *testing.T) {
+		cp := NewPollingCheckpoint()
+		err := cp.Unmarshal([]byte("invalid json"))
+		require.Error(t, err)
+	})
+
+	t.Run("ShouldParse with zero LastTs", func(t *testing.T) {
+		cp := NewPollingCheckpoint()
+		now := time.Now().UTC()
+
+		// With zero LastTs, any entity with non-zero time should be processed
+		require.True(t, cp.ShouldParse(now, "blob1"))
 	})
 }
