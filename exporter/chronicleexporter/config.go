@@ -21,6 +21,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/expr"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.uber.org/zap"
@@ -36,9 +37,9 @@ const (
 
 // Config defines configuration for the Chronicle exporter.
 type Config struct {
-	TimeoutConfig    exporterhelper.TimeoutConfig    `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct.
-	QueueBatchConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
-	BackOffConfig    configretry.BackOffConfig       `mapstructure:"retry_on_failure"`
+	TimeoutConfig    exporterhelper.TimeoutConfig                             `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct.
+	QueueBatchConfig configoptional.Optional[exporterhelper.QueueBatchConfig] `mapstructure:"sending_queue"`
+	BackOffConfig    configretry.BackOffConfig                                `mapstructure:"retry_on_failure"`
 
 	// Endpoint is the URL where Chronicle data will be sent.
 	Endpoint string `mapstructure:"endpoint"`

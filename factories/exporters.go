@@ -33,7 +33,6 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/awss3exporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/awsxrayexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/azuremonitorexporter"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/carbonexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/clickhouseexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/coralogixexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/datadogexporter"
@@ -69,7 +68,6 @@ var defaultExporters = []exporter.Factory{
 	awsxrayexporter.NewFactory(),
 	azureblobexporter.NewFactory(),
 	azuremonitorexporter.NewFactory(),
-	carbonexporter.NewFactory(),
 	chronicleexporter.NewFactory(),
 	chronicleforwarderexporter.NewFactory(),
 	clickhouseexporter.NewFactory(),

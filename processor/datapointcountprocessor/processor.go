@@ -35,8 +35,8 @@ type metricCountProcessor struct {
 	config    *Config
 	match     *expr.Expression
 	attrs     *expr.ExpressionMap
-	OTTLmatch *expr.OTTLCondition[ottldatapoint.TransformContext]
-	OTTLattrs *expr.OTTLAttributeMap[ottldatapoint.TransformContext]
+	OTTLmatch *expr.OTTLCondition[*ottldatapoint.TransformContext]
+	OTTLattrs *expr.OTTLAttributeMap[*ottldatapoint.TransformContext]
 	counter   *counter.TelemetryCounter
 	consumer  consumer.Metrics
 	logger    *zap.Logger
@@ -65,8 +65,8 @@ func newExprProcessor(config *Config,
 // newOTTLProcessor returns a new processor with OTTL expressions
 func newOTTLProcessor(config *Config,
 	consumer consumer.Metrics,
-	match *expr.OTTLCondition[ottldatapoint.TransformContext],
-	attrs *expr.OTTLAttributeMap[ottldatapoint.TransformContext],
+	match *expr.OTTLCondition[*ottldatapoint.TransformContext],
+	attrs *expr.OTTLAttributeMap[*ottldatapoint.TransformContext],
 	logger *zap.Logger,
 ) *metricCountProcessor {
 	return &metricCountProcessor{
@@ -155,7 +155,7 @@ func (p *metricCountProcessor) consumeMetricsOTTL(ctx context.Context, m pmetric
 			for k := 0; k < metrics.Len(); k++ {
 				metric := metrics.At(k)
 				eachDatapoint(metric, func(dp any) {
-					tCtx := ottldatapoint.NewTransformContext(dp, metric, metrics, scopeMetric.Scope(), resource, scopeMetric, resourceMetric)
+					tCtx := ottldatapoint.NewTransformContextPtr(resourceMetric, scopeMetric, metric, dp)
 					match, err := p.OTTLmatch.Match(ctx, tCtx)
 					if err != nil {
 						p.logger.Error("Error while matching OTTL datapoint", zap.Error(err))
