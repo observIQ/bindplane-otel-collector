@@ -797,19 +797,20 @@ install_package()
   gpg_verify_output=$(verify_package 2>&1)
   gpg_verify_exit_code=$?
   set -e
+
+  if [ -n "$gpg_verify_output" ]; then
+    printf "%s\n" "$gpg_verify_output"
+  fi
   
   if [ $gpg_verify_exit_code -ne 0 ]; then
     increase_indent
-    if [ -n "$gpg_verify_output" ]; then
-      printf "%s\n" "$gpg_verify_output"
-    fi
     printf "\\n${indent}The package signature could not be verified. This may indicate:\n"
     printf "${indent}  - The GPG keys are not properly installed or accessible\n"
     printf "${indent}  - The package has been tampered with\n"
     printf "${indent}  - The signing key has expired or been revoked\n"
     printf "${indent}  - Network issues prevented GPG key retrieval\n"
-    decrease_indent
     error_exit "$LINENO" "Failed to verify package"
+    decrease_indent
   fi
   unpack_package || error_exit "$LINENO" "Failed to extract package"
   succeeded
