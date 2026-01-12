@@ -1,0 +1,24 @@
+name: Validate CODEOWNERS
+
+on:
+  push:
+    paths:
+      - 'CODEOWNERS'
+      - '.github/CODEOWNERS'
+      - 'docs/CODEOWNERS'
+  pull_request:
+    paths:
+      - 'CODEOWNERS'
+      - '.github/CODEOWNERS'
+      - 'docs/CODEOWNERS'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mszostok/codeowners-validator@v0.7.4
+        with:
+          checks: "files,owners,duppatterns,syntax"
+          github_access_token: "${{ secrets.GITHUB_TOKEN }}"
