@@ -215,8 +215,8 @@ jobs:
       - name: Upload build artifacts
         uses: namespace-actions/upload-artifact@v1
         with:
-          name: dist-artifacts
-          path: dist/
+          name: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz
+          path: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz
           retention-days: 1
 
       # Linux package uploads to Google Artifact Registry
