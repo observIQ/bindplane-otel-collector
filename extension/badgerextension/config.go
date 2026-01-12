@@ -24,6 +24,7 @@ type Config struct {
 	Directory             *DirectoryConfig             `mapstructure:"directory,omitempty"`
 	SyncWrites            bool                         `mapstructure:"sync_writes"`
 	Memory                *MemoryConfig                `mapstructure:"memory,omitempty"`
+	Compaction            *CompactionConfig            `mapstructure:"compaction,omitempty"`
 	BlobGarbageCollection *BlobGarbageCollectionConfig `mapstructure:"blob_garbage_collection,omitempty"`
 	Telemetry             *TelemetryConfig             `mapstructure:"telemetry,omitempty"`
 
@@ -47,9 +48,21 @@ type BlobGarbageCollectionConfig struct {
 // MemoryConfig configures the memory parameters for the badger storage extension; this is intended to be used
 // for fine tuning if desired and should be considered an advanced configuration option.
 type MemoryConfig struct {
-	TableSize      int64    `mapstructure:"table_size"`
-	BlockCacheSize int64    `mapstructure:"block_cache_size"`
-	_              struct{} // prevent unkeyed literal initialization
+	TableSize        int64    `mapstructure:"table_size"`
+	BlockCacheSize   int64    `mapstructure:"block_cache_size"`
+	ValueLogFileSize int64    `mapstructure:"value_log_file_size"`
+	_                struct{} // prevent unkeyed literal initialization
+}
+
+// CompactionConfig configures LSM tree compaction behavior for more aggressive cleanup of deleted data.
+type CompactionConfig struct {
+	// NumCompactors is the number of background compaction workers. Higher values = more aggressive compaction.
+	NumCompactors int `mapstructure:"num_compactors"`
+	// NumLevelZeroTables is the number of L0 tables that triggers compaction. Lower values = earlier compaction.
+	NumLevelZeroTables int `mapstructure:"num_level_zero_tables"`
+	// NumLevelZeroTablesStall is the number of L0 tables that stalls writes until compaction catches up.
+	NumLevelZeroTablesStall int      `mapstructure:"num_level_zero_tables_stall"`
+	_                       struct{} // prevent unkeyed literal initialization
 }
 
 // TelemetryConfig configures the telemetry parameters for the badger storage extension
@@ -83,6 +96,21 @@ func (c *Config) Validate() error {
 		}
 		if c.Memory.BlockCacheSize < 0 {
 			return errors.New("memory block cache size must not be negative")
+		}
+		if c.Memory.ValueLogFileSize < 0 {
+			return errors.New("value log file size must not be negative")
+		}
+	}
+
+	if c.Compaction != nil {
+		if c.Compaction.NumCompactors < 0 {
+			return errors.New("number of compactors must not be negative")
+		}
+		if c.Compaction.NumLevelZeroTables < 0 {
+			return errors.New("number of level zero tables must not be negative")
+		}
+		if c.Compaction.NumLevelZeroTablesStall < 0 {
+			return errors.New("number of level zero tables stall must not be negative")
 		}
 	}
 
