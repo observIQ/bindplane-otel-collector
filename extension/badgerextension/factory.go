@@ -38,7 +38,10 @@ func NewFactory() extension.Factory {
 // createDefaultConfig creates a default configuration for the badger storage extension
 func createDefaultConfig() component.Config {
 	return &Config{
-		SyncWrites: false,
+		SyncWrites: true,
+		Directory: &DirectoryConfig{
+			PathPrefix: "badger",
+		},
 		Memory: &MemoryConfig{
 			TableSize:      64 * 1024 * 1024,  // Default: 64MB
 			BlockCacheSize: 256 * 1024 * 1024, // Default: 256MB
@@ -46,6 +49,11 @@ func createDefaultConfig() component.Config {
 		BlobGarbageCollection: &BlobGarbageCollectionConfig{
 			Interval:     5 * time.Minute,
 			DiscardRatio: 0.5,
+		},
+		// Telemetry is disabled by default
+		Telemetry: &TelemetryConfig{
+			Enabled:        false,
+			UpdateInterval: 1 * time.Minute,
 		},
 	}
 }
@@ -56,5 +64,5 @@ func createExtension(_ context.Context, set extension.Settings, cfg component.Co
 	if !ok {
 		return nil, fmt.Errorf("invalid config type: %T", cfg)
 	}
-	return newBadgerExtension(set.Logger, oCfg), nil
+	return newBadgerExtension(set.Logger, oCfg, set.TelemetrySettings, set.ID), nil
 }

@@ -23,7 +23,9 @@ import (
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/consumer/consumererror"
+	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/exportertest"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
@@ -83,7 +85,7 @@ func TestGRPCExporter(t *testing.T) {
 		cfg.Protocol = protocolGRPC
 		cfg.CustomerID = "00000000-1111-2222-3333-444444444444"
 		cfg.LogType = "FAKE"
-		cfg.QueueBatchConfig.Enabled = false
+		cfg.QueueBatchConfig = configoptional.None[exporterhelper.QueueBatchConfig]()
 		cfg.BackOffConfig.Enabled = false
 	}
 
@@ -200,7 +202,7 @@ func TestGRPCJSONCredentialsError(t *testing.T) {
 		cfg.Protocol = protocolGRPC
 		cfg.CustomerID = "00000000-1111-2222-3333-444444444444"
 		cfg.LogType = "FAKE"
-		cfg.QueueBatchConfig.Enabled = false
+		cfg.QueueBatchConfig = configoptional.None[exporterhelper.QueueBatchConfig]()
 		cfg.BackOffConfig.Enabled = false
 	}
 
@@ -240,7 +242,7 @@ func TestGRPCExporterTelemetry(t *testing.T) {
 		cfg.Protocol = protocolGRPC
 		cfg.CustomerID = "00000000-1111-2222-3333-444444444444"
 		cfg.LogType = "FAKE"
-		cfg.QueueBatchConfig.Enabled = false
+		cfg.QueueBatchConfig = configoptional.None[exporterhelper.QueueBatchConfig]()
 		cfg.BackOffConfig.Enabled = false
 	}
 

@@ -53,7 +53,7 @@ func (m *azureLogAnalyticsMarshaler) getRawField(ctx context.Context, field stri
 	if err != nil {
 		return "", fmt.Errorf("raw_log_field is invalid: %s", err)
 	}
-	tCtx := ottllog.NewTransformContext(logRecord, scope.Scope(), resource.Resource(), scope, resource)
+	tCtx := ottllog.NewTransformContextPtr(resource, scope, logRecord)
 
 	lrExprResult, err := lrExpr.Execute(ctx, tCtx)
 	if err != nil {

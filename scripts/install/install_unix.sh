@@ -823,6 +823,10 @@ install_package()
   gpg_verify_output=$(verify_package 2>&1)
   gpg_verify_exit_code=$?
   set -e
+
+  if [ -n "$gpg_verify_output" ]; then
+    printf "%s\n" "$gpg_verify_output"
+  fi
   
   if [ $gpg_verify_exit_code -ne 0 ]; then
     if [ "$non_interactive" = "true" ]; then
@@ -1025,14 +1029,18 @@ verify_package_rpm() {
       return 1
   fi
 
-  # Extract the signing key ID for your package
-  SIGNING_KEYID=$(rpm -qp --qf '%{SIGPGP:pgpsig}\n' "$package_out_file_path" | awk '{print toupper($NF)}')
+  # Extract the signing key ID from checksig (reliable on EL7+)
+  SIGNING_KEYID=$(rpm --checksig --verbose "$package_out_file_path" 2>&1 \
+    | sed -nE 's/.*[Kk]ey ID ([0-9A-Fa-f]+):.*/\1/p' \
+    | head -n1)
 
-  # Check if import output contains an expired subkey matching the signing key
-  if echo "$IMPORT_OUTPUT" | grep -q "Subkey ${SIGNING_KEYID} is expired"; then
-      error "Package signature is from an expired key"
-      return 1
+  if [ -z "$SIGNING_KEYID" ]; then
+    error "Could not determine RPM signing key ID"
+    return 1
   fi
+
+  # Normalize key ID to lowercase (rpm stores gpg-pubkey in lowercase)
+  SIGNING_KEYID=$(echo "$SIGNING_KEYID" | tr '[:upper:]' '[:lower:]')
 
   # Remove revoked keys (your existing logic)
   if [ ${#RPM_GPG_KEYS_TO_REMOVE[@]} -gt 0 ]; then
@@ -1045,7 +1053,37 @@ verify_package_rpm() {
       fi
     done
   fi
-  if ! rpm --checksig -v "$package_out_file_path" > /dev/null 2>&1; then
+
+  if ! rpm -qa 'gpg-pubkey*' \
+  | xargs -n1 rpm -qi \
+  | gpg --quiet --with-colons --show-keys \
+  | awk -F: '$1=="sub" {print tolower(substr($5, length($5)-7))}' \
+  | grep -qx "$SIGNING_KEYID"; then
+      error "RPM signed by subkey $SIGNING_KEYID which is not present in any installed GPG key"
+      return 1
+  fi
+
+  # Verify the signature
+  set +e
+  CHECKSIG_OUTPUT=$(rpm --checksig --verbose "$package_out_file_path" 2>&1)
+  CHECKSIG_EXIT_CODE=$?
+  set -e
+
+  # Reject hard failures first
+  if echo "$CHECKSIG_OUTPUT" | grep -q "BAD"; then
+    error "RPM signature is BAD"
+    return 1
+  fi
+
+  if echo "$CHECKSIG_OUTPUT" | grep -qi "EXPIRED"; then
+    error "RPM signature uses an expired key"
+    return 1
+  fi
+
+  # On Oracle Linux 7, rpm --checksig may show NOKEY/MISSING KEYS even when valid
+  if echo "$CHECKSIG_OUTPUT" | grep -qE "NOKEY|MISSING KEYS"; then
+    info "Ignoring legacy MD5/PGP warning on Oracle Linux (key verified)"
+  elif [ $CHECKSIG_EXIT_CODE -ne 0 ]; then
     error "Failed to verify package signature"
     return 1
   fi

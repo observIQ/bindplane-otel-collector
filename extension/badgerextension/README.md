@@ -4,14 +4,17 @@ The Badger Extension provides persistent storage for OpenTelemetry Collector com
 
 ## Configuration
 
-| Field                         | Type     | Default | Required | Description                                                                                       |
-| ----------------------------- | -------- | ------- | -------- | ------------------------------------------------------------------------------------------------- |
-| directory.path                | string   |         | `true`   | Directory path where BadgerDB files will be stored. Each component gets a subdirectory.           |
-| sync_writes                   | bool     | `false` | `false`  | Whether to sync writes to disk immediately. `false` survives process crashes via mmap.            |
-| memory.table_size             | int64    | 67108864 (64MB) | `false`  | Size of each memtable in bytes. Larger values improve write performance but use more memory.     |
-| memory.block_cache_size       | int64    | 268435456 (256MB) | `false`  | Size of block cache in bytes. Larger values improve read performance but use more memory.        |
-| blob_garbage_collection.interval | duration | 5m      | `false`  | Interval at which garbage collection runs on value logs. Set to 0 to disable.                    |
-| blob_garbage_collection.discard_ratio | float | 0.5    | `false`  | Fraction of invalid data in a value log file to trigger GC. Must be between 0 and 1.             |
+| Field                                 | Type     | Default           | Required | Description                                                                                  |
+| ------------------------------------- | -------- | ----------------- | -------- | -------------------------------------------------------------------------------------------- |
+| directory.path                        | string   |                   | `true`   | Directory path where BadgerDB files will be stored. Each component gets a subdirectory.      |
+| directory.path_prefix                 | string   | `badger`          | `false`  | Optional prefix added to component directory names. Prevents naming collisions when multiple storage extensions share the same directory. Set to empty string to disable. |
+| sync_writes                           | bool     | `true`           | `false`  | Whether to sync writes to disk immediately. `false` survives process crashes via mmap.       |
+| memory.table_size                     | int64    | 67108864 (64MB)   | `false`  | Size of each memtable in bytes. Larger values improve write performance but use more memory. |
+| memory.block_cache_size               | int64    | 268435456 (256MB) | `false`  | Size of block cache in bytes. Larger values improve read performance but use more memory.    |
+| blob_garbage_collection.interval      | duration | 5m                | `false`  | Interval at which garbage collection runs on value logs. Set to 0 to disable.                |
+| blob_garbage_collection.discard_ratio | float    | 0.5               | `false`  | Fraction of invalid data in a value log file to trigger GC. Must be between 0 and 1.         |
+| telemetry.enabled                     | bool     | `false`           | `false`  | Whether to enable telemetry collection for the badger extension.                             |
+| telemetry.update_interval             | duration | `1m`              | `false`  | The interval at which to update the telemetry metrics.                                       |
 
 ## Example Configuration
 
@@ -66,6 +69,9 @@ extensions:
     blob_garbage_collection:
       interval: 10m
       discard_ratio: 0.6
+    telemetry:
+      enabled: true
+      update_interval: 30s
 
 exporters:
   otlp:
@@ -85,14 +91,34 @@ service:
 Each component that uses the badger extension gets an isolated database instance at:
 
 ```
+{directory.path}/{path_prefix}_{kind}_{type}_{component_name}_{name}/
+```
+
+When `directory.path_prefix` is not set or is empty, the format becomes:
+
+```
 {directory.path}/{kind}_{type}_{component_name}_{name}/
 ```
 
-For example, with `directory.path: $OIQ_OTEL_COLLECTOR_STORAGE`:
+For example, with `directory.path: $OIQ_OTEL_COLLECTOR_STORAGE` and default prefix:
 
 ```
-$OIQ_OTEL_COLLECTOR_STORAGE/processor_batch_default/
-$OIQ_OTEL_COLLECTOR_STORAGE/exporter_otlp_backup/
+$OIQ_OTEL_COLLECTOR_STORAGE/badger_processor_batch_default/
+$OIQ_OTEL_COLLECTOR_STORAGE/badger_exporter_otlp_backup/
 ```
 
-This ensures components cannot interfere with each other's data.
+When sharing a storage directory with other extensions, the prefix prevents naming collisions:
+
+```yaml
+extensions:
+  badger:
+    directory:
+      path: /var/lib/otelcol/storage
+      path_prefix: badger
+  pebble:
+    directory:
+      path: /var/lib/otelcol/storage
+      path_prefix: pebble
+```
+
+This ensures components cannot interfere with each other's data, even when using multiple storage backends in the same directory.

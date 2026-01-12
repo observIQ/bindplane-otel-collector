@@ -32,8 +32,10 @@ func TestCreateDefaultConfig(t *testing.T) {
 	require.True(t, ok, "config should be of type *Config")
 
 	// Verify default values
-	require.False(t, badgerCfg.SyncWrites)
-	require.Nil(t, badgerCfg.Directory)
+	require.True(t, badgerCfg.SyncWrites)
+	require.NotNil(t, badgerCfg.Directory)
+	require.Empty(t, badgerCfg.Directory.Path)
+	require.Equal(t, "badger", badgerCfg.Directory.PathPrefix)
 
 	require.NotNil(t, badgerCfg.Memory)
 	require.Equal(t, int64(64*1024*1024), badgerCfg.Memory.TableSize)
@@ -42,4 +44,8 @@ func TestCreateDefaultConfig(t *testing.T) {
 	require.NotNil(t, badgerCfg.BlobGarbageCollection)
 	require.Equal(t, 5*time.Minute, badgerCfg.BlobGarbageCollection.Interval)
 	require.Equal(t, 0.5, badgerCfg.BlobGarbageCollection.DiscardRatio)
+
+	require.NotNil(t, badgerCfg.Telemetry)
+	require.False(t, badgerCfg.Telemetry.Enabled)
+	require.Equal(t, 1*time.Minute, badgerCfg.Telemetry.UpdateInterval)
 }

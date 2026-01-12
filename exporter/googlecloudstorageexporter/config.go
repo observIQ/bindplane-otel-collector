@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
@@ -74,7 +75,7 @@ type Config struct {
 	TimeoutConfig exporterhelper.TimeoutConfig `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct.
 
 	// QueueConfig defines the queuing behavior for the exporter.
-	QueueConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
+	QueueConfig configoptional.Optional[exporterhelper.QueueBatchConfig] `mapstructure:"sending_queue"`
 
 	// BackOffConfig defines the retry behavior for failed operations.
 	BackOffConfig configretry.BackOffConfig `mapstructure:"retry_on_failure"`

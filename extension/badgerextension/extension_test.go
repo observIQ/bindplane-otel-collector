@@ -25,9 +25,12 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/component/componenttest"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
 )
+
+var testID = component.MustNewID("badger")
 
 func TestNewBadgerExtension(t *testing.T) {
 	logger := zap.NewNop()
@@ -37,14 +40,14 @@ func TestNewBadgerExtension(t *testing.T) {
 		},
 	}
 
-	ext := newBadgerExtension(logger, cfg)
+	ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID)
 	require.NotNil(t, ext)
 
 	badgerExt, ok := ext.(*badgerExtension)
 	require.True(t, ok)
-	assert.Equal(t, logger, badgerExt.logger)
-	assert.Equal(t, cfg, badgerExt.cfg)
-	assert.NotNil(t, badgerExt.clients)
+	require.Equal(t, logger, badgerExt.logger)
+	require.Equal(t, cfg, badgerExt.cfg)
+	require.NotNil(t, badgerExt.clients)
 	assert.Empty(t, badgerExt.clients)
 }
 
@@ -57,7 +60,7 @@ func TestBadgerExtension_GetClient(t *testing.T) {
 			},
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 
 		client, err := ext.GetClient(
 			context.Background(),
@@ -84,7 +87,7 @@ func TestBadgerExtension_GetClient(t *testing.T) {
 			},
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 
 		client, err := ext.GetClient(
 			context.Background(),
@@ -111,7 +114,7 @@ func TestBadgerExtension_GetClient(t *testing.T) {
 			},
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 
 		// Get client first time
 		client1, err := ext.GetClient(
@@ -150,7 +153,7 @@ func TestBadgerExtension_GetClient(t *testing.T) {
 			},
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 
 		client1, err := ext.GetClient(
 			context.Background(),
@@ -186,7 +189,7 @@ func TestBadgerExtension_GetClient(t *testing.T) {
 			},
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 
 		client, err := ext.GetClient(
 			context.Background(),
@@ -216,7 +219,7 @@ func TestBadgerExtension_Start(t *testing.T) {
 			BlobGarbageCollection: nil,
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 
 		err := ext.Start(context.Background(), nil)
 		require.NoError(t, err)
@@ -241,7 +244,7 @@ func TestBadgerExtension_Start(t *testing.T) {
 			},
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 
 		err := ext.Start(context.Background(), nil)
 		require.NoError(t, err)
@@ -264,7 +267,7 @@ func TestBadgerExtension_Shutdown(t *testing.T) {
 			},
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 
 		err := ext.Shutdown(context.Background())
 		require.NoError(t, err)
@@ -278,7 +281,7 @@ func TestBadgerExtension_Shutdown(t *testing.T) {
 			},
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 
 		// Create some clients
 		_, err := ext.GetClient(
@@ -315,7 +318,7 @@ func TestBadgerExtension_Shutdown(t *testing.T) {
 			},
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 
 		err := ext.Start(context.Background(), nil)
 		require.NoError(t, err)
@@ -333,7 +336,7 @@ func TestBadgerExtension_Shutdown(t *testing.T) {
 			},
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 
 		// Inject a mock client that returns an error on Close
 		mockClient := mocks.NewClient(t)
@@ -360,7 +363,7 @@ func TestBadgerExtension_GarbageCollection(t *testing.T) {
 			},
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 
 		// Create a client first
 		client, err := ext.GetClient(
@@ -403,7 +406,7 @@ func TestBadgerExtension_GarbageCollection(t *testing.T) {
 			},
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 
 		// Inject a mock client that returns an error on RunValueLogGC
 		mockClient := mocks.NewClient(t)
@@ -443,7 +446,7 @@ func TestBadgerExtension_ClientOptions(t *testing.T) {
 			SyncWrites: false,
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 		opts := ext.clientOptions()
 
 		assert.False(t, opts.SyncWrites)
@@ -458,10 +461,70 @@ func TestBadgerExtension_ClientOptions(t *testing.T) {
 			SyncWrites: true,
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 		opts := ext.clientOptions()
 
 		assert.True(t, opts.SyncWrites)
+	})
+}
+
+func TestBadgerExtension_PathPrefix(t *testing.T) {
+	t.Run("applies path prefix to client names", func(t *testing.T) {
+		logger := zap.NewNop()
+		cfg := &Config{
+			Directory: &DirectoryConfig{
+				Path:       t.TempDir(),
+				PathPrefix: "badger",
+			},
+		}
+
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
+
+		client, err := ext.GetClient(
+			context.Background(),
+			component.KindExporter,
+			component.MustNewID("otlp"),
+			"logs",
+		)
+		require.NoError(t, err)
+		require.NotNil(t, client)
+
+		// Verify that the client is stored with the prefixed key
+		assert.Len(t, ext.clients, 1)
+		for key := range ext.clients {
+			assert.Contains(t, key, "badger_")
+		}
+
+		err = ext.Shutdown(context.Background())
+		require.NoError(t, err)
+	})
+
+	t.Run("empty path prefix works without prefix", func(t *testing.T) {
+		logger := zap.NewNop()
+		cfg := &Config{
+			Directory: &DirectoryConfig{
+				Path:       t.TempDir(),
+				PathPrefix: "",
+			},
+		}
+		require.NoError(t, cfg.Validate())
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
+
+		client, err := ext.GetClient(
+			context.Background(),
+			component.KindExporter,
+			component.MustNewID("otlp"),
+			"logs",
+		)
+		require.NoError(t, err)
+		require.NotNil(t, client)
+
+		// With empty prefix, the key should not have underscore prefix pattern
+		assert.Len(t, ext.clients, 1)
+
+		// Cleanup
+		err = ext.Shutdown(context.Background())
+		require.NoError(t, err)
 	})
 }
 
@@ -520,7 +583,7 @@ func TestBadgerExtension_FullLifecycle(t *testing.T) {
 			},
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 
 		// Start
 		err := ext.Start(context.Background(), nil)
@@ -569,7 +632,7 @@ func TestBadgerExtension_FullLifecycle(t *testing.T) {
 			},
 		}
 
-		ext := newBadgerExtension(logger, cfg).(*badgerExtension)
+		ext := newBadgerExtension(logger, cfg, componenttest.NewNopTelemetrySettings(), testID).(*badgerExtension)
 
 		// Start
 		err := ext.Start(context.Background(), nil)
