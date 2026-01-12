@@ -660,11 +660,6 @@ offline_check()
   if [ -n "$package_path" ] && [ -n "$gpg_tar_path" ]; then
     offline_installation=true
   fi
-
-  # Validate that --no-gpg-check is not used with offline installation requiring GPG verification
-  if [ "$skip_gpg_check" = "true" ] && [ "$offline_installation" = "true" ]; then
-    warn "--no-gpg-check will skip GPG verification even when using local files with --gpg-tar-file"
-  fi
 }
 
 # This will check if the operating system is supported.
