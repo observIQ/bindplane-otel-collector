@@ -188,7 +188,6 @@ jobs:
       - name: Create artifact archive
         run: |
           mkdir artifacts
-          mkdir artifacts/gpg
           cp ./scripts/install/*.sh ./artifacts
           cp ./release_deps/gpg-keys.tar.gz ./artifacts/gpg-keys.tar.gz
           cp ./observiq-otel-collector.msi/observiq-otel-collector.msi ./artifacts
