@@ -263,21 +263,65 @@ func (r *pollingReceiver) runPoll(ctx context.Context) {
 	r.lastBlob = nil
 	r.lastBlobTime = nil
 
-	var prefix *string
 	// Create fresh channels for this poll to avoid closing already-closed channels
 	blobChan := make(chan []*azureblob.BlobInfo)
 	errChan := make(chan error)
 	doneChan := make(chan struct{})
 
-	if r.cfg.RootFolder != "" {
-		prefix = &r.cfg.RootFolder
-	}
-
 	pollStartTime := time.Now()
 	r.logger.Info("Starting poll", zap.Time("poll_time", pollStartTime))
 
+	// Determine prefixes to poll
+	var prefixes []*string
+	if r.cfg.UseTimePatternAsPrefix && r.cfg.TimePattern != "" {
+		// Generate prefixes based on time window
+		generated, err := GenerateTimePrefixes(startingTime, endingTime, r.cfg.TimePattern, r.cfg.RootFolder)
+		if err != nil {
+			r.logger.Error("Failed to generate time prefixes, falling back to root folder", zap.Error(err))
+			if r.cfg.RootFolder != "" {
+				prefixes = []*string{&r.cfg.RootFolder}
+			} else {
+				prefixes = []*string{nil}
+			}
+		} else {
+			for _, p := range generated {
+				s := p
+				prefixes = append(prefixes, &s)
+			}
+		}
+	} else {
+		if r.cfg.RootFolder != "" {
+			prefixes = []*string{&r.cfg.RootFolder}
+		} else {
+			prefixes = []*string{nil}
+		}
+	}
+
 	// Stream blobs in a goroutine
-	go r.azureClient.StreamBlobs(ctx, r.cfg.Container, prefix, errChan, blobChan, doneChan)
+	go func() {
+		defer close(doneChan)
+		for _, prefix := range prefixes {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			r.logger.Debug("Polling with prefix", zap.Stringp("prefix", prefix))
+
+			// StreamBlobs closes the done channel passed to it, so we create a fresh one
+			stepDone := make(chan struct{})
+			r.azureClient.StreamBlobs(ctx, r.cfg.Container, prefix, errChan, blobChan, stepDone)
+
+			// Wait for this step to complete
+			select {
+			case <-ctx.Done():
+				return
+			case <-stepDone:
+				// Continue
+			}
+		}
+	}()
 
 	totalProcessed := 0
 	for {

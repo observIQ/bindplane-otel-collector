@@ -71,6 +71,11 @@ type Config struct {
 	// If not specified, uses the default year=YYYY/month=MM/... format
 	TimePattern string `mapstructure:"time_pattern"`
 
+	// UseTimePatternAsPrefix tells the receiver to use the time_pattern to generate
+	// prefixes for the Azure API calls. This is an optimization to reduce the number of
+	// blobs scanned. It limits the prefix generation to the hour.
+	UseTimePatternAsPrefix bool `mapstructure:"use_time_pattern_as_prefix"`
+
 	// TelemetryType explicitly sets the telemetry type ("logs", "metrics", or "traces")
 	// Required when using time_pattern, as the receiver can't infer type from the path
 	// If not set, falls back to the pipeline type the receiver is configured in
@@ -117,8 +122,12 @@ func (c *Config) Validate() error {
 	}
 
 	// Validate use_last_modified and time_pattern are not both set
-	if c.UseLastModified && c.TimePattern != "" {
+	if c.UseLastModified && c.TimePattern != "" && !c.UseTimePatternAsPrefix {
 		return errors.New("use_last_modified and time_pattern cannot both be set")
+	}
+
+	if c.UseTimePatternAsPrefix && c.TimePattern == "" {
+		return errors.New("time_pattern must be set when use_time_pattern_as_prefix is true")
 	}
 
 	// Validate telemetry_type if set
