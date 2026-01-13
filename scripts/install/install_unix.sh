@@ -51,6 +51,7 @@ INDENT_WIDTH='  '
 indent=""
 non_interactive=false
 error_mode=false
+skip_gpg_check=false
 
 # package_out_file_path is the full path to the downloaded package (e.g. "/tmp/observiq-otel-collector_linux_amd64.deb")
 package_out_file_path="unknown"
@@ -279,8 +280,22 @@ Usage:
 
     This parameter will have the script check access to Bindplane based on the provided '--endpoint'
 
+  $(fg_yellow '--no-gpg-check')
+      Skips GPG signature verification of the package. When using this flag, the
+      package signature will not be verified. This should only be used in trusted
+      or offline environments where the package authenticity has been verified
+      through other means.
+      
+      This option is incompatible with '--gpg-tar-file' and will cause the script
+      to exit with an error if both are specified.
+
   $(fg_yellow '-q, --quiet')
-    Use quiet (non-interactive) mode to run the script in headless environments
+    Use quiet (non-interactive) mode to run the script in headless environments.
+    
+    Note: If a GPG signature verification failure occurs during installation and
+    '--no-gpg-check' was not specified, the script will exit immediately without
+    prompting the user to continue. For interactive handling of verification
+    failures, do not use the '--quiet' flag.
 
 EOF
   )
@@ -614,6 +629,12 @@ root_check()
 # Test non-interactive mode compatibility
 interactive_check()
 {
+  # Incompatible with --no-gpg-check and --gpg-tar-file
+  if [ "$skip_gpg_check" = "true" ] && [ -n "$gpg_tar_path" ]; then
+    failed
+    error_exit "$LINENO" "--no-gpg-check is incompatible with '--gpg-tar-file'. These options cannot be used together."
+  fi
+
   # Incompatible with proxies unless both username and password are passed
   if [ "$non_interactive" = "true" ] && [ -n "$proxy_password" ]
   then 
@@ -790,7 +811,7 @@ install_package()
     dpkg -s "observiq-otel-collector" > /dev/null 2>&1 && dpkg --purge "observiq-otel-collector" > /dev/null 2>&1
   fi
 
-  # Verify the package signature and display detailed error information on failure
+  # Verify the package signature, with optional user override on failure
   # Capture GPG verification output to display failure details
   # Temporarily disable set -e to allow capture of failing command output
   set +e
@@ -803,14 +824,48 @@ install_package()
   fi
   
   if [ $gpg_verify_exit_code -ne 0 ]; then
-    increase_indent
-    printf "\\n${indent}The package signature could not be verified. This may indicate:\n"
-    printf "${indent}  - The GPG keys are not properly installed or accessible\n"
-    printf "${indent}  - The package has been tampered with\n"
-    printf "${indent}  - The signing key has expired or been revoked\n"
-    printf "${indent}  - Network issues prevented GPG key retrieval\n"
-    error_exit "$LINENO" "Failed to verify package"
-    decrease_indent
+    if [ "$non_interactive" = "true" ]; then
+      # In quiet mode, fail immediately on GPG verification failure
+      if [ -n "$gpg_verify_output" ]; then
+        increase_indent
+        printf "%s\n" "$gpg_verify_output"
+        decrease_indent
+      fi
+      error_exit "$LINENO" "Failed to verify package signature. Use '--no-gpg-check' to skip verification."
+    else
+      # In interactive mode, show verification output, prompt the user, and explain failure
+      if [ -n "$gpg_verify_output" ]; then
+        increase_indent
+        printf "%s\n" "$gpg_verify_output"
+        decrease_indent
+      fi
+      
+      increase_indent
+      printf "\\n${indent}The package signature could not be verified. This may indicate:\n"
+      printf "${indent}  - The GPG keys are not properly installed or accessible\n"
+      printf "${indent}  - The package has been tampered with\n"
+      printf "${indent}  - The signing key has expired or been revoked\n"
+      printf "${indent}  - Network issues prevented GPG key retrieval\n"
+      printf "\\n${indent}$(fg_yellow 'Continuing without signature verification is NOT RECOMMENDED unless you have independently verified the package authenticity.')\\n\\n"
+      decrease_indent
+      
+      command printf "${indent}Do you wish to continue installation without GPG verification? "
+      prompt "n"
+      read -r gpg_override_input
+      printf "\\n"
+      
+      if [ "$gpg_override_input" != "y" ] && [ "$gpg_override_input" != "Y" ]; then
+        if [ -n "$gpg_verify_output" ]; then
+          increase_indent
+          error "Verification failed due to:"
+          printf "%s\n" "$gpg_verify_output"
+          decrease_indent
+        fi
+        error_exit "$LINENO" "Installation aborted due to GPG verification failure."
+      fi
+      
+      warn "Continuing installation without GPG verification. Ensure package authenticity has been verified through other means."
+    fi
   fi
   unpack_package || error_exit "$LINENO" "Failed to extract package"
   succeeded
@@ -858,6 +913,13 @@ install_package()
 }
 
 verify_package() {
+  # If GPG check is skipped, return success immediately
+  if [ "$skip_gpg_check" = "true" ]; then
+    warn "GPG signature verification is being bypassed with the '--no-gpg-check' flag."
+    warn "This disables a critical security check and should only be used if your organization policies permit it."
+    return 0
+  fi
+
   [ -d "$TMP_DIR/gpg" ] && rm -rf "$TMP_DIR/gpg"
   mkdir -p "$TMP_DIR/gpg"
 
@@ -1195,6 +1257,8 @@ main()
           check_bp_url="true" ; shift 1 ;;
         -b|--base-url)
           base_url=$2 ; shift 2 ;;
+        --no-gpg-check)
+          skip_gpg_check="true" ; shift 1 ;;
         -r|--uninstall)
           uninstall
           exit 0
