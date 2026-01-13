@@ -85,8 +85,8 @@ archives:
       - src: release_deps/com.observiq.collector.plist
         dst: "install"
         strip_parent: true
-      - src: release_deps/gpg/*
-        dst: gpg
+      - src: release_deps/gpg-keys.tar.gz
+        dst: "."
         strip_parent: true
 
 nfpms:
