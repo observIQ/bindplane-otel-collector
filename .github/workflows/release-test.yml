@@ -191,11 +191,8 @@ jobs:
       - name: Create artifact archive
         run: |
           mkdir artifacts
-          mkdir artifacts/gpg
           cp ./scripts/install/*.sh ./artifacts
-          cp ./release_deps/gpg/bdot-public-gpg-key.asc ./artifacts/gpg/bdot-public-gpg-key.asc
-          cp ./release_deps/gpg/rpm-revocations.txt ./artifacts/gpg/rpm-revocations.txt
-          cp -r ./release_deps/gpg/deb-revocations ./artifacts/gpg/deb-revocations
+          cp ./release_deps/gpg-keys.tar.gz ./artifacts/gpg-keys.tar.gz
           cp ./observiq-otel-collector.msi/observiq-otel-collector.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
           cp ./windows-archive/windows_amd64/*.zip ./artifacts
@@ -218,8 +215,8 @@ jobs:
       - name: Upload build artifacts
         uses: namespace-actions/upload-artifact@v1
         with:
-          name: dist-artifacts
-          path: dist/
+          name: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz
+          path: observiq-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz
           retention-days: 1
 
       # Linux package uploads to Google Artifact Registry
