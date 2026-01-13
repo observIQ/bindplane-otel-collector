@@ -395,14 +395,14 @@ func setupBenchmarkClientWithCompaction(b testing.TB, syncWrites bool, numCompac
 // This demonstrates the throughput vs disk cleanup trade-off
 func BenchmarkCompactionSettings(b *testing.B) {
 	benchmarks := []struct {
-		name                     string
-		numCompactors            int
-		numLevelZeroTables       int
-		numLevelZeroTablesStall  int
-		numKeys                  int
-		valueSize                int
-		deleteRatio              float64 // fraction of operations that are deletes
-		description              string
+		name                    string
+		numCompactors           int
+		numLevelZeroTables      int
+		numLevelZeroTablesStall int
+		numKeys                 int
+		valueSize               int
+		deleteRatio             float64 // fraction of operations that are deletes
+		description             string
 	}{
 		{
 			"Default_8_Compactors_L0_3",
