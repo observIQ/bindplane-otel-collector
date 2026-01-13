@@ -250,6 +250,8 @@ func (c *client) Close(ctx context.Context) error {
 	}
 }
 
+// RunValueLogGC runs the value log garbage collection
+// its in an infinite loop to ensure that all value logs are garbage collected
 func (c *client) RunValueLogGC(discardRatio float64) error {
 	for {
 		err := c.db.RunValueLogGC(discardRatio)
