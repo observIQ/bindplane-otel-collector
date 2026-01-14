@@ -30,7 +30,7 @@ func TestNewClient(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		require.NotNil(t, c)
 
@@ -44,7 +44,7 @@ func TestNewClient(t *testing.T) {
 
 		c, err := NewClient(path, &Options{
 			SyncWrites: true,
-		})
+		}, zap.NewNop())
 		require.NoError(t, err)
 		require.NotNil(t, c)
 
@@ -58,7 +58,7 @@ func TestNewClient(t *testing.T) {
 
 		c, err := NewClient(path, &Options{
 			MemTableSize: 16 << 20, // 16MB
-		})
+		}, zap.NewNop())
 		require.NoError(t, err)
 		require.NotNil(t, c)
 
@@ -72,7 +72,7 @@ func TestNewClient(t *testing.T) {
 
 		c, err := NewClient(path, &Options{
 			BlockCacheSize: 32 << 20, // 32MB
-		})
+		}, zap.NewNop())
 		require.NoError(t, err)
 		require.NotNil(t, c)
 
@@ -88,7 +88,7 @@ func TestNewClient(t *testing.T) {
 			SyncWrites:     true,
 			MemTableSize:   16 << 20,
 			BlockCacheSize: 32 << 20,
-		})
+		}, zap.NewNop())
 		require.NoError(t, err)
 		require.NotNil(t, c)
 
@@ -102,7 +102,7 @@ func TestClient_Get(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		defer func() { _ = c.Close(context.Background()) }()
 
@@ -115,7 +115,7 @@ func TestClient_Get(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		defer func() { _ = c.Close(context.Background()) }()
 
@@ -135,7 +135,7 @@ func TestClient_Set(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		defer func() { _ = c.Close(context.Background()) }()
 
@@ -152,7 +152,7 @@ func TestClient_Set(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		defer func() { _ = c.Close(context.Background()) }()
 
@@ -171,7 +171,7 @@ func TestClient_Set(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		defer func() { _ = c.Close(context.Background()) }()
 
@@ -189,7 +189,7 @@ func TestClient_Delete(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		defer func() { _ = c.Close(context.Background()) }()
 
@@ -216,7 +216,7 @@ func TestClient_Delete(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		defer func() { _ = c.Close(context.Background()) }()
 
@@ -231,7 +231,7 @@ func TestClient_Batch(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		defer func() { _ = c.Close(context.Background()) }()
 
@@ -256,7 +256,7 @@ func TestClient_Batch(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		defer func() { _ = c.Close(context.Background()) }()
 
@@ -282,7 +282,7 @@ func TestClient_Batch(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		defer func() { _ = c.Close(context.Background()) }()
 
@@ -314,7 +314,7 @@ func TestClient_Batch(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		defer func() { _ = c.Close(context.Background()) }()
 
@@ -351,7 +351,7 @@ func TestClient_Batch(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		defer func() { _ = c.Close(context.Background()) }()
 
@@ -368,7 +368,7 @@ func TestClient_Batch(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		defer func() { _ = c.Close(context.Background()) }()
 
@@ -380,7 +380,7 @@ func TestClient_Batch(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		defer func() { _ = c.Close(context.Background()) }()
 
@@ -406,7 +406,7 @@ func TestClient_Close(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 
 		err = c.Close(context.Background())
@@ -419,7 +419,7 @@ func TestClient_RunValueLogGC(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.db")
 
-		c, err := NewClient(path, &Options{})
+		c, err := NewClient(path, &Options{}, zap.NewNop())
 		require.NoError(t, err)
 		defer func() { _ = c.Close(context.Background()) }()
 
@@ -501,7 +501,7 @@ func TestClientInterface(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.db")
 
-	c, err := NewClient(path, &Options{})
+	c, err := NewClient(path, &Options{}, zap.NewNop())
 	require.NoError(t, err)
 	defer func() { _ = c.Close(context.Background()) }()
 

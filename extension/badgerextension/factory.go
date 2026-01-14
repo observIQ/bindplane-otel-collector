@@ -47,13 +47,17 @@ func createDefaultConfig() component.Config {
 			BlockCacheSize: 256 * 1024 * 1024, // Default: 256MB
 		},
 		BlobGarbageCollection: &BlobGarbageCollectionConfig{
-			Interval:     5 * time.Minute,
-			DiscardRatio: 0.5,
+			Interval:     3 * time.Minute,
+			DiscardRatio: 0.3,
 		},
 		// Telemetry is disabled by default
 		Telemetry: &TelemetryConfig{
 			Enabled:        false,
 			UpdateInterval: 1 * time.Minute,
+		},
+		Compaction: &CompactionConfig{
+			NumCompactors:      12,
+			NumLevelZeroTables: 2,
 		},
 	}
 }

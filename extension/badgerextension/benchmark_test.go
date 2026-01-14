@@ -21,6 +21,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/extension/badgerextension/internal/client"
 	"go.opentelemetry.io/collector/extension/xextension/storage"
+	"go.uber.org/zap"
 )
 
 // setupBenchmarkClient creates a temporary badger client for benchmarking
@@ -29,7 +30,7 @@ func setupBenchmarkClient(b testing.TB, syncWrites bool) (client.Client, func())
 
 	dir := b.TempDir()
 
-	c, err := client.NewClient(dir, &client.Options{SyncWrites: syncWrites})
+	c, err := client.NewClient(dir, &client.Options{SyncWrites: syncWrites}, zap.NewNop())
 	if err != nil {
 		b.Fatalf("failed to create client: %v", err)
 	}
@@ -360,6 +361,144 @@ func BenchmarkValueLogGC(b *testing.B) {
 				}
 			}
 			b.StopTimer()
+		})
+	}
+}
+
+// setupBenchmarkClientWithCompaction creates a badger client with custom compaction settings
+func setupBenchmarkClientWithCompaction(b testing.TB, syncWrites bool, numCompactors int, numLevelZeroTables int, numLevelZeroTablesStall int) (client.Client, func()) {
+	b.Helper()
+
+	dir := b.TempDir()
+
+	opts := &client.Options{
+		SyncWrites:              syncWrites,
+		NumCompactors:           numCompactors,
+		NumLevelZeroTables:      numLevelZeroTables,
+		NumLevelZeroTablesStall: numLevelZeroTablesStall,
+	}
+	c, err := client.NewClient(dir, opts, zap.NewNop())
+	if err != nil {
+		b.Fatalf("failed to create client: %v", err)
+	}
+
+	cleanup := func() {
+		if err := c.Close(b.Context()); err != nil {
+			b.Errorf("failed to close client: %v", err)
+		}
+	}
+
+	return c, cleanup
+}
+
+// BenchmarkCompactionSettings benchmarks mixed workload performance with different compaction configurations
+// This demonstrates the throughput vs disk cleanup trade-off
+func BenchmarkCompactionSettings(b *testing.B) {
+	benchmarks := []struct {
+		name                    string
+		numCompactors           int
+		numLevelZeroTables      int
+		numLevelZeroTablesStall int
+		numKeys                 int
+		valueSize               int
+		deleteRatio             float64 // fraction of operations that are deletes
+		description             string
+	}{
+		{
+			"Default_8_Compactors_L0_3",
+			8, 3, 8, 50000, 1024, 0.3,
+			"Default: 8 compactors, L0 triggers at 3",
+		},
+		{
+			"Aggressive_8_Compactors_L0_2",
+			8, 2, 8, 50000, 1024, 0.3,
+			"More aggressive: Compact sooner (L0=2), same parallelism",
+		},
+		{
+			"Conservative_4_Compactors_L0_3",
+			4, 3, 8, 50000, 1024, 0.3,
+			"Conservative: Fewer workers (4 compactors)",
+		},
+		{
+			"HighThroughput_16_Compactors_L0_3",
+			16, 3, 16, 50000, 1024, 0.3,
+			"High throughput: More workers (16 compactors)",
+		},
+		{
+			"Balanced_12_Compactors_L0_2",
+			12, 2, 12, 50000, 1024, 0.3,
+			"Balanced: 12 compactors, earlier compaction (L0=2)",
+		},
+		{
+			"HeavyDeletes_12_Compactors_L0_2",
+			12, 2, 12, 50000, 1024, 0.5,
+			"Queue workload: 12 compactors, L0=2, 50% deletes",
+		},
+	}
+
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func(b *testing.B) {
+			c, cleanup := setupBenchmarkClientWithCompaction(b, false, bm.numCompactors, bm.numLevelZeroTables, bm.numLevelZeroTablesStall)
+			defer cleanup()
+
+			ctx := context.Background()
+			value := generateRandomBytes(bm.valueSize)
+
+			// Populate with initial data
+			for i := 0; i < bm.numKeys; i++ {
+				key := fmt.Sprintf("key_%d", i)
+				if err := c.Set(ctx, key, value); err != nil {
+					b.Fatalf("failed to set: %v", err)
+				}
+			}
+
+			// Get initial disk usage before benchmark
+			initialDiskUsage, err := c.GetDiskUsage()
+			if err != nil {
+				b.Fatalf("failed to get initial disk usage: %v", err)
+			}
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			// Mixed read/write/delete workload
+			deleteCount := 0
+			for i := 0; i < b.N; i++ {
+				keyIdx := i % bm.numKeys
+				key := fmt.Sprintf("key_%d", keyIdx)
+
+				// Simulate delete vs set based on ratio
+				if float64(i%100)/100.0 < bm.deleteRatio {
+					if err := c.Delete(ctx, key); err != nil {
+						b.Fatalf("failed to delete: %v", err)
+					}
+					deleteCount++
+				} else {
+					if err := c.Set(ctx, key, value); err != nil {
+						b.Fatalf("failed to set: %v", err)
+					}
+				}
+			}
+
+			b.StopTimer()
+
+			// Get final disk usage after benchmark
+			finalDiskUsage, err := c.GetDiskUsage()
+			if err != nil {
+				b.Fatalf("failed to get final disk usage: %v", err)
+			}
+
+			// Calculate disk growth
+			lsmGrowth := finalDiskUsage.LSMUsage - initialDiskUsage.LSMUsage
+			valueLogGrowth := finalDiskUsage.ValueLogUsage - initialDiskUsage.ValueLogUsage
+			totalGrowth := lsmGrowth + valueLogGrowth
+
+			b.ReportMetric(float64(deleteCount), "deletes")
+			b.ReportMetric(float64(lsmGrowth), "lsm_growth_bytes")
+			b.ReportMetric(float64(valueLogGrowth), "valuelog_growth_bytes")
+			b.ReportMetric(float64(totalGrowth), "total_growth_bytes")
+			b.ReportMetric(float64(finalDiskUsage.LSMUsage), "final_lsm_bytes")
+			b.ReportMetric(float64(finalDiskUsage.ValueLogUsage), "final_valuelog_bytes")
 		})
 	}
 }

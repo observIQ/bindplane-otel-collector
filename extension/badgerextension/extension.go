@@ -101,13 +101,24 @@ func (b *badgerExtension) GetClient(_ context.Context, kind component.Kind, ent 
 
 func (b *badgerExtension) createClientForComponent(directory string, fullName string) (client.Client, error) {
 	fullPath := filepath.Join(directory, fullName)
-	return client.NewClient(fullPath, b.clientOptions())
+	return client.NewClient(fullPath, b.clientOptions(), b.logger.Named("client").Named(fullName))
 }
 
 // clientOptions returns the options for the badger storage client to be used during client creation
 func (b *badgerExtension) clientOptions() *client.Options {
 	opts := &client.Options{
 		SyncWrites: b.cfg.SyncWrites,
+	}
+	if b.cfg.Memory != nil {
+		opts.MemTableSize = b.cfg.Memory.TableSize
+		opts.BlockCacheSize = b.cfg.Memory.BlockCacheSize
+		opts.ValueLogFileSize = b.cfg.Memory.ValueLogFileSize
+	}
+
+	if b.cfg.Compaction != nil {
+		opts.NumCompactors = b.cfg.Compaction.NumCompactors
+		opts.NumLevelZeroTables = b.cfg.Compaction.NumLevelZeroTables
+		opts.NumLevelZeroTablesStall = b.cfg.Compaction.NumLevelZeroTablesStall
 	}
 	return opts
 }

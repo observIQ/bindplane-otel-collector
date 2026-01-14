@@ -42,10 +42,14 @@ func TestCreateDefaultConfig(t *testing.T) {
 	require.Equal(t, int64(256*1024*1024), badgerCfg.Memory.BlockCacheSize)
 
 	require.NotNil(t, badgerCfg.BlobGarbageCollection)
-	require.Equal(t, 5*time.Minute, badgerCfg.BlobGarbageCollection.Interval)
-	require.Equal(t, 0.5, badgerCfg.BlobGarbageCollection.DiscardRatio)
+	require.Equal(t, 3*time.Minute, badgerCfg.BlobGarbageCollection.Interval)
+	require.Equal(t, 0.3, badgerCfg.BlobGarbageCollection.DiscardRatio)
 
 	require.NotNil(t, badgerCfg.Telemetry)
 	require.False(t, badgerCfg.Telemetry.Enabled)
 	require.Equal(t, 1*time.Minute, badgerCfg.Telemetry.UpdateInterval)
+
+	require.NotNil(t, badgerCfg.Compaction)
+	require.Equal(t, 12, badgerCfg.Compaction.NumCompactors)
+	require.Equal(t, 2, badgerCfg.Compaction.NumLevelZeroTables)
 }

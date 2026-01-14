@@ -45,6 +45,18 @@ type Options struct {
 
 	// the size of the block cache to use for badger
 	BlockCacheSize int64
+
+	// the maximum size of a value log file in bytes
+	ValueLogFileSize int64
+
+	// number of background compaction workers (higher = more aggressive compaction)
+	NumCompactors int
+
+	// number of L0 tables that triggers compaction (lower = earlier compaction)
+	NumLevelZeroTables int
+
+	// number of L0 tables that stalls writes until compaction catches up
+	NumLevelZeroTablesStall int
 }
 
 var _ Client = (*client)(nil)
@@ -63,21 +75,43 @@ type client struct {
 	opGet    atomic.Int64
 	opSet    atomic.Int64
 	opDelete atomic.Int64
+
+	logger *zap.Logger
 }
 
 // NewClient creates a new Badger client for use in the extension
-func NewClient(path string, opts *Options) (Client, error) {
-	c := &client{}
+func NewClient(path string, opts *Options, logger *zap.Logger) (Client, error) {
+	c := &client{
+		logger: logger,
+	}
 
 	options := badger.DefaultOptions(path)
 	if opts.SyncWrites {
 		options = options.WithSyncWrites(true)
 	}
+
 	if opts.MemTableSize > 0 {
 		options = options.WithMemTableSize(opts.MemTableSize)
 	}
+
 	if opts.BlockCacheSize > 0 {
 		options = options.WithBlockCacheSize(int64(opts.BlockCacheSize))
+	}
+
+	if opts.ValueLogFileSize > 0 {
+		options = options.WithValueLogFileSize(opts.ValueLogFileSize)
+	}
+
+	if opts.NumCompactors > 0 {
+		options = options.WithNumCompactors(opts.NumCompactors)
+	}
+
+	if opts.NumLevelZeroTables > 0 {
+		options = options.WithNumLevelZeroTables(opts.NumLevelZeroTables)
+	}
+
+	if opts.NumLevelZeroTablesStall > 0 {
+		options = options.WithNumLevelZeroTablesStall(opts.NumLevelZeroTablesStall)
 	}
 
 	// override the logger to hide logs from badger if they try to log anything
@@ -216,13 +250,18 @@ func (c *client) Close(ctx context.Context) error {
 	}
 }
 
+// RunValueLogGC runs the value log garbage collection
+// its in an infinite loop to ensure that all value logs are garbage collected
 func (c *client) RunValueLogGC(discardRatio float64) error {
-	err := c.db.RunValueLogGC(discardRatio)
-	// if the error is that there is no rewrite needed, return nil as its not indicative of an error
-	if errors.Is(err, badger.ErrNoRewrite) {
-		return nil
+	for {
+		err := c.db.RunValueLogGC(discardRatio)
+		if errors.Is(err, badger.ErrNoRewrite) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
 	}
-	return err
 }
 
 // DiskUsage is a container for holding disk usage of the badger client
