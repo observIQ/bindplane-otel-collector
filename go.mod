@@ -34,7 +34,6 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver v1.90.0
 	github.com/observiq/bindplane-otel-collector/receiver/httpreceiver v1.90.0
 	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.90.0
-	github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver v1.90.0
 	github.com/observiq/bindplane-otel-collector/receiver/oktareceiver v1.90.0
 	github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver v1.90.0
 	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.90.0
@@ -145,6 +144,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkametricsreceiver v0.143.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver v0.143.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kubeletstatsreceiver v0.143.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/macosunifiedloggingreceiver v0.143.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/memcachedreceiver v0.143.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbatlasreceiver v0.143.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbreceiver v0.143.0
@@ -1068,8 +1068,6 @@ replace github.com/observiq/bindplane-otel-collector/receiver/googlecloudstorage
 replace github.com/observiq/bindplane-otel-collector/receiver/httpreceiver => ./receiver/httpreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/m365receiver => ./receiver/m365receiver
-
-replace github.com/observiq/bindplane-otel-collector/receiver/macosunifiedloggingreceiver => ./receiver/macosunifiedloggingreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/oktareceiver => ./receiver/oktareceiver
 
