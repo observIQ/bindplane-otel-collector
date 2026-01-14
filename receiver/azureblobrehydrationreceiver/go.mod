@@ -4,7 +4,7 @@ go 1.24.11
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.20.0
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.3
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.4
 	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.90.0
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.90.0
 	github.com/observiq/bindplane-otel-collector/internal/testutils v1.90.0
