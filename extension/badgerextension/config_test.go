@@ -106,6 +106,48 @@ func TestConfigValidate(t *testing.T) {
 			},
 			expectedError: errors.New("memory block cache size must not be negative"),
 		},
+		{
+			name: "negative value log file size",
+			config: func() *Config {
+				cfg := createDefaultConfig().(*Config)
+				cfg.Directory = &DirectoryConfig{
+					Path: t.TempDir(),
+				}
+				cfg.Memory = &MemoryConfig{
+					ValueLogFileSize: -1,
+				}
+				return cfg
+			},
+			expectedError: errors.New("value log file size must not be negative"),
+		},
+		{
+			name: "negative number of compactors",
+			config: func() *Config {
+				cfg := createDefaultConfig().(*Config)
+				cfg.Directory = &DirectoryConfig{
+					Path: t.TempDir(),
+				}
+				cfg.Compaction = &CompactionConfig{
+					NumCompactors: -1,
+				}
+				return cfg
+			},
+			expectedError: errors.New("number of compactors must not be negative"),
+		},
+		{
+			name: "negative number of level zero tables",
+			config: func() *Config {
+				cfg := createDefaultConfig().(*Config)
+				cfg.Directory = &DirectoryConfig{
+					Path: t.TempDir(),
+				}
+				cfg.Compaction = &CompactionConfig{
+					NumLevelZeroTables: -1,
+				}
+				return cfg
+			},
+			expectedError: errors.New("number of level zero tables must not be negative"),
+		},
 	}
 
 	for _, tt := range tests {
