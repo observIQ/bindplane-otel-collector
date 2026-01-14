@@ -2392,6 +2392,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kubeletstatsr
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kubeletstatsreceiver v0.143.0/go.mod h1:X2rW7rL7IhscCgiymnah3J21O9U3xBUlQYT3QPbOIyc=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/libhoneyreceiver v0.143.0 h1:2IREpNuOZ9wf3UuzFMql19qhi7TtIOK3NZHoZhyEM7g=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/libhoneyreceiver v0.143.0/go.mod h1:+zm6oJs0fr2hjXYL1fzRkRr6tSnqxM3XuC9XVzsUSOI=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/macosunifiedloggingreceiver v0.143.0 h1:XFisgEc08PzV1EBhxivT/QaHDbnl++JCxK//pwnIr/A=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/macosunifiedloggingreceiver v0.143.0/go.mod h1:6h3wfy9u7nGmnarDdJc/JT4C41AUuI5gXgX3vV+BcwQ=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/memcachedreceiver v0.143.0 h1:Ib59RYRF0PYxtsDLfDEf5tSoinqSsDrOLAjHowaHWOU=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/memcachedreceiver v0.143.0/go.mod h1:6BisbCkfQgx3rBU1y7XNqRYERdKgGtAxQmaOSKJI7P8=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongodbatlasreceiver v0.143.0 h1:0jclDa49pkr18OnhfYgF3d1e8FlR+TerOslXMQjlrGA=
