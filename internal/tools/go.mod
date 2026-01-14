@@ -10,7 +10,7 @@ require (
 	github.com/uw-labs/lichen v0.1.7
 	github.com/vektra/mockery/v2 v2.53.0
 	go.opentelemetry.io/collector/cmd/mdatagen v0.143.0
-	golang.org/x/tools v0.40.0
+	golang.org/x/tools v0.41.0
 	gotest.tools/gotestsum v1.12.3
 )
 
@@ -90,10 +90,10 @@ require (
 	go.uber.org/zap v1.27.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac // indirect
-	golang.org/x/mod v0.31.0 // indirect
+	golang.org/x/mod v0.32.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/sys v0.39.0 // indirect
-	golang.org/x/telemetry v0.0.0-20251203150158-8fff8a5912fc // indirect
+	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/telemetry v0.0.0-20260109210033-bd525da824e2 // indirect
 	golang.org/x/term v0.36.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
