@@ -387,7 +387,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lightsail v1.50.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/servicediscovery v1.39.21 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.0.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.20 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.21 // indirect
 	github.com/aws/aws-sdk-go-v2/service/xray v1.36.16 // indirect
 	github.com/axiomhq/hyperloglog v0.2.5 // indirect
 	github.com/bboreham/go-loser v0.0.0-20230920113527-fcc2c21820a3 // indirect
