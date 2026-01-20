@@ -15,6 +15,7 @@
 package factories
 
 import (
+	"github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter"
 	"github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter"
 	"github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter"
@@ -75,6 +76,7 @@ var defaultExporters = []exporter.Factory{
 	datadogexporter.NewFactory(),
 	debugexporter.NewFactory(),
 	elasticsearchexporter.NewFactory(),
+	enhanceindexings3exporter.NewFactory(),
 	fileexporter.NewFactory(),
 	googlecloudexporter.NewFactory(version.Version()),
 	googlecloudpubsubexporter.NewFactory(),
