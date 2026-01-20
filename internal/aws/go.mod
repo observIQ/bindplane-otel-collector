@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/internal/aws
 go 1.24.11
 
 require (
-	github.com/aws/aws-lambda-go v1.51.2
+	github.com/aws/aws-lambda-go v1.52.0
 	github.com/aws/aws-sdk-go-v2 v1.41.1
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.95.1
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.21

@@ -14,7 +14,7 @@ require (
 	go.opentelemetry.io/collector/processor v1.49.0
 	go.opentelemetry.io/collector/processor/batchprocessor v0.143.0
 	go.uber.org/multierr v1.11.0
-	google.golang.org/api v0.259.0
+	google.golang.org/api v0.260.0
 )
 
 require (
@@ -63,7 +63,7 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.3.7 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.3.9 // indirect
 	github.com/hashicorp/go-version v1.8.0 // indirect
 	github.com/knadh/koanf/v2 v2.3.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
