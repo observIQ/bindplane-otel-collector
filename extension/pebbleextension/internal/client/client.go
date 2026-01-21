@@ -119,7 +119,7 @@ func (c *client) Set(_ context.Context, key string, value []byte) error {
 	if c.isDone() {
 		return ErrClientClosing
 	}
-	err := c.db.Set([]byte(key), value, &pebble.WriteOptions{})
+	err := c.db.Set([]byte(key), value, c.writeOptions)
 	if err != nil {
 		return fmt.Errorf("error setting key %s: %w", key, err)
 	}
@@ -132,7 +132,7 @@ func (c *client) Delete(_ context.Context, key string) error {
 		return ErrClientClosing
 	}
 
-	err := c.db.Delete([]byte(key), &pebble.WriteOptions{})
+	err := c.db.Delete([]byte(key), c.writeOptions)
 	if err != nil {
 		return fmt.Errorf("error deleting key %s: %w", key, err)
 	}
