@@ -197,26 +197,38 @@ func (r *bindplaneAuditLogsReceiver) processLogEvents(observedTime pcommon.Times
 			logRecord.SetTimestamp(pcommon.NewTimestampFromTime(*logEvent.Timestamp))
 		}
 
-		// Set body as description
-		if logEvent.Description != "" {
-			logRecord.Body().SetStr(logEvent.Description)
+		// Set body - description if parsing attributes, otherwise raw JSON
+		if r.cfg.ParseAttributes {
+			if logEvent.Description != "" {
+				logRecord.Body().SetStr(logEvent.Description)
+			}
+		} else {
+			eventBytes, err := json.Marshal(logEvent)
+			if err != nil {
+				r.logger.Error("unable to marshal logEvent", zap.Error(err))
+			} else {
+				logRecord.Body().SetStr(string(eventBytes))
+			}
 		}
 
-		// Set attributes based on the Bindplane audit log format
-		attrs := logRecord.Attributes()
-		attrs.PutStr("id", logEvent.ID)
-		if logEvent.Timestamp != nil {
-			attrs.PutStr("timestamp", logEvent.Timestamp.Format(bindplaneTimeFormat))
-		}
-		attrs.PutStr("resource_name", logEvent.ResourceName)
-		attrs.PutStr("resource_kind", string(logEvent.ResourceKind))
-		if logEvent.Configuration != "" {
-			attrs.PutStr("configuration", logEvent.Configuration)
-		}
-		attrs.PutStr("action", string(logEvent.Action))
-		attrs.PutStr("user", logEvent.User)
+		// Only set attributes if parsing is enabled
+		if r.cfg.ParseAttributes {
+			// Set attributes based on the Bindplane audit log format
+			attrs := logRecord.Attributes()
+			attrs.PutStr("id", logEvent.ID)
+			if logEvent.Timestamp != nil {
+				attrs.PutStr("timestamp", logEvent.Timestamp.Format(bindplaneTimeFormat))
+			}
+			attrs.PutStr("resource_name", logEvent.ResourceName)
+			attrs.PutStr("resource_kind", string(logEvent.ResourceKind))
+			if logEvent.Configuration != "" {
+				attrs.PutStr("configuration", logEvent.Configuration)
+			}
+			attrs.PutStr("action", string(logEvent.Action))
+			attrs.PutStr("user", logEvent.User)
 
-		resourceAttrs.PutStr("account", logEvent.Account)
+			resourceAttrs.PutStr("account", logEvent.Account)
+		}
 
 	}
 
