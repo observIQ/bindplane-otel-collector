@@ -25,11 +25,12 @@ This receiver is capable of collecting audit logs from a Bindplane instance.
 
 ## Configuration
 
-| Field         | Type   | Default | Required | Description                                                                                                                                                                                                                  |
-| ------------- | ------ | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| api_key       | string |         | `true`   | The Bindplane API key with read access to audit logs. This API key has access to the audit logs of a single project.                                                                                                         |
-| endpoint      | string |         | `true`   | The endpoint to collect logs from. (e.g. `https://app.bindplane.com`)                                                                                                                                                        |
-| poll_interval | string | 10s     | `false`  | The rate at which this receiver will poll Bindplane for logs. This value must be in the range [10 seconds - 24 hours] and must be a string readable by Golang's [time.ParseDuration](https://pkg.go.dev/time#ParseDuration). |
+| Field            | Type   | Default | Required | Description                                                                                                                                                                                                                  |
+| ---------------- | ------ | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| api_key          | string |         | `true`   | The Bindplane API key with read access to audit logs. This API key has access to the audit logs of a single project.                                                                                                        |
+| endpoint         | string |         | `true`   | The endpoint to collect logs from. (e.g. `https://app.bindplane.com`)                                                                                                                                                       |
+| poll_interval    | string | 10s     | `false`  | The rate at which this receiver will poll Bindplane for logs. This value must be in the range [10 seconds - 24 hours] and must be a string readable by Golang's [time.ParseDuration](https://pkg.go.dev/time#ParseDuration). |
+| parse_attributes | bool   | true    | `false`  | When true, parses audit log fields into log record attributes and sets the body to the description. When false, sets the body to the raw JSON event without attributes.                                                     |
 
 ### Example Configuration
 

@@ -224,12 +224,59 @@ func TestProcessLogEvents(t *testing.T) {
 	require.Equal(t, 1, logs.LogRecordCount())
 	logRecord := logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
 
+	// Verify body is description by default
+	require.Equal(t, "test description", logRecord.Body().Str())
+
 	// Verify attributes
 	attrs := logRecord.Attributes()
 	id, _ := attrs.Get("id")
 	require.Equal(t, "1", id.Str())
 	resourceName, _ := attrs.Get("resource_name")
 	require.Equal(t, "test-resource", resourceName.Str())
+}
+
+func TestProcessLogEventsNoParseAttributes(t *testing.T) {
+	cfg := createDefaultConfig().(*Config)
+	cfg.ParseAttributes = false
+	recv := newReceiver(t, cfg, consumertest.NewNop())
+
+	now := time.Now().UTC()
+	testEvents := []AuditLogEvent{
+		{
+			ID:            "1",
+			Timestamp:     &now,
+			ResourceName:  "test-resource",
+			Description:   "test description",
+			ResourceKind:  "Source",
+			Configuration: "test-config",
+			Action:        "Created",
+			User:          "test-user",
+			Account:       "test-account",
+		},
+	}
+
+	logs := recv.processLogEvents(pcommon.NewTimestampFromTime(now), testEvents)
+
+	require.Equal(t, 1, logs.LogRecordCount())
+	logRecord := logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0)
+
+	// Verify body is raw JSON when ParseAttributes is disabled
+	body := logRecord.Body().Str()
+	require.Contains(t, body, `"id":"1"`)
+	require.Contains(t, body, `"resourceName":"test-resource"`)
+	require.Contains(t, body, `"description":"test description"`)
+	require.Contains(t, body, `"resourceKind":"Source"`)
+	require.Contains(t, body, `"configuration":"test-config"`)
+	require.Contains(t, body, `"action":"Created"`)
+	require.Contains(t, body, `"user":"test-user"`)
+	require.Contains(t, body, `"account":"test-account"`)
+
+	// Verify the body can be unmarshaled back to an event
+	var parsedEvent AuditLogEvent
+	err := json.Unmarshal([]byte(body), &parsedEvent)
+	require.NoError(t, err)
+	require.Equal(t, "1", parsedEvent.ID)
+	require.Equal(t, "test-resource", parsedEvent.ResourceName)
 }
 
 func TestLastTimestampUpdate(t *testing.T) {
