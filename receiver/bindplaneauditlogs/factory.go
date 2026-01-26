@@ -45,6 +45,7 @@ func createLogsReceiver(
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		PollInterval: 10 * time.Second,
+		PollInterval:    10 * time.Second,
+		ParseAttributes: true,
 	}
 }
