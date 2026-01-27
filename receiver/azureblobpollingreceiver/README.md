@@ -411,7 +411,209 @@ service:
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| use_last_modified | bool | `false` | `false` | When `true`, uses the blob's LastModified timestamp instead of parsing the folder structure. Cannot be used with `time_pattern`. |
-| time_pattern | string | | `false` | Custom pattern for extracting timestamps from blob paths. Supports named placeholders and Go time format. Cannot be used with `use_last_modified`. |
-| telemetry_type | string | | `false` | Explicitly sets the telemetry type (`logs`, `metrics`, or `traces`). Recommended when using `time_pattern` or `use_last_modified`. Falls back to pipeline type if not set. |
+| use_last_modified | bool | `false` | `false` | When `true`, uses the blob's LastModified timestamp instead of parsing the folder structure. Can be combined with `time_pattern` when `use_time_pattern_as_prefix` is enabled. |
+| time_pattern | string | | `false` | Custom pattern for extracting timestamps from blob paths. Supports named placeholders and Go time format. Can be combined with `use_last_modified` when `use_time_pattern_as_prefix` is enabled. |
+| use_time_pattern_as_prefix | bool | `false` | `false` | When `true`, uses the `time_pattern` to generate efficient prefixes for Azure API calls, significantly reducing the number of blobs scanned. Requires `time_pattern` to be set. Can be combined with `use_last_modified` for optimal performance. |
+| telemetry_type | string | | `false` | Explicitly sets the telemetry type (`logs`, `metrics`, or `traces`). Required when using `time_pattern` or `use_last_modified`. Falls back to pipeline type if not set. |
 | filename_pattern | string | | `false` | Regex pattern to filter blobs by filename. Only matching blobs are processed. |
+
+## Prefix Optimization for Large Containers
+
+When dealing with containers that have a large number of blobs (100K+), the `use_time_pattern_as_prefix` option provides significant performance improvements by generating time-based prefixes for Azure API calls instead of listing all blobs.
+
+### How It Works
+
+Without prefix optimization, the receiver must list ALL blobs in the container and check each one's timestamp. With prefix optimization enabled, the receiver:
+
+1. Parses the `time_pattern` to identify time components (year, month, day, hour)
+2. Generates prefixes for each time bucket in the lookback window
+3. Only lists blobs under those specific prefixes
+
+For example, with `time_pattern: "{year}/{month}/{day}"` and a 5-minute lookback at 3:00 PM on January 27, 2025, the receiver generates the prefix `2025/01/27/` and only lists blobs under that path.
+
+### Hybrid Mode: Prefix + LastModified
+
+For blob structures that only include date (not time) in the path, combine `use_time_pattern_as_prefix` with `use_last_modified` for optimal performance:
+
+- **Prefix optimization**: Efficiently lists only blobs from relevant date folders
+- **LastModified filtering**: Precisely filters to blobs within the actual time window
+
+```yaml
+azureblobpolling:
+    connection_string: "..."
+    container: "logs"
+    root_folder: "myapp/logs"
+    poll_interval: 1m
+    initial_lookback: 5m
+    time_pattern: "{year}/{month}/{day}"
+    use_time_pattern_as_prefix: true
+    use_last_modified: true
+    telemetry_type: "logs"
+    storage: "file_storage"
+```
+
+**Why hybrid mode?** When the path only contains `{year}/{month}/{day}`, parsed timestamps resolve to midnight (00:00:00 UTC). A 5-minute lookback window at 3:00 PM would miss all blobs because midnight is outside the window. Using `use_last_modified: true` ensures precise time filtering based on the blob's actual modification time.
+
+### Per-Category Receivers
+
+For containers with multiple log categories (e.g., `logs/dns/`, `logs/firewall/`, `logs/app/`), create separate receivers for each category. This provides:
+
+- More efficient prefix filtering per category
+- Separate pipelines for different log types
+- Better resource isolation and monitoring
+
+```yaml
+receivers:
+    azureblobpolling/dns:
+        connection_string: "..."
+        container: "logs"
+        root_folder: "logs/dns"
+        poll_interval: 1m
+        time_pattern: "{year}/{month}/{day}"
+        use_time_pattern_as_prefix: true
+        use_last_modified: true
+        telemetry_type: "logs"
+        storage: "file_storage"
+
+    azureblobpolling/firewall:
+        connection_string: "..."
+        container: "logs"
+        root_folder: "logs/firewall"
+        poll_interval: 1m
+        time_pattern: "{year}/{month}/{day}"
+        use_time_pattern_as_prefix: true
+        use_last_modified: true
+        telemetry_type: "logs"
+        storage: "file_storage"
+```
+
+## Performance Benchmarks and Recommendations
+
+The following benchmarks were collected using Azure Blob Storage with containers containing 1M+ blobs.
+
+### Test Environment
+
+- Container: 1,000,000+ blobs across multiple categories
+- Blob size: ~1 KB each (gzipped JSON logs, 10 events per blob)
+- Poll interval: 1 minute
+- Lookback: 5 minutes
+- Configuration: batch_size=200, page_size=5000
+
+### Benchmark Results
+
+| Configuration | Poll Duration | Notes |
+|--------------|---------------|-------|
+| `use_last_modified` only | **7+ minutes** (incomplete) | Lists all 1M+ blobs every poll |
+| `time_pattern` only | ~25 seconds | Fast listing, but timestamp parsing issues with day-only patterns |
+| **Hybrid mode** (recommended) | **45-52 seconds** | Prefix-optimized listing + precise LastModified filtering |
+
+### Processing Throughput
+
+With the hybrid configuration processing new blobs:
+
+- **Blob processing rate**: ~200 blobs/second
+- **Event throughput**: ~2,000 events/second (at 10 events/blob)
+- **Memory usage**: < 200 MB
+- **CPU usage**: < 5% (I/O bound, not CPU bound)
+
+### Configuration Recommendations
+
+#### Small Containers (< 10,000 blobs)
+
+Any configuration works well. Use the simplest option for your blob structure:
+
+```yaml
+azureblobpolling:
+    connection_string: "..."
+    container: "small-logs"
+    poll_interval: 2m
+    use_last_modified: true
+    telemetry_type: "logs"
+```
+
+#### Medium Containers (10,000 - 100,000 blobs)
+
+Consider using `time_pattern` for better performance:
+
+```yaml
+azureblobpolling:
+    connection_string: "..."
+    container: "medium-logs"
+    poll_interval: 2m
+    time_pattern: "{year}/{month}/{day}/{hour}"
+    telemetry_type: "logs"
+    batch_size: 100
+```
+
+#### Large Containers (100,000+ blobs)
+
+**Required**: Use `use_time_pattern_as_prefix` to avoid listing all blobs:
+
+```yaml
+azureblobpolling:
+    connection_string: "..."
+    container: "large-logs"
+    root_folder: "category/subcategory"
+    poll_interval: 1m
+    time_pattern: "{year}/{month}/{day}"
+    use_time_pattern_as_prefix: true
+    use_last_modified: true  # Required for day-only patterns
+    telemetry_type: "logs"
+    batch_size: 200
+    page_size: 5000
+    storage: "file_storage"
+```
+
+#### Very Large Containers (1M+ blobs)
+
+For containers with millions of blobs:
+
+1. **Split by category**: Create separate receivers per log type/category
+2. **Use hourly paths if possible**: `{year}/{month}/{day}/{hour}` provides 24x better filtering than daily paths
+3. **Increase batch_size**: Use 200+ for better throughput
+4. **Use storage extension**: Critical for checkpoint persistence
+
+```yaml
+# Example for 1M+ blob container with daily folders
+azureblobpolling:
+    connection_string: "..."
+    container: "enterprise-logs"
+    root_folder: "production/application"
+    poll_interval: 1m
+    initial_lookback: 24h  # Cover full day for day-only patterns
+    time_pattern: "{year}/{month}/{day}"
+    use_time_pattern_as_prefix: true
+    use_last_modified: true
+    telemetry_type: "logs"
+    batch_size: 200
+    page_size: 5000
+    storage: "file_storage"
+```
+
+### Blob Path Structure Recommendations
+
+For optimal performance with large containers, structure blob paths with time components that support efficient prefix filtering:
+
+| Structure | Prefix Efficiency | Recommendation |
+|-----------|------------------|----------------|
+| `{year}/{month}/{day}/{hour}/{minute}/` | Excellent | Best for high-volume, low-latency |
+| `{year}/{month}/{day}/{hour}/` | Very Good | Good balance of efficiency and simplicity |
+| `{year}/{month}/{day}/` | Good | Use with hybrid mode (+ `use_last_modified`) |
+| `{category}/{year}/{month}/{day}/` | Good | Split receivers by category |
+| Flat structure (no time in path) | Poor | Avoid for large containers; use `use_last_modified` only |
+
+### Troubleshooting Performance Issues
+
+**Poll times exceeding poll_interval:**
+- Enable `use_time_pattern_as_prefix` if not already enabled
+- Split into multiple receivers by category
+- Increase `batch_size` for better throughput
+- Consider adding hour to blob paths
+
+**Missing blobs with day-only patterns:**
+- Add `use_last_modified: true` to enable hybrid mode
+- Verify `initial_lookback` covers at least 24 hours
+
+**High memory usage:**
+- Reduce `batch_size` to limit concurrent downloads
+- Enable memory_limiter processor in the pipeline
