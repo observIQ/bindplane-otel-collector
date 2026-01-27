@@ -119,6 +119,17 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   } END { printf "\n"
 }' >>"$OUTPUT_DIR/$VERSION.yaml"
 
+# add entry for github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter with version
+enhance_indexing_s3_exporter_version=$(grep -m1 'github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter' go.mod | awk '{print $2}')
+if [ -n "$enhance_indexing_s3_exporter_version" ]; then
+  cat >>"$OUTPUT_DIR/$VERSION.yaml" <<EOF
+        enhance_indexing_s3_exporter:
+          metadata:
+          - key: code.namespace
+            value: github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter ${enhance_indexing_s3_exporter_version}
+EOF
+fi
+
 cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/observiq-otel-collector|observiq/bindplane-agent)))/extension/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/extension/extensiontest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
   printf "    extensions:\n      sub_component_details:\n"
   myMap["filestorage"] = "file_storage"
