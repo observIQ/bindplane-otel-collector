@@ -47,3 +47,6 @@ ci-signing-key.asc
 # Local performance testing and images
 ImagesAzure/
 perf-test/
+
+# Local planning docs
+**/MULTI_COLLECTOR_PLAN.md
