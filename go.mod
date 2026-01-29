@@ -229,6 +229,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/redactionprocessor v0.143.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/unrollprocessor v0.143.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/githubreceiver v0.143.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubpushreceiver v0.143.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/libhoneyreceiver v0.143.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.143.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otelarrowreceiver v0.143.0

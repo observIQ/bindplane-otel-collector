@@ -56,6 +56,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/flinkmetricsreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/fluentforwardreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/githubreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubpushreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudspannerreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver"
@@ -139,6 +140,7 @@ var defaultReceivers = []receiver.Factory{
 	fluentforwardreceiver.NewFactory(),
 	githubreceiver.NewFactory(),
 	googlecloudpubsubreceiver.NewFactory(),
+	googlecloudpubsubpushreceiver.NewFactory(),
 	googlecloudspannerreceiver.NewFactory(),
 	googlecloudstoragerehydrationreceiver.NewFactory(),
 	hostmetricsreceiver.NewFactory(),
