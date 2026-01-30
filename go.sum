@@ -2366,6 +2366,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/receiver/fluentforward
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/fluentforwardreceiver v0.143.0/go.mod h1:sn7kFpXOyKNjkRkUC/G/jZxgdGHq3qJ+FrLgJ+ZQShU=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/githubreceiver v0.143.0 h1:QiTw/YwnuhOTXIY1ie5v/tV1zu6jUlJJBMUu1omYL7U=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/githubreceiver v0.143.0/go.mod h1:BgsLrVxWGkWaDtoRC4K6eOXrLWKTbkfGtwG/rAUyGVY=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubpushreceiver v0.143.0 h1:pCkUczR3Q9u39Tcz6KiZneNZQKJLjM1B26g15zjdmG4=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubpushreceiver v0.143.0/go.mod h1:giMu/+shPdcdjSpIvzWkVGDRWYGkAhUgwsGCOwu7Q1Y=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver v0.143.0 h1:1BqXoTekDleVflyJEBXM6TL6lEmD+t4+iDYc4H3w/Lc=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudpubsubreceiver v0.143.0/go.mod h1:8hh1Dp4+ncoUa6dIBpCuE0jwkqDJS2NdwoaihqBqN60=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/googlecloudspannerreceiver v0.143.0 h1:EO1YzRFL9cniq+tUF/eDNMaG7/tYnw6uNMfLXm6jwXA=
