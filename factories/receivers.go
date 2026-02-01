@@ -28,6 +28,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/restapireceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/routereceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/macosendpointsecurityreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver"
@@ -158,6 +159,7 @@ var defaultReceivers = []receiver.Factory{
 	kubeletstatsreceiver.NewFactory(),
 	libhoneyreceiver.NewFactory(),
 	m365receiver.NewFactory(),
+	macosendpointsecurityreceiver.NewFactory(),
 	macosunifiedloggingreceiver.NewFactory(),
 	memcachedreceiver.NewFactory(),
 	mongodbatlasreceiver.NewFactory(),

@@ -34,6 +34,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver v1.91.0
 	github.com/observiq/bindplane-otel-collector/receiver/httpreceiver v1.91.0
 	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.91.0
+	github.com/observiq/bindplane-otel-collector/receiver/macosendpointsecurityreceiver v1.91.0
 	github.com/observiq/bindplane-otel-collector/receiver/oktareceiver v1.91.0
 	github.com/observiq/bindplane-otel-collector/receiver/pcapreceiver v1.91.0
 	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.91.0
@@ -234,6 +235,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/netflowreceiver v0.143.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otelarrowreceiver v0.143.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver v0.143.0
+	go.opentelemetry.io/collector/component/componenttest v0.143.0
 	go.opentelemetry.io/collector/extension/extensiontest v0.143.0
 	go.opentelemetry.io/collector/processor/processorhelper v0.143.0
 	go.opentelemetry.io/collector/processor/processortest v0.143.0
@@ -584,7 +586,6 @@ require (
 	go.opentelemetry.io/collector v0.143.0 // indirect
 	go.opentelemetry.io/collector/client v1.49.0 // indirect
 	go.opentelemetry.io/collector/component/componentstatus v0.143.0 // indirect
-	go.opentelemetry.io/collector/component/componenttest v0.143.0 // indirect
 	go.opentelemetry.io/collector/config/configauth v1.49.0 // indirect
 	go.opentelemetry.io/collector/config/configcompression v1.49.0 // indirect
 	go.opentelemetry.io/collector/config/configgrpc v0.143.0 // indirect
@@ -883,7 +884,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/experimentalmetricmetadata v0.143.0 // indirect; indi72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.143.0 // indirect; indi72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/resourcetotelemetry v0.143.0 // indirect; indi72.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.143.0 // indirect; indi72.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.143.0 // indi72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/jaeger v0.143.0 // indirect; indi72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/prometheus v0.143.0 // indirect; indi72.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/prometheusremotewrite v0.143.0 // indirect; indi72.0
@@ -1087,6 +1088,8 @@ replace github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiv
 replace github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver => ./receiver/splunksearchapireceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver => ./receiver/telemetrygeneratorreceiver
+
+replace github.com/observiq/bindplane-otel-collector/receiver/macosendpointsecurityreceiver => ./receiver/macosendpointsecurityreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver => ./receiver/windowseventtracereceiver
 

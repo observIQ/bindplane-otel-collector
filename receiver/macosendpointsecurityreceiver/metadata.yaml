@@ -1,0 +1,10 @@
+type: macosendpointsecurity
+
+status:
+  class: receiver
+  stability:
+    alpha: [logs]
+  codeowners:
+    active: [itony-Hurshman]
+  distributions: [contrib]
+  unsupported_platforms: [linux, windows]
