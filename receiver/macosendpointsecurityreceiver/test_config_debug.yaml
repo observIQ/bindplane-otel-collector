@@ -1,0 +1,17 @@
+receivers:
+  macosendpointsecurity:
+    event_types: ["exec", "fork", "exit"]
+    max_poll_interval: 30s
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    logs:
+      receivers: [macosendpointsecurity]
+      exporters: [debug]
+  telemetry:
+    logs:
+      level: debug

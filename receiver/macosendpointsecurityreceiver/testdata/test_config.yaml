@@ -1,0 +1,30 @@
+# Test configurations for macOS Endpoint Security receiver
+
+# Basic configuration with default event types
+basic_config:
+  event_types: ["exec", "fork", "exit"]
+  max_poll_interval: 30s
+
+# Configuration with path filtering
+with_path_filtering:
+  event_types: ["exec", "fork", "exit", "open", "close"]
+  select_paths: ["/bin/zsh", "/usr/bin"]
+  max_poll_interval: 30s
+
+# Comprehensive security monitoring
+comprehensive_config:
+  event_types:
+    - exec
+    - fork
+    - exit
+    - open
+    - close
+    - create
+    - unlink
+    - authentication
+    - authorization_judgement
+    - tcc_modify
+
+# Minimal configuration
+minimal_config:
+  event_types: ["exec"]
