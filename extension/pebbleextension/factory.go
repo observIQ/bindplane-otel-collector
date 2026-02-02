@@ -17,6 +17,7 @@ package pebbleextension
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/extension"
@@ -40,6 +41,11 @@ func createDefaultConfig() component.Config {
 			PathPrefix: "pebble",
 		},
 		Sync: true,
+		// by default we will manually start a compaction job every 30 minutes with a concurrency of 3
+		Compaction: &CompactionConfig{
+			Interval:              30 * time.Minute,
+			Concurrency: 3,
+		},
 	}
 }
 

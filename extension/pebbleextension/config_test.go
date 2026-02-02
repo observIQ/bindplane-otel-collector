@@ -17,6 +17,7 @@ package pebbleextension
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -78,6 +79,33 @@ func TestConfigValidate(t *testing.T) {
 				}
 			},
 			expectedError: errors.New("cache size must be greater than or equal to 0"),
+		},
+		{
+			name: "negative compaction interval",
+			config: func() *Config {
+				return &Config{
+					Directory: &DirectoryConfig{
+						Path: t.TempDir(),
+					},
+					Compaction: &CompactionConfig{
+						Interval: -1,
+					},
+				}
+			},
+			expectedError: errors.New("compaction interval must be greater than or equal to 0"),
+		},
+		{
+			name: "valid compaction config",
+			config: func() *Config {
+				return &Config{
+					Directory: &DirectoryConfig{
+						Path: t.TempDir(),
+					},
+					Compaction: &CompactionConfig{
+						Interval: 1 * time.Minute,
+					},
+				}
+			},
 		},
 	}
 

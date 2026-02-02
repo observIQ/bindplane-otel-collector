@@ -19,10 +19,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/extension/xextension/storage"
+	"go.uber.org/zap"
 )
 
 func TestGet(t *testing.T) {
-	client, err := NewClient(t.TempDir(), &Options{
+	client, err := NewClient(t.TempDir(), zap.NewNop(), &Options{
 		Sync: true,
 	})
 	require.NoError(t, err)
@@ -35,7 +36,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestSet(t *testing.T) {
-	client, err := NewClient(t.TempDir(), &Options{
+	client, err := NewClient(t.TempDir(), zap.NewNop(), &Options{
 		Sync: true,
 	})
 	require.NoError(t, err)
@@ -51,7 +52,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	client, err := NewClient(t.TempDir(), &Options{
+	client, err := NewClient(t.TempDir(), zap.NewNop(), &Options{
 		Sync: true,
 	})
 	require.NoError(t, err)
@@ -70,7 +71,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestBatch(t *testing.T) {
-	client, err := NewClient(t.TempDir(), &Options{
+	client, err := NewClient(t.TempDir(), zap.NewNop(), &Options{
 		Sync: true,
 	})
 	require.NoError(t, err)
@@ -99,7 +100,7 @@ func TestBatch(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-	client, err := NewClient(t.TempDir(), &Options{
+	client, err := NewClient(t.TempDir(), zap.NewNop(), &Options{
 		Sync: true,
 	})
 	require.NoError(t, err)
@@ -109,7 +110,7 @@ func TestClose(t *testing.T) {
 }
 
 func TestDoneProcessing(t *testing.T) {
-	c, err := NewClient(t.TempDir(), &Options{
+	c, err := NewClient(t.TempDir(), zap.NewNop(), &Options{
 		Sync: true,
 	})
 	require.NoError(t, err)
@@ -126,4 +127,25 @@ func TestDoneProcessing(t *testing.T) {
 	val, err := internalClient.Get(t.Context(), "test")
 	require.ErrorContains(t, err, "client is closing")
 	require.Nil(t, val)
+}
+
+func TestCompaction(t *testing.T) {
+	testCases := []struct {
+		name string
+		sync bool
+	}{
+		{name: "sync", sync: true},
+		{name: "async", sync: false},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := NewClient(t.TempDir(), zap.NewNop(), &Options{
+				Sync: tt.sync,
+			})
+			require.NoError(t, err)
+			err = client.Compact(true)
+			require.NoError(t, err)
+		})
+	}
 }
