@@ -43,7 +43,7 @@ func createDefaultConfig() component.Config {
 		Sync: true,
 		// by default we will manually start a compaction job every 30 minutes with a concurrency of 3
 		Compaction: &CompactionConfig{
-			Interval:              30 * time.Minute,
+			Interval:    30 * time.Minute,
 			Concurrency: 3,
 		},
 	}
