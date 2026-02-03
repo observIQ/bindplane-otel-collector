@@ -146,6 +146,7 @@ func TestCompaction(t *testing.T) {
 			require.NoError(t, err)
 			err = client.Compact(true)
 			require.NoError(t, err)
+			require.NoError(t, client.Close(t.Context()))
 		})
 	}
 }
