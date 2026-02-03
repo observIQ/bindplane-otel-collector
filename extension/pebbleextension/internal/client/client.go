@@ -58,9 +58,8 @@ type client struct {
 
 // Options are the options for opening the pebble database
 type Options struct {
-	Sync                  bool
-	CacheSize             int64
-	CompactionConcurrency int
+	Sync      bool
+	CacheSize int64
 }
 
 // ErrClientClosing is supposed to be returned when the client is closing and not allowing new operations to be performed
