@@ -83,7 +83,7 @@ func (r *httpLogsReceiver) startListening(ctx context.Context, host component.Ho
 	go func() {
 		defer r.wg.Done()
 		r.logger.Debug("starting to serve",
-			zap.String("address", r.serverSettings.Endpoint),
+			zap.String("address", r.serverSettings.NetAddr.Endpoint),
 		)
 
 		err := r.server.Serve(listener)

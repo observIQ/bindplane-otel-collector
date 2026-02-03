@@ -36,6 +36,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
+	"go.opentelemetry.io/collector/config/confignet"
 	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/consumer"
@@ -99,8 +100,10 @@ func TestPayloadToLogRecord(t *testing.T) {
 			r := newReceiver(t, &Config{
 				Path: "",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
-					TLS:      configoptional.Some(configtls.ServerConfig{}),
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
+					TLS: configoptional.Some(configtls.ServerConfig{}),
 				},
 			}, &consumertest.LogsSink{})
 			var logs plog.Logs
@@ -155,8 +158,10 @@ func TestServeHTTP(t *testing.T) {
 			cfg: &Config{
 				Path: "",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
-					TLS:      configoptional.Some(configtls.ServerConfig{}),
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
+					TLS: configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -177,8 +182,10 @@ func TestServeHTTP(t *testing.T) {
 			cfg: &Config{
 				Path: "/logs",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
-					TLS:      configoptional.Some(configtls.ServerConfig{}),
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
+					TLS: configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -201,8 +208,10 @@ func TestServeHTTP(t *testing.T) {
 			cfg: &Config{
 				Path: "/logs",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
-					TLS:      configoptional.Some(configtls.ServerConfig{}),
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
+					TLS: configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -225,8 +234,10 @@ func TestServeHTTP(t *testing.T) {
 			cfg: &Config{
 				Path: "/logs",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
-					TLS:      configoptional.Some(configtls.ServerConfig{}),
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
+					TLS: configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -249,8 +260,10 @@ func TestServeHTTP(t *testing.T) {
 			cfg: &Config{
 				Path: "/logs",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
-					TLS:      configoptional.Some(configtls.ServerConfig{}),
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
+					TLS: configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -273,8 +286,10 @@ func TestServeHTTP(t *testing.T) {
 			cfg: &Config{
 				Path: "/logs",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
-					TLS:      configoptional.Some(configtls.ServerConfig{}),
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
+					TLS: configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -297,8 +312,10 @@ func TestServeHTTP(t *testing.T) {
 			cfg: &Config{
 				Path: "",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
-					TLS:      configoptional.Some(configtls.ServerConfig{}),
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
+					TLS: configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -319,8 +336,10 @@ func TestServeHTTP(t *testing.T) {
 			cfg: &Config{
 				Path: "",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
-					TLS:      configoptional.Some(configtls.ServerConfig{}),
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
+					TLS: configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -341,8 +360,10 @@ func TestServeHTTP(t *testing.T) {
 			cfg: &Config{
 				Path: "",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
-					TLS:      configoptional.Some(configtls.ServerConfig{}),
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
+					TLS: configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -363,8 +384,10 @@ func TestServeHTTP(t *testing.T) {
 			cfg: &Config{
 				Path: "",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
-					TLS:      configoptional.Some(configtls.ServerConfig{}),
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
+					TLS: configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -384,8 +407,10 @@ func TestServeHTTP(t *testing.T) {
 			cfg: &Config{
 				Path: "",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
-					TLS:      configoptional.Some(configtls.ServerConfig{}),
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
+					TLS: configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -406,8 +431,10 @@ func TestServeHTTP(t *testing.T) {
 			cfg: &Config{
 				Path: "",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
-					TLS:      configoptional.Some(configtls.ServerConfig{}),
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
+					TLS: configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -428,8 +455,10 @@ func TestServeHTTP(t *testing.T) {
 			cfg: &Config{
 				Path: "",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
-					TLS:      configoptional.Some(configtls.ServerConfig{}),
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
+					TLS: configoptional.Some(configtls.ServerConfig{}),
 				},
 			},
 			request: &http.Request{
@@ -475,7 +504,9 @@ func TestGoldens(t *testing.T) {
 	defaultConfig := func() *Config {
 		return &Config{
 			ServerConfig: confighttp.ServerConfig{
-				Endpoint: "localhost:12345",
+				NetAddr: confignet.AddrConfig{
+					Endpoint: "localhost:12345",
+				},
 			},
 		}
 	}
@@ -620,7 +651,9 @@ func TestShutdownNoServer(t *testing.T) {
 	// test that shutdown without a start does not error or panic
 	recv := newReceiver(t, &Config{
 		ServerConfig: confighttp.ServerConfig{
-			Endpoint: "localhost:12345",
+			NetAddr: confignet.AddrConfig{
+				Endpoint: "localhost:12345",
+			},
 		},
 	}, consumertest.NewNop())
 
