@@ -133,7 +133,6 @@ func (p *pebbleExtension) Start(_ context.Context, _ component.Host) error {
 func (p *pebbleExtension) startCompaction(ctx context.Context) {
 	ticker := time.NewTicker(p.cfg.Compaction.Interval)
 	defer ticker.Stop()
-	defer close(p.compactionDoneChan)
 
 	for {
 		select {
@@ -189,7 +188,7 @@ func (p *pebbleExtension) Shutdown(ctx context.Context) error {
 	}
 
 	if p.compactionDoneChan != nil {
-		<-p.compactionDoneChan
+		close(p.compactionDoneChan)
 	}
 
 	var errs error

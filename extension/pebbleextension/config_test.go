@@ -35,6 +35,10 @@ func TestConfigValidate(t *testing.T) {
 					Directory: &DirectoryConfig{
 						Path: t.TempDir(),
 					},
+					Compaction: &CompactionConfig{
+						Interval:    1 * time.Minute,
+						Concurrency: 3,
+					},
 				}
 			},
 		},
@@ -46,6 +50,10 @@ func TestConfigValidate(t *testing.T) {
 						Path: t.TempDir(),
 					},
 					Sync: true,
+					Compaction: &CompactionConfig{
+						Interval:    1 * time.Minute,
+						Concurrency: 3,
+					},
 				}
 			},
 		},
@@ -54,6 +62,10 @@ func TestConfigValidate(t *testing.T) {
 			config: func() *Config {
 				return &Config{
 					Directory: nil,
+					Compaction: &CompactionConfig{
+						Interval:    1 * time.Minute,
+						Concurrency: 3,
+					},
 				}
 			},
 			expectedError: errors.New("a directory path is required"),
@@ -65,6 +77,10 @@ func TestConfigValidate(t *testing.T) {
 					Directory: &DirectoryConfig{
 						Path: "",
 					},
+					Compaction: &CompactionConfig{
+						Interval:    1 * time.Minute,
+						Concurrency: 3,
+					},
 				}
 			},
 			expectedError: errors.New("a directory path is required"),
@@ -75,6 +91,10 @@ func TestConfigValidate(t *testing.T) {
 				return &Config{
 					Cache: &CacheConfig{
 						Size: -1,
+					},
+					Compaction: &CompactionConfig{
+						Interval:    1 * time.Minute,
+						Concurrency: 3,
 					},
 				}
 			},
@@ -88,7 +108,8 @@ func TestConfigValidate(t *testing.T) {
 						Path: t.TempDir(),
 					},
 					Compaction: &CompactionConfig{
-						Interval: -1,
+						Interval:    -1,
+						Concurrency: 3,
 					},
 				}
 			},
@@ -102,7 +123,8 @@ func TestConfigValidate(t *testing.T) {
 						Path: t.TempDir(),
 					},
 					Compaction: &CompactionConfig{
-						Interval: 1 * time.Minute,
+						Interval:    1 * time.Minute,
+						Concurrency: 3,
 					},
 				}
 			},
