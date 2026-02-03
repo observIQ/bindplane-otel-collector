@@ -4,12 +4,14 @@ The Pebble Extension provides persistent storage for OpenTelemetry Collector com
 
 ## Configuration
 
-| Field              | Type     | Default   | Required | Description                                                                                       |
-| ------------------ | -------- | --------- | -------- | ------------------------------------------------------------------------------------------------- |
-| directory.path     | string   |           | `true`   | Directory path where Pebble database files will be stored. Each component gets a subdirectory.    |
-| directory.path_prefix | string | `pebble` | `false`  | Optional prefix added to component directory names. Prevents naming collisions when multiple storage extensions share the same directory. Set to empty string to disable. |
-| cache.size         | int64    | `0`       | `false`  | Size in bytes of the block cache. When 0, uses Pebble's default cache behavior. Larger values improve read performance at the cost of memory usage. |
-| sync               | bool     | `true`    | `false`  | Whether to sync writes to disk immediately. `true` provides safer durability guarantees. |
+| Field                             | Type     | Default  | Required | Description                                                                                                                                                                                              |
+| --------------------------------- | -------- | -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| directory.path                    | string   |          | Yes      | **(Required)** Directory path where Pebble database files will be stored. Each component will use a subdirectory within this directory.                                                                  |
+| directory.path_prefix             | string   | "pebble" | No       | Optional prefix added to each component's subdirectory name. Useful to avoid naming collisions when multiple Pebble extensions share a parent directory. Set to empty string `""` to disable the prefix. |
+| cache.size                        | int64    | 0        | No       | Size (in bytes) of Pebble’s block cache. If set to 0, the default Pebble cache settings are used. Increasing this value can improve read performance at the cost of memory usage.                        |
+| sync                              | bool     | true     | No       | Whether to sync writes to disk after every write. `true` offers safer durability guarantees. Setting `false` may improve performance but increases the chance of data loss in the event of a crash.      |
+| compaction.interval               | duration | 30m      | No       | How often background compaction runs (e.g., "30m" for 30 minutes). Compaction reclaims space from deleted entries. Set to 0s to disable background compaction.                                           |
+| compaction.compaction_concurrency | uint64   | 3        | No       | Number of concurrent background compaction jobs permitted. Increase for higher compaction throughput or decrease for reduced interference with other workloads.                                          |
 
 ## Example Configuration
 
@@ -40,7 +42,9 @@ This extension uses Pebble's defaults, which are optimized for most production w
 For advanced use cases, the following configuration options are exposed:
 
 - **cache.size**: Configures the block cache size. Larger caches improve read performance at the cost of memory usage. Recommended when running on systems with available memory or when read performance is critical.
-- **sync**: Controls write durability. The default (`false`) provides optimal performance for most scenarios while maintaining durability guarantees through write-ahead logging.
+- **sync**: Controls write durability. The default (`true`) provides safer durability guarantees by syncing writes to disk immediately.
+- **compaction.interval**: Controls how often background compaction checks run (default: 30 minutes). Set to 0 to disable background compaction.
+- **compaction.concurrency**: Controls how many folders will be attempted to be compacted at the given interval (default: `3`). This parameter helps avoid causing way too many resources being used for compaction.
 
 Refer to the [Pebble documentation](https://github.com/cockroachdb/pebble) for detailed information about the database.
 
@@ -53,8 +57,10 @@ extensions:
       path: /var/lib/otelcol/pebble
     cache:
       size: 536870912  # 512MB cache
-    sync: false
-
+    sync: true
+    compaction:
+      interval: 30m
+      concurrency: 3
 exporters:
   otlp:
     endpoint: otelcol:4317
