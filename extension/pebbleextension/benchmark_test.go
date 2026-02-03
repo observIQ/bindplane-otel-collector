@@ -21,6 +21,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/extension/pebbleextension/internal/client"
 	"go.opentelemetry.io/collector/extension/xextension/storage"
+	"go.uber.org/zap"
 )
 
 // setupBenchmarkClient creates a temporary pebble client for benchmarking
@@ -29,7 +30,7 @@ func setupBenchmarkClient(b testing.TB, sync bool) (client.Client, func()) {
 
 	dir := b.TempDir()
 
-	c, err := client.NewClient(dir, &client.Options{Sync: sync})
+	c, err := client.NewClient(dir, zap.NewNop(), &client.Options{Sync: sync})
 	if err != nil {
 		b.Fatalf("failed to create client: %v", err)
 	}
@@ -308,4 +309,16 @@ func BenchmarkMixedWorkload(b *testing.B) {
 			b.StopTimer()
 		})
 	}
+}
+
+func BenchmarkCompaction(b *testing.B) {
+	c, cleanup := setupBenchmarkClient(b, true)
+	defer cleanup()
+	for i := 0; i < b.N; i++ {
+		err := c.Compact(true)
+		if err != nil {
+			b.Fatalf("failed to compact: %v", err)
+		}
+	}
+	b.StopTimer()
 }

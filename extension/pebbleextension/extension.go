@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/extension/xextension/storage"
@@ -30,10 +31,12 @@ import (
 )
 
 type pebbleExtension struct {
-	logger       *zap.Logger
-	cfg          *Config
-	clientsMutex sync.RWMutex
-	clients      map[string]client.Client
+	logger             *zap.Logger
+	cfg                *Config
+	clientsMutex       sync.RWMutex
+	clients            map[string]client.Client
+	compactionCancel   context.CancelFunc
+	compactionDoneChan chan struct{}
 }
 
 // newPebbleExtension creates a new pebble storage extension
@@ -89,8 +92,7 @@ func (p *pebbleExtension) createClientForComponent(directory string, fullName st
 		options.CacheSize = p.cfg.Cache.Size
 	}
 
-	c, err := client.NewClient(path, options)
-
+	c, err := client.NewClient(path, p.logger.Named("client").Named(fullName), options)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client for component: %w", err)
 	}
@@ -114,13 +116,81 @@ func kindString(k component.Kind) string {
 	}
 }
 
-// Start is a no-op for the pebble extension as most of th work is done in the GetClient method
+// Start initializes the pebble extension and starts a background task for compaction if configured
 func (p *pebbleExtension) Start(_ context.Context, _ component.Host) error {
+	p.compactionDoneChan = make(chan struct{})
+
+	if p.cfg.Compaction != nil && p.cfg.Compaction.Interval > 0 {
+		ctx, cancel := context.WithCancel(context.Background())
+		p.compactionCancel = cancel
+		go p.startCompaction(ctx)
+	}
+
 	return nil
 }
 
-// Shutdown closes all the clients
+// runCompaction runs the compaction process in a loop
+func (p *pebbleExtension) startCompaction(ctx context.Context) {
+	ticker := time.NewTicker(p.cfg.Compaction.Interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-p.compactionDoneChan:
+			return
+		case <-ticker.C:
+			p.runCompaction()
+		}
+	}
+}
+
+func (p *pebbleExtension) runCompaction() {
+	p.clientsMutex.RLock()
+	clients := make([]client.Client, 0, len(p.clients))
+	for _, c := range p.clients {
+		clients = append(clients, c)
+	}
+	p.clientsMutex.RUnlock()
+
+	// small optimization to avoid creating a wait group and iterating over clients if there are no clients
+	if len(clients) == 0 {
+		return
+	}
+
+	wg := sync.WaitGroup{}
+	groupSize := p.cfg.Compaction.Concurrency
+
+	for i := 0; i < len(clients); i += groupSize {
+		end := i + groupSize
+		if end > len(clients) {
+			end = len(clients)
+		}
+		batch := clients[i:end]
+		for _, c := range batch {
+			wg.Add(1)
+			go func(c client.Client) {
+				defer wg.Done()
+				if err := c.Compact(true); err != nil {
+					p.logger.Warn("compaction failed", zap.Error(err))
+				}
+			}(c)
+		}
+		wg.Wait()
+	}
+}
+
+// Shutdown closes all the clients and stops background compaction
 func (p *pebbleExtension) Shutdown(ctx context.Context) error {
+	if p.compactionCancel != nil {
+		p.compactionCancel()
+	}
+
+	if p.compactionDoneChan != nil {
+		close(p.compactionDoneChan)
+	}
+
 	var errs error
 	p.clientsMutex.Lock()
 	for _, client := range p.clients {
