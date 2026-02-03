@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver"
 
@@ -49,6 +50,8 @@ func createLogsReceiver(
 }
 
 func createDefaultConfig() component.Config {
-	c := &Config{}
+	c := &Config{
+		ServerConfig: confighttp.NewDefaultServerConfig(),
+	}
 	return c
 }

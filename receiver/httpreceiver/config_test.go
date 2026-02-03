@@ -36,7 +36,8 @@ func TestValidate(t *testing.T) {
 			config: Config{
 				ServerConfig: confighttp.ServerConfig{
 					NetAddr: confignet.AddrConfig{
-						Endpoint: "localhost:12345",
+						Endpoint:  "localhost:12345",
+						Transport: confignet.TransportTypeTCP,
 					},
 				},
 			},
@@ -47,7 +48,8 @@ func TestValidate(t *testing.T) {
 				Path: "/api/v2/logs",
 				ServerConfig: confighttp.ServerConfig{
 					NetAddr: confignet.AddrConfig{
-						Endpoint: "localhost:12345",
+						Endpoint:  "localhost:12345",
+						Transport: confignet.TransportTypeTCP,
 					},
 					TLS: configoptional.Some(configtls.ServerConfig{
 						Config: configtls.Config{
@@ -80,7 +82,8 @@ func TestValidate(t *testing.T) {
 				Path: "/api/v2/logs",
 				ServerConfig: confighttp.ServerConfig{
 					NetAddr: confignet.AddrConfig{
-						Endpoint: "localhost12345",
+						Endpoint:  "localhost12345",
+						Transport: confignet.TransportTypeTCP,
 					},
 					TLS: configoptional.Some(configtls.ServerConfig{
 						Config: configtls.Config{
@@ -98,7 +101,8 @@ func TestValidate(t *testing.T) {
 				Path: "/api/v2/logs",
 				ServerConfig: confighttp.ServerConfig{
 					NetAddr: confignet.AddrConfig{
-						Endpoint: "localhost:12345",
+						Endpoint:  "localhost:12345",
+						Transport: confignet.TransportTypeTCP,
 					},
 					TLS: configoptional.Some(configtls.ServerConfig{
 						Config: configtls.Config{
@@ -115,7 +119,8 @@ func TestValidate(t *testing.T) {
 				Path: "/api/v2/logs",
 				ServerConfig: confighttp.ServerConfig{
 					NetAddr: confignet.AddrConfig{
-						Endpoint: "localhost:12345",
+						Endpoint:  "localhost:12345",
+						Transport: confignet.TransportTypeTCP,
 					},
 					TLS: configoptional.Some(configtls.ServerConfig{
 						Config: configtls.Config{
@@ -132,7 +137,8 @@ func TestValidate(t *testing.T) {
 				Path: "/api , /v2//",
 				ServerConfig: confighttp.ServerConfig{
 					NetAddr: confignet.AddrConfig{
-						Endpoint: "localhost:12345",
+						Endpoint:  "localhost:12345",
+						Transport: confignet.TransportTypeTCP,
 					},
 				},
 			},
