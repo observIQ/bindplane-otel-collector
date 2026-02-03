@@ -340,6 +340,7 @@ func (m *metricM365OnedriveFilesActiveCount) emit(metrics pmetric.MetricSlice) {
 
 func newMetricM365OnedriveFilesActiveCount(cfg MetricConfig) metricM365OnedriveFilesActiveCount {
 	m := metricM365OnedriveFilesActiveCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -391,6 +392,7 @@ func (m *metricM365OnedriveFilesCount) emit(metrics pmetric.MetricSlice) {
 
 func newMetricM365OnedriveFilesCount(cfg MetricConfig) metricM365OnedriveFilesCount {
 	m := metricM365OnedriveFilesCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -444,6 +446,7 @@ func (m *metricM365OnedriveUserActivityCount) emit(metrics pmetric.MetricSlice) 
 
 func newMetricM365OnedriveUserActivityCount(cfg MetricConfig) metricM365OnedriveUserActivityCount {
 	m := metricM365OnedriveUserActivityCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -497,6 +500,7 @@ func (m *metricM365OutlookAppUserCount) emit(metrics pmetric.MetricSlice) {
 
 func newMetricM365OutlookAppUserCount(cfg MetricConfig) metricM365OutlookAppUserCount {
 	m := metricM365OutlookAppUserCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -550,6 +554,7 @@ func (m *metricM365OutlookEmailActivityCount) emit(metrics pmetric.MetricSlice) 
 
 func newMetricM365OutlookEmailActivityCount(cfg MetricConfig) metricM365OutlookEmailActivityCount {
 	m := metricM365OutlookEmailActivityCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -601,6 +606,7 @@ func (m *metricM365OutlookMailboxesActiveCount) emit(metrics pmetric.MetricSlice
 
 func newMetricM365OutlookMailboxesActiveCount(cfg MetricConfig) metricM365OutlookMailboxesActiveCount {
 	m := metricM365OutlookMailboxesActiveCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -654,6 +660,7 @@ func (m *metricM365OutlookQuotaStatusCount) emit(metrics pmetric.MetricSlice) {
 
 func newMetricM365OutlookQuotaStatusCount(cfg MetricConfig) metricM365OutlookQuotaStatusCount {
 	m := metricM365OutlookQuotaStatusCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -705,6 +712,7 @@ func (m *metricM365OutlookStorageUsed) emit(metrics pmetric.MetricSlice) {
 
 func newMetricM365OutlookStorageUsed(cfg MetricConfig) metricM365OutlookStorageUsed {
 	m := metricM365OutlookStorageUsed{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -756,6 +764,7 @@ func (m *metricM365SharepointFilesActiveCount) emit(metrics pmetric.MetricSlice)
 
 func newMetricM365SharepointFilesActiveCount(cfg MetricConfig) metricM365SharepointFilesActiveCount {
 	m := metricM365SharepointFilesActiveCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -807,6 +816,7 @@ func (m *metricM365SharepointFilesCount) emit(metrics pmetric.MetricSlice) {
 
 func newMetricM365SharepointFilesCount(cfg MetricConfig) metricM365SharepointFilesCount {
 	m := metricM365SharepointFilesCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -858,6 +868,7 @@ func (m *metricM365SharepointPagesUniqueCount) emit(metrics pmetric.MetricSlice)
 
 func newMetricM365SharepointPagesUniqueCount(cfg MetricConfig) metricM365SharepointPagesUniqueCount {
 	m := metricM365SharepointPagesUniqueCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -909,6 +920,7 @@ func (m *metricM365SharepointPagesViewedCount) emit(metrics pmetric.MetricSlice)
 
 func newMetricM365SharepointPagesViewedCount(cfg MetricConfig) metricM365SharepointPagesViewedCount {
 	m := metricM365SharepointPagesViewedCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -960,6 +972,7 @@ func (m *metricM365SharepointSiteStorageUsed) emit(metrics pmetric.MetricSlice) 
 
 func newMetricM365SharepointSiteStorageUsed(cfg MetricConfig) metricM365SharepointSiteStorageUsed {
 	m := metricM365SharepointSiteStorageUsed{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -1011,6 +1024,7 @@ func (m *metricM365SharepointSitesActiveCount) emit(metrics pmetric.MetricSlice)
 
 func newMetricM365SharepointSitesActiveCount(cfg MetricConfig) metricM365SharepointSitesActiveCount {
 	m := metricM365SharepointSitesActiveCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -1062,6 +1076,7 @@ func (m *metricM365TeamsCallsCount) emit(metrics pmetric.MetricSlice) {
 
 func newMetricM365TeamsCallsCount(cfg MetricConfig) metricM365TeamsCallsCount {
 	m := metricM365TeamsCallsCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -1115,6 +1130,7 @@ func (m *metricM365TeamsDeviceUsageUsers) emit(metrics pmetric.MetricSlice) {
 
 func newMetricM365TeamsDeviceUsageUsers(cfg MetricConfig) metricM365TeamsDeviceUsageUsers {
 	m := metricM365TeamsDeviceUsageUsers{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -1166,6 +1182,7 @@ func (m *metricM365TeamsMeetingsCount) emit(metrics pmetric.MetricSlice) {
 
 func newMetricM365TeamsMeetingsCount(cfg MetricConfig) metricM365TeamsMeetingsCount {
 	m := metricM365TeamsMeetingsCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -1217,6 +1234,7 @@ func (m *metricM365TeamsMessagesPrivateCount) emit(metrics pmetric.MetricSlice) 
 
 func newMetricM365TeamsMessagesPrivateCount(cfg MetricConfig) metricM365TeamsMessagesPrivateCount {
 	m := metricM365TeamsMessagesPrivateCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
@@ -1268,6 +1286,7 @@ func (m *metricM365TeamsMessagesTeamCount) emit(metrics pmetric.MetricSlice) {
 
 func newMetricM365TeamsMessagesTeamCount(cfg MetricConfig) metricM365TeamsMessagesTeamCount {
 	m := metricM365TeamsMessagesTeamCount{config: cfg}
+
 	if cfg.Enabled {
 		m.data = pmetric.NewMetric()
 		m.init()
