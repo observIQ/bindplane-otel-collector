@@ -19,6 +19,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/config/confighttp"
+	"go.opentelemetry.io/collector/config/confignet"
 	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configtls"
 	"go.opentelemetry.io/collector/confmap/xconfmap"
@@ -34,7 +35,9 @@ func TestValidate(t *testing.T) {
 			desc: "pass simple",
 			config: Config{
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
 				},
 			},
 		},
@@ -43,7 +46,9 @@ func TestValidate(t *testing.T) {
 			config: Config{
 				Path: "/api/v2/logs",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
 					TLS: configoptional.Some(configtls.ServerConfig{
 						Config: configtls.Config{
 							CertFile: "some_cert_file",
@@ -74,7 +79,9 @@ func TestValidate(t *testing.T) {
 			config: Config{
 				Path: "/api/v2/logs",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost12345",
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost12345",
+					},
 					TLS: configoptional.Some(configtls.ServerConfig{
 						Config: configtls.Config{
 							CertFile: "some_cert_file",
@@ -90,7 +97,9 @@ func TestValidate(t *testing.T) {
 			config: Config{
 				Path: "/api/v2/logs",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
 					TLS: configoptional.Some(configtls.ServerConfig{
 						Config: configtls.Config{
 							KeyFile: "some_key_file",
@@ -105,7 +114,9 @@ func TestValidate(t *testing.T) {
 			config: Config{
 				Path: "/api/v2/logs",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
 					TLS: configoptional.Some(configtls.ServerConfig{
 						Config: configtls.Config{
 							CertFile: "some_cert_file",
@@ -120,7 +131,9 @@ func TestValidate(t *testing.T) {
 			config: Config{
 				Path: "/api , /v2//",
 				ServerConfig: confighttp.ServerConfig{
-					Endpoint: "localhost:12345",
+					NetAddr: confignet.AddrConfig{
+						Endpoint: "localhost:12345",
+					},
 				},
 			},
 		},

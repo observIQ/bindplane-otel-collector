@@ -65,7 +65,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fileexporter v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudpubsubexporter v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/influxdbexporter v0.144.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter v0.144.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter v0.143.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/loadbalancingexporter v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/logzioexporter v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.144.0
@@ -1110,6 +1110,12 @@ replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter => github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter v0.143.0
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver => github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver v0.143.0
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkametricsreceiver => github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkametricsreceiver v0.143.0
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/configkafka => github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/configkafka v0.143.0
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/internal/kafka => github.com/open-telemetry/opentelemetry-collector-contrib/internal/kafka v0.143.0
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor => github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor v0.143.0
 

@@ -2229,8 +2229,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/internal/k8sconfig v0.
 github.com/open-telemetry/opentelemetry-collector-contrib/internal/k8sconfig v0.144.0/go.mod h1:p3bzbPIi6azPxwbKSuEnqKJtF4smoRT8B0gCPfN5IY8=
 github.com/open-telemetry/opentelemetry-collector-contrib/internal/k8sleaderelectortest v0.144.0 h1:GSg9q2pIYk4EEtU4wtJS0tt+t2HYYqfwvabyoUi9Ts0=
 github.com/open-telemetry/opentelemetry-collector-contrib/internal/k8sleaderelectortest v0.144.0/go.mod h1:7pHcTzo//Ib4ud4Fq0SnhpkjwkJwrG4eUWP8SUD6KLk=
-github.com/open-telemetry/opentelemetry-collector-contrib/internal/kafka v0.144.0 h1:alGgzpr+mc8Ltq8CCtYWcehRrOeZC8eKvLdPt+kBhzA=
-github.com/open-telemetry/opentelemetry-collector-contrib/internal/kafka v0.144.0/go.mod h1:y7X5q/tV3enb0UgXDDumfegbOKZeVPTP87EM+zr58p4=
+github.com/open-telemetry/opentelemetry-collector-contrib/internal/kafka v0.143.0 h1:ggZ6ZpN1jsc2ddyxPkCPGgv5aBtphWeMr0ZZN9pg/u4=
+github.com/open-telemetry/opentelemetry-collector-contrib/internal/kafka v0.143.0/go.mod h1:YsTEEfBBZBxKn9JtTbic3fP7Tnbiqbk0aWRJlyBPQDE=
 github.com/open-telemetry/opentelemetry-collector-contrib/internal/kubelet v0.144.0 h1:PrCkqc3QLUv9ohKMgbDcyoFYEG92IP04WeVuLbq0Q/Y=
 github.com/open-telemetry/opentelemetry-collector-contrib/internal/kubelet v0.144.0/go.mod h1:cy6lVQs6dI24L+gV9y0MtNL3QDeM+TjHW0tF2JfP8oM=
 github.com/open-telemetry/opentelemetry-collector-contrib/internal/metadataproviders v0.144.0 h1:tMZLreHI8FQu+4l33Itw0FVt1rlySLpDufxXizCOhpI=
@@ -2257,8 +2257,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/pkg/experimentalmetric
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/experimentalmetricmetadata v0.144.0/go.mod h1:6Xtj1YGDofQqR3WU+hRzWfEjWe+l1c/ay8MOsegiuO8=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.144.0 h1:604E8RUkIyoLR/OENjIEUAGriC2+oHHH69h0X3NVtGI=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/golden v0.144.0/go.mod h1:X4I58zBm/KTvPm6XpBHkQKZWbiGj0GNaI/qEuP2858M=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/configkafka v0.144.0 h1:DZLx9qgpGTJpVmZGa6YDcO84uzGHE+eJ6N1kS8STP/E=
-github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/configkafka v0.144.0/go.mod h1:uCDyHRZCSj8DNtG860vKGh+wP0PEkaYRU+mgd5cCKnc=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/configkafka v0.143.0 h1:f6+VuuPsBIkbPyc4iDBIE34oF99m9mDJoWrkJHo8E+I=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/configkafka v0.143.0/go.mod h1:yO8lQIDoKp7QuHBQckNKo7Ug6/Q0krjy3WOOFcGDyQ4=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/topic v0.144.0 h1:Gm2f9bVeW7XdPj3u3krGTAnM6uB8GbWUWs2cL/fJ/E4=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/topic v0.144.0/go.mod h1:VV5wxeAH34HZdzBf0UJQ+bJlFaGcCmvFhzcIsZoC4vc=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.144.0 h1:TMRTvQSAeeLtkKwSrqcbectxDRPiqB6yYM3IvjC75es=
@@ -2413,8 +2413,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/receiver/k8sclusterrec
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/k8sclusterreceiver v0.144.0/go.mod h1:859FUXamzmhOPPMgsOO+F1wR01ga2b8MFgDfnrVIDS8=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/k8seventsreceiver v0.144.0 h1:ZSEgicJ1d3smr3ulHmViYTd/jF0UUnucuh6FsoSRZhQ=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/k8seventsreceiver v0.144.0/go.mod h1:2r0WbFgx7GMcF1OYr+Xi4ex4q8pCCeND0K9S4lsXdew=
-github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkametricsreceiver v0.144.0 h1:mE82tepfV7yf+AGCbswnxB1jGaHbtV1AND5h49ipJNg=
-github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkametricsreceiver v0.144.0/go.mod h1:b2BcffrWClda4Nxjjole0c0BqltoWZKQXGLpthDgIIM=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkametricsreceiver v0.143.0 h1:ycMqRU8TgOJ2+IVMaqd/yN5qga2bn9t5/ssNsMwf+I4=
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkametricsreceiver v0.143.0/go.mod h1:DN2MuN9agRS/5CI9v1zJ2AhqhRrysPrSrPV/Wil/Rxk=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver v0.143.0 h1:VSt3c4OwBbsH4s1tpM2Ln/tGPpeotUyV7Rm5UYsEaSE=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver v0.143.0/go.mod h1:t85Nkfyly6BTVX0CLO7r6Tb6i91h6GIeCcDa1IrxiAs=
 github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kubeletstatsreceiver v0.144.0 h1:s8wZP1zI7AdGRCQ6leBv3IoYr+7SfreNkBMpnUBpPMU=
