@@ -17,6 +17,7 @@ package pebbleextension
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -34,6 +35,10 @@ func TestConfigValidate(t *testing.T) {
 					Directory: &DirectoryConfig{
 						Path: t.TempDir(),
 					},
+					Compaction: &CompactionConfig{
+						Interval:    1 * time.Minute,
+						Concurrency: 3,
+					},
 				}
 			},
 		},
@@ -45,6 +50,10 @@ func TestConfigValidate(t *testing.T) {
 						Path: t.TempDir(),
 					},
 					Sync: true,
+					Compaction: &CompactionConfig{
+						Interval:    1 * time.Minute,
+						Concurrency: 3,
+					},
 				}
 			},
 		},
@@ -53,6 +62,10 @@ func TestConfigValidate(t *testing.T) {
 			config: func() *Config {
 				return &Config{
 					Directory: nil,
+					Compaction: &CompactionConfig{
+						Interval:    1 * time.Minute,
+						Concurrency: 3,
+					},
 				}
 			},
 			expectedError: errors.New("a directory path is required"),
@@ -63,6 +76,10 @@ func TestConfigValidate(t *testing.T) {
 				return &Config{
 					Directory: &DirectoryConfig{
 						Path: "",
+					},
+					Compaction: &CompactionConfig{
+						Interval:    1 * time.Minute,
+						Concurrency: 3,
 					},
 				}
 			},
@@ -75,9 +92,42 @@ func TestConfigValidate(t *testing.T) {
 					Cache: &CacheConfig{
 						Size: -1,
 					},
+					Compaction: &CompactionConfig{
+						Interval:    1 * time.Minute,
+						Concurrency: 3,
+					},
 				}
 			},
 			expectedError: errors.New("cache size must be greater than or equal to 0"),
+		},
+		{
+			name: "negative compaction interval",
+			config: func() *Config {
+				return &Config{
+					Directory: &DirectoryConfig{
+						Path: t.TempDir(),
+					},
+					Compaction: &CompactionConfig{
+						Interval:    -1,
+						Concurrency: 3,
+					},
+				}
+			},
+			expectedError: errors.New("compaction interval must be greater than or equal to 0"),
+		},
+		{
+			name: "valid compaction config",
+			config: func() *Config {
+				return &Config{
+					Directory: &DirectoryConfig{
+						Path: t.TempDir(),
+					},
+					Compaction: &CompactionConfig{
+						Interval:    1 * time.Minute,
+						Concurrency: 3,
+					},
+				}
+			},
 		},
 	}
 

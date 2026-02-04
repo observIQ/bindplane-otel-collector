@@ -17,6 +17,7 @@ package pebbleextension
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -271,6 +272,10 @@ func TestPebbleExtension_PathPrefix(t *testing.T) {
 			Directory: &DirectoryConfig{
 				Path:       t.TempDir(),
 				PathPrefix: "pebble",
+			},
+			Compaction: &CompactionConfig{
+				Interval:    1 * time.Minute,
+				Concurrency: 3,
 			},
 		}
 		require.NoError(t, cfg.Validate())

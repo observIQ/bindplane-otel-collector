@@ -229,6 +229,7 @@ By default the following feature gates are enabled in BDOT:
 - filelog.allowFileDeletion
 - filelog.allowHeaderMetadataParsing
 - filelog.mtimeSortType
+- exporter.prometheusremotewritexporter.enableSendingRW2
 
 ## Connecting to Bindplane Telemetry Pipeline with OpAMP
 
