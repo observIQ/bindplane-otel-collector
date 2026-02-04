@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package azureblob contains client interfaces and implementations for accessing Blob storage
-package azureblob //import "github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver/internal/azureblob"
+package azureblob //import "github.com/observiq/bindplane-otel-collector/internal/azureblob"
 
 import (
 	"context"
@@ -33,7 +33,7 @@ type BlobInfo struct {
 
 // BlobClient provides a client for Blob operations
 //
-//go:generate mockery --name BlobClient --output ./mocks --with-expecter --filename mock_blob_client.go --structname MockBlobClient
+//go:generate mockery --name BlobClient --inpackage --with-expecter --filename mock_blob_client.go --structname MockBlobClient
 type BlobClient interface {
 	// DownloadBlob downloads the contents of the blob into the supplied buffer.
 	// It will return the count of bytes used in the buffer.

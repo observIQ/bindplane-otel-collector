@@ -3,8 +3,8 @@ module github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydratio
 go 1.24.11
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.21.0
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.4
+	github.com/observiq/bindplane-otel-collector/internal/azureblob v1.91.0
+	github.com/observiq/bindplane-otel-collector/internal/checkpoint v1.91.0
 	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.91.0
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.91.0
 	github.com/observiq/bindplane-otel-collector/internal/testutils v1.91.0
@@ -23,7 +23,9 @@ require (
 )
 
 require (
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.21.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.4 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -66,6 +68,10 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/observiq/bindplane-otel-collector/internal/azureblob => ../../internal/azureblob
+
+replace github.com/observiq/bindplane-otel-collector/internal/checkpoint => ../../internal/checkpoint
 
 replace github.com/observiq/bindplane-otel-collector/internal/rehydration => ../../internal/rehydration
 

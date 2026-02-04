@@ -23,6 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/internal/checkpoint"
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver/internal/aws"
@@ -51,7 +52,7 @@ type rehydrationReceiver struct {
 	objectChan         chan *aws.ObjectResults
 	errChan            chan error
 
-	checkpoint      *rehydration.CheckPoint
+	checkpoint      *checkpoint.CheckPoint
 	checkpointStore storageclient.StorageClient
 	checkpointKey   string
 	checkpointMutex *sync.Mutex
@@ -216,13 +217,13 @@ func (r *rehydrationReceiver) initCheckpoint(ctx context.Context, host component
 	r.checkpointKey = fmt.Sprintf("%s_%s_%s", checkpointStorageKey, r.id, r.supportedTelemetry.String())
 
 	// load the previous checkpoint. If not exist should return zero value for time
-	checkpoint := rehydration.NewCheckpoint()
-	err := r.checkpointStore.LoadStorageData(ctx, r.checkpointKey, checkpoint)
+	cp := checkpoint.NewCheckpoint()
+	err := r.checkpointStore.LoadStorageData(ctx, r.checkpointKey, cp)
 	if err != nil {
 		r.logger.Warn("Error loading checkpoint, continuing without a previous checkpoint", zap.Error(err))
-		checkpoint = rehydration.NewCheckpoint()
+		cp = checkpoint.NewCheckpoint()
 	}
-	r.checkpoint = checkpoint
+	r.checkpoint = cp
 
 	return nil
 }
@@ -256,11 +257,13 @@ func (r *rehydrationReceiver) stream(ctx context.Context) {
 func (r *rehydrationReceiver) rehydrate(ctx context.Context, objects []*aws.ObjectInfo) {
 	// keep track of object names for number processed and deleting
 	processedObjectsCount := &atomic.Int64{}
+objectLoop:
 	for _, object := range objects {
 		// check context
 		select {
 		case <-ctx.Done():
 			r.logger.Info("Context finished, exiting rehydrate func")
+			break objectLoop
 		default:
 		}
 

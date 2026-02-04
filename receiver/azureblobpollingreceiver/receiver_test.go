@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver/internal/azureblob"
+	"github.com/observiq/bindplane-otel-collector/internal/azureblob"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"

@@ -23,6 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/internal/checkpoint"
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 	"go.opentelemetry.io/collector/component"
@@ -42,7 +43,7 @@ type rehydrationReceiver struct {
 	storageClient      StorageClient
 	supportedTelemetry pipeline.Signal
 	consumer           rehydration.Consumer
-	checkpoint         *rehydration.CheckPoint
+	checkpoint         *checkpoint.CheckPoint
 	checkpointStore    storageclient.StorageClient
 
 	objectChan chan []*ObjectInfo
@@ -197,13 +198,13 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 
 // streamRehydrateObjects streams objects from the storage service
 func (r *rehydrationReceiver) streamRehydrateObjects(ctx context.Context) {
-	checkpoint := rehydration.NewCheckpoint()
-	err := r.checkpointStore.LoadStorageData(ctx, r.checkpointKey(), checkpoint)
+	cp := checkpoint.NewCheckpoint()
+	err := r.checkpointStore.LoadStorageData(ctx, r.checkpointKey(), cp)
 	if err != nil {
 		r.logger.Warn("Error loading checkpoint, continuing without a previous checkpoint", zap.Error(err))
-		checkpoint = rehydration.NewCheckpoint()
+		cp = checkpoint.NewCheckpoint()
 	}
-	r.checkpoint = checkpoint
+	r.checkpoint = cp
 
 	startTime := time.Now()
 	r.logger.Info("Starting rehydration", zap.Time("startTime", startTime))
@@ -237,10 +238,11 @@ func (r *rehydrationReceiver) rehydrateObjects(ctx context.Context, objects []*O
 	// Go through each object and parse its path to determine if we should consume it or not
 	r.logger.Debug("Received a batch of objects, parsing through them to determine if they should be rehydrated", zap.Int("num_objects", len(objects)))
 	processedObjectCount := atomic.Int64{}
+objectLoop:
 	for _, object := range objects {
 		select {
 		case <-ctx.Done():
-			break
+			break objectLoop
 		default:
 		}
 

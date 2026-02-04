@@ -18,20 +18,17 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/internal/checkpoint"
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 )
 
 // PollingCheckPoint extends the basic checkpoint to include lastPollTime for continuous polling
 type PollingCheckPoint struct {
+	checkpoint.CheckPoint // Embed the base checkpoint
+
 	// LastPollTime is the timestamp of the last successful poll
 	// This is used to determine the starting time for the next poll window
 	LastPollTime time.Time `json:"last_poll_time"`
-
-	// LastTs is the time created from the folder path of the last consumed entity
-	LastTs time.Time `json:"last_ts"`
-
-	// ParsedEntities is a lookup of all entities that were parsed in the LastTs path
-	ParsedEntities map[string]struct{} `json:"parsed_entities"`
 }
 
 // PollingCheckPoint implements the StorageData interface
@@ -40,34 +37,9 @@ var _ storageclient.StorageData = &PollingCheckPoint{}
 // NewPollingCheckpoint creates a new PollingCheckPoint
 func NewPollingCheckpoint() *PollingCheckPoint {
 	return &PollingCheckPoint{
-		LastPollTime:   time.Time{},
-		LastTs:         time.Time{},
-		ParsedEntities: make(map[string]struct{}),
+		CheckPoint:   *checkpoint.NewCheckpoint(),
+		LastPollTime: time.Time{},
 	}
-}
-
-// ShouldParse returns true if the entity should be parsed based on its time and name.
-// A value of false will be returned for entities that have a time before the LastTs or whose
-// name is already tracked as parsed.
-func (c *PollingCheckPoint) ShouldParse(entityTime time.Time, entityName string) bool {
-	if entityTime.Before(c.LastTs) {
-		return false
-	}
-
-	_, ok := c.ParsedEntities[entityName]
-	return !ok
-}
-
-// UpdateCheckpoint updates the checkpoint with the lastEntityName.
-// If the newTs is after the LastTs it sets lastTs to the newTs and clears its mapping of ParsedEntities.
-// The lastEntityName is tracked in the mapping of ParsedEntities
-func (c *PollingCheckPoint) UpdateCheckpoint(newTs time.Time, lastEntityName string) {
-	if newTs.After(c.LastTs) {
-		c.LastTs = newTs
-		c.ParsedEntities = make(map[string]struct{})
-	}
-
-	c.ParsedEntities[lastEntityName] = struct{}{}
 }
 
 // UpdatePollTime updates the last poll time to the given timestamp

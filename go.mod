@@ -176,29 +176,29 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.5 // indirect
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
-	go.opentelemetry.io/collector/component v1.50.0
+	go.opentelemetry.io/collector/component v1.51.0
 	go.opentelemetry.io/collector/confmap v1.50.0
 	go.opentelemetry.io/collector/confmap/provider/envprovider v1.50.0
 	go.opentelemetry.io/collector/confmap/provider/fileprovider v1.50.0
 	go.opentelemetry.io/collector/confmap/provider/httpsprovider v1.50.0
 	go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.50.0
 	go.opentelemetry.io/collector/connector v0.144.0
-	go.opentelemetry.io/collector/connector/forwardconnector v0.144.0
-	go.opentelemetry.io/collector/consumer v1.50.0
+	go.opentelemetry.io/collector/connector/forwardconnector v0.143.0
+	go.opentelemetry.io/collector/consumer v1.51.0
 	go.opentelemetry.io/collector/exporter v1.50.0
-	go.opentelemetry.io/collector/exporter/debugexporter v0.144.0
-	go.opentelemetry.io/collector/exporter/nopexporter v0.144.0
+	go.opentelemetry.io/collector/exporter/debugexporter v0.143.0
+	go.opentelemetry.io/collector/exporter/nopexporter v0.143.0
 	go.opentelemetry.io/collector/exporter/otlpexporter v0.144.0
-	go.opentelemetry.io/collector/exporter/otlphttpexporter v0.144.0
+	go.opentelemetry.io/collector/exporter/otlphttpexporter v0.143.0
 	go.opentelemetry.io/collector/extension v1.50.0
 	go.opentelemetry.io/collector/extension/zpagesextension v0.144.0
-	go.opentelemetry.io/collector/featuregate v1.50.0
+	go.opentelemetry.io/collector/featuregate v1.51.0
 	go.opentelemetry.io/collector/otelcol v0.144.0
-	go.opentelemetry.io/collector/pdata v1.50.0
+	go.opentelemetry.io/collector/pdata v1.51.0
 	go.opentelemetry.io/collector/processor v1.50.0
 	go.opentelemetry.io/collector/processor/batchprocessor v0.144.0
-	go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.144.0
-	go.opentelemetry.io/collector/receiver v1.50.0
+	go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.143.0
+	go.opentelemetry.io/collector/receiver v1.51.0
 	go.opentelemetry.io/collector/receiver/otlpreceiver v0.144.0
 	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.27.1
@@ -215,6 +215,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/extension/pebbleextension v1.91.0
 	github.com/observiq/bindplane-otel-collector/internal/osinfo v1.91.0
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.91.0
+	github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver v1.91.0
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.91.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/datadogexporter v0.144.0
@@ -508,6 +509,8 @@ require (
 	github.com/observiq/bindplane-otel-collector/counter v1.91.0 // indirect
 	github.com/observiq/bindplane-otel-collector/expr v1.91.0 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/aws v1.91.0 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/azureblob v1.91.0 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/checkpoint v1.91.0 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.91.0 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.91.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
@@ -611,8 +614,8 @@ require (
 	go.opentelemetry.io/collector/connector/xconnector v0.144.0 // indirect
 	go.opentelemetry.io/collector/consumer/consumererror v0.144.0 // indirect
 	go.opentelemetry.io/collector/consumer/consumererror/xconsumererror v0.144.0 // indirect
-	go.opentelemetry.io/collector/consumer/consumertest v0.144.0 // indirect
-	go.opentelemetry.io/collector/consumer/xconsumer v0.144.0 // indirect
+	go.opentelemetry.io/collector/consumer/consumertest v0.145.0 // indirect
+	go.opentelemetry.io/collector/consumer/xconsumer v0.145.0 // indirect
 	go.opentelemetry.io/collector/exporter/exporterhelper v0.144.0 // indirect
 	go.opentelemetry.io/collector/exporter/exporterhelper/xexporterhelper v0.144.0 // indirect
 	go.opentelemetry.io/collector/exporter/exportertest v0.144.0 // indirect
@@ -622,15 +625,15 @@ require (
 	go.opentelemetry.io/collector/extension/extensionmiddleware v0.144.0 // indirect
 	go.opentelemetry.io/collector/extension/xextension v0.144.0 // indirect
 	go.opentelemetry.io/collector/filter v0.144.0 // indirect
-	go.opentelemetry.io/collector/internal/componentalias v0.144.0 // indirect
+	go.opentelemetry.io/collector/internal/componentalias v0.145.0 // indirect
 	go.opentelemetry.io/collector/internal/fanoutconsumer v0.144.0 // indirect
-	go.opentelemetry.io/collector/internal/memorylimiter v0.144.0 // indirect
+	go.opentelemetry.io/collector/internal/memorylimiter v0.143.0 // indirect
 	go.opentelemetry.io/collector/internal/sharedcomponent v0.144.0 // indirect
 	go.opentelemetry.io/collector/internal/telemetry v0.144.0 // indirect
-	go.opentelemetry.io/collector/pdata/pprofile v0.144.0 // indirect
-	go.opentelemetry.io/collector/pdata/testdata v0.144.0 // indirect
+	go.opentelemetry.io/collector/pdata/pprofile v0.145.0 // indirect
+	go.opentelemetry.io/collector/pdata/testdata v0.145.0 // indirect
 	go.opentelemetry.io/collector/pdata/xpdata v0.144.0 // indirect
-	go.opentelemetry.io/collector/pipeline v1.50.0 // indirect
+	go.opentelemetry.io/collector/pipeline v1.51.0 // indirect
 	go.opentelemetry.io/collector/pipeline/xpipeline v0.144.0 // indirect
 	go.opentelemetry.io/collector/processor/processorhelper/xprocessorhelper v0.144.0 // indirect
 	go.opentelemetry.io/collector/processor/xprocessor v0.144.0 // indirect
@@ -999,7 +1002,11 @@ replace github.com/observiq/bindplane-otel-collector/packagestate => ./packagest
 // Internal pkgs
 replace github.com/observiq/bindplane-otel-collector/internal/aws => ./internal/aws
 
+replace github.com/observiq/bindplane-otel-collector/internal/azureblob => ./internal/azureblob
+
 replace github.com/observiq/bindplane-otel-collector/internal/measurements => ./internal/measurements
+
+replace github.com/observiq/bindplane-otel-collector/internal/checkpoint => ./internal/checkpoint
 
 replace github.com/observiq/bindplane-otel-collector/internal/osinfo => ./internal/osinfo
 
@@ -1070,6 +1077,8 @@ replace github.com/observiq/bindplane-otel-collector/processor/topologyprocessor
 replace github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver => ./receiver/awss3eventreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver => ./receiver/awss3rehydrationreceiver
+
+replace github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver => ./receiver/azureblobpollingreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver => ./receiver/azureblobrehydrationreceiver
 

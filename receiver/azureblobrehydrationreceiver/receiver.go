@@ -23,9 +23,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/internal/azureblob"
+	"github.com/observiq/bindplane-otel-collector/internal/checkpoint"
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
-	"github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver/internal/azureblob"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pipeline"
@@ -43,7 +44,7 @@ type rehydrationReceiver struct {
 	azureClient        azureblob.BlobClient
 	supportedTelemetry pipeline.Signal
 	consumer           rehydration.Consumer
-	checkpoint         *rehydration.CheckPoint
+	checkpoint         *checkpoint.CheckPoint
 	checkpointStore    storageclient.StorageClient
 
 	blobChan chan []*azureblob.BlobInfo
@@ -204,13 +205,13 @@ func (r *rehydrationReceiver) Shutdown(ctx context.Context) error {
 }
 
 func (r *rehydrationReceiver) streamRehydrateBlobs(ctx context.Context) {
-	checkpoint := rehydration.NewCheckpoint()
-	err := r.checkpointStore.LoadStorageData(ctx, r.checkpointKey(), checkpoint)
+	cp := checkpoint.NewCheckpoint()
+	err := r.checkpointStore.LoadStorageData(ctx, r.checkpointKey(), cp)
 	if err != nil {
 		r.logger.Warn("Error loading checkpoint, continuing without a previous checkpoint", zap.Error(err))
-		checkpoint = rehydration.NewCheckpoint()
+		cp = checkpoint.NewCheckpoint()
 	}
-	r.checkpoint = checkpoint
+	r.checkpoint = cp
 
 	var prefix *string
 	if r.cfg.RootFolder != "" {
@@ -248,10 +249,11 @@ func (r *rehydrationReceiver) rehydrateBlobs(ctx context.Context, blobs []*azure
 	// Go through each blob and parse it's path to determine if we should consume it or not
 	r.logger.Debug("Received a batch of blobs, parsing through them to determine if they should be rehydrated", zap.Int("num_blobs", len(blobs)))
 	processedBlobCount := atomic.Int64{}
+blobLoop:
 	for _, blob := range blobs {
 		select {
 		case <-ctx.Done():
-			break
+			break blobLoop
 		default:
 		}
 

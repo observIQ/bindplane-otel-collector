@@ -24,9 +24,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/observiq/bindplane-otel-collector/internal/azureblob"
 	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
-	"github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver/internal/azureblob"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pipeline"
@@ -373,10 +373,11 @@ func (r *pollingReceiver) processBlobs(ctx context.Context, blobs []*azureblob.B
 	r.logger.Debug("Received a batch of blobs, parsing through them", zap.Int("num_blobs", len(blobs)))
 	processedBlobCount := atomic.Int64{}
 
+blobLoop:
 	for _, blob := range blobs {
 		select {
 		case <-ctx.Done():
-			break
+			break blobLoop
 		default:
 		}
 
