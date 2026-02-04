@@ -1,8 +1,9 @@
-module github.com/observiq/bindplane-otel-collector/internal/rehydration
+module github.com/observiq/bindplane-otel-collector/internal/blobconsume
 
 go 1.24.11
 
 require (
+	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.91.0
 	github.com/observiq/bindplane-otel-collector/internal/testutils v1.91.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/consumer v1.50.0
@@ -11,10 +12,18 @@ require (
 )
 
 require (
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/hashicorp/go-version v1.8.0 // indirect
-	github.com/rogpeppe/go-internal v1.13.1 // indirect
+	go.opentelemetry.io/collector/component v1.50.0 // indirect
 	go.opentelemetry.io/collector/consumer/xconsumer v0.144.0 // indirect
+	go.opentelemetry.io/collector/extension v1.50.0 // indirect
+	go.opentelemetry.io/collector/extension/xextension v0.144.0 // indirect
 	go.opentelemetry.io/collector/featuregate v1.50.0 // indirect
+	go.opentelemetry.io/collector/internal/componentalias v0.144.0 // indirect
+	go.opentelemetry.io/otel v1.39.0 // indirect
+	go.opentelemetry.io/otel/metric v1.39.0 // indirect
+	go.opentelemetry.io/otel/trace v1.39.0 // indirect
+	go.uber.org/zap v1.27.1 // indirect
 )
 
 require (
@@ -29,5 +38,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/observiq/bindplane-otel-collector/internal/storageclient => ../storageclient
 
 replace github.com/observiq/bindplane-otel-collector/internal/testutils => ../testutils

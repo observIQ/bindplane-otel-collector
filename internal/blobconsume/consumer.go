@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package rehydration provides consumers for rehydrating stored telemetry data back into OTLP format.
-package rehydration //import "github.com/observiq/bindplane-otel-collector/internal/rehydration"
+package blobconsume //import "github.com/observiq/bindplane-otel-collector/internal/blobconsume"
 
 import (
 	"context"

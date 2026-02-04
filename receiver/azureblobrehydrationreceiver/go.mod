@@ -4,8 +4,7 @@ go 1.24.11
 
 require (
 	github.com/observiq/bindplane-otel-collector/internal/azureblob v1.91.0
-	github.com/observiq/bindplane-otel-collector/internal/checkpoint v1.91.0
-	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.91.0
+	github.com/observiq/bindplane-otel-collector/internal/blobconsume v1.91.0
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.91.0
 	github.com/observiq/bindplane-otel-collector/internal/testutils v1.91.0
 	github.com/stretchr/testify v1.11.1
@@ -71,9 +70,7 @@ require (
 
 replace github.com/observiq/bindplane-otel-collector/internal/azureblob => ../../internal/azureblob
 
-replace github.com/observiq/bindplane-otel-collector/internal/checkpoint => ../../internal/checkpoint
-
-replace github.com/observiq/bindplane-otel-collector/internal/rehydration => ../../internal/rehydration
+replace github.com/observiq/bindplane-otel-collector/internal/blobconsume => ../../internal/blobconsume
 
 replace github.com/observiq/bindplane-otel-collector/internal/storageclient => ../../internal/storageclient
 

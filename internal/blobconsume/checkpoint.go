@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package checkpoint provides a checkpoint for receivers that can be stored using an internal/storageclient.StorageClient
-package checkpoint //import "github.com/observiq/bindplane-otel-collector/internal/checkpoint"
+// Package blobconsume provides a checkpoint for blob-consuming receivers that can be stored using an internal/storageclient.StorageClient
+package blobconsume //import "github.com/observiq/bindplane-otel-collector/internal/blobconsume"
 
 import (
 	"encoding/json"

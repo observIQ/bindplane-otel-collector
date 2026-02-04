@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/internal/azureblob"
-	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
+	"github.com/observiq/bindplane-otel-collector/internal/blobconsume"
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -43,7 +43,7 @@ type pollingReceiver struct {
 	cfg                *Config
 	azureClient        azureblob.BlobClient
 	supportedTelemetry pipeline.Signal
-	consumer           rehydration.Consumer
+	consumer           blobconsume.Consumer
 	checkpoint         *PollingCheckPoint
 	checkpointStore    storageclient.StorageClient
 
@@ -69,7 +69,7 @@ func newMetricsReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextCo
 	}
 
 	r.supportedTelemetry = pipeline.SignalMetrics
-	r.consumer = rehydration.NewMetricsConsumer(nextConsumer)
+	r.consumer = blobconsume.NewMetricsConsumer(nextConsumer)
 
 	return r, nil
 }
@@ -82,7 +82,7 @@ func newLogsReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextConsu
 	}
 
 	r.supportedTelemetry = pipeline.SignalLogs
-	r.consumer = rehydration.NewLogsConsumer(nextConsumer)
+	r.consumer = blobconsume.NewLogsConsumer(nextConsumer)
 
 	return r, nil
 }
@@ -95,7 +95,7 @@ func newTracesReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextCon
 	}
 
 	r.supportedTelemetry = pipeline.SignalTraces
-	r.consumer = rehydration.NewTracesConsumer(nextConsumer)
+	r.consumer = blobconsume.NewTracesConsumer(nextConsumer)
 
 	return r, nil
 }
@@ -407,7 +407,7 @@ blobLoop:
 			blobTime = &blob.LastModified
 			telemetryType = r.getTelemetryType()
 			shouldProcess = r.checkpoint.ShouldParse(*blobTime, blob.Name) &&
-				rehydration.IsInTimeRange(*blobTime, startingTime, endingTime)
+				blobconsume.IsInTimeRange(*blobTime, startingTime, endingTime)
 		} else if r.cfg.TimePattern != "" {
 			// Use custom time pattern mode
 			parsedTime, err := ParseTimeFromPattern(blob.Name, r.cfg.TimePattern)
@@ -421,12 +421,12 @@ blobLoop:
 			blobTime = parsedTime
 			telemetryType = r.getTelemetryType()
 			shouldProcess = r.checkpoint.ShouldParse(*blobTime, blob.Name) &&
-				rehydration.IsInTimeRange(*blobTime, startingTime, endingTime)
+				blobconsume.IsInTimeRange(*blobTime, startingTime, endingTime)
 		} else {
 			// Use default structured path parsing mode (year=YYYY/month=MM/...)
-			parsedTime, parsedType, err := rehydration.ParseEntityPath(blob.Name)
+			parsedTime, parsedType, err := blobconsume.ParseEntityPath(blob.Name)
 			switch {
-			case errors.Is(err, rehydration.ErrInvalidEntityPath):
+			case errors.Is(err, blobconsume.ErrInvalidEntityPath):
 				r.logger.Debug("Skipping Blob, non-matching blob path", zap.String("blob", blob.Name))
 				continue
 			case err != nil:
@@ -436,7 +436,7 @@ blobLoop:
 			blobTime = parsedTime
 			telemetryType = parsedType
 			shouldProcess = r.checkpoint.ShouldParse(*blobTime, blob.Name) &&
-				rehydration.IsInTimeRange(*blobTime, startingTime, endingTime) &&
+				blobconsume.IsInTimeRange(*blobTime, startingTime, endingTime) &&
 				telemetryType == r.supportedTelemetry
 		}
 
@@ -500,7 +500,7 @@ func (r *pollingReceiver) processBlob(ctx context.Context, blob *azureblob.BlobI
 	ext := filepath.Ext(blob.Name)
 	switch {
 	case ext == ".gz":
-		blobBuffer, err = rehydration.GzipDecompress(blobBuffer[:size])
+		blobBuffer, err = blobconsume.GzipDecompress(blobBuffer[:size])
 		if err != nil {
 			return fmt.Errorf("gzip: %w", err)
 		}

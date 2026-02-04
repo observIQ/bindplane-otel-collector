@@ -2,14 +2,9 @@ module github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingrec
 
 go 1.24.11
 
-replace github.com/observiq/bindplane-otel-collector/internal/azureblob => ../../internal/azureblob
-
-replace github.com/observiq/bindplane-otel-collector/internal/checkpoint => ../../internal/checkpoint
-
 require (
-	github.com/observiq/bindplane-otel-collector/internal/azureblob v0.0.0-00010101000000-000000000000
-	github.com/observiq/bindplane-otel-collector/internal/checkpoint v0.0.0-00010101000000-000000000000
-	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.91.0
+	github.com/observiq/bindplane-otel-collector/internal/azureblob v1.91.0
+	github.com/observiq/bindplane-otel-collector/internal/blobconsume v1.91.0
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.91.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.50.0
@@ -48,3 +43,7 @@ require (
 	golang.org/x/text v0.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/observiq/bindplane-otel-collector/internal/azureblob => ../../internal/azureblob
+
+replace github.com/observiq/bindplane-otel-collector/internal/blobconsume => ../../internal/blobconsume

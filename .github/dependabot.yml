@@ -223,7 +223,7 @@ updates:
       prefix: "deps"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/internal/rehydration"
+    directory: "/internal/blobconsume"
     schedule:
       interval: "weekly"
     ignore:

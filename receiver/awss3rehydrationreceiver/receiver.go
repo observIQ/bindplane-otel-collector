@@ -23,8 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/internal/checkpoint"
-	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
+	"github.com/observiq/bindplane-otel-collector/internal/blobconsume"
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver/internal/aws"
 	"go.opentelemetry.io/collector/component"
@@ -46,13 +45,13 @@ type rehydrationReceiver struct {
 	cfg                *Config
 	awsClient          aws.S3Client
 	supportedTelemetry pipeline.Signal
-	consumer           rehydration.Consumer
+	consumer           blobconsume.Consumer
 	wg                 *sync.WaitGroup
 	doneChan           chan struct{}
 	objectChan         chan *aws.ObjectResults
 	errChan            chan error
 
-	checkpoint      *checkpoint.CheckPoint
+	checkpoint      *blobconsume.CheckPoint
 	checkpointStore storageclient.StorageClient
 	checkpointKey   string
 	checkpointMutex *sync.Mutex
@@ -74,7 +73,7 @@ func newMetricsReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextCo
 	}
 
 	r.supportedTelemetry = pipeline.SignalMetrics
-	r.consumer = rehydration.NewMetricsConsumer(nextConsumer)
+	r.consumer = blobconsume.NewMetricsConsumer(nextConsumer)
 
 	return r, nil
 }
@@ -87,7 +86,7 @@ func newLogsReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextConsu
 	}
 
 	r.supportedTelemetry = pipeline.SignalLogs
-	r.consumer = rehydration.NewLogsConsumer(nextConsumer)
+	r.consumer = blobconsume.NewLogsConsumer(nextConsumer)
 
 	return r, nil
 }
@@ -100,7 +99,7 @@ func newTracesReceiver(id component.ID, logger *zap.Logger, cfg *Config, nextCon
 	}
 
 	r.supportedTelemetry = pipeline.SignalTraces
-	r.consumer = rehydration.NewTracesConsumer(nextConsumer)
+	r.consumer = blobconsume.NewTracesConsumer(nextConsumer)
 
 	return r, nil
 }
@@ -114,12 +113,12 @@ func newRehydrationReceiver(id component.ID, logger *zap.Logger, cfg *Config) (*
 
 	// We should not get an error for either of these time parsings as we check in config validate.
 	// Doing error checking anyways just in case.
-	startingTime, err := time.Parse(rehydration.TimeFormat, cfg.StartingTime)
+	startingTime, err := time.Parse(blobconsume.TimeFormat, cfg.StartingTime)
 	if err != nil {
 		return nil, fmt.Errorf("invalid starting_time timestamp: %w", err)
 	}
 
-	endingTime, err := time.Parse(rehydration.TimeFormat, cfg.EndingTime)
+	endingTime, err := time.Parse(blobconsume.TimeFormat, cfg.EndingTime)
 	if err != nil {
 		return nil, fmt.Errorf("invalid ending_time timestamp: %w", err)
 	}
@@ -217,13 +216,13 @@ func (r *rehydrationReceiver) initCheckpoint(ctx context.Context, host component
 	r.checkpointKey = fmt.Sprintf("%s_%s_%s", checkpointStorageKey, r.id, r.supportedTelemetry.String())
 
 	// load the previous checkpoint. If not exist should return zero value for time
-	cp := checkpoint.NewCheckpoint()
-	err := r.checkpointStore.LoadStorageData(ctx, r.checkpointKey, cp)
+	checkpoint := blobconsume.NewCheckpoint()
+	err := r.checkpointStore.LoadStorageData(ctx, r.checkpointKey, checkpoint)
 	if err != nil {
 		r.logger.Warn("Error loading checkpoint, continuing without a previous checkpoint", zap.Error(err))
-		cp = checkpoint.NewCheckpoint()
+		checkpoint = blobconsume.NewCheckpoint()
 	}
-	r.checkpoint = cp
+	r.checkpoint = checkpoint
 
 	return nil
 }
@@ -269,16 +268,16 @@ objectLoop:
 
 		// start processing object
 		r.logger.Debug("Processing object", zap.String("name", object.Name))
-		objectTime, telemetryType, err := rehydration.ParseEntityPath(object.Name)
+		objectTime, telemetryType, err := blobconsume.ParseEntityPath(object.Name)
 
 		switch {
-		case errors.Is(err, rehydration.ErrInvalidEntityPath):
+		case errors.Is(err, blobconsume.ErrInvalidEntityPath):
 			r.logger.Debug("Skipping object - non-matching entity path", zap.String("object", object.Name))
 		case err != nil:
 			r.logger.Error("Error processing object path", zap.String("object", object.Name), zap.Error(err))
 		case r.checkpoint.ShouldParse(*objectTime, object.Name):
 			// if object is not in specified time range or not the telemetry type supported by this receiver then skip consuming
-			if !rehydration.IsInTimeRange(*objectTime, r.startingTime, r.endingTime) || telemetryType != r.supportedTelemetry {
+			if !blobconsume.IsInTimeRange(*objectTime, r.startingTime, r.endingTime) || telemetryType != r.supportedTelemetry {
 				r.logger.Debug("Skipping object - not in configured time range or not supported telemetry type", zap.String("object", object.Name))
 				continue
 			}
@@ -338,7 +337,7 @@ func (r *rehydrationReceiver) processObject(ctx context.Context, object *aws.Obj
 	ext := filepath.Ext(object.Name)
 	switch {
 	case ext == ".gz":
-		objectBuffer, err = rehydration.GzipDecompress(objectBuffer[:size])
+		objectBuffer, err = blobconsume.GzipDecompress(objectBuffer[:size])
 		if err != nil {
 			return fmt.Errorf("gzip: %w", err)
 		}

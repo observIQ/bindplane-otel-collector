@@ -18,13 +18,13 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/internal/checkpoint"
+	"github.com/observiq/bindplane-otel-collector/internal/blobconsume"
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 )
 
 // PollingCheckPoint extends the basic checkpoint to include lastPollTime for continuous polling
 type PollingCheckPoint struct {
-	checkpoint.CheckPoint // Embed the base checkpoint
+	blobconsume.CheckPoint // Embed the base checkpoint
 
 	// LastPollTime is the timestamp of the last successful poll
 	// This is used to determine the starting time for the next poll window
@@ -37,7 +37,7 @@ var _ storageclient.StorageData = &PollingCheckPoint{}
 // NewPollingCheckpoint creates a new PollingCheckPoint
 func NewPollingCheckpoint() *PollingCheckPoint {
 	return &PollingCheckPoint{
-		CheckPoint:   *checkpoint.NewCheckpoint(),
+		CheckPoint:   *blobconsume.NewCheckpoint(),
 		LastPollTime: time.Time{},
 	}
 }

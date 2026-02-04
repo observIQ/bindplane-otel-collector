@@ -34,7 +34,7 @@ import (
 	"go.uber.org/zap/zaptest/observer"
 
 	"github.com/observiq/bindplane-otel-collector/internal/azureblob"
-	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
+	"github.com/observiq/bindplane-otel-collector/internal/blobconsume"
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 	"github.com/observiq/bindplane-otel-collector/internal/testutils"
 )
@@ -58,7 +58,7 @@ func Test_newMetricsReceiver(t *testing.T) {
 	require.Equal(t, id, r.id)
 	require.Equal(t, mockClient, r.azureClient)
 	require.Equal(t, pipeline.SignalMetrics, r.supportedTelemetry)
-	require.IsType(t, &rehydration.MetricsConsumer{}, r.consumer)
+	require.IsType(t, &blobconsume.MetricsConsumer{}, r.consumer)
 }
 
 func Test_newLogsReceiver(t *testing.T) {
@@ -80,7 +80,7 @@ func Test_newLogsReceiver(t *testing.T) {
 	require.Equal(t, id, r.id)
 	require.Equal(t, mockClient, r.azureClient)
 	require.Equal(t, pipeline.SignalLogs, r.supportedTelemetry)
-	require.IsType(t, &rehydration.LogsConsumer{}, r.consumer)
+	require.IsType(t, &blobconsume.LogsConsumer{}, r.consumer)
 }
 
 func Test_newTracesReceiver(t *testing.T) {
@@ -102,7 +102,7 @@ func Test_newTracesReceiver(t *testing.T) {
 	require.Equal(t, id, r.id)
 	require.Equal(t, mockClient, r.azureClient)
 	require.Equal(t, pipeline.SignalTraces, r.supportedTelemetry)
-	require.IsType(t, &rehydration.TracesConsumer{}, r.consumer)
+	require.IsType(t, &blobconsume.TracesConsumer{}, r.consumer)
 }
 
 func Test_fullRehydration(t *testing.T) {
@@ -402,7 +402,7 @@ func Test_processBlob(t *testing.T) {
 	testcases := []struct {
 		desc        string
 		info        *azureblob.BlobInfo
-		mockSetup   func(*azureblob.MockBlobClient, *rehydration.MockConsumer)
+		mockSetup   func(*azureblob.MockBlobClient, *blobconsume.MockConsumer)
 		expectedErr error
 	}{
 		{
@@ -411,7 +411,7 @@ func Test_processBlob(t *testing.T) {
 				Name: "blob.json",
 				Size: 10,
 			},
-			mockSetup: func(mockClient *azureblob.MockBlobClient, _ *rehydration.MockConsumer) {
+			mockSetup: func(mockClient *azureblob.MockBlobClient, _ *blobconsume.MockConsumer) {
 				mockClient.EXPECT().DownloadBlob(mock.Anything, containerName, "blob.json", mock.Anything).Return(0, errors.New("bad"))
 			},
 			expectedErr: errors.New("download blob: bad"),
@@ -422,7 +422,7 @@ func Test_processBlob(t *testing.T) {
 				Name: "blob.nope",
 				Size: 10,
 			},
-			mockSetup: func(mockClient *azureblob.MockBlobClient, _ *rehydration.MockConsumer) {
+			mockSetup: func(mockClient *azureblob.MockBlobClient, _ *blobconsume.MockConsumer) {
 				mockClient.EXPECT().DownloadBlob(mock.Anything, containerName, "blob.nope", mock.Anything).Return(0, nil)
 			},
 			expectedErr: errors.New("unsupported file type: .nope"),
@@ -433,7 +433,7 @@ func Test_processBlob(t *testing.T) {
 				Name: "blob.json.gz",
 				Size: int64(len(gzipData)),
 			},
-			mockSetup: func(mockClient *azureblob.MockBlobClient, mockConsumer *rehydration.MockConsumer) {
+			mockSetup: func(mockClient *azureblob.MockBlobClient, mockConsumer *blobconsume.MockConsumer) {
 				mockClient.EXPECT().DownloadBlob(mock.Anything, containerName, "blob.json.gz", mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 					copy(buf, gzipData)
 					return int64(len(gzipData)), nil
@@ -449,7 +449,7 @@ func Test_processBlob(t *testing.T) {
 				Name: "blob.json",
 				Size: int64(len(jsonData)),
 			},
-			mockSetup: func(mockClient *azureblob.MockBlobClient, mockConsumer *rehydration.MockConsumer) {
+			mockSetup: func(mockClient *azureblob.MockBlobClient, mockConsumer *blobconsume.MockConsumer) {
 				mockClient.EXPECT().DownloadBlob(mock.Anything, containerName, "blob.json", mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 					copy(buf, jsonData)
 					return int64(len(jsonData)), nil
@@ -465,7 +465,7 @@ func Test_processBlob(t *testing.T) {
 				Name: "blob.json",
 				Size: int64(len(jsonData)),
 			},
-			mockSetup: func(mockClient *azureblob.MockBlobClient, mockConsumer *rehydration.MockConsumer) {
+			mockSetup: func(mockClient *azureblob.MockBlobClient, mockConsumer *blobconsume.MockConsumer) {
 				mockClient.EXPECT().DownloadBlob(mock.Anything, containerName, "blob.json", mock.Anything).RunAndReturn(func(_ context.Context, _ string, _ string, buf []byte) (int64, error) {
 					copy(buf, jsonData)
 					return int64(len(jsonData)), nil
@@ -480,7 +480,7 @@ func Test_processBlob(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.desc, func(t *testing.T) {
 			mockClient := azureblob.NewMockBlobClient(t)
-			mockConsumer := rehydration.NewMockConsumer(t)
+			mockConsumer := blobconsume.NewMockConsumer(t)
 
 			tc.mockSetup(mockClient, mockConsumer)
 
