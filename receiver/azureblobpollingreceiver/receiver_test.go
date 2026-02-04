@@ -28,25 +28,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// mockBlobClient is a simple mock implementation for testing
-type mockBlobClient struct {
-	mock.Mock
-}
-
-func (m *mockBlobClient) DownloadBlob(ctx context.Context, container, blobPath string, buf []byte) (int64, error) {
-	args := m.Called(ctx, container, blobPath, buf)
-	return args.Get(0).(int64), args.Error(1)
-}
-
-func (m *mockBlobClient) DeleteBlob(ctx context.Context, container, blobPath string) error {
-	args := m.Called(ctx, container, blobPath)
-	return args.Error(0)
-}
-
-func (m *mockBlobClient) StreamBlobs(ctx context.Context, container string, prefix *string, errChan chan error, blobChan chan []*azureblob.BlobInfo, doneChan chan struct{}) {
-	m.Called(ctx, container, prefix, errChan, blobChan, doneChan)
-}
-
 func TestPollingReceiver_runPoll(t *testing.T) {
 	t.Run("First poll uses initial lookback", func(t *testing.T) {
 		logger := zap.NewNop()
@@ -56,7 +37,7 @@ func TestPollingReceiver_runPoll(t *testing.T) {
 			InitialLookback: 5 * time.Minute,
 		}
 
-		mockClient := new(mockBlobClient)
+		mockClient := new(azureblob.MockBlobClient)
 		receiver := &pollingReceiver{
 			logger:          logger,
 			cfg:             cfg,
@@ -97,7 +78,7 @@ func TestPollingReceiver_runPoll(t *testing.T) {
 			InitialLookback: 5 * time.Minute,
 		}
 
-		mockClient := new(mockBlobClient)
+		mockClient := new(azureblob.MockBlobClient)
 		checkpoint := NewPollingCheckpoint()
 		lastPollTime := time.Now().UTC().Add(-2 * time.Minute)
 		checkpoint.UpdatePollTime(lastPollTime)
@@ -142,7 +123,7 @@ func TestPollingReceiver_runPoll(t *testing.T) {
 			InitialLookback: 5 * time.Minute,
 		}
 
-		mockClient := new(mockBlobClient)
+		mockClient := new(azureblob.MockBlobClient)
 		checkpoint := NewPollingCheckpoint()
 
 		receiver := &pollingReceiver{
@@ -201,7 +182,7 @@ func TestPollingReceiver_runPoll(t *testing.T) {
 			InitialLookback: 5 * time.Minute,
 		}
 
-		mockClient := new(mockBlobClient)
+		mockClient := new(azureblob.MockBlobClient)
 		receiver := &pollingReceiver{
 			logger:          logger,
 			cfg:             cfg,
@@ -236,7 +217,7 @@ func TestPollingReceiver_runPoll(t *testing.T) {
 			InitialLookback: 5 * time.Minute,
 		}
 
-		mockClient := new(mockBlobClient)
+		mockClient := new(azureblob.MockBlobClient)
 		receiver := &pollingReceiver{
 			logger:          logger,
 			cfg:             cfg,
@@ -279,7 +260,7 @@ func TestPollingReceiver_InitialLookback(t *testing.T) {
 		originalNewAzureBlobClient := newAzureBlobClient
 		defer func() { newAzureBlobClient = originalNewAzureBlobClient }()
 
-		mockClient := new(mockBlobClient)
+		mockClient := new(azureblob.MockBlobClient)
 		newAzureBlobClient = func(_ string, _ int, _ int) (azureblob.BlobClient, error) {
 			return mockClient, nil
 		}
@@ -309,7 +290,7 @@ func TestPollingReceiver_InitialLookback(t *testing.T) {
 		originalNewAzureBlobClient := newAzureBlobClient
 		defer func() { newAzureBlobClient = originalNewAzureBlobClient }()
 
-		mockClient := new(mockBlobClient)
+		mockClient := new(azureblob.MockBlobClient)
 		newAzureBlobClient = func(_ string, _ int, _ int) (azureblob.BlobClient, error) {
 			return mockClient, nil
 		}

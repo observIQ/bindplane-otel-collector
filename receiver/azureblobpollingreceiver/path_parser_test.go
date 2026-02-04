@@ -26,7 +26,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 		pattern := "{year}/{month}/{day}/{hour}/{minute}/{second}/data.json"
 		blobPath := "2024/03/15/14/30/45/data.json"
 
-		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
+		parsedTime, err := parseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
 
@@ -38,7 +38,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 		pattern := "{year}/{month}/{day}/data.json"
 		blobPath := "2024/03/15/data.json"
 
-		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
+		parsedTime, err := parseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
 
@@ -50,7 +50,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 		pattern := "logs/{year}/{month}/{day}/file.json"
 		blobPath := "logs/2024/03/15/file.json"
 
-		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
+		parsedTime, err := parseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
 
@@ -62,7 +62,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 		pattern := "{year}/{month}/data.json"
 		blobPath := "2024/03/data.json"
 
-		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
+		parsedTime, err := parseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
 
@@ -75,7 +75,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 		pattern := "{month}/{day}/data.json"
 		blobPath := "03/15/data.json"
 
-		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
+		parsedTime, err := parseTimeFromPattern(blobPath, pattern)
 		require.Error(t, err)
 		require.Nil(t, parsedTime)
 		require.Contains(t, err.Error(), "year is required")
@@ -85,7 +85,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 		pattern := "{year}/{month}/{day}/data.json"
 		blobPath := "2024/03/data.json" // Missing day
 
-		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
+		parsedTime, err := parseTimeFromPattern(blobPath, pattern)
 		require.Error(t, err)
 		require.Nil(t, parsedTime)
 		require.Contains(t, err.Error(), "does not match pattern")
@@ -95,7 +95,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 		pattern := "2006/01/02/15/04"
 		blobPath := "2024/03/15/14/30/data.json"
 
-		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
+		parsedTime, err := parseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
 
@@ -107,7 +107,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 		pattern := "2006/01/02"
 		blobPath := "2024/03/15/data.json"
 
-		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
+		parsedTime, err := parseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
 
@@ -119,7 +119,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 		pattern := "logs/2006/01/02"
 		blobPath := "logs/2024/03/15/file.json"
 
-		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
+		parsedTime, err := parseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
 
@@ -131,7 +131,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 		pattern := "2006/01/02/15"
 		blobPath := "2024/03/15" // Missing hour component
 
-		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
+		parsedTime, err := parseTimeFromPattern(blobPath, pattern)
 		require.Error(t, err)
 		require.Nil(t, parsedTime)
 		require.Contains(t, err.Error(), "fewer components")
@@ -141,7 +141,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 		pattern := "2006/01/02"
 		blobPath := "2024/13/45/data.json" // Invalid month and day
 
-		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
+		parsedTime, err := parseTimeFromPattern(blobPath, pattern)
 		require.Error(t, err)
 		require.Nil(t, parsedTime)
 	})
@@ -150,7 +150,7 @@ func TestParseTimeFromPattern(t *testing.T) {
 		pattern := "data.backup/{year}-{month}-{day}/file.json"
 		blobPath := "data.backup/2024-03-15/file.json"
 
-		parsedTime, err := ParseTimeFromPattern(blobPath, pattern)
+		parsedTime, err := parseTimeFromPattern(blobPath, pattern)
 		require.NoError(t, err)
 		require.NotNil(t, parsedTime)
 

@@ -113,7 +113,7 @@ func TestGenerateTimePrefixes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			prefixes, err := GenerateTimePrefixes(tt.startTime, tt.endTime, tt.pattern, tt.rootFolder)
+			prefixes, err := generateTimePrefixes(tt.startTime, tt.endTime, tt.pattern, tt.rootFolder)
 			if tt.expectErr {
 				require.Error(t, err)
 			} else {

@@ -8,7 +8,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.20.19
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.95.1
 	github.com/observiq/bindplane-otel-collector/internal/blobconsume v1.91.0
-	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.91.0
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.91.0
 	github.com/observiq/bindplane-otel-collector/internal/testutils v1.91.0
 	github.com/stretchr/testify v1.11.1

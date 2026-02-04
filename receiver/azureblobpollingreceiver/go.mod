@@ -47,3 +47,5 @@ require (
 replace github.com/observiq/bindplane-otel-collector/internal/azureblob => ../../internal/azureblob
 
 replace github.com/observiq/bindplane-otel-collector/internal/blobconsume => ../../internal/blobconsume
+
+replace github.com/observiq/bindplane-otel-collector/internal/storageclient => ../../internal/storageclient

@@ -22,11 +22,11 @@ import (
 	"time"
 )
 
-// ParseTimeFromPattern extracts a timestamp from a blob path using a custom pattern.
+// parseTimeFromPattern extracts a timestamp from a blob path using a custom pattern.
 // Supports two formats:
 // 1. Named placeholders: {year}/{month}/{day}/{hour}/{minute}
 // 2. Go time format: 2006/01/02/15/04
-func ParseTimeFromPattern(blobPath, pattern string) (*time.Time, error) {
+func parseTimeFromPattern(blobPath, pattern string) (*time.Time, error) {
 	// Try named placeholders first
 	if strings.Contains(pattern, "{") {
 		return parseWithPlaceholders(blobPath, pattern)
@@ -54,21 +54,22 @@ func parseWithPlaceholders(blobPath, pattern string) (*time.Time, error) {
 
 	// Find placeholders in order they appear in the pattern
 	for i := 0; i < len(pattern); {
-		if pattern[i] == '{' {
-			// Find the end of the placeholder
-			end := strings.Index(pattern[i:], "}")
-			if end == -1 {
-				break
-			}
-			placeholder := pattern[i : i+end+1]
-			if regex, ok := placeholderMap[placeholder]; ok {
-				placeholders = append(placeholders, strings.Trim(placeholder, "{}"))
-				regexPattern = strings.Replace(regexPattern, regexp.QuoteMeta(placeholder), regex, 1)
-			}
-			i += end + 1
-		} else {
+		if pattern[i] != '{' {
 			i++
+			continue
 		}
+
+		// Find the end of the placeholder
+		end := strings.Index(pattern[i:], "}")
+		if end == -1 {
+			break
+		}
+		placeholder := pattern[i : i+end+1]
+		if regex, ok := placeholderMap[placeholder]; ok {
+			placeholders = append(placeholders, strings.Trim(placeholder, "{}"))
+			regexPattern = strings.Replace(regexPattern, regexp.QuoteMeta(placeholder), regex, 1)
+		}
+		i += end + 1
 	}
 
 	// Compile and match the regex
@@ -115,9 +116,9 @@ func parseWithPlaceholders(blobPath, pattern string) (*time.Time, error) {
 	return &parsedTime, nil
 }
 
-// GenerateTimePrefixes generates a list of prefixes based on the time range and pattern.
+// generateTimePrefixes generates a list of prefixes based on the time range and pattern.
 // It limits the resolution to the hour to avoid race conditions.
-func GenerateTimePrefixes(startTime, endingTime time.Time, pattern, rootFolder string) ([]string, error) {
+func generateTimePrefixes(startTime, endingTime time.Time, pattern, rootFolder string) ([]string, error) {
 	// 1. Convert pattern to Go time layout
 	layout := pattern
 	if strings.Contains(pattern, "{") {
@@ -155,24 +156,17 @@ func GenerateTimePrefixes(startTime, endingTime time.Time, pattern, rootFolder s
 
 	// Align start time to resolution
 	// Use UTC to avoid DST issues (though caller should provide UTC)
-	current := startTime.UTC().Truncate(resolution)
 
-	for !current.After(endingTime.UTC()) {
+	for current := startTime.UTC().Truncate(resolution); !current.After(endingTime.UTC()); current = current.Add(resolution) {
 		prefix := current.Format(truncatedLayout)
 		if rootFolder != "" {
-			// Handle joining
-			sep := "/"
-			if strings.HasSuffix(rootFolder, "/") || strings.HasPrefix(prefix, "/") {
-				sep = ""
-			}
-			prefix = rootFolder + sep + prefix
+			prefix = strings.TrimSuffix(rootFolder, "/") + "/" + strings.TrimPrefix(prefix, "/")
 		}
 
 		if !seen[prefix] {
 			prefixes = append(prefixes, prefix)
 			seen[prefix] = true
 		}
-		current = current.Add(resolution)
 	}
 
 	return prefixes, nil

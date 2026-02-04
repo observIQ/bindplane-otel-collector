@@ -54,6 +54,7 @@ type pollingReceiver struct {
 	mut *sync.Mutex
 	wg  *sync.WaitGroup
 
+	// lastBlob and lastBlobTime should not be modified without locking the mut mutex
 	lastBlob     *azureblob.BlobInfo
 	lastBlobTime *time.Time
 
@@ -271,31 +272,14 @@ func (r *pollingReceiver) runPoll(ctx context.Context) {
 	pollStartTime := time.Now()
 	r.logger.Info("Starting poll", zap.Time("poll_time", pollStartTime))
 
+	r.pullBlobs(ctx, startingTime, endingTime, doneChan, errChan, blobChan)
+
+	r.processBlobsLoop(ctx, doneChan, errChan, blobChan, pollStartTime, startingTime, endingTime)
+}
+
+func (r *pollingReceiver) pullBlobs(ctx context.Context, startingTime, endingTime time.Time, doneChan chan struct{}, errChan chan error, blobChan chan []*azureblob.BlobInfo) {
 	// Determine prefixes to poll
-	var prefixes []*string
-	if r.cfg.UseTimePatternAsPrefix && r.cfg.TimePattern != "" {
-		// Generate prefixes based on time window
-		generated, err := GenerateTimePrefixes(startingTime, endingTime, r.cfg.TimePattern, r.cfg.RootFolder)
-		if err != nil {
-			r.logger.Error("Failed to generate time prefixes, falling back to root folder", zap.Error(err))
-			if r.cfg.RootFolder != "" {
-				prefixes = []*string{&r.cfg.RootFolder}
-			} else {
-				prefixes = []*string{nil}
-			}
-		} else {
-			for _, p := range generated {
-				s := p
-				prefixes = append(prefixes, &s)
-			}
-		}
-	} else {
-		if r.cfg.RootFolder != "" {
-			prefixes = []*string{&r.cfg.RootFolder}
-		} else {
-			prefixes = []*string{nil}
-		}
-	}
+	prefixes := r.generatePrefixes(startingTime, endingTime)
 
 	// Stream blobs in a goroutine
 	go func() {
@@ -310,19 +294,51 @@ func (r *pollingReceiver) runPoll(ctx context.Context) {
 			r.logger.Debug("Polling with prefix", zap.Stringp("prefix", prefix))
 
 			// StreamBlobs closes the done channel passed to it, so we create a fresh one
-			stepDone := make(chan struct{})
-			r.azureClient.StreamBlobs(ctx, r.cfg.Container, prefix, errChan, blobChan, stepDone)
+			prefixDoneChan := make(chan struct{})
+			r.azureClient.StreamBlobs(ctx, r.cfg.Container, prefix, errChan, blobChan, prefixDoneChan)
 
 			// Wait for this step to complete
 			select {
 			case <-ctx.Done():
 				return
-			case <-stepDone:
-				// Continue
+			case <-prefixDoneChan:
+				// Continue to the next prefix
 			}
 		}
 	}()
+}
 
+func (r *pollingReceiver) generatePrefixes(startingTime, endingTime time.Time) []*string {
+	if r.cfg.UseTimePatternAsPrefix && r.cfg.TimePattern != "" {
+		// Generate prefixes based on time window
+		generated, err := generateTimePrefixes(startingTime, endingTime, r.cfg.TimePattern, r.cfg.RootFolder)
+		if err != nil {
+			r.logger.Error("Failed to generate time prefixes, falling back to root folder", zap.Error(err))
+			if r.cfg.RootFolder != "" {
+				return []*string{&r.cfg.RootFolder}
+			}
+			// we return a nil entry here to indicate that there is no prefix for this poll
+			// when there is no prefix, the StreamBlobs call will scan the entire container
+			return []*string{nil}
+		}
+
+		prefixes := []*string{}
+		for _, prefix := range generated {
+			prefixes = append(prefixes, &prefix)
+		}
+		return prefixes
+	}
+
+	if r.cfg.RootFolder != "" {
+		return []*string{&r.cfg.RootFolder}
+	}
+
+	// we return a nil entry here to indicate that there is no prefix for this poll
+	// when there is no prefix, the StreamBlobs call will scan the entire container
+	return []*string{nil}
+}
+
+func (r *pollingReceiver) processBlobsLoop(ctx context.Context, doneChan chan struct{}, errChan chan error, blobChan chan []*azureblob.BlobInfo, pollStartTime time.Time, startingTime, endingTime time.Time) {
 	totalProcessed := 0
 	for {
 		select {
@@ -394,83 +410,11 @@ blobLoop:
 			}
 		}
 
-		var blobTime *time.Time
-		var telemetryType pipeline.Signal
-		var shouldProcess bool
+		blobTime, shouldProcess := r.shouldProcessBlob(blob, startingTime, endingTime)
 
-		if r.cfg.UseLastModified {
-			// Use LastModified timestamp mode
-			if blob.LastModified.IsZero() {
-				r.logger.Debug("Skipping blob with zero LastModified", zap.String("blob", blob.Name))
-				continue
-			}
-			blobTime = &blob.LastModified
-			telemetryType = r.getTelemetryType()
-			shouldProcess = r.checkpoint.ShouldParse(*blobTime, blob.Name) &&
-				blobconsume.IsInTimeRange(*blobTime, startingTime, endingTime)
-		} else if r.cfg.TimePattern != "" {
-			// Use custom time pattern mode
-			parsedTime, err := ParseTimeFromPattern(blob.Name, r.cfg.TimePattern)
-			if err != nil {
-				r.logger.Debug("Skipping blob, failed to parse time from pattern",
-					zap.String("blob", blob.Name),
-					zap.String("pattern", r.cfg.TimePattern),
-					zap.Error(err))
-				continue
-			}
-			blobTime = parsedTime
-			telemetryType = r.getTelemetryType()
-			shouldProcess = r.checkpoint.ShouldParse(*blobTime, blob.Name) &&
-				blobconsume.IsInTimeRange(*blobTime, startingTime, endingTime)
-		} else {
-			// Use default structured path parsing mode (year=YYYY/month=MM/...)
-			parsedTime, parsedType, err := blobconsume.ParseEntityPath(blob.Name)
-			switch {
-			case errors.Is(err, blobconsume.ErrInvalidEntityPath):
-				r.logger.Debug("Skipping Blob, non-matching blob path", zap.String("blob", blob.Name))
-				continue
-			case err != nil:
-				r.logger.Error("Error processing blob path", zap.String("blob", blob.Name), zap.Error(err))
-				continue
-			}
-			blobTime = parsedTime
-			telemetryType = parsedType
-			shouldProcess = r.checkpoint.ShouldParse(*blobTime, blob.Name) &&
-				blobconsume.IsInTimeRange(*blobTime, startingTime, endingTime) &&
-				telemetryType == r.supportedTelemetry
-		}
-
-		if shouldProcess {
+		if shouldProcess && blobTime != nil {
 			r.wg.Add(1)
-			go func(blob *azureblob.BlobInfo, blobTime *time.Time) {
-				defer r.wg.Done()
-				select {
-				case <-ctx.Done():
-					return
-				default:
-				}
-
-				// Process and consume the blob
-				if err := r.processBlob(ctx, blob); err != nil {
-					if !errors.Is(err, context.Canceled) {
-						r.logger.Error("Error consuming blob", zap.String("blob", blob.Name), zap.Error(err))
-					}
-					return
-				}
-				processedBlobCount.Add(1)
-
-				// Delete blob if configured to do so
-				if err := r.conditionallyDeleteBlob(ctx, blob); err != nil {
-					r.logger.Error("Error while attempting to delete blob", zap.String("blob", blob.Name), zap.Error(err))
-				}
-
-				if r.lastBlobTime == nil || r.lastBlobTime.Before(*blobTime) {
-					r.mut.Lock()
-					r.lastBlob = blob
-					r.lastBlobTime = blobTime
-					r.mut.Unlock()
-				}
-			}(blob, blobTime)
+			go r.processBlobGoRoutine(ctx, blob, blobTime, &processedBlobCount)
 		}
 	}
 
@@ -481,6 +425,76 @@ blobLoop:
 	}
 
 	return int(processedBlobCount.Load())
+}
+
+func (r *pollingReceiver) shouldProcessBlob(blob *azureblob.BlobInfo, startingTime, endingTime time.Time) (*time.Time, bool) {
+	if r.cfg.UseLastModified {
+		// Use LastModified timestamp mode
+		if blob.LastModified.IsZero() {
+			r.logger.Debug("Skipping blob with zero LastModified", zap.String("blob", blob.Name))
+			return nil, false
+		}
+		return &blob.LastModified, r.checkpoint.ShouldParse(blob.LastModified, blob.Name) &&
+			blobconsume.IsInTimeRange(blob.LastModified, startingTime, endingTime)
+	}
+
+	if r.cfg.TimePattern != "" {
+		// Use custom time pattern mode
+		parsedTime, err := parseTimeFromPattern(blob.Name, r.cfg.TimePattern)
+		if err != nil {
+			r.logger.Debug("Skipping blob, failed to parse time from pattern",
+				zap.String("blob", blob.Name),
+				zap.String("pattern", r.cfg.TimePattern),
+				zap.Error(err))
+			return nil, false
+		}
+		return parsedTime, r.checkpoint.ShouldParse(*parsedTime, blob.Name) &&
+			blobconsume.IsInTimeRange(*parsedTime, startingTime, endingTime)
+	}
+
+	// Use default structured path parsing mode (year=YYYY/month=MM/...)
+	parsedTime, parsedType, err := blobconsume.ParseEntityPath(blob.Name)
+	switch {
+	case errors.Is(err, blobconsume.ErrInvalidEntityPath):
+		r.logger.Debug("Skipping Blob, non-matching blob path", zap.String("blob", blob.Name))
+		return nil, false
+	case err != nil:
+		r.logger.Error("Error processing blob path", zap.String("blob", blob.Name), zap.Error(err))
+		return nil, false
+	}
+	return parsedTime, r.checkpoint.ShouldParse(*parsedTime, blob.Name) &&
+		blobconsume.IsInTimeRange(*parsedTime, startingTime, endingTime) &&
+		parsedType == r.supportedTelemetry
+}
+
+func (r *pollingReceiver) processBlobGoRoutine(ctx context.Context, blob *azureblob.BlobInfo, blobTime *time.Time, processedBlobCount *atomic.Int64) {
+	defer r.wg.Done()
+	select {
+	case <-ctx.Done():
+		return
+	default:
+	}
+
+	// Process and consume the blob
+	if err := r.processBlob(ctx, blob); err != nil {
+		if !errors.Is(err, context.Canceled) {
+			r.logger.Error("Error consuming blob", zap.String("blob", blob.Name), zap.Error(err))
+		}
+		return
+	}
+	processedBlobCount.Add(1)
+
+	// Delete blob if configured to do so
+	if err := r.conditionallyDeleteBlob(ctx, blob); err != nil {
+		r.logger.Error("Error while attempting to delete blob", zap.String("blob", blob.Name), zap.Error(err))
+	}
+
+	r.mut.Lock()
+	if r.lastBlobTime == nil || r.lastBlobTime.Before(*blobTime) {
+		r.lastBlob = blob
+		r.lastBlobTime = blobTime
+	}
+	r.mut.Unlock()
 }
 
 // processBlob does the following:
