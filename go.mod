@@ -65,7 +65,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fileexporter v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudpubsubexporter v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/influxdbexporter v0.144.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter v0.143.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/loadbalancingexporter v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/logzioexporter v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.144.0
@@ -183,13 +183,13 @@ require (
 	go.opentelemetry.io/collector/confmap/provider/httpsprovider v1.50.0
 	go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.50.0
 	go.opentelemetry.io/collector/connector v0.144.0
-	go.opentelemetry.io/collector/connector/forwardconnector v0.143.0
+	go.opentelemetry.io/collector/connector/forwardconnector v0.144.0
 	go.opentelemetry.io/collector/consumer v1.51.0
 	go.opentelemetry.io/collector/exporter v1.50.0
-	go.opentelemetry.io/collector/exporter/debugexporter v0.143.0
-	go.opentelemetry.io/collector/exporter/nopexporter v0.143.0
+	go.opentelemetry.io/collector/exporter/debugexporter v0.144.0
+	go.opentelemetry.io/collector/exporter/nopexporter v0.144.0
 	go.opentelemetry.io/collector/exporter/otlpexporter v0.144.0
-	go.opentelemetry.io/collector/exporter/otlphttpexporter v0.143.0
+	go.opentelemetry.io/collector/exporter/otlphttpexporter v0.144.0
 	go.opentelemetry.io/collector/extension v1.50.0
 	go.opentelemetry.io/collector/extension/zpagesextension v0.144.0
 	go.opentelemetry.io/collector/featuregate v1.51.0
@@ -197,8 +197,8 @@ require (
 	go.opentelemetry.io/collector/pdata v1.51.0
 	go.opentelemetry.io/collector/processor v1.50.0
 	go.opentelemetry.io/collector/processor/batchprocessor v0.144.0
-	go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.143.0
-	go.opentelemetry.io/collector/receiver v1.51.0
+	go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.144.0
+	go.opentelemetry.io/collector/receiver v1.50.0
 	go.opentelemetry.io/collector/receiver/otlpreceiver v0.144.0
 	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.27.1
@@ -627,7 +627,7 @@ require (
 	go.opentelemetry.io/collector/filter v0.144.0 // indirect
 	go.opentelemetry.io/collector/internal/componentalias v0.145.0 // indirect
 	go.opentelemetry.io/collector/internal/fanoutconsumer v0.144.0 // indirect
-	go.opentelemetry.io/collector/internal/memorylimiter v0.143.0 // indirect
+	go.opentelemetry.io/collector/internal/memorylimiter v0.144.0 // indirect
 	go.opentelemetry.io/collector/internal/sharedcomponent v0.144.0 // indirect
 	go.opentelemetry.io/collector/internal/telemetry v0.144.0 // indirect
 	go.opentelemetry.io/collector/pdata/pprofile v0.145.0 // indirect
