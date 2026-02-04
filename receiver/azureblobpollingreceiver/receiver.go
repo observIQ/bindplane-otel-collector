@@ -324,7 +324,8 @@ func (r *pollingReceiver) generatePrefixes(startingTime, endingTime time.Time) [
 
 		prefixes := []*string{}
 		for _, prefix := range generated {
-			prefixes = append(prefixes, &prefix)
+			innerPrefix := prefix
+			prefixes = append(prefixes, &innerPrefix)
 		}
 		return prefixes
 	}
