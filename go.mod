@@ -215,7 +215,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/extension/pebbleextension v1.91.0
 	github.com/observiq/bindplane-otel-collector/internal/osinfo v1.91.0
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.91.0
-	github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver v0.0.0-00010101000000-000000000000
+	github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver v1.91.0
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.91.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/datadogexporter v0.144.0
