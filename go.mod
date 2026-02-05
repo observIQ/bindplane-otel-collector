@@ -1126,3 +1126,5 @@ replace github.com/open-telemetry/opentelemetry-collector-contrib/internal/kafka
 replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor => github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor v0.143.0
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/elasticsearchexporter => github.com/open-telemetry/opentelemetry-collector-contrib/exporter/elasticsearchexporter v0.143.0
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension => github.com/observiq/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.0.0-20260203175610-5c80010ae854
