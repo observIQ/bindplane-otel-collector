@@ -488,7 +488,7 @@ require (
 	github.com/leodido/go-syslog/v4 v4.3.0 // indirect
 	github.com/lestrrat-go/strftime v1.1.1 // indirect
 	github.com/libp2p/go-reuseport v0.4.0 // indirect
-	github.com/linkedin/goavro/v2 v2.14.1 // indirect
+	github.com/linkedin/goavro/v2 v2.15.0 // indirect
 	github.com/linode/go-metadata v0.2.3 // indirect
 	github.com/magefile/mage v1.15.0 // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
