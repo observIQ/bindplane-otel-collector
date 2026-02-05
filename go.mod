@@ -65,7 +65,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fileexporter v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudpubsubexporter v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/influxdbexporter v0.144.0
-	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter v0.143.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/loadbalancingexporter v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/logzioexporter v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.144.0
@@ -215,6 +215,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/extension/pebbleextension v1.91.0
 	github.com/observiq/bindplane-otel-collector/internal/osinfo v1.91.0
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.91.0
+	github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver v1.91.0
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.91.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/datadogexporter v0.144.0
@@ -508,7 +509,8 @@ require (
 	github.com/observiq/bindplane-otel-collector/counter v1.91.0 // indirect
 	github.com/observiq/bindplane-otel-collector/expr v1.91.0 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/aws v1.91.0 // indirect
-	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.91.0 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/azureblob v1.91.0 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/blobconsume v1.91.0 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.91.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/okta/okta-sdk-golang/v2 v2.20.0 // indirect
@@ -999,11 +1001,13 @@ replace github.com/observiq/bindplane-otel-collector/packagestate => ./packagest
 // Internal pkgs
 replace github.com/observiq/bindplane-otel-collector/internal/aws => ./internal/aws
 
+replace github.com/observiq/bindplane-otel-collector/internal/azureblob => ./internal/azureblob
+
 replace github.com/observiq/bindplane-otel-collector/internal/measurements => ./internal/measurements
 
 replace github.com/observiq/bindplane-otel-collector/internal/osinfo => ./internal/osinfo
 
-replace github.com/observiq/bindplane-otel-collector/internal/rehydration => ./internal/rehydration
+replace github.com/observiq/bindplane-otel-collector/internal/blobconsume => ./internal/blobconsume
 
 replace github.com/observiq/bindplane-otel-collector/internal/report => ./internal/report
 
@@ -1070,6 +1074,8 @@ replace github.com/observiq/bindplane-otel-collector/processor/topologyprocessor
 replace github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver => ./receiver/awss3eventreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver => ./receiver/awss3rehydrationreceiver
+
+replace github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver => ./receiver/azureblobpollingreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver => ./receiver/azureblobrehydrationreceiver
 
