@@ -2053,6 +2053,8 @@ github.com/nxadm/tail v1.4.11 h1:8feyoE3OzPrcshW5/MJ4sGESc5cqmGkGCWlco4l0bqY=
 github.com/nxadm/tail v1.4.11/go.mod h1:OTaG3NK980DZzxbRq6lEuzgU+mug70nY11sMd4JXXHc=
 github.com/oapi-codegen/runtime v1.0.0 h1:P4rqFX5fMFWqRzY9M/3YF9+aPSPPB06IzP2P7oOxrWo=
 github.com/oapi-codegen/runtime v1.0.0/go.mod h1:LmCUMQuPB4M/nLXilQXhHw+BLZdDb18B34OO356yJ/A=
+github.com/observiq/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.0.0-20260203175610-5c80010ae854 h1:t/pA72j3mIGqmHCfiAG2g06q7fRZbyFD6/Uv5JgQtec=
+github.com/observiq/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.0.0-20260203175610-5c80010ae854/go.mod h1:IqxPnHzlR05FMCT2Rq1aG4TXbSgs2+N7XnhtcCJsMu8=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/ulid v1.3.1 h1:EGfNDEx6MqHz8B3uNV6QAib1UR2Lm97sHi3ocA6ESJ4=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
@@ -2163,8 +2165,6 @@ github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jso
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension v0.144.0/go.mod h1:UWYDf7lmsBLMO2fh1O6dVzGuA9d2sOmmiWMfsO8EPcg=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/otlpencodingextension v0.144.0 h1:08Qc2X6yac57/0OmkszEI6w1RYVW4Wfo9YYidHtQTbw=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/otlpencodingextension v0.144.0/go.mod h1:FosFhCxE0Gd6Yh73C5gDnUdeyFxt4XeagixV2Pb4gDk=
-github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.144.0 h1:5GtWMLCOKyPUDZm/qtLS1eevFt2wN1FLjqxmceZlSlo=
-github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.144.0/go.mod h1:IqxPnHzlR05FMCT2Rq1aG4TXbSgs2+N7XnhtcCJsMu8=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/headerssetterextension v0.144.0 h1:8hgziri6iK/3BLYS7t5Z0Qfa38lP3meOfsPkNccrUGE=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/headerssetterextension v0.144.0/go.mod h1:fVLr4smRYl7bGU4BuHQSitv/5vKaXnUHhJEqJVDzRaA=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.144.0 h1:4NoCstekcHgut9Jo8J+ePkq+kTZ0CczE6Jp2QebWJOE=
