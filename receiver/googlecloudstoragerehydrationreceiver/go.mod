@@ -4,7 +4,7 @@ go 1.24.11
 
 require (
 	cloud.google.com/go/storage v1.59.1
-	github.com/observiq/bindplane-otel-collector/internal/rehydration v1.91.0
+	github.com/observiq/bindplane-otel-collector/internal/blobconsume v1.91.0
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.91.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.50.0
@@ -84,7 +84,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/observiq/bindplane-otel-collector/internal/rehydration => ../../internal/rehydration
+replace github.com/observiq/bindplane-otel-collector/internal/blobconsume => ../../internal/blobconsume
 
 replace github.com/observiq/bindplane-otel-collector/internal/storageclient => ../../internal/storageclient
 
