@@ -41,7 +41,7 @@ jobs:
           # Windows - Other
           - os: windows
             target: other
-            runner: namespace-profile-bindplane-default-windows-2022-8x16
+            runner: namespace-profile-bindplane-default-windows-2022-16x32
             test_cmd: make test-updater-integration
     runs-on: ${{ matrix.runner }}
     steps:

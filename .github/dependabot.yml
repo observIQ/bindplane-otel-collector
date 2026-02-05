@@ -223,7 +223,7 @@ updates:
       prefix: "deps"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/internal/rehydration"
+    directory: "/internal/blobconsume"
     schedule:
       interval: "weekly"
     ignore:
@@ -451,6 +451,17 @@ updates:
       include: "scope"
   - package-ecosystem: "gomod"
     directory: "/receiver/awss3rehydrationreceiver"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "go.opentelemetry.io/*"
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/receiver/azureblobpollingreceiver"
     schedule:
       interval: "weekly"
     ignore:

@@ -43,3 +43,10 @@ gha-creds-*.json
 # during release process. Can cause Goreleaser failure
 # due to dirty git state.
 ci-signing-key.asc
+
+# Local performance testing and images
+ImagesAzure/
+perf-test/
+
+# Local planning docs
+**/MULTI_COLLECTOR_PLAN.md

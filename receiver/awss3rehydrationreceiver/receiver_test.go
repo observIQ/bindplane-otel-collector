@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
+	"github.com/observiq/bindplane-otel-collector/internal/blobconsume"
 	"github.com/observiq/bindplane-otel-collector/internal/testutils"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver/internal/aws"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver/internal/aws/mocks"
@@ -51,7 +51,7 @@ func Test_newMetricsReceiver(t *testing.T) {
 	require.Equal(t, id, r.id)
 	require.Equal(t, mockClient, r.awsClient)
 	require.Equal(t, pipeline.SignalMetrics, r.supportedTelemetry)
-	require.IsType(t, &rehydration.MetricsConsumer{}, r.consumer)
+	require.IsType(t, &blobconsume.MetricsConsumer{}, r.consumer)
 }
 
 func Test_newLogsReceiver(t *testing.T) {
@@ -73,7 +73,7 @@ func Test_newLogsReceiver(t *testing.T) {
 	require.Equal(t, id, r.id)
 	require.Equal(t, mockClient, r.awsClient)
 	require.Equal(t, pipeline.SignalLogs, r.supportedTelemetry)
-	require.IsType(t, &rehydration.LogsConsumer{}, r.consumer)
+	require.IsType(t, &blobconsume.LogsConsumer{}, r.consumer)
 }
 
 func Test_newTracesReceiver(t *testing.T) {
@@ -95,7 +95,7 @@ func Test_newTracesReceiver(t *testing.T) {
 	require.Equal(t, id, r.id)
 	require.Equal(t, mockClient, r.awsClient)
 	require.Equal(t, pipeline.SignalTraces, r.supportedTelemetry)
-	require.IsType(t, &rehydration.TracesConsumer{}, r.consumer)
+	require.IsType(t, &blobconsume.TracesConsumer{}, r.consumer)
 }
 
 func Test_fullRehydration(t *testing.T) {

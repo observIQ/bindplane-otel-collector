@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package rehydration //import "github.com/observiq/bindplane-otel-collector/internal/rehydration"
+package blobconsume //import "github.com/observiq/bindplane-otel-collector/internal/blobconsume"
 
 import (
 	"testing"
@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_rehydrationCheckpoint(t *testing.T) {
+func Test_Checkpoint(t *testing.T) {
 	checkpoint := NewCheckpoint()
 
 	time1 := time.Now()

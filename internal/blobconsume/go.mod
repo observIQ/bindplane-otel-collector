@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/internal/rehydration
+module github.com/observiq/bindplane-otel-collector/internal/blobconsume
 
 go 1.24.11
 
@@ -20,6 +20,7 @@ require (
 	go.opentelemetry.io/collector/extension/xextension v0.144.0 // indirect
 	go.opentelemetry.io/collector/featuregate v1.50.0 // indirect
 	go.opentelemetry.io/collector/internal/componentalias v0.144.0 // indirect
+	go.opentelemetry.io/otel v1.39.0 // indirect
 	go.opentelemetry.io/otel/metric v1.39.0 // indirect
 	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	go.uber.org/zap v1.27.1 // indirect
@@ -34,11 +35,10 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	go.opentelemetry.io/collector/pdata/pprofile v0.144.0 // indirect
 	go.opentelemetry.io/collector/pipeline v1.50.0
-	go.opentelemetry.io/otel v1.39.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/observiq/bindplane-otel-collector/internal/testutils => ../testutils
-
 replace github.com/observiq/bindplane-otel-collector/internal/storageclient => ../storageclient
+
+replace github.com/observiq/bindplane-otel-collector/internal/testutils => ../testutils
