@@ -99,6 +99,8 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["tencentcloudlogservice"] = "tencentcloud_logservice"
   myMap["alibabacloudlogservice"] = "alibabacloud_logservice"
   myMap["jaegerthrifthttp"] = "jaeger_thrift"
+  myMap["otlp"] = "otlp_grpc"
+  myMap["otlphttp"] = "otlp_http"
 } {
   split($NF, parts, " ")
   name=parts[1]
