@@ -126,6 +126,7 @@ jobs:
           TMPDIR: D:\Temp
           TMP: D:\Temp  
           TEMP: D:\Temp
+          GOTMPDIR: D:\Temp
 
       - name: Run All Tests
         if: matrix.os != 'windows'
