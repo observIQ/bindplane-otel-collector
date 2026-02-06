@@ -122,6 +122,10 @@ jobs:
       - name: Run Component Tests
         if: matrix.os == 'windows'
         run: make test-${{ matrix.target }}
+        env:
+          TMPDIR: D:\Temp
+          TMP: D:\Temp  
+          TEMP: D:\Temp
 
       - name: Run All Tests
         if: matrix.os != 'windows'
@@ -132,10 +136,6 @@ jobs:
       - name: Run Updater Integration Tests
         if: matrix.os != 'windows' || matrix.target == 'other'
         run: ${{ matrix.test_cmd }}
-        env:
-          TMPDIR: D:\Temp
-          TMP: D:\Temp  
-          TEMP: D:\Temp
 
   test-summary:
     if: always()
