@@ -1,4 +1,4 @@
-package opampgateway
+package gateway
 
 import (
 	"sync"

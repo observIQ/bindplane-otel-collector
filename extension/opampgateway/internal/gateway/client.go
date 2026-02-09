@@ -1,4 +1,4 @@
-package opampgateway
+package gateway
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// UpstreamConnectionAssigner assigns upstream connections to downstream connections.
 type UpstreamConnectionAssigner interface {
 	AssignUpstreamConnection(downstreamConnectionID string) (*upstreamConnection, error)
 }
@@ -36,9 +37,9 @@ type client struct {
 	telemetry *metadata.TelemetryBuilder
 }
 
-func newClient(cfg *Config, telemetry *metadata.TelemetryBuilder, callbacks ConnectionCallbacks[*upstreamConnection], logger *zap.Logger) *client {
+func newClient(settings Settings, telemetry *metadata.TelemetryBuilder, callbacks ConnectionCallbacks[*upstreamConnection], logger *zap.Logger) *client {
 	logger = logger.Named("client")
-	pool := newConnectionPool(cfg.UpstreamConnections, logger)
+	pool := newConnectionPool(settings.UpstreamConnections, logger)
 	connections := newConnections[*upstreamConnection]()
 	connectionAssignments := newConnectionAssignments(connections, pool)
 	return &client{
@@ -48,9 +49,9 @@ func newClient(cfg *Config, telemetry *metadata.TelemetryBuilder, callbacks Conn
 		upstreamConnections:   connections,
 		connectionAssignments: connectionAssignments,
 		callbacks:             callbacks,
-		secretKey:             cfg.SecretKey,
-		upstreamEndpoint:      cfg.UpstreamOpAMPAddress,
-		connectionCount:       cfg.UpstreamConnections,
+		secretKey:             settings.SecretKey,
+		upstreamEndpoint:      settings.UpstreamOpAMPAddress,
+		connectionCount:       settings.UpstreamConnections,
 		clientConnectionsWg:   &sync.WaitGroup{},
 		telemetry:             telemetry,
 	}

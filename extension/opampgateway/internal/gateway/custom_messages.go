@@ -1,4 +1,4 @@
-package opampgateway
+package gateway
 
 import (
 	"net/http"
@@ -45,8 +45,4 @@ const (
 	// OpampGatewayConnectResultType is sent as a response to the connect message. It will
 	// either allow or deny the agent connection.
 	OpampGatewayConnectResultType = "connectResult"
-
-	// // opampGatewayDisconnect is sent from the server to force the agent to disconnect from
-	// // the gateway.
-	// opampGatewayDisconnect = "disconnect"
 )
