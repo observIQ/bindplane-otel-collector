@@ -86,7 +86,8 @@ func (p *pebbleExtension) GetClient(_ context.Context, kind component.Kind, ent 
 func (p *pebbleExtension) createClientForComponent(directory string, fullName string) (client.Client, error) {
 	path := filepath.Join(directory, fullName)
 	options := &client.Options{
-		Sync: p.cfg.Sync,
+		Sync:         p.cfg.Sync,
+		CloseTimeout: p.cfg.CloseTimeout,
 	}
 	if p.cfg.Cache != nil {
 		options.CacheSize = p.cfg.Cache.Size
@@ -119,7 +120,6 @@ func kindString(k component.Kind) string {
 // Start initializes the pebble extension and starts a background task for compaction if configured
 func (p *pebbleExtension) Start(_ context.Context, _ component.Host) error {
 	p.compactionDoneChan = make(chan struct{})
-
 	if p.cfg.Compaction != nil && p.cfg.Compaction.Interval > 0 {
 		ctx, cancel := context.WithCancel(context.Background())
 		p.compactionCancel = cancel
@@ -190,7 +190,6 @@ func (p *pebbleExtension) Shutdown(ctx context.Context) error {
 	if p.compactionDoneChan != nil {
 		close(p.compactionDoneChan)
 	}
-
 	var errs error
 	p.clientsMutex.Lock()
 	for _, client := range p.clients {

@@ -236,6 +236,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otelarrowreceiver v0.144.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/otlpjsonfilereceiver v0.144.0
 	go.opentelemetry.io/collector/extension/extensiontest v0.144.0
+	go.opentelemetry.io/collector/extension/xextension v0.144.0
 	go.opentelemetry.io/collector/processor/processorhelper v0.144.0
 	go.opentelemetry.io/collector/processor/processortest v0.144.0
 	go.opentelemetry.io/collector/service v0.144.0
@@ -622,7 +623,6 @@ require (
 	go.opentelemetry.io/collector/extension/extensionauth v1.50.0 // indirect
 	go.opentelemetry.io/collector/extension/extensioncapabilities v0.144.0 // indirect
 	go.opentelemetry.io/collector/extension/extensionmiddleware v0.144.0 // indirect
-	go.opentelemetry.io/collector/extension/xextension v0.144.0 // indirect
 	go.opentelemetry.io/collector/filter v0.144.0 // indirect
 	go.opentelemetry.io/collector/internal/componentalias v0.144.0 // indirect
 	go.opentelemetry.io/collector/internal/fanoutconsumer v0.144.0 // indirect
