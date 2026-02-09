@@ -84,8 +84,8 @@ func TestBatch(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte("test0"), v)
 
-	// batch deleting the items
-	err = client.Batch(t.Context(), storage.DeleteOperation("test0"), storage.DeleteOperation("test1"))
+	// batch deleting the items and getting a non-existent key
+	err = client.Batch(t.Context(), storage.DeleteOperation("test0"), storage.DeleteOperation("test1"), storage.GetOperation("test2"))
 	require.NoError(t, err)
 
 	v, err = client.Get(t.Context(), "test0")
@@ -107,26 +107,6 @@ func TestClose(t *testing.T) {
 
 	err = client.Close(t.Context())
 	require.NoError(t, err)
-}
-
-func TestDoneProcessing(t *testing.T) {
-	c, err := NewClient(t.TempDir(), zap.NewNop(), &Options{
-		Sync: true,
-	})
-	require.NoError(t, err)
-
-	internalClient, ok := c.(*client)
-	require.True(t, ok)
-	require.NoError(t, internalClient.Start(t.Context(), nil))
-
-	err = internalClient.Set(t.Context(), "test", []byte("test"))
-	require.NoError(t, err)
-
-	require.NoError(t, internalClient.Close(t.Context()))
-
-	val, err := internalClient.Get(t.Context(), "test")
-	require.ErrorContains(t, err, "client is closing")
-	require.Nil(t, val)
 }
 
 func TestCompaction(t *testing.T) {

@@ -20,6 +20,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/cockroachdb/pebble"
 	"go.opentelemetry.io/collector/component"
@@ -51,25 +54,36 @@ type client struct {
 
 	logger       *zap.Logger
 	path         string
-	doneChan     chan struct{}
 	writeOptions *pebble.WriteOptions
 	readOnly     bool
+	closeTimeout time.Duration
+
+	// closed is used to track if the client has been closed
+	closed atomic.Bool
+	// asyncDone is used to wait for any async operations to complete on close
+	asyncDone *sync.WaitGroup
 }
 
 // Options are the options for opening the pebble database
 type Options struct {
-	Sync      bool
-	CacheSize int64
+	Sync         bool
+	CacheSize    int64
+	CloseTimeout time.Duration
 }
 
-// ErrClientClosing is supposed to be returned when the client is closing and not allowing new operations to be performed
-var ErrClientClosing = errors.New("client is closing")
+const defaultCloseTimeout = 10 * time.Second
 
 // NewClient creates a new client for the pebble database
 func NewClient(path string, logger *zap.Logger, options *Options) (Client, error) {
 	c := &client{
-		path:   path,
-		logger: logger,
+		path:         path,
+		logger:       logger,
+		asyncDone:    &sync.WaitGroup{},
+		closeTimeout: defaultCloseTimeout,
+	}
+
+	if options.CloseTimeout > 0 {
+		c.closeTimeout = options.CloseTimeout
 	}
 
 	writeOptions := &pebble.WriteOptions{}
@@ -94,9 +108,8 @@ func NewClient(path string, logger *zap.Logger, options *Options) (Client, error
 
 // Get gets a key from the pebble database
 func (c *client) Get(_ context.Context, key string) ([]byte, error) {
-	if c.isDone() {
-		return nil, ErrClientClosing
-	}
+	c.asyncDone.Add(1)
+	defer c.asyncDone.Done()
 
 	val, closer, err := c.db.Get([]byte(key))
 	if err != nil {
@@ -114,21 +127,10 @@ func (c *client) Get(_ context.Context, key string) ([]byte, error) {
 	return val, nil
 }
 
-// isDone checks if the client has its done channel closed
-func (c *client) isDone() bool {
-	select {
-	case <-c.doneChan:
-		return true
-	default:
-		return false
-	}
-}
-
 // Set sets a key in the pebble database
 func (c *client) Set(_ context.Context, key string, value []byte) error {
-	if c.isDone() {
-		return ErrClientClosing
-	}
+	c.asyncDone.Add(1)
+	defer c.asyncDone.Done()
 	err := c.db.Set([]byte(key), value, c.writeOptions)
 	if err != nil {
 		return fmt.Errorf("error setting key %s: %w", key, err)
@@ -138,10 +140,8 @@ func (c *client) Set(_ context.Context, key string, value []byte) error {
 
 // Delete deletes a key from the pebble database
 func (c *client) Delete(_ context.Context, key string) error {
-	if c.isDone() {
-		return ErrClientClosing
-	}
-
+	c.asyncDone.Add(1)
+	defer c.asyncDone.Done()
 	err := c.db.Delete([]byte(key), c.writeOptions)
 	if err != nil {
 		return fmt.Errorf("error deleting key %s: %w", key, err)
@@ -149,15 +149,14 @@ func (c *client) Delete(_ context.Context, key string) error {
 	return nil
 }
 
+// Batch performs a batch of operations on the pebble database
 func (c *client) Batch(ctx context.Context, ops ...*storage.Operation) error {
-	var wb *pebble.Batch
-	var err error
-	for _, op := range ops {
-		if c.isDone() {
-			err = ErrClientClosing
-			break
-		}
+	c.asyncDone.Add(1)
+	defer c.asyncDone.Done()
 
+	var wb *pebble.Batch
+
+	for _, op := range ops {
 		var writes bool
 		switch op.Type {
 		case storage.Set, storage.Delete:
@@ -196,9 +195,6 @@ func (c *client) Batch(ctx context.Context, ops ...*storage.Operation) error {
 		return wb.Commit(c.writeOptions)
 	}
 
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -215,18 +211,36 @@ func typeString(t storage.OpType) string {
 }
 
 func (c *client) Start(_ context.Context, _ component.Host) error {
-	c.doneChan = make(chan struct{})
 	return nil
 }
 
+// Close closes the client and waits for any async operations to complete.
+// Note that since extensions shutdown are done after the other components are shutdown, we can safely assume that no new operations will be performed before this call.
 func (c *client) Close(_ context.Context) error {
-	if c.doneChan != nil {
-		close(c.doneChan)
+	if c.closed.Load() {
+		c.logger.Info("pebble instance is already closed, skipping")
+		return nil
 	}
 
-	err := c.db.Flush()
-	if err != nil {
-		return fmt.Errorf("flush db: %w", err)
+	c.closed.Store(true)
+
+	shutdownChan := make(chan struct{}, 1)
+	waitTimeout, cancel := context.WithTimeout(context.Background(), c.closeTimeout)
+	defer cancel()
+
+	go func() {
+		c.asyncDone.Wait()
+		err := c.db.Flush()
+		if err != nil {
+			c.logger.Error("failed to flush database", zap.Error(err))
+		}
+		close(shutdownChan)
+	}()
+
+	select {
+	case <-waitTimeout.Done():
+		return fmt.Errorf("failed to wait for async operations to complete: %w", waitTimeout.Err())
+	case <-shutdownChan:
 	}
 
 	return c.db.Close()
@@ -236,8 +250,11 @@ func (c *client) Close(_ context.Context) error {
 // Note: Compaction is I/O intensive and may impact performance during operation so we should only sparsely run it if necessary.
 // Note: in v2 of Pebble we will use the context
 func (c *client) Compact(parallel bool) error {
+	c.asyncDone.Add(1)
+	defer c.asyncDone.Done()
+
 	c.logger.Debug("compacting database to reclaim space", zap.String("path", c.path))
 	// just compacting the entire database for now, there may be a better way of doing this but this is a starting point.
-	// tried looking into how cockroachdb does it but they have different lifeclycle
+	// tried looking into how cockroachdb does it but they have different lifecycles
 	return c.db.Compact([]byte{}, []byte{0xff, 0xff, 0xff, 0xff}, parallel)
 }

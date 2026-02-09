@@ -22,11 +22,12 @@ import (
 
 // Config is the configuration for the pebble extension
 type Config struct {
-	Directory  *DirectoryConfig  `mapstructure:"directory,omitempty"`
-	Cache      *CacheConfig      `mapstructure:"cache,omitempty"`
-	Sync       bool              `mapstructure:"sync"`
-	Compaction *CompactionConfig `mapstructure:"compaction,omitempty"`
-	_          struct{}          // prevent unkeyed literal initialization
+	Directory    *DirectoryConfig  `mapstructure:"directory,omitempty"`
+	Cache        *CacheConfig      `mapstructure:"cache,omitempty"`
+	Sync         bool              `mapstructure:"sync"`
+	Compaction   *CompactionConfig `mapstructure:"compaction,omitempty"`
+	CloseTimeout time.Duration     `mapstructure:"close_timeout,omitempty"`
+	_            struct{}          // prevent unkeyed literal initialization
 }
 
 // DirectoryConfig is the configuration for the directory

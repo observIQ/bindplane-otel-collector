@@ -46,6 +46,7 @@ func createDefaultConfig() component.Config {
 			Interval:    30 * time.Minute,
 			Concurrency: 3,
 		},
+		CloseTimeout: 10 * time.Second,
 	}
 }
 
