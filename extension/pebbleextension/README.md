@@ -12,6 +12,7 @@ The Pebble Extension provides persistent storage for OpenTelemetry Collector com
 | sync                              | bool     | true     | No       | Whether to sync writes to disk after every write. `true` offers safer durability guarantees. Setting `false` may improve performance but increases the chance of data loss in the event of a crash.      |
 | compaction.interval               | duration | 30m      | No       | How often background compaction runs (e.g., "30m" for 30 minutes). Compaction reclaims space from deleted entries. Set to 0s to disable background compaction.                                           |
 | compaction.compaction_concurrency | uint64   | 3        | No       | Number of concurrent background compaction jobs permitted. Increase for higher compaction throughput or decrease for reduced interference with other workloads.                                          |
+| close_timeout                     | duration | 10s      | No       | Maximum time to wait for in-flight async operations to complete during shutdown. After this timeout, Close returns an error.                                                                           |
 
 ## Example Configuration
 
@@ -45,6 +46,7 @@ For advanced use cases, the following configuration options are exposed:
 - **sync**: Controls write durability. The default (`true`) provides safer durability guarantees by syncing writes to disk immediately.
 - **compaction.interval**: Controls how often background compaction checks run (default: 30 minutes). Set to 0 to disable background compaction.
 - **compaction.concurrency**: Controls how many folders will be attempted to be compacted at the given interval (default: `3`). This parameter helps avoid causing way too many resources being used for compaction.
+- **close_timeout**: Maximum time to wait for in-flight async operations to complete during shutdown (default: 10s). If async operations do not complete within this window, Close returns an error.
 
 Refer to the [Pebble documentation](https://github.com/cockroachdb/pebble) for detailed information about the database.
 
@@ -61,6 +63,7 @@ extensions:
     compaction:
       interval: 30m
       concurrency: 3
+    close_timeout: 10s
 exporters:
   otlp:
     endpoint: otelcol:4317
