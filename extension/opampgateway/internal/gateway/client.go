@@ -10,9 +10,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// UpstreamConnectionAssigner assigns upstream connections to downstream connections.
+// UpstreamConnectionAssigner assigns and unassigns upstream connections for downstream connections.
 type UpstreamConnectionAssigner interface {
 	AssignUpstreamConnection(downstreamConnectionID string) (*upstreamConnection, error)
+	UnassignUpstreamConnection(downstreamConnectionID string)
 }
 
 type client struct {
@@ -75,18 +76,19 @@ func (c *client) startClientConnections(ctx context.Context) {
 		c.pool.add(clientConnection)
 		c.upstreamConnections.set(id, clientConnection)
 
+		c.clientConnectionsWg.Add(1)
 		go func() {
+			defer c.clientConnectionsWg.Done()
+
 			c.telemetry.OpampgatewayConnections.Add(context.Background(), 1, directionUpstream)
 			defer c.telemetry.OpampgatewayConnections.Add(context.Background(), -1, directionUpstream)
 
 			// cleanup function to remove the connection from the pool and connections map
 			defer func() {
-				defer c.clientConnectionsWg.Done()
 				c.upstreamConnections.remove(clientConnection.id)
 				c.pool.remove(clientConnection)
 				c.logger.Info("upstream connection shutdown", zap.String("id", clientConnection.id), zap.Int("downstream_count", clientConnection.downstreamCount()))
 			}()
-			c.clientConnectionsWg.Add(1)
 
 			// start the connection
 			clientConnection.start(ctx, ConnectionCallbacks[*upstreamConnection]{
