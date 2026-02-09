@@ -253,8 +253,11 @@ func (c *client) Close(_ context.Context) error {
 // Note: Compaction is I/O intensive and may impact performance during operation so we should only sparsely run it if necessary.
 // Note: in v2 of Pebble we will use the context
 func (c *client) Compact(parallel bool) error {
+	c.asyncDone.Add(1)
+	defer c.asyncDone.Done()
+
 	c.logger.Debug("compacting database to reclaim space", zap.String("path", c.path))
 	// just compacting the entire database for now, there may be a better way of doing this but this is a starting point.
-	// tried looking into how cockroachdb does it but they have different lifeclycle
+	// tried looking into how cockroachdb does it but they have different lifecycles
 	return c.db.Compact([]byte{}, []byte{0xff, 0xff, 0xff, 0xff}, parallel)
 }
