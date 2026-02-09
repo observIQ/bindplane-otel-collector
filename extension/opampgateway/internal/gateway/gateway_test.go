@@ -1,4 +1,4 @@
-package opampgateway
+package gateway
 
 import (
 	"context"
@@ -142,7 +142,7 @@ type gatewayTestHarness struct {
 	t        *testing.T
 	ctx      context.Context
 	cancel   context.CancelFunc
-	gateway  *OpAMPGateway
+	gateway  *Gateway
 	upstream *testOpAMPServer
 	agentURL string
 	agents   sync.Map
@@ -163,31 +163,29 @@ func newGatewayTestHarness(t *testing.T, upstreamConnections int) *gatewayTestHa
 	telemetry, err := metadata.NewTelemetryBuilder(testTel.NewTelemetrySettings())
 	require.NoError(t, err)
 
-	cfg := &Config{
+	settings := Settings{
 		UpstreamOpAMPAddress: upstream.URL(),
 		SecretKey:            "test-secret",
 		UpstreamConnections:  upstreamConnections,
-		OpAMPServer: &OpAMPServer{
-			Endpoint: "127.0.0.1:0",
-		},
+		ServerEndpoint:       "127.0.0.1:0",
 	}
 
 	logger := zaptest.NewLogger(t)
 
-	gateway := newOpAMPGateway(logger, cfg, telemetry)
+	gw := New(logger, settings, telemetry)
 
-	require.NoError(t, gateway.Start(ctx, componenttest.NewNopHost()))
+	require.NoError(t, gw.Start(ctx))
 	t.Cleanup(func() {
-		require.NoError(t, gateway.Shutdown(context.Background()))
+		require.NoError(t, gw.Shutdown(context.Background()))
 	})
 
 	h := &gatewayTestHarness{
 		t:        t,
 		ctx:      ctx,
 		cancel:   cancel,
-		gateway:  gateway,
+		gateway:  gw,
 		upstream: upstream,
-		agentURL: fmt.Sprintf("ws://%s%s", gateway.server.addr.String(), handlePath),
+		agentURL: fmt.Sprintf("ws://%s%s", gw.server.addr.String(), handlePath),
 	}
 
 	for i := 0; i < upstreamConnections; i++ {
