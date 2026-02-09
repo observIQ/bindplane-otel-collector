@@ -1,7 +1,8 @@
-package opampgateway
+package gateway
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -26,8 +27,9 @@ type authResponse struct {
 }
 
 type server struct {
-	cfg    *OpAMPServer
-	logger *zap.Logger
+	endpoint string
+	tlsCfg   *tls.Config
+	logger   *zap.Logger
 
 	httpServer        *http.Server
 	httpServerServeWg *sync.WaitGroup
@@ -62,10 +64,11 @@ var (
 	handlePath = "/"
 )
 
-func newServer(cfg *OpAMPServer, telemetry *metadata.TelemetryBuilder, upstreamConnectionAssigner UpstreamConnectionAssigner, callbacks ConnectionCallbacks[*downstreamConnection], logger *zap.Logger) *server {
+func newServer(endpoint string, tlsCfg *tls.Config, telemetry *metadata.TelemetryBuilder, upstreamConnectionAssigner UpstreamConnectionAssigner, callbacks ConnectionCallbacks[*downstreamConnection], logger *zap.Logger) *server {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &server{
-		cfg:                        cfg,
+		endpoint:                   endpoint,
+		tlsCfg:                     tlsCfg,
 		logger:                     logger.Named("server"),
 		wsUpgrader:                 websocket.Upgrader{},
 		agentConnections:           newConnections[*downstreamConnection](),
@@ -86,8 +89,8 @@ func (s *server) Start() error {
 
 	hs := &http.Server{
 		Handler:   mux,
-		Addr:      s.cfg.Endpoint,
-		TLSConfig: s.cfg.TLS,
+		Addr:      s.endpoint,
+		TLSConfig: s.tlsCfg,
 	}
 	s.httpServer = hs
 

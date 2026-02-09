@@ -6,6 +6,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
+	github.com/json-iterator/go v1.1.12
 	github.com/open-telemetry/opamp-go v0.22.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.43.0
@@ -13,6 +14,7 @@ require (
 	go.opentelemetry.io/collector/confmap v1.43.0
 	go.opentelemetry.io/collector/extension v1.43.0
 	go.opentelemetry.io/collector/extension/extensiontest v0.137.0
+	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/metric v1.38.0
 	go.opentelemetry.io/otel/sdk/metric v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0
@@ -29,7 +31,6 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
 	github.com/knadh/koanf/providers/confmap v1.0.0 // indirect
 	github.com/knadh/koanf/v2 v2.3.0 // indirect
@@ -43,7 +44,6 @@ require (
 	go.opentelemetry.io/collector/internal/telemetry v0.137.0 // indirect
 	go.opentelemetry.io/collector/pdata v1.43.0 // indirect
 	go.opentelemetry.io/contrib/bridges/otelzap v0.13.0 // indirect
-	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/log v0.14.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.38.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

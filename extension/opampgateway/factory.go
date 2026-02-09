@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 
+	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/gateway"
 	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/extension"
@@ -39,5 +40,14 @@ func createOpAMPGateway(_ context.Context, cs extension.Settings, cfg component.
 	}
 
 	oCfg := cfg.(*Config)
-	return newOpAMPGateway(cs.Logger, oCfg, t), nil
+	settings := gateway.Settings{
+		UpstreamOpAMPAddress: oCfg.UpstreamOpAMPAddress,
+		SecretKey:            oCfg.SecretKey,
+		UpstreamConnections:  oCfg.UpstreamConnections,
+		ServerEndpoint:       oCfg.OpAMPServer.Endpoint,
+		ServerTLS:            oCfg.OpAMPServer.TLS,
+	}
+
+	gw := gateway.New(cs.Logger, settings, t)
+	return &OpAMPGateway{gateway: gw}, nil
 }
