@@ -241,6 +241,7 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	accepted, result := s.acceptOpAMPConnection(ctx, r, upstreamConnection, id)
 	if !accepted {
+		s.upstreamConnectionAssigner.UnassignUpstreamConnection(id)
 		// Set response headers from the result
 		for key, value := range result.ResponseHeaders {
 			w.Header().Set(key, value)
@@ -256,6 +257,7 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := s.wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
+		s.upstreamConnectionAssigner.UnassignUpstreamConnection(id)
 		s.logger.Error("accept OpAMP connection", zap.Error(err))
 		return
 	}
