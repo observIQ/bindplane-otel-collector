@@ -17,7 +17,7 @@ set -e
 
 # Agent Constants
 PACKAGE_NAME="bindplane-otel-collector"
-DOWNLOAD_BASE="https://github.com/observIQ/bindplane-otel-collector/releases/download"
+DOWNLOAD_BASE="https://bdot.bindplane.com"
 
 # Determine if we need service or systemctl for prereqs
 if command -v systemctl >/dev/null 2>&1; then
@@ -460,19 +460,6 @@ set_package_type() {
 # If not specified, the version defaults to whatever the latest release on github is.
 set_download_urls() {
   if [ -z "$url" ]; then
-    if [ -z "$version" ]; then
-      # shellcheck disable=SC2153
-      version=$COLLECTOR_VERSION
-    fi
-
-    if [ -z "$version" ]; then
-      version=$(latest_version)
-    fi
-
-    if [ -z "$version" ]; then
-      error_exit "$LINENO" "Could not determine version to install"
-    fi
-
     if [ -z "$base_url" ]; then
       base_url=$DOWNLOAD_BASE
     fi
@@ -713,9 +700,7 @@ package_type_check()
 # latest_version gets the tag of the latest release, without the v prefix.
 latest_version()
 {
-  curl -sSL -H"Accept: application/vnd.github.v3+json" https://api.github.com/repos/observIQ/bindplane-otel-collector/releases/latest | \
-    grep "\"tag_name\"" | \
-    cut -d: -f2 | tr -d '"' | tr -d ' ' | tr -d ',' | tr -d 'v'
+  curl -s 'https://bdot.bindplane.com/api/v1/version/bindplane-otel-collector/latest?plain=1'
 }
 
 # This will install the package by downloading the archived agent,
@@ -735,10 +720,10 @@ install_package() {
     fi
 
     if [ -n "$proxy" ]; then
-      info "Downloading package using proxy..."
+      info "Downloading package from $collector_download_url using proxy..."
     fi
 
-    info "Downloading package..."
+    info "Downloading package from $collector_download_url..."
     eval curl -L "$proxy_args" "$collector_download_url" -o "$out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
     succeeded
   fi
@@ -962,7 +947,7 @@ display_results() {
     info "Supervisor Stop Command:       $(fg_cyan "sudo stopsrc -s bindplane-otel-collector")$(reset)"
     info "Supervisor Status Command:     $(fg_cyan "sudo lssrc -s bindplane-otel-collector")$(reset)"
   fi
-  info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL https://github.com/observIQ/bindplane-otel-collector/releases/$version/download/install_unix.sh)\" install_unix.sh -r")$(reset)"
+  info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL ${DOWNLOAD_BASE}/v${version}/install_unix.sh)\" install_unix.sh -r")$(reset)"
   decrease_indent
 
   banner 'Support'
@@ -1097,8 +1082,6 @@ main() {
   bindplane_banner
   check_prereqs
 
-  version="latest"
-
   if [ $# -ge 1 ]; then
     while [ -n "$1" ]; do
       case "$1" in
@@ -1177,6 +1160,19 @@ main() {
         ;;
       esac
     done
+  fi
+
+  if [ -z "$version" ]; then
+    # shellcheck disable=SC2153
+    version=$COLLECTOR_VERSION
+  fi
+
+  if [ -z "$version" ]; then
+    version=$(latest_version)
+  fi
+
+  if [ -z "$version" ]; then
+    error_exit "$LINENO" "Could not determine version to install"
   fi
 
   interactive_check
