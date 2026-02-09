@@ -155,7 +155,7 @@ func (c *client) Batch(ctx context.Context, ops ...*storage.Operation) error {
 	defer c.asyncDone.Done()
 
 	var wb *pebble.Batch
-	var err error
+
 	for _, op := range ops {
 		var writes bool
 		switch op.Type {
@@ -195,9 +195,6 @@ func (c *client) Batch(ctx context.Context, ops ...*storage.Operation) error {
 		return wb.Commit(c.writeOptions)
 	}
 
-	if err != nil {
-		return err
-	}
 	return nil
 }
 

@@ -86,7 +86,8 @@ func (p *pebbleExtension) GetClient(_ context.Context, kind component.Kind, ent 
 func (p *pebbleExtension) createClientForComponent(directory string, fullName string) (client.Client, error) {
 	path := filepath.Join(directory, fullName)
 	options := &client.Options{
-		Sync: p.cfg.Sync,
+		Sync:         p.cfg.Sync,
+		CloseTimeout: p.cfg.CloseTimeout,
 	}
 	if p.cfg.Cache != nil {
 		options.CacheSize = p.cfg.Cache.Size
