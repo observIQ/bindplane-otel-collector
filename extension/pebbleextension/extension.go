@@ -119,7 +119,6 @@ func kindString(k component.Kind) string {
 // Start initializes the pebble extension and starts a background task for compaction if configured
 func (p *pebbleExtension) Start(_ context.Context, _ component.Host) error {
 	p.compactionDoneChan = make(chan struct{})
-
 	if p.cfg.Compaction != nil && p.cfg.Compaction.Interval > 0 {
 		ctx, cancel := context.WithCancel(context.Background())
 		p.compactionCancel = cancel
@@ -190,7 +189,6 @@ func (p *pebbleExtension) Shutdown(ctx context.Context) error {
 	if p.compactionDoneChan != nil {
 		close(p.compactionDoneChan)
 	}
-
 	var errs error
 	p.clientsMutex.Lock()
 	for _, client := range p.clients {
