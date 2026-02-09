@@ -2,6 +2,7 @@ package opampgateway
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -329,6 +330,15 @@ func (s *testOpAMPServer) readLoop(conn *websocket.Conn, id string) {
 			return
 		}
 
+		// Handle authentication requests by auto-accepting them
+		if cm := msg.GetCustomMessage(); cm != nil && cm.Capability == OpampGatewayCapability && cm.Type == OpampGatewayConnectType {
+			if err := s.respondToConnect(conn, cm.Data); err != nil {
+				s.errCh <- err
+				return
+			}
+			continue
+		}
+
 		agentID, err := parseAgentID(msg.GetInstanceUid())
 		if err != nil {
 			s.errCh <- err
@@ -346,6 +356,39 @@ func (s *testOpAMPServer) readLoop(conn *websocket.Conn, id string) {
 			return
 		}
 	}
+}
+
+// respondToConnect auto-accepts an OpampGatewayConnect authentication request by
+// sending back an OpampGatewayConnectResult with Accept: true.
+func (s *testOpAMPServer) respondToConnect(conn *websocket.Conn, data []byte) error {
+	var connectMsg OpampGatewayConnect
+	if err := json.Unmarshal(data, &connectMsg); err != nil {
+		return fmt.Errorf("unmarshal connect request: %w", err)
+	}
+
+	result := OpampGatewayConnectResult{
+		RequestUID:     connectMsg.RequestUID,
+		Accept:         true,
+		HTTPStatusCode: http.StatusOK,
+	}
+	resultData, err := json.Marshal(result)
+	if err != nil {
+		return fmt.Errorf("marshal connect result: %w", err)
+	}
+
+	resp := &protobufs.ServerToAgent{
+		CustomMessage: &protobufs.CustomMessage{
+			Capability: OpampGatewayCapability,
+			Type:       OpampGatewayConnectResultType,
+			Data:       resultData,
+		},
+	}
+	payload, err := proto.Marshal(resp)
+	if err != nil {
+		return fmt.Errorf("marshal connect response: %w", err)
+	}
+
+	return writeWSMessage(conn, payload)
 }
 
 func (s *testOpAMPServer) WaitForConnection(t *testing.T, timeout time.Duration) *websocket.Conn {
