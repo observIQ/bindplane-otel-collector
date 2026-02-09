@@ -188,3 +188,13 @@ jobs:
       - name: Verify No Plugin Doc Changes
         if: steps.verify-changed-files.outputs.files_changed == 'true'
         run: exit 1
+
+  # Below checks don't need to run `make install-tools`
+  check-mod-paths:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
+    steps:
+      - name: Checkout Sources
+        uses: namespacelabs/nscloud-checkout-action@v7
+      - name: Check Module Paths
+        run: make check-mod-paths

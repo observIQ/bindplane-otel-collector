@@ -246,7 +246,39 @@ gosec:
 
 # This target performs all checks that CI will do (excluding the build itself)
 .PHONY: ci-checks
-ci-checks: check-fmt check-license misspell lint gosec test
+ci-checks: check-fmt check-license check-mod-paths misspell lint gosec test
+
+# This target checks that every go.mod has the correct module path.
+# Root must be github.com/observiq/bindplane-otel-collector.
+# Subdirectories must be github.com/observiq/bindplane-otel-collector/<relative-path>.
+# Modules with legacy paths that cannot be renamed are excluded.
+MOD_PATH_EXCLUDES := ./cmd/plugindocgen
+.PHONY: check-mod-paths
+check-mod-paths:
+	@FAILED=0; \
+	for dir in $(ALL_MODULES); do \
+		case " $(MOD_PATH_EXCLUDES) " in *" $${dir} "*) continue ;; esac; \
+		MOD=$$(head -1 "$${dir}/go.mod" | sed 's/^module //'); \
+		if [ "$${dir}" = "." ]; then \
+			EXPECTED="github.com/observiq/bindplane-otel-collector"; \
+		else \
+			RELPATH=$$(echo "$${dir}" | sed 's|^\./||'); \
+			EXPECTED="github.com/observiq/bindplane-otel-collector/$${RELPATH}"; \
+		fi; \
+		if [ "$${MOD}" != "$${EXPECTED}" ]; then \
+			echo "MISMATCH: $${dir}/go.mod"; \
+			echo "  got:      $${MOD}"; \
+			echo "  expected: $${EXPECTED}"; \
+			FAILED=1; \
+		fi; \
+	done; \
+	if [ "$${FAILED}" -eq 1 ]; then \
+		echo ""; \
+		echo "check-mod-paths FAILED: module paths must match directory structure."; \
+		exit 1; \
+	else \
+		echo "Check module paths finished successfully"; \
+	fi
 
 # This target checks that license copyright header is on every source file
 .PHONY: check-license
