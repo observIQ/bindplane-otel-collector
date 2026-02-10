@@ -1,3 +1,17 @@
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package gateway
 
 import (
@@ -59,14 +73,14 @@ func TestMessageReaderLoopReceivesMessages(t *testing.T) {
 	})
 
 	reader := newMessageReader(clientConn, "test", readerCallbacks{
-		OnMessage: func(ctx context.Context, messageType int, msg *message) error {
+		OnMessage: func(_ context.Context, messageType int, msg *message) error {
 			mu.Lock()
 			defer mu.Unlock()
 			received = append(received, msg)
 			receivedTypes = append(receivedTypes, messageType)
 			return nil
 		},
-		OnError: func(ctx context.Context, err error) {
+		OnError: func(_ context.Context, err error) {
 			t.Errorf("unexpected OnError: %v", err)
 		},
 	}, zap.NewNop())
@@ -101,13 +115,13 @@ func TestMessageReaderLoopStartingMessageNumber(t *testing.T) {
 	})
 
 	reader := newMessageReader(clientConn, "test", readerCallbacks{
-		OnMessage: func(ctx context.Context, messageType int, msg *message) error {
+		OnMessage: func(_ context.Context, _ int, msg *message) error {
 			mu.Lock()
 			defer mu.Unlock()
 			received = append(received, msg)
 			return nil
 		},
-		OnError: func(ctx context.Context, err error) {
+		OnError: func(_ context.Context, err error) {
 			t.Errorf("unexpected OnError: %v", err)
 		},
 	}, zap.NewNop())
@@ -133,11 +147,11 @@ func TestMessageReaderLoopContextCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	reader := newMessageReader(clientConn, "test", readerCallbacks{
-		OnMessage: func(ctx context.Context, messageType int, msg *message) error {
+		OnMessage: func(_ context.Context, _ int, _ *message) error {
 			t.Error("unexpected OnMessage")
 			return nil
 		},
-		OnError: func(ctx context.Context, err error) {
+		OnError: func(_ context.Context, _ error) {
 			onErrorCalled = true
 		},
 	}, zap.NewNop())
@@ -175,11 +189,11 @@ func TestMessageReaderLoopConnectionClosed(t *testing.T) {
 	})
 
 	reader := newMessageReader(clientConn, "test", readerCallbacks{
-		OnMessage: func(ctx context.Context, messageType int, msg *message) error {
+		OnMessage: func(_ context.Context, _ int, _ *message) error {
 			t.Error("unexpected OnMessage")
 			return nil
 		},
-		OnError: func(ctx context.Context, err error) {
+		OnError: func(_ context.Context, _ error) {
 			onErrorCalled = true
 		},
 	}, zap.NewNop())
@@ -203,10 +217,10 @@ func TestMessageReaderLoopOnMessageError(t *testing.T) {
 	callbackErr := errors.New("callback failed")
 
 	reader := newMessageReader(clientConn, "test", readerCallbacks{
-		OnMessage: func(ctx context.Context, messageType int, msg *message) error {
+		OnMessage: func(_ context.Context, _ int, _ *message) error {
 			return callbackErr
 		},
-		OnError: func(ctx context.Context, err error) {
+		OnError: func(_ context.Context, err error) {
 			onErrorErr = err
 		},
 	}, zap.NewNop())
@@ -234,13 +248,13 @@ func TestMessageReaderLoopStopsAfterOnMessageError(t *testing.T) {
 	})
 
 	reader := newMessageReader(clientConn, "test", readerCallbacks{
-		OnMessage: func(ctx context.Context, messageType int, msg *message) error {
+		OnMessage: func(_ context.Context, _ int, _ *message) error {
 			mu.Lock()
 			defer mu.Unlock()
 			messageCount++
 			return errors.New("stop")
 		},
-		OnError: func(ctx context.Context, err error) {},
+		OnError: func(_ context.Context, _ error) {},
 	}, zap.NewNop())
 
 	close(serverReady)

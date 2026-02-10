@@ -1,3 +1,19 @@
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package gateway implements the OpAMP gateway that proxies messages between
+// downstream agents and an upstream OpAMP server.
 package gateway
 
 import (
@@ -68,7 +84,7 @@ func (g *Gateway) Start(ctx context.Context) error {
 }
 
 // Shutdown stops the gateway client and server.
-func (g *Gateway) Shutdown(ctx context.Context) error {
+func (g *Gateway) Shutdown(_ context.Context) error {
 	g.client.Stop()
 	return g.server.Stop()
 }
@@ -76,8 +92,8 @@ func (g *Gateway) Shutdown(ctx context.Context) error {
 // --------------------------------------------------------------------------------------
 // Downstream callbacks
 
-// HandleDownstreamMessage handles message set from a downstream connection to the server
-func (g *Gateway) HandleDownstreamMessage(ctx context.Context, connection *downstreamConnection, messageType int, msg *message) error {
+// HandleDownstreamMessage handles message sent from a downstream connection to the server.
+func (g *Gateway) HandleDownstreamMessage(_ context.Context, connection *downstreamConnection, messageType int, msg *message) error {
 	g.logger.Debug("HandleDownstreamMessage", zap.String("downstream_connection_id", connection.id), zap.Int("message_number", msg.number), zap.Int("message_type", messageType))
 	if messageType != websocket.BinaryMessage {
 		err := fmt.Errorf("unexpected message type: %v, must be binary message", messageType)
@@ -112,11 +128,13 @@ func (g *Gateway) HandleDownstreamMessage(ctx context.Context, connection *downs
 	return nil
 }
 
-func (g *Gateway) HandleDownstreamError(ctx context.Context, connection *downstreamConnection, err error) {
+// HandleDownstreamError handles an error from a downstream connection.
+func (g *Gateway) HandleDownstreamError(_ context.Context, _ *downstreamConnection, err error) {
 	g.logger.Error("HandleDownstreamError", zap.Error(err))
 }
 
-func (g *Gateway) HandleDownstreamClose(ctx context.Context, connection *downstreamConnection) error {
+// HandleDownstreamClose handles the closing of a downstream connection.
+func (g *Gateway) HandleDownstreamClose(_ context.Context, connection *downstreamConnection) error {
 	g.logger.Info("HandleDownstreamClose", zap.String("downstream_connection_id", connection.id))
 	g.client.unassignUpstreamConnection(connection.id)
 	g.server.removeDownstreamConnection(connection)
@@ -126,8 +144,8 @@ func (g *Gateway) HandleDownstreamClose(ctx context.Context, connection *downstr
 // --------------------------------------------------------------------------------------
 // Upstream callbacks
 
-// HandleUpstreamMessage handles message set from the upstream connection to a downstream connection
-func (g *Gateway) HandleUpstreamMessage(ctx context.Context, connection *upstreamConnection, messageType int, message *message) error {
+// HandleUpstreamMessage handles message sent from the upstream connection to a downstream connection.
+func (g *Gateway) HandleUpstreamMessage(_ context.Context, connection *upstreamConnection, messageType int, message *message) error {
 	g.logger.Debug("HandleUpstreamMessage", zap.String("upstream_connection_id", connection.id), zap.Int("message_number", message.number), zap.Int("message_type", messageType), zap.String("message_bytes", string(message.data)))
 	if messageType != websocket.BinaryMessage {
 		err := fmt.Errorf("unexpected message type: %v, must be binary message", messageType)
@@ -167,11 +185,13 @@ func (g *Gateway) HandleUpstreamMessage(ctx context.Context, connection *upstrea
 	return nil
 }
 
-func (g *Gateway) HandleUpstreamError(ctx context.Context, connection *upstreamConnection, err error) {
+// HandleUpstreamError handles an error from an upstream connection.
+func (g *Gateway) HandleUpstreamError(_ context.Context, _ *upstreamConnection, err error) {
 	g.logger.Error("HandleUpstreamError", zap.Error(err))
 }
 
-func (g *Gateway) HandleUpstreamClose(ctx context.Context, connection *upstreamConnection) error {
+// HandleUpstreamClose handles the closing of an upstream connection.
+func (g *Gateway) HandleUpstreamClose(_ context.Context, connection *upstreamConnection) error {
 	g.logger.Info("HandleUpstreamClose", zap.String("upstream_connection_id", connection.id))
 	// close all downstream connections associated with this upstream connection
 	downstreamConnectionIDs := g.client.connectionAssignments.removeDownstreamConnectionIDs(connection.id)
