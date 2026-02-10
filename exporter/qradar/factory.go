@@ -21,6 +21,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/exporter/qradar/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confignet"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
@@ -38,7 +39,7 @@ func NewFactory() exporter.Factory {
 func createDefaultConfig() component.Config {
 	return &Config{
 		TimeoutConfig:    exporterhelper.NewDefaultTimeoutConfig(),
-		QueueBatchConfig: exporterhelper.NewDefaultQueueConfig(),
+		QueueBatchConfig: configoptional.Some(exporterhelper.NewDefaultQueueConfig()),
 		BackOffConfig:    configretry.NewDefaultBackOffConfig(),
 		Syslog: SyslogConfig{
 			AddrConfig: confignet.AddrConfig{

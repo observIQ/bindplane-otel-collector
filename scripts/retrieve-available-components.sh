@@ -99,6 +99,8 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["tencentcloudlogservice"] = "tencentcloud_logservice"
   myMap["alibabacloudlogservice"] = "alibabacloud_logservice"
   myMap["jaegerthrifthttp"] = "jaeger_thrift"
+  myMap["otlp"] = "otlp_grpc"
+  myMap["otlphttp"] = "otlp_http"
 } {
   split($NF, parts, " ")
   name=parts[1]
@@ -119,6 +121,17 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   } END { printf "\n"
 }' >>"$OUTPUT_DIR/$VERSION.yaml"
 
+# add entry for github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter with version
+enhance_indexing_s3_exporter_version=$(grep -m1 'github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter' go.mod | awk '{print $2}')
+if [ -n "$enhance_indexing_s3_exporter_version" ]; then
+  cat >>"$OUTPUT_DIR/$VERSION.yaml" <<EOF
+        enhance_indexing_s3_exporter:
+          metadata:
+          - key: code.namespace
+            value: github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter ${enhance_indexing_s3_exporter_version}
+EOF
+fi
+
 cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetry/opentelemetry-collector-contrib|observiq/bindplane-otel-collector|observiq/observiq-otel-collector|observiq/bindplane-agent)))/extension/' | grep -v "// indirect" | grep -v "go.opentelemetry.io/collector/extension/extensiontest" | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk -F'/' 'BEGIN {
   printf "    extensions:\n      sub_component_details:\n"
   myMap["filestorage"] = "file_storage"
@@ -135,6 +148,8 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["awss3event"] = "s3event"
   myMap["jsonlogencoding"] = "json_log_encoding"
   myMap["avrologencoding"] = "avro_log_encoding"
+  myMap["googlecloudlogentryencoding"] = "googlecloudlogentry_encoding"
+  myMap["textencoding"] = "text_encoding"
 } {
   split($NF, parts, " ")
   name=parts[1]

@@ -30,12 +30,19 @@ go.opentelemetry.io/collector/config/configcompression
 go.opentelemetry.io/collector/config/configretry
 go.opentelemetry.io/collector/config/configtls
 go.opentelemetry.io/collector/config/confignet
+go.opentelemetry.io/collector/config/configmiddleware
+go.opentelemetry.io/collector/config/configoptional
 go.opentelemetry.io/collector/consumer
+go.opentelemetry.io/collector/exporter
 go.opentelemetry.io/collector/extension
 go.opentelemetry.io/collector/extension/extensionauth
+go.opentelemetry.io/collector/pipeline
 go.opentelemetry.io/collector/processor
 go.opentelemetry.io/collector/receiver
 EOF
+
+# Exit on any error (set after read command which returns non-zero at EOF)
+set -e
 
 is_stable_module() {
     for stable_mod in $STABLE_MODULES; do
@@ -76,26 +83,46 @@ fi
 LOCAL_MODULES=$(find . -type f -name "go.mod" -exec dirname {} \; | sort)
 for local_mod in $LOCAL_MODULES; do
     # Run in a subshell so that the CD doesn't change this shell's current directory
+    # Temporarily disable 'set -e' for this command so we can check its exit status
+    set +e
     (
+        # Exit subshell on any error
+        set -e
+        
         echo "Updating deps in $local_mod"
-        cd "$local_mod" || exit 1
+        cd "$local_mod"
         # go list will not work if module is not tidy, so we tidy first
         go mod tidy -compat=1.24
 
-        OTEL_MODULES=$(go list -m -f '{{if not (or .Indirect .Main)}}{{.Path}}{{end}}' all |
-            grep -E -e '(?:^github.com/open-telemetry/opentelemetry-collector-contrib)|(?:^go.opentelemetry.io/collector)')
+        echo "  Tidied $local_mod"
+
+        # Temporarily disable 'set -e' for this command in case there are no OTEL modules
+        set +e
+        OTEL_MODULES=$(
+            go list -m -f '{{if not (or .Indirect .Main)}}{{.Path}}{{end}}' all |
+            grep -E -e '(?:^github.com/open-telemetry/opentelemetry-collector-contrib)|(?:^go.opentelemetry.io/collector)'
+        )
+        set -e
 
         for mod in $OTEL_MODULES; do
             if is_stable_module "$mod"; then
-                echo "$local_mod: $mod@$PDATA_TARGET_VERSION"
+                echo "  Updating $local_mod: $mod@$PDATA_TARGET_VERSION"
                 go mod edit -require "$mod@$PDATA_TARGET_VERSION"
             elif is_contrib_module "$mod"; then
-                echo "$local_mod: $mod@$CONTRIB_TARGET_VERSION"
+                echo "  Updating $local_mod: $mod@$CONTRIB_TARGET_VERSION"
                 go mod edit -require "$mod@$CONTRIB_TARGET_VERSION"
             else
-                echo "$local_mod: $mod@$TARGET_VERSION"
+                echo "  Updating $local_mod: $mod@$TARGET_VERSION"
                 go mod edit -require "$mod@$TARGET_VERSION"
             fi
         done
     )
+    # Get the exit status of the subshell and re-enable 'set -e'
+    SUBSHELL_EXIT=$?
+    set -e
+    # Check if subshell failed and exit if it did
+    if [ $SUBSHELL_EXIT -ne 0 ]; then
+        echo "Error: Failed to update $local_mod" >&2
+        exit 1
+    fi
 done

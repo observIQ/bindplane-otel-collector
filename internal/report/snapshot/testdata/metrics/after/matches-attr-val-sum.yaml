@@ -12,6 +12,7 @@ resourceMetrics:
           - description: Filesystem bytes used.
             name: system.filesystem.usage
             sum:
+              aggregationTemporality: 2
               dataPoints:
                 - asInt: "8717185024"
                   attributes:

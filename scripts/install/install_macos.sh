@@ -141,13 +141,15 @@ prompt() {
 
 bindplane_banner() {
   if [ "$non_interactive" = "false" ]; then
-    fg_cyan " oooooooooo.   o8o                    .o8  ooooooooo.   oooo\\n"
-    fg_cyan " '888'   '88b  '\"'                   \"888  '888   'Y88. '888\\n"
-    fg_cyan "  888     888 oooo  ooo. .oo.    .oooo888   888   .d88'  888   .oooo.   ooo. .oo.    .ooooo.\\n"
-    fg_cyan "  888oooo888' '888  '888P\"Y88b  d88' '888   888ooo88P'   888  'P  )88b  '888P\"Y88b  d88' '88b\\n"
-    fg_cyan "  888    '88b  888   888   888  888   888   888          888   .oP\"888   888   888  888ooo888\\n"
-    fg_cyan "  888    .88P  888   888   888  888   888   888          888  d8(  888   888   888  888    .o\\n"
-    fg_cyan " o888bood8P'  o888o o888o o888o 'Y8bod88P\" o888o        o888o 'Y888\"\"8o o888o o888o '88bod8P'\\n"
+    fg_cyan " oooooooooo.   o8o                    .o8              oooo\\n"
+    fg_cyan " '888'   '88b  '\"'                   \"888              '888\\n" 
+    fg_cyan "  888     888 oooo  ooo. .oo.    .oooo888  oooooooo.    888   .oooo.   ooo. .oo.    .ooooo.\\n"
+    fg_cyan "  888oooo888' '888  '888P\"Y88b  d88' '888  '888' 'Y88.  888  'P  )88b  '888P\"Y88b  d88' '88b\\n" 
+    fg_cyan "  888    '88b  888   888   888  888   888   888    888  888   .oP\"888   888   888  888ooo888\\n"
+    fg_cyan "  888    .88P  888   888   888  888   888   888   .88'  888  d8(  888   888   888  888    .o\\n"
+    fg_cyan " o888bood8P'  o888o o888o o888o 'Y8bod88P\"  888bod8P'  o888o 'Y888\"\"8o o888o o888o '88bod8P'\\n"
+    fg_cyan "                                            888\\n"
+    fg_cyan "                                           o888o\\n"
 
     reset
   fi
@@ -179,7 +181,7 @@ Usage:
 
   $(fg_yellow '-l, --url')
       Defines the URL that the components will be downloaded from.
-      If not provided, this will default to BDOT\'s GitHub releases.
+      If not provided, this will default to '$DOWNLOAD_BASE'.
       Example: '-l http://my.domain.org/bindplane-otel-collector' will download from there.
 
   $(fg_yellow '-b, --base-url')
@@ -421,8 +423,9 @@ set_os_arch() {
 
 # This will set the urls to use when downloading the agent and its plugins.
 # These urls are constructed based on the --version flag or COLLECTOR_VERSION env variable.
-# If not specified, the version defaults to whatever the latest release on github is.
-set_download_urls() {
+# If not specified, the version defaults to whatever the latest release on bdot.bindplane.com is.
+set_download_urls()
+{
   if [ -z "$url" ]; then
     if [ -z "$base_url" ]; then
       base_url=$DOWNLOAD_BASE
@@ -504,8 +507,9 @@ ask_clean_install() {
 }
 
 # latest_version gets the tag of the latest release, without the v prefix.
-latest_version() {
-  curl -s 'https://bdot.bindplane.com/api/v1/version/bindplane-otel-collector/latest?plain=1'
+latest_version()
+{
+  curl -s https://bdot.bindplane.com/latest
 }
 
 # This will install the package by downloading & unpacking the tarball into the install directory
@@ -551,11 +555,8 @@ install_package() {
   info "Copying artifacts to install directory..."
   increase_indent
 
-  # This find command gets a list of all artifacts paths
-  FILES=$(
-    cd "$TMP_DIR/artifacts"
-    find "." -type f
-  )
+  # This find command gets a list of all artifacts paths except config.yaml, logging.yaml
+  FILES=$(cd "$TMP_DIR/artifacts"; find "." -type f -not \( -name config.yaml -or -name logging.yaml \))
   # Move files to install dir
   for f in $FILES; do
     rm -rf "$INSTALL_DIR/${f:?}"
@@ -655,12 +656,12 @@ create_supervisor_config() {
 display_results() {
   banner 'Information'
   increase_indent
-  info "Agent Home:                    $(fg_cyan "$INSTALL_DIR")$(reset)"
-  info "Agent Config:                  $(fg_cyan "$INSTALL_DIR/supervisor_storage/effective.yaml")$(reset)"
-  info "Agent Logs Command:            $(fg_cyan "sudo tail -F $INSTALL_DIR/supervisor_storage/agent.log")$(reset)"
-  info "Supervisor Start Command:      $(fg_cyan "sudo launchctl load /Library/LaunchDaemons/$SERVICE_NAME.plist")$(reset)"
-  info "Supervisor Stop Command:       $(fg_cyan "sudo launchctl unload /Library/LaunchDaemons/$SERVICE_NAME.plist")$(reset)"
-  info "Uninstall Command:  $(fg_cyan "sudo sh -c \"\$(curl -fsSlL ${DOWNLOAD_BASE}/v${version}/install_macos.sh)\" install_macos.sh -r")$(reset)"
+  info "Agent Home:                $(fg_cyan "$INSTALL_DIR")$(reset)"
+  info "Agent Config:              $(fg_cyan "$INSTALL_DIR/supervisor_storage/effective.yaml")$(reset)"
+  info "Supervisor Start Command:  $(fg_cyan "sudo launchctl load /Library/LaunchDaemons/$SERVICE_NAME.plist")$(reset)"
+  info "Supervisor Stop Command:   $(fg_cyan "sudo launchctl unload /Library/LaunchDaemons/$SERVICE_NAME.plist")$(reset)"
+  info "Agent Logs Command:        $(fg_cyan "sudo tail -F $INSTALL_DIR/supervisor_storage/agent.log")$(reset)"
+  info "Uninstall Command:         $(fg_cyan "sudo sh -c \"\$(curl -fsSlL ${DOWNLOAD_BASE}/v${version}/install_macos.sh)\" install_macos.sh -r")$(reset)"
   decrease_indent
 
   banner 'Support'

@@ -183,6 +183,60 @@ For supported extensions and their documentation see [extensions](/docs/extensio
 
 For supported connectors and their documentation see [connectors](/docs/connectors.md).
 
+### Example `config.yaml`
+
+Here's a sample setup for `hostmetrics` on Google Cloud. To make sure your environment is set up with required prerequisites, see the [Google Cloud Exporter Prerequisites](/config/google_cloud_exporter/README.md) page. Further details for this GCP example can be found [here](/config/google_cloud_exporter/hostmetrics).
+
+```yaml
+# Receivers collect metrics from a source. The hostmetrics receiver will get
+# CPU load metrics about the machine the collector is running on every minute.
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      disk:
+      load:
+      filesystem:
+      memory:
+      network:
+      paging:
+      processes:
+
+# Exporters send the data to a destination, in this case GCP.
+exporters:
+  googlecloud:
+
+# Service specifies how to construct the data pipelines using the configurations above.
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      exporters: [googlecloud]
+```
+
+### Feature Gates
+
+Starting in v1.80.2 of the BDOT collector, OpenTelemetry feature gates can be configured at run time using a program argument or environment variable. To configure via a run time argument, you can do the following:
+
+```sh
+./observiq-otel-collector --config ./path/to/config.yaml --feature-gates otel.SomeFeature,-otel.OtherFeature
+```
+
+This would enable the `otel.SomeFeature` feature gate and disable the `otel.OtherFeature` feature gate.
+
+Use the environment variable `COLLECTOR_FEATURE_GATES` to achieve the same result. The following is an example:
+
+```env
+COLLECTOR_FEATURE_GATES=otel.SomeFeature,-otel.OtherFeature
+```
+
+By default the following feature gates are enabled in BDOT:
+
+- filelog.allowFileDeletion
+- filelog.allowHeaderMetadataParsing
+- filelog.mtimeSortType
+- exporter.prometheusremotewritexporter.enableSendingRW2
 
 ## Connecting to Bindplane Telemetry Pipeline with OpAMP
 

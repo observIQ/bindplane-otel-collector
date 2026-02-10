@@ -31,8 +31,8 @@ jobs:
         run: cp -r release_deps/plugins windows/
       - name: Copy Example Config
         run: cp config/example.yaml windows/config.yaml
-      - name: Copy JMX Receiver Jar
-        run: cp release_deps/opentelemetry-java-contrib-jmx-metrics.jar windows/opentelemetry-java-contrib-jmx-metrics.jar
+      - name: Copy Logging Config
+        run: cp config/logging.yaml windows/logging.yaml
       - name: Copy LICENSE
         run: cp LICENSE windows/LICENSE
       - name: Copy VERSION file
@@ -77,5 +77,12 @@ jobs:
         with:
           name: bindplane-otel-collector.msi
           path: C:/build/bindplane-otel-collector.msi
+          # Short lived because this is meant as an action for developers
+          retention-days: 1
+      - name: "Upload ZIP Archive"
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-archive
+          path: dist/windows_amd64/*.zip
           # Short lived because this is meant as an action for developers
           retention-days: 1

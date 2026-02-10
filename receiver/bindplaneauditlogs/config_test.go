@@ -98,3 +98,9 @@ func TestValidate(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateDefaultConfig(t *testing.T) {
+	cfg := createDefaultConfig().(*Config)
+	require.Equal(t, true, cfg.ParseAttributes)
+	require.Equal(t, 10*time.Second, cfg.PollInterval)
+}

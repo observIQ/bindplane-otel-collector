@@ -38,4 +38,7 @@ type snapshotRequest struct {
 	// MinimumTimestamp is the minimum timestamp used to filter telemetry such that only telemetry
 	// with a timestamp higher than specified will be reported.
 	MinimumTimestamp *time.Time `yaml:"minimum_timestamp"`
+
+	// MaximumPayloadSizeBytes is the maximum size of the payload in bytes that should be sent to the endpoint.
+	MaximumPayloadSizeBytes int `yaml:"maximum_payload_size"`
 }

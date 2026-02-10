@@ -22,9 +22,6 @@
       "path": "bindplane-otel-collector.exe"
     },
     {
-      "path": "opentelemetry-java-contrib-jmx-metrics.jar"
-    },
-    {
       "path": "VERSION.txt"
     },
     {

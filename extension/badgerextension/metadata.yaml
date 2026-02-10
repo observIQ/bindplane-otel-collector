@@ -1,0 +1,63 @@
+---
+type: badger
+status:
+  class: extension
+  stability:
+    alpha: [extension]
+attributes:
+  operation_type:
+    description: The type of operation performed
+    type: string
+    enum:
+      - set
+      - delete
+      - get
+      - batch
+  storage_type:
+    description: The class of the storage client
+    type: string
+    enum:
+      - lsm
+      - value_log
+telemetry:
+  metrics:
+    extension_storage_client_count:
+      enabled: true
+      stability:
+        level: alpha
+      description: The number of clients created by the extension
+      unit: '{clients}'
+      gauge:
+        value_type: int
+    extension_storage_client_disk_usage_bytes:
+      enabled: true
+      stability:
+        level: alpha
+      description: The disk usage of the extension
+      unit: By
+      gauge:
+        value_type: int
+      attributes:
+        - storage_type
+    extension_storage_client_gc_duration_milliseconds:
+      enabled: true
+      stability:
+        level: alpha
+      description: The duration of the most recent garbage collection run
+      unit: ms
+      histogram:
+        value_type: int
+        bucket_boundaries: [0.1, 0.5, 1, 2, 5, 10]
+    extension_storage_client_operations_count:
+      enabled: true
+      stability:
+        level: alpha
+      description: The number of operations performed by the extension
+      unit: '{operations}'
+      sum:
+        monotonic: true
+        value_type: int
+      attributes:
+        - operation_type
+tests:
+  config: null

@@ -19,12 +19,16 @@ import (
 	"net"
 	"testing"
 
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadatatest"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/consumer/consumererror"
+	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/exportertest"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -81,7 +85,7 @@ func TestGRPCExporter(t *testing.T) {
 		cfg.Protocol = protocolGRPC
 		cfg.CustomerID = "00000000-1111-2222-3333-444444444444"
 		cfg.LogType = "FAKE"
-		cfg.QueueBatchConfig.Enabled = false
+		cfg.QueueBatchConfig = configoptional.None[exporterhelper.QueueBatchConfig]()
 		cfg.BackOffConfig.Enabled = false
 	}
 
@@ -198,7 +202,7 @@ func TestGRPCJSONCredentialsError(t *testing.T) {
 		cfg.Protocol = protocolGRPC
 		cfg.CustomerID = "00000000-1111-2222-3333-444444444444"
 		cfg.LogType = "FAKE"
-		cfg.QueueBatchConfig.Enabled = false
+		cfg.QueueBatchConfig = configoptional.None[exporterhelper.QueueBatchConfig]()
 		cfg.BackOffConfig.Enabled = false
 	}
 
@@ -220,4 +224,244 @@ func TestGRPCJSONCredentialsError(t *testing.T) {
 
 	// Shutdown should not panic
 	require.NoError(t, exp.Shutdown(ctx))
+}
+
+// TestGRPCExporterTelemetry tests the telemetry metrics functionality of the GRPC exporter
+func TestGRPCExporterTelemetry(t *testing.T) {
+	// Override the token source so that we don't have to provide real credentials
+	secureTokenSource := tokenSource
+	defer func() {
+		tokenSource = secureTokenSource
+	}()
+	tokenSource = func(context.Context, *Config) (oauth2.TokenSource, error) {
+		return &emptyTokenSource{}, nil
+	}
+
+	// By default, tests will apply the following changes to NewFactory.CreateDefaultConfig()
+	defaultCfgMod := func(cfg *Config) {
+		cfg.Protocol = protocolGRPC
+		cfg.CustomerID = "00000000-1111-2222-3333-444444444444"
+		cfg.LogType = "FAKE"
+		cfg.QueueBatchConfig = configoptional.None[exporterhelper.QueueBatchConfig]()
+		cfg.BackOffConfig.Enabled = false
+	}
+
+	defaultHandler := func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
+		return &api.BatchCreateLogsResponse{}, nil
+	}
+
+	testCases := []struct {
+		name          string
+		input         plog.Logs
+		expectedBytes int
+		rawLogField   string
+		handler       mockBatchCreateLogsHandler
+		expectError   bool
+		retryEnabled  bool
+	}{
+		{
+			name: "single log record",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			// JSON: {"attributes":{},"body":"Test","resource_attributes":{}}
+			expectedBytes: 56,
+			rawLogField:   "",
+			handler:       defaultHandler,
+			expectError:   false,
+		},
+		{
+			name: "single log record with attributes and resources",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				rls.Resource().Attributes().PutStr("R", "5")
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				lrs.Attributes().PutStr("A", "10")
+				return logs
+			}(),
+			// JSON: {"attributes":{"A":"10"},"body":"Test","resource_attributes":{"R":"5"}}
+			expectedBytes: 71,
+			rawLogField:   "",
+			handler:       defaultHandler,
+			expectError:   false,
+		},
+		{
+			name: "single log record with RawLogField set to body",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				rls.Resource().Attributes().PutStr("R", "5")
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				lrs.Attributes().PutStr("A", "10")
+				return logs
+			}(),
+			// When RawLogField is set to "body", only the body content "Test" is sent
+			expectedBytes: 4,
+			rawLogField:   "body",
+			handler:       defaultHandler,
+			expectError:   false,
+		},
+		{
+			name: "multiple payloads",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls1 := logs.ResourceLogs().AppendEmpty()
+				sls1 := rls1.ScopeLogs().AppendEmpty()
+				lrs1 := sls1.LogRecords().AppendEmpty()
+				lrs1.Body().SetStr("type1")
+				lrs1.Attributes().PutStr("chronicle_log_type", "TYPE_1")
+
+				rls2 := logs.ResourceLogs().AppendEmpty()
+				sls2 := rls2.ScopeLogs().AppendEmpty()
+				lrs2 := sls2.LogRecords().AppendEmpty()
+				lrs2.Body().SetStr("type2")
+				lrs2.Attributes().PutStr("chronicle_log_type", "TYPE_2")
+				return logs
+			}(),
+			expectedBytes: 10, // Data: "type1type2"
+			rawLogField:   "body",
+			handler:       defaultHandler,
+			expectError:   false,
+		},
+		{
+			name: "multiple payloads with one failure - should count bytes since retry is disabled",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls1 := logs.ResourceLogs().AppendEmpty()
+				sls1 := rls1.ScopeLogs().AppendEmpty()
+				lrs1 := sls1.LogRecords().AppendEmpty()
+				lrs1.Body().SetStr("Success")
+				lrs1.Attributes().PutStr("chronicle_log_type", "SUCCESS_TYPE")
+
+				rls2 := logs.ResourceLogs().AppendEmpty()
+				sls2 := rls2.ScopeLogs().AppendEmpty()
+				lrs2 := sls2.LogRecords().AppendEmpty()
+				lrs2.Body().SetStr("Failure")
+				lrs2.Attributes().PutStr("chronicle_log_type", "FAILURE_TYPE")
+				return logs
+			}(),
+			expectedBytes: 7, // Only count bytes from successful payloads before failure (just "Success")
+			rawLogField:   "body",
+			handler: func() mockBatchCreateLogsHandler {
+				requestCount := 0
+				return func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
+					requestCount++
+					// Fail on the second request
+					if requestCount == 2 {
+						return nil, status.Error(codes.Internal, "Simulated failure")
+					}
+					return &api.BatchCreateLogsResponse{}, nil
+				}
+			}(),
+			expectError:  true,
+			retryEnabled: false,
+		},
+		{
+			name: "transient failure with retry enabled - should NOT count bytes on first failure",
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls1 := logs.ResourceLogs().AppendEmpty()
+				sls1 := rls1.ScopeLogs().AppendEmpty()
+				lrs1 := sls1.LogRecords().AppendEmpty()
+				lrs1.Body().SetStr("test data")
+				return logs
+			}(),
+			expectedBytes: 9, // Count bytes only on successful retry (length of "test data")
+			rawLogField:   "body",
+			handler: func() mockBatchCreateLogsHandler {
+				callCount := 0
+				return func(_ *api.BatchCreateLogsRequest) (*api.BatchCreateLogsResponse, error) {
+					callCount++
+					if callCount == 1 {
+						// First call fails with transient error
+						return nil, status.Error(codes.Unavailable, "Simulated transient failure")
+					}
+					// Retry succeeds
+					return &api.BatchCreateLogsResponse{}, nil
+				}
+			}(),
+			expectError:  false,
+			retryEnabled: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockServer, endpoint := newMockGRPCServer(t, tc.handler)
+			defer mockServer.srv.GracefulStop()
+
+			// Create telemetry for testing metrics
+			testTelemetry := componenttest.NewTelemetry()
+			defer testTelemetry.Shutdown(context.Background())
+
+			// Override the client params for testing to we can connect to the mock server
+			secureGPPCClientParams := grpcClientParams
+			defer func() {
+				grpcClientParams = secureGPPCClientParams
+			}()
+			grpcClientParams = func(string, oauth2.TokenSource) (string, []grpc.DialOption) {
+				return endpoint, []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+			}
+
+			f := NewFactory()
+			cfg := f.CreateDefaultConfig().(*Config)
+			defaultCfgMod(cfg)
+			cfg.Endpoint = endpoint
+			if tc.rawLogField != "" {
+				cfg.RawLogField = tc.rawLogField
+			}
+			if tc.retryEnabled {
+				cfg.BackOffConfig.Enabled = true
+			}
+
+			require.NoError(t, cfg.Validate())
+
+			ctx := context.Background()
+			exp, err := f.CreateLogs(ctx, metadatatest.NewSettings(testTelemetry), cfg)
+			require.NoError(t, err)
+			require.NoError(t, exp.Start(ctx, componenttest.NewNopHost()))
+			defer func() {
+				require.NoError(t, exp.Shutdown(ctx))
+			}()
+
+			err = exp.ConsumeLogs(ctx, tc.input)
+
+			// Check error expectations based on test case
+			if tc.expectError {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "upload logs to chronicle")
+			} else {
+				require.NoError(t, err)
+			}
+
+			// Test telemetry metrics - check that the metric exists and has the expected value
+			// When expectedBytes is 0 (failure case), the metric won't exist
+			if tc.expectedBytes > 0 {
+				metric, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
+				require.NoError(t, err)
+				require.NotNil(t, metric)
+
+				// For successful cases, verify the metric has the expected value
+				sumData, ok := metric.Data.(metricdata.Sum[int64])
+				require.True(t, ok, "Expected Sum metric data")
+				require.Len(t, sumData.DataPoints, 1, "Expected exactly one data point")
+				require.Equal(t, int64(tc.expectedBytes), sumData.DataPoints[0].Value)
+			} else {
+				// For failure cases with 0 bytes, verify the metric doesn't exist
+				_, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
+				require.Error(t, err, "Metric should not exist when no bytes are counted")
+				require.Contains(t, err.Error(), "not found", "Error should indicate metric was not found")
+			}
+		})
+	}
 }

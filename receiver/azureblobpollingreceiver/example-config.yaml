@@ -1,0 +1,45 @@
+# Example configuration for Azure Blob Polling Receiver
+# This receiver continuously polls Azure Blob Storage at configurable intervals
+
+# Basic configuration - polls every 10 minutes
+receivers:
+  azureblobpolling:
+    connection_string: "DefaultEndpointsProtocol=https;AccountName=your_account_name;AccountKey=your_account_key;EndpointSuffix=core.windows.net"
+    container: "otel-data"
+    poll_interval: 10m
+
+# Complete production configuration with storage extension
+extensions:
+  file_storage:
+    directory: /var/lib/otelcol/storage
+
+receivers:
+  # Metrics receiver - polls every 5 minutes
+  azureblobpolling/metrics:
+    connection_string: "DefaultEndpointsProtocol=https;AccountName=your_account_name;AccountKey=your_account_key;EndpointSuffix=core.windows.net"
+    container: "otel-metrics"
+    poll_interval: 5m
+    initial_lookback: 30m  # Look back 30 minutes on first startup
+    storage: "file_storage"  # Persist checkpoint across restarts
+    batch_size: 50
+    page_size: 1000
+  
+  # Logs receiver - polls every 2 minutes (higher frequency)
+  azureblobpolling/logs:
+    connection_string: "DefaultEndpointsProtocol=https;AccountName=your_account_name;AccountKey=your_account_key;EndpointSuffix=core.windows.net"
+    container: "otel-logs"
+    poll_interval: 2m
+    initial_lookback: 15m
+    storage: "file_storage"
+    batch_size: 100
+    page_size: 1000
+
+service:
+  extensions: [file_storage]
+  pipelines:
+    metrics:
+      receivers: [azureblobpolling/metrics]
+      exporters: [otlp]
+    logs:
+      receivers: [azureblobpolling/logs]
+      exporters: [otlp]

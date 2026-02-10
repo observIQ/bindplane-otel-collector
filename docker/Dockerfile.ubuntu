@@ -13,12 +13,6 @@
 # limitations under the License.
 
 
-# eclipse-temurn stage provides the Java runtime used by JMX receivers.
-# It is a replacement for the openjdk image, which is considered deprecated.
-#
-FROM eclipse-temurin:8-jdk as jdk
-
-
 # Final Stage
 #
 FROM ubuntu:24.04
@@ -46,10 +40,6 @@ RUN mkdir \
     && chmod 0750 /etc/otel/storage
 ENV OIQ_OTEL_COLLECTOR_HOME=/etc/otel
 ENV OIQ_OTEL_COLLECTOR_STORAGE=/etc/otel/storage
-
-ENV JAVA_HOME=/opt/java/openjdk
-COPY --from=jdk $JAVA_HOME $JAVA_HOME
-ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 RUN mkdir /licenses
 COPY LICENSE /licenses/bindplane-otel-collector.license

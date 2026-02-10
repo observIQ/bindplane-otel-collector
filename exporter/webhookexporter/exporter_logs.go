@@ -22,6 +22,7 @@ import (
 	"net/http"
 
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config/configopaque"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -57,7 +58,7 @@ func (le *logsExporter) Capabilities() consumer.Capabilities {
 
 func (le *logsExporter) start(_ context.Context, host component.Host) error {
 	le.logger.Info("starting webhook logs exporter")
-	client, err := le.cfg.ClientConfig.ToClient(context.Background(), host, le.settings)
+	client, err := le.cfg.ClientConfig.ToClient(context.Background(), host.GetExtensions(), le.settings)
 	if err != nil {
 		return fmt.Errorf("failed to create http client: %w", err)
 	}
@@ -128,20 +129,22 @@ func (le *logsExporter) sendLogs(ctx context.Context, logs []any) error {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	for key, value := range le.cfg.ClientConfig.Headers {
+	le.cfg.ClientConfig.Headers.Iter(func(key string, value configopaque.String) bool {
 		request.Header.Set(key, string(value))
-	}
+		return true
+	})
 
 	request.Header.Set("Content-Type", le.cfg.ContentType)
 
+	le.logger.Debug("sending request", zap.String("endpoint", le.cfg.ClientConfig.Endpoint), zap.String("body", string(body)), zap.String("method", request.Method))
 	response, err := le.client.Do(request)
 	if err != nil {
-		return fmt.Errorf("failed to send request: %w", err)
+		return fmt.Errorf("failed to send request: method=%s, url=%s, body=%s, error=%w", request.Method, request.URL.String(), string(body), err)
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return fmt.Errorf("failed to send request: %s", response.Status)
+		return fmt.Errorf("failed to send request: method=%s, url=%s, body=%s, status=%s", request.Method, request.URL.String(), string(body), response.Status)
 	}
 
 	return nil

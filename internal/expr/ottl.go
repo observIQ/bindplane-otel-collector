@@ -29,8 +29,8 @@ import (
 )
 
 // NewOTTLSpanStatement parses the given statement into an ottl.Statement for a span transform context.
-func NewOTTLSpanStatement(statementStr string, set component.TelemetrySettings) (*ottl.Statement[ottlspan.TransformContext], error) {
-	parser, err := ottlspan.NewParser(functions[ottlspan.TransformContext](), set)
+func NewOTTLSpanStatement(statementStr string, set component.TelemetrySettings) (*ottl.Statement[*ottlspan.TransformContext], error) {
+	parser, err := ottlspan.NewParser(functions[*ottlspan.TransformContext](), set)
 	if err != nil {
 		return nil, err
 	}
@@ -44,8 +44,8 @@ func NewOTTLSpanStatement(statementStr string, set component.TelemetrySettings) 
 }
 
 // NewOTTLMetricStatement parses the given statement into an ottl.Statement for a metric transform context.
-func NewOTTLMetricStatement(statementStr string, set component.TelemetrySettings) (*ottl.Statement[ottlmetric.TransformContext], error) {
-	parser, err := ottlmetric.NewParser(functions[ottlmetric.TransformContext](), set)
+func NewOTTLMetricStatement(statementStr string, set component.TelemetrySettings) (*ottl.Statement[*ottlmetric.TransformContext], error) {
+	parser, err := ottlmetric.NewParser(functions[*ottlmetric.TransformContext](), set)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +58,8 @@ func NewOTTLMetricStatement(statementStr string, set component.TelemetrySettings
 }
 
 // NewOTTLDatapointStatement parses the given statement into an ottl.Statement for a datapoint transform context.
-func NewOTTLDatapointStatement(statementStr string, set component.TelemetrySettings) (*ottl.Statement[ottldatapoint.TransformContext], error) {
-	parser, err := ottldatapoint.NewParser(functions[ottldatapoint.TransformContext](), set)
+func NewOTTLDatapointStatement(statementStr string, set component.TelemetrySettings) (*ottl.Statement[*ottldatapoint.TransformContext], error) {
+	parser, err := ottldatapoint.NewParser(functions[*ottldatapoint.TransformContext](), set)
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +72,8 @@ func NewOTTLDatapointStatement(statementStr string, set component.TelemetrySetti
 }
 
 // NewOTTLLogRecordStatement parses the given statement into an ottl.Statement for a log transform context.
-func NewOTTLLogRecordStatement(statementStr string, set component.TelemetrySettings) (*ottl.Statement[ottllog.TransformContext], error) {
-	parser, err := ottllog.NewParser(functions[ottllog.TransformContext](), set)
+func NewOTTLLogRecordStatement(statementStr string, set component.TelemetrySettings) (*ottl.Statement[*ottllog.TransformContext], error) {
+	parser, err := ottllog.NewParser(functions[*ottllog.TransformContext](), set)
 	if err != nil {
 		return nil, err
 	}

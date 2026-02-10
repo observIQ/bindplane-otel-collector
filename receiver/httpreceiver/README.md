@@ -1,5 +1,5 @@
 # HTTP Receiver
-This receiver is capable of collecting logs for a variety of services, serving as a default HTTP log receiver. Anything that is able to send JSON structured logs to an endpoint using HTTP will be able to utilize this receiver.
+This receiver is capable of collecting logs for a variety of services, serving as a default HTTP log receiver. Anything that is able to send logs to an endpoint using HTTP will be able to utilize this receiver.
 
 ## Minimum Agent Versions
 - Introduced: [v1.39.0](https://github.com/observIQ/bindplane-otel-collector/releases/tag/v1.39.0)
@@ -13,13 +13,45 @@ This receiver is capable of collecting logs for a variety of services, serving a
 
 ## Prerequisites
 - The log source can be configured to send logs to an endpoint using HTTP
-- The logs sent by the log source are JSON structured
+
+## Supported Formats
+
+The receiver handles different payload formats based on the `Content-Type` header:
+
+### JSON Payloads (`Content-Type: application/json`)
+- **JSON Object**: Single log entry as a JSON object
+  ```json
+  {"message": "error occurred", "level": "error", "timestamp": 1699276151086}
+  ```
+- **JSON Array**: Multiple log entries as an array of JSON objects
+  ```json
+  [
+    {"message": "first log", "level": "info"},
+    {"message": "second log", "level": "debug"}
+  ]
+  ```
+
+### Text Payloads (`Content-Type: text/*`)
+Plain text payloads with a `text/*` content type (e.g., `text/plain`) are automatically wrapped in a log structure with a `body` field:
+```
+This is a plain text log message
+```
+
+### No Content-Type Header
+For backward compatibility, if no `Content-Type` header is provided, the receiver will attempt to parse the payload as JSON. If the payload is not valid JSON, the request will be rejected with a 422 status code.
+
+### Important Notes
+- If `Content-Type: application/json` is specified but the payload is not valid JSON, the request will be rejected with a 422 status code.
+- Content types with `+json` suffix (e.g., `application/ld+json`) are treated as JSON.
+- Any other content types not explicitly supported will be rejected with a 422 status code.
+- When the `raw` configuration parameter is set to `true`, all content-type detection is bypassed and payloads are always treated as plain text.
 
 ## Configuration
 | Field                | Type      | Default          | Required | Description                                                                                                                                                                            |
 |----------------------|-----------|------------------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | endpoint             |  string   |                  | `true`   | The hostname and port the receiver should listen on for logs being sent as HTTP POST requests.                                                                                         |
 | path                 |  string   |                  | `false`  | Specifies a path the receiver should be listening to for logs. Useful when the log source also sends other data to the endpoint, such as metrics.                                      |
+| raw                  |  bool     |  `false`         | `false`  | When set to `true`, all payloads will be treated as plain text regardless of the `Content-Type` header. The entire payload will be stored as a string in the log body.               |
 | tls.key_file         |  string   |                  | `false`  | Configure the receiver to use TLS.                                                                                                                                                     |
 | tls.cert_file        |  string   |                  | `false`  | Configure the receiver to use TLS.                                                                                                                                                     |
 
@@ -49,6 +81,26 @@ receivers:
     tls:
       key_file: "certs/server.key"
       cert_file: "certs/server.crt"
+exporters:
+  googlecloud:
+    project: my-gcp-project
+
+service:
+  pipelines:
+    logs:
+      receivers: [http]
+      exporters: [googlecloud]
+```
+
+### Example Configuration With Raw Mode
+Use `raw: true` to force all incoming payloads to be treated as plain text, regardless of `Content-Type` header. This is useful when you want to preserve the exact format of incoming logs without any JSON parsing.
+
+```yaml
+receivers:
+  http:
+    endpoint: "localhost:12345"
+    path: "/logs"
+    raw: true
 exporters:
   googlecloud:
     project: my-gcp-project

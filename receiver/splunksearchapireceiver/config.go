@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/observiq/bindplane-otel-collector/internal/rehydration"
+	"github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver/internal"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
 )
@@ -110,12 +110,12 @@ func (cfg *Config) Validate() error {
 		}
 
 		// parse time strings to time.Time
-		_, err := time.Parse(rehydration.TimeFormat, search.EarliestTime)
+		_, err := time.Parse(internal.TimeFormat, search.EarliestTime)
 		if err != nil {
 			return errors.New("earliest_time failed to parse")
 		}
 
-		_, err = time.Parse(rehydration.TimeFormat, search.LatestTime)
+		_, err = time.Parse(internal.TimeFormat, search.LatestTime)
 		if err != nil {
 			return errors.New("latest_time failed to parse")
 		}

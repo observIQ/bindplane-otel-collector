@@ -29,8 +29,8 @@ jobs:
         run: cp -r release_deps/plugins windows/
       - name: Copy Example Config
         run: cp config/example.yaml windows/config.yaml
-      - name: Copy JMX Receiver Jar
-        run: cp release_deps/opentelemetry-java-contrib-jmx-metrics.jar windows/opentelemetry-java-contrib-jmx-metrics.jar
+      - name: Copy Logging Config
+        run: cp config/logging.yaml windows/logging.yaml
       - name: Copy LICENSE
         run: cp LICENSE windows/LICENSE
       - name: Copy VERSION file
@@ -77,13 +77,20 @@ jobs:
           path: C:/build/bindplane-otel-collector.msi
           # Short lived because Go Releaser will upload the msi to a release (github release, gcs, etc)
           retention-days: 1
+      - name: "Upload Windows ZIP Archive"
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-archive
+          path: dist/**/*.zip
+          # Short lived because Go Releaser will upload the zip to a release (github release, gcs, etc)
+          retention-days: 1
 
   release:
     needs: [build-64bit-msi]
-    runs-on: ubuntu-latest-16-cores
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: namespacelabs/nscloud-checkout-action@v7
         with:
           # For goreleaser
           fetch-depth: 0
@@ -98,9 +105,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: 1.23.6
+          cache: false # Use Namespace caching instead
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Login to DockerHub
@@ -125,6 +137,11 @@ jobs:
         with:
           name: bindplane-otel-collector.msi
           path: bindplane-otel-collector.msi
+      - name: Retrieve Windows 64-bit ZIP Archive
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-archive
+          path: windows-archive
       - name: Install cosign
         run: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
       - name: Build cosign key file
@@ -132,6 +149,10 @@ jobs:
         shell: bash
         env:
           COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
+      - name: Cache Goreleaser Build
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: ~/.cache/goreleaser
       - name: Sign MSI
         run: cosign sign-blob --key=cosign.key --output-signature ./bindplane-otel-collector.msi/bindplane-otel-collector.msi.sig ./bindplane-otel-collector.msi/bindplane-otel-collector.msi
         shell: bash
@@ -139,24 +160,37 @@ jobs:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
       - name: Install Tools
         run: make install-tools
+      - name: Sign Windows 64-bit ZIP Archive
+        run: cosign sign-blob --key=cosign.key --output-signature ./windows-archive/windows_amd64/observiq-otel-collector-${{ github.ref_name }}-windows-amd64.zip.sig ./windows-archive/windows_amd64/observiq-otel-collector-${{ github.ref_name }}-windows-amd64.zip
+        shell: bash
+        env:
+          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+      - name: Write signing key for nFPM
+        shell: bash
+        run: |
+          cat > ci-signing-key.asc <<'EOF'
+          ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
+          EOF
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
-          version: "v2.8.2"
+          version: "v2.12.5"
           args: release --clean --timeout 120m
         env:
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
+          SIGNING_KEY_FILE: ci-signing-key.asc
       # Create artifact bundle and upload to release
       - name: Create artifact archive
         run: |
           mkdir artifacts
           cp ./scripts/install/*.sh ./artifacts
+          cp ./release_deps/gpg-keys.tar.gz ./artifacts/gpg-keys.tar.gz
           cp ./bindplane-otel-collector.msi/bindplane-otel-collector.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
-          cp ./dist/*zip ./artifacts
+          cp ./windows-archive/windows_amd64/*.zip ./artifacts
           cp ./dist/*.rpm ./artifacts
           cp ./dist/*.deb ./artifacts
           cp ./dist/*SHA256SUMS ./artifacts
@@ -170,6 +204,7 @@ jobs:
         run: |
           gsutil cp ./scripts/install/install_unix.sh gs://bdot-release/latest/install_unix.sh
           gsutil cp ./scripts/install/install_macos.sh gs://bdot-release/latest/install_macos.sh
+          gsutil cp ./release_deps/gpg-keys.tar.gz gs://bdot-release/latest/gpg-keys.tar.gz
       - name: Upload artifact bundle to release
         uses: AButler/upload-release-assets@v2.0
         with:
@@ -184,3 +219,94 @@ jobs:
           repository: observIQ/otel-collector-installer-testing
           event-type: upstream_prerelease
           client-payload: '{ "version": "${{ github.ref_name }}" }'
+
+      # Linux package uploads to Google Artifact Registry
+
+      # google-github-actions/auth@v2 was used above to install
+      # gcloud sdk. google-github-actions/auth was used as well
+      # but we need to re-authenticate to upload packages to the
+      # correct project.
+      - name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v2"
+        with:
+          credentials_json: "${{ secrets.ORG_BINDPLANE_PUBLIC_LINUX_REPO_JSON_KEY }}"
+
+      - name: Upload Bindplane Linux AMD64 Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload stable-deb \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_amd64.deb
+
+      - name: Upload Bindplane Linux AMD64 RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload stable-rpm \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_amd64.rpm
+
+      - name: Upload Bindplane Linux ARM64 Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload stable-deb \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_arm64.deb
+
+      - name: Upload Bindplane Linux ARM64 RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload stable-rpm \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_arm64.rpm
+
+      - name: Upload Bindplane Linux ARM32 Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload stable-deb \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_arm.deb
+
+      - name: Upload Bindplane Linux ARM32 RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload stable-rpm \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_arm.rpm
+
+      - name: Upload Bindplane Linux PPC64LE Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload stable-deb \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_ppc64le.deb
+
+      - name: Upload Bindplane Linux PPC64LE RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload stable-rpm \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_ppc64le.rpm
+
+      - name: Upload Bindplane Linux PPC64 Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload stable-deb \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_ppc64.deb
+
+      - name: Upload Bindplane Linux PPC64 RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload stable-rpm \
+            --location us-central1 \
+            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_ppc64.rpm
