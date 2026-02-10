@@ -67,6 +67,7 @@ type server struct {
 	connectionsWg sync.WaitGroup
 
 	downstreamConnectionCount atomic.Uint32
+	authTimeout               time.Duration
 
 	telemetry *metadata.TelemetryBuilder
 
@@ -78,11 +79,15 @@ var (
 	handlePath = "/"
 )
 
-func newServer(endpoint string, tlsCfg *tls.Config, telemetry *metadata.TelemetryBuilder, upstreamConnectionAssigner UpstreamConnectionAssigner, callbacks ConnectionCallbacks[*downstreamConnection], logger *zap.Logger) *server {
+func newServer(endpoint string, tlsCfg *tls.Config, authTimeout time.Duration, telemetry *metadata.TelemetryBuilder, upstreamConnectionAssigner UpstreamConnectionAssigner, callbacks ConnectionCallbacks[*downstreamConnection], logger *zap.Logger) *server {
+	if authTimeout == 0 {
+		authTimeout = 30 * time.Second
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	return &server{
 		endpoint:                   endpoint,
 		tlsCfg:                     tlsCfg,
+		authTimeout:                authTimeout,
 		logger:                     logger.Named("server"),
 		wsUpgrader:                 websocket.Upgrader{},
 		agentConnections:           newConnections[*downstreamConnection](),
@@ -221,6 +226,9 @@ func (s *server) startHTTPServer(addr string, serveFunc func(l net.Listener) err
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
 	}
+	if s.tlsCfg != nil {
+		ln = tls.NewListener(ln, s.tlsCfg)
+	}
 	s.addr = ln.Addr()
 	s.logger.Info("server listening", zap.String("endpoint", s.addr.String()))
 
@@ -258,7 +266,7 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	s.logger.Info("assigned upstream connection", zap.String("downstream_connection_id", id), zap.String("upstream_connection_id", upstreamConnection.id))
 
 	// Authenticate the connection via the upstream OpAMP server
-	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), s.authTimeout)
 	defer cancel()
 
 	accepted, result := s.acceptOpAMPConnection(ctx, r, upstreamConnection, id)

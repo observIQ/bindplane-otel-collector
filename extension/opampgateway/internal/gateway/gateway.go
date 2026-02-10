@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
@@ -44,6 +45,7 @@ type Settings struct {
 	UpstreamConnections  int
 	ServerEndpoint       string
 	ServerTLS            *tls.Config
+	AuthTimeout          time.Duration
 }
 
 // Gateway is the core OpAMP gateway implementation that manages upstream and downstream
@@ -69,7 +71,7 @@ func New(logger *zap.Logger, settings Settings, t *metadata.TelemetryBuilder) *G
 		OnError:   g.HandleUpstreamError,
 		OnClose:   g.HandleUpstreamClose,
 	}, logger)
-	g.server = newServer(settings.ServerEndpoint, settings.ServerTLS, g.telemetry, g.client, ConnectionCallbacks[*downstreamConnection]{
+	g.server = newServer(settings.ServerEndpoint, settings.ServerTLS, settings.AuthTimeout, g.telemetry, g.client, ConnectionCallbacks[*downstreamConnection]{
 		OnMessage: g.HandleDownstreamMessage,
 		OnError:   g.HandleDownstreamError,
 		OnClose:   g.HandleDownstreamClose,
