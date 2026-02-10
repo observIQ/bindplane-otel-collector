@@ -82,8 +82,15 @@ func newServer(endpoint string, tlsCfg *tls.Config, telemetry *metadata.Telemetr
 	}
 }
 
-// Start starts the HTTP Server.
+// Start starts the HTTP Server. It resets internal state so the server can be
+// restarted after a previous Stop (e.g. during collector hot-reload).
 func (s *server) Start() error {
+	// Reset state so the server can be restarted after a previous Stop.
+	s.shutdownCtx, s.shutdownCancel = context.WithCancel(context.Background())
+	s.agentConnections = newConnections[*downstreamConnection]()
+	s.downstreamConnections = newConnections[*downstreamConnection]()
+	s.pendingAuthRequests = newAuthRequests()
+
 	mux := http.NewServeMux()
 	mux.HandleFunc(handlePath, s.handleRequest)
 

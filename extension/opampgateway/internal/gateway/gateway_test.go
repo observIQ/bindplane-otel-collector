@@ -135,6 +135,117 @@ func TestGatewayUpstreamConnectionAffinity(t *testing.T) {
 	// }
 }
 
+func TestGatewayRestartAfterShutdown(t *testing.T) {
+	t.Parallel()
+
+	upstream := newTestOpAMPServer(t)
+
+	testTel := componenttest.NewTelemetry()
+	t.Cleanup(func() {
+		require.NoError(t, testTel.Shutdown(context.Background()))
+	})
+	telemetry, err := metadata.NewTelemetryBuilder(testTel.NewTelemetrySettings())
+	require.NoError(t, err)
+
+	settings := Settings{
+		UpstreamOpAMPAddress: upstream.URL(),
+		SecretKey:            "test-secret",
+		UpstreamConnections:  1,
+		ServerEndpoint:       "127.0.0.1:0",
+	}
+
+	logger := zaptest.NewLogger(t)
+	gw := New(logger, settings, telemetry)
+
+	// Ensure the gateway is always shut down, even if the test fails partway through.
+	t.Cleanup(func() { _ = gw.Shutdown(context.Background()) })
+
+	// Helper that starts the gateway, waits for upstream readiness, and returns
+	// the agent-facing websocket URL.
+	startAndWait := func() string {
+		t.Helper()
+		ctx := context.Background()
+		require.NoError(t, gw.Start(ctx))
+
+		upstream.WaitForConnection(t, 5*time.Second)
+		require.Eventually(t, func() bool {
+			conn, ok := gw.client.upstreamConnections.get("upstream-0")
+			return ok && conn.isConnected()
+		}, 5*time.Second, 10*time.Millisecond)
+
+		return fmt.Sprintf("ws://%s%s", gw.server.addr.String(), handlePath)
+	}
+
+	// --- first lifecycle ---
+	agentURL := startAndWait()
+
+	id1 := uuid.New()
+	agent1 := newTestAgent(t, agentURL, id1[:])
+
+	agent1.Send(&protobufs.AgentToServer{SequenceNum: 10})
+	msg1 := upstream.WaitForAgentMessage(t, agent1.ID(), 5*time.Second)
+	require.Equal(t, uint64(10), msg1.Message.GetSequenceNum())
+
+	_ = agent1.Close()
+	require.NoError(t, gw.Shutdown(context.Background()))
+
+	// --- second lifecycle (restart) ---
+	agentURL = startAndWait()
+
+	id2 := uuid.New()
+	agent2 := newTestAgent(t, agentURL, id2[:])
+
+	agent2.Send(&protobufs.AgentToServer{SequenceNum: 20})
+	msg2 := upstream.WaitForAgentMessage(t, agent2.ID(), 5*time.Second)
+	require.Equal(t, uint64(20), msg2.Message.GetSequenceNum())
+
+	// Also verify round-trip: upstream can send back to the new agent
+	require.NoError(t, upstream.Send(&protobufs.ServerToAgent{
+		InstanceUid:  agent2.RawID(),
+		Capabilities: 42,
+	}))
+	resp := agent2.WaitForMessage(t, 5*time.Second)
+	require.Equal(t, uint64(42), resp.GetCapabilities())
+
+	_ = agent2.Close()
+	require.NoError(t, gw.Shutdown(context.Background()))
+}
+
+func TestGatewayShutdownWithoutStart(t *testing.T) {
+	t.Parallel()
+
+	testTel := componenttest.NewTelemetry()
+	t.Cleanup(func() {
+		require.NoError(t, testTel.Shutdown(context.Background()))
+	})
+	telemetry, err := metadata.NewTelemetryBuilder(testTel.NewTelemetrySettings())
+	require.NoError(t, err)
+
+	upstream := newTestOpAMPServer(t)
+	settings := Settings{
+		UpstreamOpAMPAddress: upstream.URL(),
+		SecretKey:            "test-secret",
+		UpstreamConnections:  1,
+		ServerEndpoint:       "127.0.0.1:0",
+	}
+
+	logger := zaptest.NewLogger(t)
+	gw := New(logger, settings, telemetry)
+
+	// Shutdown without Start should not panic or error.
+	require.NoError(t, gw.Shutdown(context.Background()))
+}
+
+func TestGatewayDoubleShutdown(t *testing.T) {
+	t.Parallel()
+
+	h := newGatewayTestHarness(t, 1)
+
+	// First shutdown is explicit, second comes from t.Cleanup in the harness.
+	require.NoError(t, h.gateway.Shutdown(context.Background()))
+	require.NoError(t, h.gateway.Shutdown(context.Background()))
+}
+
 // --------------------------------------------------------------------------------------
 // test harness
 
@@ -315,6 +426,7 @@ func (s *testOpAMPServer) handle(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			_ = conn.Close()
 			s.connectionCount.Add(-1)
+			s.removeConnection(id)
 		}()
 		s.readLoop(conn, id)
 	}()
@@ -451,6 +563,17 @@ func (s *testOpAMPServer) WaitForAgentMessage(t *testing.T, agentID string, time
 	}
 }
 
+func (s *testOpAMPServer) removeConnection(id string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for i, c := range s.connections {
+		if c.id == id {
+			s.connections = append(s.connections[:i], s.connections[i+1:]...)
+			return
+		}
+	}
+}
+
 func (s *testOpAMPServer) Send(resp *protobufs.ServerToAgent) error {
 	payload, err := proto.Marshal(resp)
 	if err != nil {
@@ -463,7 +586,9 @@ func (s *testOpAMPServer) Send(resp *protobufs.ServerToAgent) error {
 		return fmt.Errorf("no upstream connections")
 	}
 
-	return writeWSMessage(s.connections[0].conn, payload)
+	// Use the most recent connection (last in slice) so that Send works after
+	// a gateway restart where old connections have been removed.
+	return writeWSMessage(s.connections[len(s.connections)-1].conn, payload)
 }
 
 // Close closes the test OpAMP server. It will close all the connections and the server.

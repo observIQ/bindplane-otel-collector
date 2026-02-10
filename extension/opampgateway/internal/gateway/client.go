@@ -58,7 +58,16 @@ func newClient(settings Settings, telemetry *metadata.TelemetryBuilder, callback
 	}
 }
 
+// Start begins connecting to the upstream OpAMP server. It resets internal
+// state so the client can be restarted after a previous Stop (e.g. during
+// collector hot-reload).
 func (c *client) Start(ctx context.Context) {
+	// Reset state so the client can be restarted after a previous Stop.
+	c.clientConnectionsWg = &sync.WaitGroup{}
+	c.pool = newConnectionPool(c.connectionCount, c.logger)
+	c.upstreamConnections = newConnections[*upstreamConnection]()
+	c.connectionAssignments = newConnectionAssignments(c.upstreamConnections, c.pool)
+
 	ctx, c.clientConnectionsCancel = context.WithCancel(ctx)
 	go c.startClientConnections(ctx)
 }
