@@ -1,9 +1,10 @@
 package opampgateway
 
 import (
-	"crypto/tls"
 	"errors"
 	"net/url"
+
+	"go.opentelemetry.io/collector/config/configtls"
 )
 
 type Config struct {
@@ -41,6 +42,6 @@ func (c *Config) Validate() error {
 }
 
 type OpAMPServer struct {
-	Endpoint string      `mapstructure:"endpoint"`
-	TLS      *tls.Config `mapstructure:",squash"`
+	Endpoint string                  `mapstructure:"endpoint"`
+	TLS      configtls.ServerConfig  `mapstructure:"tls,omitempty"`
 }
