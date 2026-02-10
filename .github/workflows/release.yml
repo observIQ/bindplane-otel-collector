@@ -29,8 +29,6 @@ jobs:
         run: cp -r release_deps/plugins windows/
       - name: Copy Example Config
         run: cp config/example.yaml windows/config.yaml
-      - name: Copy Logging Config
-        run: cp config/logging.yaml windows/logging.yaml
       - name: Copy LICENSE
         run: cp LICENSE windows/LICENSE
       - name: Copy VERSION file

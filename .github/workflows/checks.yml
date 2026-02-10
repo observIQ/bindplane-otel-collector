@@ -23,7 +23,6 @@ jobs:
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
       - name: Install Tools
         run: make install-tools
 
@@ -49,7 +48,6 @@ jobs:
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
       - name: Install Tools
         run: make install-tools
       - name: Check Formatting
@@ -77,7 +75,6 @@ jobs:
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
       - name: Install Tools
         run: make install-tools
       - name: Check License Headers
@@ -105,7 +102,6 @@ jobs:
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
       - name: Install Tools
         run: make install-tools
       - name: Run Gosec Security Scanner
@@ -133,7 +129,6 @@ jobs:
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
       - name: Install Tools
         run: make install-tools
       - name: Check for Misspelled Words in Doc Files
@@ -161,7 +156,6 @@ jobs:
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: /home/runner/go/bin
-          key: tooling-${{ runner.os }}-${{ hashFiles('./internal/tools/go.sum') }}
       - name: Install Tools
         run: make install-tools
       - name: Run Revive Linter

@@ -555,8 +555,8 @@ install_package() {
   info "Copying artifacts to install directory..."
   increase_indent
 
-  # This find command gets a list of all artifacts paths except config.yaml, logging.yaml
-  FILES=$(cd "$TMP_DIR/artifacts"; find "." -type f -not \( -name config.yaml -or -name logging.yaml \))
+  # This find command gets a list of all artifacts paths except config.yaml
+  FILES=$(cd "$TMP_DIR/artifacts"; find "." -type f -not -name config.yaml)
   # Move files to install dir
   for f in $FILES; do
     rm -rf "$INSTALL_DIR/${f:?}"

@@ -186,6 +186,7 @@ dockers:
       - release_deps/VERSION.txt
       - release_deps/plugins
       - LICENSE
+  # TODO: Consider removing later, used for alpha v2 releases
   - id: ubuntu-arm64
     goos: linux
     goarch: arm64

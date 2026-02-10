@@ -215,29 +215,6 @@ service:
       exporters: [googlecloud]
 ```
 
-### Feature Gates
-
-Starting in v1.80.2 of the BDOT collector, OpenTelemetry feature gates can be configured at run time using a program argument or environment variable. To configure via a run time argument, you can do the following:
-
-```sh
-./observiq-otel-collector --config ./path/to/config.yaml --feature-gates otel.SomeFeature,-otel.OtherFeature
-```
-
-This would enable the `otel.SomeFeature` feature gate and disable the `otel.OtherFeature` feature gate.
-
-Use the environment variable `COLLECTOR_FEATURE_GATES` to achieve the same result. The following is an example:
-
-```env
-COLLECTOR_FEATURE_GATES=otel.SomeFeature,-otel.OtherFeature
-```
-
-By default the following feature gates are enabled in BDOT:
-
-- filelog.allowFileDeletion
-- filelog.allowHeaderMetadataParsing
-- filelog.mtimeSortType
-- exporter.prometheusremotewritexporter.enableSendingRW2
-
 ## Connecting to Bindplane Telemetry Pipeline with OpAMP
 
 Bindplane is designed to be OpenTelemetry-first, with OpenTelemetry as its core framework, to create a unified toolset with data ownership. By providing a centralized management plane, it simplifies the development, implementation, management, and configuration of OpenTelemetry.

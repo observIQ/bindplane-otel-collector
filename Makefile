@@ -348,7 +348,6 @@ release-prep:
 	@cp -r ./signature/gpg release_deps/gpg
 	@rm release_deps/gpg/revocations.md
 	@rm release_deps/gpg/deb-revocations/.keep
-	@cp config/logging.yaml release_deps/logging.yaml
 	@cp service/com.bindplane.otel.collector.plist release_deps/com.bindplane.otel.collector.plist
 	@jq ".files[] | select(.service != null)" windows/wix.json >> release_deps/windows_service.json
 	@cp service/bindplane-otel-collector release_deps/bindplane-otel-collector
