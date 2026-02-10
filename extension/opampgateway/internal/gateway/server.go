@@ -109,9 +109,10 @@ func (s *server) Start() error {
 	mux.HandleFunc(handlePath, s.handleRequest)
 
 	hs := &http.Server{
-		Handler:   mux,
-		Addr:      s.endpoint,
-		TLSConfig: s.tlsCfg,
+		Handler:           mux,
+		Addr:              s.endpoint,
+		TLSConfig:         s.tlsCfg,
+		ReadHeaderTimeout: 30 * time.Second,
 	}
 	s.httpServer = hs
 
