@@ -20,6 +20,8 @@ telemetry:
       sum:
         value_type: int
       attributes: [direction]
+      stability:
+        level: alpha
 
     opampgateway.messages:
       enabled: true
@@ -29,8 +31,10 @@ telemetry:
         value_type: int
         monotonic: true
       attributes: [direction]
+      stability:
+        level: alpha
 
-    opampgateway.message.bytes:
+    opampgateway.messages.bytes:
       enabled: true
       description: "The total size of the upstream messages."
       unit: "B"
@@ -38,6 +42,8 @@ telemetry:
         value_type: int
         monotonic: true
       attributes: [direction]
+      stability:
+        level: alpha
 
     opampgateway.messages.latency:
       enabled: true
@@ -68,3 +74,5 @@ telemetry:
             100000,
           ]
       attributes: [direction]
+      stability:
+        level: alpha

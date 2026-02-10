@@ -8,25 +8,11 @@ The following telemetry is emitted by this component.
 
 ### otelcol_opampgateway.connections
 
-The number of connections.
+The number of connections. [Alpha]
 
-| Unit | Metric Type | Value Type | Monotonic |
-| ---- | ----------- | ---------- | --------- |
-| {connections} | Sum | Int | false |
-
-#### Attributes
-
-| Name | Description | Values |
-| ---- | ----------- | ------ |
-| direction | The direction of the messages, upstream or downstream. | Str: ``upstream``, ``downstream`` |
-
-### otelcol_opampgateway.message.bytes
-
-The total size of the upstream messages.
-
-| Unit | Metric Type | Value Type | Monotonic |
-| ---- | ----------- | ---------- | --------- |
-| B | Sum | Int | true |
+| Unit | Metric Type | Value Type | Monotonic | Stability |
+| ---- | ----------- | ---------- | --------- | --------- |
+| {connections} | Sum | Int | false | Alpha |
 
 #### Attributes
 
@@ -36,11 +22,25 @@ The total size of the upstream messages.
 
 ### otelcol_opampgateway.messages
 
-The number of messages.
+The number of messages. [Alpha]
 
-| Unit | Metric Type | Value Type | Monotonic |
-| ---- | ----------- | ---------- | --------- |
-| {messages} | Sum | Int | true |
+| Unit | Metric Type | Value Type | Monotonic | Stability |
+| ---- | ----------- | ---------- | --------- | --------- |
+| {messages} | Sum | Int | true | Alpha |
+
+#### Attributes
+
+| Name | Description | Values |
+| ---- | ----------- | ------ |
+| direction | The direction of the messages, upstream or downstream. | Str: ``upstream``, ``downstream`` |
+
+### otelcol_opampgateway.messages.bytes
+
+The total size of the upstream messages. [Alpha]
+
+| Unit | Metric Type | Value Type | Monotonic | Stability |
+| ---- | ----------- | ---------- | --------- | --------- |
+| B | Sum | Int | true | Alpha |
 
 #### Attributes
 
@@ -50,11 +50,11 @@ The number of messages.
 
 ### otelcol_opampgateway.messages.latency
 
-The latency imposed by the gateway forwarding a message.
+The latency imposed by the gateway forwarding a message. [Alpha]
 
-| Unit | Metric Type | Value Type |
-| ---- | ----------- | ---------- |
-| ms | Histogram | Int |
+| Unit | Metric Type | Value Type | Stability |
+| ---- | ----------- | ---------- | --------- |
+| ms | Histogram | Int | Alpha |
 
 #### Attributes
 

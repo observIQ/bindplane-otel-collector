@@ -27,8 +27,8 @@ type TelemetryBuilder struct {
 	mu                          sync.Mutex
 	registrations               []metric.Registration
 	OpampgatewayConnections     metric.Int64UpDownCounter
-	OpampgatewayMessageBytes    metric.Int64Counter
 	OpampgatewayMessages        metric.Int64Counter
+	OpampgatewayMessagesBytes   metric.Int64Counter
 	OpampgatewayMessagesLatency metric.Int64Histogram
 }
 
@@ -63,25 +63,25 @@ func NewTelemetryBuilder(settings component.TelemetrySettings, options ...Teleme
 	var err, errs error
 	builder.OpampgatewayConnections, err = builder.meter.Int64UpDownCounter(
 		"otelcol_opampgateway.connections",
-		metric.WithDescription("The number of connections."),
+		metric.WithDescription("The number of connections. [Alpha]"),
 		metric.WithUnit("{connections}"),
-	)
-	errs = errors.Join(errs, err)
-	builder.OpampgatewayMessageBytes, err = builder.meter.Int64Counter(
-		"otelcol_opampgateway.message.bytes",
-		metric.WithDescription("The total size of the upstream messages."),
-		metric.WithUnit("B"),
 	)
 	errs = errors.Join(errs, err)
 	builder.OpampgatewayMessages, err = builder.meter.Int64Counter(
 		"otelcol_opampgateway.messages",
-		metric.WithDescription("The number of messages."),
+		metric.WithDescription("The number of messages. [Alpha]"),
 		metric.WithUnit("{messages}"),
+	)
+	errs = errors.Join(errs, err)
+	builder.OpampgatewayMessagesBytes, err = builder.meter.Int64Counter(
+		"otelcol_opampgateway.messages.bytes",
+		metric.WithDescription("The total size of the upstream messages. [Alpha]"),
+		metric.WithUnit("B"),
 	)
 	errs = errors.Join(errs, err)
 	builder.OpampgatewayMessagesLatency, err = builder.meter.Int64Histogram(
 		"otelcol_opampgateway.messages.latency",
-		metric.WithDescription("The latency imposed by the gateway forwarding a message."),
+		metric.WithDescription("The latency imposed by the gateway forwarding a message. [Alpha]"),
 		metric.WithUnit("ms"),
 		metric.WithExplicitBucketBoundaries([]float64{0, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1000, 2500, 5000, 7500, 10000, 25000, 50000, 75000, 100000}...),
 	)

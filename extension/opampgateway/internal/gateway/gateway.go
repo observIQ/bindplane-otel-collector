@@ -124,7 +124,7 @@ func (g *Gateway) HandleDownstreamMessage(_ context.Context, connection *downstr
 	logUpstreamMessage(g.logger, logMsg, agentID, msg.number, len(msg.data), &message)
 	upstreamConnection.send(msg)
 	g.telemetry.OpampgatewayMessages.Add(context.Background(), 1, directionUpstream)
-	g.telemetry.OpampgatewayMessageBytes.Add(context.Background(), int64(len(msg.data)), directionUpstream)
+	g.telemetry.OpampgatewayMessagesBytes.Add(context.Background(), int64(len(msg.data)), directionUpstream)
 	return nil
 }
 
@@ -181,7 +181,7 @@ func (g *Gateway) HandleUpstreamMessage(_ context.Context, connection *upstreamC
 	logDownstreamMessage(g.logger, msg, agentID, message.number, len(message.data), &m)
 	conn.send(message)
 	g.telemetry.OpampgatewayMessages.Add(context.Background(), 1, directionDownstream)
-	g.telemetry.OpampgatewayMessageBytes.Add(context.Background(), int64(len(message.data)), directionDownstream)
+	g.telemetry.OpampgatewayMessagesBytes.Add(context.Background(), int64(len(message.data)), directionDownstream)
 	return nil
 }
 

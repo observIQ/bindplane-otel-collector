@@ -20,16 +20,16 @@ func TestSetupTelemetry(t *testing.T) {
 	require.NoError(t, err)
 	defer tb.Shutdown()
 	tb.OpampgatewayConnections.Add(context.Background(), 1)
-	tb.OpampgatewayMessageBytes.Add(context.Background(), 1)
 	tb.OpampgatewayMessages.Add(context.Background(), 1)
+	tb.OpampgatewayMessagesBytes.Add(context.Background(), 1)
 	tb.OpampgatewayMessagesLatency.Record(context.Background(), 1)
 	AssertEqualOpampgatewayConnections(t, testTel,
 		[]metricdata.DataPoint[int64]{{Value: 1}},
 		metricdatatest.IgnoreTimestamp())
-	AssertEqualOpampgatewayMessageBytes(t, testTel,
+	AssertEqualOpampgatewayMessages(t, testTel,
 		[]metricdata.DataPoint[int64]{{Value: 1}},
 		metricdatatest.IgnoreTimestamp())
-	AssertEqualOpampgatewayMessages(t, testTel,
+	AssertEqualOpampgatewayMessagesBytes(t, testTel,
 		[]metricdata.DataPoint[int64]{{Value: 1}},
 		metricdatatest.IgnoreTimestamp())
 	AssertEqualOpampgatewayMessagesLatency(t, testTel,
