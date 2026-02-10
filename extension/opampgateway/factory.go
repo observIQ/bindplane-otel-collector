@@ -2,7 +2,6 @@ package opampgateway
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 
 	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/gateway"
@@ -24,28 +23,30 @@ func defaultConfig() component.Config {
 	return &Config{
 		UpstreamConnections: 1,
 		OpAMPServer: &OpAMPServer{
-			// default to a random port so that tests can run without conflicts
 			Endpoint: "0.0.0.0:0",
-			TLS: &tls.Config{
-				InsecureSkipVerify: true,
-			},
 		},
 	}
 }
 
-func createOpAMPGateway(_ context.Context, cs extension.Settings, cfg component.Config) (extension.Extension, error) {
+func createOpAMPGateway(ctx context.Context, cs extension.Settings, cfg component.Config) (extension.Extension, error) {
 	t, err := metadata.NewTelemetryBuilder(cs.TelemetrySettings)
 	if err != nil {
 		return nil, fmt.Errorf("create telemetry builder: %w", err)
 	}
 
 	oCfg := cfg.(*Config)
+
+	tlsCfg, err := oCfg.OpAMPServer.TLS.LoadTLSConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("load TLS config: %w", err)
+	}
+
 	settings := gateway.Settings{
 		UpstreamOpAMPAddress: oCfg.UpstreamOpAMPAddress,
 		SecretKey:            oCfg.SecretKey,
 		UpstreamConnections:  oCfg.UpstreamConnections,
 		ServerEndpoint:       oCfg.OpAMPServer.Endpoint,
-		ServerTLS:            oCfg.OpAMPServer.TLS,
+		ServerTLS:            tlsCfg,
 	}
 
 	gw := gateway.New(cs.Logger, settings, t)
