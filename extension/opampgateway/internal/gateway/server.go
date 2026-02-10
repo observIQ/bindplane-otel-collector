@@ -1,3 +1,17 @@
+// Copyright observIQ, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package gateway
 
 import (
@@ -105,7 +119,7 @@ func (s *server) Start() error {
 	s.httpServerServeWg.Add(1)
 
 	// Start the HTTP Server in background.
-	err := s.startHttpServer(
+	err := s.startHTTPServer(
 		s.httpServer.Addr,
 		func(l net.Listener) error {
 			defer s.httpServerServeWg.Done()
@@ -200,8 +214,8 @@ func (s *server) closeDownstreamConnections(downstreamConnectionIDs []string) {
 
 // --------------------------------------------------------------------------------------
 
-// startHttpServer starts the HTTP Server in background.
-func (s *server) startHttpServer(addr string, serveFunc func(l net.Listener) error) error {
+// startHTTPServer starts the HTTP Server in background.
+func (s *server) startHTTPServer(addr string, serveFunc func(l net.Listener) error) error {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)

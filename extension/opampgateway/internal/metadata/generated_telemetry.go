@@ -48,7 +48,7 @@ func (builder *TelemetryBuilder) Shutdown() {
 	builder.mu.Lock()
 	defer builder.mu.Unlock()
 	for _, reg := range builder.registrations {
-		reg.Unregister()
+		_ = reg.Unregister() // #nosec G104 -- errors on shutdown telemetry unregister are non-critical
 	}
 }
 
