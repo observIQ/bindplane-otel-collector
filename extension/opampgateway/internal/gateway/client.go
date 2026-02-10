@@ -83,6 +83,7 @@ func (c *client) Start(ctx context.Context) {
 	c.connectionAssignments = newConnectionAssignments(c.upstreamConnections, c.pool)
 
 	ctx, c.clientConnectionsCancel = context.WithCancel(ctx)
+	c.clientConnectionsWg.Add(c.connectionCount)
 	go c.startClientConnections(ctx)
 }
 
@@ -99,7 +100,6 @@ func (c *client) startClientConnections(ctx context.Context) {
 		c.pool.add(clientConnection)
 		c.upstreamConnections.set(id, clientConnection)
 
-		c.clientConnectionsWg.Add(1)
 		go func() {
 			defer c.clientConnectionsWg.Done()
 
