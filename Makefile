@@ -234,7 +234,6 @@ gosec:
 	  -exclude-dir=updater \
 	  -exclude-dir=receiver/sapnetweaverreceiver \
 	  -exclude-dir=extension/bindplaneextension \
-	  -exclude-dir=extension/opampgateway \
 	  -exclude-dir=processor/snapshotprocessor \
 	  -exclude-dir=processor/ocsfstandardizationprocessor \
 	  -exclude-dir=internal/tools \
@@ -243,6 +242,7 @@ gosec:
 	  -exclude-dir=receiver/awss3eventreceiver/internal/metadata \
 	  -exclude-dir=receiver/gcspubsubeventreceiver/internal/metadata \
 	  -exclude-dir=receiver/pcapreceiver/internal/metadata \
+	  -exclude-dir=extension/opampgateway/internal/metadata \
 	  ./...
 # exclude the testdata dir; it contains a go program for testing.
 	cd updater; gosec -exclude-dir internal/service/testdata ./...
