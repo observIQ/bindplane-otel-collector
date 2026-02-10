@@ -232,6 +232,7 @@ gosec:
 	  -exclude-dir=updater \
 	  -exclude-dir=receiver/sapnetweaverreceiver \
 	  -exclude-dir=extension/bindplaneextension \
+	  -exclude-dir=extension/opampgateway \
 	  -exclude-dir=processor/snapshotprocessor \
 	  -exclude-dir=internal/tools \
 	  -exclude-dir=exporter/chronicleexporter/internal/metadata \
