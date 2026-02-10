@@ -58,6 +58,6 @@ func (c *Config) Validate() error {
 
 // OpAMPServer holds the configuration for the downstream OpAMP server.
 type OpAMPServer struct {
-	Endpoint string                  `mapstructure:"endpoint"`
-	TLS      configtls.ServerConfig  `mapstructure:"tls,omitempty"`
+	Endpoint string                 `mapstructure:"endpoint"`
+	TLS      configtls.ServerConfig `mapstructure:"tls,omitempty"`
 }
