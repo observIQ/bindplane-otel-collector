@@ -192,6 +192,20 @@ func newGatewayTestHarness(t *testing.T, upstreamConnections int) *gatewayTestHa
 		upstream.WaitForConnection(t, 5*time.Second)
 	}
 
+	// Wait for all upstream connections to be marked as connected in the pool.
+	// WaitForConnection only confirms the websocket was established at the server side;
+	// the gateway's writerLoop may not have called setConnected(true) yet.
+	require.Eventually(t, func() bool {
+		for i := 0; i < upstreamConnections; i++ {
+			id := fmt.Sprintf("upstream-%d", i)
+			conn, ok := gw.client.upstreamConnections.get(id)
+			if !ok || !conn.isConnected() {
+				return false
+			}
+		}
+		return true
+	}, 5*time.Second, 10*time.Millisecond, "upstream connections not all connected")
+
 	t.Cleanup(cancel)
 	return h
 }
