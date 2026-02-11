@@ -18,15 +18,15 @@ import (
 	"errors"
 	"net/url"
 
-	"go.opentelemetry.io/collector/config/configtls"
+	"go.opentelemetry.io/collector/config/confighttp"
 )
 
 // Config holds the configuration for the OpAMP gateway extension.
 type Config struct {
-	UpstreamOpAMPAddress string       `mapstructure:"upstream_opamp_address"`
-	SecretKey            string       `mapstructure:"secret_key"`
-	UpstreamConnections  int          `mapstructure:"upstream_connections"`
-	OpAMPServer          *OpAMPServer `mapstructure:"opamp_server"`
+	UpstreamOpAMPAddress string                  `mapstructure:"upstream_opamp_address"`
+	SecretKey            string                  `mapstructure:"secret_key"`
+	UpstreamConnections  int                     `mapstructure:"upstream_connections"`
+	OpAMPServer          confighttp.ServerConfig `mapstructure:"opamp_server"`
 }
 
 // Validate checks that the configuration is valid.
@@ -46,18 +46,9 @@ func (c *Config) Validate() error {
 		return errors.New("upstream_connections must be at least 1")
 	}
 
-	if c.OpAMPServer == nil {
-		return errors.New("opamp_server must be specified")
-	}
-	if c.OpAMPServer.Endpoint == "" {
+	if c.OpAMPServer.NetAddr.Endpoint == "" {
 		return errors.New("opamp_server endpoint must be specified")
 	}
 
 	return nil
-}
-
-// OpAMPServer holds the configuration for the downstream OpAMP server.
-type OpAMPServer struct {
-	Endpoint string                 `mapstructure:"endpoint"`
-	TLS      configtls.ServerConfig `mapstructure:"tls,omitempty"`
 }

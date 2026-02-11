@@ -17,6 +17,7 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
@@ -143,7 +144,9 @@ func (c *downstreamConnection) startWriter(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			c.logger.Info("writer context done")
-			// closing the connection will cause ReadMessage to unblock and return an error
+			// Send a WebSocket close frame to notify the peer before closing the TCP connection.
+			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
+			_ = c.conn.WriteControl(websocket.CloseMessage, closeMsg, time.Now().Add(5*time.Second))
 			err := c.conn.Close()
 			if err != nil {
 				// log the error but return nil to avoid propagating the error to the caller

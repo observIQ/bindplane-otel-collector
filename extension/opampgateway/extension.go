@@ -23,12 +23,13 @@ import (
 
 // OpAMPGateway is the OTel extension wrapper around the internal gateway implementation.
 type OpAMPGateway struct {
-	gateway *gateway.Gateway
+	gateway           *gateway.Gateway
+	telemetrySettings component.TelemetrySettings
 }
 
 // Start starts the OpAMP gateway extension.
-func (o *OpAMPGateway) Start(ctx context.Context, _ component.Host) error {
-	return o.gateway.Start(ctx)
+func (o *OpAMPGateway) Start(ctx context.Context, host component.Host) error {
+	return o.gateway.Start(ctx, host, o.telemetrySettings)
 }
 
 // Shutdown stops the OpAMP gateway extension.

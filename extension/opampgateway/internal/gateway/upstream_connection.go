@@ -229,7 +229,9 @@ func (c *upstreamConnection) writerLoop(ctx context.Context, conn *websocket.Con
 		select {
 		case <-ctx.Done():
 			c.logger.Info("writer context done")
-			// closing the connection will cause ReadMessage to unblock and return an error
+			// Send a WebSocket close frame to notify the peer before closing the TCP connection.
+			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
+			_ = conn.WriteControl(websocket.CloseMessage, closeMsg, time.Now().Add(5*time.Second))
 			err := conn.Close()
 			if err != nil {
 				// log the error but return nil to avoid propagating the error to the caller

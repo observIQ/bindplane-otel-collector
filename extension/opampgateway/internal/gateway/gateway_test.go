@@ -34,12 +34,19 @@ import (
 	"testing"
 	"time"
 
+	"encoding/pem"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
+	"go.opentelemetry.io/collector/config/confighttp"
+	"go.opentelemetry.io/collector/config/confignet"
+	"go.opentelemetry.io/collector/config/configopaque"
+	"go.opentelemetry.io/collector/config/configoptional"
+	"go.opentelemetry.io/collector/config/configtls"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
 )
@@ -177,7 +184,7 @@ func TestGatewayRestartAfterShutdown(t *testing.T) {
 		UpstreamOpAMPAddress: upstream.URL(),
 		SecretKey:            "test-secret",
 		UpstreamConnections:  1,
-		ServerEndpoint:       "127.0.0.1:0",
+		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
 
 	logger := zaptest.NewLogger(t)
@@ -191,7 +198,7 @@ func TestGatewayRestartAfterShutdown(t *testing.T) {
 	startAndWait := func() string {
 		t.Helper()
 		ctx := context.Background()
-		require.NoError(t, gw.Start(ctx))
+		require.NoError(t, gw.Start(ctx, componenttest.NewNopHost(), testTel.NewTelemetrySettings()))
 
 		upstream.WaitForConnection(t, 5*time.Second)
 		require.Eventually(t, func() bool {
@@ -252,7 +259,7 @@ func TestGatewayShutdownWithoutStart(t *testing.T) {
 		UpstreamOpAMPAddress: upstream.URL(),
 		SecretKey:            "test-secret",
 		UpstreamConnections:  1,
-		ServerEndpoint:       "127.0.0.1:0",
+		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
 
 	logger := zaptest.NewLogger(t)
@@ -304,14 +311,14 @@ func newGatewayTestHarness(t *testing.T, upstreamConnections int) *gatewayTestHa
 		UpstreamOpAMPAddress: upstream.URL(),
 		SecretKey:            "test-secret",
 		UpstreamConnections:  upstreamConnections,
-		ServerEndpoint:       "127.0.0.1:0",
+		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
 
 	logger := zaptest.NewLogger(t)
 
 	gw := New(logger, settings, telemetry)
 
-	require.NoError(t, gw.Start(ctx))
+	require.NoError(t, gw.Start(ctx, componenttest.NewNopHost(), testTel.NewTelemetrySettings()))
 	t.Cleanup(func() {
 		require.NoError(t, gw.Shutdown(context.Background()))
 	})
@@ -409,8 +416,8 @@ func newTestOpAMPServer(t *testing.T) *testOpAMPServer {
 	s := &testOpAMPServer{
 		t:      t,
 		recvCh: make(chan upstreamMessage, 128),
-		connCh: make(chan *websocket.Conn, 4),
-		errCh:  make(chan error, 4),
+		connCh: make(chan *websocket.Conn, 32),
+		errCh:  make(chan error, 32),
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(*http.Request) bool { return true },
 		},
@@ -780,7 +787,9 @@ func newTestAgentWithDialer(t *testing.T, url string, rawID []byte, dialer *webs
 
 // generateTestTLSConfig creates a self-signed certificate and returns the server TLS config
 // and a CA cert pool that trusts it.
-func generateTestTLSConfig(t *testing.T) (*tls.Config, *x509.CertPool) {
+// generateTestTLSPEM generates a self-signed certificate and returns PEM-encoded cert, key,
+// and a cert pool for client verification.
+func generateTestTLSPEM(t *testing.T) (certPEM string, keyPEM string, certPool *x509.CertPool) {
 	t.Helper()
 
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -800,21 +809,18 @@ func generateTestTLSConfig(t *testing.T) (*tls.Config, *x509.CertPool) {
 	certDER, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
 	require.NoError(t, err)
 
-	serverCert := tls.Certificate{
-		Certificate: [][]byte{certDER},
-		PrivateKey:  key,
-	}
-
-	certPool := x509.NewCertPool()
+	certPool = x509.NewCertPool()
 	parsedCert, err := x509.ParseCertificate(certDER)
 	require.NoError(t, err)
 	certPool.AddCert(parsedCert)
 
-	serverTLSConfig := &tls.Config{
-		Certificates: []tls.Certificate{serverCert},
-	}
+	certPEMBuf := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
 
-	return serverTLSConfig, certPool
+	keyDER, err := x509.MarshalECPrivateKey(key)
+	require.NoError(t, err)
+	keyPEMBuf := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
+
+	return string(certPEMBuf), string(keyPEMBuf), certPool
 }
 
 // --------------------------------------------------------------------------------------
@@ -838,13 +844,13 @@ func TestGatewayAuthTimeout(t *testing.T) {
 		UpstreamOpAMPAddress: upstream.URL(),
 		SecretKey:            "test-secret",
 		UpstreamConnections:  1,
-		ServerEndpoint:       "127.0.0.1:0",
+		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 		AuthTimeout:          500 * time.Millisecond,
 	}
 
 	logger := zaptest.NewLogger(t)
 	gw := New(logger, settings, telemetry)
-	require.NoError(t, gw.Start(context.Background()))
+	require.NoError(t, gw.Start(context.Background(), componenttest.NewNopHost(), testTel.NewTelemetrySettings()))
 	t.Cleanup(func() { _ = gw.Shutdown(context.Background()) })
 
 	upstream.WaitForConnection(t, 5*time.Second)
@@ -880,12 +886,12 @@ func TestGatewayUpstreamReconnection(t *testing.T) {
 		UpstreamOpAMPAddress: upstream.URL(),
 		SecretKey:            "test-secret",
 		UpstreamConnections:  1,
-		ServerEndpoint:       "127.0.0.1:0",
+		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
 
 	logger := zaptest.NewLogger(t)
 	gw := New(logger, settings, telemetry)
-	require.NoError(t, gw.Start(context.Background()))
+	require.NoError(t, gw.Start(context.Background(), componenttest.NewNopHost(), testTel.NewTelemetrySettings()))
 	t.Cleanup(func() { _ = gw.Shutdown(context.Background()) })
 
 	upstream.WaitForConnection(t, 5*time.Second)
@@ -937,7 +943,7 @@ func TestGatewayUpstreamReconnection(t *testing.T) {
 func TestGatewayTLSConnection(t *testing.T) {
 	t.Parallel()
 
-	serverTLSCfg, certPool := generateTestTLSConfig(t)
+	certPEM, keyPEM, certPool := generateTestTLSPEM(t)
 
 	upstream := newTestOpAMPServer(t)
 
@@ -952,13 +958,20 @@ func TestGatewayTLSConnection(t *testing.T) {
 		UpstreamOpAMPAddress: upstream.URL(),
 		SecretKey:            "test-secret",
 		UpstreamConnections:  1,
-		ServerEndpoint:       "127.0.0.1:0",
-		ServerTLS:            serverTLSCfg,
+		OpAMPServer: confighttp.ServerConfig{
+			NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP},
+			TLS: configoptional.Some(configtls.ServerConfig{
+				Config: configtls.Config{
+					CertPem: configopaque.String(certPEM),
+					KeyPem:  configopaque.String(keyPEM),
+				},
+			}),
+		},
 	}
 
 	logger := zaptest.NewLogger(t)
 	gw := New(logger, settings, telemetry)
-	require.NoError(t, gw.Start(context.Background()))
+	require.NoError(t, gw.Start(context.Background(), componenttest.NewNopHost(), testTel.NewTelemetrySettings()))
 	t.Cleanup(func() { _ = gw.Shutdown(context.Background()) })
 
 	upstream.WaitForConnection(t, 5*time.Second)
@@ -1012,12 +1025,12 @@ func TestGatewayGracefulShutdownWithActiveConnections(t *testing.T) {
 		UpstreamOpAMPAddress: upstream.URL(),
 		SecretKey:            "test-secret",
 		UpstreamConnections:  2,
-		ServerEndpoint:       "127.0.0.1:0",
+		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
 
 	logger := zaptest.NewLogger(t)
 	gw := New(logger, settings, telemetry)
-	require.NoError(t, gw.Start(context.Background()))
+	require.NoError(t, gw.Start(context.Background(), componenttest.NewNopHost(), testTel.NewTelemetrySettings()))
 
 	for i := 0; i < 2; i++ {
 		upstream.WaitForConnection(t, 5*time.Second)
@@ -1082,12 +1095,12 @@ func TestGatewayConcurrentAgentStress(t *testing.T) {
 		UpstreamOpAMPAddress: upstream.URL(),
 		SecretKey:            "test-secret",
 		UpstreamConnections:  numUpstreamConns,
-		ServerEndpoint:       "127.0.0.1:0",
+		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
 	}
 
 	logger := zaptest.NewLogger(t)
 	gw := New(logger, settings, telemetry)
-	require.NoError(t, gw.Start(context.Background()))
+	require.NoError(t, gw.Start(context.Background(), componenttest.NewNopHost(), testTel.NewTelemetrySettings()))
 	t.Cleanup(func() { _ = gw.Shutdown(context.Background()) })
 
 	for i := 0; i < numUpstreamConns; i++ {
