@@ -1,39 +1,142 @@
 # observIQ manifest
 
-This manifest contains all components available in [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector/tree/v0.105.0), [OpenTelemetryContrib](https://github.com/open-telemetry/opentelemetry-collector-contrib), and custom components defined in this repo. The options available here match parity with what was available to the BDOT v1.
+This manifest contains all components available in [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector/tree/v0.144.0), [OpenTelemetry Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib), and custom components defined in this repo.
 
 ## Components
 
 This is a list of components that will be available to use in the resulting collector binary.
 
-| extensions                | exporters                      | processors                    | receivers                      | connectors            |
-| :------------------------ | :----------------------------- | :---------------------------- | :----------------------------- | :-------------------- |
-| ackextension              | alibabacloudlogserviceexporter | attributesprocessor           | activedirectorydsreceiver      | countconnector        |
-| asapauthextension         | awscloudwatchlogsexporter      | batchprocessor                | aerospikereceiver              | datadogconnector      |
-| awsproxy                  | awsemfexporter                 | cumulativetodeltaprocessor    | apachereceiver                 | exceptionsconnector   |
-| ballastextension          | awskinesisexporter             | datapointcountprocessor       | apachesparkreceiver            | forwardconnector      |
-| basicauthextension        | awss3exporter                  | deltatocumulativeprocessor    | awscloudwatchreceiver          | grafanacloudconnector |
-| bearertokenauthextension  | awsxrayexporter                | deltatorateprocessor          | awscontainerinsightreceiver    | roundrobinconnector   |
-| bindplaneextension        | azuredataexplorerexporter      | filterprocessor               | awsecscontainermetricsreceiver | routingconnector      |
-| dbstorage                 | azuremonitorexporter           | groupbyattrsprocessor         | awsfirehosereceiver            | servicegraphconnector |
-| dockerobserver            | carbonexporter                 | groupbytraceprocessor         | awsxrayreceiver                | spanmetricsconnector  |
-| ecsobserver               | cassandraexporter              | k8sattributesprocessor        | azureblobreceiver              |                       |
-| ecstaskobserver           | clickhouseexporter             | logcountprocessor             | azureeventhubreceiver          |                       |
-| filestorage               | coralogixexporter              | logdeduplicationprocessor     | azuremonitorreceiver           |                       |
-| headerssetterextension    | datadogexporter                | lookupprocessor               | bigipreceiver                  |                       |
-| healthcheckextension      | datasetexporter                | maskprocessor                 | carbonreceiver                 |                       |
-| hostobserver              | debugexporter                  | memorylimiterprocessor        | chronyreceiver                 |                       |
-| httpforwarderextension    | elasticsearchexporter          | metricextractprocessor        | cloudflarereceiver             |                       |
-| jaegerencodingextension   | fileexporter                   | metricsgenerationprocessor    | cloudfoundryreceiver           |                       |
-| jaegerremotesampling      | googlecloudpubsubexporter      | metricstransformprocessor     | collectdreceiver               |                       |
-| k8sobserver               | honeycombmarkerexporter        | probabilisticsamplerprocessor | couchdbreceiver                |                       |
-| oauth2clientauthextension | influxdbexporter               | redactionprocessor            | datadogreceiver                |                       |
-| oidcauthextension         | instanaexporter                | remotetapprocessor            | dockerstatsreceiver            |                       |
-| opampextension            | kafkaexporter                  | resourcedetectionprocessor    | elasticsearchreceiver          |                       |
-| otlpencodingextension     | loadbalancingexporter          | resourceprocessor             | expvarreceiver                 |                       |
-| pprofextension            | loggingexporter                | routingprocessor              | filelogreceiver                |                       |
-| sigv4authextension        | logicmonitorexporter           | spanprocessor                 | filestatsreceiver              |                       |
-| zipkinencodingextension   | nopexporter                    | sumologicprocessor            | githubreceiver                 |                       |
-|                           | otlpexporter                   | tailsamplingprocessor         | nopreceiver                    |                       |
-|                           | otlphttpexporter               | transformprocessor            | otlpreceiver                   |                       |
-|                           |                                | unrollprocessor               |                                |                       |
+| extensions                                  | exporters                       | processors                           | receivers                             | connectors               |
+| :------------------------------------------ | :------------------------------ | :----------------------------------- | :------------------------------------ | :----------------------- |
+| ackextension                                | alertmanagerexporter            | attributesprocessor                  | activedirectorydsreceiver             | countconnector           |
+| asapauthextension                           | alibabacloudlogserviceexporter  | batchprocessor                       | aerospikereceiver                     | datadogconnector         |
+| avrologencodingextension                    | awscloudwatchlogsexporter       | coralogixprocessor                   | apachereceiver                        | exceptionsconnector      |
+| awscloudwatchmetricstreamsencodingextension | awsemfexporter                  | cumulativetodeltaprocessor           | apachesparkreceiver                   | failoverconnector        |
+| awslogsencodingextension                    | awskinesisexporter              | datadogsemanticsprocessor            | awscloudwatchreceiver                 | forwardconnector         |
+| awsproxy                                    | awss3exporter                   | datapointcountprocessor              | awscontainerinsightreceiver           | grafanacloudconnector    |
+| awss3eventextension                         | awsxrayexporter                 | deltatocumulativeprocessor           | awsecscontainermetricsreceiver        | metricsaslogsconnector   |
+| azureauthextension                          | azureblobexporter               | deltatorateprocessor                 | awsfirehosereceiver                   | otlpjsonconnector        |
+| azureencodingextension                      | azuredataexplorerexporter       | dnslookupprocessor                   | awslambdareceiver                     | roundrobinconnector      |
+| badgerextension                             | azureloganalyticsexporter       | filterprocessor                      | awss3eventreceiver                    | routingconnector         |
+| basicauthextension                          | azuremonitorexporter            | geoipprocessor                       | awss3receiver                         | servicegraphconnector    |
+| bearertokenauthextension                    | bmchelixexporter                | groupbyattrsprocessor                | awss3rehydrationreceiver              | signaltometricsconnector |
+| bindplaneextension                          | cassandraexporter               | groupbytraceprocessor                | awsxrayreceiver                       | slowsqlconnector         |
+| cfgardenobserver                            | chronicleexporter               | intervalprocessor                    | azureblobpollingreceiver              | spanmetricsconnector     |
+| cgroupruntimeextension                      | chronicleforwarderexporter      | isolationforestprocessor             | azureblobreceiver                     | sumconnector             |
+| datadogextension                            | clickhouseexporter              | k8sattributesprocessor               | azureblobrehydrationreceiver          |                          |
+| dbstorage                                   | coralogixexporter               | logcountprocessor                    | azureeventhubreceiver                 |                          |
+| dockerobserver                              | datadogexporter                 | logdedupprocessor                    | azuremonitorreceiver                  |                          |
+| ecsobserver                                 | datasetexporter                 | logstransformprocessor               | bigipreceiver                         |                          |
+| filestorage                                 | debugexporter                   | lookupprocessor                      | bindplaneauditlogs                    |                          |
+| googleclientauthextension                   | dorisexporter                   | maskprocessor                        | carbonreceiver                        |                          |
+| googlecloudlogentryencodingextension        | elasticsearchexporter           | memorylimiterprocessor               | chronyreceiver                        |                          |
+| headerssetterextension                      | faroexporter                    | metricextractprocessor               | ciscoosreceiver                       |                          |
+| healthcheckextension                        | fileexporter                    | metricsgenerationprocessor           | cloudflarereceiver                    |                          |
+| healthcheckv2extension                      | googlecloudexporter             | metricstarttimeprocessor             | cloudfoundryreceiver                  |                          |
+| hostobserver                                | googlecloudpubsubexporter       | metricstatsprocessor                 | collectdreceiver                      |                          |
+| httpforwarderextension                      | googlecloudstorageexporter      | metricstransformprocessor            | couchdbreceiver                       |                          |
+| jaegerencodingextension                     | googlemanagedprometheusexporter | probabilisticsamplerprocessor        | datadogreceiver                       |                          |
+| jaegerremotesampling                        | honeycombmarkerexporter         | randomfailureprocessor               | dockerstatsreceiver                   |                          |
+| jsonlogencodingextension                    | influxdbexporter                | redactionprocessor                   | elasticsearchreceiver                 |                          |
+| k8sleaderelector                            | kafkaexporter                   | remotetapprocessor                   | envoyalsreceiver                      |                          |
+| k8sobserver                                 | loadbalancingexporter           | removeemptyvaluesprocessor           | expvarreceiver                        |                          |
+| kafkatopicsobserver                         | logicmonitorexporter            | resourceattributetransposerprocessor | faroreceiver                          |                          |
+| oauth2clientauthextension                   | logzioexporter                  | resourcedetectionprocessor           | filelogreceiver                       |                          |
+| oidcauthextension                           | mezmoexporter                   | resourceprocessor                    | filestatsreceiver                     |                          |
+| opampcustommessages                         | nopexporter                     | samplingprocessor                    | flinkmetricsreceiver                  |                          |
+| opampextension                              | opensearchexporter              | schemaprocessor                      | fluentforwardreceiver                 |                          |
+| otlpencodingextension                       | otelarrowexporter               | snapshotprocessor                    | githubreceiver                        |                          |
+| pebbleextension                             | otlpexporter                    | spancountprocessor                   | gitlabreceiver                        |                          |
+| pprofextension                              | otlphttpexporter                | spanprocessor                        | googlecloudmonitoringreceiver         |                          |
+| redisstorageextension                       | prometheusexporter              | sumologicprocessor                   | googlecloudpubsubpushreceiver         |                          |
+| remotetapextension                          | prometheusremotewriteexporter   | tailsamplingprocessor                | googlecloudpubsubreceiver             |                          |
+| sigv4authextension                          | pulsarexporter                  | throughputmeasurementprocessor       | googlecloudspannerreceiver            |                          |
+| skywalkingencodingextension                 | qradar                          | topologyprocessor                    | googlecloudstoragerehydrationreceiver |                          |
+| solarwindsapmsettingsextension              | rabbitmqexporter                | transformprocessor                   | haproxyreceiver                       |                          |
+| sumologicextension                          | sapmexporter                    | unrollprocessor                      | hostmetricsreceiver                   |                          |
+| textencodingextension                       | sematextexporter                |                                      | httpcheckreceiver                     |                          |
+| zipkinencodingextension                     | sentryexporter                  |                                      | httpreceiver                          |                          |
+| zpagesextension                             | signalfxexporter                |                                      | huaweicloudcesreceiver                |                          |
+|                                             | snowflakeexporter               |                                      | icmpcheckreceiver                     |                          |
+|                                             | splunkhecexporter               |                                      | iisreceiver                           |                          |
+|                                             | stefexporter                    |                                      | influxdbreceiver                      |                          |
+|                                             | sumologicexporter               |                                      | jaegerreceiver                        |                          |
+|                                             | syslogexporter                  |                                      | jmxreceiver                           |                          |
+|                                             | tencentcloudlogserviceexporter  |                                      | journaldreceiver                      |                          |
+|                                             | tinybirdexporter                |                                      | k8sclusterreceiver                    |                          |
+|                                             | webhookexporter                 |                                      | k8seventsreceiver                     |                          |
+|                                             | zipkinexporter                  |                                      | k8slogreceiver                        |                          |
+|                                             |                                 |                                      | k8sobjectsreceiver                    |                          |
+|                                             |                                 |                                      | kafkametricsreceiver                  |                          |
+|                                             |                                 |                                      | kafkareceiver                         |                          |
+|                                             |                                 |                                      | kubeletstatsreceiver                  |                          |
+|                                             |                                 |                                      | libhoneyreceiver                      |                          |
+|                                             |                                 |                                      | lokireceiver                          |                          |
+|                                             |                                 |                                      | m365receiver                          |                          |
+|                                             |                                 |                                      | macosunifiedloggingreceiver           |                          |
+|                                             |                                 |                                      | memcachedreceiver                     |                          |
+|                                             |                                 |                                      | mongodbatlasreceiver                  |                          |
+|                                             |                                 |                                      | mongodbreceiver                       |                          |
+|                                             |                                 |                                      | mysqlreceiver                         |                          |
+|                                             |                                 |                                      | namedpipereceiver                     |                          |
+|                                             |                                 |                                      | netflowreceiver                       |                          |
+|                                             |                                 |                                      | nginxreceiver                         |                          |
+|                                             |                                 |                                      | nopreceiver                           |                          |
+|                                             |                                 |                                      | nsxtreceiver                          |                          |
+|                                             |                                 |                                      | ntpreceiver                           |                          |
+|                                             |                                 |                                      | oktareceiver                          |                          |
+|                                             |                                 |                                      | oracledbreceiver                      |                          |
+|                                             |                                 |                                      | osqueryreceiver                       |                          |
+|                                             |                                 |                                      | otelarrowreceiver                     |                          |
+|                                             |                                 |                                      | otlpjsonfilereceiver                  |                          |
+|                                             |                                 |                                      | otlpreceiver                          |                          |
+|                                             |                                 |                                      | pcapreceiver                          |                          |
+|                                             |                                 |                                      | pluginreceiver                        |                          |
+|                                             |                                 |                                      | podmanreceiver                        |                          |
+|                                             |                                 |                                      | postgresqlreceiver                    |                          |
+|                                             |                                 |                                      | pprofreceiver                         |                          |
+|                                             |                                 |                                      | prometheusreceiver                    |                          |
+|                                             |                                 |                                      | prometheusremotewritereceiver         |                          |
+|                                             |                                 |                                      | pulsarreceiver                        |                          |
+|                                             |                                 |                                      | purefareceiver                        |                          |
+|                                             |                                 |                                      | purefbreceiver                        |                          |
+|                                             |                                 |                                      | rabbitmqreceiver                      |                          |
+|                                             |                                 |                                      | receivercreator                       |                          |
+|                                             |                                 |                                      | redfishreceiver                       |                          |
+|                                             |                                 |                                      | redisreceiver                         |                          |
+|                                             |                                 |                                      | restapireceiver                       |                          |
+|                                             |                                 |                                      | riakreceiver                          |                          |
+|                                             |                                 |                                      | routereceiver                         |                          |
+|                                             |                                 |                                      | saphanareceiver                       |                          |
+|                                             |                                 |                                      | sapnetweaverreceiver                  |                          |
+|                                             |                                 |                                      | signalfxreceiver                      |                          |
+|                                             |                                 |                                      | simpleprometheusreceiver              |                          |
+|                                             |                                 |                                      | skywalkingreceiver                    |                          |
+|                                             |                                 |                                      | snmpreceiver                          |                          |
+|                                             |                                 |                                      | snowflakereceiver                     |                          |
+|                                             |                                 |                                      | solacereceiver                        |                          |
+|                                             |                                 |                                      | splunkenterprisereceiver              |                          |
+|                                             |                                 |                                      | splunkhecreceiver                     |                          |
+|                                             |                                 |                                      | splunksearchapireceiver               |                          |
+|                                             |                                 |                                      | sqlqueryreceiver                      |                          |
+|                                             |                                 |                                      | sqlserverreceiver                     |                          |
+|                                             |                                 |                                      | sshcheckreceiver                      |                          |
+|                                             |                                 |                                      | statsdreceiver                        |                          |
+|                                             |                                 |                                      | stefreceiver                          |                          |
+|                                             |                                 |                                      | syslogreceiver                        |                          |
+|                                             |                                 |                                      | systemdreceiver                       |                          |
+|                                             |                                 |                                      | tcpcheckreceiver                      |                          |
+|                                             |                                 |                                      | tcplogreceiver                        |                          |
+|                                             |                                 |                                      | telemetrygeneratorreceiver            |                          |
+|                                             |                                 |                                      | tlscheckreceiver                      |                          |
+|                                             |                                 |                                      | udplogreceiver                        |                          |
+|                                             |                                 |                                      | vcenterreceiver                       |                          |
+|                                             |                                 |                                      | wavefrontreceiver                     |                          |
+|                                             |                                 |                                      | webhookeventreceiver                  |                          |
+|                                             |                                 |                                      | windowseventlogreceiver               |                          |
+|                                             |                                 |                                      | windowseventtracereceiver             |                          |
+|                                             |                                 |                                      | windowsperfcountersreceiver           |                          |
+|                                             |                                 |                                      | windowsservicereceiver                |                          |
+|                                             |                                 |                                      | yanggrpcreceiver                      |                          |
+|                                             |                                 |                                      | zipkinreceiver                        |                          |
+|                                             |                                 |                                      | zookeeperreceiver                     |                          |
