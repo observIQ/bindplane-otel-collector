@@ -1,5 +1,12 @@
 type: opampgateway
 
+tests:
+  config:
+    upstream_opamp_address: "ws://localhost:4320/v1/opamp"
+    upstream_connections: 1
+    opamp_server:
+      endpoint: "127.0.0.1:0"
+
 status:
   class: extension
   stability:

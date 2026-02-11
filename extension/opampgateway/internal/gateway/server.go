@@ -16,7 +16,6 @@ package gateway
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -31,6 +30,8 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
 	"github.com/open-telemetry/opamp-go/protobufs"
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config/confighttp"
 	"go.uber.org/zap"
 )
 
@@ -41,9 +42,8 @@ type authResponse struct {
 }
 
 type server struct {
-	endpoint string
-	tlsCfg   *tls.Config
-	logger   *zap.Logger
+	serverConfig confighttp.ServerConfig
+	logger       *zap.Logger
 
 	httpServer        *http.Server
 	httpServerServeWg *sync.WaitGroup
@@ -79,14 +79,13 @@ var (
 	handlePath = "/"
 )
 
-func newServer(endpoint string, tlsCfg *tls.Config, authTimeout time.Duration, telemetry *metadata.TelemetryBuilder, upstreamConnectionAssigner UpstreamConnectionAssigner, callbacks ConnectionCallbacks[*downstreamConnection], logger *zap.Logger) *server {
+func newServer(serverConfig confighttp.ServerConfig, authTimeout time.Duration, telemetry *metadata.TelemetryBuilder, upstreamConnectionAssigner UpstreamConnectionAssigner, callbacks ConnectionCallbacks[*downstreamConnection], logger *zap.Logger) *server {
 	if authTimeout == 0 {
 		authTimeout = 30 * time.Second
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	return &server{
-		endpoint:                   endpoint,
-		tlsCfg:                     tlsCfg,
+		serverConfig:               serverConfig,
 		authTimeout:                authTimeout,
 		logger:                     logger.Named("server"),
 		wsUpgrader:                 websocket.Upgrader{},
@@ -103,7 +102,7 @@ func newServer(endpoint string, tlsCfg *tls.Config, authTimeout time.Duration, t
 
 // Start starts the HTTP Server. It resets internal state so the server can be
 // restarted after a previous Stop (e.g. during collector hot-reload).
-func (s *server) Start() error {
+func (s *server) Start(ctx context.Context, host component.Host, telemetrySettings component.TelemetrySettings) error {
 	// Reset state so the server can be restarted after a previous Stop.
 	s.shutdownCtx, s.shutdownCancel = context.WithCancel(context.Background())
 	s.agentConnections = newConnections[*downstreamConnection]()
@@ -113,27 +112,31 @@ func (s *server) Start() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc(handlePath, s.handleRequest)
 
-	hs := &http.Server{
-		Handler:           mux,
-		Addr:              s.endpoint,
-		TLSConfig:         s.tlsCfg,
-		ReadHeaderTimeout: 30 * time.Second,
+	hs, err := s.serverConfig.ToServer(ctx, host.GetExtensions(), telemetrySettings, mux)
+	if err != nil {
+		return fmt.Errorf("create http server: %w", err)
 	}
 	s.httpServer = hs
+
+	ln, err := s.serverConfig.ToListener(ctx)
+	if err != nil {
+		return fmt.Errorf("create listener: %w", err)
+	}
+	s.addr = ln.Addr()
+	s.logger.Info("server listening", zap.String("endpoint", s.addr.String()))
 
 	s.httpServerServeWg = &sync.WaitGroup{}
 	s.httpServerServeWg.Add(1)
 
-	// Start the HTTP Server in background.
-	err := s.startHTTPServer(
-		s.httpServer.Addr,
-		func(l net.Listener) error {
-			defer s.httpServerServeWg.Done()
-			return s.httpServer.Serve(l)
-		},
-	)
+	// Run the HTTP Server in background.
+	go func() {
+		defer s.httpServerServeWg.Done()
+		if serveErr := s.httpServer.Serve(ln); serveErr != nil && serveErr != http.ErrServerClosed {
+			s.logger.Error("Error running HTTP Server", zap.Error(serveErr))
+		}
+	}()
 
-	return err
+	return nil
 }
 
 // Stop stops the HTTP Server.
@@ -220,29 +223,6 @@ func (s *server) closeDownstreamConnections(downstreamConnectionIDs []string) {
 }
 
 // --------------------------------------------------------------------------------------
-
-// startHTTPServer starts the HTTP Server in background.
-func (s *server) startHTTPServer(addr string, serveFunc func(l net.Listener) error) error {
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		return fmt.Errorf("listen: %w", err)
-	}
-	if s.tlsCfg != nil {
-		ln = tls.NewListener(ln, s.tlsCfg)
-	}
-	s.addr = ln.Addr()
-	s.logger.Info("server listening", zap.String("endpoint", s.addr.String()))
-
-	// Run the HTTP Server in background.
-	go func() {
-		// Use a local variable to avoid a data race with the outer err from net.Listen.
-		if serveErr := serveFunc(ln); serveErr != nil && serveErr != http.ErrServerClosed {
-			s.logger.Error("Error running HTTP Server", zap.Error(serveErr))
-		}
-	}()
-
-	return nil
-}
 
 // handleRequest handles accepting OpAMP connections and upgrading to a websocket connection
 func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
