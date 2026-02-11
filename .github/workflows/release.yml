@@ -159,7 +159,7 @@ jobs:
       - name: Install Tools
         run: make install-tools
       - name: Sign Windows 64-bit ZIP Archive
-        run: cosign sign-blob --key=cosign.key --output-signature ./windows-archive/windows_amd64/observiq-otel-collector-${{ github.ref_name }}-windows-amd64.zip.sig ./windows-archive/windows_amd64/observiq-otel-collector-${{ github.ref_name }}-windows-amd64.zip
+        run: cosign sign-blob --key=cosign.key --output-signature ./windows-archive/windows_amd64/bindplane-otel-collector-${{ github.ref_name }}-windows-amd64.zip.sig ./windows-archive/windows_amd64/bindplane-otel-collector-${{ github.ref_name }}-windows-amd64.zip
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
@@ -235,7 +235,7 @@ jobs:
             --project bindplane-repository \
             artifacts apt upload stable-deb \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_amd64.deb
+            --source dist/bindplane-otel-collector_${{ github.ref_name }}_linux_amd64.deb
 
       - name: Upload Bindplane Linux AMD64 RPM Package
         run: |
@@ -243,7 +243,7 @@ jobs:
             --project bindplane-repository \
             artifacts yum upload stable-rpm \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_amd64.rpm
+            --source dist/bindplane-otel-collector_${{ github.ref_name }}_linux_amd64.rpm
 
       - name: Upload Bindplane Linux ARM64 Deb Package
         run: |
@@ -251,7 +251,7 @@ jobs:
             --project bindplane-repository \
             artifacts apt upload stable-deb \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_arm64.deb
+            --source dist/bindplane-otel-collector_${{ github.ref_name }}_linux_arm64.deb
 
       - name: Upload Bindplane Linux ARM64 RPM Package
         run: |
@@ -259,7 +259,7 @@ jobs:
             --project bindplane-repository \
             artifacts yum upload stable-rpm \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_arm64.rpm
+            --source dist/bindplane-otel-collector_${{ github.ref_name }}_linux_arm64.rpm
 
       - name: Upload Bindplane Linux ARM32 Deb Package
         run: |
@@ -267,7 +267,7 @@ jobs:
             --project bindplane-repository \
             artifacts apt upload stable-deb \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_arm.deb
+            --source dist/bindplane-otel-collector_${{ github.ref_name }}_linux_arm.deb
 
       - name: Upload Bindplane Linux ARM32 RPM Package
         run: |
@@ -275,7 +275,7 @@ jobs:
             --project bindplane-repository \
             artifacts yum upload stable-rpm \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_arm.rpm
+            --source dist/bindplane-otel-collector_${{ github.ref_name }}_linux_arm.rpm
 
       - name: Upload Bindplane Linux PPC64LE Deb Package
         run: |
@@ -283,7 +283,7 @@ jobs:
             --project bindplane-repository \
             artifacts apt upload stable-deb \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_ppc64le.deb
+            --source dist/bindplane-otel-collector_${{ github.ref_name }}_linux_ppc64le.deb
 
       - name: Upload Bindplane Linux PPC64LE RPM Package
         run: |
@@ -291,7 +291,7 @@ jobs:
             --project bindplane-repository \
             artifacts yum upload stable-rpm \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_ppc64le.rpm
+            --source dist/bindplane-otel-collector_${{ github.ref_name }}_linux_ppc64le.rpm
 
       - name: Upload Bindplane Linux PPC64 Deb Package
         run: |
@@ -299,7 +299,7 @@ jobs:
             --project bindplane-repository \
             artifacts apt upload stable-deb \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_ppc64.deb
+            --source dist/bindplane-otel-collector_${{ github.ref_name }}_linux_ppc64.deb
 
       - name: Upload Bindplane Linux PPC64 RPM Package
         run: |
@@ -307,4 +307,4 @@ jobs:
             --project bindplane-repository \
             artifacts yum upload stable-rpm \
             --location us-central1 \
-            --source dist/observiq-otel-collector_${{ github.ref_name }}_linux_ppc64.rpm
+            --source dist/bindplane-otel-collector_${{ github.ref_name }}_linux_ppc64.rpm

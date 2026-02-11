@@ -13,36 +13,29 @@ jobs:
           # Ubuntu - All tests
           - os: ubuntu
             runner: namespace-profile-bindplane-default-ubuntu-24-04-32x64
-            test_cmd: sudo make test-updater-integration
           # macOS - All tests
           - os: macos
             runner: namespace-profile-bindplane-default-macos-15
-            test_cmd: make test-updater-integration
           # Windows - Receivers
           - os: windows
             target: receivers
             runner: namespace-profile-bindplane-default-windows-2022-8x16
-            test_cmd: make test-updater-integration
           # Windows - Processors
           - os: windows
             target: processors
             runner: namespace-profile-bindplane-default-windows-2022-8x16
-            test_cmd: make test-updater-integration
           # Windows - Exporters
           - os: windows
             target: exporters
             runner: namespace-profile-bindplane-default-windows-2022-8x16
-            test_cmd: make test-updater-integration
           # Windows - Extensions
           - os: windows
             target: extensions
             runner: namespace-profile-bindplane-default-windows-2022-8x16
-            test_cmd: make test-updater-integration
           # Windows - Other
           - os: windows
             target: other
             runner: namespace-profile-bindplane-default-windows-2022-16x32
-            test_cmd: make test-updater-integration
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout Sources (Namespace)
@@ -131,12 +124,6 @@ jobs:
       - name: Run All Tests
         if: matrix.os != 'windows'
         run: make test
-
-      # Run updater integration tests for Ubuntu and macOS (always)
-      # For Windows, only run when target is 'other'
-      - name: Run Updater Integration Tests
-        if: matrix.os != 'windows' || matrix.target == 'other'
-        run: ${{ matrix.test_cmd }}
 
   test-summary:
     if: always()

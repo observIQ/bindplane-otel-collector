@@ -228,11 +228,6 @@ test-with-cover:
 	$(MAKE) for-all CMD="go test -coverprofile=cover.out ./..."
 	$(MAKE) for-all CMD="go tool cover -html=cover.out -o cover.html"
 
-.PHONY: test-updater-integration
-test-updater-integration:
-	cd updater; gotestsum --rerun-fails --packages="./..." -- \
-		$(INTEGRATION_TEST_ARGS) -race
-
 .PHONY: bench
 bench:
 	$(MAKE) for-all CMD="go test -benchmem -run=^$$ -bench ^* ./..."

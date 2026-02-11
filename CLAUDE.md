@@ -19,7 +19,6 @@ The Bindplane Distro for OpenTelemetry Collector (BDOT Collector) is Bindplane's
 - `make test` - Run all tests with race detection
 - `make test-no-race` - Run all tests without race detection
 - `make test-with-cover` - Run tests with coverage reports
-- `make test-updater-integration` - Run updater integration tests
 - `make bench` - Run benchmarks
 
 ### Code Quality Commands

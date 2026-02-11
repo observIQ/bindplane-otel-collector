@@ -19,7 +19,7 @@
 set -e
 
 DOWNLOAD_DIR="${1:-.}"
-SUPERVISOR_VERSION="${2:-0.129.0}"
+SUPERVISOR_VERSION="${2:-0.144.0}"
 BASEDIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 PROJECT_BASE="$BASEDIR/.."
 JAVA_CONTRIB_VERSION="$(cat "$PROJECT_BASE/JAVA_CONTRIB_VERSION")"
