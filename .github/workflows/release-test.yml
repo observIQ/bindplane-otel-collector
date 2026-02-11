@@ -80,13 +80,6 @@ jobs:
           retention-days: 1
       - name: "DEBUG: List dist/"
         run: tree /F dist/
-      - name: "Upload Windows ZIP Archive"
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-archive
-          path: dist/**/*.zip
-          # Short lived because this is meant as an action for developers
-          retention-days: 1
 
   release-test:
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
@@ -156,7 +149,7 @@ jobs:
           cp ./release_deps/gpg-keys.tar.gz ./artifacts/gpg-keys.tar.gz
           cp ./bindplane-otel-collector.msi/bindplane-otel-collector.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
-          cp ./windows-archive/windows_amd64/*.zip ./artifacts
+          cp ./dist/*.zip ./artifacts
           cp ./dist/*.rpm ./artifacts
           cp ./dist/*.deb ./artifacts
           cp ./dist/*SHA256SUMS ./artifacts

@@ -77,10 +77,3 @@ jobs:
           path: C:/build/bindplane-otel-collector.msi
           # Short lived because this is meant as an action for developers
           retention-days: 1
-      - name: "Upload ZIP Archive"
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-archive
-          path: dist/windows_amd64/*.zip
-          # Short lived because this is meant as an action for developers
-          retention-days: 1

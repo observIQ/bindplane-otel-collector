@@ -75,13 +75,6 @@ jobs:
           path: C:/build/bindplane-otel-collector.msi
           # Short lived because Go Releaser will upload the msi to a release (github release, gcs, etc)
           retention-days: 1
-      - name: "Upload Windows ZIP Archive"
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-archive
-          path: dist/**/*.zip
-          # Short lived because Go Releaser will upload the zip to a release (github release, gcs, etc)
-          retention-days: 1
 
   release:
     needs: [build-64bit-msi]
@@ -159,7 +152,7 @@ jobs:
       - name: Install Tools
         run: make install-tools
       - name: Sign Windows 64-bit ZIP Archive
-        run: cosign sign-blob --key=cosign.key --output-signature ./windows-archive/windows_amd64/bindplane-otel-collector-${{ github.ref_name }}-windows-amd64.zip.sig ./windows-archive/windows_amd64/bindplane-otel-collector-${{ github.ref_name }}-windows-amd64.zip
+        run: cosign sign-blob --key=cosign.key --output-signature ./dist/bindplane-otel-collector-${{ github.ref_name }}-windows-amd64.zip.sig ./dist/bindplane-otel-collector-${{ github.ref_name }}-windows-amd64.zip
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
@@ -188,7 +181,7 @@ jobs:
           cp ./release_deps/gpg-keys.tar.gz ./artifacts/gpg-keys.tar.gz
           cp ./bindplane-otel-collector.msi/bindplane-otel-collector.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
-          cp ./windows-archive/windows_amd64/*.zip ./artifacts
+          cp ./dist/*.zip ./artifacts
           cp ./dist/*.rpm ./artifacts
           cp ./dist/*.deb ./artifacts
           cp ./dist/*SHA256SUMS ./artifacts
