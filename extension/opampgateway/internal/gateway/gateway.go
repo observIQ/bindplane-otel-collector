@@ -18,13 +18,14 @@ package gateway
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
 	"github.com/open-telemetry/opamp-go/protobufs"
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
@@ -43,8 +44,7 @@ type Settings struct {
 	UpstreamOpAMPAddress string
 	SecretKey            string
 	UpstreamConnections  int
-	ServerEndpoint       string
-	ServerTLS            *tls.Config
+	OpAMPServer          confighttp.ServerConfig
 	AuthTimeout          time.Duration
 }
 
@@ -71,7 +71,7 @@ func New(logger *zap.Logger, settings Settings, t *metadata.TelemetryBuilder) *G
 		OnError:   g.HandleUpstreamError,
 		OnClose:   g.HandleUpstreamClose,
 	}, logger)
-	g.server = newServer(settings.ServerEndpoint, settings.ServerTLS, settings.AuthTimeout, g.telemetry, g.client, ConnectionCallbacks[*downstreamConnection]{
+	g.server = newServer(settings.OpAMPServer, settings.AuthTimeout, g.telemetry, g.client, ConnectionCallbacks[*downstreamConnection]{
 		OnMessage: g.HandleDownstreamMessage,
 		OnError:   g.HandleDownstreamError,
 		OnClose:   g.HandleDownstreamClose,
@@ -80,9 +80,9 @@ func New(logger *zap.Logger, settings Settings, t *metadata.TelemetryBuilder) *G
 }
 
 // Start starts the gateway client and server.
-func (g *Gateway) Start(ctx context.Context) error {
+func (g *Gateway) Start(ctx context.Context, host component.Host, telemetrySettings component.TelemetrySettings) error {
 	g.client.Start(ctx)
-	return g.server.Start()
+	return g.server.Start(ctx, host, telemetrySettings)
 }
 
 // Shutdown stops the gateway client and server.

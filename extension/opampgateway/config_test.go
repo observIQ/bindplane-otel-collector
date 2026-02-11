@@ -18,6 +18,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/config/confighttp"
+	"go.opentelemetry.io/collector/config/confignet"
 )
 
 func TestConfigValidate(t *testing.T) {
@@ -25,8 +27,8 @@ func TestConfigValidate(t *testing.T) {
 		return &Config{
 			UpstreamOpAMPAddress: "ws://localhost:4320/v1/opamp",
 			UpstreamConnections:  1,
-			OpAMPServer: &OpAMPServer{
-				Endpoint: "0.0.0.0:4321",
+			OpAMPServer: confighttp.ServerConfig{
+				NetAddr: confignet.AddrConfig{Endpoint: "0.0.0.0:4321"},
 			},
 		}
 	}
@@ -69,16 +71,9 @@ func TestConfigValidate(t *testing.T) {
 		require.ErrorContains(t, err, "upstream_connections must be at least 1")
 	})
 
-	t.Run("nil opamp server", func(t *testing.T) {
-		cfg := validConfig()
-		cfg.OpAMPServer = nil
-		err := cfg.Validate()
-		require.ErrorContains(t, err, "opamp_server must be specified")
-	})
-
 	t.Run("empty server endpoint", func(t *testing.T) {
 		cfg := validConfig()
-		cfg.OpAMPServer.Endpoint = ""
+		cfg.OpAMPServer.NetAddr.Endpoint = ""
 		err := cfg.Validate()
 		require.ErrorContains(t, err, "opamp_server endpoint must be specified")
 	})
