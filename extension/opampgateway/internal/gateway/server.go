@@ -234,12 +234,9 @@ func (s *server) startHTTPServer(addr string, serveFunc func(l net.Listener) err
 
 	// Run the HTTP Server in background.
 	go func() {
-		err = serveFunc(ln)
-
-		// ErrServerClosed is expected after successful Stop(), so we won't log that
-		// particular error.
-		if err != nil && err != http.ErrServerClosed {
-			s.logger.Error("Error running HTTP Server", zap.Error(err))
+		// Use a local variable to avoid a data race with the outer err from net.Listen.
+		if serveErr := serveFunc(ln); serveErr != nil && serveErr != http.ErrServerClosed {
+			s.logger.Error("Error running HTTP Server", zap.Error(serveErr))
 		}
 	}()
 
