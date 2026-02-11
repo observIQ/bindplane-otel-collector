@@ -203,6 +203,7 @@ func (s *server) getDownstreamConnection(connectionID string) (*downstreamConnec
 
 func (s *server) removeDownstreamConnection(conn *downstreamConnection) {
 	s.downstreamConnections.remove(conn.id)
+	s.agentConnections.removeByValue(conn)
 }
 
 func (s *server) closeDownstreamConnections(downstreamConnectionIDs []string) {

@@ -118,6 +118,11 @@ func TestGatewayHandlesAgentCloseAfterSend(t *testing.T) {
 		_, ok := h.gateway.client.upstreamConnections.get(agent.ID())
 		return !ok
 	}, 5*time.Second, 50*time.Millisecond, "upstream assignment still registered")
+
+	require.Eventually(t, func() bool {
+		_, ok := h.gateway.server.getAgentConnection(agent.ID())
+		return !ok
+	}, 5*time.Second, 50*time.Millisecond, "agent connection still registered")
 }
 
 func TestGatewayUpstreamConnectionAffinity(t *testing.T) {
@@ -1164,4 +1169,9 @@ func TestGatewayConcurrentAgentStress(t *testing.T) {
 	require.Eventually(t, func() bool {
 		return gw.server.downstreamConnections.size() == 0
 	}, 10*time.Second, 100*time.Millisecond, "downstream connections not fully cleaned up")
+
+	// Verify all agent connection entries are cleaned up (no stale entries).
+	require.Eventually(t, func() bool {
+		return gw.server.agentConnections.size() == 0
+	}, 10*time.Second, 100*time.Millisecond, "agent connections not fully cleaned up")
 }
