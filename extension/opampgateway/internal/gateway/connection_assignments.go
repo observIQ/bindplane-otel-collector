@@ -92,24 +92,3 @@ func (a *connectionAssignments) unassignDownstreamConnection(downstreamConnectio
 	}
 	delete(a.downstreamToUpstream, downstreamConnectionID)
 }
-
-// removeConnection removes the connection for the given connection ID. it will also
-// remove all assignments for this connection. it will not remove the connection from the
-// list of connections or the pool.
-func (a *connectionAssignments) removeConnection(connectionID string) {
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
-
-	conn, exists := a.connections.get(connectionID)
-	// remove all assignments for this connection
-	for agentID, id := range a.downstreamToUpstream {
-		if id == connectionID {
-			delete(a.downstreamToUpstream, agentID)
-
-			// decrement the agent count for the connection
-			if exists {
-				conn.decrementDownstreamCount()
-			}
-		}
-	}
-}

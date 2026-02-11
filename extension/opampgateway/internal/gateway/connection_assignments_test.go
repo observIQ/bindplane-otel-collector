@@ -161,22 +161,3 @@ func TestUnassignDownstreamConnectionNonExistent(_ *testing.T) {
 	// should not panic
 	a.unassignDownstreamConnection("d-nonexistent")
 }
-
-func TestRemoveConnection(t *testing.T) {
-	u := newTestUpstreamConn("u-0", true)
-	a := newTestAssignments([]*upstreamConnection{u})
-
-	a.assignedUpstreamConnection("d-1")
-	a.assignedUpstreamConnection("d-2")
-	assert.Equal(t, 2, u.downstreamCount())
-
-	a.removeConnection("u-0")
-	assert.Equal(t, 0, u.downstreamCount(), "all downstream counts should be decremented")
-}
-
-func TestRemoveConnectionNonExistent(_ *testing.T) {
-	a := newTestAssignments(nil)
-
-	// should not panic
-	a.removeConnection("u-nonexistent")
-}
