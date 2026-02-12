@@ -144,11 +144,6 @@ jobs:
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
-      - name: Sign Windows 64-bit ZIP Archive
-        run: cosign sign-blob --key=cosign.key --output-signature ./dist/bindplane-otel-collector-${{ github.ref_name }}-windows-amd64.zip.sig ./dist/bindplane-otel-collector-${{ github.ref_name }}-windows-amd64.zip
-        shell: bash
-        env:
-          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
       - name: Write signing key for nFPM
         shell: bash
         run: |
@@ -166,6 +161,11 @@ jobs:
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
           SIGNING_KEY_FILE: ci-signing-key.asc
+      - name: Sign Windows 64-bit ZIP Archive
+        run: cosign sign-blob --key=cosign.key --output-signature ./dist/bindplane-otel-collector-${{ github.ref_name }}-windows-amd64.zip.sig ./dist/bindplane-otel-collector-${{ github.ref_name }}-windows-amd64.zip
+        shell: bash
+        env:
+          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
       # Create artifact bundle and upload to release
       - name: Create artifact archive
         run: |

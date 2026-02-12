@@ -133,11 +133,6 @@ jobs:
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
-      - name: Sign Windows 64-bit ZIP Archive
-        run: cosign sign-blob --key=cosign.key --output-signature ./dist/bindplane-otel-collector-${{ github.event.inputs.version }}-windows-amd64.zip.sig ./dist/bindplane-otel-collector-${{ github.event.inputs.version }}-windows-amd64.zip
-        shell: bash
-        env:
-          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
 
       - name: Write signing key for nFPM
         shell: bash
@@ -162,6 +157,12 @@ jobs:
         run: |
           tree dist/
           du -sh dist/
+
+      - name: Sign Windows 64-bit ZIP Archive
+        run: cosign sign-blob --key=cosign.key --output-signature ./dist/bindplane-otel-collector-${{ github.event.inputs.version }}-windows-amd64.zip.sig ./dist/bindplane-otel-collector-${{ github.event.inputs.version }}-windows-amd64.zip
+        shell: bash
+        env:
+          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
 
       - name: Create artifact archive
         run: |
