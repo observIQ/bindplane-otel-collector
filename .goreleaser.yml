@@ -557,7 +557,7 @@ checksum:
   algorithm: sha256
   extra_files:
     - glob: "./bindplane-otel-collector.msi"
-    - glob: "./windows-archive/windows_amd64/*.zip"
+    - glob: "./dist/*.zip"
 
 # https://goreleaser.com/customization/sign/
 signs:
@@ -596,8 +596,8 @@ release:
     - glob: "./scripts/install/install_unix.sh"
     - glob: "./scripts/install/install_macos.sh"
     - glob: "./release_deps/gpg-keys.tar.gz"
-    - glob: "./windows-archive/windows_amd64/*.zip"
-    - glob: "./windows-archive/windows_amd64/*.zip.sig"
+    - glob: "./dist/*.zip"
+    - glob: "./dist/*.zip.sig"
 
 # https://console.cloud.google.com/storage/browser/bdot-release
 blobs:
@@ -610,8 +610,8 @@ blobs:
       - glob: "./scripts/install/install_unix.sh"
       - glob: "./scripts/install/install_macos.sh"
       - glob: "./release_deps/gpg-keys.tar.gz"
-      - glob: "./windows-archive/windows_amd64/*.zip"
-      - glob: "./windows-archive/windows_amd64/*.zip.sig"
+      - glob: "./dist/*.zip"
+      - glob: "./dist/*.zip.sig"
 
 # https://goreleaser.com/customization/changelog/
 changelog:
