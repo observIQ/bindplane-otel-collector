@@ -238,22 +238,6 @@ jobs:
             --location us-central1 \
             --source dist/bindplane-otel-collector_${{ env.VERSION }}_linux_arm64.rpm
 
-      - name: Upload Bindplane Linux ARM32 Deb Package
-        run: |
-          gcloud \
-            --project bindplane-repository \
-            artifacts apt upload devel-deb \
-            --location us-central1 \
-            --source dist/bindplane-otel-collector_${{ env.VERSION }}_linux_arm.deb
-
-      - name: Upload Bindplane Linux ARM32 RPM Package
-        run: |
-          gcloud \
-            --project bindplane-repository \
-            artifacts yum upload devel-rpm \
-            --location us-central1 \
-            --source dist/bindplane-otel-collector_${{ env.VERSION }}_linux_arm.rpm
-
       - name: Upload Bindplane Linux PPC64LE Deb Package
         run: |
           gcloud \
