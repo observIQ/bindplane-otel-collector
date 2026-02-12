@@ -49,8 +49,6 @@ COPY release_deps/VERSION.txt /etc/otel/VERSION.txt
 COPY bindplane-otel-collector /collector/bindplane-otel-collector
 COPY opampsupervisor /collector/opampsupervisor
 
-COPY release_deps/opentelemetry-java-contrib-jmx-metrics.jar /opt/bindplane-otel-collector/opentelemetry-java-contrib-jmx-metrics.jar
-
 USER otel
 WORKDIR /etc/otel
 
