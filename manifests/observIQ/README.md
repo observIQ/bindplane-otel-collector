@@ -24,8 +24,8 @@ This is a list of components that will be available to use in the resulting coll
 | cfgardenobserver                            | chronicleexporter               | intervalprocessor                    | azureblobpollingreceiver              | spanmetricsconnector     |
 | cgroupruntimeextension                      | chronicleforwarderexporter      | isolationforestprocessor             | azureblobreceiver                     | sumconnector             |
 | datadogextension                            | clickhouseexporter              | k8sattributesprocessor               | azureblobrehydrationreceiver          |                          |
-| dbstorage                                   | coralogixexporter               | logcountprocessor                    | azureeventhubreceiver                 |                          |
-| dockerobserver                              | datadogexporter                 | logdedupprocessor                    | azuremonitorreceiver                  |                          |
+| dockerobserver                              | coralogixexporter               | logcountprocessor                    | azureeventhubreceiver                 |                          |
+|                                             | datadogexporter                 | logdedupprocessor                    | azuremonitorreceiver                  |                          |
 | ecsobserver                                 | datasetexporter                 | logstransformprocessor               | bigipreceiver                         |                          |
 | filestorage                                 | debugexporter                   | lookupprocessor                      | bindplaneauditlogs                    |                          |
 | googleclientauthextension                   | dorisexporter                   | maskprocessor                        | carbonreceiver                        |                          |
