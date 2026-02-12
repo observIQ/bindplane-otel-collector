@@ -28,7 +28,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.23.6
+          go-version: 1.24.4
           cache: false
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1

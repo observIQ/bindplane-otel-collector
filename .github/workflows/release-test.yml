@@ -16,7 +16,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.23.6
+          go-version: 1.24.4
       - name: Install Tools
         run: make install-tools
       # Needed until supervisor binary is released
@@ -110,13 +110,34 @@ jobs:
       - name: Set VERSION
         run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
 
+      - name: Retrieve Windows 64-bit MSI Installer
+        uses: actions/download-artifact@v4
+        with:
+          name: bindplane-otel-collector.msi
+          path: bindplane-otel-collector.msi
       - name: Install Tools
         run: make install-tools
+      - name: Build cosign key file
+        run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
+        shell: bash
+        env:
+          COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
 
       - name: Cache Goreleaser Build
         uses: namespacelabs/nscloud-cache-action@v1
         with:
           path: ~/.cache/goreleaser
+
+      - name: Sign MSI
+        run: cosign sign-blob --key=cosign.key --output-signature ./bindplane-otel-collector.msi/bindplane-otel-collector.msi.sig ./bindplane-otel-collector.msi/bindplane-otel-collector.msi
+        shell: bash
+        env:
+          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+      - name: Sign Windows 64-bit ZIP Archive
+        run: cosign sign-blob --key=cosign.key --output-signature ./dist/bindplane-otel-collector-${{ github.event.inputs.version }}-windows-amd64.zip.sig ./dist/bindplane-otel-collector-${{ github.event.inputs.version }}-windows-amd64.zip
+        shell: bash
+        env:
+          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
 
       - name: Write signing key for nFPM
         shell: bash

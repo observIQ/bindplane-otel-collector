@@ -13,7 +13,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.23.6
+          go-version: 1.24.4
       - name: Install Tools
         run: make install-tools
       # Needed until supervisor binary is released
@@ -95,7 +95,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.23.6
+          go-version: 1.24.4
           cache: false # Use Namespace caching instead
       - name: Set up Go cache
         uses: namespacelabs/nscloud-cache-action@v1
@@ -128,13 +128,8 @@ jobs:
         with:
           name: bindplane-otel-collector.msi
           path: bindplane-otel-collector.msi
-      - name: Retrieve Windows 64-bit ZIP Archive
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-archive
-          path: windows-archive
-      - name: Install cosign
-        run: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
+      - name: Install Tools
+        run: make install-tools
       - name: Build cosign key file
         run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
         shell: bash
@@ -149,8 +144,6 @@ jobs:
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
-      - name: Install Tools
-        run: make install-tools
       - name: Sign Windows 64-bit ZIP Archive
         run: cosign sign-blob --key=cosign.key --output-signature ./dist/bindplane-otel-collector-${{ github.ref_name }}-windows-amd64.zip.sig ./dist/bindplane-otel-collector-${{ github.ref_name }}-windows-amd64.zip
         shell: bash
