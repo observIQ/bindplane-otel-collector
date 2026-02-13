@@ -381,13 +381,13 @@ validate_version()
   major=$(echo "$version_clean" | cut -d'.' -f1)
   minor=$(echo "$version_clean" | cut -d'.' -f2)
 
-  # Check if major version is 1 and minor version is >= 82
-  if [ "$major" = "1" ] && [ "$minor" -ge 82 ] 2>/dev/null; then
+  # Check if major version is 2 and minor version is >= 0
+  if [ "$major" = "2" ] && [ "$minor" -ge 0 ] 2>/dev/null; then
     succeeded
     return 0
   else
     failed
-    error_exit "$LINENO" "Version $version is not supported. This script supports collector v1 version v1.82.0 or newer. Please use the script versioned with your desired collector version."
+    error_exit "$LINENO" "Version $version is not supported. This script supports collector v2.0.0 or newer. Please use the script versioned with your desired collector version."
   fi
 }
 

@@ -108,7 +108,10 @@ exporters:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/stefexporter v0.144.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/sumologicexporter v0.144.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/syslogexporter v0.144.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/tencentcloudlogserviceexporter v0.144.0
+  # tencentcloudlogserviceexporter excluded: its proto definition of "Log" conflicts
+  # with chronicleexporter's "Log" in the global protobuf registry, causing a panic
+  # at startup. See https://protobuf.dev/reference/go/faq#namespace-conflict
+  # - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/tencentcloudlogserviceexporter v0.144.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/tinybirdexporter v0.144.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/zipkinexporter v0.144.0
   - gomod: github.com/observiq/bindplane-otel-collector/exporter/azureblobexporter v1.92.2
