@@ -1,0 +1,85 @@
+type: opampgateway
+
+tests:
+  config:
+    upstream_opamp_address: "ws://localhost:4320/v1/opamp"
+    upstream_connections: 1
+    opamp_server:
+      endpoint: "127.0.0.1:0"
+
+status:
+  class: extension
+  stability:
+    alpha: [extension]
+
+attributes:
+  direction:
+    description: The direction of the messages, upstream or downstream.
+    type: string
+    enum: [upstream, downstream]
+
+telemetry:
+  metrics:
+    opampgateway.connections:
+      enabled: true
+      description: "The number of connections."
+      unit: "{connections}"
+      sum:
+        value_type: int
+      attributes: [direction]
+      stability:
+        level: alpha
+
+    opampgateway.messages:
+      enabled: true
+      description: "The number of messages."
+      unit: "{messages}"
+      sum:
+        value_type: int
+        monotonic: true
+      attributes: [direction]
+      stability:
+        level: alpha
+
+    opampgateway.messages.bytes:
+      enabled: true
+      description: "The total size of the upstream messages."
+      unit: "B"
+      sum:
+        value_type: int
+        monotonic: true
+      attributes: [direction]
+      stability:
+        level: alpha
+
+    opampgateway.messages.latency:
+      enabled: true
+      description: The latency imposed by the gateway forwarding a message.
+      unit: ms
+      histogram:
+        value_type: int
+        bucket_boundaries:
+          [
+            0,
+            5,
+            10,
+            25,
+            50,
+            75,
+            100,
+            250,
+            500,
+            750,
+            1000,
+            2500,
+            5000,
+            7500,
+            10000,
+            25000,
+            50000,
+            75000,
+            100000,
+          ]
+      attributes: [direction]
+      stability:
+        level: alpha

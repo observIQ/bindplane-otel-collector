@@ -237,6 +237,7 @@ gosec:
 	  -exclude-dir=exporter/chronicleexporter/internal/metadata \
 	  -exclude-dir=receiver/awss3eventreceiver/internal/metadata \
 	  -exclude-dir=receiver/pcapreceiver/internal/metadata \
+	  -exclude-dir=extension/opampgateway/internal/metadata \
 	  ./...
 # exclude the testdata dir; it contains a go program for testing.
 	cd updater; gosec -exclude-dir internal/service/testdata ./...
@@ -355,6 +356,9 @@ release-test:
 build-single:
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --skip=publish --skip=sign --clean --skip=validate --snapshot --single-target
 
+.PHONY: release-test-single
+release-test-single:
+	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release -f .goreleaser.arm64.yml --skip=publish --clean --skip=validate --snapshot
 
 .PHONY: for-all
 for-all:
