@@ -423,8 +423,7 @@ require (
 	github.com/ebitengine/purego v0.9.1 // indirect
 	github.com/edsrzf/mmap-go v1.2.0 // indirect
 	github.com/elastic/elastic-transport-go/v8 v8.8.0 // indirect
-	github.com/elastic/go-docappender/v2 v2.12.0 // indirect
-	github.com/elastic/go-elasticsearch/v8 v8.19.1 // indirect
+	github.com/elastic/go-docappender/v2 v2.12.1 // indirect
 	github.com/elastic/go-freelru v0.16.0 // indirect
 	github.com/elastic/go-grok v0.3.1 // indirect
 	github.com/elastic/go-windows v1.0.2 // indirect
@@ -533,14 +532,14 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/gopsutilenv v0.145.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/grpcutil v0.145.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/healthcheck v0.145.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/internal/kafka v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/internal/kafka v0.145.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/otelarrow v0.145.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/pdatautil v0.145.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/sqlquery v0.145.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/core/xidutils v0.145.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/datadog v0.145.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/configkafka v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/topic v0.144.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/configkafka v0.145.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/topic v0.145.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/sampling v0.145.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/status v0.145.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/azure v0.145.0 // indirect
@@ -582,7 +581,7 @@ require (
 	github.com/thda/tds v0.1.7 // indirect
 	github.com/tilinna/clock v1.1.0 // indirect
 	github.com/twmb/franz-go v1.20.6 // indirect
-	github.com/twmb/franz-go/pkg/kadm v1.17.1 // indirect
+	github.com/twmb/franz-go/pkg/kadm v1.17.2 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.12.0 // indirect
 	github.com/twmb/franz-go/pkg/sasl/kerberos v1.1.0 // indirect
 	github.com/twmb/franz-go/plugin/kzap v1.1.2 // indirect
@@ -1105,19 +1104,4 @@ replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
 // github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension.test is forcing this dep to be updated, but it isn't compatible with the linux build process, so replacing to last stable version
 replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 
-// These are pinned for a release due to breaking changes in these components in v0.144.0.
-replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter => github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter v0.143.0
-
-replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver => github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver v0.143.0
-
-replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkametricsreceiver => github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkametricsreceiver v0.143.0
-
-replace github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/configkafka => github.com/open-telemetry/opentelemetry-collector-contrib/pkg/kafka/configkafka v0.143.0
-
-replace github.com/open-telemetry/opentelemetry-collector-contrib/internal/kafka => github.com/open-telemetry/opentelemetry-collector-contrib/internal/kafka v0.143.0
-
-replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor => github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor v0.143.0
-
-replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/elasticsearchexporter => github.com/open-telemetry/opentelemetry-collector-contrib/exporter/elasticsearchexporter v0.143.0
-
-replace github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension => github.com/observiq/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.0.0-20260203175610-5c80010ae854
+replace github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension => github.com/observiq/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.0.0-20260216162652-5a6d88838530
