@@ -247,7 +247,7 @@ gosec:
 
 # This target performs all checks that CI will do (excluding the build itself)
 .PHONY: ci-checks
-ci-checks: check-fmt check-license check-mod-paths misspell lint gosec test
+ci-checks: check-fmt check-license check-mod-paths check-dependabot misspell lint gosec test
 
 # This target checks that every go.mod has the correct module path.
 # Root must be github.com/observiq/bindplane-otel-collector.
@@ -279,6 +279,30 @@ check-mod-paths:
 		exit 1; \
 	else \
 		echo "Check module paths finished successfully"; \
+	fi
+
+# This target checks that every directory with a go.mod has an entry in dependabot.yml
+.PHONY: check-dependabot
+check-dependabot:
+	@FAILED=0; \
+	DEPENDABOT_DIRS=$$(grep 'directory:' .github/dependabot.yml | sed 's/.*directory: *"\(.*\)"/\1/'); \
+	for dir in $(ALL_MODULES); do \
+		if [ "$${dir}" = "." ]; then \
+			EXPECTED="/"; \
+		else \
+			EXPECTED=$$(echo "$${dir}" | sed 's|^\./|/|'); \
+		fi; \
+		if ! echo "$${DEPENDABOT_DIRS}" | grep -qx "$${EXPECTED}"; then \
+			echo "MISSING: $${dir}/go.mod has no entry in .github/dependabot.yml (expected directory: \"$${EXPECTED}\")"; \
+			FAILED=1; \
+		fi; \
+	done; \
+	if [ "$${FAILED}" -eq 1 ]; then \
+		echo ""; \
+		echo "check-dependabot FAILED: add missing entries to .github/dependabot.yml"; \
+		exit 1; \
+	else \
+		echo "Check dependabot finished successfully"; \
 	fi
 
 # This target checks that license copyright header is on every source file
