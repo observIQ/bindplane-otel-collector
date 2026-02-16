@@ -1,6 +1,6 @@
 # observIQ manifest
 
-This manifest contains all components available in [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector/tree/v0.144.0), [OpenTelemetry Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib), and custom components defined in this repo.
+This manifest contains all components available in [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector/tree/v0.145.0), [OpenTelemetry Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib), and custom components defined in this repo.
 
 ## Components
 
