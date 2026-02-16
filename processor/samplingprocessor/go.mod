@@ -4,13 +4,13 @@ go 1.24.11
 
 require (
 	github.com/observiq/bindplane-otel-collector/expr v1.92.2
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.144.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.145.0
 	github.com/stretchr/testify v1.11.1
-	go.opentelemetry.io/collector/component v1.50.0
-	go.opentelemetry.io/collector/consumer v1.50.0
-	go.opentelemetry.io/collector/pdata v1.50.0
-	go.opentelemetry.io/collector/processor v1.50.0
-	go.opentelemetry.io/collector/processor/processorhelper v0.144.0
+	go.opentelemetry.io/collector/component v1.51.0
+	go.opentelemetry.io/collector/consumer v1.51.0
+	go.opentelemetry.io/collector/pdata v1.51.0
+	go.opentelemetry.io/collector/processor v1.51.0
+	go.opentelemetry.io/collector/processor/processorhelper v0.145.0
 	go.uber.org/zap v1.27.1
 )
 
@@ -21,14 +21,15 @@ require (
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/hashicorp/go-version v1.8.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.144.0 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatautil v0.145.0 // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
-	github.com/zeebo/xxh3 v1.0.2 // indirect
-	go.opentelemetry.io/collector/featuregate v1.50.0 // indirect
-	go.opentelemetry.io/collector/internal/componentalias v0.144.0 // indirect
-	go.opentelemetry.io/collector/pdata/pprofile v0.144.0 // indirect
-	go.opentelemetry.io/collector/pipeline v1.50.0 // indirect
+	github.com/zeebo/xxh3 v1.1.0 // indirect
+	go.opentelemetry.io/collector/featuregate v1.51.0 // indirect
+	go.opentelemetry.io/collector/internal/componentalias v0.145.0 // indirect
+	go.opentelemetry.io/collector/pdata/pprofile v0.145.0 // indirect
+	go.opentelemetry.io/collector/pipeline v1.51.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
 )
 
 require (
@@ -45,8 +46,8 @@ require (
 	github.com/magefile/mage v1.15.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.144.0 // indirect
-	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.144.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.145.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/pdatatest v0.145.0
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/ua-parser/uap-go v0.0.0-20240611065828-3a4781585db6 // indirect
 	go.opentelemetry.io/otel v1.39.0 // indirect
