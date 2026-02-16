@@ -208,7 +208,7 @@ require (
 )
 
 require (
-	github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.10
+	github.com/honeycombio/enhance-indexing-s3-exporter/enhanceindexings3exporter v0.0.11
 	github.com/observiq/bindplane-otel-collector/exporter/azureloganalyticsexporter v1.92.2
 	github.com/observiq/bindplane-otel-collector/extension/awss3eventextension v1.92.2
 	github.com/observiq/bindplane-otel-collector/extension/badgerextension v1.92.2
