@@ -16,6 +16,7 @@ package factories
 
 import (
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver"
@@ -141,6 +142,7 @@ var defaultReceivers = []receiver.Factory{
 	filestatsreceiver.NewFactory(),
 	fluentforwardreceiver.NewFactory(),
 	githubreceiver.NewFactory(),
+	gcspubeventreceiver.NewFactory(),
 	googlecloudpubsubreceiver.NewFactory(),
 	googlecloudpubsubpushreceiver.NewFactory(),
 	googlecloudspannerreceiver.NewFactory(),

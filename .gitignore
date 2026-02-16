@@ -50,3 +50,5 @@ perf-test/
 
 # Local planning docs
 **/MULTI_COLLECTOR_PLAN.md
+
+.idea/
