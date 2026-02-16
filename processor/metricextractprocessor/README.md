@@ -28,8 +28,8 @@ This processor is used to extract metrics from logs.
 | attributes      | map    | `{}`               | **DEPRECATED** use `ottl_attributes` instead. The mapped attributes of the metric created. Each key is an attribute name. Each value is an [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) that extracts data from the log. |
 
 [OTTL]: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/0.145.0/pkg/ottl#readme
-[converters]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/0.145.0/pkg/ottl/ottlfuncs/README.md#converters
-[log context]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/0.145.0/pkg/ottl/contexts/ottllog/README.md
+[converters]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.145.0/pkg/ottl/ottlfuncs/README.md#converters
+[log context]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.145.0/pkg/ottl/contexts/ottllog/README.md
 
 ### Example Config
 
