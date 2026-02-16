@@ -386,7 +386,7 @@ require (
 	github.com/apache/arrow-go/v18 v18.5.0 // indirect
 	github.com/aws/aws-lambda-go v1.52.0 // indirect
 	github.com/aws/aws-msk-iam-sasl-signer-go v1.0.4 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.21.1 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.22.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.63.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.283.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.70.0 // indirect
