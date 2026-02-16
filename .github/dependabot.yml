@@ -45,7 +45,7 @@ updates:
       prefix: "deps"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/plugindocgen"
+    directory: "/cmd/plugindocgen"
     schedule:
       interval: "weekly"
     ignore:
@@ -199,9 +199,53 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/extension/badgerextension"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "go.opentelemetry.io/*"
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/extension/pebbleextension"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "go.opentelemetry.io/*"
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
   ### INTERNAL ###
   - package-ecosystem: "gomod"
     directory: "/internal/aws"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+      - dependency-name: "go.opentelemetry.io/*"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/internal/azureblob"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+      - dependency-name: "go.opentelemetry.io/*"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/internal/blobconsume"
     schedule:
       interval: "weekly"
     ignore:
@@ -223,7 +267,7 @@ updates:
       prefix: "deps"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/internal/blobconsume"
+    directory: "/internal/osinfo"
     schedule:
       interval: "weekly"
     ignore:
@@ -528,6 +572,17 @@ updates:
       include: "scope"
   - package-ecosystem: "gomod"
     directory: "/receiver/oktareceiver"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "go.opentelemetry.io/*"
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/receiver/pcapreceiver"
     schedule:
       interval: "weekly"
     ignore:
