@@ -235,6 +235,7 @@ gosec:
 	  -exclude-dir=processor/snapshotprocessor \
 	  -exclude-dir=internal/tools \
 	  -exclude-dir=exporter/chronicleexporter/internal/metadata \
+	  -exclude-dir=exporter/chronicleexporter/protos/api \
 	  -exclude-dir=receiver/awss3eventreceiver/internal/metadata \
 	  -exclude-dir=receiver/pcapreceiver/internal/metadata \
 	  ./...
