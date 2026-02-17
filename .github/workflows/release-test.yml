@@ -98,6 +98,8 @@ jobs:
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
     needs: [build-msi]
     steps:
+      - name: Redirect temp directory
+        run: echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Checkout Repo
         uses: namespacelabs/nscloud-checkout-action@v7
         with:
