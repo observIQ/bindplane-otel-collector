@@ -108,12 +108,10 @@ func (c *Config) updateProjectFromFile(fileName string) error {
 }
 
 // createDefaultConfig creates the default config for the exporter
-func createDefaultConfig() func() component.Config {
+func createDefaultConfig() component.Config {
 	collectorVersion := version.Version()
-	return func() component.Config {
-		return &Config{
-			GMPConfig: createDefaultGCPConfig(collectorVersion),
-		}
+	return &Config{
+		GMPConfig: createDefaultGCPConfig(collectorVersion),
 	}
 }
 

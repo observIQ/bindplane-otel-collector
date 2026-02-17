@@ -27,7 +27,7 @@ import (
 func TestCreateDefaultConfig(t *testing.T) {
 	collectorVersion := version.Version()
 
-	cfg := createDefaultConfig()()
+	cfg := createDefaultConfig()
 	googleCfg, ok := cfg.(*Config)
 	require.True(t, ok)
 
