@@ -2,7 +2,7 @@
 
 <?if $(sys.BUILDARCH)="x86"?>
     <?define Program_Files="ProgramFilesFolder"?>
-<?elseif $(sys.BUILDARCH)="x64"?>
+<?elseif $(sys.BUILDARCH)="x64" OR $(sys.BUILDARCH)="arm64"?>
     <?define Program_Files="ProgramFiles64Folder"?>
 <?else?>
     <?error Unsupported value of sys.BUILDARCH=$(sys.BUILDARCH)?>
