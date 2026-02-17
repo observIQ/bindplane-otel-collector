@@ -42,7 +42,7 @@ agent:
 # Builds just the updater for current GOOS/GOARCH pair
 .PHONY: updater
 updater:
-	cd ./updater/; go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/version.version=$(VERSION)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
+	cd ./updater/; go build -ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/internal/version.version=$(VERSION)" -o ../$(OUTDIR)/updater_$(GOOS)_$(GOARCH)$(EXT) ./cmd/updater
 
 # Builds the updater + agent for current GOOS/GOARCH pair
 .PHONY: build-binaries
