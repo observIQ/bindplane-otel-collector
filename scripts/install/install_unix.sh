@@ -15,15 +15,6 @@
 
 set -e
 
-# Reads optional package overrides. Users should deploy the override
-# file before installing BDOT for the first time. The override should
-# not be modified unless uninstalling and re-installing.
-[ -f /etc/default/observiq-otel-collector ] && . /etc/default/observiq-otel-collector
-[ -f /etc/sysconfig/observiq-otel-collector ] && . /etc/sysconfig/observiq-otel-collector
-
-# The collectors installation directory
-: "${BDOT_CONFIG_HOME:=/opt/observiq-otel-collector}"
-
 # Allow configurable runtime user/group (used for permissions and manager.yaml)
 : "${BDOT_USER:=bdot}"
 : "${BDOT_GROUP:=bdot}"
@@ -243,7 +234,7 @@ Usage:
 
   $(fg_yellow '-f, --file')
       Install Agent from a local file instead of downloading from a URL.
-      Example: '-f /path/to/observiq-otel-collector_v1.2.12_linux_amd64.deb' will install from the local file.
+      Example: '-f /path/to/bindplane-otel-collector_v1.2.12_linux_amd64.deb' will install from the local file.
       Required if '--gpg-tar-file' is specified.
 
   $(fg_yellow '-gf, --gpg-tar-file')
