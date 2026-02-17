@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -27,18 +28,106 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/aws/smithy-go"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/collector/receiver/receiverhelper"
 	"go.uber.org/zap"
 
 	"github.com/observiq/bindplane-otel-collector/internal/aws/client"
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
+	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/constants"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 )
+
+// AWS error codes for DLQ condition detection
+const (
+	AWSErrorCodeAccessDenied = "AccessDenied"
+	AWSErrorCodeForbidden    = "Forbidden"
+	AWSErrorCodeNoSuchKey    = "NoSuchKey"
+)
+
+// parseFunc defines the signature for parsing notification messages into S3 events
+type parseFunc func(messageBody string) (*events.S3Event, error)
+
+// getParseFuncForNotificationType returns the appropriate parse function for the given notification type
+func (w *Worker) getParseFuncForNotificationType(notificationType string) parseFunc {
+	switch notificationType {
+	case constants.NotificationTypeSNS:
+		return ParseSNSToS3Event
+	case constants.NotificationTypeS3:
+		fallthrough
+	default:
+		return parseS3Event
+	}
+}
+
+// parseS3Event parses a direct S3 event notification
+func parseS3Event(messageBody string) (*events.S3Event, error) {
+	notification := new(events.S3Event)
+	err := json.Unmarshal([]byte(messageBody), notification)
+	return notification, err
+}
+
+// isDLQConditionError checks if an error should trigger DLQ behavior and returns the specific error type
+func isDLQConditionError(err error) error {
+	if isAccessDeniedError(err) {
+		return &DLQError{Type: "iam_permission_denied", Err: err}
+	}
+	if isNoSuchKeyError(err) {
+		return &DLQError{Type: "file_not_found", Err: err}
+	}
+	if isUnsupportedFileTypeError(err) {
+		return &DLQError{Type: "unsupported_file_type", Err: err}
+	}
+	return nil
+}
+
+// isAccessDeniedError checks if the error is an IAM permission (AccessDenied) error
+func isAccessDeniedError(err error) bool {
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) {
+		return apiErr.ErrorCode() == AWSErrorCodeAccessDenied || apiErr.ErrorCode() == AWSErrorCodeForbidden
+	}
+	// Also check for string-based errors
+	errStr := err.Error()
+	return strings.Contains(errStr, AWSErrorCodeAccessDenied) || strings.Contains(errStr, AWSErrorCodeForbidden)
+}
+
+// isNoSuchKeyError checks if the error is a file not found (NoSuchKey) error
+func isNoSuchKeyError(err error) bool {
+	var noSuchKeyErr *s3types.NoSuchKey
+	if errors.As(err, &noSuchKeyErr) {
+		return true
+	}
+	// Also check for string-based errors
+	errStr := err.Error()
+	return strings.Contains(errStr, AWSErrorCodeNoSuchKey)
+}
+
+// isUnsupportedFileTypeError checks if the error indicates an unsupported file type
+func isUnsupportedFileTypeError(err error) bool {
+	return errors.Is(err, ErrNotArrayOrKnownObject)
+}
+
+// DLQError represents an error that should trigger DLQ behavior
+type DLQError struct {
+	Type string
+	Err  error
+}
+
+func (e *DLQError) Error() string {
+	return e.Err.Error()
+}
+
+func (e *DLQError) Unwrap() error {
+	return e.Err
+}
 
 // Worker processes S3 event notifications.
 // It is responsible for processing messages from the SQS queue and sending them to the next consumer.
@@ -58,6 +147,9 @@ type Worker struct {
 	metrics                     *metadata.TelemetryBuilder
 	bucketNameFilter            *regexp.Regexp
 	objectKeyFilter             *regexp.Regexp
+	notificationType            string
+	parseFunc                   parseFunc
+	obsrecv                     *receiverhelper.ObsReport
 }
 
 // Option is a functional option for configuring the Worker
@@ -86,24 +178,36 @@ func WithTelemetryBuilder(tb *metadata.TelemetryBuilder) Option {
 	}
 }
 
+// WithNotificationType sets the notification type
+func WithNotificationType(notificationType string) Option {
+	return func(w *Worker) {
+		w.notificationType = notificationType
+	}
+}
+
 // New creates a new Worker
-func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client client.Client, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration, opts ...Option) *Worker {
+func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, client client.Client, obsrecv *receiverhelper.ObsReport, maxLogSize int, maxLogsEmitted int, visibilityTimeout time.Duration, visibilityExtensionInterval time.Duration, maxVisibilityWindow time.Duration, opts ...Option) *Worker {
 	w := &Worker{
 		logger:                      tel.Logger.With(zap.String("component", "awss3eventreceiver")),
 		tel:                         tel,
 		client:                      client,
 		nextConsumer:                nextConsumer,
 		offsetStorage:               storageclient.NewNopStorage(),
+		obsrecv:                     obsrecv,
 		maxLogSize:                  maxLogSize,
 		maxLogsEmitted:              maxLogsEmitted,
 		visibilityTimeout:           visibilityTimeout,
 		visibilityExtensionInterval: visibilityExtensionInterval,
 		maxVisibilityWindow:         maxVisibilityWindow,
+		notificationType:            constants.NotificationTypeS3, // Default to S3 notification type
 	}
 
 	for _, opt := range opts {
 		opt(w)
 	}
+
+	// Set the parse function based on the notification type
+	w.parseFunc = w.getParseFuncForNotificationType(w.notificationType)
 
 	return w
 }
@@ -124,9 +228,9 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	defer cancelVisibility()
 
 	go w.extendMessageVisibility(visibilityCtx, msg, queueURL, logger)
-
-	notification := new(events.S3Event)
-	err := json.Unmarshal([]byte(*msg.Body), notification)
+	// Parse the message using the configured parse function
+	logger.Debug("parsing message", zap.String("message_id", *msg.MessageId), zap.String("notification_type", w.notificationType))
+	notification, err := w.parseFunc(*msg.Body)
 	if err != nil {
 		logger.Error("unmarshal notification", zap.Error(err))
 		w.metrics.S3eventFailures.Add(ctx, 1)
@@ -137,17 +241,37 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	logger.Debug("processing notification", zap.Int("event.count", len(notification.Records)))
 
 	// Filter records to only include s3:ObjectCreated:* events
-	var objectCreatedRecords []events.S3EventRecord
+	type recordWithDecodedKey struct {
+		record     events.S3EventRecord
+		decodedKey string
+	}
+	var objectCreatedRecords []recordWithDecodedKey
 	for _, record := range notification.Records {
+		key := record.S3.Object.Key
+
+		// URL decode the object key as S3 event notifications may contain URL-encoded keys
+		// when object names contain special characters like =, +, /, spaces, etc.
+		decodedKey, err := url.QueryUnescape(key)
+		if err != nil {
+			logger.Warn("failed to URL decode object key, using original key",
+				zap.String("original_key", key),
+				zap.Error(err))
+			decodedKey = key
+		} else if decodedKey != key {
+			logger.Debug("URL decoded object key",
+				zap.String("original_key", key),
+				zap.String("decoded_key", decodedKey))
+		}
+
 		recordLogger := logger.With(zap.String("event_name", record.EventName),
 			zap.String("bucket", record.S3.Bucket.Name),
-			zap.String("key", record.S3.Object.Key))
+			zap.String("key", decodedKey))
 		// S3 UI shows the prefix as "s3:ObjectCreated:", but the event name is unmarshalled as "ObjectCreated:"
 		if !strings.Contains(record.EventName, "ObjectCreated:") {
 			recordLogger.Warn("unexpected event: receiver handles only s3:ObjectCreated:* events",
 				zap.String("event_name", record.EventName),
 				zap.String("bucket", record.S3.Bucket.Name),
-				zap.String("key", record.S3.Object.Key))
+				zap.String("key", decodedKey))
 			continue
 		}
 
@@ -155,11 +279,14 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 			recordLogger.Debug("skipping record due to bucket name filter", zap.String("bucket", record.S3.Bucket.Name))
 			continue
 		}
-		if w.objectKeyFilter != nil && !w.objectKeyFilter.MatchString(record.S3.Object.Key) {
-			recordLogger.Debug("skipping record due to object key filter", zap.String("key", record.S3.Object.Key))
+		if w.objectKeyFilter != nil && !w.objectKeyFilter.MatchString(decodedKey) {
+			recordLogger.Debug("skipping record due to object key filter", zap.String("key", decodedKey))
 			continue
 		}
-		objectCreatedRecords = append(objectCreatedRecords, record)
+		objectCreatedRecords = append(objectCreatedRecords, recordWithDecodedKey{
+			record:     record,
+			decodedKey: decodedKey,
+		})
 	}
 
 	if len(objectCreatedRecords) == 0 {
@@ -173,37 +300,39 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg types.Message, queueURL
 	}
 
 	var keys []string
-	for _, record := range objectCreatedRecords {
-		recordLogger := logger.With(zap.String("bucket", record.S3.Bucket.Name), zap.String("key", record.S3.Object.Key))
+	for _, recordData := range objectCreatedRecords {
+		record := recordData.record
+		decodedKey := recordData.decodedKey
+
+		recordLogger := logger.With(zap.String("bucket", record.S3.Bucket.Name), zap.String("key", decodedKey))
 		recordLogger.Debug("processing record")
 
-		if err := w.processRecord(ctx, record, recordLogger); err != nil {
-			recordLogger.Error("error processing record, preserving message in SQS for retry", zap.Error(err))
-			w.metrics.S3eventFailures.Add(ctx, 1)
+		err := w.processRecord(ctx, record, decodedKey, recordLogger)
+		if err != nil {
+			w.handleProcessingError(ctx, msg, queueURL, err, recordLogger)
 			return
 		}
-		keys = append(keys, record.S3.Object.Key)
+		keys = append(keys, decodedKey)
 		w.metrics.S3eventObjectsHandled.Add(ctx, 1)
 	}
 	w.deleteMessage(ctx, msg, queueURL, keys, logger)
 }
 
-func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord, recordLogger *zap.Logger) error {
-	err := w.consumeLogsFromS3Object(ctx, record, true, recordLogger)
+func (w *Worker) processRecord(ctx context.Context, record events.S3EventRecord, decodedKey string, recordLogger *zap.Logger) error {
+	err := w.consumeLogsFromS3Object(ctx, record, decodedKey, true, recordLogger)
 	if err != nil {
 		if errors.Is(err, ErrNotArrayOrKnownObject) {
 			// try again without attempting to parse as JSON
 			recordLogger.Debug("parsing as JSON failed, trying again with line parsing")
-			return w.consumeLogsFromS3Object(ctx, record, false, recordLogger)
+			return w.consumeLogsFromS3Object(ctx, record, decodedKey, false, recordLogger)
 		}
 		return err
 	}
 	return nil
 }
 
-func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3EventRecord, tryJSON bool, recordLogger *zap.Logger) error {
+func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3EventRecord, decodedKey string, tryJSON bool, recordLogger *zap.Logger) error {
 	bucket := record.S3.Bucket.Name
-	key := record.S3.Object.Key
 	size := record.S3.Object.Size
 	opts := []func(o *s3.Options){
 		func(o *s3.Options) {
@@ -215,7 +344,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 
 	resp, err := w.client.S3().GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
+		Key:    aws.String(decodedKey),
 	}, opts...)
 	if err != nil {
 		return fmt.Errorf("get object: %w", err)
@@ -225,17 +354,17 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	now := time.Now()
 
 	stream := LogStream{
-		Name:            key,
+		Name:            decodedKey,
 		ContentEncoding: resp.ContentEncoding,
 		ContentType:     resp.ContentType,
 		Body:            resp.Body,
 		MaxLogSize:      w.maxLogSize,
 		Logger:          recordLogger,
-		TryJSON:         tryJSON,
+		TryDecoding:     tryJSON,
 	}
 
 	// Create the offset storage key for this object
-	offsetStorageKey := fmt.Sprintf("%s_%s", OffsetStorageKey, key)
+	offsetStorageKey := fmt.Sprintf("%s_%s", OffsetStorageKey, decodedKey)
 
 	// Load the offset from storage
 	offset := NewOffset(0)
@@ -264,7 +393,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	ld := plog.NewLogs()
 	rls := ld.ResourceLogs().AppendEmpty()
 	rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
-	rls.Resource().Attributes().PutStr("aws.s3.key", key)
+	rls.Resource().Attributes().PutStr("aws.s3.key", decodedKey)
 	lrs := rls.ScopeLogs().AppendEmpty().LogRecords()
 
 	batchesConsumedCount := 0
@@ -293,11 +422,14 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 		}
 
 		if ld.LogRecordCount() >= w.maxLogsEmitted {
+			obsCtx := w.obsrecv.StartLogsOp(ctx)
 			if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
+				w.obsrecv.EndLogsOp(obsCtx, metadata.Type.String(), ld.LogRecordCount(), err)
 				recordLogger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
 				return fmt.Errorf("consume logs: %w", err)
 			}
 			w.metrics.S3eventBatchSize.Record(ctx, int64(ld.LogRecordCount()))
+			w.obsrecv.EndLogsOp(obsCtx, metadata.Type.String(), ld.LogRecordCount(), nil)
 
 			batchesConsumedCount++
 			recordLogger.Debug("Reached max logs for single batch, starting new batch", zap.Int("batches_consumed_count", batchesConsumedCount))
@@ -310,7 +442,7 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 			ld = plog.NewLogs()
 			rls = ld.ResourceLogs().AppendEmpty()
 			rls.Resource().Attributes().PutStr("aws.s3.bucket", bucket)
-			rls.Resource().Attributes().PutStr("aws.s3.key", key)
+			rls.Resource().Attributes().PutStr("aws.s3.key", decodedKey)
 			lrs = rls.ScopeLogs().AppendEmpty().LogRecords()
 		}
 	}
@@ -320,10 +452,13 @@ func (w *Worker) consumeLogsFromS3Object(ctx context.Context, record events.S3Ev
 	}
 	w.metrics.S3eventBatchSize.Record(ctx, int64(ld.LogRecordCount()))
 
+	obsCtx := w.obsrecv.StartLogsOp(ctx)
 	if err := w.nextConsumer.ConsumeLogs(ctx, ld); err != nil {
+		w.obsrecv.EndLogsOp(obsCtx, metadata.Type.String(), ld.LogRecordCount(), err)
 		recordLogger.Error("consume logs", zap.Error(err), zap.Int("batches_consumed_count", batchesConsumedCount))
 		return fmt.Errorf("consume logs: %w", err)
 	}
+	w.obsrecv.EndLogsOp(obsCtx, metadata.Type.String(), ld.LogRecordCount(), nil)
 	recordLogger.Debug("processed S3 object", zap.Int("batches_consumed_count", batchesConsumedCount+1))
 
 	// Save the offset to storage
@@ -460,6 +595,73 @@ func (w *Worker) extendVisibility(ctx context.Context, msg types.Message, queueU
 		VisibilityTimeout: int32(timeout.Seconds()),
 	}
 	logger.Debug("extending message visibility", zap.Duration("timeout", timeout))
+	_, err := w.client.SQS().ChangeMessageVisibility(ctx, changeParams)
+	return err
+}
+
+// recordDLQMetrics records metrics for DLQ conditions based on the error type.
+func (w *Worker) recordDLQMetrics(ctx context.Context, errorType string) {
+	if w.metrics == nil {
+		return
+	}
+
+	switch errorType {
+	case "iam_permission_denied":
+		w.metrics.S3eventDlqIamErrors.Add(ctx, 1)
+	case "file_not_found":
+		w.metrics.S3eventDlqFileNotFoundErrors.Add(ctx, 1)
+	case "unsupported_file_type":
+		w.metrics.S3eventDlqUnsupportedFileErrors.Add(ctx, 1)
+	default:
+		// General failure metric for unknown errors
+		w.metrics.S3eventFailures.Add(ctx, 1)
+	}
+}
+
+// handleDLQCondition handles messages that should be sent to DLQ by resetting visibility and logging
+func (w *Worker) handleDLQCondition(ctx context.Context, msg types.Message, queueURL string, err error, logger *zap.Logger) {
+	var errorType string
+	if err != nil {
+		var dlqErr *DLQError
+		if errors.As(err, &dlqErr) {
+			errorType = dlqErr.Type
+			logger.Error("DLQ condition triggered, resetting visibility for DLQ processing",
+				zap.Error(dlqErr.Err),
+				zap.String("error_type", errorType))
+			w.recordDLQMetrics(ctx, errorType)
+		} else {
+			// Fallback for other errors
+			errorType = "unknown_dlq_error"
+			logger.Error("DLQ condition triggered for unknown error, resetting visibility for DLQ processing",
+				zap.Error(err),
+				zap.String("error_type", errorType))
+			w.recordDLQMetrics(ctx, errorType)
+		}
+	}
+
+	if err := w.resetVisibilityTimeout(ctx, msg, queueURL, logger); err != nil {
+		logger.Error("failed to reset visibility timeout for DLQ condition", zap.Error(err))
+	}
+}
+
+// handleProcessingError handles errors from processing records, determining if they should trigger DLQ behavior
+func (w *Worker) handleProcessingError(ctx context.Context, msg types.Message, queueURL string, err error, logger *zap.Logger) {
+	if dlqErr := isDLQConditionError(err); dlqErr != nil {
+		w.handleDLQCondition(ctx, msg, queueURL, dlqErr, logger)
+		return
+	}
+	logger.Error("error processing record, preserving message in SQS for retry", zap.Error(err))
+	w.metrics.S3eventFailures.Add(ctx, 1)
+}
+
+// resetVisibilityTimeout resets the message visibility timeout to 0, making it immediately available for DLQ processing
+func (w *Worker) resetVisibilityTimeout(ctx context.Context, msg types.Message, queueURL string, logger *zap.Logger) error {
+	changeParams := &sqs.ChangeMessageVisibilityInput{
+		QueueUrl:          aws.String(queueURL),
+		ReceiptHandle:     msg.ReceiptHandle,
+		VisibilityTimeout: 0, // Reset to 0 to make message immediately available
+	}
+	logger.Debug("resetting message visibility timeout for DLQ processing")
 	_, err := w.client.SQS().ChangeMessageVisibility(ctx, changeParams)
 	return err
 }

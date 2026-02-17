@@ -7,17 +7,134 @@ jobs:
     if: github.actor != 'dependabot[bot]'
     strategy:
       fail-fast: false
+      max-parallel: 4
       matrix:
-        os: [ubuntu-latest-4-cores, macos-13, windows-2022-8-cores]
-    runs-on: ${{ matrix.os }}
+        include:
+          # Ubuntu - All tests
+          - os: ubuntu
+            runner: namespace-profile-bindplane-default-ubuntu-24-04-32x64
+          # macOS - All tests
+          - os: macos
+            runner: namespace-profile-bindplane-default-macos-15
+          # Windows - Receivers
+          - os: windows
+            target: receivers
+            runner: namespace-profile-bindplane-default-windows-2022-8x16
+          # Windows - Processors
+          - os: windows
+            target: processors
+            runner: namespace-profile-bindplane-default-windows-2022-8x16
+          # Windows - Exporters
+          - os: windows
+            target: exporters
+            runner: namespace-profile-bindplane-default-windows-2022-8x16
+          # Windows - Extensions
+          - os: windows
+            target: extensions
+            runner: namespace-profile-bindplane-default-windows-2022-8x16
+          # Windows - Other
+          - os: windows
+            target: other
+            runner: namespace-profile-bindplane-default-windows-2022-16x32
+    runs-on: ${{ matrix.runner }}
     steps:
-      - name: Checkout Sources
+      - name: Checkout Sources (Namespace)
+        if: matrix.os != 'windows'
+        uses: namespacelabs/nscloud-checkout-action@v7
+
+      - name: Checkout Sources (Windows)
+        if: matrix.os == 'windows'
         uses: actions/checkout@v4
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.23.6
-          cache-dependency-path: |
-            **/go.sum
-      - name: Run Tests
+          go-version: 1.24.4
+          cache: false
+
+      - name: Cache Go (Namespace)
+        if: matrix.os != 'windows'
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
+
+      - name: Cache Go modules (Ubuntu)
+        if: matrix.os == 'ubuntu'
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: /home/runner/go/pkg/mod
+
+      - name: Cache Go modules (macOS)
+        if: matrix.os == 'macos'
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: /Users/runner/go/pkg/mod
+
+      - name: Cache Go modules (Windows)
+        if: matrix.os == 'windows'
+        uses: actions/cache@v4
+        with:
+          path: C:\Users\runneradmin\go\pkg\mod
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-mod-
+
+      - name: Cache Go build cache (Windows)
+        if: matrix.os == 'windows'
+        uses: actions/cache@v4
+        with:
+          path: C:\Users\runneradmin\AppData\Local\go-build
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/*.go') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-
+
+      - name: Cache Tools (Ubuntu)
+        if: matrix.os == 'ubuntu'
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: /home/runner/go/bin
+
+      - name: Cache Tools (macOS)
+        if: matrix.os == 'macos'
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: /Users/runner/go/bin
+
+      - name: Cache Tools (Windows)
+        if: matrix.os == 'windows'
+        uses: actions/cache@v4
+        with:
+          path: C:\Users\runneradmin\go\bin
+          key: ${{ runner.os }}-go-tools-${{ hashFiles('internal/tools/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-tools-
+
+      - name: Install Tools
+        run: make install-tools-ci
+
+      - name: Run Component Tests
+        if: matrix.os == 'windows'
+        run: make test-${{ matrix.target }}
+        env:
+          TMPDIR: D:\Temp
+          TMP: D:\Temp  
+          TEMP: D:\Temp
+          GOTMPDIR: D:\Temp
+
+      - name: Run All Tests
+        if: matrix.os != 'windows'
         run: make test
+
+  test-summary:
+    if: always()
+    needs: [unit-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check test results
+        run: |
+          if [[ "${{ needs.unit-tests.result }}" == "success" ]]; then
+            echo "✅ All tests passed"
+          else
+            echo "❌ Tests failed"
+            exit 1
+          fi

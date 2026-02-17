@@ -2,6 +2,8 @@
 
 syntax = "proto3";
 
+package malachite.ingestion.v2;
+
 option go_package = "github.com/exporter/chronicleexporter/proto/api";
 
 import "google/protobuf/timestamp.proto";

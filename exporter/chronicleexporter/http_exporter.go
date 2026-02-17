@@ -18,14 +18,17 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
+	"github.com/observiq/bindplane-otel-collector/internal/osinfo"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
@@ -41,25 +44,61 @@ import (
 
 const httpScope = "https://www.googleapis.com/auth/cloud-platform"
 
+const (
+	// stdlib defaults to 2. Under heavy load, higher default values are
+	// useful for avoiding re-connections.
+	defaultHTTPClientMaxIdleConnsPerHost = 10
+
+	// stdlib default is 0 (no timeout), best practice is to set a timeout
+	defaultHTTPClientResponseHeaderTimeout = 10 * time.Second
+
+	// Settings mirror stdlib defaults
+	// https://pkg.go.dev/net/http#RoundTripper
+	defaultHTTPClientMaxIdleConns          = 100
+	defaultHTTPClientIdleConnTimeout       = 90 * time.Second
+	defaultHTTPClientTLSHandshakeTimeout   = 10 * time.Second
+	defaultHTTPClientExpectContinueTimeout = 1 * time.Second
+)
+
+type exists struct{}
+
 type httpExporter struct {
 	cfg       *Config
 	set       component.TelemetrySettings
 	marshaler *protoMarshaler
 	client    *http.Client
+	transport *http.Transport
 
-	telemetry *metadata.TelemetryBuilder
+	telemetry        *metadata.TelemetryBuilder
+	metricAttributes attribute.Set
 }
 
 func newHTTPExporter(cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (*httpExporter, error) {
-	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings, telemetry)
+	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings, telemetry, params.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}
+	macAddress := osinfo.MACAddress()
+	params.Logger.Debug("Creating HTTP exporter", zap.String("exporter_id", params.ID.String()), zap.String("mac_address", macAddress))
 	return &httpExporter{
 		cfg:       cfg,
 		set:       params.TelemetrySettings,
 		marshaler: marshaler,
 		telemetry: telemetry,
+		metricAttributes: attribute.NewSet(
+			attribute.KeyValue{
+				Key:   "exporter",
+				Value: attribute.StringValue(params.ID.String()),
+			},
+			attribute.KeyValue{
+				Key:   "exporter_type",
+				Value: attribute.StringValue(params.ID.Type().String()),
+			},
+			attribute.KeyValue{
+				Key:   "host.mac_address",
+				Value: attribute.StringValue(macAddress),
+			},
+		),
 	}, nil
 }
 
@@ -72,34 +111,186 @@ func (exp *httpExporter) Start(ctx context.Context, _ component.Host) error {
 	if err != nil {
 		return fmt.Errorf("load Google credentials: %w", err)
 	}
-	exp.client = oauth2.NewClient(context.Background(), ts)
+
+	exp.transport = &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          defaultHTTPClientMaxIdleConns,
+		MaxIdleConnsPerHost:   defaultHTTPClientMaxIdleConnsPerHost,
+		IdleConnTimeout:       defaultHTTPClientIdleConnTimeout,
+		TLSHandshakeTimeout:   defaultHTTPClientTLSHandshakeTimeout,
+		ExpectContinueTimeout: defaultHTTPClientExpectContinueTimeout,
+		ResponseHeaderTimeout: defaultHTTPClientResponseHeaderTimeout,
+	}
+
+	exp.client = &http.Client{
+		Transport: &oauth2.Transport{
+			Base:   exp.transport,
+			Source: ts,
+		},
+	}
+
+	if exp.cfg.ValidateLogTypes {
+		exp.marshaler.logTypes = exp.loadLogTypes(ctx)
+	}
+
 	return nil
+}
+
+func (exp *httpExporter) loadLogTypes(ctx context.Context) map[string]exists {
+
+	logTypes := make(map[string]exists)
+	endpoint := getLogTypesEndpoint(exp.cfg)
+
+	request, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
+	if err != nil {
+		exp.set.Logger.Warn("Failed to create request for loading log types", zap.Error(err))
+		return nil
+	}
+
+	// time out after 10 seconds
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	for {
+		if err := ctx.Err(); err != nil {
+			exp.set.Logger.Warn("Context cancelled for loading log types", zap.Error(err))
+			return nil
+		}
+		resp, err := exp.client.Do(request)
+		if err != nil {
+			exp.set.Logger.Warn("Failed to send request to Chronicle for loading log types", zap.Error(err))
+			return nil
+		}
+		// https://cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.logTypes/list
+		type logType struct {
+			Name string `json:"name"`
+		}
+
+		type logTypeResponse struct {
+			LogTypes      []logType `json:"logTypes"`
+			NextPageToken string    `json:"nextPageToken"`
+		}
+
+		var response logTypeResponse
+
+		respBody, err := io.ReadAll(resp.Body)
+		if err := resp.Body.Close(); err != nil {
+			exp.set.Logger.Warn("Failed to close response body for loading log types", zap.Error(err))
+		}
+
+		if err == nil && resp.StatusCode == http.StatusOK {
+			if err := json.Unmarshal(respBody, &response); err != nil {
+				exp.set.Logger.Warn("Failed to unmarshal response body", zap.Error(err))
+				return nil
+			}
+			for _, logType := range response.LogTypes {
+				logTypes[parseLogTypes(logType.Name)] = exists{}
+			}
+		}
+
+		if err != nil {
+			exp.set.Logger.Warn("Failed to read response body for loading log types", zap.Error(err))
+			return nil
+		}
+		if resp.StatusCode != http.StatusOK {
+			exp.set.Logger.Warn("Received non-OK response from Chronicle for loading log types", zap.String("status", resp.Status), zap.ByteString("response", respBody))
+			return nil
+		}
+		if response.NextPageToken == "" {
+			break
+		}
+		request, err = http.NewRequestWithContext(ctx, "GET", endpoint+"?pageToken="+response.NextPageToken, nil)
+		if err != nil {
+			exp.set.Logger.Warn("Failed to create request for loading log types", zap.Error(err))
+			return nil
+		}
+
+	}
+	return logTypes
+}
+
+// API returns a list of log types in the format:
+//
+//	{
+//	     "name": "projects/408460088155/locations/us/instances/b536658e-469e-44a5-b764-d5ab15b72ce0/logTypes/AKAMAI_SIEM_CONNECTOR",
+//	     "displayName": "Akamai SIEM Connector"
+//	},
+//
+// we need to get the token after the last /
+func parseLogTypes(logTypes string) string {
+
+	parts := strings.Split(logTypes, "/")
+	return parts[len(parts)-1]
 }
 
 func (exp *httpExporter) Shutdown(context.Context) error {
-	defer http.DefaultTransport.(*http.Transport).CloseIdleConnections()
-	if exp.client != nil {
-		t := exp.client.Transport.(*oauth2.Transport)
-		if t.Base != nil {
-			t.Base.(*http.Transport).CloseIdleConnections()
-		}
+	if exp.transport != nil {
+		exp.transport.CloseIdleConnections()
 	}
 	return nil
 }
 
+// ConsumeLogs sends logs to Chronicle via HTTP.
+//
+// Retry behavior: When this function returns an error, the OTel collector's
+// exporterhelper will retry the entire batch (ld plog.Logs) from the beginning.
+// This means all payloads will be retried, including any that succeeded before
+// the error occurred. Chronicle is expected to handle duplicate requests
+// idempotently to prevent duplicate log entries.
+//
+// Metrics: When retry is enabled, raw bytes are only counted on success to prevent
+// double-counting across retry attempts. When retry is disabled, bytes are counted
+// regardless of success/failure since this is the only attempt to send the data.
 func (exp *httpExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
-	payloads, err := exp.marshaler.MarshalRawLogsForHTTP(ctx, ld)
+	payloads, totalBytes, err := exp.marshaler.MarshalRawLogsForHTTP(ctx, ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
 	}
+	successfulPayloads := []*api.ImportLogsRequest{}
 	for logType, logTypePayloads := range payloads {
 		for _, payload := range logTypePayloads {
 			if err := exp.uploadToChronicleHTTP(ctx, payload, logType); err != nil {
+				// Track the failure for observability
+				exp.telemetry.ExporterLogsSendFailed.Add(ctx, 1, metric.WithAttributeSet(exp.metricAttributes))
+
+				// If retry is disabled, count bytes for payloads that succeeded before this failure
+				if !exp.cfg.BackOffConfig.Enabled {
+					exp.countAndReportBatchBytes(ctx, successfulPayloads)
+				}
 				return fmt.Errorf("upload to chronicle: %w", err)
 			}
+			successfulPayloads = append(successfulPayloads, payload)
 		}
 	}
+	// Count bytes on success (for both retry enabled and disabled cases)
+	exp.telemetry.ExporterRawBytes.Add(
+		ctx,
+		int64(totalBytes),
+		metric.WithAttributeSet(exp.metricAttributes),
+	)
 	return nil
+}
+
+func (exp *httpExporter) countAndReportBatchBytes(ctx context.Context, payloads []*api.ImportLogsRequest) {
+	totalBytes := uint(0)
+	for _, payload := range payloads {
+		inlineSource := payload.GetInlineSource()
+		if inlineSource == nil {
+			exp.set.Logger.Warn("Payload source is not InlineSource, skipping bytes calculation")
+			continue
+		}
+		for _, entry := range inlineSource.Logs {
+			totalBytes += uint(len(entry.Data))
+		}
+	}
+	if totalBytes > 0 {
+		exp.telemetry.ExporterRawBytes.Add(
+			ctx,
+			int64(totalBytes),
+			metric.WithAttributeSet(exp.metricAttributes),
+		)
+	}
 }
 
 func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.ImportLogsRequest, logType string) error {
@@ -168,10 +359,10 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		exp.set.Logger.Warn("Failed to read response body", zap.Error(err))
+		exp.set.Logger.Warn("Failed to read response body", zap.Error(err), zap.String("logType", logType))
 	}
 
-	exp.set.Logger.Warn("Received non-OK response from Chronicle", zap.String("status", resp.Status), zap.ByteString("response", respBody))
+	exp.set.Logger.Warn("Received non-OK response from Chronicle", zap.String("status", resp.Status), zap.ByteString("response", respBody), zap.String("logType", logType))
 
 	// TODO interpret with https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/internal/coreinternal/errorutil/http.go
 	statusErr := errors.New(resp.Status)
@@ -190,6 +381,16 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 // URL for the request: https://{region}-chronicle.googleapis.com/{version}/projects/{project}/location/{region}/instances/{customerID}
 // Override for testing
 var httpEndpoint = func(cfg *Config, logType string) string {
-	formatString := "https://%s-%s/v1alpha/projects/%s/locations/%s/instances/%s/logTypes/%s/logs:import"
-	return fmt.Sprintf(formatString, cfg.Location, cfg.Endpoint, cfg.Project, cfg.Location, cfg.CustomerID, logType)
+	formatString := "%s/logTypes/%s/logs:import"
+	return fmt.Sprintf(formatString, baseEndpoint(cfg), logType)
+}
+
+var getLogTypesEndpoint = func(cfg *Config) string {
+	formatString := "%s/logTypes"
+	return fmt.Sprintf(formatString, baseEndpoint(cfg))
+}
+
+func baseEndpoint(cfg *Config) string {
+	formatString := "https://%s-%s/v1alpha/projects/%s/locations/%s/instances/%s"
+	return fmt.Sprintf(formatString, cfg.Location, cfg.Endpoint, cfg.Project, cfg.Location, cfg.CustomerID)
 }

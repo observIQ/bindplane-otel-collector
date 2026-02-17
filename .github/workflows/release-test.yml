@@ -8,11 +8,85 @@ on:
         default: "v0.0.1"
 
 jobs:
+  build-64bit-msi:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout Sources
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.4
+      - name: Install Tools
+        run: make install-tools
+      # Needed until supervisor binary is released
+      - name: Build Supervisor Binary
+        run: make release-prep CURR_VERSION=${{ github.event.inputs.version }}
+      - name: Build Windows Collector Binary
+        run: make collector
+      - name: Copy Windows Collector Binary
+        run: cp dist/collector_windows_amd64.exe windows/bindplane-otel-collector.exe
+      - name: Copy Supervisor Binary
+        run: cp release_deps/supervisor_bin/opampsupervisor_windows_amd64.exe windows/opampsupervisor.exe
+      - name: Copy Plugins to MSI Build Directory
+        run: cp -r release_deps/plugins windows/
+      - name: Copy Example Config
+        run: cp config/example.yaml windows/config.yaml
+      - name: Copy LICENSE
+        run: cp LICENSE windows/LICENSE
+      - name: Copy VERSION file
+        run: cp release_deps/VERSION.txt windows/VERSION.txt
+      # HACK: Copy build directory to C drive to avoid this error, since there must be a relative path from the tempdir that go-msi uses
+      # for the MSI to build properly
+      - name: Copy Build Dir
+        run: |
+          cp -r windows C:/build
+          echo "C:/build" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      # Installs go-msi and wix.
+      - name: Install Build Tools
+        run: |
+          curl -f -L -o go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.3.0/go-msi.exe
+          curl -f -L -o wix310-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix3104rtm/wix310-binaries.zip
+          unzip wix310-binaries.zip
+        working-directory: C:/build
+      - name: "Build MSI from Tagged Release"
+        run: go-msi.exe make -m bindplane-otel-collector.msi --version ${{ github.event.inputs.version }} --arch amd64
+        working-directory: C:/build
+      - name: Install DigiCert Client tools from Github Custom Actions marketplace
+        uses: digicert/ssm-code-signing@v1.0.0
+      - name: Set up certificate
+        run: |
+          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
+        shell: bash
+      - name: Set variables for signing
+        id: variables
+        run: |
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT 
+          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV" 
+          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV" 
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
+          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
+        shell: bash
+      - name: Signing using keypair alias
+        run: |
+          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/bindplane-otel-collector.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
+        shell: cmd
+      - name: "Upload MSI"
+        uses: actions/upload-artifact@v4
+        with:
+          name: bindplane-otel-collector.msi
+          path: C:/build/bindplane-otel-collector.msi
+          # Short lived because this is meant as an action for developers
+          retention-days: 1
+      - name: "DEBUG: List dist/"
+        run: tree /F dist/
+
   release-test:
-    runs-on: ubuntu-latest-16-cores
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
+    needs: [build-64bit-msi]
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: namespacelabs/nscloud-checkout-action@v7
         with:
           fetch-depth: 0
 
@@ -20,37 +94,183 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: 1.24.4
+          cache: false # Use Namespace caching instead
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
-      - name: Fake Windows MSI
-        run: touch ./bindplane-otel-collector.msi
-
       - name: Set VERSION
         run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
 
+      - name: Retrieve Windows 64-bit MSI Installer
+        uses: actions/download-artifact@v4
+        with:
+          name: bindplane-otel-collector.msi
+          path: bindplane-otel-collector.msi
       - name: Install Tools
         run: make install-tools
+      - name: Build cosign key file
+        run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
+        shell: bash
+        env:
+          COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
+
+      - name: Cache Goreleaser Build
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: ~/.cache/goreleaser
+
+      - name: Sign MSI
+        run: cosign sign-blob --key=cosign.key --output-signature ./bindplane-otel-collector.msi/bindplane-otel-collector.msi.sig ./bindplane-otel-collector.msi/bindplane-otel-collector.msi
+        shell: bash
+        env:
+          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+
+      - name: Write signing key for nFPM
+        shell: bash
+        run: |
+          cat > ci-signing-key.asc <<'EOF'
+          ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
+          EOF
+      - name: Prune Docker cache
+        run: |
+          docker system prune -af
+          docker buildx prune -af
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
-          version: "v2.8.2"
-          args: release --skip=publish --skip=validate --skip=sign --clean --snapshot
+          version: "v2.12.5"
+          args: release --skip=publish --skip=validate --clean
         env:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          SIGNING_KEY_FILE: ci-signing-key.asc
+          COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
+
+      - name: Debug list dist/
+        run: |
+          tree dist/
+          du -sh dist/
+
+      - name: Sign Windows 64-bit ZIP Archive
+        run: cosign sign-blob --key=cosign.key --output-signature ./dist/bindplane-otel-collector-${{ github.event.inputs.version }}-windows-amd64.zip.sig ./dist/bindplane-otel-collector-${{ github.event.inputs.version }}-windows-amd64.zip
+        shell: bash
+        env:
+          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+
+      - name: Create artifact archive
+        run: |
+          mkdir artifacts
+          cp ./scripts/install/*.sh ./artifacts
+          cp ./release_deps/gpg-keys.tar.gz ./artifacts/gpg-keys.tar.gz
+          cp ./bindplane-otel-collector.msi/bindplane-otel-collector.msi ./artifacts
+          cp ./dist/*tar.gz ./artifacts
+          cp ./dist/*.zip ./artifacts
+          cp ./dist/*.rpm ./artifacts
+          cp ./dist/*.deb ./artifacts
+          cp ./dist/*SHA256SUMS ./artifacts
+          tar -czvf bindplane-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz -C ./artifacts .
+
+      - name: Sign artifact archive
+        run: cosign sign-blob --key=cosign.key --output-signature ./bindplane-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz.sig ./bindplane-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz
+        shell: bash
+        env:
+          COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
+
+      - name: Check Artifacts Directory
+        run: |
+          ls -la artifacts
+          du -sh artifacts
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: namespace-actions/upload-artifact@v1
         with:
-          name: dist-artifacts
-          path: dist/
+          name: bindplane-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz
+          path: bindplane-otel-collector-${{ github.event.inputs.version }}-artifacts.tar.gz
           retention-days: 1
+
+      # Linux package uploads to Google Artifact Registry
+
+      # google-github-actions/auth@v2 was used above to install
+      # gcloud sdk. google-github-actions/auth was used as well
+      # but we need to re-authenticate to upload packages to the
+      # correct project.
+      - name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v2"
+        with:
+          credentials_json: "${{ secrets.ORG_BINDPLANE_PUBLIC_LINUX_REPO_JSON_KEY }}"
+
+      - name: Upload Bindplane Linux AMD64 Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload devel-deb \
+            --location us-central1 \
+            --source dist/bindplane-otel-collector_${{ env.VERSION }}_linux_amd64.deb
+
+      - name: Upload Bindplane Linux AMD64 RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload devel-rpm \
+            --location us-central1 \
+            --source dist/bindplane-otel-collector_${{ env.VERSION }}_linux_amd64.rpm
+
+      - name: Upload Bindplane Linux ARM64 Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload devel-deb \
+            --location us-central1 \
+            --source dist/bindplane-otel-collector_${{ env.VERSION }}_linux_arm64.deb
+
+      - name: Upload Bindplane Linux ARM64 RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload devel-rpm \
+            --location us-central1 \
+            --source dist/bindplane-otel-collector_${{ env.VERSION }}_linux_arm64.rpm
+
+      - name: Upload Bindplane Linux PPC64LE Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload devel-deb \
+            --location us-central1 \
+            --source dist/bindplane-otel-collector_${{ env.VERSION }}_linux_ppc64le.deb
+
+      - name: Upload Bindplane Linux PPC64LE RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload devel-rpm \
+            --location us-central1 \
+            --source dist/bindplane-otel-collector_${{ env.VERSION }}_linux_ppc64le.rpm
+
+      - name: Upload Bindplane Linux PPC64 Deb Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts apt upload devel-deb \
+            --location us-central1 \
+            --source dist/bindplane-otel-collector_${{ env.VERSION }}_linux_ppc64.deb
+
+      - name: Upload Bindplane Linux PPC64 RPM Package
+        run: |
+          gcloud \
+            --project bindplane-repository \
+            artifacts yum upload devel-rpm \
+            --location us-central1 \
+            --source dist/bindplane-otel-collector_${{ env.VERSION }}_linux_ppc64.rpm

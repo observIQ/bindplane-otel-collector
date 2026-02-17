@@ -183,6 +183,37 @@ For supported extensions and their documentation see [extensions](/docs/extensio
 
 For supported connectors and their documentation see [connectors](/docs/connectors.md).
 
+### Example `config.yaml`
+
+Here's a sample setup for `hostmetrics` on Google Cloud. To make sure your environment is set up with required prerequisites, see the [Google Cloud Exporter Prerequisites](/config/google_cloud_exporter/README.md) page. Further details for this GCP example can be found [here](/config/google_cloud_exporter/hostmetrics).
+
+```yaml
+# Receivers collect metrics from a source. The hostmetrics receiver will get
+# CPU load metrics about the machine the collector is running on every minute.
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      disk:
+      load:
+      filesystem:
+      memory:
+      network:
+      paging:
+      processes:
+
+# Exporters send the data to a destination, in this case GCP.
+exporters:
+  googlecloud:
+
+# Service specifies how to construct the data pipelines using the configurations above.
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      exporters: [googlecloud]
+```
 
 ## Connecting to Bindplane Telemetry Pipeline with OpAMP
 

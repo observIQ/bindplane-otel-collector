@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/snowflakedb/gosnowflake"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 )
@@ -33,9 +34,9 @@ const (
 
 // Config is the config for the Snowflake exporter
 type Config struct {
-	TimeoutConfig    exporterhelper.TimeoutConfig    `mapstructure:",squash"`
-	QueueBatchConfig exporterhelper.QueueBatchConfig `mapstructure:"sending_queue"`
-	BackOffConfig    configretry.BackOffConfig       `mapstructure:"retry_on_failure"`
+	TimeoutConfig    exporterhelper.TimeoutConfig                             `mapstructure:",squash"`
+	QueueBatchConfig configoptional.Optional[exporterhelper.QueueBatchConfig] `mapstructure:"sending_queue"`
+	BackOffConfig    configretry.BackOffConfig                                `mapstructure:"retry_on_failure"`
 
 	AccountIdentifier string             `mapstructure:"account_identifier"`
 	Username          string             `mapstructure:"username"`

@@ -70,7 +70,7 @@ func TestProcess_Logs(t *testing.T) {
 	require.Equal(t, l, sink.AllLogs()[0])
 
 	// Request buffer
-	reqPayload := fmt.Sprintf(`{"processor":%q,"pipeline_type":"logs","session_id":"my-session-id"}`, pSet.ID)
+	reqPayload := fmt.Sprintf(`{"processor":%q,"pipeline_type":"logs","session_id":"my-session-id","maximum_payload_size":100000}`, pSet.ID)
 
 	cm := &protobufs.CustomMessage{
 		Capability: "com.bindplane.snapshot",
@@ -134,7 +134,7 @@ func TestProcess_Metrics(t *testing.T) {
 	require.Equal(t, m, sink.AllMetrics()[0])
 
 	// Request buffer
-	reqPayload := fmt.Sprintf(`{"processor":%q,"pipeline_type":"metrics","session_id":"my-session-id"}`, pSet.ID)
+	reqPayload := fmt.Sprintf(`{"processor":%q,"pipeline_type":"metrics","session_id":"my-session-id","maximum_payload_size":100000}`, pSet.ID)
 
 	cm := &protobufs.CustomMessage{
 		Capability: "com.bindplane.snapshot",
@@ -198,7 +198,7 @@ func TestProcess_Traces(t *testing.T) {
 	require.Equal(t, tr, sink.AllTraces()[0])
 
 	// Request buffer
-	reqPayload := fmt.Sprintf(`{"processor":%q,"pipeline_type":"traces","session_id":"my-session-id"}`, pSet.ID)
+	reqPayload := fmt.Sprintf(`{"processor":%q,"pipeline_type":"traces","session_id":"my-session-id","maximum_payload_size":100000}`, pSet.ID)
 
 	cm := &protobufs.CustomMessage{
 		Capability: "com.bindplane.snapshot",
@@ -226,6 +226,97 @@ func TestProcess_Traces(t *testing.T) {
 
 	require.Equal(t, expectedMessageContents, actualMessageContents)
 	require.Equal(t, "reportSnapshot", mockOpamp.sentMessageType)
+}
+
+func TestProcess_Metrics_PreservesTemporalityWithFiltering(t *testing.T) {
+	factory := NewFactory()
+	sink := &consumertest.MetricsSink{}
+
+	pSet := processortest.NewNopSettings(componentType)
+	p, err := factory.CreateMetrics(context.Background(), pSet, factory.CreateDefaultConfig(), sink)
+	require.NoError(t, err)
+
+	mockOpamp := &mockOpAMPExtension{
+		msgChan: make(chan *protobufs.CustomMessage, 1),
+	}
+
+	mockHost := &mockHost{
+		extensions: map[component.ID]component.Component{
+			component.MustNewID("opamp"): mockOpamp,
+		},
+	}
+
+	require.NoError(t, p.Start(context.Background(), mockHost))
+	t.Cleanup(func() {
+		require.NoError(t, p.Shutdown(context.Background()))
+	})
+
+	// Load test metrics with different aggregation temporalities
+	m, err := golden.ReadMetrics(filepath.Join("testdata", "metrics", "temporality-metrics.yaml"))
+	require.NoError(t, err)
+
+	require.NoError(t, p.ConsumeMetrics(context.Background(), m))
+
+	// Request buffer with search query (this triggers the filtering code path where the bug occurred)
+	reqPayload := fmt.Sprintf(`{"processor":%q,"pipeline_type":"metrics","session_id":"filtering-test","search_query":"transmit","maximum_payload_size":100000}`, pSet.ID)
+
+	cm := &protobufs.CustomMessage{
+		Capability: "com.bindplane.snapshot",
+		Type:       "requestSnapshot",
+		Data:       []byte(reqPayload),
+	}
+
+	mockOpamp.msgChan <- cm
+
+	// Wait for response
+	require.Eventually(t, func() bool {
+		return mockOpamp.GotMessage()
+	}, 5*time.Second, 100*time.Millisecond)
+
+	// Parse the actual response
+	var actualMessageContents map[string]any
+	err = json.Unmarshal(gunzipBytes(t, mockOpamp.sentMessage), &actualMessageContents)
+	require.NoError(t, err)
+
+	// Verify filtering worked and only "transmit" metric is present
+	telemetryPayload := actualMessageContents["telemetry_payload"].(map[string]any)
+	resourceMetrics := telemetryPayload["resourceMetrics"].([]any)
+	require.Len(t, resourceMetrics, 1, "Should have one resource metric after filtering")
+
+	firstResource := resourceMetrics[0].(map[string]any)
+	scopeMetrics := firstResource["scopeMetrics"].([]any)
+	require.Len(t, scopeMetrics, 1, "Should have one scope metric")
+
+	firstScope := scopeMetrics[0].(map[string]any)
+	metrics := firstScope["metrics"].([]any)
+	require.Len(t, metrics, 1, "Should have one metric matching 'transmit' filter")
+
+	// Verify the filtered metric is the correct one and has preserved aggregation temporality
+	filteredMetric := metrics[0].(map[string]any)
+	require.Equal(t, "system.network.io", filteredMetric["name"])
+
+	sum := filteredMetric["sum"].(map[string]any)
+	require.Equal(t, float64(2), sum["aggregationTemporality"], "Aggregation temporality should be preserved as Cumulative (2) even after filtering")
+	require.Equal(t, true, sum["isMonotonic"], "IsMonotonic should be preserved after filtering")
+
+	// Verify the data point attributes contain "transmit"
+	dataPoints := sum["dataPoints"].([]any)
+	require.Len(t, dataPoints, 1, "Should have one data point")
+
+	dataPoint := dataPoints[0].(map[string]any)
+	attributes := dataPoint["attributes"].([]any)
+	foundTransmit := false
+	for _, attrAny := range attributes {
+		attr := attrAny.(map[string]any)
+		if attr["key"] == "direction" {
+			value := attr["value"].(map[string]any)
+			if value["stringValue"] == "transmit" {
+				foundTransmit = true
+				break
+			}
+		}
+	}
+	require.True(t, foundTransmit, "Filtered metric should contain 'transmit' attribute")
 }
 
 // mockHost for component.Host

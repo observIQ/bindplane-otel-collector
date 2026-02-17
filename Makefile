@@ -123,11 +123,27 @@ install-tools:
 # update cosign in release.yml when updating this version
 # update cosign in docs/verify-signature.md when updating this version
 	go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
+	cd $(TOOLS_MOD_DIR) && go install gotest.tools/gotestsum
+
 
 # install builder cmd for better CI
 .PHONY: install-builder
 install-builder:
 	cd $(TOOLS_MOD_DIR) && go install go.opentelemetry.io/collector/cmd/builder
+
+# Fast install that checks if tools exist (for CI with cache)
+.PHONY: install-tools-ci
+install-tools-ci:
+	@command -v misspell > /dev/null 2>&1 || (cd $(TOOLS_MOD_DIR) && go install github.com/client9/misspell/cmd/misspell)
+	@command -v addlicense > /dev/null 2>&1 || (cd $(TOOLS_MOD_DIR) && go install github.com/google/addlicense)
+	@command -v revive > /dev/null 2>&1 || (cd $(TOOLS_MOD_DIR) && go install github.com/mgechev/revive)
+	@command -v mdatagen > /dev/null 2>&1 || (cd $(TOOLS_MOD_DIR) && go install go.opentelemetry.io/collector/cmd/mdatagen)
+	@command -v gosec > /dev/null 2>&1 || (cd $(TOOLS_MOD_DIR) && go install github.com/securego/gosec/v2/cmd/gosec)
+	@command -v cosign > /dev/null 2>&1 || go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
+	@command -v lichen > /dev/null 2>&1 || (cd $(TOOLS_MOD_DIR) && go install github.com/uw-labs/lichen)
+	@command -v mockery > /dev/null 2>&1 || (cd $(TOOLS_MOD_DIR) && go install github.com/vektra/mockery/v2)
+	@command -v goimports > /dev/null 2>&1 || (cd $(TOOLS_MOD_DIR) && go install golang.org/x/tools/cmd/goimports)
+	@command -v gotestsum > /dev/null 2>&1 || (cd $(TOOLS_MOD_DIR) && go install gotest.tools/gotestsum)
 
 .PHONY: lint
 lint:
@@ -143,11 +159,69 @@ misspell-fix:
 
 .PHONY: test
 test:
-	$(MAKE) for-all CMD="go test -race ./..."
+	$(MAKE) for-all CMD="gotestsum --rerun-fails --packages="./..." -- -race"
+
+.PHONY: test-receivers
+test-receivers:
+	@set -e; for dir in $(ALL_MODULES); do \
+		if echo "$${dir}" | grep -qE "^\.?/?receiver/"; then \
+			(cd "$${dir}" && \
+				echo "running tests in $${dir}" && \
+				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		fi; \
+	done
+
+.PHONY: test-processors
+test-processors:
+	@set -e; for dir in $(ALL_MODULES); do \
+		if echo "$${dir}" | grep -qE "^\.?/?processor/"; then \
+			(cd "$${dir}" && \
+				echo "running tests in $${dir}" && \
+				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		fi; \
+	done
+
+.PHONY: test-exporters
+test-exporters:
+	@set -e; for dir in $(ALL_MODULES); do \
+		if echo "$${dir}" | grep -qE "^\.?/?exporter/"; then \
+			(cd "$${dir}" && \
+				echo "running tests in $${dir}" && \
+				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		fi; \
+	done
+
+.PHONY: test-extensions
+test-extensions:
+	@set -e; for dir in $(ALL_MODULES); do \
+		if echo "$${dir}" | grep -qE "^\.?/?extension/"; then \
+			(cd "$${dir}" && \
+				echo "running tests in $${dir}" && \
+				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		fi; \
+	done
+
+.PHONY: test-other
+test-other:
+	@PACKAGES=$$(go list ./... | grep -v "/receiver" | grep -v "/processor" | grep -v "/exporter" | grep -v "/extension" | tr '\n' ' '); \
+	if [ -n "$$PACKAGES" ]; then \
+		gotestsum --rerun-fails --packages="$$PACKAGES" -- -race; \
+	fi
+	@set -e; for dir in $(ALL_MODULES); do \
+		if [ "$${dir}" = "." ]; then \
+			continue; \
+		elif echo "$${dir}" | grep -qE "^(receiver|processor|exporter|extension)/"; then \
+			continue; \
+		else \
+			(cd "$${dir}" && \
+				echo "running tests in $${dir}" && \
+				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		fi; \
+	done
 
 .PHONY: test-no-race
 test-no-race:
-	$(MAKE) for-all CMD="go test ./..."
+	$(MAKE) for-all CMD="gotestsum --rerun-fails --packages="./..." "
 
 .PHONY: test-with-cover
 test-with-cover:
@@ -172,15 +246,47 @@ tidy:
 
 .PHONY: gosec
 gosec:
-	cd exporter; $(MAKE) -f "../Makefile" for-all CMD="gosec --exclude-dir=internal/metadata ./..."
+	cd exporter; $(MAKE) -f "../Makefile" for-all CMD="gosec --exclude-dir=internal/metadata --exclude-dir=protos/api ./..."
 	cd processor; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
 	cd internal; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
 	cd extension; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
-	cd receiver; $(MAKE) -f "../Makefile" for-all CMD="gosec ./..."
+	cd receiver; $(MAKE) -f "../Makefile" for-all CMD="gosec --exclude-dir=internal/metadata ./..."
 
 # This target performs all checks that CI will do (excluding the build itself)
 .PHONY: ci-checks
-ci-checks: check-fmt check-license misspell lint gosec test
+ci-checks: check-fmt check-license check-mod-paths misspell lint gosec test
+
+# This target checks that every go.mod has the correct module path.
+# Root must be github.com/observiq/bindplane-otel-collector.
+# Subdirectories must be github.com/observiq/bindplane-otel-collector/<relative-path>.
+# Modules with legacy paths that cannot be renamed are excluded.
+MOD_PATH_EXCLUDES := ./cmd/plugindocgen
+.PHONY: check-mod-paths
+check-mod-paths:
+	@FAILED=0; \
+	for dir in $(ALL_MODULES); do \
+		case " $(MOD_PATH_EXCLUDES) " in *" $${dir} "*) continue ;; esac; \
+		MOD=$$(head -1 "$${dir}/go.mod" | sed 's/^module //'); \
+		if [ "$${dir}" = "." ]; then \
+			EXPECTED="github.com/observiq/bindplane-otel-collector"; \
+		else \
+			RELPATH=$$(echo "$${dir}" | sed 's|^\./||'); \
+			EXPECTED="github.com/observiq/bindplane-otel-collector/$${RELPATH}"; \
+		fi; \
+		if [ "$${MOD}" != "$${EXPECTED}" ]; then \
+			echo "MISMATCH: $${dir}/go.mod"; \
+			echo "  got:      $${MOD}"; \
+			echo "  expected: $${EXPECTED}"; \
+			FAILED=1; \
+		fi; \
+	done; \
+	if [ "$${FAILED}" -eq 1 ]; then \
+		echo ""; \
+		echo "check-mod-paths FAILED: module paths must match directory structure."; \
+		exit 1; \
+	else \
+		echo "Check module paths finished successfully"; \
+	fi
 
 # This target checks that license copyright header is on every source file
 .PHONY: check-license
@@ -234,19 +340,27 @@ release-prep:
 	@echo '$(CURR_VERSION)' > release_deps/VERSION.txt
 	bash ./buildscripts/download-dependencies.sh release_deps
 	@cp -r ./plugins release_deps/
+	@cp -r ./signature/gpg release_deps/gpg
+	@rm release_deps/gpg/revocations.md
+	@rm release_deps/gpg/deb-revocations/.keep
 	@cp service/com.bindplane.otel.collector.plist release_deps/com.bindplane.otel.collector.plist
 	@jq ".files[] | select(.service != null)" windows/wix.json >> release_deps/windows_service.json
 	@cp service/bindplane-otel-collector release_deps/bindplane-otel-collector
+
+.PHONY: release-prep-gpg
+release-prep-gpg:
+	$(MAKE) release-prep
+	@cd release_deps/gpg && tar -czf ../gpg-keys.tar.gz .
 
 # Build and sign, skip release and ignore dirty git tree
 .PHONY: release-test
 release-test:
 # If there is no MSI in the root dir, we'll create a dummy one so that goreleaser can complete successfully
 	if [ ! -e "./bindplane-otel-collector.msi" ]; then touch ./bindplane-otel-collector.msi; fi
-	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
+	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
 
 build-single:
-	GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --skip=publish --clean --skip=validate --snapshot --single-target
+	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --skip=publish --skip=sign --clean --skip=validate --snapshot --single-target
 
 
 .PHONY: for-all

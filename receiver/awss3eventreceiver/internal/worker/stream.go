@@ -32,7 +32,7 @@ type LogStream struct {
 	Body            io.ReadCloser
 	MaxLogSize      int
 	Logger          *zap.Logger
-	TryJSON         bool
+	TryDecoding     bool
 }
 
 // BufferedReader returns a BufferedReader for the log stream. If the content is gzipped

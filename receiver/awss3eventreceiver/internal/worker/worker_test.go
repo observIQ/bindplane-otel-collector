@@ -34,6 +34,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
+	"go.opentelemetry.io/collector/receiver/receiverhelper"
+	"go.opentelemetry.io/collector/receiver/receivertest"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
 
@@ -43,6 +45,114 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver/internal/worker"
 )
+
+func TestURLDecodingInWorker(t *testing.T) {
+	tests := []struct {
+		name       string
+		encodedKey string
+		decodedKey string
+	}{
+		{
+			name:       "equals sign encoding",
+			encodedKey: "logs/hd%3Dtest/file.txt",
+			decodedKey: "logs/hd=test/file.txt",
+		},
+		{
+			name:       "plus sign encoding",
+			encodedKey: "logs/test%2Bfile.txt",
+			decodedKey: "logs/test+file.txt",
+		},
+		{
+			name:       "space encoding",
+			encodedKey: "logs/test%20file.txt",
+			decodedKey: "logs/test file.txt",
+		},
+		{
+			name:       "forward slash encoding",
+			encodedKey: "logs%2Ftest%2Ffile.txt",
+			decodedKey: "logs/test/file.txt",
+		},
+		{
+			name:       "no encoding needed",
+			encodedKey: "logs/test/file.txt",
+			decodedKey: "logs/test/file.txt",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer fake.SetFakeConstructorForTest(t)()
+
+			ctx := context.Background()
+			core, observedLogs := observer.New(zap.DebugLevel)
+			logger := zap.New(core)
+
+			// Create fake AWS client
+			fakeAWS := client.NewClient(aws.Config{}).(*fake.AWS)
+
+			// Create S3 object with the decoded key name (actual S3 object)
+			// This simulates the real S3 object existing with the decoded key
+			fakeAWS.CreateObjects(t, map[string]map[string]string{
+				"test-bucket": {
+					tt.decodedKey: "test log line\n",
+				},
+			})
+
+			// Create consumer
+			consumer := &consumertest.LogsSink{}
+
+			// Create worker
+			tel := componenttest.NewNopTelemetrySettings()
+			tel.Logger = logger
+
+			tb, err := metadata.NewTelemetryBuilder(tel)
+			require.NoError(t, err)
+
+			params := receivertest.NewNopSettings(metadata.Type)
+			obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+				ReceiverID:             params.ID,
+				Transport:              "http",
+				ReceiverCreateSettings: params,
+			})
+			require.NoError(t, err)
+
+			w := worker.New(tel, consumer, fakeAWS, obsrecv, 1024*1024, 1000, 5*time.Minute, 1*time.Minute, 1*time.Hour, worker.WithTelemetryBuilder(tb))
+
+			// Get the message that was created (it will have the decoded key)
+			msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
+			require.NoError(t, err)
+			require.Equal(t, 1, len(msg.Messages))
+
+			// Manually modify the message body to contain the encoded key
+			// This simulates what happens when S3 event notifications contain URL-encoded keys
+			originalBody := *msg.Messages[0].Body
+			modifiedBody := strings.ReplaceAll(originalBody, tt.decodedKey, tt.encodedKey)
+			msg.Messages[0].Body = &modifiedBody
+
+			// Process the message with the URL-encoded key
+			w.ProcessMessage(ctx, msg.Messages[0], "test-queue-url", func() {})
+
+			// Verify logs were consumed
+			require.Equal(t, 1, len(consumer.AllLogs()))
+			logs := consumer.AllLogs()[0]
+			require.Equal(t, 1, logs.LogRecordCount())
+
+			// Verify resource attributes use decoded key
+			resourceLogs := logs.ResourceLogs().At(0)
+			keyAttr, exists := resourceLogs.Resource().Attributes().Get("aws.s3.key")
+			require.True(t, exists)
+			require.Equal(t, tt.decodedKey, keyAttr.AsString()) // Should be decoded
+
+			// If URL decoding happened, check that it was logged
+			if tt.encodedKey != tt.decodedKey {
+				decodingLogs := observedLogs.FilterMessage("URL decoded object key").All()
+				require.Equal(t, 1, len(decodingLogs))
+				require.Equal(t, tt.encodedKey, decodingLogs[0].ContextMap()["original_key"])
+				require.Equal(t, tt.decodedKey, decodingLogs[0].ContextMap()["decoded_key"])
+			}
+		})
+	}
+}
 
 func logsFromFile(t *testing.T, filePath string) []map[string]map[string]string {
 	bytes, err := os.ReadFile(filePath)
@@ -225,7 +335,14 @@ func TestProcessMessage(t *testing.T) {
 			b, err := metadata.NewTelemetryBuilder(set)
 			require.NoError(t, err)
 
-			w := worker.New(set, sink, fakeAWS, testCase.maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(b))
+			params := receivertest.NewNopSettings(metadata.Type)
+			obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+				ReceiverID:             params.ID,
+				Transport:              "http",
+				ReceiverCreateSettings: params,
+			})
+			require.NoError(t, err)
+			w := worker.New(set, sink, fakeAWS, obsrecv, testCase.maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 			numCallbacks := 0
 
@@ -361,7 +478,14 @@ func TestEventTypeFiltering(t *testing.T) {
 			sink := new(consumertest.LogsSink)
 			b, err := metadata.NewTelemetryBuilder(set)
 			require.NoError(t, err)
-			w := worker.New(set, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(b))
+			params := receivertest.NewNopSettings(metadata.Type)
+			obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+				ReceiverID:             params.ID,
+				Transport:              "http",
+				ReceiverCreateSettings: params,
+			})
+			require.NoError(t, err)
+			w := worker.New(set, sink, fakeAWS, obsrecv, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 			numCallbacks := 0
 
@@ -421,7 +545,14 @@ func TestMessageVisibilityExtension(t *testing.T) {
 
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
+	w := worker.New(set, sink, fakeAWS, obsrecv, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	// Get a message from the queue
 	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
@@ -500,7 +631,14 @@ func TestVisibilityExtensionLogs(t *testing.T) {
 	visibilityTimeout := 300 * time.Second
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
+	w := worker.New(set, sink, mockClient, obsrecv, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -585,7 +723,14 @@ func TestExtendToMaxAndStop(t *testing.T) {
 
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, maxVisibilityWindow, worker.WithTelemetryBuilder(b))
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
+	w := worker.New(set, sink, mockClient, obsrecv, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, maxVisibilityWindow, worker.WithTelemetryBuilder(b))
 
 	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -641,7 +786,14 @@ func TestVisibilityExtensionContextCancellation(t *testing.T) {
 	visibilityTimeout := 300 * time.Second
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, fakeAWS, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
+	w := worker.New(set, sink, fakeAWS, obsrecv, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	msg, err := fakeAWS.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -714,7 +866,14 @@ func TestVisibilityExtensionErrorHandling(t *testing.T) {
 	visibilityTimeout := 300 * time.Second
 	b, err := metadata.NewTelemetryBuilder(set)
 	require.NoError(t, err)
-	w := worker.New(set, sink, mockClient, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
+	params := receivertest.NewNopSettings(metadata.Type)
+	obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+		ReceiverID:             params.ID,
+		Transport:              "http",
+		ReceiverCreateSettings: params,
+	})
+	require.NoError(t, err)
+	w := worker.New(set, sink, mockClient, obsrecv, 4096, 1000, visibilityExtensionInterval, visibilityTimeout, 6*time.Hour, worker.WithTelemetryBuilder(b))
 
 	msg, err := mockClient.SQS().ReceiveMessage(ctx, new(sqs.ReceiveMessageInput))
 	require.NoError(t, err)
@@ -888,6 +1047,16 @@ func TestProcessMessageWithFilters(t *testing.T) {
 			expectLines:     0,
 			objectKeyFilter: regexp.MustCompile("^.*[xyz]+$"),
 		},
+		{
+			name:        "parses as avro ocf and creates 10 log lines from avro ocf",
+			objectSets:  logsFromFile(t, "testdata/sample_logs.avro"),
+			expectLines: 10,
+		},
+		{
+			name:        "parses as avro ocf and creates 1000 log lines from gzipped avro ocf",
+			objectSets:  logsFromFile(t, "testdata/sample_logs.avro.gz"),
+			expectLines: 1000,
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -917,7 +1086,14 @@ func TestProcessMessageWithFilters(t *testing.T) {
 			if testCase.objectKeyFilter != nil {
 				opts = append(opts, worker.WithObjectKeyFilter(testCase.objectKeyFilter))
 			}
-			w := worker.New(set, sink, fakeAWS, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, opts...)
+			params := receivertest.NewNopSettings(metadata.Type)
+			obsrecv, err := receiverhelper.NewObsReport(receiverhelper.ObsReportSettings{
+				ReceiverID:             params.ID,
+				Transport:              "http",
+				ReceiverCreateSettings: params,
+			})
+			require.NoError(t, err)
+			w := worker.New(set, sink, fakeAWS, obsrecv, maxLogSize, maxLogsEmitted, visibilityExtensionInterval, 300*time.Second, 6*time.Hour, opts...)
 
 			numCallbacks := 0
 

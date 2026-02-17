@@ -20,19 +20,46 @@ resource_attributes:
     type: string
 telemetry:
   metrics:
-   
     s3event.batch_size:
       enabled: true
       description: The number of logs in a batch.
+      stability:
+        level: alpha
       unit: "{logs}"
       histogram:
         value_type: int
         bucket_boundaries: [1, 5, 10, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 1000000]
     
-    s3event.objects_handled:
+    s3event.dlq_file_not_found_errors:
       enabled: true
-      description: The number of S3 objects processed by the receiver
-      unit: "{objects}"
+      description: The number of file not found errors that triggered DLQ processing
+      stability:
+        level: alpha
+      unit: "{errors}"
+      sum:
+        value_type: int
+        monotonic: true
+        aggregation_temporality: cumulative
+      attributes: []
+
+    s3event.dlq_iam_errors:
+      enabled: true
+      description: The number of IAM permission denied errors that triggered DLQ processing
+      stability:
+        level: alpha
+      unit: "{errors}"
+      sum:
+        value_type: int
+        monotonic: true
+        aggregation_temporality: cumulative
+      attributes: []
+    
+    s3event.dlq_unsupported_file_errors:
+      enabled: true
+      description: The number of unsupported file type errors that triggered DLQ processing
+      stability:
+        level: alpha
+      unit: "{errors}"
       sum:
         value_type: int
         monotonic: true
@@ -42,7 +69,21 @@ telemetry:
     s3event.failures:
       enabled: true
       description: The number of failures encountered while processing S3 objects
+      stability:
+        level: alpha
       unit: "{failures}"
+      sum:
+        value_type: int
+        monotonic: true
+        aggregation_temporality: cumulative
+      attributes: []
+
+    s3event.objects_handled:
+      enabled: true
+      description: The number of S3 objects processed by the receiver
+      stability:
+        level: alpha
+      unit: "{objects}"
       sum:
         value_type: int
         monotonic: true

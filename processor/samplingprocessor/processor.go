@@ -32,24 +32,24 @@ type logsSamplingProcessor struct {
 	logger          *zap.Logger
 	dropCutOffRatio float64
 	conditionString string
-	condition       *expr.OTTLCondition[ottllog.TransformContext]
+	condition       *expr.OTTLCondition[*ottllog.TransformContext]
 }
 
 type metricsSamplingProcessor struct {
 	logger          *zap.Logger
 	dropCutOffRatio float64
 	conditionString string
-	condition       *expr.OTTLCondition[ottlmetric.TransformContext]
+	condition       *expr.OTTLCondition[*ottlmetric.TransformContext]
 }
 
 type tracesSamplingProcessor struct {
 	logger          *zap.Logger
 	dropCutOffRatio float64
 	conditionString string
-	condition       *expr.OTTLCondition[ottlspan.TransformContext]
+	condition       *expr.OTTLCondition[*ottlspan.TransformContext]
 }
 
-func newLogsSamplingProcessor(logger *zap.Logger, cfg *Config, condition *expr.OTTLCondition[ottllog.TransformContext]) *logsSamplingProcessor {
+func newLogsSamplingProcessor(logger *zap.Logger, cfg *Config, condition *expr.OTTLCondition[*ottllog.TransformContext]) *logsSamplingProcessor {
 	return &logsSamplingProcessor{
 		logger:          logger,
 		dropCutOffRatio: cfg.DropRatio,
@@ -58,7 +58,7 @@ func newLogsSamplingProcessor(logger *zap.Logger, cfg *Config, condition *expr.O
 	}
 }
 
-func newMetricsSamplingProcessor(logger *zap.Logger, cfg *Config, condition *expr.OTTLCondition[ottlmetric.TransformContext]) *metricsSamplingProcessor {
+func newMetricsSamplingProcessor(logger *zap.Logger, cfg *Config, condition *expr.OTTLCondition[*ottlmetric.TransformContext]) *metricsSamplingProcessor {
 	return &metricsSamplingProcessor{
 		logger:          logger,
 		dropCutOffRatio: cfg.DropRatio,
@@ -67,7 +67,7 @@ func newMetricsSamplingProcessor(logger *zap.Logger, cfg *Config, condition *exp
 	}
 }
 
-func newTracesSamplingProcessor(logger *zap.Logger, cfg *Config, condition *expr.OTTLCondition[ottlspan.TransformContext]) *tracesSamplingProcessor {
+func newTracesSamplingProcessor(logger *zap.Logger, cfg *Config, condition *expr.OTTLCondition[*ottlspan.TransformContext]) *tracesSamplingProcessor {
 	return &tracesSamplingProcessor{
 		logger:          logger,
 		dropCutOffRatio: cfg.DropRatio,
@@ -100,12 +100,10 @@ func (sp *tracesSamplingProcessor) processTraces(ctx context.Context, td ptrace.
 					return sampleFunc(sp.dropCutOffRatio)
 				}
 
-				spanCtx := ottlspan.NewTransformContext(
-					span,
-					td.ResourceSpans().At(i).ScopeSpans().At(j).Scope(),
-					td.ResourceSpans().At(i).Resource(),
-					td.ResourceSpans().At(i).ScopeSpans().At(j),
+				spanCtx := ottlspan.NewTransformContextPtr(
 					td.ResourceSpans().At(i),
+					td.ResourceSpans().At(i).ScopeSpans().At(j),
+					span,
 				)
 				match, err := sp.condition.Match(ctx, spanCtx)
 				return err == nil && match && sampleFunc(sp.dropCutOffRatio)
@@ -140,12 +138,10 @@ func (sp *logsSamplingProcessor) processLogs(ctx context.Context, ld plog.Logs) 
 					return sampleFunc(sp.dropCutOffRatio)
 				}
 
-				logCtx := ottllog.NewTransformContext(
-					logRecord,
-					ld.ResourceLogs().At(i).ScopeLogs().At(j).Scope(),
-					ld.ResourceLogs().At(i).Resource(),
-					ld.ResourceLogs().At(i).ScopeLogs().At(j),
+				logCtx := ottllog.NewTransformContextPtr(
 					ld.ResourceLogs().At(i),
+					ld.ResourceLogs().At(i).ScopeLogs().At(j),
+					logRecord,
 				)
 				match, err := sp.condition.Match(ctx, logCtx)
 				return err == nil && match && sampleFunc(sp.dropCutOffRatio)
@@ -180,13 +176,10 @@ func (sp *metricsSamplingProcessor) processMetrics(ctx context.Context, md pmetr
 					return sampleFunc(sp.dropCutOffRatio)
 				}
 
-				metricCtx := ottlmetric.NewTransformContext(
-					metric,
-					md.ResourceMetrics().At(i).ScopeMetrics().At(j).Metrics(),
-					md.ResourceMetrics().At(i).ScopeMetrics().At(j).Scope(),
-					md.ResourceMetrics().At(i).Resource(),
-					md.ResourceMetrics().At(i).ScopeMetrics().At(j),
+				metricCtx := ottlmetric.NewTransformContextPtr(
 					md.ResourceMetrics().At(i),
+					md.ResourceMetrics().At(i).ScopeMetrics().At(j),
+					metric,
 				)
 				match, err := sp.condition.Match(ctx, metricCtx)
 				return err == nil && match && sampleFunc(sp.dropCutOffRatio)
