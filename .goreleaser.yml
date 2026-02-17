@@ -85,11 +85,6 @@ builds:
         goarch: ppc64le
     prebuilt:
       path: release_deps/supervisor_bin/opampsupervisor_{{ .Os }}_{{ .Arch }}{{ .Ext }}
-    ldflags:
-      - -s -w
-      - -X github.com/observiq/bindplane-agent/updater/internal/version.version=v{{ .Version }}
-      - -X github.com/observiq/bindplane-agent/updater/internal/version.gitHash={{ .FullCommit }}
-      - -X github.com/observiq/bindplane-agent/updater/internal/version.date={{ .Date }}
     no_unique_dist_dir: false
 
 # https://goreleaser.com/customization/archive/
