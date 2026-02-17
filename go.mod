@@ -217,6 +217,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs v1.93.0
+	github.com/observiq/bindplane-otel-collector/version v1.93.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/aesprovider v0.145.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/datadogexporter v0.145.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/otelarrowexporter v0.145.0
@@ -989,6 +990,8 @@ replace github.com/observiq/bindplane-otel-collector/counter => ./counter
 replace github.com/observiq/bindplane-otel-collector/expr => ./expr
 
 replace github.com/observiq/bindplane-otel-collector/packagestate => ./packagestate
+
+replace github.com/observiq/bindplane-otel-collector/version => ./version
 
 // Internal pkgs
 replace github.com/observiq/bindplane-otel-collector/internal/aws => ./internal/aws

@@ -3,6 +3,7 @@ module github.com/observiq/bindplane-otel-collector/exporter/googlemanagedpromet
 go 1.24.11
 
 require (
+	github.com/observiq/bindplane-otel-collector/version v1.93.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.145.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.51.0
@@ -145,3 +146,5 @@ require (
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397 // indirect
 )
+
+replace github.com/observiq/bindplane-otel-collector/version => ../../version

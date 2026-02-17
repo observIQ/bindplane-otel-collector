@@ -32,9 +32,9 @@ builds:
         goarch: ppc64le
     ldflags:
       - -s -w
-      - -X github.com/observiq/bindplane-otel-collector/internal/version.version=v{{ .Version }}
-      - -X github.com/observiq/bindplane-otel-collector/internal/version.gitHash={{ .FullCommit }}
-      - -X github.com/observiq/bindplane-otel-collector/internal/version.date={{ .Date }}
+      - -X github.com/observiq/bindplane-otel-collector/version.version=v{{ .Version }}
+      - -X github.com/observiq/bindplane-otel-collector/version.gitHash={{ .FullCommit }}
+      - -X github.com/observiq/bindplane-otel-collector/version.date={{ .Date }}
     no_unique_dist_dir: false
   - id: updater
     binary: updater

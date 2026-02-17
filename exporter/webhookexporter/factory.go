@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/webhookexporter/internal/metadata"
+	"github.com/observiq/bindplane-otel-collector/version"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"
@@ -37,41 +38,34 @@ const (
 	defaultUserAgent = "bindplane-otel-collector"
 )
 
-// NewFactoryWithVersion creates a new Webhook exporter factory
-func NewFactoryWithVersion(collectorVersion string) exporter.Factory {
+// NewFactory creates a new Webhook exporter factory
+func NewFactory() exporter.Factory {
 	return exporter.NewFactory(
 		metadata.Type,
-		createDefaultConfig(collectorVersion),
+		createDefaultConfig,
 		exporter.WithLogs(createLogsExporter, metadata.LogsStability),
 	)
 }
 
-// NewFactory creates a new Webhook exporter factory with default version for generated tests
-func NewFactory() exporter.Factory {
-	return NewFactoryWithVersion("test-version")
-}
-
-func createDefaultConfig(collectorVersion string) func() component.Config {
-	userAgent := fmt.Sprintf("%s/%s", defaultUserAgent, collectorVersion)
-	return func() component.Config {
-		return &Config{
-			LogsConfig: &SignalConfig{
-				ClientConfig: confighttp.ClientConfig{
-					Endpoint: "https://localhost",
-					Timeout:  30 * time.Second,
-					Headers: configopaque.MapList{
-						{
-							Name:  "User-Agent",
-							Value: configopaque.String(userAgent),
-						},
+func createDefaultConfig() component.Config {
+	userAgent := fmt.Sprintf("%s/%s", defaultUserAgent, version.Version())
+	return &Config{
+		LogsConfig: &SignalConfig{
+			ClientConfig: confighttp.ClientConfig{
+				Endpoint: "https://localhost",
+				Timeout:  30 * time.Second,
+				Headers: configopaque.MapList{
+					{
+						Name:  "User-Agent",
+						Value: configopaque.String(userAgent),
 					},
 				},
-				Verb:             POST,
-				ContentType:      "application/json",
-				QueueBatchConfig: configoptional.Some(exporterhelper.NewDefaultQueueConfig()),
-				BackOffConfig:    configretry.NewDefaultBackOffConfig(),
 			},
-		}
+			Verb:             POST,
+			ContentType:      "application/json",
+			QueueBatchConfig: configoptional.Some(exporterhelper.NewDefaultQueueConfig()),
+			BackOffConfig:    configretry.NewDefaultBackOffConfig(),
+		},
 	}
 }
 
