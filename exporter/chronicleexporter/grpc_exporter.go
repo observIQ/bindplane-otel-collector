@@ -22,6 +22,7 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
+	"github.com/observiq/bindplane-otel-collector/internal/osinfo"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
@@ -29,6 +30,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -50,20 +52,37 @@ type grpcExporter struct {
 	conn    *grpc.ClientConn
 	metrics *hostMetricsReporter
 
-	telemetry *metadata.TelemetryBuilder
+	telemetry        *metadata.TelemetryBuilder
+	metricAttributes attribute.Set
 }
 
 func newGRPCExporter(cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (*grpcExporter, error) {
-	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings, telemetry)
+	marshaler, err := newProtoMarshaler(*cfg, params.TelemetrySettings, telemetry, params.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("create proto marshaler: %w", err)
 	}
+	macAddress := osinfo.MACAddress()
+	params.Logger.Debug("Creating gRPC exporter", zap.String("exporter_id", params.ID.String()), zap.String("mac_address", macAddress))
 	return &grpcExporter{
 		cfg:        cfg,
 		set:        params.TelemetrySettings,
 		exporterID: params.ID.String(),
 		marshaler:  marshaler,
 		telemetry:  telemetry,
+		metricAttributes: attribute.NewSet(
+			attribute.KeyValue{
+				Key:   "exporter",
+				Value: attribute.StringValue(params.ID.String()),
+			},
+			attribute.KeyValue{
+				Key:   "exporter_type",
+				Value: attribute.StringValue(params.ID.Type().String()),
+			},
+			attribute.KeyValue{
+				Key:   "host.mac_address",
+				Value: attribute.StringValue(macAddress),
+			},
+		),
 	}, nil
 }
 
@@ -113,17 +132,59 @@ func (exp *grpcExporter) Shutdown(context.Context) error {
 	return nil
 }
 
+// ConsumeLogs sends logs to Chronicle via gRPC.
+//
+// Retry behavior: When this function returns an error, the OTel collector's
+// exporterhelper will retry the entire batch (ld plog.Logs) from the beginning.
+// This means all payloads will be retried, including any that succeeded before
+// the error occurred. Chronicle is expected to handle duplicate requests
+// idempotently to prevent duplicate log entries.
+//
+// Metrics: When retry is enabled, raw bytes are only counted on success to prevent
+// double-counting across retry attempts. When retry is disabled, bytes are counted
+// regardless of success/failure since this is the only attempt to send the data.
 func (exp *grpcExporter) ConsumeLogs(ctx context.Context, ld plog.Logs) error {
-	payloads, err := exp.marshaler.MarshalRawLogs(ctx, ld)
+	payloads, totalBytes, err := exp.marshaler.MarshalRawLogs(ctx, ld)
 	if err != nil {
 		return fmt.Errorf("marshal logs: %w", err)
 	}
+	successfulPayloads := []*api.BatchCreateLogsRequest{}
 	for _, payload := range payloads {
 		if err := exp.uploadToChronicle(ctx, payload); err != nil {
+			// Track the failure for observability
+			exp.telemetry.ExporterLogsSendFailed.Add(ctx, 1, metric.WithAttributeSet(exp.metricAttributes))
+
+			// If retry is disabled, count bytes for payloads that succeeded before this failure
+			if !exp.cfg.BackOffConfig.Enabled {
+				exp.countAndReportBatchBytes(ctx, successfulPayloads)
+			}
 			return err
 		}
+		successfulPayloads = append(successfulPayloads, payload)
 	}
+	// Count bytes on success (for both retry enabled and disabled cases)
+	exp.telemetry.ExporterRawBytes.Add(
+		ctx,
+		int64(totalBytes),
+		metric.WithAttributeSet(exp.metricAttributes),
+	)
 	return nil
+}
+
+func (exp *grpcExporter) countAndReportBatchBytes(ctx context.Context, payloads []*api.BatchCreateLogsRequest) {
+	totalBytes := uint(0)
+	for _, payload := range payloads {
+		for _, entries := range payload.Batch.Entries {
+			totalBytes += uint(len(entries.Data))
+		}
+	}
+	if totalBytes > 0 {
+		exp.telemetry.ExporterRawBytes.Add(
+			ctx,
+			int64(totalBytes),
+			metric.WithAttributeSet(exp.metricAttributes),
+		)
+	}
 }
 
 func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.BatchCreateLogsRequest) error {

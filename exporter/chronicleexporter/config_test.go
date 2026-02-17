@@ -115,7 +115,7 @@ func TestConfigValidate(t *testing.T) {
 				Location:                  "location_example",
 				BatchRequestSizeLimitHTTP: defaultBatchRequestSizeLimitHTTP,
 			},
-			expectedErr: "forwarder is required when protocol is https",
+			expectedErr: "",
 		},
 		{
 			desc: "Protocol is https and project is empty",

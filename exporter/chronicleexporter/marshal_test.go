@@ -16,6 +16,8 @@ package chronicleexporter
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,6 +26,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/otel/metric/noop"
 	"go.uber.org/zap"
@@ -34,6 +37,9 @@ import (
 func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 	logger := zap.NewNop()
 	startTime := time.Now()
+
+	timestamp1 := pcommon.NewTimestampFromTime(time.Date(1999, time.May, 18, 0, 0, 0, 0, time.UTC))
+	timestamp2 := pcommon.NewTimestampFromTime(time.Date(2015, time.April, 1, 0, 0, 0, 0, time.UTC))
 
 	telemSettings := component.TelemetrySettings{
 		Logger:        logger,
@@ -136,6 +142,56 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 			},
 		},
 		{
+			name: "Multiple log records with and without timestamps",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchRequestSizeLimitGRPC: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				record1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record1.Body().SetStr("Log 1 with collection time set")
+				record1.SetObservedTimestamp(timestamp1)
+				record2 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record2.SetTimestamp(timestamp1)
+				record2.Body().SetStr("Log 2 with timestamp set")
+				record3 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record3.SetObservedTimestamp(timestamp1)
+				record3.SetTimestamp(timestamp2)
+				record3.Body().SetStr("Log 3 with timestamp and collection time set")
+				record4 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record4.Body().SetStr("Log 4 with no timestamp or collection time set")
+				return logs
+			},
+			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
+				require.Len(t, requests, 1, "Expected a single batch request")
+				batch := requests[0].Batch
+				require.Len(t, batch.Entries, 4, "Expected four log entries in the batch")
+
+				ts1 := timestamp1.AsTime().Unix()
+				ts2 := timestamp2.AsTime().Unix()
+
+				// Timestamp gets set with observed timestamp if it is not set
+				require.Equal(t, batch.Entries[0].Timestamp.Seconds, ts1)
+				require.Equal(t, batch.Entries[0].CollectionTime.Seconds, ts1)
+
+				// Collection time gets set to Time.Now() instead of being default 0
+				require.Equal(t, batch.Entries[1].Timestamp.Seconds, ts1)
+				require.NotEqual(t, batch.Entries[1].CollectionTime.Seconds, 0)
+
+				// Timestamp and collection time get set to their set values
+				require.Equal(t, batch.Entries[2].CollectionTime.Seconds, ts1)
+				require.Equal(t, batch.Entries[2].Timestamp.Seconds, ts2)
+
+				// Collection time and timestamp get set to Time.Now() instead of being default 0
+				require.NotEqual(t, batch.Entries[3].CollectionTime.Seconds, 0)
+				require.NotEqual(t, batch.Entries[3].Timestamp.Seconds, 0)
+			},
+		},
+		{
 			name: "Log record with attributes",
 			cfg: Config{
 				CustomerID:                uuid.New().String(),
@@ -188,7 +244,7 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 			expectations: func(t *testing.T, requests []*api.BatchCreateLogsRequest) {
 				require.Len(t, requests, 1)
 				batch := requests[0].Batch
-				require.Equal(t, "", batch.LogType, "Expected log type to be empty")
+				require.Equal(t, "CATCH_ALL", batch.LogType)
 			},
 		},
 		{
@@ -814,12 +870,12 @@ func TestProtoMarshaler_MarshalRawLogs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, telemetry)
+			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, telemetry, logger)
 			marshaler.startTime = startTime
 			require.NoError(t, err)
 
 			logs := tt.logRecords()
-			requests, err := marshaler.MarshalRawLogs(context.Background(), logs)
+			requests, _, err := marshaler.MarshalRawLogs(context.Background(), logs)
 			require.NoError(t, err)
 
 			tt.expectations(t, requests)
@@ -859,12 +915,12 @@ func BenchmarkProtoMarshaler_MarshalRawLogs(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	marshaler, err := newProtoMarshaler(cfg, component.TelemetrySettings{Logger: logger}, telemetry)
+	marshaler, err := newProtoMarshaler(cfg, component.TelemetrySettings{Logger: logger}, telemetry, logger)
 	require.NoError(b, err)
 
 	for i := 0; i < b.N; i++ {
 		marshaler.startTime = startTime
-		_, err := marshaler.MarshalRawLogs(context.Background(), logs)
+		_, _, err := marshaler.MarshalRawLogs(context.Background(), logs)
 		require.NoError(b, err)
 	}
 }
@@ -1438,12 +1494,12 @@ func TestProtoMarshaler_MarshalRawLogsForHTTP(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, telemetry)
+			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, telemetry, logger)
 			marshaler.startTime = startTime
 			require.NoError(t, err)
 
 			logs := tt.logRecords()
-			requests, err := marshaler.MarshalRawLogsForHTTP(context.Background(), logs)
+			requests, _, err := marshaler.MarshalRawLogsForHTTP(context.Background(), logs)
 			require.NoError(t, err)
 
 			tt.expectations(t, requests)
@@ -1657,6 +1713,199 @@ func Benchmark_getRawField(b *testing.B) {
 	}
 }
 
+// smallLog creates a minimal log record
+func smallLog() (plog.LogRecord, plog.ScopeLogs, plog.ResourceLogs) {
+	logRecord := plog.NewLogRecord()
+	scope := plog.NewScopeLogs()
+	resource := plog.NewResourceLogs()
+
+	// Small body
+	logRecord.Body().SetStr("Application started")
+
+	// Minimal attributes
+	logRecord.Attributes().PutStr("chronicle_log_type", "WINEVTLOG")
+	logRecord.Attributes().PutStr("chronicle_namespace", "production")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["env"]`, `{"region":"us-east-1"}`)
+
+	// Minimal resource attributes
+	resource.Resource().Attributes().PutStr("host.name", "host-001")
+
+	return logRecord, scope, resource
+}
+
+// mediumLog creates a medium-sized log record (equivalent to the original representativeLog)
+func mediumLog() (plog.LogRecord, plog.ScopeLogs, plog.ResourceLogs) {
+	logRecord := plog.NewLogRecord()
+	scope := plog.NewScopeLogs()
+	resource := plog.NewResourceLogs()
+
+	// Set body as a map to trigger json.Marshal in getRawField when field is "body"
+	logRecord.Body().SetEmptyMap()
+	logRecord.Body().Map().PutStr("event_id", "7036")
+	logRecord.Body().Map().PutStr("level", "4")
+	logRecord.Body().Map().PutStr("message", "Print Spooler stopped")
+	logRecord.Body().Map().PutStr("timestamp", "2024-11-08T18:51:13.504187700Z")
+
+	// Add regular attributes
+	logRecord.Attributes().PutStr("status", "200")
+	logRecord.Attributes().PutStr("log.file.name", "/var/log/containers/agent_agent_ns.log")
+	logRecord.Attributes().PutStr("chronicle_log_type", "WINEVTLOG")
+	logRecord.Attributes().PutStr("chronicle_namespace", "production")
+
+	// Add ingestion labels - some as JSON strings (to trigger json.Unmarshal) and some as regular strings
+	// This JSON string will trigger json.Unmarshal in getRawNestedFields
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["env"]`, `{"region":"us-east-1","cluster":"prod-001"}`)
+	// This regular string will not trigger json.Unmarshal
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["team"]`, "platform")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["service"]`, "api-server")
+
+	// Add resource attributes
+	resource.Resource().Attributes().PutStr("host.name", "host-001")
+	resource.Resource().Attributes().PutStr("service.name", "chronicle-exporter")
+
+	return logRecord, scope, resource
+}
+
+// largeLog creates a large log record with many attributes and a larger body
+func largeLog() (plog.LogRecord, plog.ScopeLogs, plog.ResourceLogs) {
+	logRecord := plog.NewLogRecord()
+	scope := plog.NewScopeLogs()
+	resource := plog.NewResourceLogs()
+
+	// Large body with more fields
+	logRecord.Body().SetEmptyMap()
+	logRecord.Body().Map().PutStr("event_id", "7036")
+	logRecord.Body().Map().PutStr("level", "4")
+	logRecord.Body().Map().PutStr("message", "Print Spooler stopped")
+	logRecord.Body().Map().PutStr("timestamp", "2024-11-08T18:51:13.504187700Z")
+	logRecord.Body().Map().PutStr("source", "Service Control Manager")
+	logRecord.Body().Map().PutStr("user_id", "SYSTEM")
+	logRecord.Body().Map().PutStr("process_id", "604")
+	logRecord.Body().Map().PutStr("thread_id", "4792")
+
+	// Many attributes
+	logRecord.Attributes().PutStr("status", "200")
+	logRecord.Attributes().PutStr("log.file.name", "/var/log/containers/agent_agent_ns.log")
+	logRecord.Attributes().PutStr("chronicle_log_type", "WINEVTLOG")
+	logRecord.Attributes().PutStr("chronicle_namespace", "production")
+	logRecord.Attributes().PutStr("http.method", "POST")
+	logRecord.Attributes().PutStr("http.status_code", "200")
+	logRecord.Attributes().PutStr("http.url", "/api/v1/logs")
+	logRecord.Attributes().PutStr("user_agent", "Mozilla/5.0")
+	logRecord.Attributes().PutStr("request_id", "abc123def456")
+	logRecord.Attributes().PutStr("duration_ms", "45")
+
+	// Multiple ingestion labels with JSON
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["env"]`, `{"region":"us-east-1","cluster":"prod-001","zone":"us-east-1a"}`)
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["team"]`, "platform")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["service"]`, "api-server")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["version"]`, "v1.2.3")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["deployment"]`, "production")
+
+	// More resource attributes
+	resource.Resource().Attributes().PutStr("host.name", "host-001")
+	resource.Resource().Attributes().PutStr("service.name", "chronicle-exporter")
+	resource.Resource().Attributes().PutStr("service.version", "1.87.4")
+	resource.Resource().Attributes().PutStr("os.type", "linux")
+	resource.Resource().Attributes().PutStr("os.version", "5.15.0")
+
+	return logRecord, scope, resource
+}
+
+// veryLargeLog creates a very large log record with many attributes and a very large body
+func veryLargeLog() (plog.LogRecord, plog.ScopeLogs, plog.ResourceLogs) {
+	logRecord := plog.NewLogRecord()
+	scope := plog.NewScopeLogs()
+	resource := plog.NewResourceLogs()
+
+	// Very large body with many fields
+	logRecord.Body().SetEmptyMap()
+	for i := 0; i < 50; i++ {
+		logRecord.Body().Map().PutStr(fmt.Sprintf("field_%d", i), fmt.Sprintf("value_%d_%s", i, strings.Repeat("x", 100)))
+	}
+	logRecord.Body().Map().PutStr("event_id", "7036")
+	logRecord.Body().Map().PutStr("level", "4")
+	logRecord.Body().Map().PutStr("message", "Print Spooler stopped with detailed error information")
+	logRecord.Body().Map().PutStr("timestamp", "2024-11-08T18:51:13.504187700Z")
+
+	// Many attributes
+	logRecord.Attributes().PutStr("status", "200")
+	logRecord.Attributes().PutStr("log.file.name", "/var/log/containers/agent_agent_ns.log")
+	logRecord.Attributes().PutStr("chronicle_log_type", "WINEVTLOG")
+	logRecord.Attributes().PutStr("chronicle_namespace", "production")
+	for i := 0; i < 30; i++ {
+		logRecord.Attributes().PutStr(fmt.Sprintf("attr_%d", i), fmt.Sprintf("value_%d", i))
+	}
+
+	// Multiple ingestion labels with complex JSON
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["env"]`, `{"region":"us-east-1","cluster":"prod-001","zone":"us-east-1a","datacenter":"dc1"}`)
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["team"]`, "platform")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["service"]`, "api-server")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["version"]`, "v1.2.3")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["deployment"]`, "production")
+	logRecord.Attributes().PutStr(`chronicle_ingestion_label["metadata"]`, `{"tier":"critical","owner":"team-platform","cost_center":"eng-001"}`)
+
+	// Many resource attributes
+	resource.Resource().Attributes().PutStr("host.name", "host-001")
+	resource.Resource().Attributes().PutStr("service.name", "chronicle-exporter")
+	resource.Resource().Attributes().PutStr("service.version", "1.87.4")
+	resource.Resource().Attributes().PutStr("os.type", "linux")
+	resource.Resource().Attributes().PutStr("os.version", "5.15.0")
+	for i := 0; i < 20; i++ {
+		resource.Resource().Attributes().PutStr(fmt.Sprintf("resource_attr_%d", i), fmt.Sprintf("value_%d", i))
+	}
+
+	return logRecord, scope, resource
+}
+
+func Benchmark_processLogRecord(b *testing.B) {
+	logger := zap.NewNop()
+	telemSettings := component.TelemetrySettings{
+		Logger:        logger,
+		MeterProvider: noop.NewMeterProvider(),
+	}
+
+	telemetry, err := metadata.NewTelemetryBuilder(telemSettings)
+	if err != nil {
+		b.Fatalf("Error creating telemetry builder: %v", err)
+	}
+
+	cfg := Config{
+		CustomerID:                uuid.New().String(),
+		RawLogField:               "", // Empty RawLogField forces json.Marshal of entire log record
+		BatchRequestSizeLimitGRPC: 5242880,
+	}
+
+	ctx := context.Background()
+
+	sizes := []struct {
+		name string
+		log  func() (plog.LogRecord, plog.ScopeLogs, plog.ResourceLogs)
+	}{
+		{"small", smallLog},
+		{"medium", mediumLog},
+		{"large", largeLog},
+		{"very_large", veryLargeLog},
+	}
+
+	for _, size := range sizes {
+		b.Run(size.name, func(b *testing.B) {
+			logRecord, scope, resource := size.log()
+
+			m := &protoMarshaler{
+				cfg:          cfg,
+				teleSettings: telemSettings,
+				telemetry:    telemetry,
+				logger:       logger,
+			}
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, _, _, _, _ = m.processLogRecord(ctx, logRecord, scope, resource)
+			}
+		})
+	}
+}
+
 func Test_getCollectorID(t *testing.T) {
 	cases := []struct {
 		name        string
@@ -1718,6 +1967,345 @@ func Test_getCollectorID(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			require.Equal(t, tc.expect, getCollectorID(tc.licenseType))
+		})
+	}
+}
+
+func Test_getLogType(t *testing.T) {
+	logger := zap.NewNop()
+	startTime := time.Now()
+
+	telemSettings := component.TelemetrySettings{
+		Logger:        logger,
+		MeterProvider: noop.NewMeterProvider(),
+	}
+
+	telemetry, err := metadata.NewTelemetryBuilder(telemSettings)
+	if err != nil {
+		t.Errorf("Error creating telemetry builder: %v", err)
+		t.Fail()
+	}
+
+	tests := []struct {
+		name         string
+		cfg          Config
+		labels       []*api.Label
+		logRecords   func() plog.Logs
+		expectedType string
+		logTypes     map[string]exists
+	}{
+		{
+			name: "Single log record with expected data",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				Protocol:                  protocolHTTPS,
+				Project:                   "test-project",
+				Location:                  "us",
+				Forwarder:                 uuid.New().String(),
+				BatchRequestSizeLimitHTTP: 5242880,
+			},
+			labels: []*api.Label{
+				{Key: "env", Value: "prod"},
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Test log message", map[string]any{"log_type": "WINEVTLOG", "namespace": "test"}))
+			},
+			expectedType: "WINEVTLOG",
+		},
+		{
+			name: "Single log record with expected data, with validation",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				Protocol:                  protocolHTTPS,
+				Project:                   "test-project",
+				Location:                  "us",
+				Forwarder:                 uuid.New().String(),
+				BatchRequestSizeLimitHTTP: 5242880,
+				ValidateLogTypes:          true,
+			},
+			logTypes: map[string]exists{
+				"WINEVTLOG": {},
+			},
+			labels: []*api.Label{
+				{Key: "env", Value: "prod"},
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Test log message", map[string]any{"log_type": "WINEVTLOG", "namespace": "test"}))
+			},
+			expectedType: "WINEVTLOG",
+		},
+		{
+			name: "Single log record with expected data, fails validation",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				Protocol:                  protocolHTTPS,
+				Project:                   "test-project",
+				Location:                  "us",
+				Forwarder:                 uuid.New().String(),
+				BatchRequestSizeLimitHTTP: 5242880,
+				ValidateLogTypes:          true,
+			},
+			logTypes: map[string]exists{
+				"CATCH_ALL": {},
+			},
+			labels: []*api.Label{
+				{Key: "env", Value: "prod"},
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Test log message", map[string]any{"log_type": "WINEVTLOG", "namespace": "test"}))
+			},
+			expectedType: "CATCH_ALL",
+		},
+		{
+			name: "Log record with attributes",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "attributes",
+				OverrideLogType:           false,
+				BatchRequestSizeLimitHTTP: 5242880,
+			},
+			labels: []*api.Label{},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("", map[string]any{"key1": "value1", "log_type": "WINEVTLOG", "namespace": "test", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"}))
+			},
+			expectedType: "WINEVTLOG",
+		},
+		{
+			name: "No log records",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "DEFAULT",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchRequestSizeLimitHTTP: 5242880,
+			},
+			labels: []*api.Label{},
+			logRecords: func() plog.Logs {
+				return plog.NewLogs() // No log records added
+			},
+		},
+		{
+			name: "Log type set in config, ignore log_type attribute (OverrideLogType false)",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "DEFAULT",
+				RawLogField:               "attributes",
+				OverrideLogType:           false,
+				BatchRequestSizeLimitHTTP: 5242880,
+			},
+			labels: []*api.Label{},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("", map[string]any{"key1": "value1", "log_type": "WINEVTLOG", "namespace": "test", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"}))
+			},
+			expectedType: "DEFAULT",
+		},
+		{
+			name: "Log type set in config, ignore log_type attribute (OverrideLogType false), validation",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "DEFAULT",
+				RawLogField:               "attributes",
+				OverrideLogType:           false,
+				BatchRequestSizeLimitHTTP: 5242880,
+				ValidateLogTypes:          true,
+			},
+			logTypes: map[string]exists{
+				"DEFAULT": {},
+			},
+			labels: []*api.Label{},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("", map[string]any{"key1": "value1", "log_type": "WINEVTLOG", "namespace": "test", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"}))
+			},
+			expectedType: "DEFAULT",
+		},
+
+		{
+			name: "Override log type with attribute",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "DEFAULT", // This should be overridden by the log_type attribute
+				RawLogField:               "body",
+				OverrideLogType:           true,
+				BatchRequestSizeLimitHTTP: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"log_type": "windows_event.application", "namespace": "test", `ingestion_label["realkey1"]`: "realvalue1", `ingestion_label["realkey2"]`: "realvalue2"}))
+			},
+			expectedType: "WINEVTLOG",
+		},
+		{
+			name: "Override log type with attribute, validation",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "DEFAULT", // This should be overridden by the log_type attribute
+				RawLogField:               "body",
+				OverrideLogType:           true,
+				BatchRequestSizeLimitHTTP: 5242880,
+				ValidateLogTypes:          true,
+			},
+			logTypes: map[string]exists{
+				"WINEVTLOG": {},
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"log_type": "windows_event.application", "namespace": "test", `ingestion_label["realkey1"]`: "realvalue1", `ingestion_label["realkey2"]`: "realvalue2"}))
+			},
+			expectedType: "WINEVTLOG",
+		},
+		{
+			name: "Override log type with attribute, fails validation",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "DEFAULT", // This should be overridden by the log_type attribute
+				RawLogField:               "body",
+				OverrideLogType:           true,
+				BatchRequestSizeLimitHTTP: 5242880,
+				ValidateLogTypes:          true,
+			},
+			logTypes: map[string]exists{
+				"CATCH_ALL": {},
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"log_type": "windows_event.application", "namespace": "test", `ingestion_label["realkey1"]`: "realvalue1", `ingestion_label["realkey2"]`: "realvalue2"}))
+			},
+			expectedType: "WINEVTLOG", // the log_type attribute is not validated
+		},
+		{
+			name: "Override log type with chronicle attribute",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "DEFAULT", // This should be overridden by the chronicle_log_type attribute
+				RawLogField:               "body",
+				OverrideLogType:           true,
+				BatchRequestSizeLimitHTTP: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Log with overridden type", map[string]any{"chronicle_log_type": "ASOC_ALERT", "chronicle_namespace": "test", `chronicle_ingestion_label["realkey1"]`: "realvalue1", `chronicle_ingestion_label["realkey2"]`: "realvalue2"}))
+			},
+			expectedType: "ASOC_ALERT",
+		},
+
+		{
+			name: "Log type in attributes",
+			cfg: Config{
+				CustomerID:                uuid.New().String(),
+				LogType:                   "WINEVTLOG",
+				RawLogField:               "body",
+				OverrideLogType:           false,
+				BatchRequestSizeLimitHTTP: 5242880,
+			},
+			logRecords: func() plog.Logs {
+				logs := plog.NewLogs()
+				record1 := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				record1.Body().SetStr("First log message")
+				record1.Attributes().FromRaw(map[string]any{"chronicle_log_type": "WINEVTLOGS1", "chronicle_namespace": "test1", `chronicle_ingestion_label["key1"]`: "value1", `chronicle_ingestion_label["key2"]`: "value2"})
+				return logs
+			},
+			expectedType: "WINEVTLOGS1",
+		},
+		{
+			name: "Log type unset",
+			cfg: Config{
+				CustomerID:  uuid.New().String(),
+				RawLogField: "body",
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Log without logtype", map[string]any{"chronicle_namespace": "test", `chronicle_ingestion_label["realkey1"]`: "realvalue1", `chronicle_ingestion_label["realkey2"]`: "realvalue2"}))
+			},
+			expectedType: "CATCH_ALL",
+		},
+		{
+			name: "Log type unset, validation",
+			cfg: Config{
+				CustomerID:       uuid.New().String(),
+				RawLogField:      "body",
+				ValidateLogTypes: true,
+			},
+			logTypes: map[string]exists{
+				"CATCH_ALL": {},
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Log without logtype", map[string]any{"chronicle_namespace": "test", `chronicle_ingestion_label["realkey1"]`: "realvalue1", `chronicle_ingestion_label["realkey2"]`: "realvalue2"}))
+			},
+			expectedType: "CATCH_ALL",
+		},
+		{
+			name: "Log type set, fails validation",
+			cfg: Config{
+				CustomerID:       uuid.New().String(),
+				RawLogField:      "body",
+				ValidateLogTypes: true,
+			},
+			logTypes: map[string]exists{
+				"CATCH_ALL": {},
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Log with logtype", map[string]any{"chronicle_log_type": "MISSING_TYPE", "chronicle_namespace": "test", `chronicle_ingestion_label["realkey1"]`: "realvalue1", `chronicle_ingestion_label["realkey2"]`: "realvalue2"}))
+			},
+			expectedType: "CATCH_ALL",
+		},
+		{
+			name: "Log type configured, fails validation",
+			cfg: Config{
+				CustomerID:       uuid.New().String(),
+				RawLogField:      "body",
+				LogType:          "MISSING_TYPE",
+				ValidateLogTypes: true,
+			},
+			logTypes: map[string]exists{
+				"CATCH_ALL": {},
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Log with logtype", map[string]any{"chronicle_namespace": "test", `chronicle_ingestion_label["realkey1"]`: "realvalue1", `chronicle_ingestion_label["realkey2"]`: "realvalue2"}))
+			},
+			expectedType: "CATCH_ALL",
+		},
+		{
+			name: "Log type override, fails validation",
+			cfg: Config{
+				CustomerID:       uuid.New().String(),
+				RawLogField:      "body",
+				OverrideLogType:  true,
+				ValidateLogTypes: true,
+			},
+			logTypes: map[string]exists{
+				"CATCH_ALL": {},
+			},
+			logRecords: func() plog.Logs {
+				return mockLogs(mockLogRecord("Log with logtype", map[string]any{"log_type": "MISSING_TYPE", "chronicle_namespace": "test", `chronicle_ingestion_label["realkey1"]`: "realvalue1", `chronicle_ingestion_label["realkey2"]`: "realvalue2"}))
+			},
+			expectedType: "CATCH_ALL",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			marshaler, err := newProtoMarshaler(tt.cfg, component.TelemetrySettings{Logger: logger}, telemetry, logger)
+			marshaler.startTime = startTime
+			marshaler.logTypes = tt.logTypes
+			require.NoError(t, err)
+
+			logs := tt.logRecords()
+			for i := 0; i < logs.ResourceLogs().Len(); i++ {
+				resourceLogs := logs.ResourceLogs().At(i)
+				for j := 0; j < resourceLogs.ScopeLogs().Len(); j++ {
+					scopeLogs := resourceLogs.ScopeLogs().At(j)
+					for k := 0; k < scopeLogs.LogRecords().Len(); k++ {
+						logRecord := scopeLogs.LogRecords().At(k)
+						logType, err := marshaler.getLogType(context.Background(), logRecord, scopeLogs, resourceLogs)
+						require.NoError(t, err)
+						require.Equal(t, tt.expectedType, logType)
+					}
+				}
+			}
 		})
 	}
 }

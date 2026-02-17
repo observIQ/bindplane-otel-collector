@@ -3,6 +3,7 @@ resourceMetrics:
     scopeMetrics:
       - metrics:
           - exponentialHistogram:
+              aggregationTemporality: 2
               dataPoints:
                 - attributes:
                     - key: prod-machine

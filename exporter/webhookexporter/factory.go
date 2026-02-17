@@ -27,9 +27,11 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"
+	"go.opentelemetry.io/collector/config/configoptional"
 	"go.opentelemetry.io/collector/config/configretry"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
+	"go.opentelemetry.io/collector/exporter/exporterhelper/xexporterhelper"
 )
 
 const (
@@ -53,13 +55,16 @@ func createDefaultConfig() func() component.Config {
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: "https://localhost",
 					Timeout:  30 * time.Second,
-					Headers: map[string]configopaque.String{
-						"User-Agent": configopaque.String(userAgent),
+					Headers: configopaque.MapList{
+						{
+							Name:  "User-Agent",
+							Value: configopaque.String(userAgent),
+						},
 					},
 				},
 				Verb:             POST,
 				ContentType:      "application/json",
-				QueueBatchConfig: exporterhelper.NewDefaultQueueConfig(),
+				QueueBatchConfig: configoptional.Some(exporterhelper.NewDefaultQueueConfig()),
 				BackOffConfig:    configretry.NewDefaultBackOffConfig(),
 			},
 		}
@@ -97,12 +102,12 @@ func createLogsExporter(ctx context.Context, params exporter.Settings, config co
 // logsEncoding implements QueueBatchEncoding for logs
 type logsEncoding struct{}
 
-func (e *logsEncoding) Marshal(req exporterhelper.Request) ([]byte, error) {
+func (e *logsEncoding) Marshal(req xexporterhelper.Request) ([]byte, error) {
 	return json.Marshal(req)
 }
 
-func (e *logsEncoding) Unmarshal(data []byte) (exporterhelper.Request, error) {
-	var req exporterhelper.Request
+func (e *logsEncoding) Unmarshal(data []byte) (xexporterhelper.Request, error) {
+	var req xexporterhelper.Request
 	err := json.Unmarshal(data, &req)
 	return req, err
 }

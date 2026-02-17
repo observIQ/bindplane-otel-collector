@@ -51,6 +51,7 @@ func createDefaultConfig() component.Config {
 		Workers:                     5,
 		MaxLogSize:                  1024 * 1024,
 		MaxLogsEmitted:              1000,
+		NotificationType:            "s3", // Default to direct S3 events for backward compatibility
 	}
 }
 
@@ -69,5 +70,5 @@ func createLogsReceiver(_ context.Context, params receiver.Settings, conf compon
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
 
-	return newLogsReceiver(params.ID, params.TelemetrySettings, cfg, con, t)
+	return newLogsReceiver(params, cfg, con, t)
 }

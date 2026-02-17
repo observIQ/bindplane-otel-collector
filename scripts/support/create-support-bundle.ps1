@@ -39,6 +39,12 @@ $datestamp = Get-Date -Format "yyyy_MM_dd_HH_mm_ss"
 $output_dir = "Support_Bundle_$datestamp"
 New-Item -ItemType Directory -Force -Path $output_dir
 
+# Grab the collector VERSION.txt file
+if (Test-Path "$collector_dir\VERSION.txt") {
+    Write-Host "Adding $collector_dir\VERSION.txt"
+    Copy-Item "$collector_dir\VERSION.txt" -Destination "$output_dir\" -Force
+}
+
 # Determine whether to copy only the most recent log
 $response = Read-Host -Prompt "Do you want to include only the most recent logs (Y or n)?  "
 if ($response -eq "n") {
@@ -62,6 +68,33 @@ if ($response -ne "n") {
 
 # Capture system info
 Get-ComputerInfo | Out-File "$output_dir\systeminfo.txt"
+
+# Capture profiles
+$response = Read-Host -Prompt "Collect go pprof profiles [requires PowerShell 6.0.0 or greater]? (Y or n)? "
+
+if ($response -ne "n") {
+    if ($PSVersionTable.PSVersion.Major -lt 6) {
+        Write-Host "PowerShell 6.0.0 or greater is required to collect pprof profiles. Aborting pprof collection."
+        exit
+    }
+    $pprof_port = Read-Host -Prompt "Enter the pprof port (default 1777): "
+    if ([string]::IsNullOrWhiteSpace($pprof_port)) {
+        $pprof_port = 1777
+    }
+
+    $profiles = @("profile", "block", "goroutine", "heap", "mutex", "threadcreate", "trace")
+
+    foreach ($profile in $profiles) {
+        $url = "http://localhost:$pprof_port/debug/pprof/$($profile)?seconds=30"
+        $output_file = "$output_dir\$profile.txt"
+        Write-Host "Collecting $profile profile from $url"
+        try {
+            Invoke-WebRequest -SkipCertificateCheck -Uri $url -OutFile $output_file -UseBasicParsing -ErrorAction Stop
+        } catch {
+            Write-Host "Failed to collect $profile profile: $_"
+        }
+    }
+}
 
 # Compress the files into a zip archive
 $zip_filename = "$output_dir.zip"

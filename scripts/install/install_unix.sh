@@ -15,6 +15,19 @@
 
 set -e
 
+# Reads optional package overrides. Users should deploy the override
+# file before installing BDOT for the first time. The override should
+# not be modified unless uninstalling and re-installing.
+[ -f /etc/default/observiq-otel-collector ] && . /etc/default/observiq-otel-collector
+[ -f /etc/sysconfig/observiq-otel-collector ] && . /etc/sysconfig/observiq-otel-collector
+
+# The collectors installation directory
+: "${BDOT_CONFIG_HOME:=/opt/observiq-otel-collector}"
+
+# Allow configurable runtime user/group (used for permissions and manager.yaml)
+: "${BDOT_USER:=bdot}"
+: "${BDOT_GROUP:=bdot}"
+
 # Agent Constants
 PACKAGE_NAME="bindplane-otel-collector"
 DOWNLOAD_BASE="https://bdot.bindplane.com"
@@ -29,22 +42,19 @@ elif command -v mkssys > /dev/null 2>&1; then
 fi
 
 # Script Constants
-COLLECTOR_USER="bindplane-otel-collector"
+COLLECTOR_USER="${BDOT_USER}"
+COLLECTOR_GROUP="${BDOT_GROUP}"
+COLLECTOR_USER_LEGACY="bindplane-otel-collector"
 TMP_DIR=${TMPDIR:-"/tmp"} # Allow this to be overriden by cannonical TMPDIR env var
 INSTALL_DIR="/opt/bindplane-otel-collector"
 SUPERVISOR_YML_PATH="$INSTALL_DIR/supervisor.yaml"
-PREREQS="curl printf $SVC_PRE sed uname cut"
-MANAGEMENT_YML_PATH="/opt/bindplane-otel-collector/manager.yaml"
 PREREQS="curl printf $SVC_PRE sed uname cut tr tar sudo"
 SCRIPT_NAME="$0"
 INDENT_WIDTH='  '
 indent=""
 non_interactive=false
 error_mode=false
-
-# Configurable username and group for BDOT
-: "${BDOT_USER:=bdot}"
-: "${BDOT_GROUP:=bdot}"
+skip_gpg_check=false
 
 # Default Supervisor Config Hash
 DEFAULT_SUPERVISOR_CFG_HASH="ac4e6001f1b19d371bba6a2797ba0a55d7ca73151ba6908040598ca275c0efca"
@@ -60,10 +70,23 @@ else
   bootstrap_timeout="5"
 fi
 
-# out_file_path is the full path to the downloaded package (e.g. "/tmp/bindplane-otel-collector_{os}_amd64.deb")
-out_file_path="unknown"
 os="unknown"
 os_arch="unknown"
+# package_out_file_path is the full path to the downloaded package (e.g. "/tmp/bindplane-otel-collector_linux_amd64.deb")
+package_out_file_path="unknown"
+
+# gpg_tar_out_file_path is the full path to the downloaded GPG tar.gz file (e.g. "/tmp/bdot-gpg-keys.tar.gz")
+gpg_tar_out_file_path="unknown"
+
+offline_installation=false
+
+# RPM_GPG_KEYS_TO_REMOVE is a list of GPG keys to remove from the RPM package. This is used for revoked keys. Deb packages are handled differently.
+# The entries in this should be formatted similarly to gpg-pubkey-<version>-<release>
+# The entries can be found by importing the revoked public key and then exploring the RPM database for the key.
+# rpm --import <revoked_public_key>.asc
+# rpm -q gpg-pubkey, it's one of these
+# rpm -q gpg-pubkey --info, go find the BDOT public key and use the version and release numbers from there.
+RPM_GPG_KEYS_TO_REMOVE=[]
 
 # Colors
 num_colors=$(tput colors 2>/dev/null)
@@ -171,13 +194,15 @@ prompt() {
 
 bindplane_banner() {
   if [ "$non_interactive" = "false" ]; then
-    fg_cyan " oooooooooo.   o8o                    .o8  ooooooooo.   oooo\\n"
-    fg_cyan " '888'   '88b  '\"'                   \"888  '888   'Y88. '888\\n"
-    fg_cyan "  888     888 oooo  ooo. .oo.    .oooo888   888   .d88'  888   .oooo.   ooo. .oo.    .ooooo.\\n"
-    fg_cyan "  888oooo888' '888  '888P\"Y88b  d88' '888   888ooo88P'   888  'P  )88b  '888P\"Y88b  d88' '88b\\n"
-    fg_cyan "  888    '88b  888   888   888  888   888   888          888   .oP\"888   888   888  888ooo888\\n"
-    fg_cyan "  888    .88P  888   888   888  888   888   888          888  d8(  888   888   888  888    .o\\n"
-    fg_cyan " o888bood8P'  o888o o888o o888o 'Y8bod88P\" o888o        o888o 'Y888\"\"8o o888o o888o '88bod8P'\\n"
+    fg_cyan " oooooooooo.   o8o                    .o8              oooo\\n"
+    fg_cyan " '888'   '88b  '\"'                   \"888              '888\\n" 
+    fg_cyan "  888     888 oooo  ooo. .oo.    .oooo888  oooooooo.    888   .oooo.   ooo. .oo.    .ooooo.\\n"
+    fg_cyan "  888oooo888' '888  '888P\"Y88b  d88' '888  '888' 'Y88.  888  'P  )88b  '888P\"Y88b  d88' '88b\\n" 
+    fg_cyan "  888    '88b  888   888   888  888   888   888    888  888   .oP\"888   888   888  888ooo888\\n"
+    fg_cyan "  888    .88P  888   888   888  888   888   888   .88'  888  d8(  888   888   888  888    .o\\n"
+    fg_cyan " o888bood8P'  o888o o888o o888o 'Y8bod88P\"  888bod8P'  o888o 'Y888\"\"8o o888o o888o '88bod8P'\\n"
+    fg_cyan "                                            888\\n"
+    fg_cyan "                                           o888o\\n"
 
     reset
   fi
@@ -212,13 +237,28 @@ Usage:
       If not provided, this will default to BDOT\'s GitHub releases.
       Example: '-l http://my.domain.org/bindplane-otel-collector' will download from there.
 
+  $(fg_yellow '-gl, --gpg-tar-url')
+      Defines the URL that the GPG tar file will be downloaded from.
+      If not provided, this will default to Bindplane Agent\'s GitHub releases.
+      Example: '-gl http://my.domain.org/bdot-gpg-keys.tar.gz' will download from there.
+
   $(fg_yellow '-b, --base-url')
-      Defines the base of the download URL as '{base_url}/v{version}/{PACKAGE_NAME}_v{version}_{os}_{os_arch}.{package_type}'.
+      Defines the base of the download URL used in conjunction with the version to download the package and GPG tar file.
+      '{base_url}/v{version}/{PACKAGE_NAME}_v{version}_{os}_{os_arch}.{package_type}'
+      and
+      '{base_url}/v{version}/gpg-keys.tar.gz'
       If not provided, this will default to '$DOWNLOAD_BASE'.
       Example: '-b http://my.domain.org/bindplane-otel-collector/binaries' will be used as the base of the download URL.
 
   $(fg_yellow '-f, --file')
       Install Agent from a local file instead of downloading from a URL.
+      Example: '-f /path/to/observiq-otel-collector_v1.2.12_linux_amd64.deb' will install from the local file.
+      Required if '--gpg-tar-file' is specified.
+
+  $(fg_yellow '-gf, --gpg-tar-file')
+      Verify the Agent from a local GPG tar file instead of downloading from a URL.
+      Example: '-gf /path/to/bdot-gpg-keys.tar.gz' will verify from the local file.
+      Required if '--file' is specified.
 
   $(fg_yellow '-x, --proxy')
       Defines the proxy server to be used for communication by the install script.
@@ -255,8 +295,22 @@ Usage:
 
     This parameter will have the script check access to Bindplane based on the provided '--endpoint'
 
+  $(fg_yellow '--no-gpg-check')
+      Skips GPG signature verification of the package. When using this flag, the
+      package signature will not be verified. This should only be used in trusted
+      or offline environments where the package authenticity has been verified
+      through other means.
+      
+      This option is incompatible with '--gpg-tar-file' and will cause the script
+      to exit with an error if both are specified.
+
   $(fg_yellow '-q, --quiet')
-    Use quiet (non-interactive) mode to run the script in headless environments
+    Use quiet (non-interactive) mode to run the script in headless environments.
+    
+    Note: If a GPG signature verification failure occurs during installation and
+    '--no-gpg-check' was not specified, the script will exit immediately without
+    prompting the user to continue. For interactive handling of verification
+    failures, do not use the '--quiet' flag.
 
   $(fg_yellow '-i, --clean-install')
     Do a clean install of the agent regardless of if a supervisor.yaml config file is already present.
@@ -320,6 +374,32 @@ failed() {
   error "Failed!"
 }
 
+# This will validate that the version is at least v1.82.0
+validate_version()
+{
+  if [ -z "$version" ]; then
+    return 0  # No version specified, let the script handle it
+  fi
+
+  info "Validating version compatibility..."
+
+  # Remove 'v' prefix if present
+  version_clean=$(echo "$version" | sed 's/^v//')
+
+  # Extract major and minor version numbers
+  major=$(echo "$version_clean" | cut -d'.' -f1)
+  minor=$(echo "$version_clean" | cut -d'.' -f2)
+
+  # Check if major version is 2 and minor version is >= 0
+  if [ "$major" = "2" ] && [ "$minor" -ge 0 ] 2>/dev/null; then
+    succeeded
+    return 0
+  else
+    failed
+    error_exit "$LINENO" "Version $version is not supported. This script supports collector v2.0.0 or newer. Please use the script versioned with your desired collector version."
+  fi
+}
+
 # This will set all installation variables
 # at the beginning of the script.
 setup_installation() {
@@ -330,17 +410,14 @@ setup_installation() {
   set_os_arch
   set_package_type
 
-  # if package_path is not set then download the package
-  if [ -z "$package_path" ]; then
+  # if offline_installation is false then download the package
+  if [ "$offline_installation" = "false" ]; then
     set_download_urls
     set_proxy
-    set_file_name
+    set_file_names
   else
-    if [ ! -f "$package_path" ]; then
-      error_exit "$LINENO" "--file specified, but '$package_path' does not exist"
-    else
-      out_file_path="$package_path"
-    fi
+    package_out_file_path="$package_path"
+    gpg_tar_out_file_path="$gpg_tar_path"
   fi
 
   set_opamp_endpoint
@@ -353,13 +430,15 @@ setup_installation() {
   decrease_indent
 }
 
-set_file_name() {
-  if [ -z "$version" ] ; then
+set_file_names() {
+  if [ -z "$version" ]; then
     package_file_name="${PACKAGE_NAME}_${os}_${os_arch}.${package_type}"
   else
     package_file_name="${PACKAGE_NAME}_v${version}_${os}_${os_arch}.${package_type}"
   fi
-  out_file_path="$TMP_DIR/$package_file_name"
+  package_out_file_path="$TMP_DIR/$package_file_name"
+
+  gpg_tar_out_file_path="$TMP_DIR/bdot-gpg-keys.tar.gz"
 }
 
 set_proxy() {
@@ -458,7 +537,8 @@ set_package_type() {
 # This will set the urls to use when downloading the agent and its plugins.
 # These urls are constructed based on the --version flag or COLLECTOR_VERSION env variable.
 # If not specified, the version defaults to whatever the latest release on github is.
-set_download_urls() {
+set_download_urls()
+{
   if [ -z "$url" ]; then
     if [ -z "$base_url" ]; then
       base_url=$DOWNLOAD_BASE
@@ -467,6 +547,16 @@ set_download_urls() {
     collector_download_url="$base_url/v$version/${PACKAGE_NAME}_v${version}_${os}_${os_arch}.${package_type}"
   else
     collector_download_url="$url"
+  fi
+
+  if [ -z "$gpg_tar_url" ]; then
+    if [ -z "$base_url" ] ; then
+      base_url=$DOWNLOAD_BASE
+    fi
+
+    gpg_tar_download_url="$base_url/v$version/gpg-keys.tar.gz"
+  else
+    gpg_tar_download_url="$gpg_tar_url"
   fi
 }
 
@@ -576,6 +666,7 @@ check_prereqs() {
   os_arch_check
   package_type_check
   dependencies_check
+  user_check
   success "Prerequisite check complete!"
   decrease_indent
 }
@@ -590,7 +681,14 @@ root_check() {
 }
 
 # Test non-interactive mode compatibility
-interactive_check() {
+interactive_check()
+{
+  # Incompatible with --no-gpg-check and --gpg-tar-file
+  if [ "$skip_gpg_check" = "true" ] && [ -n "$gpg_tar_path" ]; then
+    failed
+    error_exit "$LINENO" "--no-gpg-check is incompatible with '--gpg-tar-file'. These options cannot be used together."
+  fi
+
   # Incompatible with proxies unless both username and password are passed
   if [ "$non_interactive" = "true" ] && [ -n "$proxy_password" ]; then
     failed
@@ -601,6 +699,18 @@ interactive_check() {
   if [ "$non_interactive" = "true" ] && [ "$check_bp_url" = "true" ]; then
     failed
     error_exit "$LINENO" "Checking the Bindplane server URL is not compatible with quiet (non-interactive) mode."
+  fi
+}
+
+offline_check()
+{
+  # Ensure that both package_path and gpg_tar_path are either both set or both unset
+  if { [ -n "$package_path" ] && [ -z "$gpg_tar_path" ]; } || { [ -z "$package_path" ] && [ -n "$gpg_tar_path" ]; }; then
+    error_exit "$LINENO" "Both --file and --gpg-tar-file must be specified together, or neither should be specified."
+  fi
+
+  if [ -n "$package_path" ] && [ -n "$gpg_tar_path" ]; then
+    offline_installation=true
   fi
 }
 
@@ -668,6 +778,36 @@ dependencies_check() {
   succeeded
 }
 
+# This will check if the required collector user exists when BDOT_SKIP_RUNTIME_USER_CREATION is set to true.
+user_check()
+{
+  if [ "$BDOT_SKIP_RUNTIME_USER_CREATION" != "true" ]; then
+    succeeded
+    return 0
+  fi
+
+  info "BDOT_SKIP_RUNTIME_USER_CREATION is set to true, checking for existing collector users..."
+
+  user_exists=false
+
+  if id "$COLLECTOR_USER" >/dev/null 2>&1; then
+    user_exists=true
+    info "Found collector user: $COLLECTOR_USER"
+  fi
+
+  if id "$COLLECTOR_USER_LEGACY" >/dev/null 2>&1; then
+    user_exists=true
+    info "Found legacy collector user: $COLLECTOR_USER_LEGACY"
+  fi
+
+  if [ "$user_exists" = "false" ]; then
+    failed
+    error_exit "$LINENO" "BDOT_SKIP_RUNTIME_USER_CREATION is set to true, but neither collector user ($COLLECTOR_USER) nor legacy collector user ($COLLECTOR_USER_LEGACY) exists on the system."
+  fi
+
+  succeeded
+}
+
 # This will check to ensure either dpkg or rpm is installed on the system
 package_type_check()
 {
@@ -700,7 +840,7 @@ package_type_check()
 # latest_version gets the tag of the latest release, without the v prefix.
 latest_version()
 {
-  curl -s 'https://bdot.bindplane.com/api/v1/version/bindplane-otel-collector/latest?plain=1'
+  curl -s https://bdot.bindplane.com/latest
 }
 
 # This will install the package by downloading the archived agent,
@@ -710,7 +850,7 @@ install_package() {
   increase_indent
 
   # if the user didn't specify a local file then download the package
-  if [ -z "$package_path" ]; then
+  if [ "$offline_installation" = "false" ]; then
     proxy_args=""
     if [ -n "$proxy" ]; then
       proxy_args="-x $proxy"
@@ -721,10 +861,19 @@ install_package() {
 
     if [ -n "$proxy" ]; then
       info "Downloading package from $collector_download_url using proxy..."
+    else 
+      info "Downloading package from $collector_download_url..."
     fi
 
-    info "Downloading package from $collector_download_url..."
-    eval curl -L "$proxy_args" "$collector_download_url" -o "$out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
+    eval curl -L "$proxy_args" "$collector_download_url" -o "$package_out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download package"
+
+    if [ -n "$proxy" ]; then
+      info "Downloading GPG key tar file from $gpg_tar_download_url using proxy..."
+    else 
+      info "Downloading GPG key tar file from $gpg_tar_download_url..."
+    fi
+
+    eval curl -L "$proxy_args" "$gpg_tar_download_url" -o "$gpg_tar_out_file_path" --progress-bar --fail || error_exit "$LINENO" "Failed to download GPG tar file"
     succeeded
   fi
 
@@ -736,6 +885,62 @@ install_package() {
     dpkg -s "bindplane-otel-collector" > /dev/null 2>&1 && dpkg --purge "bindplane-otel-collector" > /dev/null 2>&1
   fi
 
+  # Verify the package signature, with optional user override on failure
+  # Capture GPG verification output to display failure details
+  # Temporarily disable set -e to allow capture of failing command output
+  set +e
+  gpg_verify_output=$(verify_package 2>&1)
+  gpg_verify_exit_code=$?
+  set -e
+
+  if [ -n "$gpg_verify_output" ]; then
+    printf "%s\n" "$gpg_verify_output"
+  fi
+  
+  if [ $gpg_verify_exit_code -ne 0 ]; then
+    if [ "$non_interactive" = "true" ]; then
+      # In quiet mode, fail immediately on GPG verification failure
+      if [ -n "$gpg_verify_output" ]; then
+        increase_indent
+        printf "%s\n" "$gpg_verify_output"
+        decrease_indent
+      fi
+      error_exit "$LINENO" "Failed to verify package signature. Use '--no-gpg-check' to skip verification."
+    else
+      # In interactive mode, show verification output, prompt the user, and explain failure
+      if [ -n "$gpg_verify_output" ]; then
+        increase_indent
+        printf "%s\n" "$gpg_verify_output"
+        decrease_indent
+      fi
+      
+      increase_indent
+      printf "\\n${indent}The package signature could not be verified. This may indicate:\n"
+      printf "${indent}  - The GPG keys are not properly installed or accessible\n"
+      printf "${indent}  - The package has been tampered with\n"
+      printf "${indent}  - The signing key has expired or been revoked\n"
+      printf "${indent}  - Network issues prevented GPG key retrieval\n"
+      printf "\\n${indent}$(fg_yellow 'Continuing without signature verification is NOT RECOMMENDED unless you have independently verified the package authenticity.')\\n\\n"
+      decrease_indent
+      
+      command printf "${indent}Do you wish to continue installation without GPG verification? "
+      prompt "n"
+      read -r gpg_override_input
+      printf "\\n"
+      
+      if [ "$gpg_override_input" != "y" ] && [ "$gpg_override_input" != "Y" ]; then
+        if [ -n "$gpg_verify_output" ]; then
+          increase_indent
+          error "Verification failed due to:"
+          printf "%s\n" "$gpg_verify_output"
+          decrease_indent
+        fi
+        error_exit "$LINENO" "Installation aborted due to GPG verification failure."
+      fi
+      
+      warn "Continuing installation without GPG verification. Ensure package authenticity has been verified through other means."
+    fi
+  fi
   install_package_file || error_exit "$LINENO" "Failed to extract package"
   succeeded
 
@@ -822,6 +1027,181 @@ install_package() {
   decrease_indent
 }
 
+verify_package() {
+  # If GPG check is skipped, return success immediately
+  if [ "$skip_gpg_check" = "true" ]; then
+    warn "GPG signature verification is being bypassed with the '--no-gpg-check' flag."
+    warn "This disables a critical security check and should only be used if your organization policies permit it."
+    return 0
+  fi
+
+  [ -d "$TMP_DIR/gpg" ] && rm -rf "$TMP_DIR/gpg"
+  mkdir -p "$TMP_DIR/gpg"
+
+  if ! tar -xzf "$gpg_tar_out_file_path" -C "$TMP_DIR/gpg" > /dev/null 2>&1; then
+    error "Failed to extract GPG key tar file"
+    return 1
+  fi
+
+  case "$package_type" in
+    deb)
+      if ! verify_package_deb; then
+        return 1
+      fi
+      ;;
+    rpm)
+      if ! verify_package_rpm; then
+        return 1
+      fi
+      ;;
+    *)
+      error "Unrecognized package type"
+      return 1
+      ;;
+  esac
+
+  return 0
+}
+
+verify_package_deb() {
+  if ! command -v gpg > /dev/null 2>&1; then
+    info "gpg is not installed, skipping signature verification"
+    return 0
+  fi
+
+  if ! command -v ar > /dev/null 2>&1; then
+    info "ar is not installed, skipping signature verification"
+    return 0
+  fi
+
+  if ! GNUPGHOME="$TMP_DIR/gpg" gpg --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" > /dev/null 2>&1; then
+    error "Failed to import public key"
+    return 1
+  fi
+  # if there are any revocation keys, import them
+  if [ -n "$(ls -A "$TMP_DIR/gpg/deb-revocations/" 2>/dev/null)" ]; then
+    for key in "$TMP_DIR/gpg/deb-revocations/"*; do
+      if ! GNUPGHOME="$TMP_DIR/gpg" gpg --import "$key" > /dev/null 2>&1; then
+        error "Failed to import revocation key"
+        return 1
+      fi
+    done
+  fi
+
+  if ! ar x "$package_out_file_path" "_gpgorigin" > /dev/null 2>&1; then
+    error "Failed to extract package signature"
+    return 1
+  fi
+
+  if ! mv "_gpgorigin" "$TMP_DIR/gpg/_gpgorigin"; then
+    error "Failed to move package signature to temporary directory"
+    return 1
+  fi
+
+  set +e
+  # Run pipeline, capture both output and exit code
+  OUTPUT=$(ar p "$package_out_file_path" debian-binary control.tar.gz data.tar.gz | \
+          GNUPGHOME="$TMP_DIR/gpg" gpg --verify "$TMP_DIR/gpg/_gpgorigin" - 2>&1)
+  EXIT_CODE=$?
+  set -e
+
+  # Fail if gpg failed
+  if [ $EXIT_CODE -ne 0 ]; then
+    error "Package signature is invalid"
+    return 1
+  fi
+
+  # Fail if key is revoked
+  if echo "$OUTPUT" | grep -q "key has been revoked"; then
+    error "Package signature is from a revoked key"
+    return 1
+  fi
+
+  if echo "$OUTPUT" | grep -q "key has expired"; then
+    error "Package signature is from an expired key"
+    return 1
+  fi
+
+  success "Package signature is valid, not revoked, and subkey is not expired"
+  return 0
+}
+
+verify_package_rpm() {
+  set +e
+  # Capture stderr from rpm --import
+  IMPORT_OUTPUT=$(rpm --import "$TMP_DIR/gpg/bdot-public-gpg-key.asc" 2>&1)
+  IMPORT_EXIT_CODE=$?
+  set -e
+
+  # Fail if rpm --import itself fails
+  if [ $IMPORT_EXIT_CODE -ne 0 ]; then
+      error "Failed to import public key"
+      return 1
+  fi
+
+  # Extract the signing key ID from checksig (reliable on EL7+)
+  SIGNING_KEYID=$(rpm --checksig --verbose "$package_out_file_path" 2>&1 \
+    | sed -nE 's/.*[Kk]ey ID ([0-9A-Fa-f]+):.*/\1/p' \
+    | head -n1)
+
+  if [ -z "$SIGNING_KEYID" ]; then
+    error "Could not determine RPM signing key ID"
+    return 1
+  fi
+
+  # Normalize key ID to lowercase (rpm stores gpg-pubkey in lowercase)
+  SIGNING_KEYID=$(echo "$SIGNING_KEYID" | tr '[:upper:]' '[:lower:]')
+
+  # Remove revoked keys (your existing logic)
+  if [ ${#RPM_GPG_KEYS_TO_REMOVE[@]} -gt 0 ]; then
+    for key in "${RPM_GPG_KEYS_TO_REMOVE[@]}"; do
+      if rpm -q "$key" > /dev/null 2>&1; then
+        if ! rpm -e "$key" > /dev/null 2>&1; then
+          error "Failed to remove revocation key"
+          return 1
+        fi
+      fi
+    done
+  fi
+
+  if ! rpm -qa 'gpg-pubkey*' \
+  | xargs -n1 rpm -qi \
+  | gpg --quiet --with-colons --show-keys \
+  | awk -F: '$1=="sub" {print tolower(substr($5, length($5)-7))}' \
+  | grep -qx "$SIGNING_KEYID"; then
+      error "RPM signed by subkey $SIGNING_KEYID which is not present in any installed GPG key"
+      return 1
+  fi
+
+  # Verify the signature
+  set +e
+  CHECKSIG_OUTPUT=$(rpm --checksig --verbose "$package_out_file_path" 2>&1)
+  CHECKSIG_EXIT_CODE=$?
+  set -e
+
+  # Reject hard failures first
+  if echo "$CHECKSIG_OUTPUT" | grep -q "BAD"; then
+    error "RPM signature is BAD"
+    return 1
+  fi
+
+  if echo "$CHECKSIG_OUTPUT" | grep -qi "EXPIRED"; then
+    error "RPM signature uses an expired key"
+    return 1
+  fi
+
+  # On Oracle Linux 7, rpm --checksig may show NOKEY/MISSING KEYS even when valid
+  if echo "$CHECKSIG_OUTPUT" | grep -qE "NOKEY|MISSING KEYS"; then
+    info "Ignoring legacy MD5/PGP warning on Oracle Linux (key verified)"
+  elif [ $CHECKSIG_EXIT_CODE -ne 0 ]; then
+    error "Failed to verify package signature"
+    return 1
+  fi
+
+  success "Package signature is valid, not revoked, and subkey is not expired"
+  return 0
+}
+
 # Install on AIX manually from tar.gz file
 install_aix()
 {
@@ -833,15 +1213,13 @@ install_aix()
   mkdir -p /opt/bindplane-otel-collector/storage > /dev/null 2>&1
 
   # Extract 
-  gunzip -c "$out_file_path" | tar -Uxvf - -C /opt/bindplane-otel-collector > /dev/null 2>&1
+  gunzip -c "$package_out_file_path" | tar -Uxvf - -C /opt/bindplane-otel-collector > /dev/null 2>&1
 
   # Move files to appropriate locations
-  mv /opt/bindplane-otel-collector/opentelemetry-java-contrib-jmx-metrics.jar /opt/ > /dev/null 2>&1
   mv /opt/bindplane-otel-collector/install/bindplane-otel-collector.aix.env /etc/ > /dev/null 2>&1
 
   # Set ownership
   chown -R "$COLLECTOR_USER":"$COLLECTOR_USER" /opt/bindplane-otel-collector > /dev/null 2>&1
-  chown "$COLLECTOR_USER":"$COLLECTOR_USER" /opt/opentelemetry-java-contrib-jmx-metrics.jar > /dev/null 2>&1
   chown "$COLLECTOR_USER":"$COLLECTOR_USER" /etc/bindplane-otel-collector.aix.env > /dev/null 2>&1
 }
 
@@ -849,13 +1227,13 @@ install_package_file()
 {
   case "$package_type" in
     deb)
-      dpkg --force-confold -i "$out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
+      dpkg --force-confold -i "$package_out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
       ;;
     mkssys)
       install_aix
       ;;
     rpm)
-      rpm -U "$out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
+      rpm -U "$package_out_file_path" > /dev/null || error_exit "$LINENO" "Failed to unpack package"
       ;;
     *)
       error "Unrecognized package type"
@@ -931,9 +1309,9 @@ create_supervisor_config() {
 display_results() {
   banner 'Information'
   increase_indent
-  info "Agent Home:         $(fg_cyan "$INSTALL_DIR")$(reset)"
-  info "Agent Config:       $(fg_cyan "$INSTALL_DIR/supervisor_storage/effective.yaml")$(reset)"
-  info "Agent Logs Command:       $(fg_cyan "sudo tail -F $INSTALL_DIR/supervisor_storage/agent.log")$(reset)"
+  info "Agent Home:          $(fg_cyan "$INSTALL_DIR")$(reset)"
+  info "Agent Config:        $(fg_cyan "$INSTALL_DIR/supervisor_storage/effective.yaml")$(reset)"
+  info "Agent Logs Command:  $(fg_cyan "sudo tail -F $INSTALL_DIR/supervisor_storage/agent.log")$(reset)"
   if [ "$SVC_PRE" = "systemctl" ]; then
     info "Supervisor Start Command:      $(fg_cyan "sudo systemctl start bindplane-otel-collector")$(reset)"
     info "Supervisor Stop Command:       $(fg_cyan "sudo systemctl stop bindplane-otel-collector")$(reset)"
@@ -969,7 +1347,6 @@ uninstall_aix()
 {
   # Remove files
   rm -rf /opt/bindplane-otel-collector > /dev/null 2>&1
-  rm -f /opt/opentelemetry-java-contrib-jmx-metrics.jar > /dev/null 2>&1
   rm -f /etc/bindplane-otel-collector.aix.env > /dev/null 2>&1
 }
 
@@ -1049,8 +1426,6 @@ uninstall()
     error_exit "Found an invalid SVC_PRE value in uninstall()"
   fi
 
-  info "Removing any existing manager.yaml..."
-  rm -f "$MANAGEMENT_YML_PATH"
   succeeded
 
   info "Removing package..."
@@ -1097,8 +1472,16 @@ main() {
         url=$2
         shift 2
         ;;
+      -gl|--gpg-tar-url)
+        gpg_tar_url=$2
+        shift 2
+        ;;
       -f | --file)
         package_path=$2
+        shift 2
+        ;;
+      -gf|--gpg-tar-file)
+        gpg_tar_path=$2
         shift 2
         ;;
       -x | --proxy)
@@ -1132,6 +1515,10 @@ main() {
       -b | --base-url)
         base_url=$2
         shift 2
+        ;;
+      --no-gpg-check)
+        skip_gpg_check="true"
+        shift 1
         ;;
       -r | --uninstall)
         uninstall
@@ -1175,6 +1562,7 @@ main() {
     error_exit "$LINENO" "Could not determine version to install"
   fi
 
+  validate_version
   interactive_check
 
   # AIX needs a special check
@@ -1183,6 +1571,7 @@ main() {
   fi
 
   connection_check
+  offline_check
   setup_installation
   install_package
   display_results

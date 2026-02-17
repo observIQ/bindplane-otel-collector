@@ -3,6 +3,7 @@ resourceMetrics:
     scopeMetrics:
       - metrics:
           - histogram:
+              aggregationTemporality: 2
               dataPoints:
                 - attributes:
                     - key: dev-machine

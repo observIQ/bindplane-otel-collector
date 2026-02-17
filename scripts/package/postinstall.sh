@@ -27,9 +27,10 @@ set -e
 # Whether or not to run the collector as an unprivileged user.
 : "${BDOT_UNPRIVILEGED:=false}"
 
-# Configurable username and group for BDOT
+# Configurable runtime user/group
 : "${BDOT_USER:=bdot}"
 : "${BDOT_GROUP:=bdot}"
+
 
 install() {
   stage_dir="/usr/share/bindplane-otel-collector/stage/bindplane-otel-collector"

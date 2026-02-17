@@ -24,7 +24,7 @@ func NewSettings(tt *componenttest.Telemetry) exporter.Settings {
 func AssertEqualExporterBatchSize(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.HistogramDataPoint[int64], opts ...metricdatatest.Option) {
 	want := metricdata.Metrics{
 		Name:        "otelcol_exporter_batch_size",
-		Description: "The number of logs in a batch.",
+		Description: "The number of logs in a batch. [Alpha]",
 		Unit:        "{logs}",
 		Data: metricdata.Histogram[int64]{
 			Temporality: metricdata.CumulativeTemporality,
@@ -36,10 +36,26 @@ func AssertEqualExporterBatchSize(t *testing.T, tt *componenttest.Telemetry, dps
 	metricdatatest.AssertEqual(t, want, got, opts...)
 }
 
+func AssertEqualExporterLogsSendFailed(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.DataPoint[int64], opts ...metricdatatest.Option) {
+	want := metricdata.Metrics{
+		Name:        "otelcol_exporter_logs_send_failed",
+		Description: "The number of times ConsumeLogs failed, triggering a retry by the collector pipeline. [Alpha]",
+		Unit:        "{failures}",
+		Data: metricdata.Sum[int64]{
+			Temporality: metricdata.CumulativeTemporality,
+			IsMonotonic: true,
+			DataPoints:  dps,
+		},
+	}
+	got, err := tt.GetMetric("otelcol_exporter_logs_send_failed")
+	require.NoError(t, err)
+	metricdatatest.AssertEqual(t, want, got, opts...)
+}
+
 func AssertEqualExporterPayloadSize(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.HistogramDataPoint[int64], opts ...metricdatatest.Option) {
 	want := metricdata.Metrics{
 		Name:        "otelcol_exporter_payload_size",
-		Description: "The size of the payload in bytes.",
+		Description: "The size of the payload in bytes. [Alpha]",
 		Unit:        "B",
 		Data: metricdata.Histogram[int64]{
 			Temporality: metricdata.CumulativeTemporality,
@@ -51,10 +67,26 @@ func AssertEqualExporterPayloadSize(t *testing.T, tt *componenttest.Telemetry, d
 	metricdatatest.AssertEqual(t, want, got, opts...)
 }
 
+func AssertEqualExporterRawBytes(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.DataPoint[int64], opts ...metricdatatest.Option) {
+	want := metricdata.Metrics{
+		Name:        "otelcol_exporter_raw_bytes",
+		Description: "The total number of raw bytes sent. [Alpha]",
+		Unit:        "B",
+		Data: metricdata.Sum[int64]{
+			Temporality: metricdata.CumulativeTemporality,
+			IsMonotonic: false,
+			DataPoints:  dps,
+		},
+	}
+	got, err := tt.GetMetric("otelcol_exporter_raw_bytes")
+	require.NoError(t, err)
+	metricdatatest.AssertEqual(t, want, got, opts...)
+}
+
 func AssertEqualExporterRequestCount(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.DataPoint[int64], opts ...metricdatatest.Option) {
 	want := metricdata.Metrics{
 		Name:        "otelcol_exporter_request_count",
-		Description: "The total number of requests made.",
+		Description: "The total number of requests made. [Alpha]",
 		Unit:        "{requests}",
 		Data: metricdata.Sum[int64]{
 			Temporality: metricdata.CumulativeTemporality,
@@ -70,7 +102,7 @@ func AssertEqualExporterRequestCount(t *testing.T, tt *componenttest.Telemetry, 
 func AssertEqualExporterRequestLatency(t *testing.T, tt *componenttest.Telemetry, dps []metricdata.HistogramDataPoint[int64], opts ...metricdatatest.Option) {
 	want := metricdata.Metrics{
 		Name:        "otelcol_exporter_request_latency",
-		Description: "The latency of the request in milliseconds.",
+		Description: "The latency of the request in milliseconds. [Alpha]",
 		Unit:        "ms",
 		Data: metricdata.Histogram[int64]{
 			Temporality: metricdata.CumulativeTemporality,

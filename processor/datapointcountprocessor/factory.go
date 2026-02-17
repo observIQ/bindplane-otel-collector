@@ -76,7 +76,7 @@ func createOTTLMetricsProcessor(cfg *Config, params processor.Settings, consumer
 		return nil, fmt.Errorf("invalid match expression: %w", err)
 	}
 
-	attrs, err := expr.MakeOTTLAttributeMap[ottldatapoint.TransformContext](cfg.OTTLAttributes, params.TelemetrySettings, expr.NewOTTLDatapointExpression)
+	attrs, err := expr.MakeOTTLAttributeMap[*ottldatapoint.TransformContext](cfg.OTTLAttributes, params.TelemetrySettings, expr.NewOTTLDatapointExpression)
 	if err != nil {
 		return nil, fmt.Errorf("invalid attribute expression: %w", err)
 	}

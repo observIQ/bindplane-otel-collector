@@ -75,14 +75,17 @@ error() {
 # shellcheck disable=SC2059
 success() { printf "$fg_green$*$reset\\n"; }
 
-bindplane_banner() {
-  fg_cyan " oooooooooo.   o8o                    .o8  ooooooooo.   oooo\\n"
-  fg_cyan " '888'   '88b  '\"'                   \"888  '888   'Y88. '888\\n"
-  fg_cyan "  888     888 oooo  ooo. .oo.    .oooo888   888   .d88'  888   .oooo.   ooo. .oo.    .ooooo.\\n"
-  fg_cyan "  888oooo888' '888  '888P\"Y88b  d88' '888   888ooo88P'   888  'P  )88b  '888P\"Y88b  d88' '88b\\n"
-  fg_cyan "  888    '88b  888   888   888  888   888   888          888   .oP\"888   888   888  888ooo888\\n"
-  fg_cyan "  888    .88P  888   888   888  888   888   888          888  d8(  888   888   888  888    .o\\n"
-  fg_cyan " o888bood8P'  o888o o888o o888o 'Y8bod88P\" o888o        o888o 'Y888\"\"8o o888o o888o '88bod8P'\\n"
+bindplane_banner()
+{
+  fg_cyan " oooooooooo.   o8o                    .o8              oooo\\n"
+  fg_cyan " '888'   '88b  '\"'                   \"888              '888\\n"
+  fg_cyan "  888     888 oooo  ooo. .oo.    .oooo888  oooooooo.    888   .oooo.   ooo. .oo.    .ooooo.\\n"
+  fg_cyan "  888oooo888' '888  '888P\"Y88b  d88' '888  '888' 'Y88.  888  'P  )88b  '888P\"Y88b  d88' '88b\\n"
+  fg_cyan "  888    '88b  888   888   888  888   888   888    888  888   .oP\"888   888   888  888ooo888\\n"
+  fg_cyan "  888    .88P  888   888   888  888   888   888   .88'  888  d8(  888   888   888  888    .o\\n"
+  fg_cyan " o888bood8P'  o888o o888o o888o 'Y8bod88P\"  888bod8P'  o888o 'Y888\"\"8o o888o o888o '88bod8P'\\n"
+  fg_cyan "                                            888\\n"
+  fg_cyan "                                           o888o\\n"
 
   reset
 }
@@ -306,8 +309,8 @@ collect_profiles() {
     tar_filename="$1"
     increase_indent
     # POSIX prompt
-    info "For endpoint, please use the format http://localhost:13133 or https://localhost:13133\n"
-    info "where 13133 is the port you configured in your profile extension (13133 is the default)"
+    info "For endpoint, please use the format http://localhost:1777 or https://localhost:1777\n"
+    info "where 1777 is the port you configured in your profile extension (1777 is the default)"
     # shellcheck disable=SC2162
     read -p "Endpoint: " ENDPOINT
     printf "\n"

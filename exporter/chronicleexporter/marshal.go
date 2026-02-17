@@ -16,10 +16,11 @@ package chronicleexporter
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
+
+	json "github.com/goccy/go-json"
 
 	"github.com/google/uuid"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
@@ -34,17 +35,29 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const logTypeField = `attributes["log_type"]`
-const chronicleLogTypeField = `attributes["chronicle_log_type"]`
-const chronicleNamespaceField = `attributes["chronicle_namespace"]`
-const chronicleIngestionLabelsPrefix = `chronicle_ingestion_label`
+const (
+	logTypeField                   = `attributes["log_type"]`
+	chronicleLogTypeField          = `attributes["chronicle_log_type"]`
+	chronicleNamespaceField        = `attributes["chronicle_namespace"]`
+	chronicleIngestionLabelsPrefix = `chronicle_ingestion_label`
+
+	// catchAllLogType is the log type that is used when the log type is not found in the log types map
+	catchAllLogType = "CATCH_ALL"
+)
 
 // Specific collector IDs for Chronicle used to identify bindplane agents.
+const (
+	googleCollectorIDString           = "aaaa1111-aaaa-1111-aaaa-1111aaaa1111"
+	googleEnterpriseCollectorIDString = "aaaa1111-aaaa-1111-aaaa-1111aaaa1112"
+	enterpriseCollectorIDString       = "aaaa1111-aaaa-1111-aaaa-1111aaaa1113"
+	defaultCollectorIDString          = "aaaa1111-aaaa-1111-aaaa-1111aaaa1114"
+)
+
 var (
-	googleCollectorID           = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1111")
-	googleEnterpriseCollectorID = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1112")
-	enterpriseCollectorID       = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1113")
-	defaultCollectorID          = uuid.MustParse("aaaa1111-aaaa-1111-aaaa-1111aaaa1114")
+	googleCollectorID           = uuid.MustParse(googleCollectorIDString)
+	googleEnterpriseCollectorID = uuid.MustParse(googleEnterpriseCollectorIDString)
+	enterpriseCollectorID       = uuid.MustParse(enterpriseCollectorIDString)
+	defaultCollectorID          = uuid.MustParse(defaultCollectorIDString)
 )
 
 const (
@@ -61,38 +74,44 @@ var supportedLogTypes = map[string]string{
 }
 
 type protoMarshaler struct {
-	cfg          Config
-	teleSettings component.TelemetrySettings
-	startTime    time.Time
-	customerID   []byte
-	collectorID  []byte
-	telemetry    *metadata.TelemetryBuilder
+	cfg               Config
+	teleSettings      component.TelemetrySettings
+	startTime         time.Time
+	customerID        []byte
+	collectorID       []byte
+	collectorIDString string
+	telemetry         *metadata.TelemetryBuilder
+	logTypes          map[string]exists
+	logger            *zap.Logger
 }
 
-func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings, telemetry *metadata.TelemetryBuilder) (*protoMarshaler, error) {
+func newProtoMarshaler(cfg Config, teleSettings component.TelemetrySettings, telemetry *metadata.TelemetryBuilder, logger *zap.Logger) (*protoMarshaler, error) {
 	customerID, err := uuid.Parse(cfg.CustomerID)
 	if err != nil {
 		return nil, fmt.Errorf("parse customer ID: %w", err)
 	}
 	return &protoMarshaler{
-		startTime:    time.Now(),
-		cfg:          cfg,
-		teleSettings: teleSettings,
-		customerID:   customerID[:],
-		collectorID:  getCollectorID(cfg.LicenseType),
-		telemetry:    telemetry,
+		startTime:         time.Now(),
+		cfg:               cfg,
+		teleSettings:      teleSettings,
+		customerID:        customerID[:],
+		collectorID:       getCollectorID(cfg.LicenseType),
+		collectorIDString: getCollectorIDString(cfg.LicenseType),
+		telemetry:         telemetry,
+		logger:            logger,
 	}, nil
 }
 
-func (m *protoMarshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]*api.BatchCreateLogsRequest, error) {
-	logGrouper, err := m.extractRawLogs(ctx, ld)
+func (m *protoMarshaler) MarshalRawLogs(ctx context.Context, ld plog.Logs) ([]*api.BatchCreateLogsRequest, uint, error) {
+	logGrouper, totalBytes, err := m.extractRawLogs(ctx, ld)
 	if err != nil {
-		return nil, fmt.Errorf("extract raw logs: %w", err)
+		return nil, 0, fmt.Errorf("extract raw logs: %w", err)
 	}
-	return m.constructPayloads(logGrouper), nil
+	return m.constructPayloads(logGrouper), totalBytes, nil
 }
 
-func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (*logGrouper, error) {
+func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (*logGrouper, uint, error) {
+	totalBytes := uint(0)
 	logGrouper := newLogGrouper()
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		resourceLog := ld.ResourceLogs().At(i)
@@ -112,25 +131,22 @@ func (m *protoMarshaler) extractRawLogs(ctx context.Context, ld plog.Logs) (*log
 					continue
 				}
 
-				var timestamp time.Time
+				timestamp := getTimestamp(logRecord)
+				collectionTime := getObservedTimestamp(logRecord)
 
-				if logRecord.Timestamp() != 0 {
-					timestamp = logRecord.Timestamp().AsTime()
-				} else {
-					timestamp = logRecord.ObservedTimestamp().AsTime()
-				}
-
+				data := []byte(rawLog)
 				entry := &api.LogEntry{
 					Timestamp:      timestamppb.New(timestamp),
-					CollectionTime: timestamppb.New(logRecord.ObservedTimestamp().AsTime()),
-					Data:           []byte(rawLog),
+					CollectionTime: timestamppb.New(collectionTime),
+					Data:           data,
 				}
+				totalBytes += uint(len(data))
 				logGrouper.Add(entry, namespace, logType, ingestionLabels)
 			}
 		}
 	}
 
-	return logGrouper, nil
+	return logGrouper, totalBytes, nil
 }
 
 func (m *protoMarshaler) processLogRecord(ctx context.Context, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, string, string, []*api.Label, error) {
@@ -193,14 +209,26 @@ func (m *protoMarshaler) getRawLog(ctx context.Context, logRecord plog.LogRecord
 	return m.getRawField(ctx, m.cfg.RawLogField, logRecord, scope, resource)
 }
 
+func (m *protoMarshaler) shouldValidateLogType() bool {
+	return m.cfg.ValidateLogTypes && m.logTypes != nil
+}
+
 func (m *protoMarshaler) getLogType(ctx context.Context, logRecord plog.LogRecord, scope plog.ScopeLogs, resource plog.ResourceLogs) (string, error) {
 	// check for attributes in attributes["chronicle_log_type"]
 	logType, err := m.getRawField(ctx, chronicleLogTypeField, logRecord, scope, resource)
 	if err != nil {
 		return "", fmt.Errorf("get chronicle log type: %w", err)
 	}
+
 	if logType != "" {
-		return logType, nil
+		if m.shouldValidateLogType() {
+			if _, ok := m.logTypes[logType]; ok {
+				return logType, nil
+			}
+			m.logger.Warn("Log type could not be validated", zap.String("logType", logType), zap.String("logTypeField", chronicleLogTypeField))
+		} else {
+			return logType, nil
+		}
 	}
 
 	if m.cfg.OverrideLogType {
@@ -216,6 +244,16 @@ func (m *protoMarshaler) getLogType(ctx context.Context, logRecord plog.LogRecor
 		}
 	}
 
+	if m.cfg.LogType == "" {
+		return catchAllLogType, nil
+	}
+
+	if m.shouldValidateLogType() {
+		if _, ok := m.logTypes[m.cfg.LogType]; !ok {
+			m.logger.Warn("Default log type not found in log types map", zap.String("logType", m.cfg.LogType))
+			return catchAllLogType, nil
+		}
+	}
 	return m.cfg.LogType, nil
 }
 
@@ -321,7 +359,7 @@ func (m *protoMarshaler) getRawField(ctx context.Context, field string, logRecor
 	if err != nil {
 		return "", fmt.Errorf("raw_log_field is invalid: %s", err)
 	}
-	tCtx := ottllog.NewTransformContext(logRecord, scope.Scope(), resource.Resource(), scope, resource)
+	tCtx := ottllog.NewTransformContextPtr(resource, scope, logRecord)
 
 	lrExprResult, err := lrExpr.Execute(ctx, tCtx)
 	if err != nil {
@@ -418,7 +456,6 @@ func (m *protoMarshaler) constructPayloads(logGrouper *logGrouper) []*api.BatchC
 	return payloads
 }
 
-// deprecated
 func (m *protoMarshaler) enforceMaximumsGRPCRequest(request *api.BatchCreateLogsRequest) []*api.BatchCreateLogsRequest {
 	size := proto.Size(request)
 	entries := request.Batch.Entries
@@ -455,7 +492,7 @@ func (m *protoMarshaler) buildGRPCRequest(entries []*api.LogEntry, logType, name
 			Entries:   entries,
 			LogType:   logType,
 			Source: &api.EventSource{
-				CollectorId: m.collectorID,
+				CollectorId: []byte(m.collectorID),
 				CustomerId:  m.customerID,
 				Labels:      ingestionLabels,
 				Namespace:   namespace,
@@ -464,15 +501,16 @@ func (m *protoMarshaler) buildGRPCRequest(entries []*api.LogEntry, logType, name
 	}
 }
 
-func (m *protoMarshaler) MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs) (map[string][]*api.ImportLogsRequest, error) {
-	rawLogs, err := m.extractRawHTTPLogs(ctx, ld)
+func (m *protoMarshaler) MarshalRawLogsForHTTP(ctx context.Context, ld plog.Logs) (map[string][]*api.ImportLogsRequest, uint, error) {
+	rawLogs, totalBytes, err := m.extractRawHTTPLogs(ctx, ld)
 	if err != nil {
-		return nil, fmt.Errorf("extract raw logs: %w", err)
+		return nil, 0, fmt.Errorf("extract raw logs: %w", err)
 	}
-	return m.constructHTTPPayloads(rawLogs), nil
+	return m.constructHTTPPayloads(rawLogs), totalBytes, nil
 }
 
-func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (map[string][]*api.Log, error) {
+func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (map[string][]*api.Log, uint, error) {
+	totalBytes := uint(0)
 	entries := make(map[string][]*api.Log)
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		resourceLog := ld.ResourceLogs().At(i)
@@ -490,31 +528,43 @@ func (m *protoMarshaler) extractRawHTTPLogs(ctx context.Context, ld plog.Logs) (
 					continue
 				}
 
-				var timestamp time.Time
-				if logRecord.Timestamp() != 0 {
-					timestamp = logRecord.Timestamp().AsTime()
-				} else {
-					timestamp = logRecord.ObservedTimestamp().AsTime()
-				}
+				timestamp := getTimestamp(logRecord)
+				collectionTime := getObservedTimestamp(logRecord)
 
+				data := []byte(rawLog)
 				entry := &api.Log{
 					LogEntryTime:         timestamppb.New(timestamp),
-					CollectionTime:       timestamppb.New(logRecord.ObservedTimestamp().AsTime()),
-					Data:                 []byte(rawLog),
+					CollectionTime:       timestamppb.New(collectionTime),
+					Data:                 data,
 					EnvironmentNamespace: namespace,
 					Labels:               ingestionLabels,
 				}
+				totalBytes += uint(len(data))
 				entries[logType] = append(entries[logType], entry)
 			}
 		}
 	}
 
-	return entries, nil
+	return entries, totalBytes, nil
 }
 
-func buildForwarderString(cfg Config) string {
+func getTimestamp(logRecord plog.LogRecord) time.Time {
+	if logRecord.Timestamp() != 0 {
+		return logRecord.Timestamp().AsTime()
+	}
+	return getObservedTimestamp(logRecord)
+}
+
+func getObservedTimestamp(logRecord plog.LogRecord) time.Time {
+	if logRecord.ObservedTimestamp() != 0 {
+		return logRecord.ObservedTimestamp().AsTime()
+	}
+	return time.Now()
+}
+
+func (m *protoMarshaler) buildForwarderString() string {
 	format := "projects/%s/locations/%s/instances/%s/forwarders/%s"
-	return fmt.Sprintf(format, cfg.Project, cfg.Location, cfg.CustomerID, cfg.Forwarder)
+	return fmt.Sprintf(format, m.cfg.Project, m.cfg.Location, m.cfg.CustomerID, m.collectorIDString)
 }
 
 func (m *protoMarshaler) constructHTTPPayloads(rawLogs map[string][]*api.Log) map[string][]*api.ImportLogsRequest {
@@ -536,7 +586,6 @@ func (m *protoMarshaler) constructHTTPPayloads(rawLogs map[string][]*api.Log) ma
 	return payloads
 }
 
-// deprecated
 func (m *protoMarshaler) enforceMaximumsHTTPRequest(request *api.ImportLogsRequest) []*api.ImportLogsRequest {
 	size := proto.Size(request)
 	logs := request.GetInlineSource().Logs
@@ -575,10 +624,23 @@ func (m *protoMarshaler) buildHTTPRequest(entries []*api.Log) *api.ImportLogsReq
 
 		Source: &api.ImportLogsRequest_InlineSource{
 			InlineSource: &api.ImportLogsRequest_LogsInlineSource{
-				Forwarder: buildForwarderString(m.cfg),
+				Forwarder: m.buildForwarderString(),
 				Logs:      entries,
 			},
 		},
+	}
+}
+
+func getCollectorIDString(licenseType string) string {
+	switch strings.ToLower(licenseType) {
+	case strings.ToLower(licenseTypeGoogle):
+		return googleCollectorIDString
+	case strings.ToLower(licenseTypeGoogleEnterprise):
+		return googleEnterpriseCollectorIDString
+	case strings.ToLower(licenseTypeEnterprise):
+		return enterpriseCollectorIDString
+	default:
+		return defaultCollectorIDString
 	}
 }
 

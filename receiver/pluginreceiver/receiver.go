@@ -72,7 +72,7 @@ func (r *Receiver) Start(ctx context.Context, host component.Host) error {
 		return fmt.Errorf("failed to get config provider: %w", err)
 	}
 
-	service, err := r.createService(*factories, *cfgProviderSettings, r.logger)
+	service, err := r.createService(*factories, *cfgProviderSettings)
 	if err != nil {
 		return fmt.Errorf("failed to create internal service: %w", err)
 	}

@@ -36,6 +36,10 @@ type Config struct {
 	// PollInterval is the interval at which the receiver polls for new audit logs
 	PollInterval time.Duration `mapstructure:"poll_interval"`
 
+	// ParseAttributes when true parses the audit log fields into log record attributes
+	// and sets the body to the description. When false, the body is set to the raw JSON event.
+	ParseAttributes bool `mapstructure:"parse_attributes"`
+
 	// bindplaneURL is the URL to the BindPlane audit logs API. Taken from the client config endpoint.
 	bindplaneURL *url.URL
 }

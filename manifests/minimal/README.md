@@ -8,8 +8,10 @@ You can use this manifest as a base when constructing your own custom distributi
 
 This is a list of components that will be available to use in the resulting collector binary.
 
-| extensions           | exporters   | processors | receivers   | connectors |
-| :------------------- | :---------- | :--------- | :---------- | :--------- |
-| healthcheckextension | nopexporter |            | nopreceiver |            |
-| opampextension       |             |            |             |            |
-| bindplaneextension   |             |            |             |            |
+| extensions           | exporters        | processors                     | receivers           | connectors          |
+| :------------------- | :--------------- | :----------------------------- | :------------------ | :------------------ |
+| bindplaneextension   | nopexporter      | metricstransformprocessor      | filelogreceiver     | failoverconnector   |
+| filestorage          | otlpexporter     | snapshotprocessor              | hostmetricsreceiver | forwardconnector    |
+| healthcheckextension | otlphttpexporter | throughputmeasurementprocessor | nopreceiver         | roundrobinconnector |
+| opampextension       |                  | topologyprocessor              |                     | routingconnector    |
+|                      |                  | transformprocessor             |                     |                     |
