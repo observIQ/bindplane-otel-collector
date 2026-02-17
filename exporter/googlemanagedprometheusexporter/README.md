@@ -63,3 +63,14 @@ service:
       processors: [resource, batch]
       exporters: [googlemanagedprometheus]
 ```
+
+## OCB
+
+This component relies on the `github.com/observiq/bindplane-otel-collector/version` package to get a version value. This version is used to construct a User-Agent header value.
+
+When using this component with the OpenTelemetry Collector Builder (OCB), use the `--ldflags` CLI argument to set the version value at build time. For example:
+
+```sh
+builder --config "manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/version.version=v1.2.3"
+```
+
