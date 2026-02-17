@@ -33,19 +33,19 @@ import (
 )
 
 func TestNewFactory(t *testing.T) {
-	factory := NewFactoryWithVersion("v1.2.3")
+	factory := NewFactory()
 	assert.Equal(t, metadata.Type, factory.Type())
 	assert.Equal(t, metadata.LogsStability, factory.LogsStability())
 }
 
 func TestCreateDefaultConfig(t *testing.T) {
-	cfg := createDefaultConfig("v1.2.3")()
+	cfg := createDefaultConfig()()
 	assert.NotNil(t, cfg)
 
 	webhookCfg, ok := cfg.(*Config)
 	require.True(t, ok)
 
-	expectedUserAgent := "bindplane-otel-collector/v1.2.3"
+	expectedUserAgent := "bindplane-otel-collector/latest"
 	assert.Equal(t, &SignalConfig{
 		ClientConfig: confighttp.ClientConfig{
 			Endpoint: "https://localhost",

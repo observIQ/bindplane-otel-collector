@@ -26,7 +26,6 @@ import (
 	"github.com/observiq/bindplane-otel-collector/exporter/qradar"
 	"github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter"
 	"github.com/observiq/bindplane-otel-collector/exporter/webhookexporter"
-	"github.com/observiq/bindplane-otel-collector/internal/version"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/alibabacloudlogserviceexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/awscloudwatchlogsexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/awsemfexporter"
@@ -78,9 +77,9 @@ var defaultExporters = []exporter.Factory{
 	elasticsearchexporter.NewFactory(),
 	enhanceindexings3exporter.NewFactory(),
 	fileexporter.NewFactory(),
-	googlecloudexporter.NewFactory(version.Version()),
+	googlecloudexporter.NewFactory(),
 	googlecloudpubsubexporter.NewFactory(),
-	googlemanagedprometheusexporter.NewFactory(version.Version()),
+	googlemanagedprometheusexporter.NewFactory(),
 	googlecloudstorageexporter.NewFactory(),
 	influxdbexporter.NewFactory(),
 	kafkaexporter.NewFactory(),
@@ -100,6 +99,6 @@ var defaultExporters = []exporter.Factory{
 	splunkhecexporter.NewFactory(),
 	sumologicexporter.NewFactory(),
 	syslogexporter.NewFactory(),
-	webhookexporter.NewFactoryWithVersion(version.Version()),
+	webhookexporter.NewFactory(),
 	zipkinexporter.NewFactory(),
 }
