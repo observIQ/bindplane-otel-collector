@@ -46,3 +46,13 @@ When trace data is received by the Google Cloud Exporter, it is processed in the
 ## Metric Labels
 
 Unlike the official Google Cloud Exporter, this extension transforms all resource attributes into metric labels by default. Users may still use the `resource_filters` field in the metric config to overwrite this behavior.
+
+## OCB
+
+This component relies on the `github.com/observiq/bindplane-otel-collector/version` package to get a version value. This version is used to construct a User-Agent header value.
+
+When using this component with the OpenTelemetry Collector Builder (OCB), use the `--ldflags` CLI argument to set the version value at build time. For example:
+
+```sh
+builder --config "manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/version.version=v1.2.3"
+```
