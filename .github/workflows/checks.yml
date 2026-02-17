@@ -198,3 +198,12 @@ jobs:
         uses: namespacelabs/nscloud-checkout-action@v7
       - name: Check Module Paths
         run: make check-mod-paths
+
+  check-dependabot:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
+    steps:
+      - name: Checkout Sources
+        uses: namespacelabs/nscloud-checkout-action@v7
+      - name: Check Dependabot
+        run: make check-dependabot
