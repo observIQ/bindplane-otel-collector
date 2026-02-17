@@ -90,11 +90,11 @@ build-darwin-arm64:
 
 .PHONY: build-windows-amd64
 build-windows-amd64:
-	GOOS=windows GOARCH=amd64 $(MAKE) build-binaries -j2
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(MAKE) build-binaries -j2
 
 .PHONY: build-windows-arm64
 build-windows-arm64:
-	GOOS=windows GOARCH=arm64 $(MAKE) build-binaries -j2
+	CGO_ENABLED=0 GOOS=windows GOARCH=arm64 $(MAKE) build-binaries -j2
 
 # tool-related commands
 .PHONY: install-tools
