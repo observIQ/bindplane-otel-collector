@@ -377,8 +377,9 @@ release-prep-gpg:
 # Build and sign, skip release and ignore dirty git tree
 .PHONY: release-test
 release-test:
-# If there is no MSI in the root dir, we'll create a dummy one so that goreleaser can complete successfully
-	if [ ! -e "./observiq-otel-collector.msi" ]; then touch ./observiq-otel-collector.msi; fi
+# If there are no MSIs in the root dir, we'll create dummy ones so that goreleaser can complete successfully
+	if [ ! -e "./observiq-otel-collector-amd64.msi" ]; then touch ./observiq-otel-collector-amd64.msi; fi
+	if [ ! -e "./observiq-otel-collector-arm64.msi" ]; then touch ./observiq-otel-collector-arm64.msi; fi
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
 
 build-single:
