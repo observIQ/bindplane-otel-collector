@@ -8,8 +8,17 @@ on:
         default: "v0.0.1"
 
 jobs:
-  build-64bit-msi:
-    runs-on: windows-2022
+  build-msi:
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            wix_arch: x64
+            runner: windows-2022
+          - arch: arm64
+            wix_arch: arm64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
@@ -17,21 +26,12 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          # either 'goreleaser' (default) or 'goreleaser-pro'
-          distribution: goreleaser-pro
-          version: "v2.12.5"
-          args: release --single-target --skip=validate,publish --clean --config=.goreleaser-windows.yml
-        env:
-          GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+      - name: Build Windows Binaries
+        run: make build-windows-${{ matrix.arch }}
       - name: Copy Windows Collector Binary
-        run: cp dist/windows_amd64/collector_windows_amd64_v1/observiq-otel-collector.exe windows/observiq-otel-collector.exe
+        run: cp dist/collector_windows_${{ matrix.arch }}.exe windows/observiq-otel-collector.exe
       - name: Copy Windows Updater Binary
-        run: cp dist/windows_amd64/updater_windows_amd64_v1/updater.exe windows/updater.exe
+        run: cp dist/updater_windows_${{ matrix.arch }}.exe windows/updater.exe
       - name: Copy Plugins to MSI Build Directory
         run: cp -r release_deps/plugins windows/
       - name: Copy Example Config
@@ -52,42 +52,35 @@ jobs:
       - name: Install Build Tools
         run: |
           curl -f -L -o go-msi.exe https://github.com/observIQ/go-msi/releases/download/v2.2.0/go-msi.exe
-          curl -f -L -o wix310-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix3104rtm/wix310-binaries.zip
-          unzip wix310-binaries.zip
+          curl -f -L -o wix314-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314-binaries.zip
+          unzip wix314-binaries.zip
         working-directory: C:/build
       - name: "Build MSI from Tagged Release"
-        run: go-msi.exe make -m observiq-otel-collector.msi --version ${{ github.event.inputs.version }} --arch amd64
+        run: go-msi.exe make -m observiq-otel-collector-${{ matrix.arch }}.msi --version ${{ github.event.inputs.version }} --arch ${{ matrix.wix_arch }}
         working-directory: C:/build
       - name: Install DigiCert Client tools from Github Custom Actions marketplace
         uses: digicert/ssm-code-signing@v1.0.0
-      - name: Set up certificate 
-        run: | 
-          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12 
+      - name: Set up certificate
+        run: |
+          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
         shell: bash
       - name: Set variables for signing
-        id: variables 
-        run: | 
-          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT 
-          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV" 
-          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV" 
-          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
-          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV" 
+        id: variables
+        run: |
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV"
+          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
         shell: bash
       - name: Signing using keypair alias
         run: |
-          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/observiq-otel-collector.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
+          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/observiq-otel-collector-${{ matrix.arch }}.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
         shell: cmd
       - name: "Upload MSI"
         uses: actions/upload-artifact@v4
         with:
-          name: observiq-otel-collector.msi
-          path: C:/build/observiq-otel-collector.msi
-          # Short lived because this is meant as an action for developers
-          retention-days: 1
-      - name: "Upload ZIP Archive"
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-archive
-          path: dist/windows_amd64/*.zip
+          name: observiq-otel-collector-${{ matrix.arch }}.msi
+          path: C:/build/observiq-otel-collector-${{ matrix.arch }}.msi
           # Short lived because this is meant as an action for developers
           retention-days: 1
