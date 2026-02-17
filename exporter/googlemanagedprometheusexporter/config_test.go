@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/observiq/bindplane-otel-collector/internal/version"
+	"github.com/observiq/bindplane-otel-collector/version"
 	gmp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/api/option"
@@ -27,7 +27,7 @@ import (
 func TestCreateDefaultConfig(t *testing.T) {
 	collectorVersion := version.Version()
 
-	cfg := createDefaultConfig()()
+	cfg := createDefaultConfig()
 	googleCfg, ok := cfg.(*Config)
 	require.True(t, ok)
 

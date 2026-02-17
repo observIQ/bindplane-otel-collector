@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/webhookexporter/internal/metadata"
-	"github.com/observiq/bindplane-otel-collector/internal/version"
+	"github.com/observiq/bindplane-otel-collector/version"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"
@@ -42,32 +42,30 @@ const (
 func NewFactory() exporter.Factory {
 	return exporter.NewFactory(
 		metadata.Type,
-		createDefaultConfig(),
+		createDefaultConfig,
 		exporter.WithLogs(createLogsExporter, metadata.LogsStability),
 	)
 }
 
-func createDefaultConfig() func() component.Config {
+func createDefaultConfig() component.Config {
 	userAgent := fmt.Sprintf("%s/%s", defaultUserAgent, version.Version())
-	return func() component.Config {
-		return &Config{
-			LogsConfig: &SignalConfig{
-				ClientConfig: confighttp.ClientConfig{
-					Endpoint: "https://localhost",
-					Timeout:  30 * time.Second,
-					Headers: configopaque.MapList{
-						{
-							Name:  "User-Agent",
-							Value: configopaque.String(userAgent),
-						},
+	return &Config{
+		LogsConfig: &SignalConfig{
+			ClientConfig: confighttp.ClientConfig{
+				Endpoint: "https://localhost",
+				Timeout:  30 * time.Second,
+				Headers: configopaque.MapList{
+					{
+						Name:  "User-Agent",
+						Value: configopaque.String(userAgent),
 					},
 				},
-				Verb:             POST,
-				ContentType:      "application/json",
-				QueueBatchConfig: configoptional.Some(exporterhelper.NewDefaultQueueConfig()),
-				BackOffConfig:    configretry.NewDefaultBackOffConfig(),
 			},
-		}
+			Verb:             POST,
+			ContentType:      "application/json",
+			QueueBatchConfig: configoptional.Some(exporterhelper.NewDefaultQueueConfig()),
+			BackOffConfig:    configretry.NewDefaultBackOffConfig(),
+		},
 	}
 }
 

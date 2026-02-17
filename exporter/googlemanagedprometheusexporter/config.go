@@ -21,7 +21,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/observiq/bindplane-otel-collector/internal/version"
+	"github.com/observiq/bindplane-otel-collector/version"
 	gmp "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter"
 	"go.opentelemetry.io/collector/component"
 	"google.golang.org/api/option"
@@ -108,12 +108,10 @@ func (c *Config) updateProjectFromFile(fileName string) error {
 }
 
 // createDefaultConfig creates the default config for the exporter
-func createDefaultConfig() func() component.Config {
+func createDefaultConfig() component.Config {
 	collectorVersion := version.Version()
-	return func() component.Config {
-		return &Config{
-			GMPConfig: createDefaultGCPConfig(collectorVersion),
-		}
+	return &Config{
+		GMPConfig: createDefaultGCPConfig(collectorVersion),
 	}
 }
 

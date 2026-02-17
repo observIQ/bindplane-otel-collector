@@ -40,7 +40,7 @@ const (
 func NewFactory() exporter.Factory {
 	return exporter.NewFactory(
 		componentType,
-		createDefaultConfig(),
+		createDefaultConfig,
 		exporter.WithMetrics(createMetricsExporter, stability),
 	)
 }

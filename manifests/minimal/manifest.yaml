@@ -47,3 +47,4 @@ replaces:
   - github.com/observiq/bindplane-otel-collector/internal/measurements => ../internal/measurements
   - github.com/observiq/bindplane-otel-collector/internal/report => ../internal/report
   - github.com/observiq/bindplane-otel-collector/internal/topology => ../internal/topology
+  - github.com/observiq/bindplane-otel-collector/version => ../version
