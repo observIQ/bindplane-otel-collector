@@ -107,4 +107,3 @@ When using this component with the OpenTelemetry Collector Builder (OCB), use th
 ```sh
 builder --config "manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/version.version=v1.2.3"
 ```
-
