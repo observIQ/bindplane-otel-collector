@@ -39,7 +39,7 @@ func TestNewFactory(t *testing.T) {
 }
 
 func TestCreateDefaultConfig(t *testing.T) {
-	cfg := createDefaultConfig()()
+	cfg := createDefaultConfig()
 	assert.NotNil(t, cfg)
 
 	webhookCfg, ok := cfg.(*Config)
