@@ -379,3 +379,4 @@ replaces:
   - github.com/observiq/bindplane-otel-collector/internal/rehydration => ../internal/rehydration
   - github.com/observiq/bindplane-otel-collector/internal/version => ../internal/version
   - github.com/observiq/bindplane-otel-collector/internal/measurements => ../internal/measurements
+  - github.com/observiq/bindplane-otel-collector/version => ../version
