@@ -45,7 +45,7 @@ func TestCreateMetricExporterSuccess(t *testing.T) {
 	}()
 
 	factory := NewFactory()
-	cfg := createDefaultConfig()()
+	cfg := createDefaultConfig()
 	ctx := context.Background()
 	set := exportertest.NewNopSettings(typ)
 
@@ -67,7 +67,7 @@ func TestCreateExporterFailure(t *testing.T) {
 	}()
 
 	factory := NewFactory()
-	cfg := createDefaultConfig()()
+	cfg := createDefaultConfig()
 	ctx := context.Background()
 	set := exportertest.NewNopSettings(typ)
 

@@ -4,7 +4,7 @@ go 1.24.11
 
 require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/collector v0.55.0
-	github.com/observiq/bindplane-otel-collector/internal/version v1.93.0
+	github.com/observiq/bindplane-otel-collector/version v1.93.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter v0.145.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.51.0
@@ -108,5 +108,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260203192932-546029d2fa20 // indirect
 )
 
-// Needed until 'version' package changes are included in a release
-replace github.com/observiq/bindplane-otel-collector/internal/version => ../../internal/version
+replace github.com/observiq/bindplane-otel-collector/version => ../../version
