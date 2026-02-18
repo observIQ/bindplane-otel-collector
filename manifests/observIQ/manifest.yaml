@@ -4,7 +4,7 @@ dist:
   module: github.com/observiq/bindplane-otel-collector
   name: bindplane-otel-collector
   description: Bindplane's custom distro for the OpenTelemetry Collector
-  version: "v2.0.0"
+  version: "v2.0.0-beta.11"
   output_path: ./builder
 conf_resolver:
   default_uri_scheme: "env"
@@ -371,12 +371,15 @@ replaces:
   # replace used by bindplaneextension
   - github.com/observiq/bindplane-otel-collector/processor/topologyprocessor => ../processor/topologyprocessor
   # replace statements for internal imports
-  - github.com/observiq/bindplane-otel-collector/internal/expr => ../internal/expr
+  - github.com/observiq/bindplane-otel-collector/internal/aws => ../internal/aws
+  - github.com/observiq/bindplane-otel-collector/internal/azureblob => ../internal/azureblob
+  - github.com/observiq/bindplane-otel-collector/internal/blobconsume => ../internal/blobconsume
   - github.com/observiq/bindplane-otel-collector/internal/counter => ../internal/counter
-  - github.com/observiq/bindplane-otel-collector/internal/report => ../internal/report
-  - github.com/observiq/bindplane-otel-collector/internal/testutils => ../internal/testutils
-  - github.com/observiq/bindplane-otel-collector/internal/topology => ../internal/topology
-  - github.com/observiq/bindplane-otel-collector/internal/rehydration => ../internal/rehydration
-  - github.com/observiq/bindplane-otel-collector/internal/version => ../internal/version
+  - github.com/observiq/bindplane-otel-collector/internal/expr => ../internal/expr
   - github.com/observiq/bindplane-otel-collector/internal/measurements => ../internal/measurements
+  - github.com/observiq/bindplane-otel-collector/internal/osinfo => ../internal/osinfo
+  - github.com/observiq/bindplane-otel-collector/internal/report => ../internal/report
+  - github.com/observiq/bindplane-otel-collector/internal/storageclient => ../internal/storageclient
+  - github.com/observiq/bindplane-otel-collector/internal/testutils => ../internal/testutils
+  - github.com/observiq/bindplane-otel-collector/internal/tools => ../internal/tools
   - github.com/observiq/bindplane-otel-collector/version => ../version
