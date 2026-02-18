@@ -43,8 +43,8 @@ const (
 
 // GCS Pub/Sub message attribute keys
 const (
-	AttrBucketID = "bucketId"
-	AttrObjectID = "objectId"
+	AttrBucketID  = "bucketId"
+	AttrObjectID  = "objectId"
 	AttrEventType = "eventType"
 )
 

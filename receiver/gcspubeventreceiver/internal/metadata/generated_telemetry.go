@@ -23,15 +23,15 @@ func Tracer(settings component.TelemetrySettings) trace.Tracer {
 // TelemetryBuilder provides an interface for components to report telemetry
 // as defined in metadata and user config.
 type TelemetryBuilder struct {
-	meter                              metric.Meter
-	mu                                 sync.Mutex
-	registrations                      []metric.Registration
-	GcseventBatchSize                  metric.Int64Histogram
-	GcseventDlqFileNotFoundErrors      metric.Int64Counter
-	GcseventDlqIamErrors               metric.Int64Counter
-	GcseventDlqUnsupportedFileErrors   metric.Int64Counter
-	GcseventFailures                   metric.Int64Counter
-	GcseventObjectsHandled             metric.Int64Counter
+	meter                            metric.Meter
+	mu                               sync.Mutex
+	registrations                    []metric.Registration
+	GcseventBatchSize                metric.Int64Histogram
+	GcseventDlqFileNotFoundErrors    metric.Int64Counter
+	GcseventDlqIamErrors             metric.Int64Counter
+	GcseventDlqUnsupportedFileErrors metric.Int64Counter
+	GcseventFailures                 metric.Int64Counter
+	GcseventObjectsHandled           metric.Int64Counter
 }
 
 // TelemetryBuilderOption applies changes to default builder.
