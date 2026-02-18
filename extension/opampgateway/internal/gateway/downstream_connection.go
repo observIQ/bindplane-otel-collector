@@ -17,6 +17,7 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -40,6 +41,12 @@ type downstreamConnection struct {
 	logger    *zap.Logger
 
 	cancel context.CancelFunc
+
+	// sentCustomCapabilities tracks whether the cached CustomCapabilities have been
+	// injected into a message forwarded to this downstream agent. CustomCapabilities are
+	// only sent once per WebSocket connection by the opamp-go server, so we need to
+	// manually share them with each downstream agent.
+	sentCustomCapabilities atomic.Bool
 }
 
 func newDownstreamConnection(conn *websocket.Conn, telemetry *metadata.TelemetryBuilder, upstreamConnection *upstreamConnection, id string, logger *zap.Logger) *downstreamConnection {
