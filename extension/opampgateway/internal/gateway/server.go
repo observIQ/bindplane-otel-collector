@@ -343,7 +343,13 @@ func (s *server) acceptOpAMPConnection(ctx context.Context, req *http.Request, u
 
 	// Send the authentication request to upstream
 	msg := newMessage(0, msgData)
-	upstreamConn.send(msg)
+	if err := upstreamConn.send(msg); err != nil {
+		s.logger.Error("failed to send OpampGatewayConnect", zap.Error(err))
+		return false, OpampGatewayConnectResult{
+			Accept:         false,
+			HTTPStatusCode: http.StatusInternalServerError,
+		}
+	}
 	s.logger.Debug("sent OpampGatewayConnect", zap.String("request_uid", requestUID))
 
 	// Wait for the response

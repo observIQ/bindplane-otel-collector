@@ -96,7 +96,7 @@ func (g *Gateway) Shutdown(_ context.Context) error {
 
 // HandleDownstreamMessage handles message sent from a downstream connection to the server.
 func (g *Gateway) HandleDownstreamMessage(_ context.Context, connection *downstreamConnection, messageType int, msg *message) error {
-	g.logger.Debug("HandleDownstreamMessage", zap.String("downstream_connection_id", connection.id), zap.Int("message_number", msg.number), zap.Int("message_type", messageType))
+	g.logger.Info("HandleDownstreamMessage", zap.String("downstream_connection_id", connection.id), zap.Int("message_number", msg.number), zap.Int("message_type", messageType))
 	if messageType != websocket.BinaryMessage {
 		err := fmt.Errorf("unexpected message type: %v, must be binary message", messageType)
 		g.logger.Error("Cannot process a message from WebSocket", zap.Error(err), zap.Int("message_number", msg.number), zap.Int("message_type", messageType), zap.String("message_bytes", string(msg.data)))
@@ -124,7 +124,9 @@ func (g *Gateway) HandleDownstreamMessage(_ context.Context, connection *downstr
 	// send the message to the upstream connection
 	logMsg := fmt.Sprintf("%s => %s", connection.id, upstreamConnection.id)
 	logUpstreamMessage(g.logger, logMsg, agentID, msg.number, len(msg.data), &message)
-	upstreamConnection.send(msg)
+	if err := upstreamConnection.send(msg); err != nil {
+		return fmt.Errorf("send upstream: %w", err)
+	}
 	g.telemetry.OpampgatewayMessages.Add(context.Background(), 1, directionUpstream)
 	g.telemetry.OpampgatewayMessagesBytes.Add(context.Background(), int64(len(msg.data)), directionUpstream)
 	return nil
@@ -160,6 +162,15 @@ func (g *Gateway) HandleUpstreamMessage(_ context.Context, connection *upstreamC
 		return fmt.Errorf("failed to decode ws message: %w", err)
 	}
 
+	// cache CustomCapabilities from the upstream server. The opamp-go server
+	// only sends these once per WebSocket connection (on the first response),
+	// which typically arrives as part of the auth response. We cache them so
+	// they can be injected into messages forwarded to downstream agents.
+	if caps := m.GetCustomCapabilities(); caps != nil {
+		g.logger.Info("caching CustomCapabilities from upstream", zap.Strings("capabilities", caps.GetCapabilities()))
+		connection.setCustomCapabilities(caps)
+	}
+
 	// Check if this is an authentication response
 	if g.server.handleAuthResponse(m.GetCustomMessage()) {
 		g.logger.Debug("handled auth response", zap.Int("message_number", message.number))
@@ -176,6 +187,24 @@ func (g *Gateway) HandleUpstreamMessage(_ context.Context, connection *upstreamC
 	if !ok {
 		// downstream connection no longer exists. just ignore the message for now.
 		return nil
+	}
+
+	// inject cached CustomCapabilities into the first message forwarded to each downstream
+	// agent.
+	if m.CustomCapabilities != nil {
+		conn.sentCustomCapabilities.Store(true)
+	} else {
+		if !conn.sentCustomCapabilities.Load() {
+			if caps := connection.getCustomCapabilities(); caps != nil {
+				m.CustomCapabilities = caps
+				if updated, err := encodeWSMessage(&m); err != nil {
+					g.logger.Error("failed to update message with CustomCapabilities", zap.Error(err))
+				} else {
+					message = newMessage(message.number, updated)
+					conn.sentCustomCapabilities.Store(true)
+				}
+			}
+		}
 	}
 
 	// forward the message to the downstream connection
@@ -210,6 +239,7 @@ func logDownstreamMessage(logger *zap.Logger, msg string, agentID string, messag
 		zap.Int("message.number", messageNumber),
 		zap.Int("message.bytes", messageBytes),
 		zap.Strings("components", downstreamMessageComponents(message)),
+		zap.Uint64("flags", message.Flags),
 	)
 }
 
@@ -220,6 +250,7 @@ func logUpstreamMessage(logger *zap.Logger, msg string, agentID string, messageN
 		zap.Int("message.bytes", messageBytes),
 		zap.Strings("components", upstreamMessageComponents(message)),
 		zap.Uint64("sequenceNum", message.SequenceNum),
+		zap.Uint64("flags", message.Flags),
 	)
 }
 
@@ -231,6 +262,7 @@ func downstreamMessageComponents(serverToAgent *protobufs.ServerToAgent) []strin
 	components = includeComponent(components, serverToAgent.PackagesAvailable, "PackagesAvailable")
 	components = includeComponent(components, serverToAgent.AgentIdentification, "AgentIdentification")
 	components = includeComponent(components, serverToAgent.Command, "Command")
+	components = includeComponent(components, serverToAgent.CustomCapabilities, "CustomCapabilities")
 	components = includeCustomMessage(components, serverToAgent.CustomMessage)
 	return components
 }

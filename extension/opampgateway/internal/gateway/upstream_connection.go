@@ -19,12 +19,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/gorilla/websocket"
 	"github.com/observiq/bindplane-otel-collector/extension/opampgateway/internal/metadata"
+	"github.com/open-telemetry/opamp-go/protobufs"
 	"go.uber.org/zap"
 )
 
@@ -44,6 +46,13 @@ type upstreamConnection struct {
 	logger    *zap.Logger
 
 	connected atomic.Bool
+
+	// customCapabilities caches the CustomCapabilities received from the
+	// upstream server. The opamp-go server only sends CustomCapabilities
+	// once per WebSocket connection (on the first response), so the gateway
+	// must cache and inject them into messages forwarded to downstream agents.
+	customCapabilitiesMtx sync.RWMutex
+	customCapabilities    *protobufs.CustomCapabilities
 }
 
 type upstreamConnectionSettings struct {
@@ -87,6 +96,18 @@ func (c *upstreamConnection) setConnected(connected bool) {
 	c.connected.Store(connected)
 }
 
+func (c *upstreamConnection) setCustomCapabilities(caps *protobufs.CustomCapabilities) {
+	c.customCapabilitiesMtx.Lock()
+	defer c.customCapabilitiesMtx.Unlock()
+	c.customCapabilities = caps
+}
+
+func (c *upstreamConnection) getCustomCapabilities() *protobufs.CustomCapabilities {
+	c.customCapabilitiesMtx.RLock()
+	defer c.customCapabilitiesMtx.RUnlock()
+	return c.customCapabilities
+}
+
 // start will start the reader and writer goroutines and wait for the context to be done
 // or an error to be sent on the error channel. if an error is sent on the error channel,
 // the connection will be stopped and the context will be cancelled.
@@ -118,11 +139,26 @@ func (c *upstreamConnection) start(ctx context.Context, callbacks ConnectionCall
 	// TODO: shutdown handler?
 }
 
-// send will send a message to the connection by putting it on the write channel. the
-// writer goroutine will handle sending the message to the connection.
-func (c *upstreamConnection) send(message *message) {
+// send queues the message for writing and blocks until it has been written to
+// the upstream WebSocket or the connection is permanently closed. It returns
+// the write error (if any) so callers get confirmation of delivery.
+func (c *upstreamConnection) send(message *message) error {
 	c.logger.Debug("sending message", zap.String("message", string(message.data)))
-	c.writeChan <- message
+	// queue the message. Block until the writer dequeues it or the
+	// connection shuts down for good (writerDone is closed).
+	select {
+	case c.writeChan <- message:
+	case <-c.writerDone:
+		return errors.New("upstream connection closed")
+	}
+
+	// wait for the writer to finish the WebSocket write.
+	select {
+	case err := <-message.done:
+		return err
+	case <-c.writerDone:
+		return errors.New("upstream connection closed")
+	}
 }
 
 // --------------------------------------------------------------------------------------
@@ -218,6 +254,7 @@ func (c *upstreamConnection) writerLoop(ctx context.Context, conn *websocket.Con
 	// attempt to write the next message if one is pending
 	if nextMessage != nil {
 		err := writeWSMessage(conn, nextMessage.data)
+		nextMessage.complete(err)
 		if err != nil {
 			return nextMessage, fmt.Errorf("write message: %w", err)
 		}
@@ -246,6 +283,7 @@ func (c *upstreamConnection) writerLoop(ctx context.Context, conn *websocket.Con
 				return message, nil
 			}
 			err := writeWSMessage(conn, message.data)
+			message.complete(err)
 			if err != nil {
 				return message, fmt.Errorf("write message: %w", err)
 			}
