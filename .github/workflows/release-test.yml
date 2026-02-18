@@ -140,11 +140,6 @@ jobs:
           cat > ci-signing-key.asc <<'EOF'
           ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
           EOF
-      - name: Describe Cache
-        run: |
-          df -h
-          du -sh /cache/* 2>/dev/null || true
-          du -sh ~/.cache/* 2>/dev/null || true
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
