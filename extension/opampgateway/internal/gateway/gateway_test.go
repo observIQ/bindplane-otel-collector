@@ -408,6 +408,11 @@ type testOpAMPServer struct {
 
 	// skipAuth when true causes the server to ignore auth requests (never respond)
 	skipAuth bool
+
+	// customCapabilities, when non-nil, are included in auth responses.
+	// This mimics the real opamp-go server which sends CustomCapabilities
+	// on the first response per WebSocket connection.
+	customCapabilities []string
 }
 
 func newTestOpAMPServer(t *testing.T) *testOpAMPServer {
@@ -545,6 +550,15 @@ func (s *testOpAMPServer) respondToConnect(conn *websocket.Conn, data []byte) er
 			Data:       resultData,
 		},
 	}
+
+	// Include CustomCapabilities in the auth response, mimicking the real
+	// opamp-go server which piggybacks them on the first response per WebSocket.
+	if len(s.customCapabilities) > 0 {
+		resp.CustomCapabilities = &protobufs.CustomCapabilities{
+			Capabilities: s.customCapabilities,
+		}
+	}
+
 	payload, err := proto.Marshal(resp)
 	if err != nil {
 		return fmt.Errorf("marshal connect response: %w", err)
@@ -1074,6 +1088,248 @@ func TestGatewayGracefulShutdownWithActiveConnections(t *testing.T) {
 	case <-time.After(15 * time.Second):
 		t.Fatal("shutdown did not complete within 15 seconds with active connections")
 	}
+}
+
+// TestGatewayCustomCapabilitiesInjection verifies that CustomCapabilities received
+// in the auth response are cached and injected into the first ServerToAgent message
+// forwarded to the downstream agent.
+func TestGatewayCustomCapabilitiesInjection(t *testing.T) {
+	t.Parallel()
+
+	h := newGatewayTestHarnessWithCapabilities(t, 1, []string{
+		"com.bindplane.report_measurements_v1",
+		"com.bindplane.report_topology",
+	})
+
+	agent := h.NewAgent(t)
+
+	// Agent sends a message so the server can respond to it
+	agent.Send(&protobufs.AgentToServer{SequenceNum: 1})
+	h.upstream.WaitForAgentMessage(t, agent.ID(), 5*time.Second)
+
+	// Server responds without CustomCapabilities (it already sent them in
+	// the auth response which was consumed by the gateway's auth handler)
+	require.NoError(t, h.upstream.Send(&protobufs.ServerToAgent{
+		InstanceUid: agent.RawID(),
+		RemoteConfig: &protobufs.AgentRemoteConfig{
+			ConfigHash: []byte("test-hash"),
+		},
+	}))
+
+	resp := agent.WaitForMessage(t, 5*time.Second)
+
+	// The gateway should have injected the cached CustomCapabilities
+	require.NotNil(t, resp.CustomCapabilities, "expected CustomCapabilities to be injected")
+	require.ElementsMatch(t, []string{
+		"com.bindplane.report_measurements_v1",
+		"com.bindplane.report_topology",
+	}, resp.CustomCapabilities.GetCapabilities())
+
+	// The original RemoteConfig should still be present
+	require.NotNil(t, resp.RemoteConfig)
+	require.Equal(t, []byte("test-hash"), resp.RemoteConfig.GetConfigHash())
+}
+
+// TestGatewayCustomCapabilitiesMultipleAgents verifies that each downstream agent
+// receives CustomCapabilities in its first forwarded message, not just the first agent.
+func TestGatewayCustomCapabilitiesMultipleAgents(t *testing.T) {
+	t.Parallel()
+
+	capabilities := []string{"com.bindplane.report_measurements_v1"}
+	h := newGatewayTestHarnessWithCapabilities(t, 1, capabilities)
+
+	agent1 := h.NewAgent(t)
+	agent2 := h.NewAgent(t)
+
+	// Both agents send messages
+	agent1.Send(&protobufs.AgentToServer{SequenceNum: 1})
+	agent2.Send(&protobufs.AgentToServer{SequenceNum: 2})
+
+	// Drain upstream messages
+	for range 2 {
+		h.upstream.WaitForAnyMessage(t, 5*time.Second)
+	}
+
+	// Server responds to both agents
+	require.NoError(t, h.upstream.Send(&protobufs.ServerToAgent{
+		InstanceUid:  agent1.RawID(),
+		Capabilities: 11,
+	}))
+	require.NoError(t, h.upstream.Send(&protobufs.ServerToAgent{
+		InstanceUid:  agent2.RawID(),
+		Capabilities: 22,
+	}))
+
+	resp1 := agent1.WaitForMessage(t, 5*time.Second)
+	resp2 := agent2.WaitForMessage(t, 5*time.Second)
+
+	// Both agents should receive CustomCapabilities
+	require.NotNil(t, resp1.CustomCapabilities, "agent1 should receive CustomCapabilities")
+	require.Equal(t, capabilities, resp1.CustomCapabilities.GetCapabilities())
+	require.NotNil(t, resp2.CustomCapabilities, "agent2 should receive CustomCapabilities")
+	require.Equal(t, capabilities, resp2.CustomCapabilities.GetCapabilities())
+
+	// Original fields should be preserved
+	require.Equal(t, uint64(11), resp1.GetCapabilities())
+	require.Equal(t, uint64(22), resp2.GetCapabilities())
+}
+
+// TestGatewayCustomCapabilitiesInjectedOnce verifies that CustomCapabilities are
+// only injected into the first message forwarded to each agent, not subsequent ones.
+func TestGatewayCustomCapabilitiesInjectedOnce(t *testing.T) {
+	t.Parallel()
+
+	h := newGatewayTestHarnessWithCapabilities(t, 1, []string{"com.bindplane.test"})
+
+	agent := h.NewAgent(t)
+
+	agent.Send(&protobufs.AgentToServer{SequenceNum: 1})
+	h.upstream.WaitForAgentMessage(t, agent.ID(), 5*time.Second)
+
+	// First response — should include injected CustomCapabilities
+	require.NoError(t, h.upstream.Send(&protobufs.ServerToAgent{
+		InstanceUid:  agent.RawID(),
+		Capabilities: 1,
+	}))
+	resp1 := agent.WaitForMessage(t, 5*time.Second)
+	require.NotNil(t, resp1.CustomCapabilities, "first message should have CustomCapabilities")
+
+	// Agent sends another message
+	agent.Send(&protobufs.AgentToServer{SequenceNum: 2})
+	h.upstream.WaitForAgentMessage(t, agent.ID(), 5*time.Second)
+
+	// Second response — should NOT include CustomCapabilities
+	require.NoError(t, h.upstream.Send(&protobufs.ServerToAgent{
+		InstanceUid:  agent.RawID(),
+		Capabilities: 2,
+	}))
+	resp2 := agent.WaitForMessage(t, 5*time.Second)
+	require.Nil(t, resp2.CustomCapabilities, "second message should not have CustomCapabilities")
+	require.Equal(t, uint64(2), resp2.GetCapabilities())
+}
+
+// TestGatewayCustomCapabilitiesNotOverwritten verifies that if the server sends
+// CustomCapabilities directly in a routed message, the gateway does not overwrite
+// them with the cached version.
+func TestGatewayCustomCapabilitiesNotOverwritten(t *testing.T) {
+	t.Parallel()
+
+	h := newGatewayTestHarnessWithCapabilities(t, 1, []string{"com.bindplane.cached"})
+
+	agent := h.NewAgent(t)
+
+	agent.Send(&protobufs.AgentToServer{SequenceNum: 1})
+	h.upstream.WaitForAgentMessage(t, agent.ID(), 5*time.Second)
+
+	// Server sends a response that already includes its own CustomCapabilities
+	require.NoError(t, h.upstream.Send(&protobufs.ServerToAgent{
+		InstanceUid:  agent.RawID(),
+		Capabilities: 1,
+		CustomCapabilities: &protobufs.CustomCapabilities{
+			Capabilities: []string{"com.bindplane.direct"},
+		},
+	}))
+
+	resp := agent.WaitForMessage(t, 5*time.Second)
+	// Should receive the server's version, not the cached one
+	require.NotNil(t, resp.CustomCapabilities)
+	require.Equal(t, []string{"com.bindplane.direct"}, resp.CustomCapabilities.GetCapabilities())
+
+	// Send a second message — capabilities should not be injected again
+	agent.Send(&protobufs.AgentToServer{SequenceNum: 2})
+	h.upstream.WaitForAgentMessage(t, agent.ID(), 5*time.Second)
+
+	require.NoError(t, h.upstream.Send(&protobufs.ServerToAgent{
+		InstanceUid:  agent.RawID(),
+		Capabilities: 2,
+	}))
+	resp2 := agent.WaitForMessage(t, 5*time.Second)
+	require.Nil(t, resp2.CustomCapabilities, "should not inject after server already sent them")
+}
+
+// TestGatewayNoCustomCapabilities verifies that when the upstream server does not
+// send CustomCapabilities, the gateway does not inject anything.
+func TestGatewayNoCustomCapabilities(t *testing.T) {
+	t.Parallel()
+
+	// Default harness: no custom capabilities configured on the test server
+	h := newGatewayTestHarness(t, 1)
+
+	agent := h.NewAgent(t)
+
+	agent.Send(&protobufs.AgentToServer{SequenceNum: 1})
+	h.upstream.WaitForAgentMessage(t, agent.ID(), 5*time.Second)
+
+	require.NoError(t, h.upstream.Send(&protobufs.ServerToAgent{
+		InstanceUid:  agent.RawID(),
+		Capabilities: 1,
+	}))
+
+	resp := agent.WaitForMessage(t, 5*time.Second)
+	require.Nil(t, resp.CustomCapabilities, "should not inject when server sent no capabilities")
+	require.Equal(t, uint64(1), resp.GetCapabilities())
+}
+
+// newGatewayTestHarnessWithCapabilities creates a gateway test harness where the
+// upstream server includes the given CustomCapabilities in auth responses.
+func newGatewayTestHarnessWithCapabilities(t *testing.T, upstreamConnections int, capabilities []string) *gatewayTestHarness {
+	t.Helper()
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	upstream := newTestOpAMPServer(t)
+	upstream.customCapabilities = capabilities
+
+	testTel := componenttest.NewTelemetry()
+	t.Cleanup(func() {
+		require.NoError(t, testTel.Shutdown(context.Background()))
+	})
+
+	telemetry, err := metadata.NewTelemetryBuilder(testTel.NewTelemetrySettings())
+	require.NoError(t, err)
+
+	settings := Settings{
+		UpstreamOpAMPAddress: upstream.URL(),
+		SecretKey:            "test-secret",
+		UpstreamConnections:  upstreamConnections,
+		OpAMPServer:          confighttp.ServerConfig{NetAddr: confignet.AddrConfig{Endpoint: "127.0.0.1:0", Transport: confignet.TransportTypeTCP}},
+	}
+
+	logger := zaptest.NewLogger(t)
+
+	gw := New(logger, settings, telemetry)
+
+	require.NoError(t, gw.Start(ctx, componenttest.NewNopHost(), testTel.NewTelemetrySettings()))
+	t.Cleanup(func() {
+		require.NoError(t, gw.Shutdown(context.Background()))
+	})
+
+	h := &gatewayTestHarness{
+		t:        t,
+		ctx:      ctx,
+		cancel:   cancel,
+		gateway:  gw,
+		upstream: upstream,
+		agentURL: fmt.Sprintf("ws://%s%s", gw.server.addr.String(), handlePath),
+	}
+
+	for range upstreamConnections {
+		upstream.WaitForConnection(t, 5*time.Second)
+	}
+
+	require.Eventually(t, func() bool {
+		for i := range upstreamConnections {
+			id := fmt.Sprintf("upstream-%d", i)
+			conn, ok := gw.client.upstreamConnections.get(id)
+			if !ok || !conn.isConnected() {
+				return false
+			}
+		}
+		return true
+	}, 5*time.Second, 10*time.Millisecond, "upstream connections not all connected")
+
+	t.Cleanup(cancel)
+	return h
 }
 
 func TestGatewayConcurrentAgentStress(t *testing.T) {
