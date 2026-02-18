@@ -140,10 +140,6 @@ jobs:
           cat > ci-signing-key.asc <<'EOF'
           ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
           EOF
-      - name: Prune Docker cache
-        run: |
-          docker system prune -af
-          docker buildx prune -af
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
