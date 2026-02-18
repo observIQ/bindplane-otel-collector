@@ -538,7 +538,7 @@ func TestRESTAPILogsReceiver_AdaptivePolling_Backoff(t *testing.T) {
 	require.NoError(t, err)
 
 	// Wait for several poll cycles - with backoff, interval increases: 1s -> 2s -> 4s... capped at 100ms
-	// Starting from minPollInterval (1s), it would take multiple empty responses to reach max
+	// Starting from min_poll_interval, it would take multiple empty responses to reach max
 	time.Sleep(500 * time.Millisecond)
 
 	err = receiver.Shutdown(ctx)

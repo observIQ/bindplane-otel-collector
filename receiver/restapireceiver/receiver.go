@@ -35,8 +35,7 @@ const (
 	checkpointStorageKey = "restapi_checkpoint"
 
 	// Adaptive polling constants
-	minPollInterval   = 10 * time.Millisecond // Minimum poll interval (fastest polling rate)
-	backoffMultiplier = 2.0                   // Multiplier for increasing interval on empty responses
+	backoffMultiplier = 2.0 // Multiplier for increasing interval on empty responses
 )
 
 // checkpointData represents the data stored in the checkpoint.
@@ -120,11 +119,11 @@ func (b *baseReceiver) shutdownBase(ctx context.Context) error {
 func (b *baseReceiver) adjustPollInterval(recordCount int) {
 	if recordCount > 0 {
 		// Data received - reset to minimum interval for responsive polling
-		if b.currentPollInterval != minPollInterval {
+		if b.currentPollInterval != b.cfg.MinPollInterval {
 			b.logger.Debug("resetting poll interval after receiving data",
-				zap.Duration("new_interval", minPollInterval),
+				zap.Duration("new_interval", b.cfg.MinPollInterval),
 				zap.Duration("previous_interval", b.currentPollInterval))
-			b.currentPollInterval = minPollInterval
+			b.currentPollInterval = b.cfg.MinPollInterval
 		}
 	} else {
 		// No data - increase interval (backoff) up to max
@@ -307,7 +306,7 @@ func (r *restAPILogsReceiver) Shutdown(ctx context.Context) error {
 // startPolling starts the polling goroutine.
 func (r *restAPILogsReceiver) startPolling(ctx context.Context) error {
 	// Initialize with minimum poll interval for responsive startup
-	r.currentPollInterval = minPollInterval
+	r.currentPollInterval = r.cfg.MinPollInterval
 
 	// Run immediately on startup
 	recordCount, err := r.poll(ctx)
@@ -558,7 +557,7 @@ func (r *restAPIMetricsReceiver) Shutdown(ctx context.Context) error {
 // startPolling starts the polling goroutine.
 func (r *restAPIMetricsReceiver) startPolling(ctx context.Context) error {
 	// Initialize with minimum poll interval for responsive startup
-	r.currentPollInterval = minPollInterval
+	r.currentPollInterval = r.cfg.MinPollInterval
 
 	// Run immediately on startup
 	recordCount, err := r.poll(ctx)
