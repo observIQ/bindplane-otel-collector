@@ -44,7 +44,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver v1.93.0
 	github.com/oklog/ulid/v2 v2.1.1
-	github.com/open-telemetry/opamp-go v0.22.0
+	github.com/open-telemetry/opamp-go v0.23.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.145.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/failoverconnector v0.145.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.145.0
