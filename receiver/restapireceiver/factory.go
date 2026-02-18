@@ -46,6 +46,7 @@ func createDefaultConfig() component.Config {
 			PageLimit:      0,
 			ZeroBasedIndex: false,
 		},
+		MinPollInterval: 10 * time.Millisecond,
 		MaxPollInterval: 5 * time.Minute,
 		ClientConfig: confighttp.ClientConfig{
 			Timeout: 10 * time.Second,
