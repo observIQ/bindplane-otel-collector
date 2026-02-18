@@ -467,8 +467,8 @@ require (
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-github/v81 v81.0.0 // indirect
 	github.com/google/go-tpm v0.9.8 // indirect
-	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
+	github.com/gopacket/gopacket v1.5.0 // indirect
 	github.com/gophercloud/gophercloud/v2 v2.9.0 // indirect
 	github.com/grafana/clusterurl v0.2.1 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
