@@ -4,7 +4,7 @@ dist:
   module: github.com/observiq/bindplane-otel-collector
   name: bindplane-otel-collector
   description: Bindplane's custom distro for the OpenTelemetry Collector
-  version: "v2.0.0-beta.9"
+  version: "v2.0.0-beta.10"
   output_path: ./builder
 conf_resolver:
   default_uri_scheme: "env"
@@ -377,6 +377,5 @@ replaces:
   - github.com/observiq/bindplane-otel-collector/internal/testutils => ../internal/testutils
   - github.com/observiq/bindplane-otel-collector/internal/topology => ../internal/topology
   - github.com/observiq/bindplane-otel-collector/internal/rehydration => ../internal/rehydration
-  - github.com/observiq/bindplane-otel-collector/internal/version => ../internal/version
   - github.com/observiq/bindplane-otel-collector/internal/measurements => ../internal/measurements
   - github.com/observiq/bindplane-otel-collector/version => ../version
