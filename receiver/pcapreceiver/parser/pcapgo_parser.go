@@ -20,8 +20,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
+	"github.com/gopacket/gopacket"
+	"github.com/gopacket/gopacket/layers"
 )
 
 // ParsePcapgoPacket parses a packet from binary PCAP data using pcapgo
