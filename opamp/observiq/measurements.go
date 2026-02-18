@@ -95,6 +95,11 @@ func (m *measurementsSender) Start() {
 
 // SetInterval changes the interval of the measurements sender.
 func (m *measurementsSender) SetInterval(d time.Duration) {
+	// Drain any stale value to prevent blocking when the loop isn't running.
+	select {
+	case <-m.changeIntervalChan:
+	default:
+	}
 	select {
 	case m.changeIntervalChan <- d:
 	case <-m.done:
@@ -102,6 +107,11 @@ func (m *measurementsSender) SetInterval(d time.Duration) {
 }
 
 func (m *measurementsSender) SetExtraAttributes(extraAttributes map[string]string) {
+	// Drain any stale value to prevent blocking when the loop isn't running.
+	select {
+	case <-m.changeAttributesChan:
+	default:
+	}
 	select {
 	case m.changeAttributesChan <- extraAttributes:
 	case <-m.done:
