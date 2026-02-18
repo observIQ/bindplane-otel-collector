@@ -237,6 +237,7 @@ gosec:
 	  -exclude-dir=exporter/chronicleexporter/internal/metadata \
 	  -exclude-dir=exporter/chronicleexporter/protos/api \
 	  -exclude-dir=receiver/awss3eventreceiver/internal/metadata \
+	  -exclude-dir=receiver/gcspubeventreceiver/internal/metadata \
 	  -exclude-dir=receiver/pcapreceiver/internal/metadata \
 	  ./...
 # exclude the testdata dir; it contains a go program for testing.
