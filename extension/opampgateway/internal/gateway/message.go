@@ -20,6 +20,10 @@ type message struct {
 	data     []byte
 	received time.Time
 	number   int
+
+	// done is an optional channel signaled when the message has been written to
+	// the WebSocket connection. A nil channel means fire-and-forget.
+	done chan error
 }
 
 // newMessage creates a new message from the data received
@@ -28,9 +32,21 @@ func newMessage(number int, data []byte) *message {
 		data:     data,
 		received: time.Now(),
 		number:   number,
+		done:     make(chan error, 1),
 	}
 }
 
 func (m *message) elapsedTime() time.Duration {
 	return time.Since(m.received)
+}
+
+// complete signals any waiter that the message write has finished.
+// It is safe to call multiple times; only the first call delivers.
+func (m *message) complete(err error) {
+	if m.done != nil {
+		select {
+		case m.done <- err:
+		default:
+		}
+	}
 }
