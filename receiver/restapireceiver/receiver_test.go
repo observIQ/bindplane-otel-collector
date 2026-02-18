@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -127,7 +128,7 @@ func TestRESTAPIMetricsReceiver_StartShutdown(t *testing.T) {
 }
 
 func TestRESTAPILogsReceiver_WithPagination(t *testing.T) {
-	pageCount := 0
+	var pageCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		offset := r.URL.Query().Get("offset")
 		_ = r.URL.Query().Get("limit") // limit parameter
@@ -156,7 +157,7 @@ func TestRESTAPILogsReceiver_WithPagination(t *testing.T) {
 			}
 		}
 
-		pageCount++
+		pageCount.Add(1)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}))
@@ -214,18 +215,21 @@ func TestRESTAPILogsReceiver_WithPagination(t *testing.T) {
 }
 
 func TestRESTAPILogsReceiver_WithTimestampPagination(t *testing.T) {
+	var mu sync.Mutex
 	var lastTimestamp string
 	var pageSize string
-	pageCount := 0
+	var pageCount atomic.Int32
 	initialTime := time.Now().Add(-1 * time.Hour)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Capture the timestamp and page size parameters
+		mu.Lock()
 		lastTimestamp = r.URL.Query().Get("t0")
 		pageSize = r.URL.Query().Get("perPage")
+		mu.Unlock()
 
 		var response []map[string]any
-		if pageCount == 0 {
+		if pageCount.Load() == 0 {
 			// First page - return full page
 			response = []map[string]any{
 				{"id": "1", "message": "test1", "ts": time.Now().Add(-30 * time.Minute).Format(time.RFC3339)},
@@ -237,7 +241,7 @@ func TestRESTAPILogsReceiver_WithTimestampPagination(t *testing.T) {
 				{"id": "3", "message": "test3", "ts": time.Now().Add(-10 * time.Minute).Format(time.RFC3339)},
 			}
 		}
-		pageCount++
+		pageCount.Add(1)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}))
@@ -282,12 +286,16 @@ func TestRESTAPILogsReceiver_WithTimestampPagination(t *testing.T) {
 	require.NoError(t, err)
 
 	// Should have used the timestamp parameter
-	require.NotEmpty(t, lastTimestamp)
-	require.Contains(t, lastTimestamp, "T") // RFC3339 format check
+	mu.Lock()
+	ts := lastTimestamp
+	ps := pageSize
+	mu.Unlock()
+	require.NotEmpty(t, ts)
+	require.Contains(t, ts, "T") // RFC3339 format check
 	// Should have used the page size parameter
-	require.Equal(t, "200", pageSize)
+	require.Equal(t, "200", ps)
 	// Should have fetched multiple pages
-	require.Greater(t, pageCount, 1)
+	require.Greater(t, int(pageCount.Load()), 1)
 }
 
 func TestRESTAPILogsReceiver_ErrorHandling(t *testing.T) {
@@ -502,9 +510,9 @@ func TestRESTAPILogsReceiver_DeeplyNestedResponseField(t *testing.T) {
 }
 
 func TestRESTAPILogsReceiver_AdaptivePolling_Backoff(t *testing.T) {
-	requestCount := 0
+	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		requestCount++
+		requestCount.Add(1)
 		// Always return empty array to trigger backoff
 		response := []map[string]any{}
 		w.Header().Set("Content-Type", "application/json")
@@ -547,7 +555,7 @@ func TestRESTAPILogsReceiver_AdaptivePolling_Backoff(t *testing.T) {
 
 	// With adaptive polling and empty responses, interval should increase
 	// Initial poll immediate, then backoff kicks in
-	require.Greater(t, requestCount, 1, "expected at least a couple polls to occur")
+	require.Greater(t, int(requestCount.Load()), 1, "expected at least a couple polls to occur")
 }
 
 func TestRESTAPILogsReceiver_AdaptivePolling_PartialResponseBacksOff(t *testing.T) {
