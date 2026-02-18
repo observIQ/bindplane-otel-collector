@@ -61,7 +61,6 @@ receivers:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.145.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jmxreceiver v0.145.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/saphanareceiver v0.145.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/sapmreceiver v0.145.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/statsdreceiver v0.145.0
   - gomod: github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.93.0
     path: "./receiver/pluginreceiver"
@@ -91,8 +90,14 @@ replaces:
   # replace used by bindplaneextension
   - github.com/observiq/bindplane-otel-collector/processor/topologyprocessor => ../processor/topologyprocessor
   # replace statements for internal imports
-  - github.com/observiq/bindplane-agent/internal/expr => ../internal/expr
-  - github.com/observiq/bindplane-agent/internal/counter => ../internal/counter
-  - github.com/observiq/bindplane-agent/internal/report => ../internal/report
-  - github.com/observiq/bindplane-agent/internal/testutils => ../internal/testutils
-  - github.com/observiq/bindplane-agent/internal/rehydration => ../internal/rehydration
+  - github.com/observiq/bindplane-otel-collector/internal/aws => ../internal/aws
+  - github.com/observiq/bindplane-otel-collector/internal/azureblob => ../internal/azureblob
+  - github.com/observiq/bindplane-otel-collector/internal/blobconsume => ../internal/blobconsume
+  - github.com/observiq/bindplane-otel-collector/internal/counter => ../internal/counter
+  - github.com/observiq/bindplane-otel-collector/internal/expr => ../internal/expr
+  - github.com/observiq/bindplane-otel-collector/internal/measurements => ../internal/measurements
+  - github.com/observiq/bindplane-otel-collector/internal/osinfo => ../internal/osinfo
+  - github.com/observiq/bindplane-otel-collector/internal/report => ../internal/report
+  - github.com/observiq/bindplane-otel-collector/internal/storageclient => ../internal/storageclient
+  - github.com/observiq/bindplane-otel-collector/internal/testutils => ../internal/testutils
+  - github.com/observiq/bindplane-otel-collector/internal/tools => ../internal/tools
