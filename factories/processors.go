@@ -23,6 +23,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/processor/metricextractprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/metricstatsprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/randomfailureprocessor"
+	"github.com/observiq/bindplane-otel-collector/processor/statustestprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/removeemptyvaluesprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/resourceattributetransposerprocessor"
 	"github.com/observiq/bindplane-otel-collector/processor/samplingprocessor"
@@ -84,6 +85,7 @@ var defaultProcessors = []processor.Factory{
 	probabilisticsamplerprocessor.NewFactory(),
 	redactionprocessor.NewFactory(),
 	randomfailureprocessor.NewFactory(),
+	statustestprocessor.NewFactory(),
 	removeemptyvaluesprocessor.NewFactory(),
 	resourceattributetransposerprocessor.NewFactory(),
 	resourcedetectionprocessor.NewFactory(),

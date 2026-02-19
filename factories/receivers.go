@@ -28,6 +28,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/restapireceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/routereceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/statustestreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver"
@@ -183,6 +184,7 @@ var defaultReceivers = []receiver.Factory{
 	redisreceiver.NewFactory(),
 	riakreceiver.NewFactory(),
 	routereceiver.NewFactory(),
+	statustestreceiver.NewFactory(),
 	saphanareceiver.NewFactory(),
 	sapnetweaverreceiver.NewFactory(),
 	simpleprometheusreceiver.NewFactory(),

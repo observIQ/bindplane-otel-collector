@@ -12,6 +12,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/exporter/googlemanagedprometheusexporter v1.93.0
 	github.com/observiq/bindplane-otel-collector/exporter/qradar v1.93.0
 	github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter v1.93.0
+	github.com/observiq/bindplane-otel-collector/exporter/statustestexporter v1.93.0
 	github.com/observiq/bindplane-otel-collector/exporter/webhookexporter v1.93.0
 	github.com/observiq/bindplane-otel-collector/internal/measurements v1.93.0
 	github.com/observiq/bindplane-otel-collector/internal/report v1.93.0
@@ -23,6 +24,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/processor/metricextractprocessor v1.93.0
 	github.com/observiq/bindplane-otel-collector/processor/metricstatsprocessor v1.93.0
 	github.com/observiq/bindplane-otel-collector/processor/randomfailureprocessor v1.93.0
+	github.com/observiq/bindplane-otel-collector/processor/statustestprocessor v1.93.0
 	github.com/observiq/bindplane-otel-collector/processor/removeemptyvaluesprocessor v1.93.0
 	github.com/observiq/bindplane-otel-collector/processor/resourceattributetransposerprocessor v1.93.0
 	github.com/observiq/bindplane-otel-collector/processor/samplingprocessor v1.93.0
@@ -39,6 +41,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/restapireceiver v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.93.0
+	github.com/observiq/bindplane-otel-collector/receiver/statustestreceiver v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.93.0
@@ -1036,6 +1039,8 @@ replace github.com/observiq/bindplane-otel-collector/exporter/qradar => ./export
 
 replace github.com/observiq/bindplane-otel-collector/exporter/snowflakeexporter => ./exporter/snowflakeexporter
 
+replace github.com/observiq/bindplane-otel-collector/exporter/statustestexporter => ./exporter/statustestexporter
+
 replace github.com/observiq/bindplane-otel-collector/exporter/webhookexporter => ./exporter/webhookexporter
 
 // Processors
@@ -1052,6 +1057,8 @@ replace github.com/observiq/bindplane-otel-collector/processor/metricextractproc
 replace github.com/observiq/bindplane-otel-collector/processor/metricstatsprocessor => ./processor/metricstatsprocessor
 
 replace github.com/observiq/bindplane-otel-collector/processor/randomfailureprocessor => ./processor/randomfailureprocessor
+
+replace github.com/observiq/bindplane-otel-collector/processor/statustestprocessor => ./processor/statustestprocessor
 
 replace github.com/observiq/bindplane-otel-collector/processor/removeemptyvaluesprocessor => ./processor/removeemptyvaluesprocessor
 
@@ -1091,6 +1098,8 @@ replace github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver => 
 replace github.com/observiq/bindplane-otel-collector/receiver/restapireceiver => ./receiver/restapireceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/routereceiver => ./receiver/routereceiver
+
+replace github.com/observiq/bindplane-otel-collector/receiver/statustestreceiver => ./receiver/statustestreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver => ./receiver/sapnetweaverreceiver
 
