@@ -82,7 +82,6 @@ func (p *statusTestProcessor) reportRandomStatus() {
 	statuses := []componentstatus.Status{
 		componentstatus.StatusOK,
 		componentstatus.StatusRecoverableError,
-		componentstatus.StatusPermanentError,
 	}
 
 	status := statuses[rand.IntN(len(statuses))]

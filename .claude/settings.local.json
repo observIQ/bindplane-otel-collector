@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs cat:*)",
+      "Bash(find:*)",
+      "Bash(go mod tidy:*)"
+    ]
+  }
+}
