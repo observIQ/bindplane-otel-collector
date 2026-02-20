@@ -24,11 +24,11 @@ require (
 	github.com/observiq/bindplane-otel-collector/processor/metricextractprocessor v1.93.0
 	github.com/observiq/bindplane-otel-collector/processor/metricstatsprocessor v1.93.0
 	github.com/observiq/bindplane-otel-collector/processor/randomfailureprocessor v1.93.0
-	github.com/observiq/bindplane-otel-collector/processor/statustestprocessor v1.93.0
 	github.com/observiq/bindplane-otel-collector/processor/removeemptyvaluesprocessor v1.93.0
 	github.com/observiq/bindplane-otel-collector/processor/resourceattributetransposerprocessor v1.93.0
 	github.com/observiq/bindplane-otel-collector/processor/samplingprocessor v1.93.0
 	github.com/observiq/bindplane-otel-collector/processor/spancountprocessor v1.93.0
+	github.com/observiq/bindplane-otel-collector/processor/statustestprocessor v1.93.0
 	github.com/observiq/bindplane-otel-collector/processor/throughputmeasurementprocessor v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver v1.93.0
@@ -41,9 +41,9 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/restapireceiver v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.93.0
-	github.com/observiq/bindplane-otel-collector/receiver/statustestreceiver v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/sapnetweaverreceiver v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver v1.93.0
+	github.com/observiq/bindplane-otel-collector/receiver/statustestreceiver v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.93.0
 	github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver v1.93.0
 	github.com/oklog/ulid/v2 v2.1.1

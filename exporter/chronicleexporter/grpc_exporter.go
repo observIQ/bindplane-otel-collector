@@ -18,12 +18,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/observiq/bindplane-otel-collector/internal/osinfo"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/component/componentstatus"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
@@ -54,6 +56,9 @@ type grpcExporter struct {
 
 	telemetry        *metadata.TelemetryBuilder
 	metricAttributes attribute.Set
+
+	host     component.Host
+	hasError atomic.Bool
 }
 
 func newGRPCExporter(cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (*grpcExporter, error) {
@@ -90,7 +95,8 @@ func (exp *grpcExporter) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: false}
 }
 
-func (exp *grpcExporter) Start(ctx context.Context, _ component.Host) error {
+func (exp *grpcExporter) Start(ctx context.Context, host component.Host) error {
+	exp.host = host
 	ts, err := tokenSource(ctx, exp.cfg)
 	if err != nil {
 		return fmt.Errorf("load Google credentials: %w", err)
@@ -215,12 +221,14 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 			)
 			exp.telemetry.ExporterRequestCount.Add(ctx, 1,
 				metric.WithAttributeSet(attribute.NewSet(errAttr)))
-
+			exp.hasError.Store(true)
+			componentstatus.ReportStatus(exp.host, componentstatus.NewRecoverableErrorEvent(err))
 			return fmt.Errorf("upload logs to chronicle: %w", err)
 		default:
 			exp.telemetry.ExporterRequestCount.Add(ctx, 1,
 				metric.WithAttributeSet(attribute.NewSet(attrErrorUnknown)))
-
+			exp.hasError.Store(true)
+			componentstatus.ReportStatus(exp.host, componentstatus.NewPermanentErrorEvent(err))
 			return consumererror.NewPermanent(fmt.Errorf("upload logs to chronicle: %w", err))
 		}
 	}
@@ -232,6 +240,10 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 	if exp.metrics != nil {
 		totalLogs := int64(len(request.GetBatch().GetEntries()))
 		exp.metrics.recordSent(totalLogs)
+	}
+
+	if exp.hasError.CompareAndSwap(true, false) {
+		componentstatus.ReportStatus(exp.host, componentstatus.NewEvent(componentstatus.StatusOK))
 	}
 
 	return nil

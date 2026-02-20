@@ -24,12 +24,14 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/observiq/bindplane-otel-collector/internal/osinfo"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/component/componentstatus"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
@@ -71,6 +73,9 @@ type httpExporter struct {
 
 	telemetry        *metadata.TelemetryBuilder
 	metricAttributes attribute.Set
+
+	host     component.Host
+	hasError atomic.Bool
 }
 
 func newHTTPExporter(cfg *Config, params exporter.Settings, telemetry *metadata.TelemetryBuilder) (*httpExporter, error) {
@@ -106,7 +111,8 @@ func (exp *httpExporter) Capabilities() consumer.Capabilities {
 	return consumer.Capabilities{MutatesData: false}
 }
 
-func (exp *httpExporter) Start(ctx context.Context, _ component.Host) error {
+func (exp *httpExporter) Start(ctx context.Context, host component.Host) error {
+	exp.host = host
 	ts, err := tokenSource(ctx, exp.cfg)
 	if err != nil {
 		return fmt.Errorf("load Google credentials: %w", err)
@@ -341,6 +347,8 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 		)
 		exp.telemetry.ExporterRequestCount.Add(ctx, 1,
 			metric.WithAttributeSet(attribute.NewSet(errAttr, logTypeAttr)))
+		exp.hasError.Store(true)
+		componentstatus.ReportStatus(exp.host, componentstatus.NewRecoverableErrorEvent(err))
 		return fmt.Errorf("send request to Chronicle: %w", err)
 	}
 	defer resp.Body.Close()
@@ -354,6 +362,9 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 		metric.WithAttributeSet(attribute.NewSet(attrErrorNone)))
 
 	if resp.StatusCode == http.StatusOK {
+		if exp.hasError.CompareAndSwap(true, false) {
+			componentstatus.ReportStatus(exp.host, componentstatus.NewEvent(componentstatus.StatusOK))
+		}
 		return nil
 	}
 
@@ -368,11 +379,15 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 	statusErr := errors.New(resp.Status)
 	switch resp.StatusCode {
 	case http.StatusInternalServerError, http.StatusServiceUnavailable: // potentially transient
+		exp.hasError.Store(true)
+		componentstatus.ReportStatus(exp.host, componentstatus.NewRecoverableErrorEvent(statusErr))
 		return statusErr
 	default:
 		if exp.cfg.LogErroredPayloads {
 			exp.set.Logger.Warn("Import request rejected", zap.String("logType", logType), zap.String("rejectedRequest", string(data)))
 		}
+		exp.hasError.Store(true)
+		componentstatus.ReportStatus(exp.host, componentstatus.NewPermanentErrorEvent(statusErr))
 		return consumererror.NewPermanent(statusErr)
 	}
 }
