@@ -368,6 +368,19 @@ release-prep:
 	@cp service/bindplane-otel-collector release_deps/bindplane-otel-collector
 	@cp service/bindplane-otel-collector.aix.env release_deps/bindplane-otel-collector.aix.env
 
+.PHONY: release-prep-aix
+release-prep-aix:
+	@rm -rf release_deps
+	@mkdir release_deps
+	@echo '$(CURR_VERSION)' > release_deps/VERSION.txt
+	bash ./buildscripts/download-dependencies.sh release_deps --aix
+	@cp -r ./plugins release_deps/
+	@cp -r ./signature/gpg release_deps/gpg
+	@rm release_deps/gpg/revocations.md
+	@rm release_deps/gpg/deb-revocations/.keep
+	@cp service/bindplane-otel-collector.aix.env release_deps/bindplane-otel-collector.aix.env
+	@cd release_deps/gpg && tar -czf ../gpg-keys.tar.gz .
+
 .PHONY: release-prep-gpg
 release-prep-gpg:
 	$(MAKE) release-prep
