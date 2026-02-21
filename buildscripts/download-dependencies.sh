@@ -53,7 +53,7 @@ if [ "$AIX_MODE" = true ]; then
     mkdir "$DOWNLOAD_DIR/opentelemetry-collector-contrib-aix"
     cd $DOWNLOAD_DIR/opentelemetry-collector-contrib-aix
     git init
-    git remote add -f origin "$AIX_SUPERVISOR_REPO"
+    git remote add origin "$AIX_SUPERVISOR_REPO"
     git config core.sparseCheckout true
     echo "cmd/opampsupervisor" >> .git/info/sparse-checkout
     git pull origin "$AIX_SUPERVISOR_BRANCH" --depth 1
@@ -74,7 +74,7 @@ else
     mkdir "$DOWNLOAD_DIR/opentelemetry-collector-contrib"
     cd $DOWNLOAD_DIR/opentelemetry-collector-contrib
     git init
-    git remote add -f origin "$SUPERVISOR_REPO"
+    git remote add origin "$SUPERVISOR_REPO"
     git config core.sparseCheckout true
     echo "cmd/opampsupervisor" >> .git/info/sparse-checkout
     git pull origin main --depth 1
