@@ -31,11 +31,14 @@ curl -fL -o "$DOWNLOAD_DIR/opentelemetry-java-contrib-jmx-metrics.jar" \
 # HACK(dakota): workaround for getting supervisor binaries until releases are supported
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/24293
 # download contrib repo and manually build supervisor repos
-echo "Cloning supervisor repo"
-SUPERVISOR_REPO="https://github.com/open-telemetry/opentelemetry-collector-contrib.git"
-PLATFORMS=("aix/ppc64" "linux/amd64" "linux/arm64" "linux/ppc64" "linux/ppc64le" "darwin/amd64" "darwin/arm64" "windows/amd64")
 
 mkdir "$DOWNLOAD_DIR/supervisor_bin"
+
+# Build supervisor for all non-AIX platforms from upstream
+echo "Cloning upstream supervisor repo"
+SUPERVISOR_REPO="https://github.com/open-telemetry/opentelemetry-collector-contrib.git"
+PLATFORMS=("linux/amd64" "linux/arm64" "linux/ppc64" "linux/ppc64le" "darwin/amd64" "darwin/arm64" "windows/amd64")
+
 mkdir "$DOWNLOAD_DIR/opentelemetry-collector-contrib"
 cd $DOWNLOAD_DIR/opentelemetry-collector-contrib
 git init
@@ -46,7 +49,6 @@ git pull origin main --depth 1
 
 cd "cmd/opampsupervisor"
 for PLATFORM in "${PLATFORMS[@]}"; do
-    # Split the PLATFORM string into GOOS and GOARCH
     IFS="/" read -r GOOS GOARCH <<< "${PLATFORM}"
     if [ "$GOOS" == "windows" ]; then
         EXT=".exe"
@@ -57,3 +59,25 @@ for PLATFORM in "${PLATFORMS[@]}"; do
     GOOS="$GOOS" GOARCH="$GOARCH" CGO_ENABLED=0 go build -o $PROJECT_BASE/$DOWNLOAD_DIR/supervisor_bin/opampsupervisor_${GOOS}_${GOARCH}${EXT} .
 done
 $(cd $PROJECT_BASE/$DOWNLOAD_DIR && rm -rf opentelemetry-collector-contrib)
+
+# Build supervisor for AIX from custom fork with AIX compatibility patches
+echo "Cloning AIX supervisor repo (custom fork)"
+AIX_SUPERVISOR_REPO="https://github.com/observIQ/opentelemetry-collector-contrib.git"
+AIX_SUPERVISOR_BRANCH="patch/aix_config-v0.145.x"
+AIX_PLATFORMS=("aix/ppc64")
+
+mkdir "$DOWNLOAD_DIR/opentelemetry-collector-contrib-aix"
+cd $DOWNLOAD_DIR/opentelemetry-collector-contrib-aix
+git init
+git remote add -f origin "$AIX_SUPERVISOR_REPO"
+git config core.sparseCheckout true
+echo "cmd/opampsupervisor" >> .git/info/sparse-checkout
+git pull origin "$AIX_SUPERVISOR_BRANCH" --depth 1
+
+cd "cmd/opampsupervisor"
+for PLATFORM in "${AIX_PLATFORMS[@]}"; do
+    IFS="/" read -r GOOS GOARCH <<< "${PLATFORM}"
+    echo "Building AIX supervisor for $GOOS/$GOARCH"
+    GOOS="$GOOS" GOARCH="$GOARCH" CGO_ENABLED=0 go build -o $PROJECT_BASE/$DOWNLOAD_DIR/supervisor_bin/opampsupervisor_${GOOS}_${GOARCH} .
+done
+$(cd $PROJECT_BASE/$DOWNLOAD_DIR && rm -rf opentelemetry-collector-contrib-aix)
