@@ -5,7 +5,7 @@ project_name: bindplane-otel-collector
 before:
   hooks:
     - make release-prep-gpg CURR_VERSION={{ .Version }}
-    - make build-all OUTDIR="tmp"
+    - make build-all-non-aix OUTDIR="tmp"
 
 after:
   hooks:
@@ -21,7 +21,6 @@ builds:
     tags:
       - bindplane
     goos:
-      - aix
       - darwin
       - linux
       - windows
@@ -31,14 +30,6 @@ builds:
       - ppc64
       - ppc64le
     ignore:
-      - goos: aix
-        goarch: arm64
-      - goos: aix
-        goarch: arm
-      - goos: aix
-        goarch: amd64
-      - goos: aix
-        goarch: ppc64le
       - goos: darwin
         goarch: ppc64
       - goos: darwin
@@ -55,7 +46,6 @@ builds:
     builder: prebuilt
     binary: opampsupervisor
     goos:
-      - aix
       - darwin
       - linux
       - windows
@@ -65,14 +55,6 @@ builds:
       - ppc64
       - ppc64le
     ignore:
-      - goos: aix
-        goarch: amd64
-      - goos: aix
-        goarch: arm64
-      - goos: aix
-        goarch: arm
-      - goos: aix
-        goarch: ppc64le
       - goos: darwin
         goarch: ppc64
       - goos: darwin
@@ -106,9 +88,6 @@ archives:
         dst: "."
         strip_parent: true
       - src: release_deps/bindplane-otel-collector
-        dst: "install"
-        strip_parent: true
-      - src: release_deps/bindplane-otel-collector.aix.env
         dst: "install"
         strip_parent: true
     format_overrides:
