@@ -1,7 +1,7 @@
 # This manifest is a combination of the upstream opentelemetry-collector-contrib manifest & components unique to observIQ's distribution.
 # https://github.com/open-telemetry/opentelemetry-collector-releases/blob/main/distributions/otelcol-contrib/manifest.yaml
 dist:
-  module: github.com/observiq/bindplane-agent
+  module: github.com/observiq/bindplane-otel-collector
   name: bindplane-otel-collector
   description: ObservIQ's custom distro for OpenTelemetry Collector
   version: "v2.0.0-aix-alpha.1"
@@ -101,3 +101,4 @@ replaces:
   - github.com/observiq/bindplane-otel-collector/internal/storageclient => ../internal/storageclient
   - github.com/observiq/bindplane-otel-collector/internal/testutils => ../internal/testutils
   - github.com/observiq/bindplane-otel-collector/internal/tools => ../internal/tools
+  - github.com/observiq/bindplane-otel-collector/version => ../version
