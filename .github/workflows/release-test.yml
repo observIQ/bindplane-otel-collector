@@ -309,5 +309,11 @@ jobs:
           COSIGN_PWD: fake-password
       - name: Debug list dist/
         run: |
-          tree dist/ 2>/dev/null || echo "No dist-aix directory"
+          tree dist/ 2>/dev/null || echo "No dist directory"
           du -sh dist/ 2>/dev/null || true
+      - name: Upload AIX build artifacts
+        uses: namespace-actions/upload-artifact@v1
+        with:
+          name: bindplane-otel-collector-${{ env.VERSION }}-aix-artifacts
+          path: dist/
+          retention-days: 1
