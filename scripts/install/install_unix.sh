@@ -50,13 +50,13 @@ skip_gpg_check=false
 # Default Supervisor Config Hash
 DEFAULT_SUPERVISOR_CFG_HASH="ac4e6001f1b19d371bba6a2797ba0a55d7ca73151ba6908040598ca275c0efca"
 
-# Require bash for AIX to create a standardized environment
-# Also set up the supervisor timeout values
-if [ "$(uname -s)" != "AIX" ]; then
-  PREREQS="bash $PREREQS"
+# Require bash for non-AIX to create a standardized environment
+# Also set up the supervisor timeout values (AIX needs higher values due to slow I/O)
+if [ "$(uname -s)" = "AIX" ]; then
   config_apply_timeout="150"
-  bootstrap_timeout="15"
+  bootstrap_timeout="120"
 else
+  PREREQS="bash $PREREQS"
   config_apply_timeout="30"
   bootstrap_timeout="5"
 fi
@@ -695,12 +695,16 @@ interactive_check()
 
 offline_check()
 {
-  # Ensure that both package_path and gpg_tar_path are either both set or both unset
-  if { [ -n "$package_path" ] && [ -z "$gpg_tar_path" ]; } || { [ -z "$package_path" ] && [ -n "$gpg_tar_path" ]; }; then
-    error_exit "$LINENO" "Both --file and --gpg-tar-file must be specified together, or neither should be specified."
+  # --file without --gpg-tar-file is allowed when --no-gpg-check is set
+  if [ -n "$package_path" ] && [ -z "$gpg_tar_path" ] && [ "$skip_gpg_check" != "true" ]; then
+    error_exit "$LINENO" "Both --file and --gpg-tar-file must be specified together, or use --no-gpg-check to skip signature verification."
   fi
 
-  if [ -n "$package_path" ] && [ -n "$gpg_tar_path" ]; then
+  if [ -z "$package_path" ] && [ -n "$gpg_tar_path" ]; then
+    error_exit "$LINENO" "--gpg-tar-file requires --file to be specified."
+  fi
+
+  if [ -n "$package_path" ]; then
     offline_installation=true
   fi
 }
@@ -1279,6 +1283,9 @@ create_supervisor_config() {
   command printf '  executable: "%s"\n' "$INSTALL_DIR/bindplane-otel-collector" >>"$supervisor_yml_path"
   command printf '  config_apply_timeout: %ss\n' $config_apply_timeout >>"$supervisor_yml_path"
   command printf '  bootstrap_timeout: %ss\n' $bootstrap_timeout >>"$supervisor_yml_path"
+  if [ "$(uname -s)" = "AIX" ]; then
+    command printf '  orphan_detection_interval: 120s\n' >>"$supervisor_yml_path"
+  fi
   command printf '  args: ["--feature-gates", "service.AllowNoPipelines"]\n' >>"$supervisor_yml_path"
 
   if [ -n "$OPAMP_LABELS" ]; then
