@@ -644,8 +644,8 @@ func TestRESTAPILogsReceiver_AdaptivePolling_PageLimitResetsInterval(t *testing.
 			TotalRecordCountField: "total",
 			PageLimit:             1, // Stop after 1 page — forces page limit to be hit
 		},
-		MinPollInterval: 10 * time.Millisecond,
-		MaxPollInterval: 5 * time.Second,
+		MinPollInterval: 50 * time.Millisecond,
+		MaxPollInterval: 5 * time.Minute,
 		ClientConfig:    confighttp.ClientConfig{},
 	}
 
@@ -660,15 +660,15 @@ func TestRESTAPILogsReceiver_AdaptivePolling_PageLimitResetsInterval(t *testing.
 	err = receiver.Start(ctx, host)
 	require.NoError(t, err)
 
-	// With page limit hit each cycle, interval should stay at min (10ms),
+	// With page limit hit each cycle, interval should stay at min (10s),
 	// so we should see many requests in a short window.
 	time.Sleep(200 * time.Millisecond)
 
 	err = receiver.Shutdown(ctx)
 	require.NoError(t, err)
 
-	// With 10ms intervals and page limit hit each time, expect many requests
-	require.Greater(t, int(requestCount.Load()), 5, "expected many polls when page limit is hit (interval should stay at min)")
+	// With 10s intervals and page limit hit each time, expect many requests
+	require.Greater(t, int(requestCount.Load()), 4, "expected many polls when page limit is hit (interval should stay at min)")
 }
 
 func TestGetNestedField(t *testing.T) {

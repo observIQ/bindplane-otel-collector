@@ -39,7 +39,7 @@ Alpha:
 | `oauth2` | object | | `false` | OAuth2 Client Credentials configuration (see below) |
 | `akamai_edgegrid` | object | | `false` | Akamai EdgeGrid configuration (see below) |
 | `pagination` | object | | `false` | Pagination configuration (see below) |
-| `min_poll_interval` | duration | `10ms` | `false` | Minimum interval between API polls. The receiver resets to this interval when data is received. Increase this to prevent hitting API rate limits. |
+| `min_poll_interval` | duration | `10s` | `false` | Minimum interval between API polls. The receiver resets to this interval when data is received. Increase this to prevent hitting API rate limits. |
 | `max_poll_interval` | duration | `5m` | `false` | Maximum interval between API polls. The receiver uses adaptive polling that starts at `min_poll_interval` and backs off when no data is returned, up to this maximum. |
 | `storage` | component | | `false` | The component ID of a storage extension for checkpointing |
 | `timeout` | duration | `10s` | `false` | HTTP client timeout |

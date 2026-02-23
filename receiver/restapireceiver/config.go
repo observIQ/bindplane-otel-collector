@@ -372,11 +372,11 @@ func (c *Config) Validate() error {
 
 	// Apply defaults if not configured (zero value means not set)
 	if c.MinPollInterval == 0 {
-		c.MinPollInterval = 10 * time.Millisecond
+		c.MinPollInterval = 10 * time.Second
 	}
 
 	if c.MinPollInterval < 0 {
-		return fmt.Errorf("min_poll_interval must be greater than 0")
+		return fmt.Errorf("min_poll_interval must be greater than or equal to 0")
 	}
 
 	if c.MaxPollInterval == 0 {
@@ -384,7 +384,7 @@ func (c *Config) Validate() error {
 	}
 
 	if c.MaxPollInterval < 0 {
-		return fmt.Errorf("max_poll_interval must be greater than 0")
+		return fmt.Errorf("max_poll_interval must be greater than or equal to 0")
 	}
 
 	if c.MinPollInterval > c.MaxPollInterval {

@@ -616,7 +616,7 @@ func TestConfig_Validate(t *testing.T) {
 				},
 				MinPollInterval: -1 * time.Second,
 			},
-			expectedErr: "min_poll_interval must be greater than 0",
+			expectedErr: "min_poll_interval must be greater than or equal to 0",
 		},
 		{
 			name: "negative max_poll_interval",
@@ -632,7 +632,7 @@ func TestConfig_Validate(t *testing.T) {
 				},
 				MaxPollInterval: -1 * time.Minute,
 			},
-			expectedErr: "max_poll_interval must be greater than 0",
+			expectedErr: "max_poll_interval must be greater than or equal to 0",
 		},
 		{
 			name: "min_poll_interval greater than max_poll_interval",
@@ -689,7 +689,7 @@ func TestConfig_DefaultValues(t *testing.T) {
 
 	require.Equal(t, authModeNone, cfg.AuthMode)
 	require.Equal(t, paginationModeNone, cfg.Pagination.Mode)
-	require.Equal(t, 10*time.Millisecond, cfg.MinPollInterval)
+	require.Equal(t, 10*time.Second, cfg.MinPollInterval)
 	require.Equal(t, 5*time.Minute, cfg.MaxPollInterval)
 	require.Equal(t, 0, cfg.Pagination.PageLimit)
 	require.False(t, cfg.Pagination.ZeroBasedIndex)
