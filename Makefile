@@ -397,7 +397,7 @@ release-test:
 # Build and sign AIX, skip release and ignore dirty git tree
 .PHONY: release-test-aix
 release-test-aix:
-	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --config .goreleaser-aix.yml --parallelism 4 --skip=publish --skip=validate --skip=sign --snapshot
+	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --config .goreleaser-aix.yml --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
 
 build-single:
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --skip=publish --skip=sign --clean --skip=validate --snapshot --single-target
