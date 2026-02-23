@@ -41,6 +41,7 @@ Alpha:
 | `pagination` | object | | `false` | Pagination configuration (see below) |
 | `min_poll_interval` | duration | `10s` | `false` | Minimum interval between API polls. The receiver resets to this interval when data is received. Increase this to prevent hitting API rate limits. |
 | `max_poll_interval` | duration | `5m` | `false` | Maximum interval between API polls. The receiver uses adaptive polling that starts at `min_poll_interval` and backs off when no data is returned, up to this maximum. |
+| `backoff_multiplier` | float | `2.0` | `false` | Multiplier for increasing the poll interval when no data or a partial page is returned. Must be greater than 1.0. |
 | `storage` | component | | `false` | The component ID of a storage extension for checkpointing |
 | `timeout` | duration | `10s` | `false` | HTTP client timeout |
 

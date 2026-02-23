@@ -33,9 +33,6 @@ import (
 
 const (
 	checkpointStorageKey = "restapi_checkpoint"
-
-	// Adaptive polling constants
-	backoffMultiplier = 2.0 // Multiplier for increasing interval on empty responses
 )
 
 // checkpointData represents the data stored in the checkpoint.
@@ -135,7 +132,7 @@ func (b *baseReceiver) adjustPollInterval(result pollResult) {
 		}
 	} else {
 		// No data or partial page - increase interval (backoff) up to max
-		newInterval := time.Duration(float64(b.currentPollInterval) * backoffMultiplier)
+		newInterval := time.Duration(float64(b.currentPollInterval) * b.cfg.BackoffMultiplier)
 		if newInterval > b.cfg.MaxPollInterval {
 			newInterval = b.cfg.MaxPollInterval
 		}
