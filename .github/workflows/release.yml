@@ -47,7 +47,7 @@ jobs:
           unzip wix314-binaries.zip
         working-directory: C:/build
       - name: Build AMD64 MSI
-        run: go-msi.exe make -m observiq-otel-collector-amd64.msi --version ${{ github.ref_name }} --arch x64
+        run: go-msi.exe make -m observiq-otel-collector.msi --version ${{ github.ref_name }} --arch x64
         working-directory: C:/build
       - name: Copy ARM64 Binaries to Build Dir
         run: |
@@ -73,7 +73,7 @@ jobs:
         shell: bash
       - name: Sign AMD64 MSI
         run: |
-          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/observiq-otel-collector-amd64.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
+          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/observiq-otel-collector.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
         shell: cmd
       - name: Sign ARM64 MSI
         run: |
@@ -82,8 +82,8 @@ jobs:
       - name: "Upload AMD64 MSI"
         uses: actions/upload-artifact@v4
         with:
-          name: observiq-otel-collector-amd64.msi
-          path: C:/build/observiq-otel-collector-amd64.msi
+          name: observiq-otel-collector.msi
+          path: C:/build/observiq-otel-collector.msi
           # Short lived because Go Releaser will upload the msi to a release (github release, gcs, etc)
           retention-days: 1
       - name: "Upload ARM64 MSI"
@@ -149,7 +149,7 @@ jobs:
       - name: Retrieve Windows AMD64 MSI Installer
         uses: actions/download-artifact@v4
         with:
-          name: observiq-otel-collector-amd64.msi
+          name: observiq-otel-collector.msi
       - name: Retrieve Windows ARM64 MSI Installer
         uses: actions/download-artifact@v4
         with:
@@ -166,7 +166,7 @@ jobs:
         with:
           path: ~/.cache/goreleaser
       - name: Sign AMD64 MSI
-        run: cosign sign-blob --key=cosign.key --output-signature ./observiq-otel-collector-amd64.msi.sig ./observiq-otel-collector-amd64.msi
+        run: cosign sign-blob --key=cosign.key --output-signature ./observiq-otel-collector.msi.sig ./observiq-otel-collector.msi
         shell: bash
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
@@ -198,7 +198,7 @@ jobs:
           mkdir artifacts
           cp ./scripts/install/*.sh ./artifacts
           cp ./release_deps/gpg-keys.tar.gz ./artifacts/gpg-keys.tar.gz
-          cp ./observiq-otel-collector-amd64.msi ./artifacts
+          cp ./observiq-otel-collector.msi ./artifacts
           cp ./observiq-otel-collector-arm64.msi ./artifacts
           cp ./dist/*tar.gz ./artifacts
           cp ./dist/*.zip ./artifacts
