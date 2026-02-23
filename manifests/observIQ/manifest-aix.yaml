@@ -1,0 +1,107 @@
+# This manifest is a combination of the upstream opentelemetry-collector-contrib manifest & components unique to observIQ's distribution.
+# https://github.com/open-telemetry/opentelemetry-collector-releases/blob/main/distributions/otelcol-contrib/manifest.yaml
+dist:
+  module: github.com/observiq/bindplane-otel-collector
+  name: bindplane-otel-collector
+  description: ObservIQ's custom distro for OpenTelemetry Collector
+  version: "v2.0.0-aix-alpha.1"
+  output_path: ./builder
+conf_resolver:
+  default_uri_scheme: "env"
+extensions:
+  - gomod: go.opentelemetry.io/collector/extension/zpagesextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/ackextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/asapauthextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/awsproxy v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jaegerencodingextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/otlpencodingextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/zipkinencodingextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/headerssetterextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/httpforwarderextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/jaegerremotesampling v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/oauth2clientauthextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/dockerobserver v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/ecsobserver v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/hostobserver v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/k8sobserver v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/oidcauthextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/sigv4authextension v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.145.0
+  - gomod: github.com/observiq/bindplane-otel-collector/extension/bindplaneextension v1.93.0
+    path: "./extension/bindplaneextension"
+exporters:
+  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.145.0
+  - gomod: go.opentelemetry.io/collector/exporter/nopexporter v0.145.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.145.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fileexporter v0.145.0
+processors:
+  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor v0.145.0
+  - gomod: github.com/observiq/bindplane-otel-collector/processor/snapshotprocessor v1.93.0
+    path: "./processor/snapshotprocessor"
+  - gomod: github.com/observiq/bindplane-otel-collector/processor/throughputmeasurementprocessor v1.93.0
+    path: "./processor/throughputmeasurementprocessor"
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbyattrsprocessor v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbytraceprocessor v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.145.0
+  - gomod: github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.93.0
+    path: "./processor/topologyprocessor"
+receivers:
+  - gomod: go.opentelemetry.io/collector/receiver/nopreceiver v0.145.0
+  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/collectdreceiver v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jmxreceiver v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/saphanareceiver v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/statsdreceiver v0.145.0
+  - gomod: github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver v1.93.0
+    path: "./receiver/pluginreceiver"
+  - gomod: github.com/observiq/bindplane-otel-collector/receiver/routereceiver v1.93.0
+    path: "./receiver/routereceiver"
+  - gomod: github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.93.0
+    path: "./receiver/telemetrygeneratorreceiver"
+connectors:
+  - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/exceptionsconnector v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/grafanacloudconnector v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/routingconnector v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/servicegraphconnector v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector v0.145.0
+providers:
+  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.51.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.51.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/httpprovider v1.51.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/httpsprovider v1.51.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.51.0
+# When adding a replace, add a comment before it to document why it's needed and when it can be removed
+replaces:
+  # replace for datapointcountprocessor, logcountprocessor, and spancountprocessor
+  - github.com/observiq/bindplane-otel-collector/receiver/routereceiver => ../receiver/routereceiver
+  # replace used by bindplaneextension
+  - github.com/observiq/bindplane-otel-collector/processor/topologyprocessor => ../processor/topologyprocessor
+  # replace statements for internal imports
+  - github.com/observiq/bindplane-otel-collector/internal/aws => ../internal/aws
+  - github.com/observiq/bindplane-otel-collector/internal/azureblob => ../internal/azureblob
+  - github.com/observiq/bindplane-otel-collector/internal/blobconsume => ../internal/blobconsume
+  - github.com/observiq/bindplane-otel-collector/internal/counter => ../internal/counter
+  - github.com/observiq/bindplane-otel-collector/internal/expr => ../internal/expr
+  - github.com/observiq/bindplane-otel-collector/internal/measurements => ../internal/measurements
+  - github.com/observiq/bindplane-otel-collector/internal/osinfo => ../internal/osinfo
+  - github.com/observiq/bindplane-otel-collector/internal/report => ../internal/report
+  - github.com/observiq/bindplane-otel-collector/internal/storageclient => ../internal/storageclient
+  - github.com/observiq/bindplane-otel-collector/internal/testutils => ../internal/testutils
+  - github.com/observiq/bindplane-otel-collector/internal/tools => ../internal/tools
+  - github.com/observiq/bindplane-otel-collector/version => ../version
+  # AIX patches for gopsutil - can be removed when upstream merges AIX support
+  - github.com/shirou/gopsutil/v4 => github.com/observIQ/gopsutil/v4 d7f07058c806a69143687c15cee036a06c3d9135

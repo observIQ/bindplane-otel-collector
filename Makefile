@@ -40,6 +40,12 @@ collector:
 	CGO_ENABLED=0 builder --config="./manifests/observIQ/manifest.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/version.version=$(VERSION)"
 	mkdir -p $(OUTDIR); cp ./builder/bindplane-otel-collector $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
 
+# Builds the agent for current GOOS/GOARCH pair (aix)
+.PHONY: collector-aix
+collector-aix:
+	CGO_ENABLED=0 builder --config="./manifests/observIQ/manifest-aix.yaml" --ldflags "-s -w -X github.com/observiq/bindplane-otel-collector/version.version=$(VERSION)"
+	mkdir -p $(OUTDIR); cp ./builder/bindplane-otel-collector $(OUTDIR)/collector_$(GOOS)_$(GOARCH)$(EXT)
+
 # Builds a custom distro for the current GOOS/GOARCH pair using the manifest specified
 # MANIFEST = path to the manifest file for the distro to be built
 # Usage: make distro MANIFEST="./manifests/custom/my_distro_manifest.yaml"
@@ -64,10 +70,20 @@ reset: kill
 	rm -rf agent.log effective.yaml local/supervisor_storage/ builder/
 
 .PHONY: build-all
-build-all: build-linux build-darwin build-windows
+build-all: build-linux build-unix build-windows
+
+# Build all non-AIX platforms (used by main goreleaser before hook)
+.PHONY: build-all-non-aix
+build-all-non-aix: build-linux build-darwin build-windows
 
 .PHONY: build-linux
 build-linux: build-linux-amd64 build-linux-arm64 build-linux-ppc64 build-linux-ppc64le
+
+.PHONY: build-unix
+build-unix: build-darwin build-aix
+
+.PHONY: build-aix
+build-aix: build-aix-ppc64
 
 .PHONY: build-darwin
 build-darwin: build-darwin-amd64 build-darwin-arm64
@@ -94,6 +110,10 @@ build-linux-arm64:
 .PHONY: build-linux-arm
 build-linux-arm:
 	GOOS=linux GOARCH=arm $(MAKE) collector
+
+.PHONY: build-aix-ppc64
+build-aix-ppc64:
+	GOOS=aix GOARCH=ppc64 $(MAKE) collector-aix
 
 .PHONY: build-darwin-amd64
 build-darwin-amd64:
@@ -346,6 +366,20 @@ release-prep:
 	@cp service/com.bindplane.otel.collector.plist release_deps/com.bindplane.otel.collector.plist
 	@jq ".files[] | select(.service != null)" windows/wix.json >> release_deps/windows_service.json
 	@cp service/bindplane-otel-collector release_deps/bindplane-otel-collector
+	@cp service/bindplane-otel-collector.aix.env release_deps/bindplane-otel-collector.aix.env
+
+.PHONY: release-prep-aix
+release-prep-aix:
+	@rm -rf release_deps
+	@mkdir release_deps
+	@echo '$(CURR_VERSION)' > release_deps/VERSION.txt
+	bash ./buildscripts/download-dependencies.sh release_deps --aix
+	@cp -r ./plugins release_deps/
+	@cp -r ./signature/gpg release_deps/gpg
+	@rm release_deps/gpg/revocations.md
+	@rm release_deps/gpg/deb-revocations/.keep
+	@cp service/bindplane-otel-collector.aix.env release_deps/bindplane-otel-collector.aix.env
+	@cd release_deps/gpg && tar -czf ../gpg-keys.tar.gz .
 
 .PHONY: release-prep-gpg
 release-prep-gpg:
@@ -358,6 +392,12 @@ release-test:
 # If there is no MSI in the root dir, we'll create a dummy one so that goreleaser can complete successfully
 	if [ ! -e "./bindplane-otel-collector.msi" ]; then touch ./bindplane-otel-collector.msi; fi
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
+	$(MAKE) release-test-aix
+
+# Build and sign AIX, skip release and ignore dirty git tree
+.PHONY: release-test-aix
+release-test-aix:
+	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --config .goreleaser-aix.yml --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
 
 build-single:
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --skip=publish --skip=sign --clean --skip=validate --snapshot --single-target
