@@ -57,9 +57,6 @@ archives:
       - src: release_deps/VERSION.txt
         dst: "."
         strip_parent: true
-      - src: release_deps/gpg-keys.tar.gz
-        dst: "."
-        strip_parent: true
       - src: release_deps/bindplane-otel-collector.aix.env
         dst: "install"
         strip_parent: true

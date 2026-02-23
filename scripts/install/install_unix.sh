@@ -115,7 +115,7 @@ fi
 printf() {
   if [ "$non_interactive" = "false" ] || [ "$error_mode" = "true" ]; then
     if [ "$(uname -s)" != "AIX" ] && command -v sed >/dev/null; then
-      command printf -- "$@" | sed -n "$sed_ignore s/^/$indent/g"  # Ignore sole reset characters if defined
+      command printf -- "$@" | sed -r "$sed_ignore s/^/$indent/g" # Ignore sole reset characters if defined
     else
       # Ignore $* suggestion as this breaks the output
       # shellcheck disable=SC2145
