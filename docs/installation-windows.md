@@ -2,23 +2,41 @@
 
 ## Installing
 
-To install the agent on Windows run the Powershell command below to install the MSI with no UI.
+To install the agent on Windows, run the PowerShell command below. The script automatically detects the system architecture (amd64 or arm64) and downloads the appropriate MSI.
+
+> **Note:** The install script is available as of release v1.94.0. For earlier versions, see the [manual installation](#manual-installation) instructions below.
+
 ```pwsh
-msiexec /i "https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/observiq-otel-collector.msi" /quiet
+& ([scriptblock]::Create((Invoke-WebRequest -Uri "https://bdot.bindplane.com/latest/install_windows.ps1" -UseBasicParsing).Content))
 ```
 
-Alternately, for an interactive installation [download the latest MSI](https://github.com/observIQ/bindplane-otel-collector/releases/latest).
+To install a specific version, pass the `-Version` parameter:
 
-After downloading the MSI, simply double click it to open the installation wizard. Follow the instructions to configure and install the agent.
+```pwsh
+& ([scriptblock]::Create((Invoke-WebRequest -Uri "https://bdot.bindplane.com/latest/install_windows.ps1" -UseBasicParsing).Content)) -Version "1.94.0"
+```
+
+For an interactive installation with the installer UI, add `-Interactive`:
+
+```pwsh
+& ([scriptblock]::Create((Invoke-WebRequest -Uri "https://bdot.bindplane.com/latest/install_windows.ps1" -UseBasicParsing).Content)) -Interactive
+```
+
+### Manual Installation
+
+For versions prior to v1.94.0, or if you prefer to install without the script, download the MSI directly from `https://bdot.bindplane.com/v<version>/observiq-otel-collector.msi` (or `observiq-otel-collector-arm64.msi` for ARM64) and double click it to open the installation wizard.
 
 Installation artifacts are signed. Information on verifying the signature can be found at [Verifying Artifact Signatures](./verify-signature.md).
 
 ### Managed Mode
 
-To install the agent with an OpAMP connection configuration set the following flags. 
+To install the agent with an OpAMP connection configuration, pass the management flags to the install script:
 
-```sh
-msiexec /i "https://github.com/observIQ/bindplane-otel-collector/releases/latest/download/observiq-otel-collector.msi" /quiet ENABLEMANAGEMENT=1 OPAMPENDPOINT=<your_endpoint> OPAMPSECRETKEY=<secret-key>
+```pwsh
+& ([scriptblock]::Create((Invoke-WebRequest -Uri "https://bdot.bindplane.com/latest/install_windows.ps1" -UseBasicParsing).Content)) `
+    -EnableManagement "1" `
+    -OpAMPEndpoint "<your_endpoint>" `
+    -OpAMPSecretKey "<secret-key>"
 ```
 
 To read more about the generated connection configuration file see [OpAMP docs](./opamp.md).
@@ -88,17 +106,18 @@ Start-Service -Name "observiq-otel-collector"
 
 ## Uninstalling
 
-To uninstall the agent on Windows, navigate to the control panel, then to the "Uninstall a program" dialog.
+To uninstall the agent, run the install script with the `-Uninstall` flag:
+
+```pwsh
+& ([scriptblock]::Create((Invoke-WebRequest -Uri "https://bdot.bindplane.com/latest/install_windows.ps1" -UseBasicParsing).Content)) -Uninstall
+```
+
+Alternatively, uninstall through the control panel via the "Uninstall a program" dialog.
 
 ![The control panel](./screenshots/windows/control-panel-uninstall.png)
 
-Locate the `"observIQ Distro for OpenTelemetry Collector"` entry, and select uninstall. 
+Locate the `"observIQ Distro for OpenTelemetry Collector"` entry, and select uninstall.
 
 ![The uninstall or change a program dialog](./screenshots/windows/uninstall-collector.png)
 
 Follow the wizard to complete removal of the agent.
-
-Alternatively, Powershell command below may be run to uninstall the agent.
-```pwsh
-(Get-WmiObject -Class Win32_Product -Filter "Name = 'observIQ Distro for OpenTelemetry Collector'").Uninstall()
-```

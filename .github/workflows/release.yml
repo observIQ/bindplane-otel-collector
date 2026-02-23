@@ -215,6 +215,7 @@ jobs:
         run: |
           gsutil cp ./scripts/install/install_unix.sh gs://bdot-release/latest/install_unix.sh
           gsutil cp ./scripts/install/install_macos.sh gs://bdot-release/latest/install_macos.sh
+          gsutil cp ./scripts/install/install_windows.ps1 gs://bdot-release/latest/install_windows.ps1
           gsutil cp ./release_deps/gpg-keys.tar.gz gs://bdot-release/latest/gpg-keys.tar.gz
       - name: Upload artifact bundle to release
         uses: AButler/upload-release-assets@v2.0
