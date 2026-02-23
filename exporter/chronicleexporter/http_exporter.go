@@ -367,7 +367,7 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 	// TODO interpret with https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/internal/coreinternal/errorutil/http.go
 	statusErr := errors.New(resp.Status)
 	switch resp.StatusCode {
-	case http.StatusInternalServerError, http.StatusServiceUnavailable: // potentially transient
+	case http.StatusInternalServerError, http.StatusServiceUnavailable, http.StatusTooManyRequests: // potentially transient
 		return statusErr
 	default:
 		if exp.cfg.LogErroredPayloads {
