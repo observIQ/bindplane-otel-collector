@@ -50,6 +50,7 @@ processors:
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.145.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbyattrsprocessor v0.145.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/groupbytraceprocessor v0.145.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.145.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.145.0
   - gomod: github.com/observiq/bindplane-otel-collector/processor/topologyprocessor v1.93.0
     path: "./processor/topologyprocessor"
@@ -102,3 +103,5 @@ replaces:
   - github.com/observiq/bindplane-otel-collector/internal/testutils => ../internal/testutils
   - github.com/observiq/bindplane-otel-collector/internal/tools => ../internal/tools
   - github.com/observiq/bindplane-otel-collector/version => ../version
+  # AIX patches for gopsutil - can be removed when upstream merges AIX support
+  - github.com/shirou/gopsutil/v4 => github.com/observIQ/gopsutil/v4 d7f07058c806a69143687c15cee036a06c3d9135
