@@ -985,7 +985,7 @@ install_package() {
       *inoperative*)
         info "Starting service..."
         # Start the service with the proper environment variables
-        startsrc -g bpcollector-e "$(cat /etc/bindplane-otel-collector.aix.env)"
+        startsrc -g bpcollector -e "$(cat /etc/bindplane-otel-collector.aix.env)"
         succeeded
         ;;
       *)
@@ -994,18 +994,16 @@ install_package() {
         # to make sure we have the most recent version
         if lssrc -g bpcollector > /dev/null 2>&1; then
           rmssys -g bpcollector
-        else
-          mkssys -s bindplane-otel-collector  -G bpcollector -p /opt/bindplane-otel-collector/opampsupervisor -u "$(id -u root)" -S -n15 -f9 -a '--config /opt/bindplane-otel-collector/supervisor.yaml'
         fi
+        mkssys -s bindplane-otel-collector  -G bpcollector -p /opt/bindplane-otel-collector/opampsupervisor -u "$(id -u root)" -S -n15 -f9 -a '--config /opt/bindplane-otel-collector/supervisor.yaml'
 
         # Install the service to start on boot
         # Removing it if it exists, in order to have the most recent version
         if lsitab bpcollector > /dev/null 2>&1; then
           rmitab bpcollector
-        else
-          # shellcheck disable=SC2016
-          mkitab 'bpcollector:23456789:once:startsrc -g bpcollector -e "$(cat /etc/bindplane-otel-collector.aix.env)"'
         fi
+        # shellcheck disable=SC2016
+        mkitab 'bpcollector:23456789:once:startsrc -g bpcollector -e "$(cat /etc/bindplane-otel-collector.aix.env)"'
 
         # Start the service with the proper environment variables
         startsrc -g bpcollector -e "$(cat /etc/bindplane-otel-collector.aix.env)"
@@ -1337,8 +1335,8 @@ display_results() {
   decrease_indent
   decrease_indent
 
-    banner "$(fg_green Installation Complete!)"
-    return 0
+  banner "$(fg_green Installation Complete!)"
+  return 0
 }
 
 uninstall_aix()
@@ -1370,8 +1368,6 @@ uninstall_package()
 
 uninstall()
 {
-  bindplane_banner
-
   set_package_type
   banner "Uninstalling BDOT"
   increase_indent
