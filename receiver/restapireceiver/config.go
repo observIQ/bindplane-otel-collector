@@ -88,10 +88,21 @@ type Config struct {
 	// Pagination defines pagination configuration.
 	Pagination PaginationConfig `mapstructure:"pagination"`
 
+	// MinPollInterval is the minimum interval between API polls.
+	// The receiver uses adaptive polling that resets to this interval when data
+	// is received, and backs off when no data is returned.
+	MinPollInterval time.Duration `mapstructure:"min_poll_interval"`
+
 	// MaxPollInterval is the maximum interval between API polls.
 	// The receiver uses adaptive polling that starts with a short interval and
 	// backs off when no data is returned, up to this maximum.
 	MaxPollInterval time.Duration `mapstructure:"max_poll_interval"`
+
+	// BackoffMultiplier is the multiplier for increasing the poll interval
+	// when no data or a partial page is returned. For example, with a multiplier
+	// of 2.0 and a current interval of 10s, the next interval will be 20s.
+	// Must be greater than 1.0. Defaults to 2.0.
+	BackoffMultiplier float64 `mapstructure:"backoff_multiplier"`
 
 	// ClientConfig defines HTTP client configuration.
 	ClientConfig confighttp.ClientConfig `mapstructure:",squash"`
@@ -365,13 +376,34 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Apply default if not configured (zero value means not set)
+	// Apply defaults if not configured (zero value means not set)
+	if c.MinPollInterval == 0 {
+		c.MinPollInterval = 10 * time.Second
+	}
+
+	if c.MinPollInterval < 0 {
+		return fmt.Errorf("min_poll_interval must be greater than or equal to 0")
+	}
+
 	if c.MaxPollInterval == 0 {
 		c.MaxPollInterval = 5 * time.Minute
 	}
 
 	if c.MaxPollInterval < 0 {
-		return fmt.Errorf("max_poll_interval must be greater than 0")
+		return fmt.Errorf("max_poll_interval must be greater than or equal to 0")
+	}
+
+	if c.MinPollInterval > c.MaxPollInterval {
+		return fmt.Errorf("min_poll_interval (%s) must be less than or equal to max_poll_interval (%s)", c.MinPollInterval, c.MaxPollInterval)
+	}
+
+	// Apply default backoff multiplier if not configured
+	if c.BackoffMultiplier == 0 {
+		c.BackoffMultiplier = 2.0
+	}
+
+	if c.BackoffMultiplier <= 1.0 {
+		return fmt.Errorf("backoff_multiplier must be greater than 1.0")
 	}
 
 	return nil

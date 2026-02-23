@@ -19,6 +19,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -33,9 +35,9 @@ import (
 
 // TestIntegration_EndToEnd_Logs tests a complete end-to-end scenario for logs collection.
 func TestIntegration_EndToEnd_Logs(t *testing.T) {
-	requestCount := 0
+	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		requestCount++
+		requestCount.Add(1)
 		response := map[string]any{
 			"logs": []map[string]any{
 				{"id": "1", "level": "info", "message": "test log 1", "timestamp": time.Now().Format(time.RFC3339)},
@@ -85,14 +87,14 @@ func TestIntegration_EndToEnd_Logs(t *testing.T) {
 	require.Greater(t, len(allLogs), 0)
 
 	// Verify multiple requests were made
-	require.Greater(t, requestCount, 1)
+	require.Greater(t, int(requestCount.Load()), 1)
 }
 
 // TestIntegration_EndToEnd_Metrics tests a complete end-to-end scenario for metrics collection.
 func TestIntegration_EndToEnd_Metrics(t *testing.T) {
-	requestCount := 0
+	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		requestCount++
+		requestCount.Add(1)
 		response := []map[string]any{
 			{"metric": "cpu_usage", "value": 75.5, "timestamp": time.Now().Format(time.RFC3339)},
 			{"metric": "memory_usage", "value": 60.2, "timestamp": time.Now().Format(time.RFC3339)},
@@ -141,12 +143,12 @@ func TestIntegration_EndToEnd_Metrics(t *testing.T) {
 	require.Greater(t, len(allMetrics), 0)
 
 	// Verify multiple requests were made
-	require.Greater(t, requestCount, 1)
+	require.Greater(t, int(requestCount.Load()), 1)
 }
 
 // TestIntegration_WithPaginationAndAuth tests a complete scenario with pagination and authentication.
 func TestIntegration_WithPaginationAndAuth(t *testing.T) {
-	pageCount := 0
+	var pageCount atomic.Int32
 	expectedAuthHeader := "Bearer test-token-123"
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -181,7 +183,7 @@ func TestIntegration_WithPaginationAndAuth(t *testing.T) {
 			}
 		}
 
-		pageCount++
+		pageCount.Add(1)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}))
@@ -239,18 +241,21 @@ func TestIntegration_WithPaginationAndAuth(t *testing.T) {
 
 // TestIntegration_TimestampPagination tests timestamp-based pagination.
 func TestIntegration_TimestampPagination(t *testing.T) {
+	var mu sync.Mutex
 	var lastTimestamp string
 	var pageSize string
-	pageCount := 0
+	var pageCount atomic.Int32
 	initialTime := time.Now().Add(-1 * time.Hour)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Capture the timestamp and page size parameters
+		mu.Lock()
 		lastTimestamp = r.URL.Query().Get("t0")
 		pageSize = r.URL.Query().Get("perPage")
+		mu.Unlock()
 
 		var response []map[string]any
-		if pageCount == 0 {
+		if pageCount.Load() == 0 {
 			// First page - return full page
 			response = []map[string]any{
 				{"id": "1", "message": "test1", "ts": time.Now().Add(-30 * time.Minute).Format(time.RFC3339)},
@@ -262,7 +267,7 @@ func TestIntegration_TimestampPagination(t *testing.T) {
 				{"id": "3", "message": "test3", "ts": time.Now().Add(-10 * time.Minute).Format(time.RFC3339)},
 			}
 		}
-		pageCount++
+		pageCount.Add(1)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}))
@@ -307,20 +312,24 @@ func TestIntegration_TimestampPagination(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify timestamp parameter was used
-	require.NotEmpty(t, lastTimestamp)
-	require.Contains(t, lastTimestamp, "T") // RFC3339 format check
+	mu.Lock()
+	ts := lastTimestamp
+	ps := pageSize
+	mu.Unlock()
+	require.NotEmpty(t, ts)
+	require.Contains(t, ts, "T") // RFC3339 format check
 	// Verify page size parameter was used
-	require.Equal(t, "200", pageSize)
+	require.Equal(t, "200", ps)
 	// Verify multiple pages were fetched
-	require.Greater(t, pageCount, 1)
+	require.Greater(t, int(pageCount.Load()), 1)
 }
 
 // TestIntegration_ErrorRecovery tests that the receiver continues polling after errors.
 func TestIntegration_ErrorRecovery(t *testing.T) {
-	requestCount := 0
+	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		requestCount++
-		if requestCount == 1 {
+		count := requestCount.Add(1)
+		if count == 1 {
 			// First request returns error
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("Internal Server Error"))
@@ -367,7 +376,7 @@ func TestIntegration_ErrorRecovery(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify receiver continued polling after error
-	require.Greater(t, requestCount, 1)
+	require.Greater(t, int(requestCount.Load()), 1)
 
 	// Verify some data was eventually collected
 	allLogs := sink.AllLogs()
