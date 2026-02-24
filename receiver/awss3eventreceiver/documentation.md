@@ -15,7 +15,7 @@ The following telemetry is emitted by this component.
 
 ### otelcol_s3event.batch_size
 
-The number of logs in a batch. [Alpha]
+The number of logs in a batch.
 
 | Unit | Metric Type | Value Type | Stability |
 | ---- | ----------- | ---------- | --------- |
@@ -23,7 +23,7 @@ The number of logs in a batch. [Alpha]
 
 ### otelcol_s3event.dlq_file_not_found_errors
 
-The number of file not found errors that triggered DLQ processing [Alpha]
+The number of file not found errors that triggered DLQ processing
 
 | Unit | Metric Type | Value Type | Monotonic | Stability |
 | ---- | ----------- | ---------- | --------- | --------- |
@@ -31,7 +31,7 @@ The number of file not found errors that triggered DLQ processing [Alpha]
 
 ### otelcol_s3event.dlq_iam_errors
 
-The number of IAM permission denied errors that triggered DLQ processing [Alpha]
+The number of IAM permission denied errors that triggered DLQ processing
 
 | Unit | Metric Type | Value Type | Monotonic | Stability |
 | ---- | ----------- | ---------- | --------- | --------- |
@@ -39,7 +39,7 @@ The number of IAM permission denied errors that triggered DLQ processing [Alpha]
 
 ### otelcol_s3event.dlq_unsupported_file_errors
 
-The number of unsupported file type errors that triggered DLQ processing [Alpha]
+The number of unsupported file type errors that triggered DLQ processing
 
 | Unit | Metric Type | Value Type | Monotonic | Stability |
 | ---- | ----------- | ---------- | --------- | --------- |
@@ -47,7 +47,7 @@ The number of unsupported file type errors that triggered DLQ processing [Alpha]
 
 ### otelcol_s3event.failures
 
-The number of failures encountered while processing S3 objects [Alpha]
+The number of failures encountered while processing S3 objects
 
 | Unit | Metric Type | Value Type | Monotonic | Stability |
 | ---- | ----------- | ---------- | --------- | --------- |
@@ -55,7 +55,7 @@ The number of failures encountered while processing S3 objects [Alpha]
 
 ### otelcol_s3event.objects_handled
 
-The number of S3 objects processed by the receiver [Alpha]
+The number of S3 objects processed by the receiver
 
 | Unit | Metric Type | Value Type | Monotonic | Stability |
 | ---- | ----------- | ---------- | --------- | --------- |

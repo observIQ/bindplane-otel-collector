@@ -49,8 +49,7 @@ metrics:
   m365.onedrive.files.active.count:
     enabled: true
     description: The number of active files across the OneDrive in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{files}"
     sum:
       value_type: int
@@ -60,8 +59,7 @@ metrics:
   m365.onedrive.files.count:
     enabled: true
     description: The number of total files across the OneDrive for the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{files}"
     sum:
       value_type: int
@@ -71,8 +69,7 @@ metrics:
   m365.onedrive.user_activity.count:
     enabled: true
     description: The number of users who have interacted with a OneDrive file, by action, in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{users}"
     sum:
       value_type: int
@@ -82,8 +79,7 @@ metrics:
   m365.outlook.app.user.count:
     enabled: true
     description: The number of unique users per app over the period of time in the organization Outlook in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{users}"
     sum:
       value_type: int
@@ -93,8 +89,7 @@ metrics:
   m365.outlook.email_activity.count:
     enabled: true
     description: The number of email actions by members over the period of time in the organization Outlook.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{emails}"
     sum:
       value_type: int
@@ -104,8 +99,7 @@ metrics:
   m365.outlook.mailboxes.active.count:
     enabled: true
     description: The number of mailboxes that have been active each day in the organization for the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{mailboxes}"
     sum:
       value_type: int
@@ -115,8 +109,7 @@ metrics:
   m365.outlook.quota_status.count:
     enabled: true
     description: The number of mailboxes in the various quota statuses over the period of time in the org in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{mailboxes}"
     sum:
       value_type: int
@@ -126,8 +119,7 @@ metrics:
   m365.outlook.storage.used:
     enabled: true
     description: The amount of storage used in Outlook by the organization in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: By
     sum:
       value_type: int
@@ -137,8 +129,7 @@ metrics:
   m365.sharepoint.files.active.count:
     enabled: true
     description: The number of active files across all sites in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{files}"
     sum:
       value_type: int
@@ -148,8 +139,7 @@ metrics:
   m365.sharepoint.files.count:
     enabled: true
     description: The number of total files across all sites in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{files}"
     sum:
       value_type: int
@@ -159,8 +149,7 @@ metrics:
   m365.sharepoint.pages.unique.count:
     enabled: true
     description: The number of unique views of pages across all sites in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{views}"
     sum:
       value_type: int
@@ -170,8 +159,7 @@ metrics:
   m365.sharepoint.pages.viewed.count:
     enabled: true
     description: The number of unique pages viewed across all sites in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{pages}"
     sum:
       value_type: int
@@ -181,8 +169,7 @@ metrics:
   m365.sharepoint.site.storage.used:
     enabled: true
     description: The amount of storage used by all sites across SharePoint in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: By
     sum:
       value_type: int
@@ -192,8 +179,7 @@ metrics:
   m365.sharepoint.sites.active.count:
     enabled: true
     description: The number of active sites across SharePoint in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{sites}"
     sum:
       value_type: int
@@ -203,8 +189,7 @@ metrics:
   m365.teams.calls.count:
     enabled: true
     description: The number of MS Teams calls from users in the organization in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{calls}"
     sum:
       value_type: int
@@ -214,8 +199,7 @@ metrics:
   m365.teams.device_usage.users:
     enabled: true
     description: The number of unique users by device/platform that have used Teams in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{users}"
     sum:
       value_type: int
@@ -225,8 +209,7 @@ metrics:
   m365.teams.meetings.count:
     enabled: true
     description: The number of MS Teams meetings for users in the organization in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{meetings}"
     sum:
       value_type: int
@@ -236,8 +219,7 @@ metrics:
   m365.teams.messages.private.count:
     enabled: true
     description: The number of MS Teams private-messages sent by users in the organization in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{messages}"
     sum:
       value_type: int
@@ -247,8 +229,7 @@ metrics:
   m365.teams.messages.team.count:
     enabled: true
     description: The number of MS Teams team-messages sent by users in the organization in the last 7 days.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{messages}"
     sum:
       value_type: int

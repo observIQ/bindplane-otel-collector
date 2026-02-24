@@ -66,8 +66,7 @@ metrics:
   sapnetweaver.abap.update.status:
     description: The status of the ABAP update process.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Update > Update > AbapErrorInUpdate.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "1"
     sum:
       monotonic: false
@@ -78,8 +77,7 @@ metrics:
   sapnetweaver.cache.evictions:
     description: The number of evicted entries.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > Server Cache > EvictedEntries.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{entries}"
     sum:
       monotonic: false
@@ -91,8 +89,7 @@ metrics:
   sapnetweaver.cache.hits:
     description: The cache hit percentage.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > Server Cache > CacheHits.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "%"
     gauge:
       value_type: int
@@ -103,8 +100,7 @@ metrics:
     description: The amount of connection errors.
     unit: "{connections}"
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General > StatNoOfConnectErrors.
-    stability:
-      level: alpha
+    stability: alpha
     sum:
       monotonic: false
       aggregation_temporality: cumulative
@@ -115,8 +111,7 @@ metrics:
   sapnetweaver.cpu.system.utilization:
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems> CPU > System Utilization.
     description: The system CPU utilization percentage.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "%"
     gauge:
       value_type: int
@@ -126,8 +121,7 @@ metrics:
   sapnetweaver.cpu.utilization:
     description: The CPU utilization percentage.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems> CPU > CPU_Utilization.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "%"
     gauge:
       value_type: int
@@ -137,8 +131,7 @@ metrics:
   sapnetweaver.database.dialog.request.time:
     description: The average time for processing logical database requests calls to the SAP database interface.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Dialog > DBRequestTime.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "ms"
     sum:
       monotonic: false
@@ -150,8 +143,7 @@ metrics:
   sapnetweaver.host.memory.virtual.overhead:
     description: Virtualization System Memory Overhead.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems > Memory > Memory Overhead.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "By"
     gauge:
       value_type: int
@@ -160,8 +152,7 @@ metrics:
   sapnetweaver.host.memory.virtual.swap:
     description: Virtualization System Swap Memory.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > FileSystems > Memory_Virtualization_Virtual_System > Memory Swapped Out.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "By"
     gauge:
       value_type: int
@@ -170,8 +161,7 @@ metrics:
   sapnetweaver.host.spool_list.utilization:
     description: The host spool list used percentage.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Spool > SpoolService > HostspoolListUsed.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "%"
     gauge:
       value_type: int
@@ -181,8 +171,7 @@ metrics:
   sapnetweaver.locks.dequeue.errors.count:
     description: The dequeued locks error count.
     extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{errors}"
     sum:
       monotonic: false
@@ -193,8 +182,7 @@ metrics:
   sapnetweaver.locks.enqueue.current.count:
     description: The current number of enqueued locks.
     extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{locks}"
     sum:
       monotonic: false
@@ -205,8 +193,7 @@ metrics:
   sapnetweaver.locks.enqueue.errors.count:
     description: The enqueued locks error count.
     extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{errors}"
     sum:
       monotonic: false
@@ -217,8 +204,7 @@ metrics:
   sapnetweaver.locks.enqueue.high.count:
     description: The high number of enqueued locks.
     extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{locks}"
     sum:
       monotonic: false
@@ -229,8 +215,7 @@ metrics:
   sapnetweaver.locks.enqueue.lock_time:
     description: The enqueued locks time.
     extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
-    stability:
-      level: alpha
+    stability: alpha
     unit: "ms"
     sum:
       monotonic: false
@@ -241,8 +226,7 @@ metrics:
   sapnetweaver.locks.enqueue.lock_wait_time:
     description: The enqueued locks wait time.
     extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
-    stability:
-      level: alpha
+    stability: alpha
     unit: "ms"
     sum:
       monotonic: false
@@ -253,8 +237,7 @@ metrics:
   sapnetweaver.locks.enqueue.max.count:
     description: The max number of enqueued locks.
     extended_documentation: "Collected from SAPControl Web Service Interface > EnqGetStatistic."
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{locks}"
     sum:
       monotonic: false
@@ -265,8 +248,7 @@ metrics:
   sapnetweaver.memory.configured:
     description: The amount of configured memory.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems > Memory > Configured Memory.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "By"
     sum:
       monotonic: false
@@ -277,8 +259,7 @@ metrics:
   sapnetweaver.memory.free:
     description: The amount of free memory.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems > Memory > Free Memory.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "By"
     sum:
       monotonic: false
@@ -289,8 +270,7 @@ metrics:
   sapnetweaver.memory.swap_space.utilization:
     description: The swap space utilization percentage.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > Filesystems >  Swap_Space > Percentage_Used.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "%"
     gauge:
       value_type: int
@@ -300,8 +280,7 @@ metrics:
   sapnetweaver.process_availability:
     description: The processes availability directly started by the sapstartsrv Web service.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetProcessList."
-    stability:
-      level: alpha
+    stability: alpha
     unit: "1"
     sum:
       monotonic: false
@@ -312,8 +291,7 @@ metrics:
   sapnetweaver.queue.count:
     description: The queue length.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
-    stability:
-      level: alpha
+    stability: alpha
     unit: "1"
     sum:
       monotonic: false
@@ -324,8 +302,7 @@ metrics:
   sapnetweaver.queue_max.count:
     description: The max queue length.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
-    stability:
-      level: alpha
+    stability: alpha
     unit: "1"
     sum:
       monotonic: false
@@ -336,8 +313,7 @@ metrics:
   sapnetweaver.queue_peak.count:
     description: The peak queue length.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetQueueStatistic."
-    stability:
-      level: alpha
+    stability: alpha
     unit: "1"
     sum:
       monotonic: false
@@ -348,8 +324,7 @@ metrics:
   sapnetweaver.request.count:
     description: The amount of requests made.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General >  StatNoOfRequests.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{requests}"
     sum:
       monotonic: false
@@ -361,8 +336,7 @@ metrics:
   sapnetweaver.request.timeout.count:
     description: The amount of timed out requests.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > ICM > General >  StatNoOfTimeouts.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{timeouts}"
     sum:
       monotonic: false
@@ -373,8 +347,7 @@ metrics:
     enabled: true
   sapnetweaver.response.duration:
     description: The response time duration.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "ms"
     sum:
       monotonic: false
@@ -386,8 +359,7 @@ metrics:
   sapnetweaver.session.count:
     description: The amount of sessions created.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3ServiceS > ITS > Number of Sessions.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{sessions}"
     sum:
       monotonic: false
@@ -399,8 +371,7 @@ metrics:
   sapnetweaver.sessions.browser.count:
     description: The number of Browser Sessions.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Sessions AS Java > Browser Sessions.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{sessions}"
     sum:
       monotonic: false
@@ -412,8 +383,7 @@ metrics:
   sapnetweaver.sessions.ejb.count:
     description: The number of EJB Sessions.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Sessions AS Java > EJB Sessions.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{sessions}"
     sum:
       monotonic: false
@@ -425,8 +395,7 @@ metrics:
   sapnetweaver.sessions.http.count:
     description: The number of HTTP Sessions.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Web Container > CurrentHttpSessions.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{sessions}"
     sum:
       monotonic: false
@@ -438,8 +407,7 @@ metrics:
   sapnetweaver.sessions.security.count:
     description: The number of Security Sessions.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Web Container > CurrentSecuritySessions.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{sessions}"
     sum:
       monotonic: false
@@ -451,8 +419,7 @@ metrics:
   sapnetweaver.sessions.web.count:
     description: The number of Web Sessions.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > ... Sessions AS Java > Web Sessions.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{sessions}"
     sum:
       monotonic: false
@@ -464,8 +431,7 @@ metrics:
   sapnetweaver.short_dumps.rate:
     description: The rate of Short Dumps.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Abap > Shortdumps Frequency.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{dumps}/min"
     sum:
       monotonic: false
@@ -477,8 +443,7 @@ metrics:
   sapnetweaver.spool.request.error.count:
     description: The number of spool work processes that have encountered errors.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Spool > SpoolService > ErrorsInWpSPO.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{errors}"
     sum:
       monotonic: false
@@ -490,8 +455,7 @@ metrics:
   sapnetweaver.system.instance_availability:
     description: The availability status of each system instance.
     extended_documentation: "Collected from SAPControl Web Service Interface > GetSystemInstanceList."
-    stability:
-      level: alpha
+    stability: alpha
     unit: "1"
     sum:
       monotonic: false
@@ -502,8 +466,7 @@ metrics:
   sapnetweaver.work_process.active.count:
     description: The number of free ABAP work processes in the system.
     extended_documentation: "Collected from SAPControl Web Service Interface > ABAPGetSystemWPTable."
-    stability:
-      level: alpha
+    stability: alpha
     unit: "{work_processes}"
     sum:
       monotonic: false
@@ -514,8 +477,7 @@ metrics:
   sapnetweaver.work_process.job.aborted.status:
     description: The status of aborted jobs on an application server.
     extended_documentation: Collected from SAPControl Web Service Interface > GetAlertTree > R3Services > Background > AbortedJobs.
-    stability:
-      level: alpha
+    stability: alpha
     unit: "1"
     sum:
       monotonic: false

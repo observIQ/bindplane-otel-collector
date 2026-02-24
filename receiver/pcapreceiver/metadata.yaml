@@ -14,8 +14,7 @@ telemetry:
     pcap.packets_captured:
       enabled: true
       description: The number of packets captured by the PCAP receiver
-      stability:
-        level: alpha
+      stability: alpha
       unit: "{packets}"
       sum:
         value_type: int

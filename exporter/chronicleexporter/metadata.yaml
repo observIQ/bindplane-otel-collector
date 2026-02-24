@@ -11,8 +11,7 @@ telemetry:
     exporter_batch_size:
       enabled: true
       description: "The number of logs in a batch."
-      stability:
-        level: alpha
+      stability: alpha
       unit: "{logs}"
       histogram:
         value_type: int
@@ -21,8 +20,7 @@ telemetry:
     exporter_logs_send_failed:
       enabled: true
       description: "The number of times ConsumeLogs failed, triggering a retry by the collector pipeline."
-      stability:
-        level: alpha
+      stability: alpha
       unit: "{failures}"
       sum:
         value_type: int
@@ -31,8 +29,7 @@ telemetry:
     exporter_payload_size:
       enabled: true
       description: "The size of the payload in bytes."
-      stability:
-        level: alpha
+      stability: alpha
       unit: "B"
       histogram:
         value_type: int
@@ -41,8 +38,7 @@ telemetry:
     exporter_raw_bytes:
       enabled: true
       description: The total number of raw bytes sent.
-      stability:
-        level: alpha
+      stability: alpha
       unit: "B"
       sum:
         value_type: int
@@ -50,8 +46,7 @@ telemetry:
     exporter_request_count:
       enabled: true
       description: "The total number of requests made."
-      stability:
-        level: alpha
+      stability: alpha
       unit: "{requests}"
       sum:
         value_type: int
@@ -59,8 +54,7 @@ telemetry:
     exporter_request_latency:
       enabled: true
       description: "The latency of the request in milliseconds."
-      stability:
-        level: alpha
+      stability: alpha
       unit: "ms"
       histogram:
         value_type: int

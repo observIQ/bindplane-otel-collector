@@ -93,7 +93,7 @@ for local_mod in $LOCAL_MODULES; do
         echo "Updating deps in $local_mod"
         cd "$local_mod"
         # go list will not work if module is not tidy, so we tidy first
-        go mod tidy -compat=1.24
+        go mod tidy -compat=1.25.7
 
         echo "  Tidied $local_mod"
 
