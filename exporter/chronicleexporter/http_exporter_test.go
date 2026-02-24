@@ -114,7 +114,64 @@ func TestHTTPExporter(t *testing.T) {
 		},
 		// TODO test splitting large payloads
 		{
-			name: "transient_error",
+			name: "retryable_error 429 Too Many Requests",
+			handlers: map[string]http.HandlerFunc{
+				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusTooManyRequests)
+				},
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedRequests: 1,
+			expectedErr:      "upload to chronicle: 429 Too Many Requests",
+			permanentErr:     false,
+		},
+		{
+			name: "retryable_error 500 Internal Server Error",
+			handlers: map[string]http.HandlerFunc{
+				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusInternalServerError)
+				},
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedRequests: 1,
+			expectedErr:      "upload to chronicle: 500 Internal Server Error",
+			permanentErr:     false,
+		},
+		{
+			name: "retryable_error 502 Bad Gateway",
+			handlers: map[string]http.HandlerFunc{
+				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusBadGateway)
+				},
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedRequests: 1,
+			expectedErr:      "upload to chronicle: 502 Bad Gateway",
+			permanentErr:     false,
+		},
+		{
+			name: "retryable_error 503 Service Unavailable",
 			handlers: map[string]http.HandlerFunc{
 				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
 					w.WriteHeader(http.StatusServiceUnavailable)
@@ -133,10 +190,10 @@ func TestHTTPExporter(t *testing.T) {
 			permanentErr:     false,
 		},
 		{
-			name: "transient_error Too Many Requests",
+			name: "retryable_error 504 Gateway Timeout",
 			handlers: map[string]http.HandlerFunc{
 				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
-					w.WriteHeader(http.StatusTooManyRequests)
+					w.WriteHeader(http.StatusGatewayTimeout)
 				},
 			},
 			input: func() plog.Logs {
@@ -148,7 +205,7 @@ func TestHTTPExporter(t *testing.T) {
 				return logs
 			}(),
 			expectedRequests: 1,
-			expectedErr:      "upload to chronicle: 429 Too Many Requests",
+			expectedErr:      "upload to chronicle: 504 Gateway Timeout",
 			permanentErr:     false,
 		},
 		{
