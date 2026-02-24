@@ -603,6 +603,22 @@ func TestConfig_Validate(t *testing.T) {
 			expectedErr: `initial_timestamp "invalid-timestamp" could not be parsed`,
 		},
 		{
+			name: "negative min_poll_interval",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeAPIKey,
+				APIKeyConfig: APIKeyConfig{
+					HeaderName: "X-API-Key",
+					Value:      "test-key",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeNone,
+				},
+				MinPollInterval: -1 * time.Second,
+			},
+			expectedErr: "min_poll_interval must be greater than or equal to 0",
+		},
+		{
 			name: "negative max_poll_interval",
 			config: &Config{
 				URL:      "https://api.example.com/data",
@@ -616,7 +632,41 @@ func TestConfig_Validate(t *testing.T) {
 				},
 				MaxPollInterval: -1 * time.Minute,
 			},
-			expectedErr: "max_poll_interval must be greater than 0",
+			expectedErr: "max_poll_interval must be greater than or equal to 0",
+		},
+		{
+			name: "min_poll_interval greater than max_poll_interval",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeAPIKey,
+				APIKeyConfig: APIKeyConfig{
+					HeaderName: "X-API-Key",
+					Value:      "test-key",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeNone,
+				},
+				MinPollInterval: 10 * time.Minute,
+				MaxPollInterval: 5 * time.Minute,
+			},
+			expectedErr: "min_poll_interval (10m0s) must be less than or equal to max_poll_interval (5m0s)",
+		},
+		{
+			name: "valid min_poll_interval",
+			config: &Config{
+				URL:      "https://api.example.com/data",
+				AuthMode: authModeAPIKey,
+				APIKeyConfig: APIKeyConfig{
+					HeaderName: "X-API-Key",
+					Value:      "test-key",
+				},
+				Pagination: PaginationConfig{
+					Mode: paginationModeNone,
+				},
+				MinPollInterval: 30 * time.Second,
+				MaxPollInterval: 5 * time.Minute,
+			},
+			expectedErr: "",
 		},
 	}
 
@@ -639,6 +689,7 @@ func TestConfig_DefaultValues(t *testing.T) {
 
 	require.Equal(t, authModeNone, cfg.AuthMode)
 	require.Equal(t, paginationModeNone, cfg.Pagination.Mode)
+	require.Equal(t, 10*time.Second, cfg.MinPollInterval)
 	require.Equal(t, 5*time.Minute, cfg.MaxPollInterval)
 	require.Equal(t, 0, cfg.Pagination.PageLimit)
 	require.False(t, cfg.Pagination.ZeroBasedIndex)
@@ -671,6 +722,7 @@ func TestLoadConfigFromYAML(t *testing.T) {
 	// Verify the config values were parsed correctly
 	require.Equal(t, "https://api.example.com/data", restapiCfg.URL)
 	require.Equal(t, "data", restapiCfg.ResponseField)
+	require.Equal(t, 10*time.Second, restapiCfg.MinPollInterval)
 	require.Equal(t, 5*time.Minute, restapiCfg.MaxPollInterval)
 	require.Equal(t, authModeAPIKey, restapiCfg.AuthMode)
 	require.Equal(t, "test-key", restapiCfg.APIKeyConfig.Value)
