@@ -148,6 +148,19 @@ function Get-MsiName {
     }
 }
 
+# ---- Version resolution ------------------------------------------------------
+
+function Get-LatestVersion {
+    try {
+        $version = Invoke-WebRequest -Uri "https://bdot.bindplane.com/latest" -UseBasicParsing |
+            Select-Object -ExpandProperty Content
+        return $version.Trim()
+    }
+    catch {
+        Fail "Failed to retrieve latest version from https://bdot.bindplane.com/latest: $_"
+    }
+}
+
 # ---- Download ----------------------------------------------------------------
 
 function Get-Msi {
@@ -268,7 +281,12 @@ function Main {
     else {
         $msiFileName = Get-MsiName
         if (-not $Version -or $Version -eq "latest") {
-            $resolvedUrl = "$DOWNLOAD_BASE/latest/$msiFileName"
+            $resolvedVersion = Get-LatestVersion
+            if (-not $resolvedVersion) {
+                Fail "Could not determine latest version to install."
+            }
+            Write-Info "Latest version: $resolvedVersion"
+            $resolvedUrl = "$DOWNLOAD_BASE/v$($resolvedVersion.TrimStart('v'))/$msiFileName"
         }
         else {
             $resolvedUrl = "$DOWNLOAD_BASE/v$($Version.TrimStart('v'))/$msiFileName"
