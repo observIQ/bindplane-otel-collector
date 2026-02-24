@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver
 
-go 1.25.0
+go 1.25.7
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.1

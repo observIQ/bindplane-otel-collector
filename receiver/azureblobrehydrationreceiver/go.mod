@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver
 
-go 1.25.0
+go 1.25.7
 
 require (
 	github.com/observiq/bindplane-otel-collector/internal/azureblob v1.93.0

@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/receiver/splunksearchapireceiver
 
-go 1.25.0
+go 1.25.7
 
 require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/stanza v0.146.0

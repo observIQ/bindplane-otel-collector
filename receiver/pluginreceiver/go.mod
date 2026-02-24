@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/receiver/pluginreceiver
 
-go 1.25.0
+go 1.25.7
 
 require (
 	github.com/mitchellh/mapstructure v1.5.1-0.20231216201459-8508981c8b6c
