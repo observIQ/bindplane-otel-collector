@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/exporter/googlemanagedpromet
 go 1.25.7
 
 require (
-	github.com/observiq/bindplane-otel-collector/version v1.94.1
+	github.com/observiq/bindplane-otel-collector/version v1.94.2
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.146.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.52.0
