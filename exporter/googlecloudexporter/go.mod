@@ -4,7 +4,7 @@ go 1.25.7
 
 require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/collector v0.55.0
-	github.com/observiq/bindplane-otel-collector/version v1.93.0
+	github.com/observiq/bindplane-otel-collector/version v1.94.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter v0.146.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.52.0
@@ -15,7 +15,7 @@ require (
 	go.opentelemetry.io/collector/processor v1.52.0
 	go.opentelemetry.io/collector/processor/batchprocessor v0.146.1
 	go.uber.org/multierr v1.11.0
-	google.golang.org/api v0.266.0
+	google.golang.org/api v0.268.0
 )
 
 require (
