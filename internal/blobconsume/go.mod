@@ -3,8 +3,8 @@ module github.com/observiq/bindplane-otel-collector/internal/blobconsume
 go 1.25.7
 
 require (
-	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.94.0
-	github.com/observiq/bindplane-otel-collector/internal/testutils v1.94.0
+	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.94.1
+	github.com/observiq/bindplane-otel-collector/internal/testutils v1.94.1
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/consumer v1.52.0
 	go.opentelemetry.io/collector/consumer/consumertest v0.146.1
