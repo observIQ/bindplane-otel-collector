@@ -314,13 +314,6 @@ func (exp *httpExporter) countAndReportBatchBytes(ctx context.Context, payloads 
 }
 
 func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.ImportLogsRequest, logType string) error {
-	if exp.metrics != nil {
-		if inlineSource := logs.GetInlineSource(); inlineSource != nil {
-			totalLogs := int64(len(inlineSource.GetLogs()))
-			defer exp.metrics.recordSent(totalLogs)
-		}
-	}
-
 	data, err := protojson.Marshal(logs)
 	if err != nil {
 		return fmt.Errorf("marshal protobuf logs to JSON: %w", err)
