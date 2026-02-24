@@ -19,6 +19,7 @@ builds:
     goos:
       - linux
       - darwin
+      - windows
     goarch:
       - amd64
       - arm64
@@ -29,6 +30,12 @@ builds:
       - goos: darwin
         goarch: ppc64
       - goos: darwin
+        goarch: ppc64le
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: ppc64
+      - goos: windows
         goarch: ppc64le
     ldflags:
       - -s -w
@@ -46,6 +53,7 @@ builds:
     goos:
       - linux
       - darwin
+      - windows
     goarch:
       - amd64
       - arm64
@@ -57,6 +65,12 @@ builds:
         goarch: ppc64
       - goos: darwin
         goarch: ppc64le
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: ppc64
+      - goos: windows
+        goarch: ppc64le
     ldflags:
       - -s -w
       - -X github.com/observiq/bindplane-otel-collector/updater/internal/version.version=v{{ .Version }}
@@ -67,6 +81,9 @@ builds:
 # https://goreleaser.com/customization/archive/
 archives:
   - format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
     name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     files:
       - LICENSE
@@ -87,6 +104,9 @@ archives:
         strip_parent: true
       - src: release_deps/gpg-keys.tar.gz
         dst: "."
+        strip_parent: true
+      - src: release_deps/windows_service.json
+        dst: install
         strip_parent: true
 
 nfpms:
@@ -739,8 +759,7 @@ checksum:
   name_template: "{{ .ProjectName }}-v{{ .Version }}-SHA256SUMS"
   algorithm: sha256
   extra_files:
-    - glob: "./observiq-otel-collector.msi"
-    - glob: "./windows-archive/windows_amd64/*.zip"
+    - glob: "./observiq-otel-collector*.msi"
 
 # https://goreleaser.com/customization/sign/
 signs:
@@ -779,8 +798,6 @@ release:
     - glob: "./scripts/install/install_unix.sh"
     - glob: "./scripts/install/install_macos.sh"
     - glob: "./release_deps/gpg-keys.tar.gz"
-    - glob: "./windows-archive/windows_amd64/*.zip"
-    - glob: "./windows-archive/windows_amd64/*.zip.sig"
 
 # https://console.cloud.google.com/storage/browser/bdot-release
 blobs:
@@ -793,8 +810,6 @@ blobs:
       - glob: "./scripts/install/install_unix.sh"
       - glob: "./scripts/install/install_macos.sh"
       - glob: "./release_deps/gpg-keys.tar.gz"
-      - glob: "./windows-archive/windows_amd64/*.zip"
-      - glob: "./windows-archive/windows_amd64/*.zip.sig"
 
 # https://goreleaser.com/customization/changelog/
 changelog:

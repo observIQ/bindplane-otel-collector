@@ -62,4 +62,4 @@ jobs:
       - name: Scan Third Party Dependency Licenses
         run: |
           go install github.com/uw-labs/lichen@v0.1.7
-          lichen --config=./license.yaml dist/collector_windows_amd64.exe dist/updater_windows_amd64.exe
+          lichen --config=./license.yaml dist/collector_windows_amd64.exe dist/updater_windows_amd64.exe dist/collector_windows_arm64.exe dist/updater_windows_arm64.exe

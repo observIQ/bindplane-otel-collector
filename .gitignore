@@ -17,6 +17,7 @@ windows/config.yaml
 windows/logging.yaml
 windows/LICENSE
 windows/plugins
+windows/build/
 opentelemetry-java-contrib-jmx-metrics.jar
 VERSION.txt
 release_deps
@@ -51,4 +52,5 @@ perf-test/
 # Local planning docs
 **/MULTI_COLLECTOR_PLAN.md
 
+# JetBrains IDE files
 .idea/

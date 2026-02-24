@@ -19,6 +19,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -126,7 +128,7 @@ func TestRESTAPIMetricsReceiver_StartShutdown(t *testing.T) {
 }
 
 func TestRESTAPILogsReceiver_WithPagination(t *testing.T) {
-	pageCount := 0
+	var pageCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		offset := r.URL.Query().Get("offset")
 		_ = r.URL.Query().Get("limit") // limit parameter
@@ -155,7 +157,7 @@ func TestRESTAPILogsReceiver_WithPagination(t *testing.T) {
 			}
 		}
 
-		pageCount++
+		pageCount.Add(1)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}))
@@ -213,18 +215,21 @@ func TestRESTAPILogsReceiver_WithPagination(t *testing.T) {
 }
 
 func TestRESTAPILogsReceiver_WithTimestampPagination(t *testing.T) {
+	var mu sync.Mutex
 	var lastTimestamp string
 	var pageSize string
-	pageCount := 0
+	var pageCount atomic.Int32
 	initialTime := time.Now().Add(-1 * time.Hour)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Capture the timestamp and page size parameters
+		mu.Lock()
 		lastTimestamp = r.URL.Query().Get("t0")
 		pageSize = r.URL.Query().Get("perPage")
+		mu.Unlock()
 
 		var response []map[string]any
-		if pageCount == 0 {
+		if pageCount.Load() == 0 {
 			// First page - return full page
 			response = []map[string]any{
 				{"id": "1", "message": "test1", "ts": time.Now().Add(-30 * time.Minute).Format(time.RFC3339)},
@@ -236,7 +241,7 @@ func TestRESTAPILogsReceiver_WithTimestampPagination(t *testing.T) {
 				{"id": "3", "message": "test3", "ts": time.Now().Add(-10 * time.Minute).Format(time.RFC3339)},
 			}
 		}
-		pageCount++
+		pageCount.Add(1)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}))
@@ -281,12 +286,16 @@ func TestRESTAPILogsReceiver_WithTimestampPagination(t *testing.T) {
 	require.NoError(t, err)
 
 	// Should have used the timestamp parameter
-	require.NotEmpty(t, lastTimestamp)
-	require.Contains(t, lastTimestamp, "T") // RFC3339 format check
+	mu.Lock()
+	ts := lastTimestamp
+	ps := pageSize
+	mu.Unlock()
+	require.NotEmpty(t, ts)
+	require.Contains(t, ts, "T") // RFC3339 format check
 	// Should have used the page size parameter
-	require.Equal(t, "200", pageSize)
+	require.Equal(t, "200", ps)
 	// Should have fetched multiple pages
-	require.Greater(t, pageCount, 1)
+	require.Greater(t, int(pageCount.Load()), 1)
 }
 
 func TestRESTAPILogsReceiver_ErrorHandling(t *testing.T) {
@@ -501,9 +510,9 @@ func TestRESTAPILogsReceiver_DeeplyNestedResponseField(t *testing.T) {
 }
 
 func TestRESTAPILogsReceiver_AdaptivePolling_Backoff(t *testing.T) {
-	requestCount := 0
+	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		requestCount++
+		requestCount.Add(1)
 		// Always return empty array to trigger backoff
 		response := []map[string]any{}
 		w.Header().Set("Content-Type", "application/json")
@@ -538,7 +547,7 @@ func TestRESTAPILogsReceiver_AdaptivePolling_Backoff(t *testing.T) {
 	require.NoError(t, err)
 
 	// Wait for several poll cycles - with backoff, interval increases: 1s -> 2s -> 4s... capped at 100ms
-	// Starting from minPollInterval (1s), it would take multiple empty responses to reach max
+	// Starting from min_poll_interval, it would take multiple empty responses to reach max
 	time.Sleep(500 * time.Millisecond)
 
 	err = receiver.Shutdown(ctx)
@@ -546,21 +555,16 @@ func TestRESTAPILogsReceiver_AdaptivePolling_Backoff(t *testing.T) {
 
 	// With adaptive polling and empty responses, interval should increase
 	// Initial poll immediate, then backoff kicks in
-	require.Greater(t, requestCount, 1, "expected at least a couple polls to occur")
+	require.Greater(t, int(requestCount.Load()), 1, "expected at least a couple polls to occur")
 }
 
-func TestRESTAPILogsReceiver_AdaptivePolling_ResetOnData(t *testing.T) {
-	requestCount := 0
+func TestRESTAPILogsReceiver_AdaptivePolling_PartialResponseBacksOff(t *testing.T) {
+	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		requestCount++
-		var response []map[string]any
-		// Alternate between empty and data responses
-		if requestCount%2 == 0 {
-			response = []map[string]any{
-				{"id": "1", "message": "data"},
-			}
-		} else {
-			response = []map[string]any{}
+		requestCount.Add(1)
+		// Always return a partial response (has data but not "full")
+		response := []map[string]any{
+			{"id": "1", "message": "data"},
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
@@ -592,14 +596,79 @@ func TestRESTAPILogsReceiver_AdaptivePolling_ResetOnData(t *testing.T) {
 	err = receiver.Start(ctx, host)
 	require.NoError(t, err)
 
-	// Wait for several poll cycles
+	// Wait for several poll cycles - partial responses should back off
 	time.Sleep(300 * time.Millisecond)
 
 	err = receiver.Shutdown(ctx)
 	require.NoError(t, err)
 
-	// With data being returned periodically, interval should reset to min frequently
-	require.Greater(t, requestCount, 1, "expected multiple polls with data being returned")
+	// Should still have polled multiple times but with backoff
+	require.Greater(t, int(requestCount.Load()), 1, "expected multiple polls")
+	require.Greater(t, len(sink.AllLogs()), 0, "expected some logs to be received")
+}
+
+func TestRESTAPILogsReceiver_AdaptivePolling_PageLimitResetsInterval(t *testing.T) {
+	// When the page limit is hit (meaning more data may exist), the interval
+	// should reset to min_poll_interval for fast follow-up polling.
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requestCount.Add(1)
+		// Always return data with total indicating more records exist
+		response := map[string]any{
+			"data": []map[string]any{
+				{"id": "1", "message": "page data"},
+				{"id": "2", "message": "page data"},
+			},
+			"total": 100, // Indicate many more records
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	cfg := &Config{
+		URL:           server.URL,
+		ResponseField: "data",
+		AuthMode:      authModeAPIKey,
+		APIKeyConfig: APIKeyConfig{
+			HeaderName: "X-API-Key",
+			Value:      "test-key",
+		},
+		Pagination: PaginationConfig{
+			Mode: paginationModeOffsetLimit,
+			OffsetLimit: OffsetLimitPagination{
+				OffsetFieldName: "offset",
+				LimitFieldName:  "limit",
+				StartingOffset:  0,
+			},
+			TotalRecordCountField: "total",
+			PageLimit:             1, // Stop after 1 page — forces page limit to be hit
+		},
+		MinPollInterval: 50 * time.Millisecond,
+		MaxPollInterval: 5 * time.Minute,
+		ClientConfig:    confighttp.ClientConfig{},
+	}
+
+	sink := new(consumertest.LogsSink)
+	params := receivertest.NewNopSettings(metadata.Type)
+	receiver, err := newRESTAPILogsReceiver(params, cfg, sink)
+	require.NoError(t, err)
+
+	host := componenttest.NewNopHost()
+	ctx := context.Background()
+
+	err = receiver.Start(ctx, host)
+	require.NoError(t, err)
+
+	// With page limit hit each cycle, interval should stay at min (10s),
+	// so we should see many requests in a short window.
+	time.Sleep(200 * time.Millisecond)
+
+	err = receiver.Shutdown(ctx)
+	require.NoError(t, err)
+
+	// With 10s intervals and page limit hit each time, expect many requests
+	require.Greater(t, int(requestCount.Load()), 4, "expected many polls when page limit is hit (interval should stay at min)")
 }
 
 func TestGetNestedField(t *testing.T) {

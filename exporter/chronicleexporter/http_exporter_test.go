@@ -133,6 +133,25 @@ func TestHTTPExporter(t *testing.T) {
 			permanentErr:     false,
 		},
 		{
+			name: "transient_error Too Many Requests",
+			handlers: map[string]http.HandlerFunc{
+				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusTooManyRequests)
+				},
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedRequests: 1,
+			expectedErr:      "upload to chronicle: 429 Too Many Requests",
+			permanentErr:     false,
+		},
+		{
 			name: "permanent_error",
 			handlers: map[string]http.HandlerFunc{
 				"FAKE": func(w http.ResponseWriter, _ *http.Request) {

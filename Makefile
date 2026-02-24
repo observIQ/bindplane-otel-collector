@@ -58,7 +58,7 @@ build-linux: build-linux-amd64 build-linux-arm64 build-linux-arm build-linux-ppc
 build-darwin: build-darwin-amd64 build-darwin-arm64
 
 .PHONY: build-windows
-build-windows: build-windows-amd64
+build-windows: build-windows-amd64 build-windows-arm64
 
 .PHONY: build-linux-ppc64
 build-linux-ppc64:
@@ -90,7 +90,11 @@ build-darwin-arm64:
 
 .PHONY: build-windows-amd64
 build-windows-amd64:
-	GOOS=windows GOARCH=amd64 $(MAKE) build-binaries -j2
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(MAKE) build-binaries -j2
+
+.PHONY: build-windows-arm64
+build-windows-arm64:
+	CGO_ENABLED=0 GOOS=windows GOARCH=arm64 $(MAKE) build-binaries -j2
 
 # tool-related commands
 .PHONY: install-tools
@@ -224,7 +228,7 @@ fmt:
 
 .PHONY: tidy
 tidy:
-	$(MAKE) for-all CMD="go mod tidy -compat=1.24"
+	$(MAKE) for-all CMD="go mod tidy -compat=1.25.7"
 
 .PHONY: gosec
 gosec:
@@ -374,8 +378,9 @@ release-prep-gpg:
 # Build and sign, skip release and ignore dirty git tree
 .PHONY: release-test
 release-test:
-# If there is no MSI in the root dir, we'll create a dummy one so that goreleaser can complete successfully
+# If there are no MSIs in the root dir, we'll create dummy ones so that goreleaser can complete successfully
 	if [ ! -e "./observiq-otel-collector.msi" ]; then touch ./observiq-otel-collector.msi; fi
+	if [ ! -e "./observiq-otel-collector-arm64.msi" ]; then touch ./observiq-otel-collector-arm64.msi; fi
 	SIGNING_KEY_FILE="fake-file" GORELEASER_CURRENT_TAG=$(VERSION) goreleaser release --parallelism 4 --skip=publish --skip=validate --skip=sign --clean --snapshot
 
 build-single:

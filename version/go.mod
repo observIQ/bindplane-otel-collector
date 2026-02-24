@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/version
 
-go 1.24.11
+go 1.25.7
 
 require github.com/stretchr/testify v1.11.1
 
