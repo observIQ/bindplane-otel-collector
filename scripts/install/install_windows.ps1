@@ -138,10 +138,12 @@ function Assert-Administrator {
 # ---- Architecture detection --------------------------------------------------
 
 function Get-MsiName {
-    $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+    # PROCESSOR_ARCHITEW6432 is set when running a 32-bit process on a 64-bit OS (WOW64).
+    # Fall back to PROCESSOR_ARCHITECTURE when not in WOW64.
+    $arch = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }
     switch ($arch) {
-        "X64"   { return $MSI_NAME_AMD64 }
-        "Arm64" { return $MSI_NAME_ARM64 }
+        "AMD64" { return $MSI_NAME_AMD64 }
+        "ARM64" { return $MSI_NAME_ARM64 }
         default { Fail "Unsupported architecture: $arch. Only x64 (amd64) and ARM64 are supported." }
     }
 }
