@@ -4,8 +4,8 @@ go 1.25.7
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.2
-	github.com/aws/aws-sdk-go-v2/config v1.32.10
-	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.22.0
+	github.com/aws/aws-sdk-go-v2/config v1.32.8
+	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.22.1
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.0
 	github.com/observiq/bindplane-otel-collector/internal/blobconsume v1.93.0
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.93.0
