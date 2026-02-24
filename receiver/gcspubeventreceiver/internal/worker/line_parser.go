@@ -71,6 +71,10 @@ func (p *lineParser) Parse(_ context.Context, startOffset int64) (logs iter.Seq2
 
 // AppendLogBody appends the log record to the log record body using SetStr.
 func (p *lineParser) AppendLogBody(_ context.Context, lr plog.LogRecord, record any) error {
-	lr.Body().SetStr(record.(string))
+	str, ok := record.(string)
+	if !ok {
+		return fmt.Errorf("expected string record, got %T", record)
+	}
+	lr.Body().SetStr(str)
 	return nil
 }

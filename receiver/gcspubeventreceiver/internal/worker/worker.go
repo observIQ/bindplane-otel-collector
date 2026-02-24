@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strings"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -31,6 +30,7 @@ import (
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/receiver/receiverhelper"
 	"go.uber.org/zap"
+	"google.golang.org/api/googleapi"
 
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
 	"github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver/internal/metadata"
@@ -335,40 +335,55 @@ func (w *Worker) consumeLogsFromGCSObject(ctx context.Context, bucket, object st
 	return nil
 }
 
-// isDLQConditionError checks if an error should trigger DLQ behavior
-func isDLQConditionError(err error) bool {
+// dlqErrorKind categorizes an error into a DLQ condition bucket.
+type dlqErrorKind int
+
+const (
+	dlqErrorKindNone dlqErrorKind = iota
+	dlqErrorKindFileNotFound
+	dlqErrorKindPermissionDenied
+	dlqErrorKindUnsupportedFile
+)
+
+// dlqConditionKind returns the DLQ error kind for the given error, or
+// dlqErrorKindNone if the error does not trigger a DLQ condition.
+func dlqConditionKind(err error) dlqErrorKind {
 	if err == nil {
-		return false
+		return dlqErrorKindNone
 	}
-	errStr := err.Error()
-	// GCS returns "storage: object doesn't exist" for not found
-	if strings.Contains(errStr, "object doesn't exist") {
-		return true
+	// GCS returns storage.ErrObjectNotExist when the object is not found.
+	if errors.Is(err, storage.ErrObjectNotExist) {
+		return dlqErrorKindFileNotFound
 	}
-	// GCS returns 403 for permission denied
-	if strings.Contains(errStr, "403") || strings.Contains(errStr, "Forbidden") {
-		return true
+	// GCS returns *googleapi.Error with Code 403 for permission denied.
+	var apiErr *googleapi.Error
+	if errors.As(err, &apiErr) && apiErr.Code == 403 {
+		return dlqErrorKindPermissionDenied
 	}
-	// Unsupported file type
+	// Unsupported file type detected during parsing.
 	if errors.Is(err, ErrNotArrayOrKnownObject) {
-		return true
+		return dlqErrorKindUnsupportedFile
 	}
-	return false
+	return dlqErrorKindNone
 }
 
-// recordDLQMetrics records metrics for DLQ conditions based on the error type
+// isDLQConditionError checks if an error should trigger DLQ behavior.
+func isDLQConditionError(err error) bool {
+	return dlqConditionKind(err) != dlqErrorKindNone
+}
+
+// recordDLQMetrics records metrics for DLQ conditions based on the error type.
 func (w *Worker) recordDLQMetrics(ctx context.Context, err error) {
 	if w.metrics == nil {
 		return
 	}
 
-	errStr := err.Error()
-	switch {
-	case strings.Contains(errStr, "object doesn't exist"):
+	switch dlqConditionKind(err) {
+	case dlqErrorKindFileNotFound:
 		w.metrics.GcseventDlqFileNotFoundErrors.Add(ctx, 1)
-	case strings.Contains(errStr, "403") || strings.Contains(errStr, "Forbidden"):
+	case dlqErrorKindPermissionDenied:
 		w.metrics.GcseventDlqIamErrors.Add(ctx, 1)
-	case errors.Is(err, ErrNotArrayOrKnownObject):
+	case dlqErrorKindUnsupportedFile:
 		w.metrics.GcseventDlqUnsupportedFileErrors.Add(ctx, 1)
 	default:
 		w.metrics.GcseventFailures.Add(ctx, 1)

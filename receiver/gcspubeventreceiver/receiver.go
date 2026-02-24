@@ -16,6 +16,7 @@ package gcspubeventreceiver // import "github.com/observiq/bindplane-otel-collec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -48,6 +49,7 @@ type logsReceiver struct {
 	pubsubClient  *pubsub.Client
 	storageClient *storage.Client
 	sub           *pubsub.Subscription
+	workerPool    sync.Pool
 
 	receiveCancel context.CancelFunc
 	receiveDone   chan struct{}
@@ -142,6 +144,23 @@ func (r *logsReceiver) Start(_ context.Context, host component.Host) error {
 		r.offsetStorage = offsetStorage
 	}
 
+	// Initialize the worker pool now that all clients and storage are set up.
+	r.workerPool.New = func() any {
+		w := worker.New(
+			r.telemetry,
+			r.next,
+			r.storageClient,
+			r.obsrecv,
+			r.cfg.MaxLogSize,
+			r.cfg.MaxLogsEmitted,
+			worker.WithTelemetryBuilder(r.metrics),
+			worker.WithBucketNameFilter(r.bucketNameFilter),
+			worker.WithObjectKeyFilter(r.objectKeyFilter),
+		)
+		w.SetOffsetStorage(r.offsetStorage)
+		return w
+	}
+
 	r.startOnce.Do(func() {
 		receiveCtx, receiveCancel := context.WithCancel(ctx)
 		r.receiveCancel = receiveCancel
@@ -167,18 +186,8 @@ func (r *logsReceiver) Start(_ context.Context, host component.Host) error {
 func (r *logsReceiver) handleMessage(ctx context.Context, msg *pubsub.Message) {
 	logger := r.telemetry.Logger.With(zap.String("message_id", msg.ID))
 
-	w := worker.New(
-		r.telemetry,
-		r.next,
-		r.storageClient,
-		r.obsrecv,
-		r.cfg.MaxLogSize,
-		r.cfg.MaxLogsEmitted,
-		worker.WithTelemetryBuilder(r.metrics),
-		worker.WithBucketNameFilter(r.bucketNameFilter),
-		worker.WithObjectKeyFilter(r.objectKeyFilter),
-	)
-	w.SetOffsetStorage(r.offsetStorage)
+	w := r.workerPool.Get().(*worker.Worker)
+	defer r.workerPool.Put(w)
 
 	logger.Debug("processing message")
 	w.ProcessMessage(ctx, msg)
@@ -194,21 +203,23 @@ func (r *logsReceiver) Shutdown(ctx context.Context) error {
 		}
 	})
 
+	var errs []error
+
 	if r.pubsubClient != nil {
 		if err := r.pubsubClient.Close(); err != nil {
-			r.telemetry.Logger.Error("failed to close Pub/Sub client", zap.Error(err))
+			errs = append(errs, fmt.Errorf("failed to close Pub/Sub client: %w", err))
 		}
 	}
 
 	if r.storageClient != nil {
 		if err := r.storageClient.Close(); err != nil {
-			r.telemetry.Logger.Error("failed to close GCS client", zap.Error(err))
+			errs = append(errs, fmt.Errorf("failed to close GCS client: %w", err))
 		}
 	}
 
 	if err := r.offsetStorage.Close(ctx); err != nil {
-		return fmt.Errorf("failed to close offset storage: %w", err)
+		errs = append(errs, fmt.Errorf("failed to close offset storage: %w", err))
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
