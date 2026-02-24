@@ -1,6 +1,6 @@
 module github.com/observiq/bindplane-otel-collector/internal/osinfo
 
-go 1.24.11
+go 1.25.7
 
 require (
 	github.com/shirou/gopsutil/v3 v3.24.5
