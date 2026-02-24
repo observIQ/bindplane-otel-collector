@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -427,8 +428,8 @@ var getLogTypesEndpoint = func(cfg *Config) string {
 // httpStatsEndpoint returns the URL for the importStatsEvents REST API.
 // Override for testing.
 var httpStatsEndpoint = func(cfg *Config, collectorID string) string {
-	formatString := "%s/forwarders/%s:importStatsEvents"
-	return fmt.Sprintf(formatString, baseEndpoint(cfg), collectorID)
+	formatString := "https://%s-%s/v1beta/projects/%s/locations/%s/instances/%s/forwarders/%s:importStatsEvents"
+	return fmt.Sprintf(formatString, cfg.Location, cfg.Endpoint, cfg.Project, cfg.Location, cfg.CustomerID, collectorID)
 }
 
 func baseEndpoint(cfg *Config) string {
@@ -437,7 +438,28 @@ func baseEndpoint(cfg *Config) string {
 }
 
 func (exp *httpExporter) uploadStatsHTTP(ctx context.Context, request *api.BatchCreateEventsRequest, collectorID string) error {
-	data, err := protojson.Marshal(request)
+	// Convert from the gRPC BatchCreateEventsRequest to the REST ImportStatsEventsRequest format.
+	batch := request.GetBatch()
+	statsEvents := make([]*api.IngestionStatsEvent, 0, len(batch.GetEvents()))
+	for _, event := range batch.GetEvents() {
+		statsEvents = append(statsEvents, &api.IngestionStatsEvent{
+			EventTime: event.GetTimestamp(),
+			Event: &api.IngestionStatsEvent_AgentStats{
+				AgentStats: event.GetAgentStats(),
+			},
+		})
+	}
+
+	importRequest := &api.ImportStatsEventsRequest{
+		Source: &api.ImportStatsEventsRequest_InlineSource{
+			InlineSource: &api.StatsInlineSource{
+				Events:       statsEvents,
+				EventBatchId: base64.StdEncoding.EncodeToString(batch.GetId()),
+			},
+		},
+	}
+
+	data, err := protojson.Marshal(importRequest)
 	if err != nil {
 		return fmt.Errorf("marshal stats event to JSON: %w", err)
 	}

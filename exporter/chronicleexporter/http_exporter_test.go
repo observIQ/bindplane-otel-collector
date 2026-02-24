@@ -451,7 +451,7 @@ func TestUploadStatsHTTP(t *testing.T) {
 
 		secureStatsEndpoint := httpStatsEndpoint
 		defer func() { httpStatsEndpoint = secureStatsEndpoint }()
-		httpStatsEndpoint = func(_ *Config, collectorID string) string {
+		httpStatsEndpoint = func(_ *Config, _ string) string {
 			return statsSrv.URL
 		}
 
@@ -478,6 +478,15 @@ func TestUploadStatsHTTP(t *testing.T) {
 			Batch: &api.EventBatch{
 				Id:   []byte{1, 2, 3},
 				Type: api.EventBatch_AGENT_STATS,
+				Events: []*api.Event{
+					{
+						Payload: &api.Event_AgentStats{
+							AgentStats: &api.AgentStatsEvent{
+								AgentId: []byte{1, 2, 3},
+							},
+						},
+					},
+				},
 			},
 		}
 
@@ -495,7 +504,7 @@ func TestUploadStatsHTTP(t *testing.T) {
 
 		secureStatsEndpoint := httpStatsEndpoint
 		defer func() { httpStatsEndpoint = secureStatsEndpoint }()
-		httpStatsEndpoint = func(_ *Config, collectorID string) string {
+		httpStatsEndpoint = func(_ *Config, _ string) string {
 			return statsSrv.URL
 		}
 
@@ -522,6 +531,15 @@ func TestUploadStatsHTTP(t *testing.T) {
 			Batch: &api.EventBatch{
 				Id:   []byte{1, 2, 3},
 				Type: api.EventBatch_AGENT_STATS,
+				Events: []*api.Event{
+					{
+						Payload: &api.Event_AgentStats{
+							AgentStats: &api.AgentStatsEvent{
+								AgentId: []byte{1, 2, 3},
+							},
+						},
+					},
+				},
 			},
 		}
 
@@ -541,7 +559,7 @@ func TestHTTPStatsEndpoint(t *testing.T) {
 
 	endpoint := httpStatsEndpoint(cfg, "collector-123")
 	require.Equal(t,
-		"https://us-chronicle.googleapis.com/v1alpha/projects/my-project/locations/us/instances/my-customer-id/forwarders/collector-123:importStatsEvents",
+		"https://us-chronicle.googleapis.com/v1beta/projects/my-project/locations/us/instances/my-customer-id/forwarders/collector-123:importStatsEvents",
 		endpoint,
 	)
 }
