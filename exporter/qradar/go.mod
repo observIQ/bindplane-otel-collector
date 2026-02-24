@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/exporter/qradar
 go 1.25.7
 
 require (
-	github.com/observiq/bindplane-otel-collector/expr v1.93.0
+	github.com/observiq/bindplane-otel-collector/expr v1.94.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.146.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.52.0

@@ -144,6 +144,9 @@ func (c *client) Get(_ context.Context, key string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to copy value: %w", err)
 	}
+	if len(val) == 0 {
+		return nil, nil
+	}
 	return val, nil
 }
 
