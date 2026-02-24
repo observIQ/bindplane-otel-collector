@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.41.2
 	github.com/aws/aws-sdk-go-v2/config v1.32.10
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.0
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.21
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.22
 	github.com/aws/smithy-go v1.24.1
 	github.com/google/go-cmp v0.7.0
 	github.com/linkedin/goavro/v2 v2.15.0
