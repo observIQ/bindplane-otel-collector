@@ -8,7 +8,7 @@ The following telemetry is emitted by this component.
 
 ### otelcol_exporter_batch_size
 
-The number of logs in a batch. [Alpha]
+The number of logs in a batch.
 
 | Unit | Metric Type | Value Type | Stability |
 | ---- | ----------- | ---------- | --------- |
@@ -16,7 +16,7 @@ The number of logs in a batch. [Alpha]
 
 ### otelcol_exporter_logs_send_failed
 
-The number of times ConsumeLogs failed, triggering a retry by the collector pipeline. [Alpha]
+The number of times ConsumeLogs failed, triggering a retry by the collector pipeline.
 
 | Unit | Metric Type | Value Type | Monotonic | Stability |
 | ---- | ----------- | ---------- | --------- | --------- |
@@ -24,7 +24,7 @@ The number of times ConsumeLogs failed, triggering a retry by the collector pipe
 
 ### otelcol_exporter_payload_size
 
-The size of the payload in bytes. [Alpha]
+The size of the payload in bytes.
 
 | Unit | Metric Type | Value Type | Stability |
 | ---- | ----------- | ---------- | --------- |
@@ -32,7 +32,7 @@ The size of the payload in bytes. [Alpha]
 
 ### otelcol_exporter_raw_bytes
 
-The total number of raw bytes sent. [Alpha]
+The total number of raw bytes sent.
 
 | Unit | Metric Type | Value Type | Monotonic | Stability |
 | ---- | ----------- | ---------- | --------- | --------- |
@@ -40,7 +40,7 @@ The total number of raw bytes sent. [Alpha]
 
 ### otelcol_exporter_request_count
 
-The total number of requests made. [Alpha]
+The total number of requests made.
 
 | Unit | Metric Type | Value Type | Monotonic | Stability |
 | ---- | ----------- | ---------- | --------- | --------- |
@@ -48,7 +48,7 @@ The total number of requests made. [Alpha]
 
 ### otelcol_exporter_request_latency
 
-The latency of the request in milliseconds. [Alpha]
+The latency of the request in milliseconds.
 
 | Unit | Metric Type | Value Type | Stability |
 | ---- | ----------- | ---------- | --------- |

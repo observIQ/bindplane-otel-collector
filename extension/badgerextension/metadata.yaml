@@ -23,16 +23,14 @@ telemetry:
   metrics:
     extension_storage_client_count:
       enabled: true
-      stability:
-        level: alpha
+      stability: alpha
       description: The number of clients created by the extension
       unit: '{clients}'
       gauge:
         value_type: int
     extension_storage_client_disk_usage_bytes:
       enabled: true
-      stability:
-        level: alpha
+      stability: alpha
       description: The disk usage of the extension
       unit: By
       gauge:
@@ -41,8 +39,7 @@ telemetry:
         - storage_type
     extension_storage_client_gc_duration_milliseconds:
       enabled: true
-      stability:
-        level: alpha
+      stability: alpha
       description: The duration of the most recent garbage collection run
       unit: ms
       histogram:
@@ -50,8 +47,7 @@ telemetry:
         bucket_boundaries: [0.1, 0.5, 1, 2, 5, 10]
     extension_storage_client_operations_count:
       enabled: true
-      stability:
-        level: alpha
+      stability: alpha
       description: The number of operations performed by the extension
       unit: '{operations}'
       sum:
