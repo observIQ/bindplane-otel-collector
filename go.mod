@@ -547,6 +547,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/azure v0.146.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/azurelogs v0.146.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/splunk v0.146.0 // indirect
+	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/xstreamencoding v0.146.0 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/scraper/zookeeperscraper v0.146.0 // indirect
 	github.com/open-telemetry/otel-arrow/go v0.46.0 // indirect
 	github.com/opencontainers/cgroups v0.0.6 // indirect
@@ -1108,4 +1109,4 @@ replace github.com/mattn/go-ieproxy => github.com/mattn/go-ieproxy v0.0.1
 // github.com/open-telemetry/opentelemetry-collector-contrib/extension/cgroupruntimeextension.test is forcing this dep to be updated, but it isn't compatible with the linux build process, so replacing to last stable version
 replace github.com/cilium/ebpf => github.com/cilium/ebpf v0.11.0
 
-replace github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension => github.com/observiq/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.0.0-20260216162652-5a6d88838530
+replace github.com/honeycombio/enhance-indexing-s3-exporter => github.com/honeycombio/enhance-indexing-s3-exporter v0.0.0-20260223183428-56e7b35b558f

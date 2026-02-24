@@ -2029,8 +2029,6 @@ github.com/nxadm/tail v1.4.11 h1:8feyoE3OzPrcshW5/MJ4sGESc5cqmGkGCWlco4l0bqY=
 github.com/nxadm/tail v1.4.11/go.mod h1:OTaG3NK980DZzxbRq6lEuzgU+mug70nY11sMd4JXXHc=
 github.com/oapi-codegen/runtime v1.0.0 h1:P4rqFX5fMFWqRzY9M/3YF9+aPSPPB06IzP2P7oOxrWo=
 github.com/oapi-codegen/runtime v1.0.0/go.mod h1:LmCUMQuPB4M/nLXilQXhHw+BLZdDb18B34OO356yJ/A=
-github.com/observiq/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.0.0-20260216162652-5a6d88838530 h1:vGcibj1PmB6MpjQ6hrwaR6i555Ax8qcZvwS2Jk+cFlo=
-github.com/observiq/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.0.0-20260216162652-5a6d88838530/go.mod h1:mvm72Xfcmu7X5jgMt0bpLHhWfMcE3gmSpRSgunEKM/I=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/ulid v1.3.1 h1:EGfNDEx6MqHz8B3uNV6QAib1UR2Lm97sHi3ocA6ESJ4=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
@@ -2141,6 +2139,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jso
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/jsonlogencodingextension v0.146.0/go.mod h1:SFU/UROPxq3XXAwuZ0UYBFCjWe1X0+GEuQFzAMYJSYA=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/otlpencodingextension v0.146.0 h1:atUQQuoM8iW8LsrvY5JsOWgk+Ta4PRS2SD2UlHUJuEk=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/otlpencodingextension v0.146.0/go.mod h1:9PtzhHwqmCCs7QVdoTxM83X1Ku8UuSqR2Ij6ur0p/1Q=
+github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.146.0 h1:MWcUR7kdKvofaGAUlSTIWNEgSH5XCxBLbD0ygtbaW0Y=
+github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/textencodingextension v0.146.0/go.mod h1:bCX9phBwbtzZdfgQPuCEUQV3CLUiUK0U/q8IteO/ysU=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/headerssetterextension v0.146.0 h1:wFdWTF2jYyrR6vaTS4AbAvld4oaX//+0HCn3wVMscuo=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/headerssetterextension v0.146.0/go.mod h1:weEXf/8FIc54RuHEdFNReQ7KhoXJvBBAYGOHQUho40o=
 github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.146.0 h1:n+wGPCxLc3RbZ9dm5OgVt26q6yyECnAtXPi1TicdQGE=
@@ -2271,6 +2271,8 @@ github.com/open-telemetry/opentelemetry-collector-contrib/pkg/winperfcounters v0
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/winperfcounters v0.146.0/go.mod h1:4aepIsZdpBjbkYYWri1ayV8Ck+OxT2pImaclY8qvdB4=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/xk8stest v0.146.0 h1:bd3sYcie7zNTIRhu3lRFAiTwXHp1t+CYOFWwunNRrxI=
 github.com/open-telemetry/opentelemetry-collector-contrib/pkg/xk8stest v0.146.0/go.mod h1:aspJFtIlRasXIe1A8dLxp45XCB77JBYvufvpO0oYTQM=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/xstreamencoding v0.146.0 h1:5BhRkyrXe7TE8tmTVXv7JpndsSaBuoMuz3Lpci0ZoFQ=
+github.com/open-telemetry/opentelemetry-collector-contrib/pkg/xstreamencoding v0.146.0/go.mod h1:CtXM7JU4Sg605fCKdmS92jkx/Q9ZX3fMjUPkeljxsuQ=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor v0.146.0 h1:Vlo7twXttfAGCCHJOxhgRucm+QkkBftRoaWpts1alcQ=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor v0.146.0/go.mod h1:K9VapHTZooyV62uroDROqxcTVvmsqrnM6WnCbQKXl48=
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/cumulativetodeltaprocessor v0.146.0 h1:2RyBYsqr2cL5opHu6NOWyWyl1uUGFFr2iMaZX5SNG1k=
