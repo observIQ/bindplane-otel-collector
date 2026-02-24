@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -33,6 +34,7 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
+	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -364,10 +366,14 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 
 	exp.set.Logger.Warn("Received non-OK response from Chronicle", zap.String("status", resp.Status), zap.ByteString("response", respBody), zap.String("logType", logType))
 
-	// TODO interpret with https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/internal/coreinternal/errorutil/http.go
 	statusErr := errors.New(resp.Status)
 	switch resp.StatusCode {
-	case http.StatusInternalServerError, http.StatusServiceUnavailable: // potentially transient
+	case http.StatusTooManyRequests:
+		// Parse Retry-After header for server-guided backoff (RFC 7231 Section 7.1.3)
+		retryAfter := parseRetryAfter(resp.Header.Get("Retry-After"))
+		return exporterhelper.NewThrottleRetry(statusErr, retryAfter)
+	case http.StatusInternalServerError, http.StatusServiceUnavailable,
+		http.StatusBadGateway, http.StatusGatewayTimeout: // potentially transient
 		return statusErr
 	default:
 		if exp.cfg.LogErroredPayloads {
@@ -393,4 +399,16 @@ var getLogTypesEndpoint = func(cfg *Config) string {
 func baseEndpoint(cfg *Config) string {
 	formatString := "https://%s-%s/v1alpha/projects/%s/locations/%s/instances/%s"
 	return fmt.Sprintf(formatString, cfg.Location, cfg.Endpoint, cfg.Project, cfg.Location, cfg.CustomerID)
+}
+
+// parseRetryAfter parses the Retry-After header value per RFC 7231 Section 7.1.3.
+// It supports delay-seconds format. Returns 0 if the header is empty or unparseable.
+func parseRetryAfter(val string) time.Duration {
+	if val == "" {
+		return 0
+	}
+	if seconds, err := strconv.Atoi(val); err == nil && seconds > 0 {
+		return time.Duration(seconds) * time.Second
+	}
+	return 0
 }

@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadatatest"
 	"github.com/stretchr/testify/require"
@@ -133,6 +134,83 @@ func TestHTTPExporter(t *testing.T) {
 			permanentErr:     false,
 		},
 		{
+			name: "transient_error_429",
+			handlers: map[string]http.HandlerFunc{
+				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusTooManyRequests)
+				},
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedRequests: 1,
+			expectedErr:      "upload to chronicle: Throttle (0s), error: 429 Too Many Requests",
+			permanentErr:     false,
+		},
+		{
+			name: "transient_error_429_with_retry_after",
+			handlers: map[string]http.HandlerFunc{
+				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+					w.Header().Set("Retry-After", "30")
+					w.WriteHeader(http.StatusTooManyRequests)
+				},
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedRequests: 1,
+			expectedErr:      "upload to chronicle: Throttle (30s), error: 429 Too Many Requests",
+			permanentErr:     false,
+		},
+		{
+			name: "transient_error_502",
+			handlers: map[string]http.HandlerFunc{
+				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusBadGateway)
+				},
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedRequests: 1,
+			expectedErr:      "upload to chronicle: 502 Bad Gateway",
+			permanentErr:     false,
+		},
+		{
+			name: "transient_error_504",
+			handlers: map[string]http.HandlerFunc{
+				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusGatewayTimeout)
+				},
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedRequests: 1,
+			expectedErr:      "upload to chronicle: 504 Gateway Timeout",
+			permanentErr:     false,
+		},
+		{
 			name: "permanent_error",
 			handlers: map[string]http.HandlerFunc{
 				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
@@ -149,6 +227,44 @@ func TestHTTPExporter(t *testing.T) {
 			}(),
 			expectedRequests: 1,
 			expectedErr:      "upload to chronicle: Permanent error: 401 Unauthorized",
+			permanentErr:     true,
+		},
+		{
+			name: "permanent_error_400",
+			handlers: map[string]http.HandlerFunc{
+				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusBadRequest)
+				},
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedRequests: 1,
+			expectedErr:      "upload to chronicle: Permanent error: 400 Bad Request",
+			permanentErr:     true,
+		},
+		{
+			name: "permanent_error_403",
+			handlers: map[string]http.HandlerFunc{
+				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusForbidden)
+				},
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedRequests: 1,
+			expectedErr:      "upload to chronicle: Permanent error: 403 Forbidden",
 			permanentErr:     true,
 		},
 	}
@@ -504,4 +620,128 @@ func TestHTTPExporterTelemetry(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestParseRetryAfter(t *testing.T) {
+	testCases := []struct {
+		name     string
+		value    string
+		expected time.Duration
+	}{
+		{
+			name:     "empty",
+			value:    "",
+			expected: 0,
+		},
+		{
+			name:     "valid_seconds",
+			value:    "30",
+			expected: 30 * time.Second,
+		},
+		{
+			name:     "zero_seconds",
+			value:    "0",
+			expected: 0,
+		},
+		{
+			name:     "negative_seconds",
+			value:    "-5",
+			expected: 0,
+		},
+		{
+			name:     "non_numeric",
+			value:    "not-a-number",
+			expected: 0,
+		},
+		{
+			name:     "one_second",
+			value:    "1",
+			expected: 1 * time.Second,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := parseRetryAfter(tc.value)
+			require.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+// TestHTTPExporterTelemetry429Retry tests that a 429 response is retriable and
+// the exporter correctly retries and counts bytes on successful retry.
+func TestHTTPExporterTelemetry429Retry(t *testing.T) {
+	secureTokenSource := tokenSource
+	defer func() {
+		tokenSource = secureTokenSource
+	}()
+	tokenSource = func(context.Context, *Config) (oauth2.TokenSource, error) {
+		return &emptyTokenSource{}, nil
+	}
+
+	callCount := 0
+	handlers := map[string]http.HandlerFunc{
+		"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+			callCount++
+			if callCount == 1 {
+				w.Header().Set("Retry-After", "1")
+				w.WriteHeader(http.StatusTooManyRequests)
+			} else {
+				w.WriteHeader(http.StatusOK)
+			}
+		},
+	}
+	mockServer := newMockHTTPServer(handlers)
+	defer mockServer.srv.Close()
+
+	secureHTTPEndpoint := httpEndpoint
+	defer func() {
+		httpEndpoint = secureHTTPEndpoint
+	}()
+	httpEndpoint = func(_ *Config, logType string) string {
+		return fmt.Sprintf("%s/logTypes/%s/logs:import", mockServer.srv.URL, logType)
+	}
+
+	testTelemetry := componenttest.NewTelemetry()
+	defer testTelemetry.Shutdown(context.Background())
+
+	f := NewFactory()
+	cfg := f.CreateDefaultConfig().(*Config)
+	cfg.Protocol = protocolHTTPS
+	cfg.Location = "us"
+	cfg.CustomerID = "00000000-1111-2222-3333-444444444444"
+	cfg.Project = "fake"
+	cfg.Forwarder = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	cfg.LogType = "FAKE"
+	cfg.RawLogField = "body"
+	cfg.QueueBatchConfig = configoptional.None[exporterhelper.QueueBatchConfig]()
+	cfg.BackOffConfig.Enabled = true
+	require.NoError(t, cfg.Validate())
+
+	ctx := context.Background()
+	exp, err := f.CreateLogs(ctx, metadatatest.NewSettings(testTelemetry), cfg)
+	require.NoError(t, err)
+	require.NoError(t, exp.Start(ctx, componenttest.NewNopHost()))
+	defer func() {
+		require.NoError(t, exp.Shutdown(ctx))
+	}()
+
+	logs := plog.NewLogs()
+	rls := logs.ResourceLogs().AppendEmpty()
+	sls := rls.ScopeLogs().AppendEmpty()
+	lrs := sls.LogRecords().AppendEmpty()
+	lrs.Body().SetStr("test data")
+
+	err = exp.ConsumeLogs(ctx, logs)
+	require.NoError(t, err, "expected retry to succeed after initial 429")
+
+	// Verify bytes were counted on successful retry
+	metric, err := testTelemetry.GetMetric("otelcol_exporter_raw_bytes")
+	require.NoError(t, err)
+	require.NotNil(t, metric)
+
+	sumData, ok := metric.Data.(metricdata.Sum[int64])
+	require.True(t, ok, "Expected Sum metric data")
+	require.Len(t, sumData.DataPoints, 1, "Expected exactly one data point")
+	require.Equal(t, int64(9), sumData.DataPoints[0].Value) // len("test data") = 9
 }
