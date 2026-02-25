@@ -90,3 +90,15 @@ telemetry:
         monotonic: true
         aggregation_temporality: cumulative
       attributes: []
+
+    gcsevent.parse_errors:
+      enabled: true
+      description: The number of individual log records skipped due to parse errors within a GCS object
+      stability:
+        level: alpha
+      unit: "{errors}"
+      sum:
+        value_type: int
+        monotonic: true
+        aggregation_temporality: cumulative
+      attributes: []

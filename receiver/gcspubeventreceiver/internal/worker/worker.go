@@ -272,7 +272,11 @@ func (w *Worker) consumeLogsFromGCSObject(ctx context.Context, bucket, object st
 
 	for log, err := range logs {
 		if err != nil {
+			// Skipping the individual record rather than nacking the whole message, since
+			// retrying a malformed record would produce the same error.  The remaining
+			// records in the object can still be ingested successfully.
 			recordLogger.Error("parse log", zap.Error(err))
+			w.metrics.GcseventParseErrors.Add(ctx, 1)
 			continue
 		}
 
@@ -283,7 +287,9 @@ func (w *Worker) consumeLogsFromGCSObject(ctx context.Context, bucket, object st
 
 		err = parser.AppendLogBody(ctx, lr, log)
 		if err != nil {
+			// Same rationale as above: skip the record rather than failing the whole object.
 			recordLogger.Error("append log body", zap.Error(err))
+			w.metrics.GcseventParseErrors.Add(ctx, 1)
 			continue
 		}
 
