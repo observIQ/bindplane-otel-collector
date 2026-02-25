@@ -58,7 +58,8 @@ build-linux: build-linux-amd64 build-linux-arm64 build-linux-arm build-linux-ppc
 build-darwin: build-darwin-amd64 build-darwin-arm64
 
 .PHONY: build-windows
-build-windows: build-windows-amd64 build-windows-arm64
+build-windows:
+	$(MAKE) -j2 build-windows-amd64 build-windows-arm64
 
 .PHONY: build-linux-ppc64
 build-linux-ppc64:
