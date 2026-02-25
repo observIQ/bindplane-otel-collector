@@ -189,14 +189,12 @@ test-other:
 		gotestsum --rerun-fails --packages="$$PACKAGES" -- -race; \
 	fi
 	@set -e; for dir in $(ALL_MODULES); do \
-		if [ "$${dir}" = "." ]; then \
-			continue; \
-		elif echo "$${dir}" | grep -qE "^(receiver|processor|exporter|extension)/"; then \
-			continue; \
-		else \
+		if echo "$${dir}" | grep -v "/receiver" | grep -v "/processor" | grep -v "/exporter" | grep -v "/extension"; then \
 			(cd "$${dir}" && \
 				echo "running tests in $${dir}" && \
 				gotestsum --rerun-fails --packages="./..." -- -race) || exit 1; \
+		else \
+			echo "skipping running tests in $${dir}"; \
 		fi; \
 	done
 
