@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -63,11 +64,13 @@ const (
 type exists struct{}
 
 type httpExporter struct {
-	cfg       *Config
-	set       component.TelemetrySettings
-	marshaler *protoMarshaler
-	client    *http.Client
-	transport *http.Transport
+	cfg        *Config
+	set        component.TelemetrySettings
+	exporterID string
+	marshaler  *protoMarshaler
+	client     *http.Client
+	transport  *http.Transport
+	metrics    *hostMetricsReporter
 
 	telemetry        *metadata.TelemetryBuilder
 	metricAttributes attribute.Set
@@ -81,10 +84,11 @@ func newHTTPExporter(cfg *Config, params exporter.Settings, telemetry *metadata.
 	macAddress := osinfo.MACAddress()
 	params.Logger.Debug("Creating HTTP exporter", zap.String("exporter_id", params.ID.String()), zap.String("mac_address", macAddress))
 	return &httpExporter{
-		cfg:       cfg,
-		set:       params.TelemetrySettings,
-		marshaler: marshaler,
-		telemetry: telemetry,
+		cfg:        cfg,
+		set:        params.TelemetrySettings,
+		exporterID: params.ID.String(),
+		marshaler:  marshaler,
+		telemetry:  telemetry,
 		metricAttributes: attribute.NewSet(
 			attribute.KeyValue{
 				Key:   "exporter",
@@ -132,6 +136,19 @@ func (exp *httpExporter) Start(ctx context.Context, _ component.Host) error {
 
 	if exp.cfg.ValidateLogTypes {
 		exp.marshaler.logTypes = exp.loadLogTypes(ctx)
+	}
+
+	if exp.cfg.CollectAgentMetrics {
+		collectorID := getCollectorIDString(exp.cfg.LicenseType)
+		f := func(ctx context.Context, request *api.BatchCreateEventsRequest) error {
+			return exp.uploadStatsHTTP(ctx, request, collectorID)
+		}
+		metrics, err := newHostMetricsReporter(exp.cfg, exp.set, exp.exporterID, f)
+		if err != nil {
+			return fmt.Errorf("create metrics reporter: %w", err)
+		}
+		exp.metrics = metrics
+		exp.metrics.start()
 	}
 
 	return nil
@@ -225,6 +242,9 @@ func parseLogTypes(logTypes string) string {
 }
 
 func (exp *httpExporter) Shutdown(context.Context) error {
+	if exp.metrics != nil {
+		exp.metrics.shutdown()
+	}
 	if exp.transport != nil {
 		exp.transport.CloseIdleConnections()
 	}
@@ -354,6 +374,12 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 		metric.WithAttributeSet(attribute.NewSet(attrErrorNone)))
 
 	if resp.StatusCode == http.StatusOK {
+		if exp.metrics != nil {
+			if inlineSource := logs.GetInlineSource(); inlineSource != nil {
+				totalLogs := int64(len(inlineSource.GetLogs()))
+				exp.metrics.recordSent(totalLogs)
+			}
+		}
 		return nil
 	}
 
@@ -392,7 +418,84 @@ var getLogTypesEndpoint = func(cfg *Config) string {
 	return fmt.Sprintf(formatString, baseEndpoint(cfg))
 }
 
+// httpStatsEndpoint returns the URL for the importStatsEvents REST API.
+// Override for testing.
+var httpStatsEndpoint = func(cfg *Config, collectorID string) string {
+	formatString := "https://%s-%s/v1beta/projects/%s/locations/%s/instances/%s/forwarders/%s:importStatsEvents"
+	return fmt.Sprintf(formatString, cfg.Location, cfg.Endpoint, cfg.Project, cfg.Location, cfg.CustomerID, collectorID)
+}
+
 func baseEndpoint(cfg *Config) string {
 	formatString := "https://%s-%s/v1alpha/projects/%s/locations/%s/instances/%s"
 	return fmt.Sprintf(formatString, cfg.Location, cfg.Endpoint, cfg.Project, cfg.Location, cfg.CustomerID)
+}
+
+func (exp *httpExporter) uploadStatsHTTP(ctx context.Context, request *api.BatchCreateEventsRequest, collectorID string) error {
+	// Convert from the gRPC BatchCreateEventsRequest to the REST ImportStatsEventsRequest format.
+	batch := request.GetBatch()
+	statsEvents := make([]*api.IngestionStatsEvent, 0, len(batch.GetEvents()))
+	for _, event := range batch.GetEvents() {
+		statsEvents = append(statsEvents, &api.IngestionStatsEvent{
+			EventTime: event.GetTimestamp(),
+			Event: &api.IngestionStatsEvent_AgentStats{
+				AgentStats: event.GetAgentStats(),
+			},
+		})
+	}
+
+	importRequest := &api.ImportStatsEventsRequest{
+		Source: &api.ImportStatsEventsRequest_InlineSource{
+			InlineSource: &api.StatsInlineSource{
+				Events:       statsEvents,
+				EventBatchId: base64.StdEncoding.EncodeToString(batch.GetId()),
+			},
+		},
+	}
+
+	data, err := protojson.Marshal(importRequest)
+	if err != nil {
+		return fmt.Errorf("marshal stats event to JSON: %w", err)
+	}
+
+	var body io.Reader
+	if exp.cfg.Compression == grpcgzip.Name {
+		var b bytes.Buffer
+		gz := gzip.NewWriter(&b)
+		if _, err := gz.Write(data); err != nil {
+			return fmt.Errorf("gzip write: %w", err)
+		}
+		if err := gz.Close(); err != nil {
+			return fmt.Errorf("gzip close: %w", err)
+		}
+		body = &b
+	} else {
+		body = bytes.NewBuffer(data)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", httpStatsEndpoint(exp.cfg, collectorID), body)
+	if err != nil {
+		return fmt.Errorf("create stats request: %w", err)
+	}
+
+	if exp.cfg.Compression == grpcgzip.Name {
+		httpReq.Header.Set("Content-Encoding", "gzip")
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := exp.client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("send stats request to Chronicle: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		exp.set.Logger.Warn("Failed to upload agent stats",
+			zap.String("status", resp.Status),
+			zap.ByteString("response", respBody),
+		)
+		return fmt.Errorf("upload stats to Chronicle: %s", resp.Status)
+	}
+
+	return nil
 }

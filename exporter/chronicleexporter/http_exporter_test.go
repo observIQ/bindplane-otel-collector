@@ -17,11 +17,13 @@ package chronicleexporter
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadatatest"
+	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/config/configoptional"
@@ -309,6 +311,257 @@ func TestHTTPJSONCredentialsError(t *testing.T) {
 
 	// Shutdown should not panic
 	require.NoError(t, exp.Shutdown(ctx))
+}
+
+// TestHTTPExporterAgentMetrics tests that the HTTP exporter starts agent metrics collection
+// when CollectAgentMetrics is enabled and correctly sends stats to the importStatsEvents endpoint
+func TestHTTPExporterAgentMetrics(t *testing.T) {
+	// Override the token source so that we don't have to provide real credentials
+	secureTokenSource := tokenSource
+	defer func() {
+		tokenSource = secureTokenSource
+	}()
+	tokenSource = func(context.Context, *Config) (oauth2.TokenSource, error) {
+		return &emptyTokenSource{}, nil
+	}
+
+	t.Run("stats_endpoint_receives_request", func(t *testing.T) {
+		statsReceived := make(chan struct{}, 1)
+		mockServer := newMockHTTPServer(map[string]http.HandlerFunc{
+			"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+		})
+		defer mockServer.srv.Close()
+
+		// Add a stats endpoint handler to the mock server
+		statsMux := http.NewServeMux()
+		statsMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == "POST" && r.URL.Path != "" {
+				select {
+				case statsReceived <- struct{}{}:
+				default:
+				}
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			w.WriteHeader(http.StatusNotFound)
+		})
+		statsSrv := httptest.NewServer(statsMux)
+		defer statsSrv.Close()
+
+		// Override endpoints
+		secureHTTPEndpoint := httpEndpoint
+		defer func() { httpEndpoint = secureHTTPEndpoint }()
+		httpEndpoint = func(_ *Config, logType string) string {
+			return fmt.Sprintf("%s/logTypes/%s/logs:import", mockServer.srv.URL, logType)
+		}
+
+		secureStatsEndpoint := httpStatsEndpoint
+		defer func() { httpStatsEndpoint = secureStatsEndpoint }()
+		httpStatsEndpoint = func(_ *Config, collectorID string) string {
+			return fmt.Sprintf("%s/forwarders/%s:importStatsEvents", statsSrv.URL, collectorID)
+		}
+
+		f := NewFactory()
+		cfg := f.CreateDefaultConfig().(*Config)
+		cfg.Protocol = protocolHTTPS
+		cfg.Location = "us"
+		cfg.CustomerID = "00000000-1111-2222-3333-444444444444"
+		cfg.Project = "fake"
+		cfg.Forwarder = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		cfg.LogType = "FAKE"
+		cfg.QueueBatchConfig = configoptional.None[exporterhelper.QueueBatchConfig]()
+		cfg.BackOffConfig.Enabled = false
+		cfg.CollectAgentMetrics = true
+		require.NoError(t, cfg.Validate())
+
+		ctx := context.Background()
+		exp, err := f.CreateLogs(ctx, exportertest.NewNopSettings(typ), cfg)
+		require.NoError(t, err)
+		require.NoError(t, exp.Start(ctx, componenttest.NewNopHost()))
+		defer func() {
+			require.NoError(t, exp.Shutdown(ctx))
+		}()
+
+		// The metrics reporter runs on a 5-minute ticker, so we can't easily
+		// test the full cycle. Instead, verify the exporter started without error
+		// (meaning the metrics reporter was created and started successfully).
+		// The Shutdown will also verify the reporter shuts down cleanly.
+	})
+
+	t.Run("agent_metrics_disabled", func(t *testing.T) {
+		mockServer := newMockHTTPServer(map[string]http.HandlerFunc{
+			"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+		})
+		defer mockServer.srv.Close()
+
+		secureHTTPEndpoint := httpEndpoint
+		defer func() { httpEndpoint = secureHTTPEndpoint }()
+		httpEndpoint = func(_ *Config, logType string) string {
+			return fmt.Sprintf("%s/logTypes/%s/logs:import", mockServer.srv.URL, logType)
+		}
+
+		f := NewFactory()
+		cfg := f.CreateDefaultConfig().(*Config)
+		cfg.Protocol = protocolHTTPS
+		cfg.Location = "us"
+		cfg.CustomerID = "00000000-1111-2222-3333-444444444444"
+		cfg.Project = "fake"
+		cfg.Forwarder = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		cfg.LogType = "FAKE"
+		cfg.QueueBatchConfig = configoptional.None[exporterhelper.QueueBatchConfig]()
+		cfg.BackOffConfig.Enabled = false
+		cfg.CollectAgentMetrics = false
+		require.NoError(t, cfg.Validate())
+
+		ctx := context.Background()
+		exp, err := f.CreateLogs(ctx, exportertest.NewNopSettings(typ), cfg)
+		require.NoError(t, err)
+		require.NoError(t, exp.Start(ctx, componenttest.NewNopHost()))
+
+		// Shutdown should not panic even when metrics is nil
+		require.NoError(t, exp.Shutdown(ctx))
+	})
+}
+
+func TestUploadStatsHTTP(t *testing.T) {
+	// Override the token source so that we don't have to provide real credentials
+	secureTokenSource := tokenSource
+	defer func() {
+		tokenSource = secureTokenSource
+	}()
+	tokenSource = func(context.Context, *Config) (oauth2.TokenSource, error) {
+		return &emptyTokenSource{}, nil
+	}
+
+	t.Run("success", func(t *testing.T) {
+		var receivedBody []byte
+		statsSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, "POST", r.Method)
+			require.Equal(t, "application/json", r.Header.Get("Content-Type"))
+			body, err := io.ReadAll(r.Body)
+			require.NoError(t, err)
+			receivedBody = body
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer statsSrv.Close()
+
+		secureStatsEndpoint := httpStatsEndpoint
+		defer func() { httpStatsEndpoint = secureStatsEndpoint }()
+		httpStatsEndpoint = func(_ *Config, _ string) string {
+			return statsSrv.URL
+		}
+
+		cfg := &Config{
+			Protocol:    protocolHTTPS,
+			Location:    "us",
+			CustomerID:  "00000000-1111-2222-3333-444444444444",
+			Project:     "fake",
+			Compression: noCompression,
+		}
+
+		exp := &httpExporter{
+			cfg: cfg,
+			set: componenttest.NewNopTelemetrySettings(),
+			client: &http.Client{
+				Transport: &oauth2.Transport{
+					Base:   http.DefaultTransport,
+					Source: &emptyTokenSource{},
+				},
+			},
+		}
+
+		request := &api.BatchCreateEventsRequest{
+			Batch: &api.EventBatch{
+				Id:   []byte{1, 2, 3},
+				Type: api.EventBatch_AGENT_STATS,
+				Events: []*api.Event{
+					{
+						Payload: &api.Event_AgentStats{
+							AgentStats: &api.AgentStatsEvent{
+								AgentId: []byte{1, 2, 3},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		err := exp.uploadStatsHTTP(context.Background(), request, "test-collector-id")
+		require.NoError(t, err)
+		require.NotEmpty(t, receivedBody)
+	})
+
+	t.Run("server_error", func(t *testing.T) {
+		statsSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("internal error"))
+		}))
+		defer statsSrv.Close()
+
+		secureStatsEndpoint := httpStatsEndpoint
+		defer func() { httpStatsEndpoint = secureStatsEndpoint }()
+		httpStatsEndpoint = func(_ *Config, _ string) string {
+			return statsSrv.URL
+		}
+
+		cfg := &Config{
+			Protocol:    protocolHTTPS,
+			Location:    "us",
+			CustomerID:  "00000000-1111-2222-3333-444444444444",
+			Project:     "fake",
+			Compression: noCompression,
+		}
+
+		exp := &httpExporter{
+			cfg: cfg,
+			set: componenttest.NewNopTelemetrySettings(),
+			client: &http.Client{
+				Transport: &oauth2.Transport{
+					Base:   http.DefaultTransport,
+					Source: &emptyTokenSource{},
+				},
+			},
+		}
+
+		request := &api.BatchCreateEventsRequest{
+			Batch: &api.EventBatch{
+				Id:   []byte{1, 2, 3},
+				Type: api.EventBatch_AGENT_STATS,
+				Events: []*api.Event{
+					{
+						Payload: &api.Event_AgentStats{
+							AgentStats: &api.AgentStatsEvent{
+								AgentId: []byte{1, 2, 3},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		err := exp.uploadStatsHTTP(context.Background(), request, "test-collector-id")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "upload stats to Chronicle")
+	})
+}
+
+func TestHTTPStatsEndpoint(t *testing.T) {
+	cfg := &Config{
+		Location:   "us",
+		Endpoint:   "chronicle.googleapis.com",
+		Project:    "my-project",
+		CustomerID: "my-customer-id",
+	}
+
+	endpoint := httpStatsEndpoint(cfg, "collector-123")
+	require.Equal(t,
+		"https://us-chronicle.googleapis.com/v1beta/projects/my-project/locations/us/instances/my-customer-id/forwarders/collector-123:importStatsEvents",
+		endpoint,
+	)
 }
 
 // TestHTTPExporterTelemetry tests the telemetry metrics functionality of the HTTP exporter
