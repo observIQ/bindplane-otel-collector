@@ -10,6 +10,15 @@ on:
 jobs:
   build-msi:
     runs-on: windows-2022
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            msi_name: observiq-otel-collector.msi
+            msi_arch: x64
+          - arch: arm64
+            msi_name: observiq-otel-collector-arm64.msi
+            msi_arch: arm64
     steps:
       - name: Checkout Sources
         uses: actions/checkout@v4
@@ -23,7 +32,7 @@ jobs:
         env:
           VERSION: ${{ github.event.inputs.version }}
       - name: Build Windows Binaries
-        run: make build-windows
+        run: make build-windows-${{ matrix.arch }}
       - name: Copy Shared Files to MSI Build Directory
         run: |
           cp -r release_deps/plugins windows/
@@ -31,10 +40,10 @@ jobs:
           cp config/logging.yaml windows/logging.yaml
           cp LICENSE windows/LICENSE
           cp release_deps/VERSION.txt windows/VERSION.txt
-      - name: Copy AMD64 Binaries
+      - name: Copy Binaries
         run: |
-          cp dist/collector_windows_amd64.exe windows/observiq-otel-collector.exe
-          cp dist/updater_windows_amd64.exe windows/updater.exe
+          cp dist/collector_windows_${{ matrix.arch }}.exe windows/observiq-otel-collector.exe
+          cp dist/updater_windows_${{ matrix.arch }}.exe windows/updater.exe
       # HACK: Copy build directory to C drive to avoid this error, since there must be a relative path from the tempdir that go-msi uses
       # for the MSI to build properly
       - name: Copy Build Dir
@@ -48,15 +57,8 @@ jobs:
           curl -f -L -o wix314-binaries.zip https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314-binaries.zip
           unzip wix314-binaries.zip
         working-directory: C:/build
-      - name: Build AMD64 MSI
-        run: go-msi.exe make -m observiq-otel-collector.msi --version ${{ github.event.inputs.version }} --arch x64
-        working-directory: C:/build
-      - name: Copy ARM64 Binaries to Build Dir
-        run: |
-          cp dist/collector_windows_arm64.exe C:/build/observiq-otel-collector.exe
-          cp dist/updater_windows_arm64.exe C:/build/updater.exe
-      - name: Build ARM64 MSI
-        run: go-msi.exe make -m observiq-otel-collector-arm64.msi --version ${{ github.event.inputs.version }} --arch arm64
+      - name: Build MSI
+        run: go-msi.exe make -m ${{ matrix.msi_name }} --version ${{ github.event.inputs.version }} --arch ${{ matrix.msi_arch }}
         working-directory: C:/build
       - name: Install DigiCert Client tools from Github Custom Actions marketplace
         uses: digicert/ssm-code-signing@v1.0.0
@@ -73,25 +75,15 @@ jobs:
           echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
           echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
         shell: bash
-      - name: Sign AMD64 MSI
+      - name: Sign MSI
         run: |
-          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/observiq-otel-collector.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
+          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/${{ matrix.msi_name }} --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
         shell: cmd
-      - name: Sign ARM64 MSI
-        run: |
-          smctl sign --keypair-alias ${{ secrets.BDOT_DIGICERT_KEYPAIR_ALIAS }} --input C:/build/observiq-otel-collector-arm64.msi --config-file C:\Users\RUNNER~1\AppData\Local\Temp\smtools-windows-x64\pkcs11properties.cfg
-        shell: cmd
-      - name: "Upload AMD64 MSI"
+      - name: Upload MSI
         uses: actions/upload-artifact@v4
         with:
-          name: observiq-otel-collector.msi
-          path: C:/build/observiq-otel-collector.msi
-          retention-days: 1
-      - name: "Upload ARM64 MSI"
-        uses: actions/upload-artifact@v4
-        with:
-          name: observiq-otel-collector-arm64.msi
-          path: C:/build/observiq-otel-collector-arm64.msi
+          name: ${{ matrix.msi_name }}
+          path: C:/build/${{ matrix.msi_name }}
           retention-days: 1
 
   release-test:

@@ -58,8 +58,7 @@ build-linux: build-linux-amd64 build-linux-arm64 build-linux-arm build-linux-ppc
 build-darwin: build-darwin-amd64 build-darwin-arm64
 
 .PHONY: build-windows
-build-windows:
-	$(MAKE) -j2 build-windows-amd64 build-windows-arm64
+build-windows: build-windows-amd64 build-windows-arm64
 
 .PHONY: build-linux-ppc64
 build-linux-ppc64:
@@ -91,10 +90,15 @@ build-darwin-arm64:
 
 .PHONY: build-windows-amd64
 build-windows-amd64:
+	# CGO_ENABLED=0 is required for cross-compilation from Linux in CI.
+	# If CGO is ever enabled here, the release workflow must also be updated
+	# to build Windows binaries on a Windows runner instead of cross-compiling.
+	# See .github/workflows/release.yml build-windows-binaries job.
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(MAKE) build-binaries -j2
 
 .PHONY: build-windows-arm64
 build-windows-arm64:
+	# See comment in build-windows-amd64 regarding CGO_ENABLED=0.
 	CGO_ENABLED=0 GOOS=windows GOARCH=arm64 $(MAKE) build-binaries -j2
 
 # tool-related commands
