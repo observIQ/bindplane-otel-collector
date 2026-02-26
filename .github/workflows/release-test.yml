@@ -230,6 +230,10 @@ jobs:
           path: dist/windows
           key: windows-${{ env.VERSION }}
 
+      # Need to do this again - continue --merge doesn't run the before hooks
+      - name: Prepare Release Dependencies
+        run: make release-prep-gpg CURR_VERSION=${VERSION#v}
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
