@@ -17,13 +17,13 @@ This processor is used to convert the number of logs received during an interval
 | Field           | Type     | Default     | Description                                                                                                                                                                                                                                                         |
 | --------------- | -------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ottl_match      | string   | `true`      | An [OTTL] expression used to match which datapoints to count. All paths in the [log context] are available to reference. All [converters] are available to use.                                                                                                     |
-| match           | string   | ``          | **DEPRECATED** use `ottl_match` instead. A boolean [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) used to match which logs to count. By default, all logs are counted.                                                     |
+| match           | string   | ``          | **DEPRECATED** use `ottl_match` instead. A boolean [expression](https://github.com/expr-lang/expr/blob/master/docs/language-definition.md) used to match which logs to count. By default, all logs are counted.                                                     |
 | route           | string   | ` `         | The name of the [route receiver](../../receiver/routereceiver/README.md) to send metrics to.                                                                                                                                                                        |
 | interval        | duration | `1m`        | The interval at which metrics are created. The counter will reset after each interval.                                                                                                                                                                              |
 | metric_name     | string   | `log.count` | The name of the metric created.                                                                                                                                                                                                                                     |
 | metric_unit     | string   | `{logs}`    | The unit of the metric created.                                                                                                                                                                                                                                     |
 | ottl_attributes | map      | `{}`        | The mapped attributes of the metric created. Each key is an attribute name. Each value is an [OTTL] expression. All paths in the [span context] are available to reference. All [converters] are available to use.                                                  |
-| attributes      | map      | `{}`        | **DEPRECATED** use `ottl_attributes` instead. The mapped attributes of the metric created. Each key is an attribute name. Each value is an [expression](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) that extracts data from the log. |
+| attributes      | map      | `{}`        | **DEPRECATED** use `ottl_attributes` instead. The mapped attributes of the metric created. Each key is an attribute name. Each value is an [expression](https://github.com/expr-lang/expr/blob/master/docs/language-definition.md) that extracts data from the log. |
 
 [OTTL]: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.146.0/pkg/ottl#readme
 [converters]: https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.146.0/pkg/ottl/ottlfuncs/README.md#converters
@@ -79,7 +79,7 @@ In order to access embedded values, use JSON dot notation. For example, `body.ex
 
 However, if a key already possesses a literal dot, users will need to use bracket notation to access that field. For example, when the field `service.name` exists on the log's resource, users will need to use `resource["service.name"]` to access this value.
 
-For more information about syntax and available operators, see the [Expression Language Definition](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md).
+For more information about syntax and available operators, see the [Expression Language Definition](https://github.com/expr-lang/expr/blob/master/docs/language-definition.md).
 
 ## How To
 
