@@ -235,7 +235,7 @@ jobs:
         with:
           distribution: goreleaser-pro
           version: "v2.12.5"
-          args: continue --merge --skip=publish --skip=validate --clean
+          args: continue --merge --skip=publish --skip=validate
         env:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
