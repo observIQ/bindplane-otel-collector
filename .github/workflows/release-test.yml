@@ -88,7 +88,6 @@ jobs:
 
   release-test:
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
-    needs: [build-msi]
     strategy:
       matrix:
         include:
@@ -150,7 +149,7 @@ jobs:
         with:
           distribution: goreleaser-pro
           version: "v2.12.5"
-          args: release --skip=publish --skip=validate --clean --split
+          args: release --skip=publish --skip=validate --skip=docker --clean --split
         env:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
@@ -161,7 +160,7 @@ jobs:
 
   upload-artifacts:
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
-    needs: [release-test]
+    needs: [build-msi, release-test]
     steps:
       - name: Checkout Repo
         uses: namespacelabs/nscloud-checkout-action@v7
