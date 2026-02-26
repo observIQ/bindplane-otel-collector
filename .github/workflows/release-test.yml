@@ -250,6 +250,15 @@ jobs:
         run: |
           ls -laR dist/
 
+      - name: Move OS Files to Dist Directory
+        run: |
+          mv dist/linux/* dist/
+          mv dist/darwin/* dist/
+          mv dist/windows/* dist/
+          rm -rf dist/linux
+          rm -rf dist/darwin
+          rm -rf dist/windows
+
       - name: Create artifact archive
         run: |
           mkdir artifacts
