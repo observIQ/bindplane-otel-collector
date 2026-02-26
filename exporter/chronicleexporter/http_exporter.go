@@ -421,8 +421,8 @@ var getLogTypesEndpoint = func(cfg *Config) string {
 // httpStatsEndpoint returns the URL for the importStatsEvents REST API.
 // Override for testing.
 var httpStatsEndpoint = func(cfg *Config, collectorID string) string {
-	formatString := "https://%s-%s/v1beta/projects/%s/locations/%s/instances/%s/forwarders/%s:importStatsEvents"
-	return fmt.Sprintf(formatString, cfg.Location, cfg.Endpoint, cfg.Project, cfg.Location, cfg.CustomerID, collectorID)
+	formatString := "%s/forwarders/%s:importStatsEvents"
+	return fmt.Sprintf(formatString, baseEndpoint(cfg), collectorID)
 }
 
 func baseEndpoint(cfg *Config) string {

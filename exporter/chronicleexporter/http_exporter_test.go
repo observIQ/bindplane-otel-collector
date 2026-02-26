@@ -559,7 +559,7 @@ func TestHTTPStatsEndpoint(t *testing.T) {
 
 	endpoint := httpStatsEndpoint(cfg, "collector-123")
 	require.Equal(t,
-		"https://us-chronicle.googleapis.com/v1beta/projects/my-project/locations/us/instances/my-customer-id/forwarders/collector-123:importStatsEvents",
+		"https://us-chronicle.googleapis.com/v1alpha/projects/my-project/locations/us/instances/my-customer-id/forwarders/collector-123:importStatsEvents",
 		endpoint,
 	)
 }
