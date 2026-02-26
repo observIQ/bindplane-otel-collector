@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/antonmedv/expr"
-	"github.com/antonmedv/expr/vm"
+	"github.com/expr-lang/expr"
+	"github.com/expr-lang/expr/vm"
 )
 
 // Expression is an Expression used to evaluate values.
