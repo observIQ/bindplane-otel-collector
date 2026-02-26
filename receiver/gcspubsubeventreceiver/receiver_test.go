@@ -72,7 +72,7 @@ func newTestReceiver(t *testing.T, workerPoolFn func() any) *logsReceiver {
 	sink := new(consumertest.LogsSink)
 
 	r := &logsReceiver{
-		id:  params.ID,
+		id: params.ID,
 		cfg: &Config{
 			Workers:        5,
 			MaxExtension:   time.Hour,
