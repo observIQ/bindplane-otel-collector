@@ -89,6 +89,79 @@ jobs:
   release-test:
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
     needs: [build-msi]
+    strategy:
+      matrix:
+        include:
+        - goos: linux
+        - goos: darwin
+        - goos: windows
+    steps:
+      - name: Checkout Repo
+        uses: namespacelabs/nscloud-checkout-action@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false # Use Namespace caching instead
+      - name: Set up Go cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: go
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Install cosign
+        run: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
+      - name: Build cosign key file
+        run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
+        shell: bash
+        env:
+          COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
+
+      - name: Set VERSION
+        run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+
+      - name: Cache Goreleaser Build
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: ~/.cache/goreleaser
+
+      - name: Write signing key for nFPM
+        shell: bash
+        run: |
+          cat > ci-signing-key.asc <<'EOF'
+          ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
+          EOF
+      - id: cache
+        uses: actions/cache@v3
+        with:
+          path: dist/${{ matrix.goos }}
+          key: ${{ matrix.goos }}-${{ env.VERSION }}
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser-pro
+          version: "v2.12.5"
+          args: release --skip=publish --skip=validate --clean --split
+        env:
+          GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
+          GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          SIGNING_KEY_FILE: ci-signing-key.asc
+          COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
+          GGOOS: ${{ matrix.goos }}
+
+  upload-artifacts:
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
+    needs: [release-test]
     steps:
       - name: Checkout Repo
         uses: namespacelabs/nscloud-checkout-action@v7
@@ -142,31 +215,32 @@ jobs:
         env:
           COSIGN_PASSWORD: ${{ secrets.ORG_COSIGN_PWD }}
 
+      # Copy the caches from the release-test job
       - name: Set VERSION
         run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-
-      - name: Cache Goreleaser Build
-        uses: namespacelabs/nscloud-cache-action@v1
+      - uses: actions/cache@v3
         with:
-          path: ~/.cache/goreleaser
+          path: dist/linux
+          key: linux-${{ env.VERSION }}
+      - uses: actions/cache@v3
+        with:
+          path: dist/darwin
+          key: darwin-${{ env.VERSION }}
+      - uses: actions/cache@v3
+        with:
+          path: dist/windows
+          key: windows-${{ env.VERSION }}
 
-      - name: Write signing key for nFPM
-        shell: bash
-        run: |
-          cat > ci-signing-key.asc <<'EOF'
-          ${{ secrets.GPG_PRIVATE_SIGNING_KEY }}
-          EOF
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
           version: "v2.12.5"
-          args: release --skip=publish --skip=validate --clean
+          args: continue --merge
         env:
           GORELEASER_CURRENT_TAG: ${{ env.VERSION }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-          SIGNING_KEY_FILE: ci-signing-key.asc
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
 
       - name: Debug list dist/

@@ -6,6 +6,9 @@ before:
   hooks:
     - make release-prep-gpg CURR_VERSION={{ .Version }}
 
+partial:
+  by: goos
+
 # https://goreleaser.com/customization/build/
 builds:
   - id: collector
