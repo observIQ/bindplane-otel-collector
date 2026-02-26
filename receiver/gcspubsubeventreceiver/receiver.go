@@ -59,6 +59,12 @@ type logsReceiver struct {
 	bucketNameFilter *regexp.Regexp
 	objectKeyFilter  *regexp.Regexp
 
+	// inFlight tracks GCS objects currently being processed to deduplicate
+	// concurrent Pub/Sub messages that reference the same object. GCS sends
+	// notifications at-least-once, so two messages for the same OBJECT_FINALIZE
+	// event can arrive within milliseconds of each other.
+	inFlight sync.Map
+
 	// observer for metrics about the receiver
 	obsrecv *receiverhelper.ObsReport
 }
@@ -185,6 +191,24 @@ func (r *logsReceiver) Start(_ context.Context, host component.Host) error {
 
 func (r *logsReceiver) handleMessage(ctx context.Context, msg *pubsub.Message) {
 	logger := r.telemetry.Logger.With(zap.String("message_id", msg.ID))
+
+	// Deduplicate concurrent messages for the same GCS object. GCS delivers
+	// OBJECT_FINALIZE notifications at-least-once, so two distinct Pub/Sub
+	// messages can arrive for the same object within milliseconds. The second
+	// message is acked immediately — the first handler will process the object.
+	bucketID := msg.Attributes[worker.AttrBucketID]
+	objectID := msg.Attributes[worker.AttrObjectID]
+	if bucketID != "" && objectID != "" {
+		inFlightKey := bucketID + "/" + objectID
+		if _, alreadyInFlight := r.inFlight.LoadOrStore(inFlightKey, struct{}{}); alreadyInFlight {
+			logger.Debug("skipping duplicate message: object already in flight",
+				zap.String("bucket", bucketID),
+				zap.String("object", objectID))
+			msg.Ack()
+			return
+		}
+		defer r.inFlight.Delete(inFlightKey)
+	}
 
 	w := r.workerPool.Get().(*worker.Worker)
 	defer r.workerPool.Put(w)
