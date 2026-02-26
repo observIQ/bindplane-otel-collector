@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/pdata/plog"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver/internal/worker"
+	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver/internal/worker"
 )
 
 // newLineParserFromString is a test helper that creates a NewBufferedReader from a string

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package worker provides a worker that processes GCS event notifications from Pub/Sub.
-package worker // import "github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver/internal/worker"
+package worker // import "github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver/internal/worker"
 
 import (
 	"context"
@@ -33,7 +33,7 @@ import (
 	"google.golang.org/api/googleapi"
 
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
-	"github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver/internal/metadata"
 )
 
 // GCS Pub/Sub notification event types
@@ -96,7 +96,7 @@ func WithTelemetryBuilder(tb *metadata.TelemetryBuilder) Option {
 // New creates a new Worker
 func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, storageClient *storage.Client, obsrecv *receiverhelper.ObsReport, maxLogSize int, maxLogsEmitted int, opts ...Option) *Worker {
 	w := &Worker{
-		logger:         tel.Logger.With(zap.String("component", "gcspubeventreceiver")),
+		logger:         tel.Logger.With(zap.String("component", "gcspubsubeventreceiver")),
 		tel:            tel,
 		storageClient:  storageClient,
 		nextConsumer:   nextConsumer,

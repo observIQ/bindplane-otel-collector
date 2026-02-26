@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package gcspubeventreceiver_test
+package gcspubsubeventreceiver_test
 
 import (
 	"context"
@@ -26,13 +26,13 @@ import (
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/receiver"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver"
-	"github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver/internal/metadata"
 )
 
 // Test that the factory creates the default configuration correctly
 func TestFactoryCreateDefaultConfig(t *testing.T) {
-	factory := gcspubeventreceiver.NewFactory()
+	factory := gcspubsubeventreceiver.NewFactory()
 	cfg := factory.CreateDefaultConfig()
 
 	assert.Equal(t, metadata.Type, factory.Type())
@@ -41,7 +41,7 @@ func TestFactoryCreateDefaultConfig(t *testing.T) {
 
 	assert.NoError(t, componenttest.CheckConfigStruct(cfg))
 
-	receiverCfg, ok := cfg.(*gcspubeventreceiver.Config)
+	receiverCfg, ok := cfg.(*gcspubsubeventreceiver.Config)
 	require.True(t, ok)
 	assert.Equal(t, "", receiverCfg.ProjectID)
 	assert.Equal(t, "", receiverCfg.SubscriptionID)
@@ -55,10 +55,10 @@ func TestFactoryCreateDefaultConfig(t *testing.T) {
 // Test factory receiver creation methods
 func TestFactoryCreateReceivers(t *testing.T) {
 	ctx := context.Background()
-	factory := gcspubeventreceiver.NewFactory()
+	factory := gcspubsubeventreceiver.NewFactory()
 
 	// Create valid config
-	cfg := factory.CreateDefaultConfig().(*gcspubeventreceiver.Config)
+	cfg := factory.CreateDefaultConfig().(*gcspubsubeventreceiver.Config)
 	cfg.ProjectID = "test-project"
 	cfg.SubscriptionID = "test-subscription"
 
@@ -81,10 +81,10 @@ func TestFactoryCreateReceivers(t *testing.T) {
 // Test factory error cases
 func TestFactoryCreateReceiverErrors(t *testing.T) {
 	ctx := context.Background()
-	factory := gcspubeventreceiver.NewFactory()
+	factory := gcspubsubeventreceiver.NewFactory()
 
 	// Create invalid config (missing project_id)
-	cfg := factory.CreateDefaultConfig().(*gcspubeventreceiver.Config)
+	cfg := factory.CreateDefaultConfig().(*gcspubsubeventreceiver.Config)
 	cfg.ProjectID = ""
 
 	// Create settings

@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver/internal/worker"
+	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver/internal/worker"
 )
 
 func TestNewOffset(t *testing.T) {

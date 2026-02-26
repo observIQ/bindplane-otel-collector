@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package gcspubeventreceiver_test
+package gcspubsubeventreceiver_test
 
 import (
 	"path/filepath"
@@ -24,15 +24,15 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/confmap/confmaptest"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver"
-	"github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver/internal/metadata"
 )
 
 func TestValidConfig(t *testing.T) {
 	t.Parallel()
 
-	f := gcspubeventreceiver.NewFactory()
-	cfg := f.CreateDefaultConfig().(*gcspubeventreceiver.Config)
+	f := gcspubsubeventreceiver.NewFactory()
+	cfg := f.CreateDefaultConfig().(*gcspubsubeventreceiver.Config)
 	cfg.ProjectID = "test-project"
 	cfg.SubscriptionID = "test-subscription"
 
@@ -52,12 +52,12 @@ func TestLoadConfig(t *testing.T) {
 	}{
 		{
 			id:          component.NewID(metadata.Type),
-			expected:    gcspubeventreceiver.NewFactory().CreateDefaultConfig(),
+			expected:    gcspubsubeventreceiver.NewFactory().CreateDefaultConfig(),
 			expectError: true, // Default config doesn't have required fields
 		},
 		{
 			id: component.NewIDWithName(metadata.Type, "custom"),
-			expected: &gcspubeventreceiver.Config{
+			expected: &gcspubsubeventreceiver.Config{
 				ProjectID:      "my-gcp-project",
 				SubscriptionID: "my-gcs-events-sub",
 				Workers:        10,
@@ -71,7 +71,7 @@ func TestLoadConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.id.String(), func(t *testing.T) {
-			factory := gcspubeventreceiver.NewFactory()
+			factory := gcspubsubeventreceiver.NewFactory()
 			cfg := factory.CreateDefaultConfig()
 
 			// Get the receivers section from the confmap
@@ -85,12 +85,12 @@ func TestLoadConfig(t *testing.T) {
 			require.NoError(t, sub.Unmarshal(cfg))
 
 			if tt.expectError {
-				require.Error(t, cfg.(*gcspubeventreceiver.Config).Validate())
+				require.Error(t, cfg.(*gcspubsubeventreceiver.Config).Validate())
 				return
 			}
 
-			require.NoError(t, cfg.(*gcspubeventreceiver.Config).Validate())
-			if cfgGCS, ok := cfg.(*gcspubeventreceiver.Config); ok {
+			require.NoError(t, cfg.(*gcspubsubeventreceiver.Config).Validate())
+			if cfgGCS, ok := cfg.(*gcspubsubeventreceiver.Config); ok {
 				assert.Equal(t, tt.expected, cfgGCS)
 			}
 		})
@@ -100,12 +100,12 @@ func TestLoadConfig(t *testing.T) {
 func TestConfigValidate(t *testing.T) {
 	testCases := []struct {
 		desc        string
-		cfgMod      func(*gcspubeventreceiver.Config)
+		cfgMod      func(*gcspubsubeventreceiver.Config)
 		expectedErr string
 	}{
 		{
 			desc: "Valid config",
-			cfgMod: func(cfg *gcspubeventreceiver.Config) {
+			cfgMod: func(cfg *gcspubsubeventreceiver.Config) {
 				cfg.ProjectID = "test-project"
 				cfg.SubscriptionID = "test-subscription"
 			},
@@ -113,19 +113,19 @@ func TestConfigValidate(t *testing.T) {
 		},
 		{
 			desc:        "Missing project ID",
-			cfgMod:      func(_ *gcspubeventreceiver.Config) {},
+			cfgMod:      func(_ *gcspubsubeventreceiver.Config) {},
 			expectedErr: "'project_id' is required",
 		},
 		{
 			desc: "Missing subscription ID",
-			cfgMod: func(cfg *gcspubeventreceiver.Config) {
+			cfgMod: func(cfg *gcspubsubeventreceiver.Config) {
 				cfg.ProjectID = "test-project"
 			},
 			expectedErr: "'subscription_id' is required",
 		},
 		{
 			desc: "Invalid workers",
-			cfgMod: func(cfg *gcspubeventreceiver.Config) {
+			cfgMod: func(cfg *gcspubsubeventreceiver.Config) {
 				cfg.ProjectID = "test-project"
 				cfg.SubscriptionID = "test-subscription"
 				cfg.Workers = -1
@@ -134,7 +134,7 @@ func TestConfigValidate(t *testing.T) {
 		},
 		{
 			desc: "Invalid max extension",
-			cfgMod: func(cfg *gcspubeventreceiver.Config) {
+			cfgMod: func(cfg *gcspubsubeventreceiver.Config) {
 				cfg.ProjectID = "test-project"
 				cfg.SubscriptionID = "test-subscription"
 				cfg.MaxExtension = 0
@@ -143,7 +143,7 @@ func TestConfigValidate(t *testing.T) {
 		},
 		{
 			desc: "Invalid max log size",
-			cfgMod: func(cfg *gcspubeventreceiver.Config) {
+			cfgMod: func(cfg *gcspubsubeventreceiver.Config) {
 				cfg.ProjectID = "test-project"
 				cfg.SubscriptionID = "test-subscription"
 				cfg.MaxLogSize = 0
@@ -152,7 +152,7 @@ func TestConfigValidate(t *testing.T) {
 		},
 		{
 			desc: "Invalid max logs emitted",
-			cfgMod: func(cfg *gcspubeventreceiver.Config) {
+			cfgMod: func(cfg *gcspubsubeventreceiver.Config) {
 				cfg.ProjectID = "test-project"
 				cfg.SubscriptionID = "test-subscription"
 				cfg.MaxLogsEmitted = 0
@@ -161,7 +161,7 @@ func TestConfigValidate(t *testing.T) {
 		},
 		{
 			desc: "Invalid bucket name filter regex",
-			cfgMod: func(cfg *gcspubeventreceiver.Config) {
+			cfgMod: func(cfg *gcspubsubeventreceiver.Config) {
 				cfg.ProjectID = "test-project"
 				cfg.SubscriptionID = "test-subscription"
 				cfg.BucketNameFilter = "[invalid"
@@ -170,7 +170,7 @@ func TestConfigValidate(t *testing.T) {
 		},
 		{
 			desc: "Invalid object key filter regex",
-			cfgMod: func(cfg *gcspubeventreceiver.Config) {
+			cfgMod: func(cfg *gcspubsubeventreceiver.Config) {
 				cfg.ProjectID = "test-project"
 				cfg.SubscriptionID = "test-subscription"
 				cfg.ObjectKeyFilter = "[invalid"
@@ -179,7 +179,7 @@ func TestConfigValidate(t *testing.T) {
 		},
 		{
 			desc: "Valid config with filters",
-			cfgMod: func(cfg *gcspubeventreceiver.Config) {
+			cfgMod: func(cfg *gcspubsubeventreceiver.Config) {
 				cfg.ProjectID = "test-project"
 				cfg.SubscriptionID = "test-subscription"
 				cfg.BucketNameFilter = "^my-bucket-.*"
@@ -191,8 +191,8 @@ func TestConfigValidate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			f := gcspubeventreceiver.NewFactory()
-			cfg := f.CreateDefaultConfig().(*gcspubeventreceiver.Config)
+			f := gcspubsubeventreceiver.NewFactory()
+			cfg := f.CreateDefaultConfig().(*gcspubsubeventreceiver.Config)
 			tc.cfgMod(cfg)
 			err := cfg.Validate()
 			if tc.expectedErr != "" {

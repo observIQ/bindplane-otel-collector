@@ -31,7 +31,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver v1.94.2
 	github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver v1.94.2
 	github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver v1.94.2
-	github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver v1.94.2
+	github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver v1.94.2
 	github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver v1.94.2
 	github.com/observiq/bindplane-otel-collector/receiver/httpreceiver v1.94.2
 	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.94.2
@@ -1072,7 +1072,7 @@ replace github.com/observiq/bindplane-otel-collector/processor/topologyprocessor
 // Receivers
 replace github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver => ./receiver/awss3eventreceiver
 
-replace github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver => ./receiver/gcspubeventreceiver
+replace github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver => ./receiver/gcspubsubeventreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver => ./receiver/awss3rehydrationreceiver
 

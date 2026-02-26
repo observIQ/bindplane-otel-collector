@@ -30,8 +30,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver/internal/metadata"
-	"github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver/internal/worker"
+	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver/internal/worker"
 )
 
 // setupPubSub creates an in-process fake Pub/Sub server and returns a topic and

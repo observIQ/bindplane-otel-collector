@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package gcspubeventreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver"
+package gcspubsubeventreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver"
 
 import (
 	"errors"

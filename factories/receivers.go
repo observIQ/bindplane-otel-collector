@@ -20,7 +20,7 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/azureblobpollingreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/bindplaneauditlogs"
-	"github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver"
+	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/httpreceiver"
 	"github.com/observiq/bindplane-otel-collector/receiver/m365receiver"
@@ -142,7 +142,7 @@ var defaultReceivers = []receiver.Factory{
 	filestatsreceiver.NewFactory(),
 	fluentforwardreceiver.NewFactory(),
 	githubreceiver.NewFactory(),
-	gcspubeventreceiver.NewFactory(),
+	gcspubsubeventreceiver.NewFactory(),
 	googlecloudpubsubreceiver.NewFactory(),
 	googlecloudpubsubpushreceiver.NewFactory(),
 	googlecloudspannerreceiver.NewFactory(),

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package gcspubeventreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver"
+package gcspubsubeventreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver"
 
 import (
 	"context"
@@ -33,8 +33,8 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/observiq/bindplane-otel-collector/internal/storageclient"
-	"github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver/internal/metadata"
-	"github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver/internal/worker"
+	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver/internal/metadata"
+	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver/internal/worker"
 )
 
 type logsReceiver struct {

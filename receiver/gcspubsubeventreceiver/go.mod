@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver
+module github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver
 
 go 1.25.7
 

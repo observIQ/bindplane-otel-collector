@@ -14,11 +14,11 @@
 
 //go:generate mdatagen metadata.yaml
 
-// Package gcspubeventreceiver implements a receiver that consumes GCS object event
+// Package gcspubsubeventreceiver implements a receiver that consumes GCS object event
 // notifications from a Google Cloud Pub/Sub subscription and processes the objects
 // containing log data.
 //
 // The receiver uses Pub/Sub streaming pull to receive GCS event notifications. When an
 // OBJECT_FINALIZE event is received, the receiver downloads the GCS object and processes
 // it as log data.
-package gcspubeventreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/gcspubeventreceiver"
+package gcspubsubeventreceiver // import "github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver"
