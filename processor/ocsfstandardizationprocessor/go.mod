@@ -1,4 +1,4 @@
-module github.com/observiq/bindplane-otel-collector/processor/ocsfmappingprocessor
+module github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor
 
 go 1.25.7
 
