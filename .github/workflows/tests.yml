@@ -5,7 +5,7 @@ on:
 jobs:
   # Detect which files changed to skip irrelevant jobs on PRs.
   detect-changes:
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
     permissions:
       contents: read
       pull-requests: read
