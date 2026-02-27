@@ -11,13 +11,13 @@ jobs:
       pull-requests: read
     outputs:
       # if this file changed, run all tests. if the makefile changed, run all tests.
-      go: ${{ steps.filter.outputs.go || steps.filter.outputs.tests || steps.filter.outputs.makefile }}
-      updater: ${{ steps.filter.outputs.updater || steps.filter.outputs.tests || steps.filter.outputs.makefile }}
-      receivers: ${{ steps.filter.outputs.receivers || steps.filter.outputs.tests || steps.filter.outputs.makefile }}
-      processors: ${{ steps.filter.outputs.processors || steps.filter.outputs.tests || steps.filter.outputs.makefile }}
-      exporters: ${{ steps.filter.outputs.exporters || steps.filter.outputs.tests || steps.filter.outputs.makefile }}
-      extensions: ${{ steps.filter.outputs.extensions || steps.filter.outputs.tests || steps.filter.outputs.makefile }}
-      other: ${{ steps.filter.outputs.other || steps.filter.outputs.tests || steps.filter.outputs.makefile }}
+      go: ${{ steps.filter.outputs.go == 'true' || steps.filter.outputs.tests == 'true' || steps.filter.outputs.makefile == 'true' }}
+      updater: ${{ steps.filter.outputs.updater == 'true' || steps.filter.outputs.tests == 'true' || steps.filter.outputs.makefile == 'true' }}
+      receivers: ${{ steps.filter.outputs.receivers == 'true' || steps.filter.outputs.tests == 'true' || steps.filter.outputs.makefile == 'true' }}
+      processors: ${{ steps.filter.outputs.processors == 'true' || steps.filter.outputs.tests == 'true' || steps.filter.outputs.makefile == 'true' }}
+      exporters: ${{ steps.filter.outputs.exporters == 'true' || steps.filter.outputs.tests == 'true' || steps.filter.outputs.makefile == 'true' }}
+      extensions: ${{ steps.filter.outputs.extensions == 'true' || steps.filter.outputs.tests == 'true' || steps.filter.outputs.makefile == 'true' }}
+      other: ${{ steps.filter.outputs.other == 'true' || steps.filter.outputs.tests == 'true' || steps.filter.outputs.makefile == 'true' }}
     steps:
       - name: Checkout Sources
         uses: namespacelabs/nscloud-checkout-action@v7

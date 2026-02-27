@@ -11,13 +11,13 @@ jobs:
       pull-requests: read
     outputs:
       # if this file changed, run all checks. if the makefile changed, run all checks.
-      go: ${{ steps.filter.outputs.go || steps.filter.outputs.checks || steps.filter.outputs.makefile }}
-      dockerfile: ${{ steps.filter.outputs.dockerfile || steps.filter.outputs.checks || steps.filter.outputs.makefile }}
-      scripts: ${{ steps.filter.outputs.scripts || steps.filter.outputs.checks || steps.filter.outputs.makefile }}
-      misspell: ${{ steps.filter.outputs.misspell || steps.filter.outputs.checks || steps.filter.outputs.makefile }}
-      plugin-docs: ${{ steps.filter.outputs.plugin-docs || steps.filter.outputs.checks || steps.filter.outputs.makefile }}
-      gomod: ${{ steps.filter.outputs.gomod || steps.filter.outputs.checks || steps.filter.outputs.makefile }}
-      dependabot: ${{ steps.filter.outputs.dependabot || steps.filter.outputs.checks || steps.filter.outputs.makefile }}
+      go: ${{ steps.filter.outputs.go == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true'  }}
+      dockerfile: ${{ steps.filter.outputs.dockerfile == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
+      scripts: ${{ steps.filter.outputs.scripts == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
+      misspell: ${{ steps.filter.outputs.misspell == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
+      plugin-docs: ${{ steps.filter.outputs.plugin-docs == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
+      gomod: ${{ steps.filter.outputs.gomod == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
+      dependabot: ${{ steps.filter.outputs.dependabot == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
     steps:
       - name: Checkout Sources
         uses: namespacelabs/nscloud-checkout-action@v7
