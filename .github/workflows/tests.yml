@@ -3,8 +3,55 @@ on:
   pull_request:
 
 jobs:
+  # Detect which files changed to skip irrelevant jobs on PRs.
+  detect-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      # if this file changed, run all tests. if the makefile changed, run all tests.
+      go: ${{ steps.filter.outputs.go || steps.filter.outputs.tests || steps.filter.outputs.makefile }}
+      updater: ${{ steps.filter.outputs.updater || steps.filter.outputs.tests || steps.filter.outputs.makefile }}
+      receivers: ${{ steps.filter.outputs.receivers || steps.filter.outputs.tests || steps.filter.outputs.makefile }}
+      processors: ${{ steps.filter.outputs.processors || steps.filter.outputs.tests || steps.filter.outputs.makefile }}
+      exporters: ${{ steps.filter.outputs.exporters || steps.filter.outputs.tests || steps.filter.outputs.makefile }}
+      extensions: ${{ steps.filter.outputs.extensions || steps.filter.outputs.tests || steps.filter.outputs.makefile }}
+      other: ${{ steps.filter.outputs.other || steps.filter.outputs.tests || steps.filter.outputs.makefile }}
+    steps:
+      - name: Checkout Sources
+        uses: namespacelabs/nscloud-checkout-action@v7
+      - name: Detect changed files
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # These filters are based on picomatch syntax https://github.com/micromatch/picomatch#
+          filters: |
+            tests:
+              - '.github/workflows/tests.yml'
+            makefile:
+              - 'Makefile'
+            go:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+            updater:
+              - 'updater/**'
+            receivers:
+              - 'receiver/**'
+            processors:
+              - 'processor/**'
+            exporters:
+              - 'exporter/**'
+            extensions:
+              - 'extension/**'
+            other:
+              - '!{receiver,processor,exporter,extension}/**'
+    
   unit-tests:
-    if: github.actor != 'dependabot[bot]'
+    if: github.actor != 'dependabot[bot]' && needs.detect-changes.outputs.go == 'true'
+    needs:
+      - detect-changes
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -23,26 +70,31 @@ jobs:
             target: receivers
             runner: namespace-profile-bindplane-default-windows-2022-8x16
             test_cmd: make test-updater-integration
+            skip: ${{ needs.detect-changes.outputs.receivers == 'false' }}
           # Windows - Processors
           - os: windows
             target: processors
             runner: namespace-profile-bindplane-default-windows-2022-8x16
             test_cmd: make test-updater-integration
+            skip: ${{ needs.detect-changes.outputs.processors == 'false' }}
           # Windows - Exporters
           - os: windows
             target: exporters
             runner: namespace-profile-bindplane-default-windows-2022-8x16
             test_cmd: make test-updater-integration
+            skip: ${{ needs.detect-changes.outputs.exporters == 'false' }}
           # Windows - Extensions
           - os: windows
             target: extensions
             runner: namespace-profile-bindplane-default-windows-2022-8x16
             test_cmd: make test-updater-integration
+            skip: ${{ needs.detect-changes.outputs.extensions == 'false' }}
           # Windows - Other
           - os: windows
             target: other
             runner: namespace-profile-bindplane-default-windows-2022-16x32
             test_cmd: make test-updater-integration
+            skip: ${{ needs.detect-changes.outputs.other == 'false' }}
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout Sources (Namespace)
@@ -120,7 +172,7 @@ jobs:
         run: make install-tools-ci
 
       - name: Run Component Tests
-        if: matrix.os == 'windows'
+        if: matrix.os == 'windows' && matrix.skip != 'true'
         run: make test-${{ matrix.target }}
         env:
           TMPDIR: D:\Temp
@@ -135,7 +187,7 @@ jobs:
       # Run updater integration tests for Ubuntu and macOS (always)
       # For Windows, only run when target is 'other'
       - name: Run Updater Integration Tests
-        if: matrix.os != 'windows' || matrix.target == 'other'
+        if: ${{ (matrix.os != 'windows' || matrix.target == 'other') && needs.detect-changes.outputs.updater == 'true' }}
         run: ${{ matrix.test_cmd }}
 
   test-summary:
@@ -147,6 +199,8 @@ jobs:
         run: |
           if [[ "${{ needs.unit-tests.result }}" == "success" ]]; then
             echo "✅ All tests passed"
+          elif [[ "${{ needs.unit-tests.result }}" == "skipped" ]]; then
+            echo "⏭️ Tests skipped"
           else
             echo "❌ Tests failed"
             exit 1
