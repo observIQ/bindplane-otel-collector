@@ -19,7 +19,8 @@ import (
 	"testing"
 	"time"
 
-	"cloud.google.com/go/pubsub"
+	subscriber "cloud.google.com/go/pubsub/apiv1"
+	"cloud.google.com/go/pubsub/apiv1/pubsubpb"
 	"cloud.google.com/go/pubsub/pstest"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/consumer/consumertest"
@@ -33,9 +34,16 @@ import (
 	"github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver/internal/worker"
 )
 
-// setupTestPubSub creates an in-process fake Pub/Sub server and returns a topic
-// and subscription ready to use. All resources are cleaned up when t finishes.
-func setupTestPubSub(t *testing.T) (*pubsub.Topic, *pubsub.Subscription) {
+// testEnv bundles the pstest server, high-level helpers, and an apiv1 subscriber
+// client suitable for the receiver's pull-based architecture.
+type testEnv struct {
+	subClient *subscriber.SubscriberClient
+	subPath   string
+}
+
+// setupTestEnv creates an in-process fake Pub/Sub server with a topic and
+// subscription, and returns a low-level SubscriberClient connected to it.
+func setupTestEnv(t *testing.T) testEnv {
 	t.Helper()
 
 	srv := pstest.NewServer()
@@ -46,26 +54,21 @@ func setupTestPubSub(t *testing.T) (*pubsub.Topic, *pubsub.Subscription) {
 	t.Cleanup(func() { _ = conn.Close() })
 
 	ctx := context.Background()
-	client, err := pubsub.NewClient(ctx, "test-project", option.WithGRPCConn(conn))
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = client.Close() })
 
-	topic, err := client.CreateTopic(ctx, "test-topic")
+	// Use the publisher/admin API to create a topic + subscription on the fake server.
+	pubClient, err := subscriber.NewSubscriberClient(ctx, option.WithGRPCConn(conn), option.WithoutAuthentication())
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = pubClient.Close() })
 
-	sub, err := client.CreateSubscription(ctx, "test-sub", pubsub.SubscriptionConfig{
-		Topic:       topic,
-		AckDeadline: 10 * time.Second,
-	})
-	require.NoError(t, err)
-
-	return topic, sub
+	return testEnv{
+		subClient: pubClient,
+		subPath:   "projects/test-project/subscriptions/test-sub",
+	}
 }
 
-// newTestReceiver builds a minimal logsReceiver suitable for unit-testing
-// handleMessage. The worker pool panics if invoked, so tests that expect
-// the deduplication path to short-circuit will catch unintended worker usage.
-func newTestReceiver(t *testing.T, workerPoolFn func() any) *logsReceiver {
+// newTestReceiver builds a minimal logsReceiver suitable for unit testing
+// pullMessages and batch/cross-batch deduplication.
+func newTestReceiver(t *testing.T, env testEnv) *logsReceiver {
 	t.Helper()
 
 	params := receivertest.NewNopSettings(metadata.Type)
@@ -74,116 +77,249 @@ func newTestReceiver(t *testing.T, workerPoolFn func() any) *logsReceiver {
 	r := &logsReceiver{
 		id: params.ID,
 		cfg: &Config{
-			Workers:        5,
-			MaxExtension:   time.Hour,
-			MaxLogSize:     1024 * 1024,
-			MaxLogsEmitted: 1000,
+			Workers:      5,
+			MaxExtension: time.Hour,
+			PollInterval: 250 * time.Millisecond,
+			DedupTTL:     5 * time.Minute,
+			MaxLogSize:   1024 * 1024,
 		},
-		telemetry:     params.TelemetrySettings,
-		next:          sink,
-		offsetStorage: storageclient.NewNopStorage(),
+		telemetry:        params.TelemetrySettings,
+		next:             sink,
+		offsetStorage:    storageclient.NewNopStorage(),
+		subClient:        env.subClient,
+		subscriptionPath: env.subPath,
+		recent:           newRecentTracker(5 * time.Minute),
+		msgChan:          make(chan *workerMessage, 10),
 	}
-	r.workerPool.New = workerPoolFn
 	return r
 }
 
-// TestHandleMessage_DuplicateObjectIsAckedWithoutProcessing verifies that when
-// handleMessage receives a message whose (bucket, object) pair is already
-// in-flight, the message is acked immediately and the worker pool is never
-// invoked — no log records are emitted.
-func TestHandleMessage_DuplicateObjectIsAckedWithoutProcessing(t *testing.T) {
+// TestBatchDedup_DuplicateObjectInSameBatch verifies that when two messages
+// for the same (bucket, object, generation) appear in the same Pull response,
+// only one is dispatched to the worker channel.
+func TestBatchDedup_DuplicateObjectInSameBatch(t *testing.T) {
 	t.Parallel()
 
-	topic, sub := setupTestPubSub(t)
-
-	workerPoolInvoked := false
-	r := newTestReceiver(t, func() any {
-		workerPoolInvoked = true
-		t.Error("worker pool must not be invoked for a duplicate message")
-		return nil
-	})
-
-	// Simulate the first message already being processed by pre-populating inFlight.
-	r.inFlight.Store("test-bucket/test-object.txt", struct{}{})
-
-	attrs := map[string]string{
-		worker.AttrEventType: worker.EventTypeObjectFinalize,
-		worker.AttrBucketID:  "test-bucket",
-		worker.AttrObjectID:  "test-object.txt",
+	msgs := []*worker.PullMessage{
+		{
+			AckID:     "ack-1",
+			MessageID: "msg-1",
+			Attributes: map[string]string{
+				worker.AttrEventType:        worker.EventTypeObjectFinalize,
+				worker.AttrBucketID:         "my-bucket",
+				worker.AttrObjectID:         "my-object.txt",
+				worker.AttrObjectGeneration: "12345",
+			},
+		},
+		{
+			AckID:     "ack-2",
+			MessageID: "msg-2",
+			Attributes: map[string]string{
+				worker.AttrEventType:        worker.EventTypeObjectFinalize,
+				worker.AttrBucketID:         "my-bucket",
+				worker.AttrObjectID:         "my-object.txt",
+				worker.AttrObjectGeneration: "12345",
+			},
+		},
 	}
 
-	ctx := context.Background()
-	res := topic.Publish(ctx, &pubsub.Message{Data: []byte("payload"), Attributes: attrs})
-	_, err := res.Get(ctx)
-	require.NoError(t, err)
+	env := setupTestEnv(t)
+	r := newTestReceiver(t, env)
 
-	receiveCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	done := make(chan struct{})
-	go func() {
-		_ = sub.Receive(receiveCtx, func(innerCtx context.Context, msg *pubsub.Message) {
-			r.handleMessage(innerCtx, msg)
-			close(done)
-			cancel()
-		})
-	}()
-
-	select {
-	case <-done:
-	case <-receiveCtx.Done():
-		t.Fatal("timed out waiting for handleMessage to return")
-	}
-
-	require.False(t, workerPoolInvoked, "worker pool must not be invoked for a duplicate message")
-	require.Equal(t, 0, r.next.(*consumertest.LogsSink).LogRecordCount(),
-		"duplicate message must not produce log records")
+	unique := r.batchDedup(context.Background(), msgs)
+	require.Len(t, unique, 1, "batch dedup must collapse duplicate (bucket, object, generation)")
+	require.Equal(t, "ack-1", unique[0].AckID)
 }
 
-// TestHandleMessage_InFlightKeyReleasedAfterProcessing verifies that the
-// inFlight entry for a (bucket, object) pair is removed after handleMessage
-// returns, so subsequent messages for the same object are processed normally.
-func TestHandleMessage_InFlightKeyReleasedAfterProcessing(t *testing.T) {
+// TestBatchDedup_DifferentGenerationsNotDeduped verifies that two messages for
+// the same object but different generations (legitimate overwrite) are both kept.
+func TestBatchDedup_DifferentGenerationsNotDeduped(t *testing.T) {
 	t.Parallel()
 
-	topic, sub := setupTestPubSub(t)
-	r := newTestReceiver(t, func() any { return nil })
-
-	attrs := map[string]string{
-		worker.AttrEventType: worker.EventTypeObjectFinalize,
-		worker.AttrBucketID:  "my-bucket",
-		worker.AttrObjectID:  "my-object.txt",
+	msgs := []*worker.PullMessage{
+		{
+			AckID:     "ack-1",
+			MessageID: "msg-1",
+			Attributes: map[string]string{
+				worker.AttrBucketID:         "bucket",
+				worker.AttrObjectID:         "object",
+				worker.AttrObjectGeneration: "100",
+			},
+		},
+		{
+			AckID:     "ack-2",
+			MessageID: "msg-2",
+			Attributes: map[string]string{
+				worker.AttrBucketID:         "bucket",
+				worker.AttrObjectID:         "object",
+				worker.AttrObjectGeneration: "200",
+			},
+		},
 	}
+
+	env := setupTestEnv(t)
+	r := newTestReceiver(t, env)
+
+	unique := r.batchDedup(context.Background(), msgs)
+	require.Len(t, unique, 2, "different generations must not be deduped")
+}
+
+// TestBatchDedup_UnrelatedObjectsNotDeduped verifies that messages for
+// different objects pass through batch dedup unchanged.
+func TestBatchDedup_UnrelatedObjectsNotDeduped(t *testing.T) {
+	t.Parallel()
+
+	msgs := []*worker.PullMessage{
+		{
+			AckID:     "ack-1",
+			MessageID: "msg-1",
+			Attributes: map[string]string{
+				worker.AttrBucketID:         "bucket-a",
+				worker.AttrObjectID:         "file-a.txt",
+				worker.AttrObjectGeneration: "1",
+			},
+		},
+		{
+			AckID:     "ack-2",
+			MessageID: "msg-2",
+			Attributes: map[string]string{
+				worker.AttrBucketID:         "bucket-b",
+				worker.AttrObjectID:         "file-b.txt",
+				worker.AttrObjectGeneration: "1",
+			},
+		},
+	}
+
+	env := setupTestEnv(t)
+	r := newTestReceiver(t, env)
+
+	unique := r.batchDedup(context.Background(), msgs)
+	require.Len(t, unique, 2, "unrelated objects must not be deduped")
+}
+
+// TestRecentTracker_CrossBatchDedup verifies that a message whose object key
+// was recently processed is skipped (acked without dispatching to the worker channel).
+func TestRecentTracker_CrossBatchDedup(t *testing.T) {
+	t.Parallel()
+
+	key := objectKey{Bucket: "b", Object: "o", Generation: "1"}
+	rt := newRecentTracker(5 * time.Minute)
+
+	require.False(t, rt.IsDuplicate(key), "fresh key must not be duplicate")
+
+	rt.Mark(key)
+	require.True(t, rt.IsDuplicate(key), "recently marked key must be duplicate")
+}
+
+// TestRecentTracker_Expiry verifies that entries expire after the TTL.
+func TestRecentTracker_Expiry(t *testing.T) {
+	t.Parallel()
+
+	key := objectKey{Bucket: "b", Object: "o", Generation: "1"}
+	rt := newRecentTracker(1 * time.Millisecond) // tiny TTL for test
+
+	rt.Mark(key)
+	time.Sleep(5 * time.Millisecond) // wait for expiry
+
+	require.False(t, rt.IsDuplicate(key), "expired key must not be duplicate")
+}
+
+// TestRecentTracker_Evict verifies that Evict removes expired entries.
+func TestRecentTracker_Evict(t *testing.T) {
+	t.Parallel()
+
+	rt := newRecentTracker(1 * time.Millisecond)
+	rt.Mark(objectKey{Bucket: "b", Object: "o", Generation: "1"})
+
+	time.Sleep(5 * time.Millisecond)
+	rt.Evict()
+
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
+	require.Empty(t, rt.seen, "Evict must remove expired entries")
+}
+
+// TestPullMessages_DispatchesUniqueBatched verifies the full pullMessages path:
+// publish two messages for the same object, call pullMessages, and verify only
+// one message reaches the worker channel.
+func TestPullMessages_DispatchesUniqueBatched(t *testing.T) {
+	t.Parallel()
+
+	srv := pstest.NewServer()
+	t.Cleanup(func() { _ = srv.Close() })
+
+	conn, err := grpc.NewClient(srv.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
 
 	ctx := context.Background()
-	res := topic.Publish(ctx, &pubsub.Message{Data: []byte("payload"), Attributes: attrs})
-	_, err := res.Get(ctx)
+	const project = "test-project"
+	const topicID = "test-topic"
+	const subID = "test-sub"
+	subPath := "projects/" + project + "/subscriptions/" + subID
+
+	topicPath := "projects/" + project + "/topics/" + topicID
+
+	// Create topic using the publisher admin API.
+	pubClient, err := subscriber.NewPublisherClient(ctx, option.WithGRPCConn(conn), option.WithoutAuthentication())
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = pubClient.Close() })
+
+	_, err = pubClient.CreateTopic(ctx, &pubsubpb.Topic{Name: topicPath})
 	require.NoError(t, err)
 
-	receiveCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
+	// Create subscription using the subscriber admin API.
+	subClient, err := subscriber.NewSubscriberClient(ctx, option.WithGRPCConn(conn), option.WithoutAuthentication())
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = subClient.Close() })
 
-	done := make(chan struct{})
-	go func() {
-		_ = sub.Receive(receiveCtx, func(innerCtx context.Context, msg *pubsub.Message) {
-			// handleMessage will panic inside the worker (nil pool item), but the
-			// defer r.inFlight.Delete inside handleMessage still runs before the
-			// panic propagates. Recover here so we can assert on inFlight state.
-			defer func() {
-				recover() //nolint:errcheck
-				close(done)
-				cancel()
-			}()
-			r.handleMessage(innerCtx, msg)
+	_, err = subClient.CreateSubscription(ctx, &pubsubpb.Subscription{
+		Name:  subPath,
+		Topic: topicPath,
+	})
+	require.NoError(t, err)
+
+	// Publish two messages for the same (bucket, object, generation).
+	attrs := map[string]string{
+		worker.AttrEventType:        worker.EventTypeObjectFinalize,
+		worker.AttrBucketID:         "bucket",
+		worker.AttrObjectID:         "object.txt",
+		worker.AttrObjectGeneration: "42",
+	}
+	for i := 0; i < 2; i++ {
+		_, err = pubClient.Publish(ctx, &pubsubpb.PublishRequest{
+			Topic: topicPath,
+			Messages: []*pubsubpb.PubsubMessage{
+				{Data: []byte("payload"), Attributes: attrs},
+			},
 		})
-	}()
-
-	select {
-	case <-done:
-	case <-receiveCtx.Done():
-		t.Fatal("timed out waiting for handleMessage to return")
+		require.NoError(t, err)
 	}
 
-	_, stillInFlight := r.inFlight.Load("my-bucket/my-object.txt")
-	require.False(t, stillInFlight, "inFlight key must be removed after handleMessage returns")
+	// Build a receiver wired to the pstest server.
+	params := receivertest.NewNopSettings(metadata.Type)
+	tb, err := metadata.NewTelemetryBuilder(params.TelemetrySettings)
+	require.NoError(t, err)
+
+	r := &logsReceiver{
+		id: params.ID,
+		cfg: &Config{
+			Workers:      5,
+			MaxExtension: time.Hour,
+			PollInterval: 250 * time.Millisecond,
+			DedupTTL:     5 * time.Minute,
+			MaxLogSize:   1024 * 1024,
+		},
+		telemetry:        params.TelemetrySettings,
+		metrics:          tb,
+		next:             new(consumertest.LogsSink),
+		offsetStorage:    storageclient.NewNopStorage(),
+		subClient:        subClient,
+		subscriptionPath: subPath,
+		recent:           newRecentTracker(5 * time.Minute),
+		msgChan:          make(chan *workerMessage, 10),
+	}
+
+	n := r.pullMessages(ctx)
+	require.Equal(t, 1, n, "only one unique message should be dispatched after batch dedup")
 }

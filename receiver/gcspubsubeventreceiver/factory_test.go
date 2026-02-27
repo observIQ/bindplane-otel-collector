@@ -48,6 +48,8 @@ func TestFactoryCreateDefaultConfig(t *testing.T) {
 	assert.Equal(t, "", receiverCfg.CredentialsFile)
 	assert.Equal(t, 5, receiverCfg.Workers)
 	assert.Equal(t, 1*time.Hour, receiverCfg.MaxExtension)
+	assert.Equal(t, 250*time.Millisecond, receiverCfg.PollInterval)
+	assert.Equal(t, 5*time.Minute, receiverCfg.DedupTTL)
 	assert.Equal(t, 1024*1024, receiverCfg.MaxLogSize)
 	assert.Equal(t, 1000, receiverCfg.MaxLogsEmitted)
 }

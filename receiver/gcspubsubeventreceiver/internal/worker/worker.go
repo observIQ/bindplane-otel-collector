@@ -22,7 +22,8 @@ import (
 	"regexp"
 	"time"
 
-	"cloud.google.com/go/pubsub"
+	subscriber "cloud.google.com/go/pubsub/apiv1"
+	"cloud.google.com/go/pubsub/apiv1/pubsubpb"
 	"cloud.google.com/go/storage"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -43,10 +44,19 @@ const (
 
 // GCS Pub/Sub message attribute keys
 const (
-	AttrBucketID  = "bucketId"
-	AttrObjectID  = "objectId"
-	AttrEventType = "eventType"
+	AttrBucketID         = "bucketId"
+	AttrObjectID         = "objectId"
+	AttrEventType        = "eventType"
+	AttrObjectGeneration = "objectGeneration"
 )
+
+// PullMessage wraps the data from a pubsubpb.ReceivedMessage for worker processing.
+type PullMessage struct {
+	AckID      string
+	MessageID  string
+	Data       []byte
+	Attributes map[string]string
+}
 
 // Worker processes GCS event notifications from Pub/Sub messages.
 type Worker struct {
@@ -61,6 +71,8 @@ type Worker struct {
 	bucketNameFilter *regexp.Regexp
 	objectKeyFilter  *regexp.Regexp
 	obsrecv          *receiverhelper.ObsReport
+	subClient        *subscriber.SubscriberClient
+	maxExtension     time.Duration
 }
 
 // Option is a functional option for configuring the Worker
@@ -93,6 +105,21 @@ func WithTelemetryBuilder(tb *metadata.TelemetryBuilder) Option {
 	}
 }
 
+// WithSubscriberClient sets the low-level Pub/Sub subscriber client used for
+// explicit Acknowledge and ModifyAckDeadline RPCs.
+func WithSubscriberClient(c *subscriber.SubscriberClient) Option {
+	return func(w *Worker) {
+		w.subClient = c
+	}
+}
+
+// WithMaxExtension sets the maximum total duration for ack deadline extension.
+func WithMaxExtension(d time.Duration) Option {
+	return func(w *Worker) {
+		w.maxExtension = d
+	}
+}
+
 // New creates a new Worker
 func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, storageClient *storage.Client, obsrecv *receiverhelper.ObsReport, maxLogSize int, maxLogsEmitted int, opts ...Option) *Worker {
 	w := &Worker{
@@ -104,6 +131,7 @@ func New(tel component.TelemetrySettings, nextConsumer consumer.Logs, storageCli
 		obsrecv:        obsrecv,
 		maxLogSize:     maxLogSize,
 		maxLogsEmitted: maxLogsEmitted,
+		maxExtension:   1 * time.Hour, // default; overridden by WithMaxExtension
 	}
 
 	for _, opt := range opts {
@@ -118,9 +146,20 @@ func (w *Worker) SetOffsetStorage(offsetStorage storageclient.StorageClient) {
 	w.offsetStorage = offsetStorage
 }
 
-// ProcessMessage processes a Pub/Sub message containing a GCS event notification
-func (w *Worker) ProcessMessage(ctx context.Context, msg *pubsub.Message) {
-	logger := w.logger.With(zap.String("message_id", msg.ID))
+// ProcessMessage processes a Pub/Sub message containing a GCS event notification.
+// It returns true if the GCS object was successfully processed (and acked), which
+// signals the caller to mark the object key in the recent-dedup tracker.
+// Returns false for filtered messages (still acked) and error cases (nacked).
+func (w *Worker) ProcessMessage(ctx context.Context, msg *PullMessage, subscriptionPath string, deferThis func()) bool {
+	defer deferThis()
+
+	logger := w.logger.With(zap.String("message_id", msg.MessageID))
+
+	// Start ack deadline extension immediately so long-running processing
+	// does not cause the message to become eligible for redelivery.
+	extCtx, extCancel := context.WithCancel(ctx)
+	defer extCancel()
+	go w.extendAckDeadline(extCtx, msg.AckID, subscriptionPath, logger)
 
 	// Parse event attributes from the Pub/Sub message
 	eventType := msg.Attributes[AttrEventType]
@@ -136,29 +175,29 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg *pubsub.Message) {
 	// Filter for OBJECT_FINALIZE events only
 	if eventType != EventTypeObjectFinalize {
 		logger.Debug("skipping non-OBJECT_FINALIZE event")
-		msg.Ack()
-		return
+		w.ackMessage(ctx, msg.AckID, subscriptionPath)
+		return false
 	}
 
 	// Validate required attributes
 	if bucketID == "" || objectID == "" {
 		logger.Warn("message missing required attributes (bucketId, objectId)")
-		msg.Ack()
-		return
+		w.ackMessage(ctx, msg.AckID, subscriptionPath)
+		return false
 	}
 
 	// Apply bucket name filter
 	if w.bucketNameFilter != nil && !w.bucketNameFilter.MatchString(bucketID) {
 		logger.Debug("skipping message due to bucket name filter")
-		msg.Ack()
-		return
+		w.ackMessage(ctx, msg.AckID, subscriptionPath)
+		return false
 	}
 
 	// Apply object key filter
 	if w.objectKeyFilter != nil && !w.objectKeyFilter.MatchString(objectID) {
 		logger.Debug("skipping message due to object key filter")
-		msg.Ack()
-		return
+		w.ackMessage(ctx, msg.AckID, subscriptionPath)
+		return false
 	}
 
 	logger.Debug("processing GCS object")
@@ -166,8 +205,8 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg *pubsub.Message) {
 	// Process the record, trying JSON first then falling back to line parsing
 	err := w.processRecord(ctx, bucketID, objectID, logger)
 	if err != nil {
-		w.handleProcessingError(ctx, msg, err, logger)
-		return
+		w.handleProcessingError(ctx, msg.AckID, subscriptionPath, err, logger)
+		return false
 	}
 
 	w.metrics.GcseventObjectsHandled.Add(ctx, 1)
@@ -178,8 +217,73 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg *pubsub.Message) {
 		logger.Error("failed to delete offset", zap.Error(err), zap.String("offset_storage_key", offsetStorageKey))
 	}
 
-	msg.Ack()
+	w.ackMessage(ctx, msg.AckID, subscriptionPath)
 	logger.Debug("message acked")
+	return true
+}
+
+// ackMessage acknowledges a message so Pub/Sub does not redeliver it.
+func (w *Worker) ackMessage(ctx context.Context, ackID, subscriptionPath string) {
+	if w.subClient == nil {
+		return
+	}
+	if err := w.subClient.Acknowledge(ctx, &pubsubpb.AcknowledgeRequest{
+		Subscription: subscriptionPath,
+		AckIds:       []string{ackID},
+	}); err != nil {
+		w.logger.Error("failed to ack message", zap.Error(err), zap.String("ack_id", ackID))
+	}
+}
+
+// nackMessage makes a message immediately available for redelivery by setting
+// its ack deadline to 0 — analogous to SQS resetVisibilityTimeout.
+func (w *Worker) nackMessage(ctx context.Context, ackID, subscriptionPath string) {
+	if w.subClient == nil {
+		return
+	}
+	if err := w.subClient.ModifyAckDeadline(ctx, &pubsubpb.ModifyAckDeadlineRequest{
+		Subscription:       subscriptionPath,
+		AckIds:             []string{ackID},
+		AckDeadlineSeconds: 0,
+	}); err != nil {
+		w.logger.Error("failed to nack message", zap.Error(err), zap.String("ack_id", ackID))
+	}
+}
+
+// extendAckDeadline periodically extends the ack deadline for a message while
+// it is being processed. Analogous to awss3eventreceiver's extendMessageVisibility.
+func (w *Worker) extendAckDeadline(ctx context.Context, ackID, subscriptionPath string, logger *zap.Logger) {
+	if w.subClient == nil {
+		return
+	}
+
+	const extensionSecs int32 = 30
+	// Extend at 50% of the extension period (safety margin).
+	ticker := time.NewTicker(time.Duration(extensionSecs) * time.Second / 2)
+	defer ticker.Stop()
+
+	start := time.Now()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if time.Since(start) >= w.maxExtension {
+				logger.Info("reached maximum ack deadline extension, stopping",
+					zap.Duration("total_time", time.Since(start)))
+				return
+			}
+			if err := w.subClient.ModifyAckDeadline(ctx, &pubsubpb.ModifyAckDeadlineRequest{
+				Subscription:       subscriptionPath,
+				AckIds:             []string{ackID},
+				AckDeadlineSeconds: extensionSecs,
+			}); err != nil {
+				logger.Error("failed to extend ack deadline", zap.Error(err))
+				return
+			}
+			logger.Debug("extended ack deadline", zap.Int32("deadline_secs", extensionSecs))
+		}
+	}
 }
 
 func (w *Worker) processRecord(ctx context.Context, bucket, object string, recordLogger *zap.Logger) error {
@@ -396,15 +500,18 @@ func (w *Worker) recordDLQMetrics(ctx context.Context, err error) {
 	}
 }
 
-// handleProcessingError handles errors from processing records
-func (w *Worker) handleProcessingError(ctx context.Context, msg *pubsub.Message, err error, logger *zap.Logger) {
+// handleProcessingError handles errors from processing records.
+// For DLQ conditions the message is nacked (deadline set to 0) for immediate
+// redelivery / DLQ processing. For transient errors the message is also nacked
+// so Pub/Sub can redeliver it after the ack deadline expires.
+func (w *Worker) handleProcessingError(ctx context.Context, ackID, subscriptionPath string, err error, logger *zap.Logger) {
 	if isDLQConditionError(err) {
 		logger.Error("DLQ condition triggered, nacking message for redelivery/DLQ processing", zap.Error(err))
 		w.recordDLQMetrics(ctx, err)
-		msg.Nack()
+		w.nackMessage(ctx, ackID, subscriptionPath)
 		return
 	}
 	logger.Error("error processing record, nacking message for retry", zap.Error(err))
 	w.metrics.GcseventFailures.Add(ctx, 1)
-	msg.Nack()
+	w.nackMessage(ctx, ackID, subscriptionPath)
 }

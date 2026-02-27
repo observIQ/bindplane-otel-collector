@@ -62,6 +62,8 @@ func TestLoadConfig(t *testing.T) {
 				SubscriptionID: "my-gcs-events-sub",
 				Workers:        10,
 				MaxExtension:   2 * time.Hour,
+				PollInterval:   500 * time.Millisecond,
+				DedupTTL:       10 * time.Minute,
 				MaxLogSize:     4096,
 				MaxLogsEmitted: 500,
 			},
@@ -140,6 +142,24 @@ func TestConfigValidate(t *testing.T) {
 				cfg.MaxExtension = 0
 			},
 			expectedErr: "'max_extension' must be greater than 0",
+		},
+		{
+			desc: "Invalid poll interval",
+			cfgMod: func(cfg *gcspubsubeventreceiver.Config) {
+				cfg.ProjectID = "test-project"
+				cfg.SubscriptionID = "test-subscription"
+				cfg.PollInterval = 0
+			},
+			expectedErr: "'poll_interval' must be greater than 0",
+		},
+		{
+			desc: "Invalid dedup TTL",
+			cfgMod: func(cfg *gcspubsubeventreceiver.Config) {
+				cfg.ProjectID = "test-project"
+				cfg.SubscriptionID = "test-subscription"
+				cfg.DedupTTL = 0
+			},
+			expectedErr: "'dedup_ttl' must be greater than 0",
 		},
 		{
 			desc: "Invalid max log size",

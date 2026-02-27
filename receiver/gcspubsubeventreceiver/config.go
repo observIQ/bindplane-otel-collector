@@ -39,10 +39,23 @@ type Config struct {
 	// Workers is the number of concurrent workers to process events.
 	Workers int `mapstructure:"workers"`
 
-	// MaxExtension is the maximum duration for which Pub/Sub will extend the ack deadline
-	// for a message being processed. After this duration, the message will be nacked and
-	// redelivered.
+	// MaxExtension is the maximum total duration for which the receiver will extend the
+	// ack deadline for a message being processed. After this duration, extension stops
+	// and the message becomes eligible for redelivery / DLQ.
 	MaxExtension time.Duration `mapstructure:"max_extension"`
+
+	// PollInterval is how long the poller waits between Pub/Sub Pull RPCs when the
+	// previous pull returned zero messages. When messages are found, the poller
+	// immediately issues the next Pull without sleeping.
+	// Default: 250ms.
+	PollInterval time.Duration `mapstructure:"poll_interval"`
+
+	// DedupTTL is how long to remember recently-processed (bucket, object, generation)
+	// keys for cross-batch deduplication. GCS publishes OBJECT_FINALIZE notifications
+	// at-least-once, so two distinct Pub/Sub messages can arrive for the same object
+	// seconds apart. The dedup tracker prevents re-processing within this window.
+	// Default: 5m.
+	DedupTTL time.Duration `mapstructure:"dedup_ttl"`
 
 	// MaxLogSize defines the maximum size in bytes for a single log record.
 	// Logs exceeding this size will be split into chunks.
@@ -80,6 +93,14 @@ func (c *Config) Validate() error {
 
 	if c.MaxExtension <= 0 {
 		return errors.New("'max_extension' must be greater than 0")
+	}
+
+	if c.PollInterval <= 0 {
+		return errors.New("'poll_interval' must be greater than 0")
+	}
+
+	if c.DedupTTL <= 0 {
+		return errors.New("'dedup_ttl' must be greater than 0")
 	}
 
 	if c.MaxLogSize <= 0 {

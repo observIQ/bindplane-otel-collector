@@ -7,5 +7,7 @@ receivers:
     subscription_id: "my-gcs-events-sub"
     workers: 10
     max_extension: 2h
+    poll_interval: 500ms
+    dedup_ttl: 10m
     max_log_size: 4096
     max_logs_emitted: 500

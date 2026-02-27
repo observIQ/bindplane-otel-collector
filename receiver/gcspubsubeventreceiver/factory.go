@@ -44,6 +44,8 @@ func createDefaultConfig() component.Config {
 	return &Config{
 		Workers:        5,
 		MaxExtension:   1 * time.Hour,
+		PollInterval:   250 * time.Millisecond,
+		DedupTTL:       5 * time.Minute,
 		MaxLogSize:     1024 * 1024,
 		MaxLogsEmitted: 1000,
 	}
