@@ -27,7 +27,7 @@ import (
 var componentType = component.MustNewType("ocsf_standardization")
 
 const (
-	stability = component.StabilityLevelAlpha
+	stability = component.StabilityLevelDevelopment
 )
 
 var (
