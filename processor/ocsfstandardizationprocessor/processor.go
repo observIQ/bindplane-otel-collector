@@ -31,6 +31,6 @@ func newOCSFStandardizationProcessor(logger *zap.Logger, _ *Config) *ocsfMapping
 	}
 }
 
-func (om *ocsfMappingProcessor) processLogs(ctx context.Context, ld plog.Logs) (plog.Logs, error) {
+func (om *ocsfMappingProcessor) processLogs(_ context.Context, ld plog.Logs) (plog.Logs, error) {
 	return ld, nil
 }
