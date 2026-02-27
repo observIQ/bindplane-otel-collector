@@ -88,9 +88,59 @@ func managerReload(client *Client, managerConfigPath string) opamp.ReloadFunc {
 		client.ident.agentName = newConfig.AgentName
 		client.ident.labels = newConfig.Labels
 
-		// Write out new config file
-		// Marshal back into bytes
-		newContents, err := yaml.Marshal(client.currentConfig)
+		// Read the raw on-disk file (preserves ${env:...} references)
+		rawContents, err := os.ReadFile(filepath.Clean(managerConfigPath))
+		if err != nil {
+			// Rollback file
+			if rollbackErr := rollbackFunc(); rollbackErr != nil {
+				client.logger.Error("Rollback failed for manager config", zap.Error(rollbackErr))
+			}
+			client.ident = rollbackIdent
+			client.currentConfig = *rollBackCfg
+			return false, fmt.Errorf("failed to read manager config for update: %w", err)
+		}
+
+		// Unmarshal into a generic map (yaml.v3 does NOT resolve env vars)
+		var rawMap map[string]any
+		if err := yaml.Unmarshal(rawContents, &rawMap); err != nil {
+			// Rollback file
+			if rollbackErr := rollbackFunc(); rollbackErr != nil {
+				client.logger.Error("Rollback failed for manager config", zap.Error(rollbackErr))
+			}
+			client.ident = rollbackIdent
+			client.currentConfig = *rollBackCfg
+			return false, fmt.Errorf("failed to parse manager config for update: %w", err)
+		}
+
+		// Update only the fields that are allowed to change via OpAMP
+		if client.currentConfig.AgentName != nil {
+			rawMap["agent_name"] = *client.currentConfig.AgentName
+		} else {
+			delete(rawMap, "agent_name")
+		}
+		if client.currentConfig.Labels != nil {
+			rawMap["labels"] = *client.currentConfig.Labels
+		} else {
+			delete(rawMap, "labels")
+		}
+		if client.currentConfig.MeasurementsInterval != 0 {
+			rawMap["measurements_interval"] = client.currentConfig.MeasurementsInterval
+		} else {
+			delete(rawMap, "measurements_interval")
+		}
+		if client.currentConfig.ExtraMeasurementsAttributes != nil {
+			rawMap["extra_measurements_attributes"] = client.currentConfig.ExtraMeasurementsAttributes
+		} else {
+			delete(rawMap, "extra_measurements_attributes")
+		}
+		if client.currentConfig.TopologyInterval != nil {
+			rawMap["topology_interval"] = *client.currentConfig.TopologyInterval
+		} else {
+			delete(rawMap, "topology_interval")
+		}
+
+		// Marshal the map back (env var references in untouched fields are preserved)
+		newContents, err := yaml.Marshal(rawMap)
 		if err != nil {
 			// Rollback file
 			if rollbackErr := rollbackFunc(); rollbackErr != nil {
