@@ -179,6 +179,8 @@ cat go.mod | grep -E '	(go.opentelemetry.io/collector|(github.com/(open-telemetr
   myMap["probabilisticsampler"] = "probabilistic_sampler"
   myMap["memorylimiter"] = "memory_limiter"
   myMap["logdeduplication"] = "logdedup"
+  myMap["signaltometrics"] = "signal_to_metrics"
+  myMap["k8sattributes"] = "k8s_attributes"
 } {
   split($NF, parts, " ")
   name=parts[1]

@@ -45,7 +45,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v1.94.2
 	github.com/observiq/bindplane-otel-collector/receiver/windowseventtracereceiver v1.94.2
 	github.com/oklog/ulid/v2 v2.1.1
-	github.com/open-telemetry/opamp-go v0.22.0
+	github.com/open-telemetry/opamp-go v0.23.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/countconnector v0.146.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/failoverconnector v0.146.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/connector/roundrobinconnector v0.146.0
@@ -733,7 +733,6 @@ require (
 	github.com/alecthomas/units v0.0.0-20240927000941-0f3dac36c52b // indirect
 	github.com/aliyun/aliyun-log-go-sdk v0.1.83 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
-	github.com/antonmedv/expr v1.15.5 // indirect
 	github.com/apache/thrift v0.22.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/aws/aws-sdk-go v1.55.8 // indirect
