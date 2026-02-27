@@ -394,6 +394,17 @@ updates:
       prefix: "deps"
       include: "scope"
   - package-ecosystem: "gomod"
+    directory: "/processor/ocsfstandardizationprocessor"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+      - dependency-name: "go.opentelemetry.io/*"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+  - package-ecosystem: "gomod"
     directory: "/processor/randomfailureprocessor"
     schedule:
       interval: "weekly"
