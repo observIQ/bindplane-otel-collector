@@ -3,6 +3,53 @@ on:
   pull_request:
 
 jobs:
+  # Detect which files changed to skip irrelevant jobs on PRs.
+  detect-changes:
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      # if this file changed, run all checks. if the makefile changed, run all checks.
+      go: ${{ steps.filter.outputs.go == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true'  }}
+      dockerfile: ${{ steps.filter.outputs.dockerfile == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
+      scripts: ${{ steps.filter.outputs.scripts == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
+      misspell: ${{ steps.filter.outputs.misspell == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
+      plugin-docs: ${{ steps.filter.outputs.plugin-docs == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
+      gomod: ${{ steps.filter.outputs.gomod == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
+      dependabot: ${{ steps.filter.outputs.dependabot == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.makefile == 'true' }}
+    steps:
+      - name: Checkout Sources
+        uses: namespacelabs/nscloud-checkout-action@v7
+      - name: Detect changed files
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # These filters are based on picomatch syntax https://github.com/micromatch/picomatch#
+          filters: |
+            checks:
+              - '.github/workflows/checks.yml'
+            makefile:
+              - 'Makefile'
+            go:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+            dockerfile:
+              - 'docker/Dockerfile.*'
+            scripts:
+              - '**/*.sh'
+            misspell:
+              - '**/*.md'
+              - '**/*.yaml'
+            plugin-docs:
+              - 'docs/plugins/**'
+              - 'plugins/**'
+            gomod:
+              - 'go.mod'
+            dependabot:
+              - '.github/dependabot.yml'
+
   setup-tools:
     if: github.actor != 'dependabot[bot]'
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04
@@ -27,10 +74,11 @@ jobs:
         run: make install-tools
 
   check-fmt:
-    if: github.actor != 'dependabot[bot]'
+    if: github.actor != 'dependabot[bot]' && needs.detect-changes.outputs.go == 'true'
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04
     needs:
       - setup-tools
+      - detect-changes
     steps:
       - name: Checkout Sources
         uses: namespacelabs/nscloud-checkout-action@v7
@@ -54,10 +102,11 @@ jobs:
         run: make check-fmt
 
   check-license:
-    if: github.actor != 'dependabot[bot]'
+    if: github.actor != 'dependabot[bot]' && (needs.detect-changes.outputs.go == 'true' || needs.detect-changes.outputs.dockerfile == 'true' || needs.detect-changes.outputs.scripts == 'true')
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04
     needs:
       - setup-tools
+      - detect-changes
     steps:
       - name: Checkout Sources
         uses: namespacelabs/nscloud-checkout-action@v7
@@ -81,10 +130,11 @@ jobs:
         run: make check-license
 
   gosec:
-    if: github.actor != 'dependabot[bot]'
+    if: github.actor != 'dependabot[bot]' && needs.detect-changes.outputs.go == 'true'
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04
     needs:
       - setup-tools
+      - detect-changes
     steps:
       - name: Checkout Source
         uses: namespacelabs/nscloud-checkout-action@v7
@@ -108,10 +158,11 @@ jobs:
         run: make gosec
 
   misspell:
-    if: github.actor != 'dependabot[bot]'
+    if: github.actor != 'dependabot[bot]' && needs.detect-changes.outputs.misspell == 'true'
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04
     needs:
       - setup-tools
+      - detect-changes
     steps:
       - name: Checkout Sources
         uses: namespacelabs/nscloud-checkout-action@v7
@@ -135,10 +186,11 @@ jobs:
         run: make misspell
 
   lint:
-    if: github.actor != 'dependabot[bot]'
+    if: github.actor != 'dependabot[bot]' && needs.detect-changes.outputs.go == 'true'
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04
     needs:
       - setup-tools
+      - detect-changes
     steps:
       - name: Checkout Sources
         uses: namespacelabs/nscloud-checkout-action@v7
@@ -163,8 +215,10 @@ jobs:
 
   # Below checks don't need to run `make install-tools`
   check-plugin-docs:
-    if: github.actor != 'dependabot[bot]'
+    if: github.actor != 'dependabot[bot]' && needs.detect-changes.outputs.plugin-docs == 'true'
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04
+    needs:
+      - detect-changes
     steps:
       - name: Checkout Sources
         uses: namespacelabs/nscloud-checkout-action@v7
@@ -191,8 +245,10 @@ jobs:
 
   # Below checks don't need to run `make install-tools`
   check-mod-paths:
-    if: github.actor != 'dependabot[bot]'
+    if: github.actor != 'dependabot[bot]' && needs.detect-changes.outputs.gomod == 'true'
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04
+    needs:
+      - detect-changes
     steps:
       - name: Checkout Sources
         uses: namespacelabs/nscloud-checkout-action@v7
@@ -200,8 +256,10 @@ jobs:
         run: make check-mod-paths
 
   check-dependabot:
-    if: github.actor != 'dependabot[bot]'
+    if: github.actor != 'dependabot[bot]' && (needs.detect-changes.outputs.dependabot == 'true' || needs.detect-changes.outputs.gomod == 'true')
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04
+    needs:
+      - detect-changes
     steps:
       - name: Checkout Sources
         uses: namespacelabs/nscloud-checkout-action@v7
