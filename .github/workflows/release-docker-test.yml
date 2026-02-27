@@ -1,14 +1,11 @@
 name: release-docker-test
 on:
-  push:
-    branches:
-      - 'chore/release/split-docker-off'
-  # workflow_dispatch:
-  #   inputs:
-  #     version:
-  #       description: "Collector Version"
-  #       required: true
-  #       default: "v0.0.1"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Collector Version"
+        required: true
+        default: "v0.0.1"
 
 jobs:
   release-docker-test:
@@ -30,7 +27,7 @@ jobs:
       - name: Download Linux Binaries from GCS
         run: |
           mkdir -p tmp
-          VERSION=v1.94.2
+          VERSION=${{ github.event.inputs.version }}
           for ARCH in amd64 arm64 ppc64le; do
             ARCHIVE="observiq-otel-collector-${VERSION}-linux-${ARCH}.tar.gz"
             gsutil cp "gs://bdot-release/${VERSION}/${ARCHIVE}" tmp/
@@ -61,7 +58,7 @@ jobs:
           version: "v2.12.5"
           args: release --skip=publish --skip=validate --clean --config .goreleaser-docker.yml
         env:
-          GORELEASER_CURRENT_TAG: v1.94.2
+          GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}
           GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
           COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
