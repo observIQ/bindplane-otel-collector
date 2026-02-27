@@ -43,8 +43,9 @@ jobs:
           for ARCH in amd64 arm64 ppc64le; do
             ARCHIVE="observiq-otel-collector-${VERSION}-linux-${ARCH}.tar.gz"
             gsutil cp "gs://bdot-release/${VERSION}/${ARCHIVE}" tmp/
-            tar -xzf "tmp/${ARCHIVE}" -C tmp/ "observiq-otel-collector-${VERSION}-linux-${ARCH}/observiq-otel-collector"
-            mv "tmp/observiq-otel-collector-${VERSION}-linux-${ARCH}/observiq-otel-collector" "tmp/collector_linux_${ARCH}"
+            mkdir -p "tmp/${ARCH}"
+            tar -xzf "tmp/${ARCHIVE}" -C "tmp/${ARCH}" observiq-otel-collector
+            mv "tmp/${ARCH}/observiq-otel-collector" "tmp/collector_linux_${ARCH}"
           done
       - name: Set up Docker Buildx
         id: buildx
