@@ -797,6 +797,7 @@ release:
     - glob: "./observiq-otel-collector*.msi.sig"
     - glob: "./scripts/install/install_unix.sh"
     - glob: "./scripts/install/install_macos.sh"
+    - glob: "./scripts/install/install_windows.ps1"
     - glob: "./release_deps/gpg-keys.tar.gz"
 
 # https://console.cloud.google.com/storage/browser/bdot-release
@@ -809,6 +810,7 @@ blobs:
       - glob: "./observiq-otel-collector*.msi.sig"
       - glob: "./scripts/install/install_unix.sh"
       - glob: "./scripts/install/install_macos.sh"
+      - glob: "./scripts/install/install_windows.ps1"
       - glob: "./release_deps/gpg-keys.tar.gz"
 
 # https://goreleaser.com/customization/changelog/
