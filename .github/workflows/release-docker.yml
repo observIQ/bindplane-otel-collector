@@ -1,0 +1,92 @@
+name: release-docker
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Collector Version"
+        required: true
+        default: "v0.0.1"
+  # Uncomment the following to automatically trigger this workflow after
+  # the release workflow completes successfully on a version tag push.
+  # When enabled, remove the manual version input above and replace
+  # references to ${{ github.event.inputs.version }} with ${{ github.ref_name }},
+  # since the triggering tag will be available directly on the context.
+  #
+  # workflow_run:
+  #   workflows: ["release"]
+  #   types: [completed]
+
+jobs:
+  release-docker:
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
+    # Uncomment the following when switching to workflow_run trigger,
+    # to ensure the job only runs if the release workflow succeeded.
+    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Redirect temp directories
+        run: |
+          echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "GOTMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Checkout Repo
+        uses: namespacelabs/nscloud-checkout-action@v7
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.BDOT_GCS_RELEASE_BUCKET_PROJECT_ID }}
+          credentials_json: ${{ secrets.BDOT_GCS_RELEASE_BUCKET_CREDENTIALS }}
+      - name: Download Linux Binaries from GCS
+        run: |
+          mkdir -p tmp
+          VERSION=${{ github.event.inputs.version }}
+          for ARCH in amd64 arm64 ppc64le; do
+            ARCHIVE="observiq-otel-collector-${VERSION}-linux-${ARCH}.tar.gz"
+            gsutil cp "gs://bdot-release/${VERSION}/${ARCHIVE}" tmp/
+            tar -xzf "tmp/${ARCHIVE}" -C tmp/ "observiq-otel-collector-${VERSION}-linux-${ARCH}/observiq-otel-collector"
+            mv "tmp/observiq-otel-collector-${VERSION}-linux-${ARCH}/observiq-otel-collector" "tmp/collector_linux_${ARCH}"
+          done
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to Github Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+      - name: Login to Google Artifact Repository
+        uses: docker/login-action@v2
+        with:
+          registry: us-central1-docker.pkg.dev
+          username: _json_key
+          password: ${{ secrets.ORG_OBSERVIQ_PUBLIC_GCR_JSON_KEY }}
+      # - name: Install cosign
+      #   run: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
+      # - name: Build cosign key file
+      #   run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
+      #   shell: bash
+      #   env:
+      #     COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
+      - name: Cache Goreleaser Build
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: ~/.cache/goreleaser
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser-pro
+          version: "v2.12.5"
+          args: release --clean --timeout 120m --config .goreleaser-docker.yml
+        env:
+          GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}
+          GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}

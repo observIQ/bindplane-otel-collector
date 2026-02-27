@@ -359,9 +359,6 @@ release-prep:
 	@echo 'v$(CURR_VERSION)' > release_deps/VERSION.txt
 	./buildscripts/download-dependencies.sh release_deps
 	@cp -r ./plugins release_deps/
-	@cp -r ./signature/gpg release_deps/gpg
-	@rm release_deps/gpg/revocations.md
-	@rm release_deps/gpg/deb-revocations/.keep
 	@cp config/example.yaml release_deps/config.yaml
 	@cp config/logging.yaml release_deps/logging.yaml
 	@cp service/com.observiq.collector.plist release_deps/com.observiq.collector.plist
@@ -370,6 +367,9 @@ release-prep:
 .PHONY: release-prep-gpg
 release-prep-gpg:
 	$(MAKE) release-prep
+	@cp -r ./signature/gpg release_deps/gpg
+	@rm release_deps/gpg/revocations.md
+	@rm release_deps/gpg/deb-revocations/.keep
 	@cd release_deps/gpg && tar -czf ../gpg-keys.tar.gz .
 
 # Build and sign, skip release and ignore dirty git tree
