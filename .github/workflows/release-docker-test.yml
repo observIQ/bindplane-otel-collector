@@ -1,0 +1,64 @@
+name: release-docker-test
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Collector Version"
+        required: true
+        default: "v0.0.1"
+
+jobs:
+  release-docker-test:
+    runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
+    steps:
+      - name: Redirect temp directories
+        run: |
+          echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "GOTMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Checkout Repo
+        uses: namespacelabs/nscloud-checkout-action@v7
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.BDOT_GCS_RELEASE_BUCKET_PROJECT_ID }}
+          credentials_json: ${{ secrets.BDOT_GCS_RELEASE_BUCKET_CREDENTIALS }}
+      - name: Download Linux Binaries from GCS
+        run: |
+          mkdir -p tmp
+          VERSION=${{ github.event.inputs.version }}
+          for ARCH in amd64 arm64 ppc64le; do
+            ARCHIVE="observiq-otel-collector-${VERSION}-linux-${ARCH}.tar.gz"
+            gsutil cp "gs://bdot-release/${VERSION}/${ARCHIVE}" tmp/
+            mkdir -p "tmp/${ARCH}"
+            tar -xzf "tmp/${ARCHIVE}" -C "tmp/${ARCH}" observiq-otel-collector
+            mv "tmp/${ARCH}/observiq-otel-collector" "tmp/collector_linux_${ARCH}"
+          done
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      # - name: Install cosign
+      #   run: go install github.com/sigstore/cosign/cmd/cosign@v1.13.1
+      # - name: Build cosign key file
+      #   run: 'echo "$COSIGN_PRIVATE_KEY" >> cosign.key'
+      #   shell: bash
+      #   env:
+      #     COSIGN_PRIVATE_KEY: ${{secrets.ORG_COSIGN_PRIVATE_KEY}}
+      - name: Cache Goreleaser Build
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          path: ~/.cache/goreleaser
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser-pro
+          version: "v2.12.5"
+          args: release --skip=publish --skip=validate --clean --config .goreleaser-docker.yml
+        env:
+          GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}
+          GITHUB_TOKEN: ${{ secrets.ORG_GORELEASER_GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          COSIGN_PWD: ${{ secrets.ORG_COSIGN_PWD }}
