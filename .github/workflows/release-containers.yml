@@ -1,4 +1,4 @@
-name: release-docker
+name: release-containers
 on:
   workflow_dispatch:
     inputs:
@@ -17,7 +17,7 @@ on:
   #   types: [completed]
 
 jobs:
-  release-docker:
+  release-containers:
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
     # Uncomment the following when switching to workflow_run trigger,
     # to ensure the job only runs if the release workflow succeeded.

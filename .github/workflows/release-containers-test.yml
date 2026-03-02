@@ -1,4 +1,4 @@
-name: release-docker-test
+name: release-containers-test
 on:
   workflow_dispatch:
     inputs:
@@ -8,7 +8,7 @@ on:
         default: "v0.0.1"
 
 jobs:
-  release-docker-test:
+  release-containers-test:
     runs-on: namespace-profile-bindplane-default-ubuntu-24-04-32x128
     steps:
       - name: Redirect temp directories
