@@ -31,7 +31,7 @@ type compiledFieldMapping struct {
 }
 
 type compiledEventMapping struct {
-	filter        *expr.Expression // nil = match all
+	filter        *expr.Expression
 	classID       int
 	fieldMappings []compiledFieldMapping
 }
@@ -44,15 +44,15 @@ type ocsfStandardizationProcessor struct {
 
 func newOCSFStandardizationProcessor(logger *zap.Logger, config *Config) (*ocsfStandardizationProcessor, error) {
 	compiled := make([]compiledEventMapping, 0, len(config.EventMappings))
-	for _, em := range config.EventMappings {
-		fieldMappings := make([]compiledFieldMapping, 0, len(em.FieldMappings))
-		for _, fm := range em.FieldMappings {
+	for _, eventMapping := range config.EventMappings {
+		fieldMappings := make([]compiledFieldMapping, 0, len(eventMapping.FieldMappings))
+		for _, fieldMapping := range eventMapping.FieldMappings {
 			cfm := compiledFieldMapping{
-				to:           fm.To,
-				defaultValue: fm.Default,
+				to:           fieldMapping.To,
+				defaultValue: fieldMapping.Default,
 			}
-			if fm.From != "" {
-				from, err := expr.CreateValueExpression(fm.From)
+			if fieldMapping.From != "" {
+				from, err := expr.CreateValueExpression(fieldMapping.From)
 				if err != nil {
 					return nil, fmt.Errorf("compiling from expression: %w", err)
 				}
@@ -61,20 +61,20 @@ func newOCSFStandardizationProcessor(logger *zap.Logger, config *Config) (*ocsfS
 			fieldMappings = append(fieldMappings, cfm)
 		}
 
-		cem := compiledEventMapping{
-			classID:       em.ClassID,
+		compiledEventMap := compiledEventMapping{
+			classID:       eventMapping.ClassID,
 			fieldMappings: fieldMappings,
 		}
 
-		if em.Filter != "" {
-			filter, err := expr.CreateBoolExpression(em.Filter)
+		if eventMapping.Filter != "" {
+			filter, err := expr.CreateBoolExpression(eventMapping.Filter)
 			if err != nil {
 				return nil, fmt.Errorf("compiling filter expression: %w", err)
 			}
-			cem.filter = filter
+			compiledEventMap.filter = filter
 		}
 
-		compiled = append(compiled, cem)
+		compiled = append(compiled, compiledEventMap)
 	}
 
 	return &ocsfStandardizationProcessor{
@@ -121,40 +121,40 @@ func (osp *ocsfStandardizationProcessor) processLogs(_ context.Context, ld plog.
 func (osp *ocsfStandardizationProcessor) processLogRecord(log plog.LogRecord, resourceAttrs map[string]any) bool {
 	record := expr.ConvertToRecord(log, resourceAttrs)
 
-	for _, em := range osp.eventMappings {
-		if em.filter != nil && !em.filter.MatchRecord(record) {
+	for _, eventMapping := range osp.eventMappings {
+		if eventMapping.filter != nil && !eventMapping.filter.MatchRecord(record) {
 			continue
 		}
 
 		newBody := map[string]any{
-			"class_uid": em.classID,
+			"class_uid": eventMapping.classID,
 			"metadata": map[string]any{
 				"version": string(osp.ocsfVersion),
 			},
 		}
 
-		for _, fm := range em.fieldMappings {
+		for _, fieldMapping := range eventMapping.fieldMappings {
 			var value any
-			if fm.from != nil {
-				val, err := fm.from.Evaluate(record)
+			if fieldMapping.from != nil {
+				val, err := fieldMapping.from.Evaluate(record)
 				if err != nil || val == nil {
-					value = fm.defaultValue
+					value = fieldMapping.defaultValue
 				} else {
 					value = val
 				}
 			} else {
-				value = fm.defaultValue
+				value = fieldMapping.defaultValue
 			}
 
 			if value == nil {
 				continue
 			}
 
-			setNestedValue(newBody, fm.to, value)
+			setNestedValue(newBody, fieldMapping.to, value)
 		}
 
 		if err := log.Body().SetEmptyMap().FromRaw(newBody); err != nil {
-			osp.logger.Error("failed to set log body", zap.Error(err), zap.Int("class_id", em.classID))
+			osp.logger.Error("failed to set log body", zap.Error(err), zap.Int("class_id", eventMapping.classID))
 			return false
 		}
 
