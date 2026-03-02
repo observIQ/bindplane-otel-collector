@@ -92,7 +92,7 @@ func (osp *ocsfStandardizationProcessor) processLogs(_ context.Context, ld plog.
 			scope := resource.ScopeLogs().At(j)
 			scope.LogRecords().RemoveIf(func(log plog.LogRecord) bool {
 				results := !osp.processLogRecord(log, resourceAttrs)
-				if !results {
+				if results {
 					osp.logger.Debug("Dropping log record", zap.String("reason", "no match"))
 				}
 				return results
