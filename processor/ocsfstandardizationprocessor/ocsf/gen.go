@@ -127,7 +127,7 @@ func main() {
 }
 
 func downloadFile(url, dest string) error {
-	resp, err := http.Get(url) // nolint: gosec
+	resp, err := http.Get(url) // nolint:gosec
 	if err != nil {
 		return fmt.Errorf("fetching %s: %w", url, err)
 	}
@@ -360,16 +360,6 @@ func writeValidation(buf *bytes.Buffer, goName string, attrs map[string]Attribut
 func writeEnumValidation(buf *bytes.Buffer, fieldName, goField string, attr Attribute) {
 	switch attr.Type {
 	case "integer_t":
-		vals := parseIntEnumKeys(attr.Enum)
-		if len(vals) == 0 {
-			return
-		}
-		fmt.Fprintf(buf, "if o.%s != nil {\n", goField)
-		fmt.Fprintf(buf, "switch *o.%s {\n", goField)
-		fmt.Fprintf(buf, "case %s:\n", joinInts(vals))
-		buf.WriteString("default:\n")
-		fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s: invalid value %%d\", *o.%s))\n", fieldName, goField)
-		buf.WriteString("}\n}\n")
 	case "long_t":
 		vals := parseIntEnumKeys(attr.Enum)
 		if len(vals) == 0 {
@@ -377,7 +367,7 @@ func writeEnumValidation(buf *bytes.Buffer, fieldName, goField string, attr Attr
 		}
 		fmt.Fprintf(buf, "if o.%s != nil {\n", goField)
 		fmt.Fprintf(buf, "switch *o.%s {\n", goField)
-		fmt.Fprintf(buf, "case %s:\n", joinInt64s(vals))
+		fmt.Fprintf(buf, "case %s:\n", joinInts(vals))
 		buf.WriteString("default:\n")
 		fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s: invalid value %%d\", *o.%s))\n", fieldName, goField)
 		buf.WriteString("}\n}\n")
@@ -419,9 +409,10 @@ func writeValidateClass(buf *bytes.Buffer, classNames []string, classes map[stri
 		buf.WriteString("return fmt.Errorf(\"decoding class: %w\", err)\n")
 		buf.WriteString("}\n")
 
-		// Only call Validate if the class has validations
+		// Only call Validate if the class has validations.
+		filteredAttrs := filterOutProfileAttrs(cls.Attributes)
 		hasValidation := false
-		for _, attr := range cls.Attributes {
+		for _, attr := range filteredAttrs {
 			if attr.Requirement == "required" || len(attr.Enum) > 0 {
 				hasValidation = true
 				break
@@ -480,14 +471,6 @@ func joinInts(vals []int64) string {
 	return strings.Join(parts, ", ")
 }
 
-func joinInt64s(vals []int64) string {
-	parts := make([]string, len(vals))
-	for i, v := range vals {
-		parts[i] = strconv.FormatInt(v, 10)
-	}
-	return strings.Join(parts, ", ")
-}
-
 func resolveGoType(attr Attribute) string {
 	var baseType string
 
@@ -508,11 +491,15 @@ func resolveGoType(attr Attribute) string {
 		baseType = "*bool"
 	case "json_t":
 		baseType = "any"
+	case "timestamp_t":
+		baseType = "*int64"
+	case "port_t":
+		baseType = "*int"
 	default:
 		// All string-like types: string_t, email_t, hostname_t, ip_t,
-		// mac_t, url_t, timestamp_t, datetime_t, file_hash_t,
+		// mac_t, url_t,datetime_t, file_hash_t,
 		// file_name_t, file_path_t, process_name_t, resource_uid_t,
-		// subnet_t, port_t, username_t, uuid_t, bytestring_t, reg_key_path_t
+		// subnet_t username_t, uuid_t, bytestring_t, reg_key_path_t
 		baseType = "*string"
 	}
 
