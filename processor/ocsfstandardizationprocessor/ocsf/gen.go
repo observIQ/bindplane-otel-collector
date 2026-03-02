@@ -111,6 +111,7 @@ func main() {
 	for _, schemaPath := range matches {
 		dir := filepath.Dir(schemaPath)
 		pkgName := filepath.Base(dir)
+		pkgName = strings.ReplaceAll(pkgName, "_", "")
 		fmt.Printf("Processing %s (package %s)...\n", schemaPath, pkgName)
 
 		if err := generateForVersion(schemaPath, dir, pkgName); err != nil {
@@ -190,10 +191,15 @@ func generateType(buf *bytes.Buffer, name, caption, description string, uid int,
 }
 
 func writePackages(buf *bytes.Buffer) {
-	packages := []string{"errors", "fmt", "strings", "github.com/mitchellh/mapstructure"}
+	stdPackages := []string{"errors", "fmt", "strings"}
+	externPackages := []string{"github.com/mitchellh/mapstructure"}
 
 	buf.WriteString("import (\n")
-	for _, pkg := range packages {
+	for _, pkg := range stdPackages {
+		fmt.Fprintf(buf, "%q\n", pkg)
+	}
+	fmt.Fprintf(buf, "\n")
+	for _, pkg := range externPackages {
 		fmt.Fprintf(buf, "%q\n", pkg)
 	}
 	buf.WriteString(")\n\n")

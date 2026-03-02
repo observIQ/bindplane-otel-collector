@@ -12,6 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package v1_0_0 contains generated Go types for the OCSF v1.0.0 schema.
-//
-package v1_0_0
+// Package v100 contains generated Go types for the OCSF v1.0.0 schema.
+package v100
