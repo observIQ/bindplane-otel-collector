@@ -29,8 +29,8 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
+	"github.com/observiq/bindplane-otel-collector/internal/exporterutils"
 	"github.com/observiq/bindplane-otel-collector/internal/osinfo"
-	"github.com/observiq/bindplane-otel-collector/internal/utils"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
@@ -393,7 +393,7 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 	exp.set.Logger.Warn("Received non-OK response from Chronicle", zap.String("status", resp.Status), zap.ByteString("response", respBody), zap.String("logType", logType))
 
 	statusErr := errors.New(resp.Status)
-	shouldRetry, retryDelay := utils.ShouldRetryHTTP(resp)
+	shouldRetry, retryDelay := exporterutils.ShouldRetryHTTP(resp)
 
 	if shouldRetry {
 		if retryDelay > 0 {

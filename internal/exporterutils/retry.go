@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package utils provides utility functions across the collector.
-package utils
+// Package exporterutils provides utility functions for exporters.
+package exporterutils
 
 import (
 	"net/http"

@@ -22,8 +22,8 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
+	"github.com/observiq/bindplane-otel-collector/internal/exporterutils"
 	"github.com/observiq/bindplane-otel-collector/internal/osinfo"
-	"github.com/observiq/bindplane-otel-collector/internal/utils"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
@@ -200,7 +200,7 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 	_, err := exp.client.BatchCreateLogs(ctx, request, exp.buildOptions()...)
 	if err != nil {
 		errCode := status.Code(err)
-		shouldRetry, retryDelay := utils.ShouldRetryGRPC(err)
+		shouldRetry, retryDelay := exporterutils.ShouldRetryGRPC(err)
 
 		if shouldRetry {
 			errAttr := attribute.String(attrError, errCode.String())
