@@ -1,0 +1,18 @@
+dist:
+  name: ocsf-test-collector
+  output_path: ./dist
+
+receivers:
+  - gomod: github.com/observiq/bindplane-otel-collector/receiver/telemetrygeneratorreceiver v0.0.0
+    path: ../../../receiver/telemetrygeneratorreceiver
+
+processors:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.146.0
+  - gomod: github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor v0.0.0
+    path: ../
+
+exporters:
+  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.146.1
+
+replaces:
+  - github.com/observiq/bindplane-otel-collector/expr => ../../../../expr
