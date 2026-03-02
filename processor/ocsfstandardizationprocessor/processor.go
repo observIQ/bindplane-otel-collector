@@ -91,11 +91,11 @@ func (osp *ocsfStandardizationProcessor) processLogs(_ context.Context, ld plog.
 		for j := 0; j < resource.ScopeLogs().Len(); j++ {
 			scope := resource.ScopeLogs().At(j)
 			scope.LogRecords().RemoveIf(func(log plog.LogRecord) bool {
-				results := !osp.processLogRecord(log, resourceAttrs)
-				if results {
+				shouldDrop := !osp.processLogRecord(log, resourceAttrs)
+				if shouldDrop {
 					osp.logger.Debug("Dropping log record", zap.String("reason", "no match"))
 				}
-				return results
+				return shouldDrop
 			})
 		}
 		resource.ScopeLogs().RemoveIf(func(scope plog.ScopeLogs) bool {
@@ -138,6 +138,19 @@ func (osp *ocsfStandardizationProcessor) processLogRecord(log plog.LogRecord, re
 			if fieldMapping.from != nil {
 				val, err := fieldMapping.from.Evaluate(record)
 				if err != nil || val == nil {
+					if err != nil {
+						osp.logger.Error("Failed to evaluate expression",
+							zap.String("field", fieldMapping.to),
+							zap.Error(err),
+						)
+					}
+					if val == nil {
+						osp.logger.Debug(
+							"No value found for field, using default",
+							zap.String("field", fieldMapping.to),
+							zap.Any("default", fieldMapping.defaultValue),
+						)
+					}
 					value = fieldMapping.defaultValue
 				} else {
 					value = val
