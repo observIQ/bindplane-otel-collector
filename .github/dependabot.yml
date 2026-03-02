@@ -326,6 +326,14 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/internal/exporterutils"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Opentelemetry updates will be done manually
+      - dependency-name: "github.com/open-telemetry/opentelemetry-collector*"
+      - dependency-name: "go.opentelemetry.io/*"
   ### PROCESSORS ###
   - package-ecosystem: "gomod"
     directory: "/processor/datapointcountprocessor"

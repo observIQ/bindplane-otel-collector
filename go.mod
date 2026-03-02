@@ -520,6 +520,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/internal/aws v1.94.2 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/azureblob v1.94.2 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/blobconsume v1.94.2 // indirect
+	github.com/observiq/bindplane-otel-collector/internal/exporterutils v0.0.0-00010101000000-000000000000 // indirect
 	github.com/observiq/bindplane-otel-collector/internal/storageclient v1.94.2 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/okta/okta-sdk-golang/v2 v2.20.0 // indirect
@@ -679,7 +680,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/telemetry v0.0.0-20260209163413-e7419c687ee4 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260203192932-546029d2fa20 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260203192932-546029d2fa20 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	sigs.k8s.io/controller-runtime v0.23.1 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
@@ -1012,6 +1013,8 @@ replace github.com/observiq/bindplane-otel-collector/internal/report => ./intern
 replace github.com/observiq/bindplane-otel-collector/internal/storageclient => ./internal/storageclient
 
 replace github.com/observiq/bindplane-otel-collector/internal/testutils => ./internal/testutils
+
+replace github.com/observiq/bindplane-otel-collector/internal/exporterutils => ./internal/exporterutils
 
 // Extensions
 replace github.com/observiq/bindplane-otel-collector/extension/awss3eventextension => ./extension/awss3eventextension
