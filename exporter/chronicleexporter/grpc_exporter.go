@@ -23,17 +23,18 @@ import (
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/observiq/bindplane-otel-collector/internal/osinfo"
+	"github.com/observiq/bindplane-otel-collector/internal/utils"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
+	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
 	grpcgzip "google.golang.org/grpc/encoding/gzip"
@@ -199,15 +200,9 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 	_, err := exp.client.BatchCreateLogs(ctx, request, exp.buildOptions()...)
 	if err != nil {
 		errCode := status.Code(err)
-		switch errCode {
-		// These errors are potentially transient
-		// TODO interpret with https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/internal/coreinternal/errorutil/grpc.go
-		case codes.Canceled,
-			codes.Unavailable,
-			codes.DeadlineExceeded,
-			codes.ResourceExhausted,
-			codes.Aborted:
+		shouldRetry, retryDelay := utils.ShouldRetryGRPC(err)
 
+		if shouldRetry {
 			errAttr := attribute.String(attrError, errCode.String())
 			exp.telemetry.ExporterRequestLatency.Record(
 				ctx, time.Since(start).Milliseconds(),
@@ -216,13 +211,16 @@ func (exp *grpcExporter) uploadToChronicle(ctx context.Context, request *api.Bat
 			exp.telemetry.ExporterRequestCount.Add(ctx, 1,
 				metric.WithAttributeSet(attribute.NewSet(errAttr)))
 
+			if retryDelay > 0 {
+				return exporterhelper.NewThrottleRetry(err, retryDelay)
+			}
 			return fmt.Errorf("upload logs to chronicle: %w", err)
-		default:
-			exp.telemetry.ExporterRequestCount.Add(ctx, 1,
-				metric.WithAttributeSet(attribute.NewSet(attrErrorUnknown)))
-
-			return consumererror.NewPermanent(fmt.Errorf("upload logs to chronicle: %w", err))
 		}
+
+		exp.telemetry.ExporterRequestCount.Add(ctx, 1,
+			metric.WithAttributeSet(attribute.NewSet(attrErrorUnknown)))
+
+		return consumererror.NewPermanent(fmt.Errorf("upload logs to chronicle: %w", err))
 	}
 
 	exp.telemetry.ExporterRequestLatency.Record(ctx, time.Since(start).Milliseconds())

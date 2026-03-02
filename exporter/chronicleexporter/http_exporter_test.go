@@ -135,25 +135,6 @@ func TestHTTPExporter(t *testing.T) {
 			permanentErr:     false,
 		},
 		{
-			name: "retryable_error 500 Internal Server Error",
-			handlers: map[string]http.HandlerFunc{
-				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
-					w.WriteHeader(http.StatusInternalServerError)
-				},
-			},
-			input: func() plog.Logs {
-				logs := plog.NewLogs()
-				rls := logs.ResourceLogs().AppendEmpty()
-				sls := rls.ScopeLogs().AppendEmpty()
-				lrs := sls.LogRecords().AppendEmpty()
-				lrs.Body().SetStr("Test")
-				return logs
-			}(),
-			expectedRequests: 1,
-			expectedErr:      "upload to chronicle: 500 Internal Server Error",
-			permanentErr:     false,
-		},
-		{
 			name: "retryable_error 502 Bad Gateway",
 			handlers: map[string]http.HandlerFunc{
 				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
@@ -227,6 +208,25 @@ func TestHTTPExporter(t *testing.T) {
 			}(),
 			expectedRequests: 1,
 			expectedErr:      "upload to chronicle: Permanent error: 401 Unauthorized",
+			permanentErr:     true,
+		},
+		{
+			name: "permanent_error 500 Internal Server Error",
+			handlers: map[string]http.HandlerFunc{
+				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusInternalServerError)
+				},
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedRequests: 1,
+			expectedErr:      "upload to chronicle: Permanent error: 500 Internal Server Error",
 			permanentErr:     true,
 		},
 	}

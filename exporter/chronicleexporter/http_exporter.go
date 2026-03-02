@@ -30,10 +30,12 @@ import (
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/internal/metadata"
 	"github.com/observiq/bindplane-otel-collector/exporter/chronicleexporter/protos/api"
 	"github.com/observiq/bindplane-otel-collector/internal/osinfo"
+	"github.com/observiq/bindplane-otel-collector/internal/utils"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/exporter"
+	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -390,19 +392,20 @@ func (exp *httpExporter) uploadToChronicleHTTP(ctx context.Context, logs *api.Im
 
 	exp.set.Logger.Warn("Received non-OK response from Chronicle", zap.String("status", resp.Status), zap.ByteString("response", respBody), zap.String("logType", logType))
 
-	// TODO interpret with https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/internal/coreinternal/errorutil/http.go
 	statusErr := errors.New(resp.Status)
-	switch resp.StatusCode {
-	// Retryable response codes: https://github.com/open-telemetry/opentelemetry-proto/blob/main/docs/specification.md#retryable-response-codes
-	// TODO(cole): validate that we should remove 500
-	case http.StatusTooManyRequests, http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
-		return statusErr
-	default:
-		if exp.cfg.LogErroredPayloads {
-			exp.set.Logger.Warn("Import request rejected", zap.String("logType", logType), zap.String("rejectedRequest", string(data)))
+	shouldRetry, retryDelay := utils.ShouldRetryHTTP(resp)
+
+	if shouldRetry {
+		if retryDelay > 0 {
+			return exporterhelper.NewThrottleRetry(statusErr, retryDelay)
 		}
-		return consumererror.NewPermanent(statusErr)
+		return statusErr
 	}
+
+	if exp.cfg.LogErroredPayloads {
+		exp.set.Logger.Warn("Import request rejected", zap.String("logType", logType), zap.String("rejectedRequest", string(data)))
+	}
+	return consumererror.NewPermanent(statusErr)
 }
 
 // This uses the DataPlane URL for the request
