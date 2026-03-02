@@ -61,7 +61,10 @@ func createLogsProcessor(
 	if !ok {
 		return nil, errInvalidConfigType
 	}
-	processor := newOCSFStandardizationProcessor(set.Logger, oCfg)
+	processor, err := newOCSFStandardizationProcessor(set.Logger, oCfg)
+	if err != nil {
+		return nil, err
+	}
 
 	return processorhelper.NewLogs(
 		ctx,
