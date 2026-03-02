@@ -3,7 +3,7 @@ module github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizatio
 go 1.25.7
 
 require (
-	github.com/mitchellh/mapstructure v1.5.0
+	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/observiq/bindplane-otel-collector/expr v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/collector/component v1.52.0

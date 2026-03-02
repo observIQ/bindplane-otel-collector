@@ -192,7 +192,7 @@ func generateType(buf *bytes.Buffer, name, caption, description string, uid int,
 
 func writePackages(buf *bytes.Buffer) {
 	stdPackages := []string{"errors", "fmt", "strings"}
-	externPackages := []string{"github.com/mitchellh/mapstructure"}
+	externPackages := []string{"github.com/go-viper/mapstructure/v2"}
 
 	buf.WriteString("import (\n")
 	for _, pkg := range stdPackages {
