@@ -103,6 +103,13 @@ type Enum struct {
 func main() {
 	schemaEndpoints := map[string]string{
 		"v1_0_0": "https://schema.ocsf.io/1.0.0/export/schema",
+		"v1_1_0": "https://schema.ocsf.io/1.1.0/export/schema",
+		"v1_2_0": "https://schema.ocsf.io/1.2.0/export/schema",
+		"v1_3_0": "https://schema.ocsf.io/1.3.0/export/schema",
+		"v1_4_0": "https://schema.ocsf.io/1.4.0/export/schema",
+		"v1_5_0": "https://schema.ocsf.io/1.5.0/export/schema",
+		"v1_6_0": "https://schema.ocsf.io/1.6.0/export/schema",
+		"v1_7_0": "https://schema.ocsf.io/1.7.0/export/schema",
 	}
 
 	for dir, endpoint := range schemaEndpoints {
