@@ -221,7 +221,7 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
- ###
+  ### INTERNAL ###
   - package-ecosystem: "gomod"
     directory: "/internal/aws"
     schedule:
