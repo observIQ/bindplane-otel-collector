@@ -74,6 +74,7 @@ func getGRPCRetryDelay(retryInfo *errdetails.RetryInfo) time.Duration {
 }
 
 // ShouldRetryHTTP returns true if the HTTP status code should be retried and the retry delay if present in the response headers.
+// Spec Reference: https://github.com/open-telemetry/opentelemetry-proto/blob/main/docs/specification.md#retryable-response-codes
 func ShouldRetryHTTP(resp *http.Response) (bool, time.Duration) {
 	if resp == nil {
 		return false, 0
