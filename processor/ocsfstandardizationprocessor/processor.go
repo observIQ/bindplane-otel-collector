@@ -21,16 +21,16 @@ import (
 	"go.uber.org/zap"
 )
 
-type ocsfMappingProcessor struct {
+type ocsfStandardizationProcessor struct {
 	logger *zap.Logger
 }
 
-func newOCSFStandardizationProcessor(logger *zap.Logger, _ *Config) *ocsfMappingProcessor {
-	return &ocsfMappingProcessor{
+func newOCSFStandardizationProcessor(logger *zap.Logger, _ *Config) *ocsfStandardizationProcessor {
+	return &ocsfStandardizationProcessor{
 		logger: logger,
 	}
 }
 
-func (om *ocsfMappingProcessor) processLogs(_ context.Context, ld plog.Logs) (plog.Logs, error) {
+func (om *ocsfStandardizationProcessor) processLogs(_ context.Context, ld plog.Logs) (plog.Logs, error) {
 	return ld, nil
 }
