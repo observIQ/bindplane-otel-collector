@@ -16,6 +16,7 @@ package ocsfstandardizationprocessor
 
 import (
 	"context"
+	"errors"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -23,8 +24,11 @@ import (
 	"go.opentelemetry.io/collector/processor/processorhelper"
 )
 
-// componentType is the value of the "type" key in configuration.
-var componentType = component.MustNewType("ocsf_standardization")
+var (
+	errInvalidConfigType = errors.New("config is not of type removeemptyvaluesprocessor.Config")
+	// componentType is the value of the "type" key in configuration.
+	componentType = component.MustNewType("ocsf_standardization")
+)
 
 const (
 	stability = component.StabilityLevelDevelopment
@@ -53,7 +57,10 @@ func createLogsProcessor(
 	cfg component.Config,
 	nextConsumer consumer.Logs,
 ) (processor.Logs, error) {
-	oCfg := cfg.(*Config)
+	oCfg, ok := cfg.(*Config)
+	if !ok {
+		return nil, errInvalidConfigType
+	}
 	processor := newOCSFStandardizationProcessor(set.Logger, oCfg)
 
 	return processorhelper.NewLogs(
