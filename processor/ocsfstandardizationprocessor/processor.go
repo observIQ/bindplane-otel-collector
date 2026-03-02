@@ -36,13 +36,13 @@ type compiledEventMapping struct {
 	fieldMappings []compiledFieldMapping
 }
 
-type ocsfMappingProcessor struct {
+type ocsfStandardizationProcessor struct {
 	logger        *zap.Logger
 	ocsfVersion   OCSFVersion
 	eventMappings []compiledEventMapping
 }
 
-func newOCSFStandardizationProcessor(logger *zap.Logger, config *Config) (*ocsfMappingProcessor, error) {
+func newOCSFStandardizationProcessor(logger *zap.Logger, config *Config) (*ocsfStandardizationProcessor, error) {
 	compiled := make([]compiledEventMapping, 0, len(config.EventMappings))
 	for _, em := range config.EventMappings {
 		fieldMappings := make([]compiledFieldMapping, 0, len(em.FieldMappings))
@@ -77,23 +77,23 @@ func newOCSFStandardizationProcessor(logger *zap.Logger, config *Config) (*ocsfM
 		compiled = append(compiled, cem)
 	}
 
-	return &ocsfMappingProcessor{
+	return &ocsfStandardizationProcessor{
 		logger:        logger,
 		ocsfVersion:   config.OCSFVersion,
 		eventMappings: compiled,
 	}, nil
 }
 
-func (om *ocsfMappingProcessor) processLogs(_ context.Context, ld plog.Logs) (plog.Logs, error) {
+func (osp *ocsfStandardizationProcessor) processLogs(_ context.Context, ld plog.Logs) (plog.Logs, error) {
 	for i := 0; i < ld.ResourceLogs().Len(); i++ {
 		resource := ld.ResourceLogs().At(i)
 		resourceAttrs := resource.Resource().Attributes().AsRaw()
 		for j := 0; j < resource.ScopeLogs().Len(); j++ {
 			scope := resource.ScopeLogs().At(j)
 			scope.LogRecords().RemoveIf(func(log plog.LogRecord) bool {
-				results := !om.processLogRecord(log, resourceAttrs)
+				results := !osp.processLogRecord(log, resourceAttrs)
 				if !results {
-					om.logger.Debug("Dropping log record", zap.String("reason", "no match"))
+					osp.logger.Debug("Dropping log record", zap.String("reason", "no match"))
 				}
 				return results
 			})
@@ -101,7 +101,7 @@ func (om *ocsfMappingProcessor) processLogs(_ context.Context, ld plog.Logs) (pl
 		resource.ScopeLogs().RemoveIf(func(scope plog.ScopeLogs) bool {
 			records := scope.LogRecords().Len()
 			if records == 0 {
-				om.logger.Debug("Dropping scope", zap.String("reason", "no records"))
+				osp.logger.Debug("Dropping scope", zap.String("reason", "no records"))
 			}
 			return records == 0
 		})
@@ -109,7 +109,7 @@ func (om *ocsfMappingProcessor) processLogs(_ context.Context, ld plog.Logs) (pl
 	ld.ResourceLogs().RemoveIf(func(resource plog.ResourceLogs) bool {
 		scopes := resource.ScopeLogs().Len()
 		if scopes == 0 {
-			om.logger.Debug("Dropping resource", zap.String("reason", "no scopes"))
+			osp.logger.Debug("Dropping resource", zap.String("reason", "no scopes"))
 		}
 		return scopes == 0
 	})
@@ -118,10 +118,10 @@ func (om *ocsfMappingProcessor) processLogs(_ context.Context, ld plog.Logs) (pl
 
 // processLogRecord processes a single log record. Returns true to keep the record, false to drop it.
 // This creates a new log body with the mapping applied.
-func (om *ocsfMappingProcessor) processLogRecord(log plog.LogRecord, resourceAttrs map[string]any) bool {
+func (osp *ocsfStandardizationProcessor) processLogRecord(log plog.LogRecord, resourceAttrs map[string]any) bool {
 	record := expr.ConvertToRecord(log, resourceAttrs)
 
-	for _, em := range om.eventMappings {
+	for _, em := range osp.eventMappings {
 		if em.filter != nil && !em.filter.MatchRecord(record) {
 			continue
 		}
@@ -129,7 +129,7 @@ func (om *ocsfMappingProcessor) processLogRecord(log plog.LogRecord, resourceAtt
 		newBody := map[string]any{
 			"class_uid": em.classID,
 			"metadata": map[string]any{
-				"version": string(om.ocsfVersion),
+				"version": string(osp.ocsfVersion),
 			},
 		}
 
@@ -154,7 +154,7 @@ func (om *ocsfMappingProcessor) processLogRecord(log plog.LogRecord, resourceAtt
 		}
 
 		if err := log.Body().SetEmptyMap().FromRaw(newBody); err != nil {
-			om.logger.Error("failed to set log body", zap.Error(err), zap.Int("class_id", em.classID))
+			osp.logger.Error("failed to set log body", zap.Error(err), zap.Int("class_id", em.classID))
 			return false
 		}
 
