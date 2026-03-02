@@ -229,6 +229,84 @@ func TestHTTPExporter(t *testing.T) {
 			expectedErr:      "upload to chronicle: Permanent error: 500 Internal Server Error",
 			permanentErr:     true,
 		},
+		{
+			name: "permanent_error 400 Bad Request",
+			handlers: map[string]http.HandlerFunc{
+				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusBadRequest)
+				},
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedRequests: 1,
+			expectedErr:      "upload to chronicle: Permanent error: 400 Bad Request",
+			permanentErr:     true,
+		},
+		{
+			name: "permanent_error 403 Forbidden",
+			handlers: map[string]http.HandlerFunc{
+				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusForbidden)
+				},
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedRequests: 1,
+			expectedErr:      "upload to chronicle: Permanent error: 403 Forbidden",
+			permanentErr:     true,
+		},
+		{
+			name: "throttle_retry 429 with Retry-After header",
+			handlers: map[string]http.HandlerFunc{
+				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+					w.Header().Set("Retry-After", "10")
+					w.WriteHeader(http.StatusTooManyRequests)
+				},
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedRequests: 1,
+			expectedErr:      "upload to chronicle: Throttle (10s), error: 429 Too Many Requests",
+			permanentErr:     false,
+		},
+		{
+			name: "throttle_retry 503 with Retry-After header",
+			handlers: map[string]http.HandlerFunc{
+				"FAKE": func(w http.ResponseWriter, _ *http.Request) {
+					w.Header().Set("Retry-After", "30")
+					w.WriteHeader(http.StatusServiceUnavailable)
+				},
+			},
+			input: func() plog.Logs {
+				logs := plog.NewLogs()
+				rls := logs.ResourceLogs().AppendEmpty()
+				sls := rls.ScopeLogs().AppendEmpty()
+				lrs := sls.LogRecords().AppendEmpty()
+				lrs.Body().SetStr("Test")
+				return logs
+			}(),
+			expectedRequests: 1,
+			expectedErr:      "upload to chronicle: Throttle (30s), error: 503 Service Unavailable",
+			permanentErr:     false,
+		},
 	}
 
 	for _, tc := range testCases {
