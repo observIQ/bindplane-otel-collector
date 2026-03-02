@@ -55,3 +55,6 @@ perf-test/
 
 # JetBrains IDE files
 .idea/
+
+# OMC Agents
+.omc/
