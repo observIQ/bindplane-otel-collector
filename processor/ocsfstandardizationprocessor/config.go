@@ -24,15 +24,24 @@ import (
 )
 
 var (
+	// OCSFVersion1_0_0 is the OCSF version 1.0.0
 	OCSFVersion1_0_0 OCSFVersion = "1.0.0"
+	// OCSFVersion1_1_0 is the OCSF version 1.1.0
 	OCSFVersion1_1_0 OCSFVersion = "1.1.0"
+	// OCSFVersion1_2_0 is the OCSF version 1.2.0
 	OCSFVersion1_2_0 OCSFVersion = "1.2.0"
+	// OCSFVersion1_3_0 is the OCSF version 1.3.0
 	OCSFVersion1_3_0 OCSFVersion = "1.3.0"
+	// OCSFVersion1_4_0 is the OCSF version 1.4.0
 	OCSFVersion1_4_0 OCSFVersion = "1.4.0"
+	// OCSFVersion1_5_0 is the OCSF version 1.5.0
 	OCSFVersion1_5_0 OCSFVersion = "1.5.0"
+	// OCSFVersion1_6_0 is the OCSF version 1.6.0
 	OCSFVersion1_6_0 OCSFVersion = "1.6.0"
+	// OCSFVersion1_7_0 is the OCSF version 1.7.0
 	OCSFVersion1_7_0 OCSFVersion = "1.7.0"
 
+	// OCSFVersions is the list of supported OCSF versions
 	OCSFVersions = []OCSFVersion{
 		OCSFVersion1_0_0,
 		OCSFVersion1_1_0,
@@ -45,16 +54,17 @@ var (
 	}
 )
 
+// OCSFVersion is the version of the OCSF specification
 type OCSFVersion string
 
-type Context string
-
+// FieldMapping is a mapping of a field from the log body to a field in the OCSF body
 type FieldMapping struct {
 	From    string `mapstructure:"from"`
 	To      string `mapstructure:"to"`
 	Default any    `mapstructure:"default,omitempty"`
 }
 
+// EventMapping is a mapping of an event to a class ID and a list of field mappings
 type EventMapping struct {
 	Filter        string         `mapstructure:"filter"`
 	ClassID       int            `mapstructure:"class_id"`
