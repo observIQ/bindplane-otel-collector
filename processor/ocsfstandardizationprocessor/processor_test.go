@@ -25,12 +25,12 @@ import (
 
 func TestProcessLogs(t *testing.T) {
 	tests := []struct {
-		name           string
-		config         *Config
-		inputLogs      func() plog.Logs
-		expectedBody   map[string]any
-		expectDropped  bool
-		expectedCount  int
+		name          string
+		config        *Config
+		inputLogs     func() plog.Logs
+		expectedBody  map[string]any
+		expectDropped bool
+		expectedCount int
 	}{
 		{
 			name: "basic field mapping",

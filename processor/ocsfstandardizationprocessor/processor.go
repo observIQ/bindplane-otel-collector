@@ -91,15 +91,27 @@ func (om *ocsfMappingProcessor) processLogs(_ context.Context, ld plog.Logs) (pl
 		for j := 0; j < resource.ScopeLogs().Len(); j++ {
 			scope := resource.ScopeLogs().At(j)
 			scope.LogRecords().RemoveIf(func(log plog.LogRecord) bool {
-				return !om.processLogRecord(log, resourceAttrs)
+				results := !om.processLogRecord(log, resourceAttrs)
+				if !results {
+					om.logger.Debug("Dropping log record", zap.String("reason", "no match"))
+				}
+				return results
 			})
 		}
 		resource.ScopeLogs().RemoveIf(func(scope plog.ScopeLogs) bool {
-			return scope.LogRecords().Len() == 0
+			records := scope.LogRecords().Len()
+			if records == 0 {
+				om.logger.Debug("Dropping scope", zap.String("reason", "no records"))
+			}
+			return records == 0
 		})
 	}
 	ld.ResourceLogs().RemoveIf(func(resource plog.ResourceLogs) bool {
-		return resource.ScopeLogs().Len() == 0
+		scopes := resource.ScopeLogs().Len()
+		if scopes == 0 {
+			om.logger.Debug("Dropping resource", zap.String("reason", "no scopes"))
+		}
+		return scopes == 0
 	})
 	return ld, nil
 }
@@ -142,7 +154,7 @@ func (om *ocsfMappingProcessor) processLogRecord(log plog.LogRecord, resourceAtt
 		}
 
 		if err := log.Body().SetEmptyMap().FromRaw(newBody); err != nil {
-			om.logger.Error("failed to set log body", zap.Error(err))
+			om.logger.Error("failed to set log body", zap.Error(err), zap.Int("class_id", em.classID))
 			return false
 		}
 
