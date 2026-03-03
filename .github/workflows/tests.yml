@@ -172,7 +172,7 @@ jobs:
         run: make install-tools-ci
 
       - name: Run Component Tests
-        if: matrix.os == 'windows' && matrix.skip != 'true'
+        if: matrix.os == 'windows' && !matrix.skip
         run: make test-${{ matrix.target }}
         env:
           TMPDIR: D:\Temp
