@@ -26,10 +26,10 @@ jobs:
         run: |
           matrix='{"include":[]}'
           if [ "${{ inputs.build_amd64 }}" = "true" ]; then
-            matrix=$(echo $matrix | jq '.include += [{"arch":"amd64","msi_name":"observiq-otel-collector.msi","msi_arch":"x64"}]')
+            matrix=$(echo $matrix | jq -c '.include += [{"arch":"amd64","msi_name":"observiq-otel-collector.msi","msi_arch":"x64"}]')
           fi
           if [ "${{ inputs.build_arm64 }}" = "true" ]; then
-            matrix=$(echo $matrix | jq '.include += [{"arch":"arm64","msi_name":"observiq-otel-collector-arm64.msi","msi_arch":"arm64"}]')
+            matrix=$(echo $matrix | jq -c '.include += [{"arch":"arm64","msi_name":"observiq-otel-collector-arm64.msi","msi_arch":"arm64"}]')
           fi
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
