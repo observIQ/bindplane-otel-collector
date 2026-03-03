@@ -69,6 +69,62 @@ This prevents duplicate processing of blobs and ensures data continuity across c
 | storage           | string   |                       | `false`  | The component ID of a storage extension. The storage extension persists checkpoint data across collector restarts, ensuring no data loss or duplication.                    |
 | batch_size        | int      | `30`                  | `false`  | The number of blobs to download and process in the pipeline simultaneously. This parameter directly impacts performance by controlling the concurrent blob download limit.  |
 | page_size         | int      | `1000`                | `false`  | The maximum number of blob information to request in a single API call.                                                                                                     |
+| blob_format       | string   | `otlp`                | `false`  | The format of blob contents. Supported values: `otlp`, `json`, `text`. See [Blob Format](#blob-format) below.                                                              |
+
+## Blob Format
+
+By default, the receiver expects blobs to contain OTLP-formatted JSON (as written by the Azure Blob Exporter). The `blob_format` option allows the receiver to parse other formats.
+
+| Format | Description                                                                                                                                                                          |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `otlp` | (Default) OTLP JSON format. Blobs are unmarshaled using the standard OpenTelemetry `plog.JSONUnmarshaler`. Use this when blobs were written by the Azure Blob Exporter.             |
+| `json` | Newline-delimited JSON (NDJSON). Each line is parsed as a JSON object and becomes a separate log record with the parsed object as the body. Malformed lines are skipped with a warning. |
+| `text` | Raw text. The entire blob content is set as the body of a single log record.                                                                                                        |
+
+`json` and `text` are only supported on **logs** pipelines. Metrics and traces pipelines only support `otlp`.
+
+### NDJSON Example
+
+For blobs containing newline-delimited JSON such as:
+
+```json
+{"_time":1770273621.586,"host":"server1","_raw":"Connection established"}
+{"_time":1770273622.100,"host":"server2","_raw":"Request completed"}
+```
+
+Configure the receiver with `blob_format: json`:
+
+```yaml
+azureblobpolling:
+  connection_string: "..."
+  container: "raw-logs"
+  poll_interval: 1m
+  use_last_modified: true
+  telemetry_type: "logs"
+  blob_format: "json"
+  storage: "file_storage"
+```
+
+Each JSON line becomes a log record with:
+- **Body**: A map containing the parsed JSON fields (e.g., `_time`, `host`, `_raw`)
+- **ObservedTimestamp**: Set to the time the blob was processed
+
+### Raw Text Example
+
+For blobs containing plain text (e.g., raw syslog):
+
+```yaml
+azureblobpolling:
+  connection_string: "..."
+  container: "syslog-archive"
+  poll_interval: 5m
+  use_last_modified: true
+  telemetry_type: "logs"
+  blob_format: "text"
+  storage: "file_storage"
+```
+
+The entire blob content is set as the string body of a single log record.
 
 ## Example Configuration
 

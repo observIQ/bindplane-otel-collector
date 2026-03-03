@@ -16,10 +16,25 @@ package azureblobpollingreceiver //import "github.com/observiq/bindplane-otel-co
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"time"
 
 	"go.opentelemetry.io/collector/component"
+)
+
+// BlobFormat represents the format of blob contents
+type BlobFormat string
+
+const (
+	// BlobFormatOTLP indicates blobs contain OTLP-formatted JSON
+	BlobFormatOTLP BlobFormat = "otlp"
+
+	// BlobFormatJSON indicates blobs contain newline-delimited JSON (NDJSON)
+	BlobFormatJSON BlobFormat = "json"
+
+	// BlobFormatText indicates blobs contain raw text
+	BlobFormatText BlobFormat = "text"
 )
 
 // Config is the configuration for the azure blob polling receiver
@@ -89,6 +104,11 @@ type Config struct {
 	//   "app-.*\\.log" matches "app-server.log", "app-client.log"
 	// If not specified, all blobs matching the time pattern will be processed
 	FilenamePattern string `mapstructure:"filename_pattern"`
+
+	// BlobFormat specifies the format of blob contents.
+	// Supported values: "otlp" (default), "json" (NDJSON), "text" (raw text).
+	// "json" and "text" are only supported for logs pipelines.
+	BlobFormat BlobFormat `mapstructure:"blob_format"`
 }
 
 // Validate validates the config
@@ -145,6 +165,16 @@ func (c *Config) Validate() error {
 		_, err := regexp.Compile(c.FilenamePattern)
 		if err != nil {
 			return errors.New("filename_pattern must be a valid regex: " + err.Error())
+		}
+	}
+
+	// Validate blob_format if set
+	if c.BlobFormat != "" {
+		switch c.BlobFormat {
+		case BlobFormatOTLP, BlobFormatJSON, BlobFormatText:
+			// valid
+		default:
+			return fmt.Errorf("blob_format must be one of: %s, %s, %s", BlobFormatOTLP, BlobFormatJSON, BlobFormatText)
 		}
 	}
 

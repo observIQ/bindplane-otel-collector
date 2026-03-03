@@ -552,7 +552,7 @@ func setNewAzureBlobClient(t *testing.T) *azureblob.MockBlobClient {
 
 	mockClient := azureblob.NewMockBlobClient(t)
 
-	newAzureBlobClient = func(_ string, _ int, _ int) (azureblob.BlobClient, error) {
+	newAzureBlobClient = func(_ string, _ int, _ int, _ *zap.Logger) (azureblob.BlobClient, error) {
 		return mockClient, nil
 	}
 

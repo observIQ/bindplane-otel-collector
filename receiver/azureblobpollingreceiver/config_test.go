@@ -147,6 +147,58 @@ func TestConfigValidate(t *testing.T) {
 			},
 			expectErr: nil,
 		},
+		{
+			desc: "Valid blob_format otlp",
+			cfg: &Config{
+				ConnectionString: "connection_string",
+				Container:        "container",
+				RootFolder:       "root",
+				PollInterval:     5 * time.Minute,
+				BatchSize:        30,
+				PageSize:         1000,
+				BlobFormat:       BlobFormatOTLP,
+			},
+			expectErr: nil,
+		},
+		{
+			desc: "Valid blob_format json",
+			cfg: &Config{
+				ConnectionString: "connection_string",
+				Container:        "container",
+				RootFolder:       "root",
+				PollInterval:     5 * time.Minute,
+				BatchSize:        30,
+				PageSize:         1000,
+				BlobFormat:       BlobFormatJSON,
+			},
+			expectErr: nil,
+		},
+		{
+			desc: "Valid blob_format text",
+			cfg: &Config{
+				ConnectionString: "connection_string",
+				Container:        "container",
+				RootFolder:       "root",
+				PollInterval:     5 * time.Minute,
+				BatchSize:        30,
+				PageSize:         1000,
+				BlobFormat:       BlobFormatText,
+			},
+			expectErr: nil,
+		},
+		{
+			desc: "Invalid blob_format",
+			cfg: &Config{
+				ConnectionString: "connection_string",
+				Container:        "container",
+				RootFolder:       "root",
+				PollInterval:     5 * time.Minute,
+				BatchSize:        30,
+				PageSize:         1000,
+				BlobFormat:       "invalid",
+			},
+			expectErr: errors.New("blob_format must be one of: otlp, json, text"),
+		},
 	}
 
 	for _, tc := range testCases {
