@@ -27,6 +27,22 @@ processors:
         field_mappings:
           - default: "Bindplane Agent"
             to: "source.name"
+          - to: "activity_id"
+            default: 5
+          - to: "category_uid"
+            default: 2
+          - to: "severity_id"
+            default: 3
+          - to: "time"
+            default: "123"
+          - to: "type_uid"
+            default: 1
+          - to: "user"
+            default: "test"
+          - to: "metadata.product.name"
+            default: "bindplane"
+          - to: "metadata.product.vendor_name"
+            default: "observIQ"
           - from: 'body["user"]'
             to: "actor.user.name"
           - from: 'body["action"]'
