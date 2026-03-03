@@ -210,7 +210,7 @@ func setNestedValue(body map[string]any, path string, value any) {
 	body[parts[len(parts)-1]] = value
 }
 
-// validateOCSFLog validates the log body is a valid OCSF log.
+// validateBody validates the log body is a valid OCSF log.
 func (osp *ocsfStandardizationProcessor) validateBody(classUID int, body any) error {
 	var validateFunc func(classUID int, body any) error
 	switch osp.ocsfVersion {
