@@ -44,11 +44,9 @@ func BenchmarkProcessLogs(b *testing.B) {
 		},
 	}
 
-	boolTrue := true
-	boolFalse := false
-
 	b.Run("ValidationEnabled", func(b *testing.B) {
 		cfg := *cfg
+		boolTrue := true
 		cfg.RuntimeValidation = &boolTrue
 		processor, err := newOCSFStandardizationProcessor(zap.NewNop(), &cfg)
 		require.NoError(b, err)
@@ -65,6 +63,7 @@ func BenchmarkProcessLogs(b *testing.B) {
 
 	b.Run("ValidationDisabled", func(b *testing.B) {
 		cfg := *cfg
+		boolFalse := false
 		cfg.RuntimeValidation = &boolFalse
 		processor, err := newOCSFStandardizationProcessor(zap.NewNop(), &cfg)
 		require.NoError(b, err)
