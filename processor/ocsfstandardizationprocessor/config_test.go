@@ -21,6 +21,19 @@ import (
 )
 
 func TestConfigValidate(t *testing.T) {
+	// accountChangeFieldMappings provides the minimum required field mappings for
+	// the AccountChange class (3001) in v1.0.0. class_uid and metadata.version are
+	// auto-added by the processor.
+	accountChangeFieldMappings := []FieldMapping{
+		{From: "body.activity", To: "activity_id"},
+		{From: "body.category", To: "category_uid"},
+		{From: "body.severity", To: "severity_id"},
+		{From: "body.time", To: "time"},
+		{From: "body.type", To: "type_uid"},
+		{From: "body.user", To: "user"},
+		{From: "body.product", To: "metadata.product"},
+	}
+
 	tests := []struct {
 		name    string
 		cfg     Config
@@ -29,14 +42,12 @@ func TestConfigValidate(t *testing.T) {
 		{
 			name: "valid config with all fields",
 			cfg: Config{
-				OCSFVersion: OCSFVersion1_3_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
-						Filter:  "true",
-						ClassID: 1001,
-						FieldMappings: []FieldMapping{
-							{From: "body.src", To: "dst_endpoint.ip"},
-						},
+						Filter:        "true",
+						ClassID:       3001,
+						FieldMappings: accountChangeFieldMappings,
 					},
 				},
 			},
@@ -50,12 +61,18 @@ func TestConfigValidate(t *testing.T) {
 		{
 			name: "valid config with default value and from",
 			cfg: Config{
-				OCSFVersion: OCSFVersion1_7_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
-						ClassID: 4001,
+						ClassID: 3001,
 						FieldMappings: []FieldMapping{
-							{From: "body.severity", To: "severity_id", Default: 1},
+							{From: "body.activity", To: "activity_id", Default: 1},
+							{From: "body.category", To: "category_uid"},
+							{From: "body.severity", To: "severity_id"},
+							{From: "body.time", To: "time"},
+							{From: "body.type", To: "type_uid"},
+							{From: "body.user", To: "user"},
+							{From: "body.product", To: "metadata.product"},
 						},
 					},
 				},
@@ -64,13 +81,11 @@ func TestConfigValidate(t *testing.T) {
 		{
 			name: "valid config with empty filter",
 			cfg: Config{
-				OCSFVersion: OCSFVersion1_3_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
-						ClassID: 2001,
-						FieldMappings: []FieldMapping{
-							{From: "body.msg", To: "message"},
-						},
+						ClassID:       3001,
+						FieldMappings: accountChangeFieldMappings,
 					},
 				},
 			},
@@ -160,13 +175,11 @@ func TestConfigValidate(t *testing.T) {
 		{
 			name: "error in second event mapping",
 			cfg: Config{
-				OCSFVersion: OCSFVersion1_3_0,
+				OCSFVersion: OCSFVersion1_0_0,
 				EventMappings: []EventMapping{
 					{
-						ClassID: 1001,
-						FieldMappings: []FieldMapping{
-							{From: "body.src", To: "message"},
-						},
+						ClassID:       3001,
+						FieldMappings: accountChangeFieldMappings,
 					},
 					{
 						ClassID: 0,
@@ -202,5 +215,92 @@ func TestConfigValidate(t *testing.T) {
 				require.NoError(t, err)
 			}
 		})
+	}
+}
+
+func TestConfigValidateFieldCoverage(t *testing.T) {
+	// accountChangeFieldMappings provides the minimum required field mappings for
+	// all versions of the AccountChange class (3001). class_uid and metadata.version are auto-added.
+	accountChangeFieldMappings := []FieldMapping{
+		{From: "body.activity", To: "activity_id"},
+		{From: "body.category", To: "category_uid"},
+		{From: "body.severity", To: "severity_id"},
+		{From: "body.time", To: "time"},
+		{From: "body.type", To: "type_uid"},
+		{From: "body.user", To: "user"},
+		{From: "body.product", To: "metadata.product"},
+	}
+
+	tests := []struct {
+		name          string
+		eventMappings []EventMapping
+		wantErr       string
+	}{
+		{
+			name: "unknown class UID",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 9999,
+					FieldMappings: []FieldMapping{
+						{From: "body.msg", To: "message"},
+					},
+				},
+			},
+			wantErr: "OCSF Class 9999 has validation errors",
+		},
+		{
+			name: "missing required fields",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: []FieldMapping{
+						{From: "body.msg", To: "message"},
+					},
+				},
+			},
+			wantErr: "missing required field",
+		},
+		{
+			name: "all required fields covered",
+			eventMappings: []EventMapping{
+				{
+					ClassID:       3001,
+					FieldMappings: accountChangeFieldMappings,
+				},
+			},
+		},
+		{
+			name: "error in second event mapping",
+			eventMappings: []EventMapping{
+				{
+					ClassID:       3001,
+					FieldMappings: accountChangeFieldMappings,
+				},
+				{
+					ClassID: 9999,
+					FieldMappings: []FieldMapping{
+						{From: "body.msg", To: "message"},
+					},
+				},
+			},
+			wantErr: "OCSF Class 9999 has validation errors",
+		},
+	}
+
+	for _, version := range OCSFVersions {
+		for _, tt := range tests {
+			t.Run(string(version)+"/"+tt.name, func(t *testing.T) {
+				cfg := Config{
+					OCSFVersion:   version,
+					EventMappings: tt.eventMappings,
+				}
+				err := cfg.Validate()
+				if tt.wantErr != "" {
+					require.ErrorContains(t, err, tt.wantErr)
+				} else {
+					require.NoError(t, err)
+				}
+			})
+		}
 	}
 }

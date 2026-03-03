@@ -22,6 +22,13 @@ import (
 
 	"github.com/observiq/bindplane-otel-collector/expr"
 	v100 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_0_0"
+	v110 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_1_0"
+	v120 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_2_0"
+	v130 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_3_0"
+	v140 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_4_0"
+	v150 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_5_0"
+	v160 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_6_0"
+	v170 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_7_0"
 )
 
 var (
@@ -99,7 +106,11 @@ func (cfg Config) Validate() error {
 			}
 		}
 
-		fieldPaths := make([]string, len(em.FieldMappings))
+		defaultFieldCount := 2
+		fieldPaths := make([]string, len(em.FieldMappings)+defaultFieldCount)
+		// We always automatically add the class_uid field and the metadata.version field
+		fieldPaths[0] = "class_uid"
+		fieldPaths[1] = "metadata.version"
 		for j, fm := range em.FieldMappings {
 			if fm.To == "" {
 				return fmt.Errorf("event_mappings[%d].field_mappings[%d]: to is required", i, j)
@@ -114,16 +125,33 @@ func (cfg Config) Validate() error {
 				}
 			}
 
-			fieldPaths = append(fieldPaths, fm.To)
+			fieldPaths[j+defaultFieldCount] = fm.To
 		}
 
-		var coverageErr error
+		var coverageFunc func(classID int, fieldPaths []string) error
 		switch cfg.OCSFVersion {
 		case OCSFVersion1_0_0:
-			coverageErr = v100.ValidateFieldCoverage(em.ClassID, fieldPaths)
+			coverageFunc = v100.ValidateFieldCoverage
+		case OCSFVersion1_1_0:
+			coverageFunc = v110.ValidateFieldCoverage
+		case OCSFVersion1_2_0:
+			coverageFunc = v120.ValidateFieldCoverage
+		case OCSFVersion1_3_0:
+			coverageFunc = v130.ValidateFieldCoverage
+		case OCSFVersion1_4_0:
+			coverageFunc = v140.ValidateFieldCoverage
+		case OCSFVersion1_5_0:
+			coverageFunc = v150.ValidateFieldCoverage
+		case OCSFVersion1_6_0:
+			coverageFunc = v160.ValidateFieldCoverage
+		case OCSFVersion1_7_0:
+			coverageFunc = v170.ValidateFieldCoverage
+		default:
+			return fmt.Errorf("event_mappings[%d]: OCSF version %s is not supported", i, cfg.OCSFVersion)
 		}
+		coverageErr := coverageFunc(em.ClassID, fieldPaths)
 		if coverageErr != nil {
-			return fmt.Errorf("event_mappings[%d]: %w", i, coverageErr)
+			return fmt.Errorf("event_mappings[%d]: OCSF Class %d has validation errors\n%w", i, em.ClassID, coverageErr)
 		}
 	}
 
