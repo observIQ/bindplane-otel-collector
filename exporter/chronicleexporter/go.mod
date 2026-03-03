@@ -7,7 +7,6 @@ require (
 	github.com/golang/mock v1.7.0-rc.1
 	github.com/google/uuid v1.6.0
 	github.com/observiq/bindplane-otel-collector/expr v1.94.2
-	github.com/observiq/bindplane-otel-collector/internal/exporterutils v0.0.0-00010101000000-000000000000
 	github.com/observiq/bindplane-otel-collector/internal/osinfo v1.94.2
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl v0.146.0
 	github.com/shirou/gopsutil/v3 v3.24.5
@@ -32,7 +31,6 @@ require (
 	golang.org/x/exp v0.0.0-20251009144603-d2f985daa21b
 	golang.org/x/oauth2 v0.35.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171
 	google.golang.org/grpc v1.79.1
 	google.golang.org/protobuf v1.36.11
 )
@@ -101,12 +99,11 @@ require (
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251222181119-0a764e51fe1b // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace github.com/observiq/bindplane-otel-collector/internal/osinfo => ../../internal/osinfo
-
-replace github.com/observiq/bindplane-otel-collector/internal/exporterutils => ../../internal/exporterutils
 
 replace github.com/observiq/bindplane-otel-collector/expr => ../../expr
