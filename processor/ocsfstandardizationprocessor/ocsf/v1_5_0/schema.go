@@ -45,6 +45,11 @@ func (o *Account) Validate() error {
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
 		}
 	}
+	for i := range o.Tags {
+		if err := o.Tags[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tags[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -66,6 +71,31 @@ func (o *Actor) Validate() error {
 	var errs []error
 	if o.AppName == nil && o.AppUID == nil && o.InvokedBy == nil && o.Process == nil && o.Session == nil && o.User == nil {
 		errs = append(errs, errors.New("at least one of [app_name, app_uid, invoked_by, process, session, user] must be set"))
+	}
+	for i := range o.Authorizations {
+		if err := o.Authorizations[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("authorizations[%d]: %w", i, err))
+		}
+	}
+	if o.Idp != nil {
+		if err := o.Idp.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("idp: %w", err))
+		}
+	}
+	if o.Process != nil {
+		if err := o.Process.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("process: %w", err))
+		}
+	}
+	if o.Session != nil {
+		if err := o.Session.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("session: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -106,6 +136,31 @@ func (o *Advisory) Validate() error {
 			errs = append(errs, fmt.Errorf("install_state_id: invalid value %d", *o.InstallStateID))
 		}
 	}
+	if o.AvgTimespan != nil {
+		if err := o.AvgTimespan.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("avg_timespan: %w", err))
+		}
+	}
+	if o.OS != nil {
+		if err := o.OS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("os: %w", err))
+		}
+	}
+	if o.Product != nil {
+		if err := o.Product.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("product: %w", err))
+		}
+	}
+	for i := range o.RelatedCves {
+		if err := o.RelatedCves[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("related_cves[%d]: %w", i, err))
+		}
+	}
+	for i := range o.RelatedCwes {
+		if err := o.RelatedCwes[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("related_cwes[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -127,6 +182,26 @@ func (o *AffectedCode) Validate() error {
 	var errs []error
 	if o.File == nil {
 		errs = append(errs, errors.New("file is required"))
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.Owner != nil {
+		if err := o.Owner.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("owner: %w", err))
+		}
+	}
+	if o.Remediation != nil {
+		if err := o.Remediation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remediation: %w", err))
+		}
+	}
+	if o.Rule != nil {
+		if err := o.Rule.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("rule: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -172,6 +247,16 @@ func (o *AffectedPackage) Validate() error {
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
 		}
 	}
+	if o.Hash != nil {
+		if err := o.Hash.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("hash: %w", err))
+		}
+	}
+	if o.Remediation != nil {
+		if err := o.Remediation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remediation: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -201,6 +286,11 @@ func (o *Agent) Validate() error {
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
 		}
 	}
+	for i := range o.Policies {
+		if err := o.Policies[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("policies[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -224,6 +314,11 @@ func (o *Aircraft) Validate() error {
 	var errs []error
 	if o.Name == nil && o.SerialNumber == nil && o.UID == nil && o.UIDAlt == nil {
 		errs = append(errs, errors.New("at least one of [name, serial_number, uid, uid_alt] must be set"))
+	}
+	if o.Location != nil {
+		if err := o.Location.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("location: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -274,6 +369,11 @@ func (o *Analytic) Validate() error {
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
 		}
 	}
+	for i := range o.RelatedAnalytics {
+		if err := o.RelatedAnalytics[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("related_analytics[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -295,6 +395,11 @@ func (o *Anomaly) Validate() error {
 	if len(o.Observations) == 0 {
 		errs = append(errs, errors.New("observations is required"))
 	}
+	for i := range o.Observations {
+		if err := o.Observations[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observations[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -315,6 +420,21 @@ func (o *AnomalyAnalysis) Validate() error {
 	if len(o.Anomalies) == 0 {
 		errs = append(errs, errors.New("anomalies is required"))
 	}
+	for i := range o.AnalysisTargets {
+		if err := o.AnalysisTargets[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("analysis_targets[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Anomalies {
+		if err := o.Anomalies[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("anomalies[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Baselines {
+		if err := o.Baselines[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("baselines[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -334,6 +454,26 @@ func (o *API) Validate() error {
 	var errs []error
 	if o.Operation == nil {
 		errs = append(errs, errors.New("operation is required"))
+	}
+	if o.Group != nil {
+		if err := o.Group.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("group: %w", err))
+		}
+	}
+	if o.Request != nil {
+		if err := o.Request.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("request: %w", err))
+		}
+	}
+	if o.Response != nil {
+		if err := o.Response.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("response: %w", err))
+		}
+	}
+	if o.Service != nil {
+		if err := o.Service.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("service: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -375,6 +515,36 @@ func (o *Application) Validate() error {
 			errs = append(errs, fmt.Errorf("risk_level_id: invalid value %d", *o.RiskLevelID))
 		}
 	}
+	if o.Group != nil {
+		if err := o.Group.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("group: %w", err))
+		}
+	}
+	if o.Owner != nil {
+		if err := o.Owner.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("owner: %w", err))
+		}
+	}
+	if o.ResourceRelationship != nil {
+		if err := o.ResourceRelationship.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resource_relationship: %w", err))
+		}
+	}
+	if o.Sbom != nil {
+		if err := o.Sbom.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("sbom: %w", err))
+		}
+	}
+	for i := range o.Tags {
+		if err := o.Tags[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tags[%d]: %w", i, err))
+		}
+	}
+	if o.URL != nil {
+		if err := o.URL.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("url: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -398,6 +568,11 @@ func (o *Assessment) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.Policy != nil {
+		if err := o.Policy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("policy: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -417,6 +592,31 @@ func (o *Attack) Validate() error {
 	var errs []error
 	if o.SubTechnique == nil && o.Tactic == nil && o.Technique == nil {
 		errs = append(errs, errors.New("at least one of [sub_technique, tactic, technique] must be set"))
+	}
+	if o.Mitigation != nil {
+		if err := o.Mitigation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("mitigation: %w", err))
+		}
+	}
+	if o.SubTechnique != nil {
+		if err := o.SubTechnique.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("sub_technique: %w", err))
+		}
+	}
+	if o.Tactic != nil {
+		if err := o.Tactic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tactic: %w", err))
+		}
+	}
+	for i := range o.Tactics {
+		if err := o.Tactics[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tactics[%d]: %w", i, err))
+		}
+	}
+	if o.Technique != nil {
+		if err := o.Technique.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("technique: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -451,6 +651,11 @@ func (o *AuthFactor) Validate() error {
 	if o.EmailAddr != nil && !regexEmailT.MatchString(*o.EmailAddr) {
 		errs = append(errs, fmt.Errorf("email_addr: invalid value %q", *o.EmailAddr))
 	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -476,6 +681,11 @@ func (o *AuthenticationToken) Validate() error {
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
 		}
 	}
+	if o.EncryptionDetails != nil {
+		if err := o.EncryptionDetails.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("encryption_details: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -484,6 +694,17 @@ func (o *AuthenticationToken) Validate() error {
 type Authorization struct {
 	Decision *string `mapstructure:"decision,omitempty"`
 	Policy   *Policy `mapstructure:"policy,omitempty"`
+}
+
+// Validate checks required fields, constraints, and enum values for Authorization.
+func (o *Authorization) Validate() error {
+	var errs []error
+	if o.Policy != nil {
+		if err := o.Policy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("policy: %w", err))
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // AutonomousSystem represents the OCSF Autonomous System object.
@@ -519,6 +740,11 @@ func (o *Baseline) Validate() error {
 	}
 	if len(o.Observations) == 0 {
 		errs = append(errs, errors.New("observations is required"))
+	}
+	for i := range o.Observations {
+		if err := o.Observations[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observations[%d]: %w", i, err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -561,6 +787,16 @@ func (o *Certificate) Validate() error {
 	}
 	if o.SerialNumber == nil {
 		errs = append(errs, errors.New("serial_number is required"))
+	}
+	for i := range o.Fingerprints {
+		if err := o.Fingerprints[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("fingerprints[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Sans {
+		if err := o.Sans[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("sans[%d]: %w", i, err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -613,6 +849,11 @@ func (o *CisBenchmark) Validate() error {
 	if o.Name == nil {
 		errs = append(errs, errors.New("name is required"))
 	}
+	for i := range o.CisControls {
+		if err := o.CisControls[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cis_controls[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -630,6 +871,16 @@ func (o *CisBenchmarkResult) Validate() error {
 	var errs []error
 	if o.Name == nil {
 		errs = append(errs, errors.New("name is required"))
+	}
+	if o.Remediation != nil {
+		if err := o.Remediation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remediation: %w", err))
+		}
+	}
+	if o.Rule != nil {
+		if err := o.Rule.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("rule: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -702,6 +953,16 @@ func (o *Cloud) Validate() error {
 	if o.Provider == nil {
 		errs = append(errs, errors.New("provider is required"))
 	}
+	if o.Account != nil {
+		if err := o.Account.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("account: %w", err))
+		}
+	}
+	if o.Org != nil {
+		if err := o.Org.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("org: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -735,6 +996,31 @@ func (o *Compliance) Validate() error {
 			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
 		}
 	}
+	for i := range o.Assessments {
+		if err := o.Assessments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("assessments[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Checks {
+		if err := o.Checks[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("checks[%d]: %w", i, err))
+		}
+	}
+	for i := range o.ComplianceReferences {
+		if err := o.ComplianceReferences[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("compliance_references[%d]: %w", i, err))
+		}
+	}
+	for i := range o.ComplianceStandards {
+		if err := o.ComplianceStandards[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("compliance_standards[%d]: %w", i, err))
+		}
+	}
+	for i := range o.ControlParameters {
+		if err := o.ControlParameters[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("control_parameters[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -764,6 +1050,21 @@ func (o *Container) Validate() error {
 	if o.PodUuid != nil && !regexUuidT.MatchString(*o.PodUuid) {
 		errs = append(errs, fmt.Errorf("pod_uuid: invalid value %q", *o.PodUuid))
 	}
+	if o.Hash != nil {
+		if err := o.Hash.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("hash: %w", err))
+		}
+	}
+	if o.Image != nil {
+		if err := o.Image.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("image: %w", err))
+		}
+	}
+	for i := range o.Tags {
+		if err := o.Tags[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tags[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -791,6 +1092,31 @@ func (o *CVE) Validate() error {
 	var errs []error
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
+	}
+	for i := range o.CVSS {
+		if err := o.CVSS[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cvss[%d]: %w", i, err))
+		}
+	}
+	if o.Cwe != nil {
+		if err := o.Cwe.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cwe: %w", err))
+		}
+	}
+	if o.Epss != nil {
+		if err := o.Epss.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("epss: %w", err))
+		}
+	}
+	if o.Product != nil {
+		if err := o.Product.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("product: %w", err))
+		}
+	}
+	for i := range o.RelatedCwes {
+		if err := o.RelatedCwes[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("related_cwes[%d]: %w", i, err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -823,6 +1149,11 @@ func (o *CVSS) Validate() error {
 		case "Base", "Environmental", "Temporal":
 		default:
 			errs = append(errs, fmt.Errorf("depth: invalid value %q", *o.Depth))
+		}
+	}
+	for i := range o.Metrics {
+		if err := o.Metrics[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metrics[%d]: %w", i, err))
 		}
 	}
 	return errors.Join(errs...)
@@ -893,6 +1224,16 @@ func (o *D3fend) Validate() error {
 	if o.D3fTactic == nil && o.D3fTechnique == nil {
 		errs = append(errs, errors.New("at least one of [d3f_tactic, d3f_technique] must be set"))
 	}
+	if o.D3fTactic != nil {
+		if err := o.D3fTactic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("d3f_tactic: %w", err))
+		}
+	}
+	if o.D3fTechnique != nil {
+		if err := o.D3fTechnique.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("d3f_technique: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -940,6 +1281,21 @@ func (o *DataClassification) Validate() error {
 		case 0, 1, 2, 3, 99:
 		default:
 			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
+		}
+	}
+	if o.ClassifierDetails != nil {
+		if err := o.ClassifierDetails.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("classifier_details: %w", err))
+		}
+	}
+	for i := range o.DiscoveryDetails {
+		if err := o.DiscoveryDetails[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("discovery_details[%d]: %w", i, err))
+		}
+	}
+	if o.Policy != nil {
+		if err := o.Policy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("policy: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -1011,6 +1367,21 @@ func (o *DataSecurity) Validate() error {
 			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
 		}
 	}
+	if o.ClassifierDetails != nil {
+		if err := o.ClassifierDetails.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("classifier_details: %w", err))
+		}
+	}
+	for i := range o.DiscoveryDetails {
+		if err := o.DiscoveryDetails[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("discovery_details[%d]: %w", i, err))
+		}
+	}
+	if o.Policy != nil {
+		if err := o.Policy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("policy: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -1042,6 +1413,11 @@ func (o *Database) Validate() error {
 		case 0, 1, 2, 3, 4, 5, 6, 99:
 		default:
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	for i := range o.Groups {
+		if err := o.Groups[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("groups[%d]: %w", i, err))
 		}
 	}
 	return errors.Join(errs...)
@@ -1101,6 +1477,46 @@ func (o *Databucket) Validate() error {
 	if o.IP != nil && !regexIPT.MatchString(*o.IP) {
 		errs = append(errs, fmt.Errorf("ip: invalid value %q", *o.IP))
 	}
+	for i := range o.AgentList {
+		if err := o.AgentList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("agent_list[%d]: %w", i, err))
+		}
+	}
+	if o.EncryptionDetails != nil {
+		if err := o.EncryptionDetails.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("encryption_details: %w", err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.Group != nil {
+		if err := o.Group.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("group: %w", err))
+		}
+	}
+	for i := range o.Groups {
+		if err := o.Groups[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("groups[%d]: %w", i, err))
+		}
+	}
+	if o.Owner != nil {
+		if err := o.Owner.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("owner: %w", err))
+		}
+	}
+	if o.ResourceRelationship != nil {
+		if err := o.ResourceRelationship.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resource_relationship: %w", err))
+		}
+	}
+	for i := range o.Tags {
+		if err := o.Tags[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tags[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -1122,6 +1538,11 @@ func (o *DceRpc) Validate() error {
 	}
 	if o.RpcInterface == nil {
 		errs = append(errs, errors.New("rpc_interface is required"))
+	}
+	if o.RpcInterface != nil {
+		if err := o.RpcInterface.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("rpc_interface: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -1228,6 +1649,51 @@ func (o *Device) Validate() error {
 	if o.Subnet != nil && len(*o.Subnet) > 42 {
 		errs = append(errs, fmt.Errorf("subnet: length %d exceeds max 42", len(*o.Subnet)))
 	}
+	for i := range o.AgentList {
+		if err := o.AgentList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("agent_list[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Groups {
+		if err := o.Groups[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("groups[%d]: %w", i, err))
+		}
+	}
+	if o.HwInfo != nil {
+		if err := o.HwInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("hw_info: %w", err))
+		}
+	}
+	if o.Image != nil {
+		if err := o.Image.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("image: %w", err))
+		}
+	}
+	if o.Location != nil {
+		if err := o.Location.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("location: %w", err))
+		}
+	}
+	for i := range o.NetworkInterfaces {
+		if err := o.NetworkInterfaces[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("network_interfaces[%d]: %w", i, err))
+		}
+	}
+	if o.Org != nil {
+		if err := o.Org.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("org: %w", err))
+		}
+	}
+	if o.OS != nil {
+		if err := o.OS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("os: %w", err))
+		}
+	}
+	if o.Owner != nil {
+		if err := o.Owner.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("owner: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -1266,6 +1732,16 @@ func (o *DeviceHwInfo) Validate() error {
 	if o.Uuid != nil && !regexUuidT.MatchString(*o.Uuid) {
 		errs = append(errs, fmt.Errorf("uuid: invalid value %q", *o.Uuid))
 	}
+	if o.DesktopDisplay != nil {
+		if err := o.DesktopDisplay.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("desktop_display: %w", err))
+		}
+	}
+	if o.KeyboardInfo != nil {
+		if err := o.KeyboardInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("keyboard_info: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -1302,6 +1778,16 @@ func (o *DigitalSignature) Validate() error {
 			errs = append(errs, fmt.Errorf("state_id: invalid value %d", *o.StateID))
 		}
 	}
+	if o.Certificate != nil {
+		if err := o.Certificate.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("certificate: %w", err))
+		}
+	}
+	if o.Digest != nil {
+		if err := o.Digest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("digest: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -1315,6 +1801,22 @@ type DiscoveryDetails struct {
 	Value             *string             `mapstructure:"value,omitempty"`
 }
 
+// Validate checks required fields, constraints, and enum values for DiscoveryDetails.
+func (o *DiscoveryDetails) Validate() error {
+	var errs []error
+	if o.OccurrenceDetails != nil {
+		if err := o.OccurrenceDetails.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("occurrence_details: %w", err))
+		}
+	}
+	for i := range o.Occurrences {
+		if err := o.Occurrences[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("occurrences[%d]: %w", i, err))
+		}
+	}
+	return errors.Join(errs...)
+}
+
 // Display represents the OCSF Display object.
 // The Display object contains information about the physical or virtual display connected to a computer system.
 type Display struct {
@@ -1323,6 +1825,12 @@ type Display struct {
 	PhysicalOrientation *int `mapstructure:"physical_orientation,omitempty"`
 	PhysicalWidth       *int `mapstructure:"physical_width,omitempty"`
 	ScaleFactor         *int `mapstructure:"scale_factor,omitempty"`
+}
+
+// Validate checks required fields, constraints, and enum values for Display.
+func (o *Display) Validate() error {
+	var errs []error
+	return errors.Join(errs...)
 }
 
 // DNSAnswer represents the OCSF DNS Answer object.
@@ -1401,6 +1909,11 @@ func (o *DomainContact) Validate() error {
 	if o.EmailAddr != nil && !regexEmailT.MatchString(*o.EmailAddr) {
 		errs = append(errs, fmt.Errorf("email_addr: invalid value %q", *o.EmailAddr))
 	}
+	if o.Location != nil {
+		if err := o.Location.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("location: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -1476,6 +1989,21 @@ func (o *Email) Validate() error {
 	if o.SmtpFrom != nil && !regexEmailT.MatchString(*o.SmtpFrom) {
 		errs = append(errs, fmt.Errorf("smtp_from: invalid value %q", *o.SmtpFrom))
 	}
+	for i := range o.Files {
+		if err := o.Files[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("files[%d]: %w", i, err))
+		}
+	}
+	for i := range o.HTTPHeaders {
+		if err := o.HTTPHeaders[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_headers[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Urls {
+		if err := o.Urls[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("urls[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -1489,6 +2017,12 @@ type EmailAuth struct {
 	DmarcOverride *string `mapstructure:"dmarc_override,omitempty"`
 	DmarcPolicy   *string `mapstructure:"dmarc_policy,omitempty"`
 	Spf           *string `mapstructure:"spf,omitempty"`
+}
+
+// Validate checks required fields, constraints, and enum values for EmailAuth.
+func (o *EmailAuth) Validate() error {
+	var errs []error
+	return errors.Join(errs...)
 }
 
 // EncryptionDetails represents the OCSF Encryption Details object.
@@ -1564,6 +2098,31 @@ func (o *Endpoint) Validate() error {
 	if o.MAC != nil && !regexMACT.MatchString(*o.MAC) {
 		errs = append(errs, fmt.Errorf("mac: invalid value %q", *o.MAC))
 	}
+	for i := range o.AgentList {
+		if err := o.AgentList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("agent_list[%d]: %w", i, err))
+		}
+	}
+	if o.HwInfo != nil {
+		if err := o.HwInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("hw_info: %w", err))
+		}
+	}
+	if o.Location != nil {
+		if err := o.Location.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("location: %w", err))
+		}
+	}
+	if o.OS != nil {
+		if err := o.OS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("os: %w", err))
+		}
+	}
+	if o.Owner != nil {
+		if err := o.Owner.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("owner: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -1579,6 +2138,11 @@ func (o *EndpointConnection) Validate() error {
 	var errs []error
 	if o.Code == nil && o.NetworkEndpoint == nil {
 		errs = append(errs, errors.New("at least one of [code, network_endpoint] must be set"))
+	}
+	if o.NetworkEndpoint != nil {
+		if err := o.NetworkEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("network_endpoint: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -1609,6 +2173,11 @@ func (o *Enrichment) Validate() error {
 	}
 	if o.Value == nil {
 		errs = append(errs, errors.New("value is required"))
+	}
+	if o.Reputation != nil {
+		if err := o.Reputation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("reputation: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -1696,6 +2265,131 @@ func (o *Evidences) Validate() error {
 		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
 		default:
 			errs = append(errs, fmt.Errorf("verdict_id: invalid value %d", *o.VerdictID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.API != nil {
+		if err := o.API.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("api: %w", err))
+		}
+	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.Container != nil {
+		if err := o.Container.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("container: %w", err))
+		}
+	}
+	if o.Database != nil {
+		if err := o.Database.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("database: %w", err))
+		}
+	}
+	if o.Databucket != nil {
+		if err := o.Databucket.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("databucket: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	if o.Email != nil {
+		if err := o.Email.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("email: %w", err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.HTTPResponse != nil {
+		if err := o.HTTPResponse.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_response: %w", err))
+		}
+	}
+	for i := range o.Ja4FingerprintList {
+		if err := o.Ja4FingerprintList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja4_fingerprint_list[%d]: %w", i, err))
+		}
+	}
+	if o.Job != nil {
+		if err := o.Job.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("job: %w", err))
+		}
+	}
+	if o.Process != nil {
+		if err := o.Process.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("process: %w", err))
+		}
+	}
+	if o.Query != nil {
+		if err := o.Query.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query: %w", err))
+		}
+	}
+	if o.RegKey != nil {
+		if err := o.RegKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("reg_key: %w", err))
+		}
+	}
+	if o.RegValue != nil {
+		if err := o.RegValue.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("reg_value: %w", err))
+		}
+	}
+	for i := range o.Resources {
+		if err := o.Resources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resources[%d]: %w", i, err))
+		}
+	}
+	if o.Script != nil {
+		if err := o.Script.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("script: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.URL != nil {
+		if err := o.URL.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("url: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
+	if o.WinService != nil {
+		if err := o.WinService.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("win_service: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -1814,6 +2508,61 @@ func (o *File) Validate() error {
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
 		}
 	}
+	if o.Accessor != nil {
+		if err := o.Accessor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("accessor: %w", err))
+		}
+	}
+	if o.Creator != nil {
+		if err := o.Creator.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("creator: %w", err))
+		}
+	}
+	if o.EncryptionDetails != nil {
+		if err := o.EncryptionDetails.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("encryption_details: %w", err))
+		}
+	}
+	for i := range o.Hashes {
+		if err := o.Hashes[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("hashes[%d]: %w", i, err))
+		}
+	}
+	if o.Modifier != nil {
+		if err := o.Modifier.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("modifier: %w", err))
+		}
+	}
+	if o.Owner != nil {
+		if err := o.Owner.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("owner: %w", err))
+		}
+	}
+	if o.Product != nil {
+		if err := o.Product.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("product: %w", err))
+		}
+	}
+	if o.Signature != nil {
+		if err := o.Signature.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("signature: %w", err))
+		}
+	}
+	for i := range o.Tags {
+		if err := o.Tags[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tags[%d]: %w", i, err))
+		}
+	}
+	if o.URL != nil {
+		if err := o.URL.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("url: %w", err))
+		}
+	}
+	if o.Xattributes != nil {
+		if err := o.Xattributes.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("xattributes: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -1844,6 +2593,21 @@ func (o *Finding) Validate() error {
 	}
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
+	}
+	if o.Product != nil {
+		if err := o.Product.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("product: %w", err))
+		}
+	}
+	for i := range o.RelatedEvents {
+		if err := o.RelatedEvents[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("related_events[%d]: %w", i, err))
+		}
+	}
+	if o.Remediation != nil {
+		if err := o.Remediation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remediation: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -1879,6 +2643,46 @@ func (o *FindingInfo) Validate() error {
 	var errs []error
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
+	}
+	if o.Analytic != nil {
+		if err := o.Analytic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("analytic: %w", err))
+		}
+	}
+	for i := range o.Attacks {
+		if err := o.Attacks[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("attacks[%d]: %w", i, err))
+		}
+	}
+	for i := range o.KillChain {
+		if err := o.KillChain[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("kill_chain[%d]: %w", i, err))
+		}
+	}
+	if o.Product != nil {
+		if err := o.Product.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("product: %w", err))
+		}
+	}
+	for i := range o.RelatedAnalytics {
+		if err := o.RelatedAnalytics[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("related_analytics[%d]: %w", i, err))
+		}
+	}
+	for i := range o.RelatedEvents {
+		if err := o.RelatedEvents[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("related_events[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Tags {
+		if err := o.Tags[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tags[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Traits {
+		if err := o.Traits[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traits[%d]: %w", i, err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -1969,6 +2773,16 @@ func (o *Graph) Validate() error {
 			errs = append(errs, fmt.Errorf("query_language_id: invalid value %d", *o.QueryLanguageID))
 		}
 	}
+	for i := range o.Edges {
+		if err := o.Edges[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("edges[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Nodes {
+		if err := o.Nodes[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("nodes[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2004,6 +2818,11 @@ func (o *Hassh) Validate() error {
 	var errs []error
 	if o.Fingerprint == nil {
 		errs = append(errs, errors.New("fingerprint is required"))
+	}
+	if o.Fingerprint != nil {
+		if err := o.Fingerprint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("fingerprint: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -2080,6 +2899,16 @@ func (o *HTTPRequest) Validate() error {
 			errs = append(errs, fmt.Errorf("http_method: invalid value %q", *o.HTTPMethod))
 		}
 	}
+	for i := range o.HTTPHeaders {
+		if err := o.HTTPHeaders[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_headers[%d]: %w", i, err))
+		}
+	}
+	if o.URL != nil {
+		if err := o.URL.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("url: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2101,6 +2930,11 @@ func (o *HTTPResponse) Validate() error {
 	var errs []error
 	if o.Code == nil {
 		errs = append(errs, errors.New("code is required"))
+	}
+	for i := range o.HTTPHeaders {
+		if err := o.HTTPHeaders[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_headers[%d]: %w", i, err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -2137,6 +2971,26 @@ func (o *Idp) Validate() error {
 			errs = append(errs, fmt.Errorf("state_id: invalid value %d", *o.StateID))
 		}
 	}
+	for i := range o.AuthFactors {
+		if err := o.AuthFactors[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("auth_factors[%d]: %w", i, err))
+		}
+	}
+	if o.Fingerprint != nil {
+		if err := o.Fingerprint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("fingerprint: %w", err))
+		}
+	}
+	if o.Scim != nil {
+		if err := o.Scim.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("scim: %w", err))
+		}
+	}
+	if o.Sso != nil {
+		if err := o.Sso.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("sso: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2156,6 +3010,11 @@ func (o *Image) Validate() error {
 	var errs []error
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
+	}
+	for i := range o.Tags {
+		if err := o.Tags[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tags[%d]: %w", i, err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -2222,6 +3081,16 @@ func (o *Job) Validate() error {
 			errs = append(errs, fmt.Errorf("run_state_id: invalid value %d", *o.RunStateID))
 		}
 	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2255,6 +3124,21 @@ func (o *KbArticle) Validate() error {
 		case 0, 1, 2, 3, 99:
 		default:
 			errs = append(errs, fmt.Errorf("install_state_id: invalid value %d", *o.InstallStateID))
+		}
+	}
+	if o.AvgTimespan != nil {
+		if err := o.AvgTimespan.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("avg_timespan: %w", err))
+		}
+	}
+	if o.OS != nil {
+		if err := o.OS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("os: %w", err))
+		}
+	}
+	if o.Product != nil {
+		if err := o.Product.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("product: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -2302,6 +3186,11 @@ func (o *KernelDriver) Validate() error {
 	if o.File == nil {
 		errs = append(errs, errors.New("file is required"))
 	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2333,6 +3222,12 @@ type KeyboardInfo struct {
 	KeyboardLayout  *string `mapstructure:"keyboard_layout,omitempty"`
 	KeyboardSubtype *int    `mapstructure:"keyboard_subtype,omitempty"`
 	KeyboardType    *string `mapstructure:"keyboard_type,omitempty"`
+}
+
+// Validate checks required fields, constraints, and enum values for KeyboardInfo.
+func (o *KeyboardInfo) Validate() error {
+	var errs []error
+	return errors.Join(errs...)
 }
 
 // KillChainPhase represents the OCSF Kill Chain Phase object.
@@ -2384,6 +3279,27 @@ type LDAPPerson struct {
 	Tags           []KeyValueObject `mapstructure:"tags,omitempty"`
 }
 
+// Validate checks required fields, constraints, and enum values for LDAPPerson.
+func (o *LDAPPerson) Validate() error {
+	var errs []error
+	if o.Location != nil {
+		if err := o.Location.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("location: %w", err))
+		}
+	}
+	if o.Manager != nil {
+		if err := o.Manager.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("manager: %w", err))
+		}
+	}
+	for i := range o.Tags {
+		if err := o.Tags[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tags[%d]: %w", i, err))
+		}
+	}
+	return errors.Join(errs...)
+}
+
 // LoadBalancer represents the OCSF Load Balancer object.
 // The load balancer object describes the load balancer entity and contains additional information regarding the distribution of traffic across a network.
 type LoadBalancer struct {
@@ -2411,6 +3327,21 @@ func (o *LoadBalancer) Validate() error {
 	}
 	if o.IP != nil && !regexIPT.MatchString(*o.IP) {
 		errs = append(errs, fmt.Errorf("ip: invalid value %q", *o.IP))
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.EndpointConnections {
+		if err := o.EndpointConnections[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("endpoint_connections[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Metrics {
+		if err := o.Metrics[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metrics[%d]: %w", i, err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -2470,6 +3401,16 @@ func (o *Logger) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	if o.Product != nil {
+		if err := o.Product.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("product: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2520,6 +3461,16 @@ func (o *Malware) Validate() error {
 		case 0, 1, 2, 3, 4, 5, 6, 99:
 		default:
 			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
+		}
+	}
+	for i := range o.Cves {
+		if err := o.Cves[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cves[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Files {
+		if err := o.Files[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("files[%d]: %w", i, err))
 		}
 	}
 	return errors.Join(errs...)
@@ -2591,6 +3542,41 @@ func (o *ManagedEntity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
 		}
 	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	if o.Email != nil {
+		if err := o.Email.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("email: %w", err))
+		}
+	}
+	if o.Group != nil {
+		if err := o.Group.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("group: %w", err))
+		}
+	}
+	if o.Location != nil {
+		if err := o.Location.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("location: %w", err))
+		}
+	}
+	if o.Org != nil {
+		if err := o.Org.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("org: %w", err))
+		}
+	}
+	if o.Policy != nil {
+		if err := o.Policy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("policy: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2631,6 +3617,36 @@ func (o *Metadata) Validate() error {
 	if o.Version == nil {
 		errs = append(errs, errors.New("version is required"))
 	}
+	if o.Extension != nil {
+		if err := o.Extension.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("extension: %w", err))
+		}
+	}
+	for i := range o.Extensions {
+		if err := o.Extensions[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("extensions[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Loggers {
+		if err := o.Loggers[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("loggers[%d]: %w", i, err))
+		}
+	}
+	if o.Product != nil {
+		if err := o.Product.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("product: %w", err))
+		}
+	}
+	for i := range o.Tags {
+		if err := o.Tags[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tags[%d]: %w", i, err))
+		}
+	}
+	for i := range o.TransformationInfoList {
+		if err := o.TransformationInfoList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("transformation_info_list[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2668,6 +3684,11 @@ func (o *Mitigation) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	for i := range o.Countermeasures {
+		if err := o.Countermeasures[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("countermeasures[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2694,6 +3715,11 @@ func (o *Module) Validate() error {
 		case 0, 1, 2, 3, 4, 5, 99:
 		default:
 			errs = append(errs, fmt.Errorf("load_type_id: invalid value %d", *o.LoadTypeID))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -2742,6 +3768,11 @@ func (o *NetworkConnectionInfo) Validate() error {
 		case 0, 4, 6, 99:
 		default:
 			errs = append(errs, fmt.Errorf("protocol_ver_id: invalid value %d", *o.ProtocolVerID))
+		}
+	}
+	if o.Session != nil {
+		if err := o.Session.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("session: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -2806,6 +3837,41 @@ func (o *NetworkEndpoint) Validate() error {
 	}
 	if o.Port != nil && (*o.Port < 0 || *o.Port > 65535) {
 		errs = append(errs, fmt.Errorf("port: value %d is out of range [0, 65535]", *o.Port))
+	}
+	for i := range o.AgentList {
+		if err := o.AgentList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("agent_list[%d]: %w", i, err))
+		}
+	}
+	if o.AutonomousSystem != nil {
+		if err := o.AutonomousSystem.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("autonomous_system: %w", err))
+		}
+	}
+	if o.HwInfo != nil {
+		if err := o.HwInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("hw_info: %w", err))
+		}
+	}
+	if o.Location != nil {
+		if err := o.Location.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("location: %w", err))
+		}
+	}
+	if o.OS != nil {
+		if err := o.OS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("os: %w", err))
+		}
+	}
+	if o.Owner != nil {
+		if err := o.Owner.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("owner: %w", err))
+		}
+	}
+	if o.ProxyEndpoint != nil {
+		if err := o.ProxyEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy_endpoint: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -2915,6 +3981,41 @@ func (o *NetworkProxy) Validate() error {
 	if o.Port != nil && (*o.Port < 0 || *o.Port > 65535) {
 		errs = append(errs, fmt.Errorf("port: value %d is out of range [0, 65535]", *o.Port))
 	}
+	for i := range o.AgentList {
+		if err := o.AgentList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("agent_list[%d]: %w", i, err))
+		}
+	}
+	if o.AutonomousSystem != nil {
+		if err := o.AutonomousSystem.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("autonomous_system: %w", err))
+		}
+	}
+	if o.HwInfo != nil {
+		if err := o.HwInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("hw_info: %w", err))
+		}
+	}
+	if o.Location != nil {
+		if err := o.Location.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("location: %w", err))
+		}
+	}
+	if o.OS != nil {
+		if err := o.OS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("os: %w", err))
+		}
+	}
+	if o.Owner != nil {
+		if err := o.Owner.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("owner: %w", err))
+		}
+	}
+	if o.ProxyEndpoint != nil {
+		if err := o.ProxyEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy_endpoint: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2931,6 +4032,12 @@ type NetworkTraffic struct {
 	Packets     *int64 `mapstructure:"packets,omitempty"`
 	PacketsIn   *int64 `mapstructure:"packets_in,omitempty"`
 	PacketsOut  *int64 `mapstructure:"packets_out,omitempty"`
+}
+
+// Validate checks required fields, constraints, and enum values for NetworkTraffic.
+func (o *NetworkTraffic) Validate() error {
+	var errs []error
+	return errors.Join(errs...)
 }
 
 // Node represents the OCSF Node object.
@@ -2957,6 +4064,12 @@ func (o *Node) Validate() error {
 type Object struct {
 }
 
+// Validate checks required fields, constraints, and enum values for Object.
+func (o *Object) Validate() error {
+	var errs []error
+	return errors.Join(errs...)
+}
+
 // Observable represents the OCSF Observable object.
 // The observable object is a pivot element that contains related information found in many places in the event.
 type Observable struct {
@@ -2980,6 +4093,11 @@ func (o *Observable) Validate() error {
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
 		}
 	}
+	if o.Reputation != nil {
+		if err := o.Reputation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("reputation: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2996,6 +4114,11 @@ func (o *Observation) Validate() error {
 	var errs []error
 	if o.Value == nil {
 		errs = append(errs, errors.New("value is required"))
+	}
+	if o.Timespan != nil {
+		if err := o.Timespan.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("timespan: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -3177,6 +4300,96 @@ func (o *Osint) Validate() error {
 	if o.Subnet != nil && len(*o.Subnet) > 42 {
 		errs = append(errs, fmt.Errorf("subnet: length %d exceeds max 42", len(*o.Subnet)))
 	}
+	for i := range o.Answers {
+		if err := o.Answers[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("answers[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Attacks {
+		if err := o.Attacks[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("attacks[%d]: %w", i, err))
+		}
+	}
+	if o.AutonomousSystem != nil {
+		if err := o.AutonomousSystem.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("autonomous_system: %w", err))
+		}
+	}
+	if o.Campaign != nil {
+		if err := o.Campaign.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("campaign: %w", err))
+		}
+	}
+	if o.Creator != nil {
+		if err := o.Creator.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("creator: %w", err))
+		}
+	}
+	if o.Email != nil {
+		if err := o.Email.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("email: %w", err))
+		}
+	}
+	if o.EmailAuth != nil {
+		if err := o.EmailAuth.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("email_auth: %w", err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	for i := range o.KillChain {
+		if err := o.KillChain[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("kill_chain[%d]: %w", i, err))
+		}
+	}
+	if o.Location != nil {
+		if err := o.Location.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("location: %w", err))
+		}
+	}
+	for i := range o.Malware {
+		if err := o.Malware[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("malware[%d]: %w", i, err))
+		}
+	}
+	for i := range o.RelatedAnalytics {
+		if err := o.RelatedAnalytics[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("related_analytics[%d]: %w", i, err))
+		}
+	}
+	if o.Reputation != nil {
+		if err := o.Reputation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("reputation: %w", err))
+		}
+	}
+	if o.Script != nil {
+		if err := o.Script.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("script: %w", err))
+		}
+	}
+	for i := range o.Signatures {
+		if err := o.Signatures[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("signatures[%d]: %w", i, err))
+		}
+	}
+	if o.ThreatActor != nil {
+		if err := o.ThreatActor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("threat_actor: %w", err))
+		}
+	}
+	for i := range o.Vulnerabilities {
+		if err := o.Vulnerabilities[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("vulnerabilities[%d]: %w", i, err))
+		}
+	}
+	if o.Whois != nil {
+		if err := o.Whois.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("whois: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -3216,6 +4429,11 @@ func (o *Package) Validate() error {
 		case 0, 1, 2, 99:
 		default:
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Hash != nil {
+		if err := o.Hash.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("hash: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -3265,6 +4483,11 @@ func (o *Policy) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.Group != nil {
+		if err := o.Group.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("group: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -3310,6 +4533,41 @@ func (o *Process) Validate() error {
 	}
 	if o.Cpid != nil && !regexUuidT.MatchString(*o.Cpid) {
 		errs = append(errs, fmt.Errorf("cpid: invalid value %q", *o.Cpid))
+	}
+	for i := range o.Ancestry {
+		if err := o.Ancestry[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ancestry[%d]: %w", i, err))
+		}
+	}
+	for i := range o.EnvironmentVariables {
+		if err := o.EnvironmentVariables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("environment_variables[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.ParentProcess != nil {
+		if err := o.ParentProcess.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("parent_process: %w", err))
+		}
+	}
+	if o.Session != nil {
+		if err := o.Session.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("session: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
+	if o.Xattributes != nil {
+		if err := o.Xattributes.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("xattributes: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -3357,6 +4615,11 @@ func (o *Product) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	if o.Feature != nil {
+		if err := o.Feature.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("feature: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -3461,6 +4724,91 @@ func (o *QueryEvidence) Validate() error {
 			errs = append(errs, fmt.Errorf("tcp_state_id: invalid value %d", *o.TCPStateID))
 		}
 	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.Folder != nil {
+		if err := o.Folder.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("folder: %w", err))
+		}
+	}
+	if o.Group != nil {
+		if err := o.Group.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("group: %w", err))
+		}
+	}
+	if o.Job != nil {
+		if err := o.Job.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("job: %w", err))
+		}
+	}
+	if o.Kernel != nil {
+		if err := o.Kernel.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("kernel: %w", err))
+		}
+	}
+	if o.Module != nil {
+		if err := o.Module.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("module: %w", err))
+		}
+	}
+	for i := range o.NetworkInterfaces {
+		if err := o.NetworkInterfaces[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("network_interfaces[%d]: %w", i, err))
+		}
+	}
+	if o.PeripheralDevice != nil {
+		if err := o.PeripheralDevice.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("peripheral_device: %w", err))
+		}
+	}
+	if o.Process != nil {
+		if err := o.Process.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("process: %w", err))
+		}
+	}
+	if o.RegKey != nil {
+		if err := o.RegKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("reg_key: %w", err))
+		}
+	}
+	if o.RegValue != nil {
+		if err := o.RegValue.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("reg_value: %w", err))
+		}
+	}
+	if o.Service != nil {
+		if err := o.Service.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("service: %w", err))
+		}
+	}
+	if o.Session != nil {
+		if err := o.Session.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("session: %w", err))
+		}
+	}
+	if o.StartupItem != nil {
+		if err := o.StartupItem.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("startup_item: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
+	for i := range o.Users {
+		if err := o.Users[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("users[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -3525,6 +4873,36 @@ func (o *RelatedEvent) Validate() error {
 			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
 		}
 	}
+	for i := range o.Attacks {
+		if err := o.Attacks[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("attacks[%d]: %w", i, err))
+		}
+	}
+	for i := range o.KillChain {
+		if err := o.KillChain[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("kill_chain[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Product != nil {
+		if err := o.Product.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("product: %w", err))
+		}
+	}
+	for i := range o.Tags {
+		if err := o.Tags[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tags[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Traits {
+		if err := o.Traits[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traits[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -3543,6 +4921,16 @@ func (o *Remediation) Validate() error {
 	var errs []error
 	if o.Desc == nil {
 		errs = append(errs, errors.New("desc is required"))
+	}
+	for i := range o.CisControls {
+		if err := o.CisControls[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cis_controls[%d]: %w", i, err))
+		}
+	}
+	for i := range o.KbArticleList {
+		if err := o.KbArticleList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("kb_article_list[%d]: %w", i, err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -3590,6 +4978,11 @@ func (o *Request) Validate() error {
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
 	}
+	for i := range o.Containers {
+		if err := o.Containers[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("containers[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -3629,6 +5022,31 @@ func (o *ResourceDetails) Validate() error {
 	if o.IP != nil && !regexIPT.MatchString(*o.IP) {
 		errs = append(errs, fmt.Errorf("ip: invalid value %q", *o.IP))
 	}
+	for i := range o.AgentList {
+		if err := o.AgentList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("agent_list[%d]: %w", i, err))
+		}
+	}
+	if o.Group != nil {
+		if err := o.Group.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("group: %w", err))
+		}
+	}
+	if o.Owner != nil {
+		if err := o.Owner.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("owner: %w", err))
+		}
+	}
+	if o.ResourceRelationship != nil {
+		if err := o.ResourceRelationship.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resource_relationship: %w", err))
+		}
+	}
+	for i := range o.Tags {
+		if err := o.Tags[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tags[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -3642,6 +5060,17 @@ type Response struct {
 	ErrorMessage *string     `mapstructure:"error_message,omitempty"`
 	Flags        []string    `mapstructure:"flags,omitempty"`
 	Message      *string     `mapstructure:"message,omitempty"`
+}
+
+// Validate checks required fields, constraints, and enum values for Response.
+func (o *Response) Validate() error {
+	var errs []error
+	for i := range o.Containers {
+		if err := o.Containers[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("containers[%d]: %w", i, err))
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // RpcInterface represents the OCSF RPC Interface object.
@@ -3734,6 +5163,21 @@ func (o *Sbom) Validate() error {
 		case 0, 1, 2, 3, 99:
 		default:
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	if o.Package != nil {
+		if err := o.Package.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("package: %w", err))
+		}
+	}
+	if o.Product != nil {
+		if err := o.Product.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("product: %w", err))
+		}
+	}
+	for i := range o.SoftwareComponents {
+		if err := o.SoftwareComponents[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("software_components[%d]: %w", i, err))
 		}
 	}
 	return errors.Join(errs...)
@@ -3841,6 +5285,21 @@ func (o *Script) Validate() error {
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
 		}
 	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	for i := range o.Hashes {
+		if err := o.Hashes[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("hashes[%d]: %w", i, err))
+		}
+	}
+	if o.ScriptContent != nil {
+		if err := o.ScriptContent.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("script_content: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -3879,6 +5338,11 @@ func (o *Service) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	for i := range o.Tags {
+		if err := o.Tags[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tags[%d]: %w", i, err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -3949,6 +5413,11 @@ func (o *SoftwareComponent) Validate() error {
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
 		}
 	}
+	if o.Hash != nil {
+		if err := o.Hash.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("hash: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -3977,6 +5446,11 @@ func (o *Span) Validate() error {
 	}
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
+	}
+	if o.Service != nil {
+		if err := o.Service.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("service: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -4009,6 +5483,11 @@ func (o *Sso) Validate() error {
 		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 99:
 		default:
 			errs = append(errs, fmt.Errorf("auth_protocol_id: invalid value %d", *o.AuthProtocolID))
+		}
+	}
+	if o.Certificate != nil {
+		if err := o.Certificate.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("certificate: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -4080,6 +5559,26 @@ func (o *StartupItem) Validate() error {
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
 		}
 	}
+	if o.Driver != nil {
+		if err := o.Driver.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("driver: %w", err))
+		}
+	}
+	if o.Job != nil {
+		if err := o.Job.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("job: %w", err))
+		}
+	}
+	if o.Process != nil {
+		if err := o.Process.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("process: %w", err))
+		}
+	}
+	if o.WinService != nil {
+		if err := o.WinService.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("win_service: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -4117,6 +5616,11 @@ func (o *Table) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	for i := range o.Groups {
+		if err := o.Groups[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("groups[%d]: %w", i, err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -4274,6 +5778,36 @@ func (o *TLS) Validate() error {
 	if o.Version == nil {
 		errs = append(errs, errors.New("version is required"))
 	}
+	if o.Certificate != nil {
+		if err := o.Certificate.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("certificate: %w", err))
+		}
+	}
+	for i := range o.ExtensionList {
+		if err := o.ExtensionList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("extension_list[%d]: %w", i, err))
+		}
+	}
+	if o.Ja3Hash != nil {
+		if err := o.Ja3Hash.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja3_hash: %w", err))
+		}
+	}
+	if o.Ja3sHash != nil {
+		if err := o.Ja3sHash.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja3s_hash: %w", err))
+		}
+	}
+	for i := range o.Sans {
+		if err := o.Sans[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("sans[%d]: %w", i, err))
+		}
+	}
+	for i := range o.TLSExtensionList {
+		if err := o.TLSExtensionList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls_extension_list[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -4319,6 +5853,16 @@ func (o *Trace) Validate() error {
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
 	}
+	if o.Service != nil {
+		if err := o.Service.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("service: %w", err))
+		}
+	}
+	if o.Span != nil {
+		if err := o.Span.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("span: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -4358,6 +5902,11 @@ func (o *TransformationInfo) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
+	if o.Product != nil {
+		if err := o.Product.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("product: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -4395,6 +5944,16 @@ func (o *UnmannedAerialSystem) Validate() error {
 	}
 	if o.Uuid != nil && !regexUuidT.MatchString(*o.Uuid) {
 		errs = append(errs, fmt.Errorf("uuid: invalid value %q", *o.Uuid))
+	}
+	if o.HwInfo != nil {
+		if err := o.HwInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("hw_info: %w", err))
+		}
+	}
+	if o.Location != nil {
+		if err := o.Location.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("location: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -4442,6 +6001,11 @@ func (o *UnmannedSystemOperatingArea) Validate() error {
 		case 0, 1, 2, 3, 99:
 		default:
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
+		}
+	}
+	for i := range o.Locations {
+		if err := o.Locations[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("locations[%d]: %w", i, err))
 		}
 	}
 	return errors.Join(errs...)
@@ -4526,6 +6090,26 @@ func (o *User) Validate() error {
 	if o.ForwardAddr != nil && !regexEmailT.MatchString(*o.ForwardAddr) {
 		errs = append(errs, fmt.Errorf("forward_addr: invalid value %q", *o.ForwardAddr))
 	}
+	if o.Account != nil {
+		if err := o.Account.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("account: %w", err))
+		}
+	}
+	for i := range o.Groups {
+		if err := o.Groups[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("groups[%d]: %w", i, err))
+		}
+	}
+	if o.LDAPPerson != nil {
+		if err := o.LDAPPerson.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ldap_person: %w", err))
+		}
+	}
+	if o.Org != nil {
+		if err := o.Org.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("org: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -4607,6 +6191,46 @@ func (o *Vulnerability) Validate() error {
 			errs = append(errs, fmt.Errorf("fix_coverage_id: invalid value %d", *o.FixCoverageID))
 		}
 	}
+	if o.Advisory != nil {
+		if err := o.Advisory.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("advisory: %w", err))
+		}
+	}
+	for i := range o.AffectedCode {
+		if err := o.AffectedCode[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("affected_code[%d]: %w", i, err))
+		}
+	}
+	for i := range o.AffectedPackages {
+		if err := o.AffectedPackages[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("affected_packages[%d]: %w", i, err))
+		}
+	}
+	if o.CVE != nil {
+		if err := o.CVE.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cve: %w", err))
+		}
+	}
+	if o.Cwe != nil {
+		if err := o.Cwe.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cwe: %w", err))
+		}
+	}
+	for i := range o.KbArticleList {
+		if err := o.KbArticleList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("kb_article_list[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Packages {
+		if err := o.Packages[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("packages[%d]: %w", i, err))
+		}
+	}
+	if o.Remediation != nil {
+		if err := o.Remediation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remediation: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -4631,6 +6255,11 @@ func (o *WebResource) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
+	}
+	for i := range o.Tags {
+		if err := o.Tags[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tags[%d]: %w", i, err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -4671,6 +6300,16 @@ func (o *Whois) Validate() error {
 	}
 	if o.Subnet != nil && len(*o.Subnet) > 42 {
 		errs = append(errs, fmt.Errorf("subnet: length %d exceeds max 42", len(*o.Subnet)))
+	}
+	if o.AutonomousSystem != nil {
+		if err := o.AutonomousSystem.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("autonomous_system: %w", err))
+		}
+	}
+	for i := range o.DomainContacts {
+		if err := o.DomainContacts[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("domain_contacts[%d]: %w", i, err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -4758,6 +6397,11 @@ func (o *WinWinResource) Validate() error {
 			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
 		}
 	}
+	for i := range o.Tags {
+		if err := o.Tags[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tags[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -4818,6 +6462,11 @@ func (o *WinWinService) Validate() error {
 		case 0, 1, 2, 3, 4, 99:
 		default:
 			errs = append(errs, fmt.Errorf("service_type_id: invalid value %d", *o.ServiceTypeID))
+		}
+	}
+	for i := range o.Tags {
+		if err := o.Tags[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tags[%d]: %w", i, err))
 		}
 	}
 	return errors.Join(errs...)
@@ -4930,6 +6579,66 @@ func (o *AccountChange) Validate() error {
 		case 300100, 300101, 300102, 300103, 300104, 300105, 300106, 300107, 300108, 300109, 300110, 300111, 300112, 300199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.HTTPResponse != nil {
+		if err := o.HTTPResponse.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_response: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Policies {
+		if err := o.Policies[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("policies[%d]: %w", i, err))
+		}
+	}
+	if o.Policy != nil {
+		if err := o.Policy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("policy: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
+	if o.UserResult != nil {
+		if err := o.UserResult.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user_result: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -5049,6 +6758,41 @@ func (o *AdminGroupQuery) Validate() error {
 		case 500900, 500901, 500999:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Group != nil {
+		if err := o.Group.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("group: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	for i := range o.Users {
+		if err := o.Users[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("users[%d]: %w", i, err))
 		}
 	}
 	return errors.Join(errs...)
@@ -5173,6 +6917,76 @@ func (o *AirborneBroadcastActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Aircraft != nil {
+		if err := o.Aircraft.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("aircraft: %w", err))
+		}
+	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.ProxyEndpoint != nil {
+		if err := o.ProxyEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy_endpoint: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.UnmannedAerialSystem != nil {
+		if err := o.UnmannedAerialSystem.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmanned_aerial_system: %w", err))
+		}
+	}
+	if o.UnmannedSystemOperatingArea != nil {
+		if err := o.UnmannedSystemOperatingArea.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmanned_system_operating_area: %w", err))
+		}
+	}
+	if o.UnmannedSystemOperator != nil {
+		if err := o.UnmannedSystemOperator.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmanned_system_operator: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -5290,6 +7104,61 @@ func (o *APIActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.API != nil {
+		if err := o.API.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("api: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.HTTPResponse != nil {
+		if err := o.HTTPResponse.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_response: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Resources {
+		if err := o.Resources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resources[%d]: %w", i, err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -5389,6 +7258,26 @@ func (o *ApplicationError) Validate() error {
 		case 600800, 600801, 600802, 600899:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -5494,6 +7383,31 @@ func (o *ApplicationLifecycle) Validate() error {
 		case 600200, 600201, 600202, 600203, 600204, 600205, 600206, 600207, 600208, 600299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.App != nil {
+		if err := o.App.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("app: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -5620,6 +7534,66 @@ func (o *ApplicationSecurityPostureFinding) Validate() error {
 		case 200700, 200701, 200702, 200703, 200799:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Application != nil {
+		if err := o.Application.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("application: %w", err))
+		}
+	}
+	if o.Compliance != nil {
+		if err := o.Compliance.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("compliance: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.FindingInfo != nil {
+		if err := o.FindingInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("finding_info: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Remediation != nil {
+		if err := o.Remediation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remediation: %w", err))
+		}
+	}
+	for i := range o.Resources {
+		if err := o.Resources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resources[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.VendorAttributes != nil {
+		if err := o.VendorAttributes.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("vendor_attributes: %w", err))
+		}
+	}
+	for i := range o.Vulnerabilities {
+		if err := o.Vulnerabilities[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("vulnerabilities[%d]: %w", i, err))
 		}
 	}
 	return errors.Join(errs...)
@@ -5763,6 +7737,86 @@ func (o *Authentication) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	for i := range o.AuthFactors {
+		if err := o.AuthFactors[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("auth_factors[%d]: %w", i, err))
+		}
+	}
+	if o.AuthenticationToken != nil {
+		if err := o.AuthenticationToken.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("authentication_token: %w", err))
+		}
+	}
+	if o.Certificate != nil {
+		if err := o.Certificate.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("certificate: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.HTTPResponse != nil {
+		if err := o.HTTPResponse.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_response: %w", err))
+		}
+	}
+	if o.LogonProcess != nil {
+		if err := o.LogonProcess.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("logon_process: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Service != nil {
+		if err := o.Service.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("service: %w", err))
+		}
+	}
+	if o.Session != nil {
+		if err := o.Session.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("session: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -5888,6 +7942,66 @@ func (o *AuthorizeSession) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Group != nil {
+		if err := o.Group.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("group: %w", err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.HTTPResponse != nil {
+		if err := o.HTTPResponse.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_response: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Session != nil {
+		if err := o.Session.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("session: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -5987,6 +8101,26 @@ func (o *BaseEvent) Validate() error {
 		case 0, 99:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -6099,6 +8233,61 @@ func (o *CloudResourcesInventoryInfo) Validate() error {
 		case 502300, 502301, 502302, 502399:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Cloud != nil {
+		if err := o.Cloud.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cloud: %w", err))
+		}
+	}
+	if o.Container != nil {
+		if err := o.Container.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("container: %w", err))
+		}
+	}
+	if o.Database != nil {
+		if err := o.Database.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("database: %w", err))
+		}
+	}
+	if o.Databucket != nil {
+		if err := o.Databucket.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("databucket: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Idp != nil {
+		if err := o.Idp.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("idp: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Resources {
+		if err := o.Resources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resources[%d]: %w", i, err))
+		}
+	}
+	if o.Table != nil {
+		if err := o.Table.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("table: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -6227,6 +8416,66 @@ func (o *ComplianceFinding) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Compliance != nil {
+		if err := o.Compliance.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("compliance: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Evidences {
+		if err := o.Evidences[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("evidences[%d]: %w", i, err))
+		}
+	}
+	if o.FindingInfo != nil {
+		if err := o.FindingInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("finding_info: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Remediation != nil {
+		if err := o.Remediation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remediation: %w", err))
+		}
+	}
+	if o.Resource != nil {
+		if err := o.Resource.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resource: %w", err))
+		}
+	}
+	for i := range o.Resources {
+		if err := o.Resources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resources[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.VendorAttributes != nil {
+		if err := o.VendorAttributes.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("vendor_attributes: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -6333,6 +8582,46 @@ func (o *ConfigState) Validate() error {
 		case 500200, 500201, 500202, 500299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	for i := range o.Assessments {
+		if err := o.Assessments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("assessments[%d]: %w", i, err))
+		}
+	}
+	if o.CisBenchmarkResult != nil {
+		if err := o.CisBenchmarkResult.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cis_benchmark_result: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -6484,6 +8773,86 @@ func (o *DataSecurityFinding) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.DataSecurity != nil {
+		if err := o.DataSecurity.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("data_security: %w", err))
+		}
+	}
+	if o.Database != nil {
+		if err := o.Database.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("database: %w", err))
+		}
+	}
+	if o.Databucket != nil {
+		if err := o.Databucket.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("databucket: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.FindingInfo != nil {
+		if err := o.FindingInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("finding_info: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Resources {
+		if err := o.Resources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resources[%d]: %w", i, err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Table != nil {
+		if err := o.Table.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("table: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.VendorAttributes != nil {
+		if err := o.VendorAttributes.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("vendor_attributes: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -6610,6 +8979,71 @@ func (o *DatastoreActivity) Validate() error {
 		case 600500, 600501, 600502, 600503, 600504, 600505, 600506, 600507, 600508, 600509, 600510, 600599:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Database != nil {
+		if err := o.Database.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("database: %w", err))
+		}
+	}
+	if o.Databucket != nil {
+		if err := o.Databucket.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("databucket: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.HTTPResponse != nil {
+		if err := o.HTTPResponse.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_response: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Table != nil {
+		if err := o.Table.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("table: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -6759,6 +9193,76 @@ func (o *DetectionFinding) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	for i := range o.AnomalyAnalyses {
+		if err := o.AnomalyAnalyses[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("anomaly_analyses[%d]: %w", i, err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Evidences {
+		if err := o.Evidences[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("evidences[%d]: %w", i, err))
+		}
+	}
+	if o.FindingInfo != nil {
+		if err := o.FindingInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("finding_info: %w", err))
+		}
+	}
+	for i := range o.Malware {
+		if err := o.Malware[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("malware[%d]: %w", i, err))
+		}
+	}
+	if o.MalwareScanInfo != nil {
+		if err := o.MalwareScanInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("malware_scan_info: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Remediation != nil {
+		if err := o.Remediation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remediation: %w", err))
+		}
+	}
+	for i := range o.Resources {
+		if err := o.Resources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resources[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.VendorAttributes != nil {
+		if err := o.VendorAttributes.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("vendor_attributes: %w", err))
+		}
+	}
+	for i := range o.Vulnerabilities {
+		if err := o.Vulnerabilities[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("vulnerabilities[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -6894,6 +9398,46 @@ func (o *DeviceConfigStateChange) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	for i := range o.PrevSecurityStates {
+		if err := o.PrevSecurityStates[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("prev_security_states[%d]: %w", i, err))
+		}
+	}
+	for i := range o.SecurityStates {
+		if err := o.SecurityStates[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("security_states[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -7008,6 +9552,66 @@ func (o *DhcpActivity) Validate() error {
 		case 400400, 400401, 400402, 400403, 400404, 400405, 400406, 400407, 400408, 400409, 400499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Ja4FingerprintList {
+		if err := o.Ja4FingerprintList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja4_fingerprint_list[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.Relay != nil {
+		if err := o.Relay.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("relay: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -7133,6 +9737,71 @@ func (o *DNSActivity) Validate() error {
 		case 400300, 400301, 400302, 400306, 400399:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	for i := range o.Answers {
+		if err := o.Answers[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("answers[%d]: %w", i, err))
+		}
+	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Ja4FingerprintList {
+		if err := o.Ja4FingerprintList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja4_fingerprint_list[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.Query != nil {
+		if err := o.Query.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -7269,6 +9938,71 @@ func (o *DroneFlightsActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.ProxyEndpoint != nil {
+		if err := o.ProxyEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy_endpoint: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.UnmannedAerialSystem != nil {
+		if err := o.UnmannedAerialSystem.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmanned_aerial_system: %w", err))
+		}
+	}
+	if o.UnmannedSystemOperatingArea != nil {
+		if err := o.UnmannedSystemOperatingArea.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmanned_system_operating_area: %w", err))
+		}
+	}
+	if o.UnmannedSystemOperator != nil {
+		if err := o.UnmannedSystemOperator.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmanned_system_operator: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -7395,6 +10129,46 @@ func (o *EmailActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	if o.Email != nil {
+		if err := o.Email.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("email: %w", err))
+		}
+	}
+	if o.EmailAuth != nil {
+		if err := o.EmailAuth.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("email_auth: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -7504,6 +10278,31 @@ func (o *EmailFileActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -7611,6 +10410,31 @@ func (o *EmailURLActivity) Validate() error {
 		case 401200, 401201, 401202, 401203, 401299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.URL != nil {
+		if err := o.URL.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("url: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -7724,6 +10548,56 @@ func (o *EntityManagement) Validate() error {
 		case 300400, 300401, 300402, 300403, 300404, 300405, 300406, 300407, 300408, 300409, 300410, 300411, 300412, 300413, 300499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Entity != nil {
+		if err := o.Entity.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("entity: %w", err))
+		}
+	}
+	if o.EntityResult != nil {
+		if err := o.EntityResult.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("entity_result: %w", err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.HTTPResponse != nil {
+		if err := o.HTTPResponse.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_response: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -7844,6 +10718,51 @@ func (o *EventLogActvity) Validate() error {
 		case 100800, 100801, 100802, 100803, 100804, 100805, 100806, 100807, 100808, 100809, 100810, 100899:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -7968,6 +10887,41 @@ func (o *EvidenceInfo) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.QueryEvidence != nil {
+		if err := o.QueryEvidence.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_evidence: %w", err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -8085,6 +11039,46 @@ func (o *FileActivity) Validate() error {
 		case 100100, 100101, 100102, 100103, 100104, 100105, 100106, 100107, 100108, 100109, 100110, 100111, 100112, 100113, 100114, 100199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.FileResult != nil {
+		if err := o.FileResult.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file_result: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -8217,6 +11211,56 @@ func (o *FileHosting) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.FileResult != nil {
+		if err := o.FileResult.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file_result: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -8335,6 +11379,36 @@ func (o *FileQuery) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -8445,6 +11519,46 @@ func (o *FileRemediationActivity) Validate() error {
 		case 700200, 700201, 700202, 700203, 700204, 700205, 700299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	for i := range o.Countermeasures {
+		if err := o.Countermeasures[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("countermeasures[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Remediation != nil {
+		if err := o.Remediation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remediation: %w", err))
+		}
+	}
+	if o.Scan != nil {
+		if err := o.Scan.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("scan: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -8563,6 +11677,36 @@ func (o *FolderQuery) Validate() error {
 		case 500800, 500801, 500899:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Folder != nil {
+		if err := o.Folder.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("folder: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -8687,6 +11831,66 @@ func (o *FtpActivity) Validate() error {
 	if o.Port != nil && (*o.Port < 0 || *o.Port > 65535) {
 		errs = append(errs, fmt.Errorf("port: value %d is out of range [0, 65535]", *o.Port))
 	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	for i := range o.Ja4FingerprintList {
+		if err := o.Ja4FingerprintList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja4_fingerprint_list[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -8797,6 +12001,61 @@ func (o *GroupManagement) Validate() error {
 		case 300600, 300601, 300602, 300603, 300604, 300605, 300606, 300699:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Group != nil {
+		if err := o.Group.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("group: %w", err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.HTTPResponse != nil {
+		if err := o.HTTPResponse.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_response: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Resource != nil {
+		if err := o.Resource.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resource: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -8914,6 +12173,81 @@ func (o *HTTPActivity) Validate() error {
 		case 400200, 400201, 400202, 400203, 400204, 400205, 400206, 400207, 400208, 400299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	for i := range o.HTTPCookies {
+		if err := o.HTTPCookies[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_cookies[%d]: %w", i, err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.HTTPResponse != nil {
+		if err := o.HTTPResponse.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_response: %w", err))
+		}
+	}
+	for i := range o.Ja4FingerprintList {
+		if err := o.Ja4FingerprintList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja4_fingerprint_list[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -9075,6 +12409,61 @@ func (o *IncidentFinding) Validate() error {
 			errs = append(errs, fmt.Errorf("verdict_id: invalid value %d", *o.VerdictID))
 		}
 	}
+	if o.Assignee != nil {
+		if err := o.Assignee.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("assignee: %w", err))
+		}
+	}
+	if o.AssigneeGroup != nil {
+		if err := o.AssigneeGroup.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("assignee_group: %w", err))
+		}
+	}
+	for i := range o.Attacks {
+		if err := o.Attacks[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("attacks[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	for i := range o.FindingInfoList {
+		if err := o.FindingInfoList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("finding_info_list[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Ticket != nil {
+		if err := o.Ticket.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ticket: %w", err))
+		}
+	}
+	for i := range o.Tickets {
+		if err := o.Tickets[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tickets[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.VendorAttributes != nil {
+		if err := o.VendorAttributes.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("vendor_attributes: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -9179,6 +12568,36 @@ func (o *InventoryInfo) Validate() error {
 		case 500100, 500101, 500102, 500199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -9299,6 +12718,36 @@ func (o *JobQuery) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Job != nil {
+		if err := o.Job.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("job: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -9412,6 +12861,41 @@ func (o *KernelActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Kernel != nil {
+		if err := o.Kernel.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("kernel: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -9523,6 +13007,41 @@ func (o *KernelExtensionActivity) Validate() error {
 		case 100200, 100201, 100202, 100299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	if o.Driver != nil {
+		if err := o.Driver.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("driver: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -9643,6 +13162,36 @@ func (o *KernelObjectQuery) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Kernel != nil {
+		if err := o.Kernel.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("kernel: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -9760,6 +13309,41 @@ func (o *MemoryActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Process != nil {
+		if err := o.Process.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("process: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -9871,6 +13455,41 @@ func (o *ModuleActivity) Validate() error {
 		case 100500, 100501, 100502, 100599:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	if o.Module != nil {
+		if err := o.Module.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("module: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -9995,6 +13614,41 @@ func (o *ModuleQuery) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	if o.Module != nil {
+		if err := o.Module.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("module: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Process != nil {
+		if err := o.Process.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("process: %w", err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -10106,6 +13760,66 @@ func (o *NetworkActivity) Validate() error {
 		case 400100, 400101, 400102, 400103, 400104, 400105, 400106, 400107, 400199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Ja4FingerprintList {
+		if err := o.Ja4FingerprintList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja4_fingerprint_list[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.URL != nil {
+		if err := o.URL.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("url: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -10242,6 +13956,41 @@ func (o *NetworkConnectionQuery) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Process != nil {
+		if err := o.Process.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("process: %w", err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -10366,6 +14115,71 @@ func (o *NetworkFileActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	for i := range o.Ja4FingerprintList {
+		if err := o.Ja4FingerprintList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja4_fingerprint_list[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -10476,6 +14290,46 @@ func (o *NetworkRemediationActivity) Validate() error {
 		case 700400, 700401, 700402, 700403, 700404, 700405, 700499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	for i := range o.Countermeasures {
+		if err := o.Countermeasures[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("countermeasures[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Remediation != nil {
+		if err := o.Remediation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remediation: %w", err))
+		}
+	}
+	if o.Scan != nil {
+		if err := o.Scan.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("scan: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -10594,6 +14448,36 @@ func (o *NetworksQuery) Validate() error {
 		case 501300, 501301, 501399:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.NetworkInterfaces {
+		if err := o.NetworkInterfaces[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("network_interfaces[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -10724,6 +14608,61 @@ func (o *NtpActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Ja4FingerprintList {
+		if err := o.Ja4FingerprintList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja4_fingerprint_list[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -10830,6 +14769,36 @@ func (o *OsintInventoryInfo) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Osint {
+		if err := o.Osint[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("osint[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -10934,6 +14903,36 @@ func (o *PatchState) Validate() error {
 		case 500400, 500401, 500402, 500499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	for i := range o.KbArticleList {
+		if err := o.KbArticleList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("kb_article_list[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -11052,6 +15051,36 @@ func (o *PeripheralDeviceQuery) Validate() error {
 		case 501400, 501401, 501499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.PeripheralDevice != nil {
+		if err := o.PeripheralDevice.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("peripheral_device: %w", err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -11180,6 +15209,46 @@ func (o *ProcessActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	if o.Module != nil {
+		if err := o.Module.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("module: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Process != nil {
+		if err := o.Process.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("process: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -11298,6 +15367,36 @@ func (o *ProcessQuery) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Process != nil {
+		if err := o.Process.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("process: %w", err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -11408,6 +15507,46 @@ func (o *ProcessRemediationActivity) Validate() error {
 		case 700300, 700301, 700302, 700303, 700304, 700305, 700399:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	for i := range o.Countermeasures {
+		if err := o.Countermeasures[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("countermeasures[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Process != nil {
+		if err := o.Process.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("process: %w", err))
+		}
+	}
+	if o.Remediation != nil {
+		if err := o.Remediation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remediation: %w", err))
+		}
+	}
+	if o.Scan != nil {
+		if err := o.Scan.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("scan: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -11532,6 +15671,91 @@ func (o *RDPActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	for i := range o.Ja4FingerprintList {
+		if err := o.Ja4FingerprintList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja4_fingerprint_list[%d]: %w", i, err))
+		}
+	}
+	if o.KeyboardInfo != nil {
+		if err := o.KeyboardInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("keyboard_info: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.RemoteDisplay != nil {
+		if err := o.RemoteDisplay.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remote_display: %w", err))
+		}
+	}
+	if o.Request != nil {
+		if err := o.Request.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("request: %w", err))
+		}
+	}
+	if o.Response != nil {
+		if err := o.Response.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("response: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -11638,6 +15862,41 @@ func (o *RemediationActivity) Validate() error {
 		case 700100, 700101, 700102, 700103, 700104, 700105, 700199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	for i := range o.Countermeasures {
+		if err := o.Countermeasures[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("countermeasures[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Remediation != nil {
+		if err := o.Remediation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remediation: %w", err))
+		}
+	}
+	if o.Scan != nil {
+		if err := o.Scan.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("scan: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -11758,6 +16017,36 @@ func (o *ScanActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Policy != nil {
+		if err := o.Policy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("policy: %w", err))
+		}
+	}
+	if o.Scan != nil {
+		if err := o.Scan.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("scan: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -11866,6 +16155,41 @@ func (o *ScheduledJobActivity) Validate() error {
 		case 100600, 100601, 100602, 100603, 100604, 100605, 100606, 100699:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Job != nil {
+		if err := o.Job.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("job: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -11979,6 +16303,41 @@ func (o *ScriptActivity) Validate() error {
 		case 100900, 100901, 100999:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Script != nil {
+		if err := o.Script.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("script: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -12140,6 +16499,76 @@ func (o *SecurityFinding) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Analytic != nil {
+		if err := o.Analytic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("analytic: %w", err))
+		}
+	}
+	for i := range o.Attacks {
+		if err := o.Attacks[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("attacks[%d]: %w", i, err))
+		}
+	}
+	for i := range o.CisCsc {
+		if err := o.CisCsc[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cis_csc[%d]: %w", i, err))
+		}
+	}
+	if o.Compliance != nil {
+		if err := o.Compliance.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("compliance: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Finding != nil {
+		if err := o.Finding.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("finding: %w", err))
+		}
+	}
+	for i := range o.KillChain {
+		if err := o.KillChain[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("kill_chain[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Malware {
+		if err := o.Malware[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("malware[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Process != nil {
+		if err := o.Process.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("process: %w", err))
+		}
+	}
+	for i := range o.Resources {
+		if err := o.Resources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resources[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	for i := range o.Vulnerabilities {
+		if err := o.Vulnerabilities[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("vulnerabilities[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -12258,6 +16687,36 @@ func (o *ServiceQuery) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.Service != nil {
+		if err := o.Service.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("service: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -12374,6 +16833,36 @@ func (o *SessionQuery) Validate() error {
 		case 501700, 501701, 501799:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.Session != nil {
+		if err := o.Session.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("session: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -12506,6 +16995,76 @@ func (o *SmbActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DceRpc != nil {
+		if err := o.DceRpc.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dce_rpc: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	for i := range o.Ja4FingerprintList {
+		if err := o.Ja4FingerprintList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja4_fingerprint_list[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.Response != nil {
+		if err := o.Response.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("response: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -12613,6 +17172,51 @@ func (o *SoftwareInfo) Validate() error {
 		case 502000, 502001, 502002, 502099:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Package != nil {
+		if err := o.Package.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("package: %w", err))
+		}
+	}
+	if o.Product != nil {
+		if err := o.Product.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("product: %w", err))
+		}
+	}
+	if o.Sbom != nil {
+		if err := o.Sbom.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("sbom: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -12740,6 +17344,76 @@ func (o *SSHActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.ClientHassh != nil {
+		if err := o.ClientHassh.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("client_hassh: %w", err))
+		}
+	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	for i := range o.Ja4FingerprintList {
+		if err := o.Ja4FingerprintList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja4_fingerprint_list[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.ServerHassh != nil {
+		if err := o.ServerHassh.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("server_hassh: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -12856,6 +17530,36 @@ func (o *StartupItemQuery) Validate() error {
 		case 502200, 502201, 502299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.StartupItem != nil {
+		if err := o.StartupItem.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("startup_item: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -12984,6 +17688,81 @@ func (o *TunnelActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Ja4FingerprintList {
+		if err := o.Ja4FingerprintList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja4_fingerprint_list[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.Session != nil {
+		if err := o.Session.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("session: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.TunnelInterface != nil {
+		if err := o.TunnelInterface.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tunnel_interface: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -13099,6 +17878,61 @@ func (o *UserAccess) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.HTTPResponse != nil {
+		if err := o.HTTPResponse.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_response: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Resource != nil {
+		if err := o.Resource.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resource: %w", err))
+		}
+	}
+	for i := range o.Resources {
+		if err := o.Resources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resources[%d]: %w", i, err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -13203,6 +18037,36 @@ func (o *UserInventory) Validate() error {
 		case 500300, 500301, 500302, 500399:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -13321,6 +18185,36 @@ func (o *UserQuery) Validate() error {
 		case 501800, 501801, 501899:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -13447,6 +18341,56 @@ func (o *VulnerabilityFinding) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.FindingInfo != nil {
+		if err := o.FindingInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("finding_info: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Resource != nil {
+		if err := o.Resource.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resource: %w", err))
+		}
+	}
+	for i := range o.Resources {
+		if err := o.Resources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resources[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.VendorAttributes != nil {
+		if err := o.VendorAttributes.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("vendor_attributes: %w", err))
+		}
+	}
+	for i := range o.Vulnerabilities {
+		if err := o.Vulnerabilities[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("vulnerabilities[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -13560,6 +18504,56 @@ func (o *WebResourceAccessActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.HTTPResponse != nil {
+		if err := o.HTTPResponse.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_response: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	for i := range o.WebResources {
+		if err := o.WebResources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("web_resources[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -13669,6 +18663,61 @@ func (o *WebResourcesActivity) Validate() error {
 		case 600100, 600101, 600102, 600103, 600104, 600105, 600106, 600107, 600108, 600199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.HTTPResponse != nil {
+		if err := o.HTTPResponse.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_response: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	for i := range o.WebResources {
+		if err := o.WebResources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("web_resources[%d]: %w", i, err))
+		}
+	}
+	for i := range o.WebResourcesResult {
+		if err := o.WebResourcesResult[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("web_resources_result[%d]: %w", i, err))
 		}
 	}
 	return errors.Join(errs...)
@@ -13791,6 +18840,31 @@ func (o *WinPrefetchQuery) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -13906,6 +18980,46 @@ func (o *WinRegistryKeyActivity) Validate() error {
 		case 20100100, 20100101, 20100102, 20100103, 20100104, 20100105, 20100106, 20100107, 20100108, 20100109, 20100199:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.PrevRegKey != nil {
+		if err := o.PrevRegKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("prev_reg_key: %w", err))
+		}
+	}
+	if o.RegKey != nil {
+		if err := o.RegKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("reg_key: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -14026,6 +19140,36 @@ func (o *WinRegistryKeyQuery) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.RegKey != nil {
+		if err := o.RegKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("reg_key: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -14138,6 +19282,46 @@ func (o *WinRegistryValueActivity) Validate() error {
 		case 20100200, 20100201, 20100202, 20100203, 20100204, 20100299:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.PrevRegValue != nil {
+		if err := o.PrevRegValue.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("prev_reg_value: %w", err))
+		}
+	}
+	if o.RegValue != nil {
+		if err := o.RegValue.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("reg_value: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
 		}
 	}
 	return errors.Join(errs...)
@@ -14258,6 +19442,36 @@ func (o *WinRegistryValueQuery) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.QueryInfo != nil {
+		if err := o.QueryInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query_info: %w", err))
+		}
+	}
+	if o.RegValue != nil {
+		if err := o.RegValue.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("reg_value: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -14371,6 +19585,41 @@ func (o *WinWindowsResourceActivity) Validate() error {
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
 		}
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.WinResource != nil {
+		if err := o.WinResource.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("win_resource: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -14482,6 +19731,41 @@ func (o *WinWindowsServiceActivity) Validate() error {
 		case 20100400, 20100401, 20100402, 20100403, 20100404, 20100405, 20100406, 20100407, 20100499:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
+		}
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.WinService != nil {
+		if err := o.WinService.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("win_service: %w", err))
 		}
 	}
 	return errors.Join(errs...)

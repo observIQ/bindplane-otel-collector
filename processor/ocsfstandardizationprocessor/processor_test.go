@@ -516,6 +516,202 @@ func TestProcessLogsValidation(t *testing.T) {
 			},
 			expectDropped: true,
 		},
+		{
+			name: "invalid regex drops log - bad email",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.email", To: "user.email_addr"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["email"] = "not-an-email"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+			expectDropped: true,
+		},
+		{
+			name: "valid regex passes - valid email",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.email", To: "user.email_addr"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["email"] = "user@example.com"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+		},
+		{
+			name: "invalid regex drops log - bad IP",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.ip", To: "src_endpoint.ip"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["ip"] = "not-an-ip"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+			expectDropped: true,
+		},
+		{
+			name: "valid regex passes - valid IP",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.ip", To: "src_endpoint.ip"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["ip"] = "192.168.1.1"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+		},
+		{
+			name: "range violation drops log - port too high",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.port", To: "src_endpoint.port"},
+						FieldMapping{From: "body.ip", To: "src_endpoint.ip"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["port"] = 70000
+				body["ip"] = "10.0.0.1"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+			expectDropped: true,
+		},
+		{
+			name: "range violation drops log - port negative",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.port", To: "src_endpoint.port"},
+						FieldMapping{From: "body.ip", To: "src_endpoint.ip"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["port"] = -1
+				body["ip"] = "10.0.0.1"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+			expectDropped: true,
+		},
+		{
+			name: "valid range passes - port in range",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.port", To: "src_endpoint.port"},
+						FieldMapping{From: "body.ip", To: "src_endpoint.ip"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["port"] = 8080
+				body["ip"] = "10.0.0.1"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+		},
+		{
+			name: "maxlen violation drops log - IP too long",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.ip", To: "src_endpoint.ip"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				// IP max_len is 40; provide a string longer than 40 chars
+				body["ip"] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+			expectDropped: true,
+		},
+		{
+			name: "maxlen violation drops log - MAC too long",
+			eventMappings: []EventMapping{
+				{
+					ClassID: 3001,
+					FieldMappings: append(accountChangeFieldMappings,
+						FieldMapping{From: "body.mac", To: "src_endpoint.mac"},
+						FieldMapping{From: "body.ip", To: "src_endpoint.ip"},
+					),
+				},
+			},
+			inputLogs: func() plog.Logs {
+				ld := plog.NewLogs()
+				record := ld.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+				body := accountChangeInputBody()
+				body["ip"] = "10.0.0.1"
+				// MAC max_len is 32; provide a string longer than 32 chars
+				body["mac"] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+				err := record.Body().SetEmptyMap().FromRaw(body)
+				require.NoError(t, err)
+				return ld
+			},
+			expectDropped: true,
+		},
 	}
 
 	for _, version := range OCSFVersions {

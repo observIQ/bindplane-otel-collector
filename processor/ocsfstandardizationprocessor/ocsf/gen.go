@@ -233,7 +233,7 @@ func generateForVersion(schemaPath, dir, pkgName, schemaUrl string) error {
 	buf.WriteString(")\n\n")
 
 	// Generate ValidateClass function
-	writeValidateClass(&buf, classNames, schema.Classes)
+	writeValidateClass(&buf, classNames)
 
 	// Generate field coverage validation (config-time required field checks)
 	writeFieldCoverageValidation(&buf, schema, classNames)
@@ -337,27 +337,8 @@ func writeFields(buf *bytes.Buffer, attrs map[string]Attribute) {
 }
 
 // writeValidation generates a Validate() error method for a struct.
+// Every type gets a Validate() method so parents can always recurse into children.
 func writeValidation(buf *bytes.Buffer, goName string, attrs map[string]Attribute, constraints Constraints, typeConstraints map[string]typeConstraint) {
-	hasRequired := false
-	hasEnums := false
-	hasTypeConstraint := false
-	for _, attr := range attrs {
-		if attr.Requirement == "required" {
-			hasRequired = true
-		}
-		if len(attr.Enum) > 0 {
-			hasEnums = true
-		}
-		if tc, ok := typeConstraints[attr.Type]; ok && !attr.IsArray && (tc.Regex != "" || tc.MaxLen > 0 || len(tc.Range) == 2) {
-			hasTypeConstraint = true
-		}
-	}
-	hasConstraints := len(constraints.AtLeastOne) > 0 || len(constraints.JustOne) > 0
-
-	if !hasRequired && !hasConstraints && !hasEnums && !hasTypeConstraint {
-		return
-	}
-
 	fmt.Fprintf(buf, "// Validate checks required fields, constraints, and enum values for %s.\n", goName)
 	fmt.Fprintf(buf, "func (o *%s) Validate() error {\n", goName)
 	buf.WriteString("var errs []error\n")
@@ -448,6 +429,26 @@ func writeValidation(buf *bytes.Buffer, goName string, attrs map[string]Attribut
 		}
 	}
 
+	// Recursive validation of nested objects
+	for _, name := range sortedKeys(attrs) {
+		attr := attrs[name]
+		if attr.Type != "object_t" || attr.ObjectType == "" {
+			continue
+		}
+		goField := toGoName(name)
+		if attr.IsArray {
+			fmt.Fprintf(buf, "for i := range o.%s {\n", goField)
+			fmt.Fprintf(buf, "if err := o.%s[i].Validate(); err != nil {\n", goField)
+			fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s[%%d]: %%w\", i, err))\n", name)
+			buf.WriteString("}\n}\n")
+		} else {
+			fmt.Fprintf(buf, "if o.%s != nil {\n", goField)
+			fmt.Fprintf(buf, "if err := o.%s.Validate(); err != nil {\n", goField)
+			fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s: %%w\", err))\n", name)
+			buf.WriteString("}\n}\n")
+		}
+	}
+
 	buf.WriteString("return errors.Join(errs...)\n")
 	buf.WriteString("}\n\n")
 }
@@ -510,37 +511,19 @@ func writeEnumValidation(buf *bytes.Buffer, fieldName, goField string, attr Attr
 
 // writeValidateClass generates a ValidateClass function that decodes data into
 // the appropriate class struct based on classUID and validates it.
-func writeValidateClass(buf *bytes.Buffer, classNames []string, classes map[string]Class) {
+func writeValidateClass(buf *bytes.Buffer, classNames []string) {
 	buf.WriteString("// ValidateClass decodes data into the OCSF event class identified by classUID\n")
 	buf.WriteString("// and runs validation on the resulting struct.\n")
 	buf.WriteString("func ValidateClass(classUID int, data any) error {\n")
 	buf.WriteString("switch classUID {\n")
 	for _, name := range classNames {
-		cls := classes[name]
 		goName := toGoName(name)
 		fmt.Fprintf(buf, "case ClassUID%s:\n", goName)
 		fmt.Fprintf(buf, "var obj %s\n", goName)
 		buf.WriteString("if err := mapstructure.Decode(data, &obj); err != nil {\n")
 		buf.WriteString("return fmt.Errorf(\"decoding class: %w\", err)\n")
 		buf.WriteString("}\n")
-
-		// Only call Validate if the class has validations.
-		filteredAttrs := filterOutProfileAttrs(cls.Attributes)
-		hasValidation := false
-		for _, attr := range filteredAttrs {
-			if attr.Requirement == "required" || len(attr.Enum) > 0 {
-				hasValidation = true
-				break
-			}
-		}
-		if !hasValidation {
-			hasValidation = len(cls.Constraints.AtLeastOne) > 0 || len(cls.Constraints.JustOne) > 0
-		}
-		if hasValidation {
-			buf.WriteString("return obj.Validate()\n")
-		} else {
-			buf.WriteString("return nil\n")
-		}
+		buf.WriteString("return obj.Validate()\n")
 	}
 	buf.WriteString("default:\n")
 	buf.WriteString("return fmt.Errorf(\"unknown class UID: %d\", classUID)\n")

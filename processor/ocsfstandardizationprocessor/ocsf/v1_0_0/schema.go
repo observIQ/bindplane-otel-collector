@@ -75,6 +75,31 @@ func (o *Actor) Validate() error {
 	if o.InvokedBy != nil && len(*o.InvokedBy) > 65535 {
 		errs = append(errs, fmt.Errorf("invoked_by: length %d exceeds max 65535", len(*o.InvokedBy)))
 	}
+	for i := range o.Authorizations {
+		if err := o.Authorizations[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("authorizations[%d]: %w", i, err))
+		}
+	}
+	if o.Idp != nil {
+		if err := o.Idp.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("idp: %w", err))
+		}
+	}
+	if o.Process != nil {
+		if err := o.Process.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("process: %w", err))
+		}
+	}
+	if o.Session != nil {
+		if err := o.Session.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("session: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -125,6 +150,11 @@ func (o *Analytic) Validate() error {
 	if o.Version != nil && len(*o.Version) > 65535 {
 		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
+	for i := range o.RelatedAnalytics {
+		if err := o.RelatedAnalytics[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("related_analytics[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -149,6 +179,21 @@ func (o *API) Validate() error {
 	}
 	if o.Version != nil && len(*o.Version) > 65535 {
 		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
+	if o.Request != nil {
+		if err := o.Request.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("request: %w", err))
+		}
+	}
+	if o.Response != nil {
+		if err := o.Response.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("response: %w", err))
+		}
+	}
+	if o.Service != nil {
+		if err := o.Service.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("service: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -176,6 +221,16 @@ func (o *Attack) Validate() error {
 	if o.Version != nil && len(*o.Version) > 65535 {
 		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
+	for i := range o.Tactics {
+		if err := o.Tactics[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tactics[%d]: %w", i, err))
+		}
+	}
+	if o.Technique != nil {
+		if err := o.Technique.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("technique: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -191,6 +246,11 @@ func (o *Authorization) Validate() error {
 	var errs []error
 	if o.Decision != nil && len(*o.Decision) > 65535 {
 		errs = append(errs, fmt.Errorf("decision: length %d exceeds max 65535", len(*o.Decision)))
+	}
+	if o.Policy != nil {
+		if err := o.Policy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("policy: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -231,6 +291,11 @@ func (o *Certificate) Validate() error {
 	if o.Version != nil && len(*o.Version) > 65535 {
 		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
+	for i := range o.Fingerprints {
+		if err := o.Fingerprints[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("fingerprints[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -254,6 +319,16 @@ func (o *CisBenchmarkResult) Validate() error {
 	}
 	if o.Name != nil && len(*o.Name) > 65535 {
 		errs = append(errs, fmt.Errorf("name: length %d exceeds max 65535", len(*o.Name)))
+	}
+	if o.Remediation != nil {
+		if err := o.Remediation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remediation: %w", err))
+		}
+	}
+	if o.Rule != nil {
+		if err := o.Rule.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("rule: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -308,6 +383,16 @@ func (o *Cloud) Validate() error {
 	}
 	if o.Zone != nil && len(*o.Zone) > 65535 {
 		errs = append(errs, fmt.Errorf("zone: length %d exceeds max 65535", len(*o.Zone)))
+	}
+	if o.Account != nil {
+		if err := o.Account.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("account: %w", err))
+		}
+	}
+	if o.Org != nil {
+		if err := o.Org.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("org: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -374,6 +459,16 @@ func (o *Container) Validate() error {
 	if o.UID != nil && len(*o.UID) > 65535 {
 		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
+	if o.Hash != nil {
+		if err := o.Hash.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("hash: %w", err))
+		}
+	}
+	if o.Image != nil {
+		if err := o.Image.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("image: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -404,6 +499,16 @@ func (o *CVE) Validate() error {
 	}
 	if o.UID != nil && len(*o.UID) > 65535 {
 		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	if o.CVSS != nil {
+		if err := o.CVSS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cvss: %w", err))
+		}
+	}
+	if o.Product != nil {
+		if err := o.Product.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("product: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -448,6 +553,11 @@ func (o *CVSS) Validate() error {
 	if o.Version != nil && len(*o.Version) > 65535 {
 		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
+	for i := range o.Metrics {
+		if err := o.Metrics[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metrics[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -475,6 +585,11 @@ func (o *DceRpc) Validate() error {
 	}
 	if o.CommandResponse != nil && len(*o.CommandResponse) > 65535 {
 		errs = append(errs, fmt.Errorf("command_response: length %d exceeds max 65535", len(*o.CommandResponse)))
+	}
+	if o.RpcInterface != nil {
+		if err := o.RpcInterface.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("rpc_interface: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -615,6 +730,41 @@ func (o *Device) Validate() error {
 	if o.VpcUID != nil && len(*o.VpcUID) > 65535 {
 		errs = append(errs, fmt.Errorf("vpc_uid: length %d exceeds max 65535", len(*o.VpcUID)))
 	}
+	for i := range o.Groups {
+		if err := o.Groups[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("groups[%d]: %w", i, err))
+		}
+	}
+	if o.HwInfo != nil {
+		if err := o.HwInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("hw_info: %w", err))
+		}
+	}
+	if o.Image != nil {
+		if err := o.Image.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("image: %w", err))
+		}
+	}
+	if o.Location != nil {
+		if err := o.Location.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("location: %w", err))
+		}
+	}
+	for i := range o.NetworkInterfaces {
+		if err := o.NetworkInterfaces[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("network_interfaces[%d]: %w", i, err))
+		}
+	}
+	if o.Org != nil {
+		if err := o.Org.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("org: %w", err))
+		}
+	}
+	if o.OS != nil {
+		if err := o.OS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("os: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -657,6 +807,16 @@ func (o *DeviceHwInfo) Validate() error {
 	if o.SerialNumber != nil && len(*o.SerialNumber) > 65535 {
 		errs = append(errs, fmt.Errorf("serial_number: length %d exceeds max 65535", len(*o.SerialNumber)))
 	}
+	if o.DesktopDisplay != nil {
+		if err := o.DesktopDisplay.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("desktop_display: %w", err))
+		}
+	}
+	if o.KeyboardInfo != nil {
+		if err := o.KeyboardInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("keyboard_info: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -690,6 +850,16 @@ func (o *DigitalSignature) Validate() error {
 	if o.DeveloperUID != nil && len(*o.DeveloperUID) > 65535 {
 		errs = append(errs, fmt.Errorf("developer_uid: length %d exceeds max 65535", len(*o.DeveloperUID)))
 	}
+	if o.Certificate != nil {
+		if err := o.Certificate.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("certificate: %w", err))
+		}
+	}
+	if o.Digest != nil {
+		if err := o.Digest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("digest: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -701,6 +871,12 @@ type Display struct {
 	PhysicalOrientation *int `mapstructure:"physical_orientation,omitempty"`
 	PhysicalWidth       *int `mapstructure:"physical_width,omitempty"`
 	ScaleFactor         *int `mapstructure:"scale_factor,omitempty"`
+}
+
+// Validate checks required fields, constraints, and enum values for Display.
+func (o *Display) Validate() error {
+	var errs []error
+	return errors.Join(errs...)
 }
 
 // DNSAnswer represents the OCSF DNS Answer object.
@@ -943,6 +1119,11 @@ func (o *Endpoint) Validate() error {
 	if o.VpcUID != nil && len(*o.VpcUID) > 65535 {
 		errs = append(errs, fmt.Errorf("vpc_uid: length %d exceeds max 65535", len(*o.VpcUID)))
 	}
+	if o.Location != nil {
+		if err := o.Location.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("location: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -1126,6 +1307,46 @@ func (o *File) Validate() error {
 	if o.Version != nil && len(*o.Version) > 65535 {
 		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
+	if o.Accessor != nil {
+		if err := o.Accessor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("accessor: %w", err))
+		}
+	}
+	if o.Creator != nil {
+		if err := o.Creator.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("creator: %w", err))
+		}
+	}
+	for i := range o.Hashes {
+		if err := o.Hashes[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("hashes[%d]: %w", i, err))
+		}
+	}
+	if o.Modifier != nil {
+		if err := o.Modifier.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("modifier: %w", err))
+		}
+	}
+	if o.Owner != nil {
+		if err := o.Owner.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("owner: %w", err))
+		}
+	}
+	if o.Product != nil {
+		if err := o.Product.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("product: %w", err))
+		}
+	}
+	if o.Signature != nil {
+		if err := o.Signature.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("signature: %w", err))
+		}
+	}
+	if o.Xattributes != nil {
+		if err := o.Xattributes.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("xattributes: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -1167,6 +1388,16 @@ func (o *Finding) Validate() error {
 	}
 	if o.UID != nil && len(*o.UID) > 65535 {
 		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
+	}
+	for i := range o.RelatedEvents {
+		if err := o.RelatedEvents[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("related_events[%d]: %w", i, err))
+		}
+	}
+	if o.Remediation != nil {
+		if err := o.Remediation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remediation: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -1250,6 +1481,11 @@ func (o *Hassh) Validate() error {
 	}
 	if o.Algorithm != nil && len(*o.Algorithm) > 65535 {
 		errs = append(errs, fmt.Errorf("algorithm: length %d exceeds max 65535", len(*o.Algorithm)))
+	}
+	if o.Fingerprint != nil {
+		if err := o.Fingerprint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("fingerprint: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -1360,6 +1596,16 @@ func (o *HTTPRequest) Validate() error {
 	}
 	if o.Version != nil && len(*o.Version) > 65535 {
 		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
+	for i := range o.HTTPHeaders {
+		if err := o.HTTPHeaders[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_headers[%d]: %w", i, err))
+		}
+	}
+	if o.URL != nil {
+		if err := o.URL.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("url: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -1489,6 +1735,16 @@ func (o *Job) Validate() error {
 	if o.RunState != nil && len(*o.RunState) > 65535 {
 		errs = append(errs, fmt.Errorf("run_state: length %d exceeds max 65535", len(*o.RunState)))
 	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -1545,6 +1801,11 @@ func (o *KernelDriver) Validate() error {
 	var errs []error
 	if o.File == nil {
 		errs = append(errs, errors.New("file is required"))
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -1681,6 +1942,11 @@ func (o *Malware) Validate() error {
 	if o.UID != nil && len(*o.UID) > 65535 {
 		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
+	for i := range o.Cves {
+		if err := o.Cves[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cves[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -1769,6 +2035,16 @@ func (o *Metadata) Validate() error {
 	if o.Version != nil && len(*o.Version) > 65535 {
 		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
+	if o.Extension != nil {
+		if err := o.Extension.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("extension: %w", err))
+		}
+	}
+	if o.Product != nil {
+		if err := o.Product.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("product: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -1836,6 +2112,11 @@ func (o *Module) Validate() error {
 	}
 	if o.Type != nil && len(*o.Type) > 65535 {
 		errs = append(errs, fmt.Errorf("type: length %d exceeds max 65535", len(*o.Type)))
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -1975,6 +2256,11 @@ func (o *NetworkEndpoint) Validate() error {
 	if o.VpcUID != nil && len(*o.VpcUID) > 65535 {
 		errs = append(errs, fmt.Errorf("vpc_uid: length %d exceeds max 65535", len(*o.VpcUID)))
 	}
+	if o.Location != nil {
+		if err := o.Location.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("location: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2113,6 +2399,11 @@ func (o *NetworkProxy) Validate() error {
 	if o.VpcUID != nil && len(*o.VpcUID) > 65535 {
 		errs = append(errs, fmt.Errorf("vpc_uid: length %d exceeds max 65535", len(*o.VpcUID)))
 	}
+	if o.Location != nil {
+		if err := o.Location.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("location: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2127,9 +2418,21 @@ type NetworkTraffic struct {
 	PacketsOut *int64 `mapstructure:"packets_out,omitempty"`
 }
 
+// Validate checks required fields, constraints, and enum values for NetworkTraffic.
+func (o *NetworkTraffic) Validate() error {
+	var errs []error
+	return errors.Join(errs...)
+}
+
 // Object represents the OCSF Object object.
 // An unordered collection of attributes. It defines a set of attributes available in all objects. It can be also used as a generic object to log objects that are not otherwise defined by the schema.
 type Object struct {
+}
+
+// Validate checks required fields, constraints, and enum values for Object.
+func (o *Object) Validate() error {
+	var errs []error
+	return errors.Join(errs...)
 }
 
 // Observable represents the OCSF Observable object.
@@ -2166,6 +2469,11 @@ func (o *Observable) Validate() error {
 	}
 	if o.Value != nil && len(*o.Value) > 65535 {
 		errs = append(errs, fmt.Errorf("value: length %d exceeds max 65535", len(*o.Value)))
+	}
+	if o.Reputation != nil {
+		if err := o.Reputation.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("reputation: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -2325,6 +2633,11 @@ func (o *Policy) Validate() error {
 	if o.Version != nil && len(*o.Version) > 65535 {
 		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
+	if o.Group != nil {
+		if err := o.Group.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("group: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2375,6 +2688,31 @@ func (o *Process) Validate() error {
 	if o.UID != nil && len(*o.UID) > 65535 {
 		errs = append(errs, fmt.Errorf("uid: length %d exceeds max 65535", len(*o.UID)))
 	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.ParentProcess != nil {
+		if err := o.ParentProcess.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("parent_process: %w", err))
+		}
+	}
+	if o.Session != nil {
+		if err := o.Session.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("session: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
+	if o.Xattributes != nil {
+		if err := o.Xattributes.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("xattributes: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2417,6 +2755,11 @@ func (o *Product) Validate() error {
 	}
 	if o.Version != nil && len(*o.Version) > 65535 {
 		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
+	if o.Feature != nil {
+		if err := o.Feature.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("feature: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -2551,6 +2894,16 @@ func (o *ResourceDetails) Validate() error {
 	}
 	if o.Version != nil && len(*o.Version) > 65535 {
 		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
+	}
+	if o.Group != nil {
+		if err := o.Group.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("group: %w", err))
+		}
+	}
+	if o.Owner != nil {
+		if err := o.Owner.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("owner: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -2805,6 +3158,31 @@ func (o *TLS) Validate() error {
 	if o.Version != nil && len(*o.Version) > 65535 {
 		errs = append(errs, fmt.Errorf("version: length %d exceeds max 65535", len(*o.Version)))
 	}
+	if o.Certificate != nil {
+		if err := o.Certificate.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("certificate: %w", err))
+		}
+	}
+	for i := range o.ExtensionList {
+		if err := o.ExtensionList[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("extension_list[%d]: %w", i, err))
+		}
+	}
+	if o.Ja3Hash != nil {
+		if err := o.Ja3Hash.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja3_hash: %w", err))
+		}
+	}
+	if o.Ja3sHash != nil {
+		if err := o.Ja3sHash.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ja3s_hash: %w", err))
+		}
+	}
+	for i := range o.Sans {
+		if err := o.Sans[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("sans[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2934,6 +3312,21 @@ func (o *User) Validate() error {
 	if o.UIDAlt != nil && len(*o.UIDAlt) > 65535 {
 		errs = append(errs, fmt.Errorf("uid_alt: length %d exceeds max 65535", len(*o.UIDAlt)))
 	}
+	if o.Account != nil {
+		if err := o.Account.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("account: %w", err))
+		}
+	}
+	for i := range o.Groups {
+		if err := o.Groups[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("groups[%d]: %w", i, err))
+		}
+	}
+	if o.Org != nil {
+		if err := o.Org.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("org: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -2969,6 +3362,16 @@ func (o *Vulnerability) Validate() error {
 	}
 	if o.VendorName != nil && len(*o.VendorName) > 65535 {
 		errs = append(errs, fmt.Errorf("vendor_name: length %d exceeds max 65535", len(*o.VendorName)))
+	}
+	if o.CVE != nil {
+		if err := o.CVE.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cve: %w", err))
+		}
+	}
+	for i := range o.Packages {
+		if err := o.Packages[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("packages[%d]: %w", i, err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -3253,6 +3656,51 @@ func (o *AccountChange) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
+	if o.UserResult != nil {
+		if err := o.UserResult.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user_result: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -3398,6 +3846,56 @@ func (o *APIActivity) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.API != nil {
+		if err := o.API.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("api: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Resources {
+		if err := o.Resources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resources[%d]: %w", i, err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -3531,6 +4029,31 @@ func (o *ApplicationLifecycle) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	if o.App != nil {
+		if err := o.App.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("app: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -3705,6 +4228,71 @@ func (o *Authentication) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Certificate != nil {
+		if err := o.Certificate.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("certificate: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.LogonProcess != nil {
+		if err := o.LogonProcess.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("logon_process: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Service != nil {
+		if err := o.Service.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("service: %w", err))
+		}
+	}
+	if o.Session != nil {
+		if err := o.Session.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("session: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -3855,6 +4443,46 @@ func (o *AuthorizeSession) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Group != nil {
+		if err := o.Group.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("group: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Session != nil {
+		if err := o.Session.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("session: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -3984,6 +4612,26 @@ func (o *BaseEvent) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -4120,6 +4768,41 @@ func (o *ConfigState) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.CisBenchmarkResult != nil {
+		if err := o.CisBenchmarkResult.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cis_benchmark_result: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -4259,6 +4942,41 @@ func (o *DhcpActivity) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Relay != nil {
+		if err := o.Relay.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("relay: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -4422,6 +5140,66 @@ func (o *DNSActivity) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	for i := range o.Answers {
+		if err := o.Answers[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("answers[%d]: %w", i, err))
+		}
+	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.Query != nil {
+		if err := o.Query.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("query: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -4580,6 +5358,46 @@ func (o *EmailActivity) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	if o.Email != nil {
+		if err := o.Email.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("email: %w", err))
+		}
+	}
+	if o.EmailAuth != nil {
+		if err := o.EmailAuth.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("email_auth: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -4717,6 +5535,31 @@ func (o *EmailFileActivity) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -4856,6 +5699,31 @@ func (o *EmailURLActivity) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.URL != nil {
+		if err := o.URL.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("url: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -4994,6 +5862,36 @@ func (o *EntityManagement) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Entity != nil {
+		if err := o.Entity.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("entity: %w", err))
+		}
+	}
+	if o.EntityResult != nil {
+		if err := o.EntityResult.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("entity_result: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -5154,6 +6052,46 @@ func (o *FileActivity) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.FileResult != nil {
+		if err := o.FileResult.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file_result: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -5319,6 +6257,56 @@ func (o *FtpActivity) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -5458,6 +6446,41 @@ func (o *GroupManagement) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Group != nil {
+		if err := o.Group.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("group: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Resource != nil {
+		if err := o.Resource.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resource: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -5614,6 +6637,66 @@ func (o *HTTPActivity) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.HTTPResponse != nil {
+		if err := o.HTTPResponse.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_response: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -5748,6 +6831,36 @@ func (o *InventoryInfo) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -5891,6 +7004,41 @@ func (o *KernelActivity) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Kernel != nil {
+		if err := o.Kernel.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("kernel: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -6032,6 +7180,41 @@ func (o *KernelExtension) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	if o.Driver != nil {
+		if err := o.Driver.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("driver: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -6182,6 +7365,41 @@ func (o *MemoryActivity) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Process != nil {
+		if err := o.Process.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("process: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -6323,6 +7541,41 @@ func (o *ModuleActivity) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	if o.Module != nil {
+		if err := o.Module.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("module: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -6470,6 +7723,56 @@ func (o *NetworkActivity) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -6612,6 +7915,41 @@ func (o *NetworkFileActivity) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -6770,6 +8108,46 @@ func (o *ProcessActivity) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	if o.Module != nil {
+		if err := o.Module.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("module: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Process != nil {
+		if err := o.Process.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("process: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -6930,6 +8308,71 @@ func (o *RDPActivity) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.RemoteDisplay != nil {
+		if err := o.RemoteDisplay.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("remote_display: %w", err))
+		}
+	}
+	if o.Request != nil {
+		if err := o.Request.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("request: %w", err))
+		}
+	}
+	if o.Response != nil {
+		if err := o.Response.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("response: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -7068,6 +8511,41 @@ func (o *ScheduledJobActivity) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Job != nil {
+		if err := o.Job.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("job: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -7269,6 +8747,76 @@ func (o *SecurityFinding) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.Analytic != nil {
+		if err := o.Analytic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("analytic: %w", err))
+		}
+	}
+	for i := range o.Attacks {
+		if err := o.Attacks[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("attacks[%d]: %w", i, err))
+		}
+	}
+	for i := range o.CisCsc {
+		if err := o.CisCsc[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("cis_csc[%d]: %w", i, err))
+		}
+	}
+	if o.Compliance != nil {
+		if err := o.Compliance.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("compliance: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Finding != nil {
+		if err := o.Finding.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("finding: %w", err))
+		}
+	}
+	for i := range o.KillChain {
+		if err := o.KillChain[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("kill_chain[%d]: %w", i, err))
+		}
+	}
+	for i := range o.Malware {
+		if err := o.Malware[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("malware[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Process != nil {
+		if err := o.Process.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("process: %w", err))
+		}
+	}
+	for i := range o.Resources {
+		if err := o.Resources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resources[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	for i := range o.Vulnerabilities {
+		if err := o.Vulnerabilities[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("vulnerabilities[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -7451,6 +8999,71 @@ func (o *SmbActivity) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DceRpc != nil {
+		if err := o.DceRpc.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dce_rpc: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.File != nil {
+		if err := o.File.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("file: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.Response != nil {
+		if err := o.Response.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("response: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -7603,6 +9216,66 @@ func (o *SSHActivity) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.ClientHassh != nil {
+		if err := o.ClientHassh.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("client_hassh: %w", err))
+		}
+	}
+	if o.ConnectionInfo != nil {
+		if err := o.ConnectionInfo.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("connection_info: %w", err))
+		}
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.ServerHassh != nil {
+		if err := o.ServerHassh.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("server_hassh: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Traffic != nil {
+		if err := o.Traffic.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("traffic: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -7741,6 +9414,36 @@ func (o *UserAccess) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Resource != nil {
+		if err := o.Resource.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("resource: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.User != nil {
+		if err := o.User.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("user: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -7884,6 +9587,56 @@ func (o *WebResourceAccessActivity) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.HTTPRequest != nil {
+		if err := o.HTTPRequest.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_request: %w", err))
+		}
+	}
+	if o.HTTPResponse != nil {
+		if err := o.HTTPResponse.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("http_response: %w", err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Proxy != nil {
+		if err := o.Proxy.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("proxy: %w", err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.TLS != nil {
+		if err := o.TLS.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tls: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	for i := range o.WebResources {
+		if err := o.WebResources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("web_resources[%d]: %w", i, err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -8020,6 +9773,46 @@ func (o *WebResourcesActivity) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	if o.DstEndpoint != nil {
+		if err := o.DstEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("dst_endpoint: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.SrcEndpoint != nil {
+		if err := o.SrcEndpoint.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("src_endpoint: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	for i := range o.WebResources {
+		if err := o.WebResources[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("web_resources[%d]: %w", i, err))
+		}
+	}
+	for i := range o.WebResourcesResult {
+		if err := o.WebResourcesResult[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("web_resources_result[%d]: %w", i, err))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -8170,6 +9963,46 @@ func (o *WinRegistryKeyActivity) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.PrevRegKey != nil {
+		if err := o.PrevRegKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("prev_reg_key: %w", err))
+		}
+	}
+	if o.RegKey != nil {
+		if err := o.RegKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("reg_key: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -8313,6 +10146,46 @@ func (o *WinRegistryValueActivity) Validate() error {
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
 	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.PrevRegValue != nil {
+		if err := o.PrevRegValue.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("prev_reg_value: %w", err))
+		}
+	}
+	if o.RegValue != nil {
+		if err := o.RegValue.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("reg_value: %w", err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
 	return errors.Join(errs...)
 }
 
@@ -8454,6 +10327,41 @@ func (o *WinResourceActivity) Validate() error {
 	}
 	if o.TypeName != nil && len(*o.TypeName) > 65535 {
 		errs = append(errs, fmt.Errorf("type_name: length %d exceeds max 65535", len(*o.TypeName)))
+	}
+	if o.Actor != nil {
+		if err := o.Actor.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("actor: %w", err))
+		}
+	}
+	if o.Device != nil {
+		if err := o.Device.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("device: %w", err))
+		}
+	}
+	for i := range o.Enrichments {
+		if err := o.Enrichments[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("enrichments[%d]: %w", i, err))
+		}
+	}
+	if o.Metadata != nil {
+		if err := o.Metadata.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("metadata: %w", err))
+		}
+	}
+	for i := range o.Observables {
+		if err := o.Observables[i].Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("observables[%d]: %w", i, err))
+		}
+	}
+	if o.Unmapped != nil {
+		if err := o.Unmapped.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unmapped: %w", err))
+		}
+	}
+	if o.WinResource != nil {
+		if err := o.WinResource.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("win_resource: %w", err))
+		}
 	}
 	return errors.Join(errs...)
 }
