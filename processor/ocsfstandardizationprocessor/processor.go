@@ -23,6 +23,11 @@ import (
 	v100 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_0_0"
 	v110 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_1_0"
 	v120 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_2_0"
+	v130 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_3_0"
+	v140 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_4_0"
+	v150 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_5_0"
+	v160 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_6_0"
+	v170 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_7_0"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 )
@@ -216,15 +221,15 @@ func (osp *ocsfStandardizationProcessor) validateBody(classUID int, body any) er
 	case OCSFVersion1_2_0:
 		validateFunc = v120.ValidateClass
 	case OCSFVersion1_3_0:
-		validateFunc = v100.ValidateClass
+		validateFunc = v130.ValidateClass
 	case OCSFVersion1_4_0:
-		validateFunc = v100.ValidateClass
+		validateFunc = v140.ValidateClass
 	case OCSFVersion1_5_0:
-		validateFunc = v100.ValidateClass
+		validateFunc = v150.ValidateClass
 	case OCSFVersion1_6_0:
-		validateFunc = v100.ValidateClass
+		validateFunc = v160.ValidateClass
 	case OCSFVersion1_7_0:
-		validateFunc = v100.ValidateClass
+		validateFunc = v170.ValidateClass
 	default:
 		return fmt.Errorf("OCSF version %s is not supported", osp.ocsfVersion)
 	}
