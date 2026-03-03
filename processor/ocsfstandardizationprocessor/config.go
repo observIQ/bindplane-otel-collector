@@ -21,6 +21,7 @@ import (
 	"slices"
 
 	"github.com/observiq/bindplane-otel-collector/expr"
+	v100 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_0_0"
 )
 
 var (
@@ -98,6 +99,7 @@ func (cfg Config) Validate() error {
 			}
 		}
 
+		fieldPaths := make([]string, len(em.FieldMappings))
 		for j, fm := range em.FieldMappings {
 			if fm.To == "" {
 				return fmt.Errorf("event_mappings[%d].field_mappings[%d]: to is required", i, j)
@@ -111,6 +113,17 @@ func (cfg Config) Validate() error {
 					return fmt.Errorf("event_mappings[%d].field_mappings[%d]: invalid from expression: %w", i, j, err)
 				}
 			}
+
+			fieldPaths = append(fieldPaths, fm.To)
+		}
+
+		var coverageErr error
+		switch cfg.OCSFVersion {
+		case OCSFVersion1_0_0:
+			coverageErr = v100.ValidateFieldCoverage(em.ClassID, fieldPaths)
+		}
+		if coverageErr != nil {
+			return fmt.Errorf("event_mappings[%d]: %w", i, coverageErr)
 		}
 	}
 
