@@ -26,13 +26,6 @@ func (o *Account) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -107,13 +100,6 @@ func (o *AffectedPackage) Validate() error {
 	if o.Version == nil {
 		errs = append(errs, errors.New("version is required"))
 	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -135,13 +121,6 @@ func (o *Agent) Validate() error {
 	var errs []error
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -167,13 +146,6 @@ func (o *Analytic) Validate() error {
 	}
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -252,13 +224,6 @@ func (o *AuthFactor) Validate() error {
 			errs = append(errs, fmt.Errorf("exactly one of [email_addr, phone_number, security_questions] must be set, got %d", count))
 		}
 	}
-	if o.FactorTypeID != nil {
-		switch *o.FactorTypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
-		default:
-			errs = append(errs, fmt.Errorf("factor_type_id: invalid value %d", *o.FactorTypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -288,8 +253,8 @@ func (o *AutonomousSystem) Validate() error {
 // Certificate represents the OCSF Digital Certificate object.
 // The Digital Certificate, also known as a Public Key Certificate, object contains information about the ownership and usage of a public key. It serves as a means to establish trust in the authenticity and integrity of the public key and the associated entity. Defined by D3FEND d3f:Certificate.
 type Certificate struct {
-	CreatedTime    *string       `mapstructure:"created_time,omitempty"`
-	ExpirationTime *string       `mapstructure:"expiration_time,omitempty"`
+	CreatedTime    *int64        `mapstructure:"created_time,omitempty"`
+	ExpirationTime *int64        `mapstructure:"expiration_time,omitempty"`
 	Fingerprints   []Fingerprint `mapstructure:"fingerprints"`
 	IsSelfSigned   *bool         `mapstructure:"is_self_signed,omitempty"`
 	Issuer         *string       `mapstructure:"issuer"`
@@ -422,13 +387,6 @@ func (o *Compliance) Validate() error {
 	if len(o.Standards) == 0 {
 		errs = append(errs, errors.New("standards is required"))
 	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -459,14 +417,14 @@ func (o *Container) Validate() error {
 // CVE represents the OCSF CVE object.
 // The Common Vulnerabilities and Exposures (CVE) object represents publicly disclosed cybersecurity vulnerabilities defined in CVE Program catalog (CVE). There is one CVE Record for each vulnerability in the catalog.
 type CVE struct {
-	CreatedTime  *string  `mapstructure:"created_time,omitempty"`
+	CreatedTime  *int64   `mapstructure:"created_time,omitempty"`
 	CVSS         []CVSS   `mapstructure:"cvss,omitempty"`
 	Cwe          *Cwe     `mapstructure:"cwe,omitempty"`
 	CweUID       *string  `mapstructure:"cwe_uid,omitempty"`
 	CweURL       *string  `mapstructure:"cwe_url,omitempty"`
 	Desc         *string  `mapstructure:"desc,omitempty"`
 	Epss         *Epss    `mapstructure:"epss,omitempty"`
-	ModifiedTime *string  `mapstructure:"modified_time,omitempty"`
+	ModifiedTime *int64   `mapstructure:"modified_time,omitempty"`
 	Product      *Product `mapstructure:"product,omitempty"`
 	References   []string `mapstructure:"references,omitempty"`
 	Title        *string  `mapstructure:"title,omitempty"`
@@ -598,20 +556,6 @@ func (o *DataClassification) Validate() error {
 	if o.CategoryID == nil && o.ConfidentialityID == nil {
 		errs = append(errs, errors.New("at least one of [category_id, confidentiality_id] must be set"))
 	}
-	if o.CategoryID != nil {
-		switch *o.CategoryID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("category_id: invalid value %d", *o.CategoryID))
-		}
-	}
-	if o.ConfidentialityID != nil {
-		switch *o.ConfidentialityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("confidentiality_id: invalid value %d", *o.ConfidentialityID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -637,44 +581,16 @@ func (o *DataSecurity) Validate() error {
 	if o.DataLifecycleStateID == nil && o.DetectionPattern == nil && o.DetectionSystemID == nil && o.Policy == nil {
 		errs = append(errs, errors.New("at least one of [data_lifecycle_state_id, detection_pattern, detection_system_id, policy] must be set"))
 	}
-	if o.CategoryID != nil {
-		switch *o.CategoryID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("category_id: invalid value %d", *o.CategoryID))
-		}
-	}
-	if o.ConfidentialityID != nil {
-		switch *o.ConfidentialityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("confidentiality_id: invalid value %d", *o.ConfidentialityID))
-		}
-	}
-	if o.DataLifecycleStateID != nil {
-		switch *o.DataLifecycleStateID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("data_lifecycle_state_id: invalid value %d", *o.DataLifecycleStateID))
-		}
-	}
-	if o.DetectionSystemID != nil {
-		switch *o.DetectionSystemID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 99:
-		default:
-			errs = append(errs, fmt.Errorf("detection_system_id: invalid value %d", *o.DetectionSystemID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
 // Database represents the OCSF Database object.
 // The database object is used for databases which are typically datastore services that contain an organized collection of structured and unstructured data or a types of data.
 type Database struct {
-	CreatedTime  *string `mapstructure:"created_time,omitempty"`
+	CreatedTime  *int64  `mapstructure:"created_time,omitempty"`
 	Desc         *string `mapstructure:"desc,omitempty"`
 	Groups       []Group `mapstructure:"groups,omitempty"`
-	ModifiedTime *string `mapstructure:"modified_time,omitempty"`
+	ModifiedTime *int64  `mapstructure:"modified_time,omitempty"`
 	Name         *string `mapstructure:"name,omitempty"`
 	Size         *int64  `mapstructure:"size,omitempty"`
 	Type         *string `mapstructure:"type,omitempty"`
@@ -691,24 +607,17 @@ func (o *Database) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
 // Databucket represents the OCSF Databucket object.
 // The databucket object is a basic container that holds data, typically organized through the use of data partitions.
 type Databucket struct {
-	CreatedTime  *string `mapstructure:"created_time,omitempty"`
+	CreatedTime  *int64  `mapstructure:"created_time,omitempty"`
 	Desc         *string `mapstructure:"desc,omitempty"`
 	File         *File   `mapstructure:"file,omitempty"`
 	Groups       []Group `mapstructure:"groups,omitempty"`
-	ModifiedTime *string `mapstructure:"modified_time,omitempty"`
+	ModifiedTime *int64  `mapstructure:"modified_time,omitempty"`
 	Name         *string `mapstructure:"name,omitempty"`
 	Size         *int64  `mapstructure:"size,omitempty"`
 	Type         *string `mapstructure:"type,omitempty"`
@@ -724,13 +633,6 @@ func (o *Databucket) Validate() error {
 	}
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -762,11 +664,11 @@ func (o *DceRpc) Validate() error {
 type Device struct {
 	AgentList         []Agent            `mapstructure:"agent_list,omitempty"`
 	AutoscaleUID      *string            `mapstructure:"autoscale_uid,omitempty"`
-	BootTime          *string            `mapstructure:"boot_time,omitempty"`
-	CreatedTime       *string            `mapstructure:"created_time,omitempty"`
+	BootTime          *int64             `mapstructure:"boot_time,omitempty"`
+	CreatedTime       *int64             `mapstructure:"created_time,omitempty"`
 	Desc              *string            `mapstructure:"desc,omitempty"`
 	Domain            *string            `mapstructure:"domain,omitempty"`
-	FirstSeenTime     *string            `mapstructure:"first_seen_time,omitempty"`
+	FirstSeenTime     *int64             `mapstructure:"first_seen_time,omitempty"`
 	Groups            []Group            `mapstructure:"groups,omitempty"`
 	Hostname          *string            `mapstructure:"hostname,omitempty"`
 	HwInfo            *DeviceHwInfo      `mapstructure:"hw_info,omitempty"`
@@ -781,10 +683,10 @@ type Device struct {
 	IsManaged         *bool              `mapstructure:"is_managed,omitempty"`
 	IsPersonal        *bool              `mapstructure:"is_personal,omitempty"`
 	IsTrusted         *bool              `mapstructure:"is_trusted,omitempty"`
-	LastSeenTime      *string            `mapstructure:"last_seen_time,omitempty"`
+	LastSeenTime      *int64             `mapstructure:"last_seen_time,omitempty"`
 	Location          *Location          `mapstructure:"location,omitempty"`
 	MAC               *string            `mapstructure:"mac,omitempty"`
-	ModifiedTime      *string            `mapstructure:"modified_time,omitempty"`
+	ModifiedTime      *int64             `mapstructure:"modified_time,omitempty"`
 	Name              *string            `mapstructure:"name,omitempty"`
 	NetworkInterfaces []NetworkInterface `mapstructure:"network_interfaces,omitempty"`
 	Org               *Organization      `mapstructure:"org,omitempty"`
@@ -814,20 +716,6 @@ func (o *Device) Validate() error {
 	if o.Hostname == nil && o.InstanceUID == nil && o.InterfaceName == nil && o.InterfaceUID == nil && o.IP == nil && o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, uid] must be set"))
 	}
-	if o.RiskLevelID != nil {
-		switch *o.RiskLevelID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("risk_level_id: invalid value %d", *o.RiskLevelID))
-		}
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -855,7 +743,7 @@ type DigitalSignature struct {
 	Algorithm    *string      `mapstructure:"algorithm,omitempty"`
 	AlgorithmID  *int         `mapstructure:"algorithm_id"`
 	Certificate  *Certificate `mapstructure:"certificate,omitempty"`
-	CreatedTime  *string      `mapstructure:"created_time,omitempty"`
+	CreatedTime  *int64       `mapstructure:"created_time,omitempty"`
 	DeveloperUID *string      `mapstructure:"developer_uid,omitempty"`
 	Digest       *Fingerprint `mapstructure:"digest,omitempty"`
 	State        *string      `mapstructure:"state,omitempty"`
@@ -867,20 +755,6 @@ func (o *DigitalSignature) Validate() error {
 	var errs []error
 	if o.AlgorithmID == nil {
 		errs = append(errs, errors.New("algorithm_id is required"))
-	}
-	if o.AlgorithmID != nil {
-		switch *o.AlgorithmID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("algorithm_id: invalid value %d", *o.AlgorithmID))
-		}
-	}
-	if o.StateID != nil {
-		switch *o.StateID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("state_id: invalid value %d", *o.StateID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -933,13 +807,6 @@ func (o *DNSQuery) Validate() error {
 	if o.Hostname == nil {
 		errs = append(errs, errors.New("hostname is required"))
 	}
-	if o.OpcodeID != nil {
-		switch *o.OpcodeID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("opcode_id: invalid value %d", *o.OpcodeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -960,13 +827,6 @@ func (o *DomainContact) Validate() error {
 	var errs []error
 	if o.TypeID == nil {
 		errs = append(errs, errors.New("type_id is required"))
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -1044,13 +904,6 @@ func (o *Endpoint) Validate() error {
 	if o.Hostname == nil && o.InstanceUID == nil && o.InterfaceName == nil && o.InterfaceUID == nil && o.IP == nil && o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, uid] must be set"))
 	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -1073,7 +926,7 @@ func (o *EndpointConnection) Validate() error {
 // Enrichment represents the OCSF Enrichment object.
 // The Enrichment object provides inline enrichment data for specific attributes of interest within an event. It serves as a mechanism to enhance or supplement the information associated with the event by adding additional relevant details or context.
 type Enrichment struct {
-	CreatedTime *string     `mapstructure:"created_time,omitempty"`
+	CreatedTime *int64      `mapstructure:"created_time,omitempty"`
 	Data        any         `mapstructure:"data"`
 	Desc        *string     `mapstructure:"desc,omitempty"`
 	Name        *string     `mapstructure:"name"`
@@ -1103,7 +956,7 @@ func (o *Enrichment) Validate() error {
 // Epss represents the OCSF EPSS object.
 // The Exploit Prediction Scoring System (EPSS) object describes the estimated probability a vulnerability will be exploited. EPSS is a community-driven effort to combine descriptive information about vulnerabilities (CVEs) with evidence of actual exploitation in-the-wild. (EPSS).
 type Epss struct {
-	CreatedTime *string  `mapstructure:"created_time,omitempty"`
+	CreatedTime *int64   `mapstructure:"created_time,omitempty"`
 	Percentile  *float64 `mapstructure:"percentile,omitempty"`
 	Score       *string  `mapstructure:"score"`
 	Version     *string  `mapstructure:"version,omitempty"`
@@ -1195,20 +1048,20 @@ func (o *Feature) Validate() error {
 // File represents the OCSF File object.
 // The File object represents the metadata associated with a file stored in a computer system. It encompasses information about the file itself, including its attributes, properties, and organizational details. Defined by D3FEND d3f:File.
 type File struct {
-	AccessedTime       *string           `mapstructure:"accessed_time,omitempty"`
+	AccessedTime       *int64            `mapstructure:"accessed_time,omitempty"`
 	Accessor           *User             `mapstructure:"accessor,omitempty"`
 	Attributes         *int              `mapstructure:"attributes,omitempty"`
 	CompanyName        *string           `mapstructure:"company_name,omitempty"`
 	Confidentiality    *string           `mapstructure:"confidentiality,omitempty"`
 	ConfidentialityID  *int              `mapstructure:"confidentiality_id,omitempty"`
-	CreatedTime        *string           `mapstructure:"created_time,omitempty"`
+	CreatedTime        *int64            `mapstructure:"created_time,omitempty"`
 	Creator            *User             `mapstructure:"creator,omitempty"`
 	Desc               *string           `mapstructure:"desc,omitempty"`
 	Ext                *string           `mapstructure:"ext,omitempty"`
 	Hashes             []Fingerprint     `mapstructure:"hashes,omitempty"`
 	IsSystem           *bool             `mapstructure:"is_system,omitempty"`
 	MimeType           *string           `mapstructure:"mime_type,omitempty"`
-	ModifiedTime       *string           `mapstructure:"modified_time,omitempty"`
+	ModifiedTime       *int64            `mapstructure:"modified_time,omitempty"`
 	Modifier           *User             `mapstructure:"modifier,omitempty"`
 	Name               *string           `mapstructure:"name"`
 	Owner              *User             `mapstructure:"owner,omitempty"`
@@ -1234,31 +1087,17 @@ func (o *File) Validate() error {
 	if o.TypeID == nil {
 		errs = append(errs, errors.New("type_id is required"))
 	}
-	if o.ConfidentialityID != nil {
-		switch *o.ConfidentialityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("confidentiality_id: invalid value %d", *o.ConfidentialityID))
-		}
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
 // Finding represents the OCSF Finding object.
 // The Finding object describes metadata related to a security finding generated by a security tool or system.
 type Finding struct {
-	CreatedTime    *string        `mapstructure:"created_time,omitempty"`
+	CreatedTime    *int64         `mapstructure:"created_time,omitempty"`
 	Desc           *string        `mapstructure:"desc,omitempty"`
-	FirstSeenTime  *string        `mapstructure:"first_seen_time,omitempty"`
-	LastSeenTime   *string        `mapstructure:"last_seen_time,omitempty"`
-	ModifiedTime   *string        `mapstructure:"modified_time,omitempty"`
+	FirstSeenTime  *int64         `mapstructure:"first_seen_time,omitempty"`
+	LastSeenTime   *int64         `mapstructure:"last_seen_time,omitempty"`
+	ModifiedTime   *int64         `mapstructure:"modified_time,omitempty"`
 	ProductUID     *string        `mapstructure:"product_uid,omitempty"`
 	RelatedEvents  []RelatedEvent `mapstructure:"related_events,omitempty"`
 	Remediation    *Remediation   `mapstructure:"remediation,omitempty"`
@@ -1286,13 +1125,13 @@ func (o *Finding) Validate() error {
 type FindingInfo struct {
 	Analytic         *Analytic        `mapstructure:"analytic,omitempty"`
 	Attacks          []Attack         `mapstructure:"attacks,omitempty"`
-	CreatedTime      *string          `mapstructure:"created_time,omitempty"`
+	CreatedTime      *int64           `mapstructure:"created_time,omitempty"`
 	DataSources      []string         `mapstructure:"data_sources,omitempty"`
 	Desc             *string          `mapstructure:"desc,omitempty"`
-	FirstSeenTime    *string          `mapstructure:"first_seen_time,omitempty"`
+	FirstSeenTime    *int64           `mapstructure:"first_seen_time,omitempty"`
 	KillChain        []KillChainPhase `mapstructure:"kill_chain,omitempty"`
-	LastSeenTime     *string          `mapstructure:"last_seen_time,omitempty"`
-	ModifiedTime     *string          `mapstructure:"modified_time,omitempty"`
+	LastSeenTime     *int64           `mapstructure:"last_seen_time,omitempty"`
+	ModifiedTime     *int64           `mapstructure:"modified_time,omitempty"`
 	ProductUID       *string          `mapstructure:"product_uid,omitempty"`
 	RelatedAnalytics []Analytic       `mapstructure:"related_analytics,omitempty"`
 	RelatedEvents    []RelatedEvent   `mapstructure:"related_events,omitempty"`
@@ -1330,13 +1169,6 @@ func (o *Fingerprint) Validate() error {
 	}
 	if o.Value == nil {
 		errs = append(errs, errors.New("value is required"))
-	}
-	if o.AlgorithmID != nil {
-		switch *o.AlgorithmID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
-		default:
-			errs = append(errs, fmt.Errorf("algorithm_id: invalid value %d", *o.AlgorithmID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -1407,7 +1239,7 @@ func (o *Hassh) Validate() error {
 // The HTTP Cookie object, also known as a web cookie or browser cookie, contains details and values pertaining to a small piece of data that a server sends to a user's web browser. This data is then stored by the browser and sent back to the server with subsequent requests, allowing the server to remember and track certain information about the user's browsing session or preferences.
 type HTTPCookie struct {
 	Domain         *string `mapstructure:"domain,omitempty"`
-	ExpirationTime *string `mapstructure:"expiration_time,omitempty"`
+	ExpirationTime *int64  `mapstructure:"expiration_time,omitempty"`
 	HTTPOnly       *bool   `mapstructure:"http_only,omitempty"`
 	IsHTTPOnly     *bool   `mapstructure:"is_http_only,omitempty"`
 	IsSecure       *bool   `mapstructure:"is_secure,omitempty"`
@@ -1554,13 +1386,6 @@ func (o *Ja4Fingerprint) Validate() error {
 	if o.Value == nil {
 		errs = append(errs, errors.New("value is required"))
 	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -1568,12 +1393,12 @@ func (o *Ja4Fingerprint) Validate() error {
 // The Job object provides information about a scheduled job or task, including its name, command line, and state. It encompasses attributes that describe the properties and status of the scheduled job.
 type Job struct {
 	CmdLine     *string `mapstructure:"cmd_line,omitempty"`
-	CreatedTime *string `mapstructure:"created_time,omitempty"`
+	CreatedTime *int64  `mapstructure:"created_time,omitempty"`
 	Desc        *string `mapstructure:"desc,omitempty"`
 	File        *File   `mapstructure:"file"`
-	LastRunTime *string `mapstructure:"last_run_time,omitempty"`
+	LastRunTime *int64  `mapstructure:"last_run_time,omitempty"`
 	Name        *string `mapstructure:"name"`
-	NextRunTime *string `mapstructure:"next_run_time,omitempty"`
+	NextRunTime *int64  `mapstructure:"next_run_time,omitempty"`
 	RunState    *string `mapstructure:"run_state,omitempty"`
 	RunStateID  *int    `mapstructure:"run_state_id,omitempty"`
 	User        *User   `mapstructure:"user,omitempty"`
@@ -1588,13 +1413,6 @@ func (o *Job) Validate() error {
 	if o.Name == nil {
 		errs = append(errs, errors.New("name is required"))
 	}
-	if o.RunStateID != nil {
-		switch *o.RunStateID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("run_state_id: invalid value %d", *o.RunStateID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -1604,7 +1422,7 @@ type KbArticle struct {
 	AvgTimespan    *Timespan `mapstructure:"avg_timespan,omitempty"`
 	Bulletin       *string   `mapstructure:"bulletin,omitempty"`
 	Classification *string   `mapstructure:"classification,omitempty"`
-	CreatedTime    *string   `mapstructure:"created_time,omitempty"`
+	CreatedTime    *int64    `mapstructure:"created_time,omitempty"`
 	InstallState   *string   `mapstructure:"install_state,omitempty"`
 	InstallStateID *int      `mapstructure:"install_state_id,omitempty"`
 	IsSuperseded   *bool     `mapstructure:"is_superseded,omitempty"`
@@ -1622,13 +1440,6 @@ func (o *KbArticle) Validate() error {
 	var errs []error
 	if o.UID == nil {
 		errs = append(errs, errors.New("uid is required"))
-	}
-	if o.InstallStateID != nil {
-		switch *o.InstallStateID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("install_state_id: invalid value %d", *o.InstallStateID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -1652,13 +1463,6 @@ func (o *Kernel) Validate() error {
 	}
 	if o.TypeID == nil {
 		errs = append(errs, errors.New("type_id is required"))
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -1701,13 +1505,6 @@ func (o *KillChainPhase) Validate() error {
 	if o.PhaseID == nil {
 		errs = append(errs, errors.New("phase_id is required"))
 	}
-	if o.PhaseID != nil {
-		switch *o.PhaseID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
-		default:
-			errs = append(errs, fmt.Errorf("phase_id: invalid value %d", *o.PhaseID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -1715,21 +1512,21 @@ func (o *KillChainPhase) Validate() error {
 // The additional LDAP attributes that describe a person.
 type LDAPPerson struct {
 	CostCenter     *string   `mapstructure:"cost_center,omitempty"`
-	CreatedTime    *string   `mapstructure:"created_time,omitempty"`
-	DeletedTime    *string   `mapstructure:"deleted_time,omitempty"`
+	CreatedTime    *int64    `mapstructure:"created_time,omitempty"`
+	DeletedTime    *int64    `mapstructure:"deleted_time,omitempty"`
 	EmailAddrs     []string  `mapstructure:"email_addrs,omitempty"`
 	EmployeeUID    *string   `mapstructure:"employee_uid,omitempty"`
 	GivenName      *string   `mapstructure:"given_name,omitempty"`
-	HireTime       *string   `mapstructure:"hire_time,omitempty"`
+	HireTime       *int64    `mapstructure:"hire_time,omitempty"`
 	JobTitle       *string   `mapstructure:"job_title,omitempty"`
 	Labels         []string  `mapstructure:"labels,omitempty"`
-	LastLoginTime  *string   `mapstructure:"last_login_time,omitempty"`
+	LastLoginTime  *int64    `mapstructure:"last_login_time,omitempty"`
 	LDAPCn         *string   `mapstructure:"ldap_cn,omitempty"`
 	LDAPDn         *string   `mapstructure:"ldap_dn,omitempty"`
-	LeaveTime      *string   `mapstructure:"leave_time,omitempty"`
+	LeaveTime      *int64    `mapstructure:"leave_time,omitempty"`
 	Location       *Location `mapstructure:"location,omitempty"`
 	Manager        *User     `mapstructure:"manager,omitempty"`
-	ModifiedTime   *string   `mapstructure:"modified_time,omitempty"`
+	ModifiedTime   *int64    `mapstructure:"modified_time,omitempty"`
 	OfficeLocation *string   `mapstructure:"office_location,omitempty"`
 	Surname        *string   `mapstructure:"surname,omitempty"`
 }
@@ -1794,10 +1591,10 @@ type Logger struct {
 	LogName      *string  `mapstructure:"log_name,omitempty"`
 	LogProvider  *string  `mapstructure:"log_provider,omitempty"`
 	LogVersion   *string  `mapstructure:"log_version,omitempty"`
-	LoggedTime   *string  `mapstructure:"logged_time,omitempty"`
+	LoggedTime   *int64   `mapstructure:"logged_time,omitempty"`
 	Name         *string  `mapstructure:"name,omitempty"`
 	Product      *Product `mapstructure:"product,omitempty"`
-	TransmitTime *string  `mapstructure:"transmit_time,omitempty"`
+	TransmitTime *int64   `mapstructure:"transmit_time,omitempty"`
 	UID          *string  `mapstructure:"uid,omitempty"`
 	Version      *string  `mapstructure:"version,omitempty"`
 }
@@ -1858,13 +1655,6 @@ func (o *ManagedEntity) Validate() error {
 	if o.Device == nil && o.Group == nil && o.Name == nil && o.Org == nil && o.Policy == nil && o.UID == nil && o.User == nil {
 		errs = append(errs, errors.New("at least one of [device, group, name, org, policy, uid, user] must be set"))
 	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -1880,11 +1670,11 @@ type Metadata struct {
 	LogName        *string     `mapstructure:"log_name,omitempty"`
 	LogProvider    *string     `mapstructure:"log_provider,omitempty"`
 	LogVersion     *string     `mapstructure:"log_version,omitempty"`
-	LoggedTime     *string     `mapstructure:"logged_time,omitempty"`
+	LoggedTime     *int64      `mapstructure:"logged_time,omitempty"`
 	Loggers        []Logger    `mapstructure:"loggers,omitempty"`
-	ModifiedTime   *string     `mapstructure:"modified_time,omitempty"`
+	ModifiedTime   *int64      `mapstructure:"modified_time,omitempty"`
 	OriginalTime   *string     `mapstructure:"original_time,omitempty"`
-	ProcessedTime  *string     `mapstructure:"processed_time,omitempty"`
+	ProcessedTime  *int64      `mapstructure:"processed_time,omitempty"`
 	Product        *Product    `mapstructure:"product"`
 	Profiles       []string    `mapstructure:"profiles,omitempty"`
 	Sequence       *int        `mapstructure:"sequence,omitempty"`
@@ -1942,13 +1732,6 @@ func (o *Module) Validate() error {
 	if o.LoadTypeID == nil {
 		errs = append(errs, errors.New("load_type_id is required"))
 	}
-	if o.LoadTypeID != nil {
-		switch *o.LoadTypeID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("load_type_id: invalid value %d", *o.LoadTypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -1974,27 +1757,6 @@ func (o *NetworkConnectionInfo) Validate() error {
 	if o.DirectionID == nil {
 		errs = append(errs, errors.New("direction_id is required"))
 	}
-	if o.BoundaryID != nil {
-		switch *o.BoundaryID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
-		default:
-			errs = append(errs, fmt.Errorf("boundary_id: invalid value %d", *o.BoundaryID))
-		}
-	}
-	if o.DirectionID != nil {
-		switch *o.DirectionID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("direction_id: invalid value %d", *o.DirectionID))
-		}
-	}
-	if o.ProtocolVerID != nil {
-		switch *o.ProtocolVerID {
-		case 0, 4, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("protocol_ver_id: invalid value %d", *o.ProtocolVerID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -2016,7 +1778,7 @@ type NetworkEndpoint struct {
 	Name             *string           `mapstructure:"name,omitempty"`
 	OS               *OS               `mapstructure:"os,omitempty"`
 	Owner            *User             `mapstructure:"owner,omitempty"`
-	Port             *string           `mapstructure:"port,omitempty"`
+	Port             *int              `mapstructure:"port,omitempty"`
 	ProxyEndpoint    *NetworkProxy     `mapstructure:"proxy_endpoint,omitempty"`
 	SubnetUID        *string           `mapstructure:"subnet_uid,omitempty"`
 	SvcName          *string           `mapstructure:"svc_name,omitempty"`
@@ -2033,13 +1795,6 @@ func (o *NetworkEndpoint) Validate() error {
 	var errs []error
 	if o.Hostname == nil && o.InstanceUID == nil && o.InterfaceName == nil && o.InterfaceUID == nil && o.IP == nil && o.Name == nil && o.SvcName == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, svc_name, uid] must be set"))
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -2067,13 +1822,6 @@ func (o *NetworkInterface) Validate() error {
 	if o.Hostname == nil && o.IP == nil && o.MAC == nil && o.Name == nil {
 		errs = append(errs, errors.New("at least one of [hostname, ip, mac, name] must be set"))
 	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -2095,7 +1843,7 @@ type NetworkProxy struct {
 	Name             *string           `mapstructure:"name,omitempty"`
 	OS               *OS               `mapstructure:"os,omitempty"`
 	Owner            *User             `mapstructure:"owner,omitempty"`
-	Port             *string           `mapstructure:"port,omitempty"`
+	Port             *int              `mapstructure:"port,omitempty"`
 	ProxyEndpoint    *NetworkProxy     `mapstructure:"proxy_endpoint,omitempty"`
 	SubnetUID        *string           `mapstructure:"subnet_uid,omitempty"`
 	SvcName          *string           `mapstructure:"svc_name,omitempty"`
@@ -2112,13 +1860,6 @@ func (o *NetworkProxy) Validate() error {
 	var errs []error
 	if o.Hostname == nil && o.InstanceUID == nil && o.InterfaceName == nil && o.InterfaceUID == nil && o.IP == nil && o.Name == nil && o.SvcName == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [hostname, instance_uid, interface_name, interface_uid, ip, name, svc_name, uid] must be set"))
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -2160,13 +1901,6 @@ func (o *Observable) Validate() error {
 	}
 	if o.TypeID == nil {
 		errs = append(errs, errors.New("type_id is required"))
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -2215,13 +1949,6 @@ func (o *OS) Validate() error {
 	if o.TypeID == nil {
 		errs = append(errs, errors.New("type_id is required"))
 	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 99, 100, 101, 200, 201, 300, 301, 302, 400, 401, 402:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -2264,25 +1991,11 @@ func (o *Osint) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
-	if o.ConfidenceID != nil {
-		switch *o.ConfidenceID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", *o.ConfidenceID))
-		}
-	}
 	if o.Tlp != nil {
 		switch *o.Tlp {
 		case "AMBER", "AMBER STRICT", "CLEAR", "GREEN", "RED":
 		default:
 			errs = append(errs, fmt.Errorf("tlp: invalid value %q", *o.Tlp))
-		}
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
 		}
 	}
 	return errors.Join(errs...)
@@ -2313,13 +2026,6 @@ func (o *Package) Validate() error {
 	}
 	if o.Version == nil {
 		errs = append(errs, errors.New("version is required"))
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -2374,7 +2080,7 @@ func (o *Policy) Validate() error {
 // The Process object describes a running instance of a launched program. Defined by D3FEND d3f:Process.
 type Process struct {
 	CmdLine        *string  `mapstructure:"cmd_line,omitempty"`
-	CreatedTime    *string  `mapstructure:"created_time,omitempty"`
+	CreatedTime    *int64   `mapstructure:"created_time,omitempty"`
 	File           *File    `mapstructure:"file,omitempty"`
 	Integrity      *string  `mapstructure:"integrity,omitempty"`
 	IntegrityID    *int     `mapstructure:"integrity_id,omitempty"`
@@ -2385,7 +2091,7 @@ type Process struct {
 	Pid            *int     `mapstructure:"pid,omitempty"`
 	Sandbox        *string  `mapstructure:"sandbox,omitempty"`
 	Session        *Session `mapstructure:"session,omitempty"`
-	TerminatedTime *string  `mapstructure:"terminated_time,omitempty"`
+	TerminatedTime *int64   `mapstructure:"terminated_time,omitempty"`
 	Tid            *int     `mapstructure:"tid,omitempty"`
 	UID            *string  `mapstructure:"uid,omitempty"`
 	User           *User    `mapstructure:"user,omitempty"`
@@ -2397,13 +2103,6 @@ func (o *Process) Validate() error {
 	var errs []error
 	if o.Pid == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [pid, uid] must be set"))
-	}
-	if o.IntegrityID != nil {
-		switch *o.IntegrityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("integrity_id: invalid value %d", *o.IntegrityID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -2441,7 +2140,7 @@ type QueryInfo struct {
 	Data        any     `mapstructure:"data,omitempty"`
 	Name        *string `mapstructure:"name,omitempty"`
 	QueryString *string `mapstructure:"query_string"`
-	QueryTime   *string `mapstructure:"query_time,omitempty"`
+	QueryTime   *int64  `mapstructure:"query_time,omitempty"`
 	UID         *string `mapstructure:"uid,omitempty"`
 }
 
@@ -2514,13 +2213,6 @@ func (o *Reputation) Validate() error {
 	}
 	if o.ScoreID == nil {
 		errs = append(errs, errors.New("score_id is required"))
-	}
-	if o.ScoreID != nil {
-		switch *o.ScoreID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
-		default:
-			errs = append(errs, fmt.Errorf("score_id: invalid value %d", *o.ScoreID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -2658,13 +2350,6 @@ func (o *Scan) Validate() error {
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
 	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -2678,13 +2363,6 @@ type SecurityState struct {
 // Validate checks required fields, constraints, and enum values for SecurityState.
 func (o *SecurityState) Validate() error {
 	var errs []error
-	if o.StateID != nil {
-		switch *o.StateID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 99:
-		default:
-			errs = append(errs, fmt.Errorf("state_id: invalid value %d", *o.StateID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -2710,10 +2388,10 @@ func (o *Service) Validate() error {
 // The Session object describes details about an authenticated session. e.g. Session Creation Time, Session Issuer. Defined by D3FEND d3f:Session.
 type Session struct {
 	Count            *int    `mapstructure:"count,omitempty"`
-	CreatedTime      *string `mapstructure:"created_time,omitempty"`
+	CreatedTime      *int64  `mapstructure:"created_time,omitempty"`
 	CredentialUID    *string `mapstructure:"credential_uid,omitempty"`
 	ExpirationReason *string `mapstructure:"expiration_reason,omitempty"`
-	ExpirationTime   *string `mapstructure:"expiration_time,omitempty"`
+	ExpirationTime   *int64  `mapstructure:"expiration_time,omitempty"`
 	IsMFA            *bool   `mapstructure:"is_mfa,omitempty"`
 	IsRemote         *bool   `mapstructure:"is_remote,omitempty"`
 	IsVPN            *bool   `mapstructure:"is_vpn,omitempty"`
@@ -2744,10 +2422,10 @@ func (o *SubTechnique) Validate() error {
 // Table represents the OCSF Table object.
 // The table object represents a table within a structured relational database or datastore, which contains columns and rows of data that are able to be create, updated, deleted and queried.
 type Table struct {
-	CreatedTime  *string `mapstructure:"created_time,omitempty"`
+	CreatedTime  *int64  `mapstructure:"created_time,omitempty"`
 	Desc         *string `mapstructure:"desc,omitempty"`
 	Groups       []Group `mapstructure:"groups,omitempty"`
-	ModifiedTime *string `mapstructure:"modified_time,omitempty"`
+	ModifiedTime *int64  `mapstructure:"modified_time,omitempty"`
 	Name         *string `mapstructure:"name,omitempty"`
 	Size         *int64  `mapstructure:"size,omitempty"`
 	UID          *string `mapstructure:"uid,omitempty"`
@@ -2812,13 +2490,6 @@ func (o *Ticket) Validate() error {
 	if o.SrcURL == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [src_url, uid] must be set"))
 	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -2842,13 +2513,6 @@ func (o *Timespan) Validate() error {
 	var errs []error
 	if o.Duration == nil && o.DurationDays == nil && o.DurationHours == nil && o.DurationMins == nil && o.DurationMonths == nil && o.DurationSecs == nil && o.DurationWeeks == nil && o.DurationYears == nil {
 		errs = append(errs, errors.New("at least one of [duration, duration_days, duration_hours, duration_mins, duration_months, duration_secs, duration_weeks, duration_years] must be set"))
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -2896,13 +2560,6 @@ func (o *TLSExtension) Validate() error {
 	if o.TypeID == nil {
 		errs = append(errs, errors.New("type_id is required"))
 	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 5, 10, 13, 14, 15, 16, 18, 19, 20, 21, 41, 42, 43, 44, 45, 47, 48, 49, 50, 51, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -2914,7 +2571,7 @@ type URL struct {
 	Domain       *string  `mapstructure:"domain,omitempty"`
 	Hostname     *string  `mapstructure:"hostname,omitempty"`
 	Path         *string  `mapstructure:"path,omitempty"`
-	Port         *string  `mapstructure:"port,omitempty"`
+	Port         *int     `mapstructure:"port,omitempty"`
 	QueryString  *string  `mapstructure:"query_string,omitempty"`
 	ResourceType *string  `mapstructure:"resource_type,omitempty"`
 	Scheme       *string  `mapstructure:"scheme,omitempty"`
@@ -2958,20 +2615,6 @@ func (o *User) Validate() error {
 	if o.Account == nil && o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [account, name, uid] must be set"))
 	}
-	if o.RiskLevelID != nil {
-		switch *o.RiskLevelID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("risk_level_id: invalid value %d", *o.RiskLevelID))
-		}
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -2983,13 +2626,13 @@ type Vulnerability struct {
 	CVE                    *CVE              `mapstructure:"cve,omitempty"`
 	Cwe                    *Cwe              `mapstructure:"cwe,omitempty"`
 	Desc                   *string           `mapstructure:"desc,omitempty"`
-	FirstSeenTime          *string           `mapstructure:"first_seen_time,omitempty"`
+	FirstSeenTime          *int64            `mapstructure:"first_seen_time,omitempty"`
 	FixAvailable           *bool             `mapstructure:"fix_available,omitempty"`
 	IsExploitAvailable     *bool             `mapstructure:"is_exploit_available,omitempty"`
 	IsFixAvailable         *bool             `mapstructure:"is_fix_available,omitempty"`
 	KbArticleList          []KbArticle       `mapstructure:"kb_article_list,omitempty"`
 	KbArticles             []string          `mapstructure:"kb_articles,omitempty"`
-	LastSeenTime           *string           `mapstructure:"last_seen_time,omitempty"`
+	LastSeenTime           *int64            `mapstructure:"last_seen_time,omitempty"`
 	Packages               []Package         `mapstructure:"packages,omitempty"`
 	References             []string          `mapstructure:"references,omitempty"`
 	RelatedVulnerabilities []string          `mapstructure:"related_vulnerabilities,omitempty"`
@@ -3033,13 +2676,13 @@ func (o *WebResource) Validate() error {
 // The resources of a WHOIS record for a given domain. This can include domain names, IP address blocks, autonomous system information, and/or contact and registration information for a domain.
 type Whois struct {
 	AutonomousSystem *AutonomousSystem `mapstructure:"autonomous_system,omitempty"`
-	CreatedTime      *string           `mapstructure:"created_time,omitempty"`
+	CreatedTime      *int64            `mapstructure:"created_time,omitempty"`
 	DnssecStatus     *string           `mapstructure:"dnssec_status,omitempty"`
 	DnssecStatusID   *int              `mapstructure:"dnssec_status_id,omitempty"`
 	Domain           *string           `mapstructure:"domain,omitempty"`
 	DomainContacts   []DomainContact   `mapstructure:"domain_contacts,omitempty"`
 	EmailAddr        *string           `mapstructure:"email_addr,omitempty"`
-	LastSeenTime     *string           `mapstructure:"last_seen_time,omitempty"`
+	LastSeenTime     *int64            `mapstructure:"last_seen_time,omitempty"`
 	NameServers      []string          `mapstructure:"name_servers,omitempty"`
 	PhoneNumber      *string           `mapstructure:"phone_number,omitempty"`
 	Registrar        *string           `mapstructure:"registrar,omitempty"`
@@ -3051,13 +2694,6 @@ type Whois struct {
 // Validate checks required fields, constraints, and enum values for Whois.
 func (o *Whois) Validate() error {
 	var errs []error
-	if o.DnssecStatusID != nil {
-		switch *o.DnssecStatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("dnssec_status_id: invalid value %d", *o.DnssecStatusID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -3065,7 +2701,7 @@ func (o *Whois) Validate() error {
 // The registry key object describes a Windows registry key. Defined by D3FEND d3f:WindowsRegistryKey.
 type WinRegKey struct {
 	IsSystem           *bool   `mapstructure:"is_system,omitempty"`
-	ModifiedTime       *string `mapstructure:"modified_time,omitempty"`
+	ModifiedTime       *int64  `mapstructure:"modified_time,omitempty"`
 	Path               *string `mapstructure:"path"`
 	SecurityDescriptor *string `mapstructure:"security_descriptor,omitempty"`
 }
@@ -3085,7 +2721,7 @@ type WinRegValue struct {
 	Data         any     `mapstructure:"data,omitempty"`
 	IsDefault    *bool   `mapstructure:"is_default,omitempty"`
 	IsSystem     *bool   `mapstructure:"is_system,omitempty"`
-	ModifiedTime *string `mapstructure:"modified_time,omitempty"`
+	ModifiedTime *int64  `mapstructure:"modified_time,omitempty"`
 	Name         *string `mapstructure:"name"`
 	Path         *string `mapstructure:"path"`
 	Type         *string `mapstructure:"type,omitempty"`
@@ -3100,13 +2736,6 @@ func (o *WinRegValue) Validate() error {
 	}
 	if o.Path == nil {
 		errs = append(errs, errors.New("path is required"))
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -3132,13 +2761,6 @@ func (o *WinWinResource) Validate() error {
 	}
 	if o.Name == nil && o.UID == nil {
 		errs = append(errs, errors.New("at least one of [name, uid] must be set"))
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
 	}
 	return errors.Join(errs...)
 }
@@ -3173,34 +2795,6 @@ func (o *WinWinService) Validate() error {
 	if o.CmdLine == nil && o.ServiceCategoryID == nil && len(o.ServiceDependencies) == 0 && o.ServiceErrorControlID == nil && o.ServiceStartName == nil && o.ServiceStartTypeID == nil && o.ServiceTypeID == nil {
 		errs = append(errs, errors.New("at least one of [cmd_line, service_category_id, service_dependencies, service_error_control_id, service_start_name, service_start_type_id, service_type_id] must be set"))
 	}
-	if o.ServiceCategoryID != nil {
-		switch *o.ServiceCategoryID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("service_category_id: invalid value %d", *o.ServiceCategoryID))
-		}
-	}
-	if o.ServiceErrorControlID != nil {
-		switch *o.ServiceErrorControlID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("service_error_control_id: invalid value %d", *o.ServiceErrorControlID))
-		}
-	}
-	if o.ServiceStartTypeID != nil {
-		switch *o.ServiceStartTypeID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("service_start_type_id: invalid value %d", *o.ServiceStartTypeID))
-		}
-	}
-	if o.ServiceTypeID != nil {
-		switch *o.ServiceTypeID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("service_type_id: invalid value %d", *o.ServiceTypeID))
-		}
-	}
 	return errors.Join(errs...)
 }
 
@@ -3216,7 +2810,7 @@ type AccountChange struct {
 	ClassUID       *int             `mapstructure:"class_uid"`
 	Count          *int             `mapstructure:"count,omitempty"`
 	Duration       *int64           `mapstructure:"duration,omitempty"`
-	EndTime        *string          `mapstructure:"end_time,omitempty"`
+	EndTime        *int64           `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
 	HTTPRequest    *HTTPRequest     `mapstructure:"http_request,omitempty"`
 	Message        *string          `mapstructure:"message,omitempty"`
@@ -3227,12 +2821,12 @@ type AccountChange struct {
 	Severity       *string          `mapstructure:"severity,omitempty"`
 	SeverityID     *int             `mapstructure:"severity_id"`
 	SrcEndpoint    *NetworkEndpoint `mapstructure:"src_endpoint,omitempty"`
-	StartTime      *string          `mapstructure:"start_time,omitempty"`
+	StartTime      *int64           `mapstructure:"start_time,omitempty"`
 	Status         *string          `mapstructure:"status,omitempty"`
 	StatusCode     *string          `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
 	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *string          `mapstructure:"time"`
+	Time           *int64           `mapstructure:"time"`
 	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string          `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64           `mapstructure:"type_uid"`
@@ -3268,41 +2862,6 @@ func (o *AccountChange) Validate() error {
 	if o.User == nil {
 		errs = append(errs, errors.New("user is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 3:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 3001:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 300100, 300101, 300102, 300103, 300104, 300105, 300106, 300107, 300108, 300109, 300110, 300111, 300199:
@@ -3324,7 +2883,7 @@ type AdminGroupQuery struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Group          *Group       `mapstructure:"group"`
 	Message        *string      `mapstructure:"message,omitempty"`
@@ -3336,12 +2895,12 @@ type AdminGroupQuery struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -3379,48 +2938,6 @@ func (o *AdminGroupQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5009:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500900, 500901, 500999:
@@ -3445,7 +2962,7 @@ type APIActivity struct {
 	Count          *int              `mapstructure:"count,omitempty"`
 	DstEndpoint    *NetworkEndpoint  `mapstructure:"dst_endpoint,omitempty"`
 	Duration       *int64            `mapstructure:"duration,omitempty"`
-	EndTime        *string           `mapstructure:"end_time,omitempty"`
+	EndTime        *int64            `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment      `mapstructure:"enrichments,omitempty"`
 	HTTPRequest    *HTTPRequest      `mapstructure:"http_request,omitempty"`
 	Message        *string           `mapstructure:"message,omitempty"`
@@ -3456,12 +2973,12 @@ type APIActivity struct {
 	Severity       *string           `mapstructure:"severity,omitempty"`
 	SeverityID     *int              `mapstructure:"severity_id"`
 	SrcEndpoint    *NetworkEndpoint  `mapstructure:"src_endpoint"`
-	StartTime      *string           `mapstructure:"start_time,omitempty"`
+	StartTime      *int64            `mapstructure:"start_time,omitempty"`
 	Status         *string           `mapstructure:"status,omitempty"`
 	StatusCode     *string           `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string           `mapstructure:"status_detail,omitempty"`
 	StatusID       *int              `mapstructure:"status_id,omitempty"`
-	Time           *string           `mapstructure:"time"`
+	Time           *int64            `mapstructure:"time"`
 	TimezoneOffset *int              `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string           `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64            `mapstructure:"type_uid"`
@@ -3501,41 +3018,6 @@ func (o *APIActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 6:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 6003:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 600300, 600301, 600302, 600303, 600304, 600399:
@@ -3558,7 +3040,7 @@ type ApplicationLifecycle struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -3566,12 +3048,12 @@ type ApplicationLifecycle struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -3605,41 +3087,6 @@ func (o *ApplicationLifecycle) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 6:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 6002:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 600200, 600201, 600202, 600203, 600204, 600205, 600206, 600207, 600208, 600299:
@@ -3667,7 +3114,7 @@ type Authentication struct {
 	Count          *int             `mapstructure:"count,omitempty"`
 	DstEndpoint    *NetworkEndpoint `mapstructure:"dst_endpoint,omitempty"`
 	Duration       *int64           `mapstructure:"duration,omitempty"`
-	EndTime        *string          `mapstructure:"end_time,omitempty"`
+	EndTime        *int64           `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
 	HTTPRequest    *HTTPRequest     `mapstructure:"http_request,omitempty"`
 	IsCleartext    *bool            `mapstructure:"is_cleartext,omitempty"`
@@ -3686,12 +3133,12 @@ type Authentication struct {
 	Severity       *string          `mapstructure:"severity,omitempty"`
 	SeverityID     *int             `mapstructure:"severity_id"`
 	SrcEndpoint    *NetworkEndpoint `mapstructure:"src_endpoint,omitempty"`
-	StartTime      *string          `mapstructure:"start_time,omitempty"`
+	StartTime      *int64           `mapstructure:"start_time,omitempty"`
 	Status         *string          `mapstructure:"status,omitempty"`
 	StatusCode     *string          `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
 	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *string          `mapstructure:"time"`
+	Time           *int64           `mapstructure:"time"`
 	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string          `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64           `mapstructure:"type_uid"`
@@ -3729,55 +3176,6 @@ func (o *Authentication) Validate() error {
 	if o.DstEndpoint == nil && o.Service == nil {
 		errs = append(errs, errors.New("at least one of [dst_endpoint, service] must be set"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.AuthProtocolID != nil {
-		switch *o.AuthProtocolID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
-		default:
-			errs = append(errs, fmt.Errorf("auth_protocol_id: invalid value %d", *o.AuthProtocolID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 3:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 3002:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.LogonTypeID != nil {
-		switch *o.LogonTypeID {
-		case 0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 99:
-		default:
-			errs = append(errs, fmt.Errorf("logon_type_id: invalid value %d", *o.LogonTypeID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 300200, 300201, 300202, 300203, 300204, 300205, 300206, 300299:
@@ -3800,7 +3198,7 @@ type AuthorizeSession struct {
 	Count          *int             `mapstructure:"count,omitempty"`
 	DstEndpoint    *NetworkEndpoint `mapstructure:"dst_endpoint,omitempty"`
 	Duration       *int64           `mapstructure:"duration,omitempty"`
-	EndTime        *string          `mapstructure:"end_time,omitempty"`
+	EndTime        *int64           `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
 	Group          *Group           `mapstructure:"group,omitempty"`
 	HTTPRequest    *HTTPRequest     `mapstructure:"http_request,omitempty"`
@@ -3813,12 +3211,12 @@ type AuthorizeSession struct {
 	Severity       *string          `mapstructure:"severity,omitempty"`
 	SeverityID     *int             `mapstructure:"severity_id"`
 	SrcEndpoint    *NetworkEndpoint `mapstructure:"src_endpoint,omitempty"`
-	StartTime      *string          `mapstructure:"start_time,omitempty"`
+	StartTime      *int64           `mapstructure:"start_time,omitempty"`
 	Status         *string          `mapstructure:"status,omitempty"`
 	StatusCode     *string          `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
 	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *string          `mapstructure:"time"`
+	Time           *int64           `mapstructure:"time"`
 	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string          `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64           `mapstructure:"type_uid"`
@@ -3865,41 +3263,6 @@ func (o *AuthorizeSession) Validate() error {
 			errs = append(errs, fmt.Errorf("exactly one of [group, privileges] must be set, got %d", count))
 		}
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 3:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 3003:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 300300, 300301, 300302, 300399:
@@ -3921,7 +3284,7 @@ type BaseEvent struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -3929,12 +3292,12 @@ type BaseEvent struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -3965,41 +3328,6 @@ func (o *BaseEvent) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 0:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 0:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 0, 99:
@@ -4026,7 +3354,7 @@ type ComplianceFinding struct {
 	ConfidenceScore *int              `mapstructure:"confidence_score,omitempty"`
 	Count           *int              `mapstructure:"count,omitempty"`
 	Duration        *int64            `mapstructure:"duration,omitempty"`
-	EndTime         *string           `mapstructure:"end_time,omitempty"`
+	EndTime         *int64            `mapstructure:"end_time,omitempty"`
 	Enrichments     []Enrichment      `mapstructure:"enrichments,omitempty"`
 	FindingInfo     *FindingInfo      `mapstructure:"finding_info"`
 	Message         *string           `mapstructure:"message,omitempty"`
@@ -4038,12 +3366,12 @@ type ComplianceFinding struct {
 	Resources       []ResourceDetails `mapstructure:"resources,omitempty"`
 	Severity        *string           `mapstructure:"severity,omitempty"`
 	SeverityID      *int              `mapstructure:"severity_id"`
-	StartTime       *string           `mapstructure:"start_time,omitempty"`
+	StartTime       *int64            `mapstructure:"start_time,omitempty"`
 	Status          *string           `mapstructure:"status,omitempty"`
 	StatusCode      *string           `mapstructure:"status_code,omitempty"`
 	StatusDetail    *string           `mapstructure:"status_detail,omitempty"`
 	StatusID        *int              `mapstructure:"status_id,omitempty"`
-	Time            *string           `mapstructure:"time"`
+	Time            *int64            `mapstructure:"time"`
 	TimezoneOffset  *int              `mapstructure:"timezone_offset,omitempty"`
 	TypeName        *string           `mapstructure:"type_name,omitempty"`
 	TypeUID         *int64            `mapstructure:"type_uid"`
@@ -4080,48 +3408,6 @@ func (o *ComplianceFinding) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 2:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 2003:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.ConfidenceID != nil {
-		switch *o.ConfidenceID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", *o.ConfidenceID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 200300, 200301, 200302, 200303, 200399:
@@ -4146,7 +3432,7 @@ type ConfigState struct {
 	Count              *int                `mapstructure:"count,omitempty"`
 	Device             *Device             `mapstructure:"device"`
 	Duration           *int64              `mapstructure:"duration,omitempty"`
-	EndTime            *string             `mapstructure:"end_time,omitempty"`
+	EndTime            *int64              `mapstructure:"end_time,omitempty"`
 	Enrichments        []Enrichment        `mapstructure:"enrichments,omitempty"`
 	Message            *string             `mapstructure:"message,omitempty"`
 	Metadata           *Metadata           `mapstructure:"metadata"`
@@ -4154,12 +3440,12 @@ type ConfigState struct {
 	RawData            *string             `mapstructure:"raw_data,omitempty"`
 	Severity           *string             `mapstructure:"severity,omitempty"`
 	SeverityID         *int                `mapstructure:"severity_id"`
-	StartTime          *string             `mapstructure:"start_time,omitempty"`
+	StartTime          *int64              `mapstructure:"start_time,omitempty"`
 	Status             *string             `mapstructure:"status,omitempty"`
 	StatusCode         *string             `mapstructure:"status_code,omitempty"`
 	StatusDetail       *string             `mapstructure:"status_detail,omitempty"`
 	StatusID           *int                `mapstructure:"status_id,omitempty"`
-	Time               *string             `mapstructure:"time"`
+	Time               *int64              `mapstructure:"time"`
 	TimezoneOffset     *int                `mapstructure:"timezone_offset,omitempty"`
 	TypeName           *string             `mapstructure:"type_name,omitempty"`
 	TypeUID            *int64              `mapstructure:"type_uid"`
@@ -4193,41 +3479,6 @@ func (o *ConfigState) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5002:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500200, 500201, 500202, 500299:
@@ -4257,7 +3508,7 @@ type DataSecurityFinding struct {
 	Databucket      *Databucket       `mapstructure:"databucket,omitempty"`
 	DstEndpoint     *NetworkEndpoint  `mapstructure:"dst_endpoint,omitempty"`
 	Duration        *int64            `mapstructure:"duration,omitempty"`
-	EndTime         *string           `mapstructure:"end_time,omitempty"`
+	EndTime         *int64            `mapstructure:"end_time,omitempty"`
 	Enrichments     []Enrichment      `mapstructure:"enrichments,omitempty"`
 	File            *File             `mapstructure:"file,omitempty"`
 	FindingInfo     *FindingInfo      `mapstructure:"finding_info"`
@@ -4275,13 +3526,13 @@ type DataSecurityFinding struct {
 	Severity        *string           `mapstructure:"severity,omitempty"`
 	SeverityID      *int              `mapstructure:"severity_id"`
 	SrcEndpoint     *NetworkEndpoint  `mapstructure:"src_endpoint,omitempty"`
-	StartTime       *string           `mapstructure:"start_time,omitempty"`
+	StartTime       *int64            `mapstructure:"start_time,omitempty"`
 	Status          *string           `mapstructure:"status,omitempty"`
 	StatusCode      *string           `mapstructure:"status_code,omitempty"`
 	StatusDetail    *string           `mapstructure:"status_detail,omitempty"`
 	StatusID        *int              `mapstructure:"status_id,omitempty"`
 	Table           *Table            `mapstructure:"table,omitempty"`
-	Time            *string           `mapstructure:"time"`
+	Time            *int64            `mapstructure:"time"`
 	TimezoneOffset  *int              `mapstructure:"timezone_offset,omitempty"`
 	TypeName        *string           `mapstructure:"type_name,omitempty"`
 	TypeUID         *int64            `mapstructure:"type_uid"`
@@ -4315,62 +3566,6 @@ func (o *DataSecurityFinding) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 2:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 2006:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.ConfidenceID != nil {
-		switch *o.ConfidenceID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", *o.ConfidenceID))
-		}
-	}
-	if o.ImpactID != nil {
-		switch *o.ImpactID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("impact_id: invalid value %d", *o.ImpactID))
-		}
-	}
-	if o.RiskLevelID != nil {
-		switch *o.RiskLevelID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("risk_level_id: invalid value %d", *o.RiskLevelID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 200600, 200601, 200602, 200603, 200604, 200699:
@@ -4396,7 +3591,7 @@ type DatastoreActivity struct {
 	Databucket     *Databucket      `mapstructure:"databucket,omitempty"`
 	DstEndpoint    *NetworkEndpoint `mapstructure:"dst_endpoint,omitempty"`
 	Duration       *int64           `mapstructure:"duration,omitempty"`
-	EndTime        *string          `mapstructure:"end_time,omitempty"`
+	EndTime        *int64           `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
 	HTTPRequest    *HTTPRequest     `mapstructure:"http_request,omitempty"`
 	Message        *string          `mapstructure:"message,omitempty"`
@@ -4407,13 +3602,13 @@ type DatastoreActivity struct {
 	Severity       *string          `mapstructure:"severity,omitempty"`
 	SeverityID     *int             `mapstructure:"severity_id"`
 	SrcEndpoint    *NetworkEndpoint `mapstructure:"src_endpoint"`
-	StartTime      *string          `mapstructure:"start_time,omitempty"`
+	StartTime      *int64           `mapstructure:"start_time,omitempty"`
 	Status         *string          `mapstructure:"status,omitempty"`
 	StatusCode     *string          `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
 	StatusID       *int             `mapstructure:"status_id,omitempty"`
 	Table          *Table           `mapstructure:"table,omitempty"`
-	Time           *string          `mapstructure:"time"`
+	Time           *int64           `mapstructure:"time"`
 	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
 	Type           *string          `mapstructure:"type,omitempty"`
 	TypeID         *int             `mapstructure:"type_id,omitempty"`
@@ -4455,48 +3650,6 @@ func (o *DatastoreActivity) Validate() error {
 	if o.Database == nil && o.Databucket == nil && o.Table == nil {
 		errs = append(errs, errors.New("at least one of [database, databucket, table] must be set"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 6:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 6005:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
-	if o.TypeID != nil {
-		switch *o.TypeID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("type_id: invalid value %d", *o.TypeID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 600500, 600501, 600502, 600503, 600504, 600505, 600506, 600507, 600508, 600509, 600510, 600599:
@@ -4522,7 +3675,7 @@ type DetectionFinding struct {
 	ConfidenceScore *int              `mapstructure:"confidence_score,omitempty"`
 	Count           *int              `mapstructure:"count,omitempty"`
 	Duration        *int64            `mapstructure:"duration,omitempty"`
-	EndTime         *string           `mapstructure:"end_time,omitempty"`
+	EndTime         *int64            `mapstructure:"end_time,omitempty"`
 	Enrichments     []Enrichment      `mapstructure:"enrichments,omitempty"`
 	Evidences       []Evidences       `mapstructure:"evidences,omitempty"`
 	FindingInfo     *FindingInfo      `mapstructure:"finding_info"`
@@ -4541,12 +3694,12 @@ type DetectionFinding struct {
 	RiskScore       *int              `mapstructure:"risk_score,omitempty"`
 	Severity        *string           `mapstructure:"severity,omitempty"`
 	SeverityID      *int              `mapstructure:"severity_id"`
-	StartTime       *string           `mapstructure:"start_time,omitempty"`
+	StartTime       *int64            `mapstructure:"start_time,omitempty"`
 	Status          *string           `mapstructure:"status,omitempty"`
 	StatusCode      *string           `mapstructure:"status_code,omitempty"`
 	StatusDetail    *string           `mapstructure:"status_detail,omitempty"`
 	StatusID        *int              `mapstructure:"status_id,omitempty"`
-	Time            *string           `mapstructure:"time"`
+	Time            *int64            `mapstructure:"time"`
 	TimezoneOffset  *int              `mapstructure:"timezone_offset,omitempty"`
 	TypeName        *string           `mapstructure:"type_name,omitempty"`
 	TypeUID         *int64            `mapstructure:"type_uid"`
@@ -4581,62 +3734,6 @@ func (o *DetectionFinding) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 2:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 2004:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.ConfidenceID != nil {
-		switch *o.ConfidenceID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", *o.ConfidenceID))
-		}
-	}
-	if o.ImpactID != nil {
-		switch *o.ImpactID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("impact_id: invalid value %d", *o.ImpactID))
-		}
-	}
-	if o.RiskLevelID != nil {
-		switch *o.RiskLevelID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("risk_level_id: invalid value %d", *o.RiskLevelID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 200400, 200401, 200402, 200403, 200499:
@@ -4660,7 +3757,7 @@ type DeviceConfigStateChange struct {
 	Count               *int            `mapstructure:"count,omitempty"`
 	Device              *Device         `mapstructure:"device"`
 	Duration            *int64          `mapstructure:"duration,omitempty"`
-	EndTime             *string         `mapstructure:"end_time,omitempty"`
+	EndTime             *int64          `mapstructure:"end_time,omitempty"`
 	Enrichments         []Enrichment    `mapstructure:"enrichments,omitempty"`
 	Message             *string         `mapstructure:"message,omitempty"`
 	Metadata            *Metadata       `mapstructure:"metadata"`
@@ -4674,14 +3771,14 @@ type DeviceConfigStateChange struct {
 	SecurityStates      []SecurityState `mapstructure:"security_states,omitempty"`
 	Severity            *string         `mapstructure:"severity,omitempty"`
 	SeverityID          *int            `mapstructure:"severity_id"`
-	StartTime           *string         `mapstructure:"start_time,omitempty"`
+	StartTime           *int64          `mapstructure:"start_time,omitempty"`
 	State               *string         `mapstructure:"state,omitempty"`
 	StateID             *int            `mapstructure:"state_id,omitempty"`
 	Status              *string         `mapstructure:"status,omitempty"`
 	StatusCode          *string         `mapstructure:"status_code,omitempty"`
 	StatusDetail        *string         `mapstructure:"status_detail,omitempty"`
 	StatusID            *int            `mapstructure:"status_id,omitempty"`
-	Time                *string         `mapstructure:"time"`
+	Time                *int64          `mapstructure:"time"`
 	TimezoneOffset      *int            `mapstructure:"timezone_offset,omitempty"`
 	TypeName            *string         `mapstructure:"type_name,omitempty"`
 	TypeUID             *int64          `mapstructure:"type_uid"`
@@ -4715,62 +3812,6 @@ func (o *DeviceConfigStateChange) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5019:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.PrevSecurityLevelID != nil {
-		switch *o.PrevSecurityLevelID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("prev_security_level_id: invalid value %d", *o.PrevSecurityLevelID))
-		}
-	}
-	if o.SecurityLevelID != nil {
-		switch *o.SecurityLevelID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("security_level_id: invalid value %d", *o.SecurityLevelID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StateID != nil {
-		switch *o.StateID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("state_id: invalid value %d", *o.StateID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501900, 501901, 501902, 501999:
@@ -4795,7 +3836,7 @@ type DhcpActivity struct {
 	Count              *int                   `mapstructure:"count,omitempty"`
 	DstEndpoint        *NetworkEndpoint       `mapstructure:"dst_endpoint,omitempty"`
 	Duration           *int64                 `mapstructure:"duration,omitempty"`
-	EndTime            *string                `mapstructure:"end_time,omitempty"`
+	EndTime            *int64                 `mapstructure:"end_time,omitempty"`
 	Enrichments        []Enrichment           `mapstructure:"enrichments,omitempty"`
 	IsRenewal          *bool                  `mapstructure:"is_renewal,omitempty"`
 	Ja4FingerprintList []Ja4Fingerprint       `mapstructure:"ja4_fingerprint_list,omitempty"`
@@ -4809,12 +3850,12 @@ type DhcpActivity struct {
 	Severity           *string                `mapstructure:"severity,omitempty"`
 	SeverityID         *int                   `mapstructure:"severity_id"`
 	SrcEndpoint        *NetworkEndpoint       `mapstructure:"src_endpoint,omitempty"`
-	StartTime          *string                `mapstructure:"start_time,omitempty"`
+	StartTime          *int64                 `mapstructure:"start_time,omitempty"`
 	Status             *string                `mapstructure:"status,omitempty"`
 	StatusCode         *string                `mapstructure:"status_code,omitempty"`
 	StatusDetail       *string                `mapstructure:"status_detail,omitempty"`
 	StatusID           *int                   `mapstructure:"status_id,omitempty"`
-	Time               *string                `mapstructure:"time"`
+	Time               *int64                 `mapstructure:"time"`
 	TimezoneOffset     *int                   `mapstructure:"timezone_offset,omitempty"`
 	TLS                *TLS                   `mapstructure:"tls,omitempty"`
 	Traffic            *NetworkTraffic        `mapstructure:"traffic,omitempty"`
@@ -4848,41 +3889,6 @@ func (o *DhcpActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 4:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 4004:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400400, 400401, 400402, 400403, 400404, 400405, 400406, 400407, 400408, 400409, 400499:
@@ -4908,7 +3914,7 @@ type DNSActivity struct {
 	Count              *int                   `mapstructure:"count,omitempty"`
 	DstEndpoint        *NetworkEndpoint       `mapstructure:"dst_endpoint,omitempty"`
 	Duration           *int64                 `mapstructure:"duration,omitempty"`
-	EndTime            *string                `mapstructure:"end_time,omitempty"`
+	EndTime            *int64                 `mapstructure:"end_time,omitempty"`
 	Enrichments        []Enrichment           `mapstructure:"enrichments,omitempty"`
 	Ja4FingerprintList []Ja4Fingerprint       `mapstructure:"ja4_fingerprint_list,omitempty"`
 	Message            *string                `mapstructure:"message,omitempty"`
@@ -4916,20 +3922,20 @@ type DNSActivity struct {
 	Observables        []Observable           `mapstructure:"observables,omitempty"`
 	Proxy              *NetworkProxy          `mapstructure:"proxy,omitempty"`
 	Query              *DNSQuery              `mapstructure:"query,omitempty"`
-	QueryTime          *string                `mapstructure:"query_time,omitempty"`
+	QueryTime          *int64                 `mapstructure:"query_time,omitempty"`
 	RawData            *string                `mapstructure:"raw_data,omitempty"`
 	Rcode              *string                `mapstructure:"rcode,omitempty"`
 	RcodeID            *int                   `mapstructure:"rcode_id,omitempty"`
-	ResponseTime       *string                `mapstructure:"response_time,omitempty"`
+	ResponseTime       *int64                 `mapstructure:"response_time,omitempty"`
 	Severity           *string                `mapstructure:"severity,omitempty"`
 	SeverityID         *int                   `mapstructure:"severity_id"`
 	SrcEndpoint        *NetworkEndpoint       `mapstructure:"src_endpoint,omitempty"`
-	StartTime          *string                `mapstructure:"start_time,omitempty"`
+	StartTime          *int64                 `mapstructure:"start_time,omitempty"`
 	Status             *string                `mapstructure:"status,omitempty"`
 	StatusCode         *string                `mapstructure:"status_code,omitempty"`
 	StatusDetail       *string                `mapstructure:"status_detail,omitempty"`
 	StatusID           *int                   `mapstructure:"status_id,omitempty"`
-	Time               *string                `mapstructure:"time"`
+	Time               *int64                 `mapstructure:"time"`
 	TimezoneOffset     *int                   `mapstructure:"timezone_offset,omitempty"`
 	TLS                *TLS                   `mapstructure:"tls,omitempty"`
 	Traffic            *NetworkTraffic        `mapstructure:"traffic,omitempty"`
@@ -4962,48 +3968,6 @@ func (o *DNSActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 4:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 4003:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.RcodeID != nil {
-		switch *o.RcodeID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 99:
-		default:
-			errs = append(errs, fmt.Errorf("rcode_id: invalid value %d", *o.RcodeID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400300, 400301, 400302, 400306, 400399:
@@ -5032,7 +3996,7 @@ type EmailActivity struct {
 	Duration       *int64           `mapstructure:"duration,omitempty"`
 	Email          *Email           `mapstructure:"email"`
 	EmailAuth      *EmailAuth       `mapstructure:"email_auth,omitempty"`
-	EndTime        *string          `mapstructure:"end_time,omitempty"`
+	EndTime        *int64           `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
 	Message        *string          `mapstructure:"message,omitempty"`
 	Metadata       *Metadata        `mapstructure:"metadata"`
@@ -5042,12 +4006,12 @@ type EmailActivity struct {
 	SeverityID     *int             `mapstructure:"severity_id"`
 	SmtpHello      *string          `mapstructure:"smtp_hello,omitempty"`
 	SrcEndpoint    *NetworkEndpoint `mapstructure:"src_endpoint,omitempty"`
-	StartTime      *string          `mapstructure:"start_time,omitempty"`
+	StartTime      *int64           `mapstructure:"start_time,omitempty"`
 	Status         *string          `mapstructure:"status,omitempty"`
 	StatusCode     *string          `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
 	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *string          `mapstructure:"time"`
+	Time           *int64           `mapstructure:"time"`
 	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string          `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64           `mapstructure:"type_uid"`
@@ -5081,48 +4045,6 @@ func (o *EmailActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 4:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 4009:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.DirectionID != nil {
-		switch *o.DirectionID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("direction_id: invalid value %d", *o.DirectionID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400900, 400901, 400902, 400903, 400999:
@@ -5145,7 +4067,7 @@ type EmailFileActivity struct {
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
 	EmailUID       *string      `mapstructure:"email_uid"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	File           *File        `mapstructure:"file"`
 	Message        *string      `mapstructure:"message,omitempty"`
@@ -5154,12 +4076,12 @@ type EmailFileActivity struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -5193,41 +4115,6 @@ func (o *EmailFileActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 4:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 4011:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 401100, 401101, 401102, 401103, 401199:
@@ -5250,7 +4137,7 @@ type EmailURLActivity struct {
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
 	EmailUID       *string      `mapstructure:"email_uid"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -5258,12 +4145,12 @@ type EmailURLActivity struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -5298,41 +4185,6 @@ func (o *EmailURLActivity) Validate() error {
 	if o.URL == nil {
 		errs = append(errs, errors.New("url is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 4:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 4012:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 401200, 401201, 401202, 401203, 401299:
@@ -5357,7 +4209,7 @@ type EntityManagement struct {
 	Comment        *string          `mapstructure:"comment,omitempty"`
 	Count          *int             `mapstructure:"count,omitempty"`
 	Duration       *int64           `mapstructure:"duration,omitempty"`
-	EndTime        *string          `mapstructure:"end_time,omitempty"`
+	EndTime        *int64           `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
 	Entity         *ManagedEntity   `mapstructure:"entity"`
 	EntityResult   *ManagedEntity   `mapstructure:"entity_result,omitempty"`
@@ -5369,12 +4221,12 @@ type EntityManagement struct {
 	Severity       *string          `mapstructure:"severity,omitempty"`
 	SeverityID     *int             `mapstructure:"severity_id"`
 	SrcEndpoint    *NetworkEndpoint `mapstructure:"src_endpoint,omitempty"`
-	StartTime      *string          `mapstructure:"start_time,omitempty"`
+	StartTime      *int64           `mapstructure:"start_time,omitempty"`
 	Status         *string          `mapstructure:"status,omitempty"`
 	StatusCode     *string          `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
 	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *string          `mapstructure:"time"`
+	Time           *int64           `mapstructure:"time"`
 	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string          `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64           `mapstructure:"type_uid"`
@@ -5408,41 +4260,6 @@ func (o *EntityManagement) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 3:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 3004:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 300400, 300401, 300402, 300403, 300404, 300405, 300406, 300407, 300408, 300409, 300410, 300411, 300412, 300413, 300499:
@@ -5467,7 +4284,7 @@ type EventLog struct {
 	Device         *Device          `mapstructure:"device,omitempty"`
 	DstEndpoint    *NetworkEndpoint `mapstructure:"dst_endpoint,omitempty"`
 	Duration       *int64           `mapstructure:"duration,omitempty"`
-	EndTime        *string          `mapstructure:"end_time,omitempty"`
+	EndTime        *int64           `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
 	File           *File            `mapstructure:"file,omitempty"`
 	LogName        *string          `mapstructure:"log_name,omitempty"`
@@ -5481,12 +4298,12 @@ type EventLog struct {
 	Severity       *string          `mapstructure:"severity,omitempty"`
 	SeverityID     *int             `mapstructure:"severity_id"`
 	SrcEndpoint    *NetworkEndpoint `mapstructure:"src_endpoint,omitempty"`
-	StartTime      *string          `mapstructure:"start_time,omitempty"`
+	StartTime      *int64           `mapstructure:"start_time,omitempty"`
 	Status         *string          `mapstructure:"status,omitempty"`
 	StatusCode     *string          `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
 	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *string          `mapstructure:"time"`
+	Time           *int64           `mapstructure:"time"`
 	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string          `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64           `mapstructure:"type_uid"`
@@ -5520,48 +4337,6 @@ func (o *EventLog) Validate() error {
 	if o.LogName == nil && o.LogProvider == nil && o.LogType == nil && o.LogTypeID == nil {
 		errs = append(errs, errors.New("at least one of [log_name, log_provider, log_type, log_type_id] must be set"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 1:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 1008:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.LogTypeID != nil {
-		switch *o.LogTypeID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("log_type_id: invalid value %d", *o.LogTypeID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100800, 100801, 100802, 100803, 100804, 100805, 100806, 100807, 100808, 100809, 100810, 100899:
@@ -5589,7 +4364,7 @@ type FileActivity struct {
 	CreateMask     *string      `mapstructure:"create_mask,omitempty"`
 	Device         *Device      `mapstructure:"device"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	File           *File        `mapstructure:"file"`
 	FileDiff       *string      `mapstructure:"file_diff,omitempty"`
@@ -5600,12 +4375,12 @@ type FileActivity struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -5645,41 +4420,6 @@ func (o *FileActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 1:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 1001:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100100, 100101, 100102, 100103, 100104, 100105, 100106, 100107, 100108, 100109, 100110, 100111, 100112, 100113, 100114, 100199:
@@ -5704,9 +4444,9 @@ type FileHosting struct {
 	Count          *int                   `mapstructure:"count,omitempty"`
 	DstEndpoint    *NetworkEndpoint       `mapstructure:"dst_endpoint,omitempty"`
 	Duration       *int64                 `mapstructure:"duration,omitempty"`
-	EndTime        *string                `mapstructure:"end_time,omitempty"`
+	EndTime        *int64                 `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment           `mapstructure:"enrichments,omitempty"`
-	ExpirationTime *string                `mapstructure:"expiration_time,omitempty"`
+	ExpirationTime *int64                 `mapstructure:"expiration_time,omitempty"`
 	File           *File                  `mapstructure:"file"`
 	FileResult     *File                  `mapstructure:"file_result,omitempty"`
 	Message        *string                `mapstructure:"message,omitempty"`
@@ -5716,12 +4456,12 @@ type FileHosting struct {
 	Severity       *string                `mapstructure:"severity,omitempty"`
 	SeverityID     *int                   `mapstructure:"severity_id"`
 	SrcEndpoint    *NetworkEndpoint       `mapstructure:"src_endpoint"`
-	StartTime      *string                `mapstructure:"start_time,omitempty"`
+	StartTime      *int64                 `mapstructure:"start_time,omitempty"`
 	Status         *string                `mapstructure:"status,omitempty"`
 	StatusCode     *string                `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string                `mapstructure:"status_detail,omitempty"`
 	StatusID       *int                   `mapstructure:"status_id,omitempty"`
-	Time           *string                `mapstructure:"time"`
+	Time           *int64                 `mapstructure:"time"`
 	TimezoneOffset *int                   `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string                `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64                 `mapstructure:"type_uid"`
@@ -5761,41 +4501,6 @@ func (o *FileHosting) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 6:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 6006:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 600600, 600601, 600602, 600603, 600604, 600605, 600606, 600607, 600608, 600609, 600610, 600611, 600612, 600613, 600614, 600615, 600616, 600699:
@@ -5817,7 +4522,7 @@ type FileQuery struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	File           *File        `mapstructure:"file"`
 	Message        *string      `mapstructure:"message,omitempty"`
@@ -5829,12 +4534,12 @@ type FileQuery struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -5871,48 +4576,6 @@ func (o *FileQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5007:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500700, 500701, 500799:
@@ -5936,7 +4599,7 @@ type FileRemediationActivity struct {
 	Count           *int         `mapstructure:"count,omitempty"`
 	Countermeasures []D3fend     `mapstructure:"countermeasures,omitempty"`
 	Duration        *int64       `mapstructure:"duration,omitempty"`
-	EndTime         *string      `mapstructure:"end_time,omitempty"`
+	EndTime         *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments     []Enrichment `mapstructure:"enrichments,omitempty"`
 	File            *File        `mapstructure:"file"`
 	Message         *string      `mapstructure:"message,omitempty"`
@@ -5947,12 +4610,12 @@ type FileRemediationActivity struct {
 	Scan            *Scan        `mapstructure:"scan,omitempty"`
 	Severity        *string      `mapstructure:"severity,omitempty"`
 	SeverityID      *int         `mapstructure:"severity_id"`
-	StartTime       *string      `mapstructure:"start_time,omitempty"`
+	StartTime       *int64       `mapstructure:"start_time,omitempty"`
 	Status          *string      `mapstructure:"status,omitempty"`
 	StatusCode      *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail    *string      `mapstructure:"status_detail,omitempty"`
 	StatusID        *int         `mapstructure:"status_id,omitempty"`
-	Time            *string      `mapstructure:"time"`
+	Time            *int64       `mapstructure:"time"`
 	TimezoneOffset  *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName        *string      `mapstructure:"type_name,omitempty"`
 	TypeUID         *int64       `mapstructure:"type_uid"`
@@ -5989,41 +4652,6 @@ func (o *FileRemediationActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 7:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 7002:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 700200, 700201, 700202, 700203, 700204, 700299:
@@ -6045,7 +4673,7 @@ type FolderQuery struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Folder         *File        `mapstructure:"folder"`
 	Message        *string      `mapstructure:"message,omitempty"`
@@ -6057,12 +4685,12 @@ type FolderQuery struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -6099,48 +4727,6 @@ func (o *FolderQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5008:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500800, 500801, 500899:
@@ -6168,7 +4754,7 @@ type FtpActivity struct {
 	Count              *int                   `mapstructure:"count,omitempty"`
 	DstEndpoint        *NetworkEndpoint       `mapstructure:"dst_endpoint"`
 	Duration           *int64                 `mapstructure:"duration,omitempty"`
-	EndTime            *string                `mapstructure:"end_time,omitempty"`
+	EndTime            *int64                 `mapstructure:"end_time,omitempty"`
 	Enrichments        []Enrichment           `mapstructure:"enrichments,omitempty"`
 	File               *File                  `mapstructure:"file,omitempty"`
 	Ja4FingerprintList []Ja4Fingerprint       `mapstructure:"ja4_fingerprint_list,omitempty"`
@@ -6176,18 +4762,18 @@ type FtpActivity struct {
 	Metadata           *Metadata              `mapstructure:"metadata"`
 	Name               *string                `mapstructure:"name,omitempty"`
 	Observables        []Observable           `mapstructure:"observables,omitempty"`
-	Port               *string                `mapstructure:"port,omitempty"`
+	Port               *int                   `mapstructure:"port,omitempty"`
 	Proxy              *NetworkProxy          `mapstructure:"proxy,omitempty"`
 	RawData            *string                `mapstructure:"raw_data,omitempty"`
 	Severity           *string                `mapstructure:"severity,omitempty"`
 	SeverityID         *int                   `mapstructure:"severity_id"`
 	SrcEndpoint        *NetworkEndpoint       `mapstructure:"src_endpoint,omitempty"`
-	StartTime          *string                `mapstructure:"start_time,omitempty"`
+	StartTime          *int64                 `mapstructure:"start_time,omitempty"`
 	Status             *string                `mapstructure:"status,omitempty"`
 	StatusCode         *string                `mapstructure:"status_code,omitempty"`
 	StatusDetail       *string                `mapstructure:"status_detail,omitempty"`
 	StatusID           *int                   `mapstructure:"status_id,omitempty"`
-	Time               *string                `mapstructure:"time"`
+	Time               *int64                 `mapstructure:"time"`
 	TimezoneOffset     *int                   `mapstructure:"timezone_offset,omitempty"`
 	TLS                *TLS                   `mapstructure:"tls,omitempty"`
 	Traffic            *NetworkTraffic        `mapstructure:"traffic,omitempty"`
@@ -6224,41 +4810,6 @@ func (o *FtpActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 4:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 4008:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400800, 400801, 400802, 400803, 400804, 400805, 400806, 400899:
@@ -6280,7 +4831,7 @@ type GroupManagement struct {
 	ClassUID       *int             `mapstructure:"class_uid"`
 	Count          *int             `mapstructure:"count,omitempty"`
 	Duration       *int64           `mapstructure:"duration,omitempty"`
-	EndTime        *string          `mapstructure:"end_time,omitempty"`
+	EndTime        *int64           `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
 	Group          *Group           `mapstructure:"group"`
 	HTTPRequest    *HTTPRequest     `mapstructure:"http_request,omitempty"`
@@ -6293,12 +4844,12 @@ type GroupManagement struct {
 	Severity       *string          `mapstructure:"severity,omitempty"`
 	SeverityID     *int             `mapstructure:"severity_id"`
 	SrcEndpoint    *NetworkEndpoint `mapstructure:"src_endpoint,omitempty"`
-	StartTime      *string          `mapstructure:"start_time,omitempty"`
+	StartTime      *int64           `mapstructure:"start_time,omitempty"`
 	Status         *string          `mapstructure:"status,omitempty"`
 	StatusCode     *string          `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
 	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *string          `mapstructure:"time"`
+	Time           *int64           `mapstructure:"time"`
 	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string          `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64           `mapstructure:"type_uid"`
@@ -6336,41 +4887,6 @@ func (o *GroupManagement) Validate() error {
 	if len(o.Privileges) == 0 && o.User == nil {
 		errs = append(errs, errors.New("at least one of [privileges, user] must be set"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 3:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 3006:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 300600, 300601, 300602, 300603, 300604, 300605, 300606, 300699:
@@ -6395,7 +4911,7 @@ type HTTPActivity struct {
 	Count              *int                   `mapstructure:"count,omitempty"`
 	DstEndpoint        *NetworkEndpoint       `mapstructure:"dst_endpoint"`
 	Duration           *int64                 `mapstructure:"duration,omitempty"`
-	EndTime            *string                `mapstructure:"end_time,omitempty"`
+	EndTime            *int64                 `mapstructure:"end_time,omitempty"`
 	Enrichments        []Enrichment           `mapstructure:"enrichments,omitempty"`
 	File               *File                  `mapstructure:"file,omitempty"`
 	HTTPCookies        []HTTPCookie           `mapstructure:"http_cookies,omitempty"`
@@ -6411,12 +4927,12 @@ type HTTPActivity struct {
 	Severity           *string                `mapstructure:"severity,omitempty"`
 	SeverityID         *int                   `mapstructure:"severity_id"`
 	SrcEndpoint        *NetworkEndpoint       `mapstructure:"src_endpoint,omitempty"`
-	StartTime          *string                `mapstructure:"start_time,omitempty"`
+	StartTime          *int64                 `mapstructure:"start_time,omitempty"`
 	Status             *string                `mapstructure:"status,omitempty"`
 	StatusCode         *string                `mapstructure:"status_code,omitempty"`
 	StatusDetail       *string                `mapstructure:"status_detail,omitempty"`
 	StatusID           *int                   `mapstructure:"status_id,omitempty"`
-	Time               *string                `mapstructure:"time"`
+	Time               *int64                 `mapstructure:"time"`
 	TimezoneOffset     *int                   `mapstructure:"timezone_offset,omitempty"`
 	TLS                *TLS                   `mapstructure:"tls,omitempty"`
 	Traffic            *NetworkTraffic        `mapstructure:"traffic,omitempty"`
@@ -6458,41 +4974,6 @@ func (o *HTTPActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 4:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 4002:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400200, 400201, 400202, 400203, 400204, 400205, 400206, 400207, 400208, 400299:
@@ -6522,7 +5003,7 @@ type IncidentFinding struct {
 	Count             *int          `mapstructure:"count,omitempty"`
 	Desc              *string       `mapstructure:"desc,omitempty"`
 	Duration          *int64        `mapstructure:"duration,omitempty"`
-	EndTime           *string       `mapstructure:"end_time,omitempty"`
+	EndTime           *int64        `mapstructure:"end_time,omitempty"`
 	Enrichments       []Enrichment  `mapstructure:"enrichments,omitempty"`
 	FindingInfoList   []FindingInfo `mapstructure:"finding_info_list"`
 	Impact            *string       `mapstructure:"impact,omitempty"`
@@ -6538,13 +5019,13 @@ type IncidentFinding struct {
 	Severity          *string       `mapstructure:"severity,omitempty"`
 	SeverityID        *int          `mapstructure:"severity_id"`
 	SrcURL            *string       `mapstructure:"src_url,omitempty"`
-	StartTime         *string       `mapstructure:"start_time,omitempty"`
+	StartTime         *int64        `mapstructure:"start_time,omitempty"`
 	Status            *string       `mapstructure:"status,omitempty"`
 	StatusCode        *string       `mapstructure:"status_code,omitempty"`
 	StatusDetail      *string       `mapstructure:"status_detail,omitempty"`
 	StatusID          *int          `mapstructure:"status_id"`
 	Ticket            *Ticket       `mapstructure:"ticket,omitempty"`
-	Time              *string       `mapstructure:"time"`
+	Time              *int64        `mapstructure:"time"`
 	TimezoneOffset    *int          `mapstructure:"timezone_offset,omitempty"`
 	TypeName          *string       `mapstructure:"type_name,omitempty"`
 	TypeUID           *int64        `mapstructure:"type_uid"`
@@ -6586,74 +5067,11 @@ func (o *IncidentFinding) Validate() error {
 	if o.Assignee == nil && o.AssigneeGroup == nil {
 		errs = append(errs, errors.New("at least one of [assignee, assignee_group] must be set"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 2:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 2005:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.ConfidenceID != nil {
-		switch *o.ConfidenceID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", *o.ConfidenceID))
-		}
-	}
-	if o.ImpactID != nil {
-		switch *o.ImpactID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("impact_id: invalid value %d", *o.ImpactID))
-		}
-	}
-	if o.PriorityID != nil {
-		switch *o.PriorityID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("priority_id: invalid value %d", *o.PriorityID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 200500, 200501, 200502, 200503, 200599:
 		default:
 			errs = append(errs, fmt.Errorf("type_uid: invalid value %d", *o.TypeUID))
-		}
-	}
-	if o.VerdictID != nil {
-		switch *o.VerdictID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
-		default:
-			errs = append(errs, fmt.Errorf("verdict_id: invalid value %d", *o.VerdictID))
 		}
 	}
 	return errors.Join(errs...)
@@ -6672,7 +5090,7 @@ type InventoryInfo struct {
 	Count          *int         `mapstructure:"count,omitempty"`
 	Device         *Device      `mapstructure:"device"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -6680,12 +5098,12 @@ type InventoryInfo struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -6719,41 +5137,6 @@ func (o *InventoryInfo) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5001:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500100, 500101, 500102, 500199:
@@ -6775,7 +5158,7 @@ type JobQuery struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Job            *Job         `mapstructure:"job"`
 	Message        *string      `mapstructure:"message,omitempty"`
@@ -6787,12 +5170,12 @@ type JobQuery struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -6829,48 +5212,6 @@ func (o *JobQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5010:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501000, 501001, 501099:
@@ -6894,7 +5235,7 @@ type KernelActivity struct {
 	Count          *int         `mapstructure:"count,omitempty"`
 	Device         *Device      `mapstructure:"device"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Kernel         *Kernel      `mapstructure:"kernel"`
 	Message        *string      `mapstructure:"message,omitempty"`
@@ -6903,12 +5244,12 @@ type KernelActivity struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -6948,41 +5289,6 @@ func (o *KernelActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 1:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 1003:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100300, 100301, 100302, 100303, 100304, 100399:
@@ -7007,7 +5313,7 @@ type KernelExtension struct {
 	Device         *Device       `mapstructure:"device"`
 	Driver         *KernelDriver `mapstructure:"driver"`
 	Duration       *int64        `mapstructure:"duration,omitempty"`
-	EndTime        *string       `mapstructure:"end_time,omitempty"`
+	EndTime        *int64        `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment  `mapstructure:"enrichments,omitempty"`
 	Message        *string       `mapstructure:"message,omitempty"`
 	Metadata       *Metadata     `mapstructure:"metadata"`
@@ -7015,12 +5321,12 @@ type KernelExtension struct {
 	RawData        *string       `mapstructure:"raw_data,omitempty"`
 	Severity       *string       `mapstructure:"severity,omitempty"`
 	SeverityID     *int          `mapstructure:"severity_id"`
-	StartTime      *string       `mapstructure:"start_time,omitempty"`
+	StartTime      *int64        `mapstructure:"start_time,omitempty"`
 	Status         *string       `mapstructure:"status,omitempty"`
 	StatusCode     *string       `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string       `mapstructure:"status_detail,omitempty"`
 	StatusID       *int          `mapstructure:"status_id,omitempty"`
-	Time           *string       `mapstructure:"time"`
+	Time           *int64        `mapstructure:"time"`
 	TimezoneOffset *int          `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string       `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64        `mapstructure:"type_uid"`
@@ -7060,41 +5366,6 @@ func (o *KernelExtension) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 1:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 1002:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100200, 100201, 100202, 100299:
@@ -7116,7 +5387,7 @@ type KernelObjectQuery struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Kernel         *Kernel      `mapstructure:"kernel"`
 	Message        *string      `mapstructure:"message,omitempty"`
@@ -7128,12 +5399,12 @@ type KernelObjectQuery struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -7170,48 +5441,6 @@ func (o *KernelObjectQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5006:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500600, 500601, 500699:
@@ -7237,7 +5466,7 @@ type MemoryActivity struct {
 	Count                *int         `mapstructure:"count,omitempty"`
 	Device               *Device      `mapstructure:"device"`
 	Duration             *int64       `mapstructure:"duration,omitempty"`
-	EndTime              *string      `mapstructure:"end_time,omitempty"`
+	EndTime              *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments          []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message              *string      `mapstructure:"message,omitempty"`
 	Metadata             *Metadata    `mapstructure:"metadata"`
@@ -7248,12 +5477,12 @@ type MemoryActivity struct {
 	Severity             *string      `mapstructure:"severity,omitempty"`
 	SeverityID           *int         `mapstructure:"severity_id"`
 	Size                 *int64       `mapstructure:"size,omitempty"`
-	StartTime            *string      `mapstructure:"start_time,omitempty"`
+	StartTime            *int64       `mapstructure:"start_time,omitempty"`
 	Status               *string      `mapstructure:"status,omitempty"`
 	StatusCode           *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail         *string      `mapstructure:"status_detail,omitempty"`
 	StatusID             *int         `mapstructure:"status_id,omitempty"`
-	Time                 *string      `mapstructure:"time"`
+	Time                 *int64       `mapstructure:"time"`
 	TimezoneOffset       *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName             *string      `mapstructure:"type_name,omitempty"`
 	TypeUID              *int64       `mapstructure:"type_uid"`
@@ -7293,41 +5522,6 @@ func (o *MemoryActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 1:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 1004:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100400, 100401, 100402, 100403, 100404, 100405, 100406, 100407, 100408, 100409, 100499:
@@ -7351,7 +5545,7 @@ type ModuleActivity struct {
 	Count          *int         `mapstructure:"count,omitempty"`
 	Device         *Device      `mapstructure:"device"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -7360,12 +5554,12 @@ type ModuleActivity struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -7405,41 +5599,6 @@ func (o *ModuleActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 1:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 1005:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100500, 100501, 100502, 100599:
@@ -7461,7 +5620,7 @@ type ModuleQuery struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -7474,12 +5633,12 @@ type ModuleQuery struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -7519,48 +5678,6 @@ func (o *ModuleQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5011:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501100, 501101, 501199:
@@ -7585,7 +5702,7 @@ type NetworkActivity struct {
 	Count              *int                   `mapstructure:"count,omitempty"`
 	DstEndpoint        *NetworkEndpoint       `mapstructure:"dst_endpoint"`
 	Duration           *int64                 `mapstructure:"duration,omitempty"`
-	EndTime            *string                `mapstructure:"end_time,omitempty"`
+	EndTime            *int64                 `mapstructure:"end_time,omitempty"`
 	Enrichments        []Enrichment           `mapstructure:"enrichments,omitempty"`
 	Ja4FingerprintList []Ja4Fingerprint       `mapstructure:"ja4_fingerprint_list,omitempty"`
 	Message            *string                `mapstructure:"message,omitempty"`
@@ -7596,12 +5713,12 @@ type NetworkActivity struct {
 	Severity           *string                `mapstructure:"severity,omitempty"`
 	SeverityID         *int                   `mapstructure:"severity_id"`
 	SrcEndpoint        *NetworkEndpoint       `mapstructure:"src_endpoint,omitempty"`
-	StartTime          *string                `mapstructure:"start_time,omitempty"`
+	StartTime          *int64                 `mapstructure:"start_time,omitempty"`
 	Status             *string                `mapstructure:"status,omitempty"`
 	StatusCode         *string                `mapstructure:"status_code,omitempty"`
 	StatusDetail       *string                `mapstructure:"status_detail,omitempty"`
 	StatusID           *int                   `mapstructure:"status_id,omitempty"`
-	Time               *string                `mapstructure:"time"`
+	Time               *int64                 `mapstructure:"time"`
 	TimezoneOffset     *int                   `mapstructure:"timezone_offset,omitempty"`
 	TLS                *TLS                   `mapstructure:"tls,omitempty"`
 	Traffic            *NetworkTraffic        `mapstructure:"traffic,omitempty"`
@@ -7638,41 +5755,6 @@ func (o *NetworkActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 4:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 4001:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400100, 400101, 400102, 400103, 400104, 400105, 400106, 400107, 400199:
@@ -7695,7 +5777,7 @@ type NetworkConnectionQuery struct {
 	ConnectionInfo *NetworkConnectionInfo `mapstructure:"connection_info"`
 	Count          *int                   `mapstructure:"count,omitempty"`
 	Duration       *int64                 `mapstructure:"duration,omitempty"`
-	EndTime        *string                `mapstructure:"end_time,omitempty"`
+	EndTime        *int64                 `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment           `mapstructure:"enrichments,omitempty"`
 	Message        *string                `mapstructure:"message,omitempty"`
 	Metadata       *Metadata              `mapstructure:"metadata"`
@@ -7707,14 +5789,14 @@ type NetworkConnectionQuery struct {
 	RawData        *string                `mapstructure:"raw_data,omitempty"`
 	Severity       *string                `mapstructure:"severity,omitempty"`
 	SeverityID     *int                   `mapstructure:"severity_id"`
-	StartTime      *string                `mapstructure:"start_time,omitempty"`
+	StartTime      *int64                 `mapstructure:"start_time,omitempty"`
 	State          *string                `mapstructure:"state,omitempty"`
 	StateID        *int                   `mapstructure:"state_id"`
 	Status         *string                `mapstructure:"status,omitempty"`
 	StatusCode     *string                `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string                `mapstructure:"status_detail,omitempty"`
 	StatusID       *int                   `mapstructure:"status_id,omitempty"`
-	Time           *string                `mapstructure:"time"`
+	Time           *int64                 `mapstructure:"time"`
 	TimezoneOffset *int                   `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string                `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64                 `mapstructure:"type_uid"`
@@ -7757,55 +5839,6 @@ func (o *NetworkConnectionQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5012:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StateID != nil {
-		switch *o.StateID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99:
-		default:
-			errs = append(errs, fmt.Errorf("state_id: invalid value %d", *o.StateID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501200, 501201, 501299:
@@ -7830,9 +5863,9 @@ type NetworkFileActivity struct {
 	Count              *int                   `mapstructure:"count,omitempty"`
 	DstEndpoint        *NetworkEndpoint       `mapstructure:"dst_endpoint,omitempty"`
 	Duration           *int64                 `mapstructure:"duration,omitempty"`
-	EndTime            *string                `mapstructure:"end_time,omitempty"`
+	EndTime            *int64                 `mapstructure:"end_time,omitempty"`
 	Enrichments        []Enrichment           `mapstructure:"enrichments,omitempty"`
-	ExpirationTime     *string                `mapstructure:"expiration_time,omitempty"`
+	ExpirationTime     *int64                 `mapstructure:"expiration_time,omitempty"`
 	File               *File                  `mapstructure:"file"`
 	Ja4FingerprintList []Ja4Fingerprint       `mapstructure:"ja4_fingerprint_list,omitempty"`
 	Message            *string                `mapstructure:"message,omitempty"`
@@ -7843,12 +5876,12 @@ type NetworkFileActivity struct {
 	Severity           *string                `mapstructure:"severity,omitempty"`
 	SeverityID         *int                   `mapstructure:"severity_id"`
 	SrcEndpoint        *NetworkEndpoint       `mapstructure:"src_endpoint"`
-	StartTime          *string                `mapstructure:"start_time,omitempty"`
+	StartTime          *int64                 `mapstructure:"start_time,omitempty"`
 	Status             *string                `mapstructure:"status,omitempty"`
 	StatusCode         *string                `mapstructure:"status_code,omitempty"`
 	StatusDetail       *string                `mapstructure:"status_detail,omitempty"`
 	StatusID           *int                   `mapstructure:"status_id,omitempty"`
-	Time               *string                `mapstructure:"time"`
+	Time               *int64                 `mapstructure:"time"`
 	TimezoneOffset     *int                   `mapstructure:"timezone_offset,omitempty"`
 	TLS                *TLS                   `mapstructure:"tls,omitempty"`
 	Traffic            *NetworkTraffic        `mapstructure:"traffic,omitempty"`
@@ -7887,41 +5920,6 @@ func (o *NetworkFileActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 4:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 4010:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 401000, 401001, 401002, 401003, 401004, 401005, 401006, 401007, 401008, 401009, 401010, 401011, 401012, 401013, 401014, 401015, 401016, 401099:
@@ -7946,7 +5944,7 @@ type NetworkRemediationActivity struct {
 	Count           *int                   `mapstructure:"count,omitempty"`
 	Countermeasures []D3fend               `mapstructure:"countermeasures,omitempty"`
 	Duration        *int64                 `mapstructure:"duration,omitempty"`
-	EndTime         *string                `mapstructure:"end_time,omitempty"`
+	EndTime         *int64                 `mapstructure:"end_time,omitempty"`
 	Enrichments     []Enrichment           `mapstructure:"enrichments,omitempty"`
 	Message         *string                `mapstructure:"message,omitempty"`
 	Metadata        *Metadata              `mapstructure:"metadata"`
@@ -7956,12 +5954,12 @@ type NetworkRemediationActivity struct {
 	Scan            *Scan                  `mapstructure:"scan,omitempty"`
 	Severity        *string                `mapstructure:"severity,omitempty"`
 	SeverityID      *int                   `mapstructure:"severity_id"`
-	StartTime       *string                `mapstructure:"start_time,omitempty"`
+	StartTime       *int64                 `mapstructure:"start_time,omitempty"`
 	Status          *string                `mapstructure:"status,omitempty"`
 	StatusCode      *string                `mapstructure:"status_code,omitempty"`
 	StatusDetail    *string                `mapstructure:"status_detail,omitempty"`
 	StatusID        *int                   `mapstructure:"status_id,omitempty"`
-	Time            *string                `mapstructure:"time"`
+	Time            *int64                 `mapstructure:"time"`
 	TimezoneOffset  *int                   `mapstructure:"timezone_offset,omitempty"`
 	TypeName        *string                `mapstructure:"type_name,omitempty"`
 	TypeUID         *int64                 `mapstructure:"type_uid"`
@@ -7998,41 +5996,6 @@ func (o *NetworkRemediationActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 7:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 7004:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 700400, 700401, 700402, 700403, 700404, 700499:
@@ -8054,7 +6017,7 @@ type NetworksQuery struct {
 	ClassUID          *int               `mapstructure:"class_uid"`
 	Count             *int               `mapstructure:"count,omitempty"`
 	Duration          *int64             `mapstructure:"duration,omitempty"`
-	EndTime           *string            `mapstructure:"end_time,omitempty"`
+	EndTime           *int64             `mapstructure:"end_time,omitempty"`
 	Enrichments       []Enrichment       `mapstructure:"enrichments,omitempty"`
 	Message           *string            `mapstructure:"message,omitempty"`
 	Metadata          *Metadata          `mapstructure:"metadata"`
@@ -8066,12 +6029,12 @@ type NetworksQuery struct {
 	RawData           *string            `mapstructure:"raw_data,omitempty"`
 	Severity          *string            `mapstructure:"severity,omitempty"`
 	SeverityID        *int               `mapstructure:"severity_id"`
-	StartTime         *string            `mapstructure:"start_time,omitempty"`
+	StartTime         *int64             `mapstructure:"start_time,omitempty"`
 	Status            *string            `mapstructure:"status,omitempty"`
 	StatusCode        *string            `mapstructure:"status_code,omitempty"`
 	StatusDetail      *string            `mapstructure:"status_detail,omitempty"`
 	StatusID          *int               `mapstructure:"status_id,omitempty"`
-	Time              *string            `mapstructure:"time"`
+	Time              *int64             `mapstructure:"time"`
 	TimezoneOffset    *int               `mapstructure:"timezone_offset,omitempty"`
 	TypeName          *string            `mapstructure:"type_name,omitempty"`
 	TypeUID           *int64             `mapstructure:"type_uid"`
@@ -8108,48 +6071,6 @@ func (o *NetworksQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5013:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501300, 501301, 501399:
@@ -8176,7 +6097,7 @@ type NtpActivity struct {
 	Dispersion         *int                   `mapstructure:"dispersion,omitempty"`
 	DstEndpoint        *NetworkEndpoint       `mapstructure:"dst_endpoint"`
 	Duration           *int64                 `mapstructure:"duration,omitempty"`
-	EndTime            *string                `mapstructure:"end_time,omitempty"`
+	EndTime            *int64                 `mapstructure:"end_time,omitempty"`
 	Enrichments        []Enrichment           `mapstructure:"enrichments,omitempty"`
 	Ja4FingerprintList []Ja4Fingerprint       `mapstructure:"ja4_fingerprint_list,omitempty"`
 	Message            *string                `mapstructure:"message,omitempty"`
@@ -8188,14 +6109,14 @@ type NtpActivity struct {
 	Severity           *string                `mapstructure:"severity,omitempty"`
 	SeverityID         *int                   `mapstructure:"severity_id"`
 	SrcEndpoint        *NetworkEndpoint       `mapstructure:"src_endpoint,omitempty"`
-	StartTime          *string                `mapstructure:"start_time,omitempty"`
+	StartTime          *int64                 `mapstructure:"start_time,omitempty"`
 	Status             *string                `mapstructure:"status,omitempty"`
 	StatusCode         *string                `mapstructure:"status_code,omitempty"`
 	StatusDetail       *string                `mapstructure:"status_detail,omitempty"`
 	StatusID           *int                   `mapstructure:"status_id,omitempty"`
 	Stratum            *string                `mapstructure:"stratum,omitempty"`
 	StratumID          *int                   `mapstructure:"stratum_id,omitempty"`
-	Time               *string                `mapstructure:"time"`
+	Time               *int64                 `mapstructure:"time"`
 	TimezoneOffset     *int                   `mapstructure:"timezone_offset,omitempty"`
 	TLS                *TLS                   `mapstructure:"tls,omitempty"`
 	Traffic            *NetworkTraffic        `mapstructure:"traffic,omitempty"`
@@ -8235,48 +6156,6 @@ func (o *NtpActivity) Validate() error {
 	if o.Version == nil {
 		errs = append(errs, errors.New("version is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 4:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 4013:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
-	if o.StratumID != nil {
-		switch *o.StratumID {
-		case 0, 1, 2, 16, 17, 99:
-		default:
-			errs = append(errs, fmt.Errorf("stratum_id: invalid value %d", *o.StratumID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 401300, 401301, 401302, 401303, 401304, 401305, 401306, 401307, 401399:
@@ -8299,7 +6178,7 @@ type PatchState struct {
 	Count          *int         `mapstructure:"count,omitempty"`
 	Device         *Device      `mapstructure:"device"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	KbArticleList  []KbArticle  `mapstructure:"kb_article_list,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
@@ -8308,12 +6187,12 @@ type PatchState struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -8347,41 +6226,6 @@ func (o *PatchState) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5004:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500400, 500401, 500402, 500499:
@@ -8403,7 +6247,7 @@ type PeripheralDeviceQuery struct {
 	ClassUID         *int              `mapstructure:"class_uid"`
 	Count            *int              `mapstructure:"count,omitempty"`
 	Duration         *int64            `mapstructure:"duration,omitempty"`
-	EndTime          *string           `mapstructure:"end_time,omitempty"`
+	EndTime          *int64            `mapstructure:"end_time,omitempty"`
 	Enrichments      []Enrichment      `mapstructure:"enrichments,omitempty"`
 	Message          *string           `mapstructure:"message,omitempty"`
 	Metadata         *Metadata         `mapstructure:"metadata"`
@@ -8415,12 +6259,12 @@ type PeripheralDeviceQuery struct {
 	RawData          *string           `mapstructure:"raw_data,omitempty"`
 	Severity         *string           `mapstructure:"severity,omitempty"`
 	SeverityID       *int              `mapstructure:"severity_id"`
-	StartTime        *string           `mapstructure:"start_time,omitempty"`
+	StartTime        *int64            `mapstructure:"start_time,omitempty"`
 	Status           *string           `mapstructure:"status,omitempty"`
 	StatusCode       *string           `mapstructure:"status_code,omitempty"`
 	StatusDetail     *string           `mapstructure:"status_detail,omitempty"`
 	StatusID         *int              `mapstructure:"status_id,omitempty"`
-	Time             *string           `mapstructure:"time"`
+	Time             *int64            `mapstructure:"time"`
 	TimezoneOffset   *int              `mapstructure:"timezone_offset,omitempty"`
 	TypeName         *string           `mapstructure:"type_name,omitempty"`
 	TypeUID          *int64            `mapstructure:"type_uid"`
@@ -8457,48 +6301,6 @@ func (o *PeripheralDeviceQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5014:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501400, 501401, 501499:
@@ -8523,7 +6325,7 @@ type ProcessActivity struct {
 	Count                *int         `mapstructure:"count,omitempty"`
 	Device               *Device      `mapstructure:"device"`
 	Duration             *int64       `mapstructure:"duration,omitempty"`
-	EndTime              *string      `mapstructure:"end_time,omitempty"`
+	EndTime              *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments          []Enrichment `mapstructure:"enrichments,omitempty"`
 	ExitCode             *int         `mapstructure:"exit_code,omitempty"`
 	InjectionType        *string      `mapstructure:"injection_type,omitempty"`
@@ -8537,12 +6339,12 @@ type ProcessActivity struct {
 	RequestedPermissions *int         `mapstructure:"requested_permissions,omitempty"`
 	Severity             *string      `mapstructure:"severity,omitempty"`
 	SeverityID           *int         `mapstructure:"severity_id"`
-	StartTime            *string      `mapstructure:"start_time,omitempty"`
+	StartTime            *int64       `mapstructure:"start_time,omitempty"`
 	Status               *string      `mapstructure:"status,omitempty"`
 	StatusCode           *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail         *string      `mapstructure:"status_detail,omitempty"`
 	StatusID             *int         `mapstructure:"status_id,omitempty"`
-	Time                 *string      `mapstructure:"time"`
+	Time                 *int64       `mapstructure:"time"`
 	TimezoneOffset       *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName             *string      `mapstructure:"type_name,omitempty"`
 	TypeUID              *int64       `mapstructure:"type_uid"`
@@ -8582,48 +6384,6 @@ func (o *ProcessActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 1:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 1007:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.InjectionTypeID != nil {
-		switch *o.InjectionTypeID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("injection_type_id: invalid value %d", *o.InjectionTypeID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100700, 100701, 100702, 100703, 100704, 100705, 100799:
@@ -8645,7 +6405,7 @@ type ProcessQuery struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -8657,12 +6417,12 @@ type ProcessQuery struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -8699,48 +6459,6 @@ func (o *ProcessQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5015:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501500, 501501, 501599:
@@ -8764,7 +6482,7 @@ type ProcessRemediationActivity struct {
 	Count           *int         `mapstructure:"count,omitempty"`
 	Countermeasures []D3fend     `mapstructure:"countermeasures,omitempty"`
 	Duration        *int64       `mapstructure:"duration,omitempty"`
-	EndTime         *string      `mapstructure:"end_time,omitempty"`
+	EndTime         *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments     []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message         *string      `mapstructure:"message,omitempty"`
 	Metadata        *Metadata    `mapstructure:"metadata"`
@@ -8775,12 +6493,12 @@ type ProcessRemediationActivity struct {
 	Scan            *Scan        `mapstructure:"scan,omitempty"`
 	Severity        *string      `mapstructure:"severity,omitempty"`
 	SeverityID      *int         `mapstructure:"severity_id"`
-	StartTime       *string      `mapstructure:"start_time,omitempty"`
+	StartTime       *int64       `mapstructure:"start_time,omitempty"`
 	Status          *string      `mapstructure:"status,omitempty"`
 	StatusCode      *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail    *string      `mapstructure:"status_detail,omitempty"`
 	StatusID        *int         `mapstructure:"status_id,omitempty"`
-	Time            *string      `mapstructure:"time"`
+	Time            *int64       `mapstructure:"time"`
 	TimezoneOffset  *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName        *string      `mapstructure:"type_name,omitempty"`
 	TypeUID         *int64       `mapstructure:"type_uid"`
@@ -8817,41 +6535,6 @@ func (o *ProcessRemediationActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 7:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 7003:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 700300, 700301, 700302, 700303, 700304, 700399:
@@ -8878,7 +6561,7 @@ type RDPActivity struct {
 	Count              *int                   `mapstructure:"count,omitempty"`
 	DstEndpoint        *NetworkEndpoint       `mapstructure:"dst_endpoint"`
 	Duration           *int64                 `mapstructure:"duration,omitempty"`
-	EndTime            *string                `mapstructure:"end_time,omitempty"`
+	EndTime            *int64                 `mapstructure:"end_time,omitempty"`
 	Enrichments        []Enrichment           `mapstructure:"enrichments,omitempty"`
 	File               *File                  `mapstructure:"file,omitempty"`
 	IdentifierCookie   *string                `mapstructure:"identifier_cookie,omitempty"`
@@ -8895,12 +6578,12 @@ type RDPActivity struct {
 	Severity           *string                `mapstructure:"severity,omitempty"`
 	SeverityID         *int                   `mapstructure:"severity_id"`
 	SrcEndpoint        *NetworkEndpoint       `mapstructure:"src_endpoint,omitempty"`
-	StartTime          *string                `mapstructure:"start_time,omitempty"`
+	StartTime          *int64                 `mapstructure:"start_time,omitempty"`
 	Status             *string                `mapstructure:"status,omitempty"`
 	StatusCode         *string                `mapstructure:"status_code,omitempty"`
 	StatusDetail       *string                `mapstructure:"status_detail,omitempty"`
 	StatusID           *int                   `mapstructure:"status_id,omitempty"`
-	Time               *string                `mapstructure:"time"`
+	Time               *int64                 `mapstructure:"time"`
 	TimezoneOffset     *int                   `mapstructure:"timezone_offset,omitempty"`
 	TLS                *TLS                   `mapstructure:"tls,omitempty"`
 	Traffic            *NetworkTraffic        `mapstructure:"traffic,omitempty"`
@@ -8936,41 +6619,6 @@ func (o *RDPActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 4:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 4005:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400500, 400501, 400502, 400503, 400504, 400505, 400506, 400599:
@@ -8994,7 +6642,7 @@ type RemediationActivity struct {
 	Count           *int         `mapstructure:"count,omitempty"`
 	Countermeasures []D3fend     `mapstructure:"countermeasures,omitempty"`
 	Duration        *int64       `mapstructure:"duration,omitempty"`
-	EndTime         *string      `mapstructure:"end_time,omitempty"`
+	EndTime         *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments     []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message         *string      `mapstructure:"message,omitempty"`
 	Metadata        *Metadata    `mapstructure:"metadata"`
@@ -9004,12 +6652,12 @@ type RemediationActivity struct {
 	Scan            *Scan        `mapstructure:"scan,omitempty"`
 	Severity        *string      `mapstructure:"severity,omitempty"`
 	SeverityID      *int         `mapstructure:"severity_id"`
-	StartTime       *string      `mapstructure:"start_time,omitempty"`
+	StartTime       *int64       `mapstructure:"start_time,omitempty"`
 	Status          *string      `mapstructure:"status,omitempty"`
 	StatusCode      *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail    *string      `mapstructure:"status_detail,omitempty"`
 	StatusID        *int         `mapstructure:"status_id,omitempty"`
-	Time            *string      `mapstructure:"time"`
+	Time            *int64       `mapstructure:"time"`
 	TimezoneOffset  *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName        *string      `mapstructure:"type_name,omitempty"`
 	TypeUID         *int64       `mapstructure:"type_uid"`
@@ -9043,41 +6691,6 @@ func (o *RemediationActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 7:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 7001:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 700100, 700101, 700102, 700103, 700104, 700199:
@@ -9100,7 +6713,7 @@ type ScanActivity struct {
 	CommandUID       *string      `mapstructure:"command_uid,omitempty"`
 	Count            *int         `mapstructure:"count,omitempty"`
 	Duration         *int64       `mapstructure:"duration,omitempty"`
-	EndTime          *string      `mapstructure:"end_time,omitempty"`
+	EndTime          *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments      []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message          *string      `mapstructure:"message,omitempty"`
 	Metadata         *Metadata    `mapstructure:"metadata"`
@@ -9120,12 +6733,12 @@ type ScanActivity struct {
 	ScheduleUID      *string      `mapstructure:"schedule_uid,omitempty"`
 	Severity         *string      `mapstructure:"severity,omitempty"`
 	SeverityID       *int         `mapstructure:"severity_id"`
-	StartTime        *string      `mapstructure:"start_time,omitempty"`
+	StartTime        *int64       `mapstructure:"start_time,omitempty"`
 	Status           *string      `mapstructure:"status,omitempty"`
 	StatusCode       *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail     *string      `mapstructure:"status_detail,omitempty"`
 	StatusID         *int         `mapstructure:"status_id,omitempty"`
-	Time             *string      `mapstructure:"time"`
+	Time             *int64       `mapstructure:"time"`
 	TimezoneOffset   *int         `mapstructure:"timezone_offset,omitempty"`
 	Total            *int         `mapstructure:"total,omitempty"`
 	TypeName         *string      `mapstructure:"type_name,omitempty"`
@@ -9160,41 +6773,6 @@ func (o *ScanActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 6:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 6007:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 600700, 600701, 600702, 600703, 600704, 600705, 600706, 600707, 600708, 600709, 600710, 600799:
@@ -9218,7 +6796,7 @@ type ScheduledJobActivity struct {
 	Count          *int         `mapstructure:"count,omitempty"`
 	Device         *Device      `mapstructure:"device"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Job            *Job         `mapstructure:"job"`
 	Message        *string      `mapstructure:"message,omitempty"`
@@ -9227,12 +6805,12 @@ type ScheduledJobActivity struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -9269,41 +6847,6 @@ func (o *ScheduledJobActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 1:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 1006:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 100600, 100601, 100602, 100603, 100604, 100605, 100606, 100699:
@@ -9333,7 +6876,7 @@ type SecurityFinding struct {
 	Count           *int              `mapstructure:"count,omitempty"`
 	DataSources     []string          `mapstructure:"data_sources,omitempty"`
 	Duration        *int64            `mapstructure:"duration,omitempty"`
-	EndTime         *string           `mapstructure:"end_time,omitempty"`
+	EndTime         *int64            `mapstructure:"end_time,omitempty"`
 	Enrichments     []Enrichment      `mapstructure:"enrichments,omitempty"`
 	Evidence        any               `mapstructure:"evidence,omitempty"`
 	Finding         *Finding          `mapstructure:"finding"`
@@ -9354,14 +6897,14 @@ type SecurityFinding struct {
 	RiskScore       *int              `mapstructure:"risk_score,omitempty"`
 	Severity        *string           `mapstructure:"severity,omitempty"`
 	SeverityID      *int              `mapstructure:"severity_id"`
-	StartTime       *string           `mapstructure:"start_time,omitempty"`
+	StartTime       *int64            `mapstructure:"start_time,omitempty"`
 	State           *string           `mapstructure:"state,omitempty"`
 	StateID         *int              `mapstructure:"state_id"`
 	Status          *string           `mapstructure:"status,omitempty"`
 	StatusCode      *string           `mapstructure:"status_code,omitempty"`
 	StatusDetail    *string           `mapstructure:"status_detail,omitempty"`
 	StatusID        *int              `mapstructure:"status_id,omitempty"`
-	Time            *string           `mapstructure:"time"`
+	Time            *int64            `mapstructure:"time"`
 	TimezoneOffset  *int              `mapstructure:"timezone_offset,omitempty"`
 	TypeName        *string           `mapstructure:"type_name,omitempty"`
 	TypeUID         *int64            `mapstructure:"type_uid"`
@@ -9399,69 +6942,6 @@ func (o *SecurityFinding) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 2:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 2001:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.ConfidenceID != nil {
-		switch *o.ConfidenceID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", *o.ConfidenceID))
-		}
-	}
-	if o.ImpactID != nil {
-		switch *o.ImpactID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("impact_id: invalid value %d", *o.ImpactID))
-		}
-	}
-	if o.RiskLevelID != nil {
-		switch *o.RiskLevelID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("risk_level_id: invalid value %d", *o.RiskLevelID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StateID != nil {
-		switch *o.StateID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("state_id: invalid value %d", *o.StateID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 200100, 200101, 200102, 200103, 200199:
@@ -9483,7 +6963,7 @@ type ServiceQuery struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -9495,12 +6975,12 @@ type ServiceQuery struct {
 	Service        *Service     `mapstructure:"service"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -9537,48 +7017,6 @@ func (o *ServiceQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5016:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501600, 501601, 501699:
@@ -9600,7 +7038,7 @@ type SessionQuery struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -9612,12 +7050,12 @@ type SessionQuery struct {
 	Session        *Session     `mapstructure:"session"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -9654,48 +7092,6 @@ func (o *SessionQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5017:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501700, 501701, 501799:
@@ -9724,7 +7120,7 @@ type SmbActivity struct {
 	Dialect            *string                `mapstructure:"dialect,omitempty"`
 	DstEndpoint        *NetworkEndpoint       `mapstructure:"dst_endpoint"`
 	Duration           *int64                 `mapstructure:"duration,omitempty"`
-	EndTime            *string                `mapstructure:"end_time,omitempty"`
+	EndTime            *int64                 `mapstructure:"end_time,omitempty"`
 	Enrichments        []Enrichment           `mapstructure:"enrichments,omitempty"`
 	File               *File                  `mapstructure:"file,omitempty"`
 	Ja4FingerprintList []Ja4Fingerprint       `mapstructure:"ja4_fingerprint_list,omitempty"`
@@ -9741,12 +7137,12 @@ type SmbActivity struct {
 	ShareType          *string                `mapstructure:"share_type,omitempty"`
 	ShareTypeID        *int                   `mapstructure:"share_type_id,omitempty"`
 	SrcEndpoint        *NetworkEndpoint       `mapstructure:"src_endpoint,omitempty"`
-	StartTime          *string                `mapstructure:"start_time,omitempty"`
+	StartTime          *int64                 `mapstructure:"start_time,omitempty"`
 	Status             *string                `mapstructure:"status,omitempty"`
 	StatusCode         *string                `mapstructure:"status_code,omitempty"`
 	StatusDetail       *string                `mapstructure:"status_detail,omitempty"`
 	StatusID           *int                   `mapstructure:"status_id,omitempty"`
-	Time               *string                `mapstructure:"time"`
+	Time               *int64                 `mapstructure:"time"`
 	TimezoneOffset     *int                   `mapstructure:"timezone_offset,omitempty"`
 	TLS                *TLS                   `mapstructure:"tls,omitempty"`
 	Traffic            *NetworkTraffic        `mapstructure:"traffic,omitempty"`
@@ -9783,48 +7179,6 @@ func (o *SmbActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 4:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 4006:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.ShareTypeID != nil {
-		switch *o.ShareTypeID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("share_type_id: invalid value %d", *o.ShareTypeID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400600, 400601, 400602, 400603, 400604, 400605, 400606, 400699:
@@ -9848,7 +7202,7 @@ type SoftwareInfo struct {
 	Count          *int         `mapstructure:"count,omitempty"`
 	Device         *Device      `mapstructure:"device"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -9858,12 +7212,12 @@ type SoftwareInfo struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -9900,41 +7254,6 @@ func (o *SoftwareInfo) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5020:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 502000, 502001, 502002, 502099:
@@ -9962,7 +7281,7 @@ type SSHActivity struct {
 	Count              *int                   `mapstructure:"count,omitempty"`
 	DstEndpoint        *NetworkEndpoint       `mapstructure:"dst_endpoint"`
 	Duration           *int64                 `mapstructure:"duration,omitempty"`
-	EndTime            *string                `mapstructure:"end_time,omitempty"`
+	EndTime            *int64                 `mapstructure:"end_time,omitempty"`
 	Enrichments        []Enrichment           `mapstructure:"enrichments,omitempty"`
 	File               *File                  `mapstructure:"file,omitempty"`
 	Ja4FingerprintList []Ja4Fingerprint       `mapstructure:"ja4_fingerprint_list,omitempty"`
@@ -9976,12 +7295,12 @@ type SSHActivity struct {
 	Severity           *string                `mapstructure:"severity,omitempty"`
 	SeverityID         *int                   `mapstructure:"severity_id"`
 	SrcEndpoint        *NetworkEndpoint       `mapstructure:"src_endpoint,omitempty"`
-	StartTime          *string                `mapstructure:"start_time,omitempty"`
+	StartTime          *int64                 `mapstructure:"start_time,omitempty"`
 	Status             *string                `mapstructure:"status,omitempty"`
 	StatusCode         *string                `mapstructure:"status_code,omitempty"`
 	StatusDetail       *string                `mapstructure:"status_detail,omitempty"`
 	StatusID           *int                   `mapstructure:"status_id,omitempty"`
-	Time               *string                `mapstructure:"time"`
+	Time               *int64                 `mapstructure:"time"`
 	TimezoneOffset     *int                   `mapstructure:"timezone_offset,omitempty"`
 	TLS                *TLS                   `mapstructure:"tls,omitempty"`
 	Traffic            *NetworkTraffic        `mapstructure:"traffic,omitempty"`
@@ -10017,48 +7336,6 @@ func (o *SSHActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.AuthTypeID != nil {
-		switch *o.AuthTypeID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("auth_type_id: invalid value %d", *o.AuthTypeID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 4:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 4007:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 400700, 400701, 400702, 400703, 400704, 400705, 400706, 400707, 400799:
@@ -10084,7 +7361,7 @@ type TunnelActivity struct {
 	Device             *Device                `mapstructure:"device,omitempty"`
 	DstEndpoint        *NetworkEndpoint       `mapstructure:"dst_endpoint,omitempty"`
 	Duration           *int64                 `mapstructure:"duration,omitempty"`
-	EndTime            *string                `mapstructure:"end_time,omitempty"`
+	EndTime            *int64                 `mapstructure:"end_time,omitempty"`
 	Enrichments        []Enrichment           `mapstructure:"enrichments,omitempty"`
 	Ja4FingerprintList []Ja4Fingerprint       `mapstructure:"ja4_fingerprint_list,omitempty"`
 	Message            *string                `mapstructure:"message,omitempty"`
@@ -10097,12 +7374,12 @@ type TunnelActivity struct {
 	Severity           *string                `mapstructure:"severity,omitempty"`
 	SeverityID         *int                   `mapstructure:"severity_id"`
 	SrcEndpoint        *NetworkEndpoint       `mapstructure:"src_endpoint,omitempty"`
-	StartTime          *string                `mapstructure:"start_time,omitempty"`
+	StartTime          *int64                 `mapstructure:"start_time,omitempty"`
 	Status             *string                `mapstructure:"status,omitempty"`
 	StatusCode         *string                `mapstructure:"status_code,omitempty"`
 	StatusDetail       *string                `mapstructure:"status_detail,omitempty"`
 	StatusID           *int                   `mapstructure:"status_id,omitempty"`
-	Time               *string                `mapstructure:"time"`
+	Time               *int64                 `mapstructure:"time"`
 	TimezoneOffset     *int                   `mapstructure:"timezone_offset,omitempty"`
 	TLS                *TLS                   `mapstructure:"tls,omitempty"`
 	Traffic            *NetworkTraffic        `mapstructure:"traffic,omitempty"`
@@ -10142,48 +7419,6 @@ func (o *TunnelActivity) Validate() error {
 	if o.ConnectionInfo == nil && o.Session == nil && o.SrcEndpoint == nil && o.Traffic == nil && o.TunnelInterface == nil && o.TunnelTypeID == nil {
 		errs = append(errs, errors.New("at least one of [connection_info, session, src_endpoint, traffic, tunnel_interface, tunnel_type_id] must be set"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 4:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 4014:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
-	if o.TunnelTypeID != nil {
-		switch *o.TunnelTypeID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("tunnel_type_id: invalid value %d", *o.TunnelTypeID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 401400, 401401, 401402, 401403, 401499:
@@ -10205,7 +7440,7 @@ type UserAccess struct {
 	ClassUID       *int             `mapstructure:"class_uid"`
 	Count          *int             `mapstructure:"count,omitempty"`
 	Duration       *int64           `mapstructure:"duration,omitempty"`
-	EndTime        *string          `mapstructure:"end_time,omitempty"`
+	EndTime        *int64           `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
 	HTTPRequest    *HTTPRequest     `mapstructure:"http_request,omitempty"`
 	Message        *string          `mapstructure:"message,omitempty"`
@@ -10217,12 +7452,12 @@ type UserAccess struct {
 	Severity       *string          `mapstructure:"severity,omitempty"`
 	SeverityID     *int             `mapstructure:"severity_id"`
 	SrcEndpoint    *NetworkEndpoint `mapstructure:"src_endpoint,omitempty"`
-	StartTime      *string          `mapstructure:"start_time,omitempty"`
+	StartTime      *int64           `mapstructure:"start_time,omitempty"`
 	Status         *string          `mapstructure:"status,omitempty"`
 	StatusCode     *string          `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
 	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *string          `mapstructure:"time"`
+	Time           *int64           `mapstructure:"time"`
 	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string          `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64           `mapstructure:"type_uid"`
@@ -10260,41 +7495,6 @@ func (o *UserAccess) Validate() error {
 	if o.User == nil {
 		errs = append(errs, errors.New("user is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 3:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 3005:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 300500, 300501, 300502, 300599:
@@ -10317,7 +7517,7 @@ type UserInventory struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -10325,12 +7525,12 @@ type UserInventory struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -10365,41 +7565,6 @@ func (o *UserInventory) Validate() error {
 	if o.User == nil {
 		errs = append(errs, errors.New("user is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5003:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 500300, 500301, 500302, 500399:
@@ -10421,7 +7586,7 @@ type UserQuery struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -10432,12 +7597,12 @@ type UserQuery struct {
 	RawData        *string      `mapstructure:"raw_data,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -10475,48 +7640,6 @@ func (o *UserQuery) Validate() error {
 	if o.User == nil {
 		errs = append(errs, errors.New("user is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 5018:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 501800, 501801, 501899:
@@ -10542,7 +7665,7 @@ type VulnerabilityFinding struct {
 	ConfidenceScore *int              `mapstructure:"confidence_score,omitempty"`
 	Count           *int              `mapstructure:"count,omitempty"`
 	Duration        *int64            `mapstructure:"duration,omitempty"`
-	EndTime         *string           `mapstructure:"end_time,omitempty"`
+	EndTime         *int64            `mapstructure:"end_time,omitempty"`
 	Enrichments     []Enrichment      `mapstructure:"enrichments,omitempty"`
 	FindingInfo     *FindingInfo      `mapstructure:"finding_info"`
 	Message         *string           `mapstructure:"message,omitempty"`
@@ -10553,12 +7676,12 @@ type VulnerabilityFinding struct {
 	Resources       []ResourceDetails `mapstructure:"resources,omitempty"`
 	Severity        *string           `mapstructure:"severity,omitempty"`
 	SeverityID      *int              `mapstructure:"severity_id"`
-	StartTime       *string           `mapstructure:"start_time,omitempty"`
+	StartTime       *int64            `mapstructure:"start_time,omitempty"`
 	Status          *string           `mapstructure:"status,omitempty"`
 	StatusCode      *string           `mapstructure:"status_code,omitempty"`
 	StatusDetail    *string           `mapstructure:"status_detail,omitempty"`
 	StatusID        *int              `mapstructure:"status_id,omitempty"`
-	Time            *string           `mapstructure:"time"`
+	Time            *int64            `mapstructure:"time"`
 	TimezoneOffset  *int              `mapstructure:"timezone_offset,omitempty"`
 	TypeName        *string           `mapstructure:"type_name,omitempty"`
 	TypeUID         *int64            `mapstructure:"type_uid"`
@@ -10596,48 +7719,6 @@ func (o *VulnerabilityFinding) Validate() error {
 	if len(o.Vulnerabilities) == 0 {
 		errs = append(errs, errors.New("vulnerabilities is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 2:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 2002:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.ConfidenceID != nil {
-		switch *o.ConfidenceID {
-		case 0, 1, 2, 3, 99:
-		default:
-			errs = append(errs, fmt.Errorf("confidence_id: invalid value %d", *o.ConfidenceID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 200200, 200201, 200202, 200203, 200299:
@@ -10659,7 +7740,7 @@ type WebResourceAccessActivity struct {
 	ClassUID       *int             `mapstructure:"class_uid"`
 	Count          *int             `mapstructure:"count,omitempty"`
 	Duration       *int64           `mapstructure:"duration,omitempty"`
-	EndTime        *string          `mapstructure:"end_time,omitempty"`
+	EndTime        *int64           `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment     `mapstructure:"enrichments,omitempty"`
 	HTTPRequest    *HTTPRequest     `mapstructure:"http_request"`
 	HTTPResponse   *HTTPResponse    `mapstructure:"http_response,omitempty"`
@@ -10671,12 +7752,12 @@ type WebResourceAccessActivity struct {
 	Severity       *string          `mapstructure:"severity,omitempty"`
 	SeverityID     *int             `mapstructure:"severity_id"`
 	SrcEndpoint    *NetworkEndpoint `mapstructure:"src_endpoint,omitempty"`
-	StartTime      *string          `mapstructure:"start_time,omitempty"`
+	StartTime      *int64           `mapstructure:"start_time,omitempty"`
 	Status         *string          `mapstructure:"status,omitempty"`
 	StatusCode     *string          `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string          `mapstructure:"status_detail,omitempty"`
 	StatusID       *int             `mapstructure:"status_id,omitempty"`
-	Time           *string          `mapstructure:"time"`
+	Time           *int64           `mapstructure:"time"`
 	TimezoneOffset *int             `mapstructure:"timezone_offset,omitempty"`
 	TLS            *TLS             `mapstructure:"tls,omitempty"`
 	TypeName       *string          `mapstructure:"type_name,omitempty"`
@@ -10715,41 +7796,6 @@ func (o *WebResourceAccessActivity) Validate() error {
 	if len(o.WebResources) == 0 {
 		errs = append(errs, errors.New("web_resources is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 6:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 6004:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 600400, 600401, 600402, 600403, 600404, 600499:
@@ -10772,7 +7818,7 @@ type WebResourcesActivity struct {
 	Count              *int             `mapstructure:"count,omitempty"`
 	DstEndpoint        *NetworkEndpoint `mapstructure:"dst_endpoint,omitempty"`
 	Duration           *int64           `mapstructure:"duration,omitempty"`
-	EndTime            *string          `mapstructure:"end_time,omitempty"`
+	EndTime            *int64           `mapstructure:"end_time,omitempty"`
 	Enrichments        []Enrichment     `mapstructure:"enrichments,omitempty"`
 	HTTPRequest        *HTTPRequest     `mapstructure:"http_request,omitempty"`
 	HTTPResponse       *HTTPResponse    `mapstructure:"http_response,omitempty"`
@@ -10783,12 +7829,12 @@ type WebResourcesActivity struct {
 	Severity           *string          `mapstructure:"severity,omitempty"`
 	SeverityID         *int             `mapstructure:"severity_id"`
 	SrcEndpoint        *NetworkEndpoint `mapstructure:"src_endpoint,omitempty"`
-	StartTime          *string          `mapstructure:"start_time,omitempty"`
+	StartTime          *int64           `mapstructure:"start_time,omitempty"`
 	Status             *string          `mapstructure:"status,omitempty"`
 	StatusCode         *string          `mapstructure:"status_code,omitempty"`
 	StatusDetail       *string          `mapstructure:"status_detail,omitempty"`
 	StatusID           *int             `mapstructure:"status_id,omitempty"`
-	Time               *string          `mapstructure:"time"`
+	Time               *int64           `mapstructure:"time"`
 	TimezoneOffset     *int             `mapstructure:"timezone_offset,omitempty"`
 	TLS                *TLS             `mapstructure:"tls,omitempty"`
 	TypeName           *string          `mapstructure:"type_name,omitempty"`
@@ -10825,41 +7871,6 @@ func (o *WebResourcesActivity) Validate() error {
 	if len(o.WebResources) == 0 {
 		errs = append(errs, errors.New("web_resources is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 6:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 6001:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 600100, 600101, 600102, 600103, 600104, 600105, 600106, 600107, 600108, 600199:
@@ -10881,9 +7892,9 @@ type WinPrefetchQuery struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
-	LastRunTime    *string      `mapstructure:"last_run_time,omitempty"`
+	LastRunTime    *int64       `mapstructure:"last_run_time,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
 	Name           *string      `mapstructure:"name"`
@@ -10895,12 +7906,12 @@ type WinPrefetchQuery struct {
 	RunCount       *int         `mapstructure:"run_count,omitempty"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -10937,48 +7948,6 @@ func (o *WinPrefetchQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 205019:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 20501900, 20501901, 20501999:
@@ -11004,7 +7973,7 @@ type WinRegistryKeyActivity struct {
 	CreateMask     *string      `mapstructure:"create_mask,omitempty"`
 	Device         *Device      `mapstructure:"device"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -11015,12 +7984,12 @@ type WinRegistryKeyActivity struct {
 	RegKey         *WinRegKey   `mapstructure:"reg_key"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -11060,41 +8029,6 @@ func (o *WinRegistryKeyActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 1:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 201001:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 20100100, 20100101, 20100102, 20100103, 20100104, 20100105, 20100106, 20100107, 20100108, 20100109, 20100199:
@@ -11116,7 +8050,7 @@ type WinRegistryKeyQuery struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -11128,12 +8062,12 @@ type WinRegistryKeyQuery struct {
 	RegKey         *WinRegKey   `mapstructure:"reg_key"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -11170,48 +8104,6 @@ func (o *WinRegistryKeyQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 205004:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 20500400, 20500401, 20500499:
@@ -11235,7 +8127,7 @@ type WinRegistryValueActivity struct {
 	Count          *int         `mapstructure:"count,omitempty"`
 	Device         *Device      `mapstructure:"device"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -11245,12 +8137,12 @@ type WinRegistryValueActivity struct {
 	RegValue       *WinRegValue `mapstructure:"reg_value"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -11290,41 +8182,6 @@ func (o *WinRegistryValueActivity) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 1:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 201002:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 20100200, 20100201, 20100202, 20100203, 20100204, 20100299:
@@ -11346,7 +8203,7 @@ type WinRegistryValueQuery struct {
 	ClassUID       *int         `mapstructure:"class_uid"`
 	Count          *int         `mapstructure:"count,omitempty"`
 	Duration       *int64       `mapstructure:"duration,omitempty"`
-	EndTime        *string      `mapstructure:"end_time,omitempty"`
+	EndTime        *int64       `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment `mapstructure:"enrichments,omitempty"`
 	Message        *string      `mapstructure:"message,omitempty"`
 	Metadata       *Metadata    `mapstructure:"metadata"`
@@ -11358,12 +8215,12 @@ type WinRegistryValueQuery struct {
 	RegValue       *WinRegValue `mapstructure:"reg_value"`
 	Severity       *string      `mapstructure:"severity,omitempty"`
 	SeverityID     *int         `mapstructure:"severity_id"`
-	StartTime      *string      `mapstructure:"start_time,omitempty"`
+	StartTime      *int64       `mapstructure:"start_time,omitempty"`
 	Status         *string      `mapstructure:"status,omitempty"`
 	StatusCode     *string      `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string      `mapstructure:"status_detail,omitempty"`
 	StatusID       *int         `mapstructure:"status_id,omitempty"`
-	Time           *string      `mapstructure:"time"`
+	Time           *int64       `mapstructure:"time"`
 	TimezoneOffset *int         `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string      `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64       `mapstructure:"type_uid"`
@@ -11400,48 +8257,6 @@ func (o *WinRegistryValueQuery) Validate() error {
 	if o.TypeUID == nil {
 		errs = append(errs, errors.New("type_uid is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 5:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 205005:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.QueryResultID != nil {
-		switch *o.QueryResultID {
-		case 0, 1, 2, 3, 4, 5, 99:
-		default:
-			errs = append(errs, fmt.Errorf("query_result_id: invalid value %d", *o.QueryResultID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 20500500, 20500501, 20500599:
@@ -11465,7 +8280,7 @@ type WinResourceActivity struct {
 	Count          *int            `mapstructure:"count,omitempty"`
 	Device         *Device         `mapstructure:"device"`
 	Duration       *int64          `mapstructure:"duration,omitempty"`
-	EndTime        *string         `mapstructure:"end_time,omitempty"`
+	EndTime        *int64          `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment    `mapstructure:"enrichments,omitempty"`
 	Message        *string         `mapstructure:"message,omitempty"`
 	Metadata       *Metadata       `mapstructure:"metadata"`
@@ -11473,12 +8288,12 @@ type WinResourceActivity struct {
 	RawData        *string         `mapstructure:"raw_data,omitempty"`
 	Severity       *string         `mapstructure:"severity,omitempty"`
 	SeverityID     *int            `mapstructure:"severity_id"`
-	StartTime      *string         `mapstructure:"start_time,omitempty"`
+	StartTime      *int64          `mapstructure:"start_time,omitempty"`
 	Status         *string         `mapstructure:"status,omitempty"`
 	StatusCode     *string         `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string         `mapstructure:"status_detail,omitempty"`
 	StatusID       *int            `mapstructure:"status_id,omitempty"`
-	Time           *string         `mapstructure:"time"`
+	Time           *int64          `mapstructure:"time"`
 	TimezoneOffset *int            `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string         `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64          `mapstructure:"type_uid"`
@@ -11519,41 +8334,6 @@ func (o *WinResourceActivity) Validate() error {
 	if o.WinResource == nil {
 		errs = append(errs, errors.New("win_resource is required"))
 	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 1:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 201003:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
-	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
 		case 20100300, 20100301, 20100399:
@@ -11577,7 +8357,7 @@ type WinWinServiceActivity struct {
 	Count          *int           `mapstructure:"count,omitempty"`
 	Device         *Device        `mapstructure:"device"`
 	Duration       *int64         `mapstructure:"duration,omitempty"`
-	EndTime        *string        `mapstructure:"end_time,omitempty"`
+	EndTime        *int64         `mapstructure:"end_time,omitempty"`
 	Enrichments    []Enrichment   `mapstructure:"enrichments,omitempty"`
 	Message        *string        `mapstructure:"message,omitempty"`
 	Metadata       *Metadata      `mapstructure:"metadata"`
@@ -11585,12 +8365,12 @@ type WinWinServiceActivity struct {
 	RawData        *string        `mapstructure:"raw_data,omitempty"`
 	Severity       *string        `mapstructure:"severity,omitempty"`
 	SeverityID     *int           `mapstructure:"severity_id"`
-	StartTime      *string        `mapstructure:"start_time,omitempty"`
+	StartTime      *int64         `mapstructure:"start_time,omitempty"`
 	Status         *string        `mapstructure:"status,omitempty"`
 	StatusCode     *string        `mapstructure:"status_code,omitempty"`
 	StatusDetail   *string        `mapstructure:"status_detail,omitempty"`
 	StatusID       *int           `mapstructure:"status_id,omitempty"`
-	Time           *string        `mapstructure:"time"`
+	Time           *int64         `mapstructure:"time"`
 	TimezoneOffset *int           `mapstructure:"timezone_offset,omitempty"`
 	TypeName       *string        `mapstructure:"type_name,omitempty"`
 	TypeUID        *int64         `mapstructure:"type_uid"`
@@ -11630,41 +8410,6 @@ func (o *WinWinServiceActivity) Validate() error {
 	}
 	if o.WinService == nil {
 		errs = append(errs, errors.New("win_service is required"))
-	}
-	if o.ActivityID != nil {
-		switch *o.ActivityID {
-		case 0, 1, 2, 3, 4, 5, 6, 7, 99:
-		default:
-			errs = append(errs, fmt.Errorf("activity_id: invalid value %d", *o.ActivityID))
-		}
-	}
-	if o.CategoryUID != nil {
-		switch *o.CategoryUID {
-		case 1:
-		default:
-			errs = append(errs, fmt.Errorf("category_uid: invalid value %d", *o.CategoryUID))
-		}
-	}
-	if o.ClassUID != nil {
-		switch *o.ClassUID {
-		case 201004:
-		default:
-			errs = append(errs, fmt.Errorf("class_uid: invalid value %d", *o.ClassUID))
-		}
-	}
-	if o.SeverityID != nil {
-		switch *o.SeverityID {
-		case 0, 1, 2, 3, 4, 5, 6, 99:
-		default:
-			errs = append(errs, fmt.Errorf("severity_id: invalid value %d", *o.SeverityID))
-		}
-	}
-	if o.StatusID != nil {
-		switch *o.StatusID {
-		case 0, 1, 2, 99:
-		default:
-			errs = append(errs, fmt.Errorf("status_id: invalid value %d", *o.StatusID))
-		}
 	}
 	if o.TypeUID != nil {
 		switch *o.TypeUID {
