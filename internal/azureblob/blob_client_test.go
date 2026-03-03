@@ -24,6 +24,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestNewAzureBlobClient(t *testing.T) {
@@ -52,7 +53,7 @@ func TestNewAzureBlobClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client, err := NewAzureBlobClient(tt.connectionStr, tt.batchSize, tt.pageSize)
+			client, err := NewAzureBlobClient(tt.connectionStr, tt.batchSize, tt.pageSize, zap.NewNop())
 			if tt.expectedError {
 				require.Error(t, err)
 				require.Nil(t, client)
@@ -70,6 +71,7 @@ func TestDownloadBlob(t *testing.T) {
 
 	client := &AzureClient{
 		azClient:  mockClient,
+		logger:    zap.NewNop(),
 		batchSize: 100,
 		pageSize:  1000,
 	}
@@ -98,6 +100,7 @@ func TestDeleteBlobSuccess(t *testing.T) {
 	mockClient := &mockAzureClient{}
 	client := &AzureClient{
 		azClient:  mockClient,
+		logger:    zap.NewNop(),
 		batchSize: 100,
 		pageSize:  1000,
 	}
@@ -117,6 +120,7 @@ func TestDeleteBlobFailure(t *testing.T) {
 	mockClient := &mockAzureClient{}
 	client := &AzureClient{
 		azClient:  mockClient,
+		logger:    zap.NewNop(),
 		batchSize: 100,
 		pageSize:  1000,
 	}

@@ -24,6 +24,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"go.uber.org/zap"
 )
 
 // BlobInfo contains the necessary info to process a blob
@@ -73,18 +74,20 @@ type containerListerFactory func(containerName string) containerLister
 type AzureClient struct {
 	azClient          blobClient
 	containerListerFn containerListerFactory
+	logger            *zap.Logger
 	batchSize         int
 	pageSize          int32
 }
 
 // NewAzureBlobClient creates a new azureBlobClient with the given connection string
-func NewAzureBlobClient(connectionString string, batchSize, pageSize int) (BlobClient, error) {
+func NewAzureBlobClient(connectionString string, batchSize, pageSize int, logger *zap.Logger) (BlobClient, error) {
 	azClient, err := azblob.NewClientFromConnectionString(connectionString, nil)
 	if err != nil {
 		return nil, err
 	}
 	return &AzureClient{
 		azClient:  azClient,
+		logger:    logger,
 		batchSize: batchSize,
 		pageSize:  int32(pageSize),
 		containerListerFn: func(containerName string) containerLister {
@@ -104,6 +107,8 @@ func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix 
 		MaxResults: &a.pageSize,
 	})
 
+	pageNumber := 0
+	totalStreamed := 0
 	for pager.More() {
 		select {
 		case <-ctx.Done():
@@ -116,6 +121,14 @@ func (a *AzureClient) StreamBlobs(ctx context.Context, container string, prefix 
 			errChan <- fmt.Errorf("error streaming blobs: %w", err)
 			return
 		}
+
+		pageNumber++
+		blobsInPage := len(resp.Segment.BlobItems)
+		totalStreamed += blobsInPage
+		a.logger.Info("Azure API page received",
+			zap.Int("page_number", pageNumber),
+			zap.Int("blobs_in_page", blobsInPage),
+			zap.Int("total_streamed", totalStreamed))
 
 		batch := []*BlobInfo{}
 		for _, blob := range resp.Segment.BlobItems {
