@@ -22,6 +22,7 @@ type Provider struct {
 	EnableLevel     uint8
 	MatchAnyKeyword uint64
 	MatchAllKeyword uint64
+	TMFSearchPaths  []string
 }
 
 func baseNewProvider() *Provider {

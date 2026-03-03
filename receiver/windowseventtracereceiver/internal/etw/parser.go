@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strings"
 	"syscall"
 	"time"
 	"unsafe"
@@ -45,7 +46,7 @@ type parser struct {
 	logger      *zap.Logger
 }
 
-func GetEventProperties(r *advapi32.EventRecord, logger *zap.Logger) (map[string]any, error) {
+func GetEventProperties(r *advapi32.EventRecord, logger *zap.Logger, tmfSearchPaths []string) (map[string]any, error) {
 	if r.EventHeader.Flags == advapi32.EVENT_HEADER_FLAG_STRING_ONLY {
 		userDataPtr := (*uint16)(unsafe.Pointer(r.UserData))
 		return map[string]any{
@@ -53,7 +54,7 @@ func GetEventProperties(r *advapi32.EventRecord, logger *zap.Logger) (map[string
 		}, nil
 	}
 
-	ti, err := getEventInformation(r)
+	ti, err := getEventInformation(r, tmfSearchPaths)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get event information: %w", err)
 	}
@@ -247,13 +248,31 @@ func getLengthFromProperty(r *advapi32.EventRecord, dataDescriptor *tdh.Property
 	return length, nil
 }
 
-func getEventInformation(r *advapi32.EventRecord) (*tdh.TraceEventInfo, error) {
+func getEventInformation(r *advapi32.EventRecord, tmfSearchPaths []string) (*tdh.TraceEventInfo, error) {
+	var tdhContextCount uint32
+	var pTdhContext *tdh.TdhContext
+
+	if len(tmfSearchPaths) > 0 {
+		joined := strings.Join(tmfSearchPaths, ";")
+		utf16Path, err := syscall.UTF16PtrFromString(joined)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert TMF search paths to UTF-16: %w", err)
+		}
+		ctx := tdh.TdhContext{
+			ParameterValue: uint64(uintptr(unsafe.Pointer(utf16Path))),
+			ParameterType:  tdh.TDH_CONTEXT_WPP_TMFSEARCHPATH,
+			ParameterSize:  0,
+		}
+		tdhContextCount = 1
+		pTdhContext = &ctx
+	}
+
 	var bufferSize uint32
 	tei := &tdh.TraceEventInfo{}
-	if err := tdh.GetEventInformation(r, 0, nil, nil, &bufferSize); errors.Is(err, windows.ErrorInsufficientBuffer) {
+	if err := tdh.GetEventInformation(r, tdhContextCount, pTdhContext, nil, &bufferSize); errors.Is(err, windows.ErrorInsufficientBuffer) {
 		buffer := make([]byte, bufferSize)
 		tei = (*tdh.TraceEventInfo)(unsafe.Pointer(&buffer[0]))
-		if err := tdh.GetEventInformation(r, 0, nil, tei, &bufferSize); err != nil {
+		if err := tdh.GetEventInformation(r, tdhContextCount, pTdhContext, tei, &bufferSize); err != nil {
 			return nil, err
 		}
 	} else if err != nil {

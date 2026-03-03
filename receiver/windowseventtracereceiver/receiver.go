@@ -84,6 +84,10 @@ func (lr *logsReceiver) initializeSubscriptions(ctx context.Context) {
 	successfulProviders := 0
 	totalProviders := len(lr.cfg.Providers)
 
+	if lr.cfg.AllowUnregisteredProviders && lr.cfg.RequireAllProviders {
+		lr.logger.Warn("allow_unregistered_providers and require_all_providers are both enabled, but unregistered providers cannot be meaningfully verified")
+	}
+
 	// Enable all providers with a substantial delay between each
 	for i, providerConfig := range lr.cfg.Providers {
 		// setting a default level if not provided
@@ -96,6 +100,8 @@ func (lr *logsReceiver) initializeSubscriptions(ctx context.Context) {
 			providerConfig.Level.toTraceLevel(),
 			providerConfig.MatchAnyKeyword,
 			providerConfig.MatchAllKeyword,
+			providerConfig.TMFSearchPaths,
+			lr.cfg.AllowUnregisteredProviders,
 		)
 
 		if err != nil {
@@ -110,10 +116,12 @@ func (lr *logsReceiver) initializeSubscriptions(ctx context.Context) {
 		successfulProviders++
 	}
 
-	if (successfulProviders == 0 && totalProviders > 0) && lr.cfg.RequireAllProviders {
-		lr.logger.Error("Failed to enable any providers",
+	failedProviders := totalProviders - successfulProviders
+	if lr.cfg.RequireAllProviders && failedProviders > 0 {
+		lr.logger.Error("Failed to enable all providers",
 			zap.String("session", lr.cfg.SessionName),
-			zap.Int("totalProviders", totalProviders))
+			zap.Int("successfulProviders", successfulProviders),
+			zap.Int("failedProviders", failedProviders))
 		return
 	}
 

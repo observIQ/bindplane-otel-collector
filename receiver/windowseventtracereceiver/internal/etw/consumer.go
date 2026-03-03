@@ -108,17 +108,19 @@ func (c *Consumer) defaultEventCallback(eventRecord *advapi32.EventRecord) (rc u
 func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 	providerGUID := eventRecord.EventHeader.ProviderId.String()
 	var providerName string
+	var tmfSearchPaths []string
 	if provider, ok := c.providerMap[providerGUID]; ok {
 		providerName = provider.Name
+		tmfSearchPaths = provider.TMFSearchPaths
 	}
 
-	eventData, err := GetEventProperties(eventRecord, c.logger.Named("event_record_helper"))
+	eventData, err := GetEventProperties(eventRecord, c.logger.Named("event_record_helper"), tmfSearchPaths)
 	if err != nil {
 		c.logger.Error("Failed to get event properties", zap.Error(err))
 		return 1
 	}
 
-	channelName, opcodeName, taskName, eventID := c.getEventInfoFromRecord(eventRecord)
+	channelName, opcodeName, taskName, eventID := c.getEventInfoFromRecord(eventRecord, tmfSearchPaths)
 
 	// Create an XML-like representation
 	var xmlBuilder strings.Builder
@@ -186,13 +188,6 @@ func (c *Consumer) rawEventCallback(eventRecord *advapi32.EventRecord) uintptr {
 }
 
 func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintptr {
-	data, err := GetEventProperties(eventRecord, c.logger.Named("event_record_helper"))
-	if err != nil {
-		c.logger.Error("Failed to get event properties", zap.Error(err))
-		c.LostEvents++
-		return 1
-	}
-
 	var providerGUID string
 	if eventRecord.EventHeader.ProviderId == zeroGuid {
 		providerGUID = ""
@@ -201,12 +196,21 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 	}
 
 	var providerName string
+	var tmfSearchPaths []string
 	if provider, ok := c.providerMap[providerGUID]; ok {
 		providerName = provider.Name
+		tmfSearchPaths = provider.TMFSearchPaths
+	}
+
+	data, err := GetEventProperties(eventRecord, c.logger.Named("event_record_helper"), tmfSearchPaths)
+	if err != nil {
+		c.logger.Error("Failed to get event properties", zap.Error(err))
+		c.LostEvents++
+		return 1
 	}
 
 	// Get event information from TraceEventInfo
-	channelName, opcodeName, taskName, eventID := c.getEventInfoFromRecord(eventRecord)
+	channelName, opcodeName, taskName, eventID := c.getEventInfoFromRecord(eventRecord, tmfSearchPaths)
 
 	level := eventRecord.EventHeader.EventDescriptor.Level
 	event := &Event{
@@ -256,8 +260,8 @@ func (c *Consumer) parsedEventCallback(eventRecord *advapi32.EventRecord) uintpt
 	}
 }
 
-func (c *Consumer) getEventInfoFromRecord(eventRecord *advapi32.EventRecord) (channelName string, opcodeName string, taskName string, eventID uint16) {
-	ti, err := getEventInformation(eventRecord)
+func (c *Consumer) getEventInfoFromRecord(eventRecord *advapi32.EventRecord, tmfSearchPaths []string) (channelName string, opcodeName string, taskName string, eventID uint16) {
+	ti, err := getEventInformation(eventRecord, tmfSearchPaths)
 	if err != nil {
 		c.logger.Error("Failed to get event information", zap.Error(err))
 		return "", "", "", 0

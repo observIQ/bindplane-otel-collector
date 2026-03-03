@@ -75,7 +75,7 @@ func (s *Session) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *Session) EnableProvider(nameOrGuid string, traceLevel advapi32.TraceLevel, matchAnyKeyword uint64, matchAllKeyword uint64) error {
+func (s *Session) EnableProvider(nameOrGuid string, traceLevel advapi32.TraceLevel, matchAnyKeyword uint64, matchAllKeyword uint64, tmfSearchPaths []string, allowUnregisteredProviders bool) error {
 	// Make sure the session is started
 	if s.handle == 0 {
 		return fmt.Errorf("session must be started before enabling providers")
@@ -83,12 +83,32 @@ func (s *Session) EnableProvider(nameOrGuid string, traceLevel advapi32.TraceLev
 
 	provider, ok := s.providerMap[nameOrGuid]
 	if !ok {
-		providerNames := make([]string, 0, len(s.providerMap))
-		for name := range s.providerMap {
-			providerNames = append(providerNames, name)
+		// WPP providers and other classic-style providers register with
+		// RegisterTraceGuids rather than publishing a manifest, so they won't
+		// appear in TdhEnumerateProviders. If the caller gave us a raw GUID,
+		// synthesize a provider entry and let EnableTraceEx2 do the work.
+		if _, err := windows.GUIDFromString(nameOrGuid); err == nil {
+			if !allowUnregisteredProviders {
+				return fmt.Errorf("provider %q not found in the manifest registry. enabling unregistered providers requires allow_unregistered_providers to be enabled", nameOrGuid)
+			}
+			s.logger.Info("Provider not found in manifest registry, enabling by GUID directly. No events will arrive if no provider with this GUID is running", zap.String("guid", nameOrGuid))
+			provider = &Provider{
+				Name:            nameOrGuid,
+				GUID:            nameOrGuid,
+				EnableLevel:     0xff,
+				MatchAnyKeyword: matchAnyKeyword,
+				MatchAllKeyword: matchAllKeyword,
+			}
+		} else {
+			providerNames := make([]string, 0, len(s.providerMap))
+			for name := range s.providerMap {
+				providerNames = append(providerNames, name)
+			}
+			return fmt.Errorf("provider %s not found, available providers: %v", nameOrGuid, strings.Join(providerNames, ", "))
 		}
-		return fmt.Errorf("provider %s not found, available providers: %v", nameOrGuid, strings.Join(providerNames, ", "))
 	}
+
+	provider.TMFSearchPaths = tmfSearchPaths
 
 	guid, err := windows.GUIDFromString(provider.GUID)
 	if err != nil {

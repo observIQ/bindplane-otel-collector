@@ -17,9 +17,14 @@ package windowseventtracereceiver
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"go.opentelemetry.io/collector/component"
 )
+
+// guidPattern matches the standard braced GUID format: {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
+var guidPattern = regexp.MustCompile(`^\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}$`)
 
 // TraceLevelString is a string representation of the trace level.
 type TraceLevelString string
@@ -56,6 +61,15 @@ type Config struct {
 	// RequireAllProviders is a flag to fail if not all providers are able to be enabled.
 	RequireAllProviders bool `mapstructure:"require_all_providers"`
 
+	// AllowUnregisteredProviders enables subscribing to providers that are not registered
+	// in the system's manifest registry, such as WPP (Windows Software Trace Preprocessor)
+	// providers. When false (the default), only providers found via TdhEnumerateProviders
+	// are accepted. When true, a valid GUID that is not in the registry will be enabled
+	// directly via EnableTraceEx2; events will only arrive if a matching provider is running.
+	// Note: combining this with require_all_providers does not guarantee those providers
+	// are actually running — ETW always accepts the enable call regardless.
+	AllowUnregisteredProviders bool `mapstructure:"allow_unregistered_providers"`
+
 	// RawEvents is a flag to enable raw event logging.
 	Raw bool `mapstructure:"raw"`
 }
@@ -66,6 +80,10 @@ type Provider struct {
 	Level           TraceLevelString `mapstructure:"level"`
 	MatchAnyKeyword uint64           `mapstructure:"match_any_keyword"`
 	MatchAllKeyword uint64           `mapstructure:"match_all_keyword"`
+	// TMFSearchPaths is an optional list of directories to search for WPP Trace Message Format (TMF) files.
+	// Required only for WPP providers whose schema is not embedded in the binary.
+	// TDH will search these directories for a TMF file matching the provider's event GUID.
+	TMFSearchPaths []string `mapstructure:"tmf_search_paths"`
 }
 
 func createDefaultConfig() component.Config {
@@ -91,6 +109,9 @@ func (cfg *Config) Validate() error {
 	for _, provider := range cfg.Providers {
 		if provider.Name == "" {
 			return fmt.Errorf("provider name cannot be empty; it must be a valid ETW provider name or GUID")
+		}
+		if strings.HasPrefix(provider.Name, "{") && !guidPattern.MatchString(provider.Name) {
+			return fmt.Errorf("provider %q looks like a GUID but is not valid; expected format {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}", provider.Name)
 		}
 	}
 
