@@ -81,7 +81,7 @@ func createDefaultConfig() component.Config {
 // Validate validates the config.
 func (cfg *Config) Validate() error {
 	if cfg.SessionName == "" {
-		return fmt.Errorf("session_name cannot be empty")
+		return fmt.Errorf("session_name cannot be empty GO ALTERATION")
 	}
 
 	if len(cfg.Providers) < 1 {
