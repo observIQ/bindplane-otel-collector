@@ -111,7 +111,6 @@ type typeConstraint struct {
 
 // regexOverrides provides Go-compatible (RE2) replacements for OCSF type
 // regexes that use PCRE-only features. Keyed by version dir, then type name.
-// An empty string means "skip regex validation for this type entirely".
 var regexOverrides = map[string]map[string]string{
 	"v1_0_0": {
 		// v1.0.0 ip_t uses PCRE atomic groups; use the v1.1.0 RE2-compatible pattern instead.
@@ -262,8 +261,7 @@ func generateType(buf *bytes.Buffer, name, caption, description string, uid int,
 }
 
 func writePackages(buf *bytes.Buffer) {
-	stdPackages := []string{"errors", "fmt", "regexp"}
-	stdPackages = append(stdPackages, "strings")
+	stdPackages := []string{"errors", "fmt", "regexp", "strings"}
 	externPackages := []string{"github.com/go-viper/mapstructure/v2"}
 
 	buf.WriteString("import (\n")
