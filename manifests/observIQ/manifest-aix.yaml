@@ -4,7 +4,7 @@ dist:
   module: github.com/observiq/bindplane-otel-collector
   name: bindplane-otel-collector
   description: ObservIQ's custom distro for OpenTelemetry Collector
-  version: "v2.0.0-aix-alpha.1"
+  version: "v2.0.0-aix-alpha.3"
   output_path: ./builder
 conf_resolver:
   default_uri_scheme: "env"
@@ -104,4 +104,4 @@ replaces:
   - github.com/observiq/bindplane-otel-collector/internal/tools => ../internal/tools
   - github.com/observiq/bindplane-otel-collector/version => ../version
   # AIX patches for gopsutil - can be removed when upstream merges AIX support
-  - github.com/shirou/gopsutil/v4 => github.com/observIQ/gopsutil/v4 d7f07058c806a69143687c15cee036a06c3d9135
+  - github.com/shirou/gopsutil/v4 => github.com/observIQ/gopsutil/v4 49b08dd8909eb42214db58da449cab9b837cbeaf

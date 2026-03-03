@@ -1198,9 +1198,13 @@ verify_package_rpm() {
 # Install on AIX manually from tar.gz file
 install_aix()
 {
-  # Create the bindplane-otel-collector user and group. Group must be first.
-  mkgroup "$COLLECTOR_USER" > /dev/null 2>&1
-  useradd -d /opt/bindplane-otel-collector -g "$COLLECTOR_USER" -s "$(which bash)" "$COLLECTOR_USER" > /dev/null 2>&1
+  # Create the user and group if they don't already exist. Group must be first.
+  if ! lsgroup "$COLLECTOR_USER" > /dev/null 2>&1; then
+    mkgroup "$COLLECTOR_USER" || error_exit "$LINENO" "Failed to create group '$COLLECTOR_USER'"
+  fi
+  if ! lsuser "$COLLECTOR_USER" > /dev/null 2>&1; then
+    useradd -d /opt/bindplane-otel-collector -g "$COLLECTOR_USER" -s "$(which bash)" "$COLLECTOR_USER" || error_exit "$LINENO" "Failed to create user '$COLLECTOR_USER'"
+  fi
 
   # Create the install & storage directories
   mkdir -p /opt/bindplane-otel-collector/storage > /dev/null 2>&1
@@ -1430,18 +1434,6 @@ uninstall()
   banner "$(fg_green Uninstallation Complete!)"
 }
 
-check_aix_name_length()
-{
-  aix_name_size="$(lsattr -El sys0 -a max_logname | cut -d" " -f 2)"
-  if [ "$aix_name_size" -lt 24 ]; then
-    error "$LINENO" "Current system will result in '3004-694 Error adding Name is too long.' when attempting to create group and user"
-    error "Current max: $aix_name_size"
-    error "Please raise your limit to 24 characters or greater by issuing these command:"
-    error "    chdev -lsys0 -a max_logname=<NUM>"
-    error "and then rebooting the system before attempting to run this script again"
-    error_exit "Reference: https://www.ibm.com/support/pages/aix-security-change-maximum-length-user-name-group-name-or-password"
-  fi
-}
 
 main() {
   # We do these checks before we process arguments, because
@@ -1559,10 +1551,7 @@ main() {
   validate_version
   interactive_check
 
-  # AIX needs a special check
-  if [ "$os" = "aix" ]; then
-    check_aix_name_length
-  fi
+
 
   connection_check
   offline_check
