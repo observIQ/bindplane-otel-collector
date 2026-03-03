@@ -22,7 +22,7 @@ import (
 
 // accountChangeFieldMappings provides the minimum required field mappings for
 // all versions of the AccountChange class (3001). class_uid and metadata.version are auto-added.
-var accountChangeFieldMappings []FieldMapping = []FieldMapping{
+var accountChangeFieldMappings = []FieldMapping{
 	{From: "body.activity", To: "activity_id"},
 	{From: "body.category", To: "category_uid"},
 	{From: "body.severity", To: "severity_id"},
