@@ -20,6 +20,9 @@ import (
 	"strings"
 
 	"github.com/observiq/bindplane-otel-collector/expr"
+	v100 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_0_0"
+	v110 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_1_0"
+	v120 "github.com/observiq/bindplane-otel-collector/processor/ocsfstandardizationprocessor/ocsf/v1_2_0"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
 )
@@ -166,6 +169,16 @@ func (osp *ocsfStandardizationProcessor) processLogRecord(log plog.LogRecord, re
 			setNestedValue(newBody, fieldMapping.to, value)
 		}
 
+		// Validate the body is a valid OCSF log
+		err := osp.validateBody(eventMapping.classID, newBody)
+		if err != nil {
+			osp.logger.Error("mapped log does not conform to OCSF spec",
+				zap.Error(err),
+				zap.Int("class_id", eventMapping.classID),
+			)
+			return false
+		}
+
 		if err := log.Body().SetEmptyMap().FromRaw(newBody); err != nil {
 			osp.logger.Error("failed to set log body", zap.Error(err), zap.Int("class_id", eventMapping.classID))
 			return false
@@ -190,4 +203,31 @@ func setNestedValue(body map[string]any, path string, value any) {
 		body = next
 	}
 	body[parts[len(parts)-1]] = value
+}
+
+// validateOCSFLog validates the log body is a valid OCSF log.
+func (osp *ocsfStandardizationProcessor) validateBody(classUID int, body any) error {
+	var validateFunc func(classUID int, body any) error
+	switch osp.ocsfVersion {
+	case OCSFVersion1_0_0:
+		validateFunc = v100.ValidateClass
+	case OCSFVersion1_1_0:
+		validateFunc = v110.ValidateClass
+	case OCSFVersion1_2_0:
+		validateFunc = v120.ValidateClass
+	case OCSFVersion1_3_0:
+		validateFunc = v100.ValidateClass
+	case OCSFVersion1_4_0:
+		validateFunc = v100.ValidateClass
+	case OCSFVersion1_5_0:
+		validateFunc = v100.ValidateClass
+	case OCSFVersion1_6_0:
+		validateFunc = v100.ValidateClass
+	case OCSFVersion1_7_0:
+		validateFunc = v100.ValidateClass
+	default:
+		return fmt.Errorf("OCSF version %s is not supported", osp.ocsfVersion)
+	}
+
+	return validateFunc(classUID, body)
 }
