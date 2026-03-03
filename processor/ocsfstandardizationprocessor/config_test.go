@@ -20,20 +20,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestConfigValidate(t *testing.T) {
-	// accountChangeFieldMappings provides the minimum required field mappings for
-	// the AccountChange class (3001) in v1.0.0. class_uid and metadata.version are
-	// auto-added by the processor.
-	accountChangeFieldMappings := []FieldMapping{
-		{From: "body.activity", To: "activity_id"},
-		{From: "body.category", To: "category_uid"},
-		{From: "body.severity", To: "severity_id"},
-		{From: "body.time", To: "time"},
-		{From: "body.type", To: "type_uid"},
-		{From: "body.user", To: "user"},
-		{From: "body.product", To: "metadata.product"},
-	}
+// accountChangeFieldMappings provides the minimum required field mappings for
+// all versions of the AccountChange class (3001). class_uid and metadata.version are auto-added.
+var accountChangeFieldMappings []FieldMapping = []FieldMapping{
+	{From: "body.activity", To: "activity_id"},
+	{From: "body.category", To: "category_uid"},
+	{From: "body.severity", To: "severity_id"},
+	{From: "body.time", To: "time"},
+	{From: "body.type", To: "type_uid"},
+	{From: "body.user", To: "user"},
+	{From: "body.product", To: "metadata.product"},
+}
 
+func TestConfigValidate(t *testing.T) {
 	tests := []struct {
 		name    string
 		cfg     Config
@@ -219,18 +218,6 @@ func TestConfigValidate(t *testing.T) {
 }
 
 func TestConfigValidateFieldCoverage(t *testing.T) {
-	// accountChangeFieldMappings provides the minimum required field mappings for
-	// all versions of the AccountChange class (3001). class_uid and metadata.version are auto-added.
-	accountChangeFieldMappings := []FieldMapping{
-		{From: "body.activity", To: "activity_id"},
-		{From: "body.category", To: "category_uid"},
-		{From: "body.severity", To: "severity_id"},
-		{From: "body.time", To: "time"},
-		{From: "body.type", To: "type_uid"},
-		{From: "body.user", To: "user"},
-		{From: "body.product", To: "metadata.product"},
-	}
-
 	tests := []struct {
 		name          string
 		eventMappings []EventMapping
