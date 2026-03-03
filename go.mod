@@ -31,6 +31,7 @@ require (
 	github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver v1.94.2
 	github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver v1.94.2
 	github.com/observiq/bindplane-otel-collector/receiver/azureblobrehydrationreceiver v1.94.2
+	github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver v1.94.2
 	github.com/observiq/bindplane-otel-collector/receiver/googlecloudstoragerehydrationreceiver v1.94.2
 	github.com/observiq/bindplane-otel-collector/receiver/httpreceiver v1.94.2
 	github.com/observiq/bindplane-otel-collector/receiver/m365receiver v1.94.2
@@ -247,6 +248,7 @@ require (
 	cloud.google.com/go/auth v0.18.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute v1.54.0 // indirect
+	cloud.google.com/go/pubsub v1.50.1 // indirect
 	cloud.google.com/go/pubsub/v2 v2.4.0 // indirect
 	cloud.google.com/go/storage v1.60.0 // indirect
 	filippo.io/edwards25519 v1.1.1 // indirect
@@ -677,7 +679,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/telemetry v0.0.0-20260209163413-e7419c687ee4 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260203192932-546029d2fa20 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260203192932-546029d2fa20 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	sigs.k8s.io/controller-runtime v0.23.1 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
@@ -1011,6 +1013,8 @@ replace github.com/observiq/bindplane-otel-collector/internal/storageclient => .
 
 replace github.com/observiq/bindplane-otel-collector/internal/testutils => ./internal/testutils
 
+replace github.com/observiq/bindplane-otel-collector/internal/exporterutils => ./internal/exporterutils
+
 // Extensions
 replace github.com/observiq/bindplane-otel-collector/extension/awss3eventextension => ./extension/awss3eventextension
 
@@ -1068,6 +1072,8 @@ replace github.com/observiq/bindplane-otel-collector/processor/topologyprocessor
 
 // Receivers
 replace github.com/observiq/bindplane-otel-collector/receiver/awss3eventreceiver => ./receiver/awss3eventreceiver
+
+replace github.com/observiq/bindplane-otel-collector/receiver/gcspubsubeventreceiver => ./receiver/gcspubsubeventreceiver
 
 replace github.com/observiq/bindplane-otel-collector/receiver/awss3rehydrationreceiver => ./receiver/awss3rehydrationreceiver
 
