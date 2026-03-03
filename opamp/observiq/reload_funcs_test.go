@@ -132,10 +132,15 @@ func Test_managerReload(t *testing.T) {
 				assert.Equal(t, newConfig.AgentName, client.ident.agentName)
 				assert.Equal(t, newConfig.AgentName, client.currentConfig.AgentName)
 
-				// Verify new file was written
+				// Verify new file was written with correct values
 				data, err := os.ReadFile(managerFilePath)
 				assert.NoError(t, err)
-				assert.Equal(t, newContents, data)
+
+				var writtenConfig opamp.Config
+				assert.NoError(t, yaml.Unmarshal(data, &writtenConfig))
+				assert.Equal(t, newConfig.Endpoint, writtenConfig.Endpoint)
+				assert.Equal(t, newConfig.AgentID.String(), writtenConfig.AgentID.String())
+				assert.Equal(t, *newConfig.AgentName, *writtenConfig.AgentName)
 			},
 		},
 		{
@@ -194,6 +199,76 @@ func Test_managerReload(t *testing.T) {
 				data, err := os.ReadFile(managerFilePath)
 				assert.NoError(t, err)
 				assert.Equal(t, currContents, data)
+			},
+		},
+		{
+			desc: "Env var references preserved in non-updatable fields",
+			testFunc: func(*testing.T) {
+				tmpDir := t.TempDir()
+
+				managerFilePath := filepath.Join(tmpDir, ManagerConfigName)
+
+				// Write a manager.yaml with env var references in non-updatable fields
+				rawYAML := []byte(`endpoint: wss://example.com
+secret_key: ${env:OPAMP_SECRET_KEY}
+agent_id: ` + testAgentID.String() + `
+labels: env=prod
+`)
+				err := os.WriteFile(managerFilePath, rawYAML, 0600)
+				require.NoError(t, err)
+
+				labels := "env=prod"
+				currConfig := &opamp.Config{
+					Endpoint: "wss://example.com",
+					SecretKey: func() *string {
+						s := "resolved-secret-value"
+						return &s
+					}(),
+					AgentID: testAgentID,
+					Labels:  &labels,
+				}
+
+				mockOpAmpClient := mocks.NewMockOpAMPClient(t)
+				mockOpAmpClient.On("SetAgentDescription", mock.Anything).Return(nil)
+
+				client := &Client{
+					logger:             zap.NewNop(),
+					opampClient:        mockOpAmpClient,
+					ident:              newIdentity(zap.NewNop(), *currConfig, "0.0.0"),
+					currentConfig:      *currConfig,
+					measurementsSender: newMeasurementsSender(zap.NewNop(), nil, mockOpAmpClient, 0, nil),
+					topologySender:     newTopologySender(zap.NewNop(), nil, mockOpAmpClient, nil),
+				}
+				reloadFunc := managerReload(client, managerFilePath)
+
+				// Create a new config with changed measurements_interval
+				agentName := "new-name"
+				newConfig := &opamp.Config{
+					Endpoint:             "wss://example.com",
+					AgentID:              testAgentID,
+					Labels:               &labels,
+					AgentName:            &agentName,
+					MeasurementsInterval: 30 * time.Second,
+				}
+
+				newContents, err := yaml.Marshal(newConfig)
+				require.NoError(t, err)
+
+				changed, err := reloadFunc(newContents)
+				assert.NoError(t, err)
+				assert.True(t, changed)
+
+				// Read back the file and verify env var reference is preserved
+				data, err := os.ReadFile(managerFilePath)
+				require.NoError(t, err)
+
+				dataStr := string(data)
+				assert.Contains(t, dataStr, "${env:OPAMP_SECRET_KEY}", "env var reference should be preserved")
+				assert.NotContains(t, dataStr, "resolved-secret-value", "resolved secret should not appear in file")
+
+				// Verify the updatable fields were updated
+				assert.Contains(t, dataStr, "new-name")
+				assert.Contains(t, dataStr, "30s")
 			},
 		},
 	}
