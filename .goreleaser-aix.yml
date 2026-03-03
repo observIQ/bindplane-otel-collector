@@ -1,0 +1,94 @@
+# AIX-specific goreleaser configuration.
+# This is separate from the main .goreleaser.yml because AIX uses a different
+# OCB manifest (manifest-aix.yaml) with a reduced component set.
+#
+# AIX is currently in alpha status. Artifacts are uploaded to GCS for
+# direct-URL distribution to alpha testers, but are NOT published to
+# GitHub releases or included in the combined artifact archive.
+
+version: 2
+
+project_name: bindplane-otel-collector
+
+before:
+  hooks:
+    - cmd: sh -c 'test -d release_deps || make release-prep-aix CURR_VERSION={{ .Version }}'
+    - make build-aix OUTDIR="tmp"
+
+after:
+  hooks:
+    - cmd: rm -rf tmp
+
+# https://goreleaser.com/customization/build/
+builds:
+  # https://goreleaser.com/customization/builds/#import-pre-built-binaries
+  - id: collector
+    builder: prebuilt
+    binary: bindplane-otel-collector
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    tags:
+      - bindplane
+    goos:
+      - aix
+    goarch:
+      - ppc64
+    prebuilt:
+      path: tmp/collector_{{ .Os }}_{{ .Arch }}{{ .Ext }}
+  - id: supervisor
+    builder: prebuilt
+    binary: opampsupervisor
+    goos:
+      - aix
+    goarch:
+      - ppc64
+    prebuilt:
+      path: release_deps/supervisor_bin/opampsupervisor_{{ .Os }}_{{ .Arch }}{{ .Ext }}
+    no_unique_dist_dir: false
+
+# https://goreleaser.com/customization/archive/
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    files:
+      - LICENSE
+      - src: release_deps/plugins/*
+        dst: plugins
+        strip_parent: true
+      - src: release_deps/VERSION.txt
+        dst: "."
+        strip_parent: true
+      - src: release_deps/bindplane-otel-collector.aix.env
+        dst: "install"
+        strip_parent: true
+
+# https://goreleaser.com/customization/checksum/
+checksum:
+  name_template: "{{ .ProjectName }}-v{{ .Version }}-aix-SHA256SUMS"
+  algorithm: sha256
+
+# https://goreleaser.com/customization/sign/
+signs:
+  - cmd: cosign
+    stdin: "{{ .Env.COSIGN_PWD }}"
+    args:
+      ["sign-blob", "--key=cosign.key", "--output=${signature}", "${artifact}"]
+    artifacts: all
+
+# https://goreleaser.com/customization/release/
+# AIX alpha: GitHub release is disabled. Uncomment and switch to mode: append
+# when AIX exits alpha and should be included in the main GitHub release.
+release:
+  disable: true
+  # draft: false
+  # prerelease: "true"
+  # mode: append
+
+# https://console.cloud.google.com/storage/browser/bdot-release
+blobs:
+  - provider: gs
+    bucket: bdot-release
+    directory: "v{{ .Version }}"
+
+# Changelog is handled by the main goreleaser config
+changelog:
+  disable: true
