@@ -58,3 +58,6 @@ perf-test/
 
 # OMC Agents
 .omc/
+
+# OCSF Schema files
+ocsf_schema.json
