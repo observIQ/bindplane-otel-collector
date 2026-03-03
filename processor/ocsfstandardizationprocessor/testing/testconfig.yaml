@@ -1,0 +1,51 @@
+receivers:
+  telemetrygeneratorreceiver:
+    payloads_per_second: 1
+    generators:
+      - type: logs
+        resource_attributes:
+          source: "test-generator"
+        attributes:
+          log.type: "security"
+        additional_config:
+          body: '{"user": "admin", "action": "login", "src_ip": "192.168.1.100", "status": "success"}'
+          severity: 9
+
+processors:
+  transform:
+    log_statements:
+      - context: log
+        statements:
+          - merge_maps(cache, ParseJSON(body.string), "upsert")
+          - set(body, cache)
+
+  ocsf_standardization:
+    ocsf_version: "1.3.0"
+    event_mappings:
+      - class_id: 3001
+        filter: 'attributes["log.type"] == "security"'
+        field_mappings:
+          - default: "Bindplane Agent"
+            to: "source.name"
+          - from: 'body["user"]'
+            to: "actor.user.name"
+          - from: 'body["action"]'
+            to: "activity_name"
+          - from: 'body["src_ip"]'
+            to: "src_endpoint.ip"
+          - from: 'body["status"]'
+            to: "status"
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  telemetry:
+    logs:
+      level: debug
+  pipelines:
+    logs:
+      receivers: [telemetrygeneratorreceiver]
+      processors: [transform, ocsf_standardization]
+      exporters: [debug]
