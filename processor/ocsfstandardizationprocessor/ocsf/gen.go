@@ -210,16 +210,17 @@ func generateForVersion(schemaPath, dir, pkgName, schemaUrl string) error {
 
 	writePackages(&buf)
 	writeRegexVars(&buf, typeConstraints)
+	writeHelpers(&buf)
 
 	for _, name := range sortedKeys(schema.Objects) {
 		obj := schema.Objects[name]
-		generateType(&buf, name, obj.Caption, obj.Description, 0, obj.Attributes, obj.Constraints, typeConstraints)
+		generateType(&buf, name, obj.Attributes, obj.Constraints, typeConstraints)
 	}
 
 	classNames := sortedKeys(schema.Classes)
 	for _, name := range classNames {
 		cls := schema.Classes[name]
-		generateType(&buf, name, cls.Caption, cls.Description, cls.UID, cls.Attributes, cls.Constraints, typeConstraints)
+		generateType(&buf, name, cls.Attributes, cls.Constraints, typeConstraints)
 	}
 
 	// Generate class UID constants
@@ -254,22 +255,16 @@ func generateForVersion(schemaPath, dir, pkgName, schemaUrl string) error {
 	return nil
 }
 
-func generateType(buf *bytes.Buffer, name, caption, description string, uid int, attrs map[string]Attribute, constraints Constraints, typeConstraints map[string]typeConstraint) {
+func generateType(buf *bytes.Buffer, name string, attrs map[string]Attribute, constraints Constraints, typeConstraints map[string]typeConstraint) {
 	attrs = filterOutProfileAttrs(attrs)
-	writeStruct(buf, name, caption, description, uid, attrs)
 	writeValidation(buf, toGoName(name), attrs, constraints, typeConstraints)
 }
 
 func writePackages(buf *bytes.Buffer) {
 	stdPackages := []string{"errors", "fmt", "regexp", "strings"}
-	externPackages := []string{"github.com/go-viper/mapstructure/v2"}
 
 	buf.WriteString("import (\n")
 	for _, pkg := range stdPackages {
-		fmt.Fprintf(buf, "%q\n", pkg)
-	}
-	fmt.Fprintf(buf, "\n")
-	for _, pkg := range externPackages {
 		fmt.Fprintf(buf, "%q\n", pkg)
 	}
 	buf.WriteString(")\n\n")
@@ -300,45 +295,30 @@ func writeRegexVars(buf *bytes.Buffer, typeConstraints map[string]typeConstraint
 	buf.WriteString(")\n\n")
 }
 
-func writeStruct(buf *bytes.Buffer, name, caption, description string, uid int, attrs map[string]Attribute) {
-	goName := toGoName(name)
-	if uid > 0 {
-		fmt.Fprintf(buf, "// %s represents the OCSF %s event class (UID: %d).\n", goName, caption, uid)
-	} else {
-		fmt.Fprintf(buf, "// %s represents the OCSF %s object.\n", goName, caption)
-	}
-	if description != "" {
-		fmt.Fprintf(buf, "// %s\n", cleanDescription(description))
-	}
-	fmt.Fprintf(buf, "type %s struct {\n", goName)
-	writeFields(buf, attrs)
-	buf.WriteString("}\n\n")
-}
-
-func writeFields(buf *bytes.Buffer, attrs map[string]Attribute) {
-	names := sortedKeys(attrs)
-	for _, name := range names {
-		attr := attrs[name]
-		goFieldName := toGoName(name)
-		goType := resolveGoType(attr)
-		jsonTag := name
-
-		omitempty := attr.Requirement != "required"
-		tag := fmt.Sprintf("`mapstructure:\"%s", jsonTag)
-		if omitempty {
-			tag += ",omitempty"
-		}
-		tag += "\"`"
-
-		fmt.Fprintf(buf, "%s %s %s\n", goFieldName, goType, tag)
+// writeHelpers generates helper functions used by the validation code.
+func writeHelpers(buf *bytes.Buffer) {
+	buf.WriteString(`// toInt64 converts a numeric value to int64 for validation.
+func toInt64(v any) (int64, bool) {
+	switch n := v.(type) {
+	case int64:
+		return n, true
+	case int:
+		return int64(n), true
+	case float64:
+		return int64(n), true
+	default:
+		return 0, false
 	}
 }
 
-// writeValidation generates a Validate() error method for a struct.
-// Every type gets a Validate() method so parents can always recurse into children.
+`)
+}
+
+// writeValidation generates a standalone validate function that operates on map[string]any.
+// Every type gets a validate function so parents can always recurse into children.
 func writeValidation(buf *bytes.Buffer, goName string, attrs map[string]Attribute, constraints Constraints, typeConstraints map[string]typeConstraint) {
-	fmt.Fprintf(buf, "// Validate checks required fields, constraints, and enum values for %s.\n", goName)
-	fmt.Fprintf(buf, "func (o *%s) Validate() error {\n", goName)
+	fmt.Fprintf(buf, "// validate%s checks required fields, constraints, and enum values.\n", goName)
+	fmt.Fprintf(buf, "func validate%s(data map[string]any) error {\n", goName)
 	buf.WriteString("var errs []error\n")
 
 	// Required field checks
@@ -347,15 +327,8 @@ func writeValidation(buf *bytes.Buffer, goName string, attrs map[string]Attribut
 		if attr.Requirement != "required" {
 			continue
 		}
-		goField := toGoName(name)
-		if attr.IsArray {
-			fmt.Fprintf(buf, "if len(o.%s) == 0 {\n", goField)
-		} else if attr.Type == "json_t" {
-			fmt.Fprintf(buf, "if o.%s == nil {\n", goField)
-		} else {
-			fmt.Fprintf(buf, "if o.%s == nil {\n", goField)
-		}
-		fmt.Fprintf(buf, "errs = append(errs, errors.New(\"%s is required\"))\n", name)
+		fmt.Fprintf(buf, "if _, ok := data[%q]; !ok {\n", name)
+		fmt.Fprintf(buf, "errs = append(errs, errors.New(%q))\n", name+" is required")
 		buf.WriteString("}\n")
 	}
 
@@ -363,18 +336,16 @@ func writeValidation(buf *bytes.Buffer, goName string, attrs map[string]Attribut
 	if len(constraints.AtLeastOne) > 0 {
 		fields := filterFieldsInAttrs(constraints.AtLeastOne, attrs)
 		if len(fields) > 0 {
+			buf.WriteString("{\n")
 			conditions := make([]string, 0, len(fields))
-			for _, f := range fields {
-				attr := attrs[f]
-				if attr.IsArray {
-					conditions = append(conditions, fmt.Sprintf("len(o.%s) == 0", toGoName(f)))
-				} else {
-					conditions = append(conditions, fmt.Sprintf("o.%s == nil", toGoName(f)))
-				}
+			for i, f := range fields {
+				varName := fmt.Sprintf("ok%d", i)
+				fmt.Fprintf(buf, "_, %s := data[%q]\n", varName, f)
+				conditions = append(conditions, "!"+varName)
 			}
 			fmt.Fprintf(buf, "if %s {\n", strings.Join(conditions, " && "))
 			fmt.Fprintf(buf, "errs = append(errs, errors.New(\"at least one of [%s] must be set\"))\n", strings.Join(fields, ", "))
-			buf.WriteString("}\n")
+			buf.WriteString("}\n}\n")
 		}
 	}
 
@@ -384,12 +355,7 @@ func writeValidation(buf *bytes.Buffer, goName string, attrs map[string]Attribut
 		if len(fields) > 0 {
 			buf.WriteString("{\ncount := 0\n")
 			for _, f := range fields {
-				attr := attrs[f]
-				if attr.IsArray {
-					fmt.Fprintf(buf, "if len(o.%s) > 0 { count++ }\n", toGoName(f))
-				} else {
-					fmt.Fprintf(buf, "if o.%s != nil { count++ }\n", toGoName(f))
-				}
+				fmt.Fprintf(buf, "if _, ok := data[%q]; ok { count++ }\n", f)
 			}
 			buf.WriteString("if count != 1 {\n")
 			fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"exactly one of [%s] must be set, got %%d\", count))\n", strings.Join(fields, ", "))
@@ -403,7 +369,7 @@ func writeValidation(buf *bytes.Buffer, goName string, attrs map[string]Attribut
 		if len(attr.Enum) == 0 || attr.IsArray {
 			continue
 		}
-		writeEnumValidation(buf, name, toGoName(name), attr)
+		writeEnumValidation(buf, name, attr)
 	}
 
 	// Type-level validation: range, max length, and regex
@@ -417,13 +383,13 @@ func writeValidation(buf *bytes.Buffer, goName string, attrs map[string]Attribut
 			continue
 		}
 		if tc.Range != nil {
-			writeRangeValidation(buf, name, toGoName(name), tc.Range)
+			writeRangeValidation(buf, name, tc.Range)
 		}
 		if tc.MaxLen > 0 {
-			writeMaxLenValidation(buf, name, toGoName(name), tc.MaxLen)
+			writeMaxLenValidation(buf, name, tc.MaxLen)
 		}
 		if tc.Regex != "" {
-			writeRegexValidation(buf, name, toGoName(name), attr.Type)
+			writeRegexValidation(buf, name, attr.Type)
 		}
 	}
 
@@ -433,17 +399,21 @@ func writeValidation(buf *bytes.Buffer, goName string, attrs map[string]Attribut
 		if attr.Type != "object_t" || attr.ObjectType == "" {
 			continue
 		}
-		goField := toGoName(name)
+		nestedFn := "validate" + toGoName(attr.ObjectType)
 		if attr.IsArray {
-			fmt.Fprintf(buf, "for i := range o.%s {\n", goField)
-			fmt.Fprintf(buf, "if err := o.%s[i].Validate(); err != nil {\n", goField)
+			fmt.Fprintf(buf, "if v, ok := data[%q]; ok {\n", name)
+			buf.WriteString("if arr, ok := v.([]any); ok {\n")
+			buf.WriteString("for i, elem := range arr {\n")
+			buf.WriteString("if m, ok := elem.(map[string]any); ok {\n")
+			fmt.Fprintf(buf, "if err := %s(m); err != nil {\n", nestedFn)
 			fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s[%%d]: %%w\", i, err))\n", name)
-			buf.WriteString("}\n}\n")
+			buf.WriteString("}\n}\n}\n}\n}\n")
 		} else {
-			fmt.Fprintf(buf, "if o.%s != nil {\n", goField)
-			fmt.Fprintf(buf, "if err := o.%s.Validate(); err != nil {\n", goField)
+			fmt.Fprintf(buf, "if v, ok := data[%q]; ok {\n", name)
+			buf.WriteString("if m, ok := v.(map[string]any); ok {\n")
+			fmt.Fprintf(buf, "if err := %s(m); err != nil {\n", nestedFn)
 			fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s: %%w\", err))\n", name)
-			buf.WriteString("}\n}\n")
+			buf.WriteString("}\n}\n}\n")
 		}
 	}
 
@@ -451,40 +421,47 @@ func writeValidation(buf *bytes.Buffer, goName string, attrs map[string]Attribut
 	buf.WriteString("}\n\n")
 }
 
-func writeRangeValidation(buf *bytes.Buffer, fieldName, goField string, rangeVals []int) {
-	fmt.Fprintf(buf, "if o.%s != nil && (*o.%s < %d || *o.%s > %d) {\n", goField, goField, rangeVals[0], goField, rangeVals[1])
-	fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s: value %%d is out of range [%d, %d]\", *o.%s))\n", fieldName, rangeVals[0], rangeVals[1], goField)
-	buf.WriteString("}\n")
+func writeRangeValidation(buf *bytes.Buffer, fieldName string, rangeVals []int) {
+	fmt.Fprintf(buf, "if v, ok := data[%q]; ok {\n", fieldName)
+	buf.WriteString("if intVal, ok := toInt64(v); ok {\n")
+	fmt.Fprintf(buf, "if intVal < %d || intVal > %d {\n", rangeVals[0], rangeVals[1])
+	fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s: value %%d is out of range [%d, %d]\", intVal))\n", fieldName, rangeVals[0], rangeVals[1])
+	buf.WriteString("}\n}\n}\n")
 }
 
-func writeMaxLenValidation(buf *bytes.Buffer, fieldName, goField string, maxLen int) {
-	fmt.Fprintf(buf, "if o.%s != nil && len(*o.%s) > %d {\n", goField, goField, maxLen)
-	fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s: length %%d exceeds max %d\", len(*o.%s)))\n", fieldName, maxLen, goField)
-	buf.WriteString("}\n")
+func writeMaxLenValidation(buf *bytes.Buffer, fieldName string, maxLen int) {
+	fmt.Fprintf(buf, "if v, ok := data[%q]; ok {\n", fieldName)
+	buf.WriteString("if strVal, ok := v.(string); ok {\n")
+	fmt.Fprintf(buf, "if len(strVal) > %d {\n", maxLen)
+	fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s: length %%d exceeds max %d\", len(strVal)))\n", fieldName, maxLen)
+	buf.WriteString("}\n}\n}\n")
 }
 
 // writeRegexValidation generates a regex check for a field using the precompiled type regex var.
-func writeRegexValidation(buf *bytes.Buffer, fieldName, goField string, typeName string) {
+func writeRegexValidation(buf *bytes.Buffer, fieldName string, typeName string) {
 	varName := "regex" + toGoName(typeName)
-	fmt.Fprintf(buf, "if o.%s != nil && !%s.MatchString(*o.%s) {\n", goField, varName, goField)
-	fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s: invalid value %%q\", *o.%s))\n", fieldName, goField)
-	buf.WriteString("}\n")
+	fmt.Fprintf(buf, "if v, ok := data[%q]; ok {\n", fieldName)
+	buf.WriteString("if strVal, ok := v.(string); ok {\n")
+	fmt.Fprintf(buf, "if !%s.MatchString(strVal) {\n", varName)
+	fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s: invalid value %%q\", strVal))\n", fieldName)
+	buf.WriteString("}\n}\n}\n")
 }
 
 // writeEnumValidation generates a switch-based enum check for a single field.
-func writeEnumValidation(buf *bytes.Buffer, fieldName, goField string, attr Attribute) {
+func writeEnumValidation(buf *bytes.Buffer, fieldName string, attr Attribute) {
 	switch attr.Type {
 	case "long_t", "integer_t":
 		vals := parseIntEnumKeys(attr.Enum)
 		if len(vals) == 0 {
 			return
 		}
-		fmt.Fprintf(buf, "if o.%s != nil {\n", goField)
-		fmt.Fprintf(buf, "switch *o.%s {\n", goField)
+		fmt.Fprintf(buf, "if v, ok := data[%q]; ok {\n", fieldName)
+		buf.WriteString("if intVal, ok := toInt64(v); ok {\n")
+		buf.WriteString("switch intVal {\n")
 		fmt.Fprintf(buf, "case %s:\n", joinInts(vals))
 		buf.WriteString("default:\n")
-		fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s: invalid value %%d\", *o.%s))\n", fieldName, goField)
-		buf.WriteString("}\n}\n")
+		fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s: invalid value %%d\", intVal))\n", fieldName)
+		buf.WriteString("}\n}\n}\n")
 	default:
 		// String-like types with enums
 		if !strings.HasSuffix(attr.Type, "_t") {
@@ -498,30 +475,30 @@ func writeEnumValidation(buf *bytes.Buffer, fieldName, goField string, attr Attr
 		for _, k := range keys {
 			quoted = append(quoted, fmt.Sprintf("%q", k))
 		}
-		fmt.Fprintf(buf, "if o.%s != nil {\n", goField)
-		fmt.Fprintf(buf, "switch *o.%s {\n", goField)
+		fmt.Fprintf(buf, "if v, ok := data[%q]; ok {\n", fieldName)
+		buf.WriteString("if strVal, ok := v.(string); ok {\n")
+		buf.WriteString("switch strVal {\n")
 		fmt.Fprintf(buf, "case %s:\n", strings.Join(quoted, ", "))
 		buf.WriteString("default:\n")
-		fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s: invalid value %%q\", *o.%s))\n", fieldName, goField)
-		buf.WriteString("}\n}\n")
+		fmt.Fprintf(buf, "errs = append(errs, fmt.Errorf(\"%s: invalid value %%q\", strVal))\n", fieldName)
+		buf.WriteString("}\n}\n}\n")
 	}
 }
 
-// writeValidateClass generates a ValidateClass function that decodes data into
-// the appropriate class struct based on classUID and validates it.
+// writeValidateClass generates a ValidateClass function that validates data
+// directly as map[string]any against the appropriate class.
 func writeValidateClass(buf *bytes.Buffer, classNames []string) {
-	buf.WriteString("// ValidateClass decodes data into the OCSF event class identified by classUID\n")
-	buf.WriteString("// and runs validation on the resulting struct.\n")
+	buf.WriteString("// ValidateClass validates data against the OCSF event class identified by classUID.\n")
 	buf.WriteString("func ValidateClass(classUID int, data any) error {\n")
+	buf.WriteString("m, ok := data.(map[string]any)\n")
+	buf.WriteString("if !ok {\n")
+	buf.WriteString("return fmt.Errorf(\"expected map[string]any, got %T\", data)\n")
+	buf.WriteString("}\n")
 	buf.WriteString("switch classUID {\n")
 	for _, name := range classNames {
 		goName := toGoName(name)
 		fmt.Fprintf(buf, "case ClassUID%s:\n", goName)
-		fmt.Fprintf(buf, "var obj %s\n", goName)
-		buf.WriteString("if err := mapstructure.Decode(data, &obj); err != nil {\n")
-		buf.WriteString("return fmt.Errorf(\"decoding class: %w\", err)\n")
-		buf.WriteString("}\n")
-		buf.WriteString("return obj.Validate()\n")
+		fmt.Fprintf(buf, "return validate%s(m)\n", goName)
 	}
 	buf.WriteString("default:\n")
 	buf.WriteString("return fmt.Errorf(\"unknown class UID: %d\", classUID)\n")
@@ -567,47 +544,6 @@ func joinInts(vals []int64) string {
 	return strings.Join(parts, ", ")
 }
 
-func resolveGoType(attr Attribute) string {
-	var baseType string
-
-	switch attr.Type {
-	case "object_t":
-		if attr.ObjectType != "" {
-			baseType = "*" + toGoName(attr.ObjectType)
-		} else {
-			baseType = "map[string]any"
-		}
-	case "integer_t":
-		baseType = "*int"
-	case "long_t":
-		baseType = "*int64"
-	case "float_t":
-		baseType = "*float64"
-	case "boolean_t":
-		baseType = "*bool"
-	case "json_t":
-		baseType = "any"
-	case "timestamp_t":
-		baseType = "*int64"
-	case "port_t":
-		baseType = "*int"
-	default:
-		// All string-like types: string_t, email_t, hostname_t, ip_t,
-		// mac_t, url_t,datetime_t, file_hash_t,
-		// file_name_t, file_path_t, process_name_t, resource_uid_t,
-		// subnet_t username_t, uuid_t, bytestring_t, reg_key_path_t
-		baseType = "*string"
-	}
-
-	if attr.IsArray {
-		// Arrays use slice types; no pointer needed for the element
-		baseType = strings.TrimPrefix(baseType, "*")
-		return "[]" + baseType
-	}
-
-	return baseType
-}
-
 // toGoName converts a snake_case OCSF name to a PascalCase Go name.
 func toGoName(name string) string {
 	// Handle namespaced names like "win/registry_value_query"
@@ -642,29 +578,6 @@ func isAcronym(s string) bool {
 		"MAC": true, "MFA": true,
 	}
 	return acronyms[s]
-}
-
-// cleanDescription strips HTML tags and normalizes whitespace for Go comments.
-func cleanDescription(s string) string {
-	// Strip HTML tags
-	var result strings.Builder
-	inTag := false
-	for _, r := range s {
-		if r == '<' {
-			inTag = true
-			continue
-		}
-		if r == '>' {
-			inTag = false
-			continue
-		}
-		if !inTag {
-			result.WriteRune(r)
-		}
-	}
-	// Collapse whitespace and trim
-	cleaned := strings.Join(strings.Fields(result.String()), " ")
-	return cleaned
 }
 
 // filterOutProfileAttrs returns a copy of attrs with profile-sourced attributes removed.
